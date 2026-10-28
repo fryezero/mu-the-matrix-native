@@ -10,7 +10,8 @@ jump table, dispatch.def, decode or encrypted transport was touched.
 
 The map view borrows immutable records; each HUD adapter has its own revision and binding
 cache. Showing or rebinding the movie replays the collection without changing it. The fixture
-owns synthetic gate/NPC marker generation and delivers ordinary plaintext frames. The world
+owns synthetic gate/NPC marker generation and the `detected kind x y ...` refresh command,
+including an empty `detected` command. It delivers ordinary plaintext frames. The world
 part opens its bounded overlay fixture when a world opens, detaches it before close and
 recreates it on world reload. Account-owned session lifetime is a later prerequisite.
 
@@ -32,8 +33,9 @@ removal matches type and key. No new per-frame allocation was introduced.
   setter is outside this collection comparison. Target pins remain capture09 text and run10 data.
 - Existing map comparison: **5,001 cases, zero mismatches, 10/10 historical mutants caught**,
   using the original lang4 snapshot. No reconstructed/map implementation changed.
-- Portable reconstructed map tests: **11 pass**. Native travel tests: **8 pass, 1 private skip**
-  in the initial focused run. New tests cover recorded routing, add/update/delete, malformed
+- Bounded teleport/registration regression: **876 checks, zero mismatches, 3/3 historical
+  mutants caught**. This reruns the existing bounded slices without migrating travel.
+- Portable reconstructed map tests: **11 pass**. Native travel tests: **9 pass**, including the private Lorencia → Noria → Lorencia check with manifest-backed inputs. New tests cover recorded routing, add/update/delete, malformed
   atomicity, empty refresh, full collection update/remove/reuse, 16-bit/count bounds, lease
   mutation refusal, and movie-host detach/rebind. The private comparison is registered in
   validators.toml at 120 cases with four compiled mutants.
@@ -42,6 +44,12 @@ removal matches type and key. No new per-frame allocation was introduced.
   empty detector refresh clears dots; removal clears markers; reopening the host reconstructs
   retained records. Three representative captures were made and the populated frame inspected.
   These are synthetic marker positions over the real movie and map image, not live-game evidence.
+
+A baseline/current render comparison compiled the pre-migration map adapter from `26018b4`
+and the session adapter against identical synthetic portal/NPC inputs and the installed real movies.
+With the existing deterministic GFx test clock, all **4,096,000 RGBA bytes match exactly**, SHA-256
+`42882ea88738acdcb6aa4bafc388cd8faa5e5fdd46c4e08322d837e7b88b1625`. An initial ordinary-clock
+comparison differed only in animated skill icons; no map pixel differed. No render pins changed.
 
 Final locked gate and fixture-suite counts are recorded after the final merge with origin/main.
 No hosted workflow or live client/launcher was used. Source and synthetic fixtures only are

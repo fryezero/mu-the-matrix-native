@@ -130,6 +130,10 @@ int main(int argc, char **argv)
             if (argc == 5)
                 movie_check(l, tick);
         }
+        if (l && tick == 3)
+            world_gfx_map_action(g, "tab", 0); /* detector reply must reveal a hidden map */
+        if (l && tick == 4)
+            assert(map->hud.shown);
         if (tick == 4) {
             mu_session_detach_world(s);
             if (g)

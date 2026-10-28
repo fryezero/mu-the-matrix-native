@@ -5,11 +5,11 @@ use map_overlay
 at 1 map_overlay marker 7 1 0 0 120 121 Guide
 at 2 map_overlay marker 7 1 6 0 122 123 Updated guide
 at 3 send game c1 0a e7 04 07 00 00 00 78 79
-at 4 send game c2 00 18 e7 05 00 00 03 00 00 00 00 00 00 01 78 00 79 00 02 7a 00 7b 00
+at 4 map_overlay detected 0 0 0 1 120 121 2 122 123
 at 5 send game c1 0c e7 03 07 01 00 00 78 79 58 58
 at 6 send game c2 00 0e e7 05 00 00 02 00 01 01 00 01 00
 at 7 send game c1 0a e7 04 07 00 00 01 00 00
-at 8 send game c2 00 09 e7 05 00 00 00 00
+at 8 map_overlay detected
 at 9 map_overlay marker 7 1 0 1 0 0 Removed
 expect unbound = 0
 expect undecodable = 0

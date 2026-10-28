@@ -32,8 +32,8 @@ static int add(overlay_fixture *s, int key, int type, int state, int action, int
         (uint8_t)x, (uint8_t)y};
     memcpy(m->bytes, p, 10);
     size_t n = strlen(name);
-    if (n > 63)
-        n = 63;
+    if (n > 40)
+        n = 40; /* Preserve the existing offline placement label bound. */
     memcpy(m->bytes + 10, name, n);
     m->bytes[10 + n] = 0;
     m->length = 11 + n;
@@ -83,11 +83,44 @@ static void step(void *self, mu_fixture_ctx *ctx, uint32_t now)
 }
 static int command(void *self, mu_fixture_ctx *ctx, const char *line, char *error, size_t cap)
 {
-    (void)ctx;
+    if (!strncmp(line, "detected", 8) && (line[8] == 0 || line[8] == ' ')) {
+        uint8_t entries[256 * 5];
+        unsigned count = 0;
+        const char *at = line + 8;
+        while (*at == ' ')
+            ++at;
+        while (*at) {
+            long value[3];
+            for (int j = 0; j < 3; ++j) {
+                char *end;
+                value[j] = strtol(at, &end, 10);
+                if (end == at || value[j] < 0 || value[j] > (j == 0 ? 255 : 65535))
+                    goto invalid;
+                at = end;
+                while (*at == ' ')
+                    ++at;
+            }
+            if (count == 256)
+                goto invalid;
+            uint8_t *e = entries + count++ * 5;
+            e[0] = (uint8_t)value[0];
+            e[1] = (uint8_t)value[1];
+            e[2] = (uint8_t)(value[1] >> 8);
+            e[3] = (uint8_t)value[2];
+            e[4] = (uint8_t)(value[2] >> 8);
+        }
+        uint8_t header[5] = {5, 0, 0, (uint8_t)count, (uint8_t)(count >> 8)};
+        mu_packet p;
+        mu_packet_begin(&p, 0xc2, 0xe7);
+        mu_packet_add(&p, header, sizeof header, 0);
+        mu_packet_add(&p, entries, (size_t)count * 5, 0);
+        return mu_fx_send(ctx, MU_CONN_GAME, &p, 0);
+    }
     int key, type, state, action, x, y, n = 0;
     if (sscanf(line, "marker %d %d %d %d %d %d %n", &key, &type, &state, &action, &x, &y, &n) == 6 && n)
         return add(self, key, type, state, action, x, y, line + n);
-    snprintf(error, cap, "invalid overlay marker command");
+invalid:
+    snprintf(error, cap, "invalid overlay marker/detected command");
     return -1;
 }
 const mu_fixture_behavior mu_fx_map_overlay = {
