@@ -31,3 +31,25 @@ $(BUILD)/mu-gfx-layer-test: ../tests/gfx_layer_host.c $(LAYER_SRC) mu_gfx_layer.
 	$(CC) $(CFLAGS) -DMU_GFX_NO_GL ../tests/gfx_layer_host.c $(LAYER_SRC) $(DL_LIBS) -lm -o $@
 
 .PHONY: window
+
+# DATA-ACQ-003: first-run conversion, no Python/Pillow. The C++ envelope
+# reader is linked as an object; only Crypto++ and system zlib are needed.
+CXX := clang++
+CRYPTOPP_PREFIX ?= $(shell if command -v brew >/dev/null 2>&1; then brew --prefix cryptopp; else echo /usr; fi)
+ifneq ($(CRYPTOPP_PREFIX),/usr)
+CONVERT_CPPFLAGS := -isystem $(CRYPTOPP_PREFIX)/include
+CONVERT_LDFLAGS := -L$(CRYPTOPP_PREFIX)/lib
+endif
+CONVERT_SRC := gfxconvert.c gfxconvert_image.c gfxconvert_fonts.c gfxconvert_actions.c
+CONVERT_OBJ := $(patsubst %.c,$(BUILD)/gfxconvert/%.o,$(CONVERT_SRC))
+CONVERT_FLAGS := -std=c11 -O2 -Wall -Wextra -Werror -Wconversion -ffp-contract=off
+converter: $(BUILD)/gfxconvert/gfxconvert
+$(BUILD)/gfxconvert/%.o: %.c gfxconvert.h Makefile
+	@mkdir -p $(dir $@)
+	$(CC) $(CONVERT_FLAGS) $(CONVERT_CPPFLAGS) -c $< -o $@
+$(BUILD)/gfxconvert/modulus.o: ../../model-recovery/modulus.cpp
+	@mkdir -p $(dir $@)
+	$(CXX) -std=c++17 -O2 $(CONVERT_CPPFLAGS) -c $< -o $@
+$(BUILD)/gfxconvert/gfxconvert: $(CONVERT_OBJ) $(BUILD)/gfxconvert/modulus.o
+	$(CXX) $^ $(CONVERT_LDFLAGS) -lcryptopp -lz -o $@
+.PHONY: converter

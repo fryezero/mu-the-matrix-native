@@ -16,8 +16,8 @@ evidence is the bundle checks and runs below.
   Option at launch (or `--settings`) opens a settings window: game folder, Native Data folder, "Prepare again",
   window size, ten feature switches.
 - Native Data (default `~/Library/Application Support/MuTheMatrixNative/Native Data`, outside the repository and
-  the bundle): `gfx/` (all 179 installed `.ozg` movies converted by the bundled `gfxconvert.py` with the HUD
-  options, about 30 s; or copies of movies converted earlier), `lang/` (NATIVE-LANG-001 plaintext),
+  the bundle): `gfx/` (all 179 installed `.ozg` movies converted by the bundled C `gfxconvert` with the HUD
+  options ([DATA-ACQ-003](native-gfx-converter.md)); or copies of movies converted earlier), `lang/` (NATIVE-LANG-001 plaintext),
   `objects/` (decoded `EncTerrain<n>.plain` with sidecars), `sound/audio-tables.tsv`; the last three are copied
   from `~/Documents/mu-mac-tools/native/scratch` when present. `setup.json` records the result.
 - Defaults: GFx interface on when the bundle has libmugfx and the movies exist (otherwise the stand-ins), combat
@@ -53,7 +53,7 @@ The network protocol is out of scope and the preview promises no connection. Thr
 
 `make -C native preview-app` (`native/app/Makefile`, modelled on the Wine-track app bundle in mu-the-matrix-mac): swiftc launcher, the guard,
 mu-client, the icon drawn by `native/app/icon/make-icon.swift`, the demo session and the Lorencia demo
-tables, the converter with `model-recovery/libmodulus.dylib`. `bundle-dylibs.sh` copies Homebrew's Crypto++,
+tables, and the C converter linked with the existing Modulus envelope reader. `bundle-dylibs.sh` copies Homebrew's Crypto++,
 libjpeg and sdl2-compat into `Contents/Frameworks` with `@rpath` load commands, plus SDL3, which sdl2-compat loads
 at run time from `@loader_path/libSDL3.dylib`; afterwards no Mach-O names a library outside `/System`, `/usr/lib`
 and the bundle. libmugfx comes from `MUGFX_LIB` (default this checkout's `native/gfx/mugfx/target/release`,

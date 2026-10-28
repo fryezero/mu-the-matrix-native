@@ -39,7 +39,7 @@ enum Paths {
     static var placement: String { resources + "/world/lorencia-demo-placement.txt" }
     static var npcDemo: String { resources + "/world/lorencia-demo-npc.txt" }
     static var players: String { resources + "/world/lorencia-demo-players.txt" }   // NATIVE-HELPERS-001
-    static var converter: String { resources + "/converter/native/gfx/gfxconvert.py" }
+    static var converter: String { contents + "/MacOS/gfxconvert" }
 
     static func exists(_ p: String) -> Bool { FileManager.default.fileExists(atPath: p) }
     static func isDir(_ p: String) -> Bool {
@@ -107,7 +107,6 @@ struct PreviewSettings: Codable, Equatable {
     var gameRoot: String? = nil       // nil: the free install (Paths.defaultGameRoot)
     var nativeData: String? = nil     // nil: Paths.defaultNativeData
     var scratch: String? = nil        // nil: Paths.defaultScratch
-    var python: String? = nil         // nil: the first python3 with Pillow
     var windowSize = "fit"            // "fit", "WxH" (points) or "full" (full screen; the window is resizable)
     var gfx = true                    // GFx interface (Ruffle), when the library and movies exist
     var combat = true                 // combat demo (mu-world --combat)
@@ -139,7 +138,6 @@ struct PreviewSettings: Codable, Equatable {
         gameRoot = try c.decodeIfPresent(String.self, forKey: .gameRoot)
         nativeData = try c.decodeIfPresent(String.self, forKey: .nativeData)
         scratch = try c.decodeIfPresent(String.self, forKey: .scratch)
-        python = try c.decodeIfPresent(String.self, forKey: .python)
         windowSize = try c.decodeIfPresent(String.self, forKey: .windowSize) ?? d.windowSize
         gfx = try c.decodeIfPresent(Bool.self, forKey: .gfx) ?? d.gfx
         combat = try c.decodeIfPresent(Bool.self, forKey: .combat) ?? d.combat
@@ -268,7 +266,7 @@ enum DataSetup {
         if !force && nd.hasMovies {
             result["gfx"] = Step(status: "kept", files: nd.movies.count, source: nd.gfx, detail: "already converted")
         } else {
-            result["gfx"] = convertMovies(nd: nd, gameRoot: gameRoot, python: s.python, scratch: scratch)
+            result["gfx"] = convertMovies(nd: nd, gameRoot: gameRoot, scratch: scratch)
         }
 
         // 2..4. Plaintexts and tables from the local readers (copies; the sources stay untouched).
@@ -318,42 +316,34 @@ enum DataSetup {
         return Step(status: copied == names.count ? "copied" : "partial", files: copied, source: src, detail: "")
     }
 
-    /// python3 with Pillow (the converter's image library): the setting, then Homebrew, then the system one.
-    /// /usr/bin/python3 is only tried when the Command Line Tools are installed (otherwise it asks to install them).
-    static func findPython(_ preferred: String?) -> String? {
-        var candidates: [String] = []
-        if let p = preferred { candidates.append(p) }
-        if let p = Paths.env["MU_NATIVE_PYTHON"] { candidates.append(p) }
-        candidates += ["/opt/homebrew/bin/python3", "/usr/local/bin/python3"]
-        if run("/usr/bin/xcode-select", ["-p"]).status == 0 { candidates.append("/usr/bin/python3") }
-        for p in candidates where FileManager.default.isExecutableFile(atPath: p) {
-            if run(p, ["-B", "-E", "-c", "import PIL, zlib"]).status == 0 { return p }
-        }
-        return nil
-    }
-
-    static func convertMovies(nd: NativeData, gameRoot: String?, python: String?, scratch: String) -> Step {
+    static func convertMovies(nd: NativeData, gameRoot: String?, scratch: String) -> Step {
         let fm = FileManager.default
         var why = ""
         if let root = gameRoot, Paths.isDir(root + "/Data/Interface/GFx"), Paths.exists(Paths.converter) {
-            if let py = findPython(python) {
-                let tmp = nd.dir + "/gfx.converting"
-                try? fm.removeItem(atPath: tmp)
-                let r = run(py, ["-B", "-E", Paths.converter, "--root", root, "--out", tmp]
-                            + converterOptions + ["--report", nd.dir + "/gfx-convert.json"])
-                AppLog.write("gfxconvert (\(py)) status \(r.status)\n" + String(r.output.suffix(4000)))
-                let made = Paths.files(tmp) { $0.hasSuffix(".swf") }
-                if Paths.exists(tmp + "/base.swf") && Paths.exists(tmp + "/main.swf") {
-                    try? fm.removeItem(atPath: nd.gfx)
-                    try? fm.moveItem(atPath: tmp, toPath: nd.gfx)
-                    return Step(status: r.status == 0 ? "converted" : "converted with errors", files: made.count,
-                                source: root + "/Data/Interface/GFx", detail: "gfxconvert.py with \(py)")
+            let tmp = nd.dir + "/gfx.converting"
+            try? fm.removeItem(atPath: tmp)
+            let r = run(Paths.converter, ["--root", root, "--out", tmp]
+                        + converterOptions + ["--report", nd.dir + "/gfx-convert.json"])
+            AppLog.write("gfxconvert (C) status \(r.status)\n" + String(r.output.suffix(4000)))
+            let made = Paths.files(tmp) { $0.hasSuffix(".swf") }
+            if r.status == 0 && Paths.exists(tmp + "/base.swf") && Paths.exists(tmp + "/main.swf") {
+                do {
+                    // Publish a complete conversion; keep the old set if installation fails.
+                    if Paths.exists(nd.gfx) {
+                        _ = try fm.replaceItemAt(URL(fileURLWithPath: nd.gfx),
+                                                 withItemAt: URL(fileURLWithPath: tmp))
+                    } else {
+                        try fm.moveItem(atPath: tmp, toPath: nd.gfx)
+                    }
+                    return Step(status: "converted", files: made.count,
+                                source: root + "/Data/Interface/GFx", detail: "bundled gfxconvert (C)")
+                } catch {
+                    why = "cannot install converted movies: \(error)"
                 }
-                try? fm.removeItem(atPath: tmp)
-                why = "gfxconvert failed (status \(r.status), see launcher.log)"
             } else {
-                why = "no python3 with Pillow"
+                why = "gfxconvert failed (status \(r.status), see launcher.log)"
             }
+            try? fm.removeItem(atPath: tmp)
         } else {
             why = gameRoot == nil ? "no game folder" : "no Data/Interface/GFx in the game folder"
         }
@@ -373,7 +363,6 @@ enum DataSetup {
         p.executableURL = URL(fileURLWithPath: tool)
         p.arguments = args
         var e = ProcessInfo.processInfo.environment
-        e["PYTHONDONTWRITEBYTECODE"] = "1"
         for (k, v) in extra { e[k] = v }
         p.environment = e
         let pipe = Pipe()

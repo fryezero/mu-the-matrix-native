@@ -117,7 +117,7 @@ content (cash-shop catalogues, event schedules) is observable only live (OP).
 |---|---|---|---|---|
 | DATA-ACQ-001 | (Not taken: the owner chose guided capture, DATA-ACQ-002, as the product path.) | — | — | Dropped |
 | DATA-ACQ-002 | Guided acquisition, **the owner's chosen product path** for other users: the CAPTURE-KIT-001 Native Data half, packaged in the Wine-track app with a guided visit to every world (event maps included) on the user's own client and account. It runs only while no other client is open (the native app refuses to start a capture while it is connected, and the reverse) | A second macOS user account (the owner's test account) reproduces the owner's Native Data digests | CAPTURE-KIT-001 | EA |
-| DATA-ACQ-003 | First run without system `python3`/Pillow: `gfxconvert` ported to C, or a bundled, signed interpreter | Converted movies hash-equal to the Python output; first run on a clean user succeeds | — | EA |
+| DATA-ACQ-003 | First run without system `python3`/Pillow: `gfxconvert` ported to C, or a bundled, signed interpreter | 179 movies + 82 NaviMaps and 9,166 embedded bitmap assets hash-equal in both option modes; temporary-HOME first run without Python passes (real second user unavailable) | — | Implemented, [DATA-ACQ-003](../../handoffs/DATA-ACQ-003.md) |
 | DATA-ACQ-004 | Version drift: a Native Data manifest keyed by the client build hash; refuse mismatched data with a clear message; a re-acquisition procedure; a jump-table diff tool for a new build | Portable tests on manifests; a documented re-pin procedure | NET-DISPATCH-001 | EA |
 
 ## J. Packaging, signing, update
