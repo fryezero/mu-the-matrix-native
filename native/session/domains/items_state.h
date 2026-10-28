@@ -8,5 +8,7 @@ typedef struct mu_dom_items {
     int32_t pending;
     mu_items_present_fn present;
     void *context;
+    mu_items_audio_record_fn audio_record;
+    void *audio_context;
 } mu_dom_items;
 #endif

@@ -18,7 +18,7 @@ SESSION-GLOBALS-001: explicit session/runtime state ownership and committed sequ
 
 AUDIO-002 part 3: 36 combat/skill sound sites use session cues, including remote player and monster voices; 19,548 instruction cases. [Checks and limits](handoffs/AUDIO-002C.md).
 
-AUDIO-002 part 4: latest viewport buff input resolves the NPC voice; the migrated Master click enters the cue ring. Caller adapters 66 to 67, sound-capable sites 65 to 67. 2,544 instruction cases, zero mismatches, 7/7 compiled mutants. [Checks and limits](handoffs/AUDIO-002D.md).
+AUDIO-002 part 4: latest viewport buff input resolves the NPC voice; the migrated Master click enters the cue ring. Caller adapters 66 to 73, sound-capable sites 65 to 73, including six ground-drop sites after SESSION-ITEMS-001a. 5,544 instruction cases, zero mismatches, 15/15 compiled mutants. [Checks and limits](handoffs/AUDIO-002D.md).
 
 RENDER-WORLDS-H implements Duel Arena/world-82 primary methods: 6,000 instruction cases, zero mismatches, 19/19 compiled mutants; 25/144 verified primary families across 9/48 classes. Full Mac gate passes, 1,511 tests; all 28 unaffected PNG hashes unchanged. [Evidence](research/client-worlds-h.md), [handoff](handoffs/RENDER-WORLDS-H.md).
 

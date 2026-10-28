@@ -1,5 +1,6 @@
 #include "../session_internal.h"
 #include "items_wire.h"
+#include "items_audio.h"
 #include <stddef.h>
 #include <string.h>
 mu_items_view mu_session_items(const mu_session *s)
@@ -12,6 +13,10 @@ void mu_session_items_bind(mu_session *s, mu_items_present_fn fn, void *ctx)
     s->items.present = fn; s->items.context = ctx;
     if (fn) for (int i = 0; i < MU_GI_ITEMS; ++i)
         if (s->items.used[i] && !s->items.pool[i].object.live) fn(ctx, i, s->items.entries[i]);
+}
+void mu_session_items_audio_bind(mu_session *s, mu_items_audio_record_fn fn, void *ctx)
+{
+    s->items.audio_record = fn; s->items.audio_context = ctx;
 }
 mu_apply items_viewport(mu_session *s, const mu_frame *f)
 {
@@ -27,6 +32,9 @@ mu_apply items_viewport(mu_session *s, const mu_frame *f)
         memset(&s->items.pool[slot], 0, sizeof s->items.pool[slot]);
         s->items.pool[slot].key = (uint16_t)slot;
         if (s->items.present) s->items.present(s->items.context, slot, s->items.entries[slot]);
+        int32_t code = mu_gi_item_code(f->bytes + 5 + i*19 + 4);
+        int available = s->items.audio_record ? s->items.audio_record(s->items.audio_context, code) : -1;
+        mu_session_items_drop_audio(s, code, parsed[i].drop, available, (int16_t)slot);
         ++s->items.creates;
     }
     if (n) mu_session_touch(s, MU_DOMAIN_ITEMS);

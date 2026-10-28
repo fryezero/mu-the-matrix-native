@@ -1935,3 +1935,20 @@ mutants = 4
 cases_at = "cases.*"
 mutants_at = "mutants_caught"
 args = ["--text", "{text}", "--data", "{data}", "--cases", "40", "--mutants", "--output", "{report}"]
+
+[validate_audio_items]
+test = "native/tests/test_audio_items.py::ItemAudio.test_original_ground_audio"
+pins = ["text", "data"]
+families = ["create"]
+cases = 3000
+mutants = 8
+cases_at = "cases"
+mutants_at = "mutants"
+build = ["reconstructed/items", "native"]
+args = ["--cases", "3000", "--mutations", "--report", "{report}"]
+[validate_audio_items.expect]
+"cases" = 3000
+"mismatches" = 0
+"sites" = {len = 6}
+"mutants" = {len = 8}
+"mutants.*" = "caught"

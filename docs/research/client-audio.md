@@ -393,10 +393,35 @@ receive/callback roots. None contains a direct SND_Play call. Reconstructed ques
 call to route; ReceiveTalk's two earlier sites remain in part 2. This does not assert silence of every
 transitive helper or GFx movie. Existing quest instruction families are rerun unchanged.
 
-The caller subtotal advances from **66 adapters / 65 sound-capable sites to 67 / 67**. This adds one
-distinct original site and supplies the input for the existing NPC site; the earlier hero receive sound
+The caller subtotal advances from **66 adapters / 65 sound-capable sites to 73 / 73**. This adds seven
+distinct original sites and supplies the input for the existing NPC site; the earlier hero receive sound
 and per-frame/event manager paths are outside this subtotal. SESSION-COMBAT-001 still has no remote
 magic-result output, and SESSION-GLOBALS-001 adds ownership rather than new replicated inputs.
 Event inputs, remote magic results, other domains, music 43/44, the virtualised gap, original RNG phase
 and LIVE-PLAY's original FMOD/native comparison remain open. No live client or launcher was used.
 Final checks and cleanup are recorded in [the part-4 handoff](../handoffs/AUDIO-002D.md).
+
+
+### Ground-item extension after SESSION-ITEMS-001a
+
+The orchestrator added ground-item scope after PR #224 merged at `3a61d99`. Six CreateItem sites are
+**verified** against the complete unchanged caller family: zen `0x016daafd` selects 31, jewels
+`0x016dadde` select 69, special item `0x016dae04` selects 723, two special ranges use distinct
+`0x016dae36` / `0x016dae5f` sites for sound 90, and ordinary items use `0x016dae76` for sound 30.
+Original routine: `0x016daa27`. `validate_audio_items` compares 3,000 cases with zero mismatches and
+catches all 8 compiled mutants, including missing-record/drop gates and the two sound-90 branches.
+It preserves the existing caller validator's explicitly documented compare repair at its runtime-patched
+branch; the opaque destination remains outside the comparison. Together with NPC/Master this is
+**5,544 new part-4 cases, zero mismatches, 15/15 compiled mutants**.
+
+The session emits drop cues at viewport arrival. A borrowed static-record getter preserves CreateItem's
+record-presence gate. Closing the view clears it; detached arrivals report missing input and are never
+replayed on attachment. The presenter suppresses its old direct audio path for session items; standalone
+tools retain that facade. Item-only sessions have their own cursor; shared character sessions retain one
+reader. Tests cover all six sites, actual native voices, duplicate-id suppression, silent drain, missing
+records, non-drop viewports, detachment/rebind and deletion.
+
+The verified delete/despawn handler has no sound call. Requests remain silent. Successful pickup-answer
+sites `0x01242b81`, `0x01242ba6`, `0x01242bbf` require the unrecorded answer route/decode and stay open.
+The existing 4,000-case session-item comparison verifies those bounded instructions but does not supply
+that route. No pickup success, inventory insertion or zen credit is inferred from a fixture delete.
