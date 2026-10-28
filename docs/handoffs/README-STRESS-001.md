@@ -39,8 +39,26 @@ in the concurrent RENDER-ITEMS-002 part-6 lane were changed.
   joints reported per 101-frame scene; two GFx frames saved. Both final JPEGs
   reviewed for privacy and visual quality. Images 01-25 retain their hashes.
 
-The full lock-held Mac gate and integration base are recorded after completion.
-No hosted workflow is used.
+## Final lock-held gate
+
+Acquired the merge lock at 09:08 CDT on 2026-10-28 after SESSION-SKILL-001 released
+it. Integrated origin/main 9a827a4 as merge commit 8ada310, preserving both lanes'
+shared-document entries. This includes RENDER-ITEMS-002 part 6 and SESSION-SKILL-001.
+
+`bash scripts/local-macos-ci.sh` passes: 1,507 tests across 38 discovery runs,
+173 explicit private/optional skips, zero failures. Eight fixture scenarios pass
+all 61 expectations with 67 inbound frames and zero unbound/undecodable frames.
+The existing two unrecovered intents and six unsent frames remain reported.
+Native viewer and read-only reader build checks pass. Audit: 1,420 files, zero
+rejections. No hosted workflow was dispatched. The untracked Python/evidence
+symlinks supplied existing inputs; no tracked source was dirty during the gate.
+
+The two final images were then regenerated and privacy-reviewed with the integrated
+binary, and their publication pins/digests refreshed. All 80 players, complete base
+and glow textures, five skill events, 416 effects and 16 joints still pass in each
+scene. This post-gate update changes only media pins and documentation; runtime
+sources are identical to the passing gate. The controlled before/after hash probes
+in the finding use the earlier b74de71 integration base and isolate this loader fix.
 
 ## Cleanup
 

@@ -65,9 +65,9 @@ REVIEWED_MEDIA = {
     'docs/images/25-progression-character-options-menu.jpg':
         'ce1ddc4822f24d33c6678160a83ff089d3905170d9ac99b71c42d16aa19b0435',
     'docs/images/26-80-players-lorencia.jpg':
-        '2c3d30185b21df1bb5d68989acbfb39d609cfc52d9f0427b53d63cc7a2260763',
+        'cad4e3993c3d72313f58e21230a7b9ec4b8085ef016f5b860ce7a1a4542e85d1',
     'docs/images/27-80-players-tormenta-combat.jpg':
-        '96ef090d054614cdff27d7e2fea8931fa2582b45fd0c551663760f029be4fd1d',
+        'a8386983e35fb5de8bb8315eb1e6d4057373729d373c2a33c9f94b02ec4b06b8',
 }
 
 

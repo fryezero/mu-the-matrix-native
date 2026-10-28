@@ -38,7 +38,9 @@ This negative control was run after correcting the fixture's OZJ envelope.
 
 Same offline Lorencia scene, 80 original PERF-003 loadouts, 1280x800, FOV 65,
 frame 0, no GFx or monsters. SHA-256 below hashes PNG file bytes. Only the
-fallback directory argument differs between the before and after builds.
+fallback directory argument differs between the before and after builds, based on
+b74de71 plus this lane's host changes. The publication images below were regenerated
+after integrating main 9a827a4, including the item part-6 and skill-session lanes.
 
 | Probe | Before | After |
 |---|---|---|
@@ -115,5 +117,5 @@ post-fix frame rate is inferred. The 80-player 25 fps target remains open.
 
 | Image | JPEG SHA-256 | Native source PNG SHA-256 |
 |---|---|---|
-| 26-80-players-lorencia.jpg | `2c3d30185b21df1bb5d68989acbfb39d609cfc52d9f0427b53d63cc7a2260763` | `e4ba7038dc2e125b5ebddcee0fea6ddb44539aca152c99017fc59beb29d99c9b` |
-| 27-80-players-tormenta-combat.jpg | `96ef090d054614cdff27d7e2fea8931fa2582b45fd0c551663760f029be4fd1d` | `13e457c1c9cde2290dcea280037b13d8528d8455c4b484e0f0097fab33f564a3` |
+| 26-80-players-lorencia.jpg | `cad4e3993c3d72313f58e21230a7b9ec4b8085ef016f5b860ce7a1a4542e85d1` | `ec3bd8ef4415cdccc3e4bd673b76dadb5c30fe98b2618f9af0625e9cfc3b3882` |
+| 27-80-players-tormenta-combat.jpg | `a8386983e35fb5de8bb8315eb1e6d4057373729d373c2a33c9f94b02ec4b06b8` | `d26946a31dcaf5fce0db0e1e86d64c84ccce4a92faa2b0951f62b0b0cae7f1d0` |
