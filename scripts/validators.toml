@@ -2056,3 +2056,17 @@ args = ["--mutations", "--output", "{report}"]
 [validate_item_coverage.expect]
 "families.*.mismatches" = 0
 "mutants.*" = {truthy = true}
+
+[validate_item_wings_next]
+test = "reconstructed/renderchar/test_item_wings_next.py::ItemWingsNext.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "clocks", "links", "position"]
+cases = 33622
+mutants = 10
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar", "reconstructed/particles"]
+args = ["--mutations", "--output", "{report}"]
+[validate_item_wings_next.expect]
+"families.*.mismatches" = 0
+"mutants.*" = {truthy = true}

@@ -112,14 +112,14 @@ def transform_cases(wa):
     return {'cases':200,'mismatches':0}
 
 
-def body_cases(wa, lib, types, screen=False, allowed_services=None):
+def body_cases(wa, lib, types, screen=False, allowed_services=None, world_class=v.World):
     vectors, failed = [], []
-    reset = ResetWorld(wa)
+    reset = ResetWorld(wa, world_class)
     # Fresh-machine controls cover all eleven survey states and diverse branches.
     for t in types[::max(1,len(types)//12)]:
         for config in v.CLASSIFY:
             case = v.classify_case(t,config)
-            fresh = v.client_stream(wa,case)
+            fresh = v.client_stream(wa,case,world_class)
             reused = v.client_stream(wa,case,reset)
             if fresh[:3] != reused[:3]:
                 raise AssertionError(('reset-world control',hex(t),config,fresh[:3],reused[:3]))

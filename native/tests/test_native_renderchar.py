@@ -196,6 +196,24 @@ class WorldRender(unittest.TestCase):
         complete,_ = self.render('--weapon','0',path,'--item-type','weapon0=0x16fa')
         self.assertEqual((complete['special'],complete['link_sprites']),(0,9))
 
+    def test_visible_wings_atlases_and_shield_links(self):
+        wing = self.tmp/'visible-wing.bmd'
+        wing.write_bytes(nf.character_layout(114,bones=20,meshes=6,dummies=(9,)))
+        for t in range(0x2322,0x2328):
+            low,_ = self.render('--wing',wing,'--item-type',f'wing={t}',
+                                '--item-level','wing=0')
+            high,_ = self.render('--wing',wing,'--item-type',f'wing={t}',
+                                 '--item-level','wing=13')
+            self.assertEqual((low['special'],low['passes']),(0,7))
+            self.assertEqual(low['sha256'],high['sha256'])
+        start,_ = self.render('--part','2',wing,'--item-type','armor=0x2002','--world-time','0')
+        self.assertEqual(start['special'],0)
+        self.assertGreater(start['passes'],5)
+        for t in (0x16f7,0x16fb):
+            full,_ = self.render('--weapon','0',wing,'--item-type',f'weapon0={t}')
+            missing,_ = self.render('--item-type',f'weapon0={t}')
+            self.assertEqual((full['link_sprites'],missing['link_sprites']),(10,2 if t==0x16f7 else 0))
+
     def test_refuses_malformed_options(self):
         for bad in (('--item-level', 'nine'), ('--item-level', 'sleeve=3'), ('--glow-color', '1,2'),
                     ('--actor-weapon', 'x')):
