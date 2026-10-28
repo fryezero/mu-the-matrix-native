@@ -105,15 +105,15 @@ class PacingTests(unittest.TestCase):
                 with self.subTest(work=work), mock.patch.dict(os.environ, MU_PERF_BASELINE='0',
                                                              MU_PERF_003_BASELINE='0'):
                     clock.pace_test_clock(1000)
-                    clock.mu_perf_pace_begin()
+                    clock.pace_test_begin()
                     clock.pace_test_clock(1000 + work)
-                    clock.mu_perf_pace_end(12)
+                    clock.pace_test_end(12)
                     self.assertAlmostEqual(clock.mu_perf_now(), 1000 + max(work, 40), delta=0.03)
             with mock.patch.dict(os.environ, MU_PERF_BASELINE='0', MU_PERF_003_BASELINE='1'):
                 clock.pace_test_clock(1000)
-                clock.mu_perf_pace_begin()
+                clock.pace_test_begin()
                 clock.pace_test_clock(1026)
-                clock.mu_perf_pace_end(12)
+                clock.pace_test_end(12)
                 self.assertAlmostEqual(clock.mu_perf_now(), 1038, delta=0.03)
 
 

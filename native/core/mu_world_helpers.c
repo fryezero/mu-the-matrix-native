@@ -22,15 +22,6 @@
 #include "../../reconstructed/helpers/mount_render.h"
 #include "../../reconstructed/helpers/mount_class.h"
 
-/* The Imp's attachment per owner (lazy). */
-typedef struct imp_slot {
-    int tried;
-    mu_renderchar_attachment a;
-    struct mu_character *host;
-} imp_slot;
-
-static imp_slot imps[MU_WH_OWNERS];
-
 static void log_line(mu_world_helpers *w, const char *text)
 {
     if (w->log_count < 32)
@@ -498,7 +489,7 @@ int mu_world_helpers_open(mu_world_helpers *w, const char *game_root, const mu_w
                           int no_assets, char *error, size_t error_size)
 {
     memset(w, 0, sizeof *w);
-    memset(imps, 0, sizeof imps);
+
     snprintf(w->root, sizeof w->root, "%s", game_root ? game_root : "");
     w->map = map;
     w->walk = walk;
@@ -569,8 +560,8 @@ void mu_world_helpers_close(mu_world_helpers *w)
             mu_textures_free(&w->models[i].textures);
         }
     for (int32_t i = 0; i < MU_WH_OWNERS; ++i)
-        mu_renderchar_attach_free(&imps[i].a);
-    memset(imps, 0, sizeof imps);
+        mu_renderchar_attach_free(&w->imps[i].a);
+
     memset(w, 0, sizeof *w);
 }
 
@@ -1275,7 +1266,7 @@ static void draw_imp(draw_context *d, int32_t owner, struct mu_character *host)
     if (!host || !host->player_loaded ||
         !mu_hp_imp_link_plan(s->helper_slot, 6, 0, w->owners[owner].class_byte, w->owners[owner].weapon[0], &plan))
         return;
-    imp_slot *slot = &imps[owner];
+    mu_wh_imp_slot *slot = &w->imps[owner];
     if (slot->host != host) {
         mu_renderchar_attach_free(&slot->a);
         slot->tried = 0;

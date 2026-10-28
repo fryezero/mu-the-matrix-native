@@ -94,6 +94,7 @@ static void items_model_raster(void *context, const mu_world_item_draw *d)
                                d->item_kind};
     mu_renderchar_env env;
     mu_renderchar_default_env(&env);
+    env.lang = a->lang;
     env.time = a->map->time;
     env.quality = a->ground->config.quality;
     memcpy(env.glow_color, a->ground->config.glow_color, sizeof env.glow_color);
@@ -142,7 +143,7 @@ static void item_labels_draw_soft(struct mu_world_rt *a, void *self, mu_world_dr
     (void)self;
     mu_raster *raster = d->raster;
     if (a->ground) {
-        static mu_world_item_label labels[MU_WORLD_ITEM_LABELS];
+        mu_world_item_label labels[MU_WORLD_ITEM_LABELS];
         int32_t n = mu_world_items_labels(a->ground, labels, MU_WORLD_ITEM_LABELS);
         for (int32_t i = 0; i < n; ++i)
             mu_world_items_label_blit(a->ground, &labels[i], raster->color, raster->width, raster->height);
@@ -178,6 +179,7 @@ static void items_model_gl(void *context, const mu_world_item_draw *d)
                                d->item_kind};
     mu_renderchar_env env;
     mu_renderchar_default_env(&env);
+    env.lang = a->lang;
     env.time = a->map->time;
     env.quality = a->ground->config.quality;
     memcpy(env.glow_color, a->ground->config.glow_color, sizeof env.glow_color);
@@ -195,7 +197,7 @@ static void items_model_gl(void *context, const mu_world_item_draw *d)
 static void items_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *d)
 {
     items_part *p = self;
-    d->perf = mu_perf_begin();
+    d->perf = mu_perf_begin(a->perf);
     if (a->ground) {
         p->rt = a;
         mu_world_items_draw(a->ground, items_model_gl, p);
@@ -203,13 +205,13 @@ static void items_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *d)
         glDepthMask(GL_TRUE);
         glDisable(GL_ALPHA_TEST);
     }
-    mu_perf_end(MU_PERF_ITEMS, d->perf);
+    mu_perf_end(a->perf, MU_PERF_ITEMS, d->perf);
 }
 
 /* The labels as a screen-space overlay (the hudPlayerName movie draws them over the 3D view). */
 static void items_labels_gl(mu_world_rt *a, int32_t width, int32_t height)
 {
-    static mu_world_item_label labels[MU_WORLD_ITEM_LABELS];
+    mu_world_item_label labels[MU_WORLD_ITEM_LABELS];
     int32_t n = mu_world_items_labels(a->ground, labels, MU_WORLD_ITEM_LABELS);
     if (!n)
         return;
@@ -283,7 +285,7 @@ static void items_labels_gl(mu_world_rt *a, int32_t width, int32_t height)
 static void item_labels_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *d)
 {
     (void)self;
-    d->perf = mu_perf_begin();
+    d->perf = mu_perf_begin(a->perf);
     if (a->ground)
         items_labels_gl(a, d->width, d->height);
 }

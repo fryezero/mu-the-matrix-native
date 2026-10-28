@@ -25,6 +25,8 @@
 #include <SDL.h>
 
 typedef struct world_gfx world_gfx;
+struct mu_perf;
+void world_gfx_set_perf(world_gfx *, struct mu_perf *);
 
 /* width/height in drawable pixels, scale = pixels per window point (Retina
  * 2: the movies lay out in points and draw at full resolution).  `open`

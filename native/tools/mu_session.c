@@ -747,6 +747,7 @@ static int usage(void)
 
 int main(int argc, char **argv)
 {
+    quiet = 0;
     if (argc < 2)
         return usage();
     const char *cmd = argv[1];

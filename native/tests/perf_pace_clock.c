@@ -19,3 +19,8 @@ int fake_nanosleep(const struct timespec *delay, struct timespec *remaining)
     return 0;
 }
 int fake_sched_yield(void) { stamp += 0.01; return 0; }
+
+#include "../core/mu_perf.h"
+static mu_perf test_perf;
+void pace_test_begin(void) { mu_perf_pace_begin(&test_perf); }
+void pace_test_end(int32_t sleep) { mu_perf_pace_end(&test_perf, sleep); }

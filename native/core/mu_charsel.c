@@ -559,7 +559,7 @@ void mu_charsel_frame_objects(mu_charsel_session *s)
 
 int32_t mu_charsel_pick(mu_charsel_session *s)
 {
-    static mu_pick_character c[MU_CHARSEL_CHARACTERS];
+    mu_pick_character c[MU_CHARSEL_CHARACTERS];
     const mu_client_view *v = &s->frame.view;
     for (int32_t i = 0; i < MU_CHARSEL_CHARACTERS; ++i) {
         uint8_t *r = record(s, i), *o = r + MU_CHARSEL_OBJECT;

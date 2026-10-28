@@ -67,10 +67,11 @@ void mu_gfx_layer_show(mu_gfx_layer *layer, int movie, int visible)
     printf("show %d %d\n", movie, visible);
 }
 
-const mu_lang *mu_lang_shared(void)
+mu_lang *mu_lang_load_default(void)
 {
     return NULL;
 }
+void mu_lang_free(mu_lang *lang) { (void)lang; }
 const char *mu_lang_text(const mu_lang *lang, int32_t index)
 {
     (void)lang;

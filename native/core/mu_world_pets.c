@@ -55,17 +55,10 @@ static uint32_t h_clock(void *c)
     return ((mu_world_pets *)c)->clock;
 }
 
-typedef struct step_context {
-    mu_world_pets *pp;
-    mu_world_helpers *w;
-} step_context;
-
-static step_context current;   /* the helpers module of the running step / draw */
-
 static int h_has_model(void *c, int32_t model)
 {
     (void)c;
-    mu_world_helpers *w = current.w;
+    mu_world_helpers *w = ((mu_world_pets *)c)->helpers;
     if (!w || w->no_assets)
         return 1;
     mu_wh_model *m = mu_world_helpers_model(w, model);
@@ -75,7 +68,7 @@ static int h_has_model(void *c, int32_t model)
 static void h_animate(void *c, mu_hp_object *o, int32_t index, float speed)
 {
     (void)c;
-    mu_world_helpers *w = current.w;
+    mu_world_helpers *w = ((mu_world_pets *)c)->helpers;
     mu_wh_model *m = w ? mu_world_helpers_model(w, index) : NULL;
     if (!m || !m->loaded || m->bmd.action_count <= 0)
         return;
@@ -187,8 +180,7 @@ void mu_world_pets_create(mu_world_pets *pp, mu_world_helpers *w, int32_t owner,
     if (owner < 0 || owner >= MU_WH_OWNERS)
         return;
     sync_owners(pp, w);
-    current.pp = pp;
-    current.w = w;
+    pp->helpers = w;
     if (mu_pets_create(&pp->p, item, model, pp->owners[owner].position, owner, 0))
         pp->stats.created++;
 }
@@ -209,8 +201,7 @@ void mu_world_pets_owner_gone(mu_world_pets *pp, int32_t owner)
 
 void mu_world_pets_step(mu_world_pets *pp, mu_world_helpers *w)
 {
-    current.pp = pp;
-    current.w = w;
+    pp->helpers = w;
     pp->clock += 40;
     sync_owners(pp, w);
     if (!pp->hero_applied && w->walk) {
@@ -326,8 +317,7 @@ static void r_remember(void *c, int32_t kind)
 long mu_world_pets_draw(mu_world_pets *pp, mu_world_helpers *w, const mu_terrain_frustum *frustum,
                         const mu_world_helpers_target *target)
 {
-    current.pp = pp;
-    current.w = w;
+    pp->helpers = w;
     draw_context d = {pp, w, target, frustum, 0};
     mu_pet_render_host r;
     memset(&r, 0, sizeof r);

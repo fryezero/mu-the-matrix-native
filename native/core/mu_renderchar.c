@@ -132,7 +132,7 @@ void mu_renderchar_default_env(mu_renderchar_env *env)
     env->quality = 5;
     env->glow_color[0] = env->glow_color[1] = env->glow_color[2] = 1.0f;
     env->render_type = 2;
-    env->lang = mu_lang_shared();
+    env->lang = NULL; /* caller supplies its runtime tables */
 }
 
 static void fill_item(mu_rc_item *it, const mu_renderchar_glow *g, const mu_renderchar_env *env, const float light[3],

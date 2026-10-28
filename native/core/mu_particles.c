@@ -319,9 +319,7 @@ static mu_jt_object hero_view(const mu_world_particles *p)
 
 static const mu_jt_object *fx_object(mu_world_particles *p, int32_t index)
 {
-    static mu_jt_object scratch[4];
-    static int next;
-    mu_jt_object *o = &scratch[next++ & 3];
+    mu_jt_object *o = &p->object_scratch[p->object_next++ & 3];
     if (index == MU_WORLD_FX_HERO_OBJECT) {
         if (!p->has_hero)
             return NULL;

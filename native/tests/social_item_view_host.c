@@ -13,7 +13,7 @@ static int contains(const mu_social_item_view *v, const char *s) {
 int main(int argc, char **argv) {
     assert(argc == 3);
     assert(setenv("MU_LANG_DIR", argv[2], 1) == 0);
-    assert(mu_lang_shared());
+
     mu_hud_tip_tables base;
     mu_hud_tip_tables_load(argv[1], &base);
     assert(base.have_items);

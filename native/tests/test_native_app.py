@@ -213,6 +213,20 @@ int main(void) {
 
     # ---- data setup and plan
 
+    def test_default_scratch_uses_current_workspace_and_preserves_legacy_fallback(self):
+        env, base = self.env('scratch-default')
+        home = base / 'home'
+        current = home / 'Documents/MTM/mu-mac-tools/native/scratch'
+        legacy = home / 'Documents/mu-mac-tools/native/scratch'
+        legacy.mkdir(parents=True)
+        env.pop('MU_NATIVE_SCRATCH')
+        env.update(HOME=str(home), CFFIXED_USER_HOME=str(home))
+        self.assertIn(f'scratch: {legacy}', self.launch(env, '--print-settings').stdout)
+        current.mkdir(parents=True)
+        self.assertIn(f'scratch: {current}', self.launch(env, '--print-settings').stdout)
+        env['MU_NATIVE_SCRATCH'] = str(base / 'explicit')
+        self.assertIn(f'scratch: {base / "explicit"}', self.launch(env, '--print-settings').stdout)
+
     def test_setup_copies_local_data_and_leaves_the_game_folder_alone(self):
         env, base = self.env('setup')
         r = self.launch(env, '--setup')

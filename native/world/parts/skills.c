@@ -28,18 +28,20 @@ static int open_skills(mu_world_rt *a, void *self)
     int fd = mkstemp(path); if (fd < 0) return 1;
     FILE *f = fdopen(fd, "w"); if (!f) {close(fd);unlink(path);return 1;}
     fprintf(f, "endpoint game 127.0.0.1:55905\nuse skills\nat 1 skills root %s\nat 1 skills login %d 30\n", a->root, a->walk.hero.class_byte);
+    mu_skills_demo_hero(f, a->walk.hero.class_byte, a->map->world,
+                        a->walk.hero.tile[0], a->walk.hero.tile[1], a->walk.hero.angle[2]);
     fclose(f);
     mu_fixture_options options = {path, NULL, 20261028};
     p->fixture = mu_fixture_open(&options, error, sizeof error); unlink(path);
     if (!p->fixture) return 1;
     p->owned = 1; p->transport = mu_fixture_transport(p->fixture);
-    mu_session_config cfg = {0}; cfg.transport = p->transport; cfg.lang = mu_lang_shared();
+    mu_session_config cfg = {0}; cfg.transport = p->transport; cfg.lang = a->lang;
     mu_fixture_endpoint(p->fixture, "game", &cfg.connect_server);
     mu_session_seed seed = {0}; seed.class_byte = a->walk.hero.class_byte;
     seed.place.world = a->walk.world;
     p->session = mu_session_open_seeded(&cfg, &seed, error, sizeof error);
     if (!p->session) return 1;
-    return mu_session_skills_bind(p->session, mu_lang_shared(), getenv("MU_LANG_DIR"), a->root) != 0;
+    return mu_session_skills_bind(p->session, a->lang, getenv("MU_LANG_DIR"), a->root) != 0;
 }
 static void tick_skills(mu_world_rt *a, void *self)
 {
@@ -63,7 +65,8 @@ static void close_skills(mu_world_rt *a,void *self)
 static void report_skills(const mu_world_rt *a,const void *self)
 {
     (void)a;const skills_part *p=self;const mu_skill_hero *h=mu_skill_book_hero(mu_session_skills(p->session));
-    printf("{\"session_skills\":{\"learned\":%d,\"selected\":%d}}\n",h?h->count:0,mu_skill_book_selected(mu_session_skills(p->session)));
+    printf("{\"session_skills\":{\"learned\":%d,\"selected\":%d,\"mana\":%d,\"ag\":%d}}\n",
+           h?h->count:0,mu_skill_book_selected(mu_session_skills(p->session)),h?h->mana:0,h?h->ag:0);
 }
 const mu_world_part_ops mu_part_skills = {
     .name = "skills",

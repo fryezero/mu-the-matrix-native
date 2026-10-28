@@ -136,8 +136,7 @@ static int32_t host_socket_like(void *context, const mu_gi_item_data *item)
 
 static const char *name_text(void *context, int32_t id)
 {
-    static char buf[8][48];
-    static int next;
+    mu_world_items *it = context;
     (void)context;
     const char *standin = NULL;
     switch (id) {   /* English stand-ins of the plain-item suffixes when Lang.mpr's tables are absent */
@@ -148,13 +147,13 @@ static const char *name_text(void *context, int32_t id)
     case 0xb2: standin = "+Luck"; break;
     case 0xb3: standin = "Skill"; break;
     default: {
-        char *b = buf[next++ & 7];
-        snprintf(b, sizeof buf[0], "[Text %d]", (int)id);
+        char *b = it->name_ring[it->name_next++ & 7];
+        snprintf(b, sizeof it->name_ring[0], "[Text %d]", (int)id);
         standin = b;
         break;
     }
     }
-    return mu_lang_text_or(mu_lang_shared(), id, standin);   /* GlobalText (NATIVE-LANG-001, MU_LANG_DIR) */
+    return mu_lang_text_or(((mu_world_items *)context)->lang, id, standin);   /* GlobalText (NATIVE-LANG-001, MU_LANG_DIR) */
 }
 
 static const char *name_prefix(void *context, const mu_gi_item_data *item)
@@ -171,30 +170,31 @@ static int32_t name_set_tier(void *context, int32_t code)
     /* PentagramOption 0x011447ac on 0x06fbae4c, record +0x24 (Lang.mpr, NATIVE-LANG-001 tables) */
     (void)context;
     int32_t tier = 0;
-    if (!mu_lang_pentagram_tier(mu_lang_shared(), code, &tier))
+    if (!mu_lang_pentagram_tier(((mu_world_items *)context)->lang, code, &tier))
         tier = 0;
     return tier;
 }
 
 static const char *name_table(void *context, int32_t key)
 {
-    static char buf[32];
+    mu_world_items *it = context;
+    char *buf = it->entry_name;
     (void)context;
-    snprintf(buf, sizeof buf, "[Entry %d]", (int)key);
+    snprintf(buf, sizeof it->entry_name, "[Entry %d]", (int)key);
     return buf;
 }
 
 /* 0x00961620 on 0x06fbb138 is the skill table's lookup (entry +8: the name). */
 static const char *name_skill(void *context, int32_t key)
 {
-    const mu_lang_skill *sk = mu_lang_skill_get(mu_lang_shared(), key);
+    const mu_lang_skill *sk = mu_lang_skill_get(((mu_world_items *)context)->lang, key);
     return sk && sk->name ? sk->name : name_table(context, key);
 }
 
 /* 0x011427c7 on 0x06fbb664 is the Npcname table's name getter. */
 static const char *name_npc(void *context, int32_t key)
 {
-    const char *n = mu_lang_npc_name(mu_lang_shared(), key);
+    const char *n = mu_lang_npc_name(((mu_world_items *)context)->lang, key);
     return n ? n : name_table(context, key);
 }
 
@@ -256,7 +256,7 @@ static int sets_has_record(void *context, int32_t code)
 static int sets_legendary(void *context, int32_t type, int32_t codes[4])
 {
     (void)context;
-    return mu_lang_legendary(mu_lang_shared(), type, codes);
+    return mu_lang_legendary(((mu_world_items *)context)->lang, type, codes);
 }
 
 /* the set manager's start-up load 0x009e02a8: ItemSetType.bmd, ItemSetOption.bmd (Data/Local, decoded by
@@ -272,7 +272,7 @@ static void load_sets(mu_world_items *it)
     if (!a || !b || it->set_type.size < it->set_type.result.records_offset + MU_GI_SET_CODES * MU_GI_SET_TYPE_BYTES ||
         it->set_option.size < it->set_option.result.records_offset + MU_GI_SET_OPTIONS * MU_GI_SET_OPTION_BYTES)
         return;
-    const mu_lang *lang = mu_lang_shared();
+    const mu_lang *lang = it->lang;
     const mu_lang_cash_set *cash = NULL;
     const mu_lang_cash_item *items = NULL;
     size_t nsets = mu_lang_cash_sets(lang, &cash), nitems = mu_lang_cash_items(lang, &items);
@@ -311,6 +311,7 @@ int mu_world_items_open(mu_world_items *it, const char *root, mu_walk *walk, con
     else
         mu_world_items_default_config(&it->config);
     it->walk = walk;
+    it->lang = mu_lang_load_default();
     it->map = walk ? walk->map : NULL;
     snprintf(it->game_root, sizeof it->game_root, "%s", root ? root : "");
     it->records = calloc(CODE_LIMIT + 1, sizeof *it->records);
@@ -363,6 +364,7 @@ int mu_world_items_open(mu_world_items *it, const char *root, mu_walk *walk, con
 
 void mu_world_items_close(mu_world_items *it)
 {
+    mu_lang_free(it->lang);
     mu_gi_sets_free(it->sets);
     mu_data_free(&it->set_type);
     mu_data_free(&it->set_option);

@@ -158,7 +158,7 @@ static void particle_model_gl(void *context, const mu_model *model, const mu_tex
 static void particles_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *d)
 {
     const mu_client_view *v = &a->walk.frame.view;
-    d->perf = mu_perf_begin();
+    d->perf = mu_perf_begin(a->perf);
     if (a->has_particles) {   /* effect models, RenderJoints(0), the sprite section (NATIVE-PARTICLE-001, -JOINT-001) */
         a->particles.frustum = &a->frustum;
         mu_world_particles_draw_models(&a->particles, particle_model_gl, self);
@@ -170,7 +170,7 @@ static void particles_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *
         glDisable(GL_ALPHA_TEST);
     }
     else if (a->has_objects) {   /* --no-particles: the NATIVE-OBJECTS-002 stand-in billboards of the object fires */
-        static mu_fx_vertex quads[4 * MU_OBJECT_PARTICLES];
+        mu_fx_vertex quads[4 * MU_OBJECT_PARTICLES];
         float eye[3], target[3];
         world_rt_effect_camera(a, eye, target);
         for (int32_t b = 0; b < 2; ++b) {
@@ -183,7 +183,7 @@ static void particles_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *
         glDepthMask(GL_TRUE);
         glDisable(GL_BLEND);
     }
-    mu_perf_end(MU_PERF_PARTICLES, d->perf);
+    mu_perf_end(a->perf, MU_PERF_PARTICLES, d->perf);
 }
 #endif
 

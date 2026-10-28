@@ -102,10 +102,10 @@ if let first = cliArgs.first {
           --print-settings      settings, folders and what Native Data holds
           --print-plan          the mu-client command line and environment the app would use (JSON)
           --setup [--force]     the first-run data setup (converted movies, local text, objects, sound table)
-          --smoke [--backend soft|gl] [--frames N] [--size WxH] [--out-dir DIR]
+          --smoke [--backend soft|gl] [--frames N] [--size WxH] [--out-dir DIR] [--audio]
                                 headless run of the whole flow under the network guard; exit 0 when it reached the world
           --check-bundle        check the bundled files
-        Environment: MU_NATIVE_SUPPORT_DIR, MU_NATIVE_LOG_DIR, MU_NATIVE_GAME_ROOT, MU_NATIVE_SCRATCH, MU_NATIVE_PYTHON,
+        Environment: MU_NATIVE_SUPPORT_DIR, MU_NATIVE_LOG_DIR, MU_NATIVE_GAME_ROOT, MU_NATIVE_SCRATCH,
           MU_NATIVE_SESSION (tests); MU_NATIVE_EXTRA_ARGS (more mu-client options, separated by spaces)
         """)
         exit(0)

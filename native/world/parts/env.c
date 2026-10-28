@@ -111,7 +111,7 @@ static int env_gl_backend(void *context, const mu_world_env *e, int32_t slot, mu
 static void env_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *d)
 {
     const mu_client_view *v = &a->walk.frame.view;
-    d->perf = mu_perf_begin();
+    d->perf = mu_perf_begin(a->perf);
     if (a->has_env) {
         mu_world_env_target target = {self, env_gl_backend};
         mu_world_env_draw(&a->env, v->modelview, a->legacy_box ? NULL : &a->frustum, &target);

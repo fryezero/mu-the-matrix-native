@@ -25,6 +25,9 @@ features, their entry points, the exact drive and the end state that proves each
 
 - Never touch the original client: no `live-readers/`, no signals or window interaction with the Wine app
   or Preview.app, no process lookups by name. The game lock belongs to the owner.
+  For an explicit Preview refresh request, [preview-app.md](features/preview-app.md)
+  covers a newly built app process you start in an isolated HOME and the separately
+  authorized installation. Existing owner processes remain untouched.
 - Never write into `MU_GAME_ROOT` or `~/Library/Application Support/MuTheMatrixNative`. Every drive goes
   through `scripts/run-tool.sh` (it points `MU_NATIVE_SETTINGS_DIR` into the run) and `mu-client` always
   gets `--no-store`.

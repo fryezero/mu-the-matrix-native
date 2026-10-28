@@ -24,7 +24,9 @@ enum Paths {
     }
     /// Local plaintexts made by the repository's live readers (never in the repository or the bundle).
     static var defaultScratch: String {
-        env["MU_NATIVE_SCRATCH"] ?? home + "/Documents/mu-mac-tools/native/scratch"
+        if let path = env["MU_NATIVE_SCRATCH"] { return path }
+        let current = home + "/Documents/MTM/mu-mac-tools/native/scratch"
+        return isDir(current) ? current : home + "/Documents/mu-mac-tools/native/scratch"
     }
 
     static var bundle: String { Bundle.main.bundlePath }

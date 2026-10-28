@@ -52,6 +52,7 @@ typedef struct item_model {
 } item_model;
 
 struct wg_items {
+    mu_lang *lang;
     char root[1024];
     int have_root;
     mu_data_table items;
@@ -74,6 +75,7 @@ wg_items *wg_items_open(const char *game_root)
     wg_items *w = calloc(1, sizeof *w);
     if (!w)
         return NULL;
+    w->lang = mu_lang_load_default();
     if (game_root && game_root[0]) {
         snprintf(w->root, sizeof w->root, "%s", game_root);
         w->have_root = 1;
@@ -121,6 +123,7 @@ void wg_items_close(wg_items *w)
         glDeleteTextures(1, &w->color);
         glDeleteRenderbuffersEXT(1, &w->depth);
     }
+    mu_lang_free(w->lang);
     free(w);
 }
 
@@ -308,7 +311,7 @@ static void ros_inputs(wg_items *w, const item_model *m, const mu_gfx_item_draw 
         in->item_kind = record.attributes.type;
     }
     /* InvenItemAnimation (Lang.mpr, MU_LANG_DIR): absent without the tables */
-    in->anim_present = mu_lang_inven_anim(mu_lang_shared(), d->code, &in->anim_action, &in->anim_speed);
+    in->anim_present = mu_lang_inven_anim(w->lang, d->code, &in->anim_action, &in->anim_speed);
     in->pose_model_exists = 1;
     in->object_alpha = 1.0f;                 /* ItemObjectAttribute's alpha (1 for these items) */
 }
@@ -432,6 +435,7 @@ static void draw_model(wg_items *w, item_model *m, const mu_gfx_item_draw *d, co
     }
     mu_renderchar_env env;
     mu_renderchar_default_env(&env);
+    env.lang = w->lang;
     env.time = (float)w->time_ms;
     mu_draw_options draw;
     mu_draw_default_options(&draw);

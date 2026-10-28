@@ -312,3 +312,53 @@ mismatches. Expanded audio and all three part-1 JSON reports equal the recovered
 all existing captured routine hashes and expected render/PCM hashes remain unchanged. Exact commands,
 fixture limits and log paths are recorded in [the part-2 handoff](../handoffs/AUDIO-002B.md).
 All raw reports, local inputs and logs remain outside the published tree.
+
+## AUDIO-002 part 3, 2026-10-28
+
+`native/core/mu_combat_audio.h` adapts 36 distinct original SND_Play sites into
+`MU_CUE_SOUND`. `mu_combat` emits into its character session even when audio is
+disabled. The existing independent character audio cursor drains after combat's
+pre-tick and tick, so effects/windows keep their readers and enabling audio does
+not replay history. A standalone combat host without a session retains its callback.
+No reconstructed audio, combat or skill-effect routine is changed.
+
+| Original service | Sites and sound selection | Evidence |
+|---|---|---|
+| SetPlayerShock `0x0138f92f` | Skeleton `0x0138fbda`, model slots `0x0138fc68`, player class/transform/RNG `0x0138fcc5`, `0x0138fcf5`, `0x0138fd2b`; model `0x7e2` supplemental `0x86` at `0x0138fe5e` | Original service comparison; supplemental fragment skips the five intervening particle iterations, retaining the model/voice gate and sound order. Missing model/slot returns before the supplemental sound. |
+| SetPlayerDie `0x01393a61` | World voice `0x01394351`, model slot `0x013943e5`, player class `0x0139441e`, `0x0139442f`, `0x01394440`, transformed extra `0x01394464` | Original service comparison, once-only voice marker retained. Remote players previously discarded the selected sounds. |
+| SetPlayerAttack `0x01392bde` | Model slot `0x01393917`; bow/crossbow/staff/sword `0x01393939`, `0x0139395b`, `0x013939a3`, `0x013939eb`, `0x01393a3f` | Player service comparison and bounded monster tail. World `0x49`, voice marker, missing model and missing slot gates compared. |
+| Magic receive `0x01253a92` | Buff/heal `0x01255962`; melee skills 19..23 use `0x01255f1c`, `0x01255f4b`, `0x01255f7a`, `0x01255fa9`, `0x01256011` | Bounded sound fragments, including the caster-class `0x4d` buff suppression. Dispatch, encrypted packet bodies and full receive timing are excluded. |
+| MoveCharacter `0x013a763e` | Eleven end/area sites: `0x013a954d`, `0x013abb36`, `0x013abc4b`, `0x013ac92e`, `0x013ad00b`, `0x013afe5c`, `0x013b0099`, `0x013b0101`, `0x013b03eb`, `0x013b063e`, `0x013b0e08` | Bounded sound fragments. Twisting Slash's special-state-3 suppression compared. Energy Ball's missing `0x76` playback is restored. |
+| CreateEffect `0x013c0f19` | Tornado `0x582` at `0x013c42ee`, within 800 units of the hero | Existing complete effect-create instruction family, including distance/random-position gates, plus compiled sound provenance adapter. Previously the native combat effect callback discarded this event. |
+
+The target text SHA-256 is
+`2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724`,
+base `0x00401000`. Image data SHA-256 is
+`c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f`,
+base `0x01a7c000`. Only authored adapters, synthetic tests and this summary are published.
+
+The native JSONL cue log retains schema `audio:1`. New combat rows contain the
+original routine in `handler`, the exact SND_Play instruction in `site`, the
+session sequence/tick and `at_key`: hero `-1`, actual remote player/monster key,
+or effect object `-3`. Audio object pointers do not enter the log. The remote
+player's independent combat-result reader emits hit and swing cues once; death
+uses the existing animation/voice marker. New remote/monster attack audio uses
+separate MSVC streams, preserving visual RNG. The original random phase is unavailable.
+
+`validate_audio_combat.py` compares 19,548 cases: player services 6,000,
+monster services 6,000, skill fragments 684, monster attack tail 864 and effect
+creation 6,000. Original service gates and sound ids are checked by the unchanged
+service families; the new compiled adapter is compared with original sound-call
+return addresses. Planted adapter mistakes cover ids, sites, buff/special-world
+conditions, model slots and supplemental voice gates. The local handoff records
+final mutation and gate results.
+
+The native timing/context remains bounded by SESSION-COMBAT-001. Hero skill
+fragments use the existing ordinary-player context and special state 0; authoritative
+event/buff state and remote magic-result presentation are still absent. Remote
+weapon kinds use the existing item-table adapter, with its documented synthetic
+fallback when the table is absent. Remote transformed hit/attack contexts emit
+`MU_CUE_AUDIO_INPUT` for `0x0139f3db` instead of guessing their model predicate.
+Special monster bodies and transformed death effects retain their earlier limits.
+This is not full-client sound parity. Music 43/44, the virtualised gap and
+LIVE-PLAY's original FMOD/native log comparison remain open. No live client was used.
