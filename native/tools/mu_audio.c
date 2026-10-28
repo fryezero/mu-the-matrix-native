@@ -1,3 +1,4 @@
+#include "../data/manifest.h"
 /* mu-audio: native audio module front end (NATIVE-AUDIO-001).
  *
  *   mu-audio list   [--table TSV] [--root GAME] [--music] [--id N]
@@ -376,6 +377,7 @@ static int command_scan(const options *o)
 
 int main(int argc, char **argv)
 {
+    if (!mu_native_data_check_args(argc, argv)) return 1;
     options o;
     if (parse(argc, argv, &o)) {
         usage();

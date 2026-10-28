@@ -70,7 +70,7 @@ STATE_WRAPPERS = {0x0184a7f3: 1, 0x0184a990: 2, 0x0184aa2b: 3}
 BIND = 0x0184acf6
 LOOKUPS = (0x00ebbec8, 0x00c97ce3)
 SINGLETON = 0x00db747f
-GL = {0x01a7c750: ('glBegin', 4), 0x01a7c760: ('glEnd', 0), 0x01a7c774: ('glTexCoord2f', 8),
+GL = {0x01a7c66c: ('glTexCoord2fv', 4), 0x01a7c65c: ('glNormal3fv', 4), 0x01a7c750: ('glBegin', 4), 0x01a7c760: ('glEnd', 0), 0x01a7c774: ('glTexCoord2f', 8),
       0x01a7c770: ('glColor3fv', 4), 0x01a7c754: ('glColor4f', 16), 0x01a7c778: ('glVertex3fv', 4),
       0x01a7c77c: ('glBindTexture', 8), 0x01a7c75c: ('glEnable', 4), 0x01a7c758: ('glDisable', 4),
       0x01a7c748: ('glBlendFunc', 8), 0x01a7c740: ('glDepthMask', 4), 0x01a7c76c: ('glColor3f', 12),
@@ -312,6 +312,19 @@ def py_scroll(scene, layer, xf, yf):
     return offset, k
 
 
+def py_normalize(a):
+    length=f32(math.sqrt(fadd(fadd(fmul(a[0],a[0]),fmul(a[1],a[1])),fmul(a[2],a[2]))))
+    return [0.0]*3 if length<1e-6 else [fdiv(x,length) for x in a]
+
+
+def py_reflection_uv(d,n):
+    dot=fadd(fadd(fmul(d[0],n[0]),fmul(d[1],n[1])),fmul(d[2],n[2]))
+    r=py_normalize([fsub(d[k],fmul(fmul(2.0,dot),n[k])) for k in range(3)])
+    z=fadd(r[2],1.0)
+    m=fmul(2.0,f32(math.sqrt(fadd(fadd(fmul(r[0],r[0]),fmul(r[1],r[1])),fmul(z,z)))))
+    return [fadd(fdiv(r[0],m),0.5),fadd(fdiv(r[1],m),0.5)]
+
+
 def py_face_alpha_state(w, layer):
     """RenderFace 0x016cf46c blend choice: True = alpha state, None = nothing drawn."""
     if w == 0x27:
@@ -402,9 +415,30 @@ def py_draw_tile(scene, pass_, xf, yf, xi, yi, out):
     if blend is not None:
         out.append(('state', 2, 1) if blend else ('state', 1, 0))
         if w in (0x71, 0x91) and scene['detail'] >= 4 and scene['att'][i0] & 0x2000:
-            return 4
-        out.append(('bind', texture))
-        corners(uv, lambda i: ('c3',) + lit(i))
+            reflect=[]
+            for i in idx:
+                if w==0x71:
+                    values=scene.get('reflection_uv')
+                    reflect.extend(values[2*i:2*i+2] if values else [0.0,0.0])
+                else:
+                    x,y=i%256,i//256; fx,fy=fdiv(float(x),100.0),fdiv(float(y),100.0)
+                    xx,yy=int(fx),int(fy); j=yy*256+xx
+                    if scene['att'][j]&0x40: z=scene['water']
+                    else:
+                        a=fadd(fmul(fsub(scene['height'][j+256],scene['height'][j]),fsub(fy,float(yy))),scene['height'][j])
+                        b=fadd(fmul(fsub(scene['height'][j+257],scene['height'][j+1]),fsub(fy,float(yy))),scene['height'][j+1])
+                        z=fadd(fmul(fsub(b,a),fsub(fx,float(xx))),a)
+                    cam=scene.get('camera_position',[0,0,0])
+                    d=py_normalize([fsub(fmul(fadd(float(x),50.0),100.0),cam[0]),
+                                    fsub(fmul(fadd(float(y),50.0),100.0),cam[1]),fsub(z,cam[2])])
+                    normals=scene.get('normal'); n=normals[3*i:3*i+3] if normals else [0.0,0.0,1.0]
+                    reflect.extend(py_reflection_uv(d,n))
+            out.append(('bind',0x7722)); corners(reflect,lambda i:('c4',)+lit(i)+(fbits(f32(0.4)),))
+            out.append(('state',2,1));out.append(('bind',texture))
+            corners(uv,lambda i:('c4',)+lit(i)+(fbits(fsub(1.0,f32(0.4))),))
+        else:
+            out.append(('bind', texture))
+            corners(uv, lambda i: ('c3',) + lit(i))
     if scene['detail'] >= 4 and neighbour:
         around = [index(xi - 1, yi), index(xi + 1, yi), index(xi, yi + 1), index(xi, yi - 1)]
         if any(not 0 <= a < CELLS for a in around):
@@ -531,7 +565,9 @@ class Scene(ctypes.Structure):
                 ('time', ctypes.c_float), ('detail', ctypes.c_int32), ('grass_disabled', ctypes.c_uint8),
                 ('texture_size', SIZE_CALLBACK), ('texture_context', ctypes.c_void_p),
                 ('frame_counter', ctypes.c_int32), ('random', RANDOM_CALLBACK), ('effect', EFFECT_CALLBACK),
-                ('effect_context', ctypes.c_void_p), ('hero_z', ctypes.c_float)]
+                ('effect_context', ctypes.c_void_p), ('hero_z', ctypes.c_float),
+                ('signed_grid', ctypes.c_void_p), ('reflection_uv', ctypes.c_void_p), ('reflection_normal', ctypes.c_void_p),
+                ('camera_position', ctypes.c_float * 3), ('chaos_state', ctypes.c_uint8), ('camera_shake', ctypes.c_void_p)]
 
 
 class Frustum(ctypes.Structure):
@@ -742,7 +778,10 @@ class Authored:
                       arr(ctypes.c_float, s['wave2']), arr(ctypes.c_float, s['grass_offset']),
                       arr(ctypes.c_uint8, s['grass_map']), s['water'],
                       s['time'], s['detail'], s['grass_disabled'], callback, None, s.get('frame_counter', 0),
-                      random_cb, effect_cb, None, s.get('hero_z', 0.0))
+                      random_cb, effect_cb, None, s.get('hero_z', 0.0), None,
+                      arr(ctypes.c_float, s.get('reflection_uv', [0.0]*(2*CELLS))),
+                      arr(ctypes.c_float, s.get('normal', [0.0,0.0,1.0]*CELLS)),
+                      (ctypes.c_float*3)(*s.get('camera_position', [0,0,0])), s.get('chaos_state', 0), None)
         return scene, keep
 
     @staticmethod
@@ -817,6 +856,7 @@ def synthetic_scene(seed, world=0, extended=False):
         for n in range(32):
             sizes[0x76f8 + n] = (float(g.choice((64, 128, 256))), float(g.choice((64, 128, 256))))
         sizes[0x7723] = (128.0, 128.0)
+        sizes[0x7722] = (256.0, 256.0)
     scene['sizes'] = sizes
     return scene
 
@@ -919,6 +959,10 @@ class Client:
             self.stream.append(('begin', self.arg(0)))
         elif name == 'glEnd':
             self.stream.append(('end',))
+        elif name == 'glNormal3fv':
+            pass  # fixed-function lighting is disabled for terrain
+        elif name == 'glTexCoord2fv':
+            self.stream.append(('tex',) + self.read_floats(self.arg(0), 2))
         elif name == 'glTexCoord2f':
             self.stream.append(('tex', self.farg(0), self.farg(1)))
         elif name == 'glColor3fv':
@@ -980,6 +1024,9 @@ class Client:
         self.write('alpha', 'f', s['alpha'])
         self.write('att', 'H', s['att'])
         self.write('height', 'f', s['height'])
+        self.write('normal', 'f', s.get('normal', [0.0, 0.0, 1.0] * CELLS))
+        self.uc.mem_write(0x0b975430, struct.pack(f'<{2*CELLS}f', *s.get('reflection_uv', [0.0]*(2*CELLS))))
+        self.uc.mem_write(0x0bdc5ab4, struct.pack('<3f', *s.get('camera_position', [0,0,0])))
         self.write('light', 'f', s['light'])
         self.write('light2', 'f', s['light2'])
         self.write('wave', 'f', s['wave'])
@@ -997,7 +1044,7 @@ class Client:
         self.set_bitmaps(s['sizes'])
 
     # -- execution
-    def call(self, start, words, until=None, ecx=0):
+    def call(self, start, words, until=None, ecx=0, cleanup=0):
         uc, x86 = self.uc, self.x86
         self.stream, self.gl_state, self.error = [], [], None
         top = self.STACK + 0x3f000
@@ -1018,7 +1065,7 @@ class Client:
         pc = uc.reg_read(x86.UC_X86_REG_EIP)
         ok = self.error is None and pc == (until or self.SENTINEL)
         if until is None and ok:
-            ok = self.esp() == top + 4
+            ok = self.esp() == top + 4 + cleanup
         return ok
 
 
@@ -1582,8 +1629,7 @@ def terrain2_checks(client, authored, report, g, scale=1):
     particles = []
     client.extra = {CRT_RAND: lambda c: c.ret(crt_rand(), 0),
                     PARTICLE: lambda c: (particles.append(('effect', c.arg(0)) + c.read_floats(c.arg(1), 3)),
-                                         c.ret(0, 0)),
-                    CHAOS_EFFECTS: ret_with(0)}
+                                         c.ret(0, 0))}
     # seeds whose first rand() % 50 == 0, so world 0x22's water tiles spawn particles
     particle_seeds = [v for v in range(200000) if ((((v * 214013 + 2531011) & 0xffffffff) >> 16) & 0x7fff) % 50 == 0][:40]
     for seed, world in enumerate(SPECIAL_WORLDS):

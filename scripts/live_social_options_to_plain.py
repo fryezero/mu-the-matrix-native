@@ -5,6 +5,7 @@ Authored schemas from client-social.md. Output contains private game text;
 keep it outside git. Requires complete records, including ArtifactOption's
 0x84-byte tail (older captures can be more complete than newer ones).
 """
+import native_data_manifest as manifest
 import argparse
 import hashlib
 import json
@@ -195,7 +196,10 @@ def main():
     p.add_argument("snapshot", type=Path)
     p.add_argument("--artifact-snapshot", type=Path)
     p.add_argument("--out-dir", type=Path, required=True)
+    manifest.arguments(p)
     a = p.parse_args()
+    manifest.prepare(a)
+    manifest.prepare_output(a, a.out_dir)
     print(
         json.dumps(
             export(a.snapshot, a.artifact_snapshot or a.snapshot, a.out_dir),
@@ -203,6 +207,7 @@ def main():
         )
     )
 
+    manifest.publish(a, a.out_dir, 'social-options-v1', [a.snapshot, a.artifact_snapshot or a.snapshot])
 
 if __name__ == "__main__":
     main()

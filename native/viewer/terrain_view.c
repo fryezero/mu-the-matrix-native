@@ -80,7 +80,7 @@ static void gl_textures(terrain_view *v)
 {
     for (int32_t i = 0; i < MU_WORLD_BITMAPS; ++i) {
         const mu_image *image = &v->map->bitmaps[i];
-        v->names[i] = image->width > 0 ? gl_upload(image, v->map->bitmap_linear[i], 0) : 0;
+        v->names[i] = image->width > 0 ? gl_upload(image, v->map->bitmap_linear[i], mu_terrain_is_signed_world(v->map->world) && i == 1) : 0;
     }
     for (int32_t i = 0; i < MU_WORLD_EXTRA; ++i) {
         const mu_image *image = &v->map->extra[i];
@@ -117,6 +117,11 @@ static void gl_release(terrain_view *v)
 static void g_state(void *c, int32_t state, int32_t argument)
 {
     (void)c;
+    mu_terrain_environment environment;
+    const float color[4]={0,0,0,0};
+    mu_terrain_environment_config(0,0.0f,color,&environment);
+    glAlphaFunc(GL_GREATER,environment.alpha_reference);
+    glDisable(GL_FOG);
     mu_meshdraw_state s;
     mu_world_state(state, argument, &s);
     if (s.blend) {
@@ -155,7 +160,7 @@ static void g_bind(void *c, int32_t texture)
 static void g_begin(void *c, int32_t mode)
 {
     (void)c;
-    glBegin(mode == MU_TERRAIN_GL_QUADS ? GL_QUADS : GL_TRIANGLE_FAN);
+    glBegin((GLenum)mode);
 }
 static void g_end(void *c) { (void)c; glEnd(); }
 static void g_tex(void *c, float s, float t) { (void)c; glTexCoord2f(s, t); }
@@ -173,6 +178,9 @@ static void place_camera(terrain_view *v)
  * over it, then the demo light sources. */
 static void frame_setup(terrain_view *v, int32_t w, mu_terrain_frustum *frustum)
 {
+    float terrain_eye[3];
+    mu_camera_eye(&v->camera,terrain_eye);
+    mu_world_terrain_view(v->map,v->camera.target,terrain_eye);
     memset(frustum, 0, sizeof *frustum);
     if (v->frustum) {
         float view[16], eye[3], rows[12];

@@ -164,6 +164,33 @@ typedef int (*mu_terrain_texture_size)(void *context, int32_t texture, float *wi
 /* Everything the tile renderer reads. light is the per-frame light grid
  * (0x0b9f5430; equal to the primary light when no dynamic light is added),
  * light2 the second light map (0x0bc35430, zero when absent). */
+typedef struct mu_terrain_environment {
+    float alpha_reference;
+    int32_t fog;
+    float density, color[4];
+} mu_terrain_environment;
+/* 0x0184b043..0x0184b0bb: GL_GREATER .25 and optional GL_LINEAR fog.
+ * The scene entry points clear the fog flag, so native scene callers pass 0. */
+void mu_terrain_environment_config(int fog, float density, const float color[4], mu_terrain_environment *out);
+/* Kalima's original record layout. Signed wave buffers are separate from the
+ * file height grid. Offsets stay explicit for instruction comparisons. */
+typedef struct mu_terrain_signed_grid {
+    int32_t world;
+    int32_t grid[4][MU_TERRAIN_CELLS];
+    int32_t active;
+    float light_direction[3];
+    float vertex[1764][3], normal[1764][3];
+    int32_t indices[10584], count;
+} mu_terrain_signed_grid;
+void mu_terrain_signed_init(mu_terrain_signed_grid *g, int32_t world);
+int mu_terrain_signed_ripple(mu_terrain_signed_grid *g, int x, int y, int rx, int ry, int amplitude,
+    int (*random)(void *), void *context);
+void mu_terrain_signed_step(mu_terrain_signed_grid *g);
+void mu_terrain_signed_wave(mu_terrain_signed_grid *g, int32_t hero_x, int32_t hero_y, float time);
+float mu_terrain_signed_height(const mu_terrain_signed_grid *g, float x, float y);
+void mu_terrain_signed_mesh(mu_terrain_signed_grid *g, int32_t hero_x, int32_t hero_y);
+void mu_terrain_signed_draw(mu_terrain_signed_grid *g, const mu_terrain_sink *sink);
+int mu_terrain_is_signed_world(int32_t world);
 typedef struct mu_terrain_scene {
     int32_t world_index;          /* [0x01cf15fc], 0-based (folder number - 1) */
     const uint8_t *layer1, *layer2;
@@ -187,21 +214,33 @@ typedef struct mu_terrain_scene {
     void (*effect)(void *context, int32_t type, const float position[3], const float light[3]);
     void *effect_context;         /* passed to random() and effect() */
     float hero_z;                 /* hero position z ([0x0a39d754] + 0x33ac + 8) used by those particles */
+    /* RENDER-TERRAIN-002: explicit inputs for reflection and event effects. */
+    mu_terrain_signed_grid *signed_grid;
+    const float *reflection_uv;   /* 65536 pairs, precomputed by 0x016c95f9 for world 0x71 */
+    const float *reflection_normal; /* 65536 triples, 0x0b7f5430 in world 0x91 */
+    float camera_position[3];
+    uint8_t chaos_state;          /* 0x01cf0467: 0, 3 or 6 selects the arena boundary */
+    float *camera_shake;          /* optional output 0x0bdb588c */
 } mu_terrain_scene;
 
 typedef struct mu_terrain_tile_stats {
     long faces, alpha_faces, grass, skipped, unsupported;
 } mu_terrain_tile_stats;
 
-/* Unported world-specific paths of 0x016cff65 / 0x016cf46c (NATIVE-TERRAIN-002
- * ported the water/lava scrolls, the per-world blend states, the additive
- * animated layer, the 0x4000 neighbour face and the world-0x22 particles):
- * bit 1 = the 0x2000 overlay faces of worlds 0x71 and 0x91 at graphics option
- * >= 4 (reported per tile as MU_TERRAIN_UNSUPPORTED), bit 2 = the Chaos
- * Castle per-face effects 0x009dc0b1 (worlds 0x12..0x17, 0x35, 0x61; effect
- * spawns only, the terrain stream is drawn). 0 for every other world. */
+/* Remaining unsupported terrain paths, now zero for every world. */
 int mu_terrain_world_has_special_paths(int32_t world_index);
 
+/* 0x009dc0b1: event boundary particle and camera-shake side effect. */
+void mu_terrain_chaos_face(const mu_terrain_scene *scene, int32_t x, int32_t y);
+/* 0x016c977c: normalized reflection vector mapped to sphere coordinates. */
+void mu_terrain_reflection_init(const mu_terrain_scene *scene, float *normal, float *uv);
+void mu_terrain_reflection_uv(const float direction[3], const float normal[3], float uv[2]);
+struct mu_terrain_frustum_2d_params;
+/* CreateFrustrum2D with the world-6 hero-name predicate and the world-0x49 camera
+ * pitch interpolator supplied explicitly. The old entry uses no special name or pitch offset. */
+int mu_terrain_frustum_2d_camera(int32_t world, const float position[3], const float angle[3],
+    const struct mu_terrain_frustum_2d_params *params, int wide, int special_view,
+    float pitch_offset, float x[4], float y[4]);
 /* 0x016ccda5 followed by 0x016cff65 for one tile. pass 0 is the opaque pass
  * ([0x0b5e3ea0] = 0): one face of layer 1 (or of layer 2 when all four alpha
  * values are >= 1 and attribute bit 0x4000 is clear) with the world's UV
@@ -210,8 +249,7 @@ int mu_terrain_world_has_special_paths(int32_t world_index);
  * alpha face of layer 2 when any alpha value is > 0. pass 2 is the grass
  * pass: a GL_QUADS blade where every alpha is <= 0, grass is enabled and the
  * layer-1 grass bitmap exists. Returns MU_TERRAIN_OK, MU_TERRAIN_UNSUPPORTED
- * (nothing emitted for that part) for a 0x2000 overlay face or a missing
- * bitmap the client would dereference, or MU_TERRAIN_BAD_INDEX. */
+ * for a missing bitmap the client would dereference, or MU_TERRAIN_BAD_INDEX. */
 int mu_terrain_draw_tile(const mu_terrain_scene *scene, int32_t pass, float xf, float yf, int32_t xi, int32_t yi,
                          const mu_terrain_sink *sink, mu_terrain_tile_stats *stats);
 
@@ -353,8 +391,8 @@ int mu_terrain_frustum_2d_params_for(int32_t world_index, int32_t mode, int32_t 
  *          a = 71 (67 in worlds 0x86 and 0x8b), max = 0x0184f93f
  *   p0 = (-wf, (distance - back) + lift, 0), p1 = (wf, same, 0),
  *   p2 = (wn, near - back, 0),               p3 = (-wn, same, 0)
- *   angle = (0, 0, 45) (world 0x49 and the "webzen" world 6 use the camera
- *          angle instead: not reconstructed, returns MU_TERRAIN_UNSUPPORTED)
+ *   angle = (0, 0, 45), world 0x49 uses -CameraAngle plus pitch offset;
+ *          the special world-6 hero names use yaw -CameraAngle[2].
  *   x2d[i] = (VectorRotate(p_i, AngleMatrix(angle))[0] + position[0]) * 0.01f,
  *   y2d likewise with component 1.
  * The routine first re-applies the camera field of view when the camera

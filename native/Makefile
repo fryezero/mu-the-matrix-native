@@ -140,7 +140,7 @@ $(MODULUS_OBJ): ../model-recovery/modulus.cpp
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) $(CRYPTOPP_CFLAGS) -c $< -o $@
 
-$(LIB): $(CORE_OBJ) $(RECON_OBJ) $(MODULUS_OBJ)
+$(LIB): $(CORE_OBJ) $(RECON_OBJ) $(MODULUS_OBJ) $(BUILD)/data-manifest.o
 	rm -f $@
 	ar rcs $@ $^
 
@@ -287,10 +287,12 @@ $(BUILD)/mu-data: tools/mu_data.c $(DATA_SRC) $(DATA_HDR)
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) tools/mu_data.c $(DATA_SRC) -o $@
 
-# Lang.mpr tables read from the client (NATIVE-LANG-001): no other dependency.
-$(BUILD)/mu-lang: tools/mu_lang_tool.c core/mu_lang.c core/mu_lang.h core/mu_lang_maps.h
+# Lang.mpr tables read from the client; managed exports use the manifest guard.
+$(BUILD)/mu-lang: tools/mu_lang_tool.c core/mu_lang.c core/mu_lang.h core/mu_lang_maps.h $(BUILD)/data-manifest.o
 	@mkdir -p $(BUILD)
-	$(CC) $(CFLAGS) tools/mu_lang_tool.c core/mu_lang.c -o $@
+	$(CC) $(CFLAGS) -c tools/mu_lang_tool.c -o $(BUILD)/mu_lang_tool.o
+	$(CC) $(CFLAGS) -c core/mu_lang.c -o $(BUILD)/mu_lang.o
+	$(CXX) $(BUILD)/mu_lang_tool.o $(BUILD)/mu_lang.o $(BUILD)/data-manifest.o $(CRYPTOPP_LIBS) -o $@
 
 # ---- windowed viewer ----
 SDL_CONFIG ?= sdl2-config
@@ -369,14 +371,16 @@ $(BUILD)/libmuaudio.a: $(AUDIO_OBJ)
 $(AUDIO_SO): $(AUDIO_OBJ)
 	$(CC) -shared $^ $(AUDIO_LIBS) -lm -o $@
 
-$(BUILD)/mu-audio: tools/mu_audio.c $(BUILD)/libmuaudio.a
-	$(CC) $(CFLAGS) tools/mu_audio.c $(BUILD)/libmuaudio.a $(AUDIO_LIBS) -lm -o $@
+$(BUILD)/mu-audio: tools/mu_audio.c $(BUILD)/libmuaudio.a $(BUILD)/data-manifest.o
+	$(CC) $(CFLAGS) -c tools/mu_audio.c -o $(BUILD)/mu_audio_tool.o
+	$(CXX) $(BUILD)/mu_audio_tool.o $(BUILD)/libmuaudio.a $(BUILD)/data-manifest.o $(CRYPTOPP_LIBS) $(AUDIO_LIBS) -lm -o $@
 
 # Live playback through SDL2 audio (optional, like the viewer).
 audio-live: $(BUILD)/mu-audio-live
 
-$(BUILD)/mu-audio-live: tools/mu_audio_live.c $(BUILD)/libmuaudio.a
-	$(CC) $(CFLAGS) $$($(SDL_CONFIG) --cflags) tools/mu_audio_live.c $(BUILD)/libmuaudio.a \
+$(BUILD)/mu-audio-live: tools/mu_audio_live.c $(BUILD)/libmuaudio.a $(BUILD)/data-manifest.o
+	$(CC) $(CFLAGS) $$($(SDL_CONFIG) --cflags) -c tools/mu_audio_live.c -o $(BUILD)/mu_audio_live.o
+	$(CXX) $(BUILD)/mu_audio_live.o $(BUILD)/libmuaudio.a $(BUILD)/data-manifest.o $(CRYPTOPP_LIBS) \
 	  $$($(SDL_CONFIG) --libs) $(AUDIO_LIBS) -lm -o $@
 
 # Walk-around window (SDL2 + OpenGL 2.1), NATIVE-WORLD-001.  WORLD-RT-001: the runtime and world_tool.c come
@@ -515,6 +519,15 @@ clean:
 	rm -rf $(BUILD)
 
 .PHONY: all viewer frame-window world charsel client audio audio-live clean preview-app
+
+# DATA-ACQ-004: shared portable manifest validator and acquisition helper.
+all: $(BUILD)/mu-native-data
+$(BUILD)/data-manifest.o: data/manifest.cpp data/manifest.h
+	@mkdir -p $(BUILD)
+	$(CXX) $(CXXFLAGS) $(CRYPTOPP_CFLAGS) -c $< -o $@
+$(BUILD)/mu-native-data: data/manifest.cpp data/manifest.h
+	@mkdir -p $(BUILD)
+	$(CXX) $(CXXFLAGS) $(CRYPTOPP_CFLAGS) -DMU_MANIFEST_TOOL $< $(CRYPTOPP_LIBS) -o $@
 
 .PHONY: layout
 layout: $(LAYOUT_STAMP)

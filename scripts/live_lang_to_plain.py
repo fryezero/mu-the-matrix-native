@@ -57,6 +57,7 @@ Text fields escape TAB, LF, CR and backslash as \\t \\n \\r \\\\ and bytes
 outside printable ASCII as \\xHH, so the files hold the client's bytes
 exactly (its strings are ANSI; a few are CP949).
 """
+import native_data_manifest as manifest
 import argparse
 import bisect
 from pathlib import Path
@@ -832,12 +833,16 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split('\n\n')[0])
     parser.add_argument('snapshot', help='langread output (MULANGV1)')
     parser.add_argument('--out', required=True, help='output directory (local; never commit)')
+    manifest.arguments(parser)
     args = parser.parse_args(argv)
+    manifest.prepare(args)
+    manifest.prepare_output(args, args.out)
     try:
         counts = convert(Snapshot.load(args.snapshot), args.out)
     except SnapshotError as error:
         print(f'live_lang_to_plain: {error}', file=sys.stderr)
         return 1
+    manifest.publish(args, args.out, 'lang-export-v1', [args.snapshot])
     print(' '.join(f'{k}={v}' for k, v in counts.items()), '->', args.out)
     return 0
 

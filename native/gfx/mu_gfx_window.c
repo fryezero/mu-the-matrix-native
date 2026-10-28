@@ -1,3 +1,4 @@
+#include "../data/manifest.h"
 /* mu-gfx-window: the GFx interface layer in a window of its own
  * (NATIVE-GFX-001 prototype, rebuilt on mu_gfx_layer in NATIVE-GFX-002).
  *
@@ -182,6 +183,7 @@ static void run_step(mu_gfx_layer *L, const char *what, char *shot, size_t cap, 
 
 int main(int argc, char **argv)
 {
+    if (!mu_native_data_check_args(argc, argv)) return 1;
     const char *dir = NULL, *out_dir = NULL, *log_path = NULL;
     int headless = 0, headless_gl = 0, script = 0, bench = 0, frames = 0, open_inv = 0, readback = 0, full = 0;
     int standalone = 0, double_buffer = 0;
