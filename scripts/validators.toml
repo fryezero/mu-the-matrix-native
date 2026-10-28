@@ -2166,3 +2166,19 @@ args = ["--mutations", "--output", "{report}"]
 [validate_item_wings_next.expect]
 "families.*.mismatches" = 0
 "mutants.*" = {truthy = true}
+
+[validate_worlds_n]
+test = "reconstructed/objects/test_worlds_n.py::WorldsNTests.test_original_instructions"
+pins = ["text", "data"]
+families = ["nixies_create", "nixies_move", "dd116_create", "dd117_create", "dd118_create", "dd119_create", "dd120_create", "dd116_move", "dd117_move", "dd118_move", "dd119_move", "dd120_move", "shared_visual"]
+cases = 13000
+mutants = 29
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+[validate_worlds_n.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0

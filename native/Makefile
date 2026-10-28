@@ -641,3 +641,7 @@ $(BUILD)/worlds-j-host: tests/worlds_j_host.c $(LIB) $(HEADERS)
 $(BUILD)/worlds-l-host: tests/worlds_l_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-l-host.o
 	$(CXX) $(BUILD)/worlds-l-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+
+$(BUILD)/worlds-n-host: tests/worlds_n_host.c $(LIB) $(HEADERS)
+	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-n-host.o
+	$(CXX) $(BUILD)/worlds-n-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
