@@ -61,6 +61,8 @@ class ConverterC(unittest.TestCase):
             opts += ['--var', f'{k}={str(v).lower() if isinstance(v, bool) else v}']
         self.equal(options=opts, bridge=True, vars=values)
         self.equal(options=['--var', 'foo=37'], vars={'foo': 37})
+        self.equal(options=['--var', 'foo=1', '--var', 'bar=2', '--var', 'foo=3'],
+                   vars={'foo': 3, 'bar': 2})
 
     def test_plain_compressed_containers_and_absent_showframe(self):
         for sig in (b'GFX', b'CFX', b'FWS', b'CWS'):
@@ -100,6 +102,16 @@ class ConverterC(unittest.TestCase):
         ext = struct.pack('<HHHH', 1, 14, 2, 2) + pstr('') + pstr('absent.dds')
         (self.gfx / 'Missing.ozg').write_bytes(swf([tag(57, imp), tag(1001, ext), tag(1008, b'\0' * 12)]))
         self.equal('Missing')
+
+    def test_unresolved_long_import_header_is_preserved(self):
+        # Python keeps the whole original import if even one symbol is unresolved,
+        # including the original short/long header choice.
+        import gfxswf
+        payload = cstr('gfxfontlib.swf') + b'\x01\x00' + struct.pack('<H', 2)
+        payload += struct.pack('<H', 8) + cstr('$NormalFont')
+        payload += struct.pack('<H', 9) + cstr('$Missing')
+        (self.gfx / 'Long.ozg').write_bytes(swf([gfxswf.encode_tag(71, payload, force_long=True)]))
+        self.equal('Long')
 
     def test_navimaps_and_report(self):
         nav = self.gfx / 'NaviMap'

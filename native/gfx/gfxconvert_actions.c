@@ -24,6 +24,17 @@ Buf host_actions(char **vars, int count, int bridge) {
     for (int i = 0; i < count; i++) {
         const char *eq = strchr(vars[i], '='); size_t n = eq ? (size_t)(eq - vars[i]) : strlen(vars[i]);
         char *key = mem(n + 1); memcpy(key, vars[i], n); const char *value = eq ? eq + 1 : "";
+        // Python's dict keeps the first position and the last value for a repeated key.
+        int first = 1;
+        for (int j = 0; j < count; j++) {
+            const char *other = strchr(vars[j], '=');
+            size_t len = other ? (size_t)(other - vars[j]) : strlen(vars[j]);
+            if (len == n && !memcmp(key, vars[j], n)) {
+                if (j < i) first = 0;
+                if (j > i) value = other ? other + 1 : "";
+            }
+        }
+        if (!first) continue;
         Buf v = push_string(key);
         if (!strcmp(value, "true") || !strcmp(value, "false")) { byte(&v, 5); byte(&v, !strcmp(value, "true")); }
         else {

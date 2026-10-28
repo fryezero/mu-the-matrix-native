@@ -201,6 +201,5 @@ int inline_fonts(Buf *out, Tag t, const char *dir, const char *config, int subse
         if (!f || !f->ntags) { kept++; continue; }
         emit(out, f, id, sym, subset);
     }
-    if (kept) tag(out, t.code, (Buf){(unsigned char *)t.data.p, t.data.n, t.data.n}, t.data.n >= 63);
     return kept;
 }

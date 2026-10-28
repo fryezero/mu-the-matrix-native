@@ -254,6 +254,11 @@ int main(void) {
         # Repeat and forced replacement both work, also with no Python on PATH.
         self.assertIn('gfx: kept', self.launch(env, '--setup').stdout)
         self.assertIn('gfx: converted', self.launch(env, '--setup', '--force').stdout)
+        before = {p.name: p.read_bytes() for p in (nd / 'gfx').glob('*.swf')}
+        (gfx / 'Broken.ozg').write_bytes(b'FWS')
+        self.launch(env, '--setup', '--force')
+        self.assertNotEqual(json.loads((nd / 'setup.json').read_text())['gfx']['status'], 'converted')
+        self.assertEqual({p.name: p.read_bytes() for p in (nd / 'gfx').glob('*.swf')}, before)
 
     def plan(self, env, *args):
         return json.loads(self.launch(env, '--print-plan', *args).stdout)

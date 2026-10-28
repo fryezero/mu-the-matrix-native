@@ -214,7 +214,10 @@ static Buf convert(const char *path, const char *dir, const char *config, int su
             tag(&out, 36, lossless(id, im), 0); subimages++; continue;
         }
         if (t.code == 57 || t.code == 71 || t.code == 1005) {
-            unconverted += inline_fonts(&out, t, dir, config, subset); continue;
+            int left = inline_fonts(&out, t, dir, config, subset);
+            unconverted += left;
+            if (left && t.code != 1005) add(&out, r.p + start, r.pos - start);
+            continue;
         }
         if (t.code >= 1002 && t.code <= 1007) { unconverted++; continue; }
         add(&out, r.p + start, r.pos - start);
