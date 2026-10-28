@@ -153,7 +153,7 @@ static void objects_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *d)
 }
 #endif
 
-/* RENDER-WORLDS-A: 0x016d6949 after characters/items, before the environment. */
+/* RENDER-WORLDS-A: 0x016d6949 after characters/items and the environment. */
 static void objects_after_draw_soft(struct mu_world_rt *a, void *self, mu_world_draw *d)
 {
     (void)self;

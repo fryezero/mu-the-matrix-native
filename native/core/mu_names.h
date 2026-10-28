@@ -33,7 +33,7 @@
 #include "../../reconstructed/names/overhead_names.h"
 #include "mu_label.h"
 
-#define MU_NAMES_MAX 64
+#define MU_NAMES_MAX 128 /* 80 demo players + 32 actors + hero, without lost plates */
 
 /* What the movie shows for one key (the AS2 state the calls produce). */
 typedef struct mu_names_plate {

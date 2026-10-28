@@ -36,3 +36,12 @@ snapshots and old score reports are the live evidence for those maps; Kanturu us
 README source. Next: fresh live captures of the four missing maps under the game lock in a later authorized run,
 then phase-aligned multi-frame fidelity. No live capture belongs in this run. Other handlers, creation effects,
 region import and the shadow/custom registries remain outside A. Scope claim: issue #177.
+
+## Resume integration, 2026-10-28
+
+Merged current main `0a85441` into the existing branch. Kept both validator registrations and the
+WORLD-ORDER-001 recorded-order tests, including A's hook signatures and 24-part count. The deferred pass now
+anchors to original call `0x016d6949` and follows the environment in both draw columns, at order 85.
+The GL viewer marker follows that pass. Existing helper adapters remain explicit. Reordering environment and
+deferred-object calls must change both projected draw expectations. Sibling input/performance, world and
+session integrations remain present. Validation and refreshed fidelity results follow below.

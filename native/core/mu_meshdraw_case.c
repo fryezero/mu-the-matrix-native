@@ -267,7 +267,7 @@ static const mu_bitmap *case_bitmap(void *context, int32_t index)
 int mu_meshdraw_case_run(mu_meshdraw_case *c, const mu_gl_sink *sink, mu_meshdraw_scratch *scratch,
                          mu_meshdraw_counts *counts)
 {
-    mu_meshdraw_env env = {&c->model, &c->globals, &c->cache, sink, case_bitmap, c, scratch};
+    mu_meshdraw_env env = {&c->model, &c->globals, &c->cache, sink, case_bitmap, c, scratch, NULL};
     for (int32_t k = 0; k < c->call_count; ++k) {
         const mu_meshdraw_call *x = &c->calls[k];
         int status;

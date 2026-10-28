@@ -319,7 +319,7 @@ separate authorized run, then rerun the image-error tour. This run did not start
 Authored per-world files in `reconstructed/objects/world_*_visual.c` implement the scoped Kanturu/Karutan
 visuals and the deferred body/mesh handlers. `world_after.c` dispatches only the four requested world groups.
 The native object runtime consumes their particle/sprite logs and draws the second pass after characters/items,
-before the environment. Raklion's opaque meshes remain in the first pass and its glow meshes in the second.
+after the environment, matching RenderMainScene's recorded `0x016d6949` call. Raklion's opaque meshes remain in the first pass and its glow meshes in the second.
 Elbeland's deferred lamps also reach the sprite pool. Existing login/character-select dispatch remains intact.
 
 ### Verified instruction comparisons

@@ -1,5 +1,7 @@
 # Continue from here
 
+WORLD-ORDER-001: [handoff](handoffs/WORLD-ORDER-001.md). Tick/draw expectations now read compiled call records; native deviations are explicit. No runtime/order-number change.
+
 RENDER-WORLDS-F: [handoff](handoffs/RENDER-WORLDS-F.md). Missing additive screen passes recovered and wired in both renderers. Original Tarkan/Raklion PNGs are absent, so live-image error remains unmeasured.
 
 RENDER-WORLDS-C2: [handoff](handoffs/RENDER-WORLDS-C2.md). Persistent cover, owner-aware emitter ribbons and integer ambient clock are implemented. Raw Icarus image error is 26.897 / 27.663; exact captured animation phase remains unavailable.
@@ -28,6 +30,8 @@ DATA-ACQ-004 manifest slice: [handoff](handoffs/DATA-ACQ-004.md), [re-acquisitio
 RENDER-ITEMS-002 part 4: [handoff](handoffs/RENDER-ITEMS-002D.md). 426/1,674 bodies, 11/17 skins, five link targets/ten types integrated and Spark03/11 consumed. Remaining: 1,248 bodies, six skins and further links; Muun/nested map-object tables remain deferred.
 
 LAYOUT-001: [handoff](handoffs/LAYOUT-001.md), generated read-side layouts and JSON consumers. Per-domain migrations can extend their own .def files.
+
+INPUT-001 implemented: [router handoff and final checks](handoffs/INPUT-001.md), [recovered bindings and input-script contract](research/client-input.md). Unavailable domain/window rows and original IME candidate UI remain explicit.
 
 CHARSEL-RT-001 is implemented. See [the lane handoff](handoffs/CHARSEL-RT-001.md) for runtime paths,
 unchanged render comparisons and the 300-case private character-create check. Next: SESSION-ACCOUNT-001.
@@ -359,6 +363,8 @@ is the CharacterSelect movie's game side (compare with `scripts/validate_charsel
 `mu_charsel_pick` runs NATIVE-NPC-001's `mu_npc_pick` for scene 5; `skill_fx.c` and `mu_particles` carry the star dragon 0x5ac/0x5ad. Renders stay
 local (`~/Documents/mu-mac-tools/native/renders/charsel3/`; JPEXS output and the probe in `scratch/charsel3/`). Next: the create-character panel (offline: local
 characters) and the GFx menu; class-name codes 9/10.
+- NATIVE-PERF-002: integrated timings, matching render hashes and the remaining 80-player/pacing shortfall are in [the handoff](handoffs/NATIVE-PERF-002.md).
+
 ## Native frame time and window (NATIVE-PERF-001)
 
 Read [`research/native-performance.md`](research/native-performance.md). Profile with `mu-client ... --auto --hold
