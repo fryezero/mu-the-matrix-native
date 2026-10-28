@@ -11,6 +11,7 @@
 #define MU_ENV_MUTATION 0
 #endif
 
+void mu_env_raklion_snow(mu_env *, const mu_env_inputs *, mu_env_leaf *);
 float env_sin(float x);
 float env_cos(float x);
 float env_sqrt(float x);
