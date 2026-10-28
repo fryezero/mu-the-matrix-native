@@ -423,6 +423,10 @@
     "gfx2": {
       "tests": 15,
       "skips": 2
+    },
+    "gfx3": {
+      "tests": 12,
+      "skips": 2
     }
   },
   "cleanup": "All native-perf-003 scratch, renders, builds and worktree removed after merge. Only four README candidate PNGs, commands.json, regenerate.py and capture-notes.md remain as future README-task inputs in renders/readme-candidates/stress80, named in the handoff.",
@@ -475,5 +479,32 @@
       "width": 1280,
       "height": 800
     }
-  ]
+  ],
+  "final_gate": {
+    "command": "bash scripts/local-macos-ci.sh",
+    "integrated_origin_main": "cb4bd9c",
+    "tested_base_commit": "df94a207edb4d9635e388252bd633542498ceefa",
+    "working_tree_test_fix": {
+      "path": "native/tests/test_native_gfx3.py",
+      "blob_sha1": "f18cd4dc5a3d226fb25fe74c8843e976ceba942a",
+      "reason": "Recognize patch 8; restrict GFx 3 provenance assertions to patches 6 and 7."
+    },
+    "tests": 1489,
+    "suites": 38,
+    "skips": 170,
+    "failures": 0,
+    "fixture_scenarios_passed": 7,
+    "fixture_scenarios_failed": 0,
+    "fixture_expectations": 50,
+    "fixture_inbound_frames": 53,
+    "fixture_unbound_frames": 0,
+    "fixture_undecodable_frames": 0,
+    "fixture_unrecovered_intents": 2,
+    "fixture_unsent_frames": 5,
+    "audit_files": 1384,
+    "audit_rejections": 0,
+    "mac_build_checks_passed": true,
+    "gfx_library_sha256": "a7e2c9777becacdc178096fba87dd0fcc858816da13473f81e6ba8f05a578968",
+    "initial_attempt": "One stale GFx 3 patch-count assertion failed; focused correction and full rerun pass."
+  }
 }

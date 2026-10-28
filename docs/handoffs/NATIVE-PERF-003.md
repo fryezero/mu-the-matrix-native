@@ -47,7 +47,31 @@ none passes strict work/pacing acceptance in this shared-host repeat. Full frame
 percentiles and CPU/GL/Metal costs are in the finding. Every measured frame has
 a complete Metal interval. The 80-player 25 Hz goal and crowd40 tails stay open.
 
-Next: lock-held latest-main merge, full local gate, PR and merge.
+## Final lock-held gate
+
+Lock acquired 2026-10-28 08:31 CDT after the integration lane released it. Merged
+latest main `cb4bd9c` cleanly as checkpoint `df94a20`. That main change affects
+tests, validator inputs and native build prerequisites, not the measured runtime
+sources. The normal wall-clock timing matrix therefore retains its exact recorded
+source identity; no new whole-frame performance claim is inferred from the merge.
+
+`bash scripts/local-macos-ci.sh` passes: 1,489 tests in 38 suites, 170 explicit
+private/optional skips, zero failures. Seven fixture scenarios pass all 50
+expectations with 53 inbound frames, zero unbound/undecodable frames; the existing
+two unrecovered intents and five unsent frames remain reported. Native viewer and
+live-reader build checks pass. Repository audit: 1,384 files, zero rejections.
+No hosted workflow was dispatched and no original client/launcher was used.
+
+The first final gate caught a stale GFx 3 expectation of seven patches. Its test
+now recognizes the eighth comparison-clock patch while keeping the old two-patch
+provenance assertions scoped correctly. Focused GFx 3 checks pass, 12 tests and
+two skips, followed by the complete passing gate above. The gate includes the
+built Metal drain and AS2 clock probes. The final code change is this test fix;
+final documentation adds these counts and the retained evidence summary.
+
+After merge, release the lock and delete the complete native-perf-003 scratch and
+render trees, build outputs and worktree, then the local branch. Only the named
+README input exception below survives. The main checkout remains untouched.
 
 ## README follow-up inputs
 
