@@ -664,6 +664,18 @@ viewer/readers builds and the 1,354-file audit with zero rejections. Fresh lates
 fourteen-view scoreboards and all 28 frame hashes. `locked-*` local reports and the handoff's final verification
 section supersede the earlier integration checkpoints above. No additional original-client observation occurred.
 
+
+## 9. RENDER-WORLDS-I, 2026-10-28
+
+Loren Market/world-79 and Uruk Mountain/world-100 primary methods are implemented in per-world C. Six
+original-instruction families match 6,000 cases, zero mismatches/stops, and detect all 33 compiled mutants.
+The inventory advances to 31/144 primary methods across 11/48 classes. Current-pose market lamps and
+Uruk emitter callbacks have synthetic native-host checks. The saved fourteen-view tour retains all
+28 first/final PNG hashes, 14 OBJECT dumps, 14 light dumps and complete scoreboard entries against
+base `7d813a9`. These are unaffected-world regressions; neither new class has captured objects/images.
+[Finding, engine boundaries, downstream limits and DATA-ACQ-002 needs](client-worlds-i.md),
+[handoff and final gate](../handoffs/RENDER-WORLDS-I.md).
+
 ## RENDER-TIME-001 native temporal checks, 2026-10-28
 
 The [temporal measurement contract](client-render-time.md) adds fourteen INPUT-001 paths across these thirteen
