@@ -87,6 +87,20 @@ class RemainingTerrainTests(Build):
             self.assertGreater(particles['drawn_particles'],0)
             self.assertEqual((particles['unsupported'],particles['overflow']),(0,0))
 
+    def test_unaffected_water_world_keeps_optional_emitter_disabled(self):
+        from test_native_world import write_open_world
+        with tempfile.TemporaryDirectory() as tmp:
+            root=write_open_world(Path(tmp)/'game');write_world(root,35,seed=3)
+            tool=Path(__file__).resolve().parents[1]/'build/mu-walk'
+            r=subprocess.run([str(tool),'--game-root',str(root),'--world','34','--tile','128,128',
+                '--headless','--frames','10','--every','10','--width','120','--height','80',
+                '--backend','soft','--no-audio','--no-env','--no-items','--no-names','--no-map','--quiet',
+                '--out-dir',str(Path(tmp)/'out')],capture_output=True,text=True)
+            self.assertEqual(r.returncode,0,r.stderr)
+            rows=[json.loads(line) for line in r.stdout.splitlines() if line.startswith('{')]
+            particles=next(row for row in rows if row.get('particles') is True)
+            self.assertEqual((particles['created'],particles['unsupported']),(0,0))
+
     def test_camera_worlds_accept_frustum(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp)

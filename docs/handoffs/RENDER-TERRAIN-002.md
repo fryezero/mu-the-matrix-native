@@ -23,13 +23,13 @@ host-input limits are in [the finding](../research/client-terrain-remaining.md).
 - Legacy terrain validator, `--scale-002 5`: 43,200 world tile streams equal, zero unsupported overlays,
   682,695 GL calls, 371 particles. The other previous terrain families remain equal. FaceNormalize retains the
   pre-existing 29 generated NaN-sign-only cases, separately labelled from its 371 bitwise-equal cases.
-- Existing terrain tests: 19 tests with 2 private-input skips. New terrain tests: 6 synthetic regressions,
-  including native Chaos particle creation/drawing. A 20-frame Chaos run with both software and GL creates and
+- Existing terrain tests: 19 tests with 2 private-input skips. New terrain tests: 7 synthetic regressions,
+  including native Chaos particle creation/drawing and preservation of the unaffected optional water emitter. A 20-frame Chaos run with both software and GL creates and
   draws 13 particles without unsupported requests or overflow.
 - Synthetic software renders inspected; GL/software comparisons pass for ordinary terrain, both overlays and
   Kalima. Four ordinary-world pixel hashes, worlds 0/7/63/142, are identical to the pre-change build.
 - `bash scripts/local-macos-ci.sh ./tools/python/bin/python` passed after merging current `origin/main`:
-  1,320 tests across 38 suites, 156 explicit skips, plus the two fixture scenarios, Mac viewer/readers and
+  1,328 tests across 38 suites, 156 explicit skips, plus the two fixture scenarios, Mac viewer/readers and
   publication audit. The remaining-terrain validator was rerun on that tree, 2,147/2,147 and 14/14 mutants.
 
 ## Local artifacts

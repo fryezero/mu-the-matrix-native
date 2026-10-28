@@ -34,7 +34,8 @@ gate, arena state 0, 3 or 6 selects four inclusive boundary strips. The routine 
 A subsequent one-in-five gate writes camera shake `(rand()%3 - 3)*0.1`. Random call counts, particle calls and
 shake writes are verified, including rejected worlds, stages, gates and strip boundaries.
 
-The native terrain callbacks route that particle into the existing particle pool. The smoke05 bitmap is loaded;
+The native terrain callbacks route that particle into the existing particle pool. The callback is enabled only
+for Chaos Castle; the older optional world-`0x22` water emitter retains its previous disabled host state. The smoke05 bitmap is loaded;
 its create, move and render cases share the already reconstructed smoke02 branches. Adding `0x7f5e/0` to all
 three original-instruction families passed 600 cases each, including their existing negative controls. Changes
 to particle files are limited to this required terrain effect. Per-world object files are untouched.
@@ -87,7 +88,7 @@ opacity, reflection normals/camera, camera rotation, alpha reference, the Chaos 
 ripple/stencil shifts, wave phase, height divisor, triangle diagonal and additive light.
 
 The particle create/move/render comparisons add **1,800 cases, 0 mismatches**. Portable synthetic terrain tests
-pass 19 existing tests and 6 new regressions, with the two existing private-world tests skipped. The new
+pass 19 existing tests and 7 new regressions, with the two existing private-world tests skipped. The new
 regressions check signed layout and negative arithmetic, signed heights and bounds, both overlay worlds,
 Kalima's dynamic render, the two camera-frustum worlds and the Chaos smoke callback into the real native particle pool.
 A 20-frame synthetic Chaos run on both software and GL creates and draws 13 particles with zero unsupported
@@ -114,7 +115,7 @@ mismatches and zero unsupported overlays, 682,695 GL calls and 371 particles. It
 remain equal. The original face-normal family's 29 generated NaN-sign-only pairs retain their earlier label;
 371/400 ordinary bitwise normal results match, without a numeric mismatch.
 
-The final merged-main Mac gate passes 1,320 tests across 38 suites with 156 explicit skips, the two fixture
+The final merged-main Mac gate passes 1,328 tests across 38 suites with 156 explicit skips, the two fixture
 scenarios, viewer/readers builds and repository audit. No hosted workflows were dispatched.
 
 Local artifacts are under `~/Documents/MTM/mu-mac-tools/native/scratch/render-terrain-002/` and

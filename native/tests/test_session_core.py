@@ -112,7 +112,7 @@ class SessionCore(unittest.TestCase):
         r, rows = run_tool('fixture', self.scenario('at 2 progress join\nat 5 client lease write 0x12 9\n'),
                            '--ticks', 8, '--journal', journal)
         self.assertLess(r.returncode, 0)                             # abort()
-        self.assertIn('lease audit: hero.record+0x012 (class) changed during the lease', r.stderr)
+        self.assertIn('lease audit: hero.record+0x012 (class_byte) changed during the lease', r.stderr)
         d, drows = run_tool('journal', journal)
         self.assertEqual(d.returncode, 0, d.stderr)
         self.assertTrue([e for e in jnl(drows, 'event') if e['text'].startswith('lease audit: hero.record+0x012')])

@@ -1,0 +1,54 @@
+# LAYOUT-001 handoff
+
+Owned worktree `~/Documents/MTM/worktrees/layout-001`, branch `codex/layout-001`, based on
+LAYOUT-PROBE-001's merge `15962e94cb4c2d8bcf85ade0d7bba0867b50d214`.
+
+## Changes
+
+- `native/session/layout/{viewport,hero,objects,items,scene}.def`: 15 records and 118 bound fields.
+  Only the seven probed fields are VERIFIED. Every record extent is STATIC/known_extent.
+- `scripts/gen_layout.py`: validated cross-domain merge, bounds/type/name/zone/evidence checks,
+  overlap refusal, deterministic per-record headers, indexed read accessors, field registry,
+  projection helpers and `native/build/gen/layout.json` with a canonical digest. Generated outputs
+  are ignored build artifacts. All validation precedes writes.
+- `scripts/layout_manifest.py`: JSON digest check, Python field formats and the reader-header compiler.
+- Native Makefile: `layout` and a generation stamp required by session dev/product objects and tool.
+- Hero: generated scalar accessors; attribute storage covers known 0x1b50 extent; the generated
+  tables replace its handwritten audit/dump zones. Unknown gaps remain replicated; prefix-owned
+  records are clipped to their actual allocation. Audit overflow aborts instead of silently skipping.
+- Journal: layout digest at header bytes 40..71, same snapshot record format with manifest-defined
+  field boundaries and protected unknown gaps.
+- `live-readers/objread.c`: JSON-derived OBJECT size/link and scene global constants. `validate_items.py`:
+  JSON-derived OBJECT/ITEM projection lists. All reconstructed routines remain unchanged.
+- Existing session build-test copies now generate layout headers; the lease test expects the manifest's
+  exact `class_byte` name. New tests cover the generator, compiled projection/accessors and real journal.
+
+## Checks
+
+- Six generator/projection/consumer tests pass: 3 real overlap build failures, 6 invalid-declaration
+  failures, deterministic/disjoint domain merge, previous-output preservation on failure, every field
+  and every array element through compiled C, short buffers, bad indexes, untouched unknown bytes,
+  JSON-driven reader constants, existing validator tables, JSON digest rejection, and the real lease
+  adapter preserving REPLICATED/MOTION/VIEW, unknown gaps and prefix bounds.
+- The changed item validator: 3,740 original-instruction cases, zero mismatches, 10/11 existing controls
+  detected, identical to the probe milestone. The frustum control's zero remains a documented limit.
+- Real session/fixture journal integration test passes: generated layout digest, every attribute field
+  boundary and full 0x1b50 known extent, including timers.
+- Final local macOS gate passed after integrating DATA-ACQ-003, CHARSEL-RT-001 and VERIFY-SESSION-001: 1,320 tests,
+  155 explicit skips, viewer and four reader builds; audit 1,154 files, zero rejected. Include audit
+  and diff whitespace checks also pass. A prior gate was invalidated when a concurrent upstream merge
+  conflicted in the shared docs during its audit; both docs were resolved preserving both milestones,
+  and this final gate was rerun from the clean combined tree.
+- Pinned probes rerun: 7,452 cases, zero mismatches, 7/7 competing hypotheses; private probe tests 2/2.
+- The compiled projection/accessor test covers all 118 fields and 9,098 scalar/array elements.
+
+Private reports/logs: `~/Documents/MTM/mu-mac-tools/native/scratch/layout-001/`.
+
+## Limits and next work
+
+The manifest covers the bound fields, not every unknown client byte. Other domains can add disjoint
+fields and migrate their consumers in their own session milestones. The label-level interpretation,
+array capacity and full allocation extents retain the probe finding's static boundaries. Old journals
+are not migrated automatically by layout digest. No client process was read or written, and no live
+game, network or protection work was performed. Renders and reconstructed gameplay behavior were not
+changed; only snapshot segmentation, the layout digest and known attribute storage coverage change.

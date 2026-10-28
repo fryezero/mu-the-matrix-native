@@ -66,6 +66,7 @@ const char *mu_world_bitmap_file(int32_t w, int32_t bitmap, char *buffer, size_t
         return snprintf(buffer, size, "../Object25/%s", i ? "water2.jpg" : "water1.tga") < (int)size ? buffer : NULL;
     }
     if (i == 0x7722 - MU_TERRAIN_TEXTURE_TILE) {
+        if (w != 0x71 && w != 0x91) return NULL;
         *linear = 1;
         return snprintf(buffer, size, "../World114/cubemap_up.jpg") < (int)size ? buffer : NULL;
     }
@@ -509,7 +510,11 @@ void mu_world_scene(mu_world *w, mu_terrain_scene *s)
     s->reflection_normal=w->normal;
     s->reflection_uv=w->reflection_uv;
     memcpy(s->camera_position,w->camera_position,sizeof s->camera_position);
-    s->random=terrain_random; s->effect=terrain_effect; s->effect_context=w;
+    /* This milestone connects the Chaos effect only. Keep the optional older
+     * world-0x22 water emitter disabled in this host, as before. */
+    const int chaos=(w->world>=0x12 && w->world<=0x17) || w->world==0x35 || w->world==0x61;
+    s->random=chaos ? terrain_random : NULL;
+    s->effect=terrain_effect; s->effect_context=w;
     s->hero_z=w->hero_position[2]; s->chaos_state=w->chaos_state; s->camera_shake=&w->camera_shake;
 }
 

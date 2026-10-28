@@ -1,5 +1,7 @@
 # Roadmap and work queue
 
+LAYOUT-001: generated layout tables and JSON consumers implemented; [evidence](research/client-layout-manifest.md).
+
 LAYOUT-PROBE-001: offset conflicts probed; [evidence](research/client-layout-probes.md). LAYOUT-001 follows.
 
 ## Destination and acceptance gates
