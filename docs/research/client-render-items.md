@@ -496,3 +496,77 @@ shape, plus the existing mesh-override, selection/shadow/buff/record-kind and mo
 The untouched shared link target `0x012c8571` covers `0x132f/0x14f2`; it includes additional particle behavior.
 Skin sprites on ground/inventory draws, authoritative hero instances, the special NewUI/Box of Luck limits,
 Muun and nested map-object placement remain explicit follow-ups.
+
+## Part 6, rank-9 armour, further body clusters and sprite chains, RENDER-ITEMS-002F
+
+Part 6 extends bounded body-command coverage to **559/1,674 item types**, adding 27 armour and 31
+`pet/item` model-group types. All **17/17 class skins** remain covered. The executable and capture pins
+above are unchanged. No original client or launcher was used. Exact membership is in `item_bodies.h`
+and the two survey TSVs. Nine more shapes are complete, at size ranks 9, 45, 51, 52, 60, 61, 68, 79 and 85.
+The survey now has 122 complete shapes. Its original ranks and observed stopped states are unchanged.
+
+Rank 9, shape `0ce2ff5445249f7d`, covers `0x199f` and `0x19a3..0x19ad`, twelve armour types.
+These retain ordinary level and excellent passes but omit the ancient phase even with a present item
+record. The generator emits an empty ancient recipe instead of copying the generic tail. Independent
+full-function comparisons check every enabled type across 292 states, including record/option/quality
+variants. The inherited unselected, non-shadow, no-buff and no-mesh-override boundary remains.
+
+### Generated sprite-chain links
+
+Two RenderLinkItem targets use one parameterized C executor and `item_links.h`, reproducible with
+`scripts/gen_item_links.py`. The generator checks reviewed rendering parameters against the instructions;
+the independent validator then varies random sequences, clocks and hand/link inputs.
+
+- `0x012cb556`, type `0x0af9`, visits bones 2..8. Each bone emits an orange `0x7ef7` flare at scale 2.
+  A conditional `rand()%3==0` precedes it with a grey `0x7f67` sprite at scale 0.6 and a random rotation.
+  The initial intensity, per-bone choices and conditional rotations retain the original random order.
+- `0x012cb7ab`, type `0x12f9`, visits bones 1..5 with local Z offset 10. Each emits `0x7f67` at scale 1
+  and `0x7ef7` at scale 2. One random call sets intensity. The final flare becomes white while the
+  preceding sprite keeps its blue multiplier.
+
+Nine link targets covering fourteen types now have complete consumers within the existing no-owner domain.
+Character hooks retain their saved-pose adapter, bounds checks and pool-capacity handling. These two
+weapon links are not applied to ground or inventory items.
+
+### Ground and inventory skin sprites
+
+The skin-only adapter consumes the existing `0x389c/0x389d` sprite rules in both ground backends, the
+software inventory renderer and the actual GFx item/FBO renderer. It uses each model's current saved
+bone matrix, the established translate-zero transform followed by OBJECT origin, and the caller's frame
+clock. GFx keeps a separate sprite pool and draws each icon's one-frame sprites in that icon's projection.
+The GL ground callback now retains a mutable runtime pointer because allocation changes its sprite pool.
+
+Four native regressions cover both ground backends, software inventory and the GFx icon FBO. Each ground
+scene tests both original quest-item codes at level 1, with three draws producing three sprites and no
+additional random calls. Authored JPEG pixels distinguish missing-texture versus drawn sprites, clocks
+0/500, and repeated icon frames 0/0/500/0. The static model fixture isolates this clock from an existing
+first-versus-cached animated-pose difference; that broader pose lifecycle is not claimed verified.
+
+### Evidence and remaining work
+
+`scripts/validate_item_ranked.py --mutations` compares compiled production C with the original bounded
+instruction streams: **16,936 body cases plus 800 link cases, 17,736 total, zero mismatches**. It also
+reproduces both generated tables. All **6/6 compiled mutants** fail: ancient phase, object alpha, chain
+bone, scale, random choice and the final white flare. These are finite call-stream comparisons with engine
+service boundaries; they do not compare graphics-driver output or establish live owner/random fidelity.
+
+Recovered and rerun before/after offline renders show three new body recipes replacing three refusals:
+rank-9 scenes change from 5 to 11 total passes, other ranked bodies from 5 to 28. Textured link and inventory
+sprites change visible pixels; the ordinary character control stays byte-identical. Untextured synthetic
+armour saturates white, so its pass counts provide evidence beyond its pixels. These are authored models,
+not original-client fidelity images. Release checks and cleanup are recorded in the
+[part-6 handoff](../handoffs/RENDER-ITEMS-002F.md).
+
+Remaining: **1,115 item body types**. Rank 5 stays refused. Static instructions at
+`0x017479b1..0x01747a0a` pass OBJECT action `+0x2c`, frame/prior frame `+0xd0/+0xd4`, angles `+0x164`
+and head angles `+0x170` to the real pose builder `0x012b5064`, writing shared bones `0x06fce398`.
+The current synthetic body oracle lacks action `model+0x30` and bone-track `model+0x2c` data and stops at
+`0x012b51a7`. Completing this branch needs populated synthetic action/bone tracks, full pose/geometry
+comparison, and a native pose adapter before enabling its recipes. Merely recording a stubbed pose call
+would not verify geometry.
+
+The shared link `0x012c8571`, types `0x132f/0x14f2`, also requests owner-dependent Laser `0x7fd6`
+subtype 17, which the joint consumer refuses. The sword target `0x012c91fe` changes shared clock/bone
+state at `0x0a3a0e1c/20` and is not a stateless sprite recipe. Further links, authoritative hero instances,
+owner-follow/global-random synchronization, model mappings, selection/shadow/buff/record-kind and mesh
+overrides, NewUI and Box of Luck remain open. Muun and nested map-object tables remain deferred.

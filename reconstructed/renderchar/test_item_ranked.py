@@ -21,12 +21,14 @@ class ItemRanked(unittest.TestCase):
 
     def test_rank9_omits_ancient_but_keeps_glow(self):
         for t in (0x199f, *range(0x19a3, 0x19ae)):
-            status, plain = self.draws(self.item(type=t, item_level=13<<3))
-            status2, ancient = self.draws(self.item(type=t, item_level=13<<3, ext_option=1))
+            status, plain = self.draws(self.item(type=t, item_level=13<<3, has_record=1))
+            status2, ancient = self.draws(self.item(type=t, item_level=13<<3, has_record=1, ext_option=1))
             self.assertEqual((status,status2,len(ancient)),(0,0,len(plain)))
             self.assertGreater(len(plain),1)
             self.assertEqual([d.flags for d in ancient], [d.flags for d in plain])
             self.assertNotIn(0x840, [d.flags for d in ancient])
+        # A present record makes the same ancient option effective on the generic path.
+        self.assertIn(0x840, [d.flags for d in self.draws(self.item(has_record=1, ext_option=1))[1]])
 
     def test_ranked_types_keep_override_and_pose_refusals(self):
         import gen_item_bodies as gen
