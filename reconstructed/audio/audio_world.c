@@ -334,6 +334,10 @@ int mu_event_music(uint32_t manager, const mu_event_music_state *s,
     case 0x00d73c38:
         if (w == 91 || w == 92) mp3(&e, 47); else mp3stop(&e, 47);
         break;
+    case 0x00e305ee: /* Doppelganger, music 43; no world test or stop branch. No caller is captured. */
+        if (!(s->known & MU_AUDIO_DOPPELGANGER)) goto unknown;
+        if (s->doppelganger != 0) mp3(&e, 43);
+        break;
     default: return 0;
     }
     return 1;

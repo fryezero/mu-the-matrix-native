@@ -285,10 +285,12 @@ int mu_world_is_scorched(int32_t world);
 /* AUDIO-002: event inputs are supplied by their owning domains. Unknown fields
  * emit UNRECOVERED rather than choosing an event phase. */
 enum { MU_AUDIO_CRYWOLF = 1, MU_AUDIO_KANTURU = 2,
-       MU_AUDIO_TEMPLE = 4, MU_AUDIO_RAKLION = 8 };
+       MU_AUDIO_TEMPLE = 4, MU_AUDIO_RAKLION = 8, MU_AUDIO_DOPPELGANGER = 16 };
 typedef struct mu_event_music_state {
     int32_t world, crywolf, crywolf_result, kanturu, temple, raklion;
     uint32_t known;
+    /* AUDIO-002F: dword +0x44 of the object at +0x78 of singleton 0x00f2bb92. */
+    int32_t doppelganger;
 } mu_event_music_state;
 int mu_event_music(uint32_t manager, const mu_event_music_state *state,
                    const mu_world_audio_hooks *hooks);
