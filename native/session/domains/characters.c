@@ -12,7 +12,7 @@ mu_characters_view mu_session_characters(const mu_session *s)
 {
     mu_characters_view v = {s->characters.records, s->characters.used, s->characters.generation,
         s->characters.equipment_revision, s->characters.equipment_calls, s->characters.equipment,
-        s->characters.store_open, s->characters.store_title, MU_CHARACTERS_MAX};
+        s->characters.store_open, s->characters.store_title, MU_CHARACTERS_MAX, s->characters.monsters};
     return v;
 }
 
@@ -82,12 +82,56 @@ mu_apply characters_players(mu_session *s, const mu_frame *f)
         if (!allocating && (v.packet_class & 7) == 1) c->byte_16 = prior.byte_16;
         if (s->has_port && s->port.terrain_height)
             c->position[2] = s->port.terrain_height(s->port.context, c->position[0], c->position[1]);
+        memset(&d->monsters[i], 0, sizeof d->monsters[i]);
         d->used[i] = 1;
         if (allocating) ++d->generation[i];
         ++d->equipment_revision[i];
         d->equipment_calls[i] = calls;
         memcpy(d->equipment[i], v.equipment, MU_RP_EQUIP_BYTES);
         d->store_open[i] = 0;
+        changed = 1;
+    }
+    if (changed) mu_session_touch(s, MU_DOMAIN_CHARACTERS);
+    return changed ? MU_APPLY_DONE : MU_APPLY_IGNORED;
+}
+
+/* Validate a whole batch before mutating the shared character table. */
+mu_apply characters_monsters(mu_session *s, const mu_frame *f)
+{
+    if (f->head != 0xc2 || f->length < 5) return MU_APPLY_IGNORED;
+    unsigned count = f->bytes[4] < 75 ? f->bytes[4] : 75;
+    size_t at = 5;
+    mu_monster_viewport v;
+    for (unsigned n = 0; n < count; ++n) {
+        int size = mu_monster_viewport_record(f->bytes + at, (int32_t)(f->length - at), &v);
+        if (!size) return MU_APPLY_IGNORED;
+        at += (size_t)size;
+    }
+    at = 5;
+    int changed = 0;
+    mu_rp_env e = environment(s);
+    for (unsigned n = 0; n < count; ++n) {
+        int size = mu_monster_viewport_record(f->bytes + at, (int32_t)(f->length - at), &v);
+        at += (size_t)size;
+        mu_rp_character c;
+        if (!mu_monster_character_create(&c, &v)) continue;
+        int32_t i = mu_session_character_index(s, v.key);
+        int allocating = i < 0;
+        if (allocating) {
+            for (i = 0; i < MU_CHARACTERS_MAX && s->characters.used[i] && s->characters.records[i].live; ++i) {}
+            if (i == MU_CHARACTERS_MAX) continue;
+        }
+        mu_monster_viewport_apply(&c, &v, &e);
+        if (s->has_port && s->port.terrain_height)
+            c.position[2] = s->port.terrain_height(s->port.context, c.position[0], c.position[1]);
+        s->characters.records[i] = c;
+        s->characters.monsters[i] = v;
+        memset(s->characters.equipment[i], 0, sizeof s->characters.equipment[i]);
+        memset(&s->characters.equipment_calls[i], 0, sizeof s->characters.equipment_calls[i]);
+        s->characters.used[i] = 1;
+        s->characters.store_open[i] = 0;
+        if (allocating) ++s->characters.generation[i];
+        ++s->characters.equipment_revision[i];
         changed = 1;
     }
     if (changed) mu_session_touch(s, MU_DOMAIN_CHARACTERS);
@@ -191,8 +235,8 @@ void mu_dom_characters_zones(const mu_session *s, mu_audit_zones *zs)
     const mu_dom_characters *d = &s->characters;
     /* Metadata cannot be written through a simulation lease. */
     mu_audit_add(zs, "characters.metadata", (const uint8_t *)d,
-        (uint32_t)offsetof(mu_dom_characters, used),
-        (uint32_t)(sizeof *d - offsetof(mu_dom_characters, used)), MU_ZONE_REPLICATED, "metadata");
+        (uint32_t)offsetof(mu_dom_characters, monsters),
+        (uint32_t)(sizeof *d - offsetof(mu_dom_characters, monsters)), MU_ZONE_REPLICATED, "metadata");
     uint8_t motion[sizeof(mu_rp_character)] = {0};
     for (size_t i = 0; i < sizeof bindings / sizeof bindings[0]; ++i)
         for (size_t j = 0; j < MU_CHARACTER_LAYOUT.field_count; ++j) {

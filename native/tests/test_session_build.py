@@ -46,6 +46,7 @@ def make_tree(tmp: Path) -> Path:
     (t / 'reconstructed/players').mkdir(parents=True)
     shutil.copy(ROOT / 'reconstructed/players/remote_players.h', t / 'reconstructed/players/remote_players.h')
 
+    shutil.copytree(ROOT / 'reconstructed/actors', t / 'reconstructed/actors', ignore=shutil.ignore_patterns('*.dylib', '*.so', '__pycache__'))
     shutil.copytree(ROOT / 'reconstructed/quest', t / 'reconstructed/quest')
     return t
 
