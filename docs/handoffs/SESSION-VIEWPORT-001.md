@@ -1,7 +1,7 @@
 # SESSION-VIEWPORT-001 handoff
 
 Branch `codex/session-viewport-001`, owned worktree `~/Documents/MTM/worktrees/session-viewport-001`.
-Base `c93ed3c`; integrated main through #178/#179 at `5ebc2b6`. No original client or live service used.
+Base `c93ed3c`; integrated main through #178/#179 at `5ebc2b6` and #180 at `952868f`. No original client or live service used.
 
 ## Result
 
@@ -35,7 +35,28 @@ Base `c93ed3c`; integrated main through #178/#179 at `5ebc2b6`. No original clie
   all 120 new-run hashes repeat exactly. The server scheduler no longer shares the client's visual RNG.
   Exact hashes and the source/evidence boundary are in the [finding](../research/client-session-viewport.md).
 
-The final local gate and suite totals are recorded below after completion.
+## Final local gate
+
+`bash scripts/local-macos-ci.sh` after #180: **1,371 tests, 161 explicit skips, zero failures**.
+The 38 suites include 600 native tests. Viewer and read-only reader builds pass; repository audit:
+**1,218 files, zero rejected**. Five discovered scenarios pass with **42 inbound frames, zero
+unbound/undecodable**, two unrecovered intents and three unsent requests retained from the existing
+hero/quest bounds. The characters scenario contributes 5 frames, all five of its routes.
+
+The new family also passes through `run_validators.py --private --only validate_viewport`: 7,000
+instruction cases, 8/8 mutants. The final binaries repeat all 120 documented new render hashes.
+Self-review against AGENTS.md and the milestone found no remaining defect in this bounded migration;
+no independent review or live gameplay validation is claimed.
+
+The gate log is `gate-final.log`; suite proof is retained in `release-suite/`. The suite records
+`8a1e788` with dirty source because the final store-localization and charsel header-dependency fixes
+were awaiting commit, along with the two untracked input symlinks. Those exact source fixes were
+compiled and tested by this clean gate. A committed-tree fixture rerun is retained separately.
+
+An earlier gate was interrupted by another lane and is not acceptance evidence. The incremental
+#180 run exposed stale charsel objects; replacing its missing core-header dependency and cleaning the
+build restored the object/effect tests. Fresh charsel: 11 tests, 2 private-data skips, pass.
+The original localized store label lookup was preserved during final review.
 
 ## Local artifacts
 
