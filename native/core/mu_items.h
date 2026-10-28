@@ -51,6 +51,7 @@
 #include "mu_world_actors.h"
 
 struct mu_combat;
+struct mu_session;
 struct mu_world_particles;
 
 #define MU_WORLD_ITEM_MODELS 64
@@ -116,7 +117,9 @@ typedef struct mu_world_items {
     char name_ring[8][48], entry_name[32];
     unsigned name_next;
     mu_world_items_config config;
-    mu_gi_item pool[MU_GI_ITEMS];
+    struct mu_session *session;
+    void *fixture_items;
+    mu_gi_item *pool; /* session-owned, presentation writes object fields only */
     int32_t created_step[MU_GI_ITEMS];
     mu_walk *walk;
     const mu_world *map;
@@ -139,8 +142,6 @@ typedef struct mu_world_items {
     int32_t pickup_target;      /* MoveHero's pick-up mode: the item walked to, -1 none */
     int32_t pickup_force;       /* 0x0b43656d: the space bar's pick-up skips the range test */
     int32_t pickup_wait;        /* the request was sent; waiting for the answer */
-    mu_world_item_event events[MU_WORLD_ITEM_EVENTS];
-    int32_t event_count;
     mu_world_item_model models[MU_WORLD_ITEM_MODELS];
     int32_t model_count;
     mu_character *mannequin;    /* the Player skeleton armour parts are posed with (RenderItems poses model 0xa91) */
@@ -169,7 +170,7 @@ void mu_world_items_close(mu_world_items *items);
  * index; level_byte as the client's packet byte 1 (level << 3 | skill 0x80 |
  * luck 4 | option 0..3); zen is the amount for code 0x1c0f. Returns the pool
  * slot, or -1 (no free slot or no Item.bmd record). */
-int32_t mu_world_items_receive_entry(mu_world_items *items,int32_t slot,const uint8_t bytes[15],float x,float y,int32_t drop_flag);
+void mu_world_items_bind(mu_world_items *items, struct mu_session *session, void *fixture_items);
 int32_t mu_world_items_drop(mu_world_items *items, int32_t code, int32_t level_byte, uint8_t excellent, uint8_t ancient,
                             int32_t zen, float x, float y, int32_t drop_flag);
 

@@ -438,8 +438,15 @@ static int64_t value_of(run *r, const char *key, int *ok)
         if(!strcmp(key,"combat.damage"))return (int64_t)mu_session_combat_count(r->session,1);
         if(!strcmp(key,"combat.die"))return (int64_t)mu_session_combat_count(r->session,2);
         if(!strcmp(key,"combat.action"))return (int64_t)mu_session_combat_count(r->session,3);
-        if(!strcmp(key,"combat.drop"))return (int64_t)mu_session_combat_count(r->session,4);
+        if(!strcmp(key,"combat.drop"))return mu_session_items(r->session).creates;
         if(!strcmp(key,"combat.rev"))return mu_session_rev(r->session,MU_DOMAIN_COMBAT);
+    }
+    if(!strncmp(key,"items.",6)) {
+        mu_items_view v=mu_session_items(r->session);
+        if(!strcmp(key,"items.creates"))return v.creates;
+        if(!strcmp(key,"items.deletes"))return v.deletes;
+        if(!strcmp(key,"items.pending"))return v.pending;
+        if(!strcmp(key,"items.live")) { int n=0; for(int i=0;i<MU_GI_ITEMS;++i)n+=v.used[i]!=0; return n; }
     }
     if(!strncmp(key,"quest.kills.",12)) {
         const mu_quest_client *c=mu_session_quest(r->session);

@@ -1159,8 +1159,7 @@ void mu_combat_receive(mu_combat *c)
         const mu_combat_frame_event *e=&events[j];int32_t i=-1;
         for(int32_t k=0;c->actors && k<c->actors->count;++k)
             if((uint16_t)c->actors->list[k].session_key==e->key) {i=k;break;}
-        if(e->kind==4) {if(c->drop)c->drop(c->drop_context,e->drop);}
-        else if(e->kind==1) {
+        if(e->kind==1) {
             mu_combat_event hit={.actor=i,.damage=e->damage.amount,.type=e->damage.type,
                 .flag8=e->damage.flags[3],.flag_a=e->damage.flags[4],.shock=e->damage.shock};
             if(e->key==c->hero_key) {
