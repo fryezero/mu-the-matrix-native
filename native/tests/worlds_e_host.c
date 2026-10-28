@@ -59,6 +59,7 @@ int main(int argc, char **argv)
         assert(p->list.records[0].owner_position[0]==200 && p->list.records[0].owner_position[1]==300);
         assert(p->list.records[0].light[0]>0);
         assert(mu_world_particles_draw_raster(p,&raster,identity)>0);
+        assert(p->list.records[0].rotation == (1000.0f * 0.02f) * p->list.records[0].field_7c + p->list.records[0].start[1]);
         mu_raster_free(&raster);mu_world_particles_close(p);free(p);
         mu_world_env_close(e);free(e);
     }
