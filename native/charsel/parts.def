@@ -1,0 +1,12 @@
+/* CHARSEL-RT-001. Open and draw order from charsel/main.c at a9128ef.
+ * Close is reversed so the UI releases before its session. The session's tick
+ * remains core/mu_charsel.c; these are the host's asset and render passes. */
+MU_CHARSEL_PART(scene)
+MU_CHARSEL_PART(terrain)
+MU_CHARSEL_PART(objects)
+MU_CHARSEL_PART(character)
+MU_CHARSEL_PART(effects)
+MU_CHARSEL_PART(objects_after)
+MU_CHARSEL_PART(decals)
+MU_CHARSEL_PART(billboards)
+MU_CHARSEL_PART(ui)

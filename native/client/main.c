@@ -432,7 +432,7 @@ static void on_opened(void *user, int kind, void *embed)
         return;
     }
     if (kind == MU_SHELL_EMBED_CHARSEL)
-        mu_charsel_embed_gl_setup(embed);
+        mu_charsel_rt_gl_setup(embed);
     else
         mu_world_rt_gl_setup(embed);
     if (!f->headless && kind == MU_SHELL_EMBED_WORLD)
@@ -472,7 +472,7 @@ static void on_closing(void *user, int kind, void *embed)
         f->gfx = NULL;
     }
     if (kind == MU_SHELL_EMBED_CHARSEL)
-        mu_charsel_embed_gl_teardown(embed);
+        mu_charsel_rt_gl_teardown(embed);
     else
         mu_world_rt_gl_teardown(embed);
 #endif
@@ -507,7 +507,7 @@ static void compose(front *f)
             mu_perf_end(MU_PERF_SCENE, perf);
         } else if (view == MU_SHELL_VIEW_CHARSEL) {
             double perf = mu_perf_begin();
-            mu_charsel_embed_draw_gl(mu_shell_charsel(f->shell), f->width, f->height);
+            mu_charsel_rt_draw_gl(mu_shell_charsel(f->shell), f->width, f->height);
             mu_perf_end(MU_PERF_SCENE, perf);
         } else {
             mu_world_rt *w = mu_shell_world(f->shell);
@@ -537,7 +537,7 @@ static void compose(front *f)
         if (view == MU_SHELL_VIEW_LOGIN)
             mu_login_draw_soft(mu_shell_login(f->shell), &f->raster);
         else if (view == MU_SHELL_VIEW_CHARSEL)
-            mu_charsel_embed_draw_soft(mu_shell_charsel(f->shell), &f->raster);
+            mu_charsel_rt_draw_soft(mu_shell_charsel(f->shell), &f->raster);
         else
             mu_world_rt_draw_soft(mu_shell_world(f->shell), &f->raster);
         memcpy(f->pixels, f->raster.color, bytes);
