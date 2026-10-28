@@ -98,7 +98,9 @@ hashes and deletes unaffected images immediately. Against main `037a889`, all
 377 pixels at frame 0 and 692 at frame 24, in left-edge bounds respectively
 `(16,223)..(90,275)` and `(0,91)..(41,182)`. These are intended new lamp/spray
 pixels. The before/after Karutan and final Raklion frames were visually inspected;
-pre-existing cyan spheres remain unchanged.
+pre-existing cyan spheres remain unchanged. Karutan accepts six previously
+unsupported requests, created particles rise from 16 to 22, and final live
+particles rise from zero to two. These counters describe the saved run only.
 
 The saved Raklion view emits no particles. Its unchanged PNG proves regression
 stability, not populated-emitter visibility. The synthetic native host exercises

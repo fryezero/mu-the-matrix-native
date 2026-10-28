@@ -36,6 +36,15 @@ Uruk's weather-keyed/colored consumers remain excluded. Karutan smoke subtypes
 69/13, other nested consumers, missing world populations, original image and
 phase evidence remain open. Primary-method coverage is unchanged by this lane.
 
+Checkpoint `6ce3dae` is pushed. Own Standards/Spec diff review found no blocking
+issue. All four registered validators pass with zero failures/errors/skips; an
+additional 3,000 historical create/move/render cases pass. Both new native tests
+pass with private validation enabled, zero skips. In saved Karutan, unsupported
+requests fall from six to zero, with six additional particles created. The
+full native suite passes 753 tests with 157 explicit skips; installed-data
+particle tests pass all five tests without skips. The private bitmap inventory
+expectation now includes the expanded 59-slot registry.
+
 ## Integration and cleanup
 
 Join the merge queue only after focused checks and review. Hold the common lock
