@@ -88,6 +88,10 @@ static int panel(mu_world_rt *a, int vk, int mods)
     int id = mu_input_menu(vk, mods);
 #ifndef MU_WORLD_NO_GL
     mu_gfx_layer *l = a->gfx ? world_gfx_layer(a->gfx) : NULL;
+    if (l && !mods && id >= 16 && id <= 19) {
+        (void)mu_gfx_layer_use_item_hotkey(l, id - 16);
+        return 1;
+    }
     if (l && !mods && (vk == 'S' || vk == 'P') && mu_gfx_layer_is_open(l, MU_GFX_INVENTORY)) {
         if (mu_gfx_layer_is_open(l, MU_GFX_STORE_LIST)) mu_gfx_layer_show(l, MU_GFX_STORE_LIST, 0);
         else return mu_gfx_layer_service_action(l, "store", 0, 0) ? 1 : -1;
@@ -106,9 +110,7 @@ static int panel(mu_world_rt *a, int vk, int mods)
                      vk == 9 || (vk >= '0' && vk <= '9') || vk == 'Q' || vk == 'R' || vk == 'W' || vk == 'E';
     if (l && native_key) {
         int used = mu_gfx_layer_key(l, 1, vk, (uint32_t)vk, mods);
-        /* Q/W/E/R's item listener acts on release. Forward the actual release,
-         * never synthesize one while the physical key is still held. */
-        if (used || (!mods && (vk == 'Q' || vk == 'W' || vk == 'E' || vk == 'R'))) return 1;
+        if (used) return 1;
     }
 #endif
     if (mods == 2 && (vk == 'T' || vk == 'J' || vk == 'I' || vk == 'A' || vk == 'F' || vk == 'V')) {
@@ -189,7 +191,8 @@ int mu_world_rt_input(mu_world_rt *a, const mu_input_msg *m)
             mu_walk_key(&a->walk, m->vk, 0);
             mu_walk_message(&a->walk, 0x101u, (uint32_t)m->vk, 0);
 #ifndef MU_WORLD_NO_GL
-            if (l) mu_gfx_layer_key(l, 0, m->vk, (uint32_t)m->vk, mods);
+            if (l && m->vk != 'Q' && m->vk != 'W' && m->vk != 'E' && m->vk != 'R')
+                mu_gfx_layer_key(l, 0, m->vk, (uint32_t)m->vk, mods);
 #endif
             return 1;
         }

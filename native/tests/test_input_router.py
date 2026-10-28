@@ -76,6 +76,15 @@ class InputRouter(unittest.TestCase):
             self.assertEqual(subprocess.check_output([str(self.host),'parse',text],text=True).strip(),'-1')
         self.assertEqual(subprocess.check_output([str(self.host),'parse','0:key:Y; 2:key:32\n3:wheel:1'],text=True).strip(),'3')
 
+    def test_item_hotkeys_use_the_existing_policy_and_refuse_empty_slots(self):
+        folder=Path(self.tmp.name); lib=folder/'stub.dylib'; host=folder/'item-input'
+        subprocess.run(['cc','-shared','-fPIC',str(ROOT/'native/tests/gfx_stub_mugfx.c'),'-o',str(lib)],check=True)
+        sources=['native/tests/input_item_hotkey_host.c','native/gfx/mu_gfx_layer.c',
+                 'reconstructed/hud/inv_grid.c','reconstructed/hud/item_slots.c','reconstructed/hud/tooltip_html.c']
+        subprocess.run(['cc','-std=c11','-DMU_GFX_NO_GL','-I',str(ROOT/'native/gfx'),'-I',str(ROOT/'reconstructed/hud'),
+                        *[str(ROOT/s) for s in sources],'-lm','-o',str(host)],check=True)
+        subprocess.run([str(host),str(folder),str(lib)],check=True,capture_output=True,text=True)
+
     @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION')=='1','private pinned x86 comparison is opt-in')
     def test_private_original_input_instructions(self):
         subprocess.run([sys.executable,str(ROOT/'scripts/validate_input.py'),'--mutations'],check=True)

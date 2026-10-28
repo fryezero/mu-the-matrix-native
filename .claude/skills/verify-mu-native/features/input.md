@@ -34,7 +34,8 @@ keys 0 19 41 22 344 -1 -1 9 14 -1 -1
 ```
 
 `MU_INPUT_MOVIES` and `MU_INPUT_GFX_LIB` must name read-only, locally converted movies and a real compatible
-libmugfx. Empty files and the stub library do not prove a rendered journey. The synthetic terrain/actor
+libmugfx. Movies must use the app conversion with the host bridge and client globals enabled.
+The converter default-mode corpus is insufficient for this journey. Empty files and the stub library do not prove a rendered journey. The synthetic terrain/actor
 assets remain the run's own files. Record those two private input paths and their digests in the proof.
 
 - Right-click and pick-up: write `$RUN/input.txt` with the following schedule, then run the command below.

@@ -23,6 +23,11 @@ The Ctrl+Z/X names are confirmed by `00c71a41/00c71c6d` invoking
 `mcRide.setRideInfo` and `mcGiantRide.setRideInfo`. They are mount controls. The helper controller is the
 separate Home path; bare Z opens MacroMain.
 
+The current native item policy is extracted unchanged from the existing HUD callback and exposed as
+`mu_gfx_layer_use_item_hotkey`. The router calls it on a press, with the recovered 0..3 slot. Slot 0
+contains the demo potion; the other slots are explicitly empty. This does not invent an item-domain intent
+or a request builder. The old callback still uses its existing slot-0 demo policy.
+
 **Native policy:** SDL events and scripts share `mu_world_rt_input`. Text focus and preedit take first
 refusal, followed by native UI adapters, then Alt/Space/combat, then the walk input. Keys already down do
 not trigger gameplay again. Focus loss releases keys and cancels composition. Win32 polling is replaced
@@ -52,7 +57,7 @@ Existing UI adapters retain their own eligibility and close rules.
 | Y | `00efc559` -> menu 13 -> `00c739e3`, PetInventoryFrame, manager +1a8 | Unavailable; pet inventory view/domain absent |
 | I | `00efc593` -> menu 14 -> `00c73a2f`, InventoryFrame | GFx inventory toggle |
 | C | `00efc5cd` -> menu 1 -> `00c733cf`, CharacterInfoFrame; excludes held Shift | Existing character-window adapter |
-| Q/W/E/R | `00efc86c/8a6/8e0/91a` -> menus 16..19 -> `00c557db`, item slots 0..3 | Actual down/up events to main's item listener; existing offline consumable policy |
+| Q/W/E/R | `00efc86c/8a6/8e0/91a` -> menus 16..19 -> `00c557db`, item slots 0..3 | Existing native item-hotkey action with slots 0..3; slot 0 uses the demo potion, other slots explicitly empty. No authoritative item-use request claimed |
 | Ctrl+Z | `00efc964` -> menu 20 -> `00c71eab`, mcRide mount toggle | Unavailable; replicated mount controller absent |
 | Ctrl+X | `00efc9ad` -> menu 21 -> `00c71efb`, mcGiantRide mount toggle | Unavailable; replicated giant-mount controller absent |
 | X | `00efc9e6` -> menu 0 -> `00c73193`, IngameShop | Unavailable; shop/account service absent |
