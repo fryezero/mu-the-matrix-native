@@ -606,6 +606,10 @@ $(BUILD)/worlds-h-host: tests/worlds_h_host.c $(LIB) $(HEADERS)
 # Core consumers include the generated public domain and intent headers.
 $(CORE_OBJ): $(GEN_STAMP) $(LAYOUT_STAMP)
 
+$(BUILD)/worlds-k-host: tests/worlds_k_host.c $(LIB) $(HEADERS)
+	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-k-host.o
+	$(CXX) $(BUILD)/worlds-k-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+
 $(BUILD)/worlds-i-host: tests/worlds_i_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-i-host.o
 	$(CXX) $(BUILD)/worlds-i-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
