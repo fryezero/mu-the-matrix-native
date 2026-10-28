@@ -42,4 +42,6 @@ No code, data, image, validator, pin, installed app, credential or signing state
 ## Verification
 
 The milestone [handoff](../handoffs/README-REFRESH-003.md) records the final local gate and audit counts.
+Latest main `237f094`, PR #211, was integrated under the merge lock before that gate; its runtime ownership
+changes and both sets of shared-doc entries are preserved. The authored diff remains seven Markdown files.
 The full Mac gate uses synthetic/offline tests; this documentation lane does not repeat #200's private run.

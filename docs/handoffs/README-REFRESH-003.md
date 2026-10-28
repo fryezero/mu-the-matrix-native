@@ -18,13 +18,28 @@ Documentation-only task in the assigned new worktree `worktrees/readme-refresh-0
 ## Images
 
 None added or edited. Reused the existing reviewed and audit-pinned README media, including 26/27 from #205.
-No new renderer output or live-game screenshot was needed. Image bytes and publication pins are unchanged. Visually rechecked 26/27 for privacy: synthetic names only,
+No new renderer output or live-game screenshot was needed. Image bytes and publication pins are unchanged.
+Visually rechecked 26/27 for privacy: synthetic names only,
 no account names, private paths or other players' chat. All 27 media hashes match; all 59 local README
 file/directory targets exist. Diff whitespace check passes.
 
 ## Checks
 
-Final lock-held local Mac gate and audit counts will be recorded before merge.
+Acquired the merge lock on 2026-10-28 at 10:16 CDT, then merged latest origin/main `237f094`, PR #211,
+as checkpoint `df59a0e`. The three shared-doc introduction conflicts retain both milestones' entries.
+The imported runtime changes are upstream work, not authored changes in this documentation PR.
+
+`bash scripts/local-macos-ci.sh` passed on this integrated tree with a task-scoped temporary directory:
+**1,519 tests across 38 discovery suites, 1,331 passed and 188 explicit private/optional skips,
+zero failures/errors**. All **8/8 fixture scenarios** pass **61 expectations**, with **67 inbound
+frames**, zero unbound/undecodable, and the existing two unrecovered intents/six unsent frames reported.
+Native viewer and four read-only reader builds pass; readers were built only. Publication audit:
+**1,440 staged/tracked files, zero rejected**. No source or test fix was needed to pass.
+
+The suite records `df59a0e` and dirty state from the untracked evidence/Python links and the documentation-only
+table clarification. Only release documentation changed after the gate; the final staged audit is repeated.
+Self-review against the brief, repository standards and source handoffs found no remaining scoped issue.
+No independent agent review is claimed.
 Private 38/38 coverage in the README is attributed to #200; this lane does not claim a new private run,
 new instruction comparisons, new timing or live acceptance. No hosted workflow is used.
 

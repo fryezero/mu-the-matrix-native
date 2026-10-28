@@ -114,7 +114,8 @@ creatures (fish, birds, leaves), weather, blob shadows and frustum culling. The 
 | World | Now rendered natively |
 |---|---|
 | Icarus | Persistent cloud cover, sky lights, swirls, dragons and emitter ribbons |
-| Kanturu and Karutan | Flame particles and the deferred object pass |
+| Kanturu and Karutan | Flame particles |
+| Noria, Elbeland, Raklion and Karutan | Deferred object draws after characters and environment |
 | Devias, Tarkan, Elbeland and Raklion | Doors, object movement and code-created placements; Elbeland boids/clouds and Raklion snow |
 | Tarkan and Raklion | Additive screen haze |
 | Noria and warp sites | Portal placement and nested warp effects |
