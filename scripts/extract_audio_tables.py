@@ -10,12 +10,13 @@ per-NPC 0x01808a40, ...); the same id can be registered by several loaders
 because SND_Load keeps the first registration until SND_Remove.
 
 Music table: the client indexes a 76-entry `char *` array at 0x01cf1680 in the
-packed .data section, which no capture contains. Its literals sit in the
+packed .data section, which no static capture contains. Its literals sit in the
 second image section at 0x01af63ec.. in declaration order. Four array entries
 have no literal of their own there (the compiler pooled identical strings):
-indices 40..42 repeat entry 39 and one of 43/44 is unresolved. The placement
-is inferred from the code that uses each index (world numbers, the ambient
-sound played next to it and the event managers) and is labelled as such.
+indices 40..42 repeat entry 39 and 44 repeats 43. AUDIO-002F verified the whole
+layout against a live read of the array (pins.MUSIC_TABLE_READ,
+scripts/validate_audio_music.py); before it, 40..43 were inferred and 44 was
+unresolved.
 
 The output stays local: it contains client file names. Nothing here is
 committed.
@@ -36,13 +37,13 @@ SND_LOAD, STRING_CTOR = 0xa6ab76, 0x94997e
 MUSIC_LITERALS, MUSIC_COUNT = 0x1af63ec, 76
 LOADERS = {0x18392db: 'startup set A', 0x18433ed: 'startup set B', 0x180b0f4: 'OpenMonsterModel',
            0x1808a40: 'OpenNpc'}
-# Array index -> literal ordinal in the contiguous run (None: unresolved).
-MUSIC_LAYOUT = list(range(0, 40)) + [39, 39, 39, 40, None] + list(range(41, 72))
-MUSIC_NOTES = {40: 'duplicate of 39 (inferred: world 70 manager 0x00dd8891)',
-               41: 'duplicate of 39 (inferred: world 71 manager 0x00dde543)',
-               42: 'duplicate of 39 (inferred: worlds 72..74 manager 0x00de5467)',
-               43: 'inferred: either 43 or 44 holds this literal; 43 is used by manager 0x00e305ee',
-               44: 'unresolved: no client code uses this index'}
+# Array index -> literal ordinal in the contiguous run (verified by the live read).
+MUSIC_LAYOUT = list(range(0, 40)) + [39, 39, 39, 40, 40] + list(range(41, 72))
+MUSIC_NOTES = {40: 'duplicate of 39 (world 70 manager 0x00dd8891)',
+               41: 'duplicate of 39 (world 71 manager 0x00dde543)',
+               42: 'duplicate of 39 (worlds 72..74 manager 0x00de5467)',
+               43: 'manager 0x00e305ee (Doppelganger); no captured caller',
+               44: 'duplicate of 43; no captured client code uses this index'}
 
 
 class Image:
@@ -159,7 +160,7 @@ def music_table(image):
             entry.update(path=None, evidence='unresolved')
         else:
             entry.update(path=literals[ordinal][1], literal=hex(literals[ordinal][0]),
-                         evidence='static literal order' if index < 40 or index > 44 else 'inferred')
+                         evidence='static literal order, live read' if index < 40 or index > 44 else 'live read')
         if index in MUSIC_NOTES:
             entry['note'] = MUSIC_NOTES[index]
         table.append(entry)
