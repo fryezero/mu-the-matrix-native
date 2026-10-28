@@ -127,7 +127,7 @@ For **world 100**, acquire complete records including 16/20/27/44/72/73/84..94/1
 Sample type 92 across its window edges, type 106 before/after its light write and weather 0/1 transitions.
 Market type 67 logs its original operable-registration request; the shared operable registry is an engine boundary,
 not implemented by this class port. World 101 needs its separate registered class state; the Uruk predicate alone does not authorize dispatch there.
-No capture was taken in this task. The other 113 primary methods and separately inventoried slots remain open.
+No capture was taken in this task. The other 113 primary methods and separately inventoried slots remain open. Final locked integration, gate counts and the refreshed main-baseline regression are recorded in [the handoff](../handoffs/RENDER-WORLDS-I.md#final-locked-verification-after-resume).
 
 ```sh
 MU_RECOVERY_INTEGRATION=1 tools/python/bin/python scripts/run_validators.py --private \

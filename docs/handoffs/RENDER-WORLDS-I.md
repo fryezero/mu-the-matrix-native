@@ -24,7 +24,7 @@ pass 8 checks with one private skip; reconstructed world tests pass 11 checks wi
 Preflight full local Mac gate passes on `7d813a9` plus this lane: **1520 tests across 38 discovery runs,
 189 explicit skips, zero failures/errors; eight fixture scenarios, viewer/readers builds and the
 1,440-file audit with zero rejected**. Readers were built only. The final locked main integration/gate
-is recorded below when the occupied merge lock becomes available.
+is recorded below and supersedes these preflight counts.
 
 Supplementary installed-asset GL probes load all seven Market and fourteen Uruk synthetic-object models;
 four representative frames were rendered and both final frames were inspected. Placements are authored, not captured. The Market tile-120
@@ -47,3 +47,28 @@ During execution, reports/logs are under `~/Documents/MTM/mu-mac-tools/native/sc
 with renders under the sibling `renders/render-worlds-i`. Both entire task folders, build outputs,
 worktree and local branch are removed after merge. No newly created local input needs to survive;
 these committed summaries and the PR retain the evidence.
+
+## Final locked verification after resume
+
+The resumed run acquired the merge lock at 10:57 CDT and integrated main `a38ec75` in `e93f7b4`.
+Conflicts retain both milestones' documentation and all world/session host targets. The full
+`bash scripts/local-macos-ci.sh` passed: **1,548 tests across 38 discovery runs, 191 explicit skips,
+zero failures/errors**. The two additional skips since preflight are the newly merged opt-in item-gear
+instruction and installed-data temporal tests. All eight fixture scenarios passed, with 67 inbound frames,
+zero unbound/undecodable frames, and the existing two unrecovered intents/six unsent frames reported.
+Viewer/readers builds passed; readers were not run. The audit checked **1,478 files, zero rejected**.
+No hosted workflow was dispatched.
+
+The final registered G/H/I rerun passes **18,000 instruction cases, zero mismatches/stops,
+65/65 compiled mutants**, with three passes and no errors/skips. This lane contributes six families,
+6,000 cases and 33 mutants. The coverage inventory remains 31/144 primary methods across 11/48 classes.
+The final integrated fourteen-view tour matches a fresh rebuild of main `7ce87c6`: **28/28 PNG,
+14/14 OBJECT and 14/14 light hashes**, with all complete scoreboard entries equal. The later
+RENDER-TIME-001 merge preserves default rendering, and its default-mode tests pass in the full gate.
+The original base-`7d813a9` regression above remains historical evidence. No new-world capture or fidelity
+score is claimed. Only evidence documentation changes after the final runtime gate.
+
+Checkpoint `b3e26fb` commits the reviewed downstream particle audit; `e93f7b4` checkpoints the integration.
+Cleanup removes the entire lane scratch/renders and worktree, including its local builds and input links.
+No new local input needs retention. The remaining capture, weather-feed, key/color-consumer, nested-particle
+and other-primary-method limits above remain open.
