@@ -97,7 +97,8 @@ body/skin types in 25,152 cases with zero mismatches.
 
 ## Representative native renders
 
-Eight PNGs, four before/after pairs, are scoped to this lane. The seed inventory
+Six retained PNGs cover three before/after pairs. The identical control images
+are deleted after recording their matching hash. The seed inventory
 uses installed geometry/textures and the recorded Item.bmd mapping. It draws all
 six models, with zero missing models; triangles increase **96 to 288** and **431
 pixels change** to the six prescribed colours. The atlas scene replaces one
@@ -150,3 +151,13 @@ the existing two unrecovered intents/seven unsent frames explicit. Native
 viewer/readers build; audit accepts **1,544 staged files, zero rejected**.
 All four final native after-images retain their hashes/counters on this build.
 The final serialized latest-main gate remains required. No hosted CI is run.
+
+
+Release readiness: all new/inherited instruction checks and the stable preflight
+are complete. This lane is first in the queue while VERIFY-HARNESS-002 holds the
+lock. The operational latest-start cutoff is **14:25 CDT** to reserve fifteen
+minutes for integration, clean gate and merge. Next: take the lock only when
+released and still before that cutoff; fetch/merge latest origin/main, clean-build
+and run the full Mac gate, open/link/merge the PR, then release and clean up.
+If that window closes, finish the unmerged checkpoint/cleanup before 14:40 and
+retain the worktree for the owner.
