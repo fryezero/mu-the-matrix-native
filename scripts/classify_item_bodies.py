@@ -115,6 +115,6 @@ def main():
     if a.tables_dir:
         import gen_item_bodies as gen
         import validate_item_types as old
-        export_tables(rows,set(gen.REVIEWED_TYPES)|set(old.BODY),a.tables_dir)
+        export_tables(rows,set(gen.REVIEWED_TYPES)|set(gen.ADDITIONAL_TYPES)|set(old.BODY),a.tables_dir)
     print(f'{len(rows)} types, {len({r["shape"] for r in rows})} shapes')
 if __name__=='__main__':main()
