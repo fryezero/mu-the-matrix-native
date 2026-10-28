@@ -174,10 +174,15 @@ caught. Fourteen installed models are explicitly skipped. The reconstructed draw
 library is compared with x86 instructions; the 604-frame native comparison above
 separately covers the host/compiler changes.
 
-The ENOSPC recovery removes rebuildable Rust output, duplicated experimental
-libraries/source and raw frame dumps. Keep all numerical reports and supporting
-logs, per-frame hashes and eight representative before/after images. The final
-lock-held Mac gate and merge provenance are recorded in the milestone handoff.
+The ENOSPC recovery first removed bulk build/frame output and preserved the
+supporting logs for review. The owner's final cleanup rule requires deleting the
+entire lane scratch/render directories, remaining builds and worktree after merge.
+The only retained local inputs are four README candidate PNGs and their small
+reproduction metadata, explicitly named in the milestone handoff. The
+[committed run summary](native-performance-003-summary.json) preserves aggregate
+measurements, build hashes, comparison group hashes and check counts; raw logs,
+per-frame hash lists and the eight representative images are removed after merge.
+The final lock-held Mac gate is recorded in the milestone handoff.
 
 ## Reproduction
 
@@ -190,8 +195,8 @@ For the reference benchmark, select that binary/library and
 and rejects an incomplete frame set. --check enforces the 25 Hz goal, while
 --check-regression enforces only the unchanged M5 warning envelope.
 
-Local evidence is under mu-mac-tools/native/scratch/native-perf-003/continued
-and mu-mac-tools/native/renders/native-perf-003. It includes commands, exact
-binary/library SHA-256 values, raw phase and Metal logs, completed samples,
-failed timing experiments, gates and per-frame image hashes. No original data,
-render or capture is committed.
+The historical local paths in this note identify where each run was reviewed.
+Those directories and build artifacts are deleted after merge under the owner's
+cleanup rule. Use the committed summary, source revision, build settings and
+PERF-002 workload generator to reproduce the comparisons with local inputs.
+No original data, render or capture is committed.
