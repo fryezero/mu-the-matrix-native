@@ -663,3 +663,10 @@ clamp controls detected. The full Mac gate passes 1,463 tests with 179 explicit 
 viewer/readers builds and the 1,354-file audit with zero rejections. Fresh latest-main/E builds retain equal
 fourteen-view scoreboards and all 28 frame hashes. `locked-*` local reports and the handoff's final verification
 section supersede the earlier integration checkpoints above. No additional original-client observation occurred.
+
+## RENDER-TIME-001 native temporal checks, 2026-10-28
+
+The [temporal measurement contract](client-render-time.md) adds fourteen INPUT-001 paths across these thirteen
+worlds, full-draw native time series and explicit regression thresholds. It preserves the still tour and all
+reconstructed rules. The installed-data check measures native repeatability; the original-client time series,
+clock/pool/RNG alignment and mugl-off live scores remain open. No live game was used.

@@ -98,6 +98,7 @@
 #include "input_sdl.h"
 #endif
 #include "world_rt_internal.h"
+#include "time_series.h"
 
 #define MAX_WAYPOINTS 64
 #define MAX_WHEELS 32
@@ -109,6 +110,8 @@ typedef struct tool {
     mu_world_rt *rt;
     const char *out_dir, *backend;
     int32_t frames, every, pause, headless;
+    int32_t time_series_every;
+    uint32_t time_series_start;
     float seconds;
     int32_t waypoints[MAX_WAYPOINTS][2], waypoint_count;
     /* NATIVE-PATH-002: a long-distance auto move */
@@ -714,7 +717,7 @@ static int headless(tool *t)
     uint8_t *pixels = malloc(bytes);
     if (!pixels)
         return 1;
-    uint32_t now = 100000;
+    uint32_t now = t->time_series_start;
 #ifndef MU_WORLD_NO_GL
     uint32_t gfx_clock = now;
 #endif
@@ -744,9 +747,10 @@ static int headless(tool *t)
                 printf("{\"menu_request\": %d, \"frame\": %d}\n", menu, frame);
         }
 #endif
+        int sample = t->time_series_every > 0 && (frame % t->time_series_every == 0 || frame == t->frames - 1);
         int save = t->out_dir && t->every > 0 && (frame % t->every == 0 || frame == t->frames - 1);
         char hash[65] = "", path[4096] = "";
-        if (!save && gl && t->perf_path) {   /* NATIVE-PERF-001: every frame drawn when profiling */
+        if (!save && !sample && gl && (t->perf_path || t->time_series_every)) {   /* NATIVE-PERF-001: every frame drawn when profiling */
 #ifndef MU_WORLD_NO_GL
             mu_world_rt_draw_gl(a, a->width, a->height);
             perf = mu_perf_begin(&t->perf);
@@ -756,7 +760,9 @@ static int headless(tool *t)
             mu_perf_end(&t->perf, MU_PERF_GFX, perf);
 #endif
         }
-        if (save) {
+        if (!save && !sample && !gl && t->time_series_every)
+            mu_world_rt_draw_soft(a, &raster);
+        if (save || sample) {
             if (gl) {
 #ifndef MU_WORLD_NO_GL
                 mu_world_rt_draw_gl(a, a->width, a->height);
@@ -770,12 +776,13 @@ static int headless(tool *t)
                 memcpy(pixels, raster.color, bytes);
             }
             mu_sha256_hex(pixels, bytes, hash);
-            snprintf(path, sizeof path, "%s/frame-%04d.png", t->out_dir, frame);
-            if (mu_png_write(path, pixels, a->width, a->height)) {
+            if (save) snprintf(path, sizeof path, "%s/frame-%04d.png", t->out_dir, frame);
+            if (save && mu_png_write(path, pixels, a->width, a->height)) {
                 fprintf(stderr, "cannot write %s\n", path);
                 return 1;
             }
         }
+        if (sample) time_series_sample(a, frame, pixels, hash);
         if (!a->quiet && (save || frame == t->frames - 1))
             world_rt_report_frame(a, frame, now, save ? hash : NULL, save ? path : NULL);
 #ifndef MU_WORLD_NO_GL
@@ -1086,6 +1093,7 @@ static int usage(void)
                     "                [--sound-table TSV] [--no-audio] [--wav OUT.wav] [--audio-rate HZ]\n"
                     "                [--placement DEMO.txt] [--legacy-box]\n"
                     "                [--objects-dir DIR]   local decoded EncTerrain<n>.plain files\n"
+                    "                [--time-series-every N] [--time-series-start-ms MS]   headless full draw, compact post-draw samples, max 10001 frames\n"
                     "                [--fidelity-dump PREFIX]   PREFIX-obj.bin / PREFIX-light.bin at the end (fidelity tour)\n"
                     "                [--combat] [--combat-weapon none|sword|twohand|spear|bow|crossbow|staff]\n"
                     "                [--attack-speed N] [--combat-seed N] [--hero-hp N] [--combat-script \"F:attack:ACTOR F:skill:N:ACTOR ...\"]\n"
@@ -1116,6 +1124,7 @@ int main(int argc, char **argv)
     memset(&t, 0, sizeof t);
     mu_world_rt_options *o = &t.o;
     mu_world_rt_default_options(o);
+    t.time_series_start = 100000;
     t.frames = 300;
     t.every = 10;
     t.pause = 8;
@@ -1176,6 +1185,16 @@ int main(int argc, char **argv)
         else if (!strcmp(k, "--helper-state")) o->helper_state = atoi(v);
         else if (!strcmp(k, "--player-range")) o->player_range = atoi(v);
         else if (!strcmp(k, "--objects-dir")) o->objects_dir = v;
+        else if (!strcmp(k, "--time-series-start-ms")) {
+            char *end; unsigned long n = strtoul(v, &end, 10);
+            if (!*v || *end || *v == '-' || n < 1 || n > 2140000000UL) return usage();
+            t.time_series_start = (uint32_t)n;
+        }
+        else if (!strcmp(k, "--time-series-every")) {
+            char *end; long n = strtol(v, &end, 10);
+            if (!*v || *end || n < 1 || n > 10000) return usage();
+            t.time_series_every = (int32_t)n;
+        }
         else if (!strcmp(k, "--fidelity-dump")) o->fidelity_dump = v;
         else if (!strcmp(k, "--combat-weapon")) {
             static const char *names[] = {"none", "sword", "twohand", "spear", "bow", "crossbow", "staff"};
@@ -1252,6 +1271,7 @@ int main(int argc, char **argv)
     if (!o->root || o->width < 64 || o->height < 64 || o->width > 8192 || o->height > 8192 || t.frames < 1 ||
         o->tile[0] < 0 || o->tile[1] < 0 || o->tile[0] > 255 || o->tile[1] > 255)
         return usage();
+    if (t.time_series_every && (!t.headless || t.frames > 10001)) return usage();
     char error[1024];
     o->perf = &t.perf;
     t.rt = mu_world_rt_open(o, error, sizeof error);   /* the loaders said why on stderr */
