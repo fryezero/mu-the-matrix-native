@@ -1863,3 +1863,19 @@ args = ["--cases", "6000", "--mutations", "--report", "{report}"]
 mismatches = 0
 "families.*.mismatches" = 0
 "mutants.*" = "caught"
+
+[validate_worlds_i]
+test = "reconstructed/objects/test_worlds_i.py::WorldsITests.test_original_instructions"
+pins = ["text", "data"]
+families = ["market_create", "market_move", "market_visual", "uruk_create", "uruk_move", "uruk_visual"]
+cases = 6000
+mutants = 33
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+[validate_worlds_i.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0
