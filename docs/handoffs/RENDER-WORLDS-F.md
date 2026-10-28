@@ -33,7 +33,11 @@ service, protected module, main-checkout build or other agent's worktree was use
 - After merging main through the monster/item lanes, a separately linked draw-only ablation reproduces all
   fourteen before/after results above, including all twelve unchanged PNG hashes and all fourteen unchanged
   light/object dump pairs. `fidelity-combined.json` and `registered-combined/` retain this rerun.
-- Full local Mac gate: final combined-tree result is recorded below before merge.
+- `bash scripts/local-macos-ci.sh` passed on main `128679f` plus this lane: **1,412 tests across 38 suites,
+  172 explicit skips, zero failures/errors**; all discovered fixture scenarios pass, viewer/readers build,
+  publication audit **1,287 files, zero rejected**. No hosted workflow was dispatched. An earlier in-flight
+  run was invalidated by merging the monster lane during the run; this complete combined-tree rerun is the
+  merge gate.
 
 ## Image evidence
 
