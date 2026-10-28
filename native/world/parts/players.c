@@ -40,14 +40,6 @@ static void players_close(struct mu_world_rt *a, void *self)
     }
 }
 
-/* NATIVE-PLAYERS-001: the demo server's packets, MoveCharacters' remote step, the animation step. */
-static void players_tick(struct mu_world_rt *a, void *self)
-{
-    (void)self;
-    if (a->players)
-        mu_world_players_step(a->players);
-}
-
 static void players_frame(struct mu_world_rt *a, void *self, uint32_t now)
 {
     (void)self;
@@ -191,7 +183,6 @@ const mu_world_part_ops mu_part_players = {
 #endif
     .open = players_open,
     .close = players_close,
-    .tick = players_tick,
     .frame = players_frame,
     .draw_soft = players_draw_soft,
     .report_frame = players_report_frame,

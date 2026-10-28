@@ -30,7 +30,7 @@ MU_PART(progress,      mu_part_progress,        0,   60,   0,   0,   0,  70) /* 
 MU_PART(items,         mu_part_items,          10,  100,  10,  70,  60,  80) /* ground items: pick-up, MoveItems, Render */
 MU_PART(names,         mu_part_names,           0,  110, 100, 140, 140, 110) /* hudPlayerName's game side                */
 MU_PART(npc,           mu_part_npc,            20,   30,   0,   0,   0, 120) /* NPC pick, talk case, demo answer          */
-MU_PART(players,       mu_part_players,         0,   70,  70,  40,  40,  90) /* other players (demo file feed)           */
+MU_PART(players,       mu_part_players,         0,    0,  70,  40,  40,  90) /* players rendered from session records   */
 MU_PART(social,        mu_part_social,          0,   80,  90,   0,   0, 130) /* party/trade/friends/messages (local)     */
 MU_PART(helpers,       mu_part_helpers,         0,   90,   0,  50,  80, 100) /* pets and mounts                          */
 MU_PART(map,           mu_part_map,             0,  150,  80,   0,   0, 140) /* LoadingWorld, gate test, hudMap          */
@@ -40,3 +40,5 @@ MU_PART(actor_effects, mu_part_actor_effects,   0,    0,   0, 110, 110,   0) /* 
 MU_PART(item_labels,   mu_part_item_labels,     0,    0,   0, 130, 130,   0) /* the ground items' name labels            */
 
 MU_PART(objects_after, mu_part_objects_after, 0, 0, 0, 75, 65, 0) /* RenderObjects_AfterCharacter */
+
+MU_PART(characters, mu_part_characters, 0, 21, 0, 0, 0, 0) /* session MoveCharacters, after actor lane */

@@ -152,3 +152,5 @@ Use issue IDs matching these task IDs, claim a scope before editing, and name th
 | RENDER-WORLDS-A | Implemented: Kanturu/Karutan flames and four world groups' after-character objects | 9,000 Unicorn cases, 0 mismatches, 13/13 mutants; local tour and synthetic runtime | Fresh live images of the four maps lost in the October 23 cleanup; integrated gate pending. [Handoff](handoffs/RENDER-WORLDS-A.md) |
 
 SESSION-QUEST-001 is implemented: [session state, fixture checks and limits](handoffs/SESSION-QUEST-001.md).
+
+SESSION-VIEWPORT-001 is implemented: [record ownership, comparisons and limits](handoffs/SESSION-VIEWPORT-001.md).
