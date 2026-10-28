@@ -109,4 +109,4 @@ def cases(wa):
                     raise AssertionError(('rank-5 posed point',hex(t),index,bone,result))
             vectors.append((observation['snapshot'],observation['original']))
     return {'cases':len(vectors),'mismatches':0,'types':len(TYPES),'posed_point_cases':len(vectors)*2,
-            'boundary':'real pose caller only; named-mesh streams remain refused'},vectors
+            'boundary':'real pose caller only; mesh streams compared separately by validate_item_next'},vectors
