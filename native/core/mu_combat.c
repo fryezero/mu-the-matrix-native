@@ -154,6 +154,7 @@ static void load_models(mu_combat *c, const char *root)
         {0x43b, "Data/Skill/Arrow01.bmd"}, {0x413, "Data/Skill/Fire01.bmd"}, {0x41c, "Data/Skill/Circle01.bmd"},
         {0x41d, "Data/Skill/Circle02.bmd"}, {0x457, "Data/Skill/Inferno01.bmd"}, {0x421, "Data/Skill/Laser01.bmd"},
         {0x419, "Data/Skill/Stone01.bmd"}, {0x41a, "Data/Skill/Stone02.bmd"}, {MU_SFX_TWISTING_SWIRL, NULL},
+        {0x412, "Data/Skill/Ice01.bmd"}, {0x41b, "Data/Skill/Ice02.bmd"}, {0x41f, "Data/Skill/Magic02.bmd"},
     };
     for (int i = 0; i < MU_COMBAT_MODELS; ++i) {
         mu_combat_model *m = &c->models[i];
@@ -620,6 +621,35 @@ static void end_of_attack(mu_combat *c)
         create_arrow(c, -8.0f);
         create_arrow(c, 0.0f);
         create_arrow(c, 8.0f);
+        break;
+    case 1:
+        /* 0x013affd6..0x013b0075: the player emits ten smoke01/1 particles.
+         * Poison01 is restricted to monster model 0xa91 at this call site. */
+        if (target_ok) {
+            mu_sfx_call call;
+            memset(&call, 0, sizeof call);
+            call.type = 0x7f5a;
+            call.subtype = 1;
+            call.scale = 1.0f;
+            call.owner = -1;
+            memcpy(call.position, c->actors->list[t].position, sizeof call.position);
+            memcpy(call.angle, h->angle, sizeof call.angle);
+            call.light[0] = 0.4f; call.light[1] = 0.6f; call.light[2] = 1.0f;
+            for (int k = 0; k < 10; ++k) create_particle(c, &call);
+        }
+        break;
+    case 7:
+        /* 0x013afd61: target ice and five debris pieces, no owner. */
+        if (target_ok) {
+            const float *at = c->actors->list[t].position;
+            create_effect(c, 0x412, 0, at, h->angle, light, -1, NULL);
+            for (int k = 0; k < 5; ++k)
+                create_effect(c, 0x41b, 0, at, h->angle, light, -1, NULL);
+        }
+        break;
+    case 11:
+        /* 0x013b05eb: one wave for a player. Only monster 0x7b7 adds +/-10 degrees. */
+        create_effect(c, 0x41f, 0, pos, angle, light, -1, NULL);
         break;
     case 4:
         /* 0x013b0397: MODEL_FIRE subtype 1 from the caster, owned by the target */
@@ -1159,8 +1189,7 @@ void mu_combat_receive(mu_combat *c)
         const mu_combat_frame_event *e=&events[j];int32_t i=-1;
         for(int32_t k=0;c->actors && k<c->actors->count;++k)
             if((uint16_t)c->actors->list[k].session_key==e->key) {i=k;break;}
-        if(e->kind==4) {if(c->drop)c->drop(c->drop_context,e->drop);}
-        else if(e->kind==1) {
+        if(e->kind==1) {
             mu_combat_event hit={.actor=i,.damage=e->damage.amount,.type=e->damage.type,
                 .flag8=e->damage.flags[3],.flag_a=e->damage.flags[4],.shock=e->damage.shock};
             if(e->key==c->hero_key) {
@@ -1662,6 +1691,13 @@ void mu_combat_report_frame(const mu_combat *c, FILE *out, int32_t frame)
         fprintf(out, "%s[%d, %.3f, %.3f, %.4f, %.3f, %.3f, %.3f, %.3f]", first ? "" : ", ", p->value,
                 (double)p->position[2], (double)p->scale, (double)p->gravity, (double)p->color[0],
                 (double)p->color[1], (double)p->color[2], (double)p->floor);
+        first = 0;
+    }
+    fprintf(out, "], \"effect_types\": [");
+    first = 1;
+    for (int i = 0; i < MU_SFX_EFFECTS; ++i) {
+        if (!c->effects[i].live) continue;
+        fprintf(out, "%s%d", first ? "" : ", ", c->effects[i].type);
         first = 0;
     }
     fprintf(out, "]}\n");

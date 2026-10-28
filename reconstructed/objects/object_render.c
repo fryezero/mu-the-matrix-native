@@ -1,5 +1,7 @@
 #include "worlds_g.h"
 #include "worlds_h.h"
+#include "worlds_i.h"
+#include "world_visual.h"
 /* World-object creation, move pass and render pass of the client
  * (NATIVE-OBJECTS-002). See object_render.h and docs/research/client-objects-render.md.
  * Floating-point expressions keep the client's binary32 operation order
@@ -435,10 +437,19 @@ int mu_obj_create(const mu_object_record *r, int32_t world, uint8_t *o, int32_t 
         tormenta_create(o);
         return MU_OBJ_OK;
     }
+    if (world == 80 || world == 81) {
+        mu_karutan_create(o);
+        return MU_OBJ_OK;
+    }
     if (world_create(o, world, index, log))   /* NATIVE-FIDELITY-002 */
         return MU_OBJ_OK;
     if (world == 57 || world == 58) {
         mu_raklion_create(o, index, log);
+        return MU_OBJ_OK;
+    }
+    if (world == 79 || world == 100) {
+        if (world == 79) mu_market_create(o, index, log);
+        else mu_uruk_create(o, world);
         return MU_OBJ_OK;
     }
     if (world == 64 || world == 82) {
@@ -681,8 +692,7 @@ static void sound_event(mu_obj_log *log, int32_t index, uint32_t id)
 /* (rand() % 4 + 3) * 0.1 */
 static float flicker(mu_obj_rand_fn rnd, void *c) { return (float)(rem_i32(rnd(c), 4) + 3) * 0.1f; }
 
-/* The default chain's move hooks: Kanturu 0x00e74ae0 (worlds 0x25 and 0x28) and Aida 0x00d6202f (0x21, 0x36), and
- * the Karutan handler's slot 0x30 0x00e13a9e (0x50, 0x51, through the world manager). */
+/* The default chain's move hooks: Kanturu 0x00e74ae0 (worlds 0x25 and 0x28) and Aida 0x00d6202f (0x21, 0x36). */
 static int hook_move(uint8_t *o, int32_t index, const mu_obj_move_inputs *in, mu_obj_log *log)
 {
     mu_obj_rand_fn rnd = in->rand_fn;
@@ -762,24 +772,6 @@ static int hook_move(uint8_t *o, int32_t index, const mu_obj_move_inputs *in, mu
         default: break;
         }
         sound_event(log, index, 0x26c);
-        return 1;
-    }
-    if (w == 0x50 || w == 0x51) {   /* Karutan handler slot 0x30 */
-        switch (t) {
-        case 0x71: {
-            const float l = flicker(rnd, c);
-            const float light[3] = {l, l * 0.6f, l * 0.2f};
-            add_light(log, index, o, light, 3);
-            mu_obj_set_i32(o, MU_OBJF_HIDDEN_MESH, -2);
-            break;
-        }
-        case 0x72: case 0x73: case 0x74: case 0x76: mu_obj_set_i32(o, MU_OBJF_HIDDEN_MESH, -2); break;
-        case 0x87:
-            mu_obj_set_i32(o, MU_OBJF_HIDDEN_MESH, -2);
-            sound_event(log, index, 0x5a5);
-            break;
-        default: break;
-        }
         return 1;
     }
     return 0;
@@ -993,8 +985,20 @@ int mu_obj_move(uint8_t *o, int32_t index, const mu_obj_move_inputs *in, mu_obj_
         mu_raklion_move(o, in->time);
         return MU_OBJ_OK;
     }
+    if (world == 80 || world == 81) {
+        mu_karutan_move(o, index, in, log);
+        return MU_OBJ_OK;
+    }
     if (world_move(o, index, in, log) || hook_move(o, index, in, log))   /* NATIVE-FIDELITY-002 */
         return MU_OBJ_OK;
+    if (world == 79) {
+        mu_market_move(o, index, in, log);
+        return MU_OBJ_OK;
+    }
+    if (world == 100) {
+        mu_uruk_move(o, index, in, log);
+        return MU_OBJ_OK;
+    }
     if (world == 64 || world == 82) {
         if (world == 64) mu_duel_move(o, index, in, log);
         else mu_world82_move(o, world);

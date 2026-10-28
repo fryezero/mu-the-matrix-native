@@ -99,6 +99,7 @@ typedef struct mu_objects_runtime {
     int ready;
     struct mu_env *environment; /* optional shared boid pool for Elbeland */
     uint8_t hero_safe;
+    int32_t uruk_weather; /* Original 0x01cf15ec; explicit input, defaults inactive until captured/feed. */
     mu_obj_event startup_effects[12];
     int32_t startup_effect_count;
     uint8_t *images;                  /* count * MU_OBJ_SIZE: client OBJECT images */

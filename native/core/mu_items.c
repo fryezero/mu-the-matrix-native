@@ -1,5 +1,7 @@
 /* Dropped items in the walk-around world (NATIVE-ITEMS-001). See mu_items.h. */
 #include "mu_items.h"
+#include "../session/mu_session.h"
+#include "../fixture/items_demo.h"
 #include "mu_label.h"
 #include "../../reconstructed/items/item_sets.h"
 
@@ -221,33 +223,6 @@ static void name_build(void *context, mu_gi_item *gi)
 
 /* ---------------------------------------------------------------- open / close */
 
-static void default_table(mu_world_items *it)
-{
-    /* DEMO drop table (not client data): zen, jewels, potions, a few weapons and armour of Lorencia's level */
-    static const mu_world_item_drop demo[] = {
-        {0x1c0f, 0, 30, 0, 0, 20, 3000},   /* zen */
-        {0x1c0d, 0, 5, 0, 0, 0, 0},        /* jewel of bless */
-        {0x1c0e, 0, 5, 0, 0, 0, 0},        /* jewel of soul */
-        {0x180f, 0, 5, 0, 0, 0, 0},        /* jewel of chaos */
-        {0x1c00, 0, 8, 0, 0, 0, 0},        /* apple */
-        {0x1c03, 0, 6, 0, 0, 0, 0},        /* healing potion */
-        {0x0001, 9, 6, 15, 0, 0, 0},       /* short sword */
-        {0x0003, 9, 4, 15, 0, 0, 0},       /* katana */
-        {0x0200, 9, 4, 15, 0, 0, 0},       /* small axe */
-        {0x0c02, 7, 4, 15, 5, 0, 0},       /* shield */
-        {0x0e05, 7, 4, 15, 5, 0, 0},       /* helm */
-        {0x1600, 9, 4, 15, 5, 0, 0},       /* boots */
-    };
-    it->table_count = 0;
-    it->table_weight = 0;
-    for (size_t i = 0; i < sizeof demo / sizeof demo[0] && it->table_count < MU_WORLD_ITEM_TABLE; ++i) {
-        if (!record_of(it, demo[i].code))
-            continue;   /* not in this client's Item.bmd */
-        it->table[it->table_count++] = demo[i];
-        it->table_weight += demo[i].weight;
-    }
-}
-
 static int sets_has_record(void *context, int32_t code)
 {
     return record_of(context, code) != NULL;
@@ -351,19 +326,19 @@ int mu_world_items_open(mu_world_items *it, const char *root, mu_walk *walk, con
     it->view = 1;               /* constructor 0x00afaff8: +0x5c = 1 */
     it->selected = -1;
     it->pickup_target = -1;
-    default_table(it);
     if (mu_ui_font_open(&it->font, it->config.font_face ? it->config.font_face : "Arial",
                         it->config.font_height > 0 ? it->config.font_height : 12, 400) == 0)
         it->has_font = 1;
     char text[112];
     snprintf(text, sizeof text, "item table: %zu records, demo drops %d", mu_item_count(&it->item_table),
-             (int)it->table_count);
+             0);
     log_line(it, text);
     return 0;
 }
 
 void mu_world_items_close(mu_world_items *it)
 {
+    if(it->session)mu_session_items_bind(it->session,NULL,NULL);
     mu_lang_free(it->lang);
     mu_gi_sets_free(it->sets);
     mu_data_free(&it->set_type);
@@ -476,10 +451,11 @@ static mu_world_item_model *model_for(mu_world_items *it, int32_t type, int32_t 
     if (m->textures.missing && is_armour(type)) {
         /* viewer choice: armour models sit in Data/Item, their bitmaps in Data/Player (the classic loader's
          * OpenTexture(model, "Player\\")); the texture folder rule of this client is not traced */
-        char player[2048];
+        char player[2048], effect[2048];
+        snprintf(effect, sizeof effect, "%s/Data/Effect", it->game_root);
         snprintf(player, sizeof player, "%s/Data/Player", it->game_root);
         mu_textures_free(&m->textures);
-        mu_textures_load_with_effects(&m->textures, &m->bmd, player, directory);
+        mu_textures_load_with_effects(&m->textures, &m->bmd, player, effect);
     }
     m->loaded = 1;
     return m;
@@ -543,39 +519,13 @@ static int pose_item(mu_world_items *it, mu_world_item_model *m, const mu_gi_obj
 
 /* ---------------------------------------------------------------- drops */
 
-static int32_t free_slot(const mu_world_items *it)
-{
-    for (int32_t i = 0; i < MU_GI_ITEMS; ++i)
-        if (!it->pool[i].object.live)
-            return i;
-    return -1;
-}
-
 int32_t mu_world_items_drop(mu_world_items *it, int32_t code, int32_t level_byte, uint8_t excellent, uint8_t ancient,
                             int32_t zen, float x, float y, int32_t drop_flag)
 {
-    int32_t slot = free_slot(it);
-    if (slot < 0)
-        return -1;
-    uint8_t b[15];
-    memset(b, 0xff, sizeof b);
-    b[0] = (uint8_t)(code & 0xff);
-    b[1] = (uint8_t)level_byte;
-    b[2] = 255;                                   /* durability */
-    b[3] = (uint8_t)((excellent & 0x7f) | (((code >> 8) & 1) << 7));
-    b[4] = ancient;
-    b[5] = (uint8_t)((((code >> 9) & 0xf) << 4) | ((code >> 13) & 1));
-    b[6] = 0;
-    if (code == MU_GI_CODE_ZEN) {                 /* amount = b6 << 24 | b1 << 16 | b2 << 8 | b4 */
-        b[6] = (uint8_t)(zen >> 24);
-        b[1] = (uint8_t)(zen >> 16);
-        b[2] = (uint8_t)(zen >> 8);
-        b[4] = (uint8_t)zen;
-    }
-    return mu_world_items_receive_entry(it,slot,b,x,y,drop_flag);
+    return mu_items_demo_drop(it->fixture_items,code,level_byte,excellent,ancient,zen,x,y,drop_flag);
 }
 
-int32_t mu_world_items_receive_entry(mu_world_items *it,int32_t slot,const uint8_t b[15],float x,float y,int32_t drop_flag)
+static int32_t receive_entry(mu_world_items *it,int32_t slot,const uint8_t b[15],float x,float y,int32_t drop_flag)
 {
     if(slot<0 || slot>=MU_GI_ITEMS)return -1;
     int32_t code=mu_gi_item_code(b);
@@ -596,7 +546,6 @@ int32_t mu_world_items_receive_entry(mu_world_items *it,int32_t slot,const uint8
         return -1;
     }
     name_build(it, gi);                           /* the last call of CreateItem 0x016db59b */
-    it->created_step[slot] = it->step;
     ++it->stats.creates;
     if (drop_flag)
         ++it->stats.drops;
@@ -607,23 +556,19 @@ int32_t mu_world_items_receive_entry(mu_world_items *it,int32_t slot,const uint8
     return slot;
 }
 
-static void schedule(mu_world_items *it, const mu_world_item_event *e)
+static void present_entry(void *ctx,int32_t slot,const uint8_t entry[19])
 {
-    if (it->event_count >= MU_WORLD_ITEM_EVENTS)
-        return;
-    it->events[it->event_count++] = *e;
+    mu_world_items *it=ctx;
+    unsigned key=((unsigned)entry[0]<<8)|entry[1];
+    receive_entry(it,slot,entry+4,((float)entry[2]+0.5f)*100,((float)entry[3]+0.5f)*100,(int32_t)(key>>15));
 }
-
-/* ---------------------------------------------------------------- the step */
-
-static void remove_item(mu_world_items *it, int32_t slot)
+void mu_world_items_bind(mu_world_items *it,mu_session *s,void *fixture_items)
 {
-    /* the delete handler 0x012338bc / the pick-up answer: reset, SetLive(0), removeItem(label) */
-    memset(&it->pool[slot], 0, sizeof it->pool[slot]);
-    if (it->selected == slot)
-        it->selected = -1;
-    if (it->pickup_target == slot)
-        it->pickup_target = -1;
+    it->session=s; it->fixture_items=fixture_items;
+    /* Pointer refers to session storage. Replicated fields are changed only by handlers;
+     * MoveItems/render/selection write object motion/view fields. */
+    it->pool=(mu_gi_item *)mu_session_items(s).pool;
+    mu_session_items_bind(s,present_entry,it);
 }
 
 static void move_angle(void *context, mu_gi_object *o)
@@ -651,13 +596,16 @@ static void request_pickup(mu_world_items *it, int32_t slot)
 {
     if (it->pickup_wait)
         return;
-    mu_world_item_event e;
-    memset(&e, 0, sizeof e);
-    e.kind = 2;
-    e.step = it->step + it->config.pickup_latency;
-    e.slot = slot;
-    e.code = it->pool[slot].data.code;
-    schedule(it, &e);
+    if (!it->session) return;
+    const mu_gi_record *record=record_of(it,it->pool[slot].data.code);
+    if(it->pool[slot].data.code!=MU_GI_CODE_ZEN && (!record || record->kind_a==0x0b || record->kind_a==0x0c ||
+        (record->kind_a>=0x24 && record->kind_a<=0x2b))) return;
+    mu_intent in={0}; in.kind=MU_INTENT_ITEM_PICKUP; in.u.item_pickup.slot=slot;
+    mu_submit r=mu_session_submit(it->session,&in);
+    if (r.status==MU_SUBMIT_REFUSED) return;
+    /* Explicit synthetic server removal; the encrypted request is journaled unsent.
+     * There is no recorded pickup answer route in this milestone. */
+    mu_items_demo_remove(it->fixture_items,slot);
     it->pickup_wait = 1;
     ++it->stats.picks_requested;
     char text[112];
@@ -670,30 +618,13 @@ void mu_world_items_step(mu_world_items *it)
     ++it->step;
     it->host.world = it->walk ? it->walk->world : 0;
     it->host.world_time = it->map ? it->map->time : 0.0f;
-    /* the demo server's messages */
-    for (int32_t i = 0; i < it->event_count;) {
-        mu_world_item_event *e = &it->events[i];
-        if (e->step > it->step) {
-            ++i;
-            continue;
-        }
-        mu_world_item_event ev = *e;
-        it->events[i] = it->events[--it->event_count];
-        if (ev.kind == 1) {
-            mu_world_items_drop(it, ev.code, ev.level, ev.excellent, ev.ancient, ev.zen, ev.x, ev.y, 1);
-        } else if (ev.kind == 2) {
-            it->pickup_wait = 0;
-            if (it->pool[ev.slot].object.live && it->pool[ev.slot].data.code == ev.code) {
-                host_sound(it, mu_gi_pickup_sound(ev.code));
-                ++it->stats.picks_done;
-                char text[112];
-                snprintf(text, sizeof text, "step %d: picked up item %d '%s'", it->step, ev.slot,
-                         it->pool[ev.slot].name);
-                log_line(it, text);
-                remove_item(it, ev.slot);
-            }
-        }
+    if (!it->pool) return;
+    uint32_t deleted=mu_session_items(it->session).deletes;
+    uint32_t removed=deleted-it->deletes_seen; it->deletes_seen=deleted;
+    if (it->pickup_wait && removed && mu_session_items(it->session).pending < 0) {
+        it->pickup_wait=0; ++it->stats.picks_done; --removed;
     }
+    it->stats.despawns+=removed;
     /* MoveItems 0x017ea1aa */
     mu_gi_move_hooks hooks = {it, move_angle, move_particle};
     for (int32_t i = 0; i < MU_GI_ITEMS; ++i) {
@@ -704,10 +635,7 @@ void mu_world_items_step(mu_world_items *it)
         mu_gi_move_item(o, &it->host, &hooks);
         if (before % 48 == 0)
             ++it->stats.sparkles;
-        if (it->config.despawn_steps > 0 && it->step - it->created_step[i] > it->config.despawn_steps) {
-            ++it->stats.despawns;
-            remove_item(it, i);
-        }
+
     }
     /* MoveHero's pick-up mode (0x016983b2): within 1.5 tiles of the target, or forced by the space bar */
     if (it->pickup_target >= 0 && it->walk) {
@@ -1088,16 +1016,24 @@ void mu_world_items_report_frame(const mu_world_items *it, FILE *out, int32_t fr
 
 void mu_world_items_report_summary(const mu_world_items *it, FILE *out)
 {
+    int effect_textures = 0;
+    for (int32_t i = 0; i < it->model_count; ++i) {
+        const mu_textures *t = &it->models[i].textures;
+        for (int k = 0; it->models[i].loaded && t->slots && k < MU_TEXTURE_SPECIAL_COUNT &&
+                        t->model_count + k < t->count; ++k)
+            if (t->slots[t->model_count + k])
+                ++effect_textures;
+    }
     const mu_world_items_stats *s = &it->stats;
     fprintf(out, "{\"items\": true, \"live\": %d, \"drops\": %u, \"creates\": %u, \"no_record\": %u, \"lands\": %u,"
             " \"sparkles\": %u, \"sparkle_particles\": %u, \"picks_requested\": %u, \"picks_done\": %u,"
             " \"space_picks\": %u, \"despawns\": %u, \"hover_frames\": %u, \"labels\": %u, \"models_drawn\": %u,"
             " \"model_missing\": %u, \"render_calls\": %u, \"zen_coins\": %u, \"sounds\": %u, \"alt_toggles\": %u,"
-            " \"kills_seen\": %u, \"demo_table\": %d, \"view\": %d, \"log\": [",
+            " \"kills_seen\": %u, \"demo_table\": %d, \"view\": %d, \"effect_textures_loaded\": %d, \"log\": [",
             mu_world_items_live(it), s->drops, s->creates, s->no_record, s->lands, s->sparkles, s->sparkle_particles,
             s->picks_requested, s->picks_done, s->space_picks, s->despawns, s->hover_frames, s->labels,
             s->models_drawn, s->model_missing, s->render_calls, s->zen_coins, s->sounds, s->alt_toggles,
-            s->kills_seen, it->table_count, it->view);
+            s->kills_seen, 0, it->view, effect_textures);
     for (int32_t i = 0; i < it->log_count; ++i) {
         fprintf(out, "%s\"", i ? ", " : "");
         for (const char *c = it->log[i]; *c; ++c)

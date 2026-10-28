@@ -13,6 +13,7 @@
 #include "item_bodies.h"
 #include "skin_bodies.h"
 #include "item_links.h"
+#include "item_pulse_links.h"
 
 /* sin wrapper 0x009681bd: the CRT sin of a binary32 argument rounded to
  * binary32 (same rule as the mesh-draw port, client-meshdraw-exec.md). */
@@ -43,6 +44,7 @@ typedef struct sink {
     const mu_rc_item *item;
     mu_rc_model *model;
     int parameters;
+    const mu_rc_item_context *context;
 } sink;
 
 static void emit(sink *s, int32_t entry, int32_t mesh, uint32_t flags, float alpha, int32_t hidden, int32_t texture)
@@ -135,9 +137,9 @@ static void emit_parameter_body(sink *s, int phase, uint32_t flags, float alpha,
         return;
     }
     mu_rc_draw base;
-    sink one = {&base, 1, 0, s->item, s->model, 0};
+    sink one = {&base, 1, 0, s->item, s->model, 0, NULL};
     emit(&one, MU_RC_ENTRY_BODY, 0, flags, alpha, hidden, texture);
-    uint32_t input[21];
+    uint32_t input[25];
     input[0] = base.flags;
     memcpy(&input[1], &base.alpha, 4);
     input[2] = (uint32_t)base.blend_mesh;
@@ -160,6 +162,26 @@ static void emit_parameter_body(sink *s, int phase, uint32_t flags, float alpha,
         (float)((double)armour_wave(s->item->time) * 0.7 + (double)0.3f) : 0.0f;
     if (blend > 1.0f) blend = 1.0f;
     memcpy(&input[20], &blend, 4);
+    uint8_t mask = mu_rc_body_types[type].scalar_mask;
+    if (mask & 1u) {
+        float value = (client_sin(s->item->time * 0.0015f) + 1.0f) * 0.5f;
+        memcpy(&input[21], &value, 4);
+    }
+    if (mask & 2u) {
+        float value = client_sin(s->item->time * 0.002f) * 0.3f + 0.7f;
+        memcpy(&input[22], &value, 4);
+    }
+    if (mask & 4u) {
+        float clock = s->item->time;
+        int32_t tick = !(clock >= -2147483648.0f && clock < 2147483648.0f) ? INT32_MIN : (int32_t)clock;
+        float value = (float)(tick % 2000) * 0.0005f;
+        memcpy(&input[23], &value, 4);
+    }
+    if (mask & 8u) {
+        float value = armour_wave(s->item->time) * 0.65f + 0.2f;
+        if (value > 0.65f) value = 0.65f;
+        memcpy(&input[24], &value, 4);
+    }
     apply_recipe(s, &mu_rc_body_recipes[mu_rc_body_types[type].recipe[phase]], input, &base);
 }
 
@@ -207,11 +229,73 @@ static float client_fabs(float x)                         /* 0x0184f8ff */
     return 0.0f > x ? -x : x;
 }
 
+/* Rank 5, 0x017479b1..0x0174a489. The pose call changes bones for
+ * owner effects; these mesh calls retain the incoming transformed geometry. */
+int mu_rc_item_rank5(int32_t type)
+{
+    return (type >= 0x1c24 && type <= 0x1c34) || type == 0x1c44 || type == 0x1c7a;
+}
+
+static void rank5_mesh(sink *s, int mesh, int blend, float light, float u, float v, int texture, float alpha)
+{
+    const mu_rc_item *saved = s->item;
+    mu_rc_item item = *saved;
+    item.blend_mesh = blend;
+    item.blend_light = light;
+    item.u = u;
+    item.v = v;
+    s->item = &item;
+    emit(s, MU_RC_ENTRY_MESH, mesh, 2, alpha, -1, texture);
+    s->item = saved;
+}
+
+static int32_t rank5_random(const sink *s)
+{
+    return s->context && s->context->random ? s->context->random(s->context->context) : 0;
+}
+
+static void rank5_body(sink *s)
+{
+    const mu_rc_item *it = s->item;
+    int blue = it->type == 0x1c26 || it->type == 0x1c27 || it->type == 0x1c2c ||
+               it->type == 0x1c2e || it->type == 0x1c2f || it->type == 0x1c33 || it->type == 0x1c44;
+    for (int mesh = 0; mesh < (blue ? 4 : 2); ++mesh)
+        rank5_mesh(s, mesh, -1, 1.0f, it->u, it->v, -1, 1.0f);
+    if (!s->context || !s->context->lighting)
+        return;
+    float time = it->time;
+    int32_t tick = !(time >= -2147483648.0f && time < 2147483648.0f) ? INT32_MIN : (int32_t)time;
+    float x = (float)(tick % -6283) * 0.001f * -1.0f;
+    float wave = (float)cos((double)x);
+    if (3.1415927f > x) wave = -wave;
+    float pulse = ((wave + 1.0f) * 0.5f) * 0.8f + 0.2f;
+    int first = blue ? 4 : 2;
+    rank5_mesh(s, blue ? s->context->blue_mesh : 1, blue ? s->context->blue_mesh : 1,
+               pulse, it->u, it->v, blue ? 0x84d9 : it->type == 0x1c2b ? 0x84da : 0x84db, 1.0f);
+    if (!blue) {
+        float random_light = (float)(rank5_random(s) % 5) / 5.0f + 0.5f;
+        rank5_mesh(s, first, first, random_light, it->u, it->v, -1, 1.0f);
+    }
+    float divided = time / 80.0f;
+    int32_t frame = !(divided >= -2147483648.0f && divided < 2147483648.0f) ? INT32_MIN : (int32_t)divided;
+    float u = (float)(frame % 4) * 0.25f + (float)(rank5_random(s) % 4) * 0.0f;
+    rank5_mesh(s, blue ? 4 : 3, blue ? 4 : 3, 0.6f, u, it->v, -1, 1.0f);
+    if (blue) {
+        float random_light = (float)(rank5_random(s) % 5) / 5.0f + 0.5f;
+        rank5_mesh(s, 5, 5, random_light, it->u, it->v, -1, 1.0f);
+    }
+    /* Bone-dependent particles are outside this no-owner context. */
+}
+
 /* RenderPartObjectBody 0x016e036c, generic tail 0x017020e2 / 0x0176cad9;
  * the +15 attachment models class15_* (0xa99..0xaa1, 0x016fc881..0x016fca83). */
 static void part_body(sink *s, float alpha, uint32_t flags, int32_t a6, int32_t a7)
 {
     const mu_rc_item *it = s->item;
+    if (s->parameters && mu_rc_item_rank5(it->type)) {
+        rank5_body(s);
+        return;
+    }
     if (s->parameters && body_type(it->type) >= 0) {
         emit_parameter_body(s, flags & 0x40000u ? 5 : 0, flags, alpha, -1, -1);
         return;
@@ -362,7 +446,7 @@ static void scale_light(float out[3], const float light[3], float factor)
 
 int mu_rc_item_special(int32_t type)
 {
-    if (body_type(type) >= 0 || type == 0x3895 || type == 0x3896 ||
+    if (mu_rc_item_rank5(type) || body_type(type) >= 0 || type == 0x3895 || type == 0x3896 ||
         (type >= 0x389b && type <= 0x389e))
         return 0;
     /* RENDER-ITEMS-002b: complete body streams, not the link-effect switch. */
@@ -374,44 +458,56 @@ int mu_rc_item_special(int32_t type)
     return mu_rc_special_type(type);
 }
 
-static int item_draws_impl(const mu_rc_item *, mu_rc_model *, mu_rc_draw *, int32_t, int32_t *, int);
+static int item_draws_impl(const mu_rc_item *, mu_rc_model *, mu_rc_draw *, int32_t, int32_t *, int, const mu_rc_item_context *);
 
 int mu_rc_item_draws(const mu_rc_item *it, mu_rc_model *model, mu_rc_draw *out, int32_t capacity, int32_t *count)
+{
+    return mu_rc_item_draws_context(it, model, out, capacity, count, NULL);
+}
+
+int mu_rc_item_draws_context(const mu_rc_item *it, mu_rc_model *model, mu_rc_draw *out, int32_t capacity, int32_t *count, const mu_rc_item_context *context)
 {
     *count = 0;
     if (mu_rc_item_special(it->type))
         return MU_RC_SPECIAL;
-    if ((body_type(it->type) >= 0 || (it->type >= 0x3890 && it->type <= 0x38a2)) &&
+    if ((mu_rc_item_rank5(it->type) || body_type(it->type) >= 0 || (it->type >= 0x3890 && it->type <= 0x38a2)) &&
         (it->a10 != -1 || it->a11 != -1))
         return MU_RC_UNSUPPORTED;
+    /* 0x016ed6e8 and the shared armour fallback: OBJECT blend writes survive the tails. */
+    if (it->type == 0x0eee || it->type == 0x18fe || it->type == 0x1cfe) {
+        mu_rc_item copy = *it;
+        float wave = client_sin(it->time * 0.001f);
+        copy.blend_light = it->type == 0x0eee ? wave * 0.6f + 0.4f : wave * 0.4f + 0.6f;
+        return item_draws_impl(&copy, model, out, capacity, count, 1, context);
+    }
     /* 0x01770e41..0x01770ef8: wing blend-light writes survive every pass. */
     if (it->type == 0x22ea || it->type == 0x248c || it->type == 0x22eb || it->type == 0x248d) {
         mu_rc_item copy = *it;
         float pulse = client_sin(it->time * 0.001f);
         copy.blend_light = (it->type == 0x22eb || it->type == 0x248d) ?
             (pulse + 1.0f) / 4.0f : pulse + 1.1f;
-        return item_draws_impl(&copy, model, out, capacity, count, 1);
+        return item_draws_impl(&copy, model, out, capacity, count, 1, context);
     }
     if (it->type == 0x389d) {
         mu_rc_item copy = *it;
         float clock = -it->time;
         int32_t tick = !(clock >= -2147483648.0f && clock < 2147483648.0f) ? INT32_MIN : (int32_t)clock;
         copy.v = (float)(tick % 4000) * 0.00025f;
-        return item_draws_impl(&copy, model, out, capacity, count, 1);
+        return item_draws_impl(&copy, model, out, capacity, count, 1, context);
     }
-    return item_draws_impl(it, model, out, capacity, count, 1);
+    return item_draws_impl(it, model, out, capacity, count, 1, context);
 }
 
 int mu_rc_item_draws_generic(const mu_rc_item *it, mu_rc_model *model, mu_rc_draw *out, int32_t capacity,
                              int32_t *count)
 {
-    return item_draws_impl(it, model, out, capacity, count, 0);
+    return item_draws_impl(it, model, out, capacity, count, 0, NULL);
 }
 
 static int item_draws_impl(const mu_rc_item *it, mu_rc_model *model, mu_rc_draw *out, int32_t capacity,
-                             int32_t *count, int parameters)
+                             int32_t *count, int parameters, const mu_rc_item_context *context)
 {
-    sink s = {out, capacity, 0, it, model, parameters};
+    sink s = {out, capacity, 0, it, model, parameters, context};
     *count = 0;
     if (it->select != 0 || it->object_shadow == 1 || it->a13 == 1)
         return MU_RC_UNSUPPORTED;
@@ -438,7 +534,7 @@ static int item_draws_impl(const mu_rc_item *it, mu_rc_model *model, mu_rc_draw 
                 (mu_rc_skin_bodies[i].level >= 0 && tested != mu_rc_skin_bodies[i].level))
                 continue;
             mu_rc_draw base;
-            sink one = {&base, 1, 0, it, model, 0};
+            sink one = {&base, 1, 0, it, model, 0, NULL};
             emit(&one, MU_RC_ENTRY_BODY, 0, it->render_type, it->alpha, 0, -1);
             uint32_t input[17];
             input[0] = base.flags;
@@ -580,6 +676,9 @@ int mu_rc_link_supported(int32_t type)
     for (size_t i = 0; i < sizeof mu_rc_link_chains / sizeof mu_rc_link_chains[0]; ++i)
         if (type == mu_rc_link_chains[i].type)
             return 1;
+    for (size_t i = 0; i < sizeof mu_rc_pulse_links / sizeof mu_rc_pulse_links[0]; ++i)
+        if (type == mu_rc_pulse_links[i].type)
+            return 1;
     return type == 0x12ea || type == 0x12eb || type == 0x12ec || type == 0x12f7 ||
            type == 0x1301 || type == 0x1303 || type == 0x14f0 || type == 0x12fb ||
            type == 0x0ef4 || type == 0x0afc || type == 0x0afd || type == 0x0afe;
@@ -626,10 +725,42 @@ int mu_rc_link_effects(int32_t type, mu_rc_random_fn random, void *context,
     return mu_rc_link_effects_time(type, 0.0f, random, context, out, capacity, count);
 }
 
+static float link_scalar(const mu_rc_link_scalar *rule, const float *values)
+{
+    if (!rule->source)
+        return rule->add;
+    float value = values[rule->source];
+    if (rule->mul != 1.0f)
+        value *= rule->mul;
+    if (rule->add != 0.0f)
+        value += rule->add;
+    return value;
+}
+
 int mu_rc_link_effects_time(int32_t type, float time, mu_rc_random_fn random, void *context,
                            mu_rc_link_effect *out, int32_t capacity, int32_t *count)
 {
     *count = 0;
+    for (size_t row = 0; row < sizeof mu_rc_pulse_links / sizeof mu_rc_pulse_links[0]; ++row) {
+        if (mu_rc_pulse_links[row].type != type)
+            continue;
+        /* Every caller consumes the common random intensity, even if unused. */
+        float sin2 = client_sin(time * 0.002f), sin1 = client_sin(time * 0.001f);
+        float values[] = {0, link_intensity(random(context)), sin2 * 0.35f + 0.65f, sin2, sin1,
+                          client_sin(time * 0.01f) * 360.0f, sin1 * 0.5f + 0.5f};
+        int n = mu_rc_pulse_links[row].count;
+        for (int i = 0; i < n && i < capacity; ++i) {
+            const mu_rc_pulse_sprite *rule = &mu_rc_pulse_sprites[mu_rc_pulse_links[row].first + i];
+            mu_rc_link_effect e = {0};
+            e.sprite = (mu_rc_link_sprite){rule->bone, rule->bitmap, link_scalar(&rule->scale, values),
+                {link_scalar(&rule->rgb[0], values), link_scalar(&rule->rgb[1], values),
+                 link_scalar(&rule->rgb[2], values)}, link_scalar(&rule->rotation, values), 0, 4};
+            memcpy(e.offset, rule->offset, sizeof e.offset);
+            out[i] = e;
+        }
+        *count = n;
+        return n > capacity ? MU_RC_FULL : MU_RC_OK;
+    }
     int chain_index = -1;
     for (size_t i = 0; i < sizeof mu_rc_link_chains / sizeof mu_rc_link_chains[0]; ++i)
         if (type == mu_rc_link_chains[i].type)

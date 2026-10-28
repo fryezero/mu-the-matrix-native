@@ -405,7 +405,8 @@ def kind_section(world_args, lib, args):
     values that change the executed stream must be exactly those the library refuses or
     models (kind A 6, kind B 0x26/0x5b)."""
     rng = random.Random(args.seed + 2)
-    generic = [t for t in range(0xae6, 0xae6 + 16 * 512) if not lib.mu_rc_item_special(t)]
+    # Rank-5 needs authored action/bone tracks, supplied by validate_item_next.
+    generic = [t for t in range(0xae6, 0xae6 + 16 * 512) if not lib.mu_rc_item_special(t) and not lib.mu_rc_item_rank5(t)]
     types = []
     for group in range(16):
         members = [t for t in generic if (t - 0xae6) // 512 == group]

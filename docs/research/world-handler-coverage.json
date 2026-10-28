@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "milestone": "RENDER-WORLDS-H",
+  "milestone": "RENDER-WORLDS-J",
   "text_sha256": "2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724",
   "data_sha256": "c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f",
   "factory": "0xea488e",
@@ -30,9 +30,9 @@
         },
         "visual": {
           "entry": "0xe946a8",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary visual method; 1000 compiled-C versus Unicorn cases, AL/OBJECT/ordered calls/RNG and compiled mutants. See client-worlds-j.md for service and nested-consumer boundaries.",
+          "source": "reconstructed/objects/world_raklion_visual.c"
         },
         "custom_render": {
           "entry": "0xe949f8",
@@ -440,7 +440,7 @@
     },
     {
       "class_id": "world-79",
-      "label": "World 79 class",
+      "label": "Loren Market",
       "worlds": [
         79
       ],
@@ -450,21 +450,21 @@
       "handlers": {
         "create": {
           "entry": "0xe6c0ec",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases, compiled mutants. Engine/pose services recorded; native keyed-effect and colored-joint consumers remain unavailable. See client-worlds-i.md.",
+          "source": "reconstructed/objects/loren_market.c"
         },
         "move": {
           "entry": "0xe6c1bf",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases, compiled mutants. Engine/pose services recorded; native keyed-effect and colored-joint consumers remain unavailable. See client-worlds-i.md.",
+          "source": "reconstructed/objects/loren_market.c"
         },
         "visual": {
           "entry": "0xe6c678",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases, compiled mutants. Engine/pose services recorded; native keyed-effect and colored-joint consumers remain unavailable. See client-worlds-i.md.",
+          "source": "reconstructed/objects/loren_market.c"
         },
         "custom_render": {
           "entry": "0xe6ce2d",
@@ -499,20 +499,20 @@
       "handlers": {
         "create": {
           "entry": "0xe13a87",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary method; 1000 compiled-C versus Unicorn cases per method, AL/OBJECT/ordered calls/bone queries/RNG and compiled mutants. Existing move/flame subsets retained; see client-worlds-j.md for current-pose and nested-consumer limits.",
+          "source": "reconstructed/objects/world_karutan_visual.c"
         },
         "move": {
           "entry": "0xe13a9e",
           "status": "verified_family",
-          "scope": "bounded; see existing finding",
-          "source": "reconstructed/objects/object_render.c"
+          "scope": "Complete primary method; 1000 compiled-C versus Unicorn cases per method, AL/OBJECT/ordered calls/bone queries/RNG and compiled mutants. Existing move/flame subsets retained; see client-worlds-j.md for current-pose and nested-consumer limits.",
+          "source": "reconstructed/objects/world_karutan_visual.c"
         },
         "visual": {
           "entry": "0xe13be4",
           "status": "verified_family",
-          "scope": "RENDER-WORLDS-A bounded type-113 brazier sprite/particle calls; compiled C against original instructions with mutants. See client-world-fidelity.md and handoffs/RENDER-WORLDS-A.md; remaining branches and image-phase limits stay open.",
+          "scope": "Complete primary method; 1000 compiled-C versus Unicorn cases per method, AL/OBJECT/ordered calls/bone queries/RNG and compiled mutants. Existing move/flame subsets retained; see client-worlds-j.md for current-pose and nested-consumer limits.",
           "source": "reconstructed/objects/world_karutan_visual.c"
         },
         "custom_render": {
@@ -780,7 +780,7 @@
     },
     {
       "class_id": "world-100",
-      "label": "World 100 class",
+      "label": "Uruk Mountain",
       "worlds": [
         100
       ],
@@ -790,21 +790,21 @@
       "handlers": {
         "create": {
           "entry": "0xe6f0a2",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases, compiled mutants. Engine/pose services recorded; native keyed-effect and colored-joint consumers remain unavailable. See client-worlds-i.md.",
+          "source": "reconstructed/objects/uruk.c"
         },
         "move": {
           "entry": "0xe6f1ca",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases, compiled mutants. Engine/pose services recorded; native keyed-effect and colored-joint consumers remain unavailable. See client-worlds-i.md.",
+          "source": "reconstructed/objects/uruk.c"
         },
         "visual": {
           "entry": "0xe6f3d5",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases, compiled mutants. Engine/pose services recorded; native keyed-effect and colored-joint consumers remain unavailable. See client-worlds-i.md.",
+          "source": "reconstructed/objects/uruk.c"
         },
         "custom_render": {
           "entry": "0xe702eb",

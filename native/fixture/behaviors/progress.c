@@ -81,6 +81,14 @@ static void demo_maxima(int32_t cls, int32_t level, const int32_t s[5], int32_t 
             out[i] = 0xffff;
 }
 
+int mu_fx_progress_resources(void *state, int32_t resources[4])
+{
+    fx_progress *p = state;
+    if (!p) return 0;
+    demo_maxima(p->class_byte & 15, p->level, p->stats, resources);
+    return 1;
+}
+
 static int64_t demo_kill_exp(int32_t server_class, int32_t rate)
 {
     int64_t l = 1 + (server_class < 0 ? 0 : server_class) % 40;

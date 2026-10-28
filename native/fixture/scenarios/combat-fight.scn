@@ -1,6 +1,7 @@
 # SESSION-COMBAT-001: an attack request and authoritative frame results. Synthetic rules only.
 endpoint game 127.0.0.1:55904
 use monsters
+use items
 use combat hp=1 lo=50 hi=50 latency=2 counter=0
 join world=0 tile=120,120 class=1 level=10 name=Fighter slot=0
 at 1 client quest-data native/fixture/scenarios/quest-tables

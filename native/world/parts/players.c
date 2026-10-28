@@ -64,6 +64,7 @@ static void player_item_draw(mu_world_rt *a, int32_t i, int item, const mu_rende
     mu_renderchar_default_env(&env);
     env.lang = a->lang;   /* the EnchantEffect colours of the Lang tables (MU_LANG_DIR) when present */
     env.time = a->map->time;
+    env.particles = a->has_particles ? &a->particles : NULL;
     env.quality = 5;
     if (a->ground)   /* the same glow colour as the ground items (--glow-color) when the table is absent */
         memcpy(env.glow_color, a->ground->config.glow_color, sizeof env.glow_color);

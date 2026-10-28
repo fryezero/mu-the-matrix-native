@@ -23,6 +23,7 @@ static void hero_item_draw(mu_world_rt *a, int index, const mu_draw_options *opt
     mu_renderchar_default_env(&env);
     env.lang = a->lang;
     env.time = a->map->time;
+    env.particles = a->has_particles ? &a->particles : NULL;
     mu_draw_stats ds = {0};
     mu_renderchar_draw_item(&item->model, &glow, &env, a->ch.params.light, 1.0f, options, backend, &ds, NULL);
     if ((index >= MU_CHARACTER_PART_SLOTS || glow.type == 0x389c || glow.type == 0x389d) && a->has_particles)

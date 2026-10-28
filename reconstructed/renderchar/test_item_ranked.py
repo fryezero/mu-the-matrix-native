@@ -30,12 +30,12 @@ class ItemRanked(unittest.TestCase):
         # A present record makes the same ancient option effective on the generic path.
         self.assertIn(0x840, [d.flags for d in self.draws(self.item(has_record=1, ext_option=1))[1]])
 
-    def test_ranked_types_keep_override_and_pose_refusals(self):
+    def test_ranked_types_keep_override_refusals(self):
         import gen_item_bodies as gen
         for t in gen.RANKED_TYPES:
             self.assertEqual(self.draws(self.item(type=t, a10=0))[0], 2)
         for t in (*range(0x1c24,0x1c35),0x1c44,0x1c7a):
-            self.assertEqual(self.draws(self.item(type=t)), (1,[]))
+            self.assertEqual(self.draws(self.item(type=t))[0], 0)
 
     def test_chain_random_order_and_final_white(self):
         c = self.ranked.clusters

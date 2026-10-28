@@ -27,7 +27,7 @@ int mu_pt_kind_supported(int32_t type, int32_t subtype)
     case MU_PT_BITMAP_FIRE:
         return (subtype >= 0 && subtype <= 6) || subtype == 17;
     case MU_PT_BITMAP_SMOKE:
-        return subtype == 0 || subtype == 2 || subtype == 3 || subtype == 0x75 || subtype == 0x7f || subtype == 21;
+        return subtype == 0 || subtype == 1 || subtype == 2 || subtype == 3 || subtype == 0x75 || subtype == 0x7f || subtype == 21;
     case MU_PT_BITMAP_SPARK2:
         return subtype == 0 || subtype == 1;   /* 1: NATIVE-HELPERS-002 (the angel's sparkles) */
     case MU_PT_BITMAP_SMOKE5:
@@ -209,6 +209,15 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
             p->scale = (float)(mu_pt_rand(h) % 32 + 48) * 0.01f;   /* (type 0x844 would take rand % 3 + 28) */
             p->angle[0] = (float)(mu_pt_rand(h) % 360);
             p->rotation = (float)(mu_pt_cvttss2si(h ? h->world_time : 0.0f) % 360);
+        } else if (subtype == 1) {                  /* 0x015c5f15: Poison burst */
+            p->lifetime = 50;
+            p->scale = (float)(mu_pt_rand(h) % 32 + 80) * 0.01f;
+            p->position[0] += (float)(mu_pt_rand(h) % 64 - 32);
+            p->position[1] += (float)(mu_pt_rand(h) % 64 - 32);
+            p->position[2] += (float)(mu_pt_rand(h) % 64 + 32);
+            p->angle[0] = (float)(mu_pt_rand(h) % 90 - 45);
+            p->angle[2] = (float)(mu_pt_rand(h) % 360);
+            p->velocity[1] = -(float)(mu_pt_rand(h) % 8 + 40);
         } else if (subtype == 3) {                  /* 0x015c5a12 */
             p->lifetime = 10;
             p->scale = (float)(mu_pt_rand(h) % 32 + 80) * 0.01f;
@@ -514,6 +523,14 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
                 p->gravity = p->gravity + 0.2f;
                 p->position[2] = p->position[2] + p->gravity;
                 p->scale = p->scale + 0.05f;
+            } else if (p->subtype == 1) {                    /* 0x01634dc5 */
+                float l = (float)p->lifetime / 50.0f;
+                p->light[0] = l * 0.5f;
+                p->light[1] = l;
+                p->light[2] = l * 0.8f;
+                for (int k = 0; k < 3; ++k)
+                    p->velocity[k] = 0.4f * p->velocity[k];
+                p->scale += 0.05f;
             } else if (p->subtype == 3) {                    /* 0x0163402e */
                 float l = (float)p->lifetime / 8.0f;
                 p->light[0] = l * 0.8f;

@@ -112,7 +112,7 @@ def transform_cases(wa):
     return {'cases':200,'mismatches':0}
 
 
-def body_cases(wa, lib, types, screen=False):
+def body_cases(wa, lib, types, screen=False, allowed_services=None):
     vectors, failed = [], []
     reset = ResetWorld(wa)
     # Fresh-machine controls cover all eleven survey states and diverse branches.
@@ -137,7 +137,7 @@ def body_cases(wa, lib, types, screen=False):
                         a10=0xffffffff, a11=0xffffffff)
             result, stream, other, machine = v.client_stream(wa, case, reset)
             status, actual = v.c_stream(lib, case)
-            if not result['ok'] or status or actual != stream or other:
+            if not result['ok'] or status or actual != stream or other != (allowed_services or {}).get(t, []):
                 failure = (t, k, case, stream, actual, result, other)
                 if not screen:
                     raise AssertionError(failure)

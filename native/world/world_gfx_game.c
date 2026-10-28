@@ -437,6 +437,7 @@ static void draw_model(wg_items *w, item_model *m, const mu_gfx_item_draw *d, co
     mu_renderchar_default_env(&env);
     env.lang = w->lang;
     env.time = (float)w->time_ms;
+    env.particles = w->skin_particles;
     mu_draw_options draw;
     mu_draw_default_options(&draw);
     draw.textures = &m->textures;

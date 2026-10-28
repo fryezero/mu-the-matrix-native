@@ -21,6 +21,8 @@ MU_FAMILY(0x55, 3, 4, MU_ADDR_UNVERIFIED)        /* sub at [3] / [4] (reconstruc
 MU_ROUTE(0xF4, 0x03, 0x0127ea69u, MU_STATIC)
 MU_ROUTE(0xF4, 0x06, 0x0127ec2fu, MU_STATIC)
 MU_ROUTE(0x20, MU_SUB_NONE, 0x0122c216u, MU_STATIC)
+/* client-ground-items.md, recorded delete route. No dispatcher table read. */
+MU_ROUTE(0x21, MU_SUB_NONE, 0x012338bcu, MU_STATIC)
 MU_ROUTE(0x16, MU_SUB_NONE, 0x01234c08u, MU_STATIC)
 MU_ROUTE(0xA0, 0x06, 0x01250b05u, MU_STATIC)
 MU_ROUTE(0xA0, 0x11, 0x01223f04u, MU_STATIC)

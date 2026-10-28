@@ -133,7 +133,7 @@ typedef struct mu_pt_host {
 
 /* 1 when CreateParticle, MoveParticles and RenderParticles are reconstructed
  * for the kind (type, subtype):
- *   Fire01 0x7f3c 0..6 and 17, smoke01 0x7f5a 0, 2 and 3, rain02/rain03
+ *   Fire01 0x7f3c 0..6 and 17, smoke01 0x7f5a 0, 1, 2 and 3, rain02/rain03
  *   0x771c/0x771d 0, Thunder01 0x7f2b 0, Spark02 0x7f25 0, Spark03 0x7f26 0
  *   and 1; NATIVE-JOINT-001: clouds 0x7f89 0x14 and WATERFALL1 0x801a 2 (the
  *   login scene's mist and spray), Shiny01 0x7f66 0 and 1 (Noria);
