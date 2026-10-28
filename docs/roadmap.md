@@ -1,5 +1,7 @@
 # Roadmap and work queue
 
+RENDER-WORLDS-J completes captured Raklion/Karutan primary groups: 33/144 verified methods, 11/48 classes; 111 methods remain. [Evidence](research/client-worlds-j.md), [checks and limits](handoffs/RENDER-WORLDS-J.md).
+
 README-REFRESH-003 implemented: public progress through PR #207, bounded coverage and honest offline/performance limits; existing pinned images reused. [Checks and sources](handoffs/README-REFRESH-003.md).
 
 SESSION-GLOBALS-001: explicit session/runtime state ownership and committed sequential/fresh-process parity checks. [Inventory and checks](handoffs/SESSION-GLOBALS-001.md).

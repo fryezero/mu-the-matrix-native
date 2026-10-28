@@ -1893,3 +1893,19 @@ args = ["--cases", "1000", "--mutations", "--output", "{report}"]
 "families.*.stopped" = 0
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
+
+[validate_worlds_j]
+test = "reconstructed/objects/test_worlds_j.py::WorldsJTests.test_original_instructions"
+pins = ["text", "data"]
+families = ["karutan_create", "karutan_move", "karutan_visual", "raklion_visual", "raklion_create", "raklion_move"]
+cases = 6000
+mutants = 30
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+[validate_worlds_j.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0
