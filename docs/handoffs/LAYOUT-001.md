@@ -34,8 +34,8 @@ LAYOUT-PROBE-001's merge `15962e94cb4c2d8bcf85ade0d7bba0867b50d214`.
   detected, identical to the probe milestone. The frustum control's zero remains a documented limit.
 - Real session/fixture journal integration test passes: generated layout digest, every attribute field
   boundary and full 0x1b50 known extent, including timers.
-- Final local macOS gate passed after integrating DATA-ACQ-003 and CHARSEL-RT-001: 1,304 tests,
-  155 explicit skips, viewer and four reader builds; audit 1,147 files, zero rejected. Include audit
+- Final local macOS gate passed after integrating DATA-ACQ-003, CHARSEL-RT-001 and VERIFY-SESSION-001: 1,320 tests,
+  155 explicit skips, viewer and four reader builds; audit 1,154 files, zero rejected. Include audit
   and diff whitespace checks also pass. A prior gate was invalidated when a concurrent upstream merge
   conflicted in the shared docs during its audit; both docs were resolved preserving both milestones,
   and this final gate was rerun from the clean combined tree.
