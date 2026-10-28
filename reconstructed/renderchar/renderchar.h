@@ -19,7 +19,7 @@
  * 0x016dba54, 0x01806042 that an item type takes when none of their
  * type-specific branches matches. Types with their own branches are listed by
  * mu_rc_item_special (generated from the executed sweep); the library refuses
- * them except the 11 bounded body types of RENDER-ITEMS-002B. */
+ * them except the verified bounded families listed in client-render-items.md. */
 
 enum {
     MU_RC_OK = 0,

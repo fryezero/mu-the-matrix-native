@@ -19,6 +19,17 @@ static float client_sin(float x)
     return (float)sin((double)x);
 }
 
+/* 0x0185bdc4(-4,0), then 0x01705495 adds 0.2. */
+static float armour_pulse(float time)
+{
+    int32_t tick = !(time >= -2147483648.0f && time < 2147483648.0f) ? INT32_MIN : (int32_t)time;
+    float x = (float)(tick % -1570) * 0.001f * -4.0f;
+    float w = (float)cos((double)x);
+    if (3.1415927f > x)
+        w = -w;
+    return (w + 1.0f) * 0.5f + 0.2f;
+}
+
 typedef struct sink {
     mu_rc_draw *out;
     int32_t capacity, count;
@@ -80,7 +91,7 @@ static void emit_parameter_body(sink *s, int phase, uint32_t flags, float alpha,
     mu_rc_draw base;
     sink one = {&base, 1, 0, s->item, s->model, 0};
     emit(&one, MU_RC_ENTRY_BODY, 0, flags, alpha, hidden, texture);
-    uint32_t input[17], words[16];
+    uint32_t input[20], words[16];
     input[0] = base.flags;
     memcpy(&input[1], &base.alpha, 4);
     input[2] = (uint32_t)base.blend_mesh;
@@ -94,6 +105,11 @@ static void emit_parameter_body(sink *s, int phase, uint32_t flags, float alpha,
     memcpy(&input[12], base.shade, 12);
     input[15] = base.flag_ca;
     memcpy(&input[16], &s->item->object_alpha, 4);
+    float pulse = mu_rc_body_types[type].pulse ? armour_pulse(s->item->time) : 0.0f;
+    for (int k = 0; k < 3; ++k) {
+        float light = base.body_light[k] * pulse;
+        memcpy(&input[17 + k], &light, 4);
+    }
     int recipe = mu_rc_body_types[type].recipe[phase];
     for (int i = 0; i < mu_rc_body_recipes[recipe].count; ++i) {
         for (int k = 0; k < 16; ++k) {
@@ -140,7 +156,7 @@ static int kind_b(const mu_rc_item *it, uint8_t kind)
 
 static int kind_a(const mu_rc_item *it, uint8_t kind)
 {
-    return it->has_record && it->kind_a == kind;
+    return it->has_record && (uint32_t)(it->type - 0xae6) <= 0x2c00u && it->kind_a == kind;
 }
 
 int32_t mu_rc_item_glow_level(const mu_rc_item *it)

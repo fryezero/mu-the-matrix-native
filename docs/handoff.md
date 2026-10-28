@@ -13,7 +13,7 @@ DATA-ACQ-004 manifest slice: [handoff](handoffs/DATA-ACQ-004.md), [re-acquisitio
 
 - RENDER-TERRAIN-002: remaining terrain implementation and evidence are in [the milestone handoff](handoffs/RENDER-TERRAIN-002.md). No live client used; per-world object files untouched.
 
-RENDER-ITEMS-002 part 3: [handoff](handoffs/RENDER-ITEMS-002C.md). 262/1,674 body types, ranked branch tables and three verified link callers. Remaining: 1,412 body types, 17 class skins, Spark03 subtype 11 and further links; Muun/nested map-object tables remain deferred.
+RENDER-ITEMS-002 part 4: [handoff](handoffs/RENDER-ITEMS-002D.md). 426/1,674 bodies, 11/17 skins, five link targets/ten types integrated and Spark03/11 consumed. Remaining: 1,248 bodies, six skins and further links; Muun/nested map-object tables remain deferred.
 
 LAYOUT-001: [handoff](handoffs/LAYOUT-001.md), generated read-side layouts and JSON consumers. Per-domain migrations can extend their own .def files.
 

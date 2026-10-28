@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import pins
 
 START, END = 0x0176d160, 0x0176dc26
+SKIN_TYPES = [0x3700, 0x3890, 0x3891, *range(0x3894, 0x38a1), 0x38a2]
 
 
 def generate(text, types=range(0xae6, 0x2ae6), symbol="mu_rc_glow_rows"):
@@ -50,8 +51,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--check', action='store_true')
+    parser.add_argument('--skins', action='store_true', help='generate the separate class-skin scalar rules')
     args = parser.parse_args()
-    result = generate(pins.TEXT.read())
+    text = pins.TEXT.read()
+    result = generate(text, SKIN_TYPES, 'mu_rc_skin_glow_rows') if args.skins else generate(text)
     if args.check:
         if args.output.read_text() != result:
             raise SystemExit('item glow table differs from pinned instructions')

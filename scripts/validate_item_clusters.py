@@ -77,7 +77,7 @@ def link_cases(wa, lib, types=(0x14f0, 0x12fb)):
                 actual=c_effects(lib,t,values,time)
                 if not result['ok'] or actual!=(0,observed,len(consumed)):
                     raise AssertionError((hex(t),k,variant,result,observed,actual,len(consumed)))
-                vectors.append((t,values,actual))
+                vectors.append((t,values,time,actual))
     return {'cases':len(vectors),'mismatches':0,'types':[hex(t) for t in types]},vectors
 
 def transform_cases(wa):
@@ -173,7 +173,7 @@ def mutations(directory, bodies, links):
                         str(ROOT/'reconstructed/record-math/record_math.c'),'-lm','-o',str(dylib)],check=True)
         lib = C.CDLL(str(dylib))
         detected = sum(v.c_stream(lib,case)!=(0,expected) for case,expected in bodies)
-        detected += sum(c_effects(lib,t,values)!=expected for t,values,expected in links)
+        detected += sum(c_effects(lib,t,values,time)!=expected for t,values,time,expected in links)
         if not detected:
             raise AssertionError(('surviving mutant',name))
         caught[name] = detected

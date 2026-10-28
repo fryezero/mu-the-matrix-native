@@ -363,3 +363,37 @@ runs, 162 explicit private/unavailable-input skips**. Offline fixture scenarios,
 publication audit pass, 1,237 tracked files audited, zero rejected. No hosted workflow was dispatched.
 Self-review against the brief, repository standards and recorded evidence found no blocking issue in this
 bounded subset. The subtype-11 consumer gap and all unimplemented types remain explicit above.
+
+## Part 4, armour, weapons, skins and Spark03, RENDER-ITEMS-002D
+
+[Part 4 handoff](../handoffs/RENDER-ITEMS-002D.md) records the scope and remaining branches. The same executable
+identity and capture pins apply. The shared body renderer now covers **426/1,674 item types**, up by 164,
+and **11/17 class skins**. Additions comprise 137 armour and 27 weapon types. The size-rank-3 armour shape
+`ac9ebab05935c051` is complete at 47/47. The TSVs update membership against the unchanged part-3 survey.
+
+The generator emits per-type mesh/body recipes with constants, copied inputs and a shared pulsed-light
+input. The pulse follows `0x0185bdc4(-4,0)` and `0x01705471..0x0170567f`, including signed clock truncation,
+remainder and binary32 arithmetic, with a 0.2 offset. Only pulse recipes evaluate it. Skin probes use all
+sixteen input levels after the closed scalar-remap chain. The separate skin scalar header covers the
+fifteen changed rows among seventeen skins. Kind-A predicates now honor the original `0x2c00` item-record
+bound; higher skin IDs do not acquire a synthetic item-record kind.
+
+Two next RenderLinkItem targets are implemented and integrated:
+
+- `0x012c7a45`, type `0x0ef4`: five flares on bone zero at two ends of the axe. Original random order selects
+  jitter and scales; the second/fifth sprites rotate 20/90 degrees. Bitmaps are `0x7f67` and `0x7ef7`.
+- `0x012c7e68`, type `0x0afc`: two `0x7ef8` sprites at `(5,-22,-10)` and `(-5,-22,-10)`, scale 0.75,
+  with light `(p,p-0.5,p-0.5)`, `p = sin(time*0.4)*0.25+0.7`.
+
+The previously partial bow `0x12fb` now consumes both conditional Spark03 subtype-11 requests.
+`particles.c` implements creation `0x015de226..0x015de357`, movement `0x01651b78..0x01651ca6` and the existing
+render path. Five targets/ten types now have complete native consumers in the established no-owner domain.
+Character attachments use saved poses and frame time. Ground/inventory receive the body rules through
+their existing hooks. Synthetic native checks cover missing bones, pool exhaustion, the new links and
+successful subtype-11 allocations. Global random synchronization and temporary-owner limitations remain.
+
+The bounded unselected, non-shadow, no-buff, supported-record and no-mesh-override domain from part 3 is
+unchanged. Six skins remain refused, including their extra level branches/effects. Independent comparisons
+rejected fourteen additional probe-fitting weapon candidates with different ancient-tail light behavior.
+They remain refused. Full counts and exact remaining types are in the handoff. Before/after native renders
+stay local and show the intended added passes on synthetic geometry; they are not original-client pixels.
