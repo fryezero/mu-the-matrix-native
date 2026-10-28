@@ -48,8 +48,14 @@ The full preflight `bash scripts/local-macos-ci.sh` passes on the part-5 base pl
 1,485 tests across 38 discovery runs, 182 explicit private/unavailable-input skips, seven fixture scenarios
 passed, native viewer/readers built, and 1,379 publication-audit files with zero rejected. The fixture
 journal records 53 inbound frames with zero unbound/undecodable; the existing two unrecovered intents and
-five unsent frames remain explicit. The final latest-main integration and locked release gate remain
-pending the merge lock. No hosted workflow is used.
+five unsent frames remain explicit.
+
+Under the merge lock, latest `origin/main` at `b74de71` merged cleanly, including #200 and #201.
+The final `bash scripts/local-macos-ci.sh` passes on integrated commit `a837377`: **1,498 tests across
+38 discovery runs, 184 explicit skips**, all seven fixture scenarios, native viewer/readers and
+publication audit **1,391 files, zero rejected**. The subsequent commit records only these results.
+All six representative post-change PNG hashes stay identical across this integration, including the
+ordinary control, ranked bodies, both link scenes and inventory. No hosted workflow was used.
 
 Self-review of the recovered checkpoint and resumed changes against the brief and repository standards
 found the GL qualifier build failure, the weak ancient-record test input and the ambiguous staff mutant
