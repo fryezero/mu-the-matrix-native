@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate scalar sprite recipes for link targets 0x012ccb, 0x012cbb43, 0x012cbd11.
+"""Generate scalar sprite recipes for link targets 0x012cca07, 0x012cbb43, 0x012cbd11.
 
 Parameters are reviewed rendering rules. Pinned caller comparisons reject drift;
 validate_item_gear.py independently varies clocks, hands and random sequences.

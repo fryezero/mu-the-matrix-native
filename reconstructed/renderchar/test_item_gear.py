@@ -34,6 +34,14 @@ class ItemGear(unittest.TestCase):
         for t in (0x230f,0x248e,0x2490,0x2504,0x270f,*self.gear.pose.TYPES):
             self.assertEqual(self.draws(self.item(type=t)),(1,[]))
 
+    def test_flag_branch_clock_crosses_armour_clamp(self):
+        # Independent original-stream control that rejected the saturated probe fit.
+        status,draws=self.draws(self.item(type=0x218a,render_type=0x40042,time=791240.0))
+        self.assertEqual(status,0)
+        self.assertEqual(self.v.f2u(draws[5].blend_light),1045510311)
+        self.assertEqual(self.v.f2u(draws[3].v),self.v.f2u(0.62))
+        self.assertEqual(self.v.f2u(draws[4].u),self.v.f2u(0.62))
+
     def test_pulse_link_capacity_and_admission(self):
         c=self.gear.clusters
         for t,n in ((0xafa,4),(0xeed,2),(0xeee,4)):
@@ -63,6 +71,8 @@ class ItemGear(unittest.TestCase):
             self.assertEqual(report['families']['bodies']['cases'],len(self.gear.gen.EXPANDED_TYPES)*292)
             self.assertEqual(report['families']['links']['cases'],1200)
             self.assertEqual(report['families']['rank5_pose']['cases'],608)
+            self.assertEqual(report['families']['rank5_points']['cases'],1216)
+            self.assertEqual(report['families']['clocks']['cases'],40)
             self.assertTrue(all(f['mismatches']==0 for f in report['families'].values()))
             self.assertEqual(len(report['mutants']),10)
             self.assertTrue(all(report['mutants'].values()))

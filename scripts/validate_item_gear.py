@@ -34,6 +34,20 @@ def link_cases(wa,lib):
     return {'cases':len(vectors),'mismatches':0},vectors
 
 
+def clock_cases(wa,lib):
+    vectors=[]
+    clocks=(-500.5,-1,0,1999.75,2000,2000.25,2147483520,2147483648,-2147483648,-2147483904)
+    for t in (0x0eee,0x18fe,0x1cfe,0x218a):
+        for time in clocks:
+            case=v.classify_case(t,v.CLASSIFY[8])
+            case['time']=v.f2u(time)
+            result,stream,other,_=v.client_stream(wa,case)
+            if not result['ok'] or other!=ALLOWED.get(t,[]) or v.c_stream(lib,case)!=(0,stream):
+                raise AssertionError(('signed item clock',hex(t),time,result,other,stream,v.c_stream(lib,case)))
+            vectors.append((case,stream))
+    return {'cases':len(vectors),'mismatches':0},vectors
+
+
 def mutations(directory,bodies,links,poses):
     source=(ROOT/'reconstructed/renderchar/renderchar.c').read_text()
     changes={
@@ -87,11 +101,15 @@ def main():
     report['families']['bodies'],bodies,failures=clusters.body_cases(wa,lib,gen.EXPANDED_TYPES,allowed_services=ALLOWED)
     assert not failures
     report['families']['links'],links=link_cases(wa,lib)
+    report['families']['clocks'],clocks=clock_cases(wa,lib)
     report['families']['rank5_pose'],poses=pose.cases(wa)
+    points=report['families']['rank5_pose'].pop('posed_point_cases')
+    report['families']['rank5_points']={'cases':points,'mismatches':0,
+        'boundary':'two authored points per pose, real TransformPosition versus production C'}
     if gen.generate()!=(ROOT/'reconstructed/renderchar/item_bodies.h').read_text():raise AssertionError('body table drift')
     if pulse.generate()!=(ROOT/'reconstructed/renderchar/item_pulse_links.h').read_text():raise AssertionError('pulse links drift')
     if a.mutations:
-        with tempfile.TemporaryDirectory() as tmp:report['mutants']=mutations(Path(tmp),bodies,links,poses)
+        with tempfile.TemporaryDirectory() as tmp:report['mutants']=mutations(Path(tmp),bodies+clocks,links,poses)
     a.output.write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))
 
 if __name__=='__main__':main()

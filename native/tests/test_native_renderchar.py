@@ -151,7 +151,7 @@ class WorldRender(unittest.TestCase):
         plain,_ = self.render(*options,'--world-time','0',no_textures=False)
         jpeg = io.BytesIO()
         Image.new('RGB',(32,32),(48,48,48)).save(jpeg,'JPEG')
-        (effect/'Flare.OZJ').write_bytes(bytes(24)+jpeg.getvalue())
+        (effect/'flare01.OZJ').write_bytes(bytes(24)+jpeg.getvalue())
         (effect/'Shiny02.OZJ').write_bytes(bytes(24)+jpeg.getvalue())
         start,_ = self.render(*options,'--world-time','0',no_textures=False)
         later,_ = self.render(*options,'--world-time','500',no_textures=False)

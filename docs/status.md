@@ -43,6 +43,8 @@ F6 70/71 stay undecoded and encrypted requests stay unsent pending their separat
 
 RENDER-ITEMS-002 part 6: 559/1,674 item bodies and 17/17 class skins; nine link targets/fourteen types consumed. Adds 58 ranked bodies, including all twelve rank-9 types, two sprite chains and ground/inventory skin sprites. New instruction checks: 17,736 cases, zero mismatches, 6/6 mutants caught. Locked Mac gate passes, 1,498 tests. Rank 5 remains pose-dependent and refused. [Checks and limits](handoffs/RENDER-ITEMS-002F.md).
 
+RENDER-ITEMS-002 part 7: 635/1,674 bodies, 17/17 skins, twelve link targets/seventeen types. Adds stress mace and ranked clock-driven bodies; ground armour retains Data/Effect glow textures. Rank-5 pose/point comparisons advance the oracle; its full draw branch remains refused. [Checks and limits](handoffs/RENDER-ITEMS-002G.md).
+
 LAYOUT-001 implements the generated manifest, projection/accessor tables, lease/journal integration and JSON reader/validator consumers. [Evidence](research/client-layout-manifest.md).
 
 INPUT-001 implemented: unified world input and shared scripts; 570 original-instruction cases, zero mismatches, 7/7 mutants. Final gate: 1,425 tests; 13 focused checks. Available native actions and unavailable original panels are listed separately in the [coverage table](research/client-input.md) and [handoff](handoffs/INPUT-001.md).
