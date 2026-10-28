@@ -125,9 +125,9 @@ class InstalledLorenciaFires(unittest.TestCase):
                       '--out-dir', out_dir, '--width', 320, '--height', 200, '--objects-dir',
                       os.environ['MU_OBJECTS_PLAIN_DIR'])
         p = out['particles']
-        # 59 slots: Map_Smoke1 at 48 is loaded only in Elbeland, world 51.
+        # 60 slots: Map_Smoke1 at 48 is loaded only in Elbeland, world 51.
         # Every Lorencia-applicable bitmap must load, including the last two rain textures.
-        self.assertEqual(p['bitmaps'], [1]*48 + [0] + [1]*10)
+        self.assertEqual(p['bitmaps'], [1]*48 + [0] + [1]*11)
         self.assertGreater(p['created'], 20)
         self.assertEqual(p['unsupported'], 0)
         self.assertGreater(p['drawn_particles'], 0)
