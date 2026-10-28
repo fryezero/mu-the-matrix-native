@@ -80,6 +80,16 @@ int mu_session_quest_bind(mu_session *s, const char *dir, const mu_quest_host *h
         }
         if (mu_quest_client_init(&s->quest.client, &s->quest.data, host))
             return -1;
+        /* Tables may be bound after a seeded join. Do not lose its class/level context. */
+        mu_hero_stats hero;
+        mu_session_hero(s, &hero);
+        s->quest.client.hero_class = hero.class_byte;
+        s->quest.client.hero_level = hero.level > 0 ? hero.level : 1;
+        s->quest.client.hero_level_total = s->quest.client.hero_level + hero.master_level;
+        mu_quest_set_hero(&s->quest.client, hero.name);
+        s->quest.client.world = s->place.world;
+        s->quest.client.hero_x = s->place.tile[0];
+        s->quest.client.hero_y = s->place.tile[1];
         s->quest.ready = 1;
         s->quest.client.font = s->quest.client.font_default = 1;
         s->quest.client.play_tabs = s->quest.client.play_move = 1;

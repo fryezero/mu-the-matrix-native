@@ -412,6 +412,8 @@ static int64_t value_of(run *r, const char *key, int *ok)
     *ok = 1;
     if(!strncmp(key,"quest.",6)) {
         const mu_quest_client *c=mu_session_quest(r->session);
+        if(c && !strcmp(key,"quest.hero_class")) return c->hero_class;
+        if(c && !strcmp(key,"quest.hero_level")) return c->hero_level;
         int id;char field[32];
         if(c && sscanf(key,"quest.%d.%31s",&id,field)==2) {
             int32_t f[4]; if(mu_quest_fields(c,id,f)) {

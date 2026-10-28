@@ -17,3 +17,5 @@ expect quest.7.state = 2
 expect quest.7.count = 3
 expect frames_in = 3
 expect unsent = 1
+expect quest.hero_class = 1
+expect quest.hero_level = 10
