@@ -81,6 +81,7 @@ typedef struct mu_rc_item {
     int32_t has_record;     /* item-table record for type-0xae6 exists */
     uint8_t kind_a, kind_b, item_kind; /* record +0x250, +0x251, +0x252 */
     float enchant[3];       /* EnchantEffect colour for the type (table 0x06fbb754 lookup) */
+    int32_t object_hidden;  /* OBJECT +0x68; six seed bodies accept explicit hidden mesh */
 } mu_rc_item;
 
 /* Effective glow level (0x0176cf4a..0x0176dce9). */

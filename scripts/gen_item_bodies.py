@@ -124,11 +124,29 @@ CLUSTER_TYPES = [
     0x2775, 0x2776, 0x27db, 0x27dc, 0x27dd, 0x2894, 0x28a0, 0x28a1, 0x28db,
 ]
 
+WING_TYPES = list(range(0x2322, 0x2328))
+
+ATLAS_TYPES = [8194, 8196, 8197, 8198, 8200, 8202, 8203, 8204, 8205, 8206, 8209, 8224, 8259, 8313]
+
+VISIBLE_TYPES = [
+    0x0af9, 0x197b, 0x1b7b, 0x1b7e, 0x1b7f, 0x1b83, 0x1b9c, 0x1b9f, 0x1ba3, 0x1ba4,
+    0x1ba5, 0x1ba6, 0x1ba7, 0x1ba8, 0x1ba9, 0x1baa, 0x1bab, 0x1bac, 0x1bad, 0x1bb3,
+    0x1bbf, 0x1bdc, 0x1bee, 0x1c1d, 0x1c3d, 0x1c40, 0x1c76, 0x1d7b, 0x1d7c, 0x1d80,
+    0x1d82, 0x1d8b, 0x1d8f, 0x1d9f, 0x1da3, 0x1da4, 0x1da5, 0x1da6, 0x1da7, 0x1da8,
+    0x1da9, 0x1daa, 0x1dab, 0x1dac, 0x1dad, 0x1db0, 0x1db3, 0x1dbe, 0x1dbf, 0x1ddb,
+    0x1ddc, 0x1dee, 0x1e1a, 0x1e1d, 0x1e40, 0x1e73, 0x1e76, 0x1f9f, 0x1fa3, 0x1fa5,
+    0x1fa6, 0x1fa7, 0x1fa9, 0x1faa, 0x1fab, 0x1fac, 0x1fad, 0x1fb3, 0x1fee, 0x2002,
+    0x2004, 0x2005, 0x2006, 0x2008, 0x200a, 0x200b, 0x200c, 0x200d, 0x200e, 0x2011,
+    0x201d, 0x2020, 0x2040, 0x2043, 0x2076, 0x2079, 0x219f, 0x21a3, 0x21a4, 0x21a5,
+    0x21a6, 0x21a7, 0x21a8, 0x21a9, 0x21aa, 0x21ab, 0x21ac, 0x21ad, 0x21b3, 0x21bf,
+    0x21dc, 0x21ee, 0x221d, 0x2240, 0x2276,
+]
+
 PROBE_SEEDS = (3401, 7254, 9874, 3404, 7257, 9877, 3407, 7260, 9880, 3413, 7266, 9886)
 
 DIM_TYPES = [0xae6 + group * 512 + index for group in (7, 8, 9, 11)
              for index in (*range(0x11c, 0x12c), 0x13a, 0x15d, 0x193)]
-PLAIN_TYPES = [*range(0x234a, 0x2368), *range(0x241d, 0x2477)]
+PLAIN_TYPES = [*range(0x234a, 0x2368), *range(0x241d, 0x2477), *WING_TYPES]
 
 def body_scalars(time):
     """Reviewed SSE scalar paths: 0x016ecaf5, 0x016eec41, 0x01713552."""
@@ -147,9 +165,20 @@ def body_scalars(time):
     slow_w = f(math.cos(slow_x))
     if f(3.1415927) > slow_x: slow_w = -slow_w
     slow = f(f(f(f(slow_w + 1) * f(0.5)) * f(0.8)) + f(0.2))
+    fast_rem = tick - int(tick / -1047) * -1047
+    fast_x = f(f(fast_rem * f(0.001)) * -6)
+    fast_w = f(math.cos(fast_x))
+    if f(3.1415927) > fast_x: fast_w = -fast_w
+    fast = min(f(f(f(fast_w+1)*f(0.5)) * 0.9 + f(0.1)), 1.0)
+    sine = f(math.sin(f(time*f(0.0008))))
+    if 0 > sine: sine = -sine
+    atlas30 = int((tick - int(tick/600)*600)/20)
+    atlas13 = int((tick - int(tick/455)*455)/35)
     return (f(f(f(math.sin(f(time*f(0.0015)))) + 1)*f(0.5)),
             f(f(f(math.sin(f(time*f(0.002))))*f(0.3)) + f(0.7)),
-            f(rem*f(0.0005)), min(f(f(wave*f(0.65))+f(0.2)), f(0.65)), slow, f(time*f(0.0001)))
+            f(rem*f(0.0005)), min(f(f(wave*f(0.65))+f(0.2)), f(0.65)), slow, f(time*f(0.0001)),
+            f((atlas30-int(atlas30/6)*6)*f(0.167)), f(int(atlas30/6)*f(0.2)),
+            f((atlas13-int(atlas13/4)*4)*f(0.25)), f(int(atlas13/4)*f(0.25)), sine, fast, wave)
 
 def flat(d):
     return [*d[1], *d[2], d[3], *d[4], d[5]]
@@ -182,6 +211,7 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0):
     factory = _sample_state[1]
     case = v.random_case_any(random.Random(seed), t)
     case.update(item_level=lv << 3, quality=9, option1=opt, ext=ext, record=(0, 0, 0), a10=0xffffffff, a11=0xffffffff, render_type=(2, 0x102, 0x40042)[seed % 3])
+    case['object_hidden'] = (-1, 0, 2)[(seed // 3) % 3] if t in WING_TYPES else 0
     (r, st, other, m) = v.client_stream(wa, case, factory)
     generic_case = dict(case)
     if t in (0x0eee, 0x18fe, 0x1cfe):
@@ -221,7 +251,7 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0):
     blend = f(wave * 0.7 + f(0.3))
     if blend > 1: blend = 1.0
     return [(flat(a) + [case['object_alpha']] +
-             [v.f2u(f(v.u2f(word) * pulse)) for word in flat(a)[8:11]] + [v.f2u(blend)] + [v.f2u(x) for x in body_scalars(time)],
+             [v.f2u(f(v.u2f(word) * pulse)) for word in flat(a)[8:11]] + [v.f2u(blend)] + [v.f2u(x) for x in body_scalars(time)] + [case['object_hidden'] & 0xffffffff],
              [(b[0], flat(b)) for b in bs]) for (a, (_, bs)) in zip(generic, groups)]
 
 def infer(samples):
@@ -253,7 +283,7 @@ def extract():
     wa = tuple((pin.read() for pin in (pins.TEXT, pins.DATA, pins.FLAG, pins.FEATURE)))
     lib = C.CDLL(str(v.LIBRARY))
     types = {}
-    for t in REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES + RANKED_TYPES + EXPANDED_TYPES + NEXT_TYPES + CLOCK_TYPES + CLUSTER_TYPES:
+    for t in REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES + RANKED_TYPES + EXPANDED_TYPES + NEXT_TYPES + CLOCK_TYPES + CLUSTER_TYPES + WING_TYPES + VISIBLE_TYPES:
         levels = range(16) if t >= 0x3700 else (0, 7, 13)
         ss = [sample(wa, lib, t, lv, seed) for lv in levels
               for seed in PROBE_SEEDS]
@@ -282,9 +312,13 @@ def extract():
         else:
             rules = [infer(pairs) if pairs else [] for pairs in phases]
             if all(rule is not None for rule in rules):
+                if t in ATLAS_TYPES:
+                    # These ancient mesh branches retain the preceding body light.
+                    rules[4] = [(entry, [(op, value-4 if 8 <= field <= 10 and op == 'in' and 12 <= value <= 14 else value)
+                                         for field,(op,value) in enumerate(cells)]) for entry,cells in rules[4]]
                 types[t] = rules
-    if set(types) != set(REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES + RANKED_TYPES + EXPANDED_TYPES + NEXT_TYPES + CLOCK_TYPES + CLUSTER_TYPES):
-        raise ValueError("reviewed recipe no longer fits the pinned instructions: " + str([hex(t) for t in sorted(set(REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES + RANKED_TYPES + EXPANDED_TYPES + NEXT_TYPES + CLOCK_TYPES + CLUSTER_TYPES) - set(types))]))
+    if set(types) != set(REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES + RANKED_TYPES + EXPANDED_TYPES + NEXT_TYPES + CLOCK_TYPES + CLUSTER_TYPES + WING_TYPES + VISIBLE_TYPES):
+        raise ValueError("reviewed recipe no longer fits the pinned instructions: " + str([hex(t) for t in sorted(set(REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES + RANKED_TYPES + EXPANDED_TYPES + NEXT_TYPES + CLOCK_TYPES + CLUSTER_TYPES + WING_TYPES + VISIBLE_TYPES) - set(types))]))
     return types
 
 
@@ -301,7 +335,7 @@ def render(types):
         rows.append((t, indices))
     lines = ['/* Generated by scripts/gen_item_bodies.py. Rendering rules only.',
              ' * source=0 selects value; source=1..16 copies the generic draw word;',
-             ' * source=17 copies OBJECT alpha. source=18..20 copies pulsed body light; source=21 copies armour blend pulse. source=22..27 selects clock scalars. See client-render-items.md. */',
+             ' * source=17 copies OBJECT alpha. source=18..20 copies pulsed body light; source=21 copies armour blend pulse. source=22..34 selects clock scalars; source=35 copies OBJECT hidden mesh. See client-render-items.md. */',
              'typedef struct { uint8_t count; struct { int32_t entry; uint8_t source[16]; uint32_t value[16]; } draw[16]; } mu_rc_body_recipe;',
              'static const mu_rc_body_recipe mu_rc_body_recipes[] = {']
     for rule in recipes:
@@ -311,12 +345,12 @@ def render(types):
             values = ', '.join('0' if op == 'in' else '0x%08xu' % (v & 0xffffffff) for op, v in cells)
             lines.append('        {%d, {%s}, {%s}},' % (1 if entry == 'BODY' else 2, sources, values))
         lines.append('    }},')
-    lines += ['};', 'static const struct { int32_t type; uint16_t recipe[8]; uint8_t level_split; uint8_t dim, plain, pulse, blend_pulse; uint8_t scalar_mask; } mu_rc_body_types[] = {']
+    lines += ['};', 'static const struct { int32_t type; uint16_t recipe[8]; uint8_t level_split, retain_ancient; uint8_t dim, plain, pulse, blend_pulse; uint16_t scalar_mask; } mu_rc_body_types[] = {']
     for t, indices in rows:
-        lines.append('    {0x%04x, {%s}, %d, %d, %d, %d, %d, %d},' %
-                     (t, ', '.join(map(str, indices)), t in CLOCK_TYPES, t in DIM_TYPES, t in PLAIN_TYPES, t in PULSE_TYPES,
+        lines.append('    {0x%04x, {%s}, %d, %d, %d, %d, %d, %d, %d},' %
+                     (t, ', '.join(map(str, indices)), t in CLOCK_TYPES, t in ATLAS_TYPES, t in DIM_TYPES, t in PLAIN_TYPES, t in PULSE_TYPES,
                       any(op == 'in' and value == 20 for rule in types[t] for _, cells in rule for op, value in cells),
-                      sum(1 << k for k in range(6) if any(op == 'in' and value == 21+k for rule in types[t] for _, cells in rule for op,value in cells))))
+                      sum(1 << k for k in range(13) if any(op == 'in' and value == 21+k for rule in types[t] for _, cells in rule for op,value in cells))))
     return '\n'.join(lines + ['};', ''])
 
 
