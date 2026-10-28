@@ -154,8 +154,7 @@ The final serialized latest-main gate remains required. No hosted CI is run.
 
 
 Release readiness: all new/inherited instruction checks and the stable preflight
-are complete. This lane is first in the queue while VERIFY-HARNESS-002 holds the
-lock. The operational latest-start cutoff is **14:25 CDT** to reserve fifteen
+were complete before this lane reached first place behind VERIFY-HARNESS-002. The operational latest-start cutoff is **14:25 CDT** to reserve fifteen
 minutes for integration, clean gate and merge. The final sequence acquired the lock at 14:15:56, before that cutoff.
 The latest owner instruction retains the worktree and branch after cleanup,
 including after a successful merge.
@@ -171,7 +170,7 @@ Harness 002, merged cleanly into **a874281**. No item-render source changed in
 that integration. `make -C native clean` preceded the final gate.
 
 The locked `bash scripts/local-macos-ci.sh` passes **1,615 tests across 38 suites,
-206 explicit skips, zero failures**. All **11/11 fixture scenarios** pass, with
+206 explicit skips, zero failures**. All **11/11 fixture scenarios and 86 expectations** pass, with
 **86 inbound frames**, zero unbound/undecodable frames and the existing two
 unrecovered intents/nine unsent frames explicit. Viewer/readers build; publication
 audit accepts **1,569 staged files, zero rejected**. The fixture dirty marker
