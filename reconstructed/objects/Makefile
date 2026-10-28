@@ -12,7 +12,7 @@ all: $(LIB)
 # character-select scene's handler (NATIVE-CHARSEL-002).
 SOURCES := objects.c object_render.c devias.c tarkan.c elbeland.c raklion.c ../movement/client_movement.c icarus.c login_world.c charsel_world.c ../model-codec/model_codec.c ../terrain/terrain.c ../record-math/record_math.c
 
-$(LIB): $(SOURCES) objects.h object_render.h worlds_b.h worlds_b_internal.h login_world.h charsel_world.h ../model-codec/model_codec.h ../terrain/terrain.h ../record-math/record_math.h
+$(LIB): $(SOURCES) objects.h object_render.h icarus.h worlds_b.h worlds_b_internal.h login_world.h charsel_world.h ../model-codec/model_codec.h ../terrain/terrain.h ../record-math/record_math.h
 	$(CC) $(CFLAGS) -shared $(SOURCES) -lm -o $@
 
 clean:

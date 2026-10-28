@@ -11,6 +11,9 @@
 #include "mu_terrain.h"
 #include "mu_textures.h"
 #include "mu_joints.h"
+
+/* Owner handle for the hero OBJECT in joint/effect/sprite requests. */
+#define MU_WORLD_FX_HERO_OBJECT 0x7fffff00
 #include "../../reconstructed/particles/particles.h"
 #include "../../reconstructed/combat/skill_fx.h"
 

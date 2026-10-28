@@ -1,5 +1,6 @@
 /* Icarus event consumer. No world-input or other world handlers live here. */
 #include "mu_objects_icarus.h"
+#include "mu_particles.h"
 #include "../../reconstructed/objects/icarus.h"
 #include <string.h>
 static float value(uint32_t b) { float f; memcpy(&f,&b,4); return f; }
@@ -24,7 +25,7 @@ static void consume(mu_objects *o, const mu_obj_log *log)
             if(rt->joint) rt->joint(rt->hook_context,(int32_t)e->args[0],p,l,a,(int32_t)e->args[10],e->args[11]?e->object:-1,value(e->args[12]));
         } else if(e->call==MU_ICARUS_SPRITE) {
             for(int q=0;q<3;++q) { p[q]=value(e->args[1+q]); l[q]=value(e->args[5+q]); }
-            if(rt->sprite) rt->sprite(rt->hook_context,(int32_t)e->args[0],p,value(e->args[4]),l,-1,value(e->args[8]),0,4);
+            if(rt->sprite) rt->sprite(rt->hook_context,(int32_t)e->args[0],p,value(e->args[4]),l,MU_WORLD_FX_HERO_OBJECT,value(e->args[8]),0,4);
             ++rt->sprite_events;
         }
     }

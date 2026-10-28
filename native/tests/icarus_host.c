@@ -10,7 +10,7 @@ static int effects,sprites,joints;
 static void effect(void *ctx,int32_t type,int32_t sub,const float p[3],const float a[3],const float l[3],int32_t owner)
 { (void)ctx;(void)p;(void)a;(void)l;assert((type==0x1a1 || type==0x7ef7) && sub==0 && owner==-1);++effects; }
 static void sprite(void *ctx,int32_t type,const float p[3],float scale,const float l[3],int32_t owner,float rot,int32_t blend,int32_t axes)
-{ (void)ctx;(void)p;(void)l;assert(type==0x7f8a && scale==0.5f && owner==-1 && rot==0 && blend==0 && axes==4);++sprites; }
+{ (void)ctx;(void)p;(void)l;assert(type==0x7f8a && scale==0.5f && owner==MU_WORLD_FX_HERO_OBJECT && rot==0 && blend==0 && axes==4);++sprites; }
 static void joint(void *ctx,int32_t type,const float p[3],const float t[3],const float a[3],int32_t sub,int32_t owner,float scale)
 { (void)ctx;(void)p;(void)t;(void)a; assert((type==0x7f7d && sub==0 && owner==-1 && scale>=40) || (type==0x7f7c && sub==6 && owner==0 && scale>=10));++joints; }
 static int32_t reference_rand(void *p) { return mu_obj_msvc_rand(p); }

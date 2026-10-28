@@ -67,7 +67,8 @@ def family(machine,lib,kind,cases):
             return 0
         def sprite(m):
             a=[m.argument(i) for i in range(9)]
-            calls.append([0x1692eb7,0,[a[0]]+vec(m,a[1])+[a[2]]+vec(m,a[3])+[a[5],0,a[6],a[7]]])
+            assert a[4]==HERO+0x3254
+            calls.append([0x1692eb7,0,[a[0]]+vec(m,a[1])+[a[2]]+vec(m,a[3])+[a[5],2,a[6],a[7]]])
             return 0
         stubs={0x1989721:lambda m:rnd(),0x16cacfc:light,0x13c0eaa:effect,0x153b02c:joint,0x1692eb7:sprite}
         regions=v.global_regions(10,6,[am.defined_region('hero-ptr',0xa39d754,struct.pack('<I',HERO)),am.defined_region('hero',HERO+0x33ac,struct.pack('<3f',*hero)),am.defined_region('object',OBJ,o),am.defined_region('object-count',0xbdc5890,struct.pack('<i',count)),am.defined_region('counters',COUNT,struct.pack('<ii',selected,ordinal))])

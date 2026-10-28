@@ -98,7 +98,7 @@ RECON_OBJ := $(patsubst $(RECON)/%.c,$(BUILD)/recon/%.o,$(RECON_SRC))
 MODULUS_OBJ := $(BUILD)/modulus.o
 LIB := $(BUILD)/libmunative.a
 HEADERS := $(wildcard core/*.h) $(wildcard $(RECON)/model-codec/*.h) $(RECON)/record-math/record_math.h \
-           $(RECON)/terrain/terrain.h $(RECON)/objects/objects.h $(RECON)/objects/object_render.h $(RECON)/objects/worlds_b.h $(RECON)/objects/worlds_b_internal.h $(RECON)/objects/login_world.h $(RECON)/objects/charsel_world.h $(wildcard $(RECON)/camera/*.h) $(wildcard $(RECON)/actors/*.h) \
+           $(RECON)/terrain/terrain.h $(RECON)/objects/objects.h $(RECON)/objects/object_render.h $(RECON)/objects/icarus.h $(RECON)/objects/worlds_b.h $(RECON)/objects/worlds_b_internal.h $(RECON)/objects/login_world.h $(RECON)/objects/charsel_world.h $(wildcard $(RECON)/camera/*.h) $(wildcard $(RECON)/actors/*.h) \
            $(wildcard $(RECON)/ui/*.h) $(RECON)/effects/effects.h $(RECON)/effects/effects_internal.h \
            $(RECON)/movement/client_movement.h $(RECON)/path/client_path.h \
            $(wildcard $(RECON)/renderchar/*.h) $(RECON)/charsel/charsel.h $(RECON)/charsel/charsel_gfx.h $(RECON)/charsel/charcreate.h \

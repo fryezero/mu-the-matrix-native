@@ -294,20 +294,19 @@ static mu_jt_object hero_view(const mu_world_particles *p)
     return o;
 }
 
-#define FX_HERO_OBJECT 0x7fffff00
 
 static const mu_jt_object *fx_object(mu_world_particles *p, int32_t index)
 {
     static mu_jt_object scratch[4];
     static int next;
     mu_jt_object *o = &scratch[next++ & 3];
-    if (index == FX_HERO_OBJECT) {
+    if (index == MU_WORLD_FX_HERO_OBJECT) {
         if (!p->has_hero)
             return NULL;
         *o = hero_view(p);
         return o;
     }
-    if (index >= MU_WH_EFFECT_BASE && index < FX_HERO_OBJECT)
+    if (index >= MU_WH_EFFECT_BASE && index < MU_WORLD_FX_HERO_OBJECT)
         return mu_world_helpers_effect_object(p->helpers, index, o) ? o : NULL;
     if (index >= MU_WORLD_ACTOR_FX_BASE && index < MU_WH_EFFECT_BASE) {
         int32_t i = index - MU_WORLD_ACTOR_FX_BASE;
@@ -429,7 +428,7 @@ static void effect_env(mu_world_particles *p, mu_sfx_env *env)
     env->object = sfx_object;
     env->call = sfx_call;
     env->model = sfx_model;
-    env->hero_object = FX_HERO_OBJECT;
+    env->hero_object = MU_WORLD_FX_HERO_OBJECT;
     env->time_ms = sfx_time;   /* NATIVE-HELPERS-002: timeGetTime as the world time (viewer choice) */
 }
 

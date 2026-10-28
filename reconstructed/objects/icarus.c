@@ -64,6 +64,6 @@ void mu_icarus_object(const uint8_t *o,int32_t index,int32_t selected,int32_t *o
     mu_obj_event e={MU_ICARUS_SPRITE,index,12,{0}};
     e.args[0]=0x7f8a; e.args[4]=bits(0.5f);
     for(int q=0;q<3;++q) { e.args[1+q]=bits(p[q]); e.args[5+q]=bits(light[q]); }
-    e.args[10]=0; e.args[11]=4; emit(log,&e);
+    e.args[9]=MU_ICARUS_SPRITE_HERO; e.args[10]=0; e.args[11]=4; emit(log,&e);
     for(int k=0;k<2;++k) joint(log,index,0x7f7c,p,p,a,6,(float)(random(context)%20)+10.0f);
 }
