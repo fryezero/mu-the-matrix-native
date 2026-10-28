@@ -20,9 +20,16 @@ SRC := mu_gfx_window.c $(LAYER_SRC) ../core/mu_png.c ../viewer/gl_headless.c
 
 window: $(BUILD)/mu-gfx-window
 
-$(BUILD)/mu-gfx-window: $(SRC) mu_gfx_layer.h mu_gfx_sdl.h mugfx/include/mugfx.h
-	@mkdir -p $(BUILD)
-	$(CC) $(CFLAGS) $$($(SDL_CONFIG) --cflags) $(SRC) $$($(SDL_CONFIG) --libs) $(GL_LIBS) $(DL_LIBS) -lm -o $@
+$(BUILD)/data-manifest.o: ../data/manifest.cpp ../data/manifest.h
+	$(MAKE) -C .. build/data-manifest.o
+
+$(BUILD)/mu-gfx-window: $(SRC) mu_gfx_layer.h mu_gfx_sdl.h mugfx/include/mugfx.h $(BUILD)/data-manifest.o
+	@mkdir -p $(BUILD)/gfx-window
+	for f in $(SRC); do \
+	  $(CC) $(CFLAGS) $$($(SDL_CONFIG) --cflags) -c $$f -o $(BUILD)/gfx-window/$$(basename $$f .c).o || exit 1; \
+	done
+	$(CXX) $(BUILD)/gfx-window/*.o $(BUILD)/data-manifest.o $(CONVERT_LDFLAGS) -lcryptopp \
+	  $$($(SDL_CONFIG) --libs) $(GL_LIBS) $(DL_LIBS) -lm -o $@
 
 # Layer test host (no GL, no SDL): native/tests/test_native_gfx2.py drives it
 # with a stub libmugfx (tests/gfx_stub_mugfx.c) or the real one.

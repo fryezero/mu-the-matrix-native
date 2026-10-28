@@ -168,7 +168,7 @@ def snapshot(path, world, objects):
 
 
 def convert(snap, out, *args):
-    result = subprocess.run([sys.executable, str(CONVERT), str(snap), '--out', str(out), *map(str, args)],
+    result = subprocess.run([sys.executable, str(CONVERT), '--raw-output', str(snap), '--out', str(out), *map(str, args)],
                             capture_output=True, text=True, check=True)
     return [json.loads(line) for line in result.stdout.splitlines()]
 

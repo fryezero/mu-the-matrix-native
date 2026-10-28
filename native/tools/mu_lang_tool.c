@@ -1,3 +1,4 @@
+#include "../data/manifest.h"
 /* mu-lang: query the Lang.mpr tables read from the client (NATIVE-LANG-001).
  *
  *   mu-lang DIR summary            counts as JSON
@@ -42,6 +43,7 @@ static int usage(void)
 
 int main(int argc, char **argv)
 {
+    if (!mu_native_data_check_args(argc, argv)) return 1;
     if (argc < 3)
         return usage();
     mu_lang *L = mu_lang_load(argv[1]);
