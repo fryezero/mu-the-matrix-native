@@ -106,12 +106,12 @@ static void load_parts(mu_world_players *p, mu_world_player *q)
         }
         mu_character_item *it = &q->model.items[item];
         if (!p->no_textures && is_armour(type) && it->textures.missing) {
-            /* viewer choice (as NATIVE-ITEMS-001): armour bitmaps live in Data/Player */
-            char player[2048], directory[2048];
+            /* Armour bitmaps live in Data/Player; NULL keeps glow maps in ../Effect.
+             * The model directory Data/Item is not the effect directory. */
+            char player[2048];
             snprintf(player, sizeof player, "%s/Data/Player", p->root);
-            mu_path_directory(path, directory, sizeof directory);
             mu_textures_free(&it->textures);
-            mu_textures_load_with_effects(&it->textures, &it->bmd, player, directory);
+            mu_textures_load_with_effects(&it->textures, &it->bmd, player, NULL);
         }
     }
     q->weapon_kind = weapon_kind(p, q->c.slots[MU_RP_SLOT_WEAPON0].type);
@@ -655,6 +655,15 @@ void mu_world_players_report_summary(const mu_world_players *p, FILE *out, int q
                 (double)q->model.params.light[1], (double)q->model.params.light[2]);
         for (int k = 0; k < MU_CHARACTER_ITEMS; ++k)
             fprintf(out, "%s%d", k ? ", " : "", q->has_model && q->model.items[k].loaded ? q->model.items[k].textures.missing : -1);
+        fprintf(out, "], \"effect_textures_loaded\": [");
+        for (int k = 0; k < MU_CHARACTER_ITEMS; ++k) {
+            const mu_character_item *it = &q->model.items[k];
+            int loaded = 0;
+            if (q->has_model && it->loaded)
+                for (int n = it->textures.model_count; n < it->textures.count; ++n)
+                    loaded += it->textures.slots[n] != NULL;
+            fprintf(out, "%s%d", k ? ", " : "", loaded);
+        }
         fprintf(out, "]}\n");
     }
     if (!quiet)

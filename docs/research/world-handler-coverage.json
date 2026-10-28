@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "milestone": "RENDER-WORLDS-G",
+  "milestone": "RENDER-WORLDS-H",
   "text_sha256": "2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724",
   "data_sha256": "c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f",
   "factory": "0xea488e",
@@ -162,21 +162,21 @@
       "handlers": {
         "create": {
           "entry": "0xdc6643",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary method; 1000 synthetic compiled-C versus Unicorn cases, including AL, OBJECT, calls and RNG. World-82 type-48 zero divisor is outside the original successful domain; native suppresses it. See client-worlds-h.md.",
+          "source": "reconstructed/objects/duel_arena.c"
         },
         "move": {
           "entry": "0xdc6685",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary method; 1000 synthetic compiled-C versus Unicorn cases, including AL, OBJECT, calls and RNG. World-82 type-48 zero divisor is outside the original successful domain; native suppresses it. See client-worlds-h.md.",
+          "source": "reconstructed/objects/duel_arena.c"
         },
         "visual": {
           "entry": "0xdc6790",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary method; 1000 synthetic compiled-C versus Unicorn cases, including AL, OBJECT, calls and RNG. World-82 type-48 zero divisor is outside the original successful domain; native suppresses it. See client-worlds-h.md.",
+          "source": "reconstructed/objects/duel_arena.c"
         },
         "custom_render": {
           "entry": "0xdc6a2e",
@@ -210,21 +210,21 @@
       "handlers": {
         "create": {
           "entry": "0xe2bf57",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary method; 1000 synthetic compiled-C versus Unicorn cases, including AL, OBJECT, calls and RNG. World-82 type-48 zero divisor is outside the original successful domain; native suppresses it. See client-worlds-h.md.",
+          "source": "reconstructed/objects/world82.c"
         },
         "move": {
           "entry": "0xe2bf8d",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary method; 1000 synthetic compiled-C versus Unicorn cases, including AL, OBJECT, calls and RNG. World-82 type-48 zero divisor is outside the original successful domain; native suppresses it. See client-worlds-h.md.",
+          "source": "reconstructed/objects/world82.c"
         },
         "visual": {
           "entry": "0xe2c002",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary method; 1000 synthetic compiled-C versus Unicorn cases, including AL, OBJECT, calls and RNG. World-82 type-48 zero divisor is outside the original successful domain; native suppresses it. See client-worlds-h.md.",
+          "source": "reconstructed/objects/world82.c"
         },
         "custom_render": {
           "entry": "0xe2caaf",

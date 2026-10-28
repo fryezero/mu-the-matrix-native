@@ -94,7 +94,7 @@ int main(void)
     assert(sprites == 203 && seed == o->rt.seed);
     assert(particles == old_particles && joints == old_joints);
     o->models[6] = NULL;
-    o->world = 64;
+    o->world = 65;
     assert(!mu_objects_prepare_index(o, 0, NULL, 6, &options));
     assert(generic == 1 && sprites == 203);
     free(o->rt.images); free(m); free(o);

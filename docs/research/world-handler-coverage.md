@@ -1,6 +1,6 @@
 # World-handler class coverage
 
-RENDER-WORLDS-G. Static address inventory from factory `0x00ea488e`, its allocation constructors and
+RENDER-WORLDS-G/H. Static address inventory from factory `0x00ea488e`, its allocation constructors and
 the pinned second-section vtables. Class IDs use the first registered world; labels are descriptive,
 not recovered symbol names. The default BaseMap registration for world 146 is outside the 48 concrete classes.
 
@@ -14,8 +14,8 @@ Counts below concern the three primary class methods only; inherited no-ops rema
 | Raklion | 57, 58 | `0x1aad9d0` | `0xe943c0` V | `0xe94619` V | `0xe946a8` M |
 | Santa Village | 62 | `0x1aab3c8` | `0xe4231c` V | `0xe42370` V | `0xe423d8` V |
 | Vulcanus | 63 | `0x1aad63c` | `0xe8ec09` V | `0xe8ec80` V | `0xe8ece1` V |
-| Duel Arena | 64 | `0x1aa7c54` | `0xdc6643` M | `0xdc6685` M | `0xdc6790` M |
-| World 82 class | 82 | `0x1aaab3c` | `0xe2bf57` M | `0xe2bf8d` M | `0xe2c002` M |
+| Duel Arena | 64 | `0x1aa7c54` | `0xdc6643` V | `0xdc6685` V | `0xdc6790` V |
+| World 82 class | 82 | `0x1aaab3c` | `0xe2bf57` V | `0xe2bf8d` V | `0xe2c002` V |
 | World 69 class | 69 | `0x1aa7dd4` | `0xdc6fab` M | `0xdc7136` M | `0xdc73d0` M |
 | World 70 class | 70 | `0x1aa7f84` | `0xdd3c76` M | `0xdd3e01` M | `0xdd4097` M |
 | World 71 class | 71 | `0x1aa8038` | `0xdd8d6d` M | `0xdd8ef8` M | `0xdd9192` M |
@@ -60,7 +60,7 @@ Counts below concern the three primary class methods only; inherited no-ops rema
 | World 144 class | 144 | `0x1aab6a8` | `0xe46625` M | `0xe4696f` M | `0xe47bc2` M |
 | World 145 class | 145 | `0x1aa5e78` | `0xd75a6c` M | `0xd75ac6` M | `0xd77b3e` M |
 
-7/48 classes have at least one verified primary method. Of 144 primary methods: 19 verified families, 0 static-only C, 125 missing.
+9/48 classes have at least one verified primary method. Of 144 primary methods: 25 verified families, 0 static-only C, 119 missing.
 
 The companion [JSON](world-handler-coverage.json) records factory, constructor and related entry points
 for all 48 classes: invisible-sector move +1c, custom render +38 and after render +3c, with separate statuses.

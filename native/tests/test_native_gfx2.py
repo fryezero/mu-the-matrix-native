@@ -295,6 +295,14 @@ class LayerWithStub(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         return r.stdout, log.read_text() if log.exists() else ''
 
+    def test_public_demo_uses_synthetic_hud_values(self):
+        from unittest.mock import patch
+        with patch.dict(os.environ, {'MU_GFX_PUBLIC_DEMO': '1'}):
+            out, _ = self.run_host('print')
+        hero = next(s for s in states(out) if 'hero_name' in s)
+        self.assertEqual({k: hero[k] for k in ('hero_name', 'hp', 'max_hp', 'max_mp', 'max_sd', 'max_ag')}, dict(hero_name='Preview', hp=12000, max_hp=12000,
+                                    max_mp=8000, max_sd=4000, max_ag=2000))
+
     def test_quest_window_channels_and_inventory_conditions(self):
         files = [self.dir/'movies'/f'{name}.swf' for name in ('winQuestSummary', 'QuestProgressInfo',
                                                             'NpcJobChangeQuest')]
