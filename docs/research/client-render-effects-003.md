@@ -59,6 +59,12 @@ pass. The caller offset -20/-90/100 is a static reading of 0x013ac8a2 and
 area request and source-position writeback in 0x013c6e62 are excluded; the native
 fixture already journals one encrypted cast request as unsent. Special-world
 wall cutoffs, subtypes 1..4 and whole-character-loop equivalence remain open.
+Render-time lights are removed from the pending list after each frame; logic-step
+lights remain. The native host checks equal terrain-light buffers across two
+frames without a logic step, twenty fresh sprites each frame, and no beam light
+after the effect ends. A separate compiled production-C mutant retaining frame
+lights fails this lifecycle check. It is additional to the seventeen instruction
+mutants below.
 
 Inferno's eight-point ring now calls the subtype-0 burst at each point. A burst
 emits twenty Spark02/2 particles with randomized pitch and roll, then one gray

@@ -279,7 +279,8 @@ int32_t mu_combat_draw_models(mu_combat *combat, mu_combat_model_fn draw, void *
 
 /* AddTerrainLight calls of the last logic step, applied to the world's frame
  * light after its per-frame copy (the client copies in its move phase and
- * the effects add during the same step). */
+ * the effects add during the same step). Prepares Aqua's render-time sprites
+ * and lights without retaining frame lights in the next frame's list. */
 void mu_combat_terrain_lights(mu_combat *combat, mu_world *map);
 
 /* Software drawing of the frame's effect models and quads into a raster

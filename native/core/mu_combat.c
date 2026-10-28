@@ -1459,10 +1459,13 @@ void mu_combat_terrain_lights(mu_combat *c, mu_world *map)
     if (!map)
         return;
     /* Prepare the render-time sprite chain before the world's sprite pass. */
+    const int32_t step_lights = c->light_count;
     for (int i = 0; i < MU_SFX_EFFECTS; ++i)
         mu_sfx_aqua_render(&c->effects[i], &c->env);
     for (int32_t i = 0; i < c->light_count; ++i)
         mu_world_add_light(map, c->lights[i].x, c->lights[i].y, c->lights[i].rgb, c->lights[i].range);
+    /* A second frame can precede the next logic step. Keep only step lights. */
+    c->light_count = step_lights;
 }
 
 int32_t mu_combat_live_points(const mu_combat *c)

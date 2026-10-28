@@ -68,6 +68,10 @@ changed as intended because the explosion sheet now loads; Aqua remains identica
 
 Five native tests pass with private checks enabled, including the nine-quad
 registration host. Both new registered validators pass, zero failures/errors/skips.
+The repeated-frame Aqua adapter test also passes: terrain-light buffers remain
+equal without an intervening logic step and the beam disappears when its effect
+ends. A separate compiled retained-frame-light mutant is caught (18 compiled
+mutants total, seventeen against original instructions).
 Own Standards and Spec diff review retains the explicit subset limits above and
 finds no blocking issue in the implemented paths. Shared status edits are limited
 to this milestone's additions. No delegated review or hosted workflow was run.

@@ -3,9 +3,53 @@
 #include <stdio.h>
 #include <string.h>
 #include "../core/mu_particles.h"
+#include "../core/mu_combat.h"
 
 static mu_world_particles particles;
+static mu_combat combat;
+static mu_world map;
+static float frame_light[3 * MU_TERRAIN_CELLS];
 static int vertices;
+static int aqua_sprites;
+static int aqua_call(void *context, const mu_sfx_call *call, mu_sfx_effect *effect)
+{
+    (void)effect;
+    mu_combat *c = context;
+    if (call->routine == MU_SFX_CALL_TERRAIN_LIGHT) {
+        assert(c->light_count < MU_COMBAT_LIGHTS);
+        mu_combat_light *l = &c->lights[c->light_count++];
+        l->x = call->position[0]; l->y = call->position[1]; l->range = call->range;
+        memcpy(l->rgb, call->light, sizeof l->rgb);
+    } else if (call->routine == MU_SFX_CALL_SPRITE) {
+        ++aqua_sprites;
+    } else {
+        assert(0);
+    }
+    return 0;
+}
+static void aqua_frames(void)
+{
+    combat.env.context = &combat; combat.env.call = aqua_call;
+    mu_sfx_effect *e = &combat.effects[0];
+    e->live = 1; e->type = 0x7f4e; e->scale = 16;
+    e->position[0] = 12000; e->position[1] = 12000; e->position[2] = 100;
+    e->direction[1] = -50;
+    e->light[0] = 0.5f; e->light[1] = 0.7f; e->light[2] = 1;
+    combat.light_count = 1;
+    combat.lights[0] = (mu_combat_light){.x = 12000, .y = 12000, .rgb = {0.2f, 0.3f, 0.4f}, .range = 2};
+    mu_combat_terrain_lights(&combat, &map);
+    assert(combat.light_count == 1 && aqua_sprites == 20);
+    memcpy(frame_light, map.light, sizeof frame_light);
+    memset(map.light, 0, sizeof map.light); /* terrain's per-frame light copy, without a logic step */
+    mu_combat_terrain_lights(&combat, &map);
+    assert(combat.light_count == 1 && aqua_sprites == 40);
+    assert(memcmp(frame_light, map.light, sizeof frame_light) == 0);
+    e->live = 0;
+    memset(map.light, 0, sizeof map.light);
+    mu_combat_terrain_lights(&combat, &map);
+    assert(combat.light_count == 1 && aqua_sprites == 40);
+    assert(memcmp(frame_light, map.light, sizeof frame_light) != 0);
+}
 static void vertex(void *ctx, const float p[3]) { (void)ctx; (void)p; ++vertices; }
 static void prepare(void *ctx, const mu_meshdraw_state *state, int32_t texture)
 { (void)ctx; (void)state; assert(texture >= 0); }
@@ -47,6 +91,7 @@ int main(int argc, char **argv)
         assert(particles.bitmaps.wrap[i] == 0x2900 && particles.bitmaps.components[i] == 3);
     }
     mu_world_particles_close(&particles);
+    aqua_frames();
     puts("five consumers, explosion, three registered sprites, nine quads, exact sampling: OK");
     return 0;
 }
