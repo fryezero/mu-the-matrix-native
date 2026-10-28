@@ -33,8 +33,8 @@ is recorded below before merge.
   travel 0 to 1, replacement view rebound and another fixture learn accepted; 7 learned skills at
   completion. This checks runtime ownership; it is not a comparison against the live game.
   Representative first/final PNG SHA-256 values are recorded rather than claimed unchanged:
-  `91abf6572f28ab23e0818b413579d60f0258d7139fe22a9383e65f80af7b38c0` and
-  `d17874c6f54f4d1f98810ae16692d4900f073e6ebc84eb4af5aadef899c707bb`.
+  `16c67bf752cbb84e20ee8cf0e6be40a2809127c98d1760f30c9a693e98ca174b` and
+  `3066cfb2e09e07965535d50fcd0180b447bacd424f42a981197da8306063e8b9`.
 - New key serialization, plaintext save tail and Master-point write: 1,500 instruction comparisons,
   zero mismatches; all five compiled mistakes caught, including offset and sign extension.
 - Seven focused session tests pass with the private instruction check enabled: learned-state lease
