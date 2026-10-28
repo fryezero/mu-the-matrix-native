@@ -54,9 +54,11 @@ class WorldRender(unittest.TestCase):
     def tearDownClass(cls):
         cls.directory.cleanup()
 
-    def render(self, *extra):
-        args = ['character', self.player, '--world-render', '--no-textures', '--width', '160', '--height', '120',
+    def render(self, *extra, no_textures=True):
+        args = ['character', self.player, '--world-render', '--width', '160', '--height', '120',
                 '--action', '1', '--frame', '0.5']
+        if no_textures:
+            args += ['--no-textures']
         for slot in (1, 2, 3):
             args += ['--part', str(slot), self.paths[slot]]
         args += ['--weapon', '0', self.paths[6], '--weapon', '1', self.paths[7]]
@@ -92,11 +94,45 @@ class WorldRender(unittest.TestCase):
         info, _ = self.render('--item-type', 'weapon1=0x22ea', '--item-level', 'all=13', '--world-time', '700')
         self.assertEqual((info['special'], info['passes']), (0, 21))
 
+    def test_remaining_skin_bodies_and_sprites(self):
+        early, _ = self.render('--item-type', 'helm=0x3895', '--item-level', 'helm=14', '--quality', '0')
+        self.assertEqual((early['special'], early['passes']), (0, 7))
+        for t in (0x389c, 0x389d):
+            skin, _ = self.render('--item-type', f'helm={t}', '--world-time', '500')
+            self.assertEqual((skin['special'], skin['link_sprites']), (0, 1))
+
     def test_native_link_saved_pose_and_capacity(self):
         subprocess.run(['make', '-s', '-C', str(NATIVE), 'build/item-render-host'], check=True, capture_output=True)
         result = subprocess.run([str(NATIVE/'build/item-render-host')], check=True, capture_output=True, text=True)
         self.assertEqual(json.loads(result.stdout),
                          dict(created=13, random_calls=4, missing_bones_skipped=5, full=True))
+
+    def test_skin_sprite_pixels_use_the_character_frame_clock(self):
+        # Level-zero 0x389c has a static body and a pulsing sprite. Supply an authored texture so this
+        # checks the sprite's rendered colour/scale, beyond the successful allocation count.
+        try:
+            from PIL import Image
+        except ImportError:
+            self.skipTest('Pillow is needed for the authored JPEG texture')
+        import io
+        probe = self.tmp/'jpeg-probe.tga'
+        probe.write_bytes(nf.tga(2, 2, 5))
+        if not json.loads(run('image', probe).stdout)['jpeg']:
+            self.skipTest('native renderer was built without JPEG support')
+        root = self.tmp/'skin-game'
+        effect = root/'Data'/'Effect'
+        effect.mkdir(parents=True, exist_ok=True)
+        options = ('--game-root', root, '--item-type', 'helm=0x389c')
+        plain, _ = self.render(*options, '--world-time', '0', no_textures=False)
+        buf = io.BytesIO()
+        Image.new('RGB', (32, 32), (48, 48, 48)).save(buf, 'JPEG')
+        payload = buf.getvalue()
+        (effect/'Spark03.OZJ').write_bytes(payload[:24] + payload)
+        start, _ = self.render(*options, '--world-time', '0', no_textures=False)
+        later, _ = self.render(*options, '--world-time', '500', no_textures=False)
+        self.assertEqual((start['link_sprites'], later['link_sprites']), (1, 1))
+        self.assertNotEqual(start['sha256'], plain['sha256'])
+        self.assertNotEqual(later['sha256'], start['sha256'])
 
     def test_refuses_malformed_options(self):
         for bad in (('--item-level', 'nine'), ('--item-level', 'sleeve=3'), ('--glow-color', '1,2'),

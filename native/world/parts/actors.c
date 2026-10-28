@@ -114,6 +114,9 @@ static int actors_open(struct mu_world_rt *a, void *self)
     fprintf(out, "endpoint game 127.0.0.1:55902\nuse monsters file=%s\n", placement);
     if (a->players_file && !a->no_players)
         fprintf(out, "use characters defer=1 x=%d y=%d file=%s\n", a->walk.hero.tile[0], a->walk.hero.tile[1], a->players_file);
+    if (a->combat_on) fprintf(out,"use combat hp=%d lo=%d hi=%d latency=%d seed=%u counter=%d respawn=%d hero_hp=%d hero_respawn=%d\n",
+        a->combat_config.monster_hp,a->combat_config.damage_min,a->combat_config.damage_max,a->combat_config.latency_steps,
+        a->combat_config.seed,a->combat_config.counter_attack,a->combat_config.respawn_steps,a->combat_config.hero_hp,a->combat_config.hero_respawn_steps);
     fclose(out);
     mu_fixture_options options = {scenario, NULL, 0x5eed2026u};
     mu_fixture *fixture = mu_fixture_open(&options, error, sizeof error);
@@ -177,8 +180,11 @@ static void npc_item_draw(mu_world_rt *a, const mu_world_actor *npc, int item, c
     mu_renderchar_stats rs = {0};
     mu_renderchar_draw_item(&part->model, &npc->player_glow[item], &env, npc->player->params.light, 1.0f,
                              &options, backend, &ds, &rs);
-    if (item >= MU_CHARACTER_PART_SLOTS && a->has_particles)
-        mu_renderchar_link_effects(&part->model, part->bones, npc->player_glow[item].type, &a->particles);
+    if ((item >= MU_CHARACTER_PART_SLOTS || npc->player_glow[item].type == 0x389c ||
+         npc->player_glow[item].type == 0x389d) && a->has_particles)
+        mu_renderchar_link_effects(&part->model,
+            item < MU_CHARACTER_PART_SLOTS ? npc->player->player_bones : part->bones,
+            npc->player_glow[item].type, &a->particles);
 }
 
 static void actors_draw_soft(struct mu_world_rt *a, void *self, mu_world_draw *d)

@@ -20,13 +20,14 @@ SKINS = glow.SKIN_TYPES
 def mutations(directory, bodies, links):
     source = (ROOT/'reconstructed/renderchar/renderchar.c').read_text()
     changes = {
-        'armour-pulse': ('* 0.5f + 0.2f;', '* 0.5f + 0.3f;'),
+        'armour-pulse': ('return armour_wave(time) + 0.2f;', 'return armour_wave(time) + 0.3f;'),
         'mesh-index': ('d.mesh = (int32_t)words[0];', 'd.mesh = (int32_t)words[0] + 1;'),
         'skin-level': ('level = mu_rc_skin_glow_rows[i].levels[level];', 'level = mu_rc_skin_glow_rows[i].levels[level] + 1;'),
         'skin-record-bound': ('(uint32_t)(it->type - 0xae6) <= 0x2c00u && it->kind_a', 'it->kind_a'),
         'axe-offset': ('-100.0f + jitter', '-99.0f + jitter'),
-        'axe-rotation': ('i ? 90.0f : 0.0f', 'i ? 91.0f : 0.0f'),
-        'sword-clock': ('client_sin(time * 0.4f)', 'client_sin(time * 0.3f)'),
+        'axe-rotation': ('{1.0f, 0.3f, 0}, i ? 90.0f : 0.0f', '{1.0f, 0.3f, 0}, i ? 91.0f : 0.0f'),
+        'sword-clock': ('client_sin(time * 0.4f) * 0.25f + 0.7f',
+                        'client_sin(time * 0.3f) * 0.25f + 0.7f'),
     }
     caught = {}
     for name, (old, new) in changes.items():

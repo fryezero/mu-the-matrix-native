@@ -18,7 +18,8 @@ headers below, which builds reach through -I) and checked against who may includ
                                                    itself refuses to compile without -DMU_SESSION_SEED)
   native/fixture/behavior.h, generated fixture_behaviors.def   native/fixture only
   native/fixture/mu_fixture.h                      native/fixture, native/tools, native/tests, native/world,
-                                                   native/client (never the product mu-client: its symbol
+                                                   native/client; seed-only session/domains/combat.c transport check
+                                                   (never the product mu-client: its symbol
                                                    test belongs to APP-LIVE-001)
 Public headers (mu_transport.h, mu_session.h, mu_intent.h, mu_cue.h, mu_journal.h, domains/<d>.h) are
 open to every module. Exit status 1 lists every violation.
@@ -58,7 +59,8 @@ def rules():
         (lambda p: p in ('native/fixture/behavior.h', 'gen:fixture_behaviors.def'),
          ('native/fixture',), 'a fixture-internal file'),
         (lambda p: p == 'native/fixture/mu_fixture.h',
-         ('native/fixture', 'native/tools', 'native/tests', 'native/world', 'native/client'), 'the fixture header'),
+         ('native/fixture', 'native/tools', 'native/tests', 'native/world', 'native/client',
+          'native/session/domains/combat.c'), 'the fixture header'),
     ]
 
 

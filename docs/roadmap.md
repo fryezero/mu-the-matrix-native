@@ -1,5 +1,12 @@
 # Roadmap and work queue
 
+RENDER-WORLDS-G implements the 48-class inventory and all three primary Santa Village/Vulcanus methods. Six thousand instruction cases, 13/13 mutants, 28 unaffected first/final hashes unchanged; full Mac gate passes; [limits and remaining work](handoffs/RENDER-WORLDS-G.md).
+
+RENDER-WORLDS-E implements Elbeland boids/clouds and Raklion event timing, and attributes Aida's light outlier. Full Mac gate passes, 1,463 tests; saved-view scores/hashes unchanged. [Checks and remaining inputs](handoffs/RENDER-WORLDS-E.md).
+
+SESSION-COMBAT-001: plaintext loopback combat migration implemented; kills follow server frames, encrypted casts stay unsent. [Checks and limits](handoffs/SESSION-COMBAT-001.md).
+
+
 WORLD-ORDER-001 implemented: main-world call-order family and part-column adapters. [Counts and boundaries](handoffs/WORLD-ORDER-001.md).
 
 RENDER-WORLDS-F implements the Tarkan/Raklion screen haze. [Checks and image-score limitation](handoffs/RENDER-WORLDS-F.md).
@@ -152,7 +159,7 @@ questions are answered, guided capture is the Native Data path, and signing (APP
 
 ## Coordinating agents
 
-| RENDER-ITEMS-002 parts 1/2/3/4 | Implemented subsets: 103 item scalar remaps, all 17 skin scalar rules; 426/1,674 item bodies and 11/17 skins; five link targets/ten types with consumers | Part 4 adds 137 armour, 27 weapons and 11 skins, complete 47-type armour cluster and Spark03/11; 53,682 new cases, zero mismatches, 10/10 mutants; macOS gate passes ([finding](research/client-render-items.md)) | 1,248 bodies, six skins, further links, Muun/nested map-object tables and prior record/buff/outline/model limits |
+| RENDER-ITEMS-002 parts 1/2/3/4/5 | Implemented subsets: 103 item scalar remaps, all 17 skin scalar rules; 501/1,674 item bodies and 17/17 skins; seven link targets/twelve types with consumers | Part 5 adds 75 bodies, the remaining six skins and two sword links; 25,792 new cases, zero mismatches, 9/9 mutants ([handoff](handoffs/RENDER-ITEMS-002E.md), [finding](research/client-render-items.md)) | 1,173 bodies, further links, ground/inventory skin sprites, Muun/nested map-object tables and prior record/buff/outline/model limits |
 
 | NATIVE-MAP-002 | Implemented: captured absent-key Move default supplied to the validator; snapshot digest in reports; synthetic nonzero-default regression | Lang4 and both lang5 copies each pass 5,001 instruction cases, zero mismatches, all 10 mutants; identical 69 real records and 621 native rows across sort orders; 11 reconstructed and 9 native map tests pass ([finding](research/client-maps.md#move-default-records-native-map-002)) | Native Move behavior unchanged; navimap locale state and prior teleport limits remain open |
 | NATIVE-POLISH-001 maps | Implemented: scene world and demo re-entry location, left-aligned MoveCommand, current-map E7 NPC feed | 875 bounded teleport checks + 1 registration, zero mismatches, 3/3 mutants caught; 60 GFx window cases; synthetic travel/re-entry and NPC lifecycle tests; local renders | Navimap's actual formatter needs uncaptured C++ locale state; teleport height and later cleanup remain outside the bounded comparison |

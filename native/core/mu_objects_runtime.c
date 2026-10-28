@@ -12,6 +12,8 @@
 
 #include "../../reconstructed/objects/login_world.h"
 #include "../../reconstructed/objects/charsel_world.h"
+#include "../../reconstructed/objects/worlds_g.h"
+#include "../../reconstructed/objects/icarus.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -357,6 +359,7 @@ void mu_objects_step(mu_objects *o, const mu_objects_step_inputs *in)
         mi.has_model = (uint8_t)(t >= 0 && t < MU_OBJECT_TYPES && o->models[t] && o->models[t]->loaded);
         mu_obj_log log = {0, 64, 0, local};
         const int status = mu_obj_move(image(o, i), i, &mi, &log);
+        if (status == MU_OBJ_OK) mu_objects_raklion_move(o, t, in->hero);
         ++rt->moved;
         if (status == MU_OBJ_UNSUPPORTED)
             ++rt->move_unsupported;
@@ -390,6 +393,7 @@ void mu_objects_step(mu_objects *o, const mu_objects_step_inputs *in)
 
 void mu_objects_apply_lights(const mu_objects *o, mu_world *map)
 {
+    if (map && (o->world == 57 || o->world == 58)) map->camera_shake = o->rt.raklion_quake;
     for (int32_t i = 0; map && i < o->rt.light_count; ++i) {
         const mu_object_light *l = &o->rt.lights[i];
         mu_world_add_light(map, l->x, l->y, l->rgb, l->range);
@@ -566,6 +570,15 @@ static void consume_visual(mu_objects *o, const mu_obj_log *log)
             sp->scale = fbits(e->args[4]);
             sp->rotation = fbits(e->args[8]);
             ++rt->sprite_events;
+        } else if (e->call == MU_ICARUS_JOINT && rt->joint) {
+            float position[3], target[3], angle[3];
+            for (int q = 0; q < 3; ++q) {
+                position[q] = fbits(e->args[1 + q]);
+                target[q] = fbits(e->args[4 + q]);
+                angle[q] = fbits(e->args[7 + q]);
+            }
+            rt->joint(rt->hook_context, (int32_t)e->args[0], position, target, angle,
+                      (int32_t)e->args[10], e->args[11] ? e->object : -1, fbits(e->args[12]));
         } else if (e->call == MU_OBJ_CALL_PARTICLE) {
             spawn(rt, e);
             ++rt->particle_events;
@@ -593,6 +606,10 @@ static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_obje
     mu_obj_log log = {0, 64, 0, events};
     if (o->world == MU_CSW_WORLD)
         mu_csw_visual(img, i, world_time, visual_rand, m && m->loaded ? visual_bone : NULL, NULL, &c, &log);
+    else if (o->world == 62)
+        mu_santa_visual(img, i, m && m->loaded, world_time, &log);
+    else if (o->world == 63)
+        mu_vulcanus_visual(img, i, o->world, m && m->loaded, world_time, visual_rand, &c, &log);
     else
         mu_login_visual(img, i, visual_rand, m && m->loaded ? visual_bone : NULL, &c, &log);
     consume_visual(o, &log);
@@ -662,6 +679,7 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
     const int32_t t = mu_obj_i32(img, MU_OBJF_TYPE);
     mu_object_model *m = t >= 0 && t < MU_OBJECT_TYPES ? o->models[t] : NULL;
     const int login = o->world == MU_LOGIN_WORLD, charsel = o->world == MU_CSW_WORLD;
+    const int worlds_g = o->world == 62 || o->world == 63;
     mu_obj_draw_inputs in;
     memset(&in, 0, sizeof in);
     in.world = o->world;
@@ -685,10 +703,10 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
     const int deferred =
         !login && !charsel && in.has_model && status != MU_OBJ_SKIPPED && mu_world_defer(img, o->world);
     int posed = 0;
-    if (login || charsel) {   /* RenderObjectVisual follows RenderObject, also for hidden objects (slot 0x34) */
+    if (login || charsel || worlds_g) {   /* RenderObjectVisual follows RenderObject, also for hidden objects (slot 0x34) */
         if (m && m->loaded && status != MU_OBJ_SKIPPED)
             posed = pose_object(o, img, m, &log);
-        handler_visual(o, i, img, posed ? m : NULL, in.light.time);
+        handler_visual(o, i, img, worlds_g ? m : posed ? m : NULL, in.light.time);
     } else if (!rt->visual) {
         mu_obj_visual(img, o->world, in.light.time);   /* RenderObjectVisual follows RenderObject */
     }
@@ -700,7 +718,7 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
             posed = pose_object(o, img, m, &log);
         flame = world_flames(o, i, img, m, in.light.time, posed);
     }
-    const int hook = rt->visual && !login && !charsel && !flame, has_model = m && m->loaded;
+    const int hook = rt->visual && !login && !charsel && !flame && !worlds_g, has_model = m && m->loaded;
     if (deferred && !((o->world == 0x39 || o->world == 0x3a) && (t == 0x53 || t == 0x5c))) {
         if (hook)
             rt->visual(rt->hook_context, o, i, has_model, posed ? m : NULL);

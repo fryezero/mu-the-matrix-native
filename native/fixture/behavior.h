@@ -43,6 +43,9 @@ typedef struct mu_fixture_behavior {
     /* a scenario command `at TICK <name> COMMAND...`; returns 0, or -1 with a message */
     int (*on_command)(void *self, mu_fixture_ctx *ctx, const char *command, char *error, size_t error_size);
     void (*close)(void *self);
+    /* Optional fixture-only plaintext request lane, before the legacy XorData decode.
+     * Return 1 only for the behaviour's explicitly supported opcodes. */
+    int (*on_plain_request)(void *self, mu_fixture_ctx *ctx, const mu_fixture_request *rq);
 } mu_fixture_behavior;
 
 void *mu_fixture_behavior_state(mu_fixture *f, const char *name);

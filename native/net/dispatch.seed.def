@@ -64,3 +64,7 @@ MU_ROUTE(0x86, MU_SUB_NONE, 0x0127a0e0u, MU_STATIC)
 
 /* client-remote-players.md: monster viewport, scoped body at 0x0122c426. */
 MU_ROUTE(0x13, MU_SUB_NONE, 0x0122c426u, MU_STATIC)
+
+/* SESSION-COMBAT-001 scoped two-entry reverse lookup; client-combat.md section 9. */
+MU_ROUTE(0xF3, MU_SUB_NONE, 0x01224455u, MU_STATIC)
+MU_ROUTE(0xC5, MU_SUB_NONE, 0x01222b6du, MU_STATIC)

@@ -1,0 +1,2322 @@
+{
+  "schema": 1,
+  "milestone": "RENDER-WORLDS-G",
+  "text_sha256": "2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724",
+  "data_sha256": "c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f",
+  "factory": "0xea488e",
+  "classes": [
+    {
+      "class_id": "world-57",
+      "label": "Raklion",
+      "worlds": [
+        57,
+        58
+      ],
+      "factory": "0xe942cd",
+      "constructor": "0xe9ee7a",
+      "vtable": "0x1aad9d0",
+      "handlers": {
+        "create": {
+          "entry": "0xe943c0",
+          "status": "verified_family",
+          "scope": "bounded; see existing finding",
+          "source": "reconstructed/objects/raklion.c"
+        },
+        "move": {
+          "entry": "0xe94619",
+          "status": "verified_family",
+          "scope": "bounded; see existing finding",
+          "source": "reconstructed/objects/raklion.c"
+        },
+        "visual": {
+          "entry": "0xe946a8",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xe949f8",
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-A bounded deferred-flag and first-mesh branches; compiled C against original instructions with mutants. See client-world-fidelity.md and handoffs/RENDER-WORLDS-A.md; remaining branches and image-phase limits stay open.",
+          "source": "reconstructed/objects/world_raklion_visual.c"
+        },
+        "after_render": {
+          "entry": "0xe96536",
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-A bounded selected deferred object draws; compiled C against original instructions with mutants. See client-world-fidelity.md and handoffs/RENDER-WORLDS-A.md; remaining branches and image-phase limits stay open.",
+          "source": "reconstructed/objects/world_raklion_visual.c"
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-62",
+      "label": "Santa Village",
+      "worlds": [
+        62
+      ],
+      "factory": "0xe42234",
+      "constructor": "0xe42f50",
+      "vtable": "0x1aab3c8",
+      "handlers": {
+        "create": {
+          "entry": "0xe4231c",
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases per method, compiled mutants; engine allocations recorded. See client-worlds-g.md for finite clock domain and visual/data limits.",
+          "source": "reconstructed/objects/santa_village.c"
+        },
+        "move": {
+          "entry": "0xe42370",
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases per method, compiled mutants; engine allocations recorded. See client-worlds-g.md for finite clock domain and visual/data limits.",
+          "source": "reconstructed/objects/santa_village.c"
+        },
+        "visual": {
+          "entry": "0xe423d8",
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases per method, compiled mutants; engine allocations recorded. See client-worlds-g.md for finite clock domain and visual/data limits.",
+          "source": "reconstructed/objects/santa_village.c"
+        },
+        "custom_render": {
+          "entry": "0xe426cf",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xe428af",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-63",
+      "label": "Vulcanus",
+      "worlds": [
+        63
+      ],
+      "factory": "0xe8eb21",
+      "constructor": "0xe93073",
+      "vtable": "0x1aad63c",
+      "handlers": {
+        "create": {
+          "entry": "0xe8ec09",
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases per method, compiled mutants; engine allocations recorded. See client-worlds-g.md for finite clock domain and visual/data limits.",
+          "source": "reconstructed/objects/vulcanus.c"
+        },
+        "move": {
+          "entry": "0xe8ec80",
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases per method, compiled mutants; engine allocations recorded. See client-worlds-g.md for finite clock domain and visual/data limits.",
+          "source": "reconstructed/objects/vulcanus.c"
+        },
+        "visual": {
+          "entry": "0xe8ece1",
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases per method, compiled mutants; engine allocations recorded. See client-worlds-g.md for finite clock domain and visual/data limits.",
+          "source": "reconstructed/objects/vulcanus.c"
+        },
+        "custom_render": {
+          "entry": "0xe8f515",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xe8ff20",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-64",
+      "label": "Duel Arena",
+      "worlds": [
+        64
+      ],
+      "factory": "0xdc655b",
+      "constructor": "0xdc6bdd",
+      "vtable": "0x1aa7c54",
+      "handlers": {
+        "create": {
+          "entry": "0xdc6643",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xdc6685",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xdc6790",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xdc6a2e",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xdc6a5b",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-82",
+      "label": "World 82 class",
+      "worlds": [
+        82
+      ],
+      "factory": "0xe2be6f",
+      "constructor": "0xe30672",
+      "vtable": "0x1aaab3c",
+      "handlers": {
+        "create": {
+          "entry": "0xe2bf57",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xe2bf8d",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xe2c002",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xe2caaf",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xe2d4a8",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-69",
+      "label": "World 69 class",
+      "worlds": [
+        69
+      ],
+      "factory": "0xdc6ec3",
+      "constructor": "0xdd3866",
+      "vtable": "0x1aa7dd4",
+      "handlers": {
+        "create": {
+          "entry": "0xdc6fab",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xdc7136",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xdc73d0",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xdc8b33",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xdc9f33",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-70",
+      "label": "World 70 class",
+      "worlds": [
+        70
+      ],
+      "factory": "0xdd3b8e",
+      "constructor": "0xdd8960",
+      "vtable": "0x1aa7f84",
+      "handlers": {
+        "create": {
+          "entry": "0xdd3c76",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xdd3e01",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xdd4097",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xdd57fa",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xdd5888",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-71",
+      "label": "World 71 class",
+      "worlds": [
+        71
+      ],
+      "factory": "0xdd8c85",
+      "constructor": "0xdde612",
+      "vtable": "0x1aa8038",
+      "handlers": {
+        "create": {
+          "entry": "0xdd8d6d",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xdd8ef8",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xdd9192",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xdda8f5",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xdda93e",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-72",
+      "label": "World 72 class",
+      "worlds": [
+        72
+      ],
+      "factory": "0xdde8f8",
+      "constructor": "0xde54fc",
+      "vtable": "0x1aa8230",
+      "handlers": {
+        "create": {
+          "entry": "0xdde9e0",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xddeb8a",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xddee5e",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xde08df",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xde0ff6",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-79",
+      "label": "World 79 class",
+      "worlds": [
+        79
+      ],
+      "factory": "0xe6c004",
+      "constructor": "0xe6ecaf",
+      "vtable": "0x1aac310",
+      "handlers": {
+        "create": {
+          "entry": "0xe6c0ec",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xe6c1bf",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xe6c678",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xe6ce2d",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xe6d062",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-80",
+      "label": "Karutan",
+      "worlds": [
+        80,
+        81
+      ],
+      "factory": "0xe139d5",
+      "constructor": "0xe1399d",
+      "vtable": "0x1aa9a4c",
+      "handlers": {
+        "create": {
+          "entry": "0xe13a87",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xe13a9e",
+          "status": "verified_family",
+          "scope": "bounded; see existing finding",
+          "source": "reconstructed/objects/object_render.c"
+        },
+        "visual": {
+          "entry": "0xe13be4",
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-A bounded type-113 brazier sprite/particle calls; compiled C against original instructions with mutants. See client-world-fidelity.md and handoffs/RENDER-WORLDS-A.md; remaining branches and image-phase limits stay open.",
+          "source": "reconstructed/objects/world_karutan_visual.c"
+        },
+        "custom_render": {
+          "entry": "0xe14596",
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-A bounded deferred-flag and first-mesh branches; compiled C against original instructions with mutants. See client-world-fidelity.md and handoffs/RENDER-WORLDS-A.md; remaining branches and image-phase limits stay open.",
+          "source": "reconstructed/objects/world_karutan_visual.c"
+        },
+        "after_render": {
+          "entry": "0xe1543e",
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-A bounded selected deferred object draws; compiled C against original instructions with mutants. See client-world-fidelity.md and handoffs/RENDER-WORLDS-A.md; remaining branches and image-phase limits stay open.",
+          "source": "reconstructed/objects/world_karutan_visual.c"
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-91",
+      "label": "World 91 class",
+      "worlds": [
+        91
+      ],
+      "factory": "0xd6a650",
+      "constructor": "0xd6a5f7",
+      "vtable": "0x1aa59cc",
+      "handlers": {
+        "create": {
+          "entry": "0xd6a6d7",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xd6a7aa",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xd6ae34",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xd6c427",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xd6d3d7",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-92",
+      "label": "World 92 class",
+      "worlds": [
+        92,
+        96,
+        101,
+        111
+      ],
+      "factory": "0xd7a427",
+      "constructor": "0xd7a126",
+      "vtable": "0x1aa6154",
+      "handlers": {
+        "create": {
+          "entry": "0xd7bd7d",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xd7be29",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xd7be80",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xd7c02e",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xd7de81",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-93",
+      "label": "CGMCharacterScene_Ex",
+      "worlds": [
+        93
+      ],
+      "factory": "0xdaa228",
+      "constructor": "0xdaa127",
+      "vtable": "0x1aa7338",
+      "handlers": {
+        "create": {
+          "entry": "0xdaa2b2",
+          "status": "verified_family",
+          "scope": "bounded; see existing finding",
+          "source": "reconstructed/objects/charsel_world.c"
+        },
+        "move": {
+          "entry": "0xdaa82b",
+          "status": "verified_family",
+          "scope": "bounded; see existing finding",
+          "source": "reconstructed/objects/charsel_world.c"
+        },
+        "visual": {
+          "entry": "0xdaa9dd",
+          "status": "verified_family",
+          "scope": "bounded; see existing finding",
+          "source": "reconstructed/objects/charsel_world.c"
+        },
+        "custom_render": {
+          "entry": "0xdab4d7",
+          "status": "verified_family",
+          "scope": "bounded; see existing scene/object finding",
+          "source": "reconstructed/objects/charsel_world.c"
+        },
+        "after_render": {
+          "entry": "0xdab5ed",
+          "status": "verified_family",
+          "scope": "bounded; see existing scene/object finding",
+          "source": "reconstructed/objects/charsel_world.c"
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-94",
+      "label": "CGMLogInScene_Ex",
+      "worlds": [
+        94
+      ],
+      "factory": "0xe249c6",
+      "constructor": "0xe24976",
+      "vtable": "0x1aaa874",
+      "handlers": {
+        "create": {
+          "entry": "0xe24a4d",
+          "status": "verified_family",
+          "scope": "bounded; see existing finding",
+          "source": "reconstructed/objects/login_world.c"
+        },
+        "move": {
+          "entry": "0xe24acd",
+          "status": "verified_family",
+          "scope": "bounded; see existing finding",
+          "source": "reconstructed/objects/login_world.c"
+        },
+        "visual": {
+          "entry": "0xe24be1",
+          "status": "verified_family",
+          "scope": "bounded; see existing finding",
+          "source": "reconstructed/objects/login_world.c"
+        },
+        "custom_render": {
+          "entry": "0xe254bb",
+          "status": "verified_family",
+          "scope": "bounded; see existing scene/object finding",
+          "source": "reconstructed/objects/login_world.c"
+        },
+        "after_render": {
+          "entry": "0xe25639",
+          "status": "verified_family",
+          "scope": "bounded; see existing scene/object finding",
+          "source": "reconstructed/objects/login_world.c"
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-95",
+      "label": "World 95 class",
+      "worlds": [
+        95
+      ],
+      "factory": "0xdbd189",
+      "constructor": "0xdbd130",
+      "vtable": "0x1aa7b84",
+      "handlers": {
+        "create": {
+          "entry": "0xdbd210",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xdbd4e6",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xdbd735",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xdbee19",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xd5cc60",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-100",
+      "label": "World 100 class",
+      "worlds": [
+        100
+      ],
+      "factory": "0xe6efda",
+      "constructor": "0xe6ef95",
+      "vtable": "0x1aac418",
+      "handlers": {
+        "create": {
+          "entry": "0xe6f0a2",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xe6f1ca",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xe6f3d5",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xe702eb",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xd5cc60",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-110",
+      "label": "World 110 class",
+      "worlds": [
+        110
+      ],
+      "factory": "0xe26069",
+      "constructor": "0xe26010",
+      "vtable": "0x1aaa95c",
+      "handlers": {
+        "create": {
+          "entry": "0xe260f0",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xe26668",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xe26ae7",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xe28bb2",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xe28faf",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-112",
+      "label": "World 112 class",
+      "worlds": [
+        112
+      ],
+      "factory": "0xde589c",
+      "constructor": "0xde57f4",
+      "vtable": "0x1aa86e0",
+      "handlers": {
+        "create": {
+          "entry": "0xde5cb0",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xde5de2",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xde6405",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xde8a10",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xde9eab",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-113",
+      "label": "World 113 class",
+      "worlds": [
+        113
+      ],
+      "factory": "0xe39f9a",
+      "constructor": "0xe343cc",
+      "vtable": "0x1aaac94",
+      "handlers": {
+        "create": {
+          "entry": "0xe3441c",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xe3473f",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xd5cc9b",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xe347a8",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xe3628c",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-114",
+      "label": "World 114 class",
+      "worlds": [
+        114
+      ],
+      "factory": "0xe1e8a1",
+      "constructor": "0xe203f9",
+      "vtable": "0x1aaa60c",
+      "handlers": {
+        "create": {
+          "entry": "0xe1e989",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xe1ea5c",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xe1ef15",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xe1f6ca",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xe1f8ff",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-115",
+      "label": "World 115 class",
+      "worlds": [
+        115
+      ],
+      "factory": "0xe206df",
+      "constructor": "0xe22373",
+      "vtable": "0x1aaa7dc",
+      "handlers": {
+        "create": {
+          "entry": "0xd5cb99",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xd5cc16",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xd5cc9b",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xd5cc8e",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xd5cc60",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-116",
+      "label": "World 116 class",
+      "worlds": [
+        116
+      ],
+      "factory": "0xe3e94a",
+      "constructor": "0xe3dfec",
+      "vtable": "0x1aaafe0",
+      "handlers": {
+        "create": {
+          "entry": "0xe3e34b",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xe3e46d",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xd5cc9b",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xd5cc8e",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xd5cc60",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-117",
+      "label": "World 117 class",
+      "worlds": [
+        117
+      ],
+      "factory": "0xe3f602",
+      "constructor": "0xe3ec82",
+      "vtable": "0x1aab0a8",
+      "handlers": {
+        "create": {
+          "entry": "0xe3efe6",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xe3f125",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xd5cc9b",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xd5cc8e",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xd5cc60",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-118",
+      "label": "World 118 class",
+      "worlds": [
+        118
+      ],
+      "factory": "0xe40319",
+      "constructor": "0xe3f93a",
+      "vtable": "0x1aab170",
+      "handlers": {
+        "create": {
+          "entry": "0xe3fce8",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xe3fe3c",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xd5cc9b",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xd5cc8e",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xd5cc60",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-119",
+      "label": "World 119 class",
+      "worlds": [
+        119
+      ],
+      "factory": "0xe41015",
+      "constructor": "0xe40651",
+      "vtable": "0x1aab240",
+      "handlers": {
+        "create": {
+          "entry": "0xe409e8",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xe40b38",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xd5cc9b",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xd5cc8e",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xd5cc60",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-120",
+      "label": "World 120 class",
+      "worlds": [
+        120
+      ],
+      "factory": "0xe41efc",
+      "constructor": "0xe4134d",
+      "vtable": "0x1aab320",
+      "handlers": {
+        "create": {
+          "entry": "0xe41823",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xe41a1f",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xd5cc9b",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xd5cc8e",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xd5cc60",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-121",
+      "label": "World 121 class",
+      "worlds": [
+        121
+      ],
+      "factory": "0xd5850e",
+      "constructor": "0xd584f1",
+      "vtable": "0x1aa51fc",
+      "handlers": {
+        "create": {
+          "entry": "0xd585b0",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xd58809",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xd58888",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xd58bd8",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xd5a6cc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-122",
+      "label": "World 122 class",
+      "worlds": [
+        122
+      ],
+      "factory": "0xe5f140",
+      "constructor": "0xe5430b",
+      "vtable": "0x1aac070",
+      "handlers": {
+        "create": {
+          "entry": "0xe54429",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xe54646",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xe5540e",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xe54752",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xe555d2",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-123",
+      "label": "World 123 class",
+      "worlds": [
+        123,
+        124,
+        125,
+        126,
+        127
+      ],
+      "factory": "0xe1e025",
+      "constructor": "0xe18da5",
+      "vtable": "0x1aaa564",
+      "handlers": {
+        "create": {
+          "entry": "0xe19bb3",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xe19ed0",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xe1b5fb",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xe1a5df",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xe1b6f5",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-128",
+      "label": "World 128 class",
+      "worlds": [
+        128
+      ],
+      "factory": "0xd5e829",
+      "constructor": "0xd5cea6",
+      "vtable": "0x1aa5320",
+      "handlers": {
+        "create": {
+          "entry": "0xd5cf32",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xd5d04a",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xd5d564",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xd5d2f6",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xd5d5ad",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-129",
+      "label": "World 129 class",
+      "worlds": [
+        129
+      ],
+      "factory": "0xd5ff6d",
+      "constructor": "0xd5eb46",
+      "vtable": "0x1aa541c",
+      "handlers": {
+        "create": {
+          "entry": "0xd5ebd2",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xd5ecea",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xd5f1f1",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xd5ef96",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xd5f23a",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-130",
+      "label": "World 130 class",
+      "worlds": [
+        130
+      ],
+      "factory": "0xd61c4d",
+      "constructor": "0xd6028a",
+      "vtable": "0x1aa554c",
+      "handlers": {
+        "create": {
+          "entry": "0xd60316",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xd6042e",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xd60948",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xd606da",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xd60991",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-131",
+      "label": "World 131 class",
+      "worlds": [
+        131
+      ],
+      "factory": "0xe45cb9",
+      "constructor": "0xe43236",
+      "vtable": "0x1aab4d4",
+      "handlers": {
+        "create": {
+          "entry": "0xe432d9",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xe4370c",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xe43f8e",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xe43842",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xe43fab",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-132",
+      "label": "World 132 class",
+      "worlds": [
+        132
+      ],
+      "factory": "0xe037fb",
+      "constructor": "0xe00b07",
+      "vtable": "0x1aa8ff4",
+      "handlers": {
+        "create": {
+          "entry": "0xe00b4a",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xe00cfe",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xe00e97",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xe00d4c",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xe010b6",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-133",
+      "label": "World 133 class",
+      "worlds": [
+        133
+      ],
+      "factory": "0xd83a53",
+      "constructor": "0xd807bd",
+      "vtable": "0x1aa62a0",
+      "handlers": {
+        "create": {
+          "entry": "0xd809fc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xd80c9c",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xd81c2c",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xd80cea",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xd81c49",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-134",
+      "label": "World 134 class",
+      "worlds": [
+        134
+      ],
+      "factory": "0xd8b0b2",
+      "constructor": "0xd83d84",
+      "vtable": "0x1aa6908",
+      "handlers": {
+        "create": {
+          "entry": "0xd84821",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xd849e4",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xd84dd8",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xd84d0e",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xd868f7",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-135",
+      "label": "World 135 class",
+      "worlds": [
+        135
+      ],
+      "factory": "0xe3dcbb",
+      "constructor": "0xe3a2b7",
+      "vtable": "0x1aaaf18",
+      "handlers": {
+        "create": {
+          "entry": "0xe3a4dc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xe3a719",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xe3c137",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xe3ae5e",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xe3c739",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-136",
+      "label": "World 136 class",
+      "worlds": [
+        136
+      ],
+      "factory": "0xd99b88",
+      "constructor": "0xd93567",
+      "vtable": "0x1aa6d38",
+      "handlers": {
+        "create": {
+          "entry": "0xd9381e",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xd93b31",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xd97186",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xd94eef",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xd97384",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-137",
+      "label": "World 137 class",
+      "worlds": [
+        137
+      ],
+      "factory": "0xe0de7c",
+      "constructor": "0xe08c06",
+      "vtable": "0x1aa9404",
+      "handlers": {
+        "create": {
+          "entry": "0xe08cd8",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xe08f8a",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xe0a4bb",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xe092f4",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xe0ab2a",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-138",
+      "label": "World 138 class",
+      "worlds": [
+        138
+      ],
+      "factory": "0xe088d5",
+      "constructor": "0xe05835",
+      "vtable": "0x1aa9114",
+      "handlers": {
+        "create": {
+          "entry": "0xe05afe",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xe05d76",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xe07081",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xe05f25",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xe0709e",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-139",
+      "label": "World 139 class",
+      "worlds": [
+        139
+      ],
+      "factory": "0xda9cc2",
+      "constructor": "0xd9c03a",
+      "vtable": "0x1aa7264",
+      "handlers": {
+        "create": {
+          "entry": "0xd9c180",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xd9c18d",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xd9c1a7",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xd9c19a",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xd9c1b4",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-140",
+      "label": "World 140 class",
+      "worlds": [
+        140
+      ],
+      "factory": "0xd9b91a",
+      "constructor": "0xd99f1c",
+      "vtable": "0x1aa6e74",
+      "handlers": {
+        "create": {
+          "entry": "0xd9a022",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xd9a0ad",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xd9ac33",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xd9a2ed",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xd9ac50",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd5cbbc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-141",
+      "label": "Tormenta Island",
+      "worlds": [
+        141
+      ],
+      "factory": "0xe53b8d",
+      "constructor": "0xe4be37",
+      "vtable": "0x1aabd10",
+      "handlers": {
+        "create": {
+          "entry": "0xe4c6ba",
+          "status": "verified_family",
+          "scope": "bounded; see existing finding",
+          "source": "reconstructed/objects/object_render.c; reconstructed/particles/visual.c"
+        },
+        "move": {
+          "entry": "0xe4c95e",
+          "status": "verified_family",
+          "scope": "bounded; see existing finding",
+          "source": "reconstructed/objects/object_render.c; reconstructed/particles/visual.c"
+        },
+        "visual": {
+          "entry": "0xe4ef4b",
+          "status": "verified_family",
+          "scope": "bounded; see existing finding",
+          "source": "reconstructed/objects/object_render.c; reconstructed/particles/visual.c"
+        },
+        "custom_render": {
+          "entry": "0xe4cbd7",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xe4f952",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xe4bfff",
+          "status": "verified_family",
+          "scope": "bounded; see existing scene/object finding",
+          "source": "reconstructed/objects/object_render.c; reconstructed/particles/visual.c"
+        }
+      }
+    },
+    {
+      "class_id": "world-142",
+      "label": "World 142 class",
+      "worlds": [
+        142
+      ],
+      "factory": "0xe6bcd3",
+      "constructor": "0xe66fb8",
+      "vtable": "0x1aac278",
+      "handlers": {
+        "create": {
+          "entry": "0xe67546",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xe6766a",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xe6841f",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xe677a9",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xe68c6a",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xe673b4",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-143",
+      "label": "World 143 class",
+      "worlds": [
+        143
+      ],
+      "factory": "0xe1366c",
+      "constructor": "0xe0e1ad",
+      "vtable": "0x1aa9930",
+      "handlers": {
+        "create": {
+          "entry": "0xe0ea04",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xe0ed1c",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xe117e8",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xe0f4bc",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xe118fd",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xe0e539",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-144",
+      "label": "World 144 class",
+      "worlds": [
+        144
+      ],
+      "factory": "0xe4bb06",
+      "constructor": "0xe45fea",
+      "vtable": "0x1aab6a8",
+      "handlers": {
+        "create": {
+          "entry": "0xe46625",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xe4696f",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xe47bc2",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xe46e94",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xe48f1c",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xe46a9f",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    },
+    {
+      "class_id": "world-145",
+      "label": "World 145 class",
+      "worlds": [
+        145
+      ],
+      "factory": "0xd79db9",
+      "constructor": "0xd75255",
+      "vtable": "0x1aa5e78",
+      "handlers": {
+        "create": {
+          "entry": "0xd75a6c",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "move": {
+          "entry": "0xd75ac6",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "visual": {
+          "entry": "0xd77b3e",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "custom_render": {
+          "entry": "0xd76059",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "after_render": {
+          "entry": "0xd77d18",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        },
+        "invisible_move": {
+          "entry": "0xd7565d",
+          "status": "missing",
+          "scope": "static entry only; no native implementation claimed",
+          "source": null
+        }
+      }
+    }
+  ]
+}

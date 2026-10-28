@@ -202,7 +202,7 @@ typedef struct mu_pt_render_call {
  * bitmap's component count, the kind's extra state and its RenderSprite.
  * Returns 1 when the record was drawn, 0 when skipped, 2 for a kind that is
  * not reconstructed (nothing filled). */
-int mu_pt_render_record(const mu_pt_particle *p, const mu_pt_bitmap *bitmap, uint8_t mode, float world_time, int32_t ordinal, mu_pt_render_call *out);
+int mu_pt_render_record(mu_pt_particle *p, const mu_pt_bitmap *bitmap, uint8_t mode, float world_time, int32_t ordinal, mu_pt_render_call *out);
 
 /* ------------------------------------------------------------------------
  * The list (CreateParticle's push_back, MoveParticles, RenderParticles). */

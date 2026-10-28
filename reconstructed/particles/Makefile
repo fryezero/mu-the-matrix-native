@@ -1,7 +1,7 @@
 CC = clang
 CFLAGS = -std=c11 -O2 -Wall -Wextra -Werror -Wconversion -fPIC -ffp-contract=off -fno-fast-math
 SUFFIX = $(if $(filter Darwin,$(shell uname -s)),dylib,so)
-SRC = world_flames.c particles.c sprites.c shadow.c visual.c layout.c ../record-math/record_math.c
+SRC = world_flames.c elbeland.c particles.c sprites.c shadow.c visual.c layout.c ../record-math/record_math.c
 HDR = world_flames.h icarus_clouds.inc particles.h particles_internal.h ../record-math/record_math.h
 
 all: libclient_particles.$(SUFFIX)

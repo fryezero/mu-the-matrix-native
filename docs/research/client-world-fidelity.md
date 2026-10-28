@@ -613,3 +613,53 @@ No moving-region exclusion is used to claim the target passed. Local inputs, fra
 renders and the full 307-row score series remain under the C2 scratch/render directories. Renders and captures
 are not committed. Remaining limits are exact captured RNG/clock/pool phase, the hero/equipment mask, and the
 unported world-10 type-10 bone flare. Sibling worlds and after-character rendering remain with lanes A/D.
+
+## 8. RENDER-WORLDS-E, 2026-10-27
+
+Elbeland's two boid movers, Object52 model registration and typhoon-owned clouds now run through the native
+environment and particle hosts. Raklion has its inherited event arming/timer, emitter requests and quake, with
+an explicit domain-owned state input. Aida's type-30 emitter explains the outlier's colour and radial footprint
+through accumulated additions: approximately one effective update to the left of column 96 and 179 to its right.
+This attributes the sample without changing the verified source brightness. The reset rectangle/history remains
+uncaptured. No new live observation was made.
+
+The resumed analysis records the object/light input hashes and has three portable regressions using authored
+snapshots and the production terrain reset/add functions. The 179-update partial-reset case reproduces the
+channel signature despite changing flicker. A fresh instruction recheck matches 3,000 MoveObject cases and
+detects all 19 compiled mutants, including Aida's wrong brightness. The terrain reset and add-light families
+match 8/8 and 160/160 cases, with both clamp negative controls detected. This verifies the underlying rules;
+the exact reset box and time history of the saved Aida frame remain an inference boundary.
+
+Eight instruction families compare 600 cases each; 40 Elbeland movement/render sessions add 2,400 compared
+steps. Total 4,840 comparisons, zero mismatches/stops, 12/12 compiled mutants caught. The fourteen-view scoreboard
+and all final PNG hashes remain unchanged. The arrival views have no active event/boid state to measure.
+The source addresses, pins, native-host checks, score values and explicit remaining inputs are in the
+[milestone handoff](../handoffs/RENDER-WORLDS-E.md).
+
+The final 2026-10-28 rerun on main `0a854411` plus E passes all six registered E/B/D/Icarus/C2/F suites:
+26,698 cases, zero mismatches/stops, all 53 compiled mutants caught. The separate MoveObject recheck passes
+3,000 cases and 19 mutants. Fresh isolated executions of the terrain validator's reset/add-light loops pass
+8/8 and 160/160 cases, with both clamp controls detected. The three authored Aida-history tests pass.
+The rebuilt E binary and retained same-main baseline produce equal complete scoreboards and fourteen equal
+final PNG hashes. Aida/Elbeland/Raklion frame-light errors remain 0.65117/0.02078/0.02574; missing/extra
+placements remain zero and primary light remains exact. These are regression results with the saved arrival
+state. The snapshots still cannot score an active event or moving boid against the original image.
+The full local Mac gate passes 1,445 tests with 175 explicit skips, all six fixture scenarios, viewer/readers
+builds and the publication audit. The disk-exhaustion retry and local evidence paths are recorded in the handoff.
+
+After A #187 advanced main to `89c63acc`, E merged it and preserved both lanes' build/texture additions.
+Both latest-main and combined-tree binaries were clean-built in E's owned worktree. All fourteen scoreboards
+and 28 first/final PNG hashes match between those builds, retaining A's Kanturu sparse image score 4.006.
+The final eight-validator run has 38,098 matching cases and 76 caught compiled mutants. With the separate
+MoveObject and reset/add checks, totals are 41,266 matching cases and 95 compiled mutants, plus both clamp
+controls. The final full Mac gate passes 1,449 tests with 177 explicit skips, all six fixture scenarios and
+the 1,336-file audit with zero rejections. The prior paragraph records the earlier pre-A baseline; the
+`main89-*` reports and the integration section of the handoff are the final combined-tree evidence.
+
+Final locked integration also includes audio #196 and combat #197, base `bf430a75`. All ten registered
+world/order/audio/combat validators pass. Including the refreshed MoveObject and isolated terrain comparisons:
+47,022 matching instruction cases, 12 separate static checks, all 119 compiled mutants and both modeled
+clamp controls detected. The full Mac gate passes 1,463 tests with 179 explicit skips, seven fixture scenarios,
+viewer/readers builds and the 1,354-file audit with zero rejections. Fresh latest-main/E builds retain equal
+fourteen-view scoreboards and all 28 frame hashes. `locked-*` local reports and the handoff's final verification
+section supersede the earlier integration checkpoints above. No additional original-client observation occurred.
