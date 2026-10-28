@@ -1,5 +1,7 @@
 # Roadmap and work queue
 
+RENDER-WORLDS-N: Nixies Lake (113) and Deep Dungeon 1–5 (116–120) primary create/move/visual methods; 52/144 verified methods, 18/48 classes. 13,000 instruction cases, zero mismatches, 29/29 mutants. At the six DATA-ACQ-002 arrival tiles all 13,690 range and 436 after-character differences go to zero; image error mixed (four lower, Deep Dungeon 5 higher). [Evidence](research/client-worlds-n.md), [checks and limits](handoffs/RENDER-WORLDS-N.md).
+
 README-REFRESH-004 implemented: public progress through PR #241, bounded coverage and honest offline/performance limits; existing pinned images reused. [Checks and sources](handoffs/README-REFRESH-004.md).
 
 SYS-MISC-001b: HelpWindow helpdata reader/controller (888 original-instruction cases, zero mismatches, 18/18 mutants) and native Ctrl+H hosting of the real movie. Text clips only in fixed single-line movie fields (as the original lays them out); hotkey lists scroll to their last row. Locked Mac gate passes 1,630 tests. [Checks and limits](handoffs/SYS-MISC-001b.md).

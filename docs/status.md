@@ -1,5 +1,7 @@
 # Current status
 
+RENDER-WORLDS-N: Nixies Lake (113) and Deep Dungeon 1–5 (116–120) primary create/move/visual methods; 52/144 verified methods, 18/48 classes. 13,000 instruction cases, zero mismatches, 29/29 mutants. At the six DATA-ACQ-002 arrival tiles all 13,690 range and 436 after-character differences go to zero; image error mixed (four lower, Deep Dungeon 5 higher). [Evidence](research/client-worlds-n.md), [checks and limits](handoffs/RENDER-WORLDS-N.md).
+
 DATA-ACQ-002: guided live captures on the owner's client (four locked sessions, warps only): 32 arrival captures in 31 worlds, 27/48 world classes now have an original populated capture; 16 classes are not reachable by warp. Native camera within 0.007, primary light equal in 31/32; music indices 43 and 44 both iDoppelganger. [Captures and comparison](research/client-world-captures-2.md), [inputs and limits](handoffs/DATA-ACQ-002.md).
 
 AUDIO-002 part 6: live-read music table verified: indices 43 and 44 are both iDoppelganger, all 76 names resolve and are installed; `0x06fba808` is the channel-group name string. Doppelganger manager `0x00e305ee` reconstructed (caller unrecorded); 4,291 cases, zero mismatches, 10/10 mutants; locked Mac gate passes 1,634 tests. [Checks and limits](handoffs/AUDIO-002F.md).
