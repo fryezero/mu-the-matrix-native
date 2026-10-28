@@ -104,6 +104,9 @@ mu_sim mu_session_sim_begin(mu_session *s)
     s->sim_open = 1;
     sim.epoch = ++s->sim_epoch;
     sim.hero_record = s->hero.record;
+    sim.characters = s->characters.records;
+    sim.used = s->characters.used;
+    sim.character_count = MU_CHARACTERS_MAX;
 #ifdef MU_SESSION_AUDIT
     mu_audit_zones zs;
     mu_session_zones(s, &zs);

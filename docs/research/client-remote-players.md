@@ -1,5 +1,7 @@
 # Other players: viewport, equipment, moves and removal (NATIVE-PLAYERS-001)
 
+SESSION-VIEWPORT-001 moves the demo feed into the loopback fixture and verifies additional 0x12 field/default ranges. See [the migration finding](client-session-viewport.md) for current paths, comparisons and remaining static branches.
+
 This finding answers how the pinned client handles the other characters a server puts around the hero: how a remote
 player is created from the player viewport, how its class and equipment bytes become the part and weapon slots the
 world render draws, how the server's move packets are replayed through the hero's own path follower, how it dies and
