@@ -3,9 +3,11 @@
 # manual-only). Usage: scripts/local-macos-ci.sh [PYTHON]
 set -eu
 cd "$(dirname "$0")/.."
-PY="${1:-${PYTHON:-tools/.venv/bin/python}}"
+PY="${1:-${PYTHON:-tools/python/bin/python}}"
 [ "$(uname)" = Darwin ] || { echo "local-macos-ci: run this on macOS" >&2; exit 2; }
 make test PYTHON="$PY"
+mkdir -p verify-runs
+"$PY" scripts/run_fixture_scenarios.py --report "$(mktemp -d "$PWD/verify-runs/ci-fixtures-XXXXXX")/suite"
 make native-viewer
 make live-readers
 "$PY" scripts/audit_repository.py

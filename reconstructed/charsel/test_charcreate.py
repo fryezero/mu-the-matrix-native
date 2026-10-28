@@ -157,9 +157,8 @@ class PrivateCharCreateValidation(unittest.TestCase):
             import unicorn  # noqa: F401
         except ImportError:
             self.skipTest('unicorn is not installed')
-        if not V.EVIDENCE.joinpath('x86-text-capture-09/client-text.bin').exists():
-            self.skipTest('pinned evidence missing')
-        r = subprocess.run([sys.executable, str(ROOT / 'scripts/validate_charcreate.py'), '--cases', '60',
+        # 300 main cases yield 60 mutation cases, including CP949 lead bytes.
+        r = subprocess.run([sys.executable, str(ROOT / 'scripts/validate_charcreate.py'), '--cases', '300',
                             '--mutations'], capture_output=True, text=True)
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
 

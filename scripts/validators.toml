@@ -118,13 +118,13 @@ args = ["--text", "{text}", "--data", "{data}", "--flag", "{flag}", "--feature",
 test = "reconstructed/charsel/test_charcreate.py::PrivateCharCreateValidation.test_instruction_comparison"
 pins = ["text", "data"]
 families = ["show", "restrict", "klass", "board", "name", "input", "count", "created", "message", "deleted", "render", "menu", "classname", "serverclass"]
-cases = 1488
+cases = 4368
 mutants = 6
 cases_at = "results.*.cases"
 mutants_at = "mutations"
 build = ["reconstructed/charsel"]
-args = ["--text", "{text}", "--data", "{data}", "--cases", "60", "--mutations", "--report", "{report}"]
-note = "60 cases (the owning test) miss the code-page mutant: 5 of 6 caught on 2026-10-24 and 2026-10-25; 300 cases catch 6 of 6"
+args = ["--text", "{text}", "--data", "{data}", "--cases", "300", "--mutations", "--report", "{report}"]
+note = "300 cases match the owning private test and catch the CP949 code-page mutant (6 of 6)"
 
 [validate_charsel]
 test = "reconstructed/charsel/test_charsel.py::PrivateCharselValidation.test_instruction_comparison"
