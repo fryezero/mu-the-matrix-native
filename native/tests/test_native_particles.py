@@ -127,7 +127,7 @@ class InstalledLorenciaFires(unittest.TestCase):
         p = out['particles']
         # The registered bank includes the later helper, terrain, Icarus and world-warp textures.
         # Keep the complete bank check: a missing installed bitmap must still fail.
-        self.assertEqual(p['bitmaps'], [1]*46)
+        self.assertEqual(p['bitmaps'], [1]*51)
         self.assertGreater(p['created'], 20)
         self.assertEqual(p['unsupported'], 0)
         self.assertGreater(p['drawn_particles'], 0)

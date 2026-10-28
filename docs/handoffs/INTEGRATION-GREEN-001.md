@@ -1,6 +1,6 @@
 # INTEGRATION-GREEN-001
 
-Verification lane. Branch `codex/integration-green-001`, based on main `0b7edfc`.
+Verification lane. Branch `codex/integration-green-001`, resumed against main `c769a5d`.
 The installed app's Native Data setup identifies the game root. Its `main.exe` matches
 `3cf91f3c203d305a771b04d00b271871f7ce1c6779b22e30fbae8c4f35b5527a`.
 
@@ -39,20 +39,31 @@ regressions exercise both validators and verify rejection before emulation.
 
 ## Full gate
 
-The historical 2026-10-24 result was 35/38 suites. Full baseline and private/local gates are running;
-results and skip reasons will be recorded here before merge.
+The historical 2026-10-24 result was 35/38 suites. On 2026-10-28, the installed target and all provenance
+were rechecked, and a third strict scan reproduced the new manifest pin. The installed export baseline
+at `8eac05c` passed 8/9 tests; only the old 17-texture expectation failed against 51 loaded textures.
+The clean native build failed before generated session headers existed. A regression reproduces that
+ordering defect; core objects now wait for generation.
+
+The baseline `tests/` directory ran 150 tests: 140 passed and ten failed/errored because the data volume
+ran out of disk space. This includes skill-tree, social, social2, terrain, terrain-remaining and five
+synthetic pin checks. The remaining baseline was stopped after seven completed suites because resource
+errors invalidate a comparison baseline. No client mismatch or legitimate input skip is inferred from
+those resource errors. Full final private and local gates are still required before PR/merge.
 
 ## Local artifacts and reproduction
 
 Task scratch directory: `~/Documents/MTM/mu-mac-tools/native/scratch/integration-green-001/`.
 It holds `env.sh`, two independent scans, a metadata-only manifest diff, the extracted private effects range,
 focused reports, original-loader effects reports, snapshot checks, full baseline suite logs and local gate logs.
-The baseline source snapshot is ignored inside the owned worktree and is removed with that worktree.
+The fresh baseline ran detached at `8eac05c` inside this same owned worktree. Its completed logs are in
+`before-current/`; no second checkout was created.
 
 Use the worktree's Python, set `MU_RECOVERY_INTEGRATION=1`, and supply `MU_GAME_ROOT`, `MU_EVIDENCE_DIR`,
 `MU_SNAPSHOT_DIR`, `MU_SECTION3`, `MU_EFFECTS_SECTION3`, `MU_V14_MANIFEST`, `MU_EDGE_DIAGNOSTICS` and
-`MU_PATH_DIRECTIONS`. `env.sh` records exact local locations. Native Data lang/object/audio exports also
-supply their matching environment variables. Then run `bash scripts/local-macos-ci.sh`.
+`MU_PATH_DIRECTIONS`. `env.sh` records exact local locations. Run optional lang/object/audio export tests separately with the research export paths in
+`raw-exports-env.sh`, so private export variables do not contaminate synthetic tests. The portable local
+gate runs without those export variables or integration flags.
 
 This establishes offline input/validator compatibility. It adds no gameplay fidelity, live service,
 new capture, or native Windows evidence.

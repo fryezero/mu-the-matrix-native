@@ -76,7 +76,16 @@ and pinned captures; optional export consumers run separately against existing e
 the snapshot scratch root. No app folder, manifest guard or original game file is changed.
 
 The optional installed Lorencia-fire test exposed a separate stale expectation: it required exactly 17 loaded
-particle bitmaps. The current `mu_particles.c` bank has 44 effect entries plus the two world rain textures, 46 total,
-including later helper, terrain, Icarus and world-warp additions. The run loaded all 46. The test now requires exactly
-46 successful loads and retains its creation, unsupported-count and drawn-particle assertions. This updates a
+particle bitmaps. The current `mu_particles.c` bank has 49 effect entries plus the two world rain textures, 51 total,
+including later helper, terrain, Icarus and world-warp additions. The run loaded all 51. The test now requires exactly
+51 successful loads and retains its creation, unsupported-count and drawn-particle assertions. This updates a
 coverage count to the expanded bank; it does not accept a missing bitmap or change production rendering.
+
+## Clean build ordering
+
+The clean build at main `8eac05c` failed compiling `mu_combat.c` before `session_intents.h` existed.
+A stale generated header also omitted the new combat intents. Later main already adds a combat-specific
+dependency. This lane covers the transitive core consumers as well. Core facades now depend on the session
+and layout generation stamps and session headers, as world/session objects already do. The fresh-target
+regression checks generator ordering for combat, NPC and player consumers. This changes build dependencies
+only. It does not change handlers, routing, fixture policy or instruction-comparison expectations.
