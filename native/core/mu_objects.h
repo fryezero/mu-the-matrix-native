@@ -148,6 +148,9 @@ typedef struct mu_objects_runtime {
      * owner: the object index, -1 none. */
     void (*effect)(void *context, int32_t type, int32_t subtype, const float position[3], const float angle[3],
                    const float light[3], int32_t owner);
+    void (*joint)(void *context, int32_t type, const float position[3], const float target[3],
+                  const float angle[3], int32_t subtype, int32_t owner, float scale);
+    int32_t icarus_count; /* previous MoveObjects ordinal, 0x0bdc5890 */
     long effect_events;
     void *hook_context;
 } mu_objects_runtime;

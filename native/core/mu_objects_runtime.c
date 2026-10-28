@@ -6,6 +6,8 @@
  * AddTerrainLight on the frame light, RenderBody through the mesh-draw port. CreateParticle is a
  * labelled stand-in (mu_object_particle). */
 #include "mu_objects.h"
+#include "mu_objects_icarus.h"
+
 #include "../../reconstructed/environment/env.h"
 
 #include "../../reconstructed/objects/login_world.h"
@@ -302,6 +304,8 @@ void mu_objects_step(mu_objects *o, const mu_objects_step_inputs *in)
     particles_step(rt);
     rt->light_count = 0;
     step_context c = {o, in};
+    int32_t sky_selected=0, sky_ordinal=0;
+    if (o->world == 10) sky_selected=mu_objects_icarus_sky(o,in->hero);
     {   /* NATIVE-FIDELITY-002: MoveObjects' pre-pass in the sky worlds (Icarus's rising cloud puffs) */
         mu_obj_event sky[4];
         mu_obj_log log = {0, 4, 0, sky};
@@ -344,6 +348,8 @@ void mu_objects_step(mu_objects *o, const mu_objects_step_inputs *in)
     mu_obj_event local[64];
     for (int32_t k = 0; k < pass.count; ++k) {
         const mu_obj_event *e = &pass.events[k];
+        if (e->call == MU_OBJ_CALL_MOVE_WORLD10 && o->world == 10)
+            mu_objects_icarus_object(o,e->object,sky_selected,&sky_ordinal);
         if (e->call != MU_OBJ_CALL_MOVE_OBJECT)
             continue;
         const int32_t i = e->object, t = mu_obj_i32(image(o, i), MU_OBJF_TYPE);
@@ -373,6 +379,8 @@ void mu_objects_step(mu_objects *o, const mu_objects_step_inputs *in)
             }
         }
     }
+    if (o->world == 10) rt->icarus_count=sky_ordinal;
+
     if (mi.elbeland_pool)
         mu_env_object_load(&rt->environment->boids[1], elbeland_pool);
     ++rt->steps;

@@ -99,6 +99,10 @@ void mu_env_world_info_get(int32_t w, mu_env_world_info *info)
 
 int mu_env_model_file(int32_t world, int32_t model, char *out, size_t out_size)
 {
+    if (world == 10 && model == 0x7c4) {
+        int n = snprintf(out,out_size,"Data/Monster/Monster32.bmd");
+        return n>0 && (size_t)n<out_size;
+    }
     const char *name = NULL;
     int32_t folder = 0, number = 1;
     if (world == 8 && model == 0x198) {   /* Tarkan: AccessModel(0x198, Data\Object9\, Bug, 2) */
