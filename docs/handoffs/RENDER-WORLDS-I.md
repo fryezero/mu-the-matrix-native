@@ -26,6 +26,12 @@ Preflight full local Mac gate passes on `7d813a9` plus this lane: **1520 tests a
 1,440-file audit with zero rejected**. Readers were built only. The final locked main integration/gate
 is recorded below when the occupied merge lock becomes available.
 
+Supplementary installed-asset GL probes load all seven Market and fourteen Uruk synthetic-object models;
+four representative frames were rendered and both final frames were inspected. Placements are authored, not captured. The Market tile-120
+probe has zero terrain faces and isolated emitters, so it supplies no town-scene fidelity claim. Uruk's
+normal terrain and supported sprite/particle callbacks render; weather remains inactive in this runtime
+probe. The C/native host, rather than these views, exercises active weather and key/color refusal.
+
 No original client or launcher was started, stopped, driven or read. No service, wire, protection-module,
 main-checkout build or sibling-worktree work. No private bytes, assets, captures, decoded tables, renders
 or input links are committed. Self-review covers repository standards, original behavior, host ordering
