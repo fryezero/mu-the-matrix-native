@@ -5,6 +5,12 @@ unchanged render comparisons and the 300-case private character-create check. Ne
 
 LAYOUT-PROBE-001: [handoff](handoffs/LAYOUT-PROBE-001.md). The manifest must preserve both flag/level fields and describe the attribute extent as a minimum.
 
+## VERIFY-SESSION-001, 2026-10-27
+
+Discovered fixture suites and skill `--fixture` mode are implemented. Two hero scenarios cover all eight
+bound routes; per-scenario unbound is zero, unrecovered/unsent counts remain explicit. See
+[the milestone handoff](handoffs/VERIFY-SESSION-001.md) for checks, artifacts and remaining work.
+
 ## Stage 1 merged (2026-10-25)
 
 **Merged.** PRs #160-#165 are on main. Each passed `make test` on its merged tree; the last ran 1,283 tests. Each

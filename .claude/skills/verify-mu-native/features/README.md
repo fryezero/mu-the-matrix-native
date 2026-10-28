@@ -58,3 +58,5 @@ Values marked "at the sync commit" were observed at commit `024e949` with the sy
   `mu-viewer`, layout in `mu-render info`.
 - [Terrain view](./terrain-view.md): a world's terrain in `mu-viewer --terrain`, with backend agreement.
 - [Protocol CLI](./protocol-cli.md): frame building, parsing, dechunking and send obfuscation in `mu-proto`.
+- [Fixture sessions](./fixture-session.md): discovered full-stack session suites, inbound script events,
+  per-route hits and journal counts in `mu-session`. This path uses no renderer or socket listener.

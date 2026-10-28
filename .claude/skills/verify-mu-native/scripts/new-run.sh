@@ -28,7 +28,7 @@ dirty=false
   printf '  "commit": "%s",\n  "dirty": %s,\n' "$(git -C "$REPO" rev-parse HEAD)" "$dirty"
   printf '  "macos": "%s",\n  "binaries": {' "$(sw_vers -productVersion 2>/dev/null || echo unknown)"
   sep=''
-  for b in mu-client mu-world mu-walk mu-viewer mu-render mu-proto mu-terrain; do
+  for b in mu-client mu-world mu-walk mu-viewer mu-render mu-proto mu-terrain mu-session; do
     f="$REPO/native/build/$b"
     if [ -x "$f" ]; then
       printf '%s\n    "%s": "%s"' "$sep" "$b" "$(shasum -a 256 "$f" | cut -c1-64)"
