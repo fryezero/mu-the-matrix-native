@@ -1,5 +1,7 @@
 # Continue from here
 
+SESSION-COMBAT-001: plaintext loopback combat migration implemented; kills follow server frames, encrypted casts stay unsent. [Checks and limits](handoffs/SESSION-COMBAT-001.md).
+
 AUDIO-002 part 2: [handoff](handoffs/AUDIO-002B.md). Thirty caller sites have adapters into the character session ring; one NPC buff input remains unresolved. Combat, unmigrated domains, music 43/44 and LIVE-PLAY comparison remain separate.
 
 WORLD-ORDER-001: [handoff](handoffs/WORLD-ORDER-001.md). Tick/draw expectations now read compiled call records; native deviations are explicit. No runtime/order-number change.

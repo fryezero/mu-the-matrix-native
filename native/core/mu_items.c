@@ -51,19 +51,6 @@ static int32_t crt_rand(mu_world_items *it)
     return (int32_t)((it->crt_seed >> 16) & 0x7fffu);
 }
 
-static uint32_t demo_next(mu_world_items *it)
-{
-    it->demo_seed = it->demo_seed * 1664525u + 1013904223u;
-    return it->demo_seed >> 8;
-}
-
-static int32_t demo_range(mu_world_items *it, int32_t lo, int32_t hi)
-{
-    if (hi <= lo)
-        return lo;
-    return lo + (int32_t)(demo_next(it) % (uint32_t)(hi - lo + 1));
-}
-
 static const mu_gi_record *record_of(mu_world_items *it, int32_t code)
 {
     if (code < 0 || code > CODE_LIMIT || !it->has_table)
@@ -348,7 +335,6 @@ int mu_world_items_open(mu_world_items *it, const char *root, mu_walk *walk, con
     }
     load_sets(it);
     it->crt_seed = it->config.seed;
-    it->demo_seed = it->config.seed ^ 0x5a5a1234u;
     for (int i = 0; i < 100; ++i)   /* WinMain 0x0120e96b: table[i] = rand() % 360 after srand(time(NULL)) */
         it->random_table[i] = crt_rand(it) % 360;
     it->host.context = it;
@@ -584,6 +570,13 @@ int32_t mu_world_items_drop(mu_world_items *it, int32_t code, int32_t level_byte
         b[2] = (uint8_t)(zen >> 8);
         b[4] = (uint8_t)zen;
     }
+    return mu_world_items_receive_entry(it,slot,b,x,y,drop_flag);
+}
+
+int32_t mu_world_items_receive_entry(mu_world_items *it,int32_t slot,const uint8_t b[15],float x,float y,int32_t drop_flag)
+{
+    if(slot<0 || slot>=MU_GI_ITEMS)return -1;
+    int32_t code=mu_gi_item_code(b);
     /* ReceiveCreateItemViewport: reset, key, the label view byte, then CreateItem */
     mu_gi_item *gi = &it->pool[slot];
     memset(gi, 0, sizeof *gi);
@@ -617,58 +610,6 @@ static void schedule(mu_world_items *it, const mu_world_item_event *e)
     if (it->event_count >= MU_WORLD_ITEM_EVENTS)
         return;
     it->events[it->event_count++] = *e;
-}
-
-static void schedule_drop(mu_world_items *it, float x, float y)
-{
-    if (!it->table_count || demo_range(it, 1, 100) > it->config.drop_chance)
-        return;
-    int32_t pick = demo_range(it, 0, it->table_weight - 1);
-    const mu_world_item_drop *d = &it->table[0];
-    for (int32_t i = 0; i < it->table_count; ++i) {
-        if (pick < it->table[i].weight) {
-            d = &it->table[i];
-            break;
-        }
-        pick -= it->table[i].weight;
-    }
-    mu_world_item_event e;
-    memset(&e, 0, sizeof e);
-    e.kind = 1;
-    e.step = it->step + it->config.drop_latency;
-    e.code = d->code;
-    int32_t level = d->level_max ? demo_range(it, 0, d->level_max) : 0;
-    e.level = level << 3;
-    if (d->level_max) {
-        if (demo_range(it, 0, 99) < 30)
-            e.level |= 0x80;                       /* skill */
-        if (demo_range(it, 0, 99) < 25)
-            e.level |= 4;                          /* luck */
-        e.level |= demo_range(it, 0, 3) * (demo_range(it, 0, 99) < 40);
-    }
-    if (d->excellent_chance && demo_range(it, 0, 99) < d->excellent_chance)
-        e.excellent = (uint8_t)(1u << demo_range(it, 0, 5));
-    if (d->ancient_chance && !e.excellent && demo_range(it, 0, 99) < d->ancient_chance)
-        e.ancient = 5;                             /* set bits 1 and 4 (0x00cd0995(0) tests & 0x33) */
-    e.zen = d->zen_max ? demo_range(it, d->zen_min, d->zen_max) : 0;
-    e.x = x + (float)demo_range(it, -40, 40);
-    e.y = y + (float)demo_range(it, -40, 40);
-    schedule(it, &e);
-}
-
-void mu_world_items_watch_combat(mu_world_items *it, const struct mu_combat *c)
-{
-    if (!c || !c->actors)
-        return;
-    for (int32_t i = 0; i < c->actors->count && i < MU_WORLD_ACTORS_MAX; ++i) {
-        uint8_t dead = c->monsters[i].dead;
-        if (dead && !it->prev_dead[i]) {
-            ++it->stats.kills_seen;
-            const mu_world_actor *a = &c->actors->list[i];
-            schedule_drop(it, a->position[0], a->position[1]);
-        }
-        it->prev_dead[i] = dead;
-    }
 }
 
 /* ---------------------------------------------------------------- the step */

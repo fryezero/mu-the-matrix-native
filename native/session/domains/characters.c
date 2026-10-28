@@ -167,17 +167,6 @@ mu_apply characters_destroy(mu_session *s, const mu_frame *f)
     return MU_APPLY_DONE;
 }
 
-mu_apply characters_die(mu_session *s, const mu_frame *f)
-{
-    if (f->length < 5) return MU_APPLY_IGNORED;
-    int32_t i = mu_session_character_index(s, (uint16_t)((f->bytes[3] << 8) | f->bytes[4]));
-    if (i < 0) return MU_APPLY_IGNORED;
-    s->characters.records[i].dead = 1;
-    s->characters.records[i].movement = 0;
-    mu_session_touch(s, MU_DOMAIN_CHARACTERS);
-    return MU_APPLY_DONE;
-}
-
 mu_apply characters_stores(mu_session *s, const mu_frame *f)
 {
     if (f->length < 6 || f->length < 6u + 0x2fu * f->bytes[5]) return MU_APPLY_IGNORED;
