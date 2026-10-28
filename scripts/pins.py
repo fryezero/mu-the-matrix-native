@@ -262,6 +262,12 @@ SECTION3 = Pin('section3', '0571c519b1c4eaf97a143d2dd29bf2a3799e56b2f613cda0d084
                'x86-linux-capture-04/main-01ced000.bin', env=('MU_SECTION3', 'MU_DATA_SECTION'), base=0x01ced000,
                what='third section from 0x01ced000, x86-linux-capture-04 prefix file (not reproducible: the '
                     '2026-10-24 guest rebuild read a different whole-file digest)')
+# Effects maps only these initialized bytes, never the runtime tail of SECTION3.
+# Identity already recorded in client-effects.md; INTEGRATION-GREEN-001 changes scope, not bytes.
+EFFECTS_INIT = Pin('effects_init', '299d83842841fa2cdb619c42fa25d42c228971c9261d526c5743102092729f32', 0x12a00,
+                   SECTION3.relative, env=('MU_EFFECTS_SECTION3', 'MU_SECTION3', 'MU_DATA_SECTION'),
+                   whole=False, base=SECTION3.base,
+                   what='effects initialized section-3 range 0x01ced000..0x01cffa00, capture-04')
 DIRECTIONS = Pin('directions', 'a8cc45492d67c784853284cd426fd5c48a994a55d124bd970c1da1e46616f8b5', 64,
                  'path-table-live-01/live-a-01ced000.bin', env=('MU_PATH_DIRECTIONS',), offset=0x01cf1640 - 0x01ced000,
                  whole=False, base=0x01cf1640,
@@ -269,9 +275,9 @@ DIRECTIONS = Pin('directions', 'a8cc45492d67c784853284cd426fd5c48a994a55d124bd97
                       'x86-linux-capture-04 or x86-guest-sec3-25)')
 TARGET = Pin('target', '3cf91f3c203d305a771b04d00b271871f7ce1c6779b22e30fbae8c4f35b5527a', 32229376,
              'input/main.exe', root='repo', env=('MU_TARGET_EXE',), what='the pinned client main.exe')
-V14_MANIFEST = Pin('v14_manifest', 'fffcbad941e9bad394489382e79ad6d9d2e9f405847975de0eff113babd366ff', None,
+V14_MANIFEST = Pin('v14_manifest', '27afde534d6b2d2af7fd4e551a9c3217416329089b2a3652c9f396a3f09884e0', None,
                    'model-recovery/verified-v14/manifest.json', root='repo', env=('MU_V14_MANIFEST',),
-                   what='verified-v14 private model corpus manifest')
+                   what='strict model corpus scan without exports; provenance in docs/model-recovery.md')
 EDGE_DIAGNOSTICS = Pin('edge_diagnostics', 'ba945b166c52e068a4ed12bbbc67a27f68d697fcf64197aaff627b09e45b909a', None,
                        'model-edge/diagnostics.json', env=('MU_EDGE_DIAGNOSTICS',),
                        what='rejected v15 model diagnostics (model-edge)')
@@ -309,7 +315,7 @@ OBJECTS_LOGIN = Pin('objects_login', '8b94aba21bd18cb5d114f8918a7af8465d0fafe9a6
                     what='decoded login-scene object file EncTerrain95 (local plaintext of an installed file)')
 
 PINS = {pin.name: pin for pin in (TEXT, TEXT08, DATA, FLAG, FEATURE, FEATURE09, RECORD_BIAS, RECORD_TEMPLATE,
-                                   SECTION3, DIRECTIONS, TARGET, V14_MANIFEST, EDGE_DIAGNOSTICS,
+                                   SECTION3, EFFECTS_INIT, DIRECTIONS, TARGET, V14_MANIFEST, EDGE_DIAGNOSTICS,
                                    LANG3, LANG4, QUEST_LANG5, SKILL_LANG5, SKILL_TREE4, LIGHT_LOGIN,
                                    OBJECTS_LOGIN)}
 # Digests pinned here that are not files of their own (checked by tests/test_pins.py like the others).

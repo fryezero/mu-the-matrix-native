@@ -66,6 +66,13 @@ Every validator finds its pinned inputs through `scripts/pins.py`:
 - then the pin's variable (`MU_CLIENT_TEXT`, `MU_IMAGE_DATA`, ...);
 - then `MU_EVIDENCE_DIR` (default `evidence/`).
 
+Effects uses `effects_init`, the exact initialized range of capture-04. `MU_EFFECTS_SECTION3` may point
+at a range-only file starting at `0x01ced000`; `MU_SECTION3` still supplies the full capture for objects.
+The fresh guest section is not interchangeable. The current strict model scan without exports supplies
+`MU_V14_MANIFEST`. See [private input provenance](research/private-integration-inputs.md) for digests,
+reproduction and the explained historical manifest difference. Keep `MU_EDGE_DIAGNOSTICS` pointed at the
+original pinned rejected-model diagnostics; a structural scan is not a replacement for that report.
+
 Langread snapshots resolve under `MU_SNAPSHOT_DIR`. From a worktree, point `MU_EVIDENCE_DIR` at the main
 checkout's `evidence/`.
 
