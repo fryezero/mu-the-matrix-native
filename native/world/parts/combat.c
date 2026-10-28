@@ -1,8 +1,7 @@
 /* parts/combat.c (WORLD-RT-001): combat (NATIVE-COMBAT-001/002, core/mu_combat): a click on a monster attacks it
  * with the client's attack rules (range, facing, SetPlayerAttack action, SetAttackSpeed PlaySpeed, AttackTime and
  * the end-of-attack effects); damage text, hit reactions, death, fade and removal run the client routines.  The
- * server side (damage, death, respawn, counter-attacks) is a labelled DEMO inside core/mu_combat until
- * SESSION-COMBAT-001 moves it to the fixture. */
+ * synthetic server policy lives in fixture/behaviors/combat.c; all results arrive through the session. */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -37,7 +36,7 @@ int world_rt_combat_respawned(void *context)
 static void combat_drop(void *context,const uint8_t entry[19])
 {
     mu_world_rt *a=context;if(!a->ground)return;
-    uint16_t key=(uint16_t)((entry[0]<<8)|entry[1]);int32_t slot=key&0x7fff;if(slot>=1000)slot=0;
+    uint16_t key=(uint16_t)((entry[0]<<8)|entry[1]);int32_t slot=key&0x7fff;if(slot>=1000)return;
     mu_world_items_receive_entry(a->ground,slot,entry+4,((float)entry[2]+0.5f)*100,((float)entry[3]+0.5f)*100,key>>15);
 }
 

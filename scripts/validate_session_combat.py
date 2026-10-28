@@ -33,7 +33,7 @@ class Machine:
     def __init__(self,t,d):
         self.cl=vp.Client(t,d);self.m=self.cl.m
         self.m.allow((0x191c5a0,0x191c5e0),(0x1224455,0x1224b62),(0x1234585,0x1234c08),(0x1222b6d,0x1222cba),
-                     (0x1222e9b,0x1222f27),(0x1222f53,0x1222f89),(0x122373b,0x122374d),
+                     (0x1222e9b,0x1222f45),(0x1222f53,0x1222f89),(0x122373b,0x122374d),
                      (0x16b6214,0x16b6361),(0x16b6361,0x16b6602),(0x16b5cd0,0x16b617f))
         self.m.stubs.pop(0x16b5cd0, None)
         self.packet=[];self.sends=[];self.shock=[];self.infos=[]
@@ -41,7 +41,7 @@ class Machine:
         self.cl.stub(0x137c724,lambda m:self.target if m.args(1)[0]==self.target_key else 0xffff)
         self.cl.stub(0x95f6db,lambda m:0)
         self.cl.stub(0x9a13f4,lambda m:self.char if m.args(1)[0]==self.target else 0)
-        for a in [0x9dacb8,0x9dacec,0xd03d0c,0x1295ade,0xcd6017,0xfdc2d4,0xdb747f,0x129debb,0xaca4bc]:
+        for a in [0x1989721,0x9dacb8,0x9dacec,0xd03d0c,0x1295ade,0xcd6017,0xfdc2d4,0xdb747f,0x129debb,0xaca4bc]:
             self.cl.stub(a,lambda m:0)
         for a in [0xd038db,0x9c104e,0xcd4ea8,0x106ba49,0x9fd699,0xc6b292,0x9617c6,0x94997e,0x94f183,0xd51b91,0xd51ba6]:
             self.cl.stub(a,lambda m:0)
@@ -63,10 +63,6 @@ class Machine:
         self.cl.stub(0xd51baf,self.begin)
         self.cl.stub(0xd51c9b,self.add)
         self.cl.stub(0xd51d4f,lambda m:self.sends.append((bytes(self.packet),m.args(2))) or 0)
-        # Execute action's known case directly after its common prefix; never read its jump table.
-        def switch(uc,*args):
-            uc.reg_write(vp.cm.UC_X86_REG_EIP,0x1222f53)
-        self.m.uc.hook_add(vp.cm.UC_HOOK_CODE,switch,begin=0x1222f27,end=0x1222f27)
     def ecx(self):return self.m.uc.reg_read(vp.cm.UC_X86_REG_ECX)
     def begin(self,m):
         head,op=m.args(2);self.packet[:]=[head,0,op];return 0
@@ -90,7 +86,7 @@ def run(t,d,l,n):
         for i in range(n):
             machine.reset();c=buf(bytes(0x3700));a=buf(bytes(0x1000));out=buf(bytes(16))
             if family=='damage':
-                p=bytearray(24);p[:5]=bytes([0xc1,24,0x15,0x84 if i%2 else 4,0]);p[13]=0x80|(i%16);p[12]=i%8;p[16]=i%3
+                p=bytearray(24);p[:5]=bytes([0xc1,24,0x15,0x84 if i%2 else 4,0]);p[13]=0x80|((i*17)%128);p[12]=i%8;p[16]=i%3
                 damage=rng.randrange(0,100000);shield=rng.randrange(0,10000)
                 if i%3==0:
                     m.put32(0x6fca288,0x400)
@@ -100,7 +96,7 @@ def run(t,d,l,n):
                 struct.pack_into('<i',p,8,damage);struct.pack_into('<i',p,20,shield)
                 machine.call(0x1224455,p);info=Damage();assert l.mu_combat_damage_body(buf(p),len(p),c,a,0x400 if i%3==0 else 0x7777,C.byref(info))
                 assert m.read(machine.char+0x14a,2)==bytes(c)[0x14a:0x14c]
-                assert info.key==0x400 and info.amount==damage and info.type==i%16
+                assert info.key==0x400 and info.amount==damage and info.type==(p[13]&15)
                 assert len(machine.shock)==i%2
                 assert m.read(machine.attr+0x68,4)==bytes(a)[0x68:0x6c]
                 assert m.read(machine.attr+0x78,4)==bytes(a)[0x78:0x7c]
@@ -108,25 +104,35 @@ def run(t,d,l,n):
                     raw=machine.infos[0];assert struct.unpack_from('<ii',raw)==(info.amount,info.type)
                     assert raw[8:14]==bytes([info.flags[3],info.flags[2],info.flags[4],info.flags[7],info.flags[5],info.flags[6]])
             elif family=='die':
-                p=bytearray([0xc1,9,0x17,4,0,0,i%39,0,0]);machine.call(0x1234585,p)
+                skill=[0,40,59,392,65535][i%5]
+                p=bytearray([0xc1,9,0x17,4,0,skill>>8,skill&255,0,0]);machine.call(0x1234585,p)
                 assert l.mu_combat_die_body(buf(p),len(p),c)
                 for off,size in [(0x23,1),(0x38,1),(0x2a,1),(0x3230,4),(0x3234,1),(0x325c,1)]:assert m.read(machine.char+off,size)==bytes(c)[off:off+size],(family,i,hex(off))
             elif family=='action':
                 x,y=rng.randrange(256),rng.randrange(256)
                 m.put32(machine.char+0x180,x);m.put32(machine.char+0x184,y);struct.pack_into('<ii',c,0x180,x,y)
-                p=bytes([0xc1,9,0x18,4,0,i%256,0x78,0xff,0xff]);machine.call(0x1222b6d,p)
+                p=bytes([0xc1,9,0x18,4,0,i%256,0x78+i%2,0xff,0xff]);machine.call(0x1222b6d,p)
                 assert l.mu_combat_action_body(buf(p),len(p),c,-1,0,0)
                 for off,size in [(0x21,1),(0x38,1),(0x40,2),(0x3324,4),(0x33ac,8),(0x33c0,4)]:assert m.read(machine.char+off,size)==bytes(c)[off:off+size],(family,i,hex(off))
             elif family=='attack':
-                key=rng.randrange(65536);direction=i%256;m.call(0x16b6214,[key,direction])
-                size=l.mu_combat_attack_request(out,key,direction,0);raw,args=machine.sends[0]
+                key=rng.randrange(65536);direction=i%256
+                blocked=i%3==0;machine.cl.stub(0x129debb,lambda m:int(blocked))
+                m.call(0x16b6214,[key,direction])
+                size=l.mu_combat_attack_request(out,key,direction,blocked)
+                if blocked:
+                    assert size==0 and not machine.sends
+                    continue
+                raw,args=machine.sends[0]
+                assert size==len(raw) and out[0]==raw[0] and out[1]==size
                 assert args==[0,0] and bytes(out)[2:size]==raw[2:]
             elif family=='cast':
                 machine.skill=i%256;machine.kind=11 if i%2 else 0
                 x,y=rng.randrange(256),rng.randrange(256);p=m.alloc(12,define=True);m.write(p,struct.pack('<fff',x*100,y*100,0));m.call(0x16b6361,[p])
                 size=l.mu_combat_cast_request(out,x,y,machine.skill,machine.kind);raw,args=machine.sends[0]
+                assert size==len(raw) and out[0]==raw[0] and out[1]==size
                 assert args==[1,0] and bytes(out)[2:size]==raw[2:]
             else:
+                machine.cl.stub(0x129debb,lambda m:0)
                 count=i%16;x=[120];y=[120]
                 deltas=[(-1,-1),(-1,0),(-1,1),(0,1),(1,1),(1,0),(1,-1),(0,-1)]
                 for j in range(14):
@@ -144,9 +150,20 @@ def run(t,d,l,n):
         counts[family]=n
     return counts
 
+def verify_static_routes(text):
+    """Read only the two authorized slots and their selected call sites, never export a table."""
+    base=0x401000
+    for opcode,block,call,handler in [(0xf3,0x12885f7,0x12885fa,0x1224455),
+                                       (0xc5,0x1288613,0x1288619,0x1222b6d)]:
+        assert struct.unpack_from('<I',text,0x128e59d+4*opcode-base)[0]==block
+        assert text[call-base]==0xe8
+        assert call+5+struct.unpack_from('<i',text,call+1-base)[0]==handler
+
+
 def main():
-    ap=argparse.ArgumentParser();ap.add_argument('--cases',type=int,default=300);ap.add_argument('--output',type=Path);ap.add_argument('--mutants',action='store_true');args=ap.parse_args()
-    t=pins.load_pinned(pins.TEXT.default(),pins.TEXT.size,pins.TEXT.sha256,'text');d=pins.load_pinned(pins.DATA.default(),pins.DATA.size,pins.DATA.sha256,'data')
+    ap=argparse.ArgumentParser();ap.add_argument('--cases',type=int,default=300);ap.add_argument('--text',type=Path,default=pins.TEXT.default());ap.add_argument('--data',type=Path,default=pins.DATA.default());ap.add_argument('--output',type=Path);ap.add_argument('--mutants',action='store_true');args=ap.parse_args()
+    t=pins.load_pinned(args.text,pins.TEXT.size,pins.TEXT.sha256,'text');d=pins.load_pinned(args.data,pins.DATA.size,pins.DATA.sha256,'data')
+    verify_static_routes(t)
     with tempfile.TemporaryDirectory() as tmp:
         path=Path(tmp)/'combat.dylib';build(SRC,path);counts=run(t,d,lib(path),args.cases)
         caught=[]

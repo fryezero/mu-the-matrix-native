@@ -1,5 +1,8 @@
 # Current status
 
+SESSION-COMBAT-001: plaintext loopback combat migration implemented; kills follow server frames, encrypted casts stay unsent. [Checks and limits](handoffs/SESSION-COMBAT-001.md).
+
+
 
 RENDER-WORLDS-C2: persistent Icarus cloud cover and `0x472/1` emitter ribbons implemented; ambient clock corrected. Image error falls to 26.897 / 27.663 at 25 / 400 steps. [Evidence](research/client-world-fidelity.md#7-render-worlds-c2-persistent-icarus-cover-and-emitter-ribbons), [handoff](handoffs/RENDER-WORLDS-C2.md).
 

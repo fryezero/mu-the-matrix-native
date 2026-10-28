@@ -8,5 +8,8 @@ typedef struct mu_dom_combat {
     uint16_t hero_key;
     uint16_t last_damage[400];
     uint8_t killing_skill[400];
+    uint8_t death_flag[400],attack_time[400];
+    int16_t target_index[400];
+    float voice[400];
 } mu_dom_combat;
 #endif

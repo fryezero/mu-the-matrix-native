@@ -651,7 +651,7 @@ static void quest_close(void *self)
     free(s);
 }
 const mu_fixture_behavior mu_fx_quest = {"quest",    quest_open,    quest_request,
-                                         quest_step, quest_command, quest_close};
+                                         quest_step, quest_command, quest_close, NULL};
 
 /* Legacy demo-tool facade. It owns a fixture and a session, never client state. */
 static quest_demo *server(mu_quest_session *s)

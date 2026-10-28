@@ -20,10 +20,9 @@
  *     0x013a5ea1, removal) and the monster attack toward the hero (action
  *     packet 0x78: SetPlayerAttack's monster branch, AttackTime).
  *
- * DEMO, not client behaviour (there is no server): who hits, the damage
- * values, types and the miss chance, the hit-point pools, the latency of
- * the damage and death packets, the monsters' counter-attacks and their
- * timing, the respawn after removal, the skill ranges without the client's
+ * SESSION-COMBAT-001: damage, death, attacks and respawns arrive from the session.
+ * Synthetic server policy lives in fixture/behaviors/combat.c. Encrypted casts
+ * remain journaled as unsent. Viewer choices include skill ranges without the client's
  * skill table (NATIVE-LANG-001 supplies it from MU_LANG_DIR), auto-repeating the
  * attack while the target lives, and the picking of a monster under the
  * cursor (a cylinder around the actor, not the client's selection routine).

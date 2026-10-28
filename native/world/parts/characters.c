@@ -25,6 +25,25 @@ typedef struct characters_part {
 
 void world_rt_actors_sync(mu_world_rt *a);
 
+static void hero_motion(void *context,int32_t tile[2],float position[3],float angle[3])
+{
+    mu_world_players *p=context;const mu_hero *h=&p->walk->hero;
+    memcpy(tile,h->tile,sizeof h->tile);memcpy(position,h->position,sizeof h->position);
+    memcpy(angle,h->angle,sizeof h->angle);
+}
+
+static void place_hero(void *context,const mu_place *place)
+{
+    mu_world_players *p=context;mu_walk *w=p->walk;
+    mu_walk_stop(w);
+    memcpy(w->hero.tile,place->tile,sizeof w->hero.tile);
+    w->hero.position[0]=(float)place->tile[0]*100+50;
+    w->hero.position[1]=(float)place->tile[1]*100+50;
+    w->hero.position[2]=mu_request_terrain_height(p->map->height,p->map->attributes,p->map->water_height,
+        6,w->hero.position[0],w->hero.position[1]);
+    w->hero.angle[2]=place->angle;
+}
+
 static void record_action(void *context, int32_t slot, uint16_t action, uint16_t prior)
 {
     characters_part *p = context;
@@ -72,6 +91,7 @@ attach:
     p->services.map = a->map; p->services.walk = &a->walk;
     mu_world_port port;
     mu_world_players_port(a->players ? a->players : &p->services,&port);
+    port.hero_motion=hero_motion;port.place_hero=place_hero;
     mu_session_detach_world(p->session);
     mu_session_attach_world(p->session,&port);
     if (a->players) {
@@ -104,7 +124,7 @@ static void characters_tick(mu_world_rt *a, void *self)
 {
     characters_part *p=self;
     if(!p->session)return;
-    /* Until SESSION-COMBAT, preserve its presentation-only sink/respawn motion through the lease. */
+    /* Preserve combat's presentation sink through the single motion lease. */
     if (a->combat && a->has_actors) {
         mu_sim old = mu_session_sim_begin(p->session);
         for (int32_t k = 0; k < a->actors.count; ++k) {

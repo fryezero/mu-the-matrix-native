@@ -130,7 +130,6 @@ typedef struct mu_world_items {
     char (*record_names)[65];
     int32_t random_table[100];  /* 0x06fc9cb8: rand() % 360 at WinMain */
     uint32_t crt_seed;          /* rand() 0x01989721 state */
-    uint32_t demo_seed;
     mu_gi_host host;
     int32_t view;               /* hudPlayerName +0x5c: label view (Alt toggles, starts 1) */
     int32_t selected;           /* SelectedItem 0x01cf114c */
@@ -139,7 +138,6 @@ typedef struct mu_world_items {
     int32_t pickup_wait;        /* the request was sent; waiting for the answer */
     mu_world_item_event events[MU_WORLD_ITEM_EVENTS];
     int32_t event_count;
-    uint8_t prev_dead[MU_WORLD_ACTORS_MAX];
     mu_world_item_model models[MU_WORLD_ITEM_MODELS];
     int32_t model_count;
     mu_character *mannequin;    /* the Player skeleton armour parts are posed with (RenderItems poses model 0xa91) */

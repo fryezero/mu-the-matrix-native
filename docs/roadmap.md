@@ -1,5 +1,8 @@
 # Roadmap and work queue
 
+SESSION-COMBAT-001: plaintext loopback combat migration implemented; kills follow server frames, encrypted casts stay unsent. [Checks and limits](handoffs/SESSION-COMBAT-001.md).
+
+
 
 RENDER-WORLDS-D implements nested warp effects and Noria's missing portal. All fourteen capture views have zero missing/extra placements. [Checks and limits](handoffs/RENDER-WORLDS-D.md).
 

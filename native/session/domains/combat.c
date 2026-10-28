@@ -1,8 +1,10 @@
 /* SESSION-COMBAT-001. Plaintext fixture only; keyed wire construction remains separate. */
 #include "../session_internal.h"
+#include "../../../reconstructed/movement/client_movement.h"
 #include <string.h>
 #ifdef MU_SESSION_SEED
 #include "../mu_session_seed.h"
+#include "../../fixture/mu_fixture.h"
 #endif
 static uint16_t key_at(const uint8_t *p) { return (uint16_t)((p[0]<<8)|p[1]); }
 static void event(mu_session *s,mu_combat_frame_event *e)
@@ -23,8 +25,9 @@ uint16_t mu_session_combat_hero_key(const mu_session *s) { return s->combat.hero
 mu_apply combat_drop(mu_session *s,const mu_frame *f)
 {
     if(f->head!=0xc2 || f->length<5) return MU_APPLY_IGNORED;
-    unsigned count=f->bytes[4]<75?f->bytes[4]:75;
+    unsigned count=f->bytes[4];
     if(f->length<5+19*count) return MU_APPLY_IGNORED;
+    if(count>75) count=75;
     for(unsigned i=0;i<count;++i) {
         mu_combat_frame_event e={.kind=4};memcpy(e.drop,f->bytes+5+i*19,19);event(s,&e);
     }
@@ -48,12 +51,15 @@ mu_apply combat_die(mu_session *s,const mu_frame *f)
     if(f->length<9 || f->head!=0xc1) return MU_APPLY_IGNORED;
     uint16_t key=key_at(f->bytes+3);int32_t i=mu_session_character_index(s,key);
     if(i<0 && key!=s->combat.hero_key) return MU_APPLY_IGNORED;
-    uint8_t raw[0x3700]={0};mu_combat_die_body(f->bytes,f->length,raw);
+    uint8_t raw[0x3700]={0};
+    if(i>=0)mu_character_project(&s->characters.records[i],raw,sizeof raw);
+    else memcpy(raw,s->hero.record,sizeof s->hero.record);
+    mu_combat_die_body(f->bytes,f->length,raw);
     if(i>=0) {
-        mu_rp_character *c=&s->characters.records[i];c->dead=raw[0x23];c->movement=raw[0x38];
-        c->field_3230=0;c->transformed=0;s->combat.killing_skill[i]=raw[0x2a];
+        mu_character_restore(&s->characters.records[i],raw,sizeof raw);
+        s->combat.killing_skill[i]=raw[0x2a];s->combat.death_flag[i]=raw[0x325c];
         mu_session_touch(s,MU_DOMAIN_CHARACTERS);
-    } else {s->hero.record[0x23]=1;s->hero.record[0x38]=0;mu_session_touch(s,MU_DOMAIN_HERO);}
+    } else {memcpy(s->hero.record,raw,sizeof s->hero.record);mu_session_touch(s,MU_DOMAIN_HERO);}
     mu_combat_frame_event e={.kind=2,.key=key,.skill=key_at(f->bytes+5)};event(s,&e);return MU_APPLY_DONE;
 }
 mu_apply combat_action(mu_session *s,const mu_frame *f)
@@ -61,24 +67,38 @@ mu_apply combat_action(mu_session *s,const mu_frame *f)
     if(f->length<9 || f->head!=0xc1 || (f->bytes[6]!=0x78 && f->bytes[6]!=0x79)) return MU_APPLY_IGNORED;
     uint16_t key=key_at(f->bytes+3),target=key_at(f->bytes+7);int32_t i=mu_session_character_index(s,key);
     if(i<0) return MU_APPLY_IGNORED;
-    mu_rp_character *c=&s->characters.records[i];c->movement=0;c->angle[2]=((float)f->bytes[5]-1)*45;
-    c->position[0]=(float)c->tile[0]*100+50;c->position[1]=(float)c->tile[1]*100+50;
-    /* Target-facing geometry is supplied by the attached presentation; absent targets retain packet direction. */
+    mu_rp_character *c=&s->characters.records[i];
+    int32_t ti=mu_session_character_index(s,target);
+    int has_target=ti>=0 || target==s->combat.hero_key;
+    int32_t hero_tile[2];float hero_position[3],hero_angle[3];
+    mu_session_hero_motion(s,hero_tile,hero_position,hero_angle);
+    int32_t tx=ti>=0?s->characters.records[ti].tile[0]:hero_tile[0];
+    int32_t ty=ti>=0?s->characters.records[ti].tile[1]:hero_tile[1];
+    float angle=has_target?mu_create_angle((float)c->tile[0],(float)c->tile[1],(float)tx,(float)ty):0;
+    uint8_t raw[0x3700]={0};mu_character_project(c,raw,sizeof raw);
+    mu_combat_action_body(f->bytes,f->length,raw,(int16_t)(ti>=0?ti:-1),has_target,angle);
+    mu_character_restore(c,raw,sizeof raw);
+    s->combat.attack_time[i]=raw[0x21];s->combat.target_index[i]=(int16_t)ti;
+    memcpy(&s->combat.voice[i],raw+0x3324,4);
     mu_session_touch(s,MU_DOMAIN_CHARACTERS);
     mu_combat_frame_event e={.kind=3,.key=key,.target=target};event(s,&e);return MU_APPLY_DONE;
 }
 static mu_submit send_plain(mu_session *s,uint8_t *b,size_t n,int encrypted)
 {
     mu_submit r={MU_SUBMIT_REFUSED,-1};if(!n) return r;
-    /* Only seed/tool builds can submit requests to loopback using the existing verified AddData. Product must not
-     * send them as real wire bytes, since AddData's keyed layer is explicitly out of this lane. */
-#ifndef MU_SESSION_SEED
-    (void)s;(void)b;(void)encrypted;return r;
-#else
-    if(!mu_endpoint_is_loopback(&s->cfg.connect_server)) return r;
-    mu_packet p;mu_packet_begin(&p,b[0],b[2]);mu_packet_add(&p,b+3,n-3,1);
-    r.status=mu_session_send(s,&p,encrypted)==MU_SEND_OK?MU_SUBMIT_SENT:MU_SUBMIT_NOT_NOW;return r;
+    /* Plain AddData only. Never enter keyed AddData, decode or the crypto wrap here. */
+    mu_packet p;mu_packet_begin(&p,b[0],b[2]);mu_packet_add(&p,b+3,n-3,0);
+#ifdef MU_SESSION_SEED
+    if(!encrypted && mu_fixture_is_transport(s->cfg.transport) && mu_endpoint_is_loopback(&s->cfg.connect_server)) {
+        r.status=mu_session_send(s,&p,0)==MU_SEND_OK?MU_SUBMIT_SENT:MU_SUBMIT_NOT_NOW;
+        return r;
+    }
 #endif
+    mu_packet_finish(&p);
+    mu_journal_frame_out(s->cfg.journal,s->tick,s->now,s->conn_main,p.obj+2,(uint32_t)n,MU_SEND_NEEDS_CRYPTO,encrypted);
+    ++s->unsent;
+    r.status=MU_SUBMIT_NOT_NOW;
+    return r;
 }
 mu_submit combat_attack(mu_session *s,const mu_intent *in)
 {

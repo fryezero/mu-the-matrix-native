@@ -1,5 +1,8 @@
 # Continue from here
 
+SESSION-COMBAT-001: plaintext loopback combat migration implemented; kills follow server frames, encrypted casts stay unsent. [Checks and limits](handoffs/SESSION-COMBAT-001.md).
+
+
 
 RENDER-WORLDS-C2: [handoff](handoffs/RENDER-WORLDS-C2.md). Persistent cover, owner-aware emitter ribbons and integer ambient clock are implemented. Raw Icarus image error is 26.897 / 27.663; exact captured animation phase remains unavailable.
 

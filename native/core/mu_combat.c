@@ -701,13 +701,7 @@ static void move_pools(mu_combat *c)
     c->particle_count = kept;
 }
 
-/* ---------------------------------------------------------------- the demo server */
-
-
-
-/* Demo damage roll: 10% miss, 10% critical (type 3), 10% excellent (type 2),
- * 5% double damage (packet[0x0d] bit 7 -> stacked points), else normal. */
-
+/* ---------------------------------------------------------------- receive presentation */
 
 static float terrain_height(void *context, float x, float y)
 {
@@ -720,9 +714,6 @@ static float env_terrain_height(void *context, float x, float y)
     const mu_combat *c = context;
     return terrain_height((void *)c->map, x, y);
 }
-
-/* Demo server: one damage message for an actor after delay steps; the
- * projectile attack's rolled damage when it is the pending one. */
 
 
 static void show_damage(mu_combat *c, int32_t key, const float position[3], int32_t damage, int32_t type,
@@ -984,8 +975,17 @@ static void hero_decide(mu_combat *c)
     if (!mu_in_range(h->tile[0], h->tile[1], a->tile[0], a->tile[1], range)) {
         /* walk toward the target (the client paths with PathFinding2 and the
          * range for classes 2 and 10; the demo does it for every class) */
-        if (!h->movement || w->target[0] != a->tile[0] || w->target[1] != a->tile[1])
+        if (!h->movement || w->target[0] != a->tile[0] || w->target[1] != a->tile[1]) {
             mu_walk_path_to(w, a->tile[0], a->tile[1]);
+            if(c->session && h->movement) {
+                mu_intent in={.kind=MU_INTENT_COMBAT_MOVE};
+                memcpy(in.u.combat_move.x,h->path.x,15);memcpy(in.u.combat_move.y,h->path.y,15);
+                in.u.combat_move.count=h->path.count;in.u.combat_move.target_x=(uint8_t)w->target[0];
+                in.u.combat_move.target_y=(uint8_t)w->target[1];in.u.combat_move.angle=h->angle[2];
+                mu_submit submitted=mu_session_submit(c->session,&in);
+                if(submitted.status==MU_SUBMIT_SENT)++c->stats.requests_sent;else ++c->stats.requests_unsent;
+            }
+        }
         return;
     }
     if (h->movement)
@@ -1670,13 +1670,13 @@ void mu_combat_report_summary(const mu_combat *c, FILE *out, int quiet)
             " \"monster_attacks\": %u, \"hero_hits\": %u, \"picks\": %u, \"pick_hits\": %u,"
             " \"particles_created\": %u, \"joints_created\": %u, \"projectile_hits\": %u, \"area_requests\": %u,"
             " \"sprites\": %u, \"unsupported\": %u, \"hero_shocks\": %u, \"hero_deaths\": %u,"
-            " \"monster_voices\": %u,"
+            " \"monster_voices\": %u, \"requests_sent\": %u, \"requests_unsent\": %u,"
             " \"sounds\": %u, \"bitmaps_loaded\": %d, \"models_loaded\": %d, \"skill_table\": %d}\n",
             c->config.weapon, (double)c->config.attack_speed, s->attacks, s->skills, s->arrows, s->fx_created,
             s->hits, s->misses, s->shocks, s->kills, s->deaths, s->removed, s->respawns, s->points_created,
             s->monster_attacks, s->hero_hits, s->picks, s->pick_hits, s->particles_created, s->joints_created,
             s->projectile_hits, s->area_requests, s->sprites, s->unsupported, s->hero_shocks, s->hero_deaths,
-            s->monster_voices,
+            s->monster_voices, s->requests_sent, s->requests_unsent,
             c->sounds_played, loaded_bitmaps(c), loaded_models(c), (int)mu_lang_skill_count(c->lang));
     if (!quiet)
         for (int32_t i = 0; i < c->log_count; ++i)

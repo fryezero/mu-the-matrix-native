@@ -7,10 +7,12 @@ at 1 client quest-data native/fixture/scenarios/quest-tables
 at 2 monsters actor 3 121 120 1 label Spider
 at 2 combat actor 1024 3 121 120
 at 3 client submit combat_attack 1024 1
+at 4 send game c1 09 c5 04 00 01 79 00 01
 at 8 client submit combat_cast 121 120 17
 at 9 client lease
 expect unbound = 0
 expect undecodable = 0
+expect combat.action = 1
 expect combat.damage = 1
 expect combat.die = 1
 expect combat.drop = 1

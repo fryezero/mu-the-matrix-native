@@ -6,12 +6,12 @@
 #include <string.h>
 #define ACTORS 400
 #define QUEUE 64
-typedef struct fighter { uint16_t key, cls; int32_t hp; uint8_t x,y,dead,used; uint32_t counter_due,respawn_due; } fighter;
+typedef struct fighter { uint16_t key, cls; int32_t hp; uint8_t x,y,dead,used; uint32_t counter_due,respawn_due,kills; } fighter;
 typedef struct pending { uint32_t due; uint16_t key; int32_t amount,type; uint8_t flag8; } pending;
 typedef struct combat_fixture {
     fighter actors[ACTORS];pending queue[QUEUE];int count;
     int32_t hp,lo,hi,latency,respawn,counter,hero_hp,hero_max,hero_respawn;
-    uint32_t rng,hero_due;uint16_t hero_key;uint8_t hero_dead,hero_ready,hero_joined;int32_t hero_x,hero_y,world;
+    uint32_t rng,hero_due;uint16_t hero_key;uint8_t hero_dead,hero_ready,hero_joined;int32_t hero_x,hero_y,home_x,home_y,world;
 } combat_fixture;
 static int arg(const char *args,const char *name,int value)
 {
@@ -34,14 +34,15 @@ static void send_frame(mu_fixture_ctx *ctx,uint8_t *b,size_t size)
 static void put32(uint8_t *p,int32_t v) { memcpy(p,&v,4); }
 static void rewards(combat_fixture *s,mu_fixture_ctx *ctx,fighter *f)
 {
-    (void)s;
+    ++f->kills;uint32_t kills=0;
+    for(int i=0;i<ACTORS;++i)if(s->actors[i].used && s->actors[i].cls==f->cls)kills+=s->actors[i].kills;
     int l=1+f->cls%40,gain=(l+25)*l/3;
     uint8_t exp[10]={0xc1,10,0x16,(uint8_t)(f->key>>8),(uint8_t)f->key,(uint8_t)(gain>>8),(uint8_t)gain};send_frame(ctx,exp,sizeof exp);
     /* Synthetic Short Sword, one viewport row. SESSION-ITEMS will own the full ground domain. */
-    uint8_t drop[24]={0xc2,0,24,0x20,1,0x80,1,f->x,f->y};drop[9]=0;drop[10]=0;drop[11]=255;
+    uint8_t drop[24]={0xc2,0,24,0x20,1,0x80,1,f->x,f->y};drop[9]=1;drop[10]=0;drop[11]=255;
     send_frame(ctx,drop,sizeof drop);
     uint8_t quest[48]={0xc1,48,0xa4};for(int i=0;i<5;++i) {put32(quest+8+i*8,-1);put32(quest+12+i*8,-1);}
-    put32(quest+8,f->cls);put32(quest+12,1);send_frame(ctx,quest,sizeof quest);
+    put32(quest+8,f->cls);put32(quest+12,(int32_t)kills);send_frame(ctx,quest,sizeof quest);
 }
 static void schedule(combat_fixture *s,mu_fixture_ctx *ctx,uint16_t key,int amount,int type,int flag8,uint32_t delay)
 {
@@ -72,6 +73,7 @@ void mu_combat_demo_observe(void *state,const mu_world_actors *a,int32_t hero_x,
 {
     combat_fixture *s=state;if(!s)return;
     s->world=a->map?a->map->world:0;
+    if(!s->hero_ready) {s->home_x=hero_x;s->home_y=hero_y;}
     s->hero_x=hero_x;s->hero_y=hero_y;s->hero_ready=1;
     for(int i=0;i<a->count;++i) {
         const mu_world_actor *actor=&a->list[i];if(actor->actor.spec.monster_type<0)continue;
@@ -99,7 +101,7 @@ static int command(void *self,mu_fixture_ctx *ctx,const char *line,char *error,s
 }
 static void hero_place(combat_fixture *s,mu_fixture_ctx *ctx)
 {
-    uint8_t b[32]={0xc1,32,0xa0,0x30,(uint8_t)s->hero_x,(uint8_t)s->hero_y,(uint8_t)s->world,(uint8_t)(s->world>>8),1};
+    uint8_t b[32]={0xc1,32,0xa0,0x30,(uint8_t)s->home_x,(uint8_t)s->home_y,(uint8_t)s->world,(uint8_t)(s->world>>8),1};
     b[10]=(uint8_t)s->hero_max;b[11]=(uint8_t)(s->hero_max>>8);send_frame(ctx,b,sizeof b);
 }
 static void respawn_actor(combat_fixture *s,mu_fixture_ctx *ctx,fighter *f)
@@ -123,6 +125,7 @@ static void step(void *self,mu_fixture_ctx *ctx,uint32_t now)
             s->hero_hp-=e.amount;
             if(s->hero_max>0 && s->hero_hp<=0) {
                 s->hero_dead=1;s->hero_due=tick+14u+(uint32_t)s->hero_respawn;
+                for(int j=0;j<ACTORS;++j)s->actors[j].counter_due=0;
                 uint8_t die[9]={0xc1,9,0x17,(uint8_t)(s->hero_key>>8),(uint8_t)s->hero_key};send_frame(ctx,die,sizeof die);
             }
             continue;
@@ -147,4 +150,4 @@ static void step(void *self,mu_fixture_ctx *ctx,uint32_t now)
         schedule(s,ctx,s->hero_key,amount/3,0,0,14);
     }
 }
-const mu_fixture_behavior mu_fx_combat={.name="combat",.open=open_combat,.on_request=request,.on_step=step,.on_command=command,.close=free};
+const mu_fixture_behavior mu_fx_combat={.name="combat",.open=open_combat,.on_plain_request=request,.on_step=step,.on_command=command,.close=free};

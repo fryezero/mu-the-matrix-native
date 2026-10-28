@@ -335,7 +335,6 @@ int mu_world_items_open(mu_world_items *it, const char *root, mu_walk *walk, con
     }
     load_sets(it);
     it->crt_seed = it->config.seed;
-    it->demo_seed = it->config.seed ^ 0x5a5a1234u;
     for (int i = 0; i < 100; ++i)   /* WinMain 0x0120e96b: table[i] = rand() % 360 after srand(time(NULL)) */
         it->random_table[i] = crt_rand(it) % 360;
     it->host.context = it;
