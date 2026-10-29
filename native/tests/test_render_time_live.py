@@ -84,6 +84,17 @@ class LiveExportTests(unittest.TestCase):
         self.assertEqual(plan['start_world_time_ms'], 250000)
         self.assertEqual(s['plan_sha256'], rt.digest(self.tmp / 'out/native-plan.json'))
         self.assertEqual(rt.load_plan(self.tmp / 'out/native-plan.json')['maps'][0]['tile'], [137, 130])
+        # RENDER-TIME-003: the twin declares that the live UI layer (base.swf) took the wheel
+        self.assertIs(plan['maps'][0]['wheel_ui_hit'], True)
+
+    def test_plan_wheel_ui_hit_must_be_boolean(self):
+        self.export()
+        path = self.tmp / 'out/native-plan.json'
+        plan = json.loads(path.read_text())
+        plan['maps'][0]['wheel_ui_hit'] = 1
+        path.write_text(json.dumps(plan))
+        with self.assertRaises(ValueError):
+            rt.load_plan(path)
 
     def test_torn_and_wide_brackets_are_rejected_and_retried(self):
         s = self.export(sampler_lines(torn_at=(10,), wide_at=(100,)))

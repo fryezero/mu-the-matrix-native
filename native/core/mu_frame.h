@@ -24,6 +24,7 @@
 #include "../../reconstructed/camera/client_camera.h"
 #include "../../reconstructed/camera/client_frame.h"
 #include "../../reconstructed/camera/client_input.h"
+#include "../../reconstructed/camera/client_wheel.h"
 #include "../../reconstructed/camera/client_world_camera.h"
 #include "mu_scene.h"
 
@@ -61,6 +62,8 @@ typedef struct mu_frame_world {
     int32_t picks, pick_hits;
     char log[MU_FRAME_LOG][64];
     int32_t log_count;
+    /* RENDER-TIME-003: the UI side of the WM_MOUSEWHEEL route (client_wheel.h); NULL = no UI layer (it declines) */
+    const mu_wheel_env *wheel_ui;
 } mu_frame_world;
 
 /* Flat terrain at height 0, window size in pixels, hero on tile (x, y). */

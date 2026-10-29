@@ -180,6 +180,21 @@ args = ["--text", "{text}", "--data", "{data}", "--cases", "60", "--mutations", 
 "mutations.*.mismatches" = {all_min = 1}
 "results" = {len_min = 23}
 
+[validate_wheel_route]
+test = "reconstructed/camera/test_client_wheel.py::PrivateWheelValidation.test_instruction_comparison"
+pins = ["text", "data"]
+families = ["GetScreenWidth 0x016bc355", "GetScreenWidth with no window open is 640", "wheel route 0x0120fee3 (WM_MOUSEWHEEL)"]
+cases = 181
+mutants = 10
+cases_at = "results.*.cases"
+mutants_at = "mutations"
+build = ["reconstructed/camera"]
+args = ["--text", "{text}", "--data", "{data}", "--cases", "60", "--mutations", "--output", "{report}"]
+[validate_wheel_route.expect]
+"results.*.mismatches" = 0
+"mutations.*.mismatches" = {all_min = 1}
+"results" = {len_min = 3}
+
 [validate_character]
 test = "reconstructed/model-codec/test_character.py::CharacterTests.test_private_original_character_instructions"
 pins = ["text", "data", "flag", "feature09"]
