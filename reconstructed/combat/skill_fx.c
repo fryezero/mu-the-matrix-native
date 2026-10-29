@@ -1749,7 +1749,8 @@ int mu_sfx_effect_move(mu_sfx_effect *e, const mu_sfx_env *env)
             d[k] = e->position[k] - e->impact[k];
         const float length = sqrtf(d[0] * d[0] + d[1] * d[1] + d[2] * d[2]);   /* VectorLength 0x00cfd020 */
         if (length >= 500.0f && e->client_hit == 0) {
-            e->lifetime = 50;
+            const int32_t turn_back = 50;   /* the steps left once it turned back */
+            e->lifetime = turn_back;
             e->client_hit = 1;
         }
         const float t = env ? env->world_time : 0.0f;

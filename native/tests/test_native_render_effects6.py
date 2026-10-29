@@ -1,5 +1,6 @@
 """RENDER-EFFECTS-006: the refused world requests consumed in the production host (owned effects and .ein)."""
 import json
+import os
 from pathlib import Path
 import struct
 import subprocess
@@ -50,6 +51,20 @@ class RenderEffects6Host(unittest.TestCase):
             self.assertGreater(r['effects_created'], 0, r)
         ein = [r for r in rows if 'ein' in r]
         self.assertEqual([(r['ein'], r['refused_after'], r['attached']) for r in ein], [(1, 0, 4), (0, 400, 0)])
+
+    @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'requires pinned private instructions')
+    def test_original_instructions_and_compiled_mutants(self):
+        root = NATIVE.parent
+        with tempfile.TemporaryDirectory() as tmp:
+            report = Path(tmp) / 'report.json'
+            subprocess.run([sys.executable, str(root / 'scripts/validate_render_effects6.py'), '--cases', '200',
+                            '--particle-cases', '200', '--mutations', '--output', str(report)],
+                           check=True, capture_output=True)
+            r = json.loads(report.read_text())
+        self.assertTrue(r['all_equal'])
+        self.assertTrue(r['all_mutants_caught'])
+        self.assertEqual(r['instruction_cases'], 1000)
+        self.assertEqual(len(r['mutants']), 34)
 
 
 if __name__ == '__main__':
