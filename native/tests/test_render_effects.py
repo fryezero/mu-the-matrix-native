@@ -237,7 +237,7 @@ class RenderEffects(unittest.TestCase):
     @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'requires pinned private instructions')
     def test_other_bows_arrows_original_instructions_and_compiled_mutants(self):
         """RENDER-EFFECTS-007: 30 arrow types x subtypes 0/2/0x63 (+ Arrow01/0x63), CreateEffect and MoveEffect; bow
-        0x12f9's sparks; the rank-5 pants' group-9 path has no owner effects; bone -1 world matrix 0x0129faee."""
+        0x12f9's sparks; the rank-5 pants' group-9 path has no owner effects; bone -1 world matrix 0x0129faee; Rudolph's 0x3fa and Shiny01 0x7f66/7."""
         with tempfile.TemporaryDirectory() as tmp:
             report = Path(tmp)/'report.json'
             subprocess.run([sys.executable, str(ROOT/'scripts/validate_render_effects7.py'), '--cases', '2',
@@ -245,8 +245,28 @@ class RenderEffects(unittest.TestCase):
             r = json.loads(report.read_text())
             self.assertTrue(r['all_equal'])
             self.assertTrue(r['all_mutants_caught'])
-            self.assertEqual(len(r['mutants']), 27)
-            self.assertEqual(r['instruction_cases'], 472)
+            self.assertEqual(len(r['mutants']), 31)
+            self.assertEqual(r['instruction_cases'], 596)
+
+    def test_rudolph_gold_pieces_effect_pixels(self):
+        """RENDER-EFFECTS-007: Rudolph's 0x3fa gold pieces are created, kept and drawn; without sulgold.bmd none draw."""
+        subprocess.run(['make', '-C', str(ROOT/'native'), 'build/pet-gold-host'], check=True, capture_output=True)
+        with tempfile.TemporaryDirectory() as tmp:
+            monster = Path(tmp)/'Data/Monster'
+            monster.mkdir(parents=True)
+            nf.write_textured_model(monster, 47).rename(monster/'sulgold.bmd')
+
+            def run():
+                p = subprocess.run([str(ROOT/'native/build/pet-gold-host'), tmp], capture_output=True, text=True)
+                self.assertEqual(p.returncode, 0, p.stderr)
+                return json.loads(p.stdout)
+            with_model = run()
+            (monster/'sulgold.bmd').unlink()
+            without = run()
+        self.assertEqual((with_model['created'], with_model['live'], with_model['drawn'], with_model['unsupported']),
+                         (8, 8, 8, 0))
+        self.assertGreater(with_model['pixels'], 0)
+        self.assertEqual((without['created'], without['drawn'], without['pixels']), (8, 0, 0))
 
     def test_world_particle_consumers_and_sprite_registrations(self):
         subprocess.run(['make', '-C', str(ROOT/'native'), 'build/particle-consumers-host'], check=True,

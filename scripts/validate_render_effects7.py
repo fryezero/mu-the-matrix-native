@@ -29,13 +29,14 @@ import validate_skill_fx as fx
 import validate_combat as vc
 import validate_particles as pt
 import validate_render_effects4 as re4
+import validate_render_effects as base
 
 ROOT = Path(__file__).resolve().parents[1]
 f32 = fx.f32
 ARROWS = [0x43c, 0x43d, 0x43e, 0x43f, 0x440, 0x441, 0x442, 0x443, 0x458, 0x459, 0x45a, 0x45b, 0x45c, 0x45d, 0x45e,
           0x471, 0x474, 0x47f, 0x525, 0x5b0, 0x5b1, 0x60a, 0x60d, 0x60e, 0x60f, 0x610, 0x612, 0x613, 0x614, 0x616]
 NOT_RECONSTRUCTED = [0x615, 0x617]   # their moves place sprites at bones looked up by name
-KINDS = [(t, s) for t in ARROWS for s in (0, 2, 0x63)] + [(0x43b, 0x63)]
+KINDS = [(t, s) for t in ARROWS for s in (0, 2, 0x63)] + [(0x43b, 0x63), (0x3fa, 0)]   # 0x3fa: Rudolph
 HERO_CHAR = 0x2a000000
 STRAIGHT = [0x2d7, 0x7e7, 0x7fc, 0x7fd, 0x7fe]
 MOVE_DEFINED = fx.MOVE_DEFINED | {'impact', 'field_188', 'field_70', 'field_78'}
@@ -82,13 +83,23 @@ MUTANTS = [
      'sparks', None),
     ('spark_joint', 'if (smod(env_rand(env), 2) == 0) {\n            mu_sfx_call c;', 'if (smod(env_rand(env), 2) != 0) {\n            mu_sfx_call c;',
      'sparks', None),
+    ('gold_life', 'e->lifetime = smod(env_rand(env), 10) + 50;', 'e->lifetime = smod(env_rand(env), 10) + 40;',
+     'effect_create', (0x3fa, 0)),
+    ('gold_bounce', 'e->gravity = -e->gravity * F_0_3;', 'e->gravity = -e->gravity * F_0_4;', 'effect_move', (0x3fa, 0)),
     ('beam_45c', 'call_joint_args(env, e, 0x7f79, p, p, e->angle, 0x12, 90.0f', 'call_joint_args(env, e, 0x7f79, p, p, e->angle, 0x12, 80.0f',
      'effect_move', (0x45c, 0)),
 ]
 
 
+PET_PARTICLES = [(0x7f66, 7)]
+PT_MUTANTS = [
+    ('twinkle_pulse', 'p->scale = (float)sin((double)((float)p->lifetime * 2.0f * 0.017453292f));',
+     'p->scale = (float)sin((double)((float)p->lifetime * 3.0f * 0.017453292f));', 'move'),
+    ('twinkle_spread', 'p->position[k] = (float)(mu_pt_rand(h) % 50 - 25) + p->position[k];',
+     'p->position[k] = (float)(mu_pt_rand(h) % 40 - 20) + p->position[k];', 'create'),
+]
 WM_MUTANTS = [
-    ('wm_order', 'out[1] = sc * sb * ca + cc * sa;', 'out[1] = sb * sc * ca + cc * sa;'),
+    ('wm_sign', 'out[9] = -(sc * cb);', 'out[9] = sc * cb;'),
     ('wm_axes', 'const float a = angle[2] * to_rad, b = angle[1] * to_rad, c = angle[0] * to_rad;',
      'const float a = angle[0] * to_rad, b = angle[1] * to_rad, c = angle[2] * to_rad;'),
     ('wm_scale', 'static const int scaled[9] = {0, 4, 8, 1, 5, 9, 2, 6, 10};', 'static const int scaled[9] = {0, 4, 8, 1, 5, 9, 2, 6, 6};'),
@@ -250,6 +261,11 @@ def random_arrow(rng, kind):
     e.direction[1] = f32(rng.choice([-70.0, -60.0, -40.0, -28.0, vc.rfloat(rng, -80.0, 0.0)]))
     e.direction[2] = 0.0 if rng.random() < 0.7 else vc.rfloat(rng, -5.0, 5.0)
     e.field_78 = rng.choice([0, 1, 5])
+    if kind[0] == 0x3fa:   # Rudolph's gold piece: CreateEffect stores the spin axis rand() % 3; lives 50..59
+        e.field_64 = rng.randrange(3)
+        e.lifetime = rng.choice([59, 50, 30, 3, 2, 1, 0, rng.randrange(-2, 60)])
+        e.gravity = f32(rng.choice([19.0, 10.0, 0.0, -6.0, rng.uniform(-30.0, 20.0)]))
+        e.direction[2] = 0.0
     return e
 
 
@@ -435,13 +451,15 @@ def family_world_matrix(m, slib, rng, cases, report):
 
 def compile_mutant(directory, name, old, new):
     base = ROOT/'reconstructed'/'combat'
-    inc = (base/'arrow_fx.inc').read_text()
-    if inc.count(old) != 1:
+    sites = [f for f in ('arrow_fx.inc', 'pet_fx.inc') if (base/f).read_text().count(old) == 1]
+    if len(sites) != 1:
         raise ValueError(f'{name}: expected exactly one mutation site')
     work = directory/name
     work.mkdir()
     shutil.copy(base/'skill_fx.c', work/'skill_fx.c')
-    (work/'arrow_fx.inc').write_text(inc.replace(old, new))
+    for f in ('arrow_fx.inc', 'pet_fx.inc'):
+        text = (base/f).read_text()
+        (work/f).write_text(text.replace(old, new) if f == sites[0] else text)
     others = ['combat.c', '../objects/world_warp.c', '../joints/joints.c', '../record-math/record_math.c',
               '../movement/client_movement.c']
     out = directory/(name + '.' + fx.SUFFIX)
@@ -468,7 +486,8 @@ BODIES = {'arrow_create': (0x013cb34d, 0x013cd688), 'create_471': (0x013ca9f2, 0
           'move_45a_45b_442_45c_45d_45e': (0x01466819, 0x01467f03), 'move_525_60a': (0x014681fe, 0x01468a1f),
           'move_60d_616': (0x01468c0a, 0x0146af38), 'move_474': (0x014712e8, 0x014716e9),
           'move_5b0_5b1': (0x014abb41, 0x014abc00), 'create_5b0_5b1': (0x013f5f8c, 0x013f667f),
-          'bow_sparks': (0x0158dfdc, 0x0158e1aa), 'move_459_motion': (0x014ed2ef, 0x014ed46a), 'bounce': (0x0150de66, 0x0150df8e),
+          'bow_sparks': (0x0158dfdc, 0x0158e1aa), 'create_3fa': (0x013de0ff, 0x013de43e),
+          'move_3fa': (0x01437d53, 0x0143800c), 'world_matrix': (0x0129faee, 0x0129fd4f), 'rotation_4x4': (0x00cef49d, 0x00cef6db), 'move_459_motion': (0x014ed2ef, 0x014ed46a), 'bounce': (0x0150de66, 0x0150df8e),
           'straight_skill': (0x013bce8f, 0x013bced1)}
 
 
@@ -482,6 +501,17 @@ def run(cases, mutations):
         result['comparisons'][name] = compare(text, data, lib, name, KINDS, cases * len(KINDS))
     result['comparisons']['sparks'] = compare(text, data, lib, 'sparks', None, cases * 20)
     result['comparisons']['pants_owner'] = family_pants(cases * 2)
+    plib = pt.load_library(ROOT/'reconstructed'/('particles/libclient_particles.' + fx.SUFFIX))
+    for name in ('create', 'move', 'render'):   # Rudolph's Shiny01 0x7f66/7 (pets 0x00eaeaf8)
+        r = base.compare(text, data, plib, 'pt', name, PET_PARTICLES, cases * 20)
+        result['comparisons']['pt_' + name] = {'families': {'pt_' + name: r['families'][name]},
+                                               'coverage': r['coverage']}
+    if mutations:
+        with tempfile.TemporaryDirectory(prefix='render-effects7-pt-') as tmp:
+            for name, old, new, family in PT_MUTANTS:
+                mlib = base.compile_mutant(Path(tmp), name, 'pt', old, new)
+                f = base.compare(text, data, mlib, 'pt', family, PET_PARTICLES, max(40, cases * 20))['families'][family]
+                result['mutants'][name] = {'cases': f['cases'], 'caught': f['cases'] - f['equal']}
     with tempfile.TemporaryDirectory(prefix='render-effects7-scene-') as tmp:
         am.STACK_BYTES, am.ENTRY_ESP = 0x80000, am.STACK + 0x7c000
         report = pt.Report()

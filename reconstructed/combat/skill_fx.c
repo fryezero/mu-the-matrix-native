@@ -281,6 +281,7 @@ static int is_hero_owner(const mu_sfx_effect *e, const mu_sfx_env *env);
 static void call_area(const mu_sfx_env *env, mu_sfx_effect *e, float range);
 static void check(const mu_sfx_env *env, mu_sfx_effect *e, int32_t routine);
 #include "arrow_fx.inc"
+#include "pet_fx.inc"
 
 static int effect_supported(int32_t type, int32_t sub)
 {
@@ -288,6 +289,8 @@ static int effect_supported(int32_t type, int32_t sub)
         return 1;
     if (type == MU_SFX_MODEL_ARROW || arrow_kind(type))
         return arrow_supported(type, sub);   /* RENDER-EFFECTS-007 */
+    if (pet_effect_kind(type, sub))
+        return 1;   /* RENDER-EFFECTS-007: Rudolph's 0x3fa */
     switch (type) {
     case MU_SFX_MODEL_FIRE: return sub == 0 || sub == 1;
     case MU_SFX_MODEL_ICE: case MU_SFX_MODEL_POISON: case MU_SFX_MODEL_ICE_DEBRIS: case MU_SFX_MODEL_WAVE: return sub == 0;
@@ -421,6 +424,8 @@ int mu_sfx_effect_create(mu_sfx_effect *e, int32_t type, int32_t subtype, const 
         copy3(angle_arg, angle);
         return arrow_create(e, type, subtype, position_arg, angle_arg, info, env);
     }
+    if (pet_effect_kind(type, subtype))
+        return pet_effect_create(e, env);   /* RENDER-EFFECTS-007 */
     switch (type) {
     case MU_SFX_MODEL_ARROW: {
         /* 0x013cb34d, with the other bows' arrows (RENDER-EFFECTS-007, arrow_fx.inc) */
@@ -1052,6 +1057,8 @@ int mu_sfx_effect_move(mu_sfx_effect *e, const mu_sfx_env *env)
         mu_world_warp_move(e, env ? env->world_time : 0.0f);
     if (arrow_kind(type))
         arrow_move(e, env, light, lum);   /* RENDER-EFFECTS-007, then the common tail */
+    if (pet_effect_kind(type, sub))
+        pet_effect_move(e, env);   /* RENDER-EFFECTS-007 */
     switch (type) {
     case MU_SFX_MODEL_ARROW:
         /* 0x01464abf */

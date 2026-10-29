@@ -93,7 +93,9 @@ static const struct { int32_t type, world; const char *file; } fx_model_files[MU
     {MU_SFX_MODEL_FLYBAT, -1, "Data/Object124/hs_flybatA.bmd"},
     {MU_SFX_MODEL_FLYBAT, 143, "Data/Object144/hs_flybatA.bmd"},
     {MU_SFX_MODEL_SEALEAF, -1, "Data/Object92/zu_sealeaf04.bmd"},
-    {MU_SFX_MODEL_SEALEAF, 122, "Data/Object123/zu_sealeaf04.bmd"}};
+    {MU_SFX_MODEL_SEALEAF, 122, "Data/Object123/zu_sealeaf04.bmd"},
+    /* RENDER-EFFECTS-007: Rudolph's gold pieces 0x3fa (AccessModel 0x00a938d2, Data\Monster\sulgold, every world) */
+    {0x3fa, -1, "Data/Monster/sulgold.bmd"}};
 
 static int32_t slot_of(int32_t bitmap)
 {

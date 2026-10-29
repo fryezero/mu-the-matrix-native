@@ -2011,9 +2011,9 @@ all_mutants_caught = true
 [validate_render_effects7]
 test = "native/tests/test_render_effects.py::RenderEffects.test_other_bows_arrows_original_instructions_and_compiled_mutants"
 pins = ["text", "data", "flag", "feature"]
-families = ["effect_create", "effect_move", "sparks", "pants_owner", "world_matrix"]
-cases = 472
-mutants = 27
+families = ["effect_create", "effect_move", "sparks", "pants_owner", "world_matrix", "pt_create", "pt_move", "pt_render"]
+cases = 596
+mutants = 31
 cases_at = "families.*.cases"
 mutants_at = "mutants"
 build = ["reconstructed/combat", "reconstructed/renderchar", "reconstructed/model-codec", "reconstructed/particles"]
