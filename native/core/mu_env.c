@@ -337,6 +337,12 @@ static void r_object(void *c, const mu_env_object *o, int32_t a1)
             slot = i;
     if (slot < 0)
         return;
+    /* RenderObject's alpha test, HiddenMesh -2 and generic RenderBody arguments (RENDER-WORLDS-G3): the Atlans
+     * fish 0x19f/0x1a0 draw mesh 0 as the blend mesh (+0x74 = 0, light +0xa8). No Chaos Castle hero flag here. */
+    uint32_t body[8];
+    mu_env_object shown = *o;
+    if (!mu_env_render_body(&shown, e->world, 0, body))
+        return;
     mu_world_env_model *m = &e->models[slot];
     mu_render_backend backend;
     if (d->target->backend(d->target->context, e, slot, &backend))
@@ -369,7 +375,11 @@ static void r_object(void *c, const mu_env_object *o, int32_t a1)
     mu_draw_options options;
     mu_draw_default_options(&options);
     options.textures = &m->textures;
-    options.alpha = o->alpha;
+    options.flags = body[0];
+    memcpy(&options.alpha, &body[1], sizeof options.alpha);
+    options.select = (int32_t)body[2];
+    memcpy(&options.color_scale, &body[3], sizeof options.color_scale);
+    options.skip_mesh = (int32_t)body[6];
     mu_draw_stats ds = {0, 0, 0, 0};
     if (!mu_scene_draw_model(&m->model, &options, &backend, &ds)) {
         d->drawn++;
