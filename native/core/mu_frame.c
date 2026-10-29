@@ -119,6 +119,21 @@ void mu_frame_world_key(mu_frame_world *w, int vk, int down)
         w->sample.down[vk] = down ? 1 : 0;
 }
 
+/* No UI layer attached: it declines the wheel (no base movie); the GFx input object exists and holds nothing. */
+static int no_dispatch(void *context, int32_t call, uint32_t message, uint32_t wparam, uint32_t point)
+{
+    (void)context; (void)call; (void)message; (void)wparam; (void)point;
+    return 0;
+}
+static int no_hit(void *context, float x, float y) { (void)context; (void)x; (void)y; return 0; }
+static void no_event(void *context, int32_t type, float x, float y, float lines)
+{
+    (void)context; (void)type; (void)x; (void)y; (void)lines;
+}
+static int no_window(void *context, int32_t id) { (void)context; (void)id; return 0; }
+static const mu_wheel_env no_ui_layer = {.dispatch = no_dispatch, .hit_test = no_hit, .event = no_event,
+                                         .window_open = no_window, .gfx_input = 1};
+
 void mu_frame_world_message(mu_frame_world *w, uint32_t message, uint32_t wparam, uint32_t lparam)
 {
     switch (message) {
@@ -129,14 +144,20 @@ void mu_frame_world_message(mu_frame_world *w, uint32_t message, uint32_t wparam
     }
     if (message == 0x100 || message == 0x101)  /* WM_KEYDOWN/UP: 0x0bdc5982 */
         w->sample.key_message_down = message == 0x100;
-    float zoom = mu_mouse_message(&w->mouse, message, wparam, lparam);
-    if (message == MU_WM_MOUSEWHEEL && zoom != 0.0f) {
-        if (mu_world_camera_wheel(&w->camera, &w->view, zoom, 0)) {
-            char text[64];
+    if (message == MU_WM_MOUSEWHEEL) {
+        /* RENDER-TIME-003: the client's route (window procedure, UI layer, wheel handler) */
+        const mu_wheel_env *e = w->wheel_ui ? w->wheel_ui : &no_ui_layer;
+        uint8_t ui_flag = 0;
+        int stage = mu_client_mouse_wheel(&w->camera, &w->view, &w->mouse, e, wparam, lparam, 0, &ui_flag);
+        char text[64];
+        if (stage == MU_WHEEL_ZOOM)
             snprintf(text, sizeof text, "wheel: zoom index %d -> fov %.1f", w->camera.zoom_index, (double)w->camera.fov_to);
-            log_line(w, text);
-        }
+        else
+            snprintf(text, sizeof text, "wheel: refused (stage %d)", stage);
+        log_line(w, text);
+        return;
     }
+    (void)mu_mouse_message(&w->mouse, message, wparam, lparam);
 }
 
 static void hero_walk(mu_frame_world *w)

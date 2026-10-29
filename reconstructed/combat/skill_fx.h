@@ -44,6 +44,7 @@ enum {
     MU_SFX_MODEL_WAVE = 0x41f,       /* Skill\Magic02.bmd */
     MU_SFX_MODEL_STONE1 = 0x419,      /* Skill\Stone01.bmd */
     MU_SFX_MODEL_STONE2 = 0x41a,      /* Skill\Stone02.bmd */
+    MU_SFX_MODEL_DUNGEON_STONE = 0x43a, /* Object2\DungeonStone01.bmd (worlds 116..120, Deep Dungeon type 52) */
     MU_SFX_MODEL_CIRCLE = 0x41c,      /* Skill\Circle01.bmd (Hellfire) */
     MU_SFX_MODEL_CIRCLE_LIGHT = 0x41d,/* Skill\Circle02.bmd */
     MU_SFX_MODEL_FIRE = 0x413,        /* Skill\Fire01.bmd */

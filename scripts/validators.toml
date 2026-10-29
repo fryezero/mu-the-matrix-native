@@ -180,6 +180,21 @@ args = ["--text", "{text}", "--data", "{data}", "--cases", "60", "--mutations", 
 "mutations.*.mismatches" = {all_min = 1}
 "results" = {len_min = 23}
 
+[validate_wheel_route]
+test = "reconstructed/camera/test_client_wheel.py::PrivateWheelValidation.test_instruction_comparison"
+pins = ["text", "data"]
+families = ["GetScreenWidth 0x016bc355", "GetScreenWidth with no window open is 640", "wheel route 0x0120fee3 (WM_MOUSEWHEEL)"]
+cases = 181
+mutants = 10
+cases_at = "results.*.cases"
+mutants_at = "mutations"
+build = ["reconstructed/camera"]
+args = ["--text", "{text}", "--data", "{data}", "--cases", "60", "--mutations", "--output", "{report}"]
+[validate_wheel_route.expect]
+"results.*.mismatches" = 0
+"mutations.*.mismatches" = {all_min = 1}
+"results" = {len_min = 3}
+
 [validate_character]
 test = "reconstructed/model-codec/test_character.py::CharacterTests.test_private_original_character_instructions"
 pins = ["text", "data", "flag", "feature09"]
@@ -1965,6 +1980,20 @@ args = ["--cases", "60", "--mutations", "--output", "{report}"]
 all_equal = true
 all_mutants_caught = true
 
+[validate_render_effects5]
+test = "native/tests/test_render_effects.py::RenderEffects.test_rank5_owner_original_instructions_and_compiled_mutants"
+pins = ["text", "data", "flag", "feature"]
+families = ["owner", "pt_create", "pt_move", "pt_render", "stone_create", "stone_move"]
+cases = 1190
+mutants = 25
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar", "reconstructed/model-codec", "reconstructed/particles", "reconstructed/combat"]
+args = ["--cases", "10", "--particle-cases", "200", "--stone-cases", "200", "--mutations", "--output", "{report}"]
+[validate_render_effects5.expect]
+all_equal = true
+all_mutants_caught = true
+
 [validate_world_particle_consumers]
 test = "reconstructed/particles/test_particles.py::ParticleTests.test_world_consumer_original_instructions"
 pins = ["text", "data"]
@@ -2248,6 +2277,22 @@ args = ["--cases", "1000", "--mutations", "--output", "{report}"]
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
 
+[validate_worlds_r]
+test = "reconstructed/objects/test_worlds_r.py::WorldsRTests.test_original_instructions"
+pins = ["text", "data"]
+families = ["sc_create", "sc_move", "sc_visual", "rs_create", "rs_move", "rs_visual", "ta_create", "ta_move", "ta_visual", "ga_create", "ga_move", "ga_visual"]
+cases = 12000
+mutants = 77
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+[validate_worlds_r.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0
+
 [validate_world_tile_folder]
 test = "reconstructed/objects/test_worlds_o.py::WorldsOTests.test_original_tile_folder"
 pins = ["text", "data"]
@@ -2277,6 +2322,23 @@ args = ["--text", "{text}", "--data", "{data}", "--section3", "{section3}", "--c
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
 
+[validate_world_light_name]
+test = "reconstructed/objects/test_worlds_q.py::WorldsQTests.test_original_light_name"
+pins = ["text", "data"]
+families = ["light_name"]
+cases = 304
+mutants = 4
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/terrain"]
+args = ["--mutations", "--output", "{report}"]
+[validate_world_light_name.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"old_rule_mismatches" = 5
+"mutants.*.detected" = {truthy = true}
+"mutants.*.stopped" = 0
+
 [validate_worlds_p2]
 test = "reconstructed/objects/test_worlds_p2.py::WorldsP2Tests.test_original_instructions"
 pins = ["text", "data"]
@@ -2304,6 +2366,22 @@ mutants_at = "mutants"
 build = ["reconstructed/objects"]
 args = ["--cases", "1000", "--mutations", "--output", "{report}"]
 [validate_worlds_r2.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0
+
+[validate_worlds_q]
+test = "reconstructed/objects/test_worlds_q.py::WorldsQTests.test_original_instructions"
+pins = ["text", "data"]
+families = ["acheron_create", "acheron_move", "acheron_visual", "ferea_create", "ferea_move", "swamp_create", "swamp_move", "swamp_visual", "kubera_create", "kubera_move", "kubera_visual"]
+cases = 11000
+mutants = 45
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+[validate_worlds_q.expect]
 "families.*.mismatch_count" = 0
 "families.*.stopped" = 0
 "mutants.*.detected" = {all_min = 1}

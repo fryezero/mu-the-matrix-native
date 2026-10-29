@@ -17,7 +17,7 @@ int main(int argc, char **argv)
     assert(m && mu_bmd_load_file(argv[1], &m->bmd, error, sizeof error) == 0);
     assert(mu_model_init(&m->model, &m->bmd, NULL, error, sizeof error) == 0);
     m->loaded = 1;
-    const int worlds[] = {113, 116, 117, 118, 119, 120, 112};
+    const int worlds[] = {113, 116, 117, 118, 119, 120, 111};   /* 111: a sibling without methods (Q owns 112) */
     for (unsigned w = 0; w < sizeof worlds / sizeof *worlds; ++w) {
         const int world = worlds[w], dd = world >= 116 && world <= 120;
         mu_objects *o = calloc(1, sizeof *o);
@@ -31,7 +31,7 @@ int main(int argc, char **argv)
         mu_objects_init(o, world);
         o->records = rec; o->count = N;
         assert(mu_objects_start(o, NULL) == 0);
-        assert(o->rt.created == N && o->rt.create_unsupported == (world == 112 ? N : 0));
+        assert(o->rt.created == N && o->rt.create_unsupported == (world == 111 ? N : 0));
         /* Creation: the arrival-capture range field and the class flags. */
         for (int i = 0; i < N; ++i) {
             const uint8_t *img = o->rt.images + i * MU_OBJ_SIZE;
@@ -81,10 +81,11 @@ int main(int argc, char **argv)
                 assert(mu_obj_f32(o->rt.images + 7 * MU_OBJ_SIZE, MU_OBJF_BLEND_V) ==
                        f32((float)((1000 * k + 250) % 2000) * 0.0005f));
         }
-        /* Type 52's keyed CreateEffect 0x43a is refused: counted, never forwarded as particles or effects. */
-        if (dd) assert(o->rt.move_unsupported > 30 && o->rt.move_unsupported < 110 && lights == 2 * STEPS);
-        else assert(o->rt.move_unsupported == (world == 112 ? N * STEPS : 0));
-        assert(o->rt.particle_events == 0 && o->rt.effect_events == 0);
+        /* Type 52's CreateEffect 0x43a (DungeonStone, RENDER-EFFECTS-005) is forwarded as an effect. */
+        if (dd) assert(o->rt.move_unsupported == 0 && o->rt.effect_events > 30 && o->rt.effect_events < 110 &&
+                       lights == 2 * STEPS);
+        else assert(o->rt.move_unsupported == (world == 111 ? N * STEPS : 0) && o->rt.effect_events == 0);
+        assert(o->rt.particle_events == 0);
         assert(mu_worlds_n_visual(o->rt.images, 0) == 0);
         o->records = NULL;
         mu_objects_runtime_free(o);

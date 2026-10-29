@@ -49,6 +49,8 @@ def load_plan(path=PLAN):
             raise ValueError('unsafe map name')
         if not 0 <= e['world'] <= 255 or len(e['tile']) != 2 or any(not 0 <= x <= 255 for x in e['tile']):
             raise ValueError('invalid world/tile')
+        if not isinstance(e.get('wheel_ui_hit', False), bool):
+            raise ValueError('wheel_ui_hit must be a boolean')
         e['script_path'] = path.parent / e['script']
         if not e['script_path'].is_file():
             raise ValueError(f"missing script {e['script']}")
@@ -146,6 +148,8 @@ def capture(plan_path, binary, game_root, objects_dir, out, only=None, backend='
                '--env-seed', '1', '--particle-seed', '1']
         if objects_dir:
             cmd += ['--objects-dir', str(objects_dir)]
+        if e.get('wheel_ui_hit'):   # RENDER-TIME-003: the reproduced client's UI layer takes the wheel
+            cmd.append('--wheel-ui-hit')
         run = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
         (dest / 'native.log').write_text(run.stderr[-16000:])
         if run.returncode:

@@ -591,21 +591,21 @@
       "handlers": {
         "create": {
           "entry": "0xd6a6d7",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary method (RENDER-WORLDS-Q). 1000 compiled-C versus Unicorn cases, AL/OBJECT/handler members/model action table/ordered recorded calls/RNG and compiled mutants; CreateEffect and StopBuffer requests are refused and counted natively; see client-worlds-q.md.",
+          "source": "reconstructed/objects/acheron.c"
         },
         "move": {
           "entry": "0xd6a7aa",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary method (RENDER-WORLDS-Q). 1000 compiled-C versus Unicorn cases, AL/OBJECT/handler members/model action table/ordered recorded calls/RNG and compiled mutants; CreateEffect and StopBuffer requests are refused and counted natively; see client-worlds-q.md.",
+          "source": "reconstructed/objects/acheron.c"
         },
         "visual": {
           "entry": "0xd6ae34",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary method (RENDER-WORLDS-Q). 1000 compiled-C versus Unicorn cases, AL/OBJECT/handler members/model action table/ordered recorded calls/RNG and compiled mutants; CreateEffect and StopBuffer requests are refused and counted natively; see client-worlds-q.md.",
+          "source": "reconstructed/objects/acheron.c"
         },
         "custom_render": {
           "entry": "0xd6c427",
@@ -958,20 +958,20 @@
       "handlers": {
         "create": {
           "entry": "0xde5cb0",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary method (RENDER-WORLDS-Q). 1000 compiled-C versus Unicorn cases, AL/OBJECT/handler members/model action table/ordered recorded calls/RNG and compiled mutants; CreateEffect and StopBuffer requests are refused and counted natively; see client-worlds-q.md.",
+          "source": "reconstructed/objects/ferea.c"
         },
         "move": {
           "entry": "0xde5de2",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary method (RENDER-WORLDS-Q). 1000 compiled-C versus Unicorn cases, AL/OBJECT/handler members/model action table/ordered recorded calls/RNG and compiled mutants; CreateEffect and StopBuffer requests are refused and counted natively; see client-worlds-q.md.",
+          "source": "reconstructed/objects/ferea.c"
         },
         "visual": {
           "entry": "0xde6405",
           "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
+          "scope": "static entry only; 2,328 instructions (vector-class light and particle producers), not reconstructed by RENDER-WORLDS-Q; see client-worlds-q.md",
           "source": null
         },
         "custom_render": {
@@ -1478,21 +1478,21 @@
       "handlers": {
         "create": {
           "entry": "0xe54429",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary method (RENDER-WORLDS-Q). 1000 compiled-C versus Unicorn cases, AL/OBJECT/handler members/model action table/ordered recorded calls/RNG and compiled mutants; CreateEffect and StopBuffer requests are refused and counted natively; see client-worlds-q.md.",
+          "source": "reconstructed/objects/swamp_darkness.c"
         },
         "move": {
           "entry": "0xe54646",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary method (RENDER-WORLDS-Q). 1000 compiled-C versus Unicorn cases, AL/OBJECT/handler members/model action table/ordered recorded calls/RNG and compiled mutants; CreateEffect and StopBuffer requests are refused and counted natively; see client-worlds-q.md.",
+          "source": "reconstructed/objects/swamp_darkness.c"
         },
         "visual": {
           "entry": "0xe5540e",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary method (RENDER-WORLDS-Q). 1000 compiled-C versus Unicorn cases, AL/OBJECT/handler members/model action table/ordered recorded calls/RNG and compiled mutants; CreateEffect and StopBuffer requests are refused and counted natively; see client-worlds-q.md.",
+          "source": "reconstructed/objects/swamp_darkness.c"
         },
         "custom_render": {
           "entry": "0xe54752",
@@ -1534,21 +1534,21 @@
       "handlers": {
         "create": {
           "entry": "0xe19bb3",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary method (RENDER-WORLDS-Q). 1000 compiled-C versus Unicorn cases, AL/OBJECT/handler members/model action table/ordered recorded calls/RNG and compiled mutants; CreateEffect and StopBuffer requests are refused and counted natively; see client-worlds-q.md.",
+          "source": "reconstructed/objects/kubera.c"
         },
         "move": {
           "entry": "0xe19ed0",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary method (RENDER-WORLDS-Q). 1000 compiled-C versus Unicorn cases, AL/OBJECT/handler members/model action table/ordered recorded calls/RNG and compiled mutants; CreateEffect and StopBuffer requests are refused and counted natively; see client-worlds-q.md.",
+          "source": "reconstructed/objects/kubera.c"
         },
         "visual": {
           "entry": "0xe1b5fb",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary method (RENDER-WORLDS-Q). 1000 compiled-C versus Unicorn cases, AL/OBJECT/handler members/model action table/ordered recorded calls/RNG and compiled mutants; CreateEffect and StopBuffer requests are refused and counted natively; see client-worlds-q.md.",
+          "source": "reconstructed/objects/kubera.c"
         },
         "custom_render": {
           "entry": "0xe1a5df",
@@ -1732,7 +1732,7 @@
     },
     {
       "class_id": "world-131",
-      "label": "World 131 class",
+      "label": "Scorched Canyon",
       "worlds": [
         131
       ],
@@ -1742,21 +1742,21 @@
       "handlers": {
         "create": {
           "entry": "0xe432d9",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-R complete method; 1,000 instruction cases; the host runs it (RNG) right after CreateObject",
+          "source": "reconstructed/objects/scorched_canyon.c"
         },
         "move": {
           "entry": "0xe4370c",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-R complete method; 1,000 instruction cases; model gate and the type-0xa0 flicker light",
+          "source": "reconstructed/objects/scorched_canyon.c"
         },
         "visual": {
           "entry": "0xe43f8e",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-R complete method (object and model test, no request); 1,000 instruction cases",
+          "source": "reconstructed/objects/scorched_canyon.c"
         },
         "custom_render": {
           "entry": "0xe43842",
@@ -1784,7 +1784,7 @@
     },
     {
       "class_id": "world-132",
-      "label": "World 132 class",
+      "label": "Red Smoke Icarus",
       "worlds": [
         132
       ],
@@ -1794,21 +1794,21 @@
       "handlers": {
         "create": {
           "entry": "0xe00b4a",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-R complete method; 1,000 instruction cases; jump table 0x00e00c22 hashed with the body",
+          "source": "reconstructed/objects/red_smoke_icarus.c"
         },
         "move": {
           "entry": "0xe00cfe",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-R complete method (world, object and model test only); 1,000 instruction cases",
+          "source": "reconstructed/objects/red_smoke_icarus.c"
         },
         "visual": {
           "entry": "0xe00e97",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-R complete method; 1,000 instruction cases; bone-3 particle needs current bones (refused and counted otherwise)",
+          "source": "reconstructed/objects/red_smoke_icarus.c"
         },
         "custom_render": {
           "entry": "0xe00d4c",
@@ -1836,7 +1836,7 @@
     },
     {
       "class_id": "world-133",
-      "label": "World 133 class",
+      "label": "Temple of Arnil",
       "worlds": [
         133
       ],
@@ -1846,21 +1846,21 @@
       "handlers": {
         "create": {
           "entry": "0xd809fc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-R complete method; 1,000 instruction cases; jump table 0x00d80c7c hashed with the body",
+          "source": "reconstructed/objects/temple_arnil.c"
         },
         "move": {
           "entry": "0xd80c9c",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-R complete method (world, object and model test only); 1,000 instruction cases",
+          "source": "reconstructed/objects/temple_arnil.c"
         },
         "visual": {
           "entry": "0xd81c2c",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-R complete method (object and model test, no request); 1,000 instruction cases",
+          "source": "reconstructed/objects/temple_arnil.c"
         },
         "custom_render": {
           "entry": "0xd80cea",
@@ -1888,7 +1888,7 @@
     },
     {
       "class_id": "world-134",
-      "label": "World 134 class",
+      "label": "Gray Aida",
       "worlds": [
         134
       ],
@@ -1898,21 +1898,21 @@
       "handlers": {
         "create": {
           "entry": "0xd84821",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-R complete method; 1,000 instruction cases",
+          "source": "reconstructed/objects/gray_aida.c"
         },
         "move": {
           "entry": "0xd849e4",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-R complete method; 1,000 instruction cases",
+          "source": "reconstructed/objects/gray_aida.c"
         },
         "visual": {
           "entry": "0xd84dd8",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-R complete method; 1,000 instruction cases; extra RenderMesh 0x00966e4a and the keyed CreateEffect 0x199 are compared as requests and refused natively (counted)",
+          "source": "reconstructed/objects/gray_aida.c"
         },
         "custom_render": {
           "entry": "0xd84d0e",
