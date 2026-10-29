@@ -325,6 +325,11 @@ int mu_env_model_file(int32_t world, int32_t model, char *out, size_t out_size);
 /* Weather texture of a bitmap index for a world (Data/World<n+1>/...). */
 int mu_env_bitmap_file(int32_t world, int32_t bitmap, char *out, size_t out_size);
 
+/* RenderObject 0x016d4fe4 for an environment object no custom render takes (RENDER-WORLDS-G3): applies the
+ * setup's Chaos Castle alpha step, returns 0 when the alpha test or HiddenMesh -2 skips the draw, else 1 with
+ * RenderBody's eight arguments (flags, alpha, BlendMesh, BlendMeshLight, U, V, HiddenMesh, -1). */
+int mu_env_render_body(mu_env_object *o, int32_t world, int chaos_hero_flag, uint32_t args[8]);
+
 /* ---- client layout (validator and tests) ---- */
 
 /* Writes/reads the modelled fields at their client offsets. */

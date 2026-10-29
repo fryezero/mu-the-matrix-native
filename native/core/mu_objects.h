@@ -85,6 +85,8 @@ typedef struct mu_object_particle {
  * client's sprite list is redrawn and cleared by RenderSprites every frame). */
 #define MU_OBJECT_SPRITES 512
 #define MU_OBJECT_BITMAPS 8
+#define MU_OBJECT_SLOT_EVENTS 48   /* RENDER-WORLDS-AFTER2: draws of one class custom render (slot 0x38) */
+#define MU_OBJECT_FIRST_MESHES 32  /* mu_objects_first_meshes capacity the world draws pass */
 typedef struct mu_object_sprite {
     int32_t bitmap;
     float position[3], scale, light[3], rotation;
@@ -140,6 +142,13 @@ typedef struct mu_objects_runtime {
     mu_image bitmaps[MU_OBJECT_BITMAPS]; /* effect bitmaps of the sprites and particles, by client index */
     int32_t bitmap_count;
     int32_t *after_list, after_count; /* RenderObjects_AfterCharacter draws of the last frame */
+    /* RENDER-WORLDS-AFTER2: the class custom render's draws of the last prepared object (slot 0x38), the body
+     * colour before it, and the models' StreamMesh bytes (+0x94), which the slots leave set across frames */
+    mu_obj_event slot_events[MU_OBJECT_SLOT_EVENTS];
+    int32_t slot_count, slot_index;
+    float slot_color[3];
+    uint8_t slot_stream, stream[MU_OBJECT_TYPES];
+    int32_t slot_bitmaps;             /* bitmaps the slots bind, loaded as model texture extras */
     long sprite_events, after_meshes;
     /* NATIVE-PARTICLE-001: when set, CreateParticle calls of the move pass go to `particle` (instead of the
      * stand-in list) and RenderObjectVisual 0x017f9758 is `visual`, called by mu_objects_prepare_index after

@@ -168,7 +168,7 @@ children.
 | `0x0137fbac` type 758 | `twister02-magenta01` (90), `twister03-magenta01` (230) | bone 1, follow |
 | `0x0137fbac` type 838 | `sparkle20-cyan01`, `fire10-cyan01` (scale and bone from a per-monster list) | listed bones |
 | `0x0137fbac` type 925 | `sparkle20-red01`, `fire10-red01` (as above) | listed bones |
-| `0x0183067e` (from the world loaders `0x00e21f75`, `0x0182876e`, after the manager clear `0x00a7a1b4`) | per map and object type table entries: name, position, rotation, scale, flags, start frame, actions | table bone and flags |
+| `0x0183067e` (from the world loaders `0x00e21f75`, `0x0182876e`, after the manager clear `0x00a7a1b4`) | per map and object type table entries: name, position, rotation, scale, flags, start frame, actions; RENDER-EFFECTS-008: read live (38 worlds, 758 entries), compared under Unicorn and consumed natively ([finding](client-render-effects-008.md)) | table bone and flags |
 | `0x0114203d` (from `0x009af699`) | entries of a per-object table at `this+0x38`; its callers sit next to the Muun (pet) code (`0x00c0747e`, "SetOwningHeroMuun") | table bone and flags |
 
   The monster types are the `case` values of the creation switch in `0x0137fbac` (tables `0x0138d070`/`0x0138ce1c`
