@@ -103,22 +103,30 @@ class FixtureHero(unittest.TestCase):
         self.assertEqual(a1[:8], b'MUJNL\x00\x01\x00')
 
     def test_tcp_round_trip_over_the_sockets_transport(self):
-        s = socket.socket()
-        s.bind(('127.0.0.1', 0))
-        port = s.getsockname()[1]
-        s.close()
-        scn = write_scenario(self.dir / 't.scn', 'endpoint game 127.0.0.1:%d\nuse progress latency=1\n'
-                             'join world=0 tile=1,1 class=0x01 level=1 name=Tcp\n'
-                             'at 2 progress join\nat 4 progress levelup\nexpect hero.level = 2\n'
-                             'expect unbound = 0\n' % port)
         env = dict(os.environ)
         env.pop('MU_AGENT', None)
         env['MU_CLIENT_LOCK_PATH'] = str(self.dir / 'client.lock')
         env['MU_CLIENT_PROCESS_NAMES'] = 'mu-test-%s.exe' % uuid.uuid4().hex[:12]
-        server = subprocess.Popen([str(TOOL), 'serve', str(scn), '--port', str(port), '--seconds', '20'],
-                                  stdout=subprocess.PIPE, text=True)
+        # the scenario names the port, so it is picked free and then bound by the server; another process (a
+        # parallel gate's suites) can take it in between, so a failed listen picks a new one (GATE-PAR-001)
+        for attempt in range(5):
+            s = socket.socket()
+            s.bind(('127.0.0.1', 0))
+            port = s.getsockname()[1]
+            s.close()
+            scn = write_scenario(self.dir / 't.scn', 'endpoint game 127.0.0.1:%d\nuse progress latency=1\n'
+                                 'join world=0 tile=1,1 class=0x01 level=1 name=Tcp\n'
+                                 'at 2 progress join\nat 4 progress levelup\nexpect hero.level = 2\n'
+                                 'expect unbound = 0\n' % port)
+            server = subprocess.Popen([str(TOOL), 'serve', str(scn), '--port', str(port), '--seconds', '20'],
+                                      stdout=subprocess.PIPE, text=True)
+            listening = server.stdout.readline()
+            if 'fixture_listening' in listening or attempt == 4:
+                break
+            server.kill()
+            server.communicate()
         try:
-            self.assertIn('fixture_listening', server.stdout.readline())
+            self.assertIn('fixture_listening', listening)
             r, rows = run_tool('connect', scn, '--to', '127.0.0.1:%d' % port, '--ticks', 40, env=env)
             self.assertEqual(r.returncode, 0, r.stdout[-2000:] + r.stderr)
             transport = first(rows, 'transport')
