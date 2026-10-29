@@ -970,9 +970,9 @@
         },
         "visual": {
           "entry": "0xde6405",
-          "status": "missing",
-          "scope": "static entry only; 2,328 instructions (vector-class light and particle producers), not reconstructed by RENDER-WORLDS-Q; see client-worlds-q.md",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary method (RENDER-WORLDS-Q2). 1000 compiled-C versus Unicorn cases (named-bone lookup, std::string/vector helpers and the CRT sine as original code), AL/OBJECT/ordered recorded calls/bone transforms/RNG and 34 compiled mutants; see client-worlds-q2.md.",
+          "source": "reconstructed/objects/ferea.c"
         },
         "custom_render": {
           "entry": "0xde8a10",

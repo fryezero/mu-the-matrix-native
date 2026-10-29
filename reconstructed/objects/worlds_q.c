@@ -28,5 +28,6 @@ int mu_worlds_q_visual(const uint8_t *o, int32_t index, int model_present, const
     if (in->world == 91 || in->world == 92) return mu_acheron_visual(o, index, in, log);
     if (in->world == 122) return mu_swamp_darkness_visual(o, index, model_present, in, log);
     if (in->world >= 123 && in->world <= 127) return mu_kubera_visual(o, index, model_present, in, log);
-    return -1;   /* Ferea 0x00de6405 is not reconstructed */
+    if (in->world == 112) return mu_ferea_visual(o, index, model_present, in, log);
+    return -1;
 }
