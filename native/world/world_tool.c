@@ -84,6 +84,7 @@
 #include <SDL.h>
 #endif
 
+#include "../core/mu_frame_time.h"
 #include "../core/mu_frame.h"
 #include "../core/mu_perf.h"
 #include "../core/mu_png.h"
@@ -947,7 +948,9 @@ static int windowed(tool *t)
         mu_perf_end(&t->perf, MU_PERF_EVENTS, perf);
         perf = mu_perf_begin(&t->perf);
         script(t, (int32_t)frames);
-        mu_world_rt_frame(a, SDL_GetTicks());
+        const uint32_t frame_now = SDL_GetTicks();
+        mu_frame_time_tick(frame_now);   /* the window loop only: [0x01cf103c] of 0x012aeb2b */
+        mu_world_rt_frame(a, frame_now);
         mu_perf_end(&t->perf, MU_PERF_LOGIC, perf);
         mu_world_rt_draw_gl(a, dw, dh);
         perf = mu_perf_begin(&t->perf);

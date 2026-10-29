@@ -1,6 +1,7 @@
 /* RENDER-WORLDS-P: Kethotum create/move through the type's model action table. The move runs after the
  * object's tick, as MoveObject calls the handler slot after its animation step. */
 #include "mu_objects_worlds_p.h"
+#include "mu_frame_time.h"
 #include "../../reconstructed/objects/worlds_p.h"
 #include <string.h>
 
@@ -62,7 +63,7 @@ void mu_objects_worlds_p_move(mu_objects *o, int32_t i, const float hero[3])
         return;
     }
     /* No native .ein effect system: the container stays empty and every request is refused. */
-    mu_wp_move_inputs in = {o->world, {hero[0], hero[1], hero[2]}, 0.1f /* [0x01cf103c] */, has ? &m : NULL,
+    mu_wp_move_inputs in = {o->world, {hero[0], hero[1], hero[2]}, mu_frame_time_value() /* [0x01cf103c] */, has ? &m : NULL,
                             random_value, o, 0, 0};
     mu_obj_event events[16];
     mu_obj_log log = {0, 16, 0, events};
