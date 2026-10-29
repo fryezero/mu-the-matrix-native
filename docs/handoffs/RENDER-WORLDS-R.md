@@ -37,3 +37,14 @@ RNG/animation phase and particle pools in a capture.
 
 Local outputs: `native/scratch/render-worlds-r` (including a temporary base worktree) and `renders/render-worlds-r`,
 deleted after merge with the worktree. No new local INPUT needs retention. The DATA-ACQ-002 inputs were only read.
+
+## Gate
+
+Merged origin/main `5fa43cd` (RENDER-WORLDS-P2, BUILD-DEPS-001) before the lock; conflicts in the Makefiles, the
+runtime's primary-visual list, the coverage counts and the status rows keep both sides. RENDER-WORLDS-O's
+"unsupported neighbour" checks moved from world 131 (now supported) to 139 (`test_worlds_o.py`,
+`worlds_o_host.c`). On the merged tree the R validator again passes 12,000 cases with zero mismatches/stops (the
+77-mutant run is on the pre-merge tree; the R sources did not change in the merge). Preflight after
+`make -C native clean`: `bash scripts/local-macos-ci.sh` passes **1,698 tests across 38 discovery runs, 219
+explicit optional/private skips, zero failures; 11/11 fixture scenarios; native viewer and reader builds; 1,673
+audited files, zero rejected**. No hosted workflow or original client was run.
