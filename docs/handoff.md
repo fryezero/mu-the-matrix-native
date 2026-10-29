@@ -74,6 +74,8 @@ SESSION-MAP-001a: frame-fed NPC/portal markers and detector dots through the ses
 
 RENDER-WORLDS-J completes captured Raklion/Karutan primary groups: 33/144 verified methods, 11/48 classes; 111 methods remain. [Evidence](research/client-worlds-j.md), [checks and limits](handoffs/RENDER-WORLDS-J.md).
 
+RENDER-ITEMS-002 part 13: 1,162/1,674 bounded bodies, 17/17 skins, eighteen link targets/twenty-four types. Adds 109 bodies: 89 whose later helpers inherit the model fields of the body's last draw (carry write-back) and 20 with immediate glColor calls, now COLOR records in the draw stream (32 types use them); 114,388 new instruction cases, zero mismatches, 12/12 compiled mutants. The +13 "saturated white" of earlier offline galleries was a missing EnchantEffect table (MU_LANG_DIR unset), not a glow-pass bug. 512 bodies and rank-5 owner effects remain. [Checks and limits](handoffs/RENDER-ITEMS-002M.md).
+
 RENDER-ITEMS-002 part 12: 1,053/1,674 bounded bodies, 17/17 skins, eighteen link targets/twenty-four types. Adds 86 bodies through clock chains sliced from pinned instructions (66) and the part-9 level split (20), plus link rows 0x0ef3/0x0f0b; 35,346 new instruction cases, zero mismatches, 17/17 compiled mutants. 621 bodies and rank-5 owner effects remain. [Checks and limits](handoffs/RENDER-ITEMS-002L.md).
 
 RENDER-ITEMS-002 part 11: 967/1,674 bounded bodies, 17/17 skins, seventeen link targets/twenty-two types. Adds 87 bodies (41 weapon, 22 armour, 24 pet/item) through per-type wave/sine scalar programs parsed from pinned instructions; 26,154 new instruction cases, zero mismatches, 11/11 compiled mutants. 707 bodies and rank-5 owner effects remain. [Checks and limits](handoffs/RENDER-ITEMS-002K.md).

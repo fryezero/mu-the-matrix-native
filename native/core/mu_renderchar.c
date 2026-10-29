@@ -274,6 +274,21 @@ static int draw_item(const mu_model *model, const mu_renderchar_glow *glow, cons
     }
     for (int32_t i = 0; i < count; ++i) {
         const mu_rc_draw *d = &draws[i];
+        /* An immediate glColor of the body: the current colour a later draw may inherit. */
+        if (d->entry == MU_RC_ENTRY_COLOR) {
+            if (backend->gl) {
+                const float c[4] = {d->body_light[0], d->body_light[1], d->body_light[2], d->alpha};
+                uint32_t w[4];
+                memcpy(w, c, sizeof w);
+                backend->gl->call(backend->gl->context, d->flags == MU_RC_COLOR_4F ? MU_GL_OP_COLOR4F :
+                                  d->flags == MU_RC_COLOR_3FV ? MU_GL_OP_COLOR3FV : MU_GL_OP_COLOR3F, w);
+            }
+            if (d->flags == MU_RC_COLOR_4F && backend->sink.color4)
+                backend->sink.color4(backend->sink.context, d->body_light[0], d->body_light[1], d->body_light[2], d->alpha);
+            else if (d->flags != MU_RC_COLOR_4F && backend->sink.color3)
+                backend->sink.color3(backend->sink.context, d->body_light);
+            continue;
+        }
         /* A failed named mesh lookup is a no-op in the original mesh callee. */
         if (mu_rc_item_rank5(glow->type) && d->entry == MU_RC_ENTRY_MESH && d->mesh < 0)
             continue;

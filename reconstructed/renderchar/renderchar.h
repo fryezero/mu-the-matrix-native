@@ -29,7 +29,10 @@ enum {
 };
 
 enum { MU_RC_ENTRY_BODY = 1,   /* RenderBody default-buffer wrapper 0x00966def */
-       MU_RC_ENTRY_MESH = 2 }; /* RenderMesh default-buffer wrapper 0x00966e4a */
+       MU_RC_ENTRY_MESH = 2,   /* RenderMesh default-buffer wrapper 0x00966e4a */
+       MU_RC_ENTRY_COLOR = 3 }; /* immediate glColor between draws: flags = MU_RC_COLOR_*,
+                                 * body_light = RGB, alpha = A (1 for the three-component calls) */
+enum { MU_RC_COLOR_3F = 1, MU_RC_COLOR_3FV = 2, MU_RC_COLOR_4F = 3 };
 
 /* One call into the mesh draw with the model fields current at the call. */
 typedef struct mu_rc_draw {
@@ -128,6 +131,10 @@ int mu_rc_item_draws_owner(const mu_rc_item *item, mu_rc_model *model, mu_rc_dra
 /* The same without the type check (the classification sweep uses it). */
 int mu_rc_item_draws_generic(const mu_rc_item *item, mu_rc_model *model, mu_rc_draw *out, int32_t capacity,
                              int32_t *count);
+/* Generator probe: the generic draws, writing carry[k]'s model fields (entry != 0)
+ * back to the model after helper call k. */
+int mu_rc_item_draws_carry(const mu_rc_item *item, mu_rc_model *model, mu_rc_draw *out, int32_t capacity,
+                           int32_t *count, const mu_rc_draw *carry, int32_t carry_count);
 /* 1 when the type takes a type-specific branch the library does not reproduce. */
 int mu_rc_item_special(int32_t type);
 
