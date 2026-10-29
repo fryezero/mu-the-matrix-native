@@ -48,6 +48,8 @@ RENDER-EFFECTS-002: Poison, Ice/debris and Power Wave session visuals; audited p
 
 RENDER-WORLDS-I implements Loren Market/Uruk primary methods: 6,000 instruction cases, zero mismatches, 33/33 compiled mutants; 31/144 verified primary families across 11/48 classes. Locked Mac gate passes 1,548 tests with 191 explicit skips; all 28 unaffected PNG hashes unchanged. [Evidence](research/client-worlds-i.md), [checks and limits](handoffs/RENDER-WORLDS-I.md).
 
+RENDER-TIME-003: the live zoom refusal and the visible-object gap closed. The client's WM_MOUSEWHEEL goes through the UI layer `0x00aefb79` (its base.swf hit test took the live wheel, by elimination from a live guard read) before the camera; the frustums use GetScreenWidth (640 units), not the window width. Both are reconstructed and compared under Unicorn (1,801 comparisons, 0 mismatches, 10/10 mutants) and ported. `compare --mode live` still fails (phase unaligned): 477→400 and 433→390 component failures. [Checks and limits](handoffs/RENDER-TIME-003.md).
+
 RENDER-TIME-002 live half: read-only post-draw sampler and input replay; two Lorencia runs with mugl patches off (960x600, the client has no 640x480). `compare --mode live` fails: phase unaligned, plus refused live zoom, other characters, sub-25 fps WorldTime jitter and a visible-object gap. Hero path, placement and primary light agree. Threshold review recorded; no limit changed. [Checks and limits](handoffs/RENDER-TIME-002.md).
 
 RENDER-TIME-001 native side: fourteen scripted views across thirteen maps, full-draw temporal samples and regression thresholds. Locked Mac gate passes 1,544 tests; private temporal rerun passes 16/16. The live capture/phase-alignment half remains open. [Checks and limits](handoffs/RENDER-TIME-001.md).

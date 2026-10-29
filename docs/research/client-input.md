@@ -99,6 +99,11 @@ All other VK values return to the native walk input without a panel action. This
 world branch and existing native routes; it is not a claim to have reconstructed every key in every scene,
 movie, development tool or legacy window.
 
+**Mouse wheel (RENDER-TIME-003).** The client's WM_MOUSEWHEEL route goes through the UI layer `0x00aefb79` and
+its base.swf hit test before the camera zoom. It is reconstructed and compared in `client_wheel.c` /
+`scripts/validate_wheel_route.py`, and native `mu_frame_world_message` follows it. See
+[client-render-time.md](client-render-time.md#zoom-refusal-and-visible-objects-render-time-003-2026-10-28).
+
 ## Shared input script, version 1
 
 Use `--input-script FILE` in mu-client, mu-shell, mu-world or mu-walk. `--script "..."` remains an inline
