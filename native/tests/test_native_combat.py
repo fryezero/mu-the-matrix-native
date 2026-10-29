@@ -313,7 +313,10 @@ class InstalledTests(unittest.TestCase):
                                      '--combat-script', '5:click:bull fighter'], capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         summary = next(json.loads(l) for l in result.stdout.splitlines() if l.startswith('{"combat": true'))
-        self.assertEqual((summary['bitmaps_loaded'], summary['models_loaded']), (15, 9))   # + Spark01, the swirl's spark joints (NATIVE-JOINT-001)
+        # bitmaps: + Spark01, the swirl's spark joints (NATIVE-JOINT-001). models: every MU_COMBAT_MODELS slot, the 8
+        # skill models + the weapon, + Ice01/Ice02/Magic02 (RENDER-EFFECTS-002, #221) + Rageful Blow's 9 (RENDER-EFFECTS-004,
+        # #247); all 20 Data/Skill files exist in the installed client (INTEGRATION-GREEN-002)
+        self.assertEqual((summary['bitmaps_loaded'], summary['models_loaded']), (15, 21))
         self.assertEqual(summary['pick_hits'], 1)
         self.assertGreaterEqual(summary['kills'], 1)
 

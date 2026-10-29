@@ -13,6 +13,7 @@ import ctypes as C
 import json
 from pathlib import Path
 import random
+import re
 import struct
 import subprocess
 import tempfile
@@ -78,6 +79,18 @@ def tuples(rows, count):
     return [tuple(getattr(rows[i], n) for n, _ in Decision._fields_) for i in range(count)]
 
 
+def object_sources():
+    """reconstructed/objects/Makefile's SOURCES (with its $(wildcard ...) expanded), as paths."""
+    folder = ROOT/'reconstructed/objects'
+    text = (folder/'Makefile').read_text()
+    line = next(l for l in text.splitlines() if l.startswith('SOURCES :='))
+    out = []
+    for word in re.sub(r'\$\(wildcard ([^)]*)\)', lambda m: ' '.join(
+            sorted(p.name for p in folder.glob(m.group(1)))), line.split(':=', 1)[1]).split():
+        out.append((folder/word).resolve())
+    return out
+
+
 def build(tmp, name, header=None, world=None, talk=None, hero=None, objects=None):
     # Header mutations compile the actual production inline adapters in a mirror
     # include tree. Symlinks reference authored headers only, never private inputs.
@@ -98,13 +111,9 @@ def build(tmp, name, header=None, world=None, talk=None, hero=None, objects=None
     hero_src.write_text(hero or (ROOT/'reconstructed/audio/hero_sound.c').read_text())
     object_src = folder/'object_render.c'
     object_src.write_text(objects or (ROOT/'reconstructed/objects/object_render.c').read_text())
-    # Compile the deciding production routine, with its authored dependencies.
-    object_deps = [ROOT/'reconstructed/objects'/n for n in
-                   ('objects.c','devias.c','tarkan.c','elbeland.c','raklion.c','icarus.c','noria.c',
-                    'login_world.c','charsel_world.c','vulcanus.c','santa_village.c','duel_arena.c','world82.c',
-                    'loren_market.c','uruk.c','world_karutan_visual.c','world_raklion_visual.c')]
-    object_deps += [ROOT/'reconstructed'/n for n in
-                    ('movement/client_movement.c','model-codec/model_codec.c','terrain/terrain.c','record-math/record_math.c')]
+    # Compile the deciding production routine, with its authored dependencies: the objects library's own
+    # SOURCES, so world methods merged later link here too (INTEGRATION-GREEN-002).
+    object_deps = [d for d in object_sources() if d.name != 'object_render.c']
     out = folder/'adapter.dylib'
     subprocess.run(['clang','-std=c11','-O2','-shared','-ffp-contract=off','-I',str(folder),
                     '-I',str(ROOT/'native/core'),'-I',str(ROOT/'reconstructed/audio'),
