@@ -47,10 +47,11 @@ int mu_world_after_gate(int32_t w, int class_flag)
            w == 0x36 || (w >= 0x45 && w <= 0x4a) || (w >= 0x6e && w <= 0x71) || (w >= 0x7a && w <= 0x85) ||
            w == 8 || class_flag;
 }
-/* Worlds whose second pass has a native after-render (the A worlds and Abyss of Atlans 1-3). */
+/* Worlds whose second pass has a native after-render (the A worlds, Abyss of Atlans 1-3 and the classes of
+ * world_slots_visual.c). */
 int mu_world_after_native(int32_t w)
 {
-    return mu_world_after_enabled(w) || (w >= 0x80 && w <= 0x82);
+    return mu_world_after_enabled(w) || (w >= 0x80 && w <= 0x82) || mu_class_slots(w);   /* RENDER-WORLDS-AFTER2 */
 }
 static int own_range(const uint8_t *o, const mu_obj_render_inputs *in, float range)
 {
