@@ -5,7 +5,8 @@ The question was whether native sprites are created and counted as drawn but pro
 the view frustum at the DATA-ACQ-002 tile. [Finding, trace, measurements and limits](../research/client-sprite-draw.md).
 
 - Claude Opus 5.5 lane. Worktree `~/Documents/MTM/worktrees/sprite-draw-001`, branch `claude/sprite-draw-001`, from
-  origin/main `79a6b470`, then origin/main `10b1df13` (#271 RENDER-EFFECTS-008; clean, sprite path untouched).
+  origin/main `79a6b470`, then origin/main `10b1df13` (#271 RENDER-EFFECTS-008) and `8eb54978` (#272
+  RENDER-WORLDS-Q2), both clean, sprite path untouched.
   Input links `tools/python` and `evidence` from the main checkout, never committed.
 - **Repro (verified):** `native/tests/sprite_draw_host.c` (portable `test_native_sprite_draw.py`) draws one sprite
   ahead of the eye through `mu_world_particles_draw` in raster and in headless GL. It gets 676 lit px for each of
@@ -30,15 +31,15 @@ the view frustum at the DATA-ACQ-002 tile. [Finding, trace, measurements and lim
 
 ## Checks
 
-- Portable: `native/tests/test_native_sprite_draw.py` (1 test). `test_render_effects.py` + `test_native_particles.py`
+- Portable: `native/tests/test_native_sprite_draw.py` (1 test). RENDER-WORLDS-Q2 §5 now points here. `test_render_effects.py` + `test_native_particles.py`
   (15 tests, 5 skipped) pass.
-- PR-ready gate, on the merge of origin/main `10b1df13` after `make -C native clean`:
+- PR-ready gate, on the merge of origin/main `8eb54978` after `make -C native clean`:
   `nice -n 10 bash scripts/local-macos-ci.sh` passes.
-  - **38 suites, 1,781 tests, 1,546 passed, 235 skipped, 0 failures/errors.**
-  - Fixtures, native viewer and live readers pass; the audit covers 1,778 files with 0 rejected.
+  - **38 suites, 1,785 tests, 1,549 passed, 236 skipped, 0 failures/errors.**
+  - Fixtures, native viewer and live readers pass; the audit covers 1,785 files with 0 rejected.
 - Private (`run_validators.py --private --jobs 2`, `MU_RECOVERY_INTEGRATION=1`, `MU_GAME_ROOT` = the installed
   client, `MU_SECTION3` = `main-exe-study/evidence/x86-linux-capture-04/main-01ced000.bin` for `validate_effects`):
-  **11 pass, 0 fail.**
+  **12 pass, 0 fail.**
 
   | Validator | Cases | Mutants |
   |---|---:|---:|
@@ -52,11 +53,12 @@ the view frustum at the DATA-ACQ-002 tile. [Finding, trace, measurements and lim
   | `validate_render_effects5` | 1,190 | 25 |
   | `validate_render_effects6` | 1,000 | 34 |
   | `validate_worlds_q` | 11,000 | 45 |
+  | `validate_worlds_q2` | 4,000 | 50 |
   | `validate_effects` | pass | |
 
   Steward validators: validate_particles, validate_joints, validate_world_particle_consumers, validate_effects,
   validate_item_effects, validate_render_effects, validate_render_effects3, validate_render_effects4,
-  validate_render_effects5, validate_render_effects6, validate_worlds_q (env: MU_RECOVERY_INTEGRATION=1,
+  validate_render_effects5, validate_render_effects6, validate_worlds_q, validate_worlds_q2 (env: MU_RECOVERY_INTEGRATION=1,
   MU_GAME_ROOT, MU_SECTION3=…/main-exe-study/evidence/x86-linux-capture-04/main-01ced000.bin).
 
 ## Left
