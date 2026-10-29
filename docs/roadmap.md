@@ -1,5 +1,6 @@
 # Roadmap and work queue
 
+RENDER-WORLDS-P2: Kanturu Underground (137) and Ignis Volcano (138) primary create/move/visual methods; 58/144 verified methods, 20/48 classes. 6,000 instruction cases, zero mismatches, 35/35 mutants. At the two DATA-ACQ-002 arrival tiles all 6,803 range and 262 Ignis after-character differences go to zero; image 137 5.899 → 5.790, 138 unchanged; unsupported joint kinds and StreamMesh refused and counted. [Evidence](research/client-worlds-p2.md), [checks and limits](handoffs/RENDER-WORLDS-P2.md).
 RENDER-WORLDS-N: Nixies Lake (113) and Deep Dungeon 1–5 (116–120) primary create/move/visual methods; 52/144 verified methods, 18/48 classes. 13,000 instruction cases, zero mismatches, 29/29 mutants. At the six DATA-ACQ-002 arrival tiles all 13,690 range and 436 after-character differences go to zero; image error mixed (four lower, Deep Dungeon 5 higher). [Evidence](research/client-worlds-n.md), [checks and limits](handoffs/RENDER-WORLDS-N.md).
 
 README-REFRESH-004 implemented: public progress through PR #241, bounded coverage and honest offline/performance limits; existing pinned images reused. [Checks and sources](handoffs/README-REFRESH-004.md).
