@@ -10,8 +10,8 @@ methods (create +2c, move +30, visual +34). [Finding, addresses, boundaries and 
   Minimal shared hooks: one create and one move branch in `object_render.c` (131 create deferred as `MU_WR_CREATE`);
   in `mu_objects_runtime.c` an RNG helper, the deferred-create loop, one visual branch (bone gates, outer flicker
   draw, refusal counting) and the primary-visual world list; Makefile/registry lines; coverage rows of these classes.
-- Coverage **+12 primary methods, +4 classes**: 70/144 → **82/144 primary methods, 28/48 classes**, zero
-  static-only, 62 missing.
+- Coverage **+12 primary methods, +4 classes**: 70/144 → 82/144 on `3d17cac`; with RENDER-WORLDS-P2 merged
+  **88/144 primary methods, 30/48 classes**, zero static-only, 56 missing.
 - Twelve instruction families, 1,000 cases each: **12,000 equal, zero mismatches/stops; 77/77 compiled mutants
   detected (lowest count 4), zero stops**. Boundary types and phase-window clocks were added after one mutant
   (Temple hidden range 0xa0..0xaa) went undetected; three equivalent or non-compiling plants were replaced.

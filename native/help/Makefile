@@ -12,5 +12,9 @@ all: $(BUILD)/mu-help-view
 $(BUILD)/mu-help-view: $(SRC) ../../reconstructed/help/help.h
 	mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) $(SDL_CFLAGS) $(SRC) $(SDL_LIBS) -o $@
+	$(CC) $(CFLAGS) $(SDL_CFLAGS) -MM -MP -MT $@ $(SRC) > $@.d
+
+# BUILD-DEPS-001: the headers the sources read (one -MM pass, as the build is one call).
+-include $(BUILD)/mu-help-view.d
 
 .PHONY: all

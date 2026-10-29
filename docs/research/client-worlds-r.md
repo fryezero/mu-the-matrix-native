@@ -4,8 +4,8 @@ RENDER-WORLDS-R, 2026-10-28. The three primary methods (create +2c, move +30, vi
 world-132, world-133 and world-134 classes are implemented in `reconstructed/objects/scorched_canyon.c`,
 `red_smoke_icarus.c`, `temple_arnil.c` and `gray_aida.c` (declarations in `worlds_r.h`). All twelve have an
 instruction-compared family: +12 primary methods and +4 classes; the
-[inventory](world-handler-coverage.md) goes from 70/144 methods across 24/48 classes to **82/144 across 28/48**,
-62 missing. Custom-render, after-render and invisible-sector slots of these classes stay missing.
+[inventory](world-handler-coverage.md) goes from 70/144 methods across 24/48 classes to 82/144 across 28/48 on
+main `3d17cac`; with RENDER-WORLDS-P2 merged it reads **88/144 across 30/48**, 56 missing. Custom-render, after-render and invisible-sector slots of these classes stay missing.
 
 ## Selection and provenance
 

@@ -2277,3 +2277,19 @@ args = ["--output", "{report}"]
 "families.*.stopped" = 0
 "remapped_folders.130" = 129
 "remapped_folders.131" = 129
+
+[validate_worlds_p2]
+test = "reconstructed/objects/test_worlds_p2.py::WorldsP2Tests.test_original_instructions"
+pins = ["text", "data"]
+families = ["kanturu_create", "kanturu_move", "kanturu_visual", "ignis_create", "ignis_move", "ignis_visual"]
+cases = 6000
+mutants = 35
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+[validate_worlds_p2.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0
