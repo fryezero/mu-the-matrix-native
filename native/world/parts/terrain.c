@@ -8,6 +8,7 @@
 #include "../../viewer/gl_backend.h"
 #endif
 #include "../world_rt_internal.h"
+#include "../../../reconstructed/camera/client_wheel.h"
 
 #define TERRAIN_RADIUS 34
 
@@ -43,10 +44,10 @@ static int scene_draws_terrain(const mu_world_rt *a)
 }
 
 /* RenderTerrain's view: CreateFrustrum 0x016cba24 from the GL modelview the
- * camera left (aspect = window width / 640, far [0x01cf1630] = the far plane
+ * camera left (aspect = GetScreenWidth() / 640, far [0x01cf1630] = the far plane
  * MoveMainCamera set, fov [0x01cf1634]) and CreateFrustrum2D 0x016d20d9 around
  * the hero in zoom mode 0, whose scale and distance come from the world
- * camera record (0x0098ac7c: width / 640 * Distance * Z_Distance * scale;
+ * camera record (0x0098ac7c: GetScreenWidth() / 640 * Distance * Z_Distance * scale;
  * 0x0098ac45(2400) = 2400 * Distance * Z_Distance * scale). Then the
  * per-frame update 0x016ca4fa over the box: light copy, waves, and the
  * animated-layer counter; the water UV scroll follows the world time.  The object light sources follow in the
@@ -58,6 +59,8 @@ static void terrain_particle(void *context, int32_t type, const float p[3], cons
     if (a->has_particles) mu_world_particles_create(&a->particles,type,p,angle,light,0,
         type==0x7f5e ? 1.5f : 1.0f);
 }
+
+static int no_newui_window(void *context, int32_t id) { (void)context; (void)id; return 0; }
 
 static void terrain_frame(struct mu_world_rt *a, void *self, uint32_t now)
 {
@@ -83,7 +86,9 @@ static void terrain_frame(struct mu_world_rt *a, void *self, uint32_t now)
     for (int i = 0; i < 3; ++i)
         for (int j = 0; j < 4; ++j)
             rows[4 * i + j] = v->modelview[4 * j + i];   /* 0x0184a569: m[i][j] = gl[4j + i] */
-    int32_t width = (int32_t)v->window_width;
+    /* RENDER-TIME-003: CreateFrustrum's aspect and CreateFrustrum2D's scale take GetScreenWidth 0x016bc355 (640x480
+     * units; 640 with no NewUI side window open), never the window width. Native opens none of those windows. */
+    int32_t width = mu_client_screen_width(no_newui_window, NULL);
     mu_terrain_frustum_create((float)width / 640.0f, v->view_far, v->fov, rows, v->position, f);
     const mu_camera_info *c = &a->info;
     float factor = c->distance * c->z_distance * 1.0f;   /* camera scale +0x10 = 1 */

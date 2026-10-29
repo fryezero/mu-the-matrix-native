@@ -241,12 +241,166 @@ policy must be fixed before the next scored run.
    unavailable.
 4. **Object frame and hero animation at 0.05 frame** remain untested until animation starts are aligned (step 6);
    keep the limit.
-5. **Visible-object count stays exact.** The 25–30% gap at an identical camera is a real discrepancy (the native
-   2D frustum/range at 960×600) for a later lane, not a threshold problem.
+5. **Visible-object count stays exact.** The 25–30% gap at an identical camera was a real discrepancy, the native
+   2D frustum at 960×600. RENDER-TIME-003 closed it (see below).
 
 **Not done.** No pool, animation or RNG phase was restored, so no aligned live comparison exists. The live scene
 had other characters. There is no live-vs-live repeat from one start tile; runs 1–2 used the earlier
 target-only sampler and could not be exported. Only Lorencia was captured; the other thirteen views were not.
+
+## Zoom refusal and visible objects, RENDER-TIME-003 (2026-10-28)
+
+Target: the pinned restored text (`scripts/pins.py` `text`, base `0x00401000`) and second section (`data`). Live
+reads came from the owner's client: main.exe SHA-256 `3cf91f3c…`, Lorencia safe zone, mugl patches off,
+960x600, under the game lock.
+
+### The wheel route (verified under Unicorn; the live state read)
+
+WM_MOUSEWHEEL never reaches the window procedure's own wheel case first. The procedure `0x0120fee3` sends 0x20a
+to its default case `0x012102cf`, which first calls the UI layer `0x01d22c60`'s handler `0x00aefb79`. If that
+returns 1, the procedure clears LPush/LButton, sets LPop and `0x0b436573`, and returns 0. The game's zoom code
+is never reached.
+
+**UI layer (`0x00aefb79`, wheel entry `0x00aefff8` of its message table `0x00af0219`).** It declines (returns 0) when:
+
+- the hero byte `+0x190` is set;
+- its base movie (`+0x88`, the movie loaded from `base.swf`) is absent;
+- the GFx manager's window `+0x254` is shown.
+
+Otherwise it converts lParam to a client point, `lParam - ClientToScreen(0,0)` (import slot `0x01a7c7e0`), and:
+
+1. It consumes the event when the GFx mouse dispatch `0x00ac9800` reports it handled.
+2. Otherwise it sends base.swf a wheel event: type 4, x, y, lines = `((delta << 7) / 120) / 120 * 3`.
+3. It stores MouseWheel `0x0bdc59a4` = delta / 120.
+4. It consumes the event when base.swf `HitTest(x, y, 3)` (vtable `+0xc0`) is true at the client point. The
+   second test uses the raw 16-bit lParam, which for this message is a screen point. Each hit sends event 8.
+
+**Game case `0x0121069d`.** It computes the same client point. It calls the zoom handler only when all of
+these hold:
+
+- the second dispatch did not take the event;
+- the chat window `[0x01d22c6c]` byte `+0x68` is 0. This is `InMouseViewBox`, set by the chat movie's callback
+  at `0x00c5fbee` from its `"hit"` argument.
+- the GFx input object `[0x01d22c0c]+0x70` exists;
+- that object's byte `+0xc` is 0. It is set at `0x00ac0406` when the hit window's type is 6.
+
+It then stores MouseWheel. The handler `0x018588d9` refuses while NewUI window 0x3e is open (its IsVisible
+`0x00eb5aba` returns byte `+8`) or in world 0x8b (`0x00da9d49`), and then applies the camera's existing rules.
+
+**The two exclusive movies.** The GFx dispatcher `0x00abffce` feeds an event only to two movies when either is
+shown, and then reports it handled at `0x00ac01d5`:
+
+- "Caution" (manager `+0x88`, built at `0x00ac4d36`);
+- "DivideWindow" (`+0x250`, built at `0x00ac4f6f`).
+
+In every other case `handled` comes from each window's HandleMouse (base `0x00aaddc5`, vtable `+0x2c`). That
+sets it only when its movie hit-tests at the cursor.
+
+**Comparison.** `scripts/validate_wheel_route.py` (registered in `validators.toml`) executes the whole procedure
+for WM_MOUSEWHEEL. The UI layer, the case, the handler, `0x0185a9bf` and the common exit `0x01211083` all run
+in Unicorn against `reconstructed/camera/client_wheel.c`.
+
+- The comparison covers the stage, MouseWheel, the button globals, `0x0b436573` and the camera/zoom state. It
+  also covers the ordered dispatch calls with packed points, the base.swf events and hit tests, and the window
+  0x3e queries.
+- 1,200 cases, 0 mismatches. They cover all four stages: 355 UI layer, 352 case guard, 239 handler guard,
+  254 zoom.
+- GetScreenWidth: 601 cases, 0 mismatches, comparing the result and the ordered window queries.
+- 10/10 compiled mutants are caught.
+- Stubs, listed in `EXTRA_STUBS`: the GFx dispatch and base.swf's HitTest, which are Scaleform inputs; GetVisible;
+  the message hooks; the log tail.
+
+**Live read (session 20:08–20:16).** The new read-only `live-readers/rtguard` polled every guard state at 10 ms
+while `rtinput` sent wheel +1/−1 at four spots: the run 3 spot, upper centre, the chat box and the Quest Info
+panel. MouseWheel moved every time, and the zoom index stayed at 2 every time. At the world spots every
+memory-held guard was clear:
+
+- world 0, scene 6, settled 1;
+- chat `InMouseViewBox` 0, type-6 flag 0;
+- window 0x3e closed (byte +8 = 0);
+- the GFx input object present;
+- the dispatcher's path flag (input object `+0x20`) = 1. That is the normal per-window path, not the
+  Caution/DivideWindow path.
+- No GFx window hit (`[manager+0x2e4]` = 0).
+
+Because MouseWheel was written, the UI layer's first dispatch did not take the event. By elimination the
+wheel was consumed by base.swf's own hit test in the UI layer (`0x00af013b` or `0x00af01c3`). **Inference:** the
+Scaleform hit result itself is not readable in memory. A later dispatch-side handling in the game case is not
+excluded by the reads, but it needs the same GFx state that had just declined. The custom cursor clip of
+`ExternalBase` sets `hitTestDisable` (decompiled `common/CustomMouse.as`), so it is not the hit.
+
+**Native port.**
+
+- `mu_frame_world_message` routes the wheel through `mu_client_mouse_wheel`. With no UI layer attached, the
+  layer declines, as the client does without its base movie.
+- Native gains the world 0x8b refusal. It also logs refusals.
+- `mu-world --wheel-ui-hit` declares the recorded client's state: base.swf under the cursor. The live exporter
+  writes `"wheel_ui_hit": true` into every live twin plan, and `render_time.py capture` passes the flag.
+- With the GFx layer (`--gfx`), the existing first refusal (`mu_gfx_layer_mouse` kind 3) stays the native stand-in
+  for dispatch and base hit. Whether native base.swf hit-tests where the client's does is untested, because no
+  libmugfx build was available.
+
+Tests:
+
+- `reconstructed/camera/test_client_wheel.py`: five portable checks. A base hit or raw-lParam hit refuses; the
+  free route zooms; the hero byte bypasses the layer; the case and handler guards refuse.
+- `native/tests/test_render_time_003.py` (private): mu-world zooms without `--wheel-ui-hit` and refuses with it.
+
+### Visible objects (verified static, native measured)
+
+Both counters sum the same byte, object `+0x0b`, the TestFrustrum2D result of the render pass. So they measure
+the same thing. The gap came from the frustum's width. The world render passes **GetScreenWidth `0x016bc355`**
+(640x480 units) to:
+
+- BeginOpengl;
+- CreateFrustrum as aspect = width / 640 (`0x0185784f`, `0x018596ac`);
+- CreateFrustrum2D's mode-0 scale through `0x0098c6b4` → `0x0098ac7c`.
+
+GetScreenWidth's results are 640 / 450 / 260 / 70, depending on the NewUI side windows open. It never depends
+on the window size. Native's `world/parts/terrain.c` used the window width (960), so its 2D frustum was 1.5×
+wider. It now calls the ported `mu_client_screen_width`, with no NewUI window open natively.
+
+At 640x480 nothing changes. At 960x600 the run 3 twin now matches live at every standing sample:
+
+| Frames | Live visible | Native before | Native after |
+|---|---|---|---|
+| 0–40 | 198 | 249 | 198 |
+| 60–120 | 177 | 262–289 | 177 |
+| 140–200 | 182 | 257–280 | 182 |
+
+Mid-walk samples differ by 1 (183/182), which is the known mid-walk path offset.
+`test_render_time_003.py` checks the frame-0 count, 198, at both window sizes.
+
+### Comparison on run 3 / run 4
+
+The runs were re-exported from the kept raw samples with the new plan field. Every scored value equals the
+RENDER-TIME-002 export: only the plan hash changed, and the image summaries were carried over.
+
+| Component (failing samples) | Run 3 before | Run 3 after | Run 4 before | Run 4 after |
+|---|---|---|---|---|
+| **Total** (`compare --mode live`) | 477 | **400** | 433 | **390** |
+| camera eye z / FOV / pitch | 8 / 8 / 8 | 0 / 0 / 0 | 8 / 8 / 8 | 0 / 0 / 0 |
+| camera hero/eye x, hero/eye y | 0/0, 9/9 | 0/0, 1/1 | 1/1, 1/1 | 1/1, 1/1 |
+| hero animation frame | 14 | 6 | 13 | 13 |
+| objects visible | 21 | 0 | 21 | 1 |
+| objects frame / prior frame | 3 / 3 | 0 / 0 | 1 / 2 | 0 / 0 |
+| particles (10 sums) | 194 | 195 | 185 | 188 |
+| environment (6) | 101 | 97 | 101 | 101 |
+| frame light (3) | 63 | 63 | 63 | 63 |
+| sky[3] | 16 | 16 | 13 | 13 |
+| WorldTime/step rows | 20 | 20 | 6 | 6 |
+| path coverage (≥1° zoom) | 0 | 1 | 0 | 1 |
+
+`compare --mode live` still fails on:
+
+- the phase gate: unaligned;
+- unaligned pools, animation and RNG;
+- other characters' particles and frame light;
+- the WorldTime policy (items 1–2 above).
+
+These limits are unchanged. One new failure is a plan-design consequence: the Lorencia plan requires ≥1° of
+native zoom, and the faithful twin no longer zooms. A later live plan must not rely on the wheel at a spot
+where base.swf takes it.
 
 ## LIVE half procedure, as planned by RENDER-TIME-001
 
