@@ -87,6 +87,14 @@ MUTANTS = [
 ]
 
 
+WM_MUTANTS = [
+    ('wm_order', 'out[1] = sc * sb * ca + cc * sa;', 'out[1] = sb * sc * ca + cc * sa;'),
+    ('wm_axes', 'const float a = angle[2] * to_rad, b = angle[1] * to_rad, c = angle[0] * to_rad;',
+     'const float a = angle[0] * to_rad, b = angle[1] * to_rad, c = angle[2] * to_rad;'),
+    ('wm_scale', 'static const int scaled[9] = {0, 4, 8, 1, 5, 9, 2, 6, 10};', 'static const int scaled[9] = {0, 4, 8, 1, 5, 9, 2, 6, 6};'),
+]
+
+
 class Case(fx.Case):
     """validate_skill_fx's case with CreateJoint's tail and CreateEffect's key/scale recorded on both sides."""
 
@@ -380,6 +388,51 @@ def family_pants(cases):
     return {'families': report.families, 'coverage': {**report.coverage, 'paths': dict(hits)}}
 
 
+WORLD_MATRIX, OBJ = 0x0129faee, 0x22000000
+
+
+def scene_library(directory, source=None):
+    """mu_effect_object_world_matrix, its source text taken from native/core/mu_effect_scene.c, compiled alone."""
+    text = (source or ROOT/'native/core/mu_effect_scene.c').read_text()
+    start = text.index('void mu_effect_object_world_matrix(')
+    body = text[start:text.index('\n}\n', start) + 3]
+    tag = hashlib.sha256(body.encode()).hexdigest()[:12]
+    src = Path(directory)/('wm_' + tag + '.c')
+    src.write_text('#include <math.h>\n' + body)
+    out = Path(directory)/('wm_' + tag + '.' + fx.SUFFIX)
+    subprocess.run(['clang', '-std=c11', '-O2', '-fPIC', '-ffp-contract=off', '-fno-fast-math', '-shared', str(src),
+                    '-lm', '-o', str(out)], check=True, capture_output=True)
+    lib = C.CDLL(str(out))
+    lib.mu_effect_object_world_matrix.argtypes = [C.c_float * 16, C.c_float * 3, C.c_float * 3, C.c_float]
+    lib.mu_effect_object_world_matrix.restype = None
+    return lib
+
+
+def family_world_matrix(m, slib, rng, cases, report):
+    """0x0129faee(out) with ecx = the object: its world matrix for a record following bone -1."""
+    for n in range(cases):
+        angle = [f32(rng.choice([0.0, 90.0, -45.0, 180.0, rng.uniform(-720.0, 720.0)])) for _ in range(3)]
+        position = [f32(rng.uniform(-30000.0, 30000.0)) for _ in range(3)]
+        scale = f32(rng.choice([1.0, 0.5, 1.3, rng.uniform(0.01, 4.0)]))
+        case = Case(rng, [], [], 0.0)
+        obj = am.Region('object', OBJ, am.poison(0x400, 0x29), bytes(0x400))
+        obj.define(OBJ + 0x164, struct.pack('<3f', *angle))
+        obj.define(OBJ + 0x158, struct.pack('<3f', *position))
+        obj.define(OBJ + 0xa0, struct.pack('<f', scale))
+        out = am.Region('out', fx.INPUTS, am.poison(0x40, 0x33), bytes(0x40))
+        r = m.execute(WORLD_MATRIX, [fx.INPUTS], [obj, out], case.stubs(m), ecx=OBJ, cleanup=4)
+        mine = (C.c_float * 16)()
+        slib.mu_effect_object_world_matrix(mine, (C.c_float * 3)(*angle), (C.c_float * 3)(*position), scale)
+        mismatch = None
+        if vc.ok(r):
+            theirs = struct.unpack('<16f', r['regions']['out'])
+            if not all(fx.same(a, b) for a, b in zip(theirs, mine)):
+                mismatch = ('matrix', theirs, list(mine))
+        report.add('world_matrix', vc.ok(r) and mismatch is None,
+                   {'case': n, 'mismatch': mismatch, 'stopped': r['stopped'], 'error': r['error']})
+        report.cover('world_matrix', 'scaled' if scale != 1.0 else 'unit')
+
+
 def compile_mutant(directory, name, old, new):
     base = ROOT/'reconstructed'/'combat'
     inc = (base/'arrow_fx.inc').read_text()
@@ -429,6 +482,23 @@ def run(cases, mutations):
         result['comparisons'][name] = compare(text, data, lib, name, KINDS, cases * len(KINDS))
     result['comparisons']['sparks'] = compare(text, data, lib, 'sparks', None, cases * 20)
     result['comparisons']['pants_owner'] = family_pants(cases * 2)
+    with tempfile.TemporaryDirectory(prefix='render-effects7-scene-') as tmp:
+        am.STACK_BYTES, am.ENTRY_ESP = 0x80000, am.STACK + 0x7c000
+        report = pt.Report()
+        family_world_matrix(fx.FxMachine(text, data), scene_library(tmp), random.Random('render-effects-007-wm'),
+                            cases * 20, report)
+        result['comparisons']['world_matrix'] = {'families': report.families, 'coverage': report.coverage}
+        if mutations:
+            src = (ROOT/'native/core/mu_effect_scene.c').read_text()
+            for name, old, new in WM_MUTANTS:
+                assert src.count(old) == 1, name
+                path = Path(tmp)/(name + '.c')
+                path.write_text(src.replace(old, new))
+                report = pt.Report()
+                family_world_matrix(fx.FxMachine(text, data), scene_library(tmp, path),
+                                    random.Random('render-effects-007-wm'), max(40, cases), report)
+                f = report.families['world_matrix']
+                result['mutants'][name] = {'cases': f['cases'], 'caught': f['cases'] - f['equal']}
     if mutations:
         with tempfile.TemporaryDirectory(prefix='render-effects7-mutants-') as tmp:
             for name, old, new, family, kind in MUTANTS:
