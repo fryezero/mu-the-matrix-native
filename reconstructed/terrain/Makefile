@@ -11,4 +11,4 @@ $(LIB): terrain.c terrain.h world_haze.c world_haze.h ../record-math/record_math
 
 .PHONY: all
 
-include ../deps.mk
+-include ../deps.mk   # optional: validators build copies of single directories

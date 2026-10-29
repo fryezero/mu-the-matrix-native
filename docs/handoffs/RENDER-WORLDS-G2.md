@@ -29,6 +29,11 @@ Object-model texture lookup, brazier fires and the Vulcanus far plane from the D
 - October 22 fourteen-view tour, base `77c304a` vs lane: 14/14 OBJECT and light dumps identical, 12/14 PNG;
   Elbeland (51) and Karutan (80) change as intended (Item-folder weapon/medicine/bottle textures).
 
+- **Shared build fix (BUILD-DEPS-001 follow-up, orchestrator-approved):** the 36 `reconstructed/*/Makefile`s now use
+  `-include ../deps.mk`. `deps.mk` only defines `DEPS` (an `-MM` pass) and `-include`s `*.d`, so a missing file just
+  leaves `$(DEPS)` empty. With the plain `include`, every private validator that builds mutants from a temporary
+  copy of single directories failed (`No rule to make target ../deps.mk`: camera, worlds b/e/g/h/i/j/k/n/p/p2/g2).
+
 Left: the Deep Dungeon dragon fire at type-67 markers (producer not found; untraced hooks listed in the finding);
 Abyss 2 types 3/4/6/24 dark meshes (textures resolve; BlendMesh/BlendMeshLight class fields, for the Abyss lane);
 the name map's other startup routines and earlier-world history; other model loaders' lookup rules.
@@ -39,3 +44,17 @@ deleted after merge with the worktree, the temporary base worktree `worktrees/g2
 input needs retention.
 
 ## Checks
+
+Merge lock taken at 19:55 CDT (queue head). Latest main `5fa43cd` (BUILD-DEPS-001, RENDER-WORLDS-P/P2) merged as
+`38410e0`; conflicts in `native/Makefile`, `reconstructed/objects/Makefile`, `scripts/validators.toml` and the
+three status docs keep both sides. Clean `native/build` and reconstructed libraries before the gate.
+
+- `bash scripts/local-macos-ci.sh` (merged tree, before the `-include` change): **1,698 tests across 38 discovery
+  runs, 218 explicit skips, zero failures/errors; 11/11 fixture scenarios; publication audit 1,673 files, zero
+  rejected**. A first run on the pre-merge branch had one `test_transport` allowlist failure that passes 3/3 alone
+  (concurrent socket use by another lane's gate); a first merged run failed `test_native_build_deps` on libraries
+  built before the merge (no `.d` files), passing after removing them. Rerun after the `-include` change: see below.
+- Registered private validators, serial, on the merged tree with `-include`: **19/19 pass** (`validate_worlds_*`
+  b–p2 and g2, `validate_world_tile_folder`, `validate_camera`, `validate_objects`), mutants detected in all.
+- `validate_worlds_g2`: 5 families, 4,157 cases (default) / 2,657 (registered), zero mismatches/stops, 17/17 mutants.
+- Portable `reconstructed/objects/test_worlds_g2.py` 3 pass + 1 private; native host `test_native_worlds_g2.py` passes.
