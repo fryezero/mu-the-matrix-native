@@ -81,10 +81,11 @@ int main(int argc, char **argv)
                 assert(mu_obj_f32(o->rt.images + 7 * MU_OBJ_SIZE, MU_OBJF_BLEND_V) ==
                        f32((float)((1000 * k + 250) % 2000) * 0.0005f));
         }
-        /* Type 52's keyed CreateEffect 0x43a is refused: counted, never forwarded as particles or effects. */
-        if (dd) assert(o->rt.move_unsupported > 30 && o->rt.move_unsupported < 110 && lights == 2 * STEPS);
-        else assert(o->rt.move_unsupported == (world == 112 ? N * STEPS : 0));
-        assert(o->rt.particle_events == 0 && o->rt.effect_events == 0);
+        /* Type 52's CreateEffect 0x43a (DungeonStone, RENDER-EFFECTS-005) is forwarded as an effect. */
+        if (dd) assert(o->rt.move_unsupported == 0 && o->rt.effect_events > 30 && o->rt.effect_events < 110 &&
+                       lights == 2 * STEPS);
+        else assert(o->rt.move_unsupported == (world == 112 ? N * STEPS : 0) && o->rt.effect_events == 0);
+        assert(o->rt.particle_events == 0);
         assert(mu_worlds_n_visual(o->rt.images, 0) == 0);
         o->records = NULL;
         mu_objects_runtime_free(o);

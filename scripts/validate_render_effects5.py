@@ -13,6 +13,9 @@ fixed angle/owner/sheet arguments) and the number of rand() calls must agree.
 
 pt_create/pt_move/pt_render: the CreateParticle core, MoveParticles and
 RenderParticles record bodies for 0x84e2/0 and 0x83de/4 (validate_particles).
+
+stone_create/stone_move: CreateEffect 0x013c0f19 and MoveEffect 0x0142fd09 for
+DungeonStone 0x43a/0 (validate_skill_fx), the effect Deep Dungeon type 52 asks for.
 """
 import argparse
 import ctypes as C
@@ -276,6 +279,19 @@ OWNER_MUTANTS = {
     'black-alpha': ('6, 0.26f', '6, 0.25f'),
     'variant-list': ('case 0x1c2b: return 1;', 'case 0x1c2b: return 3;'),
 }
+STONE_MUTANTS = [
+    ('stone-life', 'e->lifetime = smod(env_rand(env), 16) + 24;', 'e->lifetime = smod(env_rand(env), 16) + 25;',
+     'effect_create'),
+    ('stone-scale', 'e->scale = scale;\n        e->gravity = -(float)', 'e->scale = 1.0f;\n        e->gravity = -(float)',
+     'effect_create'),
+    ('stone-fling', 'v[2] = (float)(smod(env_rand(env), 128) + 200);', 'v[2] = (float)(smod(env_rand(env), 128) + 100);',
+     'effect_create'),
+    ('stone-fall', 'e->gravity = e->gravity - 1.0f;\n        float h', 'e->gravity = e->gravity - 2.0f;\n        float h',
+     'effect_move'),
+    ('stone-bounce', 'e->gravity = -e->gravity * F_0_4;', 'e->gravity = -e->gravity * F_0_9;', 'effect_move'),
+    ('stone-wear', 'e->direction[1] = e->direction[1] - 2.0f;', 'e->direction[1] = e->direction[1] - 1.0f;',
+     'effect_move'),
+]
 PARTICLE_MUTANTS = [
     ('bolt-life', 'p->initial_lifetime = 10;', 'p->initial_lifetime = 11;', 'create', (0x84e2, 0)),
     ('smoke-alpha', 'p->alpha = 1.0f;', 'p->alpha = 0.9f;', 'create', (0x83de, 4)),
@@ -335,6 +351,28 @@ def particle_mutants(text, data, cases):
     return caught
 
 
+def stone_families(text, data, cases):
+    import validate_render_effects as base
+    lib = base.fx.load_library(ROOT/'reconstructed/combat'/('libcombat.' + base.fx.SUFFIX))
+    out = {}
+    for name in ('effect_create', 'effect_move'):
+        r = base.compare(text, data, lib, 'fx', name, [(0x43a, 0)], cases)
+        f = r['families'][name]
+        out['stone_' + name.split('_')[1]] = {'cases': f['cases'], 'mismatches': f['cases'] - f['equal']}
+    return out
+
+
+def stone_mutants(text, data, cases):
+    import validate_render_effects as base
+    caught = {}
+    with tempfile.TemporaryDirectory(prefix='render-effects5-fx-') as tmp:
+        for name, old, new, family in STONE_MUTANTS:
+            lib = base.compile_mutant(Path(tmp), name, 'fx', old, new)
+            f = base.compare(text, data, lib, 'fx', family, [(0x43a, 0)], cases)['families'][family]
+            caught[name] = {'cases': f['cases'], 'caught': f['cases'] - f['equal']}
+    return caught
+
+
 def registrations(text, data):
     """LoadBitmap calls for the two particle bitmaps (0x0182509b / 0x0182eb8e)."""
     import validate_render_effects as base
@@ -360,10 +398,11 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--cases', type=int, default=60, help='owner cases per rank-5 type')
     p.add_argument('--particle-cases', type=int, default=500)
+    p.add_argument('--stone-cases', type=int, default=500)
     p.add_argument('--mutations', action='store_true')
     p.add_argument('--output', type=Path)
     a = p.parse_args()
-    for d in ('renderchar', 'model-codec', 'particles'):
+    for d in ('renderchar', 'model-codec', 'particles', 'combat'):
         subprocess.run(['make', '-s', '-C', str(ROOT/'reconstructed'/d)], check=True)
     wa = tuple(pin.read() for pin in (pins.TEXT, pins.DATA, pins.FLAG, pins.FEATURE))
     text = am.load_pinned(pins.TEXT.default_str(), am.TEXT_BYTES, am.TEXT_SHA256, 'text')
@@ -377,16 +416,20 @@ def main():
         f = r['families'][name]
         report['families']['pt_' + name] = {'cases': f['cases'], 'mismatches': f['cases'] - f['equal'],
                                             'coverage': r['coverage'][name]}
+    report['families'].update(stone_families(text, data, a.stone_cases))
     report['registrations'] = registrations(text, data)
     if a.mutations:
         report['mutants'].update(owner_mutants(vectors))
         report['mutants'].update(particle_mutants(text, data, max(100, a.particle_cases // 5)))
+        report['mutants'].update(stone_mutants(text, data, max(100, a.stone_cases // 5)))
     bodies = {'owner_blue': (0x01747d6d, 0x01748625), 'owner_1c2b': (0x0174888d, 0x0174902c),
               'owner_b': (0x01749294, 0x01749a5d), 'owner_a': (0x01749cc5, 0x0174a489),
               'bone_lookup': (0x0129f12c, 0x0129f18a), 'random_scale': (0x0185caa4, 0x0185cb01),
               'bolt_create': (0x0160eb26, 0x0160ebdd), 'smoke_create': (0x015d1f29, 0x015d1fc3),
               'bolt_move': (0x01686f81, 0x016870b6), 'smoke_move': (0x0164455b, 0x016445f6),
-              'bolt_render': (0x015a7521, 0x015a761d), 'smoke_render': (0x015a3c58, 0x015a3d35)}
+              'bolt_render': (0x015a7521, 0x015a761d), 'smoke_render': (0x015a3c58, 0x015a3d35),
+              'stone_create': (0x013d6f51, 0x013d713e), 'stone_move': (0x0146b809, 0x0146b945),
+              'effect_wrapper': (0x013c0eaa, 0x013c0f19), 'deep_dungeon_call': (0x00e3e88f, 0x00e3e8fd)}
     report['bodies'] = {k: hashlib.sha256(text[s-am.TEXT_BASE:e-am.TEXT_BASE]).hexdigest()[:16]
                         for k, (s, e) in bodies.items()}
     report['instruction_cases'] = sum(f['cases'] for f in report['families'].values())

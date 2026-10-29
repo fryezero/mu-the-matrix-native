@@ -202,13 +202,13 @@ class RenderEffects(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             report = Path(tmp)/'report.json'
             subprocess.run([sys.executable, str(ROOT/'scripts/validate_render_effects5.py'), '--cases', '10',
-                            '--particle-cases', '200', '--mutations', '--output', str(report)],
+                            '--particle-cases', '200', '--stone-cases', '200', '--mutations', '--output', str(report)],
                            check=True, capture_output=True)
             r = json.loads(report.read_text())
             self.assertTrue(r['all_equal'])
             self.assertTrue(r['all_mutants_caught'])
-            self.assertEqual(len(r['mutants']), 19)
-            self.assertEqual(r['instruction_cases'], 790)
+            self.assertEqual(len(r['mutants']), 25)
+            self.assertEqual(r['instruction_cases'], 1190)
 
     def test_world_particle_consumers_and_sprite_registrations(self):
         subprocess.run(['make', '-C', str(ROOT/'native'), 'build/particle-consumers-host'], check=True,

@@ -81,7 +81,9 @@ static const struct { int32_t type, world; const char *file; } fx_model_files[MU
     {0x1ac, -1, "Data/Npc/warp02.bmd"}, {0x1ad, -1, "Data/Npc/warp03.bmd"},
     {MU_SFX_MODEL_CLOUD, 10, "Data/Object11/cloud.bmd"},
     /* RENDER-EFFECTS-004: Spirit of Guardian's wing 0x460 (AccessModel 0x0183375e, every world) */
-    {MU_SFX_MODEL_GUARDIAN_WING, -1, "Data/Skill/darkwing_hetachi.bmd"}};
+    {MU_SFX_MODEL_GUARDIAN_WING, -1, "Data/Skill/darkwing_hetachi.bmd"},
+    /* RENDER-EFFECTS-005: DungeonStone 0x43a, the world loader's case for worlds 116..120 (0x0184159b) */
+    {MU_SFX_MODEL_DUNGEON_STONE, -1, "Data/Object2/DungeonStone01.bmd"}};
 
 static int32_t slot_of(int32_t bitmap)
 {
@@ -239,6 +241,8 @@ int mu_world_particles_open(mu_world_particles *p, const char *root, const mu_wo
         mu_world_fx_model *m = &p->models[i];
         m->type = fx_model_files[i].type;
         if (mu_world_warp_type(m->type) && world != 2 && world != 3 && world != 57 && world != 58)
+            continue;
+        if (m->type == MU_SFX_MODEL_DUNGEON_STONE && (world < 116 || world > 120))
             continue;
         if (no_assets || (fx_model_files[i].world != world && fx_model_files[i].world != -1))
             continue;
