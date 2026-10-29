@@ -44,7 +44,10 @@ holds the addresses and every number.
 - Docs: client-render-time.md (finding), client-camera-input.md and client-input.md (pointers).
 
 Intended render change: native frames at window widths other than 640 cull with the client's 640-unit frustum.
-640x480 output is unchanged.
+640x480 output is unchanged. Wide native renders (for example 960x600 or 1722x1048 fidelity tours) change at
+object/terrain culling edges. The 960x600 twin frame still shows terrain to every edge. Lanes that keep native
+"before" renders at those sizes should expect this. The synthetic env clear-colour test moved to the map edge,
+because at 320x200 the terrain now fills the frame.
 
 ## Live session (shared game lock)
 
