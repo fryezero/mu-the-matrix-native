@@ -27,6 +27,8 @@ int mu_gray_aida_visual(uint8_t *, int32_t index, int present, float time, mu_ob
  * 0x00966e4a of types 0x41/0x42/0x84/0x85/0x4d/0x4e and 0xff after it (one event each, value in args[0]).
  * Type 0x46's CreateEffect 0x199 passes (u16)(int)scale as the eighth argument (args: type, position, angle,
  * light, subtype, owner, that value). */
+/* mu_obj_create defers the Scorched Canyon create (it draws from the RNG) to the host: MU_WR_CREATE (). */
+#define MU_WR_CREATE 0x00e432d9u
 #define MU_WR_STREAM 0x00d85c26u
 #define MU_WR_EFFECT_SCALED 0x00d85e29u
 #endif
