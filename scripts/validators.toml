@@ -1655,6 +1655,21 @@ args = ["--mutations", "--report", "{report}"]
 mismatches = 0
 mutants = {len = 15}
 
+[validate_audio_music]
+test = "reconstructed/audio/test_audio_002.py::Audio002.test_original_music_table"
+pins = ["text", "data", "music_table_read", "music_group_word"]
+families = ["doppelganger", "sites", "table", "group_word"]
+cases = 4291
+mutants = 10
+cases_at = "cases"
+mutants_at = "mutants"
+build = ["reconstructed/audio"]
+args = ["--require-live", "--table-read", "{music_table_read}", "--group-word", "{music_group_word}", "--mutations", "--report", "{report}"]
+[validate_audio_music.expect]
+mismatches = 0
+mutants = {len = 10}
+"families.*.mismatches" = 0
+
 [validate_audio_registration]
 test = "reconstructed/audio/test_audio_002.py::Audio002.test_original_registration"
 pins = ["text", "data"]
@@ -1936,6 +1951,20 @@ args = ["--cases", "60", "--mutations", "--output", "{report}"]
 all_equal = true
 all_mutants_caught = true
 
+[validate_render_effects4]
+test = "native/tests/test_render_effects.py::RenderEffects.test_rageful_blow_original_instructions_and_compiled_mutants"
+pins = ["text", "data"]
+families = ["effect_create", "effect_move", "item_init", "weapon", "arrows", "arrow"]
+cases = 1920
+mutants = 15
+cases_at = "comparisons.*.families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/combat"]
+args = ["--cases", "60", "--mutations", "--output", "{report}"]
+[validate_render_effects4.expect]
+all_equal = true
+all_mutants_caught = true
+
 [validate_world_particle_consumers]
 test = "reconstructed/particles/test_particles.py::ParticleTests.test_world_consumer_original_instructions"
 pins = ["text", "data"]
@@ -2165,3 +2194,33 @@ args = ["--mutations", "--output", "{report}"]
 [validate_item_scalars.expect]
 "families.*.mismatches" = 0
 "mutants.*" = {truthy = true}
+
+[validate_worlds_m]
+test = "native/tests/test_native_worlds_m.py::WorldsM.test_original_instructions"
+pins = ["text", "data"]
+families = ["create", "move", "render"]
+cases = 1080
+mutants = 17
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/particles"]
+args = ["--cases", "60", "--mutations", "--output", "{report}"]
+[validate_worlds_m.expect]
+all_equal = true
+all_mutants_caught = true
+
+[validate_worlds_n]
+test = "reconstructed/objects/test_worlds_n.py::WorldsNTests.test_original_instructions"
+pins = ["text", "data"]
+families = ["nixies_create", "nixies_move", "dd116_create", "dd117_create", "dd118_create", "dd119_create", "dd120_create", "dd116_move", "dd117_move", "dd118_move", "dd119_move", "dd120_move", "shared_visual"]
+cases = 13000
+mutants = 29
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+[validate_worlds_n.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0

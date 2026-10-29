@@ -164,6 +164,9 @@ def main(argv=None):
     ap.add_argument('--renders', action='store_true')
     ap.add_argument('--baseline', action='store_true')
     ap.add_argument('--perf-003-baseline', action='store_true', help='disable only PERF-003 optimizations')
+    ap.add_argument('--perf-004-baseline', action='store_true', help='disable only PERF-004 optimizations')
+    ap.add_argument('--perf-004-vbo-baseline', action='store_true', help='disable only vertex-buffer streaming')
+    ap.add_argument('--pose-tasks', type=int, choices=(1, 2, 4, 8, 80), default=4, help='PERF-004 pose team diagnostic')
     ap.add_argument('--gpu-timing', action='store_true', help='require the full Metal timing extension')
     ap.add_argument('--check', action='store_true', help='require the 25 Hz target')
     ap.add_argument('--check-regression', action='store_true', help='check the measured M5 envelope')
@@ -187,6 +190,9 @@ def main(argv=None):
     env.update(MU_PERF_BASELINE='0', MU_NO_GL_BATCH='0')
     env['MU_PERF_002_BASELINE'] = '1' if a.baseline else '0'
     env['MU_PERF_003_BASELINE'] = '1' if a.perf_003_baseline else '0'
+    env['MU_PERF_004_BASELINE'] = '1' if a.perf_004_baseline else '0'
+    env['MU_PERF_004_POSE_TASKS'] = str(a.pose_tasks)
+    env['MU_PERF_004_VBO_BASELINE'] = '1' if a.perf_004_vbo_baseline else '0'
     if a.gpu_timing:
         lib = ctypes.CDLL(str(a.gfx_lib))
         for symbol in ('mugfx_perf_frame', 'mugfx_perf_end'):
@@ -196,7 +202,7 @@ def main(argv=None):
               'load_start': os.getloadavg(),
               'binary_sha256': hashlib.sha256(a.binary.read_bytes()).hexdigest(),
               'gfx_sha256': hashlib.sha256(a.gfx_lib.read_bytes()).hexdigest(),
-              'perf_003_baseline': a.perf_003_baseline, 'gpu_timing': a.gpu_timing,
+              'perf_003_baseline': a.perf_003_baseline, 'perf_004_baseline': a.perf_004_baseline, 'pose_tasks_requested': a.pose_tasks, 'perf_004_vbo_baseline': a.perf_004_vbo_baseline, 'gpu_timing': a.gpu_timing,
               'gfx_double_buffer': 'MU_GFX_SINGLE_BUFFER' not in env,
               'region_reference': env.get('MU_PERF_REGION_REFERENCE') == '1', 'scenarios': {}}
     failed = False
@@ -226,6 +232,11 @@ def main(argv=None):
         rows = [json.loads(line) for line in (directory / 'stdout.jsonl').read_text().splitlines()
                 if line.startswith('{')]
         result['workload'] = workload(rows, SCENARIOS[name][2])
+        uploads = next((r for r in rows if 'vbo_uploads' in r), None)
+        expected_uploads = not a.perf_004_baseline and not a.perf_004_vbo_baseline
+        if uploads is None or uploads.get('vbo_failures') != 0 or bool(uploads['vbo_uploads']) != expected_uploads:
+            raise RuntimeError(f'{name}: missing, failed or unexpected vertex-buffer streaming')
+        result['streaming'] = uploads
         if metal and result['workload']['gfx'].get('shared') != 1:
             raise RuntimeError(f'{name}: Metal timing requires shared-surface rendering')
         result['failures'] = check(result, headless=a.headless)

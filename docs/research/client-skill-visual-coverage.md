@@ -1,6 +1,7 @@
-# Skill visual coverage, RENDER-EFFECTS-003
+# Skill visual coverage, RENDER-EFFECTS-004
 
-This is a reviewed coverage summary, not an export of Skill(Kor). The baseline is
+This is a reviewed coverage summary, not an export of Skill(Kor). RENDER-EFFECTS-004 starts from
+main `147005d` (EFFECTS-003 #230 included). The original baseline is
 main `cf81357`, including RENDER-EFFECTS-002 #221, SESSION-COMBAT-001 #197 and SESSION-SKILL-001 #204.
 The scope is the player cast's primary visible result, its particles/joints and its
 session adapter. A working icon, sound, animation or CreateEffect call alone does
@@ -35,38 +36,38 @@ DK = 1, Elf = 2, MG = 3, DL = 4, Summoner = 5, RF = 6, GL = 7, RW = 8,
 Slayer = 9, Gun Crusher = 10, Light Wizard = 11, Mage = 12, Illusion Knight = 13,
 Alchemist = 14, Crusader = 15.
 
-| Skill / primary visual | Eligible classes | Table level / use | Weight | Before | After | Rendered result or remaining gap |
+| Skill / primary visual | Eligible classes | Table level / use | Weight | Before (003) | After (004) | Rendered result or remaining gap |
 |---|---|---|---:|---|---|---|
 | 0 normal attack | All, weapon-dependent | All levels | 5 | P | P | Weapon actions; bow arrow model and trail |
 | 1 Poison | DW, MG, RW, Mage, Alchemist | 30, early spell | 3 | P | P | Ten smoke01/1 particles at target; model 0x414 belongs to a monster branch |
-| 2 Meteorite | DW, MG, Summoner, RW, Mage, Alchemist | 21, early spell | 3 | M | P | Falling Fire01/0, six impact stones, Explosion01/0 |
+| 2 Meteorite | DW, MG, Summoner, RW, Mage, Alchemist | 21, early spell | 3 | P | P | Falling Fire01/0, six impact stones, Explosion01/0 |
 | 4 Fire Ball | DW, MG, Summoner, RW, Mage, Alchemist | 5, early spell | 3 | P | P | Fire01/1, fire trail and impact stones |
 | 7 Ice | DW, MG, Summoner, Light Wizard, Mage, Alchemist | 25, early/control | 3 | P | P | Ice01 and five Ice02 debris models, smoke and negative terrain light |
 | 9 Evil Spirit | DW, MG, RW | 50, repeated area farming | 5 | P | P | Eight spirit ribbons, wide-spirit Laser01 and terrain light |
 | 10 Hellfire | DW, MG, RW, Mage, Alchemist | 60, area spell | 2 | P | P | Circle01/02, fire and stones |
 | 11 Power Wave | DW, MG, Summoner, Light Wizard, Mage, Alchemist | 9, early spell | 3 | P | P | One Magic02 model and four smoke01/3 particles per step |
-| 12 Aqua Beam | DW, MG, Light Wizard, Alchemist | 74, directional spell | 3 | M | P | Ordinary-world 20-sprite Spark03 beam and terrain-light chain; hero area requests remain separate |
-| 14 Inferno | DW, MG, RW, Mage, Alchemist | 88, recurring area spell | 4 | L | P | Inferno01, ring stones, eight bursts of 20 Spark02/2 particles plus Explosion01/0 |
+| 12 Aqua Beam | DW, MG, Light Wizard, Alchemist | 74, directional spell | 3 | P | P | Ordinary-world 20-sprite Spark03 beam and terrain-light chain; hero area requests remain separate |
+| 14 Inferno | DW, MG, RW, Mage, Alchemist | 88, recurring area spell | 4 | P | P | Inferno01, ring stones, eight bursts of 20 Spark02/2 particles plus Explosion01/0 |
 | 17 Energy Ball | DW | 2, starting spell | 3 | P | P | Thunder01 and Spark03 particles |
 | 19 Falling Slash | DK, MG, DL, RF, Crusader | 0, weapon skill | 2 | P | P | Weapon action 0x89; no separate model at audited end site |
 | 20 Lunge | DK, MG, DL, GL, Slayer | 0, weapon skill | 2 | P | P | Weapon action 0x8a |
 | 21 Uppercut | DK, MG, DL, Slayer | 0, weapon skill | 2 | P | P | Weapon action 0x8b |
 | 22 Cyclone | DK, MG, DL, Slayer, Illusion Knight | 0, weapon skill | 2 | P | P | Weapon action 0x8c |
 | 23 Slash | DK, MG | 0, weapon skill | 2 | P | P | Weapon action 0x8d |
-| 24 Triple Shot | Elf | 0, recurring ranged farming | 5 | L | L | Three default arrows; item/skill-specific arrow choices and spread variants remain |
+| 24 Triple Shot | Elf | 0, recurring ranged farming | 5 | L | P | Verified CreateArrows fan (0, +15, -15) and CreateArrow bow table; other bows' arrow models remain |
 | 26 Heal | Elf | 8, recurring support | 4 | P | P | Target ground effect, three energy ribbons and arrival sprite |
 | 27 Greater Defense | Elf | 13, recurring support | 4 | L | L | Cast animation/sound; persistent buff aura/authoritative buff feed absent |
 | 28 Greater Damage | Elf | 18, recurring support | 4 | L | L | Cast animation/sound; persistent buff aura/authoritative buff feed absent |
 | 41 Twisting Slash | DK, MG, Slayer, Crusader | 0, repeated melee farming | 5 | P | P | Weapon swirl, smoke, sparks, joint streaks |
-| 42 Rageful Blow | DK, Slayer, Crusader | 170, later melee farming | 4 | M | M | 0x461 impact and character-step branch |
+| 42 Rageful Blow | DK, Slayer, Crusader | 170, later melee farming | 4 | M | P | Flying weapon 0x461, EarthQuake01..08/flashing/tail impact, quake rings, eight joints; ordinary worlds |
 | 43 Death Stab | DK | 160, later melee combat | 4 | L | L | Action 0x9e; associated skill-step trails remain unaudited |
 
-Totals: **15 P / 5 L / 3 M before; 18 P / 4 L / 1 M after**, out of 23
-routes. Strict primary coverage rises from 65.2% to 78.3%. Primary-covered
-priority weight rises from **46/77 to 56/77**, or 59.7% to 72.7%. Limited rows
+Totals: **18 P / 4 L / 1 M before; 20 P / 3 L / 0 M after**, out of 23
+routes. Strict primary coverage rises from 78.3% to 87.0%. Primary-covered
+priority weight rises from **56/77 to 65/77**, or 72.7% to 84.4%. Limited rows
 receive no primary-coverage credit. These percentages do not apply to all client
-skills, variants, monsters, gear effects or worlds. The earlier #221 milestone
-moved 12/23 and 37/77 to the present baseline.
+skills, variants, monsters, gear effects or worlds. Earlier milestones moved
+12/23 and 37/77 (#221) and 15/23 and 46/77 (EFFECTS-003 baseline) to 18/23 and 56/77.
 
 ## Other client skill groups and class exposure
 
@@ -76,24 +77,24 @@ This table reports candidate records with brand 0 and use type 0/4/7/8/14, and
 class-map value > 0. It is a static workload inventory, not a claim that every
 candidate casts, is learned, or has a unique effect. Classes overlap.
 
-| Class | Candidate records | Audited primary records before / after | Highest-priority remaining visuals |
+| Class | Candidate records | Audited primary records before / after (004) | Highest-priority remaining visuals |
 |---|---:|---:|---|
-| DW | 69 | 7 / 10 | Later area spells |
-| DK | 63 | 6 / 6 | Rageful Blow, Death Stab trails, later combos |
-| Elf | 73 | 1 / 1 | Buff auras, arrow variants, later bow area skills |
-| MG | 79 | 12 / 15 | Later blade/spell families |
+| DW | 69 | 10 / 10 | Later area spells |
+| DK | 63 | 6 / 7 | Death Stab trails, later combos |
+| Elf | 73 | 1 / 2 | Buff auras, other bows' arrow models, later bow area skills |
+| MG | 79 | 15 / 15 | Later blade/spell families |
 | DL | 64 | 4 / 4 | Command/fire-chain and raven-specific combat visuals |
-| Summoner | 64 | 3 / 4 | Summon/drain/lightning and later class spells |
+| Summoner | 64 | 4 / 4 | Summon/drain/lightning and later class spells |
 | RF | 58 | 1 / 1 | Fist/charge/area families |
 | GL | 57 | 1 / 1 | Lance/charge/area families |
-| RW | 68 | 4 / 6 | Rune-specific area spells |
-| Slayer | 54 | 4 / 4 | Class trails and Rageful Blow |
+| RW | 68 | 6 / 6 | Rune-specific area spells |
+| Slayer | 54 | 4 / 5 | Class trails |
 | Gun Crusher | 50 | 0 / 0 | Gun/projectile/area families |
-| Light Wizard | 60 | 2 / 3 | Class-specific light spells |
-| Mage | 68 | 5 / 7 | Class-specific spells |
+| Light Wizard | 60 | 3 / 3 | Class-specific light spells |
+| Mage | 68 | 7 / 7 | Class-specific spells |
 | Illusion Knight | 43 | 1 / 1 | Illusion/weapon-copy families |
-| Alchemist | 67 | 5 / 8 | Alchemy families |
-| Crusader | 54 | 2 / 2 | Rageful Blow and holy/charge families |
+| Alchemist | 67 | 8 / 8 | Alchemy families |
+| Crusader | 54 | 2 / 3 | Holy/charge families |
 
 These remaining class families have **missing session visual selection**. Some
 share generic rendered weapon actions or already supported particle kinds, which
@@ -194,3 +195,16 @@ and live image comparison remain open. Aqua Beam here is subtype 0 in ordinary
 worlds, without the special-world wall cutoff or hero-only area-request and
 source-buffer-writeback services. Those are explicit limits, not additional
 primary cast routes. The pre-existing mount-breath rounding difference is unchanged.
+
+## RENDER-EFFECTS-004 evidence and limits
+
+[New finding](client-render-effects-004.md): 32,000 original-instruction comparisons, zero
+mismatches, 15/15 compiled mutants. Rageful Blow (42) is P for ordinary worlds: the caller
+`0x013a94a4`, 0x461 and its nine piece kinds, the item initialiser and the weapon draw are
+verified. Triple Shot (24) is P for the native bow: CreateArrows/CreateArrow are verified and the
+fan changes from the old static -8/0/+8 to the client's 0/+15/-15. Other bows' arrow models,
+master-tree/skill-tree/item-option branches (authored inputs) and bow 0x12f9's sparks remain.
+Greater Defense/Damage stay L: their persistent auras need the authoritative buff feed.
+Death Stab stays L: its skill-step trails are unaudited. Master/later-class selectors still need
+explicit base selection and session context. The Spirit of Guardian wing (pet cosmetic) adds
+no skill credit.

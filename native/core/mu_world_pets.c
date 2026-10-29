@@ -303,8 +303,15 @@ static void r_effect(void *c, int32_t type, const float position[3], const float
 {
     draw_context *d = c;
     d->pp->stats.effects++;
-    if (d->w->particles)
-        mu_world_particles_effect(d->w->particles, type, args[0], position, angle, light, -1, 0.0f, NULL);
+    if (d->w->particles) {
+        /* CreateEffect(type, ..., subtype args[0], no owner, key args[2], ..., scale args[6]) */
+        mu_sfx_info info;
+        memset(&info, 0, sizeof info);
+        info.key = (uint16_t)args[2];
+        float scale;
+        memcpy(&scale, &args[6], sizeof scale);
+        mu_world_particles_effect(d->w->particles, type, args[0], position, angle, light, -1, scale, &info);
+    }
 }
 
 static void r_remember(void *c, int32_t kind)

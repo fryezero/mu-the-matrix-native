@@ -93,6 +93,7 @@ live count. Particle/environment counts allow 10% relative error; their per-live
 match. Weather rotation sum allows 2 degrees. Primary-light RGB means allow `1e-6`, frame-light means 0.05,
 clear RGB 1/255, joint count 10%, and each coarse image RGB cell 8/255. Live RNG/checksums are diagnostic,
 never compared as if pools or object ordering were identical.
+RENDER-TIME-002 reviewed this policy against two live runs without changing it; see the live-half section below.
 
 A live comparison requires `source:live`, `mugl_patches:off`, and `phase:aligned` on both series with an
 independently recorded alignment procedure. The native capture deliberately emits a fresh-world phase label,
@@ -126,7 +127,128 @@ checks and planted data regressions exercise the checker independently of repeat
 check additionally changes the sample cadence and requires equal common rows, catching sample-driven draws.
 The full local gate discovers the portable suite through `native/tests`; no shared test list is added.
 
-## LIVE half procedure, not executed here
+## LIVE half, RENDER-TIME-002 (2026-10-28)
+
+The live half was run under the shared game lock. It produced live series for Lorencia (world 0) and a native
+twin of each. **Result: `compare --mode live` fails for both scored runs.** The first error is the phase gate:
+pool ages, animation starts and the shared `rand()` stream were not aligned, so the live series is
+`phase: unaligned`. The component checks also fail, mostly for causes listed below that are not render-fidelity
+errors. The numbers, provenance hashes and local file SHA-256s are in
+[client-render-time-live.json](client-render-time-live.json). Checks and session details are in the
+[handoff](../handoffs/RENDER-TIME-002.md).
+
+**Exporter (synthetic tests; run live).** `live-readers/rtsample` reads only (`mach_vm_read_overwrite`) and emits
+the schema's sums and counts, never records.
+
+- *Post-draw point.* mugl's presented-frame counter, whose address mugl writes to `C:\mutools\mugl-shm.txt`. It is
+  incremented at the start of `wglSwapBuffers`, after the scene's draw calls.
+- *Bracket.* Each read is bracketed before and after by WorldTime `0x06fce370`, the logic counter `0x0bdc5eb0`, the
+  rendered-frame counter `0x0bdc5ebc` and the presented counter.
+- *Sources.*
+  - Hero: `[0x0a39d754]`, with its OBJECT at `+0x3254`.
+  - Camera: eye `0x0bdc5ab4`, angle `0x0bdc58f0`, FOV `0x01cf1634`.
+  - Static objects: the 256 sector lists.
+  - Particles: the `std::list` at `0x0a3a9adc`. Statically, begin = `[[list]]` (`0x01690f45`) and end = `[list]`
+    (`0x0169103a`), with the shared record pointer at node `+8`. In every live read the walked count equalled the
+    stored size.
+  - Pools: effects `0x0a4ca430` (200), joints `0x0a4fa4f0` (500), boids `0x0bdb71f0` (40), fish `0x0bdc0bb0` (10)
+    and weather leaves `0x0a3a0e28` (200).
+  - Lights: both light grids.
+- *Input diagnostics.* Each sample also records MouseWheel `0x0bdc59a4`, the zoom index `0x0bdc5914`, the
+  zoom-settled flag `0x0bdc5ed8` and the hero action.
+- *Every-edge mode.* `--all-edges` samples every post-draw edge after arm.
+
+`live-readers/rtinput/rtinput.c` is a Wine-side helper built with mingw. It only uses `SetCursorPos`/`SendInput`.
+It replays the plan's events at the arm signal + 40 ms × frame, at the plan's client-area fractions. The arm signal
+is a file that rtsample creates after its frame-0 post-draw read.
+
+`scripts/render_time_live.py` provides `schedule`, `export`, `pair` and `summarize`. Three components are declared
+unavailable and reported as `not_compared`; they are not scored:
+
+- the clear colour, which is an immediate in the render scene, so there is no memory to read;
+- the shared CRT `rand()` state;
+- the image grid, because the live window has the HUD, the hero's equipment and other players.
+
+**Capture setup (deviations from the plan in bold).**
+
+- The owner's free-runtime prefix ran on plain Rosetta, fast x87 off.
+- Rollback copies were made of `mugl-hotpatch.txt`, `mu-modes.txt` and `LauncherOption.if`.
+- `mugl-hotpatch.txt` was set to `0` before start. mugl logged
+  `=== hotpatch mask 0: funcs 9/9 sites 18583 peep 50977`; with mask 0 those counts are sites verified in their
+  original bytes.
+- The buffering mode stayed `full+vbo` (GL batching, not CPU patches).
+- All three files were restored byte for byte after each session.
+- **The client offers no 640×480 mode.** Its mode hook lists 960×600..1728×1080, and 640×480 appended to that
+  list fell back to 960×600. The live client area is therefore 960×600. rtinput replayed the plan's positions as
+  the same client-area fractions (400,240 → 600,300; 260,240 → 390,300).
+- **The native twin runs at 960×600** with that scaled script, the live start tile and `start_world_time_ms` = the
+  first live sample's WorldTime. Both script SHA-256s are recorded.
+
+**Observed live timing.**
+
+- *Frame rate.* The client drew 19.1–20.9 fps (153–167 post-draw edges for 200 logic steps), with no idle time
+  between frames.
+- *WorldTime moves after the swap.* WorldTime (`(float)timeGetTime()`) changed during the read, 1–4 ms after the
+  swap, in 24 of run 3's 167 reads. The counters had not moved, so the next frame had begun. The exporter rejects
+  such reads (bracket > 20 ms) and takes the next accepted edge: 5 rejected in run 3, 1 in run 4.
+- *Reads.* Reads took ≤ 4.0 ms; none was torn by a counter.
+- *Late samples.* Logic steps coalesce. Six (run 3) and three (run 4) samples fell one to four steps after their
+  plan frame; their actual ordinal is recorded, not relabelled.
+- *Inputs.* Inputs were sent ≤ 4.4 ms after their due time.
+
+**Pairing (changed from step 5).** A live sample cannot fall on every exact plan frame. The native twin therefore
+samples every iteration, and `pair` keeps the native row at each live sample's recorded relative logic ordinal.
+Only recorded ordinals are used, never errors.
+
+| Field | Run 3 (start 137,129) | Run 4 (start 138,129) | Reading |
+|---|---|---|---|
+| Hero and eye XY | exact at standing samples; 13 units mid-walk (frame 50); 100 units after frame 130 | exact at standing samples; 17 units mid-walk (frame 50) | Same path tile for tile. Run 3's second click landed one tile apart only because native had zoomed. A native twin without the wheel matches live exactly at 20/21 samples (13 units mid-walk). |
+| Walk distance | 223.606798 = 223.606798 | 223.606798 = 223.606798 | equal |
+| FOV / pitch / eye height | live 39 / −48.5 / 1015 throughout; native 30 / −59.16 / 814 between frames 100 and 160 | same | The wheel reached the client (MouseWheel +1 then −1), but the zoom index stayed 2 with zoom settled 1, so the client refused the zoom. Native zoomed. |
+| Primary light means | 0 error | 0 error | exact |
+| Frame-light means | live +0.19..+0.49 | live +0.35..+0.93 | AddTerrainLight from other characters and hero equipment, which native does not draw |
+| Objects | 2,833 = 2,833. Position, angle and light mean error ≤ 0.0013. Frame/prior frame 0.062/0.065 | Frame/prior frame 0.053/0.077 | Counts and placement agree. The animation phase is not aligned (limit 0.05). |
+| Visible objects | live 177–198, native 249–289 | live 176–182, native 260–290 | open discrepancy (identical camera at standing samples) |
+| Particles / effects / joints | live 205–257 / ≤ 6 / ≤ 10; native 0 at frame 0, then up to 232 / 0 / 0 | live 185–235 / ≤ 7 / ≤ 6; native up to 215 / 0 / 0 | Native starts with an empty pool (a fresh world), so pool age differs. Live also holds entries owned by other players, pets and the hero's wings. |
+| Live boids/fish; weather leaves | live 5, native 3–5; live 75–80, native 80 | 4–5 and 4–5; live 74–80, native 80 | counts within 10% except early native boid spawns; positions follow the unaligned RNG |
+| Hero animation frame | ≤ 4.9 frames | ≤ 5.4 frames | idle animation phase not aligned |
+| Relative WorldTime | −36..+5 ms | −24..+13 ms | see below |
+
+**Threshold review.** No limit was changed in code; the result above is under the declared policy. A revised
+policy must be fixed before the next scored run.
+
+*Limits that hold on this evidence:*
+
+- primary light at 1e-6 (exact);
+- object count, action, position, angle and light;
+- weather count (10%), and boid/fish counts once the spawn history is aligned;
+- camera/hero position at 1 unit on standing samples;
+- the relative logic ordinal, under logic-ordinal pairing.
+
+*Limits that should change, and why:*
+
+1. **WorldTime at 20 ms cannot hold while the client draws below 25 fps.** Live WorldTime is the wall time at
+   frame start, while logic advances in 40 ms quanta (observed −36..+13 ms). Keep 20 ms as the read-bracket rule.
+   Compare clock phase with a tolerance of one observed live frame interval at that sample (≤ 60 ms here), and
+   match samples by logic ordinal.
+2. **Mid-walk position at 1 unit.** Clicks arrive by wall clock, so the logic step that consumes a click can
+   differ by one, and mid-walk samples differed by 13–17 units. Either record the consuming step (read the
+   client's path/input state) or allow one step of walking motion on samples taken while the hero is walking.
+   Standing samples keep 1 unit.
+3. **Composition-dependent components** (particles, effects, joints, frame light, image) can't be scored while
+   other characters are present. Split live pool sums by owner (`+0x50` / `+0x34c`) and score only world-owned
+   entries. Use a scene with no other characters, or draw them natively. Until then, declare these components
+   unavailable.
+4. **Object frame and hero animation at 0.05 frame** remain untested until animation starts are aligned (step 6);
+   keep the limit.
+5. **Visible-object count stays exact.** The 25–30% gap at an identical camera is a real discrepancy (the native
+   2D frustum/range at 960×600) for a later lane, not a threshold problem.
+
+**Not done.** No pool, animation or RNG phase was restored, so no aligned live comparison exists. The live scene
+had other characters. There is no live-vs-live repeat from one start tile; runs 1–2 used the earlier
+target-only sampler and could not be exported. Only Lorencia was captured; the other thirteen views were not.
+
+## LIVE half procedure, as planned by RENDER-TIME-001
 
 1. In a future authorized live session, read `mu-mac-tools/GAME-LOCK.md` and the
    [service contract](service-contract.md). Acquire the shared game lock with the documented `mkdir`/owner

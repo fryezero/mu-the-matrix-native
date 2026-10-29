@@ -123,6 +123,8 @@ typedef struct mu_jt_object {
     uint16_t action;           /* +0x2a (NATIVE-HELPERS-002: the 0x7f78 ring reads its target's action) */
     int32_t type;              /* +0x5c (NATIVE-HELPERS-002: Fenrir's lightning 0x4ac looks up its owner's model) */
     float eye_188[3], eye_194[3]; /* +0x188 / +0x194, SetEye (0x0137a948) */
+    float angle[3];            /* +0x164 (RENDER-EFFECTS-004: Rageful Blow aims along its owner's angle) */
+    int8_t level;              /* +0x41 the item level byte the area-skill caller stores (RenderPartObject glow) */
 } mu_jt_object;
 
 /* One call into another subsystem, in client order; vectors are the values at
