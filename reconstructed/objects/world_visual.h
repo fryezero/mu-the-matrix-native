@@ -63,4 +63,8 @@ int mu_builtin_visual(uint8_t *, int32_t, int32_t, int, float, mu_obj_rand_fn,
                       mu_world_named_bone_fn, void *, mu_obj_log *);
 void mu_icarus_bone_flare(const uint8_t *, int32_t, mu_world_named_bone_fn, void *, mu_obj_log *);
 void mu_losttower_push(uint8_t *, int32_t, const float[3], uint16_t, mu_obj_log *);
+/* RENDER-WORLDS-Q2: the class slot 0x10 of worlds 134..145, the draw-first answer of 0x017fcd18 for them
+ * (world_first_visual.c). mu_class_first_owned: the worlds whose answer it is. */
+int mu_class_first_owned(int32_t world);
+int mu_class_first(uint8_t *o, int32_t world, const float x2d[4], const float y2d[4], int32_t scene_state);
 #endif
