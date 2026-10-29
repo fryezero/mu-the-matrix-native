@@ -63,3 +63,11 @@ carry effects on types 123 and 160–166); Unicorn comparison of `0x0129f671`/`0
 No original client or launcher was started. No service, wire, protection or item work. Only authored source,
 synthetic fixtures and reviewed summaries are committed. Local outputs `native/scratch/render-effects-006` and
 renders are deleted at cleanup; no new local input needs retention. DATA-ACQ-002 inputs were only read.
+
+## Gate
+
+On the tree merged with origin/main `61d5bb4` (FIXTURE-PROBE-001, RENDER-ITEMS-TEX-002): `nice -n 10 bash
+scripts/local-macos-ci.sh` passes, **38 suites, 1,764 tests, 1,532 passed, 232 skipped, 0 failures**; fixtures,
+native viewer and live-reader builds ok; **1,755 audited files, 0 rejected**. Private validators rerun after that
+merge: validate_render_effects6, validate_render_effects, validate_render_effects5, validate_skill_fx,
+validate_particles pass. validate_pets skipped earlier (its input is absent locally).
