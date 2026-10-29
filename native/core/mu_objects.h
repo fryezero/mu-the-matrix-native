@@ -169,6 +169,8 @@ typedef struct mu_objects {
     int32_t count;
     mu_object_model *models[MU_OBJECT_TYPES];
     int32_t models_loaded, models_missing, types_used;
+    int32_t textures_retried;   /* mesh textures found by OpenTexture's name map / Item retries (RENDER-WORLDS-G2) */
+    int32_t textures_unresolved; /* mesh textures left empty after them */
     int32_t skipped_types;            /* records whose type is outside 0..299 */
     float uniform_light;              /* > 0: body light (v, v, v) instead of the terrain light */
     uint8_t hidden_type[MU_OBJECT_TYPES]; /* types the running client marked +0x68 = -2 (not drawn) */

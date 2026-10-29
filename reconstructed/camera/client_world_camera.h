@@ -70,6 +70,10 @@ typedef struct mu_world_camera {
 
 /* World entry (0x0185613e first tick): yaw -45, settled zoom, index 2,
  * fov_from = fov_to = world FOV, start = current camera. */
+/* event_world's value for a world: 0x00e94004 (Vulcanus, 0x3f) || 0x00e3068f (0x52..0x5a). MoveMainCamera then
+ * uses the far plane 3700 (RENDER-WORLDS-G2). */
+int mu_world_camera_event_world(int32_t world);
+
 void mu_world_camera_enter(mu_world_camera *camera, mu_client_view *view);
 
 /* MoveMainCamera 0x0185498e, ordinary in-world path. Writes view->fov,

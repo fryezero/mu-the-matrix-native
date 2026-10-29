@@ -58,6 +58,9 @@ extern const mu_texture_special mu_texture_specials[MU_TEXTURE_SPECIAL_COUNT];
 /* Loads the model textures from `directory` and the environment bitmaps
  * from `directory`/../Effect (or `effect_directory` when not NULL). */
 int mu_textures_load(mu_textures *textures, const mu_bmd *model, const char *directory);
+/* Uploads an installed file into a mesh slot that mu_textures_load left empty (OpenTexture's later steps,
+ * mu_texture_names). Returns 0 on success. */
+int mu_textures_set_file(mu_textures *textures, const mu_bmd *model, int32_t index, const char *path);
 int mu_textures_load_with_effects(mu_textures *textures, const mu_bmd *model, const char *directory,
                                   const char *effect_directory);
 void mu_textures_free(mu_textures *textures);
