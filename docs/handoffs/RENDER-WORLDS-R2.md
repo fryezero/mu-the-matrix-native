@@ -33,8 +33,8 @@ reviewed summaries are committed.
 Found on main (not changed here, other lanes' files): since BUILD-DEPS-001 the `reconstructed/objects` Makefile
 includes `../deps.mk`, but the mutant copies of `validate_worlds_{g,h,n,o,p,p2}.py` copy only the source
 directories, so their `--mutations` runs stop at `make: No rule to make target '../deps.mk'` (verified for P2:
-`run_validators.py --private --only validate_worlds_p2` fails). `validate_worlds_r2.py` copies `deps.mk`; the
-same one-line copy fixes the others.
+`run_validators.py --private --only validate_worlds_p2` fails). `validate_worlds_r2.py` copies `deps.mk`; RENDER-WORLDS-G2
+fixes the others with `-include` (orchestrator, 2026-10-28).
 
 Remaining: the CreateEffect kinds 0x195/0x199 with word4; the 142 range −800 writer and the 142–144 velocity
 differences (not in these slots); the custom/after/invisible-move slots of the three classes; the default hook
