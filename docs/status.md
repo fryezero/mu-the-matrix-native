@@ -1,5 +1,7 @@
 # Current status
 
+RENDER-WORLDS-G2: object models now resolve textures as OpenTexture `0x0181fbe9` does (bitmap-name map of the startup and world-pass models, then `Data\Item\`, `Data\Item\Texture\`; textures from `Object<folder>`), and Vulcanus gets its 3700 far plane. Zero unresolved object textures at the 19 affected captures; image error Deep Dungeon 3 13.5 → 3.2, Vulcanus 2.7 → 1.8. 4,157 instruction cases, zero mismatches, 17/17 mutants. [Evidence](research/client-worlds-g2.md), [checks and limits](handoffs/RENDER-WORLDS-G2.md).
+
 RENDER-WORLDS-O: Abyss of Atlans 1-3 (128-130) primary methods (+9; 61/144 verified, 21/48 classes with RENDER-WORLDS-N); Abyss 2/3 now take their tile bitmaps from World129 as `0x01829457` does (image error 82.2 → 4.4 and 48.0 → 2.2). 9,000 + 5,700 instruction cases, zero mismatches, 24/24 mutants. [Evidence](research/client-worlds-o.md), [checks and limits](handoffs/RENDER-WORLDS-O.md).
 
 RENDER-EFFECTS-004: Rageful Blow's ordinary-world chain (0x461 and nine pieces, item initialiser, weapon draw), Triple Shot through verified CreateArrows/CreateArrow (0/+15/-15) and Spirit of Guardian's wing 0x460/4. Primary routes 18/23 to 20/23, weighted 56/77 to 65/77. 32,000 instruction comparisons, zero mismatches, 15/15 compiled mutants. Rank-5 item owner effects remain for a slice agreed with RENDER-ITEMS-002K. [Evidence](research/client-render-effects-004.md), [checks and remaining work](handoffs/RENDER-EFFECTS-004.md).
