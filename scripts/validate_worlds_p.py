@@ -166,7 +166,7 @@ def ein_stubs(calls, has_effects, valid):
 def object_case(g, typ):
     raw = bytearray(v.poison_object(g))
     v.put_i(raw, 0x5c, typ)
-    v.put_f(raw, 0xa0, v.f32(g.choice([1.0, 1.15, 1.1499999, 1.35, 1.3499999, 2.0, 0.5, -1.0, g.uniform(0, 3)])))
+    v.put_f(raw, 0xa0, v.f32(g.choice([1.0, 1.15, 1.1499999, 1.35, 1.3499999, 1.3, 1.32, 2.0, 0.5, -1.0, g.uniform(0, 3)])))
     v.put_f(raw, 0x158, v.f32(g.uniform(0, 25600)), v.f32(g.uniform(0, 25600)), v.f32(g.uniform(-100, 500)))
     v.put_f(raw, 0x164, *(v.f32(g.uniform(-360, 360)) for _ in range(3)))
     v.put_f(raw, 0xb0, v.f32(g.uniform(-2, 2)))
@@ -222,9 +222,18 @@ def create_family(machine, lib, name, cases):
 THRESHOLDS = [300.0, 400.0, 800.0, 1000.0, 1200.0, 1300.0]
 
 
-def hero_case(g, raw):
+TYPE_THRESHOLD = {0x17: 800.0, 0x19: 800.0, 0x28: 1300.0, 0xa0: 400.0, 0xa5: 400.0, 0x16: 1000.0, 0x29: 1000.0,
+                  0x5c: 1000.0, 0x74: 1000.0, 0x77: 300.0, 0x81: 300.0, 0xb5: 1200.0}
+
+
+def hero_case(g, raw, typ):
     x, y = struct.unpack_from('<2f', raw, 0x158)
     r = g.random()
+    if r < 0.3:   # exact distances: integer positions along one axis
+        x, y = float(g.randrange(2000, 23000)), float(g.randrange(2000, 23000))
+        v.put_f(raw, 0x158, x, y)
+        d = TYPE_THRESHOLD.get(typ, g.choice(THRESHOLDS)) + g.choice([-1.0, 0.0, 0.0, 1.0])
+        return ((x + d, y, 0.0), (x - d, y, 0.0), (x, y + d, 0.0), (x, y - d, 0.0))[g.randrange(4)]
     if r < 0.6:
         d = g.choice(THRESHOLDS) + g.choice([-0.01, 0.0, 0.01, -5.0, 5.0])
     else:
@@ -248,7 +257,7 @@ def move_family(machine, lib, name, cases):
         count, speeds, keys = model_case(g, True)
         raw = object_case(g, typ)
         action = g.choice([0, 0, 1, 1, 2, 2, 3, 3, 5])
-        dt = v.f32(g.choice([0.0, 0.25, 1.0, 1.5, g.uniform(0, 2.5)]))
+        dt = v.f32(g.choice([0.0, 0.0, 0.1, 0.25, 1.0, 1.5, g.uniform(0, 2.5)]))
         s = v.f32(speeds[action] + dt)
         f = g.random()
         if f < 0.45:
@@ -262,7 +271,13 @@ def move_family(machine, lib, name, cases):
         v.put_i(raw, 0x30, swings)
         v.put_i(raw, 0x34, swings + g.choice([0, 0, -1, 1, 3]))
         v.put_f(raw, 0xc8, v.f32(g.choice([0.0, 0.05, 0.1, 0.5, 0.65, 0.9, 1.0, g.uniform(-0.5, 1.5)])))
-        hero = hero_case(g, raw)
+        if typ == 0x5c and g.random() < 0.5:
+            v.put_f(raw, 0xd0, v.f32(g.choice([0.85, 0.86, 0.9, 1.0, 0.84])))
+        if typ == 0xb5 and g.random() < 0.5:
+            last = keys[action] - 1
+            v.put_f(raw, 0xd0, v.f32(g.choice([last / 4.5, last / 5.0, last / 3.0, 3.0, 7.0, 7.5, 8.0])))
+            v.put_f(raw, 0xc8, v.f32(g.choice([0.65, 0.65 - dt * 0.5, 0.1, 1.0, 1.0 - dt * 0.1])))
+        hero = hero_case(g, raw, typ)
         has_effects = g.random() < 0.5
         valid = 15 if g.random() < 0.6 else g.randrange(0, 16)
         time = v.f32(g.choice([0.0, -0.0, 1000.0, g.uniform(-1e6, 1e6)]))
@@ -418,7 +433,8 @@ def family(machine, lib, name, cases):
 
 
 MUTANTS = [
-    ('old_kethotum.c', 'world != 0x87', 'world != 0x86', 'ok_create'),
+    ('old_kethotum.c', 'if (world != 0x87', 'if (world != 0x86', 'ok_create'),
+    ('old_kethotum.c', 'in->world != 0x87', 'in->world != 0x86', 'ok_move'),
     ('old_kethotum.c', 'm->speed[k] = 0.3f', 'm->speed[k] = 0.31f', 'ok_create', 'worlds_p_internal.h'),
     ('old_kethotum.c', 't >= 0xa0 && t <= 0xaa', 't >= 0xa0 && t <= 0xa9', 'ok_create'),
     ('old_kethotum.c', 'case 0x15: case 0x3b:', 'case 0x14: case 0x3b:', 'ok_create'),
@@ -441,13 +457,14 @@ MUTANTS = [
     ('old_kethotum.c', 'wave < 0.0f ? -wave : wave', 'fabsf(wave)', 'ok_visual'),
     ('old_kethotum.c', '* 0.0002 *', '* 0.0003 *', 'ok_visual'),
     ('old_kethotum.c', 'rnd(c) % 100 == 0', 'rnd(c) % 99 == 0', 'ok_visual'),
-    ('burning_kethotum.c', 'world != 0x88', 'world != 0x87', 'bk_create'),
+    ('burning_kethotum.c', 'if (world != 0x88', 'if (world != 0x87', 'bk_create'),
+    ('burning_kethotum.c', 'in->world != 0x88', 'in->world != 0x87', 'bk_move'),
     ('burning_kethotum.c', 'case 0x86: case 0x87: case 0xb3:', 'case 0x86: case 0x88: case 0xb3:', 'bk_create'),
     ('burning_kethotum.c', '(rnd(c) % 18 + 1) * 10', '(rnd(c) % 18 + 1) * 11', 'bk_create'),
     ('burning_kethotum.c', 'm->speed[1] * 0.9f', 'm->speed[1] * 0.8f', 'bk_create'),
     ('burning_kethotum.c', '0x558', '0x557', 'bk_move'),
     ('burning_kethotum.c', '1.15f > scale', '1.15f >= scale', 'bk_move'),
-    ('burning_kethotum.c', '1.35 > (double)scale', '1.35f > scale', 'bk_move'),
+    ('burning_kethotum.c', '1.35 > (double)scale', '1.3 > (double)scale', 'bk_move'),
     ('burning_kethotum.c', '{35.0f, 50.0f, 50.0f, 200.0f}', '{35.0f, 50.0f, 60.0f, 200.0f}', 'bk_move'),
     ('burning_kethotum.c', '(in->effects_valid & 15) == 15', '(in->effects_valid & 7) == 7', 'bk_move'),
     ('burning_kethotum.c', 'mu_obj_f32(o, 0xc8) > 0.65f', 'mu_obj_f32(o, 0xc8) >= 0.65f', 'bk_move'),
@@ -455,7 +472,7 @@ MUTANTS = [
     ('burning_kethotum.c', 'dt * 0.4f', 'dt * 0.5f', 'bk_move'),
     ('burning_kethotum.c', 'mu_obj_i32(o, WP_SWINGS) >= mu_obj_i32(o, WP_SWING_LIMIT)', 'mu_obj_i32(o, WP_SWINGS) > mu_obj_i32(o, WP_SWING_LIMIT)', 'bk_move'),
     ('burning_kethotum.c', 'mu_obj_set_f32(o, MU_OBJF_FRAME, s);', 'mu_obj_set_f32(o, MU_OBJF_FRAME, 0.0f);', 'bk_move'),
-    ('burning_kethotum.c', 'f > 3.0f && 1200.0f > wp_distance', 'f > 3.0f && 1200.0f >= wp_distance', 'bk_move'),
+    ('burning_kethotum.c', '> 3.0f && 1200.0f > wp_distance', '> 3.0f && 1200.0f >= wp_distance', 'bk_move'),
     ('burning_kethotum.c', 'MU_OBJF_SCALE), warm', 'MU_OBJF_SCALE) * 1.0f + 0.1f, warm', 'bk_visual'),
     ('burning_kethotum.c', 'wv_particle(o, i, 0x806e, 4', 'wv_particle(o, i, 0x806e, 3', 'bk_visual'),
     ('bloody_tarkan.c', 'case 0x11: case 0x12:', 'case 0x10: case 0x12:', 'bt_create'),
