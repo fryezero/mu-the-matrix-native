@@ -197,6 +197,19 @@ class RenderEffects(unittest.TestCase):
             self.assertTrue(r['all_mutants_caught'])
             self.assertEqual(len(r['mutants']), 15)
 
+    @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'requires pinned private instructions')
+    def test_rank5_owner_original_instructions_and_compiled_mutants(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            report = Path(tmp)/'report.json'
+            subprocess.run([sys.executable, str(ROOT/'scripts/validate_render_effects5.py'), '--cases', '10',
+                            '--particle-cases', '200', '--mutations', '--output', str(report)],
+                           check=True, capture_output=True)
+            r = json.loads(report.read_text())
+            self.assertTrue(r['all_equal'])
+            self.assertTrue(r['all_mutants_caught'])
+            self.assertEqual(len(r['mutants']), 19)
+            self.assertEqual(r['instruction_cases'], 790)
+
     def test_world_particle_consumers_and_sprite_registrations(self):
         subprocess.run(['make', '-C', str(ROOT/'native'), 'build/particle-consumers-host'], check=True,
                        capture_output=True)

@@ -100,7 +100,11 @@ def owner_case(t, k):
     case['record'] = (None, None, (0, 0x26, 0), (0, 0x5b, 0), (6, 0, 0))[(k // 5) % 5]
     lighting = 0 if k % 11 == 10 else 1
     blue, black = ((-1, -1), (3, 1), (4, 5), (0, -1))[(k // 3) % 4]
-    stream = [k % 7 if k < 12 else rng.randrange(32768) for _ in range(64)]
+    stream = [rng.randrange(32768) for _ in range(64)]
+    if k % 10 == 4:
+        # Raw +8 with record kind B 0x26 (glow 9): the level word, not the glow level, gates the overlays.
+        case.update(item_level=8 << 3, record=(0, 0x26, 0), quality=5)
+        lighting, bones = 1, 40
     matrices = [rng.uniform(-1.5, 1.5) if c % 4 != 3 else rng.uniform(-200, 200)
                 for _ in range(max(bones, 1)) for c in range(12)]
     scale = rng.choice((1.0, 0.75, 1.3, rng.uniform(0.5, 2)))
