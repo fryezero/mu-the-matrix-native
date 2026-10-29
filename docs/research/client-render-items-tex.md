@@ -3,7 +3,10 @@
 Native item bodies drew white where the client draws textures. The known case was the lit rank-5 body
 (RENDER-EFFECTS-005, "Saturation"), whose blue overlays name bitmaps 0x84d9..0x84db. A survey of every item type
 showed a much larger cause: natively, item meshes took their bitmaps only from the model's folder. The client never
-looks there for an item model. [Checks and limits](../handoffs/RENDER-ITEMS-TEX-001.md).
+looks there for an item model. [Checks and limits](../handoffs/RENDER-ITEMS-TEX-001.md). RENDER-ITEMS-TEX-002 applies
+the upload parameters, TextureType, the `field_` flag and the wearer's skin bitmaps, and converts the in-world
+loaders ([below](#render-items-tex-002-upload-parameters-texturetype-and-the-wearers-skin),
+[checks](../handoffs/RENDER-ITEMS-TEX-002.md)).
 
 Inputs: the pinned text (capture 09), data (run 10) and section 3 (capture 04, CRT locale state) of
 `scripts/pins.py`. Body hashes: `0x00cd558e..0x00cd5c91` sha256 `634484bf…da25`, GetModel `0x00eaa8cf..0x00eaaa3e`
@@ -148,13 +151,137 @@ The 94 that remain:
 
 ## Limits
 
-- **Wrap mode (verified, not applied).** The client uploads item-rule textures with GL_CLAMP. Native slots keep
-  GL_REPEAT so that already textured items keep their pixels. With GL_CLAMP, code 28 (`0x0b02`) would change from
-  `b079bc2b9568…` to `4840410d6544…`. Applying it is a one-line change in `mu_item_textures.c`.
-- **TextureType** nude_/cotton_/cotton2_ (166 meshes in installed items) is computed but not applied by mu_scene,
-  whose texture-type table stays zero.
-- **The `field_` flag `+0xa6`** is computed and not consumed natively.
+- **Wrap mode, TextureType, `field_` flag, skin bitmaps and the in-world loaders:** applied by RENDER-ITEMS-TEX-002
+  (below).
 - **The name map's history.** Native rebuilds the startup models (RENDER-WORLDS-G2) and the startup LoadBitmap
   files. It does not rebuild the order between them, nor textures of items loaded earlier in a session.
-- **Not converted:** in-world hero, players and monster attachments (`mu_character_set_item`,
-  `mu_renderchar_attach_load`) still use the model folder, because their loaders do not know the item type.
+
+## RENDER-ITEMS-TEX-002: upload parameters, TextureType and the wearer's skin
+
+Inputs as above. New compared bodies (sha256 in the validator report): RenderCharacter's part-model store
+`0x0136a4a9..0x0136a4c3` (`4830f3c5…291f`) and the mesh draw's skin substitution `0x012b8e78..0x012b9471`
+(`b4076e4f…25bd`).
+
+### Upload parameters (static; tables verified)
+
+LoadImage `0x00c97689(path, filter, wrap)` first asks its full-path map (`0x00c97d69`). A path that is already loaded
+keeps its bitmap and only gains a reference. Any other path gets a new bitmap index (`0x00c98211`), which
+`0x00c97730(index, path, filter, wrap)` loads with the call's parameters. The name map keeps the first bitmap of a
+file name. The item loader calls LoadImage with GL_NEAREST, GL_CLAMP (`0x00cd5b50`, and both `field_` loads). Its
+name-map hit calls `0x00c97730` on the existing bitmap, which only counts a reference (`0x00c977a1..0x00c977e4`), so
+the hit keeps the parameters of that bitmap's first load. Native now does the same:
+
+- `mu_texture_names` keeps one entry per loaded file with its filter and wrap. Name lookups still return the first
+  file loaded under that name. Before, a load of a new path whose name was taken returned the older file.
+- Startup LoadBitmap files enter the map with their own filter and wrap. All 1,401 are immediate arguments: 934
+  LINEAR/CLAMP, 251 LINEAR/REPEAT, 212 NEAREST/CLAMP, 4 NEAREST/REPEAT. The table `mu_startup_bitmaps.inc` now holds
+  them, and the `startup_names` family checks all three values.
+- An item mesh slot takes the parameters of the bitmap it keeps.
+
+In the real-renderer survey, 4,576 of the 4,652 textured item mesh slots (1,623 types) go from GL_REPEAT to GL_CLAMP.
+The other 76 keep GL_REPEAT:
+
+- 22 are startup special models (OpenTexture rule);
+- 54 have record items whose file a startup model's OpenTexture loaded first, either by the same path or by a
+  name-map hit.
+
+Four name-map slots take LINEAR, the filter of their startup LoadBitmap (`lightning2.jpg` ×2, `lighting_mega03.JPG`
+and `hole.jpg`).
+
+The full-path rule also changes the file of 72 slots in 72 types. These now draw the `Data/Item/texture/` copy that
+the loader's path names, where native had returned an earlier file of the same name:
+
+| File | Slots |
+|---|---:|
+| `eyejam_R` | 33 |
+| `alpha_line2` | 17 |
+| `fire_15fmono` | 16 |
+| `flame_chrom` | 2 |
+| `Swordeff_mono2` | 1 |
+| `alpha_line` | 1 |
+| `flare01_red` | 1 |
+| `Ghost_horse_Armor` | 1 |
+
+### TextureType and the `field_` flag (loader verified; draw already ported)
+
+The mesh draw already ports what the client does with TextureType ([client-meshdraw-exec.md](client-meshdraw-exec.md), "Texture
+substitutions"):
+
+- type 1 (`nude_`): returns when `+0xa5` is set or `+0x40 > 0`, otherwise draws with the alternate colour;
+- type 2 (`cotton_`): returns when `+0x40 > 0`.
+
+`mu_textures.texture_type` now carries the loader's value into mu_scene. 166 meshes are typed. The item body
+executor writes `+0x40` per pass, so typed meshes stop drawing where it is positive: survey passes fall
+525,732 → 514,842. `mu_textures.field` carries model `+0xa6`. The draw reads it only together with `+0xa5`
+(`texture++`), which native item draws never set, so it changes no pixel today.
+
+### The wearer's skin (verified: `part_skin`, `skin_bitmap`)
+
+A skin mesh keeps its special IndexTexture: `skin_`/`level` → 0x7725, `hair_` → 0x7776, `HQskin…`/`HQlevel` →
+0x77c7, 0x7818 or 0x7869, `HQhair` → 0x78ba. The mesh draw binds that index plus `movsx byte [model+0xa4]`
+(`0x012b8eae` and five more sites). Then:
+
+- **Who writes `+0xa4`.** RenderCharacter's part loop (`0x0136a374..`, slots 5 down to 0 at character
+  `+0x1c4 + k*0x3fc`) fetches each slot's model with GetModel. It stores `0x0139d6a2(character +0x12)` at model
+  `+0xa4` (`0x0136a4bd`). That is the class skin index `(class & 0xf) + 16*(tier-1)`, already ported as
+  `mu_character_skin_index`. For class 4's helm, the extra model 0x38f6+ copies the byte (`0x0136a5b9`).
+- **Before any character draw.** The item loader `memset`s the new model to zero (`0x00cd5619..0x00cd5623`), so a
+  model no character has drawn binds the bases themselves.
+- **Not model writes.** The other byte stores to `+0xa4` (`0x00c18775`, `0x00c3e245`, …) belong to UI objects.
+- **The skin bitmaps.** The startup routine `0x0182a8fe` (reached from `0x0182049e`) registers them with
+  LoadBitmap(`Player\…`, GL_NEAREST, GL_CLAMP) in five groups of 16 (one per tier), for example 0x7725
+  `skin_barbarian_01`, 0x7736 `level_man01` and 0x77c7 `HQSkinClass101`. 146 indices in 0x7725..0x790a have an
+  immediate site. Hair at index 0 (0x7776, 0x78ba) is not registered. They are added to `mu_item_bitmaps.inc`
+  (`--skins`), and the `registrations` family checks every site.
+
+Native: `mu_it_part_skin` and `mu_it_skin_bitmap` (`reconstructed/objects/item_texture.c`) are the C steps. The item
+loader sets `+0xa4 = 0` and loads the skin bitmaps for that index. `mu_item_textures_wear(class byte)` writes the
+wearer's index and loads its bitmaps.
+
+- **Callers that apply a wearer:**
+  - `mu-render character` (both paths) uses `--class` for the part slots;
+  - in-world players use their class byte, Player-model NPCs their row's class byte, the hero `class_byte`;
+  - `mu-render ui inventory` uses an authored `--wearer`;
+  - the in-game inventory uses the demo hero's class (authored: as if the hero wore every part).
+- **Callers that keep `+0xa4 = 0`:** ground items and inventories without a wearer, as a model no character has
+  drawn.
+
+### In-world loaders
+
+Hero parts and equipment, players, Player-model NPCs, the combat weapon, the actor tool's weapons, the +15
+attachments, and the helpers' Angel/Imp models and Imp link now reload by the item rule once their type is known.
+Where only a path is known (hero equipment, `mu-render character`), the type comes from the first ItemModelFile
+record that names the file, or from a class part file name (native choice).
+
+### Unicorn comparison (TEX-002 families)
+
+| Family | Cases | What runs as client code |
+|---|---:|---|
+| part_skin | 256 | `0x0136a4a9..0x0136a4c3` for every class byte, with `0x0139d6a2`, `0x0095f5cc` and `0x0139cb8a` as client code: model `+0xa4` equals `mu_it_part_skin`. Tiers 1..5 are all reached. |
+| skin_bitmap | 3,072 | `0x012b8e78..` to its continue (`0x012b9471`) or return (`0x012bb34b`) exit, for all 256 `+0xa4` bytes × 12 IndexTextures: the six bases, six others and 0x791a, which returns. The bound index equals `mu_it_skin_bitmap`. |
+| registrations | 235 | as above, now with the 146 skin indices |
+| startup_names | 1,402 | as above, now path, filter and wrap |
+
+New compiled mutants, all caught:
+
+| Family | Mutation | Cases caught |
+|---|---|---:|
+| part_skin | class & 0xf (no tier) | 240 |
+| part_skin | index & 0x3f | 128 |
+| skin_bitmap | no HQhair case | 255 |
+| skin_bitmap | unsigned shift (movzx) | 768 |
+| registrations | a flipped wrap at 0x77c7 | 1 |
+| startup_names | a flipped wrap at `lightning2.jpg` | 1 |
+
+### Survey with the real renderer (installed data)
+
+| Measure | TEX-001 (origin/main) | TEX-002, `+0xa4 = 0` | TEX-002, authored wearer |
+|---|---:|---:|---:|
+| Types with a white pass, of 1,691 | 94 | 28 | 15 |
+| Of the 984 implemented | 82 | 27 | 15 |
+| White passes / passes | 8,136 / 525,732 | 2,832 / 514,842 | 1,920 / 514,842 |
+
+The authored wearer (survey host `--wearer`) is the first class slot whose `require_class` stage is set, at that
+stage; 1,483 types have one. At `+0xa4 = 0`, 13 armour types stay white on their hair meshes (0x7776 and 0x78ba
+are not registered at index 0), as in the client for a model nobody has worn. With a wearer, only the 15 index-0
+body draws remain (RENDER-ITEMS-002).

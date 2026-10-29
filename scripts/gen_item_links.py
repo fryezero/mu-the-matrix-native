@@ -12,9 +12,10 @@ import validate_renderchar as v
 
 ROOT = Path(__file__).resolve().parents[1]
 # type, first bone, count, local Z, RGB multipliers, conditional grey flash,
-# final white flare. Static sites: 0x012cb556 and 0x012cb7ab.
+# final white flare. Static sites: 0x012cb556, 0x012cb7ab and 0x012cc846 (part 12).
 ROWS = [(0x0af9, 2, 7, 0, (1, 0.3, 0.1), 1, 0),
-        (0x12f9, 1, 5, 10, (0.5, 0.5, 0.8), 0, 1)]
+        (0x12f9, 1, 5, 10, (0.5, 0.5, 0.8), 0, 1),
+        (0x0ef3, 0, 1, 0, (1, 0.3, 0.1), 1, 0)]
 
 
 def generate():

@@ -23,8 +23,16 @@ int mu_texture_names_find(const char *game_root, int32_t world, const char *subf
  * step mu_it_open runs, *type receiving the mesh's TextureType; otherwise OpenTexture with subfolder. Returns 1 with
  * the installed file, 0 for a special (*special = its index, else 0) or missing bitmap; *step as
  * mu_texture_names_find. */
+/* RENDER-ITEMS-TEX-002: the upload parameters of the bitmap an item mesh keeps (those of its first load: a name-map
+ * hit keeps the startup LoadBitmap's or the first model's, a load by the item loader 0x00cd558e has GL_NEAREST,
+ * GL_CLAMP) and the field_ flag (model +0xa6). */
+typedef struct mu_texture_names_upload {
+    uint32_t filter, wrap;     /* 0 when no file answers */
+    int field;
+} mu_texture_names_upload;
 int mu_texture_names_item(const char *game_root, const char *folder, const char *subfolder, const char *name,
-                          char *path, size_t size, int32_t *type, int32_t *special, int *step);
+                          char *path, size_t size, int32_t *type, int32_t *special, int *step,
+                          mu_texture_names_upload *upload);
 
 /* Counters of the rebuilt map (tests and reports). */
 typedef struct mu_texture_names_stats {

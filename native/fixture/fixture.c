@@ -720,7 +720,47 @@ static uint32_t clock_ms(void)
     return (uint32_t)((uint64_t)ts.tv_sec * 1000u + (uint64_t)ts.tv_nsec / 1000000u);
 }
 
-int mu_fixture_serve(mu_fixture *f, const char *host, uint16_t port, uint32_t seconds, uint32_t step_ms)
+/* FIXTURE-PROBE-001: the listener is open to every local process, and some connect only to probe it (T3 Code
+ * sends "GET / HTTP/1.1" to each new 127.0.0.1 listener, TEST-FLAKE-001). The MU server speaks first, so a
+ * client may stay silent: a peer is served when its first byte is a C1-C4 frame head or when it stays silent
+ * for screen_ms. A peer whose first byte is anything else, or that closes or fails first, is a stray: counted,
+ * logged, closed, and the fixture keeps listening. Returns 1 to serve the peer, 0 for a stray. */
+static int screen_peer(mu_fixture_ctx *ctx, int fd, uint32_t screen_ms)
+{
+    const char *reason = NULL;
+    int first = -1;
+    struct pollfd pp = {fd, POLLIN, 0};
+    uint32_t begin = clock_ms();
+    for (;;) {
+        uint32_t spent = clock_ms() - begin;
+        int r = poll(&pp, 1, spent < screen_ms ? (int)(screen_ms - spent) : 0);
+        if (r < 0 && errno == EINTR)
+            continue;
+        if (r <= 0)
+            return 1;   /* silent: a client waiting for the server's first frame */
+        uint8_t b;
+        ssize_t n = recv(fd, &b, 1, MSG_PEEK);
+        if (n < 0 && errno == EINTR)
+            continue;
+        if (n == 1 && b >= MU_HEAD_C1 && b <= MU_HEAD_C4)
+            return 1;   /* a frame: left in the socket for the session */
+        if (n == 1) {
+            reason = "not a frame";
+            first = b;
+        } else {
+            reason = n == 0 ? "closed" : "error";
+        }
+        break;
+    }
+    ctx->report.rejected_peers++;
+    printf("{\"fixture_rejected\": {\"peer\": %llu, \"reason\": \"%s\", \"first_byte\": %d}}\n",
+           (unsigned long long)ctx->report.rejected_peers, reason, first);
+    fflush(stdout);
+    return 0;
+}
+
+int mu_fixture_serve(mu_fixture *f, const char *host, uint16_t port, uint32_t seconds, uint32_t step_ms,
+                     int screen_ms)
 {
     mu_fixture_ctx *ctx = &f->ctx;
     mu_endpoint here;
@@ -755,7 +795,7 @@ int mu_fixture_serve(mu_fixture *f, const char *host, uint16_t port, uint32_t se
     int one = 1;
     if (ls >= 0)
         setsockopt(ls, SOL_SOCKET, SO_REUSEADDR, &one, sizeof one);
-    if (ls < 0 || bind(ls, res->ai_addr, res->ai_addrlen) != 0 || listen(ls, 1) != 0) {
+    if (ls < 0 || bind(ls, res->ai_addr, res->ai_addrlen) != 0 || listen(ls, 8) != 0) {
         snprintf(ctx->report.last_error, sizeof ctx->report.last_error, "serve: listen %s:%u: %s", host,
                  (unsigned)port, strerror(errno));
         if (ls >= 0)
@@ -769,10 +809,13 @@ int mu_fixture_serve(mu_fixture *f, const char *host, uint16_t port, uint32_t se
     uint32_t start = clock_ms(), limit = seconds * 1000u;
     struct pollfd pl = {ls, POLLIN, 0};
     int fd = -1;
-    while (clock_ms() - start < limit) {
+    while (fd < 0 && clock_ms() - start < limit) {
         if (poll(&pl, 1, 100) > 0) {
             fd = accept(ls, NULL, NULL);
-            break;
+            if (fd >= 0 && screen_ms >= 0 && !screen_peer(ctx, fd, (uint32_t)screen_ms)) {
+                close(fd);
+                fd = -1;
+            }
         }
     }
     close(ls);

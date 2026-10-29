@@ -1,6 +1,6 @@
 /* RENDER-ITEMS-TEX-001: installed-data survey of item body textures.
  *
- * usage: item-textures-host GAME_ROOT TYPES_TSV [--legacy] [--list] [--ids]
+ * usage: item-textures-host GAME_ROOT TYPES_TSV [--legacy] [--list] [--ids] [--wearer | --class BYTE]
  *
  * For every type of the survey TSV (docs/research/item-body-types.tsv) the model is found as the inventory renderer
  * finds it (mu_hud_item_model_path; class parts from Data/Player), its textures are loaded by the production item
@@ -8,7 +8,10 @@
  * mu_renderchar_draw_item through mu_scene over 48 states (levels 0/7/9/11/13/15, excellent 0/1, ancient 0/5, lit
  * 0/1). A pass is white when it draws with GL_TEXTURE_2D on and texture name 0. Output: one line per type with
  * white passes (--list: every type), then a JSON summary. --ids prints only the override bitmap indices the
- * body executor names over all types (comma-separated, the input of validate_item_textures.py --emit-table). */
+ * body executor names over all types (comma-separated, the input of validate_item_textures.py --emit-table).
+ * RENDER-ITEMS-TEX-002: by default the models keep +0xa4 = 0 (no character has worn them); --class BYTE wears every
+ * type with that class byte, --wearer with an authored wearer per type: the first class slot c whose require_class
+ * stage s is set, class byte c | (s >= 2 ? 1 << (s - 2) : 0) << 4 (tier s, mu_character_class_tier). */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -19,6 +22,19 @@
 #include "../core/mu_item_textures.h"
 #include "../core/mu_renderchar.h"
 #include "../../reconstructed/model-codec/character.h"
+
+/* Authored wearer of an item (survey only): the first class its record admits, at that class's minimum stage. */
+static int wearer_class(const mu_item *record, uint8_t *class_byte)
+{
+    for (int c = 0; c < MU_ITEM_CLASS_SLOTS; ++c) {
+        const int stage = record->attributes.require_class[c];
+        if (stage > 0 && stage <= 5) {
+            *class_byte = (uint8_t)(c | (stage >= 2 ? (1 << (stage - 2)) << 4 : 0));
+            return 1;
+        }
+    }
+    return 0;
+}
 
 typedef struct counter {
     long passes, white;
@@ -54,8 +70,11 @@ int main(int argc, char **argv)
         return 2;
     }
     const char *root = argv[1];
-    int legacy = 0, list = 0, ids = 0;
+    int legacy = 0, list = 0, ids = 0, wearer = 0, fixed_class = -1;
     for (int i = 3; i < argc; ++i) {
+        wearer |= !strcmp(argv[i], "--wearer");
+        if (!strcmp(argv[i], "--class") && i + 1 < argc)
+            fixed_class = (int)strtol(argv[++i], NULL, 0);
         ids |= !strcmp(argv[i], "--ids");
         legacy |= !strcmp(argv[i], "--legacy");
         list |= !strcmp(argv[i], "--list");
@@ -91,6 +110,7 @@ int main(int argc, char **argv)
     }
     long types = 0, implemented = 0, no_model = 0, white_types = 0, white_implemented = 0, missing_meshes = 0;
     long missing_bitmaps = 0, passes = 0, white = 0, specials = 0, special_meshes = 0, typed_meshes = 0, name_map = 0;
+    long wearers = 0;
     while (fgets(line, sizeof line, tsv)) {
         char vis[64], shape[64];
         unsigned type;
@@ -137,17 +157,38 @@ int main(int argc, char **argv)
         } else {
             mu_item_textures_load(&textures, &bmd, t.have_items ? &t.items : NULL, root, (int32_t)type, path, &ts);
         }
+        if (getenv("MU_ITEM_TEXTURES_MESHES"))   /* local survey aid: each mesh slot's pixels and upload */
+            for (int k = 0; k < bmd.mesh_count && k < textures.model_count; ++k) {
+                uint32_t h = 2166136261u;
+                const mu_image *im = textures.slots[k];
+                if (im)
+                    for (size_t b = 0; b < (size_t)im->width * (size_t)im->height * 4; ++b)
+                        h = (h ^ im->rgba[b]) * 16777619u;
+                fprintf(stderr, "M\t0x%04x\t%d\t%s\t%08x\t%x\t%x\n", type, k, bmd.meshes[k].texture, im ? h : 0,
+                        textures.filter[k], textures.wrap[k]);
+            }
         if (getenv("MU_ITEM_TEXTURES_NAMES"))   /* local survey aid: every mesh name */
             for (int k = 0; k < bmd.mesh_count; ++k)
                 fprintf(stderr, "0x%04x\t%s\n", type, bmd.meshes[k].texture);
         mu_renderchar_glow glow = {0};
         glow.type = (int32_t)type;
         mu_item record;
+        uint8_t class_byte = 0;
+        int worn = 0;
         if (t.have_items && (int32_t)type >= 0xae6 && mu_item_find(&t.items, type - 0xae6, &record) == 0) {
             glow.has_record = 1;
             glow.kind_a = record.attributes.kind_a;
             glow.kind_b = record.attributes.kind_b;
             glow.item_kind = record.attributes.type;
+            worn = wearer && wearer_class(&record, &class_byte);
+        }
+        if (fixed_class >= 0) {
+            class_byte = (uint8_t)fixed_class;
+            worn = 1;
+        }
+        if (worn && !legacy) {
+            mu_item_textures_wear(&textures, root, class_byte);
+            wearers++;
         }
         counter c = {0, 0};
         mu_render_backend backend = {&c, prepare, NULL, NULL, {&c, texcoord, color3, color4, vertex}, NULL};
@@ -191,6 +232,8 @@ int main(int argc, char **argv)
                 if (!textures.slots[k])
                     printf(" [%s%s]", bmd.meshes[k].texture,
                            textures.client_index && textures.client_index[k] ? " special" : "");
+            if (worn)
+                printf("\twearer 0x%02x", class_byte);
             printf("\tbitmaps %d missing %d", ts.bitmaps, ts.missing_bitmaps);
             for (int k = 0; k < ts.missing_bitmaps && k < MU_ITEM_TEXTURES_REPORT; ++k)
                 printf(" 0x%04x", (unsigned)ts.missing_index[k]);
@@ -204,9 +247,9 @@ int main(int argc, char **argv)
     printf("{\"legacy\": %d, \"types\": %ld, \"implemented\": %ld, \"no_model\": %ld, \"passes\": %ld, "
            "\"white_passes\": %ld, \"white_types\": %ld, \"white_implemented\": %ld, \"missing_meshes\": %ld, "
            "\"missing_bitmaps\": %ld, \"special_draws\": %ld, \"special_meshes\": %ld, \"typed_meshes\": %ld, "
-           "\"name_map_meshes\": %ld}\n",
+           "\"name_map_meshes\": %ld, \"worn\": %ld}\n",
            legacy, types, implemented, no_model, passes, white, white_types, white_implemented, missing_meshes,
-           missing_bitmaps, specials, special_meshes, typed_meshes, name_map);
+           missing_bitmaps, specials, special_meshes, typed_meshes, name_map, wearers);
     mu_hud_tip_tables_free(&t);
     return 0;
 }

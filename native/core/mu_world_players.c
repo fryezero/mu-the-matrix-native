@@ -19,6 +19,7 @@
 #include "../../reconstructed/model-codec/character.h"
 #include "../../reconstructed/objects/object_render.h"
 #include "mu_combat.h"
+#include "mu_item_textures.h"
 #include "mu_lang.h"
 #include "mu_names.h"
 #include "mu_world_names.h"
@@ -107,6 +108,10 @@ static void load_parts(mu_world_players *p, mu_world_player *q)
             log_line(p, error);
             continue;
         }
+        /* RENDER-ITEMS-TEX-002: the client's item texture rule for the slot's type; parts take the player's skin */
+        if (!p->no_textures)
+            mu_item_textures_character(&q->model, item, p->has_table ? &p->item_table : NULL, p->root, type,
+                                       q->c.class_byte);
         mu_character_item *it = &q->model.items[item];
         if (!p->no_textures && is_armour(type) && it->textures.missing) {
             /* Armour bitmaps live in Data/Player; NULL keeps glow maps in ../Effect.

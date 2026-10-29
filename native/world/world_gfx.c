@@ -1348,6 +1348,7 @@ world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int widt
     {   /* NATIVE-SKILL-001: the demo hero's class ("class=N" in --gfx-open, default 1) */
         const char *p = open ? strstr(open, "class=") : NULL;
         int32_t cls = p ? (int32_t)strtol(p + 6, NULL, 0) : 0x81;
+        wg_items_set_wearer(g->items, cls & 0xff);   /* RENDER-ITEMS-TEX-002: inventory parts worn by the hero */
         if (!getenv("MU_GFX_NO_SKILLS")) {
             g->skill = wg_skill_open(game_root, g->lang, getenv("MU_LANG_DIR"), cls, session);
             wg_skill_attach(g->skill, g->layer);

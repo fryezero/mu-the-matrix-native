@@ -15,7 +15,7 @@
  *                                              the same over the product sockets transport (client lock
  *                                              included) to `mu-session serve` in another process;
  *                                              HOST must be a loopback address
- *   mu-session serve SCENARIO --port N [--seconds S] [--seed N] [--step-ms MS]
+ *   mu-session serve SCENARIO --port N [--seconds S] [--seed N] [--step-ms MS] [--screen-ms MS]
  *                                              the fixture on 127.0.0.1:N for one client
  *   mu-session journal FILE                    a journal's records as JSON lines
  *   mu-session replay JOURNAL                  the replay transport (not implemented yet: says so, exit 2)
@@ -775,7 +775,7 @@ static int usage(void)
     fprintf(stderr, "usage: mu-session routes | behaviors | journal FILE | replay JOURNAL\n"
                     "       mu-session fixture SCENARIO [--seed N] [--ticks N] [--journal FILE] [--quiet]\n"
                     "       mu-session connect SCENARIO --to HOST:PORT [--seed N] [--ticks N] [--journal FILE] [--quiet]\n"
-                    "       mu-session serve SCENARIO --port N [--seconds S] [--seed N] [--step-ms MS]\n");
+                    "       mu-session serve SCENARIO --port N [--seconds S] [--seed N] [--step-ms MS] [--screen-ms MS]\n");
     return 2;
 }
 
@@ -810,6 +810,7 @@ int main(int argc, char **argv)
     const char *scenario = argv[2], *journal = NULL, *to = NULL;
     uint32_t seed = 1, ticks = 0, seconds = 30, step_ms = STEP_MS;
     long port = 0;
+    int screen_ms = MU_FIXTURE_SCREEN_MS;
     for (int i = 3; i < argc; ++i) {
         if (!strcmp(argv[i], "--seed") && i + 1 < argc)
             seed = (uint32_t)strtoul(argv[++i], NULL, 0);
@@ -825,6 +826,8 @@ int main(int argc, char **argv)
             seconds = (uint32_t)strtoul(argv[++i], NULL, 0);
         else if (!strcmp(argv[i], "--step-ms") && i + 1 < argc)
             step_ms = (uint32_t)strtoul(argv[++i], NULL, 0);
+        else if (!strcmp(argv[i], "--screen-ms") && i + 1 < argc)
+            screen_ms = (int)strtol(argv[++i], NULL, 0);   /* < 0: serve the first peer unscreened */
         else if (!strcmp(argv[i], "--quiet"))
             quiet = 1;
         else
@@ -840,13 +843,13 @@ int main(int argc, char **argv)
             fprintf(stderr, "mu-session: %s\n", err);
             return 2;
         }
-        int rc = mu_fixture_serve(f, "127.0.0.1", (uint16_t)port, seconds, step_ms);
+        int rc = mu_fixture_serve(f, "127.0.0.1", (uint16_t)port, seconds, step_ms, screen_ms);
         mu_fixture_report fr;
         mu_fixture_report_get(f, &fr);
         printf("{\"fixture\": {\"requests\": %llu, \"answers\": %llu, \"undecodable_requests\": %llu, \"steps\": %u, "
-               "\"last_error\": ",
+               "\"rejected_peers\": %llu, \"last_error\": ",
                (unsigned long long)fr.requests, (unsigned long long)fr.answers,
-               (unsigned long long)fr.undecodable_requests, fr.steps);
+               (unsigned long long)fr.undecodable_requests, fr.steps, (unsigned long long)fr.rejected_peers);
         json_str(stdout, fr.last_error);
         printf("}}\n");
         mu_fixture_close(f);

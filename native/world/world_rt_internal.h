@@ -169,6 +169,9 @@ int world_rt_load(mu_world_rt *a);
 void world_rt_unload(mu_world_rt *a);
 int world_rt_travel(mu_world_rt *a, const mu_teleport *t);
 int world_rt_apply_equipment(mu_world_rt *a, char *error, size_t error_size);
+/* RENDER-ITEMS-TEX-002: the hero's loaded items [first, last) take the client's item texture rule (type from the
+ * ItemModelFile record that names the file, or the class part file) and the parts the hero's skin index. */
+void world_rt_hero_item_textures(mu_world_rt *a, int first, int last);
 void world_rt_effect_camera(const mu_world_rt *a, float eye[3], float target[3]);
 void world_rt_report_frame(const mu_world_rt *a, int32_t frame, uint32_t now, const char *hash, const char *png);
 void world_rt_report_summary(const mu_world_rt *a, const char *renderer);

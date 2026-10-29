@@ -1,6 +1,8 @@
 /* The item model loader's texture step 0x00cd558e. See item_texture.h. */
 #include "item_texture.h"
 
+#include "../model-codec/character.h"
+
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
@@ -108,4 +110,19 @@ int32_t mu_it_open(const mu_tl_host *h, const char *folder, const char *name, in
     if (step)
         *step = found;
     return index;
+}
+
+int8_t mu_it_part_skin(uint8_t class_byte)
+{
+    return (int8_t)mu_character_skin_index(class_byte);   /* 0x0139d6a2, byte store at 0x0136a4bd */
+}
+
+int32_t mu_it_skin_bitmap(int32_t index_texture, int8_t skin)
+{
+    switch (index_texture) {
+    case MU_TL_SKIN: case MU_TL_HAIR: case MU_TL_HQ_SKIN: case MU_TL_HQ_SKIN2: case MU_TL_HQ_SKIN3: case MU_TL_HQ_HAIR:
+        return index_texture + skin;
+    default:
+        return index_texture;
+    }
 }

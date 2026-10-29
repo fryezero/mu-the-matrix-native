@@ -9,12 +9,18 @@ Families (docs/research/client-render-items-tex.md):
                  are service stubs. The C mu_it_open must make the same requests in the same order and store the same
                  IndexTexture, TextureType and model +0xa6 values; the message counts as a request.
   startup_names  the generated name list (native/core/mu_startup_bitmaps.inc): each startup LoadBitmap site with an
-                 immediate .jpg/.tga path runs from its first push and must load exactly the listed path.
+                 immediate .jpg/.tga path runs from its first push and must load exactly the listed path, filter and
+                 wrap (RENDER-ITEMS-TEX-002: a name-map hit keeps them).
+  part_skin      RENDER-ITEMS-TEX-002: RenderCharacter's part-model store 0x0136a4a9..0x0136a4c3 for all 256 class
+                 bytes (0x0139d6a2 and its callees as client code): model +0xa4 equals mu_it_part_skin.
+  skin_bitmap    the mesh draw's skin substitution 0x012b8e78..0x012b9471 for every +0xa4 byte and twelve
+                 IndexTextures: the index it binds equals mu_it_skin_bitmap.
   registrations  every LoadBitmap 0x0185baac site of the item bitmap table (native/core/mu_item_bitmaps.inc) runs
                  from its first push: path, index, filter, wrap and the two flags must equal the table entry, and
                  every static site of an index in the table must agree.
 
---emit-table PATH --ids 0x84d9,... writes the item bitmap table: each index's static LoadBitmap sites (immediate
+--emit-table PATH --ids 0x84d9,... [--skins] writes the item bitmap table (--skins adds every registered wearer skin
+index 0x7725..0x790a): each index's static LoadBitmap sites (immediate
 path), the routine that holds them and whether the startup loader 0x0182049e reaches it by direct calls.
 --emit-names PATH writes the startup name list. --mutations compiles planted mistakes that a family must catch. Inputs: the pinned text, data and section-3
 captures (scripts/pins.py; section 3 holds the CRT locale state _strnicmp reads).
@@ -50,7 +56,14 @@ LOAD_BITMAP, STARTUP_LOADER = 0x0185baac, 0x0182049e
 MESSAGE_BOX, WINDOW = 0x688cd550, 0x06fc9c94   # the import [0x01a7c830] holds; the window handle global
 LOCALE_CHANGED, SSE2_FLAG = 0x0bdcf8ec, 0x0bdcb284
 SECTION3_BASE, SECTION3_INIT = 0x01ced000, 0x20000
-BODIES = {'item_open': (ITEM_OPEN, ITEM_OPEN_END), 'get_model': (0x00eaa8cf, 0x00eaaa3e)}
+# RENDER-ITEMS-TEX-002: RenderCharacter's part-model store of the wearer skin index (model = GetModel(slot type) at
+# [ebp-0x2ec], character at [ebp+8]) and the mesh draw's skin substitution (model at [ebp-0x10], IndexTexture at
+# [ebp-0x1c]; 0x012b9471 continues, 0x012bb34b returns without drawing).
+PART_SKIN, PART_SKIN_END = 0x0136a4a9, 0x0136a4c3
+SKIN_SWITCH, SKIN_SWITCH_END, SKIN_SWITCH_RETURN = 0x012b8e78, 0x012b9471, 0x012bb34b
+BODIES = {'item_open': (ITEM_OPEN, ITEM_OPEN_END), 'get_model': (0x00eaa8cf, 0x00eaaa3e),
+          'part_skin': (PART_SKIN, PART_SKIN_END), 'skin_switch': (SKIN_SWITCH, SKIN_SWITCH_END)}
+WEARER_MODEL, WEARER_CHARACTER = 0x44000000, 0x44001000
 
 MODEL, NAMES, INDEX, TYPES, ENTRY, HEAP, ARGS = (0x42000000, 0x42001000, 0x42002000, 0x42003000, 0x42004000,
                                                 0x42010000, 0x42008000)
@@ -67,6 +80,10 @@ class Host(C.Structure):
 
 
 def bind(lib):
+    lib.mu_it_part_skin.argtypes = [C.c_uint8]
+    lib.mu_it_part_skin.restype = C.c_int8
+    lib.mu_it_skin_bitmap.argtypes = [C.c_int32, C.c_int8]
+    lib.mu_it_skin_bitmap.restype = C.c_int32
     lib.mu_it_open.argtypes = [C.POINTER(Host), C.c_char_p, C.c_char_p, C.POINTER(C.c_int32), C.POINTER(C.c_int),
                                C.POINTER(C.c_int)]
     lib.mu_it_open.restype = C.c_int32
@@ -346,6 +363,77 @@ def family_open(machine, lib, cases, sec3, seed='items-tex-open'):
     return tally.report()
 
 
+# ---------------------------------------------------------------- the wearer skin (RENDER-ITEMS-TEX-002)
+def fragment(machine, start, ends, regions, slots, arguments=(), frame=0x1000):
+    """Runs client code from start inside a built EBP frame until one of ends; returns (end reached, stop)."""
+    reached = []
+
+    def end(address):
+        def stub(mm):
+            reached.append(address)
+            return 0
+        return stub
+    slots = dict(slots)
+    slots[-frame] = am.SENTINEL   # [esp] at every end: the stub returns there
+    r = machine.execute(start, list(arguments), regions, {a: end(a) for a in ends}, frame=(frame, slots))
+    stop = None if am_ok(r) and len(reached) == 1 else {'stopped': r['stopped'], 'error': r['error'],
+                                                       'ends': [hex(a) for a in reached]}
+    return (reached[0] if reached else None), r, stop
+
+
+def family_part_skin(machine, lib):
+    """0x0136a4a9..0x0136a4c3 for every class byte (0x0139d6a2, 0x0095f5cc and 0x0139cb8a as client code): the byte
+    written to model +0xa4 equals mu_it_part_skin."""
+    tally = Tally('part_skin')
+    for class_byte in range(256):
+        character = bytearray(0x400)
+        character[0x12] = class_byte
+        regions = [am.defined_region('model', WEARER_MODEL, b'\x5a' * 0xd0),
+                   am.defined_region('character', WEARER_CHARACTER, bytes(character), writable=False)]
+        _, r, stop = fragment(machine, PART_SKIN, [PART_SKIN_END], regions, {-0x2ec: WEARER_MODEL},
+                              arguments=[WEARER_CHARACTER])
+        client = struct.unpack('<b', r['regions']['model'][0xa4:0xa5])[0]
+        native = lib.mu_it_part_skin(class_byte)
+        tally.add(client == native, {'class': hex(class_byte), 'client': client, 'c': native}, stop)
+        tally.count(f'tier {1 + (class_byte >> 4).bit_length() if class_byte >> 4 else 1}')
+    return tally.report()
+
+
+SKIN_INDICES = [0x7725, 0x7776, 0x77c7, 0x7818, 0x7869, 0x78ba,   # shifted
+                0x7724, 0x7726, 0x7777, 0x78b9, 0x791a, 0x7530]   # unchanged (0x791a returns)
+
+
+def family_skin_bitmap(machine, lib):
+    """The mesh draw's substitution 0x012b8e78..0x012b9471 for every +0xa4 byte and twelve IndexTextures (model
+    +0xa5 = +0xca = 0): the index it binds equals mu_it_skin_bitmap."""
+    tally = Tally('skin_bitmap')
+    ebp = am.ENTRY_ESP - 4
+    for shift in range(256):
+        for index in SKIN_INDICES:
+            model = bytearray(0xd0)
+            model[0xa4] = shift
+            regions = [am.defined_region('model', WEARER_MODEL, bytes(model), writable=False)]
+            seen = {}
+
+            def capture(address):
+                def stub(mm):
+                    seen['index'] = struct.unpack('<i', bytes(mm.uc.mem_read(ebp - 0x1c, 4)))[0]
+                    seen['end'] = address
+                    return 0
+                return stub
+            slots = {-0x10: WEARER_MODEL, -0x1c: index, -0x1000: am.SENTINEL}
+            r = machine.execute(SKIN_SWITCH, [], regions,
+                                {a: capture(a) for a in (SKIN_SWITCH_END, SKIN_SWITCH_RETURN)},
+                                frame=(0x1000, slots))
+            stop = None if am_ok(r) and 'end' in seen else {'stopped': r['stopped'], 'error': r['error']}
+            signed = shift - 256 if shift >= 128 else shift
+            native = lib.mu_it_skin_bitmap(index, signed)
+            tally.add(seen.get('index') == native,
+                      {'index': hex(index), 'shift': shift, 'client': seen.get('index'), 'c': native}, stop)
+            tally.count('returns' if seen.get('end') == SKIN_SWITCH_RETURN else 'continues')
+    return tally.report()
+
+
 # ---------------------------------------------------------------- LoadBitmap registrations
 def scan_calls(text, target):
     import capstone
@@ -433,7 +521,9 @@ def emit_table(path, text, data, ids):
     regs = registrations_for(text, data, ids)
     reach = startup_reach(text)
     lines = ['/* Generated by scripts/validate_item_textures.py --emit-table: the LoadBitmap 0x0185baac registrations of',
-             ' * the client bitmaps the item body draws name (RENDER-ITEMS-TEX-001). index, path under Data, filter, wrap;',
+             ' * the client bitmaps the item body draws name (RENDER-ITEMS-TEX-001) and of the wearer skin bitmaps',
+             ' * 0x7725..0x790a that skin/hair mesh names bind with the model\'s +0xa4 shift (RENDER-ITEMS-TEX-002,',
+             ' * --skins). index, path under Data, filter, wrap;',
              ' * the comment gives the call site, its routine and whether the startup loader 0x0182049e reaches that',
              ' * routine by direct calls. */',
              'static const item_bitmap item_bitmaps[] = {']
@@ -455,6 +545,11 @@ def emit_table(path, text, data, ids):
                      ', '.join(f'0x{i:04x}' for i in missing) + ' */')
     Path(path).write_text('\n'.join(lines))
     return missing
+
+
+# The wearer skin bitmaps (RENDER-ITEMS-TEX-002): 0x7725 skin, 0x7776 hair, 0x77c7 HQskin, 0x7818 HQskin2, 0x7869
+# HQskin3, 0x78ba HQhair, each plus the skin index 0x0139d6a2 (0..0x4f); registered by the startup routine 0x0182a8fe.
+SKIN_FIRST, SKIN_LAST = 0x7725, 0x78ba + 0x50
 
 
 NAMES_TABLE = ROOT / 'native/core/mu_startup_bitmaps.inc'
@@ -487,17 +582,19 @@ def emit_names(path, text, data):
     lines = ['/* Generated by scripts/validate_item_textures.py --emit-names: the files the startup LoadBitmap 0x0185baac',
              ' * calls load (immediate .jpg/.tga paths in routines the startup loader 0x0182049e reaches, and the startup',
              ' * opener 0x01832af3), in call-site order, the first path per lowercased file name. LoadImage enters each',
-             ' * in the bitmap-name map, which the item loader 0x00cd558e asks after Texture\\ (RENDER-ITEMS-TEX-001).',
+             ' * in the bitmap-name map, which the item loader 0x00cd558e asks after Texture\\ (RENDER-ITEMS-TEX-001),',
+             ' * with the call\'s filter and wrap, which a reused bitmap keeps (RENDER-ITEMS-TEX-002).',
              f' * {len(names)} names; {len(conflicts)} names are also loaded from another folder (first site kept). */',
-             'static const char *const startup_bitmaps[] = {']
-    lines += [f'    {c_string(p)},' for _, _, p, _ in names]
+             'static const startup_bitmap_entry startup_bitmaps[] = {']
+    lines += [f'    {{{c_string(p)}, 0x{a[2]:04x}, 0x{a[3]:04x}}},' for _, _, p, a in names]
     lines += ['};', '']
     Path(path).write_text('\n'.join(lines))
     return len(names), conflicts
 
 
 def family_names(machine, text, data, table):
-    """Every startup name of the generated list runs from its site's first push: the LoadBitmap path must equal it."""
+    """Every startup name of the generated list runs from its site's first push: the LoadBitmap path, filter and wrap
+    must equal it."""
     tally = Tally('startup_names')
     names, conflicts = startup_names(text, data)
     tally.add(len(names) == len(table), {'client_names': len(names), 'table': len(table)})
@@ -505,10 +602,10 @@ def family_names(machine, text, data, table):
         calls = []
 
         def load(mm):
-            calls.append(mm.cstring(mm.argument(0)))
+            calls.append((mm.cstring(mm.argument(0)), mm.argument(2), mm.argument(3)))
             return 1
         r = machine.execute(first, [], [], {LOAD_BITMAP: load, site + 8: lambda mm: 0})
-        tally.add(am_ok(r) and k < len(table) and calls == [path] == [table[k]],
+        tally.add(am_ok(r) and k < len(table) and calls == [(path, args[2], args[3])] == [table[k]],
                   {'site': hex(site), 'client': calls, 'table': table[k] if k < len(table) else None})
     tally.count('names', len(names))
     tally.count('conflicting names', len(conflicts))
@@ -516,7 +613,9 @@ def family_names(machine, text, data, table):
 
 
 def names_entries(path=NAMES_TABLE):
-    return [m.group(1).replace('\\\\', '\\') for m in re.finditer(r'^    "((?:[^"\\]|\\.)*)",$', Path(path).read_text(), re.M)]
+    pattern = r'^    \{"((?:[^"\\]|\\.)*)", 0x([0-9a-f]+), 0x([0-9a-f]+)\},$'
+    return [(m.group(1).replace('\\\\', '\\'), int(m.group(2), 16), int(m.group(3), 16))
+            for m in re.finditer(pattern, Path(path).read_text(), re.M)]
 
 
 def table_entries(path=TABLE):
@@ -574,8 +673,16 @@ MUTANTS = [
     ('item_texture.c', '        if (hit >= 0) {', '        if (hit > 0) {', 'item_open'),
     ('item_texture.c', '            if (h->error)\n', '            if (0)\n', 'item_open'),
     ('mu_startup_bitmaps.inc', '"Effect\\\\lightning2.jpg"', 'drop', 'startup_names'),
+    ('mu_startup_bitmaps.inc', '"Effect\\\\lightning2.jpg"', 'flip', 'startup_names'),
     ('mu_item_bitmaps.inc', '{0x84d9, ', None, 'registrations'),
     ('mu_item_bitmaps.inc', '{0x8239, ', None, 'registrations'),
+    ('mu_item_bitmaps.inc', '{0x77c7, ', None, 'registrations'),
+    ('item_texture.c', 'return (int8_t)mu_character_skin_index(class_byte);',
+     'return (int8_t)(class_byte & 0xf);', 'part_skin'),
+    ('item_texture.c', 'return (int8_t)mu_character_skin_index(class_byte);',
+     'return (int8_t)(mu_character_skin_index(class_byte) & 0x3f);', 'part_skin'),
+    ('item_texture.c', 'case MU_TL_HQ_SKIN3: case MU_TL_HQ_HAIR:', 'case MU_TL_HQ_SKIN3:', 'skin_bitmap'),
+    ('item_texture.c', 'return index_texture + skin;', 'return index_texture + (uint8_t)skin;', 'skin_bitmap'),
 ]
 
 
@@ -584,7 +691,12 @@ def build_mutant(tmp, file, old, new):
     if file == 'mu_startup_bitmaps.inc':
         s = NAMES_TABLE.read_text()
         out = dest / file
-        out.write_text('\n'.join(l for l in s.split('\n') if old not in l))
+        if new == 'flip':   # the wrap of that name's call
+            line = next(l for l in s.split('\n') if old in l)
+            flipped = line.replace('0x2900}', '0x2901}') if '0x2900}' in line else line.replace('0x2901}', '0x2900}')
+            out.write_text(s.replace(line, flipped))
+        else:
+            out.write_text('\n'.join(l for l in s.split('\n') if old not in l))
         return out
     if file == 'mu_item_bitmaps.inc':
         s = TABLE.read_text()
@@ -596,12 +708,13 @@ def build_mutant(tmp, file, old, new):
     for f in ('item_texture.c', 'item_texture.h', 'texture_lookup.h'):
         shutil.copy(ROOT / 'reconstructed/objects' / f, dest / f)
     path = dest / file
-    s = path.read_text()
+    s = path.read_text().replace('"../model-codec/character.h"', f'"{ROOT / "reconstructed/model-codec/character.h"}"')
     assert s.count(old) == 1, old
     path.write_text(s.replace(old, new))
     out = dest / f'libit.{SUFFIX}'
-    subprocess.run(['clang', '-std=c11', '-O2', '-shared', '-fPIC', str(dest / 'item_texture.c'), '-o', str(out)],
-                   check=True)
+    subprocess.run(['clang', '-std=c11', '-O2', '-shared', '-fPIC', str(dest / 'item_texture.c'),
+                    str(ROOT / 'reconstructed/model-codec/character.c'),
+                    str(ROOT / 'reconstructed/record-math/record_math.c'), '-o', str(out)], check=True)
     return out
 
 
@@ -614,6 +727,7 @@ def main():
     ap.add_argument('--mutations', action='store_true')
     ap.add_argument('--emit-table', type=Path)
     ap.add_argument('--ids', default='')
+    ap.add_argument('--skins', action='store_true', help='--emit-table: add every registered skin index')
     ap.add_argument('--emit-names', type=Path)
     ap.add_argument('--output', type=Path)
     a = ap.parse_args()
@@ -626,6 +740,8 @@ def main():
         return 0
     if a.emit_table:
         ids = {int(x, 16) for x in a.ids.split(',') if x}
+        if a.skins:
+            ids |= {i for i in registrations_for(text, data, set(range(SKIN_FIRST, SKIN_LAST + 1)))}
         missing = emit_table(a.emit_table, text, data, ids)
         print('wrote', a.emit_table, 'unregistered', [hex(i) for i in missing])
         return 0
@@ -644,6 +760,8 @@ def main():
     fam['item_open'] = family_open(machine, lib, a.cases, sec3)
     fam['registrations'] = family_registrations(machine, text, data, entries)
     fam['startup_names'] = family_names(machine, text, data, names_entries())
+    fam['part_skin'] = family_part_skin(machine, lib)
+    fam['skin_bitmap'] = family_skin_bitmap(machine, lib)
     for name, r in fam.items():
         print(name, {k: r[k] for k in ('cases', 'equal', 'stopped', 'mismatch_count')}, flush=True)
     if a.mutations:
@@ -652,6 +770,10 @@ def main():
                 path = build_mutant(tmp, file, old, new)
                 if family == 'item_open':
                     r = family_open(machine, bind(C.CDLL(str(path))), min(a.cases, 1500), sec3)
+                elif family == 'part_skin':
+                    r = family_part_skin(machine, bind(C.CDLL(str(path))))
+                elif family == 'skin_bitmap':
+                    r = family_skin_bitmap(machine, bind(C.CDLL(str(path))))
                 elif family == 'startup_names':
                     r = family_names(machine, text, data, names_entries(path))
                 else:
