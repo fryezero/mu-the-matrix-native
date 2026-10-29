@@ -8,8 +8,11 @@ all: libclient_items.$(SUFFIX)
 
 libclient_items.$(SUFFIX): $(SRC) $(HDR)
 	$(CC) $(CFLAGS) -shared $(SRC) -lm -o $@
+	$(DEPS)
 
 clean:
 	rm -f libclient_items.dylib libclient_items.so
 
 .PHONY: all clean
+
+include ../deps.mk

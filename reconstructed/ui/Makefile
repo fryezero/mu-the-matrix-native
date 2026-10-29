@@ -8,8 +8,11 @@ all: libmu_ui.$(SUFFIX)
 
 libmu_ui.$(SUFFIX): $(SOURCES) $(HEADERS)
 	$(CC) $(CFLAGS) -shared $(SOURCES) -o $@
+	$(DEPS)
 
 clean:
 	rm -f libmu_ui.dylib libmu_ui.so
 
 .PHONY: all clean
+
+include ../deps.mk

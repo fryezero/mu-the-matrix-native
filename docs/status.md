@@ -1,5 +1,7 @@
 # Current status
 
+BUILD-DEPS-001: automatic header dependencies (`-MMD -MP` `.d` files) for every C/C++ compile the gate builds (native, gfx converter, 36 reconstructed Makefiles, model-recovery, live-readers). The hand-written header lists on the native object rules are gone: a header change now rebuilds exactly its includers. The old lists had missed 826 object/header pairs in 102 native objects. Clean builds before and after are byte-identical (647/647 outputs). [Checks and limits](handoffs/BUILD-DEPS-001.md).
+
 RENDER-EFFECTS-004: Rageful Blow's ordinary-world chain (0x461 and nine pieces, item initialiser, weapon draw), Triple Shot through verified CreateArrows/CreateArrow (0/+15/-15) and Spirit of Guardian's wing 0x460/4. Primary routes 18/23 to 20/23, weighted 56/77 to 65/77. 32,000 instruction comparisons, zero mismatches, 15/15 compiled mutants. Rank-5 item owner effects remain for a slice agreed with RENDER-ITEMS-002K. [Evidence](research/client-render-effects-004.md), [checks and remaining work](handoffs/RENDER-EFFECTS-004.md).
 
 RENDER-WORLDS-N: Nixies Lake (113) and Deep Dungeon 1–5 (116–120) primary create/move/visual methods; 52/144 verified methods, 18/48 classes. 13,000 instruction cases, zero mismatches, 29/29 mutants. At the six DATA-ACQ-002 arrival tiles all 13,690 range and 436 after-character differences go to zero; image error mixed (four lower, Deep Dungeon 5 higher). [Evidence](research/client-worlds-n.md), [checks and limits](handoffs/RENDER-WORLDS-N.md).

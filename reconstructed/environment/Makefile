@@ -8,8 +8,11 @@ all: libclient_env.$(SUFFIX)
 
 libclient_env.$(SUFFIX): $(SRC) $(HDR)
 	$(CC) $(CFLAGS) -shared $(SRC) -lm -o $@
+	$(DEPS)
 
 clean:
 	rm -f libclient_env.dylib libclient_env.so
 
 .PHONY: all clean
+
+include ../deps.mk
