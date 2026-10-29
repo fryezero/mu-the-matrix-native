@@ -1,5 +1,7 @@
 # Continue from here
 
+RENDER-WORLDS-O: Abyss of Atlans 1-3 (128-130) primary methods (+9; 61/144 verified, 21/48 classes with RENDER-WORLDS-N); Abyss 2/3 now take their tile bitmaps from World129 as `0x01829457` does (image error 82.2 → 4.4 and 48.0 → 2.2). 9,000 + 5,700 instruction cases, zero mismatches, 24/24 mutants. [Evidence](research/client-worlds-o.md), [checks and limits](handoffs/RENDER-WORLDS-O.md).
+
 RENDER-EFFECTS-004: Rageful Blow's ordinary-world chain (0x461 and nine pieces, item initialiser, weapon draw), Triple Shot through verified CreateArrows/CreateArrow (0/+15/-15) and Spirit of Guardian's wing 0x460/4. Primary routes 18/23 to 20/23, weighted 56/77 to 65/77. 32,000 instruction comparisons, zero mismatches, 15/15 compiled mutants. Rank-5 item owner effects remain for a slice agreed with RENDER-ITEMS-002K. [Evidence](research/client-render-effects-004.md), [checks and remaining work](handoffs/RENDER-EFFECTS-004.md).
 
 RENDER-WORLDS-N: Nixies Lake (113) and Deep Dungeon 1–5 (116–120) primary create/move/visual methods; 52/144 verified methods, 18/48 classes. 13,000 instruction cases, zero mismatches, 29/29 mutants. At the six DATA-ACQ-002 arrival tiles all 13,690 range and 436 after-character differences go to zero; image error mixed (four lower, Deep Dungeon 5 higher). [Evidence](research/client-worlds-n.md), [checks and limits](handoffs/RENDER-WORLDS-N.md).
@@ -31,6 +33,8 @@ SESSION-MAP-001a: frame-fed NPC/portal markers and detector dots through the ses
 
 RENDER-WORLDS-J completes captured Raklion/Karutan primary groups: 33/144 verified methods, 11/48 classes; 111 methods remain. [Evidence](research/client-worlds-j.md), [checks and limits](handoffs/RENDER-WORLDS-J.md).
 
+RENDER-ITEMS-002 part 11: 967/1,674 bounded bodies, 17/17 skins, seventeen link targets/twenty-two types. Adds 87 bodies (41 weapon, 22 armour, 24 pet/item) through per-type wave/sine scalar programs parsed from pinned instructions; 26,154 new instruction cases, zero mismatches, 11/11 compiled mutants. 707 bodies and rank-5 owner effects remain. [Checks and limits](handoffs/RENDER-ITEMS-002K.md).
+
 RENDER-ITEMS-002 part 10: 880/1,674 bounded bodies, 17/17 skins, seventeen link targets/twenty-two types. Adds 104 armour, one weapon and the six requested seed bodies; 33,622 new instruction cases, zero mismatches, 12/12 compiled mutants. Locked Mac gate passes 1,615 tests. 794 bodies and rank-5 owner effects remain. [Checks and limits](handoffs/RENDER-ITEMS-002J.md).
 
 SESSION-ITEMS-001a: session ground ownership and fixture 20/21 feed; 26,200 instruction cases with zero mismatches. Locked Mac gate passes 1,555 tests. Pickup-answer/inventory route evidence remains open. [Checks and limits](handoffs/SESSION-ITEMS-001a.md).
@@ -38,6 +42,8 @@ SESSION-ITEMS-001a: session ground ownership and fixture 20/21 feed; 26,200 inst
 RENDER-EFFECTS-002: Poison, Ice/debris and Power Wave session visuals; audited primary routes 12/23 to 15/23, weighted 37/77 to 46/77. New instruction evidence: 10,619 instruction comparisons and 381 removal checks, zero mismatches, 8/8 compiled mutants. Locked Mac gate passes 1,550 tests. [Coverage and limits](research/client-skill-visual-coverage.md), [checks](handoffs/RENDER-EFFECTS-002.md).
 
 RENDER-WORLDS-I: [handoff](handoffs/RENDER-WORLDS-I.md). Six Loren Market/Uruk primary methods verified; 31/144 families across 11/48 classes. DATA-ACQ-002, Uruk weather/keyed-effect/colored-joint consumers and 113 primary methods remain.
+
+RENDER-TIME-002 live half: read-only post-draw sampler and input replay; two Lorencia runs with mugl patches off (960x600, the client has no 640x480). `compare --mode live` fails: phase unaligned, plus refused live zoom, other characters, sub-25 fps WorldTime jitter and a visible-object gap. Hero path, placement and primary light agree. Threshold review recorded; no limit changed. [Checks and limits](handoffs/RENDER-TIME-002.md).
 
 RENDER-TIME-001 native side: fourteen scripted views across thirteen maps, full-draw temporal samples and regression thresholds. Locked Mac gate passes 1,544 tests; private temporal rerun passes 16/16. The live capture/phase-alignment half remains open. [Checks and limits](handoffs/RENDER-TIME-001.md).
 

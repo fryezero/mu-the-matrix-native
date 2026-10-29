@@ -13,6 +13,7 @@ Part 8 reaches **662/1,674 bounded bodies** and **fourteen link targets/nineteen
 Its rank-5 no-owner mesh streams draw; full owner effects remain open.
 Part 9 reaches **769/1,674 bodies** and **fifteen link targets/twenty types**.
 Part 10 reaches **880/1,674 bodies** and **seventeen link targets/twenty-two types**.
+Part 11 reaches **967/1,674 bodies** with per-type wave/sine scalar programs; links are unchanged.
 Muun/map-object effect placement remains deferred. All parts run offline.
 
 ## Identity and evidence
@@ -845,3 +846,75 @@ control hash, release gate and cleanup. The executable and capture pins at the
 top apply unchanged. **794 bodies remain**, plus rank-5 owner effects and the
 previous record/buff/selection/shadow/override, hero-instance, model, NewUI and Box
 of Luck limits. Muun/nested map-object tables remain deferred.
+
+## Part 11, per-type wave and sine scalar bodies, RENDER-ITEMS-002K
+
+Bounded bodies increase **880 to 967 of 1,674** (41 weapon, 22 armour and 24 survey `pet/item`
+types); skins stay **17/17**; links stay **seventeen targets/twenty-two types**. The survey has
+**293 complete shapes** (was 228). Exact membership is in `gen_item_bodies.SCALAR_TYPES` and both TSVs.
+**707 bodies remain.**
+
+### Why these bodies were refused
+
+A probe screen over the 751 remaining non-stopping types found 377 that draw only generic
+helper calls but have a draw word that no shared input or fixed scalar explains (static + verified).
+Most of these words are blend light or body light computed by straight-line SSE code right after
+one of two calls:
+
+- the wave helper `0x0185bdc4(a, 0)`: signed period `(int)(6283.1855/a)`, truncated tick
+  remainder, `cos(rem*0.001*a)` negated below pi, then `(w+1)*0.5`. This generalizes the fixed
+  -4/-1/-6 waves of earlier parts;
+- the sin wrapper `0x009681bd(time*k)`.
+
+The constants that follow (`mulss/addss/subss/divss` with absolute operands, or the binary64
+`fstp qword .. addsd/mulsd .. cvtsd2ss` form) differ per type.
+
+### Implementation
+
+`gen_item_bodies.py` records the return sites of both calls hit by its probes. For each
+site it accepts only the exact pinned byte forms (argument loads, `pop ecx`, `fstp` and reload of the
+same local, then at most four constant operations) and reads the constants from the pinned data
+image. Only the zero phase argument (`xorps`) is accepted. Its term adds a signed zero to the clock and
+cannot change the truncated tick. When a type fails the shared inputs, the parsed programs
+are added as extra inputs and the type is probed again. Only programs used in the inferred recipe
+are kept, renumbered in first-use order.
+
+`item_bodies.h` gains `mu_rc_body_scalars` (89 programs) and `scalar_first/scalar_count` per
+type row. Recipe sources 36.. select the type's own program. `renderchar.c` evaluates them in
+`body_scalar`, using a generic `client_wave(a, time)` and the existing `client_sin`. All 897
+earlier rows keep identical recipes and flags with the new columns zero.
+
+The probe screen admitted 176 candidates: 67 fit the shared inputs, 109 needed programs.
+Independent full-function comparisons rejected 89 of them: all 67 shared-input fits (the
+earlier refusals stay refused) and 22 program fits whose level, record or random behaviour
+differs outside the probes. Field differences were 62 body light, 12 draw words, 11 draw counts,
+and 4 bodies that consume the random stream.
+
+### Checks
+
+`scripts/validate_item_scalars.py --mutations` (manifest row `validate_item_scalars`, private test
+`ItemScalars.test_original_instructions`): **26,154 cases, zero mismatches**.
+
+| Family | Cases | Mismatches |
+|---|---:|---:|
+| Full body streams, 87 types times 292 states (body random trapped) | 25,404 | 0 |
+| Period edges, INT_MIN, negative zero and 2^31 for one type per distinct program (25), two flag sets | 750 | 0 |
+
+All **11/11 separately compiled mutants** are caught: wave period 14,169; wave sign 14,960;
+wave scale 7,631; sine argument 11,090; single-precision multiply 24,282; single-precision add 25,510;
+binary64 form 322; scalar slot 610; scalar count 26,154; mesh index 24,634; object alpha 15,200.
+The body table reproduces from the pinned instructions.
+
+Compiled C-to-C checks of the base `fa63719` library against this one cover all 897 earlier
+body/skin types in **28,704 random cases, zero mismatches**. Over all 1,691 survey types, only the 87
+new types change admission. All 1,691 survey memberships agree with compiled admission.
+
+### Limits
+
+Remaining program-like refusals are mostly integer UV clocks with per-type constants
+(`-(tick % N)/N`, atlas frames with other periods and columns), locals written in other branches,
+level-dependent draw counts (72 shapes), immediate `glColor` calls and body-owned effects/particles.
+Each needs its own instruction form; they are not claimed. No new link target was added:
+Laser/17 and the shared clock/bone-state links stay partial, and no further RenderLinkItem target
+was surveyed in this part.
+
