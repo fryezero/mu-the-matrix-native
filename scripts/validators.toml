@@ -602,11 +602,11 @@ test = "reconstructed/joints/test_joints.py::ClientComparison.test_unicorn_compa
 pins = ["text", "data"]
 families = ["joint_create", "joint_move", "joint_render"]
 cases = 180
-mutants = 9
+mutants = 31
 cases_at = "families.*.cases"
-mutants_at = "negative_controls"
+mutants_at = ["negative_controls", "mutants"]
 build = ["reconstructed/joints"]
-args = ["--text", "{text}", "--data", "{data}", "--cases", "60", "--output", "{report}"]
+args = ["--text", "{text}", "--data", "{data}", "--cases", "60", "--mutations", "--mutant-cases", "120", "--output", "{report}"]
 
 [validate_lang]
 test = "native/tests/test_native_lang.py::PrivateValidator.test_client_consumers_equal_the_native_module"

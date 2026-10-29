@@ -68,6 +68,61 @@ BODIES = {
 KINDS = [(0x7f7c, 6), (0x7f7d, 0)] + [(0x7f7d, s) for s in range(0x10, 0x1b)] + [(0x7fd5, 0), (0x7fd8, 1), (0x7fd3, 0),
                                                      (0x7f78, 0), (0x7f78, 1), (0x7fd6, 0x43), (0x7fd6, 0x44),
                                                      (0x7f78, 41), (0x7f78, 42)]
+# RENDER-JOINTS-001: Kanturu Underground's lightning (CreateJoint 0x01546828/0x01546e03/0x015470a7/0x01545672)
+KANTURU_KINDS = [(0x7f7d, 0xc), (0x7f7d, 0xd), (0x7f7d, 0xe), (0x7f7d, 0xf), (0x7f7c, 0x12)]   # 0xd: Uruk Mountain
+KINDS += KANTURU_KINDS
+ACTIVE_KINDS = [KINDS]   # the compiled mutants run the Kanturu kinds only
+
+# RENDER-JOINTS-001: separately compiled planted mistakes in the Kanturu kinds (file, old, new, family); each must
+# disagree with the client on at least one case of its family.
+MUTANTS = [
+    ('kanturu_joints.inc', '(float)imod(jrand(env), 20) + 80.0f', '(float)imod(jrand(env), 20) + 81.0f',
+     'joint_create'),
+    ('kanturu_joints.inc', 'j->light[2] = (float)j->max_tails;', 'j->light[2] = 30.0f;', 'joint_create'),
+    ('kanturu_joints.inc', 'trunc_i32(j->scale / 4.0f)', 'trunc_i32(j->scale / 5.0f)', 'joint_create'),
+    ('kanturu_joints.inc', 'v[0] = x;\n        v[1] = y;', 'v[0] = y;\n        v[1] = x;', 'joint_create'),
+    ('kanturu_joints.inc', 'float v[3] = {0.0f, -1100.0f, 0.0f};', 'float v[3] = {0.0f, 1100.0f, 0.0f};',
+     'joint_create'),
+    ('kanturu_joints.inc', 'if (!(0.0f < j->scale) && !isnan(j->scale))', 'if (!(0.0f < j->scale))', 'joint_create'),
+    ('joints.c', 'j->max_tails = 5;', 'j->max_tails = 6;', 'joint_create'),
+    ('joints.c', 'if (env && env->has_creation_light)', 'if (0)', 'joint_create'),
+    ('kanturu_joints.inc', 'j->scale = (float)imod(jrand(env), 10) + 20.0f;',
+     'j->scale = (float)imod(jrand(env), 10) + 21.0f;', 'joint_create'),
+    ('kanturu_joints.inc', 'j->position[k] = d[k] / 50.0f + j->position[k];',
+     'j->position[k] = d[k] / 49.0f + j->position[k];', 'joint_move'),
+    ('kanturu_joints.inc', 'g[k] = F_0_08 * g[k];', 'g[k] = F_0_1 * g[k];', 'joint_move'),
+    ('kanturu_joints.inc', 'for (int32_t i = 0; i < j->max_tails - 1; ++i) {',
+     'for (int32_t i = 0; i < j->max_tails; ++i) {', 'joint_move'),
+    ('kanturu_joints.inc', 'e[k] = F_0_2 * e[k];', 'e[k] = F_0_1 * e[k];', 'joint_move'),
+    ('kanturu_joints.inc', '(void)kanturu_jitter(env, s, 20.0f, 10.0f);\n            (void)kanturu_jitter(env, s, 20.0f, 10.0f);',
+     '(void)kanturu_jitter(env, s, 20.0f, 10.0f);', 'joint_move'),
+    ('kanturu_joints.inc', 'if (j->lifetime < 4)', 'if (j->lifetime <= 4)', 'joint_move'),
+    ('kanturu_joints.inc', 'const float x = kanturu_jitter(env, s, 10.0f, 5.0f);\n            j->position[0]',
+     'const float x = kanturu_jitter(env, s, 10.0f, 4.0f);\n            j->position[0]', 'joint_move'),
+    ('kanturu_joints.inc', 'j->target_position, 110.0f);', 'j->target_position, 100.0f);', 'joint_move'),
+    ('kanturu_joints.inc', 'j->jitter[2] = (float)(imod(jrand(env), 64) - 32);',
+     'j->jitter[2] = (float)(imod(jrand(env), 64) - 31);', 'joint_move'),
+    ('kanturu_joints.inc', 'if (j->scale >= 50.0f) {', 'if (j->scale > 50.0f) {', 'joint_move'),
+    ('kanturu_joints.inc', 'c.light[2] = f * 0.5f;', 'c.light[2] = f * F_0_1;', 'joint_move'),
+    ('joints.c', 'if (j->subtype == 0x12)\n            move_thunder_arc', 'if (j->subtype == 0x13)\n            move_thunder_arc',
+     'joint_move'),
+    ('joints.c', '(j->subtype >= 0xb && j->subtype <= 0xd)', '(j->subtype >= 0xb && j->subtype <= 0xb)',
+     'joint_render'),
+]
+
+
+def kanturu_width(rng, kind, create):
+    """Widths the client divides by without faulting: 0xc create (int)(w/4) and move (int)(w/5), 0xe move
+    (int)(0.28w), 0xf move (int)(0.56w) must be nonzero (a zero divisor faults the client: a boundary)."""
+    if kind == (0x7f7c, 0x12):
+        return f32(rng.choice([40.0, 50.0, 49.99, 50.01, 60.0, 0.0, -3.0, vc.rfloat(rng, 0.2, 120.0)]))
+    if kind == (0x7f7d, 0xd):   # no divisor: any width (Uruk passes 225 x the object's scale)
+        return f32(rng.choice([225.0, 180.0, 0.0, -50.0, vc.rfloat(rng, 0.2, 400.0)]))
+    low = {0xc: 4.0 if create else 5.0, 0xe: 3.6, 0xf: 1.8}[kind[1]]
+    picks = [30.0, 40.0, 31.5, 39.0, low, low + 0.01, rng.uniform(low, 120.0)]
+    if create and kind[1] != 0xc:
+        picks += [0.0, -1.0, float('nan')]   # the early return before the tail clamp; NaN goes on
+    return f32(rng.choice(picks))
 
 
 # --------------------------------------------------------------------------
@@ -93,7 +148,8 @@ CALL_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.POINTER(Call))
 
 class Env(ctypes.Structure):
     _fields_ = [('context', ctypes.c_void_p), ('rand', RAND_FN), ('height', HEIGHT_FN), ('object', OBJECT_FN),
-                ('call', CALL_FN), ('serial', ctypes.c_uint8), ('world_time', ctypes.c_float), ('ambient_clock', ctypes.c_int32), ('creation_light', ctypes.c_float*3)]
+                ('call', CALL_FN), ('serial', ctypes.c_uint8), ('world_time', ctypes.c_float), ('ambient_clock', ctypes.c_int32), ('creation_light', ctypes.c_float*3),
+                ('has_creation_light', ctypes.c_uint8)]
 
 
 STATE_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int32, ctypes.c_int32)
@@ -312,7 +368,9 @@ def random_create_args(rng, kind):
     pos = [vc.rfloat(rng, 0.05, 30000.0), vc.rfloat(rng, 0.05, 30000.0), vc.rfloat(rng, 0.05, 600.0)]
     target = [vc.rfloat(rng, 0.05, 30000.0), vc.rfloat(rng, 0.05, 30000.0), vc.rfloat(rng, 0.05, 600.0)]
     angle = [vc.rfloat(rng, 0.1, 360.0) for _ in range(3)]
-    if kind[0] == 0x7f7d:
+    if kind in KANTURU_KINDS:
+        scale = kanturu_width(rng, kind, True)
+    elif kind[0] == 0x7f7d:
         scale = f32(rng.choice([1.0, 0.8, 1.2, 0.5, 2.0, 0.0, -1.0, rng.uniform(0.05, 3.0)]))
     else:
         scale = f32(rng.choice([5.0, 80.0, 20.0, 10.0, vc.rfloat(rng, 0.2, 100.0)]))
@@ -321,10 +379,11 @@ def random_create_args(rng, kind):
 
 def family_joint_create(m, lib, rng, cases, report, negatives):
     for n in range(cases):
-        kind = KINDS[n % len(KINDS)]
+        kind = ACTIVE_KINDS[0][n % len(ACTIVE_KINDS[0])]
         pos, tpos, angle, scale = random_create_args(rng, kind)
         objects = [random_object(rng) for _ in range(2)]
-        target = rng.choice([0, 1]) if kind[0] in (0x472, 0x7f7d, 0x7f78, 0x7fd6) else rng.choice([-1, 0, 1])
+        target = (rng.choice([-1, 0, 1]) if kind in KANTURU_KINDS else
+                  rng.choice([0, 1]) if kind[0] in (0x472, 0x7f7d, 0x7f78, 0x7fd6) else rng.choice([-1, 0, 1]))
         key, skill, byte10, word13, arg14 = (rng.choice([rng.randrange(0, 0x10000), 2, 0xffff, 0, 3]),
                                               rng.choice([0x7f5, 9, 0x123]),
                                               rng.randrange(0, 256), rng.randrange(0, 0x10000),
@@ -349,13 +408,17 @@ def family_joint_create(m, lib, rng, cases, report, negatives):
         stubs = case.stubs(m)
         del stubs[sf.CREATE_JOINT]
         stubs[sf.JOINT_MANAGER_A] = lambda mm: (0, 12)
+        # argument 12 (a colour pointer): the eye trails always pass one; RENDER-JOINTS-001: the Kanturu/Uruk kinds
+        # with and without (Uruk Mountain's 0xd passes one)
+        colour = OBJECTS+0xec if kind[0] == 0x7fd6 or (kind in KANTURU_KINDS and rng.random() < 0.5) else 0
         r = m.execute(CREATE_JOINT_CORE, [kind[0], sf.INPUTS, sf.INPUTS+12, sf.INPUTS+24, kind[1],
-                                          object_address(target), bits(scale), key, skill, byte10, 0xffffffff, OBJECTS+0xec if kind[0] == 0x7fd6 else 0,
+                                          object_address(target), bits(scale), key, skill, byte10, 0xffffffff, colour,
                                           word13, arg14], regions, stubs)
         j = Joint()
         joint_from_bytes(previous, j)
         F3 = ctypes.c_float*3
         env = case.jenv(serial=serial)
+        env.has_creation_light = 1 if colour else 0
         supported = lib.mu_jt_create(ctypes.byref(j), kind[0], F3(*pos), F3(*tpos), F3(*angle), kind[1], target,
                                      scale, key, skill, byte10, word13, arg14, ctypes.byref(env))
         mismatch = None
@@ -404,7 +467,13 @@ def random_joint(rng, kind):
         j.target_position[:] = j.start[:]
     j.target = rng.choice([-1, 0, 1, 1])
     j.field_64 = rng.choice([0, 1, 2])
-    if kind[0] == 0x7f7d:
+    if kind in KANTURU_KINDS:   # RENDER-JOINTS-001
+        j.scale = kanturu_width(rng, kind, False)
+        j.max_tails = rng.choice([{0xc: 30, 0xd: 50, 0xe: 50, 0xf: 50, 0x12: 5}[kind[1]]] * 3 + [rng.randrange(2, 51)])
+        j.lifetime = rng.choice([20, 10, 5, 4, 3, 1, 0, rng.randrange(-1, 21)])
+        j.velocity = f32(rng.choice([80.0, 99.0, 0.0, vc.rfloat(rng, 0.2, 100.0)]))
+        j.phase = rng.randrange(0, 25)
+    elif kind[0] == 0x7f7d:
         j.scale = f32(rng.choice([1.0, 0.8, 1.2, 0.5, 2.0, rng.uniform(0.05, 3.0)]))
         j.max_tails = rng.choice([50, 50, 50, rng.randrange(3, 51)])
         j.lifetime = rng.choice([20, 19, 10, 1, 0, rng.randrange(-1, 21)])
@@ -442,7 +511,7 @@ def random_joint(rng, kind):
 
 def family_joint_move(m, lib, rng, cases, report, negatives):
     for n in range(cases):
-        kind = KINDS[n % len(KINDS)]
+        kind = ACTIVE_KINDS[0][n % len(ACTIVE_KINDS[0])]
         objects = [random_object(rng) for _ in range(2)]
         j = random_joint(rng, kind)
         step = vc.rfloat(rng, 0.1, 2.0)
@@ -531,7 +600,7 @@ def family_joint_render(m, lib, rng, cases, report, negatives):
         struct.pack_into('<ii', empty, base+4, 0, 0)
         empty_mask[base:base+0x10] = b'\1'*0x10
     for n in range(cases):
-        kind = KINDS[n % len(KINDS)]
+        kind = ACTIVE_KINDS[0][n % len(ACTIVE_KINDS[0])]
         j = random_joint(rng, kind)
         j.faces = rng.choice([3, 3, 1, 2, 0])
         mode = rng.choice([0, 0, 1, 2])
@@ -623,6 +692,49 @@ FAMILIES = [('joint_create', family_joint_create), ('joint_move', family_joint_m
             ('joint_render', family_joint_render)]
 
 
+def run_mutants(m, cases, seed):
+    """Build each planted mistake in a copy of reconstructed/joints and run its family on the Kanturu kinds."""
+    import shutil
+    import subprocess
+    import tempfile
+    families = dict(FAMILIES)
+    out = []
+    ACTIVE_KINDS[0] = KANTURU_KINDS
+    try:
+        with tempfile.TemporaryDirectory(prefix='joints-mutant-') as tmp:
+            for n, (file, old, new, family) in enumerate(MUTANTS):
+                dest = Path(tmp) / str(n)
+                for directory in ('joints', 'record-math', 'movement'):
+                    shutil.copytree(ROOT / 'reconstructed' / directory, dest / directory,
+                                    ignore=shutil.ignore_patterns('*.dylib', '*.so', '*.d', '__pycache__'))
+                if (ROOT / 'reconstructed/deps.mk').exists():
+                    shutil.copy(ROOT / 'reconstructed/deps.mk', dest / 'deps.mk')
+                p = dest / 'joints' / file
+                text = p.read_text()
+                assert text.count(old) >= 1, old
+                p.write_text(text.replace(old, new, 1))
+                subprocess.run(['make', '-s', '-C', str(dest / 'joints')], check=True, capture_output=True)
+                lib = load_library(dest / f'joints/libclient_joints.{SUFFIX}')
+                report = vc.Report()
+                negatives = collections_default()
+                families[family](m, lib, random.Random(f'{seed}-mutant-{n}'), cases, report, negatives)
+                fam = report.families[family]
+                row = {'family': family, 'file': file, 'change': new, 'cases': fam['cases'],
+                       'detected': fam['cases'] - fam['equal'],
+                       'stopped': sum(1 for f in fam['first_failures'] if f.get('stopped'))}
+                out.append(row)
+                print('mutant', json.dumps(row), flush=True)
+                shutil.rmtree(dest)
+    finally:
+        ACTIVE_KINDS[0] = KINDS
+    return out
+
+
+def collections_default():
+    import collections
+    return collections.defaultdict(int)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--text', default=pins.TEXT.default_str())
@@ -632,6 +744,8 @@ def main():
     parser.add_argument('--only', action='append')
     parser.add_argument('--seed', type=int, default=20261018)
     parser.add_argument('--output')
+    parser.add_argument('--mutations', action='store_true', help='RENDER-JOINTS-001 compiled mutants')
+    parser.add_argument('--mutant-cases', type=int, default=120)
     args = parser.parse_args()
     text = am.load_pinned(args.text, am.TEXT_BYTES, am.TEXT_SHA256, 'restored text')
     data = am.load_pinned(args.data, am.DATA_BYTES, am.DATA_SHA256, 'second section')
@@ -653,11 +767,14 @@ def main():
         family(m, lib, rng, args.cases, report, negatives)
         timing[name] = round(time.time()-start, 2)
     all_equal = all(f['cases'] == f['equal'] for f in report.families.values())
-    result = {'coverage': report.coverage, 'nan_pairs_equal': vc.NAN_COUNT[0], 'text_sha256': am.TEXT_SHA256,
+    mutants = run_mutants(m, args.mutant_cases, args.seed) if args.mutations else []
+    all_equal = all_equal and all(x['detected'] and not x['stopped'] for x in mutants)
+    result = {'mutants': mutants, 'coverage': report.coverage, 'nan_pairs_equal': vc.NAN_COUNT[0], 'text_sha256': am.TEXT_SHA256,
               'data_sha256': am.DATA_SHA256, 'bodies': bodies, 'families': report.families,
               'negative_controls': negatives, 'seconds': timing, 'all_equal': all_equal}
     summary = {k: f"{v['equal']}/{v['cases']}" for k, v in report.families.items()}
     print(json.dumps({'summary': summary, 'negative_controls': negatives, 'seconds': timing,
+                      'mutants_detected': f"{sum(1 for x in mutants if x['detected'])}/{len(mutants)}",
                       'all_equal': all_equal}, indent=1))
     for k, v in report.families.items():
         if v['first_failures']:

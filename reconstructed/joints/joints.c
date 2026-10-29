@@ -27,6 +27,9 @@ static float f32bits(uint32_t bits)
 #define F_0_0006 f32bits(0x3a1d4952u) /* 0x01a8009c */
 #define F_0_001 f32bits(0x3a83126fu) /* 0x01a7e308 */
 #define F_TINY f32bits(0x358637bdu)  /* 0x01a80990, 1e-6 (the near-zero test 0x00a72592) */
+#define F_0_028 f32bits(0x3ce56042u) /* 0x01acd96c */
+#define F_1_2 f32bits(0x3f99999au)   /* 0x01a7e6e4 */
+#define F_0_04 f32bits(0x3d23d70au)  /* 0x01a7ed94 */
 
 static int32_t jrand(const mu_jt_env *env)
 {
@@ -123,9 +126,10 @@ int mu_jt_kind_supported(int32_t type, int32_t subtype)
     case MU_JT_BITMAP_LASER:
         return subtype == 0x43 || subtype == 0x44;
     case MU_JT_BITMAP_THUNDER:
-        return subtype == 6;
+        return subtype == 6 || subtype == 0x12;
     case MU_JT_TYPE_THUNDER_BOLT:
-        return subtype == 0 || (subtype >= 0x10 && subtype <= 0x1a);
+        return subtype == 0 || (subtype >= 0xc && subtype <= 0xf) ||
+               (subtype >= 0x10 && subtype <= 0x1a);
     default:
         return 0;
     }
@@ -223,6 +227,8 @@ static int create_thunder_bolt(mu_jt_joint *j, int32_t target, float scale, cons
     return 1;
 }
 
+static int create_kanturu_bolt(mu_jt_joint *j, const float target_position[3], const mu_jt_env *env);
+
 int mu_jt_create(mu_jt_joint *j, int32_t type, const float position[3], const float target_position[3],
                  const float angle[3], int32_t subtype, int32_t target, float scale, uint16_t key, uint16_t skill,
                  uint8_t byte10, uint16_t word13, int32_t arg14, const mu_jt_env *env)
@@ -253,7 +259,10 @@ int mu_jt_create(mu_jt_joint *j, int32_t type, const float position[3], const fl
     j->field_a54 = 0.0f;
     j->moving = 1;
     j->field_a60 = arg14;
-    j->light[0] = j->light[1] = j->light[2] = 1.0f;
+    if (env && env->has_creation_light)
+        copy3(j->light, env->creation_light);   /* 0x0153b297: argument 12 */
+    else
+        j->light[0] = j->light[1] = j->light[2] = 1.0f;
     j->jitter[0] = j->jitter[1] = j->jitter[2] = 0.0f;
     if (target < 0)
         copy3(j->target_position, target_position);   /* 0x0153b385: no target object */
@@ -328,6 +337,15 @@ int mu_jt_create(mu_jt_joint *j, int32_t type, const float position[3], const fl
     case MU_JT_BITMAP_THUNDER:
         if (!supported) break;
         j->scale=scale; j->max_tails=50;
+        j->velocity=50.0f;   /* 0x01543f1a */
+        if (subtype == 0x12) {   /* RENDER-JOINTS-001, 0x01545672 */
+            j->velocity = 80.0f;
+            j->max_tails = 5;
+            j->lifetime = 10;
+            j->light[0] = j->light[1] = j->light[2] = 1.0f;
+            copy3(j->start, j->position);
+            break;
+        }
         j->lifetime=jrand(env)%20+6;
         j->tail_update=0;
         j->velocity=(float)(jrand(env)%10)+15.0f;
@@ -345,6 +363,13 @@ int mu_jt_create(mu_jt_joint *j, int32_t type, const float position[3], const fl
         }
         if (!supported)
             break;
+        if (subtype < 0x10) {   /* RENDER-JOINTS-001: Kanturu's 0xc, 0xe, 0xf, Uruk's 0xd */
+            j->scale = scale;
+            j->tex_type = MU_JT_BITMAP_THUNDER;
+            if (!create_kanturu_bolt(j, target_position, env))
+                return 1;
+            break;
+        }
         if (!create_thunder_bolt(j, target, scale, env))
             return 1;
         break;
@@ -655,6 +680,7 @@ static void move_ring(mu_jt_joint *j, const mu_jt_env *env)
 }
 
 #include "icarus_joints.inc"
+#include "kanturu_joints.inc"
 
 int mu_jt_move(mu_jt_joint *j, const mu_jt_env *env, const mu_jt_move_inputs *in)
 {
@@ -878,12 +904,16 @@ int mu_jt_move(mu_jt_joint *j, const mu_jt_env *env, const mu_jt_move_inputs *in
         break;
     }
     case MU_JT_BITMAP_THUNDER:
-        move_icarus_swirl(j, env);
+        if (j->subtype == 0x12)
+            move_thunder_arc(j, env);
+        else
+            move_icarus_swirl(j, env);
         break;
     case MU_JT_TYPE_THUNDER_BOLT:
         /* 0x0156fb0f */
         switch (j->subtype) {
         case 0: move_icarus_bolt(j, env); break;
+        case 0xc: case 0xd: case 0xe: case 0xf: move_kanturu_bolt(j, env); break;
         case 0x10: case 0x11: case 0x18: case 0x19: case 0x1a:
             move_bolt(j, env);
             break;

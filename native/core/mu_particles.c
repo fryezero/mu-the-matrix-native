@@ -573,16 +573,17 @@ static int fx_call(mu_world_particles *p, const mu_jt_call *call, mu_sfx_effect 
     }
 }
 
-int32_t mu_world_particles_joint(mu_world_particles *p, int32_t type, const float position[3],
-                                 const float target_position[3], const float angle[3], int32_t subtype, int32_t target,
-                                 float scale, uint16_t key, uint16_t skill, uint8_t byte10, uint16_t word13,
-                                 int32_t arg14, const float *creation_light)
+static int32_t world_joint(mu_world_particles *p, int32_t type, const float position[3], const float target_position[3],
+                           const float angle[3], int32_t subtype, int32_t target, float scale, uint16_t key,
+                           uint16_t skill, uint8_t byte10, uint16_t word13, int32_t arg14, const float *creation_light,
+                           uint8_t colour_argument)
 {
     if (!p->joints)
         return -1;
     mu_jt_env env;
     joint_env(p, &env);
     if (creation_light) memcpy(env.creation_light, creation_light, sizeof env.creation_light);
+    env.has_creation_light = (uint8_t)(colour_argument && creation_light);   /* RENDER-JOINTS-001: argument 12 */
     const int32_t i = mu_joints_create(p->joints, MU_JT_JOINTS, type, position, target_position, angle, subtype,
                                        target, scale, key, skill, byte10, word13, arg14, &env);
     if (i >= 0)
@@ -593,6 +594,15 @@ int32_t mu_world_particles_joint(mu_world_particles *p, int32_t type, const floa
         p->stats.joints_full++;
     p->stats.joints++;
     return i;
+}
+
+int32_t mu_world_particles_joint(mu_world_particles *p, int32_t type, const float position[3],
+                                 const float target_position[3], const float angle[3], int32_t subtype, int32_t target,
+                                 float scale, uint16_t key, uint16_t skill, uint8_t byte10, uint16_t word13,
+                                 int32_t arg14, const float *creation_light)
+{
+    return world_joint(p, type, position, target_position, angle, subtype, target, scale, key, skill, byte10, word13,
+                       arg14, creation_light, 0);
 }
 
 int mu_world_particles_effect(mu_world_particles *p, int32_t type, int32_t subtype, const float position[3],
@@ -1711,6 +1721,12 @@ static void o_joint(void *c,int32_t type,const float p[3],const float t[3],const
 {
     mu_world_particles_joint(c,type,p,t,a,sub,owner,scale,0xffff,0,0,0xffff,0,NULL);
 }
+/* RENDER-JOINTS-001: CreateJoint(type, p, t, a, sub, owner, scale, -1, 0, 0, 0, colour, -1, 0) (Uruk Mountain 109) */
+static void o_joint_light(void *c, int32_t type, const float p[3], const float t[3], const float a[3], int32_t sub,
+                          int32_t owner, float scale, const float light[3])
+{
+    world_joint(c, type, p, t, a, sub, owner, scale, 0xffff, 0, 0, 0xffff, 0, light, 1);
+}
 
 void mu_world_particles_attach(mu_world_particles *p, struct mu_objects *objects, struct mu_world_env *env)
 {
@@ -1726,6 +1742,7 @@ void mu_world_particles_attach(mu_world_particles *p, struct mu_objects *objects
         objects->rt.ein_attach = o_ein_attach;
         objects->rt.ein_update = o_ein_update;
         objects->rt.joint = o_joint;
+        objects->rt.joint_light = o_joint_light;
         objects->rt.hook_context = p;
         p->objects = objects;
     }
