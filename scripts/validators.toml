@@ -2463,6 +2463,23 @@ args = ["--cases", "1000", "--mutations", "--output", "{report}"]
 "families.*.stopped" = 0
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
+
+[validate_worlds_g3]
+test = "reconstructed/environment/test_env_body.py::EnvBodyTests.test_original_instructions"
+pins = ["text", "data"]
+families = ["object_init", "env_render", "clouds_ember", "abyss_fish"]
+cases = 4000
+mutants = 22
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/environment", "reconstructed/particles", "reconstructed/objects"]
+args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+[validate_worlds_g3.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0
+
 [validate_worlds_after2]
 test = "reconstructed/objects/test_worlds_after2.py::WorldsAfter2Tests.test_original_instructions"
 pins = ["text", "data"]
