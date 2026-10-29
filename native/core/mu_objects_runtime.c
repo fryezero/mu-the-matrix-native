@@ -154,6 +154,7 @@ int mu_objects_start(mu_objects *o, const char *game_root)
         rt->pointers[i] = img;
         rt->next[i] = -1;
         mu_obj_set_f32(img, MU_OBJF_ALPHA_RATE, 0.1f);   /* constructor 0x0129e792 (live value) */
+        img[0x38] = 1;   /* RENDER-EFFECTS-008: Initialize 0x0129eb81 (CreateObject 0x016d8606), the effects' owner gate */
         int32_t sector = -1;
         mu_obj_event created[8];
         mu_obj_log create_log = {0, 8, 0, created};
@@ -849,6 +850,26 @@ static void consume_visual(mu_objects *o, const mu_obj_log *log)
 /* RenderObjectVisual's handler slot 0x34 of the login world (CGMLogInScene_Ex) and, NATIVE-CHARSEL-002, of
  * the character-select world (CGMCharacterScene_Ex): its CreateSprite / CreateParticle / CreateEffect calls.
  */
+/* RENDER-EFFECTS-008: RenderObjects' other worlds (0x016d5337..0x016d536b): RenderObjectVisual (the particle hook),
+ * then the attached effects' update 0x0129f671 when the list +0x3d0 is not empty. RenderObject animated the object
+ * before its +0x68 == -2 test (the map-object table's hidden markers), so a listed object takes the pose its
+ * log records. effects: 0 where the RenderObjectVisual branch (login, character select, primary visual) already
+ * updated them. */
+static void visual_and_effects(mu_objects *o, int32_t i, uint8_t *img, int hook, int has_model, mu_object_model *drawn,
+                               mu_object_model *m, int posed, const mu_obj_log *log, int effects)
+{
+    mu_objects_runtime *rt = &o->rt;
+    if (hook)
+        rt->visual(rt->hook_context, o, i, has_model, drawn);
+    if (!effects || !rt->ein_update || !rt->ein_listed || !rt->ein_listed(rt->hook_context, i))
+        return;
+    for (int32_t k = 0; !posed && m && m->loaded && k < log->count; ++k)
+        if (log->events[k].call == MU_OBJ_CALL_ANIMATION)
+            posed = pose_object(o, img, m, log);
+    rt->ein_update(rt->hook_context, i, img, posed ? mu_model_bone_matrices(&m->model) : NULL,
+                   posed ? m->bmd.bone_count : 0, mu_frame_time_value() /* [0x01cf103c] */);
+}
+
 static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_object_model *m, float world_time, int posed)
 {
     visual_context c = {o, m};
@@ -1089,20 +1110,18 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
         flame = world_flames(o, i, img, m, in.light.time, posed);
     }
     const int hook = rt->visual && !login && !charsel && !flame && !primary_visual, has_model = m && m->loaded;
+    const int effects = !login && !charsel && !primary_visual;   /* RENDER-EFFECTS-008 */
     if (deferred && !((o->world == 0x39 || o->world == 0x3a) && (t == 0x53 || t == 0x5c))) {
-        if (hook)
-            rt->visual(rt->hook_context, o, i, has_model, posed ? m : NULL);
+        visual_and_effects(o, i, img, hook, has_model, posed ? m : NULL, m, posed, &log, effects);
         return NULL;
     }
     if (status == MU_OBJ_SKIPPED) {
         ++rt->draw_skipped;
-        if (hook)
-            rt->visual(rt->hook_context, o, i, has_model, NULL);
+        visual_and_effects(o, i, img, hook, has_model, NULL, m, posed, &log, effects);
         return NULL;
     }
     if (!has_model) {
-        if (hook)
-            rt->visual(rt->hook_context, o, i, 0, NULL);
+        visual_and_effects(o, i, img, hook, 0, NULL, m, posed, &log, effects);
         return NULL;
     }
     if (status == MU_OBJ_UNSUPPORTED)
@@ -1121,13 +1140,11 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
         if (custom_events[j].call == MU_OBJ_CALL_MESH)
             mesh = &custom_events[j];   /* the character select's pedestal: one mesh (slot 0x38) */
     if (status == MU_OBJ_OK && !body && !mesh) {
-        if (hook)
-            rt->visual(rt->hook_context, o, i, 1, NULL);
+        visual_and_effects(o, i, img, hook, 1, NULL, m, posed, &log, effects);
         return NULL;   /* a per-world custom render took the object */
     }
     if (!posed && !pose_object(o, img, m, &log)) {
-        if (hook)
-            rt->visual(rt->hook_context, o, i, 1, NULL);
+        visual_and_effects(o, i, img, hook, 1, NULL, m, 0, &log, effects);
         return NULL;
     }
     mu_draw_default_options(options);
@@ -1152,8 +1169,8 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
     }
     options->time = map ? map->time : 0.0f;
     ++rt->drawn;
-    if (hook)   /* after RenderObject's draw arguments, as in RenderObjects */
-        rt->visual(rt->hook_context, o, i, 1, m);
+    /* after RenderObject's draw arguments, as in RenderObjects */
+    visual_and_effects(o, i, img, hook, 1, m, m, 1, &log, effects);
     return m;
 }
 

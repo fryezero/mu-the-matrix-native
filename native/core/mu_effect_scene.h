@@ -42,6 +42,7 @@ typedef struct mu_effect_scene {
     uint32_t template_count, template_capacity;
     mu_effect_instance *instances;
     uint32_t instance_count, instance_capacity;
+    uint32_t instance_limit;        /* RENDER-EFFECTS-008: the fixed capacity, set before the first create (0: 256) */
     mu_fx_rng rng;
     mu_fx_octree_node *tree;
     const mu_world *world;
