@@ -1,6 +1,6 @@
 # World-handler class coverage
 
-RENDER-WORLDS-G/H/I/J/N. Static address inventory from factory `0x00ea488e`, its allocation constructors and
+RENDER-WORLDS-G/H/I/J/N/P. Static address inventory from factory `0x00ea488e`, its allocation constructors and
 the pinned second-section vtables. Class IDs use the first registered world; labels are descriptive,
 not recovered symbol names. The default BaseMap registration for world 146 is outside the 48 concrete classes.
 
@@ -51,19 +51,19 @@ N = not reachable through the Warps window or ordinary warps (reason in JSON).
 | World 132 class | 132 | `0x1aa8ff4` | `0xe00b4a` M | `0xe00cfe` M | `0xe00e97` M | C |
 | World 133 class | 133 | `0x1aa62a0` | `0xd809fc` M | `0xd80c9c` M | `0xd81c2c` M | C |
 | World 134 class | 134 | `0x1aa6908` | `0xd84821` M | `0xd849e4` M | `0xd84dd8` M | C |
-| World 135 class | 135 | `0x1aaaf18` | `0xe3a4dc` M | `0xe3a719` M | `0xe3c137` M | C |
-| World 136 class | 136 | `0x1aa6d38` | `0xd9381e` M | `0xd93b31` M | `0xd97186` M | C |
+| Old Kethotum | 135 | `0x1aaaf18` | `0xe3a4dc` V | `0xe3a719` V | `0xe3c137` V | C |
+| Burning Kethotum | 136 | `0x1aa6d38` | `0xd9381e` V | `0xd93b31` V | `0xd97186` V | C |
 | World 137 class | 137 | `0x1aa9404` | `0xe08cd8` M | `0xe08f8a` M | `0xe0a4bb` M | C |
 | World 138 class | 138 | `0x1aa9114` | `0xe05afe` M | `0xe05d76` M | `0xe07081` M | C |
 | World 139 class | 139 | `0x1aa7264` | `0xd9c180` M | `0xd9c18d` M | `0xd9c1a7` M | N |
-| World 140 class | 140 | `0x1aa6e74` | `0xd9a022` M | `0xd9a0ad` M | `0xd9ac33` M | C |
+| Bloody Tarkan | 140 | `0x1aa6e74` | `0xd9a022` V | `0xd9a0ad` V | `0xd9ac33` V | C |
 | Tormenta Island | 141 | `0x1aabd10` | `0xe4c6ba` V | `0xe4c95e` V | `0xe4ef4b` V | E |
 | World 142 class | 142 | `0x1aac278` | `0xe67546` M | `0xe6766a` M | `0xe6841f` M | C |
 | World 143 class | 143 | `0x1aa9930` | `0xe0ea04` M | `0xe0ed1c` M | `0xe117e8` M | C |
 | World 144 class | 144 | `0x1aab6a8` | `0xe46625` M | `0xe4696f` M | `0xe47bc2` M | C |
 | World 145 class | 145 | `0x1aa5e78` | `0xd75a6c` M | `0xd75ac6` M | `0xd77b3e` M | N |
 
-18/48 classes have at least one verified primary method. Of 144 primary methods: 52 verified families, 0 static-only C, 92 missing.
+21/48 classes have at least one verified primary method. Of 144 primary methods: 61 verified families, 0 static-only C, 83 missing.
 Original populated captures: 27 classes from DATA-ACQ-002, 5 from earlier live reads, 16 not reachable by warp.
 
 The companion [JSON](world-handler-coverage.json) records factory, constructor and related entry points

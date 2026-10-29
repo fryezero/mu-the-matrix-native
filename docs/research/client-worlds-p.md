@@ -116,7 +116,24 @@ log-capacity independence.
 
 ## Saved-capture fidelity (DATA-ACQ-002 arrival tiles)
 
-FIDELITY_TABLE
+Same method and readers as [captures 2](client-world-captures-2.md): `scripts/fidelity_tour.py run` at each
+captured arrival tile, 1722 × 1048, 25 logic steps, the DATA-ACQ-002 plaintexts and installed assets. Before =
+a clean build of main `3735625`; after = this branch merged with it. Static fields are those the tour compares.
+
+| Capture | Static-field differences, whole map (near hero) before → after | Missing / extra | Image mean \|Δ\| / > 24 | Light dumps |
+|---|---|---|---|---|
+| Old Kethotum 128,17 | 399 (23) → **0 (0)**: after-character 318, range 81 | 0 / 0 both | 2.388 / 0.0136 both | identical |
+| Burning Kethotum 127,17 | 303 (25) → **0 (0)**: range 214, after-character 89 | 0 / 0 both | 8.661 / 0.1163 both | identical |
+| Bloody Tarkan 128,38 | 30 (7) → **2 (0)**: after-character 28 fixed; 2 type-67 velocity (live 0.6) remain | 0 / 0 both | 5.225 / 0.0020 both | identical |
+
+Every created object's static fields now equal the live client's, except the two Bloody Tarkan type-67 velocities,
+which none of these methods writes (static: no velocity store in the three methods). The image scores are equal to
+three decimals: at these tiles range and after-character change which objects pass the frustum (136: 102 → 103
+drawn) and the draw order, not visible pixels in the masked area. Native OBJECT dumps change (intended); the light
+dumps are byte-identical because no light-emitting object (136 braziers 0xa5, 140 types 0x13/0x51; 135 has no light case)
+lies in a moved sector at the arrival tiles (0 object lights in both builds). 135 now requests 2 particles in the
+run. No other world's path changes: the new branches test world 135/136/140 or the clamped flag only.
+WorldTime, RNG and animation phase differ from the live frame, so pulses and swing state are not compared.
 
 ## Downstream and continuation
 
