@@ -172,7 +172,10 @@ def export(samples_path, inputs_path, plan_path, name, mugl, out_dir, provenance
     frames = max(plan['frames'], bracket[-1]['logic'] + 1)
     native_plan = {'version': 1, 'width': width, 'height': height, 'frames': frames, 'sample_every': 1,
                    'save_every': -(-(frames - 1) // 2), 'start_world_time_ms': int(round(first['pre']['world_time'])),
-                   'maps': [{'name': name, 'world': entry['world'], 'tile': tile, 'script': script.name}]}
+                   'maps': [{'name': name, 'world': entry['world'], 'tile': tile, 'script': script.name,
+                             # RENDER-TIME-003: the live client's UI layer (base.swf) took every recorded wheel
+                             # event; native cannot hit-test base.swf, so the twin declares that state.
+                             'wheel_ui_hit': True}]}
     native_plan_path = out_dir / 'native-plan.json'
     native_plan_path.write_text(json.dumps(native_plan, indent=1) + '\n')
     series = {
