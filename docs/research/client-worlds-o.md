@@ -3,7 +3,7 @@
 RENDER-WORLDS-O, 2026-10-28. Worlds 128, 129 and 130 (three factory classes). The lane adds their primary
 create/move/visual methods, and the terrain-texture folder rule that left Abyss of Atlans 2 and 3 without
 terrain in the native world. Coverage goes from **33/144 to 42/144 primary methods** and from **11/48 to
-14/48 classes** (counted on main `38d08a9`; lanes merged later add their own). Labels: **verified** =
+14/48 classes** on main `38d08a9`; with RENDER-WORLDS-N merged the inventory reads **61/144 and 21/48**. Labels: **verified** =
 compared with the original instructions under Unicorn; **static** = read from disassembly or files;
 **inference** = not checked by a read or by execution.
 

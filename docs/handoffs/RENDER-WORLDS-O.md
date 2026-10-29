@@ -11,7 +11,7 @@ that gives Abyss 2 and 3 their terrain. [Finding, addresses, fidelity numbers an
   `mu_objects_runtime.c`; `mu_terrain_tile_folder` in `reconstructed/terrain/terrain.{c,h}`; the tile directory in
   `native/core/mu_terrain.c`; the `tile_folder` report field (`mu_terrain.h`, `mu-terrain info`); Makefile and
   validator-registry rows; world-handler coverage for these three classes only.
-- Coverage: **33 → 42/144 primary methods, 11 → 14/48 classes** (on `38d08a9`).
+- Coverage: **33 → 42/144 primary methods, 11 → 14/48 classes** on `38d08a9`; **61/144, 21/48** after merging RENDER-WORLDS-N.
 
 ## Checks
 
