@@ -170,7 +170,7 @@ static int world_path(char *out, size_t size, const char *root, int32_t folder, 
 static void load_bitmaps(mu_world *w, const char *root, int32_t folder)
 {
     char directory[1024], name[128], resolved[1200], message[256];
-    snprintf(directory, sizeof directory, "%s/Data/World%d", root, folder);
+    snprintf(directory, sizeof directory, "%s/Data/World%d", root, mu_terrain_tile_folder(folder));   /* 0x01829457 */
     for (int32_t i = 0; i < MU_WORLD_BITMAPS; ++i) {
         int linear = 0;
         if (!mu_world_bitmap_file(w->world, MU_TERRAIN_TEXTURE_TILE + i, name, sizeof name, &linear))
@@ -236,6 +236,7 @@ mu_world *mu_world_load(const char *root, int32_t world, uint32_t seed, int text
     w->world = world;
     const int32_t folder = mu_world_folder(world);
     w->report.folder = folder;
+    w->report.tile_folder = mu_terrain_tile_folder(folder);   /* Abyss of Atlans 2/3 use World129 */
     w->water_height = 0.0f;
     char name[64], path[1200], message[256];
     size_t size = 0, plain_size = 0;
