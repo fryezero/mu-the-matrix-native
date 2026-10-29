@@ -219,3 +219,4 @@ RENDER-WORLDS-L recorded consumer subset is implemented: [checks and remaining w
 
 RENDER-WORLDS-M Uruk consumer subset is implemented: [checks and remaining work](handoffs/RENDER-WORLDS-M.md).
 RENDER-WORLDS-O Abyss of Atlans 1-3 primary methods and the World129 tile folder are implemented: [checks and remaining work](handoffs/RENDER-WORLDS-O.md).
+RENDER-WORLDS-Q Acheron, Ferea, Swamp of Darkness and Kubera Mine primary methods and the Kubera elemental light are implemented: [checks and remaining work](handoffs/RENDER-WORLDS-Q.md).
