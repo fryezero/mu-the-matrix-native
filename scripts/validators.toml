@@ -2446,3 +2446,17 @@ args = ["--cases", "1000", "--mutations", "--output", "{report}"]
 "families.*.stopped" = 0
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
+
+[validate_item_carry]
+test = "reconstructed/renderchar/test_item_carry.py::ItemCarry.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "carry", "colours"]
+cases = 114388
+mutants = 12
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar"]
+args = ["--mutations", "--output", "{report}"]
+[validate_item_carry.expect]
+"families.*.mismatches" = 0
+"mutants.*" = {truthy = true}
