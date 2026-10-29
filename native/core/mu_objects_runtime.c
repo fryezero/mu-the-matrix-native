@@ -1,4 +1,5 @@
 #include "../../reconstructed/objects/world_visual.h"
+#include "mu_frame_time.h"
 /* The client's world-object lifecycle in the native session (NATIVE-OBJECTS-002,
  * docs/research/client-objects-render.md): CreateObject, MoveObjects/MoveObject per logic step,
  * RenderObjects/RenderObject per frame, through reconstructed/objects/object_render.c. The
@@ -614,7 +615,7 @@ void mu_objects_visibility(mu_objects *o, const mu_terrain_frustum *f, int32_t s
     in.y2d = f->y2d;
     in.render_first = render_first;
     in.context = &c;
-    in.frame_time = 0.1f;
+    in.frame_time = mu_frame_time_value();   /* [0x01cf103c] */
     mu_obj_log log = {0, rt->event_capacity, 0, rt->events};
     mu_obj_render_pass(&rt->world, &in, &rt->render_counter, &log);
     for (int32_t k = 0; k < log.count; ++k)
@@ -649,6 +650,24 @@ static uint8_t charsel_custom(void *context, int32_t index)
 {
     custom_context *c = context;
     return (uint8_t)mu_csw_custom_render(image(c->o, index), index, &c->log);
+}
+
+/* RENDER-WORLDS-AFTER: Abyss of Atlans 1-3's custom render (slot 0x38): the after-character types are left to
+ * the second pass, type 7's action gate draws rand(), type 0x34 keeps its first mesh. */
+typedef struct abyss_custom_context {
+    custom_context *base;
+    float time;
+} abyss_custom_context;
+static int32_t abyss_rand(void *context)
+{
+    return mu_obj_msvc_rand(&((custom_context *)context)->o->rt.seed);
+}
+static uint8_t abyss_custom(void *context, int32_t index)
+{
+    abyss_custom_context *c = context;
+    const int32_t w = c->base->o->world;
+    return (uint8_t)mu_abyss_custom(w, image(c->base->o, index), index, w, c->time, abyss_rand, c->base,
+                                    &c->base->log);
 }
 
 /* Pose and skin object i's model at its animation state with the body light of model_fields, with the
@@ -1037,9 +1056,11 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
     in.light.time = map ? map->time : 0.0f;
     mu_obj_event custom_events[4];
     custom_context cc = {o, {0, 4, 0, custom_events}};
-    if (login || charsel) {
-        in.custom_render = login ? login_custom : charsel_custom;
-        in.context = &cc;
+    abyss_custom_context ac = {&cc, in.light.time};
+    const int abyss = o->world >= 0x80 && o->world <= 0x82;
+    if (login || charsel || abyss) {
+        in.custom_render = login ? login_custom : charsel ? charsel_custom : abyss_custom;
+        in.context = abyss ? (void *)&ac : (void *)&cc;
     }
     mu_obj_event local[16];
     mu_obj_log log = {0, 16, 0, local};
@@ -1055,7 +1076,7 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
         handler_visual(o, i, img, primary_visual ? m : posed ? m : NULL, in.light.time, posed);
         if (rt->ein_update && rt->ein_listed && rt->ein_listed(rt->hook_context, i))   /* 0x016d51d8..0x016d51f5 */
             rt->ein_update(rt->hook_context, i, img, posed ? mu_model_bone_matrices(&m->model) : NULL,
-                           posed ? m->bmd.bone_count : 0, 0.1f /* [0x01cf103c] */);
+                           posed ? m->bmd.bone_count : 0, mu_frame_time_value() /* [0x01cf103c] */);
     } else if (!rt->visual) {
         mu_obj_visual(img, o->world, in.light.time);   /* RenderObjectVisual follows RenderObject */
     }
@@ -1086,6 +1107,9 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
     }
     if (status == MU_OBJ_UNSUPPORTED)
         ++rt->draw_unsupported;
+    for (int32_t j = 1; abyss && j < cc.log.count; ++j)
+        if (custom_events[j].call == MU_OBJ_CALL_MESH)
+            ++rt->draw_unsupported;   /* type 0x34's second mesh: bitmap 0x82df has no native texture */
     const mu_obj_event *body = NULL, *mesh = NULL;
     for (int32_t j = 0; j < log.count; ++j)
         if (local[j].call == MU_OBJ_CALL_BODY)
@@ -1200,7 +1224,7 @@ void mu_objects_after_visibility(mu_objects *o, const mu_terrain_frustum *f, int
     mu_objects_runtime *rt = &o->rt;
     rt->after_count = 0;
     if (!rt->ready ||
-        (o->world != MU_LOGIN_WORLD && o->world != MU_CSW_WORLD && !mu_world_after_enabled(o->world)))
+        (o->world != MU_LOGIN_WORLD && o->world != MU_CSW_WORLD && !mu_world_after_native(o->world)))
         return;
     mu_obj_render_inputs in;
     memset(&in, 0, sizeof in);
@@ -1209,7 +1233,7 @@ void mu_objects_after_visibility(mu_objects *o, const mu_terrain_frustum *f, int
     in.x2d = f->x2d;
     in.y2d = f->y2d;
     mu_obj_log log = {0, rt->event_capacity, 0, rt->events};
-    if (mu_world_after_enabled(o->world))
+    if (mu_world_after_native(o->world))   /* the whole 0x016d6949 (RENDER-WORLDS-AFTER) */
         mu_world_after_pass(&rt->world, &in, &rt->render_counter, &log);
     else
         mu_login_after_pass(&rt->world, &in, &rt->render_counter, &log);
@@ -1295,6 +1319,10 @@ mu_object_model *mu_objects_prepare_after(mu_objects *o, int32_t k, const mu_wor
         }
         if (ev->call != MU_OBJ_CALL_MESH || *count >= capacity)
             continue;
+        if (o->world >= 0x80 && o->world <= 0x82 && ev->args[7] != 0xffffffffu) {
+            ++rt->draw_unsupported;   /* type 0x29's glow: bitmap 0x82de has no native texture */
+            continue;
+        }
         mu_object_mesh *mesh = &meshes[(*count)++];
         mu_draw_default_options(&mesh->options);
         mesh->options.textures = &m->textures;

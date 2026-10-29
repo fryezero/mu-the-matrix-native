@@ -26,6 +26,7 @@
 #include "../core/mu_hud.h"
 #include "../core/mu_particles.h"
 #include "../core/mu_hud_tip.h"
+#include "../core/mu_item_textures.h"
 #include "../core/mu_model.h"
 #include "../core/mu_png.h"
 #include "../core/mu_raster.h"
@@ -288,13 +289,8 @@ static int draw_model(const hud_options *o, const mu_data_table *items, mu_raste
     }
     mu_model_set_state(&model, 0, 0.0f, 0.0f, 0);
     mu_model_update(&model);
-    mu_textures textures;
-    char directory[1024];
-    snprintf(directory, sizeof directory, "%s", path);
-    char *slash = strrchr(directory, '/');
-    if (slash)
-        slash[1] = 0;
-    mu_textures_load(&textures, &bmd, directory);
+    mu_textures textures;   /* the client's item texture rule and the body's override bitmaps (RENDER-ITEMS-TEX-001) */
+    mu_item_textures_load(&textures, &bmd, items, o->root, d->out.model, path, NULL);
     r->textures = textures.slots;
     r->texture_count = textures.count;
     r->texture_filter = textures.filter;

@@ -13,6 +13,8 @@
 #include "../core/mu_actor.h"
 #include "../core/mu_character.h"
 #include "../core/mu_gif.h"
+#include "../core/mu_hud_tip.h"
+#include "../core/mu_item_textures.h"
 #include "../core/mu_png.h"
 #include "../core/mu_raster.h"
 #include "../core/mu_renderchar.h"
@@ -239,6 +241,27 @@ int mu_render_world_character(const mu_options *o)
             if (W.glow[i].type < 0 && i >= MU_PART_HELM && i <= MU_PART_BOOTS && o->class_byte >= 0 && !o->part_paths[i])
                 W.glow[i].type = (int32_t)mu_character_part_type(i, (uint8_t)o->class_byte);
         }
+    /* RENDER-ITEMS-TEX-001: once the item type is known, its textures follow the client's item rule and include the
+     * body's override bitmaps; the folder rule above stays for models without a record or startup loader. */
+    if (o->game_root && !o->no_textures) {
+        mu_hud_tip_tables tables;
+        mu_hud_tip_tables_load(o->game_root, &tables);
+        for (int i = 0; i < MU_CHARACTER_ITEMS; ++i) {
+            mu_character_item *item = &c.items[i];
+            if (!item->loaded || W.glow[i].type < 0)
+                continue;
+            mu_textures fresh;
+            mu_item_textures_stats stats;
+            if (mu_item_textures_load(&fresh, &item->bmd, tables.have_items ? &tables.items : NULL, o->game_root,
+                                      W.glow[i].type, item->path, &stats) == 0 && stats.rule != MU_ITEM_RULE_FOLDER) {
+                mu_textures_free(&item->textures);
+                item->textures = fresh;
+            } else {
+                mu_textures_free(&fresh);
+            }
+        }
+        mu_hud_tip_tables_free(&tables);
+    }
     /* BackCarry 0x0139db9a: in a safe zone plain weapons are drawn on the back. */
     int carried = 0;
     if (W.safe_zone) {

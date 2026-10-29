@@ -5,6 +5,7 @@
 #define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
 #include <unistd.h>
+#include "../../core/mu_frame_time.h"
 #include "../../session/mu_session.h"
 #include "../../session/mu_session_seed.h"
 #include "../../fixture/mu_fixture.h"
@@ -170,7 +171,7 @@ static void actors_frame(struct mu_world_rt *a, void *self, uint32_t now)
     (void)self;
     (void)now;
     if (a->has_actors)
-        mu_world_actors_frame(&a->actors, 0.1f);   /* effect node update per frame, dt [0x01cf103c] = 0.1 */
+        mu_world_actors_frame(&a->actors, mu_frame_time_value());   /* effect node update per frame, dt [0x01cf103c] */
 }
 
 static void npc_item_draw(mu_world_rt *a, const mu_world_actor *npc, int item, const mu_render_backend *backend)

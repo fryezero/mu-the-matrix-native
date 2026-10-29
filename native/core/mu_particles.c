@@ -1,6 +1,7 @@
 /* The client's legacy particles, sprites and blob shadows in the native
  * session (NATIVE-PARTICLE-001). */
 #include <stdio.h>
+#include "mu_frame_time.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -172,7 +173,7 @@ static void host(mu_world_particles *p, mu_pt_host *h)
     h->owner_position = h_owner;
     h->world = p->world;
     h->world_time = p->world_time;
-    h->frame_time = 0.1f;   /* [0x01cf103c] */
+    h->frame_time = mu_frame_time_value();   /* [0x01cf103c] */
     h->drop_divisor = 1;
     h->scene_state = p->scene_state;   /* SceneFlag (NATIVE-CHARSEL-002: WATERFALL2 in scene 5) */
     h->bitmap_height = h_bitmap_height;

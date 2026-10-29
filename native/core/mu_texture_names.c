@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../../reconstructed/objects/item_texture.h"
 #include "../../reconstructed/objects/texture_lookup.h"
 #include "mu_bmd.h"
 #include "mu_image.h"
@@ -29,7 +30,10 @@ static struct {
 typedef struct lookup {
     const char *root;
     char path[1024];   /* the file of the last answer */
+    int startup_bitmaps;   /* item lookups: the startup LoadBitmap files are in the map (RENDER-ITEMS-TEX-001) */
 } lookup;
+
+#include "mu_startup_bitmaps.inc"
 
 static void lower_key(const char *name, char *out, size_t size)
 {
@@ -94,10 +98,34 @@ static int32_t host_load(void *context, const char *client_path, uint32_t filter
     return index >= 0 ? index : 0;
 }
 
+static int32_t host_load(void *context, const char *client_path, uint32_t filter, uint32_t wrap);
+
+/* The startup LoadBitmap file named `name` (mu_startup_bitmaps.inc), entered in the map on first use. */
+static int32_t startup_bitmap(lookup *l, const char *name)
+{
+    char key[64];
+    lower_key(name, key, sizeof key);
+    for (size_t i = 0; i < sizeof startup_bitmaps / sizeof startup_bitmaps[0]; ++i) {
+        const char *file = strrchr(startup_bitmaps[i], '\\');
+        char other[64];
+        lower_key(file ? file + 1 : startup_bitmaps[i], other, sizeof other);
+        if (strcmp(key, other))
+            continue;
+        char client[512];
+        snprintf(client, sizeof client, "Data\\%s", startup_bitmaps[i]);
+        const int32_t index = host_load(l, client, 0x2601, 0x2901);
+        l->path[0] = 0;   /* the answer is the map entry, not a load of this mesh */
+        return index == MU_TL_DEFAULT ? -1 : index;
+    }
+    return -1;
+}
+
 static int32_t host_find(void *context, const char *name, const char **path)
 {
-    (void)context;
-    const int32_t index = find_key(name);
+    lookup *l = context;
+    int32_t index = find_key(name);
+    if (index < 0 && l->startup_bitmaps)
+        index = startup_bitmap(l, name);
     if (index < 0)
         return -1;
     *path = map.entries[index].path;
@@ -122,7 +150,7 @@ static int open_model(const char *root, const mu_tl_preload *p)
         !mu_objects_resolve(root, relative, file, sizeof file) ||
         mu_bmd_load_file(file, &model, message, sizeof message) != MU_BMD_OK)
         return 0;
-    lookup l = {root, ""};
+    lookup l = {root, "", 0};
     const mu_tl_host host = {&l, host_load, host_find, host_reuse, NULL};
     for (int32_t i = 0; i < model.mesh_count; ++i)
         mu_tl_open(&host, p->subfolder, model.meshes[i].texture, 0x2901, 0x2600, NULL);
@@ -159,7 +187,7 @@ int mu_texture_names_find(const char *game_root, int32_t world, const char *subf
     if (!game_root || !name)
         return 0;
     prepare(game_root, world);
-    lookup l = {game_root, ""};
+    lookup l = {game_root, "", 0};
     const mu_tl_host host = {&l, host_load, host_find, host_reuse, NULL};
     int found = MU_TL_MISSING;
     const int32_t index = mu_tl_open(&host, subfolder, name, 0x2901, 0x2600, &found);
@@ -168,6 +196,34 @@ int mu_texture_names_find(const char *game_root, int32_t world, const char *subf
     if (found == MU_TL_MISSING || !l.path[0] || index == MU_TL_DEFAULT)   /* no file, or a special bitmap */
         return 0;
     snprintf(path, size, "%s", l.path);
+    return 1;
+}
+
+int mu_texture_names_item(const char *game_root, const char *folder, const char *subfolder, const char *name,
+                          char *path, size_t size, int32_t *type, int32_t *special, int *step)
+{
+    if (special)
+        *special = 0;
+    if (!game_root || !name)
+        return 0;
+    prepare(game_root, strcmp(map.root, game_root) ? -1 : map.world);   /* items keep the world part */
+    lookup l = {game_root, "", 1};
+    const mu_tl_host host = {&l, host_load, host_find, host_reuse, NULL};
+    int found = MU_TL_MISSING, field = 0;
+    int32_t ignored = 0;
+    const int32_t index = folder ? mu_it_open(&host, folder, name, type ? type : &ignored, &field, &found)
+                                 : mu_tl_open(&host, subfolder, name, 0x2901, 0x2600, &found);
+    if (step)
+        *step = found;
+    if (found == MU_TL_MISSING || !l.path[0] || index == MU_TL_DEFAULT || index == MU_TL_SKIN ||
+        index == MU_TL_HIDE || index == MU_TL_HAIR || index == MU_TL_FACE || index == MU_TL_HQ_SKIN ||
+        index == MU_TL_HQ_SKIN2 || index == MU_TL_HQ_SKIN3 || index == MU_TL_HQ_HAIR) {
+        if (special && index != MU_TL_DEFAULT)
+            *special = index;
+        return 0;
+    }
+    /* the file of the bitmap the mesh keeps (a field_ name loads a second file after it) */
+    snprintf(path, size, "%s", index >= 0 && index < map.count ? map.entries[index].path : l.path);
     return 1;
 }
 

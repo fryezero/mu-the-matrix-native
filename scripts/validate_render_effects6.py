@@ -235,8 +235,8 @@ def main():
     report['families'].update(effect_families(text, data, lib, a.cases))
     report['families'].update(particle_families(text, data, a.particle_cases))
     if a.mutations:
-        report['mutants'].update(effect_mutants(text, data, max(100, a.cases // 2)))
-        report["mutants"].update(particle_mutants(text, data, max(100, a.particle_cases // 2)))
+        report["mutants"].update(effect_mutants(text, data, a.cases))
+        report["mutants"].update(particle_mutants(text, data, a.particle_cases))
     bodies = {'shoal_create': (0x013c39d9, 0x013c3d67), 'bat_create': (0x013c3d67, 0x013c3eab),
               'leaf_create': (0x013f5b63, 0x013f5c21), 'shoal_move': (0x01435aed, 0x01435e18),
               'bat_move': (0x01435e18, 0x01435ef3), 'leaf_move': (0x014ed512, 0x014eda52),
