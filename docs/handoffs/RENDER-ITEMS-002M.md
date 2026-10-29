@@ -92,11 +92,14 @@ owner effects, Muun and nested map-object tables, and the earlier limits are unc
 
 Latest main **8eb54978** (RENDER-EFFECTS-008, RENDER-WORLDS-G3/AFTER2/Q2) was merged in **730e13d6**. The only
 conflict was the appended rows in `scripts/validators.toml`; both sides are kept. No item body, link or
-executor source changed in main.
+executor source changed in main. Main **7f18bf05** (SPRITE-DRAW-001) was then merged in **ce25c5be**. The only
+conflict was the plan row next to SPRITE-DRAW-001; both rows are kept.
 
-`nice -n 10 bash scripts/local-macos-ci.sh` on the merged source passes **1,788 tests across 38 suites, 237
-explicit skips, zero failures**. Fixtures, native viewer and live readers pass, and the publication audit accepts
-**1,783 staged files, zero rejected**. The four private validators above pass after the merge.
+After the first merge, `nice -n 10 bash scripts/local-macos-ci.sh` passed 1,788 tests and all four private
+validators above passed. On the final merge it passes **1,789 tests across 38 suites, 237 explicit skips, zero
+failures**. Fixtures, native viewer and live readers pass, and the publication audit accepts **1,788 staged
+files, zero rejected**. `validate_item_carry` passes again with the same counts. The second merge touched no
+input of the part-10/11/12 validators.
 
 Steward validators: validate_item_carry, validate_item_chains, validate_item_scalars, validate_item_wings_next
 (env `MU_RECOVERY_INTEGRATION=1`; pinned captures through the `evidence` link).
