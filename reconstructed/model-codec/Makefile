@@ -45,4 +45,4 @@ $(READER): model_reader.c model_reader.h skinning.c skinning.h pose_builder.c po
 
 .PHONY: all
 
-include ../deps.mk
+-include ../deps.mk   # optional: validators build copies of single directories

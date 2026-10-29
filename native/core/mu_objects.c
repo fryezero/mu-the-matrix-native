@@ -9,6 +9,7 @@
 
 #include "../../reconstructed/model-codec/model_codec.h"
 #include "mu_scene.h"
+#include "mu_texture_names.h"
 
 void mu_objects_init(mu_objects *o, int32_t world)
 {
@@ -33,6 +34,7 @@ static void free_models(mu_objects *o)
         o->models[t] = NULL;
     }
     o->models_loaded = o->models_missing = o->types_used = 0;
+    o->textures_retried = o->textures_unresolved = 0;
 }
 
 void mu_objects_free(mu_objects *o)
@@ -314,9 +316,30 @@ int mu_objects_load_models(mu_objects *o, const char *game_root, int no_textures
             continue;
         }
         if (!no_textures) {
-            char directory[2048];
+            char directory[2048], subfolder[64], folder[64];
             mu_path_directory(m->path, directory, sizeof directory);
+            /* The world pass opens every object type's textures from "Object<folder>\\" (RENDER-WORLDS-G2: all
+             * 60,000 recorded calls), also world 0x80's types 0x42..0x46 whose models are in Object129. */
+            snprintf(folder, sizeof folder, "Data/Object%d", mu_objects_folder(o->world));
+            snprintf(subfolder, sizeof subfolder, "Object%d\\", mu_objects_folder(o->world));
+            if (!world_model)
+                mu_objects_resolve(game_root, folder, directory, sizeof directory);
             mu_textures_load(&m->textures, &m->bmd, directory);
+            /* OpenTexture's name map and Item retries for the meshes the folder lacks (RENDER-WORLDS-G2) */
+            const char *slash = strrchr(relative, '/');
+            if (world_model && slash && !strncmp(relative, "Data/", 5) && slash - relative - 5 < 60)
+                snprintf(subfolder, sizeof subfolder, "%.*s\\", (int)(slash - relative - 5), relative + 5);
+            if (m->textures.missing > 0) {
+                for (int32_t k = 0; k < m->bmd.mesh_count; ++k) {
+                    char file[1024];
+                    if (!m->textures.slots[k] &&
+                        mu_texture_names_find(game_root, o->world, subfolder, m->bmd.meshes[k].texture, file,
+                                              sizeof file, NULL) &&
+                        mu_textures_set_file(&m->textures, &m->bmd, k, file) == 0)
+                        ++o->textures_retried;
+                }
+            }
+            o->textures_unresolved += m->textures.missing;
         }
         m->loaded = 1;
         ++o->models_loaded;
