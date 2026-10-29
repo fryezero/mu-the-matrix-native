@@ -8,12 +8,16 @@ all: libitemprice.$(SUFFIX)
 
 libitemprice.$(SUFFIX): $(SRC) $(HDR)
 	$(CC) $(CFLAGS) -shared $(SRC) -lm -o $@
+	$(DEPS)
 
 # Negative controls for scripts/validate_item_price.py --mutations (not built by default).
 mutant%.$(SUFFIX): $(SRC) $(HDR)
 	$(CC) $(CFLAGS) -DMU_PRICE_MUTATION=$* -shared $(SRC) -lm -o $@
+	$(DEPS)
 
 clean:
 	rm -f libitemprice.$(SUFFIX) mutant*.$(SUFFIX)
 
 .PHONY: all clean
+
+include ../deps.mk

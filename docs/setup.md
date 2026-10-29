@@ -22,6 +22,14 @@ use authored geometry/image/decoder fixtures and public LEA vectors. Fourteen
 private-input checks explicitly skip by default. A source-only checkout should
 pass without downloading or shipping the original game.
 
+Header dependencies are tracked automatically (BUILD-DEPS-001): every C/C++ compile in `native/`,
+`reconstructed/*`, `model-recovery/` and `live-readers/` also writes a `.d` file listing the headers it read
+(`-MMD -MP`, or one `-MM` pass for a call that compiles several sources), and the Makefiles include those files.
+Changing a header, such as a shared struct after merging `main`, rebuilds exactly what includes it, so a clean
+rebuild is no longer needed. A new rule that uses `$(CFLAGS)` in `native/Makefile` is tracked without extra
+work. A rule that compiles several sources in one call also needs `$(call MULTI_DEPS,<its flags>)`; in
+`reconstructed/*` that is `$(DEPS)`.
+
 For the full optional local analysis environment, install the pinned Python
 dependencies in `tools/requirements-lock.txt`. REA requires a supported Node.js
 runtime; Node 22.22.3 was used in the recorded investigation.

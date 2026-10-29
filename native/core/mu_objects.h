@@ -68,8 +68,10 @@ typedef struct mu_object_model {
 
 typedef struct mu_object_light {
     float x, y, rgb[3];
-    int32_t range;
+    int32_t range;                  /* | MU_OBJECT_LIGHT_CLAMPED: 0x016caeae (channels clamped to 0..1) */
 } mu_object_light;
+#define MU_OBJECT_LIGHT_CLAMPED 0x40000000
+#define MU_WP_SPEEDS 16
 
 /* Stand-in for the client's legacy particle system (CreateParticle 0x0168fafd is not
  * reconstructed): a billboard of the particle's bitmap that rises and fades over its life. */
@@ -130,6 +132,8 @@ typedef struct mu_objects_runtime {
     uint32_t now_ms;                  /* timeGetTime of the step and the frame (mu_objects_set_clock) */
     float play_speed[MU_OBJECT_TYPES];   /* action 0 PlaySpeeds set by a world handler's creation hook */
     uint8_t play_speed_set[MU_OBJECT_TYPES];
+    float wp_speed[MU_OBJECT_TYPES][16]; /* RENDER-WORLDS-P: action PlaySpeeds written by the 135/136 creates */
+    uint8_t wp_speed_set[MU_OBJECT_TYPES];
     mu_object_sprite sprites[MU_OBJECT_SPRITES];
     int32_t sprite_count;
     int32_t bitmap_ids[MU_OBJECT_BITMAPS];

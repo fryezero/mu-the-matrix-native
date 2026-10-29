@@ -123,6 +123,7 @@ def main():
                 src = p.read_text()
                 assert old in src, old
                 p.write_text(src.replace(old, new, 1))
+                shutil.copy(ROOT / 'reconstructed/deps.mk', dest / 'deps.mk')
                 subprocess.run(['make', '-s', '-C', str(dest / 'terrain')], check=True)
                 mr = compare(machine, load(dest / 'terrain'), observed)[0]
                 m = {'change': new, 'detected': mr['mismatch_count'], 'stopped': mr['stopped']}

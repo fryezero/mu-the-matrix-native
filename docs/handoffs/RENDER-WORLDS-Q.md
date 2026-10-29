@@ -13,7 +13,7 @@ methods, and the elemental light file that was Kubera's terrain-light difference
   `native/core/mu_objects.h`; create/move/visual hooks in `native/core/mu_objects_runtime.c`; Makefile and registry
   rows; the neighbour worlds of the N and O hosts (112 → 111, 127 → 121, now owned here); coverage for these
   four classes only.
-- Coverage: **61 → 72/144 primary methods, 21 → 25/48 classes**. Ferea's visual `0x00de6405` remains missing.
+- Coverage: **61 → 72/144 primary methods, 21 → 25/48 classes** on `77c304a`; **87/144, 30/48** after merging RENDER-WORLDS-P/P2. Ferea's visual `0x00de6405` remains missing.
 
 ## Checks
 

@@ -23,12 +23,15 @@ endif
 all: $(LIBRARY) $(MODULUS_LIBRARY)
 
 $(LIBRARY): lea256.c
-	$(CC) $(CFLAGS) $(SHARED) $< -o $@
+	$(CC) $(CFLAGS) $(SHARED) -MMD -MP -MT $@ $< -o $@
 
 $(MODULUS_LIBRARY): modulus.cpp
-	$(CXX) $(CXXFLAGS) $(SHARED) $(CRYPTOPP_FLAGS) $< -lcryptopp -o $@
+	$(CXX) $(CXXFLAGS) $(SHARED) $(CRYPTOPP_FLAGS) -MMD -MP -MT $@ $< -lcryptopp -o $@
 
 clean:
-	rm -f liblea256.dylib liblea256.so libmodulus.dylib libmodulus.so
+	rm -f liblea256.dylib liblea256.so libmodulus.dylib libmodulus.so *.d
+
+# BUILD-DEPS-001: -MMD lists each library's headers in <library>.d.
+-include $(wildcard *.d)
 
 .PHONY: all clean

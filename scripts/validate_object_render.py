@@ -1220,6 +1220,8 @@ MUTATIONS = [
 
 
 def build_library(directory):
+    if not (directory / 'deps.mk').exists():   # BUILD-DEPS-001: the copied Makefiles include ../deps.mk
+        shutil.copy(ROOT / 'reconstructed/deps.mk', directory / 'deps.mk')
     subprocess.run(['make', '-s', '-C', str(directory / 'objects')], check=True)
     return directory / 'objects' / f'libobjects.{SUFFIX}'
 

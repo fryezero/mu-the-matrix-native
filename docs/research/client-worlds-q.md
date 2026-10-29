@@ -4,7 +4,7 @@ RENDER-WORLDS-Q, 2026-10-28. Four factory classes captured by DATA-ACQ-002: Ache
 Swamp of Darkness (122) and Kubera Mine (123..127). The lane adds eleven of their twelve primary methods
 and the elemental terrain-light rule that made Kubera the one capture whose primary light differed from the
 live grid. Coverage goes from **61/144 to 72/144 primary methods** and from **21/48 to 25/48 classes** on main
-`77c304a`. Ferea's visual `0x00de6405` (2,328 instructions) is not reconstructed. Labels: **verified** =
+`77c304a`; with RENDER-WORLDS-P and P2 merged the inventory reads **87/144 and 30/48**. Ferea's visual `0x00de6405` (2,328 instructions) is not reconstructed. Labels: **verified** =
 compared with the original instructions under Unicorn or with a live capture; **static** = read from
 disassembly or files; **inference** = neither.
 
