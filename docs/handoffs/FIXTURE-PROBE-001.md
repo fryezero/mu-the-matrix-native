@@ -51,7 +51,9 @@ run the server rejected a second `GET` peer that the test had not opened.
 - Stress: 2 parallel workers × 50 runs of the whole `test_fixture_hero` module (7 tests each, every run with
   its own serve/connect pairs and the live T3 probes) = **100/100 module runs, 700 test runs, 0 failures**.
   Parallelism was capped at 2 by the brief's resource limit.
-- Full gate `nice -n 10 bash scripts/local-macos-ci.sh`: see the PR body for the counts.
+- Full gate `nice -n 10 bash scripts/local-macos-ci.sh` (on 7c1e8e06, origin/main 34081544 already contained): 38 suites,
+  1,756 tests, 1,526 passed, 230 skipped, 0 failures, 0 errors (native/tests 822 tests, two of them new); fixtures,
+  viewer, live-readers ok; audit 1,745 files, 0 rejected.
 
 ## Limits
 
