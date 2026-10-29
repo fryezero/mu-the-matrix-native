@@ -36,6 +36,26 @@ int mu_world_after_pass_ex(mu_obj_world *, const mu_obj_render_inputs *, const m
 int mu_abyss_custom(int32_t cls, uint8_t *object, int32_t index, int32_t world, float time, mu_obj_rand_fn rand_fn,
                     void *context, mu_obj_log *log);
 int mu_abyss_after(int32_t cls, const uint8_t *object, int32_t index, int32_t world, mu_obj_log *log);
+/* RENDER-WORLDS-AFTER2: the custom render slot 0x38 (returns handled) and after render slot 0x3c of the classes
+ * mu_class_slots names (world_slots_visual.c). b: the model fields (+0x54 colour, +0x94 StreamMesh byte, +0xa8
+ * action, +0xac frame); time: WorldTime. */
+typedef struct mu_slot_model {
+    int32_t mesh_count;        /* model +0x24 */
+    const int16_t *sub_flag;   /* per mesh: -1 no texture sub record (+0x1c), else its first byte */
+} mu_slot_model;
+int mu_class_slots(int32_t world);
+int mu_class_custom(int32_t cls, uint8_t *object, uint8_t *b, int32_t index, int32_t world, float time,
+                    const mu_slot_model *model, mu_obj_log *log);
+void mu_class_after(int32_t cls, uint8_t *object, uint8_t *b, int32_t index, int32_t world, float time,
+                    const mu_slot_model *model, mu_obj_log *log);
+/* The pre-move slot 0x74 of classes 69..72, 79, 80/81 and 122 (returns 0 for the others); state: the world-69
+ * handler's +0x14 (Imperial Guardian). */
+int mu_class_premove(int32_t cls, const uint8_t *object, int32_t index, int32_t world, int32_t state,
+                     mu_obj_rand_fn rand_fn, void *context, mu_obj_log *log);
+/* LoadBitmap registration (path under Data\, filter, wrap) of a bitmap the slots of `world` bind to a model mesh,
+ * and the bitmaps the slots name for objects of `type` (at most 4). */
+int mu_world_slot_bitmap(int32_t world, int32_t index, const char **path, uint32_t *filter, uint32_t *wrap);
+int32_t mu_world_slot_bitmaps(int32_t world, int32_t type, int32_t out[4]);
 int mu_world_chain_predicate(uint32_t address, int32_t world);
 int mu_world_after_render(uint8_t *, int32_t, int32_t, float, mu_obj_log *, mu_world_bone_fn, void *);
 typedef void (*mu_world_named_bone_fn)(void *, const char *, const float[3], float[3]);
