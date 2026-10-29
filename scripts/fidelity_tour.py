@@ -12,6 +12,7 @@ A tour manifest (JSON) names, per map, a live capture taken under the game lock 
       "title_bar": 28,                                # rows above the client area in the live window shot
       "masks": [[x0, y0, x1, y1], ...],               # client-area rectangles left out of the image stats (HUD)
       "native_args": ["--no-audio"],                  # extra mu-world options (optional)
+      "draw_all": false,                              # draw every step, as the client (render-time emitters)
       "maps": [
         {"name": "01-dungeon", "world": 1, "tile": [108, 247],     # tile: optional, else from the snapshots
          "live_png": "live/01-dungeon.png",                         # winshot.swift window shot
@@ -456,6 +457,11 @@ def render(m, binary, only=None):
                '--fidelity-dump', str(out / 'native')] + list(m['native_args']) + list(e.get('native_args', []))
         if m.get('objects_dir'):
             cmd += ['--objects-dir', m['objects_dir']]
+        if m.get('draw_all'):
+            # The client draws every frame, and RenderObjectVisual's emitters (braziers, torches) run while drawing:
+            # draw all steps, not only the saved ones (RENDER-WORLDS-G2). The interval equals the frame count, so
+            # only the first and last frames are sampled.
+            cmd += ['--time-series-every', str(min(int(m['frames']), 10000))]
         run = subprocess.run(cmd, capture_output=True, text=True)
         (out / 'native.jsonl').write_text(run.stdout)
         (out / 'native.log').write_text(run.stderr)

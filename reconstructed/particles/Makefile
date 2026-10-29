@@ -8,8 +8,11 @@ all: libclient_particles.$(SUFFIX)
 
 libclient_particles.$(SUFFIX): $(SRC) $(HDR)
 	$(CC) $(CFLAGS) -shared $(SRC) -lm -o $@
+	$(DEPS)
 
 clean:
 	rm -f libclient_particles.dylib libclient_particles.so
 
 .PHONY: all clean
+
+-include ../deps.mk   # optional: validators build copies of single directories

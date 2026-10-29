@@ -8,8 +8,11 @@ all: libclient_joints.$(SUFFIX)
 
 libclient_joints.$(SUFFIX): $(SRC) $(HDR)
 	$(CC) $(CFLAGS) -shared $(SRC) -lm -o $@
+	$(DEPS)
 
 clean:
 	rm -f libclient_joints.dylib libclient_joints.so
 
 .PHONY: all clean
+
+-include ../deps.mk   # optional: validators build copies of single directories

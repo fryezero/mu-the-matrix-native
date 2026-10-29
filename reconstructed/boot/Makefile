@@ -5,8 +5,11 @@ all: recover-block
 
 recover-block: decoder.c decoder.h main.c
 	$(CC) $(CFLAGS) decoder.c main.c -o $@
+	$(DEPS)
 
 clean:
 	rm -f recover-block
 
 .PHONY: all clean
+
+-include ../deps.mk   # optional: validators build copies of single directories

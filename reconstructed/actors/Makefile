@@ -11,5 +11,8 @@ all: $(LIB)
 # library carries the skinning stack (same contraction rule as model-codec).
 $(LIB): actors.c actors.h monster_open_table.h monster_sound_table.h monster_class_table.h npc_table.h player_action_table.h $(CODEC)/skinning.c $(CODEC)/skinning.h $(CODEC)/pose_builder.c $(CODEC)/bone_tracks.c $(MATH)/record_math.c
 	$(CC) $(CFLAGS) -ffp-contract=off -shared actors.c $(CODEC)/skinning.c $(CODEC)/pose_builder.c $(CODEC)/bone_tracks.c $(MATH)/record_math.c -lm -o $@
+	$(DEPS)
 
 .PHONY: all
+
+-include ../deps.mk   # optional: validators build copies of single directories

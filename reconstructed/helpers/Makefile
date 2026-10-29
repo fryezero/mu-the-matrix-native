@@ -8,8 +8,11 @@ all: libclient_helpers.$(SUFFIX)
 
 libclient_helpers.$(SUFFIX): $(SRC) $(HDR)
 	$(CC) $(CFLAGS) -shared $(SRC) -lm -o $@
+	$(DEPS)
 
 clean:
 	rm -f libclient_helpers.dylib libclient_helpers.so
 
 .PHONY: all clean
+
+-include ../deps.mk   # optional: validators build copies of single directories

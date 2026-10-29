@@ -8,12 +8,16 @@ all: libclientskill.$(SUFFIX)
 
 libclientskill.$(SUFFIX): $(SRC) $(HDR)
 	$(CC) $(CFLAGS) -shared $(SRC) -lm -o $@
+	$(DEPS)
 
 # Negative controls for scripts/validate_skill.py --mutations (not built by default).
 mutant%.$(SUFFIX): $(SRC) $(HDR)
 	$(CC) $(CFLAGS) -DMU_SKILL_MUTATION=$* -shared $(SRC) -lm -o $@
+	$(DEPS)
 
 clean:
 	rm -f libclientskill.$(SUFFIX) mutant*.$(SUFFIX)
 
 .PHONY: all clean
+
+-include ../deps.mk   # optional: validators build copies of single directories

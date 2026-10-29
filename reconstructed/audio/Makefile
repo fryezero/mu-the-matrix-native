@@ -7,8 +7,11 @@ all: libclient_audio.$(SUFFIX)
 
 libclient_audio.$(SUFFIX): $(SRC) client_audio.h hero_sound.h audio_registration.inc
 	$(CC) $(CFLAGS) -shared $(SRC) -o $@
+	$(DEPS)
 
 clean:
 	rm -f libclient_audio.dylib libclient_audio.so
 
 .PHONY: all clean
+
+-include ../deps.mk   # optional: validators build copies of single directories

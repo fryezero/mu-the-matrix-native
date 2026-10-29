@@ -8,5 +8,8 @@ all: libprogress.$(SUFFIX)
 
 libprogress.$(SUFFIX): $(SRC) $(HDR)
 	$(CC) $(CFLAGS) -shared $(SRC) -o $@
+	$(DEPS)
 
 .PHONY: all
+
+-include ../deps.mk   # optional: validators build copies of single directories

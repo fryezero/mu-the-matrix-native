@@ -7,5 +7,8 @@ all: $(LIB)
 
 $(LIB): renderchar.c renderchar.h special_types.h item_glow.h skin_glow.h item_bodies.h skin_bodies.h item_links.h item_pulse_links.h back_matrices.h rank5_owner.inc ../record-math/record_math.c
 	$(CC) $(CFLAGS) -ffp-contract=off -shared renderchar.c ../record-math/record_math.c -lm -o $@
+	$(DEPS)
 
 .PHONY: all
+
+-include ../deps.mk   # optional: validators build copies of single directories

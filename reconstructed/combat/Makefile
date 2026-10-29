@@ -8,5 +8,8 @@ all: libcombat.$(SUFFIX)
 
 libcombat.$(SUFFIX): $(SRC) $(HDR)
 	$(CC) $(CFLAGS) -shared $(SRC) -lm -o $@
+	$(DEPS)
 
 .PHONY: all
+
+-include ../deps.mk   # optional: validators build copies of single directories

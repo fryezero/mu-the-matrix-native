@@ -8,8 +8,11 @@ all: libclient_raven.$(SUFFIX)
 
 libclient_raven.$(SUFFIX): $(SRC) $(HDR)
 	$(CC) $(CFLAGS) -shared $(SRC) -lm -o $@
+	$(DEPS)
 
 clean:
 	rm -f libclient_raven.dylib libclient_raven.so
 
 .PHONY: all clean
+
+-include ../deps.mk   # optional: validators build copies of single directories
