@@ -53,7 +53,7 @@ three status docs keep both sides. Clean `native/build` and reconstructed librar
   runs, 218 explicit skips, zero failures/errors; 11/11 fixture scenarios; publication audit 1,673 files, zero
   rejected**. A first run on the pre-merge branch had one `test_transport` allowlist failure that passes 3/3 alone
   (concurrent socket use by another lane's gate); a first merged run failed `test_native_build_deps` on libraries
-  built before the merge (no `.d` files), passing after removing them. Rerun after the `-include` change: see below.
+  built before the merge (no `.d` files), passing after removing them. Final gate on `11c3a8e` (with `-include`): **1,698 tests / 38 runs, 218 skips, zero failures; 11/11 scenarios; audit 1,673 files, 0 rejected** (one earlier rerun hit the same transport flake). Only this checks section changed after the gate.
 - Registered private validators, serial, on the merged tree with `-include`: **19/19 pass** (`validate_worlds_*`
   b–p2 and g2, `validate_world_tile_folder`, `validate_camera`, `validate_objects`), mutants detected in all.
 - `validate_worlds_g2`: 5 families, 4,157 cases (default) / 2,657 (registered), zero mismatches/stops, 17/17 mutants.
