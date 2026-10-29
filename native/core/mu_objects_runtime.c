@@ -19,8 +19,10 @@
 #include "../../reconstructed/objects/worlds_i.h"
 #include "../../reconstructed/objects/worlds_p.h"
 #include "../../reconstructed/objects/worlds_o.h"
+#include "../../reconstructed/objects/worlds_r.h"
 #include "../../reconstructed/objects/worlds_n.h"
 #include "../../reconstructed/objects/worlds_p2.h"
+#include "../../reconstructed/objects/worlds_r2.h"
 #include "../../reconstructed/joints/joints.h"
 #include "../../reconstructed/objects/icarus.h"
 
@@ -37,6 +39,8 @@ static float fbits(uint32_t u)
     memcpy(&v, &u, 4);
     return v;
 }
+
+static int32_t objects_rand(void *c) { return mu_obj_msvc_rand(&((mu_objects *)c)->rt.seed); }   /* RENDER-WORLDS-R */
 
 static void runtime_free(mu_objects_runtime *rt)
 {
@@ -78,6 +82,44 @@ static int runtime_hides_modelled(int32_t world)
     return world == 0 || world == 0x8d || world == MU_LOGIN_WORLD || world == MU_CSW_WORLD;
 }
 
+/* RENDER-WORLDS-Q: the type's client-layout action table inside its native model window. */
+static uint8_t *q_actions(void *context, int32_t type, int32_t *count)
+{
+    mu_objects *o = context;
+    static uint8_t empty[16];
+    *count = 0;
+    if (type < 0 || type >= MU_OBJECT_TYPES || !o->models[type] || !o->models[type]->loaded)
+        return NULL;
+    mu_model *m = &o->models[type]->model;
+    *count = o->models[type]->bmd.action_count;
+    uint8_t *table = *count > 0 ? mu_model_host(m, m->actions, 16u * (uint32_t)*count) : NULL;
+    if (!table)
+        *count = 0;
+    return table ? table : empty;
+}
+
+static int32_t q_rand(void *context) { return mu_obj_msvc_rand(&((mu_objects *)context)->rt.seed); }
+
+static mu_q_inputs q_inputs(mu_objects *o, const float hero[3], float time)
+{
+    mu_q_inputs q;
+    memset(&q, 0, sizeof q);
+    q.world = o->world;
+    q.time = time;
+    q.frame_time = 0.1f;   /* 0x01cf103c, as the render pass */
+    q.now_ms = o->rt.now_ms;
+    if (hero) {
+        memcpy(q.hero, hero, sizeof q.hero);
+        q.hero_tile[0] = (int32_t)(hero[0] / 100.0f);
+        q.hero_tile[1] = (int32_t)(hero[1] / 100.0f);
+    }
+    q.actions = q_actions;
+    q.rand_fn = q_rand;
+    q.context = o;
+    q.handler = &o->rt.q_handler;
+    return q;
+}
+
 int mu_objects_start(mu_objects *o, const char *game_root)
 {
     mu_objects_runtime *rt = &o->rt;
@@ -92,6 +134,7 @@ int mu_objects_start(mu_objects *o, const char *game_root)
     memcpy(rt->velocity_set, velocity_set, sizeof velocity_set);
     rt->velocity_types = velocity_types;
     const int32_t n = o->count > 0 ? o->count : 0;
+    rt->q_handler.swamp_variant = 1;   /* Swamp of Darkness constructor (0x00e54359: +0x78 = 1) */
     rt->images = calloc((size_t)(n ? n : 1), MU_OBJ_SIZE);
     rt->pointers = calloc((size_t)(n ? n : 1), sizeof *rt->pointers);
     rt->next = calloc((size_t)(n ? n : 1), sizeof *rt->next);
@@ -114,7 +157,12 @@ int mu_objects_start(mu_objects *o, const char *game_root)
         int32_t sector = -1;
         mu_obj_event created[8];
         mu_obj_log create_log = {0, 8, 0, created};
-        const int status = mu_obj_create(&o->records[i], o->world, img, &sector, i, &create_log);
+        int status = mu_obj_create(&o->records[i], o->world, img, &sector, i, &create_log);
+        if (status == MU_OBJ_UNSUPPORTED && mu_worlds_q_owns(o->world)) {   /* RENDER-WORLDS-Q slot 0x2c */
+            const mu_q_inputs q = q_inputs(o, NULL, 0.0f);
+            mu_worlds_q_create(img, i, &q, &create_log);
+            status = MU_OBJ_OK;
+        }
         for (int32_t k = 0; k < create_log.count; ++k)   /* a handler's PlaySpeed write (login world type 5) */
             if (created[k].call == MU_OBJ_CALL_PLAY_SPEED &&
                 (created[k].args[1] == 0 || created[k].args[1] == MU_OBJ_PLAY_SPEED_ALL) &&
@@ -127,6 +175,9 @@ int mu_objects_start(mu_objects *o, const char *game_root)
         for (int32_t k = 0; k < create_log.count; ++k)   /* RENDER-WORLDS-P deferred class create */
             if (created[k].call == MU_WP_CREATE)
                 mu_objects_worlds_p_create(o, i);
+        for (int32_t k = 0; k < create_log.count; ++k)   /* RENDER-WORLDS-R deferred Scorched Canyon create */
+            if (created[k].call == MU_WR_CREATE)
+                mu_scorched_canyon_create(img, o->world, objects_rand, o);
         for (int32_t k = 0; k < create_log.count; ++k)
             if ((o->world == 2 || o->world == 3 || o->world == 57 || o->world == 58) &&
                 created[k].call == MU_OBJ_CALL_CREATE_EFFECT && rt->startup_effect_count < 12)
@@ -341,6 +392,31 @@ static void market_bone_light(mu_objects *o, int32_t i, const mu_obj_event *e)
     ++o->rt.light_events;
 }
 
+/* RENDER-WORLDS-R2: Kardamahal type 115 after the tick (the client's order): pose the object's model and
+ * light each named bone E002..E009 the skeleton has. No model pose: refused and counted. */
+static void kardamahal_bone_lights(mu_objects *o, int32_t i, const mu_obj_event *e)
+{
+    uint8_t *img = image(o, i);
+    const int32_t t = mu_obj_i32(img, MU_OBJF_TYPE);
+    mu_object_model *m = t >= 0 && t < MU_OBJECT_TYPES ? o->models[t] : NULL;
+    if (!m || !m->loaded || !pose_object(o, img, m, NULL)) {
+        ++o->rt.move_unsupported;
+        return;
+    }
+    for (int32_t k = 0; k < 8; ++k)
+        for (int32_t b = 0; b < m->bmd.bone_count; ++b) {
+            if (strcmp(m->bmd.bones[b].name, mu_kardamahal_bone_name(k)) != 0) continue;
+            if (o->rt.light_count >= MU_OBJECT_STEP_LIGHTS) return;
+            const float *matrix = mu_model_bone_matrices(&m->model) + 12 * b;
+            mu_object_light *l = &o->rt.lights[o->rt.light_count++];
+            l->x = matrix[3]; l->y = matrix[7];
+            for (int q = 0; q < 3; ++q) l->rgb[q] = fbits(e->args[q]);
+            l->range = (int32_t)e->args[3];
+            ++o->rt.light_events;
+            break;
+        }
+}
+
 void mu_objects_step(mu_objects *o, const mu_objects_step_inputs *in)
 {
     mu_objects_runtime *rt = &o->rt;
@@ -419,58 +495,71 @@ void mu_objects_step(mu_objects *o, const mu_objects_step_inputs *in)
         const int status = mu_obj_move(image(o, i), i, &mi, &log);
         if (status == MU_OBJ_OK) mu_objects_raklion_move(o, t, in->hero);
         ++rt->moved;
-        if (status == MU_OBJ_UNSUPPORTED)
+        /* RENDER-WORLDS-Q: slot 0x30 follows the generic part, so its events come after the tick's. */
+        const int q_move = status == MU_OBJ_UNSUPPORTED && mu_worlds_q_owns(o->world);
+        if (status == MU_OBJ_UNSUPPORTED && !q_move)
             ++rt->move_unsupported;
-        for (int32_t j = 0; j < log.count; ++j) {
-            const mu_obj_event *m = &local[j];
-            if (m->call == MU_OBJ_CALL_LOSTTOWER_VISUAL) {
-                mu_obj_event output[1]; mu_obj_log pushed = {0, 1, 0, output};
-                mu_losttower_push(image(o, i), i, in->hero, rt->hero_action, &pushed);
-                if (pushed.count && o->sound) o->sound(o->sound_context, (int32_t)output[0].args[0]);
-            } else if (m->call == MU_OBJ_CALL_TICK) {
-                tick(o, i, fbits(m->args[0]));
-            } else if (m->call == MU_MARKET_BONE_LIGHT) {
-                market_bone_light(o, i, m);
-            } else if (m->call == MU_KANTURU_UG_ACTION_STEP) {   /* after the tick, as in the client */
-                if (!mu_kanturu_ug_move(image(o, i), i, &mi, kanturu_table, 0.1f /* render-pass frame time */, NULL))
-                    ++rt->move_unsupported;
-            } else if (m->call == MU_WP_MOVE) {
-                mu_objects_worlds_p_move(o, i, in->hero);
-            } else if (m->call == MU_WP_CLAMPED_LIGHT && rt->light_count < MU_OBJECT_STEP_LIGHTS) {
-                mu_object_light *l = &rt->lights[rt->light_count++];
-                l->x = fbits(m->args[0]);
-                l->y = fbits(m->args[1]);
-                for (int q = 0; q < 3; ++q)
-                    l->rgb[q] = fbits(m->args[2 + q]);
-                l->range = (int32_t)m->args[5] | MU_OBJECT_LIGHT_CLAMPED;
-                ++rt->light_events;
-            } else if (m->call == MU_DEEP_DUNGEON_KEYED_EFFECT) {
-                /* RENDER-EFFECTS-005: CreateEffect(0x43a, ..., key 0xffff, word4 = (u16)scale, scale 0.0).
-                 * The DungeonStone body reads no info word; the core gets the literal 0.0 scale. */
-                float position[3], angle[3], light[3];
-                for (int q = 0; q < 3; ++q) {
-                    position[q] = fbits(m->args[1 + q]);
-                    angle[q] = fbits(m->args[4 + q]);
-                    light[q] = fbits(m->args[7 + q]);
+        for (int pass = 0; pass <= q_move; ++pass) {
+            if (pass) {
+                const mu_q_inputs q = q_inputs(o, in->hero, in->time);
+                log.count = 0;
+                mu_worlds_q_move(image(o, i), i, &q, &log);
+            }
+            for (int32_t j = 0; j < log.count; ++j) {
+                const mu_obj_event *m = &local[j];
+                if (m->call == MU_OBJ_CALL_LOSTTOWER_VISUAL) {
+                    mu_obj_event output[1]; mu_obj_log pushed = {0, 1, 0, output};
+                    mu_losttower_push(image(o, i), i, in->hero, rt->hero_action, &pushed);
+                    if (pushed.count && o->sound) o->sound(o->sound_context, (int32_t)output[0].args[0]);
+                } else if (m->call == MU_OBJ_CALL_TICK) {
+                    tick(o, i, fbits(m->args[0]));
+                } else if (m->call == MU_MARKET_BONE_LIGHT) {
+                    market_bone_light(o, i, m);
+                } else if (m->call == MU_KANTURU_UG_ACTION_STEP) {   /* after the tick, as in the client */
+                    if (!mu_kanturu_ug_move(image(o, i), i, &mi, kanturu_table, 0.1f /* render-pass frame time */, NULL))
+                        ++rt->move_unsupported;
+                } else if (m->call == MU_KARDAMAHAL_BONE_LIGHTS) {   /* after the tick, as in the client */
+                    kardamahal_bone_lights(o, i, m);
+                } else if (m->call == MU_WP_MOVE) {
+                    mu_objects_worlds_p_move(o, i, in->hero);
+                } else if (m->call == MU_WP_CLAMPED_LIGHT && rt->light_count < MU_OBJECT_STEP_LIGHTS) {
+                    mu_object_light *l = &rt->lights[rt->light_count++];
+                    l->x = fbits(m->args[0]);
+                    l->y = fbits(m->args[1]);
+                    for (int q = 0; q < 3; ++q)
+                        l->rgb[q] = fbits(m->args[2 + q]);
+                    l->range = (int32_t)m->args[5] | MU_OBJECT_LIGHT_CLAMPED;
+                    ++rt->light_events;
+                } else if (m->call == MU_DEEP_DUNGEON_KEYED_EFFECT) {
+                    /* RENDER-EFFECTS-005: CreateEffect(0x43a, ..., key 0xffff, word4 = (u16)scale, scale 0.0).
+                     * The DungeonStone body reads no info word; the core gets the literal 0.0 scale. */
+                    float position[3], angle[3], light[3];
+                    for (int q = 0; q < 3; ++q) {
+                        position[q] = fbits(m->args[1 + q]);
+                        angle[q] = fbits(m->args[4 + q]);
+                        light[q] = fbits(m->args[7 + q]);
+                    }
+                    if (rt->effect_scaled)
+                        rt->effect_scaled(rt->hook_context, (int32_t)m->args[0], (int32_t)m->args[10], position, angle,
+                                          light, -1, 0.0f);
+                    ++rt->effect_events;
+                } else if (m->call == MU_OBJ_CALL_ADD_LIGHT && rt->light_count < MU_OBJECT_STEP_LIGHTS) {
+                    mu_object_light *l = &rt->lights[rt->light_count++];
+                    l->x = fbits(m->args[0]);
+                    l->y = fbits(m->args[1]);
+                    for (int q = 0; q < 3; ++q)
+                        l->rgb[q] = fbits(m->args[2 + q]);
+                    l->range = (int32_t)m->args[5];
+                    ++rt->light_events;
+                } else if (m->call == MU_OBJ_CALL_PARTICLE) {
+                    spawn(rt, m);
+                    ++rt->particle_events;
+                } else if (m->call == MU_OBJ_CALL_SOUND) {
+                    ++rt->sound_events;
+                    if (o->sound) o->sound(o->sound_context, (int32_t)m->args[0]);
+                } else if (m->call == MU_Q_STOP_SOUND) {
+                    ++rt->move_unsupported;   /* StopBuffer has no native consumer; refused and counted */
                 }
-                if (rt->effect_scaled)
-                    rt->effect_scaled(rt->hook_context, (int32_t)m->args[0], (int32_t)m->args[10], position, angle,
-                                      light, -1, 0.0f);
-                ++rt->effect_events;
-            } else if (m->call == MU_OBJ_CALL_ADD_LIGHT && rt->light_count < MU_OBJECT_STEP_LIGHTS) {
-                mu_object_light *l = &rt->lights[rt->light_count++];
-                l->x = fbits(m->args[0]);
-                l->y = fbits(m->args[1]);
-                for (int q = 0; q < 3; ++q)
-                    l->rgb[q] = fbits(m->args[2 + q]);
-                l->range = (int32_t)m->args[5];
-                ++rt->light_events;
-            } else if (m->call == MU_OBJ_CALL_PARTICLE) {
-                spawn(rt, m);
-                ++rt->particle_events;
-            } else if (m->call == MU_OBJ_CALL_SOUND) {
-                ++rt->sound_events;
-                if (o->sound) o->sound(o->sound_context, (int32_t)m->args[0]);
             }
         }
     }
@@ -702,7 +791,7 @@ static void consume_visual(mu_objects *o, const mu_obj_log *log)
             }
             rt->joint(rt->hook_context, (int32_t)e->args[0], position, target, angle,
                       (int32_t)e->args[10], e->args[11] ? e->object : -1, fbits(e->args[12]));
-        } else if (e->call == MU_URUK_KEYED_EFFECT || e->call == MU_URUK_COLORED_JOINT) {
+        } else if (e->call == MU_URUK_KEYED_EFFECT || e->call == MU_URUK_COLORED_JOINT || e->call == MU_Q_KEYED_EFFECT) {
             ++rt->draw_unsupported; /* No native key/color consumer; preserve the refusal. */
         } else if (e->call == MU_OBJ_CALL_SOUND) {
             ++rt->sound_events;
@@ -780,6 +869,26 @@ static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_obje
                 ++o->rt.draw_unsupported;
             }
     }
+    else if (o->world >= 142 && o->world <= 144 && m && m->loaded) {   /* RENDER-WORLDS-R2 slot 0x34 */
+        const int32_t type = mu_obj_i32(img, MU_OBJF_TYPE);
+        const int bones_ready = posed && m->bmd.bone_count > 11;
+        if (o->world == 142 && type == 72 && !bones_ready) ++o->rt.draw_unsupported;
+        (void)visual_rand(&c); /* Outer RenderObjectVisual flicker draw. */
+        if (o->world == 142)
+            mu_twisted_karutan_visual(img, i, 1, world_time, visual_rand, bones_ready ? visual_bone : NULL, &c, &log);
+        else if (o->world == 143)
+            mu_kardamahal_visual(img, i, 1, visual_rand, &c, &log);
+        else
+            mu_swamp_visual(img, i, 1, visual_rand, &c, &log);
+        for (int32_t k = 0; k < log.count; ++k)   /* effects with info word4 and unmodelled joint kinds: refused */
+            if (events[k].call == MU_R2_EFFECT || (events[k].call == MU_ICARUS_JOINT &&
+                !mu_jt_kind_supported((int32_t)events[k].args[0], (int32_t)events[k].args[10]))) {
+                events[k].call = 0;
+                ++o->rt.draw_unsupported;
+            }
+    }
+    else if (o->world >= 142 && o->world <= 144)
+        return;
     else if ((o->world == 0x87 || o->world == 0x88 || o->world == 0x8c) && m && m->loaded) {   /* RENDER-WORLDS-P */
         const int32_t type = mu_obj_i32(img, MU_OBJF_TYPE);
         const int needs_bones = o->world == 0x87 && (type == 15 || type == 16);
@@ -795,8 +904,33 @@ static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_obje
     }
     else if (o->world == 0x87 || o->world == 0x88 || o->world == 0x8c)
         return;
+    else if (o->world >= 0x83 && o->world <= 0x86 && m && m->loaded) {   /* RENDER-WORLDS-R */
+        const int32_t type = mu_obj_i32(img, MU_OBJF_TYPE);
+        const int needs_bones = (o->world == 0x84 && type == 0xa) || (o->world == 0x86 && (type == 0x1e || type == 0x47));
+        const int bones_ready = posed && m->bmd.bone_count > (o->world == 0x84 ? 3 : 17);
+        if (needs_bones && !bones_ready) ++o->rt.draw_unsupported;
+        (void)visual_rand(&c); /* Outer RenderObjectVisual flicker draw. */
+        if (o->world == 0x84)
+            mu_red_smoke_icarus_visual(img, i, 1, bones_ready ? visual_bone : NULL, &c, &log);
+        else if (o->world == 0x86)
+            mu_gray_aida_visual(img, i, 1, world_time, visual_rand, bones_ready ? visual_bone : NULL, &c, &log);
+        for (int32_t k = 0; k < log.count; ++k)   /* no native extra-mesh or keyed-effect consumer: refused */
+            if (events[k].call == MU_OBJ_CALL_MESH || events[k].call == MU_WR_EFFECT_SCALED) ++o->rt.draw_unsupported;
+    }
+    else if (o->world >= 0x83 && o->world <= 0x86)
+        return;
     else if (o->world >= 128 && o->world <= 130)   /* RENDER-WORLDS-O */
         mu_abyss_visual(o->world, img, o->world, m && m->loaded);
+    else if (mu_worlds_q_owns(o->world)) {   /* RENDER-WORLDS-Q; the outer RenderObjectVisual draws one rand first */
+        if (m && m->loaded) (void)visual_rand(&c);
+        mu_q_inputs q = q_inputs(o, NULL, world_time);
+        q.actions = NULL;   /* the visual slots read no action table */
+        const int32_t last_bone = o->world == 91 ? mu_acheron_visual_bones(mu_obj_i32(img, MU_OBJF_TYPE)) : -1;
+        q.bone = posed && m->bmd.bone_count > last_bone ? visual_bone : NULL;
+        q.context = &c;
+        q.rand_fn = visual_rand;
+        if (mu_worlds_q_visual(img, i, m && m->loaded, &q, &log) < 0) ++o->rt.draw_unsupported;
+    }
     else if (o->world == 57 || o->world == 58)
         mu_raklion_visual(img, i, m && m->loaded, visual_rand, &c, &log);
     else if (o->world == 64)
@@ -876,7 +1010,10 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
                                o->world == 62 || o->world == 63 || o->world == 64 || o->world == 82 ||
                                o->world == 79 || o->world == 100 || o->world == 57 || o->world == 58 ||
                                o->world == 80 || o->world == 81 || (o->world >= 128 && o->world <= 130) ||
-                               o->world == 0x87 || o->world == 0x88 || o->world == 0x8c || o->world == 137;
+                               o->world == 0x87 || o->world == 0x88 || o->world == 0x8c || o->world == 137 ||
+                               (o->world >= 142 && o->world <= 144) ||
+                               (o->world >= 0x83 && o->world <= 0x86) ||
+                               (mu_worlds_q_owns(o->world) && o->world != 112);   /* RENDER-WORLDS-Q */
     mu_obj_draw_inputs in;
     memset(&in, 0, sizeof in);
     in.world = o->world;
