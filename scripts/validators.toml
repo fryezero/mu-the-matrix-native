@@ -2509,3 +2509,19 @@ args = ["--cases", "1000", "--mutations", "--output", "{report}"]
 "families.*.stopped" = 0
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
+
+[validate_worlds_after3]
+test = "reconstructed/objects/test_worlds_after3.py::WorldsAfter3Tests.test_original_instructions"
+pins = ["text", "data"]
+families = ["custom_133", "after_133", "custom_141", "after_141", "custom_143", "after_143", "custom_144", "after_144", "custom_145", "after_145", "loaders"]
+cases = 10212
+mutants = 51
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+[validate_worlds_after3.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0

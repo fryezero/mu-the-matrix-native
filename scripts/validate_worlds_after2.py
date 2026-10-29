@@ -97,8 +97,9 @@ def slot_object(g, typ):
 MESHES, SUBS = 0x41006000, 0x41007000
 
 
-class SlotModel(C.Structure):
-    _fields_ = [('mesh_count', C.c_int32), ('sub_flag', C.POINTER(C.c_int16))]
+class SlotModel(C.Structure):   # mu_slot_model; the last three fields are RENDER-WORLDS-AFTER3's (unused here)
+    _fields_ = [('mesh_count', C.c_int32), ('sub_flag', C.POINTER(C.c_int16)), ('action_frames', C.c_int16),
+                ('rand_fn', v.RAND_FN), ('rand_context', C.c_void_p)]
 
 
 def slot_meshes(g):
@@ -192,7 +193,7 @@ def slot_family(machine, lib, g, cases, world_cls, after):
         for typ_, act, value in speeds:
             struct.pack_into('<I', expect_actions, 16 * act + 4, value)
         model_c = bytearray(cb.raw[:0x100])
-        named = (C.c_int32 * 4)()
+        named = (C.c_int32 * 36)()
         listed = set(named[:lib.dll.mu_world_slot_bitmaps(world_cls, typ, named)])
         textures = {c[8] for c in calls if c[8] != 0xffffffff}
         bitmaps_ok = all(x in listed for x in textures if 0x7000 <= x < 0x9000)

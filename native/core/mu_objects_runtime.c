@@ -134,7 +134,7 @@ static void load_slot_bitmaps(mu_objects *o, const char *game_root)
 {
     for (int32_t t = 0; game_root && t < MU_OBJECT_TYPES; ++t) {
         mu_object_model *m = o->models[t];
-        int32_t want[4];
+        int32_t want[MU_WORLD_SLOT_BITMAPS];
         const int32_t n = m && m->loaded ? mu_world_slot_bitmaps(o->world, t, want) : 0;
         for (int32_t k = 0; k < n; ++k) {
             const char *path;
@@ -746,11 +746,16 @@ typedef struct class_context {
     float time;
     mu_obj_log log;
 } class_context;
-static void slot_model(const mu_objects *o, int32_t t, int16_t *flags, int32_t capacity, mu_slot_model *out)
+static void slot_model(mu_objects *o, int32_t t, int16_t *flags, int32_t capacity, mu_slot_model *out)
 {
     const mu_object_model *m = t >= 0 && t < MU_OBJECT_TYPES ? o->models[t] : NULL;
     out->mesh_count = 0;
     out->sub_flag = flags;
+    /* RENDER-WORLDS-AFTER3: the key count of the object's action (Tormenta 0x2c) and rand (Kardamahal 0x71) */
+    const int32_t a = mu_obj_u16(o->rt.model_fields, MU_MDL_ACTION);
+    out->action_frames = (int16_t)(m && m->loaded && a < m->bmd.action_count ? m->bmd.actions[a].keys : 0);
+    out->rand_fn = objects_rand;
+    out->rand_context = o;
     for (int32_t k = 0; m && m->loaded && k < m->bmd.mesh_count && k < capacity; ++k) {
         uint8_t name[32] = {0}, sub[5];
         memcpy(name, m->bmd.meshes[k].texture, strnlen(m->bmd.meshes[k].texture, sizeof name));
@@ -762,6 +767,10 @@ static void slot_fields(mu_objects *o, const uint8_t *img, int32_t t)
 {
     uint8_t *b = o->rt.model_fields;
     memcpy(b + 0xac, img + MU_OBJF_FRAME, 4);
+    const float f = mu_obj_f32(img, MU_OBJF_FRAME);   /* +0xb4: Animation's (short)(int)frame (0x012b5128) */
+    const int32_t i32 = f >= -2147483648.0f && f < 2147483648.0f ? (int32_t)f : INT32_MIN;   /* cvttss2si */
+    const int16_t whole = (int16_t)(uint16_t)((uint32_t)i32 & 0xffffu);
+    memcpy(b + 0xb4, &whole, 2);
     memcpy(b + MU_MDL_ACTION, img + MU_OBJF_ACTION, 2);
     b[0x94] = t >= 0 && t < MU_OBJECT_TYPES ? o->rt.stream[t] : 0xff;
 }
@@ -1282,6 +1291,9 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
                 rt->play_speed_set[e->args[0]] = 1;
         } else if (e->call == MU_OBJ_CALL_PLAY_SPEED) {
             ++rt->draw_unsupported;   /* another action's PlaySpeed: no per-action table outside 135/136 */
+        } else if (e->call == MU_OBJ_CALL_SOUND) {   /* RENDER-WORLDS-AFTER3: 145 type 0x99 */
+            ++rt->sound_events;
+            if (o->sound) o->sound(o->sound_context, (int32_t)e->args[0]);
         }
     }
     if (sc.log.overflow)
@@ -1532,6 +1544,9 @@ mu_object_model *mu_objects_prepare_after(mu_objects *o, int32_t k, const mu_wor
         memcpy(colour, rt->model_fields + MU_MDL_COLOR, 12);
         if (t >= 0 && t <= 300)   /* the world manager 0x00ea306c calls slot 0x3c for types 0..300 */
             mu_class_after(o->world, img, rt->model_fields, i, o->world, map ? map->time : 0.0f, &model, &log);
+        for (int32_t e = 0; e < log.count; ++e)   /* RENDER-WORLDS-AFTER3: Kardamahal 0x71's render-time light */
+            if (events[e].call == MU_OBJ_CALL_ADD_LIGHT)
+                ++rt->draw_unsupported;
         if (t < MU_OBJECT_TYPES)
             rt->stream[t] = rt->model_fields[0x94];
         if (log.overflow)
