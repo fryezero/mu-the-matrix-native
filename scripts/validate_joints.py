@@ -470,7 +470,7 @@ def random_joint(rng, kind):
     if kind in KANTURU_KINDS:   # RENDER-JOINTS-001
         j.scale = kanturu_width(rng, kind, False)
         j.max_tails = rng.choice([{0xc: 30, 0xd: 50, 0xe: 50, 0xf: 50, 0x12: 5}[kind[1]]] * 3 + [rng.randrange(2, 51)])
-        j.lifetime = rng.choice([20, 10, 5, 4, 3, 1, 0, rng.randrange(-1, 21)])
+        j.lifetime = rng.choice([20, 10, 5, 4, 4, 4, 3, 1, 0, rng.randrange(-1, 21)])
         j.velocity = f32(rng.choice([80.0, 99.0, 0.0, vc.rfloat(rng, 0.2, 100.0)]))
         j.phase = rng.randrange(0, 25)
     elif kind[0] == 0x7f7d:
