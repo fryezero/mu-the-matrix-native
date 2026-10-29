@@ -74,7 +74,12 @@ because at 320x200 the terrain now fills the frame.
 - Portable: `test_client_wheel.py` 5 checks; `test_render_time_live.py` 16 (2 new assertions/tests).
 - Private: `test_render_time_003.py` 2/2 (wheel refused/zooms, visible count independent of the window size, 198 at
   run 3's camera); `test_client_wheel` private comparison.
-- Gate: GATE_RESULT
+- Gate: `nice -n 10 bash scripts/local-macos-ci.sh` on main `eb4b53a` merged in. **1,707 tests across 38 suites,
+  221 explicit skips, 0 failures**; 11/11 fixture scenarios; repository audit 1,680 files, 0 rejected.
+- Private: `run_validators.py --private --only validate_wheel_route,validate_camera` passes 2/2.
+  `test_render_time*.py` with installed data passes 34/34, including RENDER-TIME-001's fourteen-view repeat with
+  `MU_RENDER_TIME_OBJECTS` set to the fidelity2 placements.
+- Merge process: by the MERGE-STEWARD (brief, 20:50 update). This lane left the queue and did not merge.
 
 ## Next steps
 
