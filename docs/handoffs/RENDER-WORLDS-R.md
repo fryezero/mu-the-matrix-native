@@ -48,3 +48,10 @@ runtime's primary-visual list, the coverage counts and the status rows keep both
 `make -C native clean`: `bash scripts/local-macos-ci.sh` passes **1,698 tests across 38 discovery runs, 219
 explicit optional/private skips, zero failures; 11/11 fixture scenarios; native viewer and reader builds; 1,673
 audited files, zero rejected**. No hosted workflow or original client was run.
+
+Steward hand-off (merge process of 2026-10-28 20:50): merged origin/main `eb4b53a` (RENDER-WORLDS-G2; conflicts in
+the two Makefiles and status rows keep both sides; coverage unchanged at 88/144, 30/48). On that tree, after
+`make -C native clean`: `MU_RECOVERY_INTEGRATION=1 run_validators.py --private --only validate_worlds_r`
+passes (12,000 cases, 77/77 mutants), and `nice -n 10 bash scripts/local-macos-ci.sh` passes **1,703 tests
+across 38 discovery runs, 220 skips, zero failures; 11/11 fixture scenarios; 1,684 audited files, zero
+rejected**. Not merged by this lane: the MERGE-STEWARD merges it.
