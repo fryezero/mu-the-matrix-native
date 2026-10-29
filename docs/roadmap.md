@@ -240,6 +240,7 @@ RENDER-WORLDS-G2 object texture lookup and the Vulcanus far plane are implemente
 
 RENDER-WORLDS-AFTER second pass, chain predicates, frame time and Abyss custom/after slots are implemented: [checks and remaining work](handoffs/RENDER-WORLDS-AFTER.md).
 RENDER-WORLDS-AFTER2 class custom/after slots (91, 113, 131..140, 142), slot bitmaps and pre-move slot 0x74 are implemented: [checks and remaining work](handoffs/RENDER-WORLDS-AFTER2.md).
+RENDER-JOINTS-001 Kanturu/Uruk joint kinds and the StreamMesh consumer are implemented: [checks and remaining work](handoffs/RENDER-JOINTS-001.md).
 RENDER-WORLDS-Q2 Ferea visual, class draw-first slot 0x10 of 134..145 and the live-clock tour are implemented: [checks and remaining work](handoffs/RENDER-WORLDS-Q2.md).
 
 RENDER-WORLDS-G3 Abyss 2 swimmers' blend mesh and Vulcanus' clouds 0xb haze are implemented; the Deep Dungeon dragon fire producer is identified: [checks and remaining work](handoffs/RENDER-WORLDS-G3.md).
