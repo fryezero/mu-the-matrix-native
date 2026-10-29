@@ -50,7 +50,7 @@ class WorldsP2Tests(unittest.TestCase):
         self.assertEqual(self.create(138, 148)[1], [(p2.MODEL_STREAM, 0, 0)])
         self.assertEqual(struct.unpack_from('<i', self.create(138, 176)[0].raw, 0x68)[0], -2)
         self.assertEqual(self.f(self.create(138, 12)[0], 0xc0), -30)   # outside every table
-        self.assertEqual(self.f(self.create(136, 0, status=2)[0], 0xc0), -30)   # sibling world untouched
+        self.assertEqual(self.f(self.create(139, 0, status=2)[0], 0xc0), -30)   # sibling world untouched
 
     def move(self, world, typ, rand=0, time=0.0, action=0, frame=0.0):
         obj, _ = self.create(world, typ)
