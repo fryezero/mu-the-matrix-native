@@ -236,3 +236,5 @@ RENDER-WORLDS-Q Acheron, Ferea, Swamp of Darkness and Kubera Mine primary method
 RENDER-WORLDS-G2 object texture lookup and the Vulcanus far plane are implemented: [checks and remaining work](handoffs/RENDER-WORLDS-G2.md).
 
 RENDER-WORLDS-AFTER second pass, chain predicates, frame time and Abyss custom/after slots are implemented: [checks and remaining work](handoffs/RENDER-WORLDS-AFTER.md).
+
+RENDER-WORLDS-G3 Abyss 2 swimmers' blend mesh and Vulcanus' clouds 0xb haze are implemented; the Deep Dungeon dragon fire producer is identified: [checks and remaining work](handoffs/RENDER-WORLDS-G3.md).
