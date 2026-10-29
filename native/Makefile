@@ -268,6 +268,14 @@ $(BUILD)/inventory-skin-host: tests/inventory_skin_host.c world/world_gfx_game.c
 	done
 	$(CXX) $(BUILD)/inventory-skin/*.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(GL_LIBS) -lm -o $@
 
+# SPRITE-DRAW-001: one sprite through the shared sprite pass, raster and headless GL.
+$(BUILD)/sprite-draw-host: tests/sprite_draw_host.c viewer/gl_backend.c viewer/gl_batch.c viewer/gl_headless.c $(LIB)
+	@mkdir -p $(BUILD)/sprite-draw
+	for f in tests/sprite_draw_host.c viewer/gl_backend.c viewer/gl_batch.c viewer/gl_headless.c; do \
+	  $(CC) $(CFLAGS) $(JPEG_CFLAGS) -DGL_SILENCE_DEPRECATION -c $$f -o $(BUILD)/sprite-draw/$$(basename $$f .c).o || exit; \
+	done
+	$(CXX) $(BUILD)/sprite-draw/*.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(GL_LIBS) -lm -o $@
+
 # Synthetic native helper/effect ownership regression host.
 $(BUILD)/helper-fx-host: tests/helper_fx_host.c $(LIB)
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c $< -o $(BUILD)/helper_fx_host.o

@@ -93,6 +93,10 @@ the view direction), the shared sprite pass counts 6 drawn per frame, and Spark0
 bitmap. The quads reach `mu_pt_sprites_render` but no pixel changes. The cause is in the shared sprite/particle
 draw path (RENDER-EFFECTS area): next, trace the GL sink of `mu_world_particles_draw` for object-owned sprites.
 
+**SPRITE-DRAW-001 (measured):** the sprite path draws; these six quads lie above the top of the frustum (eye-space
+y/−z 1.45–1.62 × tan(fov/2)), and ×20 reaches the top rows only behind the ground there. See
+[client-sprite-draw.md](client-sprite-draw.md) §3.
+
 ## 6. Checks
 
 `scripts/validate_worlds_q2.py --cases 1000 --mutations` (registered `validate_worlds_q2`):
