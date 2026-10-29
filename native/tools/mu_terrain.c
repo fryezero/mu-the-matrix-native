@@ -172,13 +172,13 @@ static void report_json(FILE *f, const mu_world *w)
         if (w->height[i] < lo) lo = w->height[i];
         if (w->height[i] > hi) hi = w->height[i];
     }
-    fprintf(f, "{\"world\": %d, \"folder\": %d, \"map_status\": %d, \"map_number\": %d, \"att_status\": %d, "
+    fprintf(f, "{\"world\": %d, \"folder\": %d, \"tile_folder\": %d, \"map_status\": %d, \"map_number\": %d, \"att_status\": %d, "
                "\"att_number\": %d, \"att_bytes\": %zu, \"height_rgb\": %d, \"height_rgb_unresolved\": %d, "
                "\"height_status\": %d, \"height_min\": %.3f, \"height_max\": %.3f, \"light_status\": %d, "
                "\"light2_status\": %d, \"obj_status\": %d, \"obj_version\": %d, \"obj_count\": %d, "
                "\"bitmaps_loaded\": %d, \"bitmaps_missing\": %d, \"tw_height_cells\": %ld, \"noground_cells\": %ld, "
                "\"partial_alpha_cells\": %ld, \"special_paths\": %d, \"layer1_used\": [",
-            w->world, r->folder, r->map_status, r->map_number, r->att_status, r->att_number, r->att_plain_bytes,
+            w->world, r->folder, r->tile_folder, r->map_status, r->map_number, r->att_status, r->att_number, r->att_plain_bytes,
             r->height_rgb, r->height_rgb_unresolved, r->height_status, (double)lo, (double)hi, r->light_status,
             r->light2_status, r->obj_status, r->obj_version, r->obj_count, r->bitmaps_loaded, r->bitmaps_missing,
             tw_height, noground, alpha_partial, mu_terrain_world_has_special_paths(w->world));

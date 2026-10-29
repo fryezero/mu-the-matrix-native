@@ -1,5 +1,7 @@
 # Current status
 
+RENDER-WORLDS-O: Abyss of Atlans 1-3 (128-130) primary methods (+9; 61/144 verified, 21/48 classes with RENDER-WORLDS-N); Abyss 2/3 now take their tile bitmaps from World129 as `0x01829457` does (image error 82.2 → 4.4 and 48.0 → 2.2). 9,000 + 5,700 instruction cases, zero mismatches, 24/24 mutants. [Evidence](research/client-worlds-o.md), [checks and limits](handoffs/RENDER-WORLDS-O.md).
+
 RENDER-EFFECTS-004: Rageful Blow's ordinary-world chain (0x461 and nine pieces, item initialiser, weapon draw), Triple Shot through verified CreateArrows/CreateArrow (0/+15/-15) and Spirit of Guardian's wing 0x460/4. Primary routes 18/23 to 20/23, weighted 56/77 to 65/77. 32,000 instruction comparisons, zero mismatches, 15/15 compiled mutants. Rank-5 item owner effects remain for a slice agreed with RENDER-ITEMS-002K. [Evidence](research/client-render-effects-004.md), [checks and remaining work](handoffs/RENDER-EFFECTS-004.md).
 
 RENDER-WORLDS-N: Nixies Lake (113) and Deep Dungeon 1–5 (116–120) primary create/move/visual methods; 52/144 verified methods, 18/48 classes. 13,000 instruction cases, zero mismatches, 29/29 mutants. At the six DATA-ACQ-002 arrival tiles all 13,690 range and 436 after-character differences go to zero; image error mixed (four lower, Deep Dungeon 5 higher). [Evidence](research/client-worlds-n.md), [checks and limits](handoffs/RENDER-WORLDS-N.md).

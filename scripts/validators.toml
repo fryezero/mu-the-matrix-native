@@ -2209,6 +2209,12 @@ args = ["--cases", "60", "--mutations", "--output", "{report}"]
 all_equal = true
 all_mutants_caught = true
 
+[validate_worlds_o]
+test = "reconstructed/objects/test_worlds_o.py::WorldsOTests.test_original_instructions"
+pins = ["text", "data"]
+families = ["abyss1_create", "abyss1_move", "abyss1_visual", "abyss2_create", "abyss2_move", "abyss2_visual", "abyss3_create", "abyss3_move", "abyss3_visual"]
+cases = 9000
+mutants = 24
 [validate_worlds_n]
 test = "reconstructed/objects/test_worlds_n.py::WorldsNTests.test_original_instructions"
 pins = ["text", "data"]
@@ -2219,8 +2225,23 @@ cases_at = "families.*.cases"
 mutants_at = "mutants"
 build = ["reconstructed/objects"]
 args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+[validate_worlds_o.expect]
 [validate_worlds_n.expect]
 "families.*.mismatch_count" = 0
 "families.*.stopped" = 0
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
+
+[validate_world_tile_folder]
+test = "reconstructed/objects/test_worlds_o.py::WorldsOTests.test_original_tile_folder"
+pins = ["text", "data"]
+families = ["folders"]
+cases = 5700
+cases_at = "families.*.cases"
+build = ["reconstructed/terrain"]
+args = ["--output", "{report}"]
+[validate_world_tile_folder.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"remapped_folders.130" = 129
+"remapped_folders.131" = 129

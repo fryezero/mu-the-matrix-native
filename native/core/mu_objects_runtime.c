@@ -15,6 +15,7 @@
 #include "../../reconstructed/objects/worlds_g.h"
 #include "../../reconstructed/objects/worlds_h.h"
 #include "../../reconstructed/objects/worlds_i.h"
+#include "../../reconstructed/objects/worlds_o.h"
 #include "../../reconstructed/objects/worlds_n.h"
 #include "../../reconstructed/objects/icarus.h"
 
@@ -691,6 +692,8 @@ static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_obje
     }
     else if (o->world == 80 || o->world == 81)
         return;
+    else if (o->world >= 128 && o->world <= 130)   /* RENDER-WORLDS-O */
+        mu_abyss_visual(o->world, img, o->world, m && m->loaded);
     else if (o->world == 57 || o->world == 58)
         mu_raklion_visual(img, i, m && m->loaded, visual_rand, &c, &log);
     else if (o->world == 64)
@@ -769,7 +772,7 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
     const int primary_visual = o->world == 4 || o->world == 7 || o->world == 8 || (o->world == 10 && t == 10) ||
                                o->world == 62 || o->world == 63 || o->world == 64 || o->world == 82 ||
                                o->world == 79 || o->world == 100 || o->world == 57 || o->world == 58 ||
-                               o->world == 80 || o->world == 81;
+                               o->world == 80 || o->world == 81 || (o->world >= 128 && o->world <= 130);
     mu_obj_draw_inputs in;
     memset(&in, 0, sizeof in);
     in.world = o->world;
