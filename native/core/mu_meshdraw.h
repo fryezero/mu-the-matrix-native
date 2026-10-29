@@ -218,6 +218,14 @@ typedef struct mu_meshdraw_counts {
 } mu_meshdraw_counts;
 int mu_meshdraw_body(const mu_meshdraw_env *env, const mu_meshdraw_args *args, int32_t skip,
                      mu_meshdraw_counts *counts);
+/* Native host fast path. A validated bit requires a successful index check on
+ * exactly the current triangle bytes and vertex/normal/UV counts. Literal
+ * recorders and instruction comparisons continue using the checked entries. */
+int mu_meshdraw_mesh_valid(const mu_meshdraw_mesh *mesh);
+int mu_meshdraw_mesh_draw_validated(const mu_meshdraw_env *env, int32_t mesh,
+                                   const mu_meshdraw_args *args, long *corners);
+int mu_meshdraw_body_validated(const mu_meshdraw_env *env, const mu_meshdraw_args *args, int32_t skip,
+                              mu_meshdraw_counts *counts, uint64_t validated);
 
 /* Effective fixed-function state implied by a GL call stream: an adapter
  * for backends that do not issue GL themselves (software rasterizer). */

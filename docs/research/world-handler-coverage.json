@@ -1010,21 +1010,21 @@
       "handlers": {
         "create": {
           "entry": "0xe3441c",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases, compiled mutants. A false return continues into CreateObject's default hook chain, not modelled here. See client-worlds-n.md.",
+          "source": "reconstructed/objects/nixies_lake.c"
         },
         "move": {
           "entry": "0xe3473f",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases, compiled mutants. World predicate 0x00e34404 and null-object return executed. See client-worlds-n.md.",
+          "source": "reconstructed/objects/nixies_lake.c"
         },
         "visual": {
           "entry": "0xd5cc9b",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Shared slot 0x00d5cc9b returns false with no request; 1000 original-instruction cases, compiled mutant. See client-worlds-n.md.",
+          "source": "reconstructed/objects/deep_dungeon.c"
         },
         "custom_render": {
           "entry": "0xe347a8",
@@ -1126,9 +1126,9 @@
         },
         "visual": {
           "entry": "0xd5cc9b",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Shared slot 0x00d5cc9b returns false with no request; 1000 original-instruction cases, compiled mutant. See client-worlds-n.md. Same entry as worlds 113/116-120; world 115 has no capture and its create/move stay missing.",
+          "source": "reconstructed/objects/deep_dungeon.c"
         },
         "custom_render": {
           "entry": "0xd5cc8e",
@@ -1166,21 +1166,21 @@
       "handlers": {
         "create": {
           "entry": "0xe3e34b",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases, compiled mutants. Register service recorded. A false return continues into CreateObject's default hook chain, not modelled here. See client-worlds-n.md.",
+          "source": "reconstructed/objects/deep_dungeon.c"
         },
         "move": {
           "entry": "0xe3e46d",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases, compiled mutants. AddTerrainLight, rand and CreateEffect recorded; the keyed effect 0x43a has no native consumer and is counted as refused. See client-worlds-n.md.",
+          "source": "reconstructed/objects/deep_dungeon.c"
         },
         "visual": {
           "entry": "0xd5cc9b",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Shared slot 0x00d5cc9b returns false with no request; 1000 original-instruction cases, compiled mutant. See client-worlds-n.md.",
+          "source": "reconstructed/objects/deep_dungeon.c"
         },
         "custom_render": {
           "entry": "0xd5cc8e",
@@ -1218,21 +1218,21 @@
       "handlers": {
         "create": {
           "entry": "0xe3efe6",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases, compiled mutants. Register service recorded. A false return continues into CreateObject's default hook chain, not modelled here. See client-worlds-n.md.",
+          "source": "reconstructed/objects/deep_dungeon.c"
         },
         "move": {
           "entry": "0xe3f125",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases, compiled mutants. AddTerrainLight, rand and CreateEffect recorded; the keyed effect 0x43a has no native consumer and is counted as refused. See client-worlds-n.md.",
+          "source": "reconstructed/objects/deep_dungeon.c"
         },
         "visual": {
           "entry": "0xd5cc9b",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Shared slot 0x00d5cc9b returns false with no request; 1000 original-instruction cases, compiled mutant. See client-worlds-n.md.",
+          "source": "reconstructed/objects/deep_dungeon.c"
         },
         "custom_render": {
           "entry": "0xd5cc8e",
@@ -1270,21 +1270,21 @@
       "handlers": {
         "create": {
           "entry": "0xe3fce8",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases, compiled mutants. Register service recorded. A false return continues into CreateObject's default hook chain, not modelled here. See client-worlds-n.md.",
+          "source": "reconstructed/objects/deep_dungeon.c"
         },
         "move": {
           "entry": "0xe3fe3c",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases, compiled mutants. AddTerrainLight, rand and CreateEffect recorded; the keyed effect 0x43a has no native consumer and is counted as refused. See client-worlds-n.md.",
+          "source": "reconstructed/objects/deep_dungeon.c"
         },
         "visual": {
           "entry": "0xd5cc9b",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Shared slot 0x00d5cc9b returns false with no request; 1000 original-instruction cases, compiled mutant. See client-worlds-n.md.",
+          "source": "reconstructed/objects/deep_dungeon.c"
         },
         "custom_render": {
           "entry": "0xd5cc8e",
@@ -1322,21 +1322,21 @@
       "handlers": {
         "create": {
           "entry": "0xe409e8",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases, compiled mutants. Register service recorded. A false return continues into CreateObject's default hook chain, not modelled here. See client-worlds-n.md.",
+          "source": "reconstructed/objects/deep_dungeon.c"
         },
         "move": {
           "entry": "0xe40b38",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases, compiled mutants. AddTerrainLight, rand and CreateEffect recorded; the keyed effect 0x43a has no native consumer and is counted as refused. See client-worlds-n.md.",
+          "source": "reconstructed/objects/deep_dungeon.c"
         },
         "visual": {
           "entry": "0xd5cc9b",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Shared slot 0x00d5cc9b returns false with no request; 1000 original-instruction cases, compiled mutant. See client-worlds-n.md.",
+          "source": "reconstructed/objects/deep_dungeon.c"
         },
         "custom_render": {
           "entry": "0xd5cc8e",
@@ -1374,21 +1374,21 @@
       "handlers": {
         "create": {
           "entry": "0xe41823",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases, compiled mutants. Register service recorded. A false return continues into CreateObject's default hook chain, not modelled here. See client-worlds-n.md.",
+          "source": "reconstructed/objects/deep_dungeon.c"
         },
         "move": {
           "entry": "0xe41a1f",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases, compiled mutants. AddTerrainLight, rand and CreateEffect recorded; the keyed effect 0x43a has no native consumer and is counted as refused. See client-worlds-n.md.",
+          "source": "reconstructed/objects/deep_dungeon.c"
         },
         "visual": {
           "entry": "0xd5cc9b",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Shared slot 0x00d5cc9b returns false with no request; 1000 original-instruction cases, compiled mutant. See client-worlds-n.md.",
+          "source": "reconstructed/objects/deep_dungeon.c"
         },
         "custom_render": {
           "entry": "0xd5cc8e",

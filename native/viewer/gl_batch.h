@@ -40,6 +40,7 @@ typedef struct mu_gl_batch_stats {
 } mu_gl_batch_stats;
 
 mu_gl_batch *mu_gl_batch_new(void);
+/* After its first draw, free with the owning GL context current. */
 void mu_gl_batch_free(mu_gl_batch *b);
 
 void mu_gl_batch_session_begin(mu_gl_batch *b);
@@ -63,5 +64,7 @@ void mu_gl_batch_end(mu_gl_batch *b);
 
 void mu_gl_batch_stats_get(const mu_gl_batch *b, mu_gl_batch_stats *out);
 void mu_gl_batch_stats_reset(mu_gl_batch *b);
+/* Streaming diagnostics; a failed upload permanently selects client arrays. */
+void mu_gl_batch_upload_stats(const mu_gl_batch *b, long *uploads, long *failures);
 
 #endif

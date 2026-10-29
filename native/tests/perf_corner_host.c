@@ -1,6 +1,7 @@
 /* Compare direct corner delivery with the literal stream and scratch tables.
  * The render backend maps both Color3f and Color3fv to the same color3 call. */
 #include "../core/mu_meshdraw_case.h"
+#include "../core/mu_perf_mesh.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -61,16 +62,29 @@ int main(int argc, char **argv)
     mu_meshdraw_env env = {&c.model, &c.globals, &c.cache, &sink, bitmap, &c, &scratch,
                            atoi(argv[1]) ? &direct : NULL};
     mu_meshdraw_counts counts = {0};
+    int validated = atoi(argv[1]) == 2;
+    mu_perf_mesh_cache *cache = mu_perf_mesh_new(c.model.mesh_count);
     for (int32_t i = 0; i < c.call_count; ++i) {
         mu_meshdraw_call *call = &c.calls[i];
         int status;
-        if (call->kind == 0) status = mu_meshdraw_body(&env, &call->args, call->target, &counts);
-        else { long corners; status = mu_meshdraw_mesh_draw(&env, call->target, &call->args, &corners); }
+        uint64_t regular = 0;
+        if (validated)
+            for (int32_t m = 0; m < c.model.mesh_count && m < 64; ++m)
+                if (mu_perf_mesh_regular(cache, m, &c.model.meshes[m])) regular |= UINT64_C(1) << m;
+        if (call->kind == 0) status = mu_meshdraw_body_validated(&env, &call->args, call->target, &counts, regular);
+        else {
+            long corners;
+            int m = call->target;
+            status = m >= 0 && m < 64 && (regular & (UINT64_C(1) << m))
+                ? mu_meshdraw_mesh_draw_validated(&env, m, &call->args, &corners)
+                : mu_meshdraw_mesh_draw(&env, m, &call->args, &corners);
+        }
         uint32_t w[4] = {(uint32_t)status, 0, 0, 0}; record(NULL, 0, w);
         if (status == MU_MESHDRAW_FAULT) break;
     }
     fwrite(colors, sizeof colors, 1, stdout);
     fwrite(table, sizeof table, 1, stdout);
+    mu_perf_mesh_free(cache);
     mu_meshdraw_case_free(&c);
     return ferror(stdout) ? 1 : 0;
 }

@@ -37,6 +37,15 @@ static double cpu_now(void)
     return (double)t.tv_sec * 1000.0 + (double)t.tv_nsec / 1.0e6;
 }
 
+/* Includes pose workers and renderer/driver threads. Keep main-thread CPU
+ * separately: moving work to workers must not look like removing CPU work. */
+static double process_cpu_now(void)
+{
+    struct timespec t;
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &t);
+    return (double)t.tv_sec * 1000.0 + (double)t.tv_nsec / 1.0e6;
+}
+
 void mu_perf_gpu_sample(mu_perf *p, double ms, int64_t frame) { if (!p) return; p->gpu_ms = ms; p->gpu_frame = frame; }
 void mu_perf_gpu_gfx_sample(mu_perf *p, double ms, int64_t frame) { if (!p) return; p->gpu_gfx_ms = ms; p->gpu_gfx_frame = frame; }
 int64_t mu_perf_frame_index(mu_perf *p) { return p ? p->frame : 0; }
@@ -54,8 +63,9 @@ int mu_perf_open(mu_perf *p, const char *path, int sync)
     fprintf(p->log, "frame\tscene\ttotal_ms");
     for (int i = 0; i < MU_PERF_PHASES; ++i)
         fprintf(p->log, "\t%s_ms", names[i]);
-    fprintf(p->log, "\tcpu_ms\tgpu_world_ms\tgpu_frame\tgpu_gfx_ms\tgpu_gfx_frame\n");
+    fprintf(p->log, "\tcpu_ms\tgpu_world_ms\tgpu_frame\tgpu_gfx_ms\tgpu_gfx_frame\tprocess_cpu_ms\n");
     p->cpu_last = cpu_now();
+    p->process_cpu_last = process_cpu_now();
     p->gpu_ms = -1.0;
     p->gpu_frame = -1;
     p->gpu_gfx_ms = -1.0;
@@ -105,12 +115,13 @@ void mu_perf_frame(mu_perf *p, int32_t scene)
 {
     if (!p || !p->log)
         return;
-    double now = mu_perf_now(), cpu = cpu_now();
+    double now = mu_perf_now(), cpu = cpu_now(), process_cpu = process_cpu_now();
     fprintf(p->log, "%lld\t%d\t%.3f", (long long)p->frame, scene, now - p->last);
     for (int i = 0; i < MU_PERF_PHASES; ++i)
         fprintf(p->log, "\t%.3f", p->phase[i]);
-    fprintf(p->log, "\t%.3f\t%.3f\t%lld\t%.3f\t%lld\n", cpu - p->cpu_last, p->gpu_ms, (long long)p->gpu_frame, p->gpu_gfx_ms, (long long)p->gpu_gfx_frame);
+    fprintf(p->log, "\t%.3f\t%.3f\t%lld\t%.3f\t%lld\t%.3f\n", cpu - p->cpu_last, p->gpu_ms, (long long)p->gpu_frame, p->gpu_gfx_ms, (long long)p->gpu_gfx_frame, process_cpu - p->process_cpu_last);
     p->cpu_last = cpu;
+    p->process_cpu_last = process_cpu;
     p->gpu_ms = -1.0;
     p->gpu_frame = -1;
     p->gpu_gfx_ms = -1.0;
