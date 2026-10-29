@@ -154,7 +154,9 @@ Renders stay local under `~/Documents/mu-mac-tools/native/renders/helpers2/pets/
   would be a network packet.
 - The pets' sprite bitmaps lightmarks `0x8099`, Flare `0x7f78`, flareRed `0x7fe0`, Hole `0x8003` and the particle kinds
   Clud64 `0x7ffd`, firehik03 `0x8085`, Impack01 `0x7efa` / 1, Shiny01 `0x7f66` / 7, firehik_mono `0x8086..0x8089` and the
-  effects `0x460` / `0x3fa` are created but not drawn until the particle module ports them.
+  effect `0x3fa` are created but not drawn until the particle module ports them. RENDER-EFFECTS-004 draws Spirit of
+  Guardian's effect `0x460` / 4 (verified create `0x013e4f6f` and move `0x0146b64c`, model darkwing_hetachi); the
+  pet host now forwards its CreateEffect scale and key ([finding](client-render-effects-004.md)).
 - The rand() of the visuals is the module's own (the client shares one).
 - The Unicorn has no extended code in ChangeCharacterExt's switch, so remote players never show it.
 - The Dark Raven and the Muun pets are separate systems (not this process).

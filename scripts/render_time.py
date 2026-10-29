@@ -210,6 +210,11 @@ def compare(reference, candidate, mode='native'):
         # Check both absolute phase and elapsed time; never best-match images.
         epoch_a, epoch_b = a['samples'][0]['world_time'], b['samples'][0]['world_time']
         maxima = {g: 0.0 for g in GROUPS if mode == 'native' or g != 'rng'}
+        # A live adapter declares components it cannot observe; they are reported, never scored as passing.
+        skip = a.get('unavailable', {}) if mode == 'live' else {}
+        if any(g not in GROUPS or any(type(i) is not int or not 0 <= i < GROUPS[g] for i in v) for g, v in skip.items()):
+            failures.append('invalid unavailable component list')
+            skip = {}
         for x, y in zip(a['samples'], b['samples']):
             if x['frame'] != y['frame'] or abs((x['world_time']-epoch_a)-(y['world_time']-epoch_b)) > (0 if mode == 'native' else 20):
                 failures.append(f"frame {y['frame']}: WorldTime/frame alignment")
@@ -220,6 +225,8 @@ def compare(reference, candidate, mode='native'):
                 failures.append(f"frame {y['frame']}: absolute WorldTime/relative steps")
             for g in maxima:
                 for i, (v, w) in enumerate(zip(x[g], y[g])):
+                    if i in skip.get(g, ()):
+                        continue
                     error = abs(v-w) if mode == 'native' else live_error(g, x[g], y[g], i)
                     maxima[g] = max(maxima[g], error)
                     if error > (NATIVE_TOLERANCE if mode == 'native' else LIVE_LIMITS[g][i]):
@@ -227,7 +234,8 @@ def compare(reference, candidate, mode='native'):
             if mode == 'native':
                 failures += [f"frame {y['frame']}: {k}" for k in HASHES if x[k] != y[k]]
         maps.append({'name': name, 'world': b['world'], 'samples': len(b['samples']), 'coverage': cov,
-                     'max_error': maxima, 'passed': not failures, 'failure_count': len(failures),
+                     'max_error': maxima, 'not_compared': {g: v for g, v in skip.items() if v},
+                     'passed': not failures, 'failure_count': len(failures),
                      'failures': failures[:12]})
     return {'version': 1, 'mode': mode, 'passed': not errors and all(m['passed'] for m in maps),
             'errors': errors, 'thresholds': {'native_abs': NATIVE_TOLERANCE, 'native_hashes': 'exact',
