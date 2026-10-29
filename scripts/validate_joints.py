@@ -71,7 +71,6 @@ KINDS = [(0x7f7c, 6), (0x7f7d, 0)] + [(0x7f7d, s) for s in range(0x10, 0x1b)] + 
 # RENDER-JOINTS-001: Kanturu Underground's lightning (CreateJoint 0x01546828/0x01546e03/0x015470a7/0x01545672)
 KANTURU_KINDS = [(0x7f7d, 0xc), (0x7f7d, 0xd), (0x7f7d, 0xe), (0x7f7d, 0xf), (0x7f7c, 0x12)]   # 0xd: Uruk Mountain
 KINDS += KANTURU_KINDS
-ACTIVE_KINDS = [KINDS]   # the compiled mutants run the Kanturu kinds only
 
 # RENDER-JOINTS-001: separately compiled planted mistakes in the Kanturu kinds (file, old, new, family); each must
 # disagree with the client on at least one case of its family.
@@ -379,7 +378,7 @@ def random_create_args(rng, kind):
 
 def family_joint_create(m, lib, rng, cases, report, negatives):
     for n in range(cases):
-        kind = ACTIVE_KINDS[0][n % len(ACTIVE_KINDS[0])]
+        kind = KINDS[n % len(KINDS)]
         pos, tpos, angle, scale = random_create_args(rng, kind)
         objects = [random_object(rng) for _ in range(2)]
         target = (rng.choice([-1, 0, 1]) if kind in KANTURU_KINDS else
@@ -511,7 +510,7 @@ def random_joint(rng, kind):
 
 def family_joint_move(m, lib, rng, cases, report, negatives):
     for n in range(cases):
-        kind = ACTIVE_KINDS[0][n % len(ACTIVE_KINDS[0])]
+        kind = KINDS[n % len(KINDS)]
         objects = [random_object(rng) for _ in range(2)]
         j = random_joint(rng, kind)
         step = vc.rfloat(rng, 0.1, 2.0)
@@ -600,7 +599,7 @@ def family_joint_render(m, lib, rng, cases, report, negatives):
         struct.pack_into('<ii', empty, base+4, 0, 0)
         empty_mask[base:base+0x10] = b'\1'*0x10
     for n in range(cases):
-        kind = ACTIVE_KINDS[0][n % len(ACTIVE_KINDS[0])]
+        kind = KINDS[n % len(KINDS)]
         j = random_joint(rng, kind)
         j.faces = rng.choice([3, 3, 1, 2, 0])
         mode = rng.choice([0, 0, 1, 2])
@@ -697,9 +696,10 @@ def run_mutants(m, cases, seed):
     import shutil
     import subprocess
     import tempfile
+    global KINDS
     families = dict(FAMILIES)
     out = []
-    ACTIVE_KINDS[0] = KANTURU_KINDS
+    saved, KINDS = KINDS, KANTURU_KINDS   # the families read the module's KINDS (other validators rebind it too)
     try:
         with tempfile.TemporaryDirectory(prefix='joints-mutant-') as tmp:
             for n, (file, old, new, family) in enumerate(MUTANTS):
@@ -726,7 +726,7 @@ def run_mutants(m, cases, seed):
                 print('mutant', json.dumps(row), flush=True)
                 shutil.rmtree(dest)
     finally:
-        ACTIVE_KINDS[0] = KINDS
+        KINDS = saved
     return out
 
 
