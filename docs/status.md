@@ -1,5 +1,7 @@
 # Current status
 
+RENDER-WORLDS-O: Abyss of Atlans 1-3 (128-130) primary methods, 33 → 42/144 verified, 11 → 14/48 classes; Abyss 2/3 now take their tile bitmaps from World129 as `0x01829457` does (image error 82.2 → 4.4 and 48.0 → 2.2). 9,000 + 5,700 instruction cases, zero mismatches, 24/24 mutants. [Evidence](research/client-worlds-o.md), [checks and limits](handoffs/RENDER-WORLDS-O.md).
+
 RENDER-WORLDS-M: six Uruk nested particle lifecycles and the `flare_mono` registration (Market/Raklion kinds were already L's). 18,000 checks, zero mismatches, 17/17 compiled mutants and four original loader calls; 16 saved views unchanged; authored Uruk view 47 unsupported requests to 0. [Evidence](research/client-worlds-m.md), [checks and limits](handoffs/RENDER-WORLDS-M.md).
 
 DATA-ACQ-002: guided live captures on the owner's client (four locked sessions, warps only): 32 arrival captures in 31 worlds, 27/48 world classes now have an original populated capture; 16 classes are not reachable by warp. Native camera within 0.007, primary light equal in 31/32; music indices 43 and 44 both iDoppelganger. [Captures and comparison](research/client-world-captures-2.md), [inputs and limits](handoffs/DATA-ACQ-002.md).

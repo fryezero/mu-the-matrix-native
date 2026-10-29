@@ -213,3 +213,4 @@ SESSION-MAP-001a bounded overlay slice is implemented: [checks and remaining tra
 RENDER-WORLDS-L recorded consumer subset is implemented: [checks and remaining work](handoffs/RENDER-WORLDS-L.md).
 
 RENDER-WORLDS-M Uruk consumer subset is implemented: [checks and remaining work](handoffs/RENDER-WORLDS-M.md).
+RENDER-WORLDS-O Abyss of Atlans 1-3 primary methods and the World129 tile folder are implemented: [checks and remaining work](handoffs/RENDER-WORLDS-O.md).
