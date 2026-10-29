@@ -169,7 +169,7 @@ model indices of the skill model table (`AccessModel(index, "Data\Skill\", name,
 | 11 Power Wave | magic | SetPlayerMagic | three `0x41f`, sound `0x76` |
 | 17 Energy Ball | magic | SetPlayerMagic | Player: `0x7f2b`, sound `0x76`; some monster models `0x437`, `0x433`, `0x50d` |
 | 19..23 Falling Slash, Lunge, Uppercut, Cyclone, Slash | magic | `0x89`, `0x8a`, `0x8b`, `0x8c`, `0x8d` (then `0x77`) | sounds `0x70..0x73` |
-| 24 Triple Shot | position | SetPlayerMagic (default) | two CreateArrows calls (spread ±8 / ±24°) |
+| 24 Triple Shot | position | SetPlayerMagic (default) | CreateArrows `0x013af9db`, flag 1: 0/+15/−15° for an ordinary bow (verified, [RENDER-EFFECTS-004](client-render-effects-004.md)) |
 | 26 Heal, 27, 28 buffs | magic | SetPlayerMagic, sound `0x6f` | Heal: `0x7f84` on the target |
 | 10 Hellfire, 12 Aqua Beam, 14 Inferno | position | `0xa9`, `0xa7`, `0xa8` | in the MoveCharacter switch |
 | 41 Twisting Slash, 42 Rageful Blow, 43 Death Stab | position | `0x8e`, `0x8f`, `0x9e` | in the MoveCharacter switch |
@@ -435,8 +435,8 @@ death at Dead 15 and respawn); private: the Unicorn comparison (60 cases per fam
 - **Demo.** A projectile's damage arrives at its hit check (40-step deadline), area damage at the client's area
   requests within their range, Twisting Slash within 250 units; the hero's 400 hit points (`--hero-hp`), and a
   respawn at the home tile 100 steps after death.
-- **Viewer choices.** Effect models play their first action at the client speed; Triple Shot's spread of ±8 degrees
-  is static.
+- **Viewer choices.** Effect models play their first action at the client speed. (Triple Shot's former static ±8
+  degree spread is replaced by the verified CreateArrows fan, RENDER-EFFECTS-004.)
 
 Keys 7, 8, 9, 0 cast Evil Spirit (9), Hellfire (10), Inferno (14) and Cyclone (22) besides keys 1..6.
 
