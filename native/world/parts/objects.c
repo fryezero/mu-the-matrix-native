@@ -152,8 +152,8 @@ static void objects_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *d)
             mu_render_backend backend;
             mu_gl_backend_bind(&p->object_gl[m->type], &backend);
             mu_draw_stats ds = {0, 0, 0, 0};
-            mu_object_mesh meshes[4];
-            const int32_t count = mu_objects_first_meshes(&a->objects, k, a->map, m, meshes, 4);
+            mu_object_mesh meshes[MU_OBJECT_FIRST_MESHES];
+            const int32_t count = mu_objects_first_meshes(&a->objects, k, a->map, m, meshes, MU_OBJECT_FIRST_MESHES);
             if (count) {
                 for (int32_t j = 0; j < count; ++j) {
                     meshes[j].options.fields = &meshes[j].fields;
