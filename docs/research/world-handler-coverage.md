@@ -53,8 +53,8 @@ N = not reachable through the Warps window or ordinary warps (reason in JSON).
 | World 134 class | 134 | `0x1aa6908` | `0xd84821` M | `0xd849e4` M | `0xd84dd8` M | C |
 | Old Kethotum | 135 | `0x1aaaf18` | `0xe3a4dc` V | `0xe3a719` V | `0xe3c137` V | C |
 | Burning Kethotum | 136 | `0x1aa6d38` | `0xd9381e` V | `0xd93b31` V | `0xd97186` V | C |
-| World 137 class | 137 | `0x1aa9404` | `0xe08cd8` M | `0xe08f8a` M | `0xe0a4bb` M | C |
-| World 138 class | 138 | `0x1aa9114` | `0xe05afe` M | `0xe05d76` M | `0xe07081` M | C |
+| World 137 class | 137 | `0x1aa9404` | `0xe08cd8` V | `0xe08f8a` V | `0xe0a4bb` V | C |
+| World 138 class | 138 | `0x1aa9114` | `0xe05afe` V | `0xe05d76` V | `0xe07081` V | C |
 | World 139 class | 139 | `0x1aa7264` | `0xd9c180` M | `0xd9c18d` M | `0xd9c1a7` M | N |
 | Bloody Tarkan | 140 | `0x1aa6e74` | `0xd9a022` V | `0xd9a0ad` V | `0xd9ac33` V | C |
 | Tormenta Island | 141 | `0x1aabd10` | `0xe4c6ba` V | `0xe4c95e` V | `0xe4ef4b` V | E |
@@ -63,7 +63,7 @@ N = not reachable through the Warps window or ordinary warps (reason in JSON).
 | World 144 class | 144 | `0x1aab6a8` | `0xe46625` M | `0xe4696f` M | `0xe47bc2` M | C |
 | World 145 class | 145 | `0x1aa5e78` | `0xd75a6c` M | `0xd75ac6` M | `0xd77b3e` M | N |
 
-24/48 classes have at least one verified primary method. Of 144 primary methods: 70 verified families, 0 static-only C, 74 missing.
+26/48 classes have at least one verified primary method. Of 144 primary methods: 76 verified families, 0 static-only C, 68 missing.
 Original populated captures: 27 classes from DATA-ACQ-002, 5 from earlier live reads, 16 not reachable by warp.
 
 The companion [JSON](world-handler-coverage.json) records factory, constructor and related entry points
