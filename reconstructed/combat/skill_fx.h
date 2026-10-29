@@ -174,6 +174,8 @@ typedef struct mu_sfx_effect {
     float spin[3];           /* +0x194 per-step angle change (0x460 subtype 4) */
     /* RENDER-EFFECTS-006: the world objects' owned effects 0x195/0x199/0x59a */
     float field_cc;          /* +0xcc the shoal's pitch swing (0x199; +0xc8 gravity is its yaw swing) */
+    /* RENDER-EFFECTS-007 */
+    float field_188[3];      /* +0x188 the arrows' trail point (position, or one step ahead) */
 } mu_sfx_effect;
 
 /* CreateEffect's info block (argument 8, 0x20 bytes). */

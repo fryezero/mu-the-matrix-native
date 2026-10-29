@@ -277,12 +277,18 @@ void mu_sfx_inferno_burst(const float position[3], uint8_t visible, const mu_sfx
 
 /* ---------------------------------------------------------------- CreateEffect */
 
+static int is_hero_owner(const mu_sfx_effect *e, const mu_sfx_env *env);
+static void call_area(const mu_sfx_env *env, mu_sfx_effect *e, float range);
+static void check(const mu_sfx_env *env, mu_sfx_effect *e, int32_t routine);
+#include "arrow_fx.inc"
+
 static int effect_supported(int32_t type, int32_t sub)
 {
     if (mu_world_warp_type(type))
         return 1;
+    if (type == MU_SFX_MODEL_ARROW || arrow_kind(type))
+        return arrow_supported(type, sub);   /* RENDER-EFFECTS-007 */
     switch (type) {
-    case MU_SFX_MODEL_ARROW: return sub == 0 || sub == 2;
     case MU_SFX_MODEL_FIRE: return sub == 0 || sub == 1;
     case MU_SFX_MODEL_ICE: case MU_SFX_MODEL_POISON: case MU_SFX_MODEL_ICE_DEBRIS: case MU_SFX_MODEL_WAVE: return sub == 0;
     case 0x7f4e: case MU_SFX_BITMAP_THUNDER: return sub == 0;
@@ -409,33 +415,19 @@ int mu_sfx_effect_create(mu_sfx_effect *e, int32_t type, int32_t subtype, const 
         mu_world_warp_create(e, light, env);
         return 1;
     }
+    if (arrow_kind(type)) {   /* RENDER-EFFECTS-007 */
+        float position_arg[3], angle_arg[3];
+        copy3(position_arg, position);
+        copy3(angle_arg, angle);
+        return arrow_create(e, type, subtype, position_arg, angle_arg, info, env);
+    }
     switch (type) {
     case MU_SFX_MODEL_ARROW: {
-        /* 0x013cb34d */
-        e->blend_mesh = 1;
-        e->velocity = 1.0f;
-        e->lifetime = 30;
-        uint16_t s = info->word4;
-        if (subtype != 6 && s != 0x7e7 && s != 0x7fc && s != 0x7fd && s != 0x7fe && s != 0x2d7) {
-            float m[12], p[3];
-            static const float offset[3] = {-10.0f, -60.0f, 135.0f};
-            mu_angle_matrix(e->angle, m);
-            mu_vector_rotate(offset, m, p);
-            e->position[0] = e->position[0] + p[0];
-            e->position[1] = e->position[1] + p[1];
-            e->position[2] = e->position[2] + p[2];
-        }
-        /* the type chain's default 0x013cd0f2 */
-        e->scale = F_0_8;
-        e->direction[1] = -70.0f;
-        if (subtype == 2 || subtype == 6) {
-            /* 0x013cd121: a 0x46c effect follows the arrow */
-            call_effect(env, e, 0x46c, e->position, e->angle, e->light, 0, -2);
-            e->field_78 = 0;
-            e->client_hit = 1;
-        }
-        e->serial = env ? env->serial : 0;     /* 0x013cd66f */
-        break;
+        /* 0x013cb34d, with the other bows' arrows (RENDER-EFFECTS-007, arrow_fx.inc) */
+        float position_arg[3], angle_arg[3];
+        copy3(position_arg, position);
+        copy3(angle_arg, angle);
+        return arrow_create(e, type, subtype, position_arg, angle_arg, info, env);
     }
     case 0x6f3:                                   /* 0x01408b9d: claw */
         e->lifetime = e->field_70 = 60;
@@ -1058,6 +1050,8 @@ int mu_sfx_effect_move(mu_sfx_effect *e, const mu_sfx_env *env)
 
     if (mu_world_warp_type(type))
         mu_world_warp_move(e, env ? env->world_time : 0.0f);
+    if (arrow_kind(type))
+        arrow_move(e, env, light, lum);   /* RENDER-EFFECTS-007, then the common tail */
     switch (type) {
     case MU_SFX_MODEL_ARROW:
         /* 0x01464abf */
@@ -1806,6 +1800,13 @@ int mu_sfx_effect_move(mu_sfx_effect *e, const mu_sfx_env *env)
     }
     /* the second switch 0x014ece4f: Fire subtype 14 moves without rotation,
      * the default 0x0150df8e(o, 1) */
+    if (type == 0x459) {   /* RENDER-EFFECTS-007, 0x014ed2ef: the arrow's rings (impact) move, not the arrow */
+        float d[3];
+        rotate_by(e->direction, e->angle, d);
+        for (int k = 0; k < 3; ++k)
+            e->impact[k] = e->impact[k] + d[k];
+        goto lifetime;
+    }
     if (type == MU_SFX_MODEL_SEALEAF) {
         sealeaf_move(e, env, light);
         mu_sfx_effect_advance(e, 1);
