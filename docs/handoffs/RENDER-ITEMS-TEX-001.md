@@ -93,7 +93,13 @@ Base `f7a1e33` `mu-render` against this branch, `mu-render ui inventory` on inst
 - Item-render native tests (`test_inventory_skin`, `test_native_hud`, `test_native_items`, `test_native_renderchar`,
   `test_native_character`, `test_native_gfx2/3`): 64 tests pass, public and private (`MU_GAME_ROOT` = the installed
   client).
-- Gate: see the PR body.
+- Gate on the merged tree (origin/main `e725bb9` merged in `b1625b6`): `MU_GATE_JOBS=4 nice -n 10 bash
+  scripts/local-macos-ci.sh` passes: **1,747 tests across 38 suites, 1,518 passed, 229 skipped, zero failures or
+  errors**. Fixtures, viewer and live-readers pass, and the publication audit accepts **1,735 staged files, zero
+  rejected**.
+- Private validators on the merged tree (`run_validators.py --private --jobs 2`, with `MU_SECTION3`):
+  - `validate_item_textures`: 2,491 cases, 0 mismatches, 16/16 mutants;
+  - `validate_worlds_g2` (its library and name map changed): 2,657 cases, 0 mismatches, 17/17 mutants.
 
 ## Limits and next steps
 
