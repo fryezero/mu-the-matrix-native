@@ -1025,3 +1025,115 @@ outside the draw-record ABI and are not claimed. Neither are quality-branch body
 non-aligned helper phases or the 89 probe-fitting refusals. Rank-5 owner effects, Muun and
 nested map-object tables, and the earlier record, buff, selection, shadow, override, NewUI and Box
 of Luck limits are unchanged.
+
+
+## Part 13, carried model fields and immediate glColor records, RENDER-ITEMS-002M
+
+Bounded bodies increase **1,053 to 1,162 of 1,674**, adding **109 types**: 89 through carried model fields and
+20 through immediate `glColor` records. Skins stay **17/17** and links stay **eighteen targets/twenty-four
+types**. Exact membership is in `gen_item_bodies.CARRY_TYPES` and `COLOUR_TYPES` and in both TSVs. The survey
+has **461 complete shapes**, up from 362; shape identities, ranks and stopped observations are unchanged. **512
+bodies remain** (469 non-stopping).
+
+### Selection
+
+The 578 remaining non-stopping types were probed again with glColor calls recorded into the stream (below).
+175 fit the probes. Only 20 passed the independent 292-state comparison. All 155 failures had quality 0-2, while
+the probes sample quality 9 (static + verified):
+
+| Full-comparison failure (175 probe fits) | Types |
+|---|---:|
+| body light of a later helper (quality 1 at levels 5-15, quality 2 at levels 0-7) | 97 |
+| draw arguments (1-ulp blend light, quality 0) | 21 |
+| extra draws at quality 1 (wings) | 25 |
+| body random | 12 |
+
+### Carried model fields
+
+The 97 body-light failures have one cause. The client's model object keeps BodyLight, the level word, the
+shade and byte `+0xca` after the body's own draws. The helpers that follow start from those values. The ancient
+pass `0x840` keeps the light (`ancient_color` is a no-op outside the armour groups), PartObjectColor2 scales it,
+and the excellent and colour2 passes overwrite it. At quality 9 the colour helpers overwrite the light first,
+which hides the effect from the probes. At quality 1 those helpers are skipped or take the `0x44` branch, and the
+ancient pass draws with the body's last light. The recipe executor never wrote its draws back to the model, so
+it used the generic light (verified: `0x0b00` level 9, quality 1, ext 1).
+
+Rows now have a `carry` column. For carry types, `emit_parameter_body` copies the model fields of the last
+BODY/MESH draw of each applied recipe back to the model. To infer recipes with the inputs this executor sees,
+the generator calls the probe entry `mu_rc_item_draws_carry`. This is the generic path, except that after
+helper call k it writes back the model fields of the client's last draw in group k. With carry, 156 types fit
+and **109 pass** the full comparison. The 20 non-carry passes are among them and stay non-carry. Carry is off
+for all earlier rows.
+
+### Immediate glColor records
+
+93 types (part-12 count) call `glColor3f/3fv/4f` between draws, mostly `glColor3fv(model+0x54)`. These calls are
+now part of the draw stream. `gen_item_bodies.record_colours` records each call in order, reading the colour at
+call time, as a COLOR record: kind 1/2/3 = 3f/3fv/4f, alpha (1 for three components) and RGB. The generator
+infers them like any draw word. `MU_RC_ENTRY_COLOR` is the third entry kind of `mu_rc_draw`. The native item
+consumer (`native/core/mu_renderchar.c`) passes it to the backend's current colour and GL recorder. The texture
+prober skips it. The mesh draw sets its own colour before its vertices on every path except the untextured
+additive mode `0x40` with lighting on and no light mesh (`mu_meshdraw.c` 0x012ba812). There, and for later GL
+consumers, the current colour is visible. In the part-13 gallery, the COLOR records change zero pixels. 32 of the
+109 types emit them.
+
+### Checks
+
+`scripts/validate_item_carry.py --mutations` has a manifest row and the private test
+`ItemCarry.test_original_instructions`. It passes **114,388 comparisons, zero mismatches**:
+
+| Family | Cases | Mismatches |
+|---|---:|---:|
+| Full body streams, 109 types times 292 states, body random trapped, glColor recorded | 31,828 | 0 |
+| Carry boundaries: 89 types, 16 levels, 7 qualities, 4 option/ext pairs, 2 flag words | 79,744 | 0 |
+| Colour types (32) in the 11 survey states with zero, -0.0, NaN, FLT_MAX, denormal and random light words | 2,816 | 0 |
+
+The colour family compares 4,192 COLOR records. All **12/12 separately compiled mutants** are caught: colour
+drop 21,736; colour RGB 21,732; colour alpha 21,736; colour kind 5,348; carry off 27,243; carry first-draw
+13,870; carry light 27,243; carry channel 27,243; carry shade 81,507; carry flag 66,817; mesh index 106,893;
+object alpha 85,530. Four candidate mutants were equivalent in this domain and are not counted. The
+entry-kind test is equivalent because an entry-3 record in the MESH branch keeps kind, alpha and RGB. Omitting
+the level, shade or flag write-back is equivalent because these bodies leave those fields as the generic path
+set them. Writing a wrong shade or flag is caught (the last two counts). The body table reproduces from the
+pinned instructions.
+
+Compiled C-to-C checks of the base `9b821b19` library against this one cover all **1,038 earlier types (1,034
+bodies and 4 skin types) in 33,216 random cases** and 960 link cases, zero mismatches. Over all 1,691 survey
+types, admission changes for exactly the 109 new types.
+
+### The +13 glow "saturated white"
+
+Parts 11 and 12 saw +13 items, including code 28 and code 0, go fully white natively. The glow passes match the
+original. At +13 with quality above 3, RenderObjDraw draws the body at light 0.9, then `0x240` and `0x1040`
+(additive ONE,ONE, environment UVs, Chrome02 `0x7fcf`, colour 0.9 and 0.81). It then draws `0x48` and `0x44`
+(additive, Shiny01 `0x7f66`/Chrome01 `0x7f1f`) in the EnchantEffect colour. Blend modes and texture selection
+come from the Unicorn-validated mesh-draw port. The raster clamps vertex colours and blend results to [0,1], as
+GL does, and all six special bitmaps load from `Data/Effect`.
+
+The white came from an input. `mu-render ui inventory` takes the enchant colour from `mu_lang`
+(NATIVE-LANG-001), and `mu_lang` returns NULL without `MU_LANG_DIR`. `fill_item` then keeps `env.glow_color =
+(1,1,1)`, so both enchant passes add white over chrome (verified by render). With the local decoded tables, code 0
+takes the table default (1, 0.5, 0) and glows orange. Code 28 takes its row (0.8, 0.8, 1) and glows pale
+lavender. White pixels in the crop fall from 241 to 89, where the near-white enchant plus chrome clips as GL
+would (offline native renders, not original-client pixel comparisons). The finding is that the glow is faithful
+and the earlier white came from a missing table. The inventory tool now prints a one-line stderr warning when
+`MU_LANG_DIR` is unset. Its JSON output and hashes are unchanged.
+
+### Limits
+
+**512 bodies** remain. By first failure, the 469 non-stopping ones are:
+
+| First failure | Types |
+|---|---:|
+| no recipe fits the probes (non-aligned helper phases, unexplained draw words) | 187 |
+| body-owned effects/particles in the stream | 169 |
+| body random consumption | 56 |
+| fit, but extra/missing draws at quality 1-2 (mostly wings `0x23xx/0x24xx`) | 25 |
+| fit, but 1-ulp blend light on the quality-0 path (binary32 versus binary64 pulse) | 17 |
+| matrix/transform services (`glPushMatrix` pairs, transform) | 13 |
+| fit, but body light | 2 |
+
+Body-owned effects still need consumers outside the draw-record ABI. The quality-0 blend precision and the wing
+quality-1 draws are quality-dependent recipes, which the probes (quality 9) cannot infer. They are not claimed.
+Rank-5 owner effects, Muun and nested map-object tables, and the earlier record, buff, selection, shadow,
+override, NewUI and Box of Luck limits are unchanged.
