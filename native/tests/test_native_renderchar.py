@@ -180,6 +180,34 @@ class WorldRender(unittest.TestCase):
         missing,_=self.render(*options,'--lighting','1','--world-time','0')
         self.assertEqual((missing['special'],missing['passes']),(0,10))
 
+    def test_rank5_owner_effects_follow_owner_bones(self):
+        """RENDER-EFFECTS-005: the lit rank-5 body reads the character's bones 35/26."""
+        path=self.tmp/'rank5-owner.bmd'
+        raw=nf.character_layout(114,bones=50,meshes=6,dummies=(9,21))
+        raw=raw.replace(nf.name32('part4.tga'),nf.name32('Item1161_Blue.jpg'))
+        raw=raw.replace(nf.name32('part5.tga'),nf.name32('Item1161_Black.jpg'))
+        path.write_bytes(raw)
+        options=('--part','2',path,'--item-type','armor=0x1c26','--world-time','0')
+        unlit,_=self.render(*options,'--lighting','0')
+        lit,_=self.render(*options,'--lighting','1')
+        frames,_=self.render(*options,'--lighting','1','--frames','3','--frame-steps','2')
+        self.assertEqual((unlit['owner_effects'],lit['owner_effects'],frames['owner_effects']),(0,6,18))
+        short=self.tmp/'short-player.bmd'
+        short.write_bytes(nf.envelope_v15(nf.character_layout(11,bones=35,actions=4,keys=(5,3,1,6),dummies=(9,21))))
+
+        def owner(player,*extra):
+            args=['character',player,'--world-render','--width','160','--height','120','--no-textures',*options,
+                  '--lighting','1',*extra,'--out',self.tmp/'owner.png']
+            return json.loads(run(*args).stdout.strip().splitlines()[-1])
+        stopped=owner(short)
+        self.assertEqual((stopped['special'],stopped['owner_effects']),(0,0))
+        # +9 above the quality cap: the Blue and Black overlays follow the effects.
+        ninth,bare=owner(self.player,'--item-level','armor=9'),owner(short,'--item-level','armor=9')
+        self.assertEqual((ninth['owner_effects'],ninth['passes']-bare['passes']),(6,2))
+        capped=owner(self.player,'--item-level','armor=9','--quality','1')
+        bare=owner(short,'--item-level','armor=9','--quality','1')
+        self.assertEqual((capped['owner_effects'],capped['passes']-bare['passes']),(6,0))
+
     def test_ranked_body_and_nine_bone_shield_use_shared_draws(self):
         path = self.tmp/'ranked-armour.bmd'
         path.write_bytes(nf.character_layout(113,bones=50,meshes=6,dummies=(9,21)))

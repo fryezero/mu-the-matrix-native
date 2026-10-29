@@ -127,11 +127,13 @@ class EnvTests(unittest.TestCase):
         self.assertGreater(out['frames'][-1]['env'][4], 0)
 
     def test_clear_colour(self):
-        out = run(self.root, '--frames', 1, '--every', 1, '--out-dir', Path(self.tmp.name)/'clear', '--tile', '130,60',
+        # At the west map edge the corner shows no terrain. RENDER-TIME-003: the frustum is sized in 640x480 units
+        # (GetScreenWidth), so at 320x200 the terrain fills the frame mid-map.
+        out = run(self.root, '--frames', 1, '--every', 1, '--out-dir', Path(self.tmp.name)/'clear', '--tile', '2,60',
                   '--width', 320, '--height', 200, '--angle', 0)
         png = out['frames'][-1]['png']
         self.assertEqual(png_pixel(png, 0, 0)[:3], (10, 20, 14))
-        bare = run(self.root, '--frames', 1, '--every', 1, '--out-dir', Path(self.tmp.name)/'bare', '--tile', '130,60',
+        bare = run(self.root, '--frames', 1, '--every', 1, '--out-dir', Path(self.tmp.name)/'bare', '--tile', '2,60',
                    '--width', 320, '--height', 200, '--angle', 0, '--no-env')
         self.assertIsNone(bare['env'])
         self.assertEqual(png_pixel(bare['frames'][-1]['png'], 0, 0)[:3], (0, 0, 0))

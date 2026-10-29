@@ -18,6 +18,7 @@
 #include "../../reconstructed/objects/worlds_i.h"
 #include "../../reconstructed/objects/worlds_p.h"
 #include "../../reconstructed/objects/worlds_o.h"
+#include "../../reconstructed/objects/worlds_r.h"
 #include "../../reconstructed/objects/worlds_n.h"
 #include "../../reconstructed/objects/worlds_p2.h"
 #include "../../reconstructed/joints/joints.h"
@@ -36,6 +37,8 @@ static float fbits(uint32_t u)
     memcpy(&v, &u, 4);
     return v;
 }
+
+static int32_t objects_rand(void *c) { return mu_obj_msvc_rand(&((mu_objects *)c)->rt.seed); }   /* RENDER-WORLDS-R */
 
 static void runtime_free(mu_objects_runtime *rt)
 {
@@ -170,6 +173,9 @@ int mu_objects_start(mu_objects *o, const char *game_root)
         for (int32_t k = 0; k < create_log.count; ++k)   /* RENDER-WORLDS-P deferred class create */
             if (created[k].call == MU_WP_CREATE)
                 mu_objects_worlds_p_create(o, i);
+        for (int32_t k = 0; k < create_log.count; ++k)   /* RENDER-WORLDS-R deferred Scorched Canyon create */
+            if (created[k].call == MU_WR_CREATE)
+                mu_scorched_canyon_create(img, o->world, objects_rand, o);
         for (int32_t k = 0; k < create_log.count; ++k)
             if ((o->world == 2 || o->world == 3 || o->world == 57 || o->world == 58) &&
                 created[k].call == MU_OBJ_CALL_CREATE_EFFECT && rt->startup_effect_count < 12)
@@ -496,7 +502,18 @@ void mu_objects_step(mu_objects *o, const mu_objects_step_inputs *in)
                     l->range = (int32_t)m->args[5] | MU_OBJECT_LIGHT_CLAMPED;
                     ++rt->light_events;
                 } else if (m->call == MU_DEEP_DUNGEON_KEYED_EFFECT) {
-                    ++rt->move_unsupported;   /* No native keyed-effect consumer; preserve the refusal. */
+                    /* RENDER-EFFECTS-005: CreateEffect(0x43a, ..., key 0xffff, word4 = (u16)scale, scale 0.0).
+                     * The DungeonStone body reads no info word; the core gets the literal 0.0 scale. */
+                    float position[3], angle[3], light[3];
+                    for (int q = 0; q < 3; ++q) {
+                        position[q] = fbits(m->args[1 + q]);
+                        angle[q] = fbits(m->args[4 + q]);
+                        light[q] = fbits(m->args[7 + q]);
+                    }
+                    if (rt->effect_scaled)
+                        rt->effect_scaled(rt->hook_context, (int32_t)m->args[0], (int32_t)m->args[10], position, angle,
+                                          light, -1, 0.0f);
+                    ++rt->effect_events;
                 } else if (m->call == MU_OBJ_CALL_ADD_LIGHT && rt->light_count < MU_OBJECT_STEP_LIGHTS) {
                     mu_object_light *l = &rt->lights[rt->light_count++];
                     l->x = fbits(m->args[0]);
@@ -820,6 +837,21 @@ static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_obje
     }
     else if (o->world == 0x87 || o->world == 0x88 || o->world == 0x8c)
         return;
+    else if (o->world >= 0x83 && o->world <= 0x86 && m && m->loaded) {   /* RENDER-WORLDS-R */
+        const int32_t type = mu_obj_i32(img, MU_OBJF_TYPE);
+        const int needs_bones = (o->world == 0x84 && type == 0xa) || (o->world == 0x86 && (type == 0x1e || type == 0x47));
+        const int bones_ready = posed && m->bmd.bone_count > (o->world == 0x84 ? 3 : 17);
+        if (needs_bones && !bones_ready) ++o->rt.draw_unsupported;
+        (void)visual_rand(&c); /* Outer RenderObjectVisual flicker draw. */
+        if (o->world == 0x84)
+            mu_red_smoke_icarus_visual(img, i, 1, bones_ready ? visual_bone : NULL, &c, &log);
+        else if (o->world == 0x86)
+            mu_gray_aida_visual(img, i, 1, world_time, visual_rand, bones_ready ? visual_bone : NULL, &c, &log);
+        for (int32_t k = 0; k < log.count; ++k)   /* no native extra-mesh or keyed-effect consumer: refused */
+            if (events[k].call == MU_OBJ_CALL_MESH || events[k].call == MU_WR_EFFECT_SCALED) ++o->rt.draw_unsupported;
+    }
+    else if (o->world >= 0x83 && o->world <= 0x86)
+        return;
     else if (o->world >= 128 && o->world <= 130)   /* RENDER-WORLDS-O */
         mu_abyss_visual(o->world, img, o->world, m && m->loaded);
     else if (mu_worlds_q_owns(o->world)) {   /* RENDER-WORLDS-Q; the outer RenderObjectVisual draws one rand first */
@@ -912,6 +944,7 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
                                o->world == 79 || o->world == 100 || o->world == 57 || o->world == 58 ||
                                o->world == 80 || o->world == 81 || (o->world >= 128 && o->world <= 130) ||
                                o->world == 0x87 || o->world == 0x88 || o->world == 0x8c || o->world == 137 ||
+                               (o->world >= 0x83 && o->world <= 0x86) ||
                                (mu_worlds_q_owns(o->world) && o->world != 112);   /* RENDER-WORLDS-Q */
     mu_obj_draw_inputs in;
     memset(&in, 0, sizeof in);

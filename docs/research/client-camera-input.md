@@ -182,8 +182,10 @@ The comparison runs the whole function in the client. Only the subsystem queries
 
 * **The wheel.** The window procedure passes `(short)HIWORD(wParam)/40.0f` to
   `0x018588d9`. That handler acts only when the zoom is settled (`[0x0bdc5ed8]` = 1),
-  window 0x3e is closed, and the world is outside a list (`0x00da9d49`). Wheel up lowers
-  the index `0x0bdc5914`, down raises it.
+  window 0x3e is closed, and the world is outside a list (`0x00da9d49`, world 0x8b only). Wheel up lowers
+  the index `0x0bdc5914`, down raises it. The message reaches that case only after the UI layer
+  `0x00aefb79` declines it (base.swf hit test, GFx dispatch, chat `InMouseViewBox`, GFx input flag); the whole
+  route is reconstructed in `client_wheel.c` (RENDER-TIME-003, [client-render-time.md](client-render-time.md#zoom-refusal-and-visible-objects-render-time-003-2026-10-28)).
 * **Levels.** `0x0185a9bf` clamps the index to `[min, 2]` over the FOV table
   {20, 30, world FOV}. min is 1 for hero class value 2 or skill ids 0x185d, 0x185e and
   0x1833..0x1836, else 0. The table holds two more entries, 50 and 65, that the count 3

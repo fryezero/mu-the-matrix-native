@@ -117,6 +117,7 @@ typedef struct tool {
     /* NATIVE-PATH-002: a long-distance auto move */
     int32_t auto_target[2], has_auto, auto_started;
     int32_t wheel_frame[MAX_WHEELS], wheel_delta[MAX_WHEELS], wheel_count;
+    int wheel_ui_hit;   /* RENDER-TIME-003 --wheel-ui-hit */
     mu_input_action input_script[MU_INPUT_SCRIPT_MAX];
     int input_count;
     /* script state */
@@ -170,6 +171,16 @@ static uint32_t pack(int x, int y)
 }
 
 /* NATIVE-COMBAT-001: scripted attacks, skills and clicks on monsters. */
+/* RENDER-TIME-003 --wheel-ui-hit: the UI layer of the client the run reproduces holds its base movie and base.swf
+ * hit-tests at the cursor, so the window procedure's route (client_wheel.c) gives it the wheel (no zoom). Native
+ * has no base.swf hit test here; a live twin declares the recorded client's state (client-render-time.md). */
+static int ui_no_dispatch(void *c, int32_t n, uint32_t m, uint32_t w, uint32_t p) { (void)c; (void)n; (void)m; (void)w; (void)p; return 0; }
+static int ui_base_hit(void *c, float x, float y) { (void)c; (void)x; (void)y; return 1; }
+static void ui_event(void *c, int32_t t, float x, float y, float l) { (void)c; (void)t; (void)x; (void)y; (void)l; }
+static int ui_no_window(void *c, int32_t id) { (void)c; (void)id; return 0; }
+static const mu_wheel_env ui_hit_layer = {.dispatch = ui_no_dispatch, .hit_test = ui_base_hit, .event = ui_event,
+                                          .window_open = ui_no_window, .base_movie = 1, .gfx_input = 1};
+
 static void combat_script(tool *t, int32_t frame)
 {
     mu_world_rt *a = t->rt;
@@ -722,6 +733,8 @@ static int headless(tool *t)
     uint32_t gfx_clock = now;
 #endif
     a->walk.frame.clock.frame_tick = now;
+    if (t->wheel_ui_hit)
+        a->walk.frame.wheel_ui = &ui_hit_layer;
     t->audio_start = now;
     if (t->perf_path && mu_perf_open(&t->perf, t->perf_path, t->perf_sync))
         fprintf(stderr, "cannot write %s\n", t->perf_path);
@@ -1089,7 +1102,7 @@ static int parse_chat(tool *t, const char *text)
 static int usage(void)
 {
     fprintf(stderr, "usage: mu-world --game-root ROOT [--world N] [--class C] [--tile X,Y] [--angle D] [--near Z]\n"
-                    "                [--width W --height H] [--seconds S] [--walk \"X,Y ...\"] [--wheel \"F:+1 ...\"]\n"
+                    "                [--width W --height H] [--seconds S] [--walk \"X,Y ...\"] [--wheel \"F:+1 ...\"] [--wheel-ui-hit]\n"
                     "                [--headless --frames N --out-dir DIR --backend gl|soft --every K --pause P]\n"
                     "                [--player Player.bmd] [--quiet]\n"
                     "                [--boots L] [--auto-move X,Y]   run gear; long-distance auto move (S+click)\n"
@@ -1150,6 +1163,7 @@ int main(int argc, char **argv)
         if (!strcmp(k, "--no-players")) { o->no_players = 1; continue; }
         if (!strcmp(k, "--no-helpers")) { o->no_helpers = 1; continue; }
         if (!strcmp(k, "--no-map")) { o->no_map = 1; continue; }
+        if (!strcmp(k, "--wheel-ui-hit")) { t.wheel_ui_hit = 1; continue; }   /* RENDER-TIME-003 */
         if (!strcmp(k, "--progress")) { o->progress = 1; continue; }   /* NATIVE-PROGRESS-001 */
         if (!v)
             return usage();

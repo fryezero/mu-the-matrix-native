@@ -291,6 +291,7 @@ static int effect_supported(int32_t type, int32_t sub)
     case MU_SFX_MODEL_LASER: case MU_SFX_TWISTING_SLASH: case MU_SFX_TWISTING_SWIRL:
         return sub == 0;
     case MU_SFX_MODEL_STONE1: case MU_SFX_MODEL_STONE2: return sub == 0 || sub == 1;
+    case MU_SFX_MODEL_DUNGEON_STONE: return sub == 0;   /* RENDER-EFFECTS-005 */
     case MU_SFX_MODEL_TORNADO: return sub == 0;
     case MU_SFX_MODEL_STAR_DRAGON: case MU_SFX_MODEL_STAR_GLINT: return sub == 0 || sub == 1;
     /* NATIVE-HELPERS-002: the mounts' flying step, Fenrir's lightning and paw marks */
@@ -718,6 +719,22 @@ int mu_sfx_effect_create(mu_sfx_effect *e, int32_t type, int32_t subtype, const 
         mu_angle_matrix(e->angle, m);
         mu_vector_rotate(v, m, e->direction);
         e->gravity = (float)(smod(env_rand(env), 16) + 8);
+        break;
+    }
+    case MU_SFX_MODEL_DUNGEON_STONE: {
+        /* RENDER-EFFECTS-005, 0x013d6f51: a falling stone flung along the object's angle */
+        float v[3], m[12], d[3];
+        e->lifetime = smod(env_rand(env), 16) + 24;
+        e->scale = scale;
+        e->gravity = -(float)smod(env_rand(env), 4);
+        v[0] = (float)(smod(env_rand(env), 64) - 32);
+        v[1] = -(float)(smod(env_rand(env), 32) + 50);
+        v[2] = (float)(smod(env_rand(env), 128) + 200);
+        mu_angle_matrix(e->angle, m);
+        mu_vector_rotate(v, m, d);
+        e->position[0] = e->position[0] + d[0];
+        e->position[1] = e->position[1] + d[1];
+        e->position[2] = e->position[2] + d[2];
         break;
     }
     case MU_SFX_MODEL_STAR_DRAGON: {
@@ -1428,6 +1445,18 @@ int mu_sfx_effect_move(mu_sfx_effect *e, const mu_sfx_env *env)
             copy3(c.light, glow);
             c.owner = -2;
             env_call(env, &c, e);
+        }
+        break;
+    }
+    case MU_SFX_MODEL_DUNGEON_STONE: {                           /* RENDER-EFFECTS-005, 0x0146b809 */
+        e->position[2] = e->position[2] + e->gravity;
+        e->gravity = e->gravity - 1.0f;
+        float h = env_height(env, e->position[0], e->position[1]);
+        if (h > e->position[2]) {
+            e->position[2] = h;
+            e->gravity = -e->gravity * F_0_4;
+            e->lifetime = e->lifetime - 4;
+            e->direction[1] = e->direction[1] - 2.0f;
         }
         break;
     }

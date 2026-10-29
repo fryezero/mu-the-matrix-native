@@ -168,9 +168,68 @@ static void fill_item(mu_rc_item *it, const mu_renderchar_glow *g, const mu_rend
     it->item_kind = g->item_kind;
 }
 
+/* RENDER-EFFECTS-005: the rank-5 owner block's services. TransformPosition 0x012b6ef1 uses the item
+ * model's scale/origin with the OBJECT owner's bones; effects are created as the client emits them. */
+typedef struct owner_services {
+    const mu_model *model;
+    const mu_renderchar_owner *owner;
+    mu_world_particles *particles;
+    long created;
+} owner_services;
+
+static void owner_transform(void *context, int32_t bone, const float local[3], float out[3])
+{
+    const owner_services *o = context;
+    mu_pt_transform_position(o->owner->bones + 12 * bone, local, out, 1, o->model->params.body_scale,
+                             o->model->params.origin);
+}
+
+static void owner_emit(void *context, const mu_rc_owner_fx *fx)
+{
+    owner_services *o = context;
+    if (!o->particles)
+        return;
+    if (fx->kind == MU_RC_OWNER_PARTICLE) {
+        static const float zero[3] = {0.0f, 0.0f, 0.0f};
+        o->created += mu_world_particles_create(o->particles, fx->bitmap, fx->position, zero, fx->light,
+                                                fx->subtype, fx->scale);
+    } else if (o->particles->sprites) {
+        /* The client's owner is the OBJECT; native sprites are not owner-bound. */
+        uint64_t before = o->particles->sprites->created;
+        mu_world_particles_sprite(o->particles, fx->bitmap, fx->position, fx->scale, fx->light, MU_PT_NO_OWNER,
+                                  0.0f, 0, 4);
+        o->created += o->particles->sprites->created != before;
+    }
+}
+
+static int32_t owner_random(void *context)
+{
+    owner_services *o = context;
+    return o->particles ? mu_world_particles_rand(o->particles) : 0;
+}
+
+static int draw_item(const mu_model *model, const mu_renderchar_glow *glow, const mu_renderchar_env *env,
+                     const float light[3], float alpha, const mu_draw_options *base, const mu_render_backend *backend,
+                     mu_draw_stats *draw_stats, mu_renderchar_stats *stats, mu_renderchar_owner *owner);
+
 int mu_renderchar_draw_item(const mu_model *model, const mu_renderchar_glow *glow, const mu_renderchar_env *env,
                             const float light[3], float alpha, const mu_draw_options *base,
                             const mu_render_backend *backend, mu_draw_stats *draw_stats, mu_renderchar_stats *stats)
+{
+    return draw_item(model, glow, env, light, alpha, base, backend, draw_stats, stats, NULL);
+}
+
+int mu_renderchar_draw_item_owner(const mu_model *model, const mu_renderchar_glow *glow, const mu_renderchar_env *env,
+                                  const float light[3], float alpha, const mu_draw_options *base,
+                                  const mu_render_backend *backend, mu_draw_stats *draw_stats,
+                                  mu_renderchar_stats *stats, mu_renderchar_owner *owner)
+{
+    return draw_item(model, glow, env, light, alpha, base, backend, draw_stats, stats, owner);
+}
+
+static int draw_item(const mu_model *model, const mu_renderchar_glow *glow, const mu_renderchar_env *env,
+                     const float light[3], float alpha, const mu_draw_options *base, const mu_render_backend *backend,
+                     mu_draw_stats *draw_stats, mu_renderchar_stats *stats, mu_renderchar_owner *owner)
 {
     mu_rc_item it;
     fill_item(&it, glow, env, light, alpha);
@@ -185,8 +244,18 @@ int mu_renderchar_draw_item(const mu_model *model, const mu_renderchar_glow *glo
             if (context.blue_mesh == -1 && !strcmp(name, "Item1161_Blue.jpg")) context.blue_mesh = i;
         }
     }
-    int status = glow->type < 0 ? MU_RC_SPECIAL :
+    owner_services services = {model, owner, env->particles, 0};
+    mu_rc_owner_host host = {owner && owner->bones ? owner->bone_count : 0, -1, owner_transform, owner_random,
+                             owner_emit, &services};
+    if (owner && mu_rc_item_rank5(glow->type))
+        for (int i = 0; i < model->bmd->mesh_count; ++i)
+            if (host.black_mesh == -1 && !strcmp(model->bmd->meshes[i].texture, "Item1161_Black.jpg"))
+                host.black_mesh = i;
+    int status = glow->type < 0 ? MU_RC_SPECIAL : owner ?
+        mu_rc_item_draws_owner(&it, &m, draws, 32, &count, &context, &host) :
         mu_rc_item_draws_context(&it, &m, draws, 32, &count, &context);
+    if (owner)
+        owner->effects += services.created;
     if (status != MU_RC_OK) {
         /* plain textured body (viewer fallback) */
         count = 1;

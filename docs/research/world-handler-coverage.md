@@ -47,10 +47,10 @@ N = not reachable through the Warps window or ordinary warps (reason in JSON).
 | World 128 class | 128 | `0x1aa5320` | `0xd5cf32` V | `0xd5d04a` V | `0xd5d564` V | C |
 | World 129 class | 129 | `0x1aa541c` | `0xd5ebd2` V | `0xd5ecea` V | `0xd5f1f1` V | C |
 | World 130 class | 130 | `0x1aa554c` | `0xd60316` V | `0xd6042e` V | `0xd60948` V | C |
-| World 131 class | 131 | `0x1aab4d4` | `0xe432d9` M | `0xe4370c` M | `0xe43f8e` M | C |
-| World 132 class | 132 | `0x1aa8ff4` | `0xe00b4a` M | `0xe00cfe` M | `0xe00e97` M | C |
-| World 133 class | 133 | `0x1aa62a0` | `0xd809fc` M | `0xd80c9c` M | `0xd81c2c` M | C |
-| World 134 class | 134 | `0x1aa6908` | `0xd84821` M | `0xd849e4` M | `0xd84dd8` M | C |
+| Scorched Canyon | 131 | `0x1aab4d4` | `0xe432d9` V | `0xe4370c` V | `0xe43f8e` V | C |
+| Red Smoke Icarus | 132 | `0x1aa8ff4` | `0xe00b4a` V | `0xe00cfe` V | `0xe00e97` V | C |
+| Temple of Arnil | 133 | `0x1aa62a0` | `0xd809fc` V | `0xd80c9c` V | `0xd81c2c` V | C |
+| Gray Aida | 134 | `0x1aa6908` | `0xd84821` V | `0xd849e4` V | `0xd84dd8` V | C |
 | Old Kethotum | 135 | `0x1aaaf18` | `0xe3a4dc` V | `0xe3a719` V | `0xe3c137` V | C |
 | Burning Kethotum | 136 | `0x1aa6d38` | `0xd9381e` V | `0xd93b31` V | `0xd97186` V | C |
 | World 137 class | 137 | `0x1aa9404` | `0xe08cd8` V | `0xe08f8a` V | `0xe0a4bb` V | C |
@@ -63,7 +63,7 @@ N = not reachable through the Warps window or ordinary warps (reason in JSON).
 | World 144 class | 144 | `0x1aab6a8` | `0xe46625` M | `0xe4696f` M | `0xe47bc2` M | C |
 | World 145 class | 145 | `0x1aa5e78` | `0xd75a6c` M | `0xd75ac6` M | `0xd77b3e` M | N |
 
-30/48 classes have at least one verified primary method. Of 144 primary methods: 87 verified families, 0 static-only C, 57 missing.
+34/48 classes have at least one verified primary method. Of 144 primary methods: 99 verified families, 0 static-only C, 45 missing.
 Original populated captures: 27 classes from DATA-ACQ-002, 5 from earlier live reads, 16 not reachable by warp.
 
 The companion [JSON](world-handler-coverage.json) records factory, constructor and related entry points
