@@ -55,3 +55,10 @@ the two Makefiles and status rows keep both sides; coverage unchanged at 88/144,
 passes (12,000 cases, 77/77 mutants), and `nice -n 10 bash scripts/local-macos-ci.sh` passes **1,703 tests
 across 38 discovery runs, 220 skips, zero failures; 11/11 fixture scenarios; 1,684 audited files, zero
 rejected**. Not merged by this lane: the MERGE-STEWARD merges it.
+
+Re-synced with origin/main `f7a1e33` (RENDER-EFFECTS-005; status/handoff rows keep both sides). After
+`make -C native clean`: `validate_worlds_r` passes again (12,000 cases, 77/77 mutants). The gate's `make test`
+ran 1,705 tests across 38 runs with 221 skips and one failure. The failure was `test_transport` allowlist: a peer
+socket received data, consistent with a port collision with a concurrent lane. It passes when rerun alone and with
+its whole file. The remaining gate steps were then run as in the script: 11/11 fixture scenarios, native viewer and
+live readers built, 1,689 audited files, zero rejected.
