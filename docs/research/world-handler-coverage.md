@@ -1,6 +1,6 @@
 # World-handler class coverage
 
-RENDER-WORLDS-G/H/I/J/N/P. Static address inventory from factory `0x00ea488e`, its allocation constructors and
+RENDER-WORLDS-G/H/I/J/N/O/P. Static address inventory from factory `0x00ea488e`, its allocation constructors and
 the pinned second-section vtables. Class IDs use the first registered world; labels are descriptive,
 not recovered symbol names. The default BaseMap registration for world 146 is outside the 48 concrete classes.
 
@@ -44,9 +44,9 @@ N = not reachable through the Warps window or ordinary warps (reason in JSON).
 | World 121 class | 121 | `0x1aa51fc` | `0xd585b0` M | `0xd58809` M | `0xd58888` M | N |
 | World 122 class | 122 | `0x1aac070` | `0xe54429` M | `0xe54646` M | `0xe5540e` M | C |
 | World 123 class | 123, 124, 125, 126, 127 | `0x1aaa564` | `0xe19bb3` M | `0xe19ed0` M | `0xe1b5fb` M | C |
-| World 128 class | 128 | `0x1aa5320` | `0xd5cf32` M | `0xd5d04a` M | `0xd5d564` M | C |
-| World 129 class | 129 | `0x1aa541c` | `0xd5ebd2` M | `0xd5ecea` M | `0xd5f1f1` M | C |
-| World 130 class | 130 | `0x1aa554c` | `0xd60316` M | `0xd6042e` M | `0xd60948` M | C |
+| World 128 class | 128 | `0x1aa5320` | `0xd5cf32` V | `0xd5d04a` V | `0xd5d564` V | C |
+| World 129 class | 129 | `0x1aa541c` | `0xd5ebd2` V | `0xd5ecea` V | `0xd5f1f1` V | C |
+| World 130 class | 130 | `0x1aa554c` | `0xd60316` V | `0xd6042e` V | `0xd60948` V | C |
 | World 131 class | 131 | `0x1aab4d4` | `0xe432d9` M | `0xe4370c` M | `0xe43f8e` M | C |
 | World 132 class | 132 | `0x1aa8ff4` | `0xe00b4a` M | `0xe00cfe` M | `0xe00e97` M | C |
 | World 133 class | 133 | `0x1aa62a0` | `0xd809fc` M | `0xd80c9c` M | `0xd81c2c` M | C |
@@ -63,7 +63,7 @@ N = not reachable through the Warps window or ordinary warps (reason in JSON).
 | World 144 class | 144 | `0x1aab6a8` | `0xe46625` M | `0xe4696f` M | `0xe47bc2` M | C |
 | World 145 class | 145 | `0x1aa5e78` | `0xd75a6c` M | `0xd75ac6` M | `0xd77b3e` M | N |
 
-21/48 classes have at least one verified primary method. Of 144 primary methods: 61 verified families, 0 static-only C, 83 missing.
+24/48 classes have at least one verified primary method. Of 144 primary methods: 70 verified families, 0 static-only C, 74 missing.
 Original populated captures: 27 classes from DATA-ACQ-002, 5 from earlier live reads, 16 not reachable by warp.
 
 The companion [JSON](world-handler-coverage.json) records factory, constructor and related entry points

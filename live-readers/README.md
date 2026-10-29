@@ -11,6 +11,7 @@ the client decrypts from `Data\Lang.mpr`.
 | `memread` | fixed address ranges named on the command line | [client-path](../docs/research/client-path.md) |
 | `lightread` | the lighting inputs of the model draws | [client-model-light](../docs/research/client-model-light.md), `scripts/validate_model_light.py` |
 | `langread` | the tables built from `Data\Lang.mpr` (optional extra nodes/maps; `graph:` pointer closures from a root or a pointer path, NATIVE-SKILL-003) | [client-lang-tables](../docs/research/client-lang-tables.md), [client-quests](../docs/research/client-quests.md), `scripts/live_lang_to_plain.py` |
+| `rtsample` | post-draw temporal summaries (sums/counts only) of camera, objects, pools, lights, bracketed by WorldTime and the logic/frame counters; `rtinput/` is its Wine-side input replay (mingw, `SetCursorPos`/`SendInput` only) | [client-render-time](../docs/research/client-render-time.md), `scripts/render_time_live.py` |
 
 ```sh
 make live-readers                 # or: make -C live-readers objread

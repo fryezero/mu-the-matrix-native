@@ -70,7 +70,7 @@ CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_perf_mesh.c
 RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.c \
              $(RECON)/model-codec/bone_tracks.c $(RECON)/model-codec/pose_builder.c \
              $(RECON)/model-codec/skinning.c $(RECON)/model-codec/character.c $(RECON)/record-math/record_math.c \
-             $(RECON)/terrain/terrain.c $(RECON)/terrain/world_haze.c $(RECON)/objects/objects.c $(RECON)/objects/icarus.c $(RECON)/objects/old_kethotum.c $(RECON)/objects/burning_kethotum.c $(RECON)/objects/bloody_tarkan.c $(RECON)/objects/nixies_lake.c $(RECON)/objects/deep_dungeon.c $(RECON)/objects/loren_market.c $(RECON)/objects/uruk.c $(RECON)/objects/duel_arena.c $(RECON)/objects/world82.c $(RECON)/objects/santa_village.c $(RECON)/objects/vulcanus.c $(RECON)/objects/object_render.c $(wildcard $(RECON)/objects/world_*_visual.c) $(RECON)/objects/world_after.c $(RECON)/objects/devias.c $(RECON)/objects/tarkan.c $(RECON)/objects/elbeland.c $(RECON)/objects/raklion.c $(RECON)/objects/raklion_event.c $(RECON)/objects/world_warp.c $(RECON)/objects/noria.c $(RECON)/objects/login_world.c $(RECON)/objects/charsel_world.c \
+             $(RECON)/terrain/terrain.c $(RECON)/terrain/world_haze.c $(RECON)/objects/objects.c $(RECON)/objects/icarus.c $(RECON)/objects/abyss_atlans.c $(RECON)/objects/old_kethotum.c $(RECON)/objects/burning_kethotum.c $(RECON)/objects/bloody_tarkan.c $(RECON)/objects/nixies_lake.c $(RECON)/objects/deep_dungeon.c $(RECON)/objects/loren_market.c $(RECON)/objects/uruk.c $(RECON)/objects/duel_arena.c $(RECON)/objects/world82.c $(RECON)/objects/santa_village.c $(RECON)/objects/vulcanus.c $(RECON)/objects/object_render.c $(wildcard $(RECON)/objects/world_*_visual.c) $(RECON)/objects/world_after.c $(RECON)/objects/devias.c $(RECON)/objects/tarkan.c $(RECON)/objects/elbeland.c $(RECON)/objects/raklion.c $(RECON)/objects/raklion_event.c $(RECON)/objects/world_warp.c $(RECON)/objects/noria.c $(RECON)/objects/login_world.c $(RECON)/objects/charsel_world.c \
              $(RECON)/camera/client_camera.c $(RECON)/camera/client_world_camera.c \
              $(RECON)/camera/client_input.c $(RECON)/camera/client_frame.c \
              $(RECON)/actors/actors.c $(RECON)/actors/viewport_monsters.c $(RECON)/path/client_path.c \
@@ -110,7 +110,7 @@ RECON_OBJ := $(patsubst $(RECON)/%.c,$(BUILD)/recon/%.o,$(RECON_SRC))
 MODULUS_OBJ := $(BUILD)/modulus.o
 LIB := $(BUILD)/libmunative.a
 HEADERS := $(wildcard core/*.h) $(wildcard $(RECON)/model-codec/*.h) $(RECON)/record-math/record_math.h \
-           $(RECON)/terrain/terrain.h $(RECON)/terrain/world_haze.h $(RECON)/objects/objects.h $(RECON)/objects/object_render.h $(RECON)/objects/worlds_g.h $(RECON)/objects/worlds_g_internal.h $(RECON)/objects/worlds_i.h $(RECON)/objects/icarus.h $(wildcard $(RECON)/objects/world_visual*.h) $(RECON)/objects/worlds_b.h $(RECON)/objects/world_warp.h $(RECON)/objects/noria.h $(RECON)/objects/worlds_b_internal.h $(RECON)/objects/login_world.h $(RECON)/objects/charsel_world.h $(wildcard $(RECON)/camera/*.h) $(wildcard $(RECON)/actors/*.h) \
+           $(RECON)/terrain/terrain.h $(RECON)/terrain/world_haze.h $(RECON)/objects/objects.h $(RECON)/objects/object_render.h $(RECON)/objects/worlds_g.h $(RECON)/objects/worlds_g_internal.h $(RECON)/objects/worlds_i.h $(RECON)/objects/worlds_o.h $(RECON)/objects/icarus.h $(wildcard $(RECON)/objects/world_visual*.h) $(RECON)/objects/worlds_b.h $(RECON)/objects/world_warp.h $(RECON)/objects/noria.h $(RECON)/objects/worlds_b_internal.h $(RECON)/objects/login_world.h $(RECON)/objects/charsel_world.h $(wildcard $(RECON)/camera/*.h) $(wildcard $(RECON)/actors/*.h) \
            $(wildcard $(RECON)/ui/*.h) $(RECON)/effects/effects.h $(RECON)/effects/effects_internal.h \
            $(RECON)/movement/client_movement.h $(RECON)/path/client_path.h \
            $(wildcard $(RECON)/renderchar/*.h) $(RECON)/charsel/charsel.h $(RECON)/charsel/charsel_gfx.h $(RECON)/charsel/charcreate.h \
@@ -638,6 +638,10 @@ $(BUILD)/perf-players-host: tests/perf_players_host.c $(LIB) $(HEADERS)
 $(BUILD)/particle-consumers-host: tests/particle_consumers_host.c $(LIB) $(HEADERS) $(BUILD)/libmusession_world.a $(BUILD)/libmuaudio.a
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c $< -o $(BUILD)/particle_consumers_host.o
 	$(CXX) $(BUILD)/particle_consumers_host.o $(BUILD)/libmusession_world.a $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(AUDIO_LIBS) -lm -o $@
+
+$(BUILD)/worlds-o-host: tests/worlds_o_host.c $(LIB) $(HEADERS)
+	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-o-host.o
+	$(CXX) $(BUILD)/worlds-o-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
 
 $(BUILD)/worlds-j-host: tests/worlds_j_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-j-host.o

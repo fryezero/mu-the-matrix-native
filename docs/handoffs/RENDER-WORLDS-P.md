@@ -4,14 +4,15 @@ Old Kethotum (135), Burning Kethotum (136) and Bloody Tarkan (140): all nine pri
 move +30, visual +34). [Finding, addresses, boundaries and fidelity](../research/client-worlds-p.md).
 
 - Branch `claude/render-worlds-p`, worktree `~/Documents/MTM/worktrees/render-worlds-p`, from origin/main
-  `f5a3199`, merged with `3735625` (RENDER-WORLDS-N, RENDER-EFFECTS-004). Input links never staged.
+  `f5a3199`, merged with `3735625` (RENDER-WORLDS-N, RENDER-EFFECTS-004) and, under the lock, `77c304a` (RENDER-WORLDS-O). Input links never staged.
 - Owned: `reconstructed/objects/{old_kethotum,burning_kethotum,bloody_tarkan}.c`, `worlds_p{,_internal}.h`,
   `test_worlds_p.py`, `scripts/validate_worlds_p.py`, `native/core/mu_objects_worlds_p.{c,h}`,
   `native/tests/{worlds_p_host.c,test_native_worlds_p.py}`. Minimal shared hooks: one create and one move dispatch
   in `object_render.c`; in `mu_objects_runtime.c` the deferred create/move, the PlaySpeed lookup, the clamped-light
   event and apply, one visual branch and the primary-visual/pose world lists; in `mu_objects.h` a 16-action speed
   table per type and the `MU_OBJECT_LIGHT_CLAMPED` range flag; Makefile/registry lines; coverage rows of these classes.
-- Coverage **52 → 61/144 primary methods, 18 → 21/48 classes**, zero static-only, 83 missing.
+- Coverage **+9 primary methods, +3 classes** (52 → 61/144 on the N base; with RENDER-WORLDS-O merged
+  **70/144 primary methods, 24/48 classes**, zero static-only, 74 missing).
 - Ten instruction families (nine methods plus the clamped AddTerrainLight `0x016caeae`), 1,000 cases each:
   **10,000 equal, zero mismatches/stops; 51/51 compiled mutants detected, zero stops** (several by only one case:
   directed boundary samples). One planted change was equivalent (double 1.35 vs float 1.35f) and was replaced.

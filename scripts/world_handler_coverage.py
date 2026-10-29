@@ -58,7 +58,7 @@ def inventory(text, data):
 def markdown(document):
     rows = document['classes']
     lines = ['# World-handler class coverage', '',
-             'RENDER-WORLDS-G/H/I/J/N/P. Static address inventory from factory `0x00ea488e`, its allocation constructors and',
+             'RENDER-WORLDS-G/H/I/J/N/O/P. Static address inventory from factory `0x00ea488e`, its allocation constructors and',
              'the pinned second-section vtables. Class IDs use the first registered world; labels are descriptive,',
              'not recovered symbol names. The default BaseMap registration for world 146 is outside the 48 concrete classes.', '',
              '`V` = compiled native C has an instruction-compared family, within the scope recorded in JSON.',

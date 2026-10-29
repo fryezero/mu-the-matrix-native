@@ -3,7 +3,8 @@
 RENDER-WORLDS-P, 2026-10-28. The three primary methods (create +2c, move +30, visual +34) of the world-135,
 world-136 and world-140 classes are implemented in `reconstructed/objects/old_kethotum.c`,
 `burning_kethotum.c` and `bloody_tarkan.c` (shared move template in `worlds_p_internal.h`). All nine have an
-instruction-compared family; the [inventory](world-handler-coverage.md) records the new counts. Custom-render,
+instruction-compared family: +9 primary methods and +3 classes; with RENDER-WORLDS-O the
+[inventory](world-handler-coverage.md) has 70/144 methods across 24/48 classes, 74 missing. Custom-render,
 after-render and invisible-sector slots of these classes stay missing.
 
 ## Selection and provenance

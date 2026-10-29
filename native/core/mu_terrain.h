@@ -22,6 +22,7 @@
 
 typedef struct mu_world_report {
     int32_t folder;
+    int32_t tile_folder;   /* Data/World<n> of the tile bitmaps (0x01829457) */
     int map_status, att_status, height_status, light_status, light2_status, obj_status;
     int32_t map_number, att_number;
     size_t att_plain_bytes;
