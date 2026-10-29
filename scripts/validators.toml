@@ -2418,3 +2418,18 @@ args = ["--cases", "1000", "--mutations", "--output", "{report}"]
 "families.*.stopped" = 0
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
+[validate_worlds_after2]
+test = "reconstructed/objects/test_worlds_after2.py::WorldsAfter2Tests.test_original_instructions"
+pins = ["text", "data"]
+families = ["custom_91", "after_91", "custom_113", "after_113", "custom_131", "after_131", "custom_132", "after_132", "custom_134", "after_134", "custom_139", "after_139", "custom_135", "after_135", "custom_136", "after_136", "custom_137", "after_137", "custom_138", "after_138", "custom_140", "after_140", "custom_142", "after_142", "premove_69", "premove_70", "premove_71", "premove_72", "premove_79", "premove_80", "premove_81", "premove_122", "bitmaps"]
+cases = 32216
+mutants = 33
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+[validate_worlds_after2.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0

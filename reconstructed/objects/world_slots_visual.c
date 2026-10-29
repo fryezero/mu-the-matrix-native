@@ -1014,6 +1014,145 @@ static void acheron_after(const slot *s)
     }
 }
 
+/* ---- Scorched Canyon 131 (0x83): custom 0x00e43842, after 0x00e43fab, world test 0x00e45d40 ---- */
+/* every mesh; a mesh whose texture sub record reads 1 glows with `light`, the others are plain */
+static void glow_meshes(const slot *s, float period, float phase, float scale, float bias)
+{
+    for (int32_t m = 0; s->model && m < s->model->mesh_count; ++m)
+        if (s->model->sub_flag[m] == 1)
+            mesh(s, m, 0x42, A(s), -2, wave_at(s, period, phase) * scale + bias, U(s), V(s), -1);
+        else
+            mesh_std(s, m, 2, -1);
+}
+/* the clock phase of the wave (period -1.5, phase in radians): -(x) * 0.1 */
+static float scorched_scroll(const slot *s, float radians)
+{
+    const int32_t t = cvtt(radians * 1000.0f / -1.5f + s->time);
+    return -((float)(t % -4188) * 0.001f * -1.5f) * 0.1f;
+}
+static int scorched_custom(const slot *s)
+{
+    if (s->o[MU_OBJF_AFTER_CHARACTER] == 1)
+        return 1;
+    const int32_t t = mu_obj_i32(s->o, MU_OBJF_TYPE);
+    switch (t) {
+    case 0x1d: case 0x2d: case 0x59:
+        glow_meshes(s, -1.5f, 0.0f, 0.8f, 0.2f);
+        return 1;
+    case 0x9d: case 0xb1: case 0xb2: case 0xb3: case 0xb4: case 0xb5: case 0xb6: case 0xb7: case 0xb8: case 0xb9:
+    case 0xbb: case 0xbc: case 0xbd: case 0xbe: case 0xbf: case 0xc0: case 0xc1: case 0xc2: case 0xc3: case 0xc4:
+    case 0xc5: case 0xc6:
+        glow_meshes(s, -0.7f, 0.0f, 0.3f, 0.2f);
+        return 1;
+    case 0x88: case 0x8a: case 0x8b: case 0x8c: case 0x8e: case 0x8f: case 0x93: case 0x94: case 0x95:
+        glow_meshes(s, -1.5f, (float)mu_obj_i32(s->o, 0x60), 0.7f, 0.3f);
+        return 1;
+    case 0x10: {
+        const float w = wave_at(s, -1.5f, 180.0f);
+        stream(s, 0);
+        mesh(s, 0, 0x42, A(s), -2, w, scorched_scroll(s, 3.14159274f), V(s), -1);
+        return 1;
+    }
+    case 0x11: {
+        const float w = wave(s, -1.5f);
+        stream(s, 0);
+        mesh(s, 0, 0x42, A(s), -2, w, scorched_scroll(s, 0.0f), V(s), -1);
+        return 1;
+    }
+    default:
+        return 0;
+    }
+}
+static void scorched_after(const slot *s)
+{
+    const int32_t t = mu_obj_i32(s->o, MU_OBJF_TYPE);
+    switch (t) {
+    case 0x5a:
+        mesh_std(s, 0, 2, -1);
+        mesh(s, 1, 0x42, A(s), -2, wave(s, -1.5f) * 0.8f + 0.2f, U(s), V(s), -1);
+        stream(s, 2);
+        mesh(s, 2, 2, A(s), BM(s), BL(s), U(s), tmod(s, 4000, -0.00025f, 0), -1);
+        break;
+    case 0x6a:
+        mesh(s, 0, 0x42, A(s), -2, wave_at(s, -1.5f, (float)mu_obj_i32(s->o, 0x60)) * 0.6f + 0.4f, U(s), V(s), -1);
+        break;
+    case 0x28: case 0x4f: case 0xa8: case 0xb2: case 0xb3: case 0xb5: case 0xba: case 0xc5: case 0xc7:
+        if ((t >= 0xb1 && t <= 0x12b) || t == 0xa8)
+            glow_meshes(s, -0.7f, 0.0f, 0.3f, 0.2f);
+        else
+            glow_meshes(s, -1.5f, 0.0f, 0.8f, 0.2f);
+        break;
+    default:
+        break;
+    }
+}
+
+/* ---- Red Smoke Icarus 132 (0x84): custom 0x00e00d4c, after 0x00e010b6, world test 0x00e0558b ---- */
+static int icarus2_custom(const slot *s)
+{
+    if (s->o[MU_OBJF_AFTER_CHARACTER])
+        return 1;
+    switch (mu_obj_i32(s->o, MU_OBJF_TYPE)) {
+    case 0x1e:
+        stream(s, 0);
+        mesh(s, 0, 2, A(s), BM(s), BL(s), tmod(s, 200000, 5e-06f, 1) + U(s), V(s), -1);
+        stream(s, 0xff);
+        return 1;
+    case 0x7c4:   /* above the world manager's 0..300: never reached from an object */
+        color(s, 0.02f, 0.05f, 0.15f);
+        return 1;
+    default:
+        return 0;
+    }
+}
+static void icarus2_after(const slot *s)
+{
+    const int32_t t = mu_obj_i32(s->o, MU_OBJF_TYPE);
+    if (t == 0x1c) {
+        mesh_self(s, 0, 2, BL(s), U(s), V(s));
+        mesh_self(s, 1, 2, BL(s), U(s), V(s));
+        mesh_self(s, 2, 2, wave(s, -3.0f) * 0.6f + 0.4f, U(s), V(s));
+    } else if (t >= 6 && t <= 0x3c && t != 0xb && !(t >= 0x17 && t <= 0x1b) && t != 0x1e &&
+               !(t >= 0x2c && t <= 0x2e)) {
+        body(s, 2, BM(s), BL(s), U(s), V(s), -1);
+    }
+}
+
+/* ---- Gray Aida 134 (0x86): custom 0x00d84d0e, after 0x00d868f7, world test 0x00d8b139 ---- */
+static int aida_custom(const slot *s)
+{
+    switch (mu_obj_i32(s->o, MU_OBJF_TYPE)) {
+    case 0: return 1;
+    case 0x4f: case 0x50: case 0x51: case 0x52: case 0x53: mesh_std(s, 1, 2, -1); return 1;
+    default: return 0;
+    }
+}
+static void aida_after(const slot *s)
+{
+    switch (mu_obj_i32(s->o, MU_OBJF_TYPE)) {
+    case 0x3b: case 0x3e: case 0x5c:
+        break;
+    case 0x29:
+        body_std(s, H(s));
+        grey(s, 0.52f);
+        stream(s, 0);
+        mesh_std(s, 0, 0x42, -1);
+        stream(s, 0xff);
+        break;
+    case 0x4f: case 0x50: case 0x51: case 0x52: case 0x53:
+        mesh_std(s, 0, 0x42, -1);
+        mesh_std(s, 2, 0x42, -1);
+        break;
+    default:   /* 0x19 and every other selected type */
+        body_std(s, H(s));
+        break;
+    }
+}
+
+/* ---- Old Kethotum's neighbour 139 (0x8b): custom 0x00d9c19a answers no, after 0x00d9c1b4 draws nothing ---- */
+static int none_custom(const slot *s) { (void)s; return 0; }
+static void none_after(const slot *s) { (void)s; }
+
 /* ---- the pre-move slot 0x74 (the world manager 0x00ea2c2b calls it before the registry tick and slot 0x30).
  * Imperial Guardian 69 0x00dd2fae; 70/71/72 0x00dd886b/0x00dde51d/0x00de5441 call the world-69 handler's slot
  * (0x00dd8a3c(0x45)), so `state` is that handler's +0x14; Loren Market 79 0x00e6dd0a (its world test result is
@@ -1162,8 +1301,10 @@ static const struct {
     custom_fn custom;
     after_fn after;
 } classes[] = {
-    {91, acheron_custom, acheron_after}, {113, nixies_custom, nixies_after}, {135, kethotum1_custom, kethotum1_after}, {136, kethotum2_custom, kethotum2_after},
-    {137, kanturu_custom, kanturu_after}, {138, ignis_custom, ignis_after},
+    {91, acheron_custom, acheron_after}, {113, nixies_custom, nixies_after}, {131, scorched_custom, scorched_after},
+    {132, icarus2_custom, icarus2_after}, {134, aida_custom, aida_after}, {135, kethotum1_custom, kethotum1_after},
+    {136, kethotum2_custom, kethotum2_after}, {137, kanturu_custom, kanturu_after}, {138, ignis_custom, ignis_after},
+    {139, none_custom, none_after},
     {140, tarkan_custom, tarkan_after}, {142, karutan2_custom, karutan2_after},
 };
 static int find(int32_t cls)
