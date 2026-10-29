@@ -9,7 +9,8 @@ Kanturu Underground (137) and Ignis Volcano (138) primary create/move/visual met
   in `object_render.c`; runtime lines in `native/core/mu_objects_runtime.c` (all-action PlaySpeed, StreamMesh
   refusal count, deferred Kanturu action step after the tick, world-137 visual with refused joint kinds); build
   lines in both Makefiles.
-- Coverage **52 → 58/144 primary methods; 18 → 20/48 classes**; zero static-only, 86 missing. All six methods
+- Coverage **+6 primary methods, +2 classes**: 52 → 58/144 and 18 → 20/48 on the base; after merging
+  RENDER-WORLDS-O and P, 70 → 76/144 and 24 → 26/48, zero static-only, 68 missing. All six methods
   complete (none was large).
 - `scripts/validate_worlds_p2.py`: six families, **6,000 cases equal, zero mismatches/stops, 35/35 compiled
   mutants detected**. Registered as `validate_worlds_p2`.
@@ -30,7 +31,7 @@ reviewed summaries are committed.
 Remaining: the four joint kinds and a StreamMesh consumer; the custom/after-render slots of both classes
 (Kanturu `0x00e092f4`/`0x00e0ab2a`, Ignis `0x00e05f25`/`0x00e0709e`), likely the source of Kanturu's remaining
 20 after-character and 24 hidden-mesh differences; the default hook chain after false returns; the real
-frame-time global; 86 other primary methods.
+frame-time global; 68 other primary methods.
 
 During the lane, reports and renders were under `~/Documents/MTM/mu-mac-tools/native/scratch/render-worlds-p2`
 and `renders/render-worlds-p2`, plus a base build worktree `worktrees/render-worlds-p2-base`; all are deleted

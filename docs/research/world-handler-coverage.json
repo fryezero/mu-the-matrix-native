@@ -1586,21 +1586,21 @@
       "handlers": {
         "create": {
           "entry": "0xd5cf32",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary method (RENDER-WORLDS-O); the three Abyss classes share one body differing only in the world constant. 1000 compiled-C versus Unicorn cases per method, AL/OBJECT/ordered CreateParticle/RNG and compiled mutants; see client-worlds-o.md for consumer limits.",
+          "source": "reconstructed/objects/abyss_atlans.c"
         },
         "move": {
           "entry": "0xd5d04a",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary method (RENDER-WORLDS-O); the three Abyss classes share one body differing only in the world constant. 1000 compiled-C versus Unicorn cases per method, AL/OBJECT/ordered CreateParticle/RNG and compiled mutants; see client-worlds-o.md for consumer limits.",
+          "source": "reconstructed/objects/abyss_atlans.c"
         },
         "visual": {
           "entry": "0xd5d564",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary method (RENDER-WORLDS-O); the three Abyss classes share one body differing only in the world constant. 1000 compiled-C versus Unicorn cases per method, AL/OBJECT/ordered CreateParticle/RNG and compiled mutants; see client-worlds-o.md for consumer limits.",
+          "source": "reconstructed/objects/abyss_atlans.c"
         },
         "custom_render": {
           "entry": "0xd5d2f6",
@@ -1638,21 +1638,21 @@
       "handlers": {
         "create": {
           "entry": "0xd5ebd2",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary method (RENDER-WORLDS-O); the three Abyss classes share one body differing only in the world constant. 1000 compiled-C versus Unicorn cases per method, AL/OBJECT/ordered CreateParticle/RNG and compiled mutants; see client-worlds-o.md for consumer limits.",
+          "source": "reconstructed/objects/abyss_atlans.c"
         },
         "move": {
           "entry": "0xd5ecea",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary method (RENDER-WORLDS-O); the three Abyss classes share one body differing only in the world constant. 1000 compiled-C versus Unicorn cases per method, AL/OBJECT/ordered CreateParticle/RNG and compiled mutants; see client-worlds-o.md for consumer limits.",
+          "source": "reconstructed/objects/abyss_atlans.c"
         },
         "visual": {
           "entry": "0xd5f1f1",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary method (RENDER-WORLDS-O); the three Abyss classes share one body differing only in the world constant. 1000 compiled-C versus Unicorn cases per method, AL/OBJECT/ordered CreateParticle/RNG and compiled mutants; see client-worlds-o.md for consumer limits.",
+          "source": "reconstructed/objects/abyss_atlans.c"
         },
         "custom_render": {
           "entry": "0xd5ef96",
@@ -1690,21 +1690,21 @@
       "handlers": {
         "create": {
           "entry": "0xd60316",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary method (RENDER-WORLDS-O); the three Abyss classes share one body differing only in the world constant. 1000 compiled-C versus Unicorn cases per method, AL/OBJECT/ordered CreateParticle/RNG and compiled mutants; see client-worlds-o.md for consumer limits.",
+          "source": "reconstructed/objects/abyss_atlans.c"
         },
         "move": {
           "entry": "0xd6042e",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary method (RENDER-WORLDS-O); the three Abyss classes share one body differing only in the world constant. 1000 compiled-C versus Unicorn cases per method, AL/OBJECT/ordered CreateParticle/RNG and compiled mutants; see client-worlds-o.md for consumer limits.",
+          "source": "reconstructed/objects/abyss_atlans.c"
         },
         "visual": {
           "entry": "0xd60948",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary method (RENDER-WORLDS-O); the three Abyss classes share one body differing only in the world constant. 1000 compiled-C versus Unicorn cases per method, AL/OBJECT/ordered CreateParticle/RNG and compiled mutants; see client-worlds-o.md for consumer limits.",
+          "source": "reconstructed/objects/abyss_atlans.c"
         },
         "custom_render": {
           "entry": "0xd606da",
@@ -1940,7 +1940,7 @@
     },
     {
       "class_id": "world-135",
-      "label": "World 135 class",
+      "label": "Old Kethotum",
       "worlds": [
         135
       ],
@@ -1950,21 +1950,21 @@
       "handlers": {
         "create": {
           "entry": "0xe3a4dc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-P complete method; 1,000 instruction cases; model action speeds compared",
+          "source": "reconstructed/objects/old_kethotum.c; reconstructed/objects/worlds_p_internal.h"
         },
         "move": {
           "entry": "0xe3a719",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-P complete method; 1,000 instruction cases; host runs it after the tick",
+          "source": "reconstructed/objects/old_kethotum.c; reconstructed/objects/worlds_p_internal.h"
         },
         "visual": {
           "entry": "0xe3c137",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-P complete method; 1,000 instruction cases",
+          "source": "reconstructed/objects/old_kethotum.c; reconstructed/objects/worlds_p_internal.h"
         },
         "custom_render": {
           "entry": "0xe3ae5e",
@@ -1992,7 +1992,7 @@
     },
     {
       "class_id": "world-136",
-      "label": "World 136 class",
+      "label": "Burning Kethotum",
       "worlds": [
         136
       ],
@@ -2002,21 +2002,21 @@
       "handlers": {
         "create": {
           "entry": "0xd9381e",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-P complete method; 1,000 instruction cases; model action speeds compared",
+          "source": "reconstructed/objects/burning_kethotum.c; reconstructed/objects/worlds_p_internal.h"
         },
         "move": {
           "entry": "0xd93b31",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-P complete method; 1,000 instruction cases; host runs it after the tick; .ein effect requests compared at the effect-manager boundary, no native consumer",
+          "source": "reconstructed/objects/burning_kethotum.c; reconstructed/objects/worlds_p_internal.h"
         },
         "visual": {
           "entry": "0xd97186",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-P complete method; 1,000 instruction cases",
+          "source": "reconstructed/objects/burning_kethotum.c; reconstructed/objects/worlds_p_internal.h"
         },
         "custom_render": {
           "entry": "0xd94eef",
@@ -2200,7 +2200,7 @@
     },
     {
       "class_id": "world-140",
-      "label": "World 140 class",
+      "label": "Bloody Tarkan",
       "worlds": [
         140
       ],
@@ -2210,21 +2210,21 @@
       "handlers": {
         "create": {
           "entry": "0xd9a022",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-P complete method; 1,000 instruction cases; model action speeds compared",
+          "source": "reconstructed/objects/bloody_tarkan.c"
         },
         "move": {
           "entry": "0xd9a0ad",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-P complete method; 1,000 instruction cases; host runs it after the tick; clamped light 0x016caeae verified separately (1,000 cases)",
+          "source": "reconstructed/objects/bloody_tarkan.c"
         },
         "visual": {
           "entry": "0xd9ac33",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-P complete method; 1,000 instruction cases",
+          "source": "reconstructed/objects/bloody_tarkan.c"
         },
         "custom_render": {
           "entry": "0xd9a2ed",

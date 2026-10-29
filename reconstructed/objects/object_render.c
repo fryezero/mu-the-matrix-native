@@ -1,6 +1,8 @@
 #include "worlds_g.h"
 #include "worlds_h.h"
 #include "worlds_i.h"
+#include "worlds_p.h"
+#include "worlds_o.h"
 #include "worlds_n.h"
 #include "worlds_p2.h"
 #include "world_visual.h"
@@ -445,10 +447,19 @@ int mu_obj_create(const mu_object_record *r, int32_t world, uint8_t *o, int32_t 
         mu_karutan_create(o);
         return MU_OBJ_OK;
     }
+    if (world == 0x87 || world == 0x88 || world == 0x8c) {   /* RENDER-WORLDS-P */
+        if (world == 0x8c) mu_bloody_tarkan_create(o, world);
+        else arg(event(log, MU_WP_CREATE, index), (uint32_t)world);   /* model actions and RNG: the host runs it */
+        return MU_OBJ_OK;
+    }
     if (world_create(o, world, index, log))   /* NATIVE-FIDELITY-002 */
         return MU_OBJ_OK;
     if (world == 57 || world == 58) {
         mu_raklion_create(o, index, log);
+        return MU_OBJ_OK;
+    }
+    if (world >= 128 && world <= 130) {   /* RENDER-WORLDS-O */
+        mu_abyss_create(world, o, world);
         return MU_OBJ_OK;
     }
     if (world == 79 || world == 100) {
@@ -1004,8 +1015,17 @@ int mu_obj_move(uint8_t *o, int32_t index, const mu_obj_move_inputs *in, mu_obj_
         mu_karutan_move(o, index, in, log);
         return MU_OBJ_OK;
     }
+    if (world == 0x87 || world == 0x88 || world == 0x8c) {   /* RENDER-WORLDS-P */
+        if (world == 0x8c) mu_bloody_tarkan_move(o, index, world, in->time, in->rand_fn, in->context, log);
+        else event(log, MU_WP_MOVE, index);   /* after the tick; the host supplies model, frame time, effects */
+        return MU_OBJ_OK;
+    }
     if (world_move(o, index, in, log) || hook_move(o, index, in, log))   /* NATIVE-FIDELITY-002 */
         return MU_OBJ_OK;
+    if (world >= 128 && world <= 130) {   /* RENDER-WORLDS-O */
+        mu_abyss_move(world, o, index, in, log);
+        return MU_OBJ_OK;
+    }
     if (world == 79) {
         mu_market_move(o, index, in, log);
         return MU_OBJ_OK;

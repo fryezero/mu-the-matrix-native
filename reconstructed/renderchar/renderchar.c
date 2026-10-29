@@ -136,6 +136,54 @@ static float mesh_light_pulse(float time)
     return ((wave + 1.0f) * 0.5f) * 0.8f + 0.2f;
 }
 
+/* 0x0185bdc4(a,0): signed period 6283.1855/a, binary32 steps. The zero
+ * phase term adds a signed zero to time and cannot change the tick. */
+static float client_wave(float a, float time)
+{
+    int32_t tick = !(time >= -2147483648.0f && time < 2147483648.0f) ? INT32_MIN : (int32_t)time;
+    int32_t period = (int32_t)(6283.1855f / a);
+    float y = (float)(tick % period) * 0.001f * a;
+    float w = (float)cos((double)y);
+    if (3.1415927f > y)
+        w = -w;
+    return (w + 1.0f) * 0.5f;
+}
+
+/* Per-type straight-line scalar after a wave or sin call (generator parse).
+ * Operation bit 8 marks the binary64 form (fstp qword .. cvtsd2ss). */
+static float body_scalar(const mu_rc_body_scalar *p, float time)
+{
+    float a, value;
+    memcpy(&a, &p->a, 4);
+    value = p->kind == 1 ? client_wave(a, time) : client_sin(time * a);
+    if (p->count && (p->op[0] & 8)) {
+        double wide = value;
+        for (int i = 0; i < p->count; ++i) {
+            double k;
+            memcpy(&k, &p->k[i], 8);
+            switch (p->op[i] & 7) {
+            case 1: wide = wide * k; break;
+            case 2: wide = wide + k; break;
+            case 3: wide = wide - k; break;
+            default: wide = wide / k; break;
+            }
+        }
+        return (float)wide;
+    }
+    for (int i = 0; i < p->count; ++i) {
+        float k;
+        uint32_t bits = (uint32_t)p->k[i];
+        memcpy(&k, &bits, 4);
+        switch (p->op[i]) {
+        case 1: value = value * k; break;
+        case 2: value = value + k; break;
+        case 3: value = value - k; break;
+        default: value = value / k; break;
+        }
+    }
+    return value;
+}
+
 /* Apply a shared mesh/body recipe to one generic helper call. Selectors refer
  * to the actual draw arguments and current model fields, never saved pixels.
  * Phases: base, colour2, colour, excellent, ancient, base with flag 0x40000. */
@@ -149,7 +197,7 @@ static void emit_parameter_body(sink *s, int phase, uint32_t flags, float alpha,
     mu_rc_draw base;
     sink one = {&base, 1, 0, s->item, s->model, 0, NULL};
     emit(&one, MU_RC_ENTRY_BODY, 0, flags, alpha, hidden, texture);
-    uint32_t input[35];
+    uint32_t input[35 + MU_RC_BODY_SCALARS];
     input[0] = base.flags;
     memcpy(&input[1], &base.alpha, 4);
     input[2] = (uint32_t)base.blend_mesh;
@@ -232,6 +280,10 @@ static void emit_parameter_body(sink *s, int phase, uint32_t flags, float alpha,
         memcpy(&input[33], &value, 4);
     }
     input[34] = (uint32_t)s->item->object_hidden;
+    for (int k = 0; k < mu_rc_body_types[type].scalar_count; ++k) {
+        float value = body_scalar(&mu_rc_body_scalars[mu_rc_body_types[type].scalar_first + k], s->item->time);
+        memcpy(&input[35 + k], &value, 4);
+    }
     /* The helper's optional level word is supplied only above the +7 quality cap. */
     if (mu_rc_body_types[type].level_split && (phase == 0 || phase == 5) &&
         s->item->quality > 1 && mu_rc_item_glow_level(s->item) >= 9 &&

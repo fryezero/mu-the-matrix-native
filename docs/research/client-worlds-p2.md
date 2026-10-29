@@ -3,7 +3,8 @@
 RENDER-WORLDS-P2, 2026-10-28. Reconstructs the create (+2c), move (+30) and visual (+34) slots of the
 world-137 class (Kanturu Underground) and the world-138 class (Ignis Volcano), both captured by DATA-ACQ-002.
 Coverage advances from **52/144 to 58/144 primary methods and from 18/48 to 20/48 classes** (0 static-only,
-86 missing). None of the six methods is large (the Kanturu visual is 475 instructions), so all six are complete.
+86 missing) on its base; merged after RENDER-WORLDS-O and P, the totals are 70 → 76/144 and 24 → 26/48
+(68 missing). None of the six methods is large (the Kanturu visual is 475 instructions), so all six are complete.
 
 Labels: **verified** = compared with the original instructions under Unicorn or with a live capture;
 **static** = read from decoded instructions only; **inference** = neither.
