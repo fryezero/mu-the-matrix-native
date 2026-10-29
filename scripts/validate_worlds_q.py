@@ -67,6 +67,7 @@ FRAME_TIME, ISA, COOKIE = 0x01cf103c, 0x0bdcb280, 0x01cf65c0   # COOKIE: /GS wor
 HANDLER = v.FAKE + 0x800
 ACTIONS_FN = C.CFUNCTYPE(C.c_void_p, C.c_void_p, C.c_int32, C.POINTER(C.c_int32))
 BONE_FN = C.CFUNCTYPE(None, C.c_void_p, C.c_int32, C.POINTER(C.c_float), C.POINTER(C.c_float))
+INDEX_FN = C.CFUNCTYPE(C.c_int32, C.c_void_p, C.c_char_p)   # RENDER-WORLDS-Q2: bone index by name
 
 
 class Handler(C.Structure):
@@ -77,7 +78,8 @@ class Handler(C.Structure):
 class Inputs(C.Structure):
     _fields_ = [('world', C.c_int32), ('time', C.c_float), ('frame_time', C.c_float), ('now_ms', C.c_uint32),
                 ('hero', C.c_float * 3), ('hero_tile', C.c_int32 * 2), ('actions', ACTIONS_FN),
-                ('rand_fn', v.RAND_FN), ('bone', BONE_FN), ('context', C.c_void_p), ('handler', C.POINTER(Handler))]
+                ('rand_fn', v.RAND_FN), ('bone', BONE_FN), ('context', C.c_void_p), ('handler', C.POINTER(Handler)),
+                ('bone_index', INDEX_FN)]
 
 
 def bind(lib):

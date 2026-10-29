@@ -35,6 +35,8 @@ typedef struct mu_q_inputs {
     mu_world_bone_fn bone;      /* BMD::TransformPosition(bone matrix k, local, out) 0x012b6ef1 */
     void *context;
     mu_q_handler *handler;
+    /* RENDER-WORLDS-Q2: the index of the posed model's bone named `name` (0x0129f18a's search), -1 when none. */
+    int32_t (*bone_index)(void *context, const char *name);
 } mu_q_inputs;
 
 /* Acheron, worlds 91/92 (predicate 0x00d6a614): create 0x00d6a6d7, move 0x00d6a7aa, visual 0x00d6ae34. */
@@ -43,9 +45,13 @@ int mu_acheron_move(uint8_t *o, int32_t index, const mu_q_inputs *in, mu_obj_log
 int mu_acheron_visual(const uint8_t *o, int32_t index, const mu_q_inputs *in, mu_obj_log *log);
 /* The highest bone the visual of `type` transforms (the model must be posed with more bones), -1 for none. */
 int mu_acheron_visual_bones(int32_t type);
-/* Ferea, world 112 (no world test): create 0x00de5cb0, move 0x00de5de2. */
+/* Ferea, world 112 (no world test): create 0x00de5cb0, move 0x00de5de2, visual 0x00de6405 (RENDER-WORLDS-Q2;
+ * -1 when a bone it names is missing, where the client would fault). */
 int mu_ferea_create(uint8_t *o, const mu_q_inputs *in);
 int mu_ferea_move(uint8_t *o, int32_t index, const mu_q_inputs *in, mu_obj_log *log);
+int mu_ferea_visual(const uint8_t *o, int32_t index, int model_present, const mu_q_inputs *in, mu_obj_log *log);
+/* The NULL-terminated bone names the Ferea visual of `type` looks up, NULL for none. */
+const char *const *mu_ferea_visual_bones(int32_t type);
 /* Swamp of Darkness, world 122 (0x00e543a1): create 0x00e54429, move 0x00e54646, visual 0x00e5540e. */
 int mu_swamp_darkness_create(uint8_t *o, const mu_q_inputs *in);
 int mu_swamp_darkness_move(uint8_t *o, const mu_q_inputs *in);
@@ -55,8 +61,8 @@ int mu_kubera_create(uint8_t *o, int32_t index, const mu_q_inputs *in, mu_obj_lo
 int mu_kubera_move(uint8_t *o, int32_t index, const mu_q_inputs *in, mu_obj_log *log);
 int mu_kubera_visual(const uint8_t *o, int32_t index, int model_present, const mu_q_inputs *in, mu_obj_log *log);
 
-/* Dispatch by world: 1 when one of these classes owns `world`. The visual returns -1 for worlds or
- * types it cannot run (Ferea's visual; Acheron bone types without a bone callback). */
+/* Dispatch by world: 1 when one of these classes owns `world`. The visual returns -1 for types it cannot run
+ * (Acheron bone types without a bone callback, Ferea types whose bones are missing). */
 int mu_worlds_q_owns(int32_t world);
 int mu_worlds_q_create(uint8_t *o, int32_t index, const mu_q_inputs *in, mu_obj_log *log);
 int mu_worlds_q_move(uint8_t *o, int32_t index, const mu_q_inputs *in, mu_obj_log *log);
