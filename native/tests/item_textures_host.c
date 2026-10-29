@@ -157,6 +157,16 @@ int main(int argc, char **argv)
         } else {
             mu_item_textures_load(&textures, &bmd, t.have_items ? &t.items : NULL, root, (int32_t)type, path, &ts);
         }
+        if (getenv("MU_ITEM_TEXTURES_MESHES"))   /* local survey aid: each mesh slot's pixels and upload */
+            for (int k = 0; k < bmd.mesh_count && k < textures.model_count; ++k) {
+                uint32_t h = 2166136261u;
+                const mu_image *im = textures.slots[k];
+                if (im)
+                    for (size_t b = 0; b < (size_t)im->width * (size_t)im->height * 4; ++b)
+                        h = (h ^ im->rgba[b]) * 16777619u;
+                fprintf(stderr, "M\t0x%04x\t%d\t%s\t%08x\t%x\t%x\n", type, k, bmd.meshes[k].texture, im ? h : 0,
+                        textures.filter[k], textures.wrap[k]);
+            }
         if (getenv("MU_ITEM_TEXTURES_NAMES"))   /* local survey aid: every mesh name */
             for (int k = 0; k < bmd.mesh_count; ++k)
                 fprintf(stderr, "0x%04x\t%s\n", type, bmd.meshes[k].texture);

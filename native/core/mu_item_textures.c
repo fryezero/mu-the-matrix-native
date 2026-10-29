@@ -9,6 +9,7 @@
 
 #include "../../reconstructed/items/ground_items.h"
 #include "../../reconstructed/model-codec/character.h"
+#include "../../reconstructed/objects/item_texture.h"
 #include "../../reconstructed/objects/texture_lookup.h"
 #include "../../reconstructed/renderchar/renderchar.h"
 #include "mu_objects.h"
@@ -172,8 +173,8 @@ static int add_registered(mu_textures *t, const char *game_root, int32_t index)
     return mu_textures_add_extras(t, &index, dirs, names, 1, filter, wrap) ? 1 : 0;
 }
 
-/* The skin bitmaps the mesh draw substitutes (0x012b8e78..): base + model +0xa4. */
-static const int32_t skin_bases[] = {0x7725, 0x7776, 0x77c7, 0x7818, 0x7869, 0x78ba};
+/* The skin IndexTextures the mesh draw shifts by model +0xa4 (mu_it_skin_bitmap). */
+static const int32_t skin_bases[] = {MU_TL_SKIN, MU_TL_HAIR, MU_TL_HQ_SKIN, MU_TL_HQ_SKIN2, MU_TL_HQ_SKIN3, MU_TL_HQ_HAIR};
 
 int mu_item_textures_wear_shift(mu_textures *t, const char *game_root, int8_t shift)
 {
@@ -184,7 +185,7 @@ int mu_item_textures_wear_shift(mu_textures *t, const char *game_root, int8_t sh
         int used = 0;
         for (int32_t k = 0; k < t->model_count && !used; ++k)
             used = t->client_index[k] == skin_bases[b];
-        const int32_t index = skin_bases[b] + shift;
+        const int32_t index = mu_it_skin_bitmap(skin_bases[b], shift);
         if (used && !has_extra(t, index) && add_registered(t, game_root, index) == 1)
             return 1;
     }
@@ -198,7 +199,7 @@ int mu_item_textures_is_part(int32_t type)
 
 int mu_item_textures_wear(mu_textures *t, const char *game_root, uint8_t class_byte)
 {
-    return mu_item_textures_wear_shift(t, game_root, (int8_t)mu_character_skin_index(class_byte));
+    return mu_item_textures_wear_shift(t, game_root, mu_it_part_skin(class_byte));
 }
 
 int mu_item_textures_reload(mu_textures *t, const mu_bmd *model, const mu_data_table *items, const char *game_root,

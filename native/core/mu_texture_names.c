@@ -59,12 +59,16 @@ static int32_t find_key(const char *name)
     return -1;
 }
 
-/* std::map::insert in the loaders (0x00c9a55f): an existing name keeps its first bitmap. */
+/* One bitmap per loaded file. LoadImage 0x00c97689 first asks its full-path map (0x00c97d69): a file already loaded
+ * keeps its bitmap and parameters; another file gets a new bitmap (0x00c98211, loaded by 0x00c97730 with the call's
+ * filter and wrap) even when its name is taken (RENDER-ITEMS-TEX-002). The name map (std::map::insert in the
+ * loaders, 0x00c9a55f) keeps the first bitmap of a name: entries stay in load order and find_key returns the
+ * first. */
 static int32_t insert(const char *file_name, const char *path, uint32_t filter, uint32_t wrap)
 {
-    const int32_t found = find_key(file_name);
-    if (found >= 0)
-        return found;
+    for (int32_t i = 0; i < map.count; ++i)
+        if (!strcmp(map.entries[i].path, path))
+            return i;
     if (map.count == map.capacity) {
         const int32_t capacity = map.capacity ? map.capacity * 2 : 256;
         entry *grown = realloc(map.entries, (size_t)capacity * sizeof *grown);

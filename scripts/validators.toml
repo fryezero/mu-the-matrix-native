@@ -2358,9 +2358,9 @@ args = ["--cases", "1000", "--mutations", "--output", "{report}"]
 [validate_item_textures]
 test = "reconstructed/objects/test_item_texture.py::ItemTextureTests.test_original_instructions"
 pins = ["text", "data", "section3"]
-families = ["item_open", "registrations", "startup_names"]
-cases = 2491
-mutants = 16
+families = ["item_open", "registrations", "startup_names", "part_skin", "skin_bitmap"]
+cases = 5965
+mutants = 22
 cases_at = "families.*.cases"
 mutants_at = "mutants"
 build = ["reconstructed/objects"]
