@@ -8,8 +8,11 @@ all: $(LIB)
 
 $(LIB): effects.c effects_json.c effects_tree.c effects_capi.c effects.h effects_internal.h
 	$(CC) $(CFLAGS) -fPIC -shared effects.c effects_json.c effects_tree.c effects_capi.c -lm -o $@
+	$(DEPS)
 
 clean:
 	rm -f libeffects.dylib libeffects.so
 
 .PHONY: all clean
+
+include ../deps.mk

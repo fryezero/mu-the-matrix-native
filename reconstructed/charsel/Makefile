@@ -7,8 +7,11 @@ all: $(LIB)
 
 $(LIB): charsel.c charsel.h charsel_gfx.c charsel_gfx.h charcreate.c charcreate.h
 	$(CC) $(CFLAGS) -shared charsel.c charsel_gfx.c charcreate.c -lm -o $@
+	$(DEPS)
 
 clean:
 	rm -f libcharsel.dylib libcharsel.so
 
 .PHONY: all clean
+
+include ../deps.mk

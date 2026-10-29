@@ -8,5 +8,8 @@ all: libclient_camera.$(SUFFIX)
 
 libclient_camera.$(SUFFIX): $(SRC) $(HDR)
 	$(CC) $(CFLAGS) -shared $(SRC) -lm -o $@
+	$(DEPS)
 
 .PHONY: all
+
+include ../deps.mk

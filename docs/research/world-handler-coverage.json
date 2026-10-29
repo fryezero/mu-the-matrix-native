@@ -1940,7 +1940,7 @@
     },
     {
       "class_id": "world-135",
-      "label": "World 135 class",
+      "label": "Old Kethotum",
       "worlds": [
         135
       ],
@@ -1950,21 +1950,21 @@
       "handlers": {
         "create": {
           "entry": "0xe3a4dc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-P complete method; 1,000 instruction cases; model action speeds compared",
+          "source": "reconstructed/objects/old_kethotum.c; reconstructed/objects/worlds_p_internal.h"
         },
         "move": {
           "entry": "0xe3a719",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-P complete method; 1,000 instruction cases; host runs it after the tick",
+          "source": "reconstructed/objects/old_kethotum.c; reconstructed/objects/worlds_p_internal.h"
         },
         "visual": {
           "entry": "0xe3c137",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-P complete method; 1,000 instruction cases",
+          "source": "reconstructed/objects/old_kethotum.c; reconstructed/objects/worlds_p_internal.h"
         },
         "custom_render": {
           "entry": "0xe3ae5e",
@@ -1992,7 +1992,7 @@
     },
     {
       "class_id": "world-136",
-      "label": "World 136 class",
+      "label": "Burning Kethotum",
       "worlds": [
         136
       ],
@@ -2002,21 +2002,21 @@
       "handlers": {
         "create": {
           "entry": "0xd9381e",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-P complete method; 1,000 instruction cases; model action speeds compared",
+          "source": "reconstructed/objects/burning_kethotum.c; reconstructed/objects/worlds_p_internal.h"
         },
         "move": {
           "entry": "0xd93b31",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-P complete method; 1,000 instruction cases; host runs it after the tick; .ein effect requests compared at the effect-manager boundary, no native consumer",
+          "source": "reconstructed/objects/burning_kethotum.c; reconstructed/objects/worlds_p_internal.h"
         },
         "visual": {
           "entry": "0xd97186",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-P complete method; 1,000 instruction cases",
+          "source": "reconstructed/objects/burning_kethotum.c; reconstructed/objects/worlds_p_internal.h"
         },
         "custom_render": {
           "entry": "0xd94eef",
@@ -2054,21 +2054,21 @@
       "handlers": {
         "create": {
           "entry": "0xe08cd8",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs and a synthetic model action table; 1000 original-instruction cases, compiled mutants. Predicate 0x00e0df03 executed; the PlaySpeed 0.3 written to every model action and the type-3 register (argument 0) recorded. A false return continues into CreateObject's default hook chain, not modelled here. See client-worlds-p2.md.",
+          "source": "reconstructed/objects/kanturu_underground.c"
         },
         "move": {
           "entry": "0xe08f8a",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs and action tables; 1000 original-instruction cases, compiled mutants. SetAction 0x012affa4 and the CRT sine wrapper executed (sin of +-infinity excluded: CRT errno path). Native host runs the type 125-127 action machine after the generic tick. See client-worlds-p2.md.",
+          "source": "reconstructed/objects/kanturu_underground.c"
         },
         "visual": {
           "entry": "0xe0a4bb",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method; 1000 original-instruction cases, compiled mutants. TransformPosition bone 4, CreateParticle/CreateSprite/CreateJoint requests recorded; scales whose (int)(scale*10) is 0 excluded (the client divides by zero). Native joint kinds 0x7f7d 12/14/15 and 0x7f7c 0x12 are refused and counted. See client-worlds-p2.md.",
+          "source": "reconstructed/objects/kanturu_underground.c"
         },
         "custom_render": {
           "entry": "0xe092f4",
@@ -2106,21 +2106,21 @@
       "handlers": {
         "create": {
           "entry": "0xe05afe",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs and models; 1000 original-instruction cases, compiled mutants. Predicate 0x00e0895c executed; StreamMesh byte +0x94 writes compared (types 79/148 without a model dereference null in the client, not executed); native refuses and counts the StreamMesh request. See client-worlds-p2.md.",
+          "source": "reconstructed/objects/ignis_volcano.c"
         },
         "move": {
           "entry": "0xe05d76",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases, compiled mutants. AddTerrainLight and PlayBuffer requests recorded; SEH frame and vector helpers executed. See client-worlds-p2.md.",
+          "source": "reconstructed/objects/ignis_volcano.c"
         },
         "visual": {
           "entry": "0xe07081",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Slot 0x00e07081 returns false with no request; 1000 original-instruction cases, compiled mutant. See client-worlds-p2.md.",
+          "source": "reconstructed/objects/ignis_volcano.c"
         },
         "custom_render": {
           "entry": "0xe05f25",
@@ -2200,7 +2200,7 @@
     },
     {
       "class_id": "world-140",
-      "label": "World 140 class",
+      "label": "Bloody Tarkan",
       "worlds": [
         140
       ],
@@ -2210,21 +2210,21 @@
       "handlers": {
         "create": {
           "entry": "0xd9a022",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-P complete method; 1,000 instruction cases; model action speeds compared",
+          "source": "reconstructed/objects/bloody_tarkan.c"
         },
         "move": {
           "entry": "0xd9a0ad",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-P complete method; 1,000 instruction cases; host runs it after the tick; clamped light 0x016caeae verified separately (1,000 cases)",
+          "source": "reconstructed/objects/bloody_tarkan.c"
         },
         "visual": {
           "entry": "0xd9ac33",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-P complete method; 1,000 instruction cases",
+          "source": "reconstructed/objects/bloody_tarkan.c"
         },
         "custom_render": {
           "entry": "0xd9a2ed",

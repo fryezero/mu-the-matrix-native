@@ -8,8 +8,11 @@ all: libremoteplayers.$(SUFFIX)
 
 libremoteplayers.$(SUFFIX): $(SRC) $(HDR)
 	$(CC) $(CFLAGS) -shared $(SRC) -lm -o $@
+	$(DEPS)
 
 clean:
 	rm -f libremoteplayers.$(SUFFIX)
 
 .PHONY: all clean
+
+include ../deps.mk

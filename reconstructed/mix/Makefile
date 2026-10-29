@@ -5,4 +5,7 @@ SRC = item_actions.c mix_rules.c mix_source.c mix_manager.c item_services.c
 all: libmix.$(SUFFIX)
 libmix.$(SUFFIX): $(SRC) item_actions.h mix_rules.h
 	$(CC) $(CFLAGS) -shared $(SRC) -lm -o $@
+	$(DEPS)
 .PHONY: all
+
+include ../deps.mk

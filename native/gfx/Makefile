@@ -26,7 +26,7 @@ $(BUILD)/data-manifest.o: ../data/manifest.cpp ../data/manifest.h
 $(BUILD)/mu-gfx-window: $(SRC) mu_gfx_layer.h mu_gfx_sdl.h mugfx/include/mugfx.h $(BUILD)/data-manifest.o
 	@mkdir -p $(BUILD)/gfx-window
 	for f in $(SRC); do \
-	  $(CC) $(CFLAGS) $$($(SDL_CONFIG) --cflags) -c $$f -o $(BUILD)/gfx-window/$$(basename $$f .c).o || exit 1; \
+	  $(CC) $(CFLAGS) $(DEPFLAGS) $$($(SDL_CONFIG) --cflags) -c $$f -o $(BUILD)/gfx-window/$$(basename $$f .c).o || exit 1; \
 	done
 	$(CXX) $(BUILD)/gfx-window/*.o $(BUILD)/data-manifest.o $(CONVERT_LDFLAGS) -lcryptopp \
 	  $$($(SDL_CONFIG) --libs) $(GL_LIBS) $(DL_LIBS) -lm -o $@
@@ -36,6 +36,7 @@ $(BUILD)/mu-gfx-window: $(SRC) mu_gfx_layer.h mu_gfx_sdl.h mugfx/include/mugfx.h
 $(BUILD)/mu-gfx-layer-test: ../tests/gfx_layer_host.c $(LAYER_SRC) mu_gfx_layer.h mugfx/include/mugfx.h
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) -DMU_GFX_NO_GL ../tests/gfx_layer_host.c $(LAYER_SRC) $(DL_LIBS) -lm -o $@
+	$(CC) $(CFLAGS) -DMU_GFX_NO_GL -MM -MP -MT $@ $(filter %.c,$^) > $@.d
 
 .PHONY: window
 
@@ -51,12 +52,16 @@ CONVERT_SRC := gfxconvert.c gfxconvert_image.c gfxconvert_fonts.c gfxconvert_act
 CONVERT_OBJ := $(patsubst %.c,$(BUILD)/gfxconvert/%.o,$(CONVERT_SRC))
 CONVERT_FLAGS := -std=c11 -O2 -Wall -Wextra -Werror -Wconversion -ffp-contract=off
 converter: $(BUILD)/gfxconvert/gfxconvert
+# BUILD-DEPS-001: each compile lists the headers it read in a .d next to its object (target $@);
+# the layer-test host, one call over several sources, gets an -MM pass into $@.d.
+DEPFLAGS = -MMD -MP -MT $@
+-include $(wildcard $(BUILD)/gfx-window/*.d $(BUILD)/gfxconvert/*.d $(BUILD)/mu-gfx-layer-test.d)
 $(BUILD)/gfxconvert/%.o: %.c gfxconvert.h Makefile
 	@mkdir -p $(dir $@)
-	$(CC) $(CONVERT_FLAGS) $(CONVERT_CPPFLAGS) -c $< -o $@
+	$(CC) $(CONVERT_FLAGS) $(CONVERT_CPPFLAGS) $(DEPFLAGS) -c $< -o $@
 $(BUILD)/gfxconvert/modulus.o: ../../model-recovery/modulus.cpp
 	@mkdir -p $(dir $@)
-	$(CXX) -std=c++17 -O2 $(CONVERT_CPPFLAGS) -c $< -o $@
+	$(CXX) -std=c++17 -O2 $(CONVERT_CPPFLAGS) $(DEPFLAGS) -c $< -o $@
 $(BUILD)/gfxconvert/gfxconvert: $(CONVERT_OBJ) $(BUILD)/gfxconvert/modulus.o
 	$(CXX) $^ $(CONVERT_LDFLAGS) -lcryptopp -lz -o $@
 .PHONY: converter

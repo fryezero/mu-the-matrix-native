@@ -27,8 +27,16 @@ NATIVE_OPT := -O3 -flto=thin
 else
 NATIVE_OPT := -O2
 endif
-CFLAGS := -std=c11 $(NATIVE_OPT) -ffp-contract=off -fno-fast-math $(WARN)
-CXXFLAGS := -std=c++17 -O2 -Wall -Wextra -Werror -Wconversion
+# BUILD-DEPS-001: every compile also lists the headers it read in a .d file next to its -o output, with
+# the rule's target ($@: the object, or the tool/library a recipe compiles and links), so a header change
+# rebuilds exactly what includes it; the .d files are included below `clean`. CFLAGS/CXXFLAGS are
+# recursive so $@ is the target of each rule that uses them.
+DEPFLAGS = -MMD -MP -MT $@
+# A call that compiles several sources at once keeps only its last source's headers, so those rules
+# also run $(call MULTI_DEPS,<the call's flags>): one -MM pass over their .c prerequisites into $@.d.
+MULTI_DEPS = $(CC) $(filter-out $(DEPFLAGS),$(1)) -MM -MP -MT $@ $(filter %.c,$^) > $@.d
+CFLAGS = -std=c11 $(NATIVE_OPT) -ffp-contract=off -fno-fast-math $(WARN) $(DEPFLAGS)
+CXXFLAGS = -std=c++17 -O2 -Wall -Wextra -Werror -Wconversion $(DEPFLAGS)
 
 CRYPTOPP_PREFIX ?= $(shell if command -v brew >/dev/null 2>&1; then brew --prefix cryptopp; else echo /usr; fi)
 ifneq ($(CRYPTOPP_PREFIX),/usr)
@@ -61,7 +69,7 @@ CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_perf_mesh.c
             core/mu_ui_raster.c core/mu_ui_assets.c core/mu_ui_font.c \
             core/mu_effect.c core/mu_effect_scene.c core/mu_edge.c core/mu_walk.c core/mu_renderchar.c core/mu_path.c \
             core/mu_world_actors.c core/mu_charsel.c core/mu_charsel_ui.c core/mu_login.c \
-            core/mu_data.c core/mu_hud.c core/mu_hud_tip.c core/mu_objects.c core/mu_texture_names.c core/mu_objects_icarus.c core/mu_objects_raklion.c core/mu_objects_runtime.c core/mu_objects_runtime_worlds_b.c core/mu_combat.c core/mu_env.c \
+            core/mu_data.c core/mu_hud.c core/mu_hud_tip.c core/mu_objects.c core/mu_texture_names.c core/mu_objects_icarus.c core/mu_objects_raklion.c core/mu_objects_runtime.c core/mu_objects_runtime_worlds_b.c core/mu_objects_worlds_p.c core/mu_combat.c core/mu_env.c \
             core/mu_particles.c core/mu_joints.c core/mu_lang.c core/mu_items.c \
             core/mu_label.c core/mu_names.c core/mu_world_names.c core/mu_npc.c core/mu_world_players.c fixture/characters_spec.c fixture/monsters_spec.c core/mu_perf.c \
             core/mu_world_helpers.c core/mu_world_pets.c core/mu_quest.c core/mu_skill.c core/mu_map.c core/mu_skill_demo.c core/mu_skill_tree4.c core/mu_world_raven.c core/mu_social.c core/mu_mix.c \
@@ -70,7 +78,7 @@ CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_perf_mesh.c
 RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.c \
              $(RECON)/model-codec/bone_tracks.c $(RECON)/model-codec/pose_builder.c \
              $(RECON)/model-codec/skinning.c $(RECON)/model-codec/character.c $(RECON)/record-math/record_math.c \
-             $(RECON)/terrain/terrain.c $(RECON)/terrain/world_haze.c $(RECON)/objects/objects.c $(RECON)/objects/texture_lookup.c $(RECON)/objects/icarus.c $(RECON)/objects/abyss_atlans.c $(RECON)/objects/nixies_lake.c $(RECON)/objects/deep_dungeon.c $(RECON)/objects/loren_market.c $(RECON)/objects/uruk.c $(RECON)/objects/duel_arena.c $(RECON)/objects/world82.c $(RECON)/objects/santa_village.c $(RECON)/objects/vulcanus.c $(RECON)/objects/object_render.c $(wildcard $(RECON)/objects/world_*_visual.c) $(RECON)/objects/world_after.c $(RECON)/objects/devias.c $(RECON)/objects/tarkan.c $(RECON)/objects/elbeland.c $(RECON)/objects/raklion.c $(RECON)/objects/raklion_event.c $(RECON)/objects/world_warp.c $(RECON)/objects/noria.c $(RECON)/objects/login_world.c $(RECON)/objects/charsel_world.c \
+             $(RECON)/terrain/terrain.c $(RECON)/terrain/world_haze.c $(RECON)/objects/objects.c $(RECON)/objects/texture_lookup.c $(RECON)/objects/icarus.c $(RECON)/objects/abyss_atlans.c $(RECON)/objects/old_kethotum.c $(RECON)/objects/burning_kethotum.c $(RECON)/objects/bloody_tarkan.c $(RECON)/objects/nixies_lake.c $(RECON)/objects/deep_dungeon.c $(RECON)/objects/kanturu_underground.c $(RECON)/objects/ignis_volcano.c $(RECON)/objects/loren_market.c $(RECON)/objects/uruk.c $(RECON)/objects/duel_arena.c $(RECON)/objects/world82.c $(RECON)/objects/santa_village.c $(RECON)/objects/vulcanus.c $(RECON)/objects/object_render.c $(wildcard $(RECON)/objects/world_*_visual.c) $(RECON)/objects/world_after.c $(RECON)/objects/devias.c $(RECON)/objects/tarkan.c $(RECON)/objects/elbeland.c $(RECON)/objects/raklion.c $(RECON)/objects/raklion_event.c $(RECON)/objects/world_warp.c $(RECON)/objects/noria.c $(RECON)/objects/login_world.c $(RECON)/objects/charsel_world.c \
              $(RECON)/camera/client_camera.c $(RECON)/camera/client_world_camera.c \
              $(RECON)/camera/client_input.c $(RECON)/camera/client_frame.c \
              $(RECON)/actors/actors.c $(RECON)/actors/viewport_monsters.c $(RECON)/path/client_path.c \
@@ -139,15 +147,15 @@ all: $(BUILD)/mu-render $(BUILD)/mu-terrain $(BUILD)/mu-frame $(BUILD)/mu-effect
      $(BUILD)/mu-data $(BUILD)/mu-walk $(BUILD)/mu-path $(BUILD)/mu-charsel $(BUILD)/mu-shell $(BUILD)/mu-lang audio \
      $(BUILD)/skill-book-host
 
-$(BUILD)/core/%.o: core/%.c $(HEADERS)
+$(BUILD)/core/%.o: core/%.c
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c $< -o $@
 
 # Reconstructed sources stay unchanged. Keep their arithmetic flags while
 # allowing the native-only ThinLTO build to inline the memory/vector helpers.
-$(BUILD)/recon/%.o: $(RECON)/%.c $(HEADERS)
+$(BUILD)/recon/%.o: $(RECON)/%.c
 	@mkdir -p $(dir $@)
-	$(CC) -std=c11 $(NATIVE_OPT) -Wall -Wextra -Werror -Wconversion -ffp-contract=off -fno-fast-math -c $< -o $@
+	$(CC) -std=c11 $(NATIVE_OPT) -Wall -Wextra -Werror -Wconversion -ffp-contract=off -fno-fast-math $(DEPFLAGS) -c $< -o $@
 
 $(MODULUS_OBJ): ../model-recovery/modulus.cpp
 	@mkdir -p $(dir $@)
@@ -161,7 +169,7 @@ $(LIB): $(CORE_OBJ) $(RECON_OBJ) $(MODULUS_OBJ) $(BUILD)/data-manifest.o
 CHARSEL_RT_SRC := charsel/charsel_rt.c $(sort $(wildcard charsel/parts/*.c))
 CHARSEL_RT_HDR := charsel/mu_charsel_rt.h charsel/charsel_rt_internal.h charsel/charsel_part.h charsel/parts.def
 CHARSEL_RT_OBJ := $(patsubst %.c,$(BUILD)/charsel-rt/%.o,$(CHARSEL_RT_SRC))
-$(BUILD)/charsel-rt/%.o: %.c $(CHARSEL_RT_HDR) $(HEADERS)
+$(BUILD)/charsel-rt/%.o: %.c
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_CHARSEL_NO_GL -c $< -o $@
 
@@ -182,6 +190,7 @@ UI_LIB_SRC := core/mu_ui_raster.c core/mu_ui_assets.c core/mu_ui_font.c $(RECON)
 $(BUILD)/libmuui.$(SHLIB_EXT): $(UI_LIB_SRC) $(HEADERS)
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -fPIC -shared $(UI_LIB_SRC) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+	$(call MULTI_DEPS,$(CFLAGS) $(JPEG_CFLAGS))
 
 $(BUILD)/mu-terrain: tools/mu_terrain.c $(LIB)
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c tools/mu_terrain.c -o $(BUILD)/mu_terrain.o
@@ -214,11 +223,11 @@ WORLD_RT_HDR += fixture/skills_demo.h
 WORLD_RT_OBJ := $(patsubst world/%.c,$(BUILD)/world-rt/%.o,$(WORLD_RT_SRC))
 WORLD_RT_GL_OBJ := $(patsubst world/%.c,$(BUILD)/world-rt-gl/%.o,$(WORLD_RT_SRC))
 
-$(BUILD)/world-rt/%.o: world/%.c $(WORLD_RT_HDR) $(HEADERS) $(GEN_STAMP) $(LAYOUT_STAMP)
+$(BUILD)/world-rt/%.o: world/%.c $(GEN_STAMP) $(LAYOUT_STAMP)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_SESSION_SEED -DMU_WORLD_NO_GL -c $< -o $@
 
-$(BUILD)/world-rt-gl/%.o: world/%.c $(WORLD_RT_HDR) $(HEADERS) $(GEN_STAMP) $(LAYOUT_STAMP) world/world_gfx.h gfx/mu_gfx_layer.h
+$(BUILD)/world-rt-gl/%.o: world/%.c $(GEN_STAMP) $(LAYOUT_STAMP)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_SESSION_SEED $(GL_CFLAGS) $(GFX_CFLAGS) $$($(SDL_CONFIG) --cflags) -c $< -o $@
 
@@ -270,12 +279,14 @@ $(BUILD)/skill-book-host: tests/skill_book_host.c $(LIB) $(BUILD)/libmusession.a
 $(BUILD)/libmumeshdraw.dylib $(BUILD)/libmumeshdraw.so: core/mu_meshdraw.c core/mu_meshdraw.h core/mu_meshdraw_case.c core/mu_meshdraw_case.h
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) -fPIC -shared core/mu_meshdraw.c core/mu_meshdraw_case.c -lm -o $@
+	$(call MULTI_DEPS,$(CFLAGS))
 
 # ---- network protocol module (NATIVE-NET-001) ----
 # Self-contained: framing + send obfuscation only, no Crypto++ or client bytes.
 $(BUILD)/mu-proto: tools/mu_proto.c core/mu_protocol.c core/mu_protocol.h
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) tools/mu_proto.c core/mu_protocol.c -o $@
+	$(call MULTI_DEPS,$(CFLAGS))
 
 
 $(BUILD)/libmuprotocol.dylib $(BUILD)/libmuprotocol.so: core/mu_protocol.c core/mu_protocol.h
@@ -304,6 +315,7 @@ DATA_HDR := core/mu_data.h $(RECON)/data/data_codec.h $(RECON)/data/data_tables.
 $(BUILD)/mu-data: tools/mu_data.c $(DATA_SRC) $(DATA_HDR)
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) tools/mu_data.c $(DATA_SRC) -o $@
+	$(call MULTI_DEPS,$(CFLAGS))
 
 # Lang.mpr tables read from the client; managed exports use the manifest guard.
 $(BUILD)/mu-lang: tools/mu_lang_tool.c core/mu_lang.c core/mu_lang.h core/mu_lang_maps.h $(BUILD)/data-manifest.o
@@ -374,13 +386,13 @@ AUDIO_SO := $(BUILD)/libmuaudio.$(if $(filter Darwin,$(UNAME)),dylib,so)
 
 audio: $(BUILD)/mu-audio $(AUDIO_SO)
 
-$(BUILD)/audio/%.o: core/%.c $(AUDIO_HEADERS)
+$(BUILD)/audio/%.o: core/%.c
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -fPIC -c $< -o $@
 
-$(BUILD)/audio/recon_%.o: $(RECON)/audio/%.c $(AUDIO_HEADERS)
+$(BUILD)/audio/recon_%.o: $(RECON)/audio/%.c
 	@mkdir -p $(dir $@)
-	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -Wconversion -ffp-contract=off -fPIC -c $< -o $@
+	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -Wconversion -ffp-contract=off -fPIC $(DEPFLAGS) -c $< -o $@
 
 $(BUILD)/libmuaudio.a: $(AUDIO_OBJ)
 	rm -f $@
@@ -472,6 +484,7 @@ all: $(NET_SO)
 $(NET_SO): $(NET_SRC) core/mu_protocol.c $(NET_HDR)
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) -fPIC -shared $(NET_SRC) core/mu_protocol.c -o $@
+	$(call MULTI_DEPS,$(CFLAGS))
 
 # ---- SESSION-CORE-001: the session core and its domains (native/session) ----
 # scripts/gen_domains.py generates the domain, route, intent and behaviour lists into build/gen and
@@ -510,11 +523,11 @@ $(GEN_STAMP): $(GEN_INPUTS)
 	$(GEN_PYTHON) ../scripts/gen_domains.py --out $(GEN)
 	@touch $@
 
-$(BUILD)/sdev/%.o: %.c $(SESSION_HDR) $(GEN_STAMP) $(LAYOUT_STAMP)
+$(BUILD)/sdev/%.o: %.c $(GEN_STAMP) $(LAYOUT_STAMP)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(SESSION_CFLAGS) -DMU_SESSION_SEED -DMU_SESSION_AUDIT -c $< -o $@
 
-$(BUILD)/sprod/%.o: %.c $(SESSION_HDR) $(GEN_STAMP) $(LAYOUT_STAMP)
+$(BUILD)/sprod/%.o: %.c $(GEN_STAMP) $(LAYOUT_STAMP)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(SESSION_CFLAGS) -c $< -o $@
 
@@ -536,6 +549,16 @@ $(BUILD)/mu-session: tools/mu_session.c $(BUILD)/libmusession.a $(LIB) $(SESSION
 clean:
 	rm -rf $(BUILD)
 
+# BUILD-DEPS-001: the header lists written by DEPFLAGS/MULTI_DEPS (gfx/Makefile includes its own). The
+# object pattern rules carry no hand-written header lists: an object built before this change has no .d
+# yet and is rebuilt once.
+DEP_FILES := $(shell find $(BUILD) \( -name gfx-window -o -name gfxconvert \) -prune -o -name '*.d' ! -name 'mu-gfx-*' -print 2>/dev/null)
+-include $(DEP_FILES)
+DEP_OBJ := $(CORE_OBJ) $(RECON_OBJ) $(CHARSEL_RT_OBJ) $(WORLD_RT_OBJ) $(WORLD_RT_GL_OBJ) $(AUDIO_OBJ) \
+           $(SESSION_DEV_OBJ) $(SESSION_PROD_OBJ) $(BUILD)/sdev/fixture/world_fixture.o
+$(filter-out $(DEP_FILES:.d=.o),$(wildcard $(DEP_OBJ))): deps-missing
+.PHONY: deps-missing
+
 .PHONY: all viewer frame-window world charsel client audio audio-live clean preview-app
 
 # SESSION-QUEST-001: offline tools now use the dev session/fixture library.
@@ -545,9 +568,10 @@ $(WORLD_RT_OBJ) $(WORLD_RT_GL_OBJ): $(GEN_STAMP)
 QUEST_LIB_SRC := $(RECON)/items/ground_items.c $(RECON)/movement/client_movement.c fixture/monsters_spec.c $(RECON)/actors/viewport_monsters.c $(RECON)/actors/actors.c $(RECON)/model-codec/skinning.c $(RECON)/model-codec/pose_builder.c $(RECON)/model-codec/bone_tracks.c $(RECON)/record-math/record_math.c fixture/characters_spec.c $(RECON)/players/remote_players.c $(SESSION_SRC) $(NET_SRC) $(FIXTURE_SRC) $(wildcard $(RECON)/quest/quest_*.c) core/mu_protocol.c $(wildcard $(RECON)/progress/progress_*.c) core/mu_lang.c
 $(BUILD)/libmuquest.dylib $(BUILD)/libmuquest.so: $(QUEST_LIB_SRC) $(LIB) $(GEN_STAMP) $(LAYOUT_STAMP)
 	$(CC) $(CFLAGS) $(SESSION_CFLAGS) -DMU_SESSION_SEED -shared -fPIC $(QUEST_LIB_SRC) $(LIB) $(UI_LIBS) -lm -o $@
+	$(call MULTI_DEPS,$(CFLAGS) $(SESSION_CFLAGS) -DMU_SESSION_SEED)
 
 # Offline app keeps its no-network-import contract; TCP fixture serving stays in mu-session.
-$(BUILD)/sdev/fixture/world_fixture.o: fixture/fixture.c $(SESSION_HDR) $(GEN_STAMP) $(LAYOUT_STAMP)
+$(BUILD)/sdev/fixture/world_fixture.o: fixture/fixture.c $(GEN_STAMP) $(LAYOUT_STAMP)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(SESSION_CFLAGS) -DMU_SESSION_SEED -DMU_SESSION_AUDIT -DMU_FIXTURE_NO_TCP -c $< -o $@
 $(BUILD)/libmusession_world.a: $(filter-out $(BUILD)/sdev/fixture/fixture.o,$(SESSION_DEV_OBJ)) $(BUILD)/sdev/fixture/world_fixture.o
@@ -566,17 +590,17 @@ $(BUILD)/mu-native-data: data/manifest.cpp data/manifest.h
 .PHONY: layout
 layout: $(LAYOUT_STAMP)
 
-$(BUILD)/core/mu_world_players.o: core/mu_world_players.c $(HEADERS) $(GEN_STAMP) $(LAYOUT_STAMP)
+$(BUILD)/core/mu_world_players.o: core/mu_world_players.c $(GEN_STAMP) $(LAYOUT_STAMP)
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c core/mu_world_players.c -o $@
 
-$(BUILD)/fixture/%.o: fixture/%.c $(HEADERS)
+$(BUILD)/fixture/%.o: fixture/%.c
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c $< -o $@
 
-$(WORLD_RT_OBJ) $(WORLD_RT_GL_OBJ): $(GEN_STAMP) $(LAYOUT_STAMP) $(SESSION_HDR)
+$(WORLD_RT_OBJ) $(WORLD_RT_GL_OBJ): $(GEN_STAMP) $(LAYOUT_STAMP)
 
 # Core facades consume session headers too, including generated intents and layouts.
-$(CORE_OBJ): $(GEN_STAMP) $(LAYOUT_STAMP) $(SESSION_HDR)
+$(CORE_OBJ): $(GEN_STAMP) $(LAYOUT_STAMP)
 
 
 $(BUILD)/icarus-host: tests/icarus_host.c $(LIB) $(HEADERS)
@@ -662,3 +686,11 @@ $(BUILD)/worlds-g2-host: tests/worlds_g2_host.c $(LIB) $(HEADERS)
 $(BUILD)/worlds-n-host: tests/worlds_n_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-n-host.o
 	$(CXX) $(BUILD)/worlds-n-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+
+$(BUILD)/worlds-p-host: tests/worlds_p_host.c $(LIB) $(HEADERS)
+	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-p-host.o
+	$(CXX) $(BUILD)/worlds-p-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+
+$(BUILD)/worlds-p2-host: tests/worlds_p2_host.c $(LIB) $(HEADERS)
+	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-p2-host.o
+	$(CXX) $(BUILD)/worlds-p2-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
