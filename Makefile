@@ -36,45 +36,51 @@ all:
 	$(MAKE) -C reconstructed/progress
 	$(MAKE) -C native
 
+# The unittest discoveries `make test` runs, one directory each, in this order. This is the only list:
+# scripts/run_test_suites.py runs it (a pool of MU_GATE_JOBS workers; MU_GATE_JOBS=1 is one after another,
+# stopping at the first failure) and tests/test_run_test_suites.py checks nothing is discovered elsewhere.
+TEST_SUITES = \
+	reconstructed/boot \
+	asset-recovery \
+	model-recovery \
+	tests \
+	reconstructed/client-memory \
+	reconstructed/record-math \
+	reconstructed/model-codec \
+	reconstructed/camera \
+	reconstructed/path \
+	reconstructed/actors \
+	reconstructed/audio \
+	reconstructed/ui \
+	reconstructed/data \
+	reconstructed/effects \
+	reconstructed/movement \
+	reconstructed/renderchar \
+	reconstructed/charsel \
+	reconstructed/hud \
+	reconstructed/objects \
+	reconstructed/scene \
+	reconstructed/combat \
+	reconstructed/environment \
+	reconstructed/particles \
+	reconstructed/items \
+	reconstructed/joints \
+	reconstructed/names \
+	reconstructed/npc \
+	reconstructed/price \
+	reconstructed/mix \
+	reconstructed/helpers \
+	reconstructed/raven \
+	reconstructed/pets \
+	reconstructed/quest \
+	reconstructed/skill \
+	reconstructed/map \
+	reconstructed/social \
+	reconstructed/progress \
+	native/tests
+
 test: all
-	$(PYTHON) -m unittest discover -s reconstructed/boot -p 'test_*.py' -v
-	$(PYTHON) -m unittest discover -s asset-recovery -p 'test_*.py' -v
-	$(PYTHON) -m unittest discover -s model-recovery -p 'test_*.py' -v
-	$(PYTHON) -m unittest discover -s tests -p 'test_*.py' -v
-	$(PYTHON) -m unittest discover -s reconstructed/client-memory -p 'test_*.py' -v
-	$(PYTHON) -m unittest discover -s reconstructed/record-math -p 'test_*.py' -v
-	$(PYTHON) -m unittest discover -s reconstructed/model-codec -p 'test_*.py' -v
-	$(PYTHON) -m unittest discover -s reconstructed/camera -p 'test_*.py' -v
-	$(PYTHON) -m unittest discover -s reconstructed/path -p 'test_*.py' -v
-	$(PYTHON) -m unittest discover -s reconstructed/actors -p 'test_*.py' -v
-	$(PYTHON) -m unittest discover -s reconstructed/audio -p 'test_*.py' -v
-	$(PYTHON) -m unittest discover -s reconstructed/ui -p 'test_*.py' -v
-	$(PYTHON) -m unittest discover -s reconstructed/data -p 'test_*.py' -v
-	$(PYTHON) -m unittest discover -s reconstructed/effects -p 'test_*.py' -v
-	$(PYTHON) -m unittest discover -s reconstructed/movement -p 'test_*.py' -v
-	$(PYTHON) -m unittest discover -s reconstructed/renderchar -p 'test_*.py' -v
-	$(PYTHON) -m unittest discover -s reconstructed/charsel -p 'test_*.py' -v
-	$(PYTHON) -m unittest discover -s reconstructed/hud -p 'test_*.py' -v
-	$(PYTHON) -m unittest discover -s reconstructed/objects -p 'test_*.py' -v
-	$(PYTHON) -m unittest discover -s reconstructed/scene -p 'test_*.py' -v
-	$(PYTHON) -m unittest discover -s reconstructed/combat -p 'test_*.py' -v
-	$(PYTHON) -m unittest discover -s reconstructed/environment -p 'test_*.py' -v
-	$(PYTHON) -m unittest discover -s reconstructed/particles -p 'test_*.py' -v
-	$(PYTHON) -m unittest discover -s reconstructed/items -p 'test_*.py' -v
-	$(PYTHON) -m unittest discover -s reconstructed/joints -p 'test_*.py' -v
-	$(PYTHON) -m unittest discover -s reconstructed/names -p 'test_*.py' -v
-	$(PYTHON) -m unittest discover -s reconstructed/npc -p 'test_*.py' -v
-	$(PYTHON) -m unittest discover -s reconstructed/price -p 'test_*.py' -v
-	$(PYTHON) -m unittest discover -s reconstructed/mix -p 'test_*.py' -v
-	$(PYTHON) -m unittest discover -s reconstructed/helpers -p 'test_*.py' -v
-	$(PYTHON) -m unittest discover -s reconstructed/raven -p 'test_*.py' -v
-	$(PYTHON) -m unittest discover -s reconstructed/pets -p 'test_*.py' -v
-	$(PYTHON) -m unittest discover -s reconstructed/quest -p 'test_*.py' -v
-	$(PYTHON) -m unittest discover -s reconstructed/skill -p 'test_*.py' -v
-	$(PYTHON) -m unittest discover -s reconstructed/map -p 'test_*.py' -v
-	$(PYTHON) -m unittest discover -s reconstructed/social -p 'test_*.py' -v
-	$(PYTHON) -m unittest discover -s reconstructed/progress -p 'test_*.py' -v
-	$(PYTHON) -m unittest discover -s native/tests -p 'test_*.py' -v
+	$(PYTHON) scripts/run_test_suites.py $(TEST_SUITES)
 
 native-viewer:
 	$(MAKE) -C native viewer

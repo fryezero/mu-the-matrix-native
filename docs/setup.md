@@ -17,7 +17,12 @@ make test PYTHON=./tools/python/bin/python
 The project targets macOS only. Pull requests run no hosted CI: before merging, run
 `scripts/local-macos-ci.sh` on a Mac (`make test`, the windowed viewer, the read-only live-state readers and
 the publication audit). The hosted workflow still exists for manual runs only (Linux by default, macOS with the
-`macos` input). Unit tests
+`macos` input). The gate runs the `make test` suites (the Makefile's `TEST_SUITES`, the only suite list)
+through `scripts/run_test_suites.py` in a pool of `MU_GATE_JOBS` workers (default `min(4, cores/2)`, with
+`native/tests` split per module), then runs its four other steps side by side. Each suite logs to
+`verify-runs/`, and the summary lists counts per suite. `MU_GATE_JOBS=1` runs the old sequential gate step by
+step. On a shared Mac, run `nice -n 10 bash scripts/local-macos-ci.sh`. See
+[GATE-PAR-001](handoffs/GATE-PAR-001.md). Unit tests
 use authored geometry/image/decoder fixtures and public LEA vectors. Fourteen
 private-input checks explicitly skip by default. A source-only checkout should
 pass without downloading or shipping the original game.

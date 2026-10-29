@@ -20,14 +20,14 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / 'scripts'
 sys.path.insert(0, str(SCRIPTS))
 import pins  # noqa: E402
+import run_test_suites  # noqa: E402
 import run_validators as rv  # noqa: E402
 
 ORPHAN_TEST = 'tests/test_orphan_validators_private.py'
 
 
 def makefile_test_dirs():
-    text = (ROOT / 'Makefile').read_text()
-    return set(re.findall(r'unittest discover -s (\S+)', text))
+    return set(run_test_suites.makefile_suites())
 
 
 class ManifestTests(unittest.TestCase):
