@@ -7,8 +7,11 @@ all: $(LIB)
 
 $(LIB): scene.c scene.h
 	$(CC) $(CFLAGS) -shared scene.c -o $@
+	$(DEPS)
 
 clean:
 	rm -f libscene.dylib libscene.so
 
 .PHONY: all clean
+
+include ../deps.mk

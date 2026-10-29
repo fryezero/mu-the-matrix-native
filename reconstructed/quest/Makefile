@@ -8,5 +8,8 @@ all: libquest.$(SUFFIX)
 
 libquest.$(SUFFIX): $(SRC) $(HDR)
 	$(CC) $(CFLAGS) -shared $(SRC) -o $@
+	$(DEPS)
 
 .PHONY: all
+
+include ../deps.mk

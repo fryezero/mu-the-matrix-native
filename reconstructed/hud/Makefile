@@ -8,8 +8,11 @@ all: libmu_hud.$(SUFFIX)
 
 libmu_hud.$(SUFFIX): $(SOURCES) $(HEADERS)
 	$(CC) $(CFLAGS) -shared $(SOURCES) -o $@
+	$(DEPS)
 
 clean:
 	rm -f libmu_hud.dylib libmu_hud.so
 
 .PHONY: all clean
+
+include ../deps.mk

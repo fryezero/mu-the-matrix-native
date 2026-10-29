@@ -8,5 +8,8 @@ all: libmap.$(SUFFIX)
 
 libmap.$(SUFFIX): $(SRC) $(HDR)
 	$(CC) $(CFLAGS) -shared $(SRC) -o $@
+	$(DEPS)
 
 .PHONY: all
+
+include ../deps.mk

@@ -6,7 +6,7 @@ all: $(addprefix build/,$(TOOLS))
 build:
 	mkdir -p $@
 build/%: %.c debugger-entitlement.plist | build
-	clang -O2 -Wall $< -o $@
+	clang -O2 -Wall -MMD -MP -MT $@ $< -o $@
 	codesign -s - -f --entitlements debugger-entitlement.plist $@
 # objread: NATIVE-OBJECTS-001 static-object list (+ NATIVE-LOGIN-001 scene globals)
 # memread: NATIVE-PATH-002 fixed static-data ranges
@@ -14,6 +14,8 @@ build/%: %.c debugger-entitlement.plist | build
 # langread: NATIVE-LANG-001 / NATIVE-QUEST-001 tables main.exe built from Data\Lang.mpr
 # rtsample: RENDER-TIME-002 post-draw temporal summaries (rtinput/ holds its Wine-side input replay, built separately)
 $(TOOLS): %: build/%
+# BUILD-DEPS-001: -MMD lists each tool's headers in build/<tool>.d.
+-include $(wildcard build/*.d)
 clean:
 	rm -rf build
 .PHONY: all clean $(TOOLS)
