@@ -158,6 +158,20 @@ int mu_effect_scene_create(mu_effect_scene *s, const char *client_path, const fl
     return (int)s->instance_count++;
 }
 
+int mu_effect_scene_template(mu_effect_scene *s, const char *client_path, char *error, unsigned long error_size)
+{
+    return find_template(s, client_path, error, error_size);
+}
+
+void mu_effect_scene_update_one(mu_effect_scene *s, uint32_t instance, float dt)
+{
+    if (instance >= s->instance_count)
+        return;
+    mu_effect_instance *inst = &s->instances[instance];
+    mu_fx_node_update(&inst->fx, dt, inst->has_external ? inst->external : NULL, &inst->owner, &s->rng, &s->terrain,
+                      s->tree);
+}
+
 void mu_effect_scene_attach(mu_effect_scene *s, uint32_t instance, const float matrix[16])
 {
     if (instance >= s->instance_count)

@@ -867,11 +867,41 @@ static void builtin_bone(void *context, const char *name, const float local[3], 
         }
 }
 
+/* RENDER-EFFECTS-006: an owned CreateEffect with info word4 at args[word4]: type, position, angle, light, subtype
+ * (args 0..10), the owner flag at args[word4 - 1]. Without the consumer hook it stays refused and counted. */
+static void owned_effect(mu_objects_runtime *rt, const mu_obj_event *e, int32_t word4)
+{
+    if (!rt->effect_word4) {
+        ++rt->draw_unsupported;
+        return;
+    }
+    float position[3], angle[3], light[3];
+    for (int q = 0; q < 3; ++q) {
+        position[q] = fbits(e->args[1 + q]);
+        angle[q] = fbits(e->args[4 + q]);
+        light[q] = fbits(e->args[7 + q]);
+    }
+    rt->effect_word4(rt->hook_context, (int32_t)e->args[0], (int32_t)e->args[10], position, angle, light,
+                     e->args[word4 - 1] ? e->object : -1, (uint16_t)e->args[word4]);
+    ++rt->effect_events;
+}
+
 static void consume_visual(mu_objects *o, const mu_obj_log *log)
 {
     mu_objects_runtime *rt = &o->rt;
     for (int32_t k = 0; k < log->count; ++k) {
         const mu_obj_event *e = &log->events[k];
+        if (e->call == MU_Q_KEYED_EFFECT) {   /* Q: the object is always the owner; args[11] is word4 */
+            mu_obj_event owned = *e;
+            owned.args[12] = owned.args[11];
+            owned.args[11] = 1;
+            owned_effect(rt, &owned, 12);
+            continue;
+        }
+        if (e->call == MU_R2_EFFECT || e->call == MU_WR_EFFECT_SCALED) {   /* owner flag args[11], word4 args[12] */
+            owned_effect(rt, e, 12);
+            continue;
+        }
         if (e->call == MU_OBJ_CALL_SPRITE && rt->sprite) {   /* CreateSprite 0x01692eb7 (NATIVE-JOINT-001) */
             float position[3], light[3];
             for (int q = 0; q < 3; ++q) {
@@ -900,7 +930,7 @@ static void consume_visual(mu_objects *o, const mu_obj_log *log)
             }
             rt->joint(rt->hook_context, (int32_t)e->args[0], position, target, angle,
                       (int32_t)e->args[10], e->args[11] ? e->object : -1, fbits(e->args[12]));
-        } else if (e->call == MU_URUK_KEYED_EFFECT || e->call == MU_URUK_COLORED_JOINT || e->call == MU_Q_KEYED_EFFECT) {
+        } else if (e->call == MU_URUK_KEYED_EFFECT || e->call == MU_URUK_COLORED_JOINT) {
             ++rt->draw_unsupported; /* No native key/color consumer; preserve the refusal. */
         } else if (e->call == MU_OBJ_CALL_SOUND) {
             ++rt->sound_events;
@@ -989,9 +1019,9 @@ static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_obje
             mu_kardamahal_visual(img, i, 1, visual_rand, &c, &log);
         else
             mu_swamp_visual(img, i, 1, visual_rand, &c, &log);
-        for (int32_t k = 0; k < log.count; ++k)   /* effects with info word4 and unmodelled joint kinds: refused */
-            if (events[k].call == MU_R2_EFFECT || (events[k].call == MU_ICARUS_JOINT &&
-                !mu_jt_kind_supported((int32_t)events[k].args[0], (int32_t)events[k].args[10]))) {
+        for (int32_t k = 0; k < log.count; ++k)   /* unmodelled joint kinds: refused (word4 effects: owned_effect) */
+            if (events[k].call == MU_ICARUS_JOINT &&
+                !mu_jt_kind_supported((int32_t)events[k].args[0], (int32_t)events[k].args[10])) {
                 events[k].call = 0;
                 ++o->rt.draw_unsupported;
             }
@@ -1023,8 +1053,8 @@ static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_obje
             mu_red_smoke_icarus_visual(img, i, 1, bones_ready ? visual_bone : NULL, &c, &log);
         else if (o->world == 0x86)
             mu_gray_aida_visual(img, i, 1, world_time, visual_rand, bones_ready ? visual_bone : NULL, &c, &log);
-        for (int32_t k = 0; k < log.count; ++k)   /* no native extra-mesh or keyed-effect consumer: refused */
-            if (events[k].call == MU_OBJ_CALL_MESH || events[k].call == MU_WR_EFFECT_SCALED) ++o->rt.draw_unsupported;
+        for (int32_t k = 0; k < log.count; ++k)   /* no native extra-mesh consumer: refused (0x199: owned_effect) */
+            if (events[k].call == MU_OBJ_CALL_MESH) ++o->rt.draw_unsupported;
     }
     else if (o->world >= 0x83 && o->world <= 0x86)
         return;
@@ -1161,6 +1191,9 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
                                o->world == 80 || o->world == 81 || o->world == 0x87 || (o->world == 8 && t == 63)))
             posed = pose_object(o, img, m, &log);
         handler_visual(o, i, img, primary_visual ? m : posed ? m : NULL, in.light.time, posed);
+        if (rt->ein_update && rt->ein_listed && rt->ein_listed(rt->hook_context, i))   /* 0x016d51d8..0x016d51f5 */
+            rt->ein_update(rt->hook_context, i, img, posed ? mu_model_bone_matrices(&m->model) : NULL,
+                           posed ? m->bmd.bone_count : 0, mu_frame_time_value() /* [0x01cf103c] */);
     } else if (!rt->visual) {
         mu_obj_visual(img, o->world, in.light.time);   /* RenderObjectVisual follows RenderObject */
     }

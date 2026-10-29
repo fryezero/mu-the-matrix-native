@@ -123,6 +123,7 @@ MATRIX = 0x29400000
 KINDS = [(0x7ef7, 1)] + [(0x7f3c, s) for s in (0, 1, 2, 3, 4, 5, 6, 17)] + [(0x7f5a, 0), (0x7f5a, 2), (0x7f5a, 3), (0x7f25, 0), (0x771c, 0), (0x771d, 0),
                                                             (0x7f2b, 0), (0x7f26, 0), (0x7f26, 1),
                                                             *[(0x7f89, s) for s in range(6)], (0x7f89, 0x14), (0x801a, 2),   # NATIVE-JOINT-001: login mist/spray
+                                                            (0x7f89, 0xb),                 # RENDER-WORLDS-G3: Vulcanus' red haze
                                                             (0x7f66, 0), (0x7f66, 1),      # Noria's Shiny01
                                                             # NATIVE-CHARSEL-002: the character-select scene
                                                             (0x801b, 2), (0x801c, 0xe), (0x8017, 0), (0x8022, 5),
@@ -833,8 +834,9 @@ def family_render(m, lib, rng, cases, report, negatives):
                 if rc.state[k] == STATE_SUB:
                     mine.append(('state', rc.state[k], rc.state_arg[k]))
             sp = rc.sprite
-            mine.append(('sprite', sp.bitmap, list(sp.position), sp.width, sp.height, list(sp.light), sp.rotation,
-                         sp.u, sp.v, sp.uw, sp.vh, sp.axes))
+            if rc.sprites:   # RENDER-EFFECTS-006: a kind may set its blend state and draw nothing
+                mine.append(('sprite', sp.bitmap, list(sp.position), sp.width, sp.height, list(sp.light),
+                             sp.rotation, sp.u, sp.v, sp.uw, sp.vh, sp.axes))
         mismatch = None
         if vc.ok(r) and (len(calls) != len(mine) or not all(vc._same_call(a, b) for a, b in zip(calls, mine))):
             mismatch = ('calls', calls, mine)

@@ -93,7 +93,7 @@ RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.
              $(RECON)/hud/inv_grid.c $(RECON)/hud/item_slots.c $(RECON)/hud/item_pass.c \
              $(RECON)/hud/tooltip_html.c $(RECON)/hud/tooltip_format.c \
              $(RECON)/combat/combat.c $(RECON)/combat/skill_fx.c $(RECON)/joints/joints.c \
-             $(RECON)/environment/env_core.c $(RECON)/environment/env_boids.c $(RECON)/environment/env_elbeland.c $(RECON)/environment/env_icarus.c $(RECON)/environment/env_fish.c \
+             $(RECON)/environment/env_core.c $(RECON)/environment/env_boids.c $(RECON)/environment/env_elbeland.c $(RECON)/environment/env_icarus.c $(RECON)/environment/env_fish.c $(RECON)/environment/env_body.c \
              $(RECON)/environment/env_leaves.c $(RECON)/environment/raklion_snow.c $(RECON)/environment/env_world.c \
              $(RECON)/particles/particles.c $(RECON)/particles/world_flames.c $(RECON)/particles/elbeland.c $(RECON)/particles/sprites.c $(RECON)/particles/shadow.c \
              $(RECON)/particles/visual.c $(RECON)/particles/layout.c \
@@ -719,3 +719,7 @@ $(BUILD)/worlds-p2-host: tests/worlds_p2_host.c $(LIB) $(HEADERS)
 $(BUILD)/worlds-r2-host: tests/worlds_r2_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-r2-host.o
 	$(CXX) $(BUILD)/worlds-r2-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+
+$(BUILD)/render-effects6-host: tests/render_effects6_host.c $(LIB) $(HEADERS)
+	$(CC) $(CFLAGS) -c $< -o $(BUILD)/render-effects6-host.o
+	$(CXX) $(BUILD)/render-effects6-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@

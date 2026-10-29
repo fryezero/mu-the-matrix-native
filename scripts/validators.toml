@@ -1994,6 +1994,20 @@ args = ["--cases", "10", "--particle-cases", "200", "--stone-cases", "200", "--m
 all_equal = true
 all_mutants_caught = true
 
+[validate_render_effects6]
+test = "native/tests/test_native_render_effects6.py::RenderEffects6Host.test_original_instructions_and_compiled_mutants"
+pins = ["text", "data"]
+families = ["fx_create", "fx_move", "pt_create", "pt_move", "pt_render"]
+cases = 1000
+mutants = 34
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/particles", "reconstructed/combat"]
+args = ["--cases", "200", "--particle-cases", "200", "--mutations", "--output", "{report}"]
+[validate_render_effects6.expect]
+all_equal = true
+all_mutants_caught = true
+
 [validate_world_particle_consumers]
 test = "reconstructed/particles/test_particles.py::ParticleTests.test_world_consumer_original_instructions"
 pins = ["text", "data"]
@@ -2432,6 +2446,23 @@ args = ["--cases", "1000", "--mutations", "--output", "{report}"]
 "families.*.stopped" = 0
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
+
+[validate_worlds_g3]
+test = "reconstructed/environment/test_env_body.py::EnvBodyTests.test_original_instructions"
+pins = ["text", "data"]
+families = ["object_init", "env_render", "clouds_ember", "abyss_fish"]
+cases = 4000
+mutants = 22
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/environment", "reconstructed/particles", "reconstructed/objects"]
+args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+[validate_worlds_g3.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0
+
 [validate_worlds_after2]
 test = "reconstructed/objects/test_worlds_after2.py::WorldsAfter2Tests.test_original_instructions"
 pins = ["text", "data"]
