@@ -36,6 +36,9 @@ typedef struct wg_items wg_items;
 /* game_root may be NULL (nothing is drawn; the layer keeps its stand-ins). */
 wg_items *wg_items_open(const char *game_root);
 void wg_items_close(wg_items *w);
+/* RENDER-ITEMS-TEX-002 (authored): part models loaded afterwards take this class byte's skin index (+0xa4), as if
+ * the hero had worn them; -1 (default) keeps 0. */
+void wg_items_set_wearer(wg_items *w, int32_t class_byte);
 /* mu_gfx_items_fn / mu_gfx_icons_fn for the layer config (user = wg_items). */
 void wg_items_draw(void *user, const mu_gfx_item_draw *items, int n, int32_t stage_w, int32_t stage_h);
 int wg_items_icons(void *user, const mu_gfx_item_draw *items, int n, uint8_t *rgba, int32_t w, int32_t h);

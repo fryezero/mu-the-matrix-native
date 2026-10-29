@@ -307,5 +307,6 @@ void mu_textures_free(mu_textures *t)
     free(t->wrap);
     free(t->extra_index);
     free(t->client_index);
+    free(t->texture_type);
     memset(t, 0, sizeof *t);
 }

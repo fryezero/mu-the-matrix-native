@@ -29,4 +29,11 @@ enum { MU_IT_PLAIN = 0, MU_IT_NUDE = 1, MU_IT_COTTON = 2, MU_IT_COTTON2 = 3 };
  * without requests and *step = 0. */
 int32_t mu_it_open(const mu_tl_host *h, const char *folder, const char *name, int32_t *type, int *field, int *step);
 
+/* RENDER-ITEMS-TEX-002: the wearer's skin. RenderCharacter's part loop (0x0136a39a..) fetches each part slot's model
+ * and writes model +0xa4 = 0x0139d6a2(character +0x12 class byte) (0x0136a4a9..0x0136a4c3); the item loader leaves
+ * +0xa4 = 0 (memset 0x00cd5623). The mesh draw (0x012b8e78..) binds a skin IndexTexture (0x7725, 0x7776, 0x77c7,
+ * 0x7818, 0x7869, 0x78ba) plus +0xa4 (movsx); other indices are unchanged. */
+int8_t mu_it_part_skin(uint8_t class_byte);
+int32_t mu_it_skin_bitmap(int32_t index_texture, int8_t skin);
+
 #endif
