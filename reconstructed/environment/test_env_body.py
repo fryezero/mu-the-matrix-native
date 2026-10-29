@@ -2,7 +2,7 @@
 
 Portable: the helper on synthetic objects (alpha test, HiddenMesh -2, the Chaos Castle step, the Atlans fish
 blend mesh 0 with its light). Private (MU_RECOVERY_INTEGRATION=1 and the restored text/data): the Unicorn
-comparison scripts/validate_worlds_g3.py.
+comparison scripts/validate_worlds_g3.py (also clouds 0x7f89 subtype 0xb).
 """
 import ctypes as C
 import json
@@ -78,9 +78,9 @@ class EnvBodyTests(unittest.TestCase):
             subprocess.run([sys.executable, str(ROOT / 'scripts/validate_worlds_g3.py'), '--cases', '1000',
                             '--mutations', '--output', str(report)], check=True, capture_output=True)
             result = json.loads(report.read_text())
-            self.assertEqual(sum(r['cases'] for r in result['families'].values()), 3000)
+            self.assertEqual(sum(r['cases'] for r in result['families'].values()), 4000)
             self.assertTrue(all(r['cases'] == r['equal'] and r['stopped'] == 0 for r in result['families'].values()))
-            self.assertEqual(len(result['mutants']), 12)
+            self.assertEqual(len(result['mutants']), 22)
             self.assertTrue(all(m['detected'] > 0 and m['stopped'] == 0 for m in result['mutants']))
             self.assertEqual(result['static']['fish_type_compares'], [])
 

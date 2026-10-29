@@ -10,6 +10,10 @@ Families (compiled C via ctypes against the pinned original under the strict Uni
                Chaos Castle worlds and others: whether RenderBody 0x00966def is called, its eight arguments and
                the object bytes afterwards (the setup's Chaos Castle alpha step) against mu_env_render_body.
                The custom render 0x017f76ec and the render registry are stubbed to "not taken" (see below).
+  clouds_ember CreateParticle/MoveParticles/RenderParticles of clouds 0x7f89 subtype 0xb (Vulcanus' and world 82's
+               type-3 red haze) through scripts/validate_particles.py's create/move/render families restricted to that
+               kind; half the moved records start within 500 units of their start so both outcomes of the distance
+               test occur.
   abyss_fish   the Abyss of Atlans class slots 0x38 (custom render) and 0x3c (after) of classes 128..130 for
                the fish/boid model types 0x196..0x1a0 and 0x1b3: answer, calls and object bytes against the C
                (reconstructed/objects/world_abyss_visual.c), so the class slot that ends 0x017f76ec's chain does
@@ -36,7 +40,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 import actor_machine as am  # noqa: E402
 import validate_object_render as v  # noqa: E402
-import validate_particles as vp  # noqa: E402
+import validate_particles as vpart  # noqa: E402
 import validate_worlds_after as wa  # noqa: E402
 
 OBJECT_INIT, OBJECT_INIT_FIRST_CALL = 0x0129eb81, 0x0129ee24
@@ -213,6 +217,42 @@ def family_abyss_fish(machine, objlib, g, cases):
     return t
 
 
+EMBER = (0x7f89, 0xb)
+
+
+def family_clouds_ember(machine, ptlib, g, cases):
+    kinds, random_particle = vpart.KINDS, vpart.random_particle
+
+    def near_start(rng, kind):
+        p = random_particle(rng, kind)
+        if rng.random() < 0.5:
+            reach = rng.choice([10.0, 300.0, 499.0, 501.0, 600.0])
+            for k in range(3):
+                p.start[k] = vpart.f32(p.position[k] - rng.uniform(-reach, reach) / 1.8)
+        return p
+
+    vpart.KINDS, vpart.random_particle = [EMBER], near_start
+    report, negatives = vpart.Report(), {}
+    try:
+        for name, fn in (('create', vpart.family_create), ('move', vpart.family_move),
+                         ('render', vpart.family_render)):
+            fn(machine, ptlib, random.Random(g.random()), cases // 3 + (name == 'create') * (cases % 3), report,
+               negatives)
+    finally:
+        vpart.KINDS, vpart.random_particle = kinds, random_particle
+    t = v.Tally('clouds_ember')
+    for name, entry in report.families.items():
+        t.cases += entry['cases']
+        t.equal += entry['equal']
+        t.mismatches += [{'family': name, **(f if isinstance(f, dict) else {'detail': str(f)[:400]})}
+                         for f in entry['first_failures'][:3]]
+        t.count(name, entry['cases'])
+    for family, cover in report.coverage.items():
+        for key, n in cover.items():
+            t.count(f'{family} {key}', n)
+    return t
+
+
 def static_custom_render(text):
     lo, hi = CUSTOM_RENDER
     import capstone
@@ -225,7 +265,7 @@ def static_custom_render(text):
 
 
 FAMILIES = {'object_init': ('env', family_object_init), 'env_render': ('env', family_env_render),
-            'abyss_fish': ('obj', family_abyss_fish)}
+            'clouds_ember': ('pt', family_clouds_ember), 'abyss_fish': ('obj', family_abyss_fish)}
 
 # (label, file, old, new, family): planted mistakes in the compiled C
 MUTATIONS = [
@@ -244,7 +284,27 @@ MUTATIONS = [
     ('hidden mesh dropped', 'env_body.c', 'args[6] = (uint32_t)o->field_68;', 'args[6] = 0xffffffffu;',
      'env_render'),
     ('last argument', 'env_body.c', 'args[7] = 0xffffffffu;', 'args[7] = 0;', 'env_render'),
+    ('ember not kept', 'particles.c', '|| subtype == 0xb ||', '||', 'clouds_ember'),
+    ('ember life', 'particles.c', 'p->lifetime = 500;', 'p->lifetime = 400;', 'clouds_ember'),
+    ('ember jitter', 'particles.c', '(float)(mu_pt_rand(h) % 400 - 200) + p->position[k]',
+     '(float)(mu_pt_rand(h) % 400 - 199) + p->position[k]', 'clouds_ember'),
+    ('ember start kept', 'particles.c', 'copy3(p->start, p->position);\n            p->scale = (float)(mu_pt_rand(h) % 15',
+     'p->scale = (float)(mu_pt_rand(h) % 15', 'clouds_ember'),
+    ('ember scale divisor', 'particles.c', '% 15 + 15) / 30.0f + scale', '% 15 + 15) / 32.0f + scale', 'clouds_ember'),
+    ('ember upward drift', 'particles.c', 'p->velocity[2] = 0.0f;\n            break;',
+     'p->velocity[2] = drift;\n            break;', 'clouds_ember'),
+    ('ember spin rate', 'particles.c', 'p->field_7c = 1.5f;', 'p->field_7c = 1.0f;', 'clouds_ember'),
+    ('ember spin step', 'particles.c', '% 2) + 0.5f) + p->rotation', '% 2) + 1.0f) + p->rotation', 'clouds_ember'),
+    ('ember bound', 'particles.c', 'if (distance > 500.0f)', 'if (distance > 400.0f)', 'clouds_ember'),
+    ('ember no drift', 'particles.c', 'p->position[k] = p->position[k] + p->velocity[k];\n                p->field_7c',
+     'p->position[k] = p->position[k];\n                p->field_7c', 'clouds_ember'),
 ]
+MUTANT_DIRS = {'env_body.c': 'environment', 'particles.c': 'particles'}
+
+
+def build_pt(root):
+    subprocess.run(['make', '-s', '-C', str(root / 'particles')], check=True)
+    return vpart.load_library(str(root / 'particles' / ('libclient_particles.' + v.SUFFIX)))
 
 
 def build_env(root):
@@ -263,7 +323,7 @@ def main():
     a = p.parse_args()
     text = am.load_pinned(a.text, am.TEXT_BYTES, am.TEXT_SHA256, 'text')
     data = am.load_pinned(a.data, am.DATA_BYTES, am.DATA_SHA256, 'data')
-    machine = vp.PtMachine(text, data)
+    machine = vpart.PtMachine(text, data)
     names = a.only.split(',') if a.only else list(FAMILIES)
     report = {'text_sha256': am.TEXT_SHA256, 'data_sha256': am.DATA_SHA256, 'families': {}, 'mutants': [],
               'static': static_custom_render(text),
@@ -274,7 +334,7 @@ def main():
     seed = lambda name: random.Random(0x9e3 + list(FAMILIES).index(name))
     with tempfile.TemporaryDirectory(prefix='worlds-g3-') as tmp:
         wa.FRAME_LIB = wa.build_frame(tmp)
-        libs = {'env': build_env(ROOT / 'reconstructed')}
+        libs = {'env': build_env(ROOT / 'reconstructed'), 'pt': build_pt(ROOT / 'reconstructed')}
         if any(FAMILIES[n][0] == 'obj' for n in names):
             libs['obj'] = wa.build(ROOT / 'reconstructed')
         for name in names:
@@ -288,16 +348,19 @@ def main():
                     continue
                 with tempfile.TemporaryDirectory(prefix='worlds-g3-mut-') as mtmp:
                     root = Path(mtmp)
-                    for d in ['environment', 'record-math']:
+                    for d in ['environment', 'record-math', 'particles', 'objects', 'terrain', 'model-codec',
+                              'movement']:
                         shutil.copytree(ROOT / 'reconstructed' / d, root / d,
                                         ignore=shutil.ignore_patterns('*.dylib', '*.so', '*.o', '*.d', '__pycache__'))
                     if (ROOT / 'reconstructed/deps.mk').exists():
                         shutil.copy(ROOT / 'reconstructed/deps.mk', root / 'deps.mk')
-                    path = root / 'environment' / file
+                    path = root / MUTANT_DIRS[file] / file
                     s = path.read_text()
                     assert s.count(old) == 1, (label, old)
                     path.write_text(s.replace(old, new))
-                    tally = FAMILIES[family][1](machine, build_env(root), seed(family), a.cases)
+                    kind = FAMILIES[family][0]
+                    mutated = build_env(root) if kind == 'env' else build_pt(root)
+                    tally = FAMILIES[family][1](machine, mutated, seed(family), a.cases)
                     item = {'name': label, 'family': family, 'cases': tally.cases,
                             'detected': tally.cases - tally.equal - tally.stopped, 'stopped': tally.stopped}
                     report['mutants'].append(item)
