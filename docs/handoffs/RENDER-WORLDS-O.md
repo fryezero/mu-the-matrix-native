@@ -40,3 +40,15 @@ comparison. No live game was used. No nested particle work was needed: `0x7fcd/0
 
 After merge, remove `native/{scratch,renders}/render-worlds-o`, the worktree (including its builds and input links)
 and the local branch. No new local INPUT needs retention. DATA-ACQ-002's inputs were only read.
+
+## Final locked gate
+
+Merge lock taken at 19:14 CDT after the FIFO queue. Merged main `3735625` (RENDER-WORLDS-N, RENDER-EFFECTS-004,
+NATIVE-PERF-004; conflicts in Makefiles, includes, registry and status docs keep both sides, coverage markdown
+regenerated) and then `9d21ebb` (RENDER-ITEMS-002K) cleanly. After `make -C native clean`, `bash scripts/local-macos-ci.sh`
+passes: **38 unittest runs, 1,680 tests, 216 explicit optional/private skips, zero failures; 11 fixture scenarios;
+viewer/reader builds (readers not run); 1,637 audited files, zero rejected**. `validate_worlds_o` (9,000 cases,
+24/24 mutants) and `validate_world_tile_folder` (5,700 cases) pass again on the integrated tree. So do
+`validate_worlds_n`/`_i`, checked after the first merge. The 32-capture tour against a fresh build of main `3735625`
+repeats the numbers above: only the three Abyss views change (8 of 128 artifacts), and the merged binary reproduces
+7.922 / 4.412 / 2.230. No hosted workflow and no original client were run.
