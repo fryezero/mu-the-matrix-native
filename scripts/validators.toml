@@ -1965,6 +1965,20 @@ args = ["--cases", "60", "--mutations", "--output", "{report}"]
 all_equal = true
 all_mutants_caught = true
 
+[validate_render_effects5]
+test = "native/tests/test_render_effects.py::RenderEffects.test_rank5_owner_original_instructions_and_compiled_mutants"
+pins = ["text", "data", "flag", "feature"]
+families = ["owner", "pt_create", "pt_move", "pt_render", "stone_create", "stone_move"]
+cases = 1190
+mutants = 25
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar", "reconstructed/model-codec", "reconstructed/particles", "reconstructed/combat"]
+args = ["--cases", "10", "--particle-cases", "200", "--stone-cases", "200", "--mutations", "--output", "{report}"]
+[validate_render_effects5.expect]
+all_equal = true
+all_mutants_caught = true
+
 [validate_world_particle_consumers]
 test = "reconstructed/particles/test_particles.py::ParticleTests.test_world_consumer_original_instructions"
 pins = ["text", "data"]
