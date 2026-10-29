@@ -7,4 +7,4 @@ libsocial.$(SUFFIX): social.c social.h item_options.c item_formula.c item_displa
 	$(DEPS)
 .PHONY: all
 
-include ../deps.mk
+-include ../deps.mk   # optional: validators build copies of single directories

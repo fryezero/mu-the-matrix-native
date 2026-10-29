@@ -1,5 +1,7 @@
 # Current status
 
+RENDER-WORLDS-G2: object models now resolve textures as OpenTexture `0x0181fbe9` does (bitmap-name map of the startup and world-pass models, then `Data\Item\`, `Data\Item\Texture\`; textures from `Object<folder>`), and Vulcanus gets its 3700 far plane. Zero unresolved object textures at the 19 affected captures; image error Deep Dungeon 3 13.5 → 3.2, Vulcanus 2.7 → 1.8. 4,157 instruction cases, zero mismatches, 17/17 mutants. [Evidence](research/client-worlds-g2.md), [checks and limits](handoffs/RENDER-WORLDS-G2.md).
+
 BUILD-DEPS-001: automatic header dependencies (`-MMD -MP` `.d` files) for every C/C++ compile the gate builds (native, gfx converter, 36 reconstructed Makefiles, model-recovery, live-readers). The hand-written header lists on the native object rules are gone: a header change now rebuilds exactly its includers. The old lists had missed 826 object/header pairs in 102 native objects. Clean builds before and after are byte-identical (647/647 outputs). [Checks and limits](handoffs/BUILD-DEPS-001.md).
 
 RENDER-WORLDS-R2: Twisted Karutan (142), Kardamahal (143) and Swamp of Destruction (144) primary create/move/visual methods; nine more verified methods, three more classes: 85/144 and 29/48. 9,000 instruction cases, zero mismatches, 56/56 mutants. At the three DATA-ACQ-002 arrival tiles 8,476 range/after-character differences go to zero; image 144 12.755 → 12.376, 142/143 unchanged; word4 CreateEffect requests refused and counted. [Evidence](research/client-worlds-r2.md), [checks and limits](handoffs/RENDER-WORLDS-R2.md).

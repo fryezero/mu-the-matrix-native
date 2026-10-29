@@ -339,6 +339,7 @@ void mu_walk_init(mu_walk *w, mu_world *map, const mu_camera_info *info, uint32_
     c->far_scale[0] = info->distance;
     c->far_scale[1] = info->z_distance;
     c->far_scale[2] = 1.0f;
+    c->event_world = (uint8_t)mu_world_camera_event_world(map->world);   /* far 3700 in Vulcanus (RENDER-WORLDS-G2) */
     f->view.fov = info->fov;
     f->view.view_near = near_plane;
     mu_world_camera_enter(c, &f->view);

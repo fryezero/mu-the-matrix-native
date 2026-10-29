@@ -10,4 +10,4 @@ librecord_math.$(SUFFIX): record_math.c record_math.h
 
 .PHONY: all
 
-include ../deps.mk
+-include ../deps.mk   # optional: validators build copies of single directories

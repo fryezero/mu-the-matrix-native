@@ -12,4 +12,4 @@ libnames.$(SUFFIX): $(SRC) $(HDR)
 
 .PHONY: all
 
-include ../deps.mk
+-include ../deps.mk   # optional: validators build copies of single directories

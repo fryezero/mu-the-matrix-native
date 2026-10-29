@@ -11,4 +11,4 @@ $(LIB): renderchar.c renderchar.h special_types.h item_glow.h skin_glow.h item_b
 
 .PHONY: all
 
-include ../deps.mk
+-include ../deps.mk   # optional: validators build copies of single directories
