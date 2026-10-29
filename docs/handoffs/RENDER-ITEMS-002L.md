@@ -85,4 +85,17 @@ limits remain.
 
 ## Release
 
-RELEASE
+Latest main **3408154** (TEX-001, WORLDS-Q/R/R2/AFTER, GATE-PAR-001, TEST-FLAKE-001 and others) was
+merged in **b0ef3fc**. The only conflict was the plan row next to the RENDER-ITEMS-TEX-001 row; both
+rows are kept. No item body, link or executor source changed in main. `native/build` was removed
+before the gate.
+
+`nice -n 10 bash scripts/local-macos-ci.sh` passes **1,758 tests across 38 suites, 231 explicit
+skips, zero failures**. Fixtures, native viewer and live readers pass, and the publication audit
+accepts **1,747 staged files, zero rejected**. After the merge, the three private validators
+(`validate_item_chains`, `validate_item_scalars`, `validate_item_wings_next`) pass again through
+`scripts/run_validators.py --private` with the counts above. No hosted workflow is used.
+
+The MERGE-STEWARD merges. Cleanup removes `mu-mac-tools/native/{scratch,renders}/render-items-002l/`,
+the build directories, the worktree and the local branch. The shared Python/evidence symlinks are
+never committed. No new local input needs to be kept.
