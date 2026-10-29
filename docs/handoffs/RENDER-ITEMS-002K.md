@@ -94,4 +94,21 @@ nine unsent frames stay explicit. Viewer and readers build. The publication audi
 staged files, zero rejected**. Portable renderchar: **59 tests, fourteen private skips**. Native
 character renderer: **13 tests, one installed-client skip**.
 
-GATE_PLACEHOLDER
+## Serialized release
+
+At **19:05 CDT**, first in queue, this lane took the lock and removed its queue entry. Latest main
+**99fc34c**, which includes EFFECTS-004, TIME-002, WORLDS-M/N, PERF-004 and others, was merged in
+**5320335**. The conflicts were only the appended validator manifest entries and the plan row next
+to the EFFECTS-004 row; both sides are kept. No item-render source changed in main. Because
+EFFECTS-004 extended shared structs that the native Makefile does not track, `native/build` was
+removed before the gate.
+
+The locked `bash scripts/local-macos-ci.sh` passes **1,672 tests across 38 suites, 213 explicit
+skips, zero failures**. All **11/11 fixture scenarios** pass, with 86 inbound frames, zero
+unbound/undecodable frames, and the existing two unrecovered intents and nine unsent frames
+explicit. Viewer and readers build. The publication audit accepts **1,628 staged files, zero
+rejected**. No hosted workflow is used.
+
+After merge: release the lock, then delete `mu-mac-tools/native/{scratch,renders}/render-items-002k/`,
+the worktree and the local branch. The shared Python/evidence symlinks are never committed or
+traversed. No new local input needs to be kept.
