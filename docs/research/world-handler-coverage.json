@@ -591,21 +591,21 @@
       "handlers": {
         "create": {
           "entry": "0xd6a6d7",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary method (RENDER-WORLDS-Q). 1000 compiled-C versus Unicorn cases, AL/OBJECT/handler members/model action table/ordered recorded calls/RNG and compiled mutants; CreateEffect and StopBuffer requests are refused and counted natively; see client-worlds-q.md.",
+          "source": "reconstructed/objects/acheron.c"
         },
         "move": {
           "entry": "0xd6a7aa",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary method (RENDER-WORLDS-Q). 1000 compiled-C versus Unicorn cases, AL/OBJECT/handler members/model action table/ordered recorded calls/RNG and compiled mutants; CreateEffect and StopBuffer requests are refused and counted natively; see client-worlds-q.md.",
+          "source": "reconstructed/objects/acheron.c"
         },
         "visual": {
           "entry": "0xd6ae34",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary method (RENDER-WORLDS-Q). 1000 compiled-C versus Unicorn cases, AL/OBJECT/handler members/model action table/ordered recorded calls/RNG and compiled mutants; CreateEffect and StopBuffer requests are refused and counted natively; see client-worlds-q.md.",
+          "source": "reconstructed/objects/acheron.c"
         },
         "custom_render": {
           "entry": "0xd6c427",
@@ -958,20 +958,20 @@
       "handlers": {
         "create": {
           "entry": "0xde5cb0",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary method (RENDER-WORLDS-Q). 1000 compiled-C versus Unicorn cases, AL/OBJECT/handler members/model action table/ordered recorded calls/RNG and compiled mutants; CreateEffect and StopBuffer requests are refused and counted natively; see client-worlds-q.md.",
+          "source": "reconstructed/objects/ferea.c"
         },
         "move": {
           "entry": "0xde5de2",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary method (RENDER-WORLDS-Q). 1000 compiled-C versus Unicorn cases, AL/OBJECT/handler members/model action table/ordered recorded calls/RNG and compiled mutants; CreateEffect and StopBuffer requests are refused and counted natively; see client-worlds-q.md.",
+          "source": "reconstructed/objects/ferea.c"
         },
         "visual": {
           "entry": "0xde6405",
           "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
+          "scope": "static entry only; 2,328 instructions (vector-class light and particle producers), not reconstructed by RENDER-WORLDS-Q; see client-worlds-q.md",
           "source": null
         },
         "custom_render": {
@@ -1478,21 +1478,21 @@
       "handlers": {
         "create": {
           "entry": "0xe54429",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary method (RENDER-WORLDS-Q). 1000 compiled-C versus Unicorn cases, AL/OBJECT/handler members/model action table/ordered recorded calls/RNG and compiled mutants; CreateEffect and StopBuffer requests are refused and counted natively; see client-worlds-q.md.",
+          "source": "reconstructed/objects/swamp_darkness.c"
         },
         "move": {
           "entry": "0xe54646",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary method (RENDER-WORLDS-Q). 1000 compiled-C versus Unicorn cases, AL/OBJECT/handler members/model action table/ordered recorded calls/RNG and compiled mutants; CreateEffect and StopBuffer requests are refused and counted natively; see client-worlds-q.md.",
+          "source": "reconstructed/objects/swamp_darkness.c"
         },
         "visual": {
           "entry": "0xe5540e",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary method (RENDER-WORLDS-Q). 1000 compiled-C versus Unicorn cases, AL/OBJECT/handler members/model action table/ordered recorded calls/RNG and compiled mutants; CreateEffect and StopBuffer requests are refused and counted natively; see client-worlds-q.md.",
+          "source": "reconstructed/objects/swamp_darkness.c"
         },
         "custom_render": {
           "entry": "0xe54752",
@@ -1534,21 +1534,21 @@
       "handlers": {
         "create": {
           "entry": "0xe19bb3",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary method (RENDER-WORLDS-Q). 1000 compiled-C versus Unicorn cases, AL/OBJECT/handler members/model action table/ordered recorded calls/RNG and compiled mutants; CreateEffect and StopBuffer requests are refused and counted natively; see client-worlds-q.md.",
+          "source": "reconstructed/objects/kubera.c"
         },
         "move": {
           "entry": "0xe19ed0",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary method (RENDER-WORLDS-Q). 1000 compiled-C versus Unicorn cases, AL/OBJECT/handler members/model action table/ordered recorded calls/RNG and compiled mutants; CreateEffect and StopBuffer requests are refused and counted natively; see client-worlds-q.md.",
+          "source": "reconstructed/objects/kubera.c"
         },
         "visual": {
           "entry": "0xe1b5fb",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Complete primary method (RENDER-WORLDS-Q). 1000 compiled-C versus Unicorn cases, AL/OBJECT/handler members/model action table/ordered recorded calls/RNG and compiled mutants; CreateEffect and StopBuffer requests are refused and counted natively; see client-worlds-q.md.",
+          "source": "reconstructed/objects/kubera.c"
         },
         "custom_render": {
           "entry": "0xe1a5df",

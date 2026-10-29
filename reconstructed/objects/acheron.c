@@ -105,8 +105,17 @@ int mu_acheron_move(uint8_t *o, int32_t index, const mu_q_inputs *in, mu_obj_log
 
 int mu_acheron_visual_bones(int32_t type)
 {
-    return type == 9 || type == 16 || type == 31 || type == 52 || type == 73 || type == 89 || type == 93 ||
-           type == 100;
+    switch (type) {
+    case 9: return 17;
+    case 16: return 28;
+    case 31: return 8;
+    case 52: return 3;
+    case 73: return 1;
+    case 89: return 25;
+    case 93: return 11;
+    case 100: return 25;
+    default: return -1;
+    }
 }
 
 static void bone_at(const mu_q_inputs *in, int32_t bone, float out[3])
@@ -129,7 +138,7 @@ int mu_acheron_visual(const uint8_t *o, int32_t index, const mu_q_inputs *in, mu
     if (!acheron_world(in->world))
         return 0;
     const int32_t t = mu_obj_i32(o, MU_OBJF_TYPE);
-    if (mu_acheron_visual_bones(t) && !in->bone)
+    if (mu_acheron_visual_bones(t) >= 0 && !in->bone)
         return -1;
     float pos[3], angle[3];
     wb_get(o, MU_OBJF_POSITION, pos);

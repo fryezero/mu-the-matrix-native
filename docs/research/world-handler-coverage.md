@@ -25,14 +25,14 @@ N = not reachable through the Warps window or ordinary warps (reason in JSON).
 | World 72 class | 72 | `0x1aa8230` | `0xdde9e0` M | `0xddeb8a` M | `0xddee5e` M | N |
 | Loren Market | 79 | `0x1aac310` | `0xe6c0ec` V | `0xe6c1bf` V | `0xe6c678` V | C |
 | Karutan | 80, 81 | `0x1aa9a4c` | `0xe13a87` V | `0xe13a9e` V | `0xe13be4` V | E |
-| World 91 class | 91 | `0x1aa59cc` | `0xd6a6d7` M | `0xd6a7aa` M | `0xd6ae34` M | C |
+| World 91 class | 91 | `0x1aa59cc` | `0xd6a6d7` V | `0xd6a7aa` V | `0xd6ae34` V | C |
 | World 92 class | 92, 96, 101, 111 | `0x1aa6154` | `0xd7bd7d` M | `0xd7be29` M | `0xd7be80` M | N |
 | CGMCharacterScene_Ex | 93 | `0x1aa7338` | `0xdaa2b2` V | `0xdaa82b` V | `0xdaa9dd` V | E |
 | CGMLogInScene_Ex | 94 | `0x1aaa874` | `0xe24a4d` V | `0xe24acd` V | `0xe24be1` V | E |
 | World 95 class | 95 | `0x1aa7b84` | `0xdbd210` M | `0xdbd4e6` M | `0xdbd735` M | N |
 | Uruk Mountain | 100 | `0x1aac418` | `0xe6f0a2` V | `0xe6f1ca` V | `0xe6f3d5` V | N |
 | World 110 class | 110 | `0x1aaa95c` | `0xe260f0` M | `0xe26668` M | `0xe26ae7` M | N |
-| World 112 class | 112 | `0x1aa86e0` | `0xde5cb0` M | `0xde5de2` M | `0xde6405` M | C |
+| World 112 class | 112 | `0x1aa86e0` | `0xde5cb0` V | `0xde5de2` V | `0xde6405` M | C |
 | World 113 class | 113 | `0x1aaac94` | `0xe3441c` V | `0xe3473f` V | `0xd5cc9b` V | C |
 | World 114 class | 114 | `0x1aaa60c` | `0xe1e989` M | `0xe1ea5c` M | `0xe1ef15` M | N |
 | World 115 class | 115 | `0x1aaa7dc` | `0xd5cb99` M | `0xd5cc16` M | `0xd5cc9b` V | N |
@@ -42,8 +42,8 @@ N = not reachable through the Warps window or ordinary warps (reason in JSON).
 | World 119 class | 119 | `0x1aab240` | `0xe409e8` V | `0xe40b38` V | `0xd5cc9b` V | C |
 | World 120 class | 120 | `0x1aab320` | `0xe41823` V | `0xe41a1f` V | `0xd5cc9b` V | C |
 | World 121 class | 121 | `0x1aa51fc` | `0xd585b0` M | `0xd58809` M | `0xd58888` M | N |
-| World 122 class | 122 | `0x1aac070` | `0xe54429` M | `0xe54646` M | `0xe5540e` M | C |
-| World 123 class | 123, 124, 125, 126, 127 | `0x1aaa564` | `0xe19bb3` M | `0xe19ed0` M | `0xe1b5fb` M | C |
+| World 122 class | 122 | `0x1aac070` | `0xe54429` V | `0xe54646` V | `0xe5540e` V | C |
+| World 123 class | 123, 124, 125, 126, 127 | `0x1aaa564` | `0xe19bb3` V | `0xe19ed0` V | `0xe1b5fb` V | C |
 | World 128 class | 128 | `0x1aa5320` | `0xd5cf32` V | `0xd5d04a` V | `0xd5d564` V | C |
 | World 129 class | 129 | `0x1aa541c` | `0xd5ebd2` V | `0xd5ecea` V | `0xd5f1f1` V | C |
 | World 130 class | 130 | `0x1aa554c` | `0xd60316` V | `0xd6042e` V | `0xd60948` V | C |
@@ -63,7 +63,7 @@ N = not reachable through the Warps window or ordinary warps (reason in JSON).
 | World 144 class | 144 | `0x1aab6a8` | `0xe46625` M | `0xe4696f` M | `0xe47bc2` M | C |
 | World 145 class | 145 | `0x1aa5e78` | `0xd75a6c` M | `0xd75ac6` M | `0xd77b3e` M | N |
 
-21/48 classes have at least one verified primary method. Of 144 primary methods: 61 verified families, 0 static-only C, 83 missing.
+25/48 classes have at least one verified primary method. Of 144 primary methods: 72 verified families, 0 static-only C, 72 missing.
 Original populated captures: 27 classes from DATA-ACQ-002, 5 from earlier live reads, 16 not reachable by warp.
 
 The companion [JSON](world-handler-coverage.json) records factory, constructor and related entry points

@@ -3,7 +3,8 @@
 
 int mu_worlds_q_owns(int32_t world)
 {
-    return world == 91 || world == 92 || world == 112 || world == 122 || (world >= 123 && world <= 127);
+    /* World 92 has its own class (0x01aa6154) although Acheron's predicate also accepts it. */
+    return world == 91 || world == 112 || world == 122 || (world >= 123 && world <= 127);
 }
 
 int mu_worlds_q_create(uint8_t *o, int32_t index, const mu_q_inputs *in, mu_obj_log *log)

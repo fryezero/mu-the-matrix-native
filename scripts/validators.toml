@@ -2262,3 +2262,19 @@ args = ["--mutations", "--output", "{report}"]
 "old_rule_mismatches" = 5
 "mutants.*.detected" = {truthy = true}
 "mutants.*.stopped" = 0
+
+[validate_worlds_q]
+test = "reconstructed/objects/test_worlds_q.py::WorldsQTests.test_original_instructions"
+pins = ["text", "data"]
+families = ["acheron_create", "acheron_move", "acheron_visual", "ferea_create", "ferea_move", "swamp_create", "swamp_move", "swamp_visual", "kubera_create", "kubera_move", "kubera_visual"]
+cases = 11000
+mutants = 45
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+[validate_worlds_q.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0

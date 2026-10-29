@@ -41,7 +41,7 @@ typedef struct mu_q_inputs {
 int mu_acheron_create(uint8_t *o, const mu_q_inputs *in);
 int mu_acheron_move(uint8_t *o, int32_t index, const mu_q_inputs *in, mu_obj_log *log);
 int mu_acheron_visual(const uint8_t *o, int32_t index, const mu_q_inputs *in, mu_obj_log *log);
-/* Types whose visual transforms bone positions (the model must be posed). */
+/* The highest bone the visual of `type` transforms (the model must be posed with more bones), -1 for none. */
 int mu_acheron_visual_bones(int32_t type);
 /* Ferea, world 112 (no world test): create 0x00de5cb0, move 0x00de5de2. */
 int mu_ferea_create(uint8_t *o, const mu_q_inputs *in);

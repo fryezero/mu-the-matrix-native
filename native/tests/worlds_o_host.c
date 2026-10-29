@@ -40,7 +40,7 @@ int main(int argc, char **argv)
         assert(prepare(o, world, 39, 0) == -1);   /* model gate */
     }
     assert(generic == 0);                         /* primary visual replaces the generic hook */
-    assert(prepare(o, 127, 39, 1) == -1 && generic == 1);
+    assert(prepare(o, 121, 39, 1) == -1 && generic == 1);   /* 121: no primary visual (Q owns 127) */
     assert(prepare(o, 131, 39, 1) == -1 && generic == 2);
     free(o->rt.images); free(o); free(m);
     return 0;
