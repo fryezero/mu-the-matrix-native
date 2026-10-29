@@ -918,3 +918,108 @@ Each needs its own instruction form; they are not claimed. No new link target wa
 Laser/17 and the shared clock/bone-state links stay partial, and no further RenderLinkItem target
 was surveyed in this part.
 
+
+## Part 12, clock-chain and level-split bodies, two link rows, RENDER-ITEMS-002L
+
+Bounded bodies increase **967 to 1,053 of 1,674**, adding **86 types**: 66 through clock chains and
+20 through the existing level split. Skins stay **17/17**. Links increase **seventeen
+targets/twenty-two types to eighteen/twenty-four**. Exact membership is in
+`gen_item_bodies.CHAIN_TYPES`, `LEVEL_TYPES` and both TSVs. The survey has **362 complete shapes**, up from 293. **621 bodies remain.**
+
+### Selection
+
+The part-11 probe screen was rerun over the 664 remaining non-stopping types and each refusal was
+classified by its first failure (static + verified):
+
+| First failure | Types |
+|---|---:|
+| a draw word no input explains (132 of them UV) | 196 |
+| body-owned effects/particles in the stream | 157 |
+| immediate `glColor3f/3fv/4f` calls (alone or with matrix calls) | 93 |
+| fit by probes, refused by the full comparison (part 11) | 89 |
+| level-dependent draw count | 72 |
+| helper phases do not align with the generic phases | 49 |
+| other (matrix/transform services) | 8 |
+
+UV words were the largest group. Disassembly of executed clock reads showed compiler-generated
+integer and SSE code, for example `-(tick%2000)*0.0005`, `(int)(time*k_d)%8/2*k`,
+`(tick%1200)/80%4*0.25` atlas frames, `(e - tick%(e+1))/e` with `e` a local set earlier, and
+`time*k`. Fixed templates do not cover these, so this part slices them.
+
+### Clock chains
+
+Every probe records each executed basic block that contains an instruction reading the clock global
+`0x06fce370` (2,155 such instructions in the text). `slice_block` walks the pinned bytes forward from
+the block start and tracks GPR, binary32 and binary64 values. It folds:
+
+- clock loads (`movss`, `cvtss2sd`, `cvttss2si`), data-image constants and immediates;
+- `mulss/divss/addss/subss` and the `sd` forms, in both operand orders, `cvt*` conversions and the
+  `xorps/xorpd` sign mask;
+- `cdq; idiv` by a constant, the signed power-of-two remainder `and r,0x8000000m; jns; dec; or; inc`
+  (bytes checked exactly) and quotient `cdq; (and edx,m;) add/sub; sar`;
+- integer add/sub (both orders), inc/dec/neg, imul and shl by constants.
+
+A local read before any write in the walk takes its value at block entry, as an affine
+`entry*mul+add`. That value must also appear as `mov dword [ebp+off], imm` in the text. Any other
+instruction clears only what it writes; branches other than the idiom and unconditional `jmp` end
+the walk. Each chain whose result is stored as binary32 (local, argument or OBJECT field) becomes a
+candidate input, kind 3 in `mu_rc_body_scalars` (up to nine op/constant pairs).
+`renderchar.c::clock_program` evaluates it inside the body executor, with cvtt indefinite results,
+C99 truncating division and wrapping integer steps. Divisors 0 and -1 are excluded by the generator.
+Helper programs keep their part-11 order and chains come after them, so every earlier row is
+unchanged.
+
+The screen fitted 106 of 196 field-failure types with chains. The independent 292-state comparison
+admitted 66. The other 40 differ outside the probes: body light that depends on quality branches
+(most), 1-ulp blend light on the quality-0 path, phase-5 UV, or body random consumption.
+
+### Level split
+
+The 72 count failures add draws above level 9 after the +7 quality cap. Applying the part-9 level
+split (phases 6/7) fits 55 of them by probes; 20 pass the full comparison. These are the
+`0x1a25..0x2232` armour neighbours of the part-9 clock types. The rest differ in body light or
+consume body random, and stay refused.
+
+### Link table additions
+
+All 11,722 item and skin types were run through RenderLinkItem `0x012bd910`. Thirty emit sprites;
+the unknown ones were fitted against the existing chain and pulse schemas, and two are plain table rows:
+
+- `0x0f0b` shares target `0x012cbb43` and the rule of `0x0eed` (sprite sites `0x012cbc4d/0x012cbd09`);
+- `0x0ef3`, target `0x012cc846..0x012cca02`, is a sprite-chain row: bone 0, one `0x7ef7` flare, RGB
+  intensity*(1,0.3,0.1), with the conditional grey `0x7f67` flash.
+
+Both are admitted by the shared table query and the native attachment hook. `0x12fa` multiplies two
+scalars and `0xafc` uses a further clock term, so they are not table additions. Laser/17 and the
+shared clock/bone-state links stay partial.
+
+### Checks
+
+`scripts/validate_item_chains.py --mutations` (private test `ItemChains.test_original_instructions`,
+manifest row) passes **35,346 comparisons, zero mismatches**:
+
+| Family | Cases | Mismatches |
+|---|---:|---:|
+| Full body streams, 86 types times 292 states, body random trapped | 25,112 | 0 |
+| Divisor edges, INT_MIN, 2^31, -0.0 for one type per distinct chain (59), flags 2/0x40042 | 2,714 | 0 |
+| Level-split boundaries: 20 types, 16 levels, 7 qualities, 3 flag words | 6,720 | 0 |
+| Two link callers, 100 random sequences times 4 clock/hand variants | 800 | 0 |
+
+All **17/17 separately compiled mutants** are caught: chain kind 21,980; tick 13,115; indefinite
+106; remainder 17,342; quotient 2,969; convert 19,238; multiply 21,281; divide 6,799; negate
+4,756; reverse subtract 1,958; integer negate 2,678; slot 15,117; level split 427; mesh index
+34,546; object alpha 18,525; link flash 260; link pulse 300. The body, link and pulse tables
+reproduce from the pinned instructions.
+
+Compiled C-to-C checks of the base `f4eba8a` library against this one cover all **952 earlier
+body/skin types in 30,464 random cases** and 440 link cases, all with zero mismatches. Over all 1,691
+survey types, admission changes for exactly the 86 new types. The 948 earlier generated rows keep
+identical recipes, flags and programs after re-indexing.
+
+### Limits
+
+**621 bodies** remain. Body-owned effects/particles and immediate `glColor` calls need consumers
+outside the draw-record ABI and are not claimed. Neither are quality-branch body light,
+non-aligned helper phases or the 89 probe-fitting refusals. Rank-5 owner effects, Muun and
+nested map-object tables, and the earlier record, buff, selection, shadow, override, NewUI and Box
+of Luck limits are unchanged.
