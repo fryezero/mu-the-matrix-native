@@ -155,6 +155,24 @@ SCALAR_TYPES = [
     0x2743, 0x2745, 0x278b, 0x278c, 0x278d, 0x278e, 0x27a3,
 ]
 
+# Part 12: clock chains sliced from the pinned bytes; independent full streams checked.
+CHAIN_TYPES = [
+    0x0afb, 0x0aff, 0x0b1f, 0x0b26, 0x0b3c, 0x0b3d, 0x0b3e, 0x0b46, 0x0b48, 0x0b55,
+    0x0b5a, 0x0b5b, 0x0b5d, 0x0b5e, 0x0b5f, 0x0b60, 0x0b63, 0x0b64, 0x0b65, 0x0b66,
+    0x0b69, 0x0b6c, 0x0ef1, 0x0ef3, 0x0efe, 0x0f05, 0x0f06, 0x0f07, 0x0f12, 0x0f13,
+    0x0f15, 0x0f16, 0x0f18, 0x0f1a, 0x10f0, 0x10fe, 0x1100, 0x1107, 0x12f8, 0x130c,
+    0x131c, 0x1320, 0x1326, 0x1329, 0x14f0, 0x14f3, 0x151b, 0x151c, 0x151d, 0x151e,
+    0x1547, 0x154b, 0x154d, 0x154f, 0x1552, 0x1579, 0x171b, 0x171c, 0x1720, 0x172a,
+    0x172b, 0x1734, 0x1740, 0x1741, 0x1745, 0x1754,
+]
+# Part 12: the part-9 level split (extra draws above the +7 quality cap) for the
+# neighbouring armour members; independent full streams checked.
+LEVEL_TYPES = [
+    0x1a25, 0x1a29, 0x1a2b, 0x1a31, 0x1a32, 0x1e25, 0x1e29, 0x1e2b, 0x1e31, 0x1e32,
+    0x2025, 0x2029, 0x202b, 0x2031, 0x2032, 0x2225, 0x2229, 0x222b, 0x2231, 0x2232,
+]
+LEVEL_SPLIT = CLOCK_TYPES + LEVEL_TYPES
+
 PROBE_SEEDS = (3401, 7254, 9874, 3404, 7257, 9877, 3407, 7260, 9880, 3413, 7266, 9886)
 
 DIM_TYPES = [0xae6 + group * 512 + index for group in (7, 8, 9, 11)
@@ -299,6 +317,8 @@ def scalar_value(program, time):
     import math
     f = lambda x: v.u2f(v.f2u(x))
     kind, a, ops = program
+    if kind == 3:
+        return clock_value(ops, time)
     if kind == 1:
         value = wave_helper(v.u2f(a), time)
     else:
@@ -312,6 +332,428 @@ def scalar_value(program, time):
         if not double:
             value = f(value)
     return v.f2u(f(value))
+
+
+# Part 12: straight-line clock programs. The probes record every executed basic
+# block that reads the clock global 0x06fce370. A static walk of the pinned bytes
+# from the block start follows the SSE/integer data flow of each clock read into a
+# linear operation chain. Constants come from the data image, immediates and
+# compiler idioms (signed power-of-two remainder/quotient, cdq/idiv). A local read
+# before any write in the walk takes the value of that local at block entry; it
+# must also be stored as that immediate somewhere in the text. Any other
+# instruction only clears what it writes. Chains whose result is stored as
+# binary32 become candidate inputs; the full comparisons decide admission.
+CLOCK = 0x06fce370
+(C_TIME_F, C_TIME_D, C_TICK, C_F_MUL, C_F_DIV, C_F_ADD, C_F_SUB, C_F_RSUB, C_F_RDIV, C_D_MUL, C_D_DIV,
+ C_D_ADD, C_D_SUB, C_D_RSUB, C_D_RDIV, C_F2D, C_D2F, C_F2I, C_D2I, C_I2F, C_I2D, C_I_MOD, C_I_DIV,
+ C_I_ADD, C_I_MUL, C_F_NEG, C_I_NEG, C_D_NEG, C_I_RSUB) = range(1, 30)
+CLOCK_OPS = 9
+_md = None
+_clock_sites = None
+_slices = {}
+
+
+def _capstone():
+    global _md
+    if _md is None:
+        import capstone
+        _md = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_32)
+        _md.detail = True
+    return _md
+
+
+def clock_sites(wa):
+    """Sorted addresses of instructions whose memory operand is the clock global."""
+    global _clock_sites
+    if _clock_sites is None or _clock_sites[0] is not wa:
+        import re
+        md, text, found = _capstone(), wa[0], []
+        for m in re.finditer(re.escape(CLOCK.to_bytes(4, 'little')), text):
+            for back in range(8, 1, -1):
+                start = m.start() - back
+                ins = next(md.disasm(text[start:start + 16], 0x00401000 + start), None)
+                if ins and ins.address + ins.size == 0x00401000 + m.start() + 4 and '0x6fce370]' in ins.op_str:
+                    found.append(ins.address)
+                    break
+        _clock_sites = (wa, sorted(found))
+    return _clock_sites[1]
+
+
+def _f32(x):
+    return v.u2f(v.f2u(x))
+
+
+def _i32(x):
+    return (x + 2**31) % 2**32 - 2**31
+
+
+def _f64(word):
+    import struct
+    return struct.unpack('<d', struct.pack('<Q', word))[0]
+
+
+def _d64(x):
+    import struct
+    return struct.unpack('<Q', struct.pack('<d', x))[0]
+
+
+def _local_stored(wa, offset, value):
+    """mov dword [ebp+offset], value exists in the pinned text."""
+    import struct
+    imm = struct.pack('<I', value & 0xffffffff)
+    if -128 <= offset < 128:
+        if b'\xc7\x45' + struct.pack('<b', offset) + imm in wa[0]:
+            return True
+    return b'\xc7\x85' + struct.pack('<i', offset) + imm in wa[0]
+
+
+def slice_block(wa, block):
+    """Static walk from one block start. Returns (entry locals read, outputs) where
+    each output is a chain whose integer local reads are ('local', offset)."""
+    if block in _slices:
+        return _slices[block]
+    import capstone.x86 as X
+    md, text = _capstone(), wa[0]
+    gpr = {'eax', 'ebx', 'ecx', 'edx', 'esi', 'edi'}
+    regs, local, outputs, entry = {}, {}, [], set()
+
+    def ref(op):
+        """('abs', a) / ('local', off) / ('other',) for a memory operand."""
+        m = op.mem
+        if m.base == 0 and m.index == 0:
+            return ('abs', m.disp & 0xffffffff)
+        if m.base == X.X86_REG_EBP and m.index == 0:
+            return ('local', m.disp)
+        return ('other',)
+
+    def value(ins, op, size):
+        if op.type == X.X86_OP_IMM:
+            return ('k', _i32(op.imm))
+        if op.type == X.X86_OP_REG:
+            return regs.get(ins.reg_name(op.reg))
+        r = ref(op)
+        if r[0] == 'abs':
+            if r[1] == CLOCK and size == 4:
+                return 'clock'
+            word = _word(wa, r[1])
+            if word is None:
+                return None
+            if size == 8:
+                high = _word(wa, r[1] + 4)
+                return None if high is None else ('kd', word | high << 32)
+            if size == 16:
+                return ('mask', word)
+            return ('kw', word)
+        if r[0] == 'local':
+            if r[1] in local:
+                return local[r[1]]
+            if size == 4 and r[1] < 0:
+                entry.add(r[1])
+                return ('e', r[1], 1, 0)
+        return None
+
+    def chain(x, kind, *ops):
+        return ('c', kind, x[2] + tuple(ops))
+
+    def as_int(x):
+        """Integer constant: ('k', n) or ('e', offset, mul, add) = entry local*mul+add."""
+        return x if x and x[0] in ('k', 'e') else None
+
+    def lin(x, mul, add):
+        if x[0] == 'k':
+            return ('k', _i32(x[1] * mul + add))
+        return ('e', x[1], x[2] * mul, x[3] * mul + add)
+
+    at, steps, cdq = block, 0, None
+    while steps < 160:
+        ins = next(md.disasm(text[at - 0x00401000:at - 0x00401000 + 16], at), None)
+        if ins is None:
+            break
+        steps += 1
+        nxt = at + ins.size
+        name, ops = ins.mnemonic, ins.operands
+        dst = ops[0] if ops else None
+        dname = ins.reg_name(dst.reg) if dst is not None and dst.type == X.X86_OP_REG else None
+        handled, result = True, None
+        src = ops[1] if len(ops) > 1 else None
+        if name in ('jmp',) and dst.type == X.X86_OP_IMM:
+            at = dst.imm
+            continue
+        if name.startswith('j') or name in ('call', 'ret', 'retn', 'int3', 'leave'):
+            break
+        if name == 'mov' and dname in gpr:
+            result = value(ins, src, 4)
+            if result == 'clock':
+                result = None
+        elif name == 'mov' and dst.type == X.X86_OP_MEM:
+            r = ref(dst)
+            if r[0] == 'local':
+                local[r[1]] = value(ins, src, 4)
+            elif r[0] == 'abs' and r[1] == CLOCK:
+                break
+            handled = 'stored'
+        elif name in ('movss', 'movsd') and dst.type == X.X86_OP_REG:
+            size = 4 if name == 'movss' else 8
+            x = value(ins, src, size)
+            if x == 'clock':
+                result = ('c', 'f', ((C_TIME_F, 0),))
+            elif x and x[0] == 'kw' and size == 4:
+                result = ('kf', x[1])
+            elif x and x[0] == 'kd' and size == 8:
+                result = x
+            elif x and x[0] == 'c' and x[1] == ('f' if size == 4 else 'd'):
+                result = x
+            elif x and x[0] in ('kf',) and size == 4:
+                result = x
+        elif name in ('movss', 'movsd') and dst.type == X.X86_OP_MEM:
+            x = regs.get(ins.reg_name(src.reg))
+            r = ref(dst)
+            if x and x[0] == 'c' and x[1] == 'f' and name == 'movss':
+                outputs.append(x)
+            if r[0] == 'local':
+                local[r[1]] = x if name == 'movss' else None
+            elif r[0] == 'abs' and r[1] == CLOCK:
+                break
+            handled = 'stored'
+        elif name == 'cvtss2sd':
+            x = value(ins, src, 4)
+            if x == 'clock':
+                result = ('c', 'd', ((C_TIME_D, 0),))
+            elif x and x[0] == 'c' and x[1] == 'f':
+                result = chain(x, 'd', (C_F2D, 0))
+        elif name == 'cvtsd2ss':
+            x = value(ins, src, 8)
+            if x and x[0] == 'c' and x[1] == 'd':
+                result = chain(x, 'f', (C_D2F, 0))
+        elif name in ('cvttss2si', 'cvttsd2si') and dname in gpr:
+            x = value(ins, src, 4 if name == 'cvttss2si' else 8)
+            if x == 'clock' and name == 'cvttss2si':
+                result = ('c', 'i', ((C_TICK, 0),))
+            elif x and x[0] == 'c' and x[1] == ('f' if name == 'cvttss2si' else 'd'):
+                result = chain(x, 'i', (C_F2I if name == 'cvttss2si' else C_D2I, 0))
+        elif name in ('cvtsi2ss', 'cvtsi2sd'):
+            x = value(ins, src, 4)
+            kind, op = ('f', C_I2F) if name == 'cvtsi2ss' else ('d', C_I2D)
+            if x and x[0] == 'c' and x[1] == 'i':
+                result = chain(x, kind, (op, 0))
+            elif as_int(x):
+                result = ('kint', kind, x)
+        elif name in ('mulss', 'divss', 'addss', 'subss', 'mulsd', 'divsd', 'addsd', 'subsd'):
+            single = name.endswith('ss')
+            x = regs.get(dname)
+            y = value(ins, src, 4 if single else 8)
+            kind = 'f' if single else 'd'
+            base = {'mul': 0, 'div': 1, 'add': 2, 'sub': 3}[name[:3]]
+            fops = (C_F_MUL, C_F_DIV, C_F_ADD, C_F_SUB) if single else (C_D_MUL, C_D_DIV, C_D_ADD, C_D_SUB)
+            rops = {0: fops[0], 2: fops[2], 1: C_F_RDIV if single else C_D_RDIV, 3: C_F_RSUB if single else C_D_RSUB}
+            def const(z):
+                if z is None or z == 'clock':
+                    return None
+                if single and z[0] in ('kf', 'kw'):
+                    return ('w', z[1])
+                if not single and z[0] == 'kd':
+                    return ('w', z[1])
+                if z[0] == 'kint' and z[1] == kind:
+                    return ('i', z[2])
+                return None
+            if x and x[0] == 'c' and x[1] == kind and const(y):
+                result = chain(x, kind, (fops[base], const(y)))
+            elif y and y != 'clock' and y[0] == 'c' and y[1] == kind and const(x):
+                result = chain(y, kind, (rops[base], const(x)))
+        elif name in ('xorps', 'xorpd'):
+            x, y = regs.get(dname), value(ins, src, 16)
+            if src.type == X.X86_OP_REG and src.reg == dst.reg:
+                result = ('kf', 0) if name == 'xorps' else ('kd', 0)
+            elif x and x[0] == 'c' and y and y[0] == 'mask':
+                high = _word(wa, ref(src)[1] + 4)
+                if name == 'xorps' and x[1] == 'f' and y[1] == 0x80000000:
+                    result = chain(x, 'f', (C_F_NEG, 0))
+                elif name == 'xorpd' and x[1] == 'd' and y[1] == 0 and high == 0x80000000:
+                    result = chain(x, 'd', (C_D_NEG, 0))
+        elif name == 'cdq':
+            x = regs.get('eax')
+            regs['edx'] = ('cdq', x) if x and x[0] == 'c' and x[1] == 'i' else None
+            at = nxt
+            continue
+        elif name == 'idiv':
+            x, sign, n = regs.get('eax'), regs.get('edx'), as_int(value(ins, dst, 4))
+            if x and x[0] == 'c' and sign == ('cdq', x) and n:
+                regs['eax'] = chain(x, 'i', (C_I_DIV, ('i', n)))
+                regs['edx'] = chain(x, 'i', (C_I_MOD, ('i', n)))
+            else:
+                regs['eax'] = regs['edx'] = None
+            at = nxt
+            continue
+        elif name == 'and' and dname in gpr and src.type == X.X86_OP_IMM:
+            x, mask = regs.get(dname), src.imm & 0xffffffff
+            low = mask & 0x7fffffff
+            target = nxt
+            follow = next(md.disasm(text[target - 0x00401000:target - 0x00401000 + 16], target), None)
+            if (mask & 0x80000000 and low and low & (low + 1) == 0 and x and x[0] == 'c' and x[1] == 'i' and
+                    follow and follow.mnemonic == 'jns'):
+                # and r,0x8000000m; jns L; dec r; or r,-(m+1); inc r; L:  ==  r % (m+1)
+                fix = text[follow.address + 2 - 0x00401000:follow.operands[0].imm - 0x00401000]
+                r = ['eax', 'ecx', 'edx', 'ebx', 'esp', 'ebp', 'esi', 'edi'].index(dname)
+                minus = (-(low + 1)).to_bytes(4, 'little', signed=True)
+                forms = [bytes([0x81, 0xc8 + r]) + minus] + ([b'\x0d' + minus] if r == 0 else [])
+                if low < 128:
+                    forms.append(bytes([0x83, 0xc8 + r, minus[0]]))
+                if follow.size == 2 and fix in [bytes([0x48 + r]) + form + bytes([0x40 + r]) for form in forms]:
+                    regs[dname] = chain(x, 'i', (C_I_MOD, ('i', ('k', low + 1))))
+                    at = follow.operands[0].imm
+                    continue
+            elif dname == 'edx' and regs.get('edx') and regs['edx'][0] == 'cdq' and low == mask and low & (low + 1) == 0:
+                regs['edx'] = ('bias', regs['edx'][1], low + 1)
+                at = nxt
+                continue
+            result = None
+        elif name in ('add', 'sub') and dname in gpr:
+            x, y = regs.get(dname), value(ins, src, 4)
+            if name == 'add' and dname == 'eax' and y and y[0] == 'bias' and y[1] == x:
+                result = ('biased', x, y[2])
+            elif name == 'sub' and dname == 'eax' and y and y[0] == 'cdq' and y[1] == x:
+                result = ('biased', x, 2)
+            elif as_int(x) and y and y[0] == 'k':
+                result = lin(x, 1, y[1] if name == 'add' else -y[1])
+            elif name == 'sub' and as_int(x) and y and y[0] == 'c' and y[1] == 'i':
+                result = chain(y, 'i', (C_I_RSUB, ('i', x)))
+            elif name == 'add' and as_int(y) and x and x[0] == 'c' and x[1] == 'i':
+                result = chain(x, 'i', (C_I_ADD, ('i', y)))
+            elif name == 'add' and as_int(x) and y and y[0] == 'c' and y[1] == 'i':
+                result = chain(y, 'i', (C_I_ADD, ('i', x)))
+            elif x and x[0] == 'c' and x[1] == 'i' and y and y[0] == 'k':
+                result = chain(x, 'i', (C_I_ADD, ('i', ('k', y[1] if name == 'add' else _i32(-y[1])))))
+        elif name == 'shl' and dname in gpr and src.type == X.X86_OP_IMM:
+            x = regs.get(dname)
+            if as_int(x):
+                result = lin(x, 1 << src.imm, 0)
+            elif x and x[0] == 'c' and x[1] == 'i':
+                result = chain(x, 'i', (C_I_MUL, ('i', ('k', _i32(1 << src.imm)))))
+        elif name == 'sar' and dname in gpr and src.type == X.X86_OP_IMM:
+            x = regs.get(dname)
+            if x and x[0] == 'biased' and 1 << src.imm == x[2]:
+                result = chain(x[1], 'i', (C_I_DIV, ('i', ('k', x[2]))))
+        elif name in ('inc', 'dec', 'neg') and dname in gpr:
+            x = regs.get(dname)
+            step = {'inc': 1, 'dec': -1}.get(name)
+            if as_int(x):
+                result = lin(x, -1, 0) if step is None else lin(x, 1, step)
+            elif x and x[0] == 'c' and x[1] == 'i':
+                result = chain(x, 'i', (C_I_NEG, 0) if step is None else (C_I_ADD, ('i', ('k', step))))
+        elif name == 'imul' and dname in gpr:
+            if len(ops) == 3:
+                x, y = value(ins, src, 4), ('k', _i32(ops[2].imm))
+            else:
+                x, y = regs.get(dname), value(ins, src, 4)
+            if as_int(x) and y and y[0] == 'k':
+                result = lin(x, y[1], 0)
+            elif as_int(y) and x and x[0] == 'k':
+                result = lin(y, x[1], 0)
+            elif x and x[0] == 'c' and x[1] == 'i' and y and y[0] == 'k':
+                result = chain(x, 'i', (C_I_MUL, ('i', y)))
+        elif name in ('push', 'nop', 'cmp', 'test', 'comiss', 'ucomiss', 'comisd', 'ucomisd'):
+            handled = 'stored'
+        else:
+            handled = False
+        if handled is True:
+            regs[dname if dname else ''] = result
+        elif handled is False:
+            # Clear every written register and local; nothing else is assumed.
+            _, written = ins.regs_access()
+            for reg in written:
+                regs[ins.reg_name(reg)] = None
+                if ins.reg_name(reg) == 'esp':
+                    pass
+            for op in ops:
+                if op.type == X.X86_OP_MEM and op.access & 2:
+                    r = ref(op)
+                    if r[0] == 'local':
+                        local[r[1]] = None
+                    elif r[0] == 'abs' and r[1] == CLOCK:
+                        steps = 999
+            if name in ('call',):
+                break
+        at = nxt
+    _slices[block] = (tuple(sorted(entry)), tuple(dict.fromkeys(outputs)))
+    return _slices[block]
+
+
+def resolve_clock(wa, program, values):
+    """Substitute entry-local values; ('i', n) operands become 32-bit words."""
+    ops = []
+    for op, k in program:
+        if isinstance(k, tuple) and k[0] == 'w':
+            ops.append((op, k[1]))
+        elif isinstance(k, tuple):
+            n = k[1]
+            if n[0] == 'k':
+                word = n[1]
+            else:
+                base = values[n[1]]
+                if not _local_stored(wa, n[1], base):
+                    return None
+                word = _i32(base * n[2] + n[3])
+            if k[0] == 'i' and op in (C_F_MUL, C_F_DIV, C_F_ADD, C_F_SUB, C_F_RSUB, C_F_RDIV):
+                word = v.f2u(_f32(float(word)))
+            elif k[0] == 'i' and op in (C_D_MUL, C_D_DIV, C_D_ADD, C_D_SUB, C_D_RSUB, C_D_RDIV):
+                word = _d64(float(word))
+            if op in (C_I_MOD, C_I_DIV) and word in (0, -1):
+                return None
+            ops.append((op, word & 0xffffffffffffffff))
+        else:
+            ops.append((op, 0))
+    return tuple(ops) if len(ops) <= CLOCK_OPS else None
+
+
+def clock_value(ops, time):
+    """Reference evaluation of a clock chain; returns the binary32 word."""
+    f = i = d = None
+    def trunc(x):
+        return int(x) if -2147483648 <= x < 2147483648 else -2147483648
+    for op, k in ops:
+        kf, kd = v.u2f(k & 0xffffffff), _f64(k)
+        if op == C_TIME_F: f = time
+        elif op == C_TIME_D: d = float(time)
+        elif op == C_TICK: i = trunc(time)
+        elif op == C_F_MUL: f = _f32(f * kf)
+        elif op == C_F_DIV: f = _f32(f / kf) if kf else _f32(math_div(f, kf))
+        elif op == C_F_ADD: f = _f32(f + kf)
+        elif op == C_F_SUB: f = _f32(f - kf)
+        elif op == C_F_RSUB: f = _f32(kf - f)
+        elif op == C_F_RDIV: f = _f32(math_div(kf, f))
+        elif op == C_D_MUL: d = d * kd
+        elif op == C_D_DIV: d = math_div(d, kd)
+        elif op == C_D_ADD: d = d + kd
+        elif op == C_D_SUB: d = d - kd
+        elif op == C_D_RSUB: d = kd - d
+        elif op == C_D_RDIV: d = math_div(kd, d)
+        elif op == C_F2D: d = float(f)
+        elif op == C_D2F: f = _f32(d)
+        elif op == C_F2I: i = trunc(f)
+        elif op == C_D2I: i = trunc(d)
+        elif op == C_I2F: f = _f32(float(i))
+        elif op == C_I2D: d = float(i)
+        elif op in (C_I_MOD, C_I_DIV):
+            # C99/idiv truncation; the generator excludes divisors 0 and -1.
+            n = _i32(k & 0xffffffff)
+            q = abs(i) // abs(n) * (1 if (i < 0) == (n < 0) else -1)
+            i = _i32(q) if op == C_I_DIV else i - q * n
+        elif op == C_I_ADD: i = _i32(i + _i32(k & 0xffffffff))
+        elif op == C_I_RSUB: i = _i32(_i32(k & 0xffffffff) - i)
+        elif op == C_I_MUL: i = _i32(i * _i32(k & 0xffffffff))
+        elif op == C_F_NEG: f = -f
+        elif op == C_I_NEG: i = _i32(-i)
+        elif op == C_D_NEG: d = -d
+    return v.f2u(f)
+
+
+def math_div(a, b):
+    import math
+    if b == 0:
+        if a == 0 or a != a:
+            return math.nan
+        return math.copysign(math.inf, a) * math.copysign(1, b)
+    return a / b
 
 
 def flat(d):
@@ -344,6 +786,26 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None):
                     _site_sink.add((address, m.r32(uc.reg_read(m.x86.UC_X86_REG_ESP))))
             for addr in (WAVE_HELPER, SINE_WRAPPER):
                 self.m.uc.hook_add(UC_HOOK_CODE, site, begin=addr, end=addr)
+            from unicorn import UC_HOOK_BLOCK
+            import bisect
+            clocks = clock_sites(wa)
+            def block(uc, address, size, context):
+                if _site_sink is None:
+                    return
+                k = bisect.bisect_left(clocks, address)
+                if k == len(clocks) or clocks[k] >= address + size:
+                    return
+                entry, outputs = slice_block(wa, address)
+                if not outputs:
+                    return
+                m = self.m
+                ebp = uc.reg_read(m.x86.UC_X86_REG_EBP)
+                values = {off: _i32(m.r32((ebp + off) & 0xffffffff)) for off in entry}
+                for output in outputs:
+                    ops = resolve_clock(wa, output[2], values)
+                    if ops is not None:
+                        _site_sink.add(('clock', ops))
+            self.m.uc.hook_add(UC_HOOK_BLOCK, block, begin=clocks[0], end=clocks[-1])
     global _site_sink
     _site_sink = sites
     if _sample_state is None or _sample_state[0] is not wa:
@@ -425,7 +887,8 @@ def infer(samples):
     return outs
 
 ALL_TYPES = (REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES + RANKED_TYPES + EXPANDED_TYPES +
-             NEXT_TYPES + CLOCK_TYPES + CLUSTER_TYPES + WING_TYPES + VISIBLE_TYPES + SCALAR_TYPES)
+             NEXT_TYPES + CLOCK_TYPES + CLUSTER_TYPES + WING_TYPES + VISIBLE_TYPES + SCALAR_TYPES +
+             CHAIN_TYPES + LEVEL_TYPES)
 
 
 def fit(wa, lib, t, scalars=False):
@@ -438,8 +901,10 @@ def fit(wa, lib, t, scalars=False):
     if rules is not None or not scalars:
         return None if rules is None else (rules, ())
     programs = []
-    for helper, ret in sorted(sites):
-        program = parse_scalar(wa, helper, ret)
+    # Helper programs keep their part-11 order; clock chains follow them.
+    ordered = sorted(site for site in sites if site[0] != 'clock') + sorted(site for site in sites if site[0] == 'clock')
+    for helper, ret in ordered:
+        program = (3, 0, ret) if helper == 'clock' else parse_scalar(wa, helper, ret)
         if program is not None and program not in programs:
             programs.append(program)
     if not programs:
@@ -466,7 +931,7 @@ def _fit(wa, lib, t, params, sites):
         if stream is None:
             continue
         phase = 5 if index % 3 == 0 else 0
-        if t in CLOCK_TYPES and index // len(PROBE_SEEDS) == 2:
+        if t in LEVEL_SPLIT and index // len(PROBE_SEEDS) == 2:
             phase = 7 if phase == 5 else 6
         phases[phase].append(stream[0])
         for pair in stream[1:]:
@@ -528,7 +993,8 @@ def render(types):
     lines = ['/* Generated by scripts/gen_item_bodies.py. Rendering rules only.',
              ' * source=0 selects value; source=1..16 copies the generic draw word;',
              ' * source=17 copies OBJECT alpha. source=18..20 copies pulsed body light; source=21 copies armour blend pulse. source=22..34 selects clock scalars; source=35 copies OBJECT hidden mesh;',
-             ' * source=36.. selects the type\'s own scalar program (kind 1 = wave 0x0185bdc4(a,0), 2 = sin(time*a), then mul/add/sub/div, binary32 or op|8 binary64 with one final rounding). See client-render-items.md. */',
+             ' * source=36.. selects the type\'s own scalar program (kind 1 = wave 0x0185bdc4(a,0), 2 = sin(time*a), then mul/add/sub/div, binary32 or op|8 binary64 with one final rounding;',
+             ' * kind 3 = clock chain of op/k pairs, see gen_item_bodies.C_TIME_F..C_D_NEG). See client-render-items.md. */',
              '#define MU_RC_BODY_SCALARS 8',
              'typedef struct { uint8_t count; struct { int32_t entry; uint8_t source[16]; uint32_t value[16]; } draw[16]; } mu_rc_body_recipe;',
              'static const mu_rc_body_recipe mu_rc_body_recipes[] = {']
@@ -539,20 +1005,20 @@ def render(types):
             values = ', '.join('0' if op == 'in' else '0x%08xu' % (v & 0xffffffff) for op, v in cells)
             lines.append('        {%d, {%s}, {%s}},' % (1 if entry == 'BODY' else 2, sources, values))
         lines.append('    }},')
-    lines += ['};', 'typedef struct { uint8_t kind, count; uint32_t a; uint8_t op[4]; uint64_t k[4]; } mu_rc_body_scalar;',
+    lines += ['};', 'typedef struct { uint8_t kind, count; uint32_t a; uint8_t op[%d]; uint64_t k[%d]; } mu_rc_body_scalar;' % (CLOCK_OPS, CLOCK_OPS),
               'static const mu_rc_body_scalar mu_rc_body_scalars[] = {']
     for kind, a, ops in programs:
-        ops = list(ops) + [(0, 0)] * (4 - len(ops))
+        ops = list(ops) + [(0, 0)] * (CLOCK_OPS - len(ops))
         lines.append('    {%d, %d, 0x%08xu, {%s}, {%s}},' % (
             kind, sum(1 for op, _ in ops if op), a, ', '.join(str(op) for op, _ in ops),
             ', '.join('0x%xull' % k for _, k in ops)))
     if not programs:
-        lines.append('    {0, 0, 0, {0, 0, 0, 0}, {0, 0, 0, 0}},')
+        lines.append('    {0, 0, 0, {0}, {0}},')
     lines += ['};', 'static const struct { int32_t type; uint16_t recipe[8]; uint8_t level_split, retain_ancient; uint8_t dim, plain, pulse, blend_pulse; uint16_t scalar_mask; uint16_t scalar_first; uint8_t scalar_count; } mu_rc_body_types[] = {']
     for t, indices, first, count in rows:
         rules = types[t][0]
         lines.append('    {0x%04x, {%s}, %d, %d, %d, %d, %d, %d, %d, %d, %d},' %
-                     (t, ', '.join(map(str, indices)), t in CLOCK_TYPES, t in ATLAS_TYPES, t in DIM_TYPES, t in PLAIN_TYPES, t in PULSE_TYPES,
+                     (t, ', '.join(map(str, indices)), t in LEVEL_SPLIT, t in ATLAS_TYPES, t in DIM_TYPES, t in PLAIN_TYPES, t in PULSE_TYPES,
                       any(op == 'in' and value == 20 for rule in rules for _, cells in rule for op, value in cells),
                       sum(1 << k for k in range(13) if any(op == 'in' and value == 21+k for rule in rules for _, cells in rule for op,value in cells)),
                       first, count))

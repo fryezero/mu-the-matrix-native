@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../core/mu_item_textures.h"
 #include "../core/mu_lang.h"
 #include "../core/mu_perf.h"
 #ifndef MU_WORLD_NO_GL
@@ -147,6 +148,7 @@ int world_rt_load(mu_world_rt *a)
             }
         }
     }
+    world_rt_hero_item_textures(a, 1, MU_CHARACTER_PART_SLOTS);
     mu_walk_init(&a->walk, a->map, &a->info, (uint32_t)a->width, (uint32_t)a->height, a->tile[0], a->tile[1], a->angle,
                  a->class_byte, a->ch.player_bmd.action_count, a->near_plane);
     mu_hero *h = &a->walk.hero;
@@ -199,8 +201,28 @@ int world_rt_apply_equipment(mu_world_rt *a, char *error, size_t error_size)
     for (int i = 1; i < MU_CHARACTER_ITEMS; ++i)
         if (a->equip[i] && a->equip[i][0] && mu_character_set_item(&a->ch, i, a->equip[i], 0, error, error_size))
             return 1;
+    world_rt_hero_item_textures(a, 1, MU_CHARACTER_ITEMS);
     mu_walk_place(&a->walk, &a->ch);
     return 0;
+}
+
+void world_rt_hero_item_textures(mu_world_rt *a, int first, int last)
+{
+    mu_data_table items = {0};
+    char path[4096];
+    int have = 0;
+    for (int k = 0; k < 2 && !have; ++k) {
+        mu_data_free(&items);
+        snprintf(path, sizeof path, "%s/Data/Local/%s", a->root, k ? "item.bmd" : "Item.bmd");
+        have = mu_data_load(path, NULL, &items) == 0 && items.result.status == 0;
+    }
+    for (int i = first; i < last && i < MU_CHARACTER_ITEMS; ++i) {
+        if (!a->ch.items[i].loaded)
+            continue;
+        const int32_t type = mu_item_textures_type_of_path(have ? &items : NULL, a->root, a->ch.items[i].path);
+        mu_item_textures_character(&a->ch, i, have ? &items : NULL, a->root, type, a->class_byte);
+    }
+    mu_data_free(&items);
 }
 
 /* ---- NATIVE-MAP-001: travel ---- */
