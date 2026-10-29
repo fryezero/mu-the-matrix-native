@@ -69,7 +69,7 @@ CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_perf_mesh.c
             core/mu_ui_raster.c core/mu_ui_assets.c core/mu_ui_font.c \
             core/mu_effect.c core/mu_effect_scene.c core/mu_edge.c core/mu_walk.c core/mu_renderchar.c core/mu_path.c \
             core/mu_world_actors.c core/mu_charsel.c core/mu_charsel_ui.c core/mu_login.c \
-            core/mu_data.c core/mu_hud.c core/mu_hud_tip.c core/mu_objects.c core/mu_texture_names.c core/mu_objects_icarus.c core/mu_objects_raklion.c core/mu_objects_runtime.c core/mu_objects_runtime_worlds_b.c core/mu_objects_worlds_p.c core/mu_combat.c core/mu_env.c \
+            core/mu_data.c core/mu_hud.c core/mu_hud_tip.c core/mu_objects.c core/mu_texture_names.c core/mu_item_textures.c core/mu_objects_icarus.c core/mu_objects_raklion.c core/mu_objects_runtime.c core/mu_objects_runtime_worlds_b.c core/mu_objects_worlds_p.c core/mu_combat.c core/mu_env.c \
             core/mu_particles.c core/mu_joints.c core/mu_lang.c core/mu_items.c \
             core/mu_label.c core/mu_names.c core/mu_world_names.c core/mu_npc.c core/mu_world_players.c fixture/characters_spec.c fixture/monsters_spec.c core/mu_perf.c \
             core/mu_world_helpers.c core/mu_world_pets.c core/mu_quest.c core/mu_skill.c core/mu_map.c core/mu_skill_demo.c core/mu_skill_tree4.c core/mu_world_raven.c core/mu_social.c core/mu_mix.c \
@@ -78,7 +78,7 @@ CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_perf_mesh.c
 RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.c \
              $(RECON)/model-codec/bone_tracks.c $(RECON)/model-codec/pose_builder.c \
              $(RECON)/model-codec/skinning.c $(RECON)/model-codec/character.c $(RECON)/record-math/record_math.c \
-             $(RECON)/terrain/terrain.c $(RECON)/terrain/world_haze.c $(RECON)/objects/objects.c $(RECON)/objects/texture_lookup.c $(RECON)/objects/icarus.c $(RECON)/objects/acheron.c $(RECON)/objects/ferea.c $(RECON)/objects/swamp_darkness.c $(RECON)/objects/kubera.c $(RECON)/objects/worlds_q.c $(RECON)/objects/abyss_atlans.c $(RECON)/objects/old_kethotum.c $(RECON)/objects/burning_kethotum.c $(RECON)/objects/bloody_tarkan.c $(RECON)/objects/scorched_canyon.c $(RECON)/objects/red_smoke_icarus.c $(RECON)/objects/temple_arnil.c $(RECON)/objects/gray_aida.c $(RECON)/objects/nixies_lake.c $(RECON)/objects/deep_dungeon.c $(RECON)/objects/twisted_karutan.c $(RECON)/objects/kardamahal.c $(RECON)/objects/swamp_destruction.c $(RECON)/objects/kanturu_underground.c $(RECON)/objects/ignis_volcano.c $(RECON)/objects/loren_market.c $(RECON)/objects/uruk.c $(RECON)/objects/duel_arena.c $(RECON)/objects/world82.c $(RECON)/objects/santa_village.c $(RECON)/objects/vulcanus.c $(RECON)/objects/object_render.c $(wildcard $(RECON)/objects/world_*_visual.c) $(RECON)/objects/world_after.c $(RECON)/objects/devias.c $(RECON)/objects/tarkan.c $(RECON)/objects/elbeland.c $(RECON)/objects/raklion.c $(RECON)/objects/raklion_event.c $(RECON)/objects/world_warp.c $(RECON)/objects/noria.c $(RECON)/objects/login_world.c $(RECON)/objects/charsel_world.c \
+             $(RECON)/terrain/terrain.c $(RECON)/terrain/world_haze.c $(RECON)/objects/objects.c $(RECON)/objects/texture_lookup.c $(RECON)/objects/item_texture.c $(RECON)/objects/icarus.c $(RECON)/objects/acheron.c $(RECON)/objects/ferea.c $(RECON)/objects/swamp_darkness.c $(RECON)/objects/kubera.c $(RECON)/objects/worlds_q.c $(RECON)/objects/abyss_atlans.c $(RECON)/objects/old_kethotum.c $(RECON)/objects/burning_kethotum.c $(RECON)/objects/bloody_tarkan.c $(RECON)/objects/scorched_canyon.c $(RECON)/objects/red_smoke_icarus.c $(RECON)/objects/temple_arnil.c $(RECON)/objects/gray_aida.c $(RECON)/objects/nixies_lake.c $(RECON)/objects/deep_dungeon.c $(RECON)/objects/twisted_karutan.c $(RECON)/objects/kardamahal.c $(RECON)/objects/swamp_destruction.c $(RECON)/objects/kanturu_underground.c $(RECON)/objects/ignis_volcano.c $(RECON)/objects/loren_market.c $(RECON)/objects/uruk.c $(RECON)/objects/duel_arena.c $(RECON)/objects/world82.c $(RECON)/objects/santa_village.c $(RECON)/objects/vulcanus.c $(RECON)/objects/object_render.c $(wildcard $(RECON)/objects/world_*_visual.c) $(RECON)/objects/world_after.c $(RECON)/objects/devias.c $(RECON)/objects/tarkan.c $(RECON)/objects/elbeland.c $(RECON)/objects/raklion.c $(RECON)/objects/raklion_event.c $(RECON)/objects/world_warp.c $(RECON)/objects/noria.c $(RECON)/objects/login_world.c $(RECON)/objects/charsel_world.c \
              $(RECON)/camera/client_camera.c $(RECON)/camera/client_world_camera.c \
              $(RECON)/camera/client_input.c $(RECON)/camera/client_frame.c $(RECON)/camera/client_wheel.c \
              $(RECON)/actors/actors.c $(RECON)/actors/viewport_monsters.c $(RECON)/path/client_path.c \
@@ -250,6 +250,10 @@ $(BUILD)/mu-charsel: charsel/main.c charsel/charsel_tool.c $(CHARSEL_RT_OBJ) $(L
 	$(CXX) $(BUILD)/mu_charsel.o $(BUILD)/mu_charsel_tool.o $(CHARSEL_RT_OBJ) $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
 
 # RENDER-ITEMS-002b saved-pose and sprite-capacity regression.
+$(BUILD)/item-textures-host: tests/item_textures_host.c $(LIB)
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c $< -o $(BUILD)/item_textures_host.o
+	$(CXX) $(BUILD)/item_textures_host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+
 $(BUILD)/item-render-host: tests/item_render_host.c $(LIB)
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c $< -o $(BUILD)/item_render_host.o
 	$(CXX) $(BUILD)/item_render_host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@

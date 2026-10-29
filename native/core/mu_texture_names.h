@@ -18,6 +18,14 @@
 int mu_texture_names_find(const char *game_root, int32_t world, const char *subfolder, const char *name,
                           char *path, size_t size, int *step);
 
+/* Item models (RENDER-ITEMS-TEX-001): the same map as it stands (the startup part is built on first use; the
+ * current world's extras are kept). With folder (an ItemModelFile record folder, "Data\Item\") the item loader's
+ * step mu_it_open runs, *type receiving the mesh's TextureType; otherwise OpenTexture with subfolder. Returns 1 with
+ * the installed file, 0 for a special (*special = its index, else 0) or missing bitmap; *step as
+ * mu_texture_names_find. */
+int mu_texture_names_item(const char *game_root, const char *folder, const char *subfolder, const char *name,
+                          char *path, size_t size, int32_t *type, int32_t *special, int *step);
+
 /* Counters of the rebuilt map (tests and reports). */
 typedef struct mu_texture_names_stats {
     int32_t names;            /* map entries */

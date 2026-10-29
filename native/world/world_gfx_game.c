@@ -22,6 +22,7 @@
 #include "../core/mu_character.h"
 #include "../core/mu_lang.h"
 #include "../core/mu_hud.h"
+#include "../core/mu_item_textures.h"
 #include "../core/mu_model.h"
 #include "../core/mu_particles.h"
 #include "../core/mu_renderchar.h"
@@ -212,13 +213,10 @@ static item_model *model_for(wg_items *w, int32_t code, int32_t type)
         mu_model_share(&m->model, man->shared_bones, man->shared_root, man->shared_quaternions);
         m->armour = 1;
     }
-    char directory[1024];
-    snprintf(directory, sizeof directory, "%s", m->info.model_path);
-    char *slash = strrchr(directory, '/');
-    if (slash)
-        slash[1] = 0;
-    mu_textures_load(&m->textures, &m->bmd, directory);
-    if (m->textures.missing > 0) {
+    mu_item_textures_stats texture_stats;   /* the client's item texture rule (RENDER-ITEMS-TEX-001) */
+    mu_item_textures_load(&m->textures, &m->bmd, w->have_items ? &w->items : NULL, w->root, type,
+                          m->info.model_path, &texture_stats);
+    if (texture_stats.rule == MU_ITEM_RULE_FOLDER && m->textures.missing > 0) {
         /* The installed armour-part item models (Data/Item/HelmMale02.bmd, ...)
          * have their textures in Data/Player, next to the character parts
          * (installed files; the client's texture path for them is not
