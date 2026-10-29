@@ -1114,7 +1114,7 @@ static int usage(void)
                     "                [--objects-dir DIR]   local decoded EncTerrain<n>.plain files\n"
                     "                [--time-series-every N] [--time-series-start-ms MS]   headless full draw, compact post-draw samples, max 10001 frames\n"
                     "                [--fidelity-dump PREFIX]   PREFIX-obj.bin / PREFIX-light.bin at the end (fidelity tour)\n"
-                    "                [--combat] [--combat-weapon none|sword|twohand|spear|bow|crossbow|staff]\n"
+                    "                [--combat] [--combat-weapon none|sword|twohand|spear|bow|crossbow|staff] [--combat-bow 0xITEM]\n"
                     "                [--attack-speed N] [--combat-seed N] [--hero-hp N] [--combat-script \"F:attack:ACTOR F:skill:N:ACTOR ...\"]\n"
                     "                [--progress] [--progress-class N] [--progress-level N] [--progress-points N] [--progress-rate N]\n"
                     "                [--progress-script \"F:kill:CLASS F:button:ROW F:add:STAT\"]   experience, levels, stat points (demo server)\n"
@@ -1225,6 +1225,12 @@ int main(int argc, char **argv)
             if (found < 0)
                 return usage();
             o->combat_config.weapon = found;
+            o->combat = 1;
+        }
+        else if (!strcmp(k, "--combat-bow")) {   /* RENDER-EFFECTS-007: a bow item model type, e.g. 0x12ee */
+            char *end; long n = strtol(v, &end, 0);
+            if (!*v || *end || n < 0x12e6 || n > 0x13e5) return usage();
+            o->combat_config.bow_item = (int16_t)n;
             o->combat = 1;
         }
         else if (!strcmp(k, "--attack-speed")) { o->combat_config.attack_speed = strtof(v, NULL); o->combat = 1; }
