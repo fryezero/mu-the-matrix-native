@@ -33,8 +33,8 @@ reviewed summaries are committed.
 Found on main (not changed here, other lanes' files): since BUILD-DEPS-001 the `reconstructed/objects` Makefile
 includes `../deps.mk`, but the mutant copies of `validate_worlds_{g,h,n,o,p,p2}.py` copy only the source
 directories, so their `--mutations` runs stop at `make: No rule to make target '../deps.mk'` (verified for P2:
-`run_validators.py --private --only validate_worlds_p2` fails). `validate_worlds_r2.py` copies `deps.mk`; RENDER-WORLDS-G2
-fixes the others with `-include` (orchestrator, 2026-10-28).
+`run_validators.py --private --only validate_worlds_p2` failed). `validate_worlds_r2.py` copies `deps.mk`;
+RENDER-WORLDS-G2 (`eb4b53a`) made the include optional and P2 passes again on the merged tree.
 
 Remaining: the CreateEffect kinds 0x195/0x199 with word4; the 142 range −800 writer and the 142–144 velocity
 differences (not in these slots); the custom/after/invisible-move slots of the three classes; the default hook
@@ -47,4 +47,16 @@ retention.
 
 ## Checks
 
-Pending the locked gate.
+Merge process of the 20:50 brief update (merge steward; no lock). Latest main `eb4b53a` (RENDER-WORLDS-G2) merged
+as `b641395`; conflicts in both Makefiles (G2's `texture_lookup.c` plus this lane's sources) and the plan rows keep
+both sides. `native/build` rebuilt from clean (G2 changed `mu_objects.h`). On the merged tree, at `nice -n 10`:
+
+- `bash scripts/local-macos-ci.sh` passes: **1,704 tests across 38 discovery runs, 220 explicit skips, zero
+  failures/errors; 11/11 fixture scenarios; native viewer and reader builds; publication audit 1,683 files, zero
+  rejected**. No hosted workflow dispatched. (Preflight before the merge: 1,699 tests, 219 skips, 1,672 files.)
+- `MU_RECOVERY_INTEGRATION=1 run_validators.py --private --jobs 2 --only validate_worlds_r2,validate_object_render,
+  validate_worlds_p2`: **3/3 pass** (R2: 9,000 cases, 56/56 mutants).
+- `world_handler_coverage.py`: 48 classes, 57 registrations, 288 addresses; 85/144, 29/48.
+- Fidelity tours (before `5fa43cd`, after this lane before the G2 merge) as in the finding.
+
+Steward validators: validate_worlds_r2 (MU_RECOVERY_INTEGRATION=1).
