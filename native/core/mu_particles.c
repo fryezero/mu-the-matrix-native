@@ -83,7 +83,15 @@ static const struct { int32_t type, world; const char *file; } fx_model_files[MU
     /* RENDER-EFFECTS-004: Spirit of Guardian's wing 0x460 (AccessModel 0x0183375e, every world) */
     {MU_SFX_MODEL_GUARDIAN_WING, -1, "Data/Skill/darkwing_hetachi.bmd"},
     /* RENDER-EFFECTS-005: DungeonStone 0x43a, the world loader's case for worlds 116..120 (0x0184159b) */
-    {MU_SFX_MODEL_DUNGEON_STONE, -1, "Data/Object2/DungeonStone01.bmd"}};
+    {MU_SFX_MODEL_DUNGEON_STONE, -1, "Data/Object2/DungeonStone01.bmd"},
+    /* RENDER-EFFECTS-006: the owned world effects' models. hs_flybatA: Kubera's class loader for 123..127
+     * (0x00e196c8) and Kardamahal's (143, 0x00e0e603; Object144 has no such file in the installation, the client
+     * then draws an empty model). zu_sealeaf04: OpenWorldModels for 91/92 (0x01840f53) and 122 (0x01841845).
+     * The shoal 0x199 (Fish02) is loaded only in Atlans and the abyss, never in the worlds that request it. */
+    {MU_SFX_MODEL_FLYBAT, -1, "Data/Object124/hs_flybatA.bmd"},
+    {MU_SFX_MODEL_FLYBAT, 143, "Data/Object144/hs_flybatA.bmd"},
+    {MU_SFX_MODEL_SEALEAF, -1, "Data/Object92/zu_sealeaf04.bmd"},
+    {MU_SFX_MODEL_SEALEAF, 122, "Data/Object123/zu_sealeaf04.bmd"}};
 
 static int32_t slot_of(int32_t bitmap)
 {
@@ -244,6 +252,9 @@ int mu_world_particles_open(mu_world_particles *p, const char *root, const mu_wo
             continue;
         if (m->type == MU_SFX_MODEL_DUNGEON_STONE && (world < 116 || world > 120))
             continue;
+        if (fx_model_files[i].world == -1 && ((m->type == MU_SFX_MODEL_FLYBAT && (world < 123 || world > 127)) ||
+                                              (m->type == MU_SFX_MODEL_SEALEAF && world != 91 && world != 92)))
+            continue;
         if (no_assets || (fx_model_files[i].world != world && fx_model_files[i].world != -1))
             continue;
         char path[4096], message[512], directory[2048];
@@ -336,6 +347,7 @@ static mu_jt_object view_of(const mu_world_particles *p, int32_t index)
         o.visible = img[MU_OBJF_VISIBLE];
         memcpy(o.position, img + MU_OBJF_POSITION, 12);
         memcpy(o.light, img + MU_OBJF_LIGHT, 12);
+        o.scale = mu_obj_f32(img, MU_OBJF_SCALE);   /* RENDER-EFFECTS-006: 0x195/0x59a drift by it */
     }
     return o;
 }
@@ -1475,6 +1487,15 @@ static void o_effect_scaled(void *c, int32_t type, int32_t subtype, const float 
     mu_world_particles_effect(c, type, subtype, position, angle, light, owner, scale, &info);
 }
 
+/* RENDER-EFFECTS-006: the Q/R/R2 world visuals' owned effects, info {key -1, skill 0, word4, 0, -1}, scale 0 */
+static void o_effect_word4(void *c, int32_t type, int32_t subtype, const float position[3], const float angle[3],
+                           const float light[3], int32_t owner, uint16_t word4)
+{
+    mu_sfx_info info = {0};
+    info.key = 0xffff; info.field8 = 0xffff; info.word4 = word4;
+    mu_world_particles_effect(c, type, subtype, position, angle, light, owner, 0.0f, &info);
+}
+
 /* Icarus consumes the authored visual events here, keeping object-only tools independent of UI hosts. */
 static void icarus_cover(mu_world_particles *p, mu_objects *o, int32_t index)
 {
@@ -1534,6 +1555,7 @@ void mu_world_particles_attach(mu_world_particles *p, struct mu_objects *objects
         objects->rt.sprite = o_sprite;
         objects->rt.effect = o_effect;
         objects->rt.effect_scaled = o_effect_scaled;
+        objects->rt.effect_word4 = o_effect_word4;
         objects->rt.joint = o_joint;
         objects->rt.hook_context = p;
         p->objects = objects;

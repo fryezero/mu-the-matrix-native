@@ -27,10 +27,11 @@ import actor_machine as am  # noqa: E402
 import pins  # noqa: E402
 import validate_skill_fx as fx  # noqa: E402
 import validate_render_effects as base  # noqa: E402
+import validate_particles as pt  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 EFFECT_KINDS = [(0x195, 0), (0x199, 0), (0x199, 1), (0x59a, 3)]
-PARTICLE_KINDS = []
+PARTICLE_KINDS = [(0x7ef7, 9), (0x7f25, 15), (0x7efa, 2), (0x7f26, 14)]
 OWNED = {0x195, 0x59a}
 
 
@@ -116,6 +117,84 @@ MUTANTS = [
 ]
 
 
+PARTICLE_MUTANTS = [
+    # (name, old, new, family)
+    ('trail-life', 'mu_pt_cvttss2si(40.0f * p->scale)', 'mu_pt_cvttss2si(41.0f * p->scale)', 'create'),
+    ('spark-life', 'p->lifetime = mu_pt_rand(h) % 12 + 12;', 'p->lifetime = mu_pt_rand(h) % 12 + 11;', 'create'),
+    ('spark-colour', 'copy3(p->start, p->light);', 'copy3(p->start, p->position);', 'create'),
+    ('mist-spread', '(float)(mu_pt_rand(h) % 50 - 25) + p->position[k]', '(float)(mu_pt_rand(h) % 50 - 24) + p->position[k]',
+     'create'),
+    ('mist-speed', 'v[k] = 0.8f * 0.5f;', 'v[k] = 0.5f;', 'create'),
+    ('glint-skip', 'if (mu_pt_rand(h) % 2 != 0)', 'if (mu_pt_rand(h) % 2 == 0)', 'create'),
+    ('glint-size', '% 5) / 10.0f + 0.4f;', '% 5) / 10.0f + 0.5f;', 'create'),
+    ('trail-shrink', 'p->scale = p->scale - 0.011f;', 'p->scale = p->scale - 0.01f;', 'move'),
+    ('trail-bright', 'p->lifetime >= 75 ?', 'p->lifetime > 75 ?', 'move'),
+    ('spark-tint', 'p->light[k] = p->light[k] * p->start[k];', 'p->light[k] = p->light[k];', 'move'),
+    ('spark-bounce', 'p->lifetime = p->lifetime - 4;', 'p->lifetime = p->lifetime - 3;', 'move'),
+    ('mist-pulse', '2.0f * 0.0174532924f)) * p->start[0];', '0.0174532924f)) * p->start[0];', 'move'),
+    ('glint-fade', 'p->alpha = p->alpha - 0.001f;', 'p->alpha = p->alpha - 0.002f;', 'move'),
+    ('mist-drawn', 'return !(p->type == 0x7efa && p->subtype == 2);', 'return 1;', 'render'),
+]
+
+
+def _patch_particles():
+    """Directed samples at the flare trail's 75-step light switch and the scale/alpha zero crossings."""
+    if getattr(pt.random_particle, 'effects6', False):
+        return
+    plain = pt.random_particle
+
+    def random_particle(rng, kind):
+        p = plain(rng, kind)
+        if kind == (0x7ef7, 9):
+            p.lifetime = rng.choice([76, 75, 75, 74, 1, p.lifetime])
+            p.scale = pt.f32(rng.choice([0.011, 0.0, 0.5, -0.1, p.scale]))
+        elif kind == (0x7f26, 14):
+            p.alpha = pt.f32(rng.choice([0.001, 0.0011, 0.0009, 1.0, p.alpha]))
+        return p
+    random_particle.effects6 = True
+    pt.random_particle = random_particle
+
+
+def particle_families(text, data, cases):
+    _patch_particles()
+    plib = pt.load_library(ROOT/'reconstructed/particles'/('libclient_particles.' + fx.SUFFIX))
+    out = {}
+    for name in ('create', 'move', 'render'):
+        r = base.compare(text, data, plib, 'pt', name, PARTICLE_KINDS, cases)
+        f = r['families'][name]
+        out['pt_' + name] = {'cases': f['cases'], 'mismatches': f['cases'] - f['equal'],
+                             'coverage': r['coverage'][name],
+                             'first': f['first_failures'][:2] if f['cases'] != f['equal'] else []}
+    return out
+
+
+def particle_mutants(text, data, cases):
+    _patch_particles()
+    caught = {}
+    source = ROOT/'reconstructed/particles'
+    original = (source/'world_owned_fx.inc').read_text()
+    with tempfile.TemporaryDirectory(prefix='render-effects6-pt-') as tmp:
+        for name, old, new, family in PARTICLE_MUTANTS:
+            if original.count(old) != 1:
+                raise AssertionError(('mutant anchor', name, original.count(old)))
+            folder = Path(tmp)/name
+            folder.mkdir()
+            for f in source.iterdir():
+                if f.suffix in ('.c', '.h', '.inc'):
+                    (folder/f.name).write_text(f.read_text())
+            (folder/'world_owned_fx.inc').write_text(original.replace(old, new))
+            out = folder/('lib.' + fx.SUFFIX)
+            subprocess.run(['clang', '-std=c11', '-O2', '-fPIC', '-ffp-contract=off', '-fno-fast-math', '-shared',
+                            '-I', str(folder), '-I', str(source),
+                            *[str(folder/p) for p in ('particles.c', 'world_flames.c', 'elbeland.c', 'sprites.c',
+                                                      'shadow.c', 'visual.c', 'layout.c')],
+                            str(ROOT/'reconstructed/record-math/record_math.c'), '-lm', '-o', str(out)],
+                           check=True, capture_output=True)
+            f = base.compare(text, data, pt.load_library(out), 'pt', family, PARTICLE_KINDS, cases)['families'][family]
+            caught[name] = {'cases': f['cases'], 'caught': f['cases'] - f['equal']}
+    return caught
+
+
 def effect_families(text, data, lib, cases):
     _patch_harness()
     out = {}
@@ -143,6 +222,7 @@ def effect_mutants(text, data, cases):
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--cases', type=int, default=400, help='cases per effect family')
+    p.add_argument('--particle-cases', type=int, default=400, help='cases per particle family')
     p.add_argument('--mutations', action='store_true')
     p.add_argument('--output', type=Path)
     a = p.parse_args()
@@ -153,12 +233,19 @@ def main():
     lib = fx.load_library(ROOT/'reconstructed/combat'/('libcombat.' + fx.SUFFIX))
     report = {'text_sha256': pins.TEXT.sha256, 'data_sha256': pins.DATA.sha256, 'families': {}, 'mutants': {}}
     report['families'].update(effect_families(text, data, lib, a.cases))
+    report['families'].update(particle_families(text, data, a.particle_cases))
     if a.mutations:
         report['mutants'].update(effect_mutants(text, data, max(100, a.cases // 2)))
+        report["mutants"].update(particle_mutants(text, data, max(100, a.particle_cases // 2)))
     bodies = {'shoal_create': (0x013c39d9, 0x013c3d67), 'bat_create': (0x013c3d67, 0x013c3eab),
               'leaf_create': (0x013f5b63, 0x013f5c21), 'shoal_move': (0x01435aed, 0x01435e18),
               'bat_move': (0x01435e18, 0x01435ef3), 'leaf_move': (0x014ed512, 0x014eda52),
-              'skip_list': (0x014ecb6e, 0x014ecd35), 'effect_wrapper': (0x013c0eaa, 0x013c0f19)}
+              'skip_list': (0x014ecb6e, 0x014ecd35), 'effect_wrapper': (0x013c0eaa, 0x013c0f19),
+              'trail_create': (0x015eece3, 0x015eed12), 'spark_create': (0x015dce61, 0x015dcf3b),
+              'mist_create': (0x015c336e, 0x015c36e6), 'glint_create': (0x015de717, 0x015de866),
+              'trail_move': (0x01663eaf, 0x01664099), 'spark_move': (0x0165006b, 0x01650bde),
+              'mist_move': (0x016329f8, 0x01632a84), 'glint_move': (0x01651e01, 0x01651f34),
+              'mist_render': (0x015954a5, 0x015954d1)}
     report['bodies'] = {k: hashlib.sha256(text[s-am.TEXT_BASE:e-am.TEXT_BASE]).hexdigest()[:16]
                         for k, (s, e) in bodies.items()}
     report['instruction_cases'] = sum(f['cases'] for f in report['families'].values())

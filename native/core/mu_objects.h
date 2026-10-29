@@ -158,6 +158,10 @@ typedef struct mu_objects_runtime {
     void (*joint)(void *context, int32_t type, const float position[3], const float target[3],
                   const float angle[3], int32_t subtype, int32_t owner, float scale);
     void (*effect_scaled)(void *, int32_t, int32_t, const float[3], const float[3], const float[3], int32_t, float);
+    /* RENDER-EFFECTS-006: CreateEffect 0x013c0eaa(type, position, angle, light, subtype, the object, -1, 0, word4,
+     * 0, 0.0, -1, 0, 0) of the Q/R/R2 world visuals (0x195, 0x199, 0x59a); unset: refused and counted. */
+    void (*effect_word4)(void *, int32_t type, int32_t subtype, const float position[3], const float angle[3],
+                         const float light[3], int32_t owner, uint16_t word4);
     uint8_t raklion_state[0x28];
     float raklion_quake, raklion_hero_angle[3];
     int32_t icarus_count; /* previous MoveObjects ordinal, 0x0bdc5890 */
