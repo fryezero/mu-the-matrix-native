@@ -206,6 +206,22 @@ int mu_textures_load_with_effects(mu_textures *t, const mu_bmd *model, const cha
     return 0;
 }
 
+int mu_textures_set_file(mu_textures *t, const mu_bmd *model, int32_t index, const char *path)
+{
+    if (index < 0 || index >= t->model_count || t->slots[index])
+        return 1;
+    char error[256];
+    const char kind = kind_of(model->meshes[index].texture);   /* the resolver tests the mesh name's letter */
+    if ((kind != 't' && kind != 'j') ||
+        mu_texture_upload_file(path, kind, &t->images[index], &t->components[index], error, sizeof error) !=
+            MU_IMAGE_OK)
+        return 1;
+    t->slots[index] = &t->images[index];
+    if (t->missing > 0)
+        t->missing--;
+    return 0;
+}
+
 int mu_textures_load(mu_textures *t, const mu_bmd *model, const char *directory)
 {
     return mu_textures_load_with_effects(t, model, directory, NULL);

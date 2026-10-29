@@ -94,6 +94,11 @@ static void add_rotated(const float angles[3], float y, float position[3])
         position[i] = position[i] + rotated[i];
 }
 
+int mu_world_camera_event_world(int32_t world)
+{
+    return world == 0x3f || (world >= 0x52 && world <= 0x5a);
+}
+
 void mu_world_camera_enter(mu_world_camera *c, mu_client_view *v)
 {
     v->angle[2] = -45.0f;

@@ -100,12 +100,14 @@ static void objects_report_summary(const struct mu_world_rt *a, const void *self
             " \"objects_moved\": %ld, \"object_ticks\": %ld, \"object_lights\": %ld, \"object_particles\": "
             "%ld,"
             " \"object_sounds\": %ld, \"object_draw_list\": %d, \"object_lights_last_step\": %d,"
-            " \"objects_animated\": %d, \"object_after_meshes\": %ld}\n",
+            " \"objects_animated\": %d, \"object_after_meshes\": %ld, \"object_textures_retried\": %d,"
+            " \"object_textures_unresolved\": %d}\n",
             a->objects.count, a->objects.models_loaded, a->objects.models_missing, a->objects_drawn,
             a->objects.rt.created, a->objects.rt.create_unsupported, a->objects.rt.steps, a->objects.rt.moved,
             a->objects.rt.ticks, a->objects.rt.light_events, a->objects.rt.particle_events,
             a->objects.rt.sound_events, a->objects.rt.draw_count, a->objects.rt.light_count,
-            mu_objects_animated(&a->objects), a->objects.rt.after_meshes);
+            mu_objects_animated(&a->objects), a->objects.rt.after_meshes,
+            a->objects.textures_retried, a->objects.textures_unresolved);
 }
 
 #ifndef MU_WORLD_NO_GL

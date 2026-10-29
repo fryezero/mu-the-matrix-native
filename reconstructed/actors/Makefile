@@ -15,4 +15,4 @@ $(LIB): actors.c actors.h monster_open_table.h monster_sound_table.h monster_cla
 
 .PHONY: all
 
-include ../deps.mk
+-include ../deps.mk   # optional: validators build copies of single directories
