@@ -62,7 +62,10 @@ static int inputs_fill(const mu_model *model, const mu_draw_options *o, mu_scene
         m->normals = mu_model_normals(model, i);
         m->lights = mu_model_lights(model, i);
         m->secondary = mu_model_secondary_lights(model, i);
-        in->texture_index[i] = MU_SCENE_TEXTURE_BASE + i;
+        /* a special mesh name keeps the client's index (RENDER-ITEMS-TEX-001), so the substitutions apply */
+        in->texture_index[i] = o->textures && o->textures->client_index && i < o->textures->model_count &&
+                                       o->textures->client_index[i] ? o->textures->client_index[i]
+                                                                    : MU_SCENE_TEXTURE_BASE + i;
         in->texture_type[i] = 0;
     }
     const mu_textures *t = o->textures;
