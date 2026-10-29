@@ -12,8 +12,12 @@ Portable, synthetic, loopback only:
   * two seeds give two journals, each reproducible byte for byte;
   * over TCP: `mu-session serve` on 127.0.0.1 and `mu-session connect`, i.e. the product sockets
     transport with its client lock (in a temporary directory), carry the same frames;
+  * serve screens stray peers (FIXTURE-PROBE-001): an HTTP probe and a connect-and-close scan that reach the
+    listener first are rejected and counted, and the real client still gets the session; with screening off
+    (the old accept, the control) the probe takes the session;
   * mu-session refuses a non-loopback --to before creating any transport.
 """
+import json
 import os
 from pathlib import Path
 import socket
@@ -102,11 +106,15 @@ class FixtureHero(unittest.TestCase):
         self.assertNotEqual(a1, b)
         self.assertEqual(a1[:8], b'MUJNL\x00\x01\x00')
 
-    def test_tcp_round_trip_over_the_sockets_transport(self):
+    def client_env(self):
         env = dict(os.environ)
         env.pop('MU_AGENT', None)
         env['MU_CLIENT_LOCK_PATH'] = str(self.dir / 'client.lock')
         env['MU_CLIENT_PROCESS_NAMES'] = 'mu-test-%s.exe' % uuid.uuid4().hex[:12]
+        return env
+
+    def serve(self, *extra):
+        """Start `mu-session serve` on a free port; returns (server, port, scenario, listening line)."""
         # the scenario names the port, so it is picked free and then bound by the server; another process (a
         # parallel gate's suites) can take it in between, so a failed listen picks a new one (GATE-PAR-001)
         for attempt in range(5):
@@ -118,31 +126,94 @@ class FixtureHero(unittest.TestCase):
                                  'join world=0 tile=1,1 class=0x01 level=1 name=Tcp\n'
                                  'at 2 progress join\nat 4 progress levelup\nexpect hero.level = 2\n'
                                  'expect unbound = 0\n' % port)
-            server = subprocess.Popen([str(TOOL), 'serve', str(scn), '--port', str(port), '--seconds', '20'],
-                                      stdout=subprocess.PIPE, text=True)
+            server = subprocess.Popen([str(TOOL), 'serve', str(scn), '--port', str(port), '--seconds', '20']
+                                      + [str(x) for x in extra], stdout=subprocess.PIPE, text=True)
             listening = server.stdout.readline()
             if 'fixture_listening' in listening or attempt == 4:
                 break
             server.kill()
             server.communicate()
+        self.addCleanup(self.stop, server)
+        return server, port, scn, listening
+
+    @staticmethod
+    def stop(server):
+        if server.poll() is None:
+            server.kill()
+            server.wait()
+        server.stdout.close()
+
+    def assert_round_trip(self, port, scn):
+        r, rows = run_tool('connect', scn, '--to', '127.0.0.1:%d' % port, '--ticks', 40, env=self.client_env())
+        self.assertEqual(r.returncode, 0, r.stdout[-2000:] + r.stderr)
+        transport = first(rows, 'transport')
+        self.assertEqual((transport['kind'], transport['links_opened'], transport['links_refused']),
+                         ('sockets', 1, 0))
+        self.assertGreater(transport['bytes_in'], 0)
+        self.assertEqual(first(rows, 'hero')['level'], 2)
+        self.assertEqual({(f['opcode'], f['sub']) for f in jnl(rows, 'frame_in')},
+                         {(0x55, 0x57), (0x55, 0x94), (0xA0, 0x06)})
+
+    def server_rows(self, server):
+        out, _ = server.communicate(timeout=20)
+        return out, [json.loads(line) for line in out.splitlines() if line.startswith('{')]
+
+    def test_tcp_round_trip_over_the_sockets_transport(self):
+        server, port, scn, listening = self.serve()
+        self.assertIn('fixture_listening', listening)
+        self.assert_round_trip(port, scn)
+        out, rows = self.server_rows(server)
+        self.assertEqual(server.returncode, 0, out)
+        # a T3 Code probe (TEST-FLAKE-001) may land here too: every rejection is logged and counted
+        self.assertEqual(first(rows, 'fixture')['rejected_peers'], len([x for x in rows if 'fixture_rejected' in x]))
+
+    def strays(self, port, scan=True):
+        """What T3 Code (TEST-FLAKE-001) and a connect scan do to a new listener, before the real client."""
+        probe = socket.create_connection(('127.0.0.1', port), timeout=5)
+        probe.sendall(b'GET / HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n')
+        self.addCleanup(probe.close)
+        if scan:
+            socket.create_connection(('127.0.0.1', port), timeout=5).close()
+        return probe
+
+    @staticmethod
+    def received(sock):
+        """What the peer sent before closing; a reset (closed with the GET unread) counts as closed."""
         try:
-            self.assertIn('fixture_listening', listening)
-            r, rows = run_tool('connect', scn, '--to', '127.0.0.1:%d' % port, '--ticks', 40, env=env)
-            self.assertEqual(r.returncode, 0, r.stdout[-2000:] + r.stderr)
-            transport = first(rows, 'transport')
-            self.assertEqual((transport['kind'], transport['links_opened'], transport['links_refused']),
-                             ('sockets', 1, 0))
-            self.assertGreater(transport['bytes_in'], 0)
-            self.assertEqual(first(rows, 'hero')['level'], 2)
-            self.assertEqual({(f['opcode'], f['sub']) for f in jnl(rows, 'frame_in')},
-                             {(0x55, 0x57), (0x55, 0x94), (0xA0, 0x06)})
-            out, _ = server.communicate(timeout=20)
-            self.assertEqual(server.returncode, 0, out)
-        finally:
-            if server.poll() is None:
-                server.kill()
-                server.wait()
-            server.stdout.close()
+            return sock.recv(4096)
+        except ConnectionResetError:
+            return b''
+
+    def test_stray_connections_are_rejected_and_the_client_is_served(self):
+        # FIXTURE-PROBE-001: an HTTP probe and a connect-and-close scan reach the listener first; both are
+        # screened out (counted and logged), the listener keeps accepting, and the real client gets the session
+        server, port, scn, listening = self.serve()
+        self.assertIn('fixture_listening', listening)
+        probe = self.strays(port)
+        self.assert_round_trip(port, scn)
+        self.assertEqual(self.received(probe), b'')             # closed by the fixture, sent no frame
+        out, rows = self.server_rows(server)
+        self.assertEqual(server.returncode, 0, out)
+        rejected = [(x['fixture_rejected']['reason'], x['fixture_rejected']['first_byte'])
+                    for x in rows if 'fixture_rejected' in x]
+        self.assertIn(('not a frame', 0x47), rejected)          # 'G': ours, and any real T3 probe
+        self.assertIn(('closed', -1), rejected)
+        fixture = first(rows, 'fixture')
+        self.assertEqual((fixture['rejected_peers'], fixture['undecodable_requests'], fixture['last_error']),
+                         (len(rejected), 0, ''))
+
+    def test_unscreened_serve_hands_the_session_to_the_probe(self):
+        # the control: --screen-ms -1 is the pre-FIXTURE-PROBE-001 accept (the first peer is served, the
+        # listener closes); the same probe then takes the session, and the real client never reaches level 2
+        server, port, scn, listening = self.serve('--screen-ms', -1)
+        self.assertIn('fixture_listening', listening)
+        probe = self.strays(port, scan=False)
+        r, rows = run_tool('connect', scn, '--to', '127.0.0.1:%d' % port, '--ticks', 40, env=self.client_env())
+        hero = [x['hero'] for x in rows if 'hero' in x]
+        self.assertFalse(r.returncode == 0 and hero and hero[0]['level'] == 2, r.stdout[-2000:])
+        probe.close()
+        out, rows = self.server_rows(server)
+        self.assertEqual(first(rows, 'fixture')['rejected_peers'], 0)
 
     def test_connect_refuses_a_non_loopback_endpoint(self):
         scn = write_scenario(self.dir / 'n.scn', HEAD)
