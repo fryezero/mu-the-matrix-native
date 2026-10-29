@@ -2,6 +2,7 @@
 #include "worlds_h.h"
 #include "worlds_i.h"
 #include "worlds_n.h"
+#include "worlds_p2.h"
 #include "world_visual.h"
 /* World-object creation, move pass and render pass of the client
  * (NATIVE-OBJECTS-002). See object_render.h and docs/research/client-objects-render.md.
@@ -340,6 +341,8 @@ static int world_create(uint8_t *o, int32_t world, int32_t index, mu_obj_log *lo
     }
 }
 
+static int32_t create_rand(void *seed) { return mu_obj_msvc_rand(seed); }
+
 int mu_obj_create(const mu_object_record *r, int32_t world, uint8_t *o, int32_t *sector_out, int32_t index,
                   mu_obj_log *log)
 {
@@ -461,6 +464,12 @@ int mu_obj_create(const mu_object_record *r, int32_t world, uint8_t *o, int32_t 
     if (world == 62 || world == 63) {
         if (world == 62) mu_santa_create(o);
         else mu_vulcanus_create(o, world);
+        return MU_OBJ_OK;
+    }
+    if (world == 137 || world == 138) {   /* RENDER-WORLDS-P2; native RNG phase: per object */
+        uint32_t seed = (uint32_t)index;
+        if (world == 137) mu_kanturu_ug_create(o, index, world, create_rand, &seed, log);
+        else mu_ignis_create(o, index, world, 0, log);   /* velocity 0.16 is already the generic value */
         return MU_OBJ_OK;
     }
     if (world == 113 || (world >= 116 && world <= 120)) {   /* RENDER-WORLDS-N */
@@ -1003,6 +1012,11 @@ int mu_obj_move(uint8_t *o, int32_t index, const mu_obj_move_inputs *in, mu_obj_
     }
     if (world == 100) {
         mu_uruk_move(o, index, in, log);
+        return MU_OBJ_OK;
+    }
+    if (world == 137 || world == 138) {   /* RENDER-WORLDS-P2 */
+        if (world == 137) mu_kanturu_ug_move(o, index, in, NULL, 0.0f, log);
+        else mu_ignis_move(o, index, in, log);
         return MU_OBJ_OK;
     }
     if (world == 113 || (world >= 116 && world <= 120)) {   /* RENDER-WORLDS-N */
