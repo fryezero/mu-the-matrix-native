@@ -72,7 +72,9 @@ fractions, and each native twin ran at 960×600 with that scaled script.
   logic ordinals. Walk distance is 223.606798 in all four series.
 - An unscored diagnostic native twin of run 3 without the wheel events matches live hero and eye positions
   exactly at 20/21 samples; the remaining sample is 13 units off mid-walk.
-- Gate: see the PR (local `scripts/local-macos-ci.sh` on the merged tree).
+- Gate: `bash scripts/local-macos-ci.sh` under the merge lock, on main `3735625` merged in and `native/build` rebuilt
+  from clean (RENDER-EFFECTS-004 changed shared struct layouts): **1,669 tests across 38 suites, 212 explicit
+  skips, 0 failures**; 11/11 fixture scenarios; repository audit 1,625 files, 0 rejected. No hosted workflow.
 
 ## Next steps
 
