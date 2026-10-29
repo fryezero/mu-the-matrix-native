@@ -149,3 +149,22 @@ Only the ignored `tools/python` and `evidence` symlinks are used (excluded throu
 - `renders/render-effects-005` and `scratch/render-effects-005`;
 - `native/build`;
 - this worktree and the local branch.
+
+## Locked release gate
+
+The lane took the queued merge lock at 20:37 CDT (first in the queue) and removed only its own
+queue line. It then integrated origin/main `eb4b53a` (RENDER-WORLDS-G2 and BUILD-DEPS-001;
+O/P/P2 were merged earlier). The status/handoff conflicts kept both sides.
+
+The first locked run failed one test: `test_native_build_deps.test_reconstructed_libraries`. The
+cause was a stale pre-merge `libmix.dylib` in this worktree without its new `.d` file. After
+`git clean -X reconstructed` that test passes.
+
+`bash scripts/local-macos-ci.sh` on the merged tree (clean `native/build`) then passes:
+
+- 38 unittest suites, 1,700 tests, 220 explicit skips, zero failures;
+- 11/11 fixture scenarios;
+- audit: 1,678 staged files, zero rejected.
+
+The private `validate_render_effects5` gate test passes on the merged tree. No hosted workflow
+and no live game was run.
