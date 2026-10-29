@@ -3,8 +3,10 @@
 #include "worlds_i.h"
 #include "worlds_p.h"
 #include "worlds_o.h"
+#include "worlds_r.h"
 #include "worlds_n.h"
 #include "worlds_p2.h"
+#include "worlds_r2.h"
 #include "world_visual.h"
 /* World-object creation, move pass and render pass of the client
  * (NATIVE-OBJECTS-002). See object_render.h and docs/research/client-objects-render.md.
@@ -452,6 +454,13 @@ int mu_obj_create(const mu_object_record *r, int32_t world, uint8_t *o, int32_t 
         else arg(event(log, MU_WP_CREATE, index), (uint32_t)world);   /* model actions and RNG: the host runs it */
         return MU_OBJ_OK;
     }
+    if (world >= 0x83 && world <= 0x86) {   /* RENDER-WORLDS-R */
+        if (world == 0x83) event(log, MU_WR_CREATE, index);   /* RNG: the host runs it */
+        else if (world == 0x84) mu_red_smoke_icarus_create(o, world);
+        else if (world == 0x85) mu_temple_arnil_create(o, world);
+        else mu_gray_aida_create(o, world);
+        return MU_OBJ_OK;
+    }
     if (world_create(o, world, index, log))   /* NATIVE-FIDELITY-002 */
         return MU_OBJ_OK;
     if (world == 57 || world == 58) {
@@ -481,6 +490,12 @@ int mu_obj_create(const mu_object_record *r, int32_t world, uint8_t *o, int32_t 
         uint32_t seed = (uint32_t)index;
         if (world == 137) mu_kanturu_ug_create(o, index, world, create_rand, &seed, log);
         else mu_ignis_create(o, index, world, 0, log);   /* velocity 0.16 is already the generic value */
+        return MU_OBJ_OK;
+    }
+    if (world >= 142 && world <= 144) {   /* RENDER-WORLDS-R2 */
+        if (world == 142) mu_twisted_karutan_create(o, world);
+        else if (world == 143) mu_kardamahal_create(o, world);
+        else mu_swamp_create(o, world);
         return MU_OBJ_OK;
     }
     if (world == 113 || (world >= 116 && world <= 120)) {   /* RENDER-WORLDS-N */
@@ -1020,6 +1035,11 @@ int mu_obj_move(uint8_t *o, int32_t index, const mu_obj_move_inputs *in, mu_obj_
         else event(log, MU_WP_MOVE, index);   /* after the tick; the host supplies model, frame time, effects */
         return MU_OBJ_OK;
     }
+    if (world >= 0x83 && world <= 0x86) {   /* RENDER-WORLDS-R; 0x84/0x85 only test the model */
+        if (world == 0x83) mu_scorched_canyon_move(o, index, world, in->has_model, in->rand_fn, in->context, log);
+        else if (world == 0x86) mu_gray_aida_move(o, index, world, in->rand_fn, in->context, log);
+        return MU_OBJ_OK;
+    }
     if (world_move(o, index, in, log) || hook_move(o, index, in, log))   /* NATIVE-FIDELITY-002 */
         return MU_OBJ_OK;
     if (world >= 128 && world <= 130) {   /* RENDER-WORLDS-O */
@@ -1037,6 +1057,12 @@ int mu_obj_move(uint8_t *o, int32_t index, const mu_obj_move_inputs *in, mu_obj_
     if (world == 137 || world == 138) {   /* RENDER-WORLDS-P2 */
         if (world == 137) mu_kanturu_ug_move(o, index, in, NULL, 0.0f, log);
         else mu_ignis_move(o, index, in, log);
+        return MU_OBJ_OK;
+    }
+    if (world >= 142 && world <= 144) {   /* RENDER-WORLDS-R2 */
+        if (world == 142) mu_twisted_karutan_move(o, index, in, log);
+        else if (world == 143) mu_kardamahal_move(o, index, in, log);
+        else mu_swamp_move(o, index, in, log);
         return MU_OBJ_OK;
     }
     if (world == 113 || (world >= 116 && world <= 120)) {   /* RENDER-WORLDS-N */

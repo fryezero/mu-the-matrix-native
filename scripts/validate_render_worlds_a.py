@@ -256,7 +256,7 @@ MUTATIONS=[('Kanturu fire bitmap','world_kanturu_visual.c','0x8016,0','0x8017,0'
  ('Karutan fire subtype','world_karutan_visual.c','0x806e,4','0x806e,0','karutan'),
  ('Karutan sprite size','world_karutan_visual.c','2.0f*mu_obj','3.0f*mu_obj','karutan'),
  ('After byte equals one','world_after.c','o[MU_OBJF_AFTER_CHARACTER]!=1','!o[MU_OBJF_AFTER_CHARACTER]','after_pass'),
- ('After special visibility','world_after.c','if(special || o[MU_OBJF_VISIBLE]','if(o[MU_OBJF_VISIBLE]','after_pass'),
+ ('After special draw','world_after.c','if(mu_world_after_select(o,in)){','if(0&&mu_world_after_select(o,in)){','after_pass'),
  ('Elbeland after flag','world_elbeland_visual.c','o[MU_OBJF_AFTER_CHARACTER]=1','o[MU_OBJF_AFTER_CHARACTER]=0','flags'),
  ('Raklion glow mesh','world_raklion_visual.c','wv_mesh(o,i,1,0x42,1','wv_mesh(o,i,0,0x42,1','after_draw'),
  ('Karutan scrolling period','world_karutan_visual.c','%10000','%1000','after_draw'),

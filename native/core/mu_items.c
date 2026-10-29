@@ -14,6 +14,7 @@
 #include "../../reconstructed/movement/client_movement.h"
 #include "../../reconstructed/objects/object_render.h"
 #include "mu_combat.h"
+#include "mu_item_textures.h"
 #include "mu_lang.h"
 #include "mu_particles.h"
 
@@ -451,9 +452,10 @@ static mu_world_item_model *model_for(mu_world_items *it, int32_t type, int32_t 
         mu_model_relocate(&m->model, &m->bmd);
         mu_model_share(&m->model, man->shared_bones, man->shared_root, man->shared_quaternions);
     }
-    mu_path_directory(path, directory, sizeof directory);
-    mu_textures_load(&m->textures, &m->bmd, directory);
-    if (m->textures.missing && is_armour(type)) {
+    mu_item_textures_stats texture_stats;   /* the client's item texture rule (RENDER-ITEMS-TEX-001) */
+    mu_item_textures_load(&m->textures, &m->bmd, &it->item_table, it->game_root, type, path, &texture_stats);
+    (void)directory;
+    if (texture_stats.rule == MU_ITEM_RULE_FOLDER && m->textures.missing && is_armour(type)) {
         /* viewer choice: armour models sit in Data/Item, their bitmaps in Data/Player (the classic loader's
          * OpenTexture(model, "Player\\")); the texture folder rule of this client is not traced */
         char player[2048], effect[2048];

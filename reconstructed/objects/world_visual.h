@@ -18,6 +18,25 @@ int mu_world_defer(uint8_t *, int32_t);
 int mu_world_after_enabled(int32_t);
 int mu_world_after_special(const uint8_t *, int32_t);
 int mu_world_after_pass(mu_obj_world *, const mu_obj_render_inputs *, int32_t *, mu_obj_log *);
+/* RENDER-WORLDS-AFTER: the whole second pass 0x016d6949, its world test and per-object selector 0x017fe909. */
+typedef struct mu_world_after_inputs {
+    uint8_t class_flag;    /* current world handler byte +5 (slot 8 0x00d5cb7c); mu_world_class_after */
+    int32_t tower_state;   /* world 0x27: 0x009a6ef3() + 0x78, field +4 (0x009a645f) */
+    uint8_t master_class;  /* world 2 type 0x64: 0x0139d89f(hero +0x12) == 1 */
+    int32_t level;         /* world 2 type 0x64: 0x00a00066(0x01d1df1c) */
+} mu_world_after_inputs;
+int mu_world_class_after(int32_t world);
+int mu_world_after_gate(int32_t world, int class_flag);
+int mu_world_after_native(int32_t world);
+int mu_world_after_select(uint8_t *object, const mu_obj_render_inputs *in);
+int mu_world_after_pass_ex(mu_obj_world *, const mu_obj_render_inputs *, const mu_world_after_inputs *, int32_t *,
+                           mu_obj_log *);
+/* Abyss of Atlans 1-3 (128..130) custom render slot 0x38 (0x00d5d2f6/0x00d5ef96/0x00d606da; returns handled,
+ * logs RenderBody/RenderMesh) and after render slot 0x3c (0x00d5d5ad/0x00d5f23a/0x00d60991; returns drawn). */
+int mu_abyss_custom(int32_t cls, uint8_t *object, int32_t index, int32_t world, float time, mu_obj_rand_fn rand_fn,
+                    void *context, mu_obj_log *log);
+int mu_abyss_after(int32_t cls, const uint8_t *object, int32_t index, int32_t world, mu_obj_log *log);
+int mu_world_chain_predicate(uint32_t address, int32_t world);
 int mu_world_after_render(uint8_t *, int32_t, int32_t, float, mu_obj_log *, mu_world_bone_fn, void *);
 typedef void (*mu_world_named_bone_fn)(void *, const char *, const float[3], float[3]);
 int mu_builtin_visual(uint8_t *, int32_t, int32_t, int, float, mu_obj_rand_fn,

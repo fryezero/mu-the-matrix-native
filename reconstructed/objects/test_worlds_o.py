@@ -67,7 +67,7 @@ class WorldsOTests(unittest.TestCase):
             particles = [e for e in events if e[0] == PARTICLE]
             self.assertEqual(len(particles), 1)
             self.assertEqual((particles[0][2], particles[0][-3:]), (0x7fcd, (0, v.bits(1.0), 0)))
-        neighbour = self.create(131, 23, status=2)   # another class, still unsupported natively
+        neighbour = self.create(139, 23, status=2)   # another class, still unsupported natively (131 since RENDER-WORLDS-R)
         self.assertEqual(neighbour.raw[0x0a], 0)
 
     def test_log_capacity_preserves_state(self):
