@@ -141,6 +141,7 @@ typedef struct mu_jt_call {
     float target[3];           /* CreateJoint's second position */
     float angle[3];            /* CreateSprite: angle[0] = rotation */
     float light[3];
+    int32_t arg7, arg8;        /* RENDER-EFFECTS-007: CreateJoint arguments 7 and 8 (key, skill words) */
 } mu_jt_call;
 
 typedef struct mu_jt_env {

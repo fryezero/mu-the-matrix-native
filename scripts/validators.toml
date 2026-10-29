@@ -2008,6 +2008,20 @@ args = ["--cases", "200", "--particle-cases", "200", "--mutations", "--output", 
 all_equal = true
 all_mutants_caught = true
 
+[validate_render_effects7]
+test = "native/tests/test_render_effects.py::RenderEffects.test_other_bows_arrows_original_instructions_and_compiled_mutants"
+pins = ["text", "data", "flag", "feature"]
+families = ["effect_create", "effect_move", "sparks", "pants_owner", "world_matrix", "pt_create", "pt_move", "pt_render"]
+cases = 596
+mutants = 31
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/combat", "reconstructed/renderchar", "reconstructed/model-codec", "reconstructed/particles"]
+args = ["--cases", "2", "--mutations", "--output", "{report}"]
+[validate_render_effects7.expect]
+all_equal = true
+all_mutants_caught = true
+
 [validate_map_effects]
 test = "native/tests/test_native_map_effects.py::MapEffectsHost.test_original_instructions_and_compiled_mutants"
 pins = ["text", "data"]
@@ -2509,3 +2523,16 @@ args = ["--cases", "1000", "--mutations", "--output", "{report}"]
 "families.*.stopped" = 0
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
+[validate_item_carry]
+test = "reconstructed/renderchar/test_item_carry.py::ItemCarry.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "carry", "colours"]
+cases = 114388
+mutants = 12
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar"]
+args = ["--mutations", "--output", "{report}"]
+[validate_item_carry.expect]
+"families.*.mismatches" = 0
+"mutants.*" = {truthy = true}

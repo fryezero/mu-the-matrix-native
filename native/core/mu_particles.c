@@ -93,7 +93,9 @@ static const struct { int32_t type, world; const char *file; } fx_model_files[MU
     {MU_SFX_MODEL_FLYBAT, -1, "Data/Object124/hs_flybatA.bmd"},
     {MU_SFX_MODEL_FLYBAT, 143, "Data/Object144/hs_flybatA.bmd"},
     {MU_SFX_MODEL_SEALEAF, -1, "Data/Object92/zu_sealeaf04.bmd"},
-    {MU_SFX_MODEL_SEALEAF, 122, "Data/Object123/zu_sealeaf04.bmd"}};
+    {MU_SFX_MODEL_SEALEAF, 122, "Data/Object123/zu_sealeaf04.bmd"},
+    /* RENDER-EFFECTS-007: Rudolph's gold pieces 0x3fa (AccessModel 0x00a938d2, Data\Monster\sulgold, every world) */
+    {0x3fa, -1, "Data/Monster/sulgold.bmd"}};
 
 static int32_t slot_of(int32_t bitmap)
 {
@@ -1657,9 +1659,11 @@ static void o_ein_update(void *c, int32_t object, const uint8_t *img, const floa
                     m[4 * col + r] = b[4 * r + col];
             m[3] = m[7] = m[11] = 0.0f;
             m[15] = 1.0f;
-        } else if (p->ein_links[k].follow) {   /* bone -1: the object's world matrix 0x0129faee (not reconstructed) */
-            ++p->ein_unposed;
-            continue;
+        } else if (p->ein_links[k].follow) {   /* RENDER-EFFECTS-007: bone -1, the object's world matrix 0x0129faee */
+            float angle[3], position[3];
+            memcpy(angle, img + MU_OBJF_ANGLE, 12);
+            memcpy(position, img + MU_OBJF_POSITION, 12);
+            mu_effect_object_world_matrix(m, angle, position, mu_obj_f32(img, MU_OBJF_SCALE));
         } else {
             float position[3];
             memcpy(position, img + MU_OBJF_POSITION, 12);

@@ -173,6 +173,25 @@ LEVEL_TYPES = [
 ]
 LEVEL_SPLIT = CLOCK_TYPES + LEVEL_TYPES
 
+# Part 13: bodies whose later helpers start from the model fields of the body's
+# last draw (carry), and bodies with immediate glColor records; independent full
+# streams checked.
+CARRY_TYPES = [
+    0x0b00, 0x0b03, 0x0b04, 0x0b0a, 0x0b14, 0x0b1a, 0x0b1b, 0x0b1c, 0x0b1d, 0x0b1e,
+    0x0eef, 0x0ef9, 0x0efb, 0x0efc, 0x10f5, 0x10f9, 0x10fb, 0x10fc, 0x1302, 0x1305,
+    0x130a, 0x1504, 0x150a, 0x150b, 0x150f, 0x1511, 0x1519, 0x1529, 0x152a, 0x152b,
+    0x152c, 0x152d, 0x152e, 0x152f, 0x1530, 0x1531, 0x1532, 0x1533, 0x1534, 0x1535,
+    0x153b, 0x153c, 0x153d, 0x153e, 0x153f, 0x1540, 0x1541, 0x1542, 0x1543, 0x1548,
+    0x1553, 0x1555, 0x1558, 0x1559, 0x155a, 0x155c, 0x155d, 0x155e, 0x155f, 0x1560,
+    0x1561, 0x1562, 0x1565, 0x1566, 0x1567, 0x1568, 0x1575, 0x16ff, 0x1721, 0x1729,
+    0x1733, 0x1753, 0x2319, 0x231a, 0x2331, 0x2332, 0x2339, 0x233a, 0x2380, 0x24bd,
+    0x24c9, 0x24ca, 0x24ea, 0x24eb, 0x26e3, 0x2703, 0x283c, 0x283d, 0x286c,
+]
+COLOUR_TYPES = [
+    0x0afa, 0x0ef8, 0x10f1, 0x10f6, 0x10f7, 0x16fb, 0x1700, 0x1704, 0x1706, 0x170c,
+    0x170d, 0x1921, 0x1922, 0x1923, 0x1939, 0x1b1d, 0x1b1f, 0x1b32, 0x1f1d, 0x2702,
+]
+
 PROBE_SEEDS = (3401, 7254, 9874, 3404, 7257, 9877, 3407, 7260, 9880, 3413, 7266, 9886)
 
 DIM_TYPES = [0xae6 + group * 512 + index for group in (7, 8, 9, 11)
@@ -759,11 +778,32 @@ def math_div(a, b):
 def flat(d):
     return [*d[1], *d[2], d[3], *d[4], d[5]]
 
+
+# Part 13: immediate glColor3f/3fv/4f calls of the body join the draw stream as
+# COLOR records (kind, alpha, RGB read at call time) in call order. The native
+# raster keeps the current colour across draws, like GL.
+COLOUR_SLOTS = {0x1a7c76c: (1, 3), 0x1a7c770: (2, 1), 0x1a7c754: (3, 4)}
+
+
+def record_colours(world, tags=None):
+    m = world.m
+    for slot, (kind, count) in COLOUR_SLOTS.items():
+        def colour(m, kind=kind):
+            if kind == 2:
+                rgb, alpha = tuple(m.r32(m.arg(0) + 4 * k) for k in range(3)), v.f2u(1.0)
+            else:
+                rgb, alpha = tuple(m.arg(k) for k in range(3)), m.arg(3) if kind == 3 else v.f2u(1.0)
+            world.calls.append(('COLOR', v.colour_record(kind, alpha, rgb)))
+            if tags is not None:
+                tags.append(m.backtrace()[1])
+            return 0
+        m.stub(m.r32(slot), colour, 4 * count)
+
 _sample_state = None
 _site_sink = None
 
 
-def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None):
+def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=False):
     import math
     global _sample_state
     tags = []
@@ -779,6 +819,7 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None):
                     tags.append(m.backtrace()[1])
                     return old(m)
                 self.m.stub(addr, h, 32)
+            record_colours(self, tags)
             from unicorn import UC_HOOK_CODE
             def site(uc, address, size, context):
                 if _site_sink is not None:
@@ -843,6 +884,13 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None):
         other = []
     if not r['ok'] or other or len(groups) != len(generic):
         return None
+    if carry:
+        # Inputs as the carry executor sees them: each helper starts from the
+        # model fields of the previous helper's last client draw.
+        last = [next((b for b in reversed(bs) if b[0] != 'COLOR'), None) for _, bs in groups]
+        (_, generic) = v.c_stream(lib, generic_case, True, carry=last)
+        if len(generic) != len(groups):
+            return None
     # 0x0185bdc4(-4,0) + 0.2. Each operation rounds to binary32.
     f = lambda x: v.u2f(v.f2u(x))
     time = v.u2f(case['time'])
@@ -888,16 +936,16 @@ def infer(samples):
 
 ALL_TYPES = (REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES + RANKED_TYPES + EXPANDED_TYPES +
              NEXT_TYPES + CLOCK_TYPES + CLUSTER_TYPES + WING_TYPES + VISIBLE_TYPES + SCALAR_TYPES +
-             CHAIN_TYPES + LEVEL_TYPES)
+             CHAIN_TYPES + LEVEL_TYPES + COLOUR_TYPES + CARRY_TYPES)
 
 
-def fit(wa, lib, t, scalars=False):
+def fit(wa, lib, t, scalars=False, carry=False):
     """Probe one type; return (phase rules, scalar programs), or None if no recipe fits.
 
     With scalars, a type that does not fit the shared inputs is probed again with
     the parsed per-type scalar sites appended as further inputs."""
     sites = set()
-    rules = _fit(wa, lib, t, (), sites)
+    rules = _fit(wa, lib, t, (), sites, carry)
     if rules is not None or not scalars:
         return None if rules is None else (rules, ())
     programs = []
@@ -909,7 +957,7 @@ def fit(wa, lib, t, scalars=False):
             programs.append(program)
     if not programs:
         return None
-    rules = _fit(wa, lib, t, tuple(programs), None)
+    rules = _fit(wa, lib, t, tuple(programs), None, carry)
     if rules is None:
         return None
     # Keep only referenced programs, renumbered in first-use order.
@@ -920,9 +968,9 @@ def fit(wa, lib, t, scalars=False):
     return rules, tuple(programs[k] for k in used)
 
 
-def _fit(wa, lib, t, params, sites):
+def _fit(wa, lib, t, params, sites, carry=False):
     levels = range(16) if t >= 0x3700 else (0, 7, 13)
-    ss = [sample(wa, lib, t, lv, seed, params=params, sites=sites) for lv in levels
+    ss = [sample(wa, lib, t, lv, seed, params=params, sites=sites, carry=carry) for lv in levels
           for seed in PROBE_SEEDS]
     if any(s is None for s in ss) and sites is None:
         return None
@@ -943,7 +991,7 @@ def _fit(wa, lib, t, params, sites):
     for opt, ext, phase in ((1, 0, 3), (0, 1, 4)):
         if ext and t in DIM_TYPES:
             continue
-        extra = [sample(wa, lib, t, 0, seed, opt, ext, params=params, sites=sites)
+        extra = [sample(wa, lib, t, 0, seed, opt, ext, params=params, sites=sites, carry=carry)
                  for seed in PROBE_SEEDS]
         if any(s is None for s in extra):
             ss.append(None)
@@ -968,7 +1016,7 @@ def extract():
     lib = C.CDLL(str(v.LIBRARY))
     types = {}
     for t in ALL_TYPES:
-        fitted = fit(wa, lib, t, scalars=True)
+        fitted = fit(wa, lib, t, scalars=True, carry=t in CARRY_TYPES)
         if fitted is not None:
             types[t] = fitted
     if set(types) != set(ALL_TYPES):
@@ -1003,7 +1051,7 @@ def render(types):
         for entry, cells in rule:
             sources = ', '.join(str(v + 1 if op == 'in' else 0) for op, v in cells)
             values = ', '.join('0' if op == 'in' else '0x%08xu' % (v & 0xffffffff) for op, v in cells)
-            lines.append('        {%d, {%s}, {%s}},' % (1 if entry == 'BODY' else 2, sources, values))
+            lines.append('        {%d, {%s}, {%s}},' % ({'BODY': 1, 'MESH': 2, 'COLOR': 3}[entry], sources, values))
         lines.append('    }},')
     lines += ['};', 'typedef struct { uint8_t kind, count; uint32_t a; uint8_t op[%d]; uint64_t k[%d]; } mu_rc_body_scalar;' % (CLOCK_OPS, CLOCK_OPS),
               'static const mu_rc_body_scalar mu_rc_body_scalars[] = {']
@@ -1014,14 +1062,14 @@ def render(types):
             ', '.join('0x%xull' % k for _, k in ops)))
     if not programs:
         lines.append('    {0, 0, 0, {0}, {0}},')
-    lines += ['};', 'static const struct { int32_t type; uint16_t recipe[8]; uint8_t level_split, retain_ancient; uint8_t dim, plain, pulse, blend_pulse; uint16_t scalar_mask; uint16_t scalar_first; uint8_t scalar_count; } mu_rc_body_types[] = {']
+    lines += ['};', 'static const struct { int32_t type; uint16_t recipe[8]; uint8_t level_split, retain_ancient; uint8_t dim, plain, pulse, blend_pulse; uint16_t scalar_mask; uint8_t carry; uint16_t scalar_first; uint8_t scalar_count; } mu_rc_body_types[] = {']
     for t, indices, first, count in rows:
         rules = types[t][0]
-        lines.append('    {0x%04x, {%s}, %d, %d, %d, %d, %d, %d, %d, %d, %d},' %
+        lines.append('    {0x%04x, {%s}, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d},' %
                      (t, ', '.join(map(str, indices)), t in LEVEL_SPLIT, t in ATLAS_TYPES, t in DIM_TYPES, t in PLAIN_TYPES, t in PULSE_TYPES,
                       any(op == 'in' and value == 20 for rule in rules for _, cells in rule for op, value in cells),
                       sum(1 << k for k in range(13) if any(op == 'in' and value == 21+k for rule in rules for _, cells in rule for op,value in cells)),
-                      first, count))
+                      t in CARRY_TYPES, first, count))
     return '\n'.join(lines + ['};', ''])
 
 
