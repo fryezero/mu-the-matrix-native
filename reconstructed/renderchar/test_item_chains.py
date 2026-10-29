@@ -17,6 +17,7 @@ class ItemChains(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.lib = base.lib()
+        cls.v = chains.v
     item = base.RenderCharLibrary.item
     draws = base.RenderCharLibrary.draws
 
