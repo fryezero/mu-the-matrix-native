@@ -2431,6 +2431,23 @@ args = ["--cases", "1000", "--mutations", "--output", "{report}"]
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
 
+[validate_worlds_q2]
+test = "reconstructed/objects/test_worlds_q2.py::WorldsQ2Tests.test_original_instructions"
+pins = ["text", "data"]
+families = ["ferea_visual", "class_first", "render_first"]
+cases = 4000
+mutants = 50
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+
+[validate_worlds_q2.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0
+
 [validate_worlds_after]
 test = "reconstructed/objects/test_worlds_after.py::WorldsAfterTests.test_original_instructions"
 pins = ["text", "data"]

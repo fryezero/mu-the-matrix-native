@@ -648,13 +648,18 @@ void mu_objects_apply_lights(const mu_objects *o, mu_world *map)
 
 typedef struct render_context {
     mu_objects *o;
+    const mu_obj_render_inputs *in;
 } render_context;
 
 /* 0x017fcd18 for world 0 (Lorencia): types 0x37 and 0x3c; the predicate's default chain (camera and
- * event-state singletons) answers no here (static reading, not executed). */
+ * event-state singletons) answers no here (static reading, not executed). Worlds 134..145 end in their class
+ * slot 0x10 (RENDER-WORLDS-Q2, which may set the range). */
 static uint8_t render_first(void *context, int32_t index)
 {
     render_context *c = context;
+    if (mu_class_first_owned(c->o->world))
+        return (uint8_t)mu_class_first(image(c->o, index), c->o->world, c->in->x2d, c->in->y2d,
+                                       c->in->scene_state);
     if (c->o->world != 0)
         return 0;
     const int32_t t = mu_obj_i32(image(c->o, index), MU_OBJF_TYPE);
@@ -668,8 +673,8 @@ void mu_objects_visibility(mu_objects *o, const mu_terrain_frustum *f, int32_t s
     rt->sprite_count = 0;   /* RenderSprites draws and clears the frame's sprites */
     if (!rt->ready)
         return;
-    render_context c = {o};
     mu_obj_render_inputs in;
+    render_context c = {o, &in};
     memset(&in, 0, sizeof in);
     in.world = o->world;
     in.scene_state = scene_state;
@@ -853,6 +858,16 @@ static void visual_bone(void *context, int32_t bone, const float local[3], float
     for (int r = 0; r < 3; ++r) {
         out[r] = b[4 * r] * local[0] + b[4 * r + 1] * local[1] + b[4 * r + 2] * local[2] + b[4 * r + 3];
     }
+}
+
+/* RENDER-WORLDS-Q2: 0x0129f18a's search, the first bone of the object's model with this name (-1: none). */
+static int32_t visual_bone_index(void *context, const char *name)
+{
+    visual_context *c = context;
+    for (int32_t k = 0; k < c->m->bmd.bone_count; ++k)
+        if (strcmp(c->m->bmd.bones[k].name, name) == 0)
+            return k;
+    return -1;
 }
 
 /* Name lookup uses the current object's posed model without allocating per frame. */
@@ -1066,6 +1081,7 @@ static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_obje
         q.actions = NULL;   /* the visual slots read no action table */
         const int32_t last_bone = o->world == 91 ? mu_acheron_visual_bones(mu_obj_i32(img, MU_OBJF_TYPE)) : -1;
         q.bone = posed && m->bmd.bone_count > last_bone ? visual_bone : NULL;
+        q.bone_index = q.bone ? visual_bone_index : NULL;   /* Ferea's named bones (RENDER-WORLDS-Q2) */
         q.context = &c;
         q.rand_fn = visual_rand;
         if (mu_worlds_q_visual(img, i, m && m->loaded, &q, &log) < 0) ++o->rt.draw_unsupported;
@@ -1152,7 +1168,7 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
                                o->world == 0x87 || o->world == 0x88 || o->world == 0x8c || o->world == 137 ||
                                (o->world >= 142 && o->world <= 144) ||
                                (o->world >= 0x83 && o->world <= 0x86) ||
-                               (mu_worlds_q_owns(o->world) && o->world != 112);   /* RENDER-WORLDS-Q */
+                               mu_worlds_q_owns(o->world);   /* RENDER-WORLDS-Q; 112 since RENDER-WORLDS-Q2 */
     mu_obj_draw_inputs in;
     memset(&in, 0, sizeof in);
     in.world = o->world;
