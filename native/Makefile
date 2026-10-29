@@ -690,3 +690,7 @@ $(BUILD)/worlds-p-host: tests/worlds_p_host.c $(LIB) $(HEADERS)
 $(BUILD)/worlds-p2-host: tests/worlds_p2_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-p2-host.o
 	$(CXX) $(BUILD)/worlds-p2-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+
+$(BUILD)/worlds-r2-host: tests/worlds_r2_host.c $(LIB) $(HEADERS)
+	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-r2-host.o
+	$(CXX) $(BUILD)/worlds-r2-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
