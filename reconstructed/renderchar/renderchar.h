@@ -101,6 +101,30 @@ int mu_rc_item_rank5(int32_t type);
 int mu_rc_item_draws_context(const mu_rc_item *item, mu_rc_model *model,
                             mu_rc_draw *out, int32_t capacity, int32_t *count,
                             const mu_rc_item_context *context);
+/* RENDER-EFFECTS-005: the rank-5 owner block after the lit body, a separate
+ * hook (0x01747d6d and its three type-list variants). The caller supplies the
+ * OBJECT owner's bone count (0 when +0x318 is absent) and TransformPosition
+ * 0x012b6ef1(owner bone, local, out, 1) with the item model's scale/origin.
+ * Effects are emitted in client order, so a caller that creates them at once
+ * keeps the original random stream. */
+enum { MU_RC_OWNER_PARTICLE = 1,   /* CreateParticle 0x0168fafd(bitmap, position, zero angle, light, subtype, scale, 0, 0) */
+       MU_RC_OWNER_SPRITE = 2 };   /* CreateSprite 0x01692eb7(bitmap, position, scale, light, OBJECT, 0, 0, 4, {1,1,1}) */
+typedef struct mu_rc_owner_fx {
+    int32_t kind, bitmap, subtype;
+    float position[3], light[3], scale;
+} mu_rc_owner_fx;
+typedef struct mu_rc_owner_host {
+    int32_t bones;           /* OBJECT model bone count; <= 35 stops before the effects */
+    int32_t black_mesh;      /* Item1161_Black.jpg named mesh (0x012bd4a6), -1 absent */
+    void (*transform)(void *context, int32_t bone, const float local[3], float out[3]);
+    int32_t (*random)(void *context);
+    void (*emit)(void *context, const mu_rc_owner_fx *fx);
+    void *context;
+} mu_rc_owner_host;
+/* mu_rc_item_draws_context plus the owner block: its effects go to host->emit and its
+ * level-9 overlay meshes follow the rank-5 body meshes in out. */
+int mu_rc_item_draws_owner(const mu_rc_item *item, mu_rc_model *model, mu_rc_draw *out, int32_t capacity,
+                           int32_t *count, const mu_rc_item_context *context, const mu_rc_owner_host *host);
 /* The same without the type check (the classification sweep uses it). */
 int mu_rc_item_draws_generic(const mu_rc_item *item, mu_rc_model *model, mu_rc_draw *out, int32_t capacity,
                              int32_t *count);
