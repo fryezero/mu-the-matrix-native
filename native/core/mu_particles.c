@@ -19,7 +19,7 @@
  * the joints' textures (JointThunder01, Spark01, JointSpirit01, JointEnergy01; LoadBitmap 0x0182239b..) and
  * the login scene's clouds and WATERFALL1; NATIVE-CHARSEL-002 the character-select scene's WATERFALL2/3,
  * fantaB, Spark04, magic_ground1_3 and Impack03 (the selection light 0x8022 subtype 5 draws Impack03). */
-#define MU_WORLD_PT_EFFECTS 58
+#define MU_WORLD_PT_EFFECTS 60
 static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     MU_PT_BITMAP_FIRE, MU_PT_BITMAP_SMOKE, MU_PT_BITMAP_FLARE, MU_PT_BITMAP_SPARK3, MU_PT_BITMAP_THUNDER,
     MU_PT_BITMAP_SPARK2, MU_PT_BITMAP_SHINY2, MU_JT_BITMAP_THUNDER, MU_JT_BITMAP_SPARK, MU_JT_BITMAP_SPIRIT,
@@ -34,7 +34,7 @@ static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     /* Fenrir's paw marks eff_lightinga01..05 (LoadBitmap 0x01822cdb..) */
     MU_SFX_BITMAP_LIGHTING_A, MU_SFX_BITMAP_LIGHTING_A + 1, MU_SFX_BITMAP_LIGHTING_A + 2,
     MU_SFX_BITMAP_LIGHTING_A + 3, MU_SFX_BITMAP_LIGHTING_A + 4, 0x831d, 0x83b3, 0x8086, 0x8438, 0x7fdd,
-    0x7fe0, 0x8098, MU_JT_BITMAP_LASER, MU_PT_BITMAP_SMOKE5, 0x8016, 0x806e, 0x8084, 0x8085, 0x7f8a, 0x7f21,
+    0x7fe0, 0x8098, 0x83de, 0x84e2, MU_JT_BITMAP_LASER, MU_PT_BITMAP_SMOKE5, 0x8016, 0x806e, 0x8084, 0x8085, 0x7f8a, 0x7f21,
     0x7f54, 0x7f84, 0x7f38, 0x8021, 0x7f6b, 0x8087, 0x8089, 0x801e, 0x8184, MU_PT_BITMAP_RAIN_SPLASH, MU_PT_BITMAP_RAIN_RING};
 static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     "Data/Effect/Fire01.OZJ", "Data/Effect/smoke01.OZJ", "Data/Effect/flare01.OZJ", "Data/Effect/Spark03.OZJ",
@@ -50,7 +50,10 @@ static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     "Data/Effect/eff_lightinga03.OZJ", "Data/Effect/eff_lightinga04.OZJ", "Data/Effect/eff_lightinga05.OZJ",
     "Data/Effect/Steam_01.OZJ", "Data/Effect/Smoke_line.OZJ", "Data/Effect/firehik_mono01.OZJ",
     "Data/Effect/lightmarks_mzin.OZJ", "Data/Effect/flareBlue.OZJ", "Data/Effect/flareRed.OZJ",
-    "Data/Effect/lightmarks.OZJ", "Data/Effect/JointLaser01.OZJ", "Data/Effect/smoke05.ozt",
+    "Data/Effect/lightmarks.OZJ",
+    /* RENDER-EFFECTS-005: the rank-5 owner particles, LoadBitmap 0x018250a5 (LINEAR/CLAMP) and 0x0182eb98
+     * (LINEAR/REPEAT). */
+    "Data/Effect/smoke_line03.OZJ", "Data/Item/texture/lighting01_10cha.OZJ", "Data/Effect/JointLaser01.OZJ", "Data/Effect/smoke05.ozt",
     /* LoadBitmap 01820fcf,0182188f,01821b2f,01821b4f, RENDER-WORLDS-A. */
     "Data/Effect/fantaF.OZJ", "Data/Effect/firehik02.OZJ", "Data/Effect/firehik01.OZJ",
     "Data/Effect/firehik03.OZJ", "Data/Effect/cloudLight.OZJ", "Data/Effect/Map_Smoke1.OZJ", "Data/Effect/Explotion01.OZJ",
@@ -187,7 +190,7 @@ static void load_bitmaps(mu_world_particles *p, const char *root, int no_assets)
             /* LoadBitmap("Effect\\...", index, GL_LINEAR, GL_CLAMP) in the effect loader (0x01820f19 ...);
              * Impack03 0x7b78: GL_NEAREST in OpenCharacterSceneData (0x0182a6c2, static) */
             t->filter[i] = bitmap_ids[i] == MU_PT_BITMAP_IMPACK03 ? 0x2600 : 0x2601;
-            t->wrap[i] = bitmap_ids[i] == 0x7f21 ? 0x2901 : 0x2900;
+            t->wrap[i] = bitmap_ids[i] == 0x7f21 || bitmap_ids[i] == 0x84e2 ? 0x2901 : 0x2900;
             snprintf(relative, sizeof relative, "%s", effect_files[i]);
         } else {
             /* the world's rain02/rain03: GL_NEAREST, GL_CLAMP (0x01829e21) */

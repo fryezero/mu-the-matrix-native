@@ -52,6 +52,13 @@ typedef struct mu_renderchar_stats {
     long passes, special;
 } mu_renderchar_stats;
 
+/* The OBJECT owner of a worn item: its bone matrices (+0x318) and bone count. */
+typedef struct mu_renderchar_owner {
+    const float *bones;
+    int32_t bone_count;
+    long effects;            /* out: owner particles/sprites created (RENDER-EFFECTS-005) */
+} mu_renderchar_owner;
+
 void mu_renderchar_default_env(mu_renderchar_env *env);
 /* Filename inference for viewer/hero equipment without an authoritative item
  * record. Same standard filenames used by mu-render; -1 means unknown. */
@@ -71,6 +78,13 @@ long mu_renderchar_skin_effects(const mu_model *model, const float *bones, int32
 int mu_renderchar_draw_item(const mu_model *model, const mu_renderchar_glow *glow, const mu_renderchar_env *env,
                             const float light[3], float alpha, const mu_draw_options *base,
                             const mu_render_backend *backend, mu_draw_stats *draw_stats, mu_renderchar_stats *stats);
+
+/* The same for a body part with its OBJECT owner: the rank-5 owner block (bones 35/26) creates its
+ * particles and sprite in env->particles and adds the level-9 overlay passes. */
+int mu_renderchar_draw_item_owner(const mu_model *model, const mu_renderchar_glow *glow, const mu_renderchar_env *env,
+                                  const float light[3], float alpha, const mu_draw_options *base,
+                                  const mu_render_backend *backend, mu_draw_stats *draw_stats,
+                                  mu_renderchar_stats *stats, mu_renderchar_owner *owner);
 
 /* Back-carry root for a weapon (link mode): the extracted local matrix of
  * (type, kind B, right hand); returns 1 composed under the bone, 2 absolute, 0 none. */

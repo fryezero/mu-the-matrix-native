@@ -63,6 +63,30 @@ def particles_library():
     return lib
 
 
+LIFETIMES = [-1, 0, 1, 2, 4, 5, 6, 9, 10, 11, 19, 20, 21, 3, 7]
+
+
+def compare_particles(text, data, lib, family, kinds, cases):
+    """validate_particles over the two kinds with directed fade boundaries
+    (lifetime*2 against the initial lifetime 10/20)."""
+    original = pt.random_particle
+    index = 0
+
+    def directed(rng, kind):
+        nonlocal index
+        p = original(rng, kind)
+        step = index // len(kinds)
+        p.lifetime = LIFETIMES[step % len(LIFETIMES)]
+        p.initial_lifetime = (10, 20, 2 * p.lifetime, 2 * p.lifetime + 1, p.initial_lifetime)[(step // len(LIFETIMES)) % 5]
+        index += 1
+        return p
+    try:
+        pt.random_particle = directed
+        return wm.base.compare(text, data, lib, 'pt', family, kinds, cases)
+    finally:
+        pt.random_particle = original
+
+
 def owner_case(t, k):
     """One authored state: body record inputs, owner bones, named meshes and rand()."""
     rng = random.Random(t*7919 + k)
@@ -71,7 +95,9 @@ def owner_case(t, k):
     case['item_level'] = LEVELS[k % len(LEVELS)] & 0xffffffff if k % 3 else rng.randrange(16) << 3
     if case['item_level'] >= 0x80000000:
         case['item_level'] -= 1 << 32
-    bones = BONE_COUNTS[k % len(BONE_COUNTS)] if k % 2 else rng.choice((36, 40, 64))
+    bones = BONE_COUNTS[(k // 2) % len(BONE_COUNTS)] if k % 2 else rng.choice((36, 40, 64))
+    # Records 0x26/0x5b force glow level 9 independent of the raw level word.
+    case['record'] = (None, None, (0, 0x26, 0), (0, 0x5b, 0), (6, 0, 0))[(k // 5) % 5]
     lighting = 0 if k % 11 == 10 else 1
     blue, black = ((-1, -1), (3, 1), (4, 5), (0, -1))[(k // 3) % 4]
     stream = [k % 7 if k < 12 else rng.randrange(32768) for _ in range(64)]
@@ -241,7 +267,7 @@ OWNER_MUTANTS = {
     'glint': ('% 5) / 1.0f / 5.0f + 0.5f', '% 4) / 1.0f / 5.0f + 0.5f'),
     'smoke-light': ('{0.2f, 0.2f, 0.4f}', '{0.2f, 0.4f, 0.2f}'),
     'level-gate': ('& 15) < 9', '& 15) < 8'),
-    'level-word': ('mu_rc_item_glow_level(it) < 9', 'mu_rc_item_glow_level(it) < 8'),
+    'level-word': ('mu_rc_item_glow_level(it) < 9', 'mu_rc_item_glow_level(it) < 10'),
     'overlay-uv': ('it->time * 0.0001f', 'it->time * 0.00011f'),
     'black-alpha': ('6, 0.26f', '6, 0.25f'),
     'variant-list': ('case 0x1c2b: return 1;', 'case 0x1c2b: return 3;'),
@@ -299,7 +325,7 @@ def particle_mutants(text, data, cases):
                             *[str(source/p) for p in ('world_flames.c', 'elbeland.c', 'sprites.c', 'shadow.c',
                               'visual.c', 'layout.c', '../record-math/record_math.c')], '-lm', '-o', str(out)],
                            check=True, capture_output=True)
-            r = wm.compare(text, data, pt.load_library(out), family, [kind], cases)
+            r = compare_particles(text, data, pt.load_library(out), family, [kind], cases)
             f = r['families'][family]
             caught[name] = {'cases': f['cases'], 'caught': f['cases'] - f['equal']}
     return caught
@@ -343,7 +369,7 @@ def main():
     report['families']['owner'], vectors = owner_family(wa, lib, a.cases)
     plib = pt.load_library(ROOT/'reconstructed/particles/libclient_particles.dylib')
     for name in ('create', 'move', 'render'):
-        r = wm.compare(text, data, plib, name, KINDS, a.particle_cases)
+        r = compare_particles(text, data, plib, name, KINDS, a.particle_cases)
         f = r['families'][name]
         report['families']['pt_' + name] = {'cases': f['cases'], 'mismatches': f['cases'] - f['equal'],
                                             'coverage': r['coverage'][name]}
