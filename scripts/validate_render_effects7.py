@@ -337,8 +337,9 @@ def run(cases, mutations):
     result['bodies'] = {name: {'start': hex(a), 'end': hex(b),
                                'sha256': hashlib.sha256(text[a - am.TEXT_BASE:b - am.TEXT_BASE]).hexdigest()}
                         for name, (a, b) in BODIES.items()}
-    result['all_equal'] = all(f['cases'] == f['equal'] for r in result['comparisons'].values()
-                              for f in r['families'].values())
+    result['families'] = {name: r['families'][name] for name, r in result['comparisons'].items()}
+    result['instruction_cases'] = sum(f['cases'] for f in result['families'].values())
+    result['all_equal'] = all(f['cases'] == f['equal'] for f in result['families'].values())
     result['all_mutants_caught'] = all(v['caught'] > 0 for v in result['mutants'].values())
     return result
 

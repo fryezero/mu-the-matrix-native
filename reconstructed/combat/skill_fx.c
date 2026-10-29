@@ -2417,7 +2417,7 @@ int mu_sfx_create_arrows(const mu_sfx_archer *a, float angle[3], uint16_t skill,
 }
 
 /* The arrow model a bow (item model type) shoots: the two jump tables at 0x0158d2b8 and 0x0158d34e. */
-static int32_t arrow_type(int32_t bow)
+int32_t mu_sfx_arrow_type(int32_t bow)
 {
     switch (bow) {
     case 0x12ee: case 0x12ef: return 0x43c;
@@ -2505,7 +2505,7 @@ int mu_sfx_create_arrow(const mu_sfx_archer *a, const float position[3], const f
         out->sounds[out->sound_count++] = 0x524;
         return 1;
     }
-    out->type = arrow_type(bow);
+    out->type = mu_sfx_arrow_type(bow);
     out->owner = MU_SFX_ARROW_OWNER_OBJECT;
     if (out->type == -1)
         out->routine = 0;

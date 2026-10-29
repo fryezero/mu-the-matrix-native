@@ -457,6 +457,11 @@ typedef struct mu_sfx_arrow_effect {
     int sound_count;
 } mu_sfx_arrow_effect;
 
+/* The arrow model type a bow item (model type) shoots, -1 none (RENDER-EFFECTS-007 exports it). */
+int32_t mu_sfx_arrow_type(int32_t bow);
+/* RENDER-EFFECTS-007: 1 for the arrow types CreateEffect/MoveEffect reconstruct (0x43b and arrow_fx.inc's 30). */
+int mu_sfx_is_arrow(int32_t type);
+
 int mu_sfx_create_arrow(const mu_sfx_archer *a, const float position[3], const float angle[3], uint16_t skill,
                         uint16_t flag, uint16_t index, int32_t last, const mu_sfx_env *env, mu_sfx_arrow_effect *out);
 

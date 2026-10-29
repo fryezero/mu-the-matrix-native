@@ -25,6 +25,11 @@ static int arrow_kind(int32_t type)
     }
 }
 
+int mu_sfx_is_arrow(int32_t type)
+{
+    return type == MU_SFX_MODEL_ARROW || arrow_kind(type);
+}
+
 static int arrow_supported(int32_t type, int32_t sub)
 {
     if (type == MU_SFX_MODEL_ARROW)
