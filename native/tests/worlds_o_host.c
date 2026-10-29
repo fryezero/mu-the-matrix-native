@@ -41,7 +41,7 @@ int main(int argc, char **argv)
     }
     assert(generic == 0);                         /* primary visual replaces the generic hook */
     assert(prepare(o, 127, 39, 1) == -1 && generic == 1);
-    assert(prepare(o, 131, 39, 1) == -1 && generic == 2);
+    assert(prepare(o, 139, 39, 1) == -1 && generic == 2);   /* 131 is a primary-visual world since RENDER-WORLDS-R */
     free(o->rt.images); free(o); free(m);
     return 0;
 }
