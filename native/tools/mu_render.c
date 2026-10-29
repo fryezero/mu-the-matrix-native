@@ -35,6 +35,8 @@
 #include "../core/mu_camera.h"
 #include "../core/mu_character.h"
 #include "../core/mu_gif.h"
+#include "../core/mu_hud_tip.h"
+#include "../core/mu_item_textures.h"
 #include "../core/mu_meshdraw_case.h"
 #include "../core/mu_model.h"
 #include "../core/mu_options.h"
@@ -657,6 +659,19 @@ static int command_character(const mu_options *o)
         fprintf(stderr, "%s\n", error);
         mu_character_free(&c);
         return 1;
+    }
+    /* RENDER-ITEMS-TEX-002: with a game root, each item takes the client's item texture rule (its type from the
+     * record that names the file, or the class part file name) and the parts the class's skin index (+0xa4). */
+    if (o->game_root && !o->no_textures) {
+        mu_hud_tip_tables tables;
+        mu_hud_tip_tables_load(o->game_root, &tables);
+        const mu_data_table *items = tables.have_items ? &tables.items : NULL;
+        for (int i = 0; i < MU_CHARACTER_ITEMS; ++i)
+            if (c.items[i].loaded)
+                mu_item_textures_character(&c, i, items, o->game_root,
+                                           mu_item_textures_type_of_path(items, o->game_root, c.items[i].path),
+                                           o->class_byte);
+        mu_hud_tip_tables_free(&tables);
     }
     mu_raster raster;
     if (mu_raster_init(&raster, o->width, o->height)) {

@@ -13,6 +13,7 @@
 #include "../../reconstructed/objects/icarus.h"
 #include "mu_world_helpers.h"
 #include "mu_meshdraw.h"
+#include "mu_effect_scene.h"
 #include "../../reconstructed/environment/env.h"
 #include "../../reconstructed/movement/client_movement.h"
 
@@ -84,7 +85,15 @@ static const struct { int32_t type, world; const char *file; } fx_model_files[MU
     /* RENDER-EFFECTS-004: Spirit of Guardian's wing 0x460 (AccessModel 0x0183375e, every world) */
     {MU_SFX_MODEL_GUARDIAN_WING, -1, "Data/Skill/darkwing_hetachi.bmd"},
     /* RENDER-EFFECTS-005: DungeonStone 0x43a, the world loader's case for worlds 116..120 (0x0184159b) */
-    {MU_SFX_MODEL_DUNGEON_STONE, -1, "Data/Object2/DungeonStone01.bmd"}};
+    {MU_SFX_MODEL_DUNGEON_STONE, -1, "Data/Object2/DungeonStone01.bmd"},
+    /* RENDER-EFFECTS-006: the owned world effects' models. hs_flybatA: Kubera's class loader for 123..127
+     * (0x00e196c8) and Kardamahal's (143, 0x00e0e603; Object144 has no such file in the installation, the client
+     * then draws an empty model). zu_sealeaf04: OpenWorldModels for 91/92 (0x01840f53) and 122 (0x01841845).
+     * The shoal 0x199 (Fish02) is loaded only in Atlans and the abyss, never in the worlds that request it. */
+    {MU_SFX_MODEL_FLYBAT, -1, "Data/Object124/hs_flybatA.bmd"},
+    {MU_SFX_MODEL_FLYBAT, 143, "Data/Object144/hs_flybatA.bmd"},
+    {MU_SFX_MODEL_SEALEAF, -1, "Data/Object92/zu_sealeaf04.bmd"},
+    {MU_SFX_MODEL_SEALEAF, 122, "Data/Object123/zu_sealeaf04.bmd"}};
 
 static int32_t slot_of(int32_t bitmap)
 {
@@ -218,6 +227,7 @@ int mu_world_particles_open(mu_world_particles *p, const char *root, const mu_wo
                             uint32_t seed, int no_assets, char *error, size_t error_size)
 {
     memset(p, 0, sizeof *p);
+    p->root = root;
     p->world = world;
     p->map = map;
     p->rand_state = seed;
@@ -245,6 +255,9 @@ int mu_world_particles_open(mu_world_particles *p, const char *root, const mu_wo
             continue;
         if (m->type == MU_SFX_MODEL_DUNGEON_STONE && (world < 116 || world > 120))
             continue;
+        if (fx_model_files[i].world == -1 && ((m->type == MU_SFX_MODEL_FLYBAT && (world < 123 || world > 127)) ||
+                                              (m->type == MU_SFX_MODEL_SEALEAF && world != 91 && world != 92)))
+            continue;
         if (no_assets || (fx_model_files[i].world != world && fx_model_files[i].world != -1))
             continue;
         char path[4096], message[512], directory[2048];
@@ -267,6 +280,11 @@ int mu_world_particles_open(mu_world_particles *p, const char *root, const mu_wo
 
 void mu_world_particles_close(mu_world_particles *p)
 {
+    if (p->ein) {   /* RENDER-EFFECTS-006: the instances go with the world (the manager clear 0x00a7a1b4) */
+        mu_effect_scene_free(p->ein);
+        free(p->ein);
+        p->ein = NULL;
+    }
     mu_textures *t = &p->bitmaps;
     if (t->images)
         for (int i = 0; i < t->count; ++i)
@@ -337,6 +355,7 @@ static mu_jt_object view_of(const mu_world_particles *p, int32_t index)
         o.visible = img[MU_OBJF_VISIBLE];
         memcpy(o.position, img + MU_OBJF_POSITION, 12);
         memcpy(o.light, img + MU_OBJF_LIGHT, 12);
+        o.scale = mu_obj_f32(img, MU_OBJF_SCALE);   /* RENDER-EFFECTS-006: 0x195/0x59a drift by it */
     }
     return o;
 }
@@ -1476,6 +1495,172 @@ static void o_effect_scaled(void *c, int32_t type, int32_t subtype, const float 
     mu_world_particles_effect(c, type, subtype, position, angle, light, owner, scale, &info);
 }
 
+/* RENDER-EFFECTS-006: the Q/R/R2 world visuals' owned effects, info {key -1, skill 0, word4, 0, -1}, scale 0 */
+static void o_effect_word4(void *c, int32_t type, int32_t subtype, const float position[3], const float angle[3],
+                           const float light[3], int32_t owner, uint16_t word4)
+{
+    mu_sfx_info info = {0};
+    info.key = 0xffff; info.field8 = 0xffff; info.word4 = word4;
+    mu_world_particles_effect(c, type, subtype, position, angle, light, owner, 0.0f, &info);
+}
+
+/* ---- RENDER-EFFECTS-006: the world objects' EffectManager requests (136 type 0xb5) ---- */
+
+struct mu_effect_scene *mu_world_particles_ein_scene(mu_world_particles *p)
+{
+    if (p->ein || !p->root)
+        return p->ein;
+    mu_effect_scene *s = calloc(1, sizeof *s);
+    if (!s || mu_effect_scene_init(s, p->root, 0x2026u) != MU_EFFECT_OK) {
+        free(s);
+        p->root = NULL;   /* no scene: requests stay invalid */
+        return NULL;
+    }
+    mu_effect_scene_set_world(s, p->map);
+    s->instance_limit = MU_WORLD_EIN_LINKS;   /* RENDER-EFFECTS-008: the map-object table attaches thousands */
+    p->ein = s;
+    return s;
+}
+
+/* 0x00d99e3f: the object's list +0x3d0 is not empty */
+static int o_ein_listed(void *c, int32_t object)
+{
+    const mu_world_particles *p = c;
+    for (int32_t k = 0; k < p->ein_link_count; ++k)
+        if (p->ein_links[k].live && p->ein_links[k].object == object)
+            return 1;
+    return 0;
+}
+
+/* The factory 0x00a797a0 returns a null effect when the template cannot be loaded. */
+static int o_ein_valid(void *c, const char *path)
+{
+    mu_world_particles *p = c;
+    char error[256];
+    ++p->ein_requests;
+    mu_effect_scene *s = mu_world_particles_ein_scene(p);
+    const int ok = s && mu_effect_scene_template(s, path, error, sizeof error) >= 0;
+    p->ein_invalid += !ok;
+    return ok;
+}
+
+/* The factory 0x00a797a0's clone (template transform off): the instance index, or -1 for a null effect. */
+int32_t mu_world_particles_ein_create(mu_world_particles *p, const char *path, const float position[3],
+                                      const float rotation[3], float scale, int tint, const int32_t *actions,
+                                      uint32_t action_count, float start_frame)
+{
+    mu_effect_scene *s = mu_world_particles_ein_scene(p);
+    char error[256];
+    if (!s || p->ein_link_count >= MU_WORLD_EIN_LINKS)
+        return -1;
+    return mu_effect_scene_create(s, path, position, rotation, scale, 0, tint, actions, action_count, start_frame,
+                                  error, sizeof error);
+}
+
+/* 0x0129f9c6: owner = the object, record {effect, template scale = the effect's scale, bone, follow, timed,
+ * lifetime}. */
+void mu_world_particles_ein_link(mu_world_particles *p, int32_t object, int32_t instance, int32_t bone, int follow,
+                                 int timed, float lifetime)
+{
+    if (!p->ein || instance < 0 || p->ein_link_count >= MU_WORLD_EIN_LINKS) {
+        ++p->ein_invalid;
+        return;
+    }
+    p->ein_links[p->ein_link_count].object = object;
+    p->ein_links[p->ein_link_count].instance = instance;
+    p->ein_links[p->ein_link_count].bone = bone;
+    p->ein_links[p->ein_link_count].template_scale = p->ein->instances[instance].fx.scale;
+    p->ein_links[p->ein_link_count].lifetime = lifetime;
+    p->ein_links[p->ein_link_count].follow = (uint8_t)(follow != 0);
+    p->ein_links[p->ein_link_count].timed = (uint8_t)(timed != 0);
+    p->ein_links[p->ein_link_count].live = 1;
+    ++p->ein_link_count;
+    ++p->ein_attached;
+}
+
+/* RENDER-EFFECTS-008: 0x009b0451, the object's list +0x3d0 cleared (its effects are no longer updated or drawn). */
+void mu_world_particles_ein_clear(mu_world_particles *p, int32_t object)
+{
+    for (int32_t k = 0; k < p->ein_link_count; ++k)
+        if (p->ein_links[k].live && p->ein_links[k].object == object) {
+            p->ein_links[k].live = 0;
+            p->ein->instances[p->ein_links[k].instance].owner.visible = 0;
+        }
+}
+
+/* The factory's clone (position, rotation, scale; template transform off, no tint, no actions, start 0), then
+ * the attach. */
+static void o_ein_attach(void *c, int32_t object, const char *path, const float position[3], const float rotation[3],
+                         float scale, int32_t bone, int follow, int timed, float lifetime)
+{
+    mu_world_particles *p = c;
+    const int32_t instance = mu_world_particles_ein_create(p, path, position, rotation, scale, 0, NULL, 0, 0.0f);
+    if (instance < 0) {
+        ++p->ein_invalid;
+        return;
+    }
+    mu_world_particles_ein_link(p, object, instance, bone, follow, timed, lifetime);
+}
+
+/* 0x0129f671(dt) for one object: timed records lose dt and leave the list at zero or below (their effect is
+ * no longer updated or drawn); each effect takes template scale x object scale (+0xa0), the owner fields
+ * (+5, +6, +0x2a, +0x38, +0xd0, +0x1e8) and an external matrix, then its node update. Following bone b of a
+ * map object: 0x0129fd4f transposes the shared pose buffer's bone (0x06fce398 + 0x30 b: +0x318 is 0 for map
+ * objects) into a column-major 4x4; the object predicate 0x012a0d29 (+0x350 or +0x354, the sector links, set
+ * for map objects in a sector) skips the extra position/scale product, so the bone matrix alone, whose pose
+ * already holds the body origin and scale, places the effect. */
+static void o_ein_update(void *c, int32_t object, const uint8_t *img, const float *bones, int32_t bone_count, float dt)
+{
+    mu_world_particles *p = c;
+    if (!p->ein)
+        return;
+    for (int32_t k = 0; k < p->ein_link_count; ++k) {
+        if (!p->ein_links[k].live || p->ein_links[k].object != object)
+            continue;
+        mu_effect_instance *inst = &p->ein->instances[p->ein_links[k].instance];
+        if (p->ein_links[k].timed) {
+            p->ein_links[k].lifetime = p->ein_links[k].lifetime - dt;
+            if (0.0f >= p->ein_links[k].lifetime) {
+                p->ein_links[k].live = 0;
+                inst->owner.visible = 0;
+                ++p->ein_expired;
+                continue;
+            }
+        }
+        inst->fx.scale = p->ein_links[k].template_scale * mu_obj_f32(img, MU_OBJF_SCALE);
+        inst->owner.flag5 = img[5];
+        inst->owner.flag6 = img[6];
+        inst->owner.action = mu_obj_u16(img, MU_OBJF_ACTION);
+        inst->owner.visible = img[0x38];
+        inst->owner.frame = mu_obj_f32(img, MU_OBJF_FRAME);
+        memcpy(inst->owner.tint, img + 0x1e8, sizeof inst->owner.tint);
+        const int32_t bone = p->ein_links[k].bone;
+        float m[16];
+        if (p->ein_links[k].follow && bone >= 0) {
+            if (!bones || bone >= bone_count) {   /* the shared buffer would hold another pose: not approximated */
+                ++p->ein_unposed;
+                continue;
+            }
+            const float *b = bones + 12 * bone;
+            for (int r = 0; r < 3; ++r)
+                for (int col = 0; col < 4; ++col)
+                    m[4 * col + r] = b[4 * r + col];
+            m[3] = m[7] = m[11] = 0.0f;
+            m[15] = 1.0f;
+        } else if (p->ein_links[k].follow) {   /* bone -1: the object's world matrix 0x0129faee (not reconstructed) */
+            ++p->ein_unposed;
+            continue;
+        } else {
+            float position[3];
+            memcpy(position, img + MU_OBJF_POSITION, 12);
+            mu_effect_object_matrix(m, position, mu_obj_f32(img, MU_OBJF_SCALE));
+        }
+        mu_effect_scene_attach(p->ein, (uint32_t)p->ein_links[k].instance, m);
+        mu_effect_scene_update_one(p->ein, (uint32_t)p->ein_links[k].instance, dt);
+        ++p->ein_updates;
+    }
+}
+
 /* Icarus consumes the authored visual events here, keeping object-only tools independent of UI hosts. */
 static void icarus_cover(mu_world_particles *p, mu_objects *o, int32_t index)
 {
@@ -1535,6 +1720,11 @@ void mu_world_particles_attach(mu_world_particles *p, struct mu_objects *objects
         objects->rt.sprite = o_sprite;
         objects->rt.effect = o_effect;
         objects->rt.effect_scaled = o_effect_scaled;
+        objects->rt.effect_word4 = o_effect_word4;
+        objects->rt.ein_listed = o_ein_listed;
+        objects->rt.ein_valid = o_ein_valid;
+        objects->rt.ein_attach = o_ein_attach;
+        objects->rt.ein_update = o_ein_update;
         objects->rt.joint = o_joint;
         objects->rt.hook_context = p;
         p->objects = objects;

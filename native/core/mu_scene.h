@@ -21,7 +21,8 @@
  *  - texture type table zero (0x012b3e2e fills it with 0 at load), mesh flag
  *    byte zero (written 0 at 0x012b3edd), sub-object records from the texture
  *    names as the loader builds them (mu_meshdraw_sub_from_name), skin fields
- *    zero;
+ *    zero; textures loaded by the item rule supply the texture types, +0xa4
+ *    and +0xa6 (mu_textures, RENDER-ITEMS-TEX-002);
  *  - no bitmap keeps its pixels (the client frees model texture pixels after
  *    the upload), so mode 0x8000 stops with MU_MESHDRAW_FAULT where the
  *    client would read through a null pointer;

@@ -1,4 +1,5 @@
-"""The item model loader's texture step 0x00cd558e and the item bitmap tables (RENDER-ITEMS-TEX-001)."""
+"""The item model loader's texture step 0x00cd558e and the item bitmap tables (RENDER-ITEMS-TEX-001); the wearer skin
+(RENDER-ITEMS-TEX-002)."""
 import ctypes as C
 import json
 import os
@@ -64,10 +65,25 @@ class ItemTextureTests(unittest.TestCase):
         self.assertEqual(entries[0x8239], ('Item\\Texture\\black_gold_crom05.jpg', 0x2601, 0x2901))
         self.assertNotIn(0, entries)
         self.assertNotIn('not reached', it.TABLE.read_text())
+        # RENDER-ITEMS-TEX-002: the wearer skin bitmaps of the startup routine 0x0182a8fe
+        self.assertEqual(entries[0x7725], ('Player\\skin_barbarian_01.jpg', 0x2600, 0x2900))
+        self.assertEqual(entries[0x77c7], ('Player\\HQSkinClass101.jpg', 0x2600, 0x2900))
+        self.assertNotIn(0x7776, entries)   # hair at skin index 0 is not registered
+        self.assertEqual(sum(1 for i in entries if it.SKIN_FIRST <= i <= it.SKIN_LAST), 146)
         names = it.names_entries()
-        keys = [n.split('\\')[-1].lower() for n in names]
+        keys = [n[0].split('\\')[-1].lower() for n in names]
         self.assertEqual(len(keys), len(set(keys)))
-        self.assertIn('Effect\\lightning2.jpg', names)
+        self.assertIn(('Effect\\lightning2.jpg', 0x2601, 0x2900), names)
+
+    def test_wearer_skin(self):
+        # 0x0139d6a2: class & 0xf plus 16 per evolution tier above the first
+        self.assertEqual([self.lib.mu_it_part_skin(c) for c in (0x00, 0x05, 0x11, 0x23, 0x47, 0x8f)],
+                         [0, 5, 0x11, 0x23, 0x37, 0x4f])
+        self.assertEqual(self.lib.mu_it_skin_bitmap(0x7725, 0x11), 0x7736)
+        self.assertEqual(self.lib.mu_it_skin_bitmap(0x78ba, 4), 0x78be)
+        self.assertEqual(self.lib.mu_it_skin_bitmap(0x7869, -1), 0x7868)   # movsx
+        for index in (0x791a, 0x7724, 0x7530, 0x9000):
+            self.assertEqual(self.lib.mu_it_skin_bitmap(index, 9), index)
 
     @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'private instruction captures required')
     def test_original_instructions(self):
@@ -76,7 +92,7 @@ class ItemTextureTests(unittest.TestCase):
             subprocess.run([sys.executable, str(ROOT / 'scripts/validate_item_textures.py'), '--cases', '1000',
                             '--mutations', '--output', str(report)], check=True, capture_output=True)
             result = json.loads(report.read_text())
-            self.assertEqual(len(result['families']), 3)
+            self.assertEqual(len(result['families']), 5)
             self.assertTrue(all(r['cases'] == r['equal'] and r['stopped'] == 0 for r in result['families'].values()))
             self.assertEqual(len(result['mutants']), len(it.MUTANTS))
             self.assertTrue(all(m['detected'] > 0 and m['stopped'] == 0 for m in result['mutants']))

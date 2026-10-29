@@ -9,6 +9,7 @@
 #include "mu_objects.h"
 #include "mu_objects_icarus.h"
 #include "mu_objects_worlds_p.h"
+#include "mu_meshdraw.h"
 
 #include "../../reconstructed/environment/env.h"
 
@@ -120,6 +121,54 @@ static mu_q_inputs q_inputs(mu_objects *o, const float hero[3], float time)
     return q;
 }
 
+/* RENDER-WORLDS-AFTER2: the bitmaps the world class's slots bind to a model mesh (RenderMesh's texture
+ * argument), loaded as texture extras of the models that name them (LoadBitmap's file, filter and wrap). */
+static int32_t extra_slot(const mu_textures *t, int32_t index)
+{
+    for (int32_t k = 0; t->extra_index && k < t->extra_count; ++k)
+        if (t->extra_index[k] == index)
+            return t->count - t->extra_count + k;
+    return -1;
+}
+static void load_slot_bitmaps(mu_objects *o, const char *game_root)
+{
+    for (int32_t t = 0; game_root && t < MU_OBJECT_TYPES; ++t) {
+        mu_object_model *m = o->models[t];
+        int32_t want[4];
+        const int32_t n = m && m->loaded ? mu_world_slot_bitmaps(o->world, t, want) : 0;
+        for (int32_t k = 0; k < n; ++k) {
+            const char *path;
+            uint32_t filter, wrap;
+            if (!mu_world_slot_bitmap(o->world, want[k], &path, &filter, &wrap) || extra_slot(&m->textures, want[k]) >= 0)
+                continue;
+            char relative[256], directory[2048];
+            snprintf(relative, sizeof relative, "Data/%s", path);
+            for (char *c = relative; *c; ++c)
+                if (*c == '\\')
+                    *c = '/';
+            char *slash = strrchr(relative, '/');
+            *slash = 0;
+            if (!mu_objects_resolve(game_root, relative, directory, sizeof directory))
+                snprintf(directory, sizeof directory, "%s/%s", game_root, relative);
+            const char *dirs[1] = {directory}, *names[1] = {slash + 1};
+            if (mu_textures_add_extras(&m->textures, &want[k], dirs, names, 1, filter, wrap) == 0)
+                ++o->rt.slot_bitmaps;
+        }
+    }
+}
+/* A RenderMesh texture argument the native draw can bind: none (-1), a model texture special, or a loaded
+ * extra. Others are refused and counted (draw_unsupported). */
+static int texture_bound(const mu_object_model *m, int32_t texture)
+{
+    if (texture == -1)
+        return 1;
+    for (int k = 0; k < MU_TEXTURE_SPECIAL_COUNT; ++k)
+        if (mu_texture_specials[k].index == texture)
+            return 1;
+    const int32_t s = extra_slot(&m->textures, texture);
+    return s >= 0 && m->textures.slots[s] != NULL;
+}
+
 int mu_objects_start(mu_objects *o, const char *game_root)
 {
     mu_objects_runtime *rt = &o->rt;
@@ -133,6 +182,8 @@ int mu_objects_start(mu_objects *o, const char *game_root)
     memcpy(rt->velocity, velocity, sizeof velocity);
     memcpy(rt->velocity_set, velocity_set, sizeof velocity_set);
     rt->velocity_types = velocity_types;
+    memset(rt->stream, 0xff, sizeof rt->stream);   /* BMD StreamMesh -1 until a slot writes it */
+    rt->slot_index = -1;
     const int32_t n = o->count > 0 ? o->count : 0;
     rt->q_handler.swamp_variant = 1;   /* Swamp of Darkness constructor (0x00e54359: +0x78 = 1) */
     rt->images = calloc((size_t)(n ? n : 1), MU_OBJ_SIZE);
@@ -154,6 +205,7 @@ int mu_objects_start(mu_objects *o, const char *game_root)
         rt->pointers[i] = img;
         rt->next[i] = -1;
         mu_obj_set_f32(img, MU_OBJF_ALPHA_RATE, 0.1f);   /* constructor 0x0129e792 (live value) */
+        img[0x38] = 1;   /* RENDER-EFFECTS-008: Initialize 0x0129eb81 (CreateObject 0x016d8606), the effects' owner gate */
         int32_t sector = -1;
         mu_obj_event created[8];
         mu_obj_log create_log = {0, 8, 0, created};
@@ -212,6 +264,7 @@ int mu_objects_start(mu_objects *o, const char *game_root)
     rt->world.count = n;
     rt->world.next = rt->next;
     rt->seed = 1;
+    load_slot_bitmaps(o, game_root);
     load_bitmap(game_root, "Fire01.jpg", &rt->fire);
     load_bitmap(game_root, "smoke01.jpg", &rt->smoke);
     if (o->world == MU_LOGIN_WORLD) {   /* the login world's sprite and particle bitmaps (startup loader) */
@@ -499,6 +552,16 @@ void mu_objects_step(mu_objects *o, const mu_objects_step_inputs *in)
         const int q_move = status == MU_OBJ_UNSUPPORTED && mu_worlds_q_owns(o->world);
         if (status == MU_OBJ_UNSUPPORTED && !q_move)
             ++rt->move_unsupported;
+        /* RENDER-WORLDS-AFTER2: the pre-move slot 0x74 (world manager 0x00ea2c2b) before slot 0x30's events are
+         * applied; its only effects are PlayBuffer calls (and Swamp of Darkness's rand draws, before its slot 0x30).
+         * The Imperial Guardian handler state (+0x14) is not modelled: 0. */
+        mu_obj_event pre[2];
+        mu_obj_log pre_log = {0, 2, 0, pre};
+        if (mu_class_premove(o->world, image(o, i), i, o->world, 0, step_rand, &c, &pre_log))
+            for (int32_t j = 0; j < pre_log.count; ++j) {
+                ++rt->sound_events;
+                if (o->sound) o->sound(o->sound_context, (int32_t)pre[j].args[0]);
+            }
         for (int pass = 0; pass <= q_move; ++pass) {
             if (pass) {
                 const mu_q_inputs q = q_inputs(o, in->hero, in->time);
@@ -670,6 +733,53 @@ static uint8_t abyss_custom(void *context, int32_t index)
                                     &c->base->log);
 }
 
+/* RENDER-WORLDS-AFTER2: the world class's custom render (slot 0x38) through the world manager 0x00ea2f07 (types
+ * 0..300). The model fields are RenderObject's: the setup wrote the action (+0xa8) and body colour (+0x54),
+ * Animation the frame (+0xac); the StreamMesh byte (+0x94) persists per model. */
+typedef struct class_context {
+    mu_objects *o;
+    float time;
+    mu_obj_log log;
+} class_context;
+static void slot_model(const mu_objects *o, int32_t t, int16_t *flags, int32_t capacity, mu_slot_model *out)
+{
+    const mu_object_model *m = t >= 0 && t < MU_OBJECT_TYPES ? o->models[t] : NULL;
+    out->mesh_count = 0;
+    out->sub_flag = flags;
+    for (int32_t k = 0; m && m->loaded && k < m->bmd.mesh_count && k < capacity; ++k) {
+        uint8_t name[32] = {0}, sub[5];
+        memcpy(name, m->bmd.meshes[k].texture, strnlen(m->bmd.meshes[k].texture, sizeof name));
+        flags[k] = (int16_t)(mu_meshdraw_sub_from_name(name, sub) ? sub[0] : -1);
+        out->mesh_count = k + 1;
+    }
+}
+static void slot_fields(mu_objects *o, const uint8_t *img, int32_t t)
+{
+    uint8_t *b = o->rt.model_fields;
+    memcpy(b + 0xac, img + MU_OBJF_FRAME, 4);
+    memcpy(b + MU_MDL_ACTION, img + MU_OBJF_ACTION, 2);
+    b[0x94] = t >= 0 && t < MU_OBJECT_TYPES ? o->rt.stream[t] : 0xff;
+}
+static uint8_t class_custom(void *context, int32_t index)
+{
+    class_context *c = context;
+    mu_objects *o = c->o;
+    uint8_t *img = image(o, index);
+    const int32_t t = mu_obj_i32(img, MU_OBJF_TYPE);
+    if (t < 0 || t > 300)
+        return 0;
+    slot_fields(o, img, t);
+    memcpy(o->rt.slot_color, o->rt.model_fields + MU_MDL_COLOR, 12);
+    o->rt.slot_stream = o->rt.model_fields[0x94];
+    int16_t flags[64];
+    mu_slot_model model;
+    slot_model(o, t, flags, 64, &model);
+    const int handled = mu_class_custom(o->world, img, o->rt.model_fields, index, o->world, c->time, &model, &c->log);
+    if (t < MU_OBJECT_TYPES)
+        o->rt.stream[t] = o->rt.model_fields[0x94];
+    return (uint8_t)handled;
+}
+
 /* Pose and skin object i's model at its animation state with the body light of model_fields, with the
  * arguments RenderObject's setup 0x017ec896 passes to Animation and Transform (compared in the render family,
  * scripts/validate_object_render.py). log: mu_obj_render's call log; without its Animation/Transform events
@@ -758,11 +868,41 @@ static void builtin_bone(void *context, const char *name, const float local[3], 
         }
 }
 
+/* RENDER-EFFECTS-006: an owned CreateEffect with info word4 at args[word4]: type, position, angle, light, subtype
+ * (args 0..10), the owner flag at args[word4 - 1]. Without the consumer hook it stays refused and counted. */
+static void owned_effect(mu_objects_runtime *rt, const mu_obj_event *e, int32_t word4)
+{
+    if (!rt->effect_word4) {
+        ++rt->draw_unsupported;
+        return;
+    }
+    float position[3], angle[3], light[3];
+    for (int q = 0; q < 3; ++q) {
+        position[q] = fbits(e->args[1 + q]);
+        angle[q] = fbits(e->args[4 + q]);
+        light[q] = fbits(e->args[7 + q]);
+    }
+    rt->effect_word4(rt->hook_context, (int32_t)e->args[0], (int32_t)e->args[10], position, angle, light,
+                     e->args[word4 - 1] ? e->object : -1, (uint16_t)e->args[word4]);
+    ++rt->effect_events;
+}
+
 static void consume_visual(mu_objects *o, const mu_obj_log *log)
 {
     mu_objects_runtime *rt = &o->rt;
     for (int32_t k = 0; k < log->count; ++k) {
         const mu_obj_event *e = &log->events[k];
+        if (e->call == MU_Q_KEYED_EFFECT) {   /* Q: the object is always the owner; args[11] is word4 */
+            mu_obj_event owned = *e;
+            owned.args[12] = owned.args[11];
+            owned.args[11] = 1;
+            owned_effect(rt, &owned, 12);
+            continue;
+        }
+        if (e->call == MU_R2_EFFECT || e->call == MU_WR_EFFECT_SCALED) {   /* owner flag args[11], word4 args[12] */
+            owned_effect(rt, e, 12);
+            continue;
+        }
         if (e->call == MU_OBJ_CALL_SPRITE && rt->sprite) {   /* CreateSprite 0x01692eb7 (NATIVE-JOINT-001) */
             float position[3], light[3];
             for (int q = 0; q < 3; ++q) {
@@ -791,7 +931,7 @@ static void consume_visual(mu_objects *o, const mu_obj_log *log)
             }
             rt->joint(rt->hook_context, (int32_t)e->args[0], position, target, angle,
                       (int32_t)e->args[10], e->args[11] ? e->object : -1, fbits(e->args[12]));
-        } else if (e->call == MU_URUK_KEYED_EFFECT || e->call == MU_URUK_COLORED_JOINT || e->call == MU_Q_KEYED_EFFECT) {
+        } else if (e->call == MU_URUK_KEYED_EFFECT || e->call == MU_URUK_COLORED_JOINT) {
             ++rt->draw_unsupported; /* No native key/color consumer; preserve the refusal. */
         } else if (e->call == MU_OBJ_CALL_SOUND) {
             ++rt->sound_events;
@@ -816,6 +956,34 @@ static void consume_visual(mu_objects *o, const mu_obj_log *log)
         }
     }
 }
+/* RENDER-EFFECTS-008: the attached effects' update 0x0129f671 after RenderObjectVisual when the list +0x3d0 is not
+ * empty (RenderObjects 0x016d51d8..0x016d51f5 and 0x016d534e..0x016d536b, every world). RenderObject animated the
+ * object before its +0x68 == -2 test (the map-object table's hidden markers), so a listed object takes the pose its
+ * log records. */
+static void update_effects(mu_objects *o, int32_t i, uint8_t *img, mu_object_model *m, int posed, const mu_obj_log *log)
+{
+    mu_objects_runtime *rt = &o->rt;
+    if (!rt->ein_update || !rt->ein_listed || !rt->ein_listed(rt->hook_context, i))
+        return;
+    for (int32_t k = 0; !posed && m && m->loaded && k < log->count; ++k)
+        if (log->events[k].call == MU_OBJ_CALL_ANIMATION)
+            posed = pose_object(o, img, m, log);
+    rt->ein_update(rt->hook_context, i, img, posed ? mu_model_bone_matrices(&m->model) : NULL,
+                   posed ? m->bmd.bone_count : 0, mu_frame_time_value() /* [0x01cf103c] */);
+}
+
+/* RenderObjectVisual through the particle hook, then the effects (effects: 0 where the login, character select or
+ * primary RenderObjectVisual branch already updated them). */
+static void visual_and_effects(mu_objects *o, int32_t i, uint8_t *img, int hook, int has_model, mu_object_model *drawn,
+                               mu_object_model *m, int posed, const mu_obj_log *log, int effects)
+{
+    mu_objects_runtime *rt = &o->rt;
+    if (hook)
+        rt->visual(rt->hook_context, o, i, has_model, drawn);
+    if (effects)
+        update_effects(o, i, img, m, posed, log);
+}
+
 /* RenderObjectVisual's handler slot 0x34 of the login world (CGMLogInScene_Ex) and, NATIVE-CHARSEL-002, of
  * the character-select world (CGMCharacterScene_Ex): its CreateSprite / CreateParticle / CreateEffect calls.
  */
@@ -880,9 +1048,9 @@ static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_obje
             mu_kardamahal_visual(img, i, 1, visual_rand, &c, &log);
         else
             mu_swamp_visual(img, i, 1, visual_rand, &c, &log);
-        for (int32_t k = 0; k < log.count; ++k)   /* effects with info word4 and unmodelled joint kinds: refused */
-            if (events[k].call == MU_R2_EFFECT || (events[k].call == MU_ICARUS_JOINT &&
-                !mu_jt_kind_supported((int32_t)events[k].args[0], (int32_t)events[k].args[10]))) {
+        for (int32_t k = 0; k < log.count; ++k)   /* unmodelled joint kinds: refused (word4 effects: owned_effect) */
+            if (events[k].call == MU_ICARUS_JOINT &&
+                !mu_jt_kind_supported((int32_t)events[k].args[0], (int32_t)events[k].args[10])) {
                 events[k].call = 0;
                 ++o->rt.draw_unsupported;
             }
@@ -914,8 +1082,8 @@ static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_obje
             mu_red_smoke_icarus_visual(img, i, 1, bones_ready ? visual_bone : NULL, &c, &log);
         else if (o->world == 0x86)
             mu_gray_aida_visual(img, i, 1, world_time, visual_rand, bones_ready ? visual_bone : NULL, &c, &log);
-        for (int32_t k = 0; k < log.count; ++k)   /* no native extra-mesh or keyed-effect consumer: refused */
-            if (events[k].call == MU_OBJ_CALL_MESH || events[k].call == MU_WR_EFFECT_SCALED) ++o->rt.draw_unsupported;
+        for (int32_t k = 0; k < log.count; ++k)   /* no native extra-mesh consumer: refused (0x199: owned_effect) */
+            if (events[k].call == MU_OBJ_CALL_MESH) ++o->rt.draw_unsupported;
     }
     else if (o->world >= 0x83 && o->world <= 0x86)
         return;
@@ -1032,6 +1200,14 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
         in.custom_render = login ? login_custom : charsel ? charsel_custom : abyss_custom;
         in.context = abyss ? (void *)&ac : (void *)&cc;
     }
+    const int slots = mu_class_slots(o->world);   /* RENDER-WORLDS-AFTER2 */
+    class_context sc = {o, in.light.time, {0, MU_OBJECT_SLOT_EVENTS, 0, rt->slot_events}};
+    rt->slot_count = 0;
+    rt->slot_index = -1;
+    if (slots) {
+        in.custom_render = class_custom;
+        in.context = &sc;
+    }
     mu_obj_event local[16];
     mu_obj_log log = {0, 16, 0, local};
     memset(rt->model_fields, 0, sizeof rt->model_fields);
@@ -1044,6 +1220,7 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
                                o->world == 80 || o->world == 81 || o->world == 0x87 || (o->world == 8 && t == 63)))
             posed = pose_object(o, img, m, &log);
         handler_visual(o, i, img, primary_visual ? m : posed ? m : NULL, in.light.time, posed);
+        update_effects(o, i, img, m, posed, &log);   /* 0x016d51d8..0x016d51f5 */
     } else if (!rt->visual) {
         mu_obj_visual(img, o->world, in.light.time);   /* RenderObjectVisual follows RenderObject */
     }
@@ -1056,27 +1233,48 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
         flame = world_flames(o, i, img, m, in.light.time, posed);
     }
     const int hook = rt->visual && !login && !charsel && !flame && !primary_visual, has_model = m && m->loaded;
+    const int effects = !login && !charsel && !primary_visual;   /* RENDER-EFFECTS-008 */
     if (deferred && !((o->world == 0x39 || o->world == 0x3a) && (t == 0x53 || t == 0x5c))) {
-        if (hook)
-            rt->visual(rt->hook_context, o, i, has_model, posed ? m : NULL);
+        visual_and_effects(o, i, img, hook, has_model, posed ? m : NULL, m, posed, &log, effects);
         return NULL;
     }
     if (status == MU_OBJ_SKIPPED) {
         ++rt->draw_skipped;
-        if (hook)
-            rt->visual(rt->hook_context, o, i, has_model, NULL);
+        visual_and_effects(o, i, img, hook, has_model, NULL, m, posed, &log, effects);
         return NULL;
     }
     if (!has_model) {
-        if (hook)
-            rt->visual(rt->hook_context, o, i, 0, NULL);
+        visual_and_effects(o, i, img, hook, 0, NULL, m, posed, &log, effects);
         return NULL;
     }
     if (status == MU_OBJ_UNSUPPORTED)
         ++rt->draw_unsupported;
-    for (int32_t j = 1; abyss && j < cc.log.count; ++j)
-        if (custom_events[j].call == MU_OBJ_CALL_MESH)
-            ++rt->draw_unsupported;   /* type 0x34's second mesh: bitmap 0x82df has no native texture */
+    int slot_draws = 0;
+    if (abyss && status == MU_OBJ_OK && cc.log.count > 1) {   /* type 0x34: both meshes (the second with 0x82df) */
+        memcpy(rt->slot_events, custom_events, (size_t)cc.log.count * sizeof custom_events[0]);
+        sc.log.count = cc.log.count;
+        memcpy(rt->slot_color, rt->model_fields + MU_MDL_COLOR, 12);
+        rt->slot_stream = 0xff;
+    }
+    for (int32_t j = 0; (slots || abyss) && j < sc.log.count; ++j) {
+        const mu_obj_event *e = &rt->slot_events[j];
+        if (e->call == MU_OBJ_CALL_BODY || e->call == MU_OBJ_CALL_MESH)
+            ++slot_draws;
+        else if (e->call == MU_OBJ_CALL_PLAY_SPEED && e->args[0] < MU_OBJECT_TYPES && e->args[1] == 0) {
+            rt->play_speed[e->args[0]] = fbits(e->args[2]);   /* the action table store (Twisted Karutan 0x6b) */
+            if (!rt->play_speed_set[e->args[0]])
+                rt->play_speed_set[e->args[0]] = 1;
+        } else if (e->call == MU_OBJ_CALL_PLAY_SPEED) {
+            ++rt->draw_unsupported;   /* another action's PlaySpeed: no per-action table outside 135/136 */
+        }
+    }
+    if (sc.log.overflow)
+        ++rt->draw_unsupported;
+    if (slot_draws) {
+        rt->slot_count = sc.log.count;
+        rt->slot_index = i;
+        memcpy(rt->model_fields + MU_MDL_COLOR, rt->slot_color, 12);   /* pose with the setup's body colour */
+    }
     const mu_obj_event *body = NULL, *mesh = NULL;
     for (int32_t j = 0; j < log.count; ++j)
         if (local[j].call == MU_OBJ_CALL_BODY)
@@ -1087,14 +1285,17 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
     for (int32_t j = 0; !body && !mesh && j < cc.log.count; ++j)
         if (custom_events[j].call == MU_OBJ_CALL_MESH)
             mesh = &custom_events[j];   /* the character select's pedestal: one mesh (slot 0x38) */
+    for (int32_t j = 0; slot_draws && !body && !mesh && j < rt->slot_count; ++j)
+        if (rt->slot_events[j].call == MU_OBJ_CALL_BODY)
+            body = &rt->slot_events[j];
+        else if (rt->slot_events[j].call == MU_OBJ_CALL_MESH)
+            mesh = &rt->slot_events[j];   /* the first draw; mu_objects_first_meshes returns all of them */
     if (status == MU_OBJ_OK && !body && !mesh) {
-        if (hook)
-            rt->visual(rt->hook_context, o, i, 1, NULL);
+        visual_and_effects(o, i, img, hook, 1, NULL, m, posed, &log, effects);
         return NULL;   /* a per-world custom render took the object */
     }
     if (!posed && !pose_object(o, img, m, &log)) {
-        if (hook)
-            rt->visual(rt->hook_context, o, i, 1, NULL);
+        visual_and_effects(o, i, img, hook, 1, NULL, m, 0, &log, effects);
         return NULL;
     }
     mu_draw_default_options(options);
@@ -1119,14 +1320,65 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
     }
     options->time = map ? map->time : 0.0f;
     ++rt->drawn;
-    if (hook)   /* after RenderObject's draw arguments, as in RenderObjects */
-        rt->visual(rt->hook_context, o, i, 1, m);
+    /* after RenderObject's draw arguments, as in RenderObjects */
+    visual_and_effects(o, i, img, hook, 1, m, m, 1, &log, effects);
     return m;
+}
+
+/* RENDER-WORLDS-AFTER2: a slot's RenderBody/RenderMesh calls as draws, with the body colour (+0x54) at each
+ * call. A mesh that is the model's StreamMesh (+0x94) is drawn without the stream scroll (no native consumer)
+ * and counted; a texture argument without a native bitmap is refused and counted. */
+static int32_t slot_meshes(mu_objects *o, const mu_obj_event *events, int32_t n, const float color[3],
+                           uint8_t stream, const mu_world *map, mu_object_model *m, mu_object_mesh *meshes,
+                           int32_t capacity, int after)
+{
+    mu_objects_runtime *rt = &o->rt;
+    float current[3];
+    memcpy(current, color, sizeof current);
+    int32_t count = 0;
+    for (int32_t e = 0; e < n; ++e) {
+        const mu_obj_event *ev = &events[e];
+        if (ev->call == MU_OBJ_CALL_COLOR) {
+            for (int q = 0; q < 3; ++q)
+                current[q] = fbits(ev->args[q]);
+            continue;
+        }
+        if (ev->call == MU_OBJ_CALL_MODEL_STREAM) {
+            stream = (uint8_t)ev->args[0];
+            continue;
+        }
+        if (ev->call != MU_OBJ_CALL_BODY && ev->call != MU_OBJ_CALL_MESH)
+            continue;
+        if (count >= capacity) {
+            ++rt->draw_unsupported;
+            continue;
+        }
+        if (!texture_bound(m, (int32_t)ev->args[7])) {
+            ++rt->draw_unsupported;
+            continue;
+        }
+        mu_object_mesh *mesh = &meshes[count++];
+        if (ev->call == MU_OBJ_CALL_BODY)
+            body_options(ev, m, map, &mesh->options);
+        else
+            mesh_options(ev, m, map, &mesh->options);
+        if (stream != 0xff && (ev->call == MU_OBJ_CALL_BODY || ev->args[0] == stream))
+            ++rt->draw_unsupported;
+        memset(&mesh->fields, 0, sizeof mesh->fields);
+        memcpy(mesh->fields.color, current, sizeof current);
+        mesh->options.fields = NULL;   /* set by the caller after copying (points into the array) */
+        if (after)
+            ++rt->after_meshes;
+    }
+    return count;
 }
 
 int32_t mu_objects_first_meshes(mu_objects *o, int32_t k, const mu_world *map, mu_object_model *m,
                                 mu_object_mesh *meshes, int32_t capacity)
 {
+    if (k >= 0 && k < o->rt.draw_count && o->rt.slot_count && o->rt.slot_index == o->rt.draw_list[k])
+        return slot_meshes(o, o->rt.slot_events, o->rt.slot_count, o->rt.slot_color, o->rt.slot_stream, map, m,
+                           meshes, capacity, 0);
     if ((o->world != 0x39 && o->world != 0x3a) || k < 0 || k >= o->rt.draw_count)
         return 0;
     const int32_t i = o->rt.draw_list[k];
@@ -1254,7 +1506,23 @@ mu_object_model *mu_objects_prepare_after(mu_objects *o, int32_t k, const mu_wor
         mu_csw_after_render(img, i, &log);   /* NATIVE-CHARSEL-002: RenderBody or the pedestal's glow mesh */
     else if (o->world == MU_LOGIN_WORLD)
         mu_login_after_render(img, rt->model_fields, i, rt->now_ms, NULL, NULL, &log);
-    else {
+    else if (mu_class_slots(o->world)) {   /* RENDER-WORLDS-AFTER2: the class after render (slot 0x3c) */
+        slot_fields(o, img, t);
+        int16_t flags[64];
+        mu_slot_model model;
+        slot_model(o, t, flags, 64, &model);
+        const uint8_t stream = rt->model_fields[0x94];
+        float colour[3];
+        memcpy(colour, rt->model_fields + MU_MDL_COLOR, 12);
+        if (t >= 0 && t <= 300)   /* the world manager 0x00ea306c calls slot 0x3c for types 0..300 */
+            mu_class_after(o->world, img, rt->model_fields, i, o->world, map ? map->time : 0.0f, &model, &log);
+        if (t < MU_OBJECT_TYPES)
+            rt->stream[t] = rt->model_fields[0x94];
+        if (log.overflow)
+            ++rt->draw_unsupported;
+        *count = slot_meshes(o, events, log.count, colour, stream, map, m, meshes, capacity, 1);
+        return m;
+    } else {
         visual_context c = {o, m};
         mu_world_after_render(img, i, o->world, map ? map->time : 0.0f, &log, visual_bone, &c);
         if ((o->world == 0x50 || o->world == 0x51) && (t == 0x37 || t == 0x39)) {
@@ -1286,8 +1554,8 @@ mu_object_model *mu_objects_prepare_after(mu_objects *o, int32_t k, const mu_wor
         }
         if (ev->call != MU_OBJ_CALL_MESH || *count >= capacity)
             continue;
-        if (o->world >= 0x80 && o->world <= 0x82 && ev->args[7] != 0xffffffffu) {
-            ++rt->draw_unsupported;   /* type 0x29's glow: bitmap 0x82de has no native texture */
+        if (o->world >= 0x80 && o->world <= 0x82 && !texture_bound(m, (int32_t)ev->args[7])) {
+            ++rt->draw_unsupported;   /* type 0x29's glow without its bitmap 0x82de */
             continue;
         }
         mu_object_mesh *mesh = &meshes[(*count)++];
@@ -1452,8 +1720,8 @@ long mu_objects_render_raster(mu_objects *o, const mu_world *map, mu_raster *ras
         raster->texture_filter = m->textures.filter;
         raster->texture_wrap = m->textures.wrap;
         mu_draw_stats ds = {0, 0, 0, 0};
-        mu_object_mesh meshes[4];
-        const int32_t count = mu_objects_first_meshes(o, k, map, m, meshes, 4);
+        mu_object_mesh meshes[MU_OBJECT_FIRST_MESHES];
+        const int32_t count = mu_objects_first_meshes(o, k, map, m, meshes, MU_OBJECT_FIRST_MESHES);
         if (count) {
             for (int32_t j = 0; j < count; ++j) {
                 meshes[j].options.fields = &meshes[j].fields;

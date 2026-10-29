@@ -25,11 +25,13 @@ static void copy3(float d[3], const float s[3])
 #include "worlds_l.inc"
 #include "worlds_m.inc"
 #include "owner_fx.inc"
+#include "world_owned_fx.inc"
 
 int mu_pt_kind_supported(int32_t type, int32_t subtype)
 {
     if (mu_pt_worlds_l_kind(type, subtype) || mu_pt_worlds_m_kind(type, subtype)) return 1;
     if (mu_pt_owner_fx_kind(type, subtype)) return 1;
+    if (mu_pt_world_owned_kind(type, subtype)) return 1;   /* RENDER-EFFECTS-006 */
     switch (type) {
     case MU_PT_BITMAP_FIRE:
         return (subtype >= 0 && subtype <= 6) || subtype == 17;
@@ -54,7 +56,7 @@ int mu_pt_kind_supported(int32_t type, int32_t subtype)
     case 0x831d: case 0x83b3: return subtype == 6;
     case 0x8086: return subtype == 0x13 || subtype == 0x18;
     case MU_PT_BITMAP_CLOUDS:
-        return (subtype >= 0 && subtype <= 5) || subtype == 0x14 || subtype == 18;
+        return (subtype >= 0 && subtype <= 5) || subtype == 0xb || subtype == 0x14 || subtype == 18;   /* 0xb: RENDER-WORLDS-G3 */
     case MU_PT_BITMAP_WATERFALL1:
         return subtype == 2;
     case MU_PT_BITMAP_SHINY1:
@@ -169,6 +171,10 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
     }
     if (mu_pt_owner_fx_kind(type, subtype)) {
         mu_pt_owner_fx_create(p, h, scale);
+        return 1;
+    }
+    if (mu_pt_world_owned_kind(type, subtype)) {
+        mu_pt_world_owned_create(p, h, scale);
         return 1;
     }
     if (mu_pt_world_flame_kind(type, subtype)) {
@@ -432,6 +438,19 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
     case MU_PT_BITMAP_CLOUDS:
         if (subtype == 18) { mu_pt_elbeland_create(p, h); break; }
         if (subtype <= 5) { mu_pt_icarus_cloud_create(p, h, scale); break; }
+        if (subtype == 0xb) {
+            /* RENDER-WORLDS-G3, 0x015eb21b: Vulcanus' and world 82's dim red haze (type-3 visual) */
+            p->lifetime = 500;
+            for (int k = 0; k < 3; ++k)
+                p->position[k] = (float)(mu_pt_rand(h) % 400 - 200) + p->position[k];
+            copy3(p->start, p->position);
+            p->scale = (float)(mu_pt_rand(h) % 15 + 15) / 30.0f + scale;
+            const float drift = (float)(mu_pt_rand(h) % 10 + 5) * 0.12f;
+            p->velocity[0] = drift;
+            p->velocity[1] = drift;
+            p->velocity[2] = 0.0f;
+            break;
+        }
         /* 0x015ea60e, subtype 0x14 0x015ec9de: a slow mist sheet around the position */
         p->lifetime = 300;
         p->gravity = (float)(mu_pt_rand(h) % 1000);
@@ -534,6 +553,8 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
             mu_pt_worlds_m_move(p, h);
         else if (mu_pt_owner_fx_kind(p->type, p->subtype))
             mu_pt_owner_fx_move(p, h);
+        else if (mu_pt_world_owned_kind(p->type, p->subtype))
+            mu_pt_world_owned_move(p, h);
         else if (mu_pt_world_flame_kind(p->type, p->subtype))
             mu_pt_world_flame_move(p, h);
         else switch (p->type) {
@@ -808,6 +829,20 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
         case MU_PT_BITMAP_CLOUDS:
             if (p->subtype == 18) { mu_pt_elbeland_move(p, h); break; }
             if (p->subtype <= 5) { mu_pt_icarus_cloud_move(p, h); break; }
+            if (p->subtype == 0xb) {
+                /* RENDER-WORLDS-G3, 0x0165f1a9: drifts and spins; dies 500 units from where it started */
+                for (int k = 0; k < 3; ++k)
+                    p->position[k] = p->position[k] + p->velocity[k];
+                p->field_7c = 1.5f;
+                float d[3];
+                for (int k = 0; k < 3; ++k)
+                    d[k] = p->position[k] - p->start[k];
+                const float distance = (float)sqrt((double)(d[0] * d[0] + d[1] * d[1] + d[2] * d[2]));   /* 0x00961a07 */
+                p->rotation = ((float)(mu_pt_rand(h) % 2) + 0.5f) + p->rotation;
+                if (distance > 500.0f)
+                    p->live = 0;
+                break;
+            }
             /* 0x01660fb1, subtype 0x14: rises and brightens for its first 150 steps, then sinks and fades */
             if (!(p->lifetime > 0)) {
                 p->live = 0;
@@ -989,6 +1024,8 @@ int mu_pt_render_record(mu_pt_particle *p, const mu_pt_bitmap *b, uint8_t mode, 
     }
     mu_pt_worlds_m_render(p, s);
     mu_pt_owner_fx_render(p, s);
+    if (mu_pt_world_owned_kind(p->type, p->subtype) && !mu_pt_world_owned_render(p, s))
+        return 1;   /* RENDER-EFFECTS-006: the blend state without a sprite */
     out->sprites = 1;
     return 1;
 }

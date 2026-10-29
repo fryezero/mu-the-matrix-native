@@ -42,6 +42,7 @@ typedef struct mu_effect_scene {
     uint32_t template_count, template_capacity;
     mu_effect_instance *instances;
     uint32_t instance_count, instance_capacity;
+    uint32_t instance_limit;        /* RENDER-EFFECTS-008: the fixed capacity, set before the first create (0: 256) */
     mu_fx_rng rng;
     mu_fx_octree_node *tree;
     const mu_world *world;
@@ -66,6 +67,13 @@ int mu_effect_scene_create(mu_effect_scene *scene, const char *client_path, cons
                            const float rotation[3], float scale, int use_template_transform, int owner_tint,
                            const int32_t *actions, uint32_t action_count, float start_frame, char *error,
                            unsigned long error_size);
+
+/* RENDER-EFFECTS-006: the factory's template load alone (index, or -1 with a message): whether a request for
+ * client_path returns a valid effect. */
+int mu_effect_scene_template(mu_effect_scene *scene, const char *client_path, char *error, unsigned long error_size);
+
+/* RENDER-EFFECTS-006: one instance's node update (0x0129f671 updates the effects of one world object). */
+void mu_effect_scene_update_one(mu_effect_scene *scene, uint32_t instance, float dt);
 
 /* Owner path: the object's world matrix becomes the external matrix. */
 void mu_effect_scene_attach(mu_effect_scene *scene, uint32_t instance, const float matrix[16]);
