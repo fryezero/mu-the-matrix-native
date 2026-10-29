@@ -52,7 +52,7 @@
  * section. Viewer choices: these pools are the module's own (the skills keep theirs in mu_combat), the effect
  * models play their first action (frame += speed, looping) and the tornado's PlayBuffer is counted, not played. */
 enum { MU_WORLD_PT_BITMAPS = 62, MU_WORLD_PT_CAPACITY = 4096, MU_WORLD_PT_SHADOW_MESHES = 64,
-       MU_WORLD_FX_EFFECTS = MU_SFX_EFFECTS, MU_WORLD_FX_MODELS = 17, MU_WORLD_EIN_LINKS = 64, MU_WORLD_FX_QUADS = 8192,
+       MU_WORLD_FX_EFFECTS = MU_SFX_EFFECTS, MU_WORLD_FX_MODELS = 17, MU_WORLD_EIN_LINKS = 4096, MU_WORLD_FX_QUADS = 8192,
        MU_WORLD_FX_LIGHTS = MU_JT_JOINTS + MU_SFX_EFFECTS };
 
 typedef struct mu_world_fx_light {
@@ -134,6 +134,14 @@ enum { MU_WORLD_ACTOR_FX_BASE = 0x08000000 };
 /* RENDER-EFFECTS-006: the objects' EffectManager scene (NULL until a world object asks for an effect) and its
  * render pass, as the actors' scene (mu_world_actors). */
 struct mu_effect_scene *mu_world_particles_ein_scene(mu_world_particles *p);
+/* The factory's instance (template transform off; owner tint, actions, start frame), -1 for a null effect; the
+ * attach 0x0129f9c6 of an instance to an object's list; RENDER-EFFECTS-008: the list clear 0x009b0451. */
+int32_t mu_world_particles_ein_create(mu_world_particles *p, const char *path, const float position[3],
+                                      const float rotation[3], float scale, int tint, const int32_t *actions,
+                                      uint32_t action_count, float start_frame);
+void mu_world_particles_ein_link(mu_world_particles *p, int32_t object, int32_t instance, int32_t bone, int follow,
+                                 int timed, float lifetime);
+void mu_world_particles_ein_clear(mu_world_particles *p, int32_t object);
 
 /* Loads the effect bitmaps (Data/Effect, the world's rain02/rain03) unless
  * no_assets, seeds rand(). Returns 0, or 1 with a message. */

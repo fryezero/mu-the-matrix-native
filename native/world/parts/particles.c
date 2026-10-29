@@ -8,6 +8,7 @@
 #include "../../core/mu_perf.h"
 #include "../../core/mu_scene.h"
 #include "../../core/mu_effect_scene.h"
+#include "../../core/mu_map_effects.h"
 #ifndef MU_WORLD_NO_GL
 #include "../../viewer/gl_backend.h"
 #endif
@@ -25,6 +26,11 @@ static int particles_open(struct mu_world_rt *a, void *self)
         }
         a->has_particles = 1;
         mu_world_particles_attach(&a->particles, a->has_objects ? &a->objects : NULL, a->has_env ? &a->env : NULL);
+        if (a->has_objects) {   /* RENDER-EFFECTS-008: 0x0183067e after the map objects (MU_LANG_DIR/mapeffects.tsv) */
+            mu_map_effects *table = mu_map_effects_load_default();
+            mu_map_effects_attach_world(table, a->world, &a->objects, &a->particles, NULL);
+            mu_map_effects_free(table);
+        }
         a->particles.actors = &a->actors;
         for (int32_t i = 0; i < a->actors.count; i++) {
             const mu_world_actor *npc = &a->actors.list[i];
