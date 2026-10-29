@@ -25,11 +25,13 @@ static void copy3(float d[3], const float s[3])
 #include "worlds_l.inc"
 #include "worlds_m.inc"
 #include "owner_fx.inc"
+#include "world_owned_fx.inc"
 
 int mu_pt_kind_supported(int32_t type, int32_t subtype)
 {
     if (mu_pt_worlds_l_kind(type, subtype) || mu_pt_worlds_m_kind(type, subtype)) return 1;
     if (mu_pt_owner_fx_kind(type, subtype)) return 1;
+    if (mu_pt_world_owned_kind(type, subtype)) return 1;   /* RENDER-EFFECTS-006 */
     switch (type) {
     case MU_PT_BITMAP_FIRE:
         return (subtype >= 0 && subtype <= 6) || subtype == 17;
@@ -169,6 +171,10 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
     }
     if (mu_pt_owner_fx_kind(type, subtype)) {
         mu_pt_owner_fx_create(p, h, scale);
+        return 1;
+    }
+    if (mu_pt_world_owned_kind(type, subtype)) {
+        mu_pt_world_owned_create(p, h, scale);
         return 1;
     }
     if (mu_pt_world_flame_kind(type, subtype)) {
@@ -534,6 +540,8 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
             mu_pt_worlds_m_move(p, h);
         else if (mu_pt_owner_fx_kind(p->type, p->subtype))
             mu_pt_owner_fx_move(p, h);
+        else if (mu_pt_world_owned_kind(p->type, p->subtype))
+            mu_pt_world_owned_move(p, h);
         else if (mu_pt_world_flame_kind(p->type, p->subtype))
             mu_pt_world_flame_move(p, h);
         else switch (p->type) {
@@ -989,6 +997,8 @@ int mu_pt_render_record(mu_pt_particle *p, const mu_pt_bitmap *b, uint8_t mode, 
     }
     mu_pt_worlds_m_render(p, s);
     mu_pt_owner_fx_render(p, s);
+    if (mu_pt_world_owned_kind(p->type, p->subtype) && !mu_pt_world_owned_render(p, s))
+        return 1;   /* RENDER-EFFECTS-006: the blend state without a sprite */
     out->sprites = 1;
     return 1;
 }

@@ -158,6 +158,21 @@ typedef struct mu_objects_runtime {
     void (*joint)(void *context, int32_t type, const float position[3], const float target[3],
                   const float angle[3], int32_t subtype, int32_t owner, float scale);
     void (*effect_scaled)(void *, int32_t, int32_t, const float[3], const float[3], const float[3], int32_t, float);
+    /* RENDER-EFFECTS-006: CreateEffect 0x013c0eaa(type, position, angle, light, subtype, the object, -1, 0, word4,
+     * 0, 0.0, -1, 0, 0) of the Q/R/R2 world visuals (0x195, 0x199, 0x59a); unset: refused and counted. */
+    void (*effect_word4)(void *, int32_t type, int32_t subtype, const float position[3], const float angle[3],
+                         const float light[3], int32_t owner, uint16_t word4);
+    /* RENDER-EFFECTS-006: the C++ EffectManager requests of world objects (136 type 0xb5). ein_listed: the
+     * object's effect list +0x3d0 is not empty (0x00d99e3f); ein_valid: the factory 0x00a797a0 returns a valid
+     * effect for the path; ein_attach: the factory's instance (position, rotation, scale) attached by 0x0129f9c6
+     * (bone, follow bone, timed, lifetime); ein_update: 0x0129f671 after RenderObjectVisual with the object's
+     * posed bones (3x4 rows, NULL when not posed). Unset: every request is refused and counted. */
+    int (*ein_listed)(void *context, int32_t object);
+    int (*ein_valid)(void *context, const char *client_path);
+    void (*ein_attach)(void *context, int32_t object, const char *client_path, const float position[3],
+                       const float rotation[3], float scale, int32_t bone, int follow, int timed, float lifetime);
+    void (*ein_update)(void *context, int32_t object, const uint8_t *image, const float *bones, int32_t bone_count,
+                       float dt);
     uint8_t raklion_state[0x28];
     float raklion_quake, raklion_hero_angle[3];
     int32_t icarus_count; /* previous MoveObjects ordinal, 0x0bdc5890 */
