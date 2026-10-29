@@ -75,6 +75,7 @@
 #include "../gfx/mu_gfx_layer.h"
 #endif
 
+#include "../core/mu_frame_time.h"
 #include "../core/mu_frame.h"
 #include "../core/mu_perf.h"
 #include "../core/mu_png.h"
@@ -1151,6 +1152,7 @@ static int windowed(front *f)
             autoplay(f);
         mu_perf_end(&f->perf, MU_PERF_EVENTS, perf);
         perf = mu_perf_begin(&f->perf);
+        mu_frame_time_tick(now);   /* the window loop only: [0x01cf103c] of 0x012aeb2b (RENDER-WORLDS-AFTER) */
         mu_shell_frame(f->shell, now);
         mu_perf_end(&f->perf, MU_PERF_LOGIC, perf);
         note_scene(f);

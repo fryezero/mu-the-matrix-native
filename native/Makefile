@@ -65,7 +65,7 @@ endif
 RECON := ../reconstructed
 CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_perf_mesh.c core/mu_meshdraw_case.c core/mu_image.c core/mu_png.c \
             core/mu_camera.c core/mu_raster.c core/mu_scene.c core/mu_textures.c core/mu_options.c core/mu_character.c \
-            core/mu_terrain.c core/mu_world_haze.c core/mu_frame.c core/mu_actor.c core/mu_gif.c \
+            core/mu_terrain.c core/mu_world_haze.c core/mu_frame.c core/mu_frame_time.c core/mu_actor.c core/mu_gif.c \
             core/mu_ui_raster.c core/mu_ui_assets.c core/mu_ui_font.c \
             core/mu_effect.c core/mu_effect_scene.c core/mu_edge.c core/mu_walk.c core/mu_renderchar.c core/mu_path.c \
             core/mu_world_actors.c core/mu_charsel.c core/mu_charsel_ui.c core/mu_login.c \
