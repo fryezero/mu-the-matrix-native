@@ -445,7 +445,18 @@ void mu_objects_step(mu_objects *o, const mu_objects_step_inputs *in)
                 l->range = (int32_t)m->args[5] | MU_OBJECT_LIGHT_CLAMPED;
                 ++rt->light_events;
             } else if (m->call == MU_DEEP_DUNGEON_KEYED_EFFECT) {
-                ++rt->move_unsupported;   /* No native keyed-effect consumer; preserve the refusal. */
+                /* RENDER-EFFECTS-005: CreateEffect(0x43a, ..., key 0xffff, word4 = (u16)scale, scale 0.0).
+                 * The DungeonStone body reads no info word; the core gets the literal 0.0 scale. */
+                float position[3], angle[3], light[3];
+                for (int q = 0; q < 3; ++q) {
+                    position[q] = fbits(m->args[1 + q]);
+                    angle[q] = fbits(m->args[4 + q]);
+                    light[q] = fbits(m->args[7 + q]);
+                }
+                if (rt->effect_scaled)
+                    rt->effect_scaled(rt->hook_context, (int32_t)m->args[0], (int32_t)m->args[10], position, angle,
+                                      light, -1, 0.0f);
+                ++rt->effect_events;
             } else if (m->call == MU_OBJ_CALL_ADD_LIGHT && rt->light_count < MU_OBJECT_STEP_LIGHTS) {
                 mu_object_light *l = &rt->lights[rt->light_count++];
                 l->x = fbits(m->args[0]);

@@ -10,7 +10,7 @@ raises coverage to 501/1,674 bodies and 17/17 skins, with seven link targets/twe
 Part 6 reaches 559 bodies and consumes ground/inventory skin sprites.
 Part 7 reaches **635/1,674 bodies**, preserves **17/17 skins**, and consumes **twelve link targets/seventeen types**.
 Part 8 reaches **662/1,674 bounded bodies** and **fourteen link targets/nineteen types**.
-Its rank-5 no-owner mesh streams draw; full owner effects remain open.
+Its rank-5 no-owner mesh streams draw; the owner effects (19/19 types) are verified by [RENDER-EFFECTS-005](client-render-effects-005.md).
 Part 9 reaches **769/1,674 bodies** and **fifteen link targets/twenty types**.
 Part 10 reaches **880/1,674 bodies** and **seventeen link targets/twenty-two types**.
 Part 11 reaches **967/1,674 bodies** with per-type wave/sine scalar programs; links are unchanged.

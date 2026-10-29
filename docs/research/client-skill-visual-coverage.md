@@ -208,3 +208,12 @@ Greater Defense/Damage stay L: their persistent auras need the authoritative buf
 Death Stab stays L: its skill-step trails are unaudited. Master/later-class selectors still need
 explicit base selection and session context. The Spirit of Guardian wing (pet cosmetic) adds
 no skill credit.
+
+## RENDER-EFFECTS-005 evidence and limits
+
+[New finding](client-render-effects-005.md): 10,800 original-instruction comparisons, zero mismatches,
+25/25 compiled mutants. The rank-5 item owner block (19/19 types, four type-list variants) and Deep
+Dungeon's DungeonStone 0x43a add no skill credit: primary routes stay 20/23 and weighted coverage
+65/77. Triple Shot stays P for the native bow; the other 32 arrow models were measured (none shares
+Arrow01's create/move) and remain open with bow 0x12f9's sparks, Rudolph 0x3fa and the pet particle
+kinds.
