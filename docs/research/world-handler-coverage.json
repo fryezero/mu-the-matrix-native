@@ -2304,7 +2304,7 @@
     },
     {
       "class_id": "world-142",
-      "label": "World 142 class",
+      "label": "Twisted Karutan",
       "worlds": [
         142
       ],
@@ -2314,21 +2314,21 @@
       "handlers": {
         "create": {
           "entry": "0xe67546",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases, compiled mutants. Predicate 0x00e6bd5a executed; the after-character list and its 36-entry jump table compared. A false return continues into CreateObject's default hook chain, not modelled here. See client-worlds-r2.md.",
+          "source": "reconstructed/objects/twisted_karutan.c"
         },
         "move": {
           "entry": "0xe6766a",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method; 1000 original-instruction cases, compiled mutants. Type 160 AddTerrainLight (s, 0.6s, 0.2s) range 2 recorded with the frame light; returns true for every type. See client-worlds-r2.md.",
+          "source": "reconstructed/objects/twisted_karutan.c"
         },
         "visual": {
           "entry": "0xe6841f",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method; 1000 original-instruction cases, compiled mutants. CRT sine wrapper and the 0x0184f8ff abs executed; TransformPosition bones 11/7 at local (20,0,0), CreateSprite/CreateParticle/CreateEffect recorded, HiddenMesh writes compared. Native: missing bones counted; effect 0x199 (info word4) refused and counted. See client-worlds-r2.md.",
+          "source": "reconstructed/objects/twisted_karutan.c"
         },
         "custom_render": {
           "entry": "0xe677a9",
@@ -2356,7 +2356,7 @@
     },
     {
       "class_id": "world-143",
-      "label": "World 143 class",
+      "label": "Kardamahal",
       "worlds": [
         143
       ],
@@ -2366,21 +2366,21 @@
       "handlers": {
         "create": {
           "entry": "0xe0ea04",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases, compiled mutants. Predicate 0x00e136f3 and the nine-entry jump table executed; flags, ranges, HiddenMesh, z = 64 and the z - 0.0 of types 34-47 (signed zero, NaN payloads) compared. See client-worlds-r2.md.",
+          "source": "reconstructed/objects/kardamahal.c"
         },
         "move": {
           "entry": "0xe0ed1c",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method; 1000 original-instruction cases, compiled mutants. Lights, PlayBuffer ids, the type-115 Animation and the eight named-bone lookups (std::string constructor/array destructor as boundaries) recorded. Native host lights the posed model's E002..E009 bones after the tick. See client-worlds-r2.md.",
+          "source": "reconstructed/objects/kardamahal.c"
         },
         "visual": {
           "entry": "0xe117e8",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method; 1000 original-instruction cases, compiled mutants. Type 161 CreateEffect 0x195 with the object light and info word4 recorded; native refuses and counts it. See client-worlds-r2.md.",
+          "source": "reconstructed/objects/kardamahal.c"
         },
         "custom_render": {
           "entry": "0xe0f4bc",
@@ -2408,7 +2408,7 @@
     },
     {
       "class_id": "world-144",
-      "label": "World 144 class",
+      "label": "Swamp of Destruction",
       "worlds": [
         144
       ],
@@ -2418,21 +2418,21 @@
       "handlers": {
         "create": {
           "entry": "0xe46625",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases, compiled mutants. Predicate 0x00e4bb8d and the 22-entry jump table executed; range -300 and after-character lists compared. See client-worlds-r2.md.",
+          "source": "reconstructed/objects/swamp_destruction.c"
         },
         "move": {
           "entry": "0xe4696f",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method; 1000 original-instruction cases, compiled mutants. Type 183 AddTerrainLight range 3 recorded; returns true for every type. See client-worlds-r2.md.",
+          "source": "reconstructed/objects/swamp_destruction.c"
         },
         "visual": {
           "entry": "0xe47bc2",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method; 1000 original-instruction cases, compiled mutants. 34-entry jump table executed; the object-light writes, seventeen CreateJoint 0x7f7d cases (native joint kinds) and the type-185 CreateEffect 0x199 (refused and counted natively) compared. See client-worlds-r2.md.",
+          "source": "reconstructed/objects/swamp_destruction.c"
         },
         "custom_render": {
           "entry": "0xe46e94",

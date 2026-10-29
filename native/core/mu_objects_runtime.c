@@ -21,6 +21,7 @@
 #include "../../reconstructed/objects/worlds_r.h"
 #include "../../reconstructed/objects/worlds_n.h"
 #include "../../reconstructed/objects/worlds_p2.h"
+#include "../../reconstructed/objects/worlds_r2.h"
 #include "../../reconstructed/joints/joints.h"
 #include "../../reconstructed/objects/icarus.h"
 
@@ -390,6 +391,31 @@ static void market_bone_light(mu_objects *o, int32_t i, const mu_obj_event *e)
     ++o->rt.light_events;
 }
 
+/* RENDER-WORLDS-R2: Kardamahal type 115 after the tick (the client's order): pose the object's model and
+ * light each named bone E002..E009 the skeleton has. No model pose: refused and counted. */
+static void kardamahal_bone_lights(mu_objects *o, int32_t i, const mu_obj_event *e)
+{
+    uint8_t *img = image(o, i);
+    const int32_t t = mu_obj_i32(img, MU_OBJF_TYPE);
+    mu_object_model *m = t >= 0 && t < MU_OBJECT_TYPES ? o->models[t] : NULL;
+    if (!m || !m->loaded || !pose_object(o, img, m, NULL)) {
+        ++o->rt.move_unsupported;
+        return;
+    }
+    for (int32_t k = 0; k < 8; ++k)
+        for (int32_t b = 0; b < m->bmd.bone_count; ++b) {
+            if (strcmp(m->bmd.bones[b].name, mu_kardamahal_bone_name(k)) != 0) continue;
+            if (o->rt.light_count >= MU_OBJECT_STEP_LIGHTS) return;
+            const float *matrix = mu_model_bone_matrices(&m->model) + 12 * b;
+            mu_object_light *l = &o->rt.lights[o->rt.light_count++];
+            l->x = matrix[3]; l->y = matrix[7];
+            for (int q = 0; q < 3; ++q) l->rgb[q] = fbits(e->args[q]);
+            l->range = (int32_t)e->args[3];
+            ++o->rt.light_events;
+            break;
+        }
+}
+
 void mu_objects_step(mu_objects *o, const mu_objects_step_inputs *in)
 {
     mu_objects_runtime *rt = &o->rt;
@@ -491,6 +517,8 @@ void mu_objects_step(mu_objects *o, const mu_objects_step_inputs *in)
                 } else if (m->call == MU_KANTURU_UG_ACTION_STEP) {   /* after the tick, as in the client */
                     if (!mu_kanturu_ug_move(image(o, i), i, &mi, kanturu_table, 0.1f /* render-pass frame time */, NULL))
                         ++rt->move_unsupported;
+                } else if (m->call == MU_KARDAMAHAL_BONE_LIGHTS) {   /* after the tick, as in the client */
+                    kardamahal_bone_lights(o, i, m);
                 } else if (m->call == MU_WP_MOVE) {
                     mu_objects_worlds_p_move(o, i, in->hero);
                 } else if (m->call == MU_WP_CLAMPED_LIGHT && rt->light_count < MU_OBJECT_STEP_LIGHTS) {
@@ -822,6 +850,26 @@ static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_obje
                 ++o->rt.draw_unsupported;
             }
     }
+    else if (o->world >= 142 && o->world <= 144 && m && m->loaded) {   /* RENDER-WORLDS-R2 slot 0x34 */
+        const int32_t type = mu_obj_i32(img, MU_OBJF_TYPE);
+        const int bones_ready = posed && m->bmd.bone_count > 11;
+        if (o->world == 142 && type == 72 && !bones_ready) ++o->rt.draw_unsupported;
+        (void)visual_rand(&c); /* Outer RenderObjectVisual flicker draw. */
+        if (o->world == 142)
+            mu_twisted_karutan_visual(img, i, 1, world_time, visual_rand, bones_ready ? visual_bone : NULL, &c, &log);
+        else if (o->world == 143)
+            mu_kardamahal_visual(img, i, 1, visual_rand, &c, &log);
+        else
+            mu_swamp_visual(img, i, 1, visual_rand, &c, &log);
+        for (int32_t k = 0; k < log.count; ++k)   /* effects with info word4 and unmodelled joint kinds: refused */
+            if (events[k].call == MU_R2_EFFECT || (events[k].call == MU_ICARUS_JOINT &&
+                !mu_jt_kind_supported((int32_t)events[k].args[0], (int32_t)events[k].args[10]))) {
+                events[k].call = 0;
+                ++o->rt.draw_unsupported;
+            }
+    }
+    else if (o->world >= 142 && o->world <= 144)
+        return;
     else if ((o->world == 0x87 || o->world == 0x88 || o->world == 0x8c) && m && m->loaded) {   /* RENDER-WORLDS-P */
         const int32_t type = mu_obj_i32(img, MU_OBJF_TYPE);
         const int needs_bones = o->world == 0x87 && (type == 15 || type == 16);
@@ -944,6 +992,7 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
                                o->world == 79 || o->world == 100 || o->world == 57 || o->world == 58 ||
                                o->world == 80 || o->world == 81 || (o->world >= 128 && o->world <= 130) ||
                                o->world == 0x87 || o->world == 0x88 || o->world == 0x8c || o->world == 137 ||
+                               (o->world >= 142 && o->world <= 144) ||
                                (o->world >= 0x83 && o->world <= 0x86) ||
                                (mu_worlds_q_owns(o->world) && o->world != 112);   /* RENDER-WORLDS-Q */
     mu_obj_draw_inputs in;

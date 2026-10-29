@@ -47,9 +47,9 @@ int mu_acheron_visual_bones(int32_t type);
 int mu_ferea_create(uint8_t *o, const mu_q_inputs *in);
 int mu_ferea_move(uint8_t *o, int32_t index, const mu_q_inputs *in, mu_obj_log *log);
 /* Swamp of Darkness, world 122 (0x00e543a1): create 0x00e54429, move 0x00e54646, visual 0x00e5540e. */
-int mu_swamp_create(uint8_t *o, const mu_q_inputs *in);
-int mu_swamp_move(uint8_t *o, const mu_q_inputs *in);
-int mu_swamp_visual(const uint8_t *o, int32_t index, int model_present, const mu_q_inputs *in, mu_obj_log *log);
+int mu_swamp_darkness_create(uint8_t *o, const mu_q_inputs *in);
+int mu_swamp_darkness_move(uint8_t *o, const mu_q_inputs *in);
+int mu_swamp_darkness_visual(const uint8_t *o, int32_t index, int model_present, const mu_q_inputs *in, mu_obj_log *log);
 /* Kubera Mine, worlds 123..127 (0x00e1e4b6): create 0x00e19bb3, move 0x00e19ed0, visual 0x00e1b5fb. */
 int mu_kubera_create(uint8_t *o, int32_t index, const mu_q_inputs *in, mu_obj_log *log);
 int mu_kubera_move(uint8_t *o, int32_t index, const mu_q_inputs *in, mu_obj_log *log);

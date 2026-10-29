@@ -58,12 +58,12 @@ N = not reachable through the Warps window or ordinary warps (reason in JSON).
 | World 139 class | 139 | `0x1aa7264` | `0xd9c180` M | `0xd9c18d` M | `0xd9c1a7` M | N |
 | Bloody Tarkan | 140 | `0x1aa6e74` | `0xd9a022` V | `0xd9a0ad` V | `0xd9ac33` V | C |
 | Tormenta Island | 141 | `0x1aabd10` | `0xe4c6ba` V | `0xe4c95e` V | `0xe4ef4b` V | E |
-| World 142 class | 142 | `0x1aac278` | `0xe67546` M | `0xe6766a` M | `0xe6841f` M | C |
-| World 143 class | 143 | `0x1aa9930` | `0xe0ea04` M | `0xe0ed1c` M | `0xe117e8` M | C |
-| World 144 class | 144 | `0x1aab6a8` | `0xe46625` M | `0xe4696f` M | `0xe47bc2` M | C |
+| Twisted Karutan | 142 | `0x1aac278` | `0xe67546` V | `0xe6766a` V | `0xe6841f` V | C |
+| Kardamahal | 143 | `0x1aa9930` | `0xe0ea04` V | `0xe0ed1c` V | `0xe117e8` V | C |
+| Swamp of Destruction | 144 | `0x1aab6a8` | `0xe46625` V | `0xe4696f` V | `0xe47bc2` V | C |
 | World 145 class | 145 | `0x1aa5e78` | `0xd75a6c` M | `0xd75ac6` M | `0xd77b3e` M | N |
 
-34/48 classes have at least one verified primary method. Of 144 primary methods: 99 verified families, 0 static-only C, 45 missing.
+37/48 classes have at least one verified primary method. Of 144 primary methods: 108 verified families, 0 static-only C, 36 missing.
 Original populated captures: 27 classes from DATA-ACQ-002, 5 from earlier live reads, 16 not reachable by warp.
 
 The companion [JSON](world-handler-coverage.json) records factory, constructor and related entry points

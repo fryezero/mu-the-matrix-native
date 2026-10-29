@@ -2,7 +2,7 @@
  * move 0x00e54646, visual 0x00e5540e. */
 #include "worlds_q_internal.h"
 
-int mu_swamp_create(uint8_t *o, const mu_q_inputs *in)
+int mu_swamp_darkness_create(uint8_t *o, const mu_q_inputs *in)
 {
     if (in->world != 122 || !o)
         return 0;
@@ -43,7 +43,7 @@ int mu_swamp_create(uint8_t *o, const mu_q_inputs *in)
     return 1;
 }
 
-int mu_swamp_move(uint8_t *o, const mu_q_inputs *in)
+int mu_swamp_darkness_move(uint8_t *o, const mu_q_inputs *in)
 {
     if (in->world != 122 || !o)
         return 0;
@@ -63,7 +63,7 @@ int mu_swamp_move(uint8_t *o, const mu_q_inputs *in)
     return 1;
 }
 
-int mu_swamp_visual(const uint8_t *o, int32_t index, int model_present, const mu_q_inputs *in, mu_obj_log *log)
+int mu_swamp_darkness_visual(const uint8_t *o, int32_t index, int model_present, const mu_q_inputs *in, mu_obj_log *log)
 {
     if (in->world != 122 || !o || !model_present)
         return 0;

@@ -2355,6 +2355,22 @@ args = ["--cases", "1000", "--mutations", "--output", "{report}"]
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
 
+[validate_worlds_r2]
+test = "reconstructed/objects/test_worlds_r2.py::WorldsR2Tests.test_original_instructions"
+pins = ["text", "data"]
+families = ["twisted_create", "twisted_move", "twisted_visual", "kardamahal_create", "kardamahal_move", "kardamahal_visual", "swamp_create", "swamp_move", "swamp_visual"]
+cases = 9000
+mutants = 56
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+[validate_worlds_r2.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0
+
 [validate_worlds_q]
 test = "reconstructed/objects/test_worlds_q.py::WorldsQTests.test_original_instructions"
 pins = ["text", "data"]
