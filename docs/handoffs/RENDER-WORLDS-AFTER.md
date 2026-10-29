@@ -41,3 +41,12 @@ registry `0x01ec7d5c`; slot 0x74 of classes 69-72, 79, 80/81, 92, 122; invisible
 No original client or launcher was started. The DATA-ACQ-002 inputs were only read. Renders and reports under
 `~/Documents/MTM/mu-mac-tools/native/{renders,scratch}/render-worlds-after` and the base worktree
 `worktrees/rwa-base` are deleted at handoff; no new local input needs retention.
+
+## PR-ready gate
+
+Merged latest main `f4eba8a` (RENDER-TIME-003; clean merge) as `13eb637`. On that tree:
+`nice -n 10 bash scripts/local-macos-ci.sh` passes: **1,715 tests across 38 discovery runs, 224 explicit skips, zero
+failures; 11/11 fixture scenarios; native viewer and reader builds; publication audit 1,692 files, zero rejected**.
+Private validators, serial runner `--jobs 2`: **23/23 pass** (`validate_worlds_*` b-p2, g2 and after,
+`validate_render_worlds_a`, `validate_world_order`, `validate_world_tile_folder`, `validate_object_render`,
+`validate_camera`, `validate_objects` with `MU_GAME_ROOT`; `MU_SECTION3` for g2). Only this section changed after the gate.
