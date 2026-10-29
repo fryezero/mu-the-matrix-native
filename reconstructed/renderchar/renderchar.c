@@ -362,6 +362,10 @@ static int32_t rank5_random(const sink *s)
     return s->context && s->context->random ? s->context->random(s->context->context) : 0;
 }
 
+/* RENDER-EFFECTS-005: owner host of mu_rc_item_draws_owner (rank5_owner.inc). */
+static _Thread_local const mu_rc_owner_host *owner_host;
+static void rank5_owner(sink *s, const mu_rc_owner_host *h);
+
 static void rank5_body(sink *s)
 {
     const mu_rc_item *it = s->item;
@@ -388,7 +392,8 @@ static void rank5_body(sink *s)
         float random_light = (float)(rank5_random(s) % 5) / 5.0f + 0.5f;
         rank5_mesh(s, 5, 5, random_light, it->u, it->v, -1, 1.0f);
     }
-    /* Bone-dependent particles are outside this no-owner context. */
+    if (owner_host)
+        rank5_owner(s, owner_host);
 }
 
 /* RenderPartObjectBody 0x016e036c, generic tail 0x017020e2 / 0x0176cad9;
@@ -1394,3 +1399,5 @@ int mu_rc_character_light(const mu_rc_light_in *in, float out[3])
     }
     return MU_RC_OK;
 }
+
+#include "rank5_owner.inc"

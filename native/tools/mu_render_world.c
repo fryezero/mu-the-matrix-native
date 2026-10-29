@@ -303,7 +303,7 @@ int mu_render_world_character(const mu_options *o)
     mu_renderchar_stats rstats = {0, 0};
     char hash[65] = "";
     mu_world_particles *particles = NULL;
-    long link_sprites = 0;
+    long link_sprites = 0, owner_effects = 0;
     for (int k = 0; k < MU_CHARACTER_ITEMS; ++k) {
         if ((mu_rc_item_rank5(W.glow[k].type) || mu_rc_link_supported(W.glow[k].type) || W.glow[k].type == 0x389c || W.glow[k].type == 0x389d) &&
             c.items[k].loaded && !particles) {
@@ -323,8 +323,12 @@ int mu_render_world_character(const mu_options *o)
     }
     for (int32_t n = 0; n < o->frames && frames; ++n) {
         if (n) {
-            for (int32_t step = 0; step < o->frame_steps; ++step)
+            for (int32_t step = 0; step < o->frame_steps; ++step) {
                 mu_character_tick(&c, speed, NULL);
+                /* RENDER-EFFECTS-005: MoveParticles once per logic step (frame 0 is unchanged). */
+                if (particles)
+                    mu_world_particles_step(particles, W.world_time + 40.0f * (float)((n - 1) * o->frame_steps + step));
+            }
             if (mu_character_update(&c) != MU_MODEL_OK)
                 break;
         }
@@ -345,8 +349,11 @@ int mu_render_world_character(const mu_options *o)
             prepare_raster(&raster, &item->textures);
             mu_draw_options draw = o->draw;
             draw.textures = o->no_textures ? NULL : &item->textures;
-            mu_renderchar_draw_item(&item->model, &W.glow[parts[k]], &env, c.params.light, 1.0f, &draw, &backend,
-                                    &stats, &rstats);
+            /* RENDER-EFFECTS-005: worn rank-5 parts read the character OBJECT's bones 35/26. */
+            mu_renderchar_owner owner = {c.player_bones, c.player.bmd->bone_count, 0};
+            mu_renderchar_draw_item_owner(&item->model, &W.glow[parts[k]], &env, c.params.light, 1.0f, &draw,
+                                          &backend, &stats, &rstats, &owner);
+            owner_effects += owner.effects;
             if (W.glow[parts[k]].type == 0x389c || W.glow[parts[k]].type == 0x389d)
                 link_sprites += mu_renderchar_link_effects(&item->model, c.player_bones, W.glow[parts[k]].type, particles);
         }
@@ -383,9 +390,10 @@ int mu_render_world_character(const mu_options *o)
     }
     int status = frames ? write_frames(o, frames) : 1;
     printf("{\"sha256\": \"%s\", \"width\": %d, \"height\": %d, \"meshes\": %ld, \"triangles\": %ld, \"passes\": %ld,"
-           " \"special\": %ld, \"carried\": %d, \"attachments\": %d, \"quality\": %d, \"link_sprites\": %ld}\n",
+           " \"special\": %ld, \"carried\": %d, \"attachments\": %d, \"quality\": %d, \"link_sprites\": %ld,"
+           " \"owner_effects\": %ld}\n",
            hash, o->width, o->height, stats.meshes, raster.triangles, rstats.passes, rstats.special, carried, attached,
-           W.env.quality, link_sprites);
+           W.env.quality, link_sprites, owner_effects);
     if (particles) {
         mu_world_particles_close(particles);
         free(particles);
