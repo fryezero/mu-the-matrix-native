@@ -7,6 +7,7 @@
 
 #include "../../core/mu_perf.h"
 #include "../../core/mu_scene.h"
+#include "../../core/mu_effect_scene.h"
 #ifndef MU_WORLD_NO_GL
 #include "../../viewer/gl_backend.h"
 #endif
@@ -76,6 +77,13 @@ static void particles_draw_soft(struct mu_world_rt *a, void *self, mu_world_draw
         a->particles.frustum = &a->frustum;
         mu_world_particles_draw_models_raster(&a->particles, d->raster);
         mu_world_particles_draw_raster(&a->particles, d->raster, v->modelview);
+        if (a->particles.ein && a->particles.ein->instance_count) {   /* RENDER-EFFECTS-006: the objects' .ein */
+            float eye[3], target[3];
+            world_rt_effect_camera(a, eye, target);
+            mu_effect_scene_render(a->particles.ein, eye, target, v->fov,
+                                   (float)d->raster->width / (float)d->raster->height, v->view_near,
+                                   v->view_far * 1.4f, d->raster);
+        }
     }
 }
 
@@ -104,6 +112,13 @@ static void particles_report_summary(const struct mu_world_rt *a, const void *se
                (unsigned long long)p->joints_full, p->live_joints, p->max_joints, p->drawn_joint_quads,
                (unsigned long long)p->effects_created, (unsigned long long)p->effects_unsupported, p->live_effects,
                p->drawn_effect_models, (unsigned long long)p->sounds, (unsigned long long)p->decals_total);
+        /* RENDER-EFFECTS-006: the objects' EffectManager requests */
+        printf("{\"ein\": true, \"requests\": %llu, \"invalid\": %llu, \"attached\": %llu, \"updates\": %llu,"
+               " \"unposed\": %llu, \"expired\": %llu, \"instances\": %u, \"visible_last_draw\": %u}\n",
+               (unsigned long long)a->particles.ein_requests, (unsigned long long)a->particles.ein_invalid,
+               (unsigned long long)a->particles.ein_attached, (unsigned long long)a->particles.ein_updates,
+               (unsigned long long)a->particles.ein_unposed, (unsigned long long)a->particles.ein_expired,
+               a->particles.ein ? a->particles.ein->instance_count : 0u, a->particles.ein ? a->particles.ein->visible : 0u);
     }
 }
 
@@ -164,6 +179,13 @@ static void particles_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *
         mu_world_particles_draw_models(&a->particles, particle_model_gl, self);
         mu_world_particles_target target = {self, particle_gl_backend};
         mu_world_particles_draw(&a->particles, v->modelview, &target);
+        if (a->particles.ein && a->particles.ein->instance_count) {   /* RENDER-EFFECTS-006: the objects' .ein */
+            float eye[3], at[3];
+            world_rt_effect_camera(a, eye, at);
+            glEnable(GL_DEPTH_TEST);
+            mu_effect_scene_render_to(a->particles.ein, eye, at, v->fov, (float)d->width / (float)d->height,
+                                      v->view_near, v->view_far * 1.4f, world_rt_gl_effect, a);
+        }
         glBindTexture(GL_TEXTURE_2D, 0);
         glDepthMask(GL_TRUE);
         glDisable(GL_BLEND);

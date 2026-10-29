@@ -834,8 +834,9 @@ def family_render(m, lib, rng, cases, report, negatives):
                 if rc.state[k] == STATE_SUB:
                     mine.append(('state', rc.state[k], rc.state_arg[k]))
             sp = rc.sprite
-            mine.append(('sprite', sp.bitmap, list(sp.position), sp.width, sp.height, list(sp.light), sp.rotation,
-                         sp.u, sp.v, sp.uw, sp.vh, sp.axes))
+            if rc.sprites:   # RENDER-EFFECTS-006: a kind may set its blend state and draw nothing
+                mine.append(('sprite', sp.bitmap, list(sp.position), sp.width, sp.height, list(sp.light),
+                             sp.rotation, sp.u, sp.v, sp.uw, sp.vh, sp.axes))
         mismatch = None
         if vc.ok(r) and (len(calls) != len(mine) or not all(vc._same_call(a, b) for a, b in zip(calls, mine))):
             mismatch = ('calls', calls, mine)
