@@ -225,3 +225,5 @@ RENDER-WORLDS-M Uruk consumer subset is implemented: [checks and remaining work]
 RENDER-WORLDS-O Abyss of Atlans 1-3 primary methods and the World129 tile folder are implemented: [checks and remaining work](handoffs/RENDER-WORLDS-O.md).
 
 RENDER-WORLDS-G2 object texture lookup and the Vulcanus far plane are implemented: [checks and remaining work](handoffs/RENDER-WORLDS-G2.md).
+
+RENDER-WORLDS-AFTER second pass, chain predicates, frame time and Abyss custom/after slots are implemented: [checks and remaining work](handoffs/RENDER-WORLDS-AFTER.md).

@@ -89,11 +89,11 @@ def class_vtables(text, data):
     return out
 
 
-def handler_regions(world, vtables, flag, g):
+def handler_regions(world, vtables, flag, g, force=False):
     """The world manager (0x00ea594b) and its current handler (+0x10)."""
     vt = vtables.get(world)
     mgr = bytearray(0x20)
-    if vt is None and g.random() < 0.3:
+    if vt is None and not force and g.random() < 0.3:
         handler = None
     else:
         handler = bytearray(0x40)
@@ -123,13 +123,27 @@ def pick_world(g):
     return g.randrange(-1, 151)
 
 
-def object_fields(g, cx, cy):
+WORLD_TYPES = {3: [0x13], 0x21: [0x19, 0x29], 0x36: [0x19, 0x29], 0x25: [0x59, 0x5f, 0x74], 0x33: [0x59],
+               0x39: [0x4c], 0x3a: [0x4c], 0x3f: [0x10, 0x43, 0x44], 0x52: [0x10, 0x43, 0x44],
+               0x5b: [0x1b, 0x3c, 0x3d, 0x3e], 0x5c: [0x1b, 0x3c, 0x3d, 0x3e], 0x6e: [6, 0x11, 0x96],
+               0x6f: [6, 0x11, 0x96], 0x70: [0x2b, 0x33, 0x4b, 0x51, 0x57, 0x72, 0x99, 0x9b], 0x71: [0x6a],
+               0x7a: [0x58], 0x7b: [0x86], 0x7f: [0x86], 0x80: [0x17, 0x28, 0x29, 0x2c, 0x26],
+               0x81: [0x17, 0x28, 0x29, 0x2c], 0x82: [0x17, 0x28, 0x29, 0x2c], 0x83: [0xb2, 0x6a], 0x85: [6, 7],
+               134: [0, 1], 136: [0x18], 138: [0x2d], 141: [0x1f, 0x20], 142: [0x36, 0x3e, 0xa3, 0xab, 0xc5, 0x40],
+               143: [0, 4, 0x1c, 0x21, 0x72, 0x85], 144: [0x40, 0x20], 145: [0x13, 0x2d, 0x89, 0x8e], 2: [0x64],
+               0x27: [0x4be]}
+
+
+def object_fields(g, cx, cy, world=None, spread=45):
+    types = WORLD_TYPES.get(world)
+
     def fields(g, o, k):
         o[0] = g.choice([0, 1, 1, 1])
         o[0xa] = g.choice([0, 1, 1, 2])
         o[0xb] = g.choice([0, 1])
-        v.put_i(o, 0x5c, g.choice(SELECT_TYPES) if g.random() < 0.8 else g.randrange(0, 300))
-        v.put_f(o, 0x158, v.f32((cx + g.uniform(-45, 45)) * 100), v.f32((cy + g.uniform(-45, 45)) * 100),
+        v.put_i(o, 0x5c, g.choice(types) if types and g.random() < 0.5 else
+                g.choice(SELECT_TYPES) if g.random() < 0.8 else g.randrange(0, 300))
+        v.put_f(o, 0x158, v.f32((cx + g.uniform(-spread, spread)) * 100), v.f32((cy + g.uniform(-spread, spread)) * 100),
                 v.f32(g.uniform(0, 300)))
         v.put_f(o, 0xc0, v.f32(g.choice([-30.0, -100.0, -428.571, g.uniform(-600, 50)])))
     return fields
@@ -147,17 +161,23 @@ def family_after_pass(machine, lib, ctx, g, cases):
     t = v.Tally('after_pass')
     for n in range(cases):
         world = pick_world(g)
+        forced = g.random() < 0.12   # worlds 10 (bias) and 2 (level branch) through an answering handler
+        if forced:
+            world = g.choice([2, 10, 0x27])
         scene = g.choice([3, 5, 6])
         top = 1 if g.random() < 0.1 else 0
         count = g.randrange(0, 50)
         x2d, y2d = v.frustum_polygon(g)
-        objects, heads, nxt = v.object_list(g, count, object_fields(g, sum(x2d) / 4, sum(y2d) / 4))
+        objects, heads, nxt = v.object_list(g, count, object_fields(g, sum(x2d) / 4, sum(y2d) / 4, world))
         counter = g.choice([0, 5, 40, 41, 100])
         default_flag = 1 if 134 <= world <= 145 else 0
         flag = default_flag if g.random() < 0.7 else g.choice([0, 1])
         tower = g.choice([0, 1, 2, 3, 4, 5, 6, -1])
-        master, level = g.choice([0, 1]), g.choice([0, 0x34, 0x35, 0x4f, 0x50, 400])
-        mregions, flag = handler_regions(world, ctx['vtables'], flag, g)
+        master = g.choice([0, 1])
+        level = g.choice([0x34, 0x35, 0x4f, 0x50]) if world == 2 else g.choice([0, 0x35, 400])
+        if forced:
+            flag = 1
+        mregions, flag = handler_regions(world, ctx['vtables'], flag, g, force=forced)
         calls = []
         index = lambda a: (a - v.OBJECTS) // 0x400
 
@@ -211,11 +231,11 @@ def family_after_pass(machine, lib, ctx, g, cases):
 def family_select(machine, lib, ctx, g, cases):
     t = v.Tally('select')
     for n in range(cases):
-        world = pick_world(g)
+        world = pick_world(g) if g.random() < 0.75 else g.choice([0x25, 0x80, 0x85, 134, 136, 138, 141, 142, 143, 144, 145])
         scene = g.choice([3, 5, 6])
         x2d, y2d = v.frustum_polygon(g)
         o = bytearray(v.poison_object(g))
-        object_fields(g, sum(x2d) / 4, sum(y2d) / 4)(g, o, 0)
+        object_fields(g, sum(x2d) / 4, sum(y2d) / 4, world, g.choice([10, 45]))(g, o, 0)
         mregions, _ = handler_regions(world, ctx['vtables'], 1 if 134 <= world <= 145 else 0, g)
         if 134 <= world <= 145 and 'handler' not in [r.name for r in mregions if hasattr(r, 'name')]:
             pass
@@ -251,7 +271,7 @@ def abyss_object(g, typ):
     return o
 
 
-ABYSS_TYPES = [7, 7, 7, 0x17, 0x26, 0x28, 0x29, 0x2c, 0x32, 0x34, 0x34, 0x27, 0, 0x16, 0x42]
+ABYSS_TYPES = [7, 7, 7, 7, 7, 7, 0x17, 0x26, 0x28, 0x29, 0x2c, 0x32, 0x34, 0x34, 0x27, 0, 0x16, 0x42]
 
 
 def recorder(calls, address):
@@ -436,18 +456,18 @@ FAMILIES = {'after_pass': family_after_pass, 'select': family_select, 'abyss_cus
             'chain_noop': family_chain_noop, 'frame_time': family_frame_time}
 FIXED = {'chain_predicates', 'chain_noop'}   # enumerate worlds x hooks; --cases does not apply
 MUTATIONS = [
-    ('Gate misses class flag', 'world_after.c', '||w==8||class_flag;', '||w==8;', 'after_pass'),
+    ('Gate misses class flag', 'world_after.c', '||w==8||class_flag;', '||w==8||(class_flag&&0);', 'after_pass'),
     ('Gate misses 0x7a..0x85', 'world_after.c', '(w>=0x7a&&w<=0x85)', '(w>=0x7b&&w<=0x85)', 'after_pass'),
     ('Block range 0x86', 'world_after.c', 'in->world==0x86?-300.0f', 'in->world==0x87?-300.0f', 'after_pass'),
     ('Tower states', 'world_after.c', 'a->tower_state>5', 'a->tower_state>4', 'after_pass'),
-    ('Selector visibility bias', 'world_after.c', 'own_range(o,in,mu_obj_f32(o,MU_OBJF_RANGE)+bias);after_draw',
-     'own_range(o,in,mu_obj_f32(o,MU_OBJF_RANGE));after_draw', 'after_pass'),
+    ('Flagged visibility bias', 'world_after.c', 'own_range(o,in,mu_obj_f32(o,MU_OBJF_RANGE)+bias);if(!o',
+     'own_range(o, in, mu_obj_f32(o, MU_OBJF_RANGE)); if (!o', 'after_pass'),
     ('World 2 level', 'world_after.c', 'a->master_class?0x35:0x50', 'a->master_class?0x36:0x50', 'after_pass'),
     ('Abyss selector types', 'world_after.c', 't==0x17||t==0x28||t==0x29||t==0x2c',
      't==0x17||t==0x28||t==0x2c', 'select'),
-    ('World 0x25 falls into 0x33', 'world_after.c', 'case0x25:/*', 'case0x24:/*', 'select'),
+    ('World 0x25 falls into 0x33', 'world_after.c', 'case0x25:/*', 'case 0x24: /*', 'select'),
     ('Class 142 range', 'world_after.c', '-1500.0f:-800.0f', '-1500.0f:-600.0f', 'select'),
-    ('Class 145 live', 'world_after.c', 'returno[MU_OBJF_LIVE]&&in_list(t,w145', 'returnin_list(t,w145', 'select'),
+    ('Class 145 live', 'world_after.c', 'returno[MU_OBJF_LIVE]&&in_list(t,w145', 'return in_list(t, w145', 'select'),
     ('World 0x85 type 6', 'world_after.c', 'hit=t==6||', 'hit=t==7||', 'select'),
     ('Abyss 1 rand chance', 'world_abyss_visual.c', 'cls==128?8:7', 'cls==128?7:7', 'abyss_custom'),
     ('Abyss 2/3 gate order', 'world_abyss_visual.c', 'if(cls!=128){', 'if(cls==130){', 'abyss_custom'),
@@ -455,12 +475,12 @@ MUTATIONS = [
     ('Abyss glow light', 'world_abyss_visual.c', '*0.4f+0.3f', '*0.4f+0.25f', 'abyss_custom'),
     ('Abyss other actions drawn', 'world_abyss_visual.c', 'else{return1;', 'else{', 'abyss_custom'),
     ('Abyss after blend round trip', 'world_abyss_visual.c', 'blend=float_round_trip(mu_obj_i32(o,MU_OBJF_BLEND_MESH))',
-     'blend=mu_obj_i32(o,MU_OBJF_BLEND_MESH)', 'abyss_after'),
+     'blend = float_round_trip(0) + mu_obj_i32(o, MU_OBJF_BLEND_MESH)', 'abyss_after'),
     ('Abyss after default flags', 'world_abyss_visual.c', 'flagged?2u:0x42u', 'flagged?2u:2u', 'abyss_after'),
     ('Abyss after glow texture', 'world_abyss_visual.c', '0x82de', '0x82df', 'abyss_after'),
-    ('Chain Kanturu hook', 'world_after.c', 'case0xe74a3b:returnw==0x25;', 'case0xe74a3b:returnw==0x26;',
+    ('Chain Kanturu hook', 'world_after.c', 'case0xe74a3b:returnw==0x25;', 'case 0xe74a3b: return w == 0x26;',
      'chain_predicates'),
-    ('Chain class map', 'world_after.c', 'returnw==0x2d||', 'returnw==0x2e||', 'chain_noop'),
+    ('Chain class map', 'world_after.c', 'returnw==0x2d||', 'return w == 0x2e ||', 'chain_noop'),
 ]
 
 
@@ -495,7 +515,7 @@ def main():
     machine = vp.PtMachine(text, data)
     ctx = {'vtables': class_vtables(text, data), 'cleanup': {h: first_ret_cleanup(text, h) for h in CHAIN}}
     names = a.only.split(',') if a.only else list(FAMILIES)
-    report = {'text_sha256': am.TEXT_SHA256, 'data_sha256': am.DATA_SHA256, 'families': {}, 'mutations': [],
+    report = {'text_sha256': am.TEXT_SHA256, 'data_sha256': am.DATA_SHA256, 'families': {}, 'mutants': [],
               'bodies': {k: {'start': hex(b), 'end': hex(e),
                              'sha256': hashlib.sha256(text[b - am.TEXT_BASE:e - am.TEXT_BASE]).hexdigest()}
                          for k, (b, e) in BODIES.items()}}
@@ -525,13 +545,13 @@ def main():
                     assert count == 1, (label, old)
                     path.write_text(s)
                     cases = a.cases if family not in FIXED else 0
-                    tally = FAMILIES[family](machine, build(root), ctx, seed(family), min(300, cases) or 300)
+                    tally = FAMILIES[family](machine, build(root), ctx, seed(family), cases or 1)
                     item = {'name': label, 'cases': tally.cases,
                             'detected': tally.cases - tally.equal - tally.stopped, 'stopped': tally.stopped}
-                    report['mutations'].append(item)
+                    report['mutants'].append(item)
                     print(item, flush=True)
     report['ok'] = all(x['mismatch_count'] == 0 and x['stopped'] == 0 for x in report['families'].values()) and \
-        all(x['detected'] > 0 for x in report['mutations'])
+        all(x['detected'] > 0 for x in report['mutants'])
     if a.output:
         Path(a.output).write_text(json.dumps(report, indent=1))
     print('ok' if report['ok'] else 'FAILED', flush=True)
