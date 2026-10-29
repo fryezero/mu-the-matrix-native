@@ -75,7 +75,7 @@ per call. A new call that compiles several sources at once needs `$(call MULTI_D
   - In-tree, `item_services.h` makes `libmix` stale (it is in no hand list). `bone_tracks.h` makes
     `libbonetracks` stale but not `libmodelcodec`.
   - Run against the old Makefiles, both tests fail.
-- **Gate.** `bash scripts/local-macos-ci.sh` after merging the latest origin/main: GATE_RESULT.
+- **Gate.** `bash scripts/local-macos-ci.sh` after merging origin/main 88a4517 and a clean `native/build`: passed, 1,693 tests (218 explicit skips, 0 failures), 11/11 fixture scenarios, audit 1,662 staged files with 0 rejected. The new worlds-o/p/p2 host rules from main are tracked with no change.
 
 ## Limits
 
