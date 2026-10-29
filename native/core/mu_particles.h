@@ -52,7 +52,7 @@
  * section. Viewer choices: these pools are the module's own (the skills keep theirs in mu_combat), the effect
  * models play their first action (frame += speed, looping) and the tornado's PlayBuffer is counted, not played. */
 enum { MU_WORLD_PT_BITMAPS = 62, MU_WORLD_PT_CAPACITY = 4096, MU_WORLD_PT_SHADOW_MESHES = 64,
-       MU_WORLD_FX_EFFECTS = MU_SFX_EFFECTS, MU_WORLD_FX_MODELS = 17, MU_WORLD_FX_QUADS = 8192,
+       MU_WORLD_FX_EFFECTS = MU_SFX_EFFECTS, MU_WORLD_FX_MODELS = 17, MU_WORLD_EIN_LINKS = 64, MU_WORLD_FX_QUADS = 8192,
        MU_WORLD_FX_LIGHTS = MU_JT_JOINTS + MU_SFX_EFFECTS };
 
 typedef struct mu_world_fx_light {
@@ -119,9 +119,21 @@ typedef struct mu_world_particles {
     int32_t scene_state;                   /* SceneFlag [0x01d1df70] for the kinds that test it (6 by default) */
     mu_world_fx_light lights[MU_WORLD_FX_LIGHTS];  /* AddTerrainLight calls of the last logic step */
     int32_t light_count;
+    /* RENDER-EFFECTS-006: the world objects' EffectManager instances (the client's single manager, 0x00aee554)
+     * and the objects' effect lists +0x3d0 (records of attach 0x0129f9c6) */
+    const char *root;
+    struct mu_effect_scene *ein;
+    struct { int32_t object, instance, bone; float template_scale, lifetime; uint8_t follow, timed, live; }
+        ein_links[MU_WORLD_EIN_LINKS];
+    int32_t ein_link_count;
+    uint64_t ein_requests, ein_attached, ein_invalid, ein_updates, ein_unposed, ein_expired;
 } mu_world_particles;
 
 enum { MU_WORLD_ACTOR_FX_BASE = 0x08000000 };
+
+/* RENDER-EFFECTS-006: the objects' EffectManager scene (NULL until a world object asks for an effect) and its
+ * render pass, as the actors' scene (mu_world_actors). */
+struct mu_effect_scene *mu_world_particles_ein_scene(mu_world_particles *p);
 
 /* Loads the effect bitmaps (Data/Effect, the world's rain02/rain03) unless
  * no_assets, seeds rand(). Returns 0, or 1 with a message. */

@@ -1053,6 +1053,9 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
                                o->world == 80 || o->world == 81 || o->world == 0x87 || (o->world == 8 && t == 63)))
             posed = pose_object(o, img, m, &log);
         handler_visual(o, i, img, primary_visual ? m : posed ? m : NULL, in.light.time, posed);
+        if (rt->ein_update && rt->ein_listed && rt->ein_listed(rt->hook_context, i))   /* 0x016d51d8..0x016d51f5 */
+            rt->ein_update(rt->hook_context, i, img, posed ? mu_model_bone_matrices(&m->model) : NULL,
+                           posed ? m->bmd.bone_count : 0, 0.1f /* [0x01cf103c] */);
     } else if (!rt->visual) {
         mu_obj_visual(img, o->world, in.light.time);   /* RenderObjectVisual follows RenderObject */
     }
