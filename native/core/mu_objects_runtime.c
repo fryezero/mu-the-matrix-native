@@ -847,21 +847,14 @@ static void consume_visual(mu_objects *o, const mu_obj_log *log)
         }
     }
 }
-/* RenderObjectVisual's handler slot 0x34 of the login world (CGMLogInScene_Ex) and, NATIVE-CHARSEL-002, of
- * the character-select world (CGMCharacterScene_Ex): its CreateSprite / CreateParticle / CreateEffect calls.
- */
-/* RENDER-EFFECTS-008: RenderObjects' other worlds (0x016d5337..0x016d536b): RenderObjectVisual (the particle hook),
- * then the attached effects' update 0x0129f671 when the list +0x3d0 is not empty. RenderObject animated the object
- * before its +0x68 == -2 test (the map-object table's hidden markers), so a listed object takes the pose its
- * log records. effects: 0 where the RenderObjectVisual branch (login, character select, primary visual) already
- * updated them. */
-static void visual_and_effects(mu_objects *o, int32_t i, uint8_t *img, int hook, int has_model, mu_object_model *drawn,
-                               mu_object_model *m, int posed, const mu_obj_log *log, int effects)
+/* RENDER-EFFECTS-008: the attached effects' update 0x0129f671 after RenderObjectVisual when the list +0x3d0 is not
+ * empty (RenderObjects 0x016d51d8..0x016d51f5 and 0x016d534e..0x016d536b, every world). RenderObject animated the
+ * object before its +0x68 == -2 test (the map-object table's hidden markers), so a listed object takes the pose its
+ * log records. */
+static void update_effects(mu_objects *o, int32_t i, uint8_t *img, mu_object_model *m, int posed, const mu_obj_log *log)
 {
     mu_objects_runtime *rt = &o->rt;
-    if (hook)
-        rt->visual(rt->hook_context, o, i, has_model, drawn);
-    if (!effects || !rt->ein_update || !rt->ein_listed || !rt->ein_listed(rt->hook_context, i))
+    if (!rt->ein_update || !rt->ein_listed || !rt->ein_listed(rt->hook_context, i))
         return;
     for (int32_t k = 0; !posed && m && m->loaded && k < log->count; ++k)
         if (log->events[k].call == MU_OBJ_CALL_ANIMATION)
@@ -870,6 +863,21 @@ static void visual_and_effects(mu_objects *o, int32_t i, uint8_t *img, int hook,
                    posed ? m->bmd.bone_count : 0, mu_frame_time_value() /* [0x01cf103c] */);
 }
 
+/* RenderObjectVisual through the particle hook, then the effects (effects: 0 where the login, character select or
+ * primary RenderObjectVisual branch already updated them). */
+static void visual_and_effects(mu_objects *o, int32_t i, uint8_t *img, int hook, int has_model, mu_object_model *drawn,
+                               mu_object_model *m, int posed, const mu_obj_log *log, int effects)
+{
+    mu_objects_runtime *rt = &o->rt;
+    if (hook)
+        rt->visual(rt->hook_context, o, i, has_model, drawn);
+    if (effects)
+        update_effects(o, i, img, m, posed, log);
+}
+
+/* RenderObjectVisual's handler slot 0x34 of the login world (CGMLogInScene_Ex) and, NATIVE-CHARSEL-002, of
+ * the character-select world (CGMCharacterScene_Ex): its CreateSprite / CreateParticle / CreateEffect calls.
+ */
 static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_object_model *m, float world_time, int posed)
 {
     visual_context c = {o, m};
@@ -1095,9 +1103,7 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
                                o->world == 80 || o->world == 81 || o->world == 0x87 || (o->world == 8 && t == 63)))
             posed = pose_object(o, img, m, &log);
         handler_visual(o, i, img, primary_visual ? m : posed ? m : NULL, in.light.time, posed);
-        if (rt->ein_update && rt->ein_listed && rt->ein_listed(rt->hook_context, i))   /* 0x016d51d8..0x016d51f5 */
-            rt->ein_update(rt->hook_context, i, img, posed ? mu_model_bone_matrices(&m->model) : NULL,
-                           posed ? m->bmd.bone_count : 0, mu_frame_time_value() /* [0x01cf103c] */);
+        update_effects(o, i, img, m, posed, &log);   /* 0x016d51d8..0x016d51f5 */
     } else if (!rt->visual) {
         mu_obj_visual(img, o->world, in.light.time);   /* RenderObjectVisual follows RenderObject */
     }

@@ -451,7 +451,8 @@ MUTANTS = [
     ('type-short', 'const int32_t type = mu_obj_i32(o, MU_OBJF_TYPE);',
      'const int32_t type = (int16_t)mu_obj_i32(o, MU_OBJF_TYPE);'),
     ('prime-unfound', 'if (!found)\n                    continue;',
-     'if (!found) {\n                    ops->prime(ops->context, k);\n                    continue;\n                }'),
+     'if (!found) {\n                    ops->prime(ops->context, k);\n'
+     '                    continue;\n                }'),
     ('attach-invalid', 'if (handle >= 0)', 'if (handle >= -1)'),
     ('follow-forced', 'entry->bone, entry->follow, 0, 0.0f', 'entry->bone, 1, 0, 0.0f'),
     ('timed', 'entry->follow, 0, 0.0f', 'entry->follow, 1, 0.0f'),
@@ -479,7 +480,8 @@ def mutants(machine, cases):
             text = original.replace(old, new)
             if name == 'prime-before':
                 text = text.replace('if (!found)\n                    continue;',
-                                    'if (!found)\n                    continue;\n                ops->prime(ops->context, k);')
+                                    'if (!found)\n                    continue;\n'
+                                    '                ops->prime(ops->context, k);')
             folder = Path(tmp)/name
             folder.mkdir()
             r = compare(build_library(folder, text), machine, cases)

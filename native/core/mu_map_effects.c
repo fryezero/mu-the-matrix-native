@@ -180,9 +180,19 @@ static int32_t op_create(void *c, int32_t object, const mu_map_effect_entry *e, 
     (void)type_word;   /* the factory's unused word argument */
     float start;
     memcpy(&start, &e->start_bits, sizeof start);
+    /* The client's ifstream opens through Win32, whose path normalisation drops a final component's trailing spaces
+     * and dots: Abyss of Atlans' "smoke13-black01.ein " loads (live: its objects' lists hold it). */
+    char path[512];
+    size_t n = strlen(e->path);
+    if (n >= sizeof path)
+        n = sizeof path - 1;
+    memcpy(path, e->path, n);
+    while (n && (path[n - 1] == ' ' || path[n - 1] == '.'))
+        --n;
+    path[n] = '\0';
     ++a->stats->requested;
     ++a->particles->ein_requests;
-    const int32_t instance = mu_world_particles_ein_create(a->particles, e->path, e->position, e->rotation, e->scale,
+    const int32_t instance = mu_world_particles_ein_create(a->particles, path, e->position, e->rotation, e->scale,
                                                            e->tint, e->actions, (uint32_t)e->action_count, start);
     a->stats->invalid += instance < 0;
     a->particles->ein_invalid += instance < 0;
