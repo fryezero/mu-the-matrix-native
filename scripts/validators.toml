@@ -2181,6 +2181,20 @@ args = ["--mutations", "--output", "{report}"]
 "families.*.mismatches" = 0
 "mutants.*" = {truthy = true}
 
+[validate_item_scalars]
+test = "reconstructed/renderchar/test_item_scalars.py::ItemScalars.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "clocks"]
+cases = 26154
+mutants = 11
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar"]
+args = ["--mutations", "--output", "{report}"]
+[validate_item_scalars.expect]
+"families.*.mismatches" = 0
+"mutants.*" = {truthy = true}
+
 [validate_worlds_m]
 test = "native/tests/test_native_worlds_m.py::WorldsM.test_original_instructions"
 pins = ["text", "data"]
