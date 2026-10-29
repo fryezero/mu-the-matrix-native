@@ -7,6 +7,7 @@
  * labelled stand-in (mu_object_particle). */
 #include "mu_objects.h"
 #include "mu_objects_icarus.h"
+#include "mu_objects_worlds_p.h"
 
 #include "../../reconstructed/environment/env.h"
 
@@ -15,6 +16,7 @@
 #include "../../reconstructed/objects/worlds_g.h"
 #include "../../reconstructed/objects/worlds_h.h"
 #include "../../reconstructed/objects/worlds_i.h"
+#include "../../reconstructed/objects/worlds_p.h"
 #include "../../reconstructed/objects/worlds_o.h"
 #include "../../reconstructed/objects/worlds_n.h"
 #include "../../reconstructed/objects/icarus.h"
@@ -116,6 +118,9 @@ int mu_objects_start(mu_objects *o, const char *game_root)
                 rt->play_speed[created[k].args[0]] = fbits(created[k].args[2]);
                 rt->play_speed_set[created[k].args[0]] = 1;
             }
+        for (int32_t k = 0; k < create_log.count; ++k)   /* RENDER-WORLDS-P deferred class create */
+            if (created[k].call == MU_WP_CREATE)
+                mu_objects_worlds_p_create(o, i);
         for (int32_t k = 0; k < create_log.count; ++k)
             if ((o->world == 2 || o->world == 3 || o->world == 57 || o->world == 58) &&
                 created[k].call == MU_OBJ_CALL_CREATE_EFFECT && rt->startup_effect_count < 12)
@@ -192,6 +197,10 @@ static int32_t step_rand(void *context)
 static float step_speed(void *context, int32_t type, int32_t action)
 {
     step_context *c = context;
+    int set;
+    const float wp = mu_objects_worlds_p_speed(c->o, type, action, &set);   /* RENDER-WORLDS-P */
+    if (set)
+        return wp;
     if (action == 0 && type >= 0 && type < MU_OBJECT_TYPES && c->o->rt.play_speed_set[type])
         return c->o->rt.play_speed[type];
     return 0.0f;
@@ -401,6 +410,16 @@ void mu_objects_step(mu_objects *o, const mu_objects_step_inputs *in)
                 tick(o, i, fbits(m->args[0]));
             } else if (m->call == MU_MARKET_BONE_LIGHT) {
                 market_bone_light(o, i, m);
+            } else if (m->call == MU_WP_MOVE) {
+                mu_objects_worlds_p_move(o, i, in->hero);
+            } else if (m->call == MU_WP_CLAMPED_LIGHT && rt->light_count < MU_OBJECT_STEP_LIGHTS) {
+                mu_object_light *l = &rt->lights[rt->light_count++];
+                l->x = fbits(m->args[0]);
+                l->y = fbits(m->args[1]);
+                for (int q = 0; q < 3; ++q)
+                    l->rgb[q] = fbits(m->args[2 + q]);
+                l->range = (int32_t)m->args[5] | MU_OBJECT_LIGHT_CLAMPED;
+                ++rt->light_events;
             } else if (m->call == MU_DEEP_DUNGEON_KEYED_EFFECT) {
                 ++rt->move_unsupported;   /* No native keyed-effect consumer; preserve the refusal. */
             } else if (m->call == MU_OBJ_CALL_ADD_LIGHT && rt->light_count < MU_OBJECT_STEP_LIGHTS) {
@@ -432,7 +451,10 @@ void mu_objects_apply_lights(const mu_objects *o, mu_world *map)
     if (map && (o->world == 57 || o->world == 58)) map->camera_shake = o->rt.raklion_quake;
     for (int32_t i = 0; map && i < o->rt.light_count; ++i) {
         const mu_object_light *l = &o->rt.lights[i];
-        mu_world_add_light(map, l->x, l->y, l->rgb, l->range);
+        if (l->range & MU_OBJECT_LIGHT_CLAMPED)
+            mu_bloody_tarkan_add_light_clamped(l->x, l->y, l->rgb, l->range & ~MU_OBJECT_LIGHT_CLAMPED, map->light);
+        else
+            mu_world_add_light(map, l->x, l->y, l->rgb, l->range);
     }
 }
 
@@ -692,6 +714,21 @@ static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_obje
     }
     else if (o->world == 80 || o->world == 81)
         return;
+    else if ((o->world == 0x87 || o->world == 0x88 || o->world == 0x8c) && m && m->loaded) {   /* RENDER-WORLDS-P */
+        const int32_t type = mu_obj_i32(img, MU_OBJF_TYPE);
+        const int needs_bones = o->world == 0x87 && (type == 15 || type == 16);
+        const int bones_ready = posed && m->bmd.bone_count > (type == 15 ? 4 : 15);
+        if (needs_bones && !bones_ready) ++o->rt.draw_unsupported;
+        (void)visual_rand(&c); /* Outer RenderObjectVisual flicker draw. */
+        if (o->world == 0x87)
+            mu_old_kethotum_visual(img, i, 1, world_time, visual_rand, bones_ready ? visual_bone : NULL, &c, &log);
+        else if (o->world == 0x88)
+            mu_burning_kethotum_visual(img, i, 1, visual_rand, &c, &log);
+        else
+            mu_bloody_tarkan_visual(img, 1);
+    }
+    else if (o->world == 0x87 || o->world == 0x88 || o->world == 0x8c)
+        return;
     else if (o->world >= 128 && o->world <= 130)   /* RENDER-WORLDS-O */
         mu_abyss_visual(o->world, img, o->world, m && m->loaded);
     else if (o->world == 57 || o->world == 58)
@@ -772,7 +809,8 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
     const int primary_visual = o->world == 4 || o->world == 7 || o->world == 8 || (o->world == 10 && t == 10) ||
                                o->world == 62 || o->world == 63 || o->world == 64 || o->world == 82 ||
                                o->world == 79 || o->world == 100 || o->world == 57 || o->world == 58 ||
-                               o->world == 80 || o->world == 81 || (o->world >= 128 && o->world <= 130);
+                               o->world == 80 || o->world == 81 || (o->world >= 128 && o->world <= 130) ||
+                               o->world == 0x87 || o->world == 0x88 || o->world == 0x8c;
     mu_obj_draw_inputs in;
     memset(&in, 0, sizeof in);
     in.world = o->world;
@@ -798,7 +836,7 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
     int posed = 0;
     if (login || charsel || primary_visual) {   /* RenderObjectVisual follows RenderObject, also for hidden objects (slot 0x34) */
         if (m && m->loaded && (status != MU_OBJ_SKIPPED || (o->world == 79 && log.count > 0) ||
-                               o->world == 80 || o->world == 81 || (o->world == 8 && t == 63)))
+                               o->world == 80 || o->world == 81 || o->world == 0x87 || (o->world == 8 && t == 63)))
             posed = pose_object(o, img, m, &log);
         handler_visual(o, i, img, primary_visual ? m : posed ? m : NULL, in.light.time, posed);
     } else if (!rt->visual) {
