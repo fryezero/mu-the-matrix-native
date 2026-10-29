@@ -344,6 +344,42 @@ def family_sparks(m, lib, rng, cases, report, kinds=None):
         report.cover('sparks', f'{made} sparks')
 
 
+PANTS = [0x1e24, 0x1e25, 0x1e26, 0x1e2b, 0x1e34, 0x1e44, 0x1e7a]   # group 9 (pants) of the rank-5 type lists
+GROUP9 = {0x0174a4c9: 'group9', 0x0174a580: 'list_a', 0x0174a8d7: 'other_lists', 0x0174a74a: 'level9_overlays'}
+
+
+def family_pants(cases):
+    """The complete RenderObjDraw 0x0176ce74 (validate_render_effects5's harness, owner bones readable) for the
+    rank-5 pants: the group-9 path 0x0174a4bc runs and emits no owner particle or sprite and draws no rand()."""
+    import pins as pins_
+    import validate_render_effects5 as r5
+    from unicorn import UC_HOOK_CODE
+    wa = tuple(pin.read() for pin in (pins_.TEXT, pins_.DATA, pins_.FLAG, pins_.FEATURE))
+    hits = defaultdict(int)
+    base = r5.v.World
+
+    class Hooked(base):
+        def __init__(self, *a):
+            super().__init__(*a)
+            for point, name in GROUP9.items():
+                self.m.uc.hook_add(UC_HOOK_CODE, lambda uc, ad, sz, ud, name=name: hits.__setitem__(name, hits[name] + 1),
+                                   begin=point, end=point)
+    report = pt.Report()
+    r5.v.World = Hooked
+    try:
+        for t in PANTS:
+            for k in range(cases):
+                before = hits['group9']
+                case, o = r5.owner_case(t, k)
+                stream, effects, consumed = r5.original_owner(wa, case, o)
+                ok = hits['group9'] == before + 1 and not effects and consumed == 0 and o['bones'] >= 0
+                report.add('pants_owner', ok, {'type': hex(t), 'case': k, 'effects': effects[:2], 'rand': consumed})
+                report.cover('pants_owner', 'owner bones' if o['bones'] > 35 else 'no owner bones')
+    finally:
+        r5.v.World = base
+    return {'families': report.families, 'coverage': {**report.coverage, 'paths': dict(hits)}}
+
+
 def compile_mutant(directory, name, old, new):
     base = ROOT/'reconstructed'/'combat'
     inc = (base/'arrow_fx.inc').read_text()
@@ -392,6 +428,7 @@ def run(cases, mutations):
     for name in ('effect_create', 'effect_move'):
         result['comparisons'][name] = compare(text, data, lib, name, KINDS, cases * len(KINDS))
     result['comparisons']['sparks'] = compare(text, data, lib, 'sparks', None, cases * 20)
+    result['comparisons']['pants_owner'] = family_pants(cases * 2)
     if mutations:
         with tempfile.TemporaryDirectory(prefix='render-effects7-mutants-') as tmp:
             for name, old, new, family, kind in MUTANTS:

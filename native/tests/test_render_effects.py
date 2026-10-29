@@ -236,7 +236,8 @@ class RenderEffects(unittest.TestCase):
 
     @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'requires pinned private instructions')
     def test_other_bows_arrows_original_instructions_and_compiled_mutants(self):
-        """RENDER-EFFECTS-007: 30 arrow types x subtypes 0/2/0x63 (+ Arrow01/0x63), CreateEffect and MoveEffect."""
+        """RENDER-EFFECTS-007: 30 arrow types x subtypes 0/2/0x63 (+ Arrow01/0x63), CreateEffect and MoveEffect; bow
+        0x12f9's sparks; the rank-5 pants' group-9 path has no owner effects."""
         with tempfile.TemporaryDirectory() as tmp:
             report = Path(tmp)/'report.json'
             subprocess.run([sys.executable, str(ROOT/'scripts/validate_render_effects7.py'), '--cases', '2',
@@ -244,8 +245,8 @@ class RenderEffects(unittest.TestCase):
             r = json.loads(report.read_text())
             self.assertTrue(r['all_equal'])
             self.assertTrue(r['all_mutants_caught'])
-            self.assertEqual(len(r['mutants']), 22)
-            self.assertEqual(r['instruction_cases'], 364)
+            self.assertEqual(len(r['mutants']), 24)
+            self.assertEqual(r['instruction_cases'], 432)
 
     def test_world_particle_consumers_and_sprite_registrations(self):
         subprocess.run(['make', '-C', str(ROOT/'native'), 'build/particle-consumers-host'], check=True,
