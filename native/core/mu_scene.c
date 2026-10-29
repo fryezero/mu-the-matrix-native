@@ -133,6 +133,8 @@ static int inputs_fill(const mu_model *model, const mu_draw_options *o, mu_scene
         memcpy(M->alt_color, f->alt_color, sizeof M->alt_color);
         M->alt_on_skin = f->alt_on_skin;
         M->flag_a5 = f->flag_a5;
+        if (f->light_mesh_set)
+            M->light_mesh = f->light_mesh;
     }
 
     in->globals.time = o->time;

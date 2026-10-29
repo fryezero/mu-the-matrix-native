@@ -89,9 +89,10 @@ class JointTests(unittest.TestCase):
     def test_supported_kinds(self):
         for sub in range(0x10, 0x1b):
             self.assertEqual(self.lib.mu_jt_kind_supported(0x7f7d, sub), 1)
-        for kind in ((0x7f7c, 6), (0x7f7d, 0)):
+        for kind in ((0x7f7c, 6), (0x7f7d, 0), (0x7f7d, 0xc), (0x7f7d, 0xd), (0x7f7d, 0xe), (0x7f7d, 0xf), (0x7f7c, 0x12)):
             self.assertEqual(self.lib.mu_jt_kind_supported(*kind), 1)
-        for kind in ((0x7f7d, 1), (0x7f7d, 0x1b), (0x7fd5, 5), (0x7fd6, 4), (0x7f79, 8)):
+        for kind in ((0x7f7d, 1), (0x7f7d, 0xb), (0x7f7d, 0x1b), (0x7f7c, 0x13), (0x7fd5, 5), (0x7fd6, 4),
+                     (0x7f79, 8)):
             self.assertEqual(self.lib.mu_jt_kind_supported(*kind), 0)
 
     def test_create_bolt_target_and_light(self):
@@ -172,6 +173,73 @@ class JointTests(unittest.TestCase):
         u0 = f32(f32(f32(3.0) / f32(49.0)) * 2.0)
         u0 = f32(f32(f32(t + 1.0) * f32(0.33)) + f32(u0 - t))
         self.assertEqual([o for o in out if o[0] == 'tex'][0], ('tex', u0, 1.0))
+
+    # RENDER-JOINTS-001: Kanturu Underground's lightning (0x7f7d 0xc/0xe/0xf, 0x7f7c 0x12)
+    def test_kanturu_arc_create_and_move(self):
+        j, ok, fx = self.create((0x7f7c, 0x12), [0], scale=40.0, target=-1)
+        self.assertEqual((ok, j.tex_type, j.velocity, j.max_tails, j.lifetime, list(j.light)),
+                         (1, 0x7f7c, 80.0, 5, 10, [1.0, 1.0, 1.0]))
+        self.assertEqual(list(j.start), list(j.position))
+        ok, fx = self.move(j, [3, 70])
+        # five turned, jittered steps (two rand() each), no terrain light below width 50
+        self.assertEqual((ok, fx.rands, fx.calls, j.num_tails, j.lifetime), (1, 10, [], 4, 9))
+        j, ok, fx = self.create((0x7f7c, 0x12), [0], scale=50.0, target=-1)
+        ok, fx = self.move(j, [5, 70, 6])
+        f = f32(float(6 % 4 + 4) * f32(0.04))
+        self.assertEqual(fx.rands, 15)
+        self.assertEqual([(c[0], c[4], c[8]) for c in fx.calls][0],
+                         (0x016cacfc, [f32(f * f32(0.1)), f32(f * f32(0.1)), f32(f * 0.5)], 2))
+
+    def test_kanturu_bolt_create(self):
+        # 0xf: from the position, R(angle) (0, -1100, 0) * 0.028w; the target stays the argument
+        j, ok, fx = self.create((0x7f7d, 0xf), [0], scale=30.0, target=-1)
+        k = f32(f32(0.028) * 30.0)
+        self.assertEqual((ok, j.max_tails, j.lifetime, j.tail_update, fx.rands), (1, 50, 20, 0, 0))
+        self.assertEqual(j.position[1], f32(2000.0 + f32(-1100.0 * k)))
+        self.assertEqual(list(j.start), list(j.position))
+        self.assertEqual(list(j.target_position), [1000.0, 2000.0, 300.0])
+        # 0xe: (rand % 10 - 5) in y then x, 1100 up
+        j, ok, fx = self.create((0x7f7d, 0xe), [7, 13], scale=30.0, target=-1)
+        self.assertEqual(fx.rands, 2)
+        self.assertEqual(list(j.position), [f32(1000.0 + f32(-2.0 * k)), f32(2000.0 + f32(2.0 * k)),
+                                            f32(300.0 + f32(1100.0 * k))])
+        # widths <= 0 return before the clamp
+        j, ok, fx = self.create((0x7f7d, 0xe), [7], scale=0.0, previous={'max_tails': 7, 'lifetime': 3})
+        self.assertEqual((j.max_tails, j.lifetime, fx.rands), (7, 3, 0))
+        # 0xc: blue = the previous tail count; the head moved by w/2 along R(angle) y; target +- (int)(w/4)
+        j, ok, fx = self.create((0x7f7d, 0xc), [3, 20, 0, 10], scale=40.0, target=-1, previous={'max_tails': 17})
+        self.assertEqual((j.velocity, j.light[2], j.max_tails, j.lifetime, j.tail_update), (83.0, 17.0, 30, 4, 0))
+        self.assertEqual(j.position[1], f32(2000.0 + f32(f32(40.0 * 40.0) / 2.0)))
+        self.assertEqual(list(j.target_position), [1000.0 + 0.0 - 10.0, 2000.0 + 0.0 - 10.0, 300.0 + 10.0 - 10.0])
+
+    def test_uruk_coloured_bolt(self):
+        # 0x7f7d 0xd with argument 12: the common part takes the colour; target = start + R(angle)(0, w, 0)
+        v = self.v
+        fx = Fixed([7])
+        fx.env.creation_light[:] = [f32(0.7), f32(0.05), 0.0]
+        fx.env.has_creation_light = 1
+        j = v.Joint()
+        ok = self.lib.mu_jt_create(ctypes.byref(j), 0x7f7d, F3(1000.0, 2000.0, 300.0), F3(1000.0, 2000.0, 300.0),
+                                   F3(0.0, 0.0, 0.0), 0xd, -1, f32(450.0), 0xffff, 0, 0, 0xffff, 0, ctypes.byref(fx.env))
+        self.assertEqual((ok, list(j.light), j.scale, j.max_tails, j.lifetime), (1, [f32(0.7), f32(0.05), 0.0], 27.0, 50, 20))
+        self.assertEqual(list(j.target_position), [1000.0, 2450.0, 300.0])
+        ok, fx = self.move(j, [0])
+        # 45 steps of (target - start) / 50, no rand(), no closing shift
+        self.assertEqual((fx.rands, j.num_tails, j.position[1]), (0, 45, 2000.0 + 45 * 9.0))
+
+    def test_kanturu_bolt_move(self):
+        # 0xc: (max_tails - 1) jittered steps closing 8% of the gap, then the target; no closing shift
+        j, ok, fx = self.create((0x7f7d, 0xc), [0], scale=40.0, target=-1)
+        ok, fx = self.move(j, [1, 2, 3])
+        self.assertEqual((fx.rands, list(j.position), j.num_tails, j.lifetime), (3*29, list(j.target_position), 29, 3))
+        self.assertEqual(list(j.light), [1.0, 1.0, f32(j.light[2])])
+        # 0xe: two jitters per tail; 0xf: two unused rand() calls in the last four steps; fade below LifeTime 4
+        for sub, rands in ((0xe, 2*49), (0xf, 2*4)):
+            j, ok, fx = self.create((0x7f7d, sub), [5], scale=30.0, target=-1)
+            j.lifetime = 3
+            ok, fx = self.move(j, [11, 4])
+            self.assertEqual((fx.rands, list(j.position), j.num_tails), (rands, list(j.target_position), 49))
+            self.assertEqual(list(j.light), [f32(1.0 / f32(1.2))]*3)
 
     def test_render_spark_keeps_the_colour(self):
         j, ok, fx = self.create((0x7fd5, 0), [0, 0])

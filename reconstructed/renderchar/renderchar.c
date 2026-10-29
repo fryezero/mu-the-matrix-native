@@ -87,10 +87,11 @@ static int body_type(int32_t type)
     return -1;
 }
 
-static void apply_recipe(sink *s, const mu_rc_body_recipe *recipe, const uint32_t *input,
-                         const mu_rc_draw *base)
+static int apply_recipe(sink *s, const mu_rc_body_recipe *recipe, const uint32_t *input,
+                        const mu_rc_draw *base, mu_rc_draw *last)
 {
     uint32_t words[16];
+    int drew = 0;
     for (int i = 0; i < recipe->count; ++i) {
         for (int k = 0; k < 16; ++k) {
             int source = recipe->draw[i].source[k];
@@ -98,6 +99,18 @@ static void apply_recipe(sink *s, const mu_rc_body_recipe *recipe, const uint32_
         }
         mu_rc_draw d = *base;
         d.entry = recipe->draw[i].entry;
+        if (d.entry == MU_RC_ENTRY_COLOR) {
+            /* The current GL colour the next draw may inherit; no mesh call. */
+            memset(&d, 0, sizeof d);
+            d.entry = MU_RC_ENTRY_COLOR;
+            d.flags = words[1];
+            memcpy(&d.alpha, &words[2], 4);
+            memcpy(d.body_light, &words[8], 12);
+            if (s->count < s->capacity)
+                s->out[s->count] = d;
+            ++s->count;
+            continue;
+        }
         if (d.entry == MU_RC_ENTRY_BODY) {
             d.flags = words[0];
             memcpy(&d.alpha, &words[1], 4);
@@ -120,11 +133,30 @@ static void apply_recipe(sink *s, const mu_rc_body_recipe *recipe, const uint32_
         d.level_field = (int32_t)words[11];
         memcpy(d.shade, &words[12], 12);
         d.flag_ca = (uint8_t)words[15];
+        if (last)
+            *last = d;
+        drew = 1;
         if (s->count < s->capacity)
             s->out[s->count] = d;
         ++s->count;
     }
+    return drew;
 }
+
+/* The client's model fields keep the values of the body's last draw when the
+ * next helper starts (carry types). */
+static void write_back(mu_rc_model *model, const mu_rc_draw *d)
+{
+    memcpy(model->body_light, d->body_light, sizeof model->body_light);
+    model->level_field = d->level_field;
+    memcpy(model->shade, d->shade, sizeof model->shade);
+    model->flag_ca = d->flag_ca;
+}
+
+/* Probe entry only (mu_rc_item_draws_carry): generic draws that write the
+ * given model fields back after helper call k, as a carry body would. */
+static _Thread_local const mu_rc_draw *probe_carry;
+static _Thread_local int32_t probe_carry_count, probe_phase;
 
 /* 0x0185bdc4(-1,0), then SSE scale/add at 0x017471a3. */
 static float mesh_light_pulse(float time)
@@ -250,6 +282,9 @@ static void emit_parameter_body(sink *s, int phase, uint32_t flags, float alpha,
     int type = body_type(s->item->type);
     if (type < 0 || !s->parameters) {
         emit(s, MU_RC_ENTRY_BODY, 0, flags, alpha, hidden, texture);
+        if (probe_carry && probe_phase < probe_carry_count && probe_carry[probe_phase].entry)
+            write_back(s->model, &probe_carry[probe_phase]);
+        probe_phase++;
         return;
     }
     mu_rc_draw base;
@@ -348,7 +383,10 @@ static void emit_parameter_body(sink *s, int phase, uint32_t flags, float alpha,
         s->item->item_level != -1 &&
         ((s->item->item_level >> 3) & 15) >= 9)
         phase = phase == 5 ? 7 : 6;
-    apply_recipe(s, &mu_rc_body_recipes[mu_rc_body_types[type].recipe[phase]], input, &base);
+    mu_rc_draw last;
+    if (apply_recipe(s, &mu_rc_body_recipes[mu_rc_body_types[type].recipe[phase]], input, &base, &last) &&
+        mu_rc_body_types[type].carry)
+        write_back(s->model, &last);
 }
 
 /* Item-table predicates 0x00cd6017 (kind B, +0x251), 0x00cd5fac (kind A,
@@ -463,7 +501,7 @@ static void part_body(sink *s, float alpha, uint32_t flags, int32_t a6, int32_t 
         rank5_body(s);
         return;
     }
-    if (s->parameters && body_type(it->type) >= 0) {
+    if ((s->parameters || probe_carry) && body_type(it->type) >= 0) {
         emit_parameter_body(s, flags & 0x40000u ? 5 : 0, flags, alpha, -1, -1);
         return;
     }
@@ -674,6 +712,17 @@ int mu_rc_item_draws_generic(const mu_rc_item *it, mu_rc_model *model, mu_rc_dra
     return item_draws_impl(it, model, out, capacity, count, 0, NULL);
 }
 
+int mu_rc_item_draws_carry(const mu_rc_item *it, mu_rc_model *model, mu_rc_draw *out, int32_t capacity,
+                           int32_t *count, const mu_rc_draw *carry, int32_t carry_count)
+{
+    probe_carry = carry;
+    probe_carry_count = carry_count;
+    probe_phase = 0;
+    int status = item_draws_impl(it, model, out, capacity, count, 0, NULL);
+    probe_carry = NULL;
+    return status;
+}
+
 static int item_draws_impl(const mu_rc_item *it, mu_rc_model *model, mu_rc_draw *out, int32_t capacity,
                              int32_t *count, int parameters, const mu_rc_item_context *context)
 {
@@ -720,7 +769,7 @@ static int item_draws_impl(const mu_rc_item *it, mu_rc_model *model, mu_rc_draw 
             memcpy(&input[12], base.shade, 12);
             input[15] = base.flag_ca;
             memcpy(&input[16], &it->object_alpha, 4);
-            apply_recipe(&s, &mu_rc_skin_bodies[i].recipe, input, &base);
+            apply_recipe(&s, &mu_rc_skin_bodies[i].recipe, input, &base, NULL);
             *count = s.count;
             return s.count > capacity ? MU_RC_FULL : MU_RC_OK;
         }

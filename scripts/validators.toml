@@ -602,11 +602,11 @@ test = "reconstructed/joints/test_joints.py::ClientComparison.test_unicorn_compa
 pins = ["text", "data"]
 families = ["joint_create", "joint_move", "joint_render"]
 cases = 180
-mutants = 9
+mutants = 31
 cases_at = "families.*.cases"
-mutants_at = "negative_controls"
+mutants_at = ["negative_controls", "mutants"]
 build = ["reconstructed/joints"]
-args = ["--text", "{text}", "--data", "{data}", "--cases", "60", "--output", "{report}"]
+args = ["--text", "{text}", "--data", "{data}", "--cases", "60", "--mutations", "--mutant-cases", "120", "--output", "{report}"]
 
 [validate_lang]
 test = "native/tests/test_native_lang.py::PrivateValidator.test_client_consumers_equal_the_native_module"
@@ -2523,3 +2523,16 @@ args = ["--cases", "1000", "--mutations", "--output", "{report}"]
 "families.*.stopped" = 0
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
+[validate_item_carry]
+test = "reconstructed/renderchar/test_item_carry.py::ItemCarry.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "carry", "colours"]
+cases = 114388
+mutants = 12
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar"]
+args = ["--mutations", "--output", "{report}"]
+[validate_item_carry.expect]
+"families.*.mismatches" = 0
+"mutants.*" = {truthy = true}
