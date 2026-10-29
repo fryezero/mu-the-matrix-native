@@ -41,8 +41,13 @@ The effect requests the world lanes N–R2 refused and counted are consumed. [Fi
 ## Frames (installed data, local, deleted)
 
 World 136 at tile (104, 70): the four red effects burn on the ballista's bolt head (bone 20) while it glows
-(frames 146, 243: 4,872 / 6,079 pixels from the scene pass), none at rest (frame 39). See the finding §6 and the
-PR for the other worlds.
+(frames 146, 243: 4,872 / 6,079 pixels from the scene pass), none at rest (frame 39).
+
+The twelve DATA-ACQ-002 arrival tiles (91, 122, 123, 131–136, 142–144), 150 drawn steps each: effects/particles
+unsupported 0 everywhere. Acheron: 4 sea leaves created and live, 960 particles (their sparks among them; the
+leaves had drifted out of view by the last frame). Old Kethotum: 70 particles (type 15). Twisted Karutan: 435
+particles. No requester of the consumed kinds is drawn at the other arrival tiles (0 created), and 136's
+arrival does not show a 0xb5, so its frame there is unchanged; the ballista frames above come from tile (104, 70).
 
 ## Intended render changes
 

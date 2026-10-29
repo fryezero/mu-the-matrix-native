@@ -157,8 +157,9 @@ The host also checks each effect's owner index, the owner gate and action mirror
 
 Installed-data frames (local, `native/scratch/render-effects-006`, deleted): world 136 at tile (104, 70), the
 ballista beside the arrival: frames 146 and 243 show the four red effects on the bolt head while it glows (6,079 and
-4,872 pixels differ from the same frames with the objects' scene pass disabled), frame 39 (rest) shows none. See
-the handoff for the other worlds' frames.
+4,872 pixels differ from the same frames with the objects' scene pass disabled), frame 39 (rest) shows none. At
+the twelve arrival tiles nothing is unsupported; only Acheron (4 sea leaves, 960 particles), Old Kethotum (70
+particles) and Twisted Karutan (435 particles) have requesters in view (handoff).
 
 ## 7. Limits
 
