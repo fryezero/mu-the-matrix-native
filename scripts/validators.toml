@@ -2277,6 +2277,21 @@ args = ["--output", "{report}"]
 "families.*.stopped" = 0
 "remapped_folders.130" = 129
 "remapped_folders.131" = 129
+[validate_worlds_g2]
+test = "reconstructed/objects/test_worlds_g2.py::WorldsG2Tests.test_original_instructions"
+pins = ["text", "data", "section3"]
+families = ["open_texture", "startup_table", "world_preloads", "event_world", "object_texture_folder"]
+cases = 2657
+mutants = 17
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects", "reconstructed/camera"]
+args = ["--text", "{text}", "--data", "{data}", "--section3", "{section3}", "--cases", "1500", "--mutations", "--output", "{report}"]
+[validate_worlds_g2.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0
 
 [validate_worlds_p2]
 test = "reconstructed/objects/test_worlds_p2.py::WorldsP2Tests.test_original_instructions"

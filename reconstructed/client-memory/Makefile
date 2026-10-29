@@ -10,4 +10,4 @@ libclient_memory.$(SUFFIX): copy64.c copy64.h clear64.c clear64.h
 
 .PHONY: all
 
-include ../deps.mk
+-include ../deps.mk   # optional: validators build copies of single directories

@@ -8,4 +8,4 @@ libmix.$(SUFFIX): $(SRC) item_actions.h mix_rules.h
 	$(DEPS)
 .PHONY: all
 
-include ../deps.mk
+-include ../deps.mk   # optional: validators build copies of single directories
