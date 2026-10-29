@@ -66,7 +66,9 @@ static int inputs_fill(const mu_model *model, const mu_draw_options *o, mu_scene
         in->texture_index[i] = o->textures && o->textures->client_index && i < o->textures->model_count &&
                                        o->textures->client_index[i] ? o->textures->client_index[i]
                                                                     : MU_SCENE_TEXTURE_BASE + i;
-        in->texture_type[i] = 0;
+        /* RENDER-ITEMS-TEX-002: the item loader's TextureType (0x012b3e2e writes 0 for other loaders) */
+        in->texture_type[i] = o->textures && o->textures->texture_type && i < o->textures->model_count
+                                  ? o->textures->texture_type[i] : 0;
     }
     const mu_textures *t = o->textures;
     int32_t n = 0;
@@ -120,6 +122,10 @@ static int inputs_fill(const mu_model *model, const mu_draw_options *o, mu_scene
     memcpy(M->origin, p->origin, sizeof M->origin);
     M->light_mesh = (int8_t)p->light_skip_mesh;
     M->secondary_light = p->secondary_light;
+    if (o->textures) {   /* RENDER-ITEMS-TEX-002: model +0xa4 (wearer skin index) and +0xa6 (field_ name) */
+        M->skin_shift = o->textures->skin_shift;
+        M->flag_a6 = o->textures->field;
+    }
     if (o->fields) {
         const mu_draw_model_fields *f = o->fields;
         memcpy(M->color, f->color, sizeof M->color);

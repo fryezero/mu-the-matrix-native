@@ -47,6 +47,8 @@ static int combat_open(struct mu_world_rt *a, void *self)
                 fclose(f);
                 if (mu_character_set_item(&a->ch, MU_CHARACTER_WEAPON_ITEM(0), path, 0, error, sizeof error))
                     fprintf(stderr, "combat weapon: %s (continuing without it)\n", error);
+                else
+                    world_rt_hero_item_textures(a, MU_CHARACTER_WEAPON_ITEM(0), MU_CHARACTER_WEAPON_ITEM(0) + 1);
             }
         }
         a->combat = calloc(1, sizeof *a->combat);

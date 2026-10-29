@@ -15,6 +15,7 @@
 typedef struct entry {
     char key[64];      /* lowercased file name of the loaded path, the client's map key */
     char path[1024];   /* installed file */
+    uint32_t filter, wrap;   /* the parameters of the first load (RENDER-ITEMS-TEX-002) */
 } entry;
 
 static struct {
@@ -32,6 +33,11 @@ typedef struct lookup {
     char path[1024];   /* the file of the last answer */
     int startup_bitmaps;   /* item lookups: the startup LoadBitmap files are in the map (RENDER-ITEMS-TEX-001) */
 } lookup;
+
+typedef struct startup_bitmap {
+    const char *path;
+    uint32_t filter, wrap;
+} startup_bitmap_entry;
 
 #include "mu_startup_bitmaps.inc"
 
@@ -54,7 +60,7 @@ static int32_t find_key(const char *name)
 }
 
 /* std::map::insert in the loaders (0x00c9a55f): an existing name keeps its first bitmap. */
-static int32_t insert(const char *file_name, const char *path)
+static int32_t insert(const char *file_name, const char *path, uint32_t filter, uint32_t wrap)
 {
     const int32_t found = find_key(file_name);
     if (found >= 0)
@@ -70,15 +76,16 @@ static int32_t insert(const char *file_name, const char *path)
     entry *e = &map.entries[map.count];
     lower_key(file_name, e->key, sizeof e->key);
     snprintf(e->path, sizeof e->path, "%s", path);
+    e->filter = filter;
+    e->wrap = wrap;
     return map.count++;
 }
 
 /* LoadImage: the client path "Data\Dir\name" -> the installed file (case-insensitive folders, .jpg -> .OZJ and
- * .tga -> .OZT as mu_image_resolve); a loaded file enters the name map under its file name. */
+ * .tga -> .OZT as mu_image_resolve); a loaded file enters the name map under its file name with its filter and
+ * wrap. */
 static int32_t host_load(void *context, const char *client_path, uint32_t filter, uint32_t wrap)
 {
-    (void)filter;
-    (void)wrap;
     lookup *l = context;
     char relative[512], directory[2048], file[4096];
     snprintf(relative, sizeof relative, "%s", client_path);
@@ -94,7 +101,7 @@ static int32_t host_load(void *context, const char *client_path, uint32_t filter
         !mu_image_resolve(directory, name, file, sizeof file))
         return MU_TL_DEFAULT;
     snprintf(l->path, sizeof l->path, "%s", file);
-    const int32_t index = insert(name, file);
+    const int32_t index = insert(name, file, filter, wrap);
     return index >= 0 ? index : 0;
 }
 
@@ -106,14 +113,14 @@ static int32_t startup_bitmap(lookup *l, const char *name)
     char key[64];
     lower_key(name, key, sizeof key);
     for (size_t i = 0; i < sizeof startup_bitmaps / sizeof startup_bitmaps[0]; ++i) {
-        const char *file = strrchr(startup_bitmaps[i], '\\');
+        const char *file = strrchr(startup_bitmaps[i].path, '\\');
         char other[64];
-        lower_key(file ? file + 1 : startup_bitmaps[i], other, sizeof other);
+        lower_key(file ? file + 1 : startup_bitmaps[i].path, other, sizeof other);
         if (strcmp(key, other))
             continue;
         char client[512];
-        snprintf(client, sizeof client, "Data\\%s", startup_bitmaps[i]);
-        const int32_t index = host_load(l, client, 0x2601, 0x2901);
+        snprintf(client, sizeof client, "Data\\%s", startup_bitmaps[i].path);
+        const int32_t index = host_load(l, client, startup_bitmaps[i].filter, startup_bitmaps[i].wrap);
         l->path[0] = 0;   /* the answer is the map entry, not a load of this mesh */
         return index == MU_TL_DEFAULT ? -1 : index;
     }
@@ -200,10 +207,13 @@ int mu_texture_names_find(const char *game_root, int32_t world, const char *subf
 }
 
 int mu_texture_names_item(const char *game_root, const char *folder, const char *subfolder, const char *name,
-                          char *path, size_t size, int32_t *type, int32_t *special, int *step)
+                          char *path, size_t size, int32_t *type, int32_t *special, int *step,
+                          mu_texture_names_upload *upload)
 {
     if (special)
         *special = 0;
+    if (upload)
+        memset(upload, 0, sizeof *upload);
     if (!game_root || !name)
         return 0;
     prepare(game_root, strcmp(map.root, game_root) ? -1 : map.world);   /* items keep the world part */
@@ -215,6 +225,8 @@ int mu_texture_names_item(const char *game_root, const char *folder, const char 
                                  : mu_tl_open(&host, subfolder, name, 0x2901, 0x2600, &found);
     if (step)
         *step = found;
+    if (upload)
+        upload->field = field;
     if (found == MU_TL_MISSING || !l.path[0] || index == MU_TL_DEFAULT || index == MU_TL_SKIN ||
         index == MU_TL_HIDE || index == MU_TL_HAIR || index == MU_TL_FACE || index == MU_TL_HQ_SKIN ||
         index == MU_TL_HQ_SKIN2 || index == MU_TL_HQ_SKIN3 || index == MU_TL_HQ_HAIR) {
@@ -222,8 +234,14 @@ int mu_texture_names_item(const char *game_root, const char *folder, const char 
             *special = index;
         return 0;
     }
-    /* the file of the bitmap the mesh keeps (a field_ name loads a second file after it) */
-    snprintf(path, size, "%s", index >= 0 && index < map.count ? map.entries[index].path : l.path);
+    /* the file of the bitmap the mesh keeps (a field_ name loads a second file after it); a reused bitmap keeps
+     * the parameters of its first load (0x00c97730 only counts a reference) */
+    const int kept = index >= 0 && index < map.count;
+    snprintf(path, size, "%s", kept ? map.entries[index].path : l.path);
+    if (upload && kept) {
+        upload->filter = map.entries[index].filter;
+        upload->wrap = map.entries[index].wrap;
+    }
     return 1;
 }
 

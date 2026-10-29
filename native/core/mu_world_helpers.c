@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include "mu_character.h"
+#include "mu_item_textures.h"
 #include "mu_objects.h"
 #include "mu_particles.h"
 #include "mu_renderchar.h"
@@ -128,6 +129,23 @@ static void load_pass_bitmaps(mu_world_helpers *w, mu_wh_model *m)
     }
 }
 
+/* RENDER-ITEMS-TEX-002: helper item models (the Item.bmd records 13,0 / 13,1) take the client's item texture rule. */
+static void helper_item_textures(const mu_world_helpers *w, mu_textures *t, const mu_bmd *bmd, int32_t type,
+                                 const char *path)
+{
+    mu_data_table items = {0};
+    char file[2048];
+    int have = 0;
+    for (int k = 0; k < 2 && !have; ++k) {
+        mu_data_free(&items);
+        snprintf(file, sizeof file, "%s/Data/Local/%s", w->root, k ? "item.bmd" : "Item.bmd");
+        have = mu_data_load(file, NULL, &items) == 0 && items.result.status == 0;
+    }
+    if (have)
+        mu_item_textures_reload(t, bmd, &items, w->root, type, path);
+    mu_data_free(&items);
+}
+
 static mu_wh_model *model_of(mu_world_helpers *w, int32_t index)
 {
     for (int32_t i = 0; i < w->model_count; ++i)
@@ -165,6 +183,8 @@ static mu_wh_model *model_of(mu_world_helpers *w, int32_t index)
             mu_textures_free(&retry);
         }
     }
+    if (index == MU_HP_MODEL_ANGEL || index == MU_HP_MODEL_IMP)
+        helper_item_textures(w, &m->textures, &m->bmd, index, m->path);
     load_pass_bitmaps(w, m);   /* NATIVE-HELPERS-002 */
     m->loaded = 1;
     char text[96];
@@ -1277,7 +1297,8 @@ static void draw_imp(draw_context *d, int32_t owner, struct mu_character *host)
         char path[1024], message[512];
         mu_renderchar_host shared = {host->shared_bones, host->shared_root, host->shared_quaternions};
         if (!w->no_assets && mu_objects_resolve(w->root, "Data/Item/helper02.bmd", path, sizeof path))
-            mu_renderchar_attach_load(&slot->a, &shared, path, plan.bone, 0, message, sizeof message);
+            if (mu_renderchar_attach_load(&slot->a, &shared, path, plan.bone, 0, message, sizeof message) == 0)
+                helper_item_textures(w, &slot->a.textures, &slot->a.bmd, MU_HP_MODEL_IMP, path);
     }
     if (!slot->a.loaded)
         return;
