@@ -813,3 +813,42 @@ static void arrow_move(mu_sfx_effect *e, const mu_sfx_env *env, float light[3], 
     }
     check(env, e, MU_SFX_CALL_CHECK_ARROW);
 }
+
+/* Bow 0x12f9's sparks after CreateArrows' shots (0x0158dfdc). bone: the shooter's weapon bone
+ * (character + 0x19b1, read through its own index); bone_ok: 0x0129f12c found it (the model has the bone). */
+int mu_sfx_bow_sparks(int16_t weapon, int32_t object, int has_model, int32_t bone, int bone_ok, const mu_sfx_env *env)
+{
+    if (weapon != 0x12f9 || !has_model || !bone_ok)
+        return 0;
+    static const float offset[3] = {0.0f, 10.0f, -130.0f};
+    static const float white[3] = {1.0f, 1.0f, 1.0f};
+    float p[3];
+    if (env && env->owner_bone)   /* TransformPosition(bone matrix, (0, 10, -130), p, 1) */
+        env->owner_bone(env->context, object, bone, offset, p);
+    else
+        copy3(p, offset);
+    int n = 0;
+    for (int k = 0; k < 15; ++k) {
+        float a[3];
+        a[0] = (float)smod(env_rand(env), 360);
+        a[1] = 0.0f;
+        a[2] = 0.0f;
+        if (smod(env_rand(env), 2) == 0) {
+            mu_sfx_call c;
+            memset(&c, 0, sizeof c);
+            c.routine = MU_SFX_CALL_JOINT;
+            c.type = 0x7fd5;
+            c.subtype = 3;
+            c.owner = -1;
+            c.scale = 10.0f;
+            c.arg7 = -1;
+            copy3(c.position, p);
+            copy3(c.target, p);
+            copy3(c.angle, a);
+            env_call(env, &c, NULL);
+        }
+        call_particle(env, NULL, 0x7f25, p, a, white, 0, 1.0f, -1);
+        ++n;
+    }
+    return n;
+}

@@ -28,6 +28,7 @@ import pins
 import validate_skill_fx as fx
 import validate_combat as vc
 import validate_particles as pt
+import validate_render_effects4 as re4
 
 ROOT = Path(__file__).resolve().parents[1]
 f32 = fx.f32
@@ -77,6 +78,10 @@ MUTANTS = [
      'effect_move', (0x60e, 0)),
     ('rate_5b1', 'if (smod(env_rand(env), 3) == 0) {\n            set3(c, F_0_4, 0.95f, 1.0f);',
      'if (smod(env_rand(env), 3) != 0) {\n            set3(c, F_0_4, 0.95f, 1.0f);', 'effect_move', (0x5b1, 0)),
+    ('spark_offset', 'static const float offset[3] = {0.0f, 10.0f, -130.0f};', 'static const float offset[3] = {0.0f, 10.0f, -120.0f};',
+     'sparks', None),
+    ('spark_joint', 'if (smod(env_rand(env), 2) == 0) {\n            mu_sfx_call c;', 'if (smod(env_rand(env), 2) != 0) {\n            mu_sfx_call c;',
+     'sparks', None),
     ('beam_45c', 'call_joint_args(env, e, 0x7f79, p, p, e->angle, 0x12, 90.0f', 'call_joint_args(env, e, 0x7f79, p, p, e->angle, 0x12, 80.0f',
      'effect_move', (0x45c, 0)),
 ]
@@ -283,6 +288,62 @@ def family_move(m, lib, rng, cases, report, kinds):
         report.cover('effect_move', f'{kind[0]:#x}/{kind[1]}/' + ('+'.join(made) or 'none'))
 
 
+BONE_LOOKUP = 0x0129f12c
+
+
+def family_sparks(m, lib, rng, cases, report, kinds=None):
+    """CreateArrows 0x0158d5bd with bow 0x12f9: the shots (CreateArrow) are recorded and skipped; what follows is
+    compared with mu_sfx_bow_sparks."""
+    lib.mu_sfx_bow_sparks.argtypes = [C.c_int16, C.c_int32, C.c_int, C.c_int32, C.c_int, C.POINTER(fx.Env)]
+    lib.mu_sfx_bow_sparks.restype = C.c_int
+    lib.mu_sfx_create_arrows.argtypes = [C.POINTER(re4.Archer), C.c_float * 3, C.c_uint16, C.c_uint16, C.c_uint16,
+                                         C.POINTER(re4.Shots)]
+    for n in range(cases):
+        a = re4.random_archer(rng)
+        a.weapon = rng.choice([0x12f9, 0x12f9, 0x12f9, 0x12f8])
+        skill, index = rng.choice(re4.SKILLS), rng.choice(re4.INDICES)
+        flag = rng.choice([1, 1, 0, 2])
+        angle = [0.0, 0.0, f32(rng.uniform(0.0, 360.0))]
+        regions = re4.archer_regions(a, angle, [1000.0, 2000.0, 100.0], 7, [1.0, 1.0, 1.0])
+        slot = rng.randrange(0, 4)
+        bone = rng.choice([0, 1, 33, 40, 200]) if slot else 0   # slot 0: the slot byte is the bone byte
+        bone_ok = rng.random() < 0.8
+        has_model = rng.random() < 0.9
+        char = regions[0]
+        char.define(re4.ARCHER_CHAR + 0x19b1, bytes([slot]))
+        char.define(re4.ARCHER_CHAR + slot * 0x3fc + 0x19b1, bytes([bone]))
+        regions[1].define(re4.ARCHER_OBJ + 0x5c, struct.pack('<i', 0x4a8))
+        case = Case(rng, [], fx.rand_values(rng, 60), 0.0, has_model=has_model)
+        stubs = case.stubs(m)
+        stubs.update({re4.CREATE_ARROW: lambda mm: 0, 0x01094039: lambda mm: a.tree_value & 0xffffffff,
+                      0x00ac3bf7: lambda mm: 0x0a000000, 0x0095f998: lambda mm: 0x0a000100,
+                      0x00bb1e55: lambda mm: (a.master_1a2, 4),
+                      BONE_LOOKUP: lambda mm: ((0x06fce398 + 0x30 * mm.argument(0)) if bone_ok else 0, 4)})
+
+        def transform(mm):   # the synthetic TransformPosition into the caller's frame
+            index, vec, out = (mm.argument(0) - 0x06fce398) // 0x30, mm.floats(mm.argument(1), 3), mm.argument(2)
+            case.client_calls.append(('owner_bone', index, vec))
+            mm.uc.mem_write(out, struct.pack('<3f', *fx.owner_bone_answer(index, vec)))
+            return 0, 0x10
+        stubs[fx.TRANSFORM_POSITION] = transform
+        r = m.execute(re4.CREATE_ARROWS, [re4.ARCHER_CHAR, re4.ARCHER_OBJ, re4.TARGET_OBJ, skill, flag, index],
+                      regions, stubs)
+        shots = re4.Shots()
+        lib.mu_sfx_create_arrows(C.byref(a), (C.c_float * 3)(*angle), skill, flag, index, C.byref(shots))
+        env = case.env()
+        made = lib.mu_sfx_bow_sparks(a.weapon, 0, has_model, bone, bone_ok, C.byref(env)) if shots.bow_sparks else 0
+        mismatch = None
+        if vc.ok(r):
+            theirs = [c if c[0] != 'owner_bone' else c[:3] for c in case.client_calls]
+            mine = [c if c[0] != 'owner_bone' else c[:3] for c in case.c_calls]
+            mismatch = compare_calls(theirs, mine)
+            if mismatch is None and case.client_rand != case.c_rand:
+                mismatch = ('rand calls', case.client_rand, case.c_rand)
+        report.add('sparks', vc.ok(r) and mismatch is None,
+                   {'case': n, 'mismatch': mismatch, 'stopped': r['stopped'], 'error': r['error']})
+        report.cover('sparks', f'{made} sparks')
+
+
 def compile_mutant(directory, name, old, new):
     base = ROOT/'reconstructed'/'combat'
     inc = (base/'arrow_fx.inc').read_text()
@@ -306,7 +367,8 @@ def compare(text, data, lib, name, kinds, cases):
     m = fx.FxMachine(text, data)
     report = pt.Report()
     rng = random.Random('render-effects-007-' + name)
-    (family_create if name == 'effect_create' else family_move)(m, lib, rng, cases, report, kinds)
+    {'effect_create': family_create, 'effect_move': family_move, 'sparks': family_sparks}[name](
+        m, lib, rng, cases, report, kinds)
     return {'families': report.families, 'coverage': report.coverage}
 
 
@@ -316,7 +378,8 @@ BODIES = {'arrow_create': (0x013cb34d, 0x013cd688), 'create_471': (0x013ca9f2, 0
           'move_471_458_459': (0x01464238, 0x01464abf), 'move_shared': (0x01464ece, 0x01465d5b),
           'move_45a_45b_442_45c_45d_45e': (0x01466819, 0x01467f03), 'move_525_60a': (0x014681fe, 0x01468a1f),
           'move_60d_616': (0x01468c0a, 0x0146af38), 'move_474': (0x014712e8, 0x014716e9),
-          'move_5b0_5b1': (0x014abb41, 0x014abc00), 'bounce': (0x0150de66, 0x0150df8e),
+          'move_5b0_5b1': (0x014abb41, 0x014abc00), 'create_5b0_5b1': (0x013f5f8c, 0x013f667f),
+          'bow_sparks': (0x0158dfdc, 0x0158e1aa), 'move_459_motion': (0x014ed2ef, 0x014ed46a), 'bounce': (0x0150de66, 0x0150df8e),
           'straight_skill': (0x013bce8f, 0x013bced1)}
 
 
@@ -328,6 +391,7 @@ def run(cases, mutations):
     lib = fx.load_library(ROOT/'reconstructed'/('combat/libcombat.' + fx.SUFFIX))
     for name in ('effect_create', 'effect_move'):
         result['comparisons'][name] = compare(text, data, lib, name, KINDS, cases * len(KINDS))
+    result['comparisons']['sparks'] = compare(text, data, lib, 'sparks', None, cases * 20)
     if mutations:
         with tempfile.TemporaryDirectory(prefix='render-effects7-mutants-') as tmp:
             for name, old, new, family, kind in MUTANTS:

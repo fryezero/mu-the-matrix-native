@@ -2412,7 +2412,7 @@ int mu_sfx_create_arrows(const mu_sfx_archer *a, float angle[3], uint16_t skill,
         copy3(angle, saved);
     }
     if (a->weapon == 0x12f9)
-        out->bow_sparks = 1;   /* 0x0158dfdc: fifteen sparks at the bow's bone, not reconstructed */
+        out->bow_sparks = 1;   /* 0x0158dfdc: fifteen sparks at the bow's bone (mu_sfx_bow_sparks) */
     return out->count;
 }
 

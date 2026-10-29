@@ -439,7 +439,7 @@ typedef struct mu_sfx_arrow_shots {
     float angle[MU_SFX_ARROW_SHOTS][3];   /* the object's angle at each call */
     int32_t last[MU_SFX_ARROW_SHOTS];
     int serial_steps;         /* ++[[0x01d1df18] + 0x2dec] */
-    int bow_sparks;           /* bow 0x12f9's fifteen bone sparks follow (not reconstructed) */
+    int bow_sparks;           /* bow 0x12f9's fifteen bone sparks follow (mu_sfx_bow_sparks) */
 } mu_sfx_arrow_shots;
 
 /* angle: the object's angle, turned for each shot and restored. Returns the number of shots. */
@@ -461,6 +461,11 @@ typedef struct mu_sfx_arrow_effect {
 int32_t mu_sfx_arrow_type(int32_t bow);
 /* RENDER-EFFECTS-007: 1 for the arrow types CreateEffect/MoveEffect reconstruct (0x43b and arrow_fx.inc's 30). */
 int mu_sfx_is_arrow(int32_t type);
+/* RENDER-EFFECTS-007: bow 0x12f9's fifteen sparks after CreateArrows' shots (0x0158dfdc, verified): at
+ * TransformPosition(weapon bone, (0, 10, -130)) through env->owner_bone(object, bone); per spark a random yaw
+ * (rand % 360 on angle x), a 0x7fd5 joint (subtype 3, scale 10) on rand % 2 == 0, then a Spark 0x7f25 particle.
+ * Returns the number of sparks (0: another bow, no model, or the bone is missing). */
+int mu_sfx_bow_sparks(int16_t weapon, int32_t object, int has_model, int32_t bone, int bone_ok, const mu_sfx_env *env);
 
 int mu_sfx_create_arrow(const mu_sfx_archer *a, const float position[3], const float angle[3], uint16_t skill,
                         uint16_t flag, uint16_t index, int32_t last, const mu_sfx_env *env, mu_sfx_arrow_effect *out);
