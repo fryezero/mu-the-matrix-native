@@ -36,6 +36,14 @@ int mu_world_after_pass_ex(mu_obj_world *, const mu_obj_render_inputs *, const m
 int mu_abyss_custom(int32_t cls, uint8_t *object, int32_t index, int32_t world, float time, mu_obj_rand_fn rand_fn,
                     void *context, mu_obj_log *log);
 int mu_abyss_after(int32_t cls, const uint8_t *object, int32_t index, int32_t world, mu_obj_log *log);
+/* RENDER-WORLDS-AFTER2: the custom render slot 0x38 (returns handled) and after render slot 0x3c of the classes
+ * mu_class_slots names (world_slots_visual.c). b: the model fields (+0x54 colour, +0x94 StreamMesh byte, +0xa8
+ * action, +0xac frame); time: WorldTime. */
+int mu_class_slots(int32_t world);
+int mu_class_custom(int32_t cls, uint8_t *object, uint8_t *b, int32_t index, int32_t world, float time,
+                    mu_obj_log *log);
+void mu_class_after(int32_t cls, uint8_t *object, uint8_t *b, int32_t index, int32_t world, float time,
+                    mu_obj_log *log);
 int mu_world_chain_predicate(uint32_t address, int32_t world);
 int mu_world_after_render(uint8_t *, int32_t, int32_t, float, mu_obj_log *, mu_world_bone_fn, void *);
 typedef void (*mu_world_named_bone_fn)(void *, const char *, const float[3], float[3]);
