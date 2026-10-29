@@ -60,11 +60,17 @@ int mu_fixture_is_transport(const mu_transport *t);
 
 /* Out-of-process: serve the scenario on a loopback TCP port for one client connection, stepping
  * every step_ms until the client closes or `seconds` pass. Returns 0 after a session, -1 on an error
- * (message in the report's last_error). */
-int mu_fixture_serve(mu_fixture *f, const char *host, uint16_t port, uint32_t seconds, uint32_t step_ms);
+ * (message in the report's last_error). Each accepted peer is screened first (FIXTURE-PROBE-001): it is
+ * served when its first byte is a C1-C4 head or it stays silent for screen_ms; otherwise (an HTTP probe, a
+ * connect-and-close scan) it is closed, counted in rejected_peers, and the listener keeps accepting.
+ * screen_ms < 0 serves the first peer unscreened (the pre-FIXTURE-PROBE-001 behaviour, for the control). */
+#define MU_FIXTURE_SCREEN_MS 250
+int mu_fixture_serve(mu_fixture *f, const char *host, uint16_t port, uint32_t seconds, uint32_t step_ms,
+                     int screen_ms);
 
 typedef struct mu_fixture_report {
     uint64_t requests, answers, undecodable_requests, refused_connects;
+    uint64_t rejected_peers;   /* mu_fixture_serve: stray connections screened out */
     uint32_t behaviors, steps;
     char last_error[128];
 } mu_fixture_report;

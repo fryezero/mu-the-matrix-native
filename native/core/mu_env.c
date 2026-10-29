@@ -1,6 +1,7 @@
 /* The client's ambient world life and weather in the native session
  * (NATIVE-ENV-001). */
 #include <math.h>
+#include "mu_frame_time.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -280,7 +281,7 @@ void mu_world_env_step(mu_world_env *e, const mu_world_env_hero *hero, const flo
     in->world_time = world_time;
     /* 0x01851f82 increments this integer once per 40 ms logic step. */
     in->ambient_clock = e->world == 10 ? (int32_t)e->stats.steps : mu_env_cvttss2si(world_time);
-    in->frame_time = 0.1f;   /* [0x01cf103c] */
+    in->frame_time = mu_frame_time_value();   /* [0x01cf103c] */
     in->attributes = e->map->attributes;
     in->layer1 = e->map->layer1;
     int weather = e->world == 0x8d ? e->env.tormenta.weather : 0;

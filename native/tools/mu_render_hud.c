@@ -1,7 +1,8 @@
 /* `mu-render ui inventory|tooltip` (NATIVE-HUD-001).
  *
  *   mu-render ui inventory [--root GAME] [--size 1722x1048] [--items "code[:level],..."] [--hover N]
- *                          [--time MS] [--item-scale K] [--font FACE] [--hero S,A,E,L] --out inv.png
+ *                          [--time MS] [--item-scale K] [--font FACE] [--hero S,A,E,L] [--wearer CLASS]
+ *                          --out inv.png
  *   mu-render ui tooltip   [--root GAME] --item CODE[:LEVEL] [--size WxH] [--html-out FILE] --out tip.png
  *
  * The client's inventory and tooltip are GFx (Scaleform) movies; their frames
@@ -14,6 +15,9 @@
  * formatter cases and the InfoPopup HTML assembly; the HTML is shown with the
  * UI-001 text path (GDI boundary: CoreText).  Without --root everything is
  * synthetic.  Renders and decoded text stay local.
+ * --wearer CLASS (RENDER-ITEMS-TEX-002, authored): part models (helm..boots, class parts) take that class byte's
+ * skin index at +0xa4, as if a character of that class had worn them (RenderCharacter 0x0136a4bd); without it they
+ * keep 0, a model no character has drawn.
  */
 #define _POSIX_C_SOURCE 200809L /* strdup, strtok_r with -std=c11 on glibc */
 #include <stdio.h>
@@ -26,6 +30,7 @@
 #include "../core/mu_hud.h"
 #include "../core/mu_particles.h"
 #include "../core/mu_hud_tip.h"
+#include "../core/mu_item_textures.h"
 #include "../core/mu_model.h"
 #include "../core/mu_png.h"
 #include "../core/mu_raster.h"
@@ -45,6 +50,7 @@ typedef struct hud_options {
     int32_t width, height, hover, time_ms;
     float item_scale;
     int hero[4];
+    int wearer;   /* class byte, -1 none */
 } hud_options;
 
 static int parse(hud_options *o, int argc, char **argv)
@@ -59,6 +65,7 @@ static int parse(hud_options *o, int argc, char **argv)
     o->root = getenv("MU_GAME_ROOT");
     o->hero[0] = o->hero[1] = o->hero[2] = 65535;
     o->hero[3] = 1600;
+    o->wearer = -1;
     if (argc < 3)
         return 1;
     o->screen = argv[2];
@@ -74,6 +81,7 @@ static int parse(hud_options *o, int argc, char **argv)
         else if (!strcmp(a, "--time") && v) { o->time_ms = atoi(v); ++i; }
         else if (!strcmp(a, "--item-scale") && v) { o->item_scale = (float)atof(v); ++i; }
         else if (!strcmp(a, "--no-root")) { o->root = NULL; }
+        else if (!strcmp(a, "--wearer") && v) { o->wearer = (int)strtol(v, NULL, 0) & 0xff; ++i; }
         else if (!strcmp(a, "--hero") && v) {
             if (sscanf(v, "%d,%d,%d,%d", &o->hero[0], &o->hero[1], &o->hero[2], &o->hero[3]) != 4)
                 return 1;
@@ -288,13 +296,10 @@ static int draw_model(const hud_options *o, const mu_data_table *items, mu_raste
     }
     mu_model_set_state(&model, 0, 0.0f, 0.0f, 0);
     mu_model_update(&model);
-    mu_textures textures;
-    char directory[1024];
-    snprintf(directory, sizeof directory, "%s", path);
-    char *slash = strrchr(directory, '/');
-    if (slash)
-        slash[1] = 0;
-    mu_textures_load(&textures, &bmd, directory);
+    mu_textures textures;   /* the client's item texture rule and the body's override bitmaps (RENDER-ITEMS-TEX-001) */
+    mu_item_textures_load(&textures, &bmd, items, o->root, d->out.model, path, NULL);
+    if (o->wearer >= 0 && mu_item_textures_is_part(d->out.model))
+        mu_item_textures_wear(&textures, o->root, (uint8_t)o->wearer);
     r->textures = textures.slots;
     r->texture_count = textures.count;
     r->texture_filter = textures.filter;

@@ -22,6 +22,7 @@
 #include "../core/mu_character.h"
 #include "../core/mu_lang.h"
 #include "../core/mu_hud.h"
+#include "../core/mu_item_textures.h"
 #include "../core/mu_model.h"
 #include "../core/mu_particles.h"
 #include "../core/mu_renderchar.h"
@@ -68,6 +69,7 @@ struct wg_items {
     int fbo_w, fbo_h, fbo_failed;
     mu_world_particles *skin_particles;
     mu_gl_backend skin_gl;
+    int32_t wearer;             /* RENDER-ITEMS-TEX-002: class byte, -1 none */
 };
 
 wg_items *wg_items_open(const char *game_root)
@@ -76,6 +78,7 @@ wg_items *wg_items_open(const char *game_root)
     if (!w)
         return NULL;
     w->lang = mu_lang_load_default();
+    w->wearer = -1;
     if (game_root && game_root[0]) {
         snprintf(w->root, sizeof w->root, "%s", game_root);
         w->have_root = 1;
@@ -86,6 +89,12 @@ wg_items *wg_items_open(const char *game_root)
         w->have_trs = mu_hud_trs_load(path, &w->trs) == 0;
     }
     return w;
+}
+
+void wg_items_set_wearer(wg_items *w, int32_t class_byte)
+{
+    if (w)
+        w->wearer = class_byte;
 }
 
 static void model_free(item_model *m)
@@ -212,13 +221,12 @@ static item_model *model_for(wg_items *w, int32_t code, int32_t type)
         mu_model_share(&m->model, man->shared_bones, man->shared_root, man->shared_quaternions);
         m->armour = 1;
     }
-    char directory[1024];
-    snprintf(directory, sizeof directory, "%s", m->info.model_path);
-    char *slash = strrchr(directory, '/');
-    if (slash)
-        slash[1] = 0;
-    mu_textures_load(&m->textures, &m->bmd, directory);
-    if (m->textures.missing > 0) {
+    mu_item_textures_stats texture_stats;   /* the client's item texture rule (RENDER-ITEMS-TEX-001) */
+    mu_item_textures_load(&m->textures, &m->bmd, w->have_items ? &w->items : NULL, w->root, type,
+                          m->info.model_path, &texture_stats);
+    if (w->wearer >= 0 && mu_item_textures_is_part(type))
+        mu_item_textures_wear(&m->textures, w->root, (uint8_t)w->wearer);
+    if (texture_stats.rule == MU_ITEM_RULE_FOLDER && m->textures.missing > 0) {
         /* The installed armour-part item models (Data/Item/HelmMale02.bmd, ...)
          * have their textures in Data/Player, next to the character parts
          * (installed files; the client's texture path for them is not

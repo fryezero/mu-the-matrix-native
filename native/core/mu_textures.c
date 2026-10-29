@@ -206,6 +206,26 @@ int mu_textures_load_with_effects(mu_textures *t, const mu_bmd *model, const cha
     return 0;
 }
 
+int mu_textures_load_specials(mu_textures *t, const mu_bmd *model, const char *effect_directory)
+{
+    if (!allocate(t, model->mesh_count))
+        return 1;
+    for (int32_t i = 0; i < t->model_count; ++i) {
+        t->filter[i] = GL_NEAREST_;
+        t->wrap[i] = GL_REPEAT_;
+    }
+    for (int32_t k = 0; k < MU_TEXTURE_SPECIAL_COUNT; ++k) {
+        const int32_t s = t->model_count + k;
+        t->filter[s] = mu_texture_specials[k].filter;
+        t->wrap[s] = mu_texture_specials[k].wrap;
+        char path[4096], error[256];
+        if (effect_directory && mu_image_resolve(effect_directory, mu_texture_specials[k].file, path, sizeof path) &&
+            mu_texture_upload_file(path, 'j', &t->images[s], &t->components[s], error, sizeof error) == MU_IMAGE_OK)
+            t->slots[s] = &t->images[s];
+    }
+    return 0;
+}
+
 int mu_textures_set_file(mu_textures *t, const mu_bmd *model, int32_t index, const char *path)
 {
     if (index < 0 || index >= t->model_count || t->slots[index])
@@ -286,5 +306,7 @@ void mu_textures_free(mu_textures *t)
     free(t->filter);
     free(t->wrap);
     free(t->extra_index);
+    free(t->client_index);
+    free(t->texture_type);
     memset(t, 0, sizeof *t);
 }

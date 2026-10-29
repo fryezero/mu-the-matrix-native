@@ -45,6 +45,18 @@ typedef struct mu_textures {
     /* NATIVE-HELPERS-002: extra client bitmaps a model's passes name by index (after the specials; 0 = none) */
     int32_t extra_count;
     int32_t *extra_index;
+    /* RENDER-ITEMS-TEX-001: per mesh slot, the special IndexTexture the client stores for a special mesh name
+     * (0x7725 skin, 0x791a hide, ...; 0 = the slot's own bitmap); NULL when the loader sets none */
+    int32_t *client_index;
+    /* RENDER-ITEMS-TEX-002: model fields the item loader 0x00cd558e writes and the mesh draw reads. Zero / NULL
+     * leaves the previous behaviour (the model draw's texture type table zero, flags zero):
+     *  - texture_type: per mesh slot, TextureType (1 nude_, 2 cotton_, 3 cotton2_); NULL when the loader sets none;
+     *  - field: model +0xa6, set when a mesh name starts with "field_";
+     *  - skin_shift: model +0xa4, the wearer's skin index (0x0139d6a2) that RenderCharacter writes into its part
+     *    models (0x0136a4bd); 0 after the item loader's memset (0x00cd5623). */
+    int32_t *texture_type;
+    uint8_t field;
+    int8_t skin_shift;
 } mu_textures;
 
 /* Client bitmap index and file of each environment bitmap. */
@@ -58,6 +70,9 @@ extern const mu_texture_special mu_texture_specials[MU_TEXTURE_SPECIAL_COUNT];
 /* Loads the model textures from `directory` and the environment bitmaps
  * from `directory`/../Effect (or `effect_directory` when not NULL). */
 int mu_textures_load(mu_textures *textures, const mu_bmd *model, const char *directory);
+/* RENDER-ITEMS-TEX-001: the same storage with every mesh slot empty (missing = 0) and the environment bitmaps from
+ * effect_directory; the caller fills the mesh slots with mu_textures_set_file. */
+int mu_textures_load_specials(mu_textures *textures, const mu_bmd *model, const char *effect_directory);
 /* Uploads an installed file into a mesh slot that mu_textures_load left empty (OpenTexture's later steps,
  * mu_texture_names). Returns 0 on success. */
 int mu_textures_set_file(mu_textures *textures, const mu_bmd *model, int32_t index, const char *path);
