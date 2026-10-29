@@ -93,6 +93,7 @@ RENDER-TIME-002 live half: read-only post-draw sampler and input replay; two Lor
 RENDER-TIME-001 native side: fourteen scripted views across thirteen maps, full-draw temporal samples and regression thresholds. Locked Mac gate passes 1,544 tests; private temporal rerun passes 16/16. The live capture/phase-alignment half remains open. [Checks and limits](handoffs/RENDER-TIME-001.md).
 
 APP-REFRESH-001: [app refresh, smoke and installation](handoffs/APP-REFRESH-001.md).
+APP-REFRESH-002: [app refresh 2, Native Data inputs and installation](handoffs/APP-REFRESH-002.md).
 
 README-REFRESH-003: [handoff](handoffs/README-REFRESH-003.md), [claim sources](research/readme-refresh.md). Public progress refreshed through PR #207; existing images/pins unchanged, no runtime code or live game used.
 
