@@ -292,6 +292,10 @@ static int effect_supported(int32_t type, int32_t sub)
         return sub == 0;
     case MU_SFX_MODEL_STONE1: case MU_SFX_MODEL_STONE2: return sub == 0 || sub == 1;
     case MU_SFX_MODEL_DUNGEON_STONE: return sub == 0;   /* RENDER-EFFECTS-005 */
+    /* RENDER-EFFECTS-006: the subtypes the world objects ask for */
+    case MU_SFX_MODEL_FLYBAT: return sub == 0;
+    case MU_SFX_MODEL_SHOAL: return sub == 0 || sub == 1;
+    case MU_SFX_MODEL_SEALEAF: return sub == 3;
     case MU_SFX_MODEL_TORNADO: return sub == 0;
     case MU_SFX_MODEL_STAR_DRAGON: case MU_SFX_MODEL_STAR_GLINT: return sub == 0 || sub == 1;
     /* NATIVE-HELPERS-002: the mounts' flying step, Fenrir's lightning and paw marks */
@@ -394,6 +398,12 @@ int mu_sfx_effect_create(mu_sfx_effect *e, int32_t type, int32_t subtype, const 
     copy3(e->angle, angle);
     copy3(e->position, position);
     e->direction[0] = e->direction[1] = e->direction[2] = 0.0f;
+    /* RENDER-EFFECTS-006: 0x195 and 0x59a read their owner's scale (+0xa0) without a null test; a request without
+     * an owner object is refused here instead of faulting */
+    if ((type == MU_SFX_MODEL_FLYBAT || type == MU_SFX_MODEL_SEALEAF) && !o) {
+        memset(e, 0, sizeof *e);
+        return 0;
+    }
 
     if (mu_world_warp_type(type)) {
         mu_world_warp_create(e, light, env);
@@ -737,6 +747,59 @@ int mu_sfx_effect_create(mu_sfx_effect *e, int32_t type, int32_t subtype, const 
         e->position[2] = e->position[2] + d[2];
         break;
     }
+    case MU_SFX_MODEL_SHOAL:
+        /* RENDER-EFFECTS-006, 0x013c39d9: a wandering shoal around the creation point, light from its blend light
+         * (subtype 1: the caller's light). The info byte 4 the callers pass ((u16)scale) is overwritten. */
+        e->client_hit = 0;
+        e->blend_light = 1.0f;
+        e->velocity = 1.0f;
+        e->lifetime = 1000;
+        e->gravity = 1.0f;
+        e->field_cc = 1.0f;
+        for (int k = 2; k >= 0; --k)
+            e->position[k] = ((float)smod(env_rand(env), 200) - 100.0f) + e->position[k];
+        e->angle[2] = (float)smod(env_rand(env), 360) + e->angle[2];
+        e->direction[0] = 0.0f;
+        e->direction[1] = (float)smod(env_rand(env), 8) * F_0_1 - 5.0f;
+        e->direction[2] = 0.0f;
+        e->scale = (float)smod(env_rand(env), 5) / 40.0f + e->scale;
+        copy3(e->impact, e->position);
+        e->light[0] = e->blend_light / 10.0f;
+        e->light[1] = e->blend_light / 10.0f;
+        e->light[2] = e->blend_light / 4.0f;
+        if (subtype == 1)
+            copy3(e->light, light);
+        break;
+    case MU_SFX_MODEL_FLYBAT: {
+        /* RENDER-EFFECTS-006, 0x013c3d67: a bat that flies off along its turned heading, its model posed once */
+        e->lifetime = 150;
+        e->velocity = F_0_3;
+        e->angle[2] = (float)smod(env_rand(env), 60) + e->angle[2];
+        int16_t keys = 1;
+        if (!env || !env->model || env->model(env->context, type, e->action, &keys)) {
+            mu_sfx_call c;
+            memset(&c, 0, sizeof c);
+            c.routine = MU_SFX_CALL_POSE;
+            c.type = type;
+            c.owner = -2;
+            env_call(env, &c, e);
+        }
+        e->direction[0] = 0.0f;
+        e->direction[1] = -20.0f * o->scale;
+        e->direction[2] = 0.0f;
+        break;
+    }
+    case MU_SFX_MODEL_SEALEAF:
+        /* RENDER-EFFECTS-006, 0x013f5b63: a drifting leaf, unlit, turning one way or the other (byte +0x3b) */
+        e->lifetime = 250;
+        e->velocity = F_0_3;
+        e->flag5 = 0;
+        e->client_hit = (uint8_t)smod(env_rand(env), 2);
+        e->direction[0] = 0.0f;
+        e->direction[1] = -5.0f * o->scale;
+        e->direction[2] = 0.0f;
+        e->scale = f32bits(0x3eb33333u);   /* 0.35, 0x01a800b8 */
+        break;
     case MU_SFX_MODEL_STAR_DRAGON: {
         /* 0x013f41b4 (NATIVE-CHARSEL-003): the sky dragon of the character select, emitted by World94's objects
          * 0x27/0x28 (CGMCharacterScene_Ex slot 0x34) */
@@ -918,6 +981,58 @@ static void heal_joints(mu_sfx_effect *e, const mu_sfx_env *env)
         call_joint(env, e, MU_SFX_BITMAP_JOINT_ENERGY, s, e->position, a, e->subtype == 5 ? 11 : e->subtype,
                    e->owner, 5.0f);
     }
+}
+
+/* RENDER-EFFECTS-006, 0x014ed512 (MoveEffect's second switch): the leaf turns, bobs between 50 and 150 above
+ * the terrain and, as subtype 3, glows with a flare sprite and now and then a Spark02 spark. light is
+ * MoveEffect's local colour (1, 1, 1 from its prologue). */
+static void sealeaf_move(mu_sfx_effect *e, const mu_sfx_env *env, float light[3])
+{
+    if (e->client_hit > 0)
+        e->angle[2] = (float)smod(env_rand(env), 10) + e->angle[2];
+    else
+        e->angle[2] = e->angle[2] - (float)smod(env_rand(env), 10);
+    if (smod(env_rand(env), 32) == 0)
+        e->direction[2] = (float)(smod(env_rand(env), 15) - 7) * 1.0f;
+    e->direction[2] = (float)(smod(env_rand(env), 15) - 7) * F_0_2 + e->direction[2];
+    const float h = env_height(env, e->position[0], e->position[1]);
+    if (h + 50.0f > e->position[2]) {
+        e->direction[2] = e->direction[2] * F_0_8;
+        e->direction[2] = e->direction[2] + 1.0f;
+    }
+    if (e->position[2] > h + 150.0f) {
+        e->direction[2] = e->direction[2] * F_0_8;
+        e->direction[2] = e->direction[2] - 1.0f;
+    }
+    e->position[2] = (float)(smod(env_rand(env), 15) - 7) * F_0_3 + e->position[2];
+    const float lum = (float)(smod(env_rand(env), 32) + 64) * F_0_01;
+    if (e->subtype != 3)
+        return;
+    const float F_1_2 = f32bits(0x3f99999au);   /* 0x01a7e6e4 */
+    light[0] = lum * f32bits(0x3f19999au);       /* 0.6, 0x01a7e9a0 */
+    light[1] = lum * F_1_2;
+    light[2] = lum * F_1_2;
+    {   /* CreateSprite(flare01, position, 1, light, this effect, 0, 0, 4, {1, 1, 1}) */
+        mu_sfx_call c;
+        memset(&c, 0, sizeof c);
+        c.routine = MU_SFX_CALL_SPRITE;
+        c.type = MU_SFX_BITMAP_FLARE;
+        c.scale = 1.0f;
+        c.owner = -2;
+        c.range = 4;
+        copy3(c.position, e->position);
+        copy3(c.light, light);
+        env_call(env, &c, e);
+    }
+    if (env_rand(env) % 3 != 0)
+        return;
+    float p[3];
+    for (int k = 0; k < 3; ++k)
+        p[k] = (float)(smod(env_rand(env), 16) - 8);
+    for (int k = 0; k < 3; ++k)
+        p[k] = p[k] + e->position[k];
+    light[1] = light[1] * F_1_2;
+    call_particle(env, e, 0x7f25, p, e->angle, light, 15, f32bits(0x3f8ccccdu) /* 1.1, 0x01a889d0 */, -2);
 }
 
 int mu_sfx_effect_move(mu_sfx_effect *e, const mu_sfx_env *env)
@@ -1618,6 +1733,49 @@ int mu_sfx_effect_move(mu_sfx_effect *e, const mu_sfx_env *env)
         }
         goto lifetime;   /* 0x014ecc1f: no generic animation or motion */
     }
+    case MU_SFX_MODEL_SHOAL: {
+        /* RENDER-EFFECTS-006, 0x01435aed: one step in 40 each swing reverses its speed; the shoal turns back
+         * (50 steps left) once 500 units from where it started, sways with the world clock and leaves a flare */
+        if (smod(env_rand(env), 40) == 1) {
+            e->velocity = e->velocity * -1.0f;
+            e->gravity = ((float)smod(env_rand(env), 3) + 5.0f) * e->velocity;
+        }
+        if (smod(env_rand(env), 40) == 1) {
+            e->velocity = e->velocity * -1.0f;
+            e->field_cc = ((float)smod(env_rand(env), 3) + 1.0f) * e->velocity;
+        }
+        float d[3];
+        for (int k = 0; k < 3; ++k)
+            d[k] = e->position[k] - e->impact[k];
+        const float length = sqrtf(d[0] * d[0] + d[1] * d[1] + d[2] * d[2]);   /* VectorLength 0x00cfd020 */
+        if (length >= 500.0f && e->client_hit == 0) {
+            e->lifetime = 50;
+            e->client_hit = 1;
+        }
+        const float t = env ? env->world_time : 0.0f;
+        const float phase = (float)(trunc_i32(t) % 10000) * f32bits(0x38d1b717u);   /* 0.0001, 0x01a80214 */
+        e->angle[2] = (float)sin((double)phase) * e->gravity + e->angle[2];
+        e->angle[0] = (float)sin((double)phase) * e->field_cc / 3.0f + e->angle[0];
+        call_particle(env, e, MU_SFX_BITMAP_FLARE, e->position, e->angle, e->light, 9, e->scale, MU_SFX_NO_OWNER);
+        break;   /* the generic animation and motion follow */
+    }
+    case MU_SFX_MODEL_FLYBAT: {
+        /* RENDER-EFFECTS-006, 0x01435e18: its own animation (result unused), the rotated motion, a random climb;
+         * 0x195 is on 0x014ecc0f's list, so no generic animation or motion */
+        int16_t keys = 1;
+        if (!env || !env->model || env->model(env->context, type, e->action, &keys)) {
+            mu_sfx_call c;
+            memset(&c, 0, sizeof c);
+            c.routine = MU_SFX_CALL_ANIMATION;
+            c.type = type;
+            c.scale = e->velocity;
+            c.owner = -2;
+            env_call(env, &c, e);
+        }
+        mu_sfx_effect_advance(e, 1);
+        e->position[2] = (float)smod(env_rand(env), 15) * F_0_3 + e->position[2];
+        goto lifetime;
+    }
     default:
         break;
     }
@@ -1647,6 +1805,11 @@ int mu_sfx_effect_move(mu_sfx_effect *e, const mu_sfx_env *env)
     }
     /* the second switch 0x014ece4f: Fire subtype 14 moves without rotation,
      * the default 0x0150df8e(o, 1) */
+    if (type == MU_SFX_MODEL_SEALEAF) {
+        sealeaf_move(e, env, light);
+        mu_sfx_effect_advance(e, 1);
+        goto lifetime;
+    }
     if (!(type >= 0x7f4e && type <= 0x7f50))
         mu_sfx_effect_advance(e, !(type == MU_SFX_MODEL_FIRE && sub == 14));
 

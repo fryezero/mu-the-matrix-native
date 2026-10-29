@@ -80,7 +80,14 @@ enum {
     MU_SFX_MODEL_QUAKE7 = 0x468,
     MU_SFX_MODEL_QUAKE8 = 0x469,
     MU_SFX_MODEL_FLASHING = 0x46a,    /* Skill\flashing.bmd */
-    MU_SFX_MODEL_TAIL = 0x46b         /* Skill\tail.bmd */
+    MU_SFX_MODEL_TAIL = 0x46b,        /* Skill\tail.bmd */
+    /* RENDER-EFFECTS-006: effects the world objects create with themselves as owner (info word4 from scale) */
+    MU_SFX_MODEL_FLYBAT = 0x195,      /* Object124\hs_flybatA.bmd (Kubera, AccessModel 0x00e196c8) and Object144\
+                                         (Kardamahal, 0x00e0e603; not installed: the client's empty model) */
+    MU_SFX_MODEL_SHOAL = 0x199,       /* Object8\Fish02.bmd, loaded only in Atlans and the abyss (0x018399bf,
+                                         0x01841a7a): elsewhere an empty model that only leaves its flare trail */
+    MU_SFX_MODEL_SEALEAF = 0x59a      /* Object92\zu_sealeaf04.bmd (worlds 91, 92: 0x01840f53) and Object123\
+                                         (122: 0x01841845, 0x00e3a40f) */
 };
 
 /* Client routines reported through the call hook. */
@@ -165,6 +172,8 @@ typedef struct mu_sfx_effect {
     uint8_t field_4;         /* +0x04 */
     float field_c0;          /* +0xc0 */
     float spin[3];           /* +0x194 per-step angle change (0x460 subtype 4) */
+    /* RENDER-EFFECTS-006: the world objects' owned effects 0x195/0x199/0x59a */
+    float field_cc;          /* +0xcc the shoal's pitch swing (0x199; +0xc8 gravity is its yaw swing) */
 } mu_sfx_effect;
 
 /* CreateEffect's info block (argument 8, 0x20 bytes). */
