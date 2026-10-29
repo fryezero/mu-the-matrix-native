@@ -43,3 +43,14 @@ was used.
 
 After merge, remove `native/{scratch,renders}/render-worlds-q`, the worktree (with its builds and input links) and
 the local branch. No new local input needs retention. DATA-ACQ-002's inputs were only read.
+
+## Preflight (steward process)
+
+Merged origin/main `eb4b53a` (RENDER-WORLDS-P/P2/G2, BUILD-DEPS-001; conflicts in Makefiles, the runtime move loop and
+primary-visual list, the registry and status docs keep both sides; coverage markdown regenerated). Mutant copies
+now carry `reconstructed/deps.mk` (`build_library` and the light-name validator), compatible with G2's `-include`.
+After a clean native build: `nice -n 10 bash scripts/local-macos-ci.sh` passes, **38 unittest runs, 1,708 tests,
+222 explicit skips, zero failures; 1,687 audited files, zero rejected**. Private `validate_worlds_q` and
+`validate_world_light_name` pass (`--jobs 2`); N/O/P/P2 validators also passed on the earlier merge. On the merged
+binary the four captures repeat 2.365 / 1.709 / 4.321; Acheron reads 6.905 (7.706 before) from G2's texture
+lookup, not this lane. No hosted workflow and no original client were run.
