@@ -33,6 +33,7 @@
 
 #include "../../reconstructed/objects/objects.h"
 #include "../../reconstructed/objects/object_render.h"
+#include "../../reconstructed/objects/worlds_q.h"
 #include "mu_bmd.h"
 #include "mu_model.h"
 #include "mu_raster.h"
@@ -162,6 +163,7 @@ typedef struct mu_objects_runtime {
     int32_t icarus_count; /* previous MoveObjects ordinal, 0x0bdc5890 */
     long effect_events;
     void *hook_context;
+    mu_q_handler q_handler;   /* RENDER-WORLDS-Q handler members (Ferea state 0, Swamp variant 1 as constructed) */
 } mu_objects_runtime;
 
 typedef struct mu_objects {

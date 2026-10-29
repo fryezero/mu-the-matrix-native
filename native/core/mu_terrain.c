@@ -297,7 +297,8 @@ mu_world *mu_world_load(const char *root, int32_t world, uint32_t seed, int text
     }
 
     int32_t pixels = 0;
-    raw = world_path(path, sizeof path, root, folder, "TerrainLight.OZB") ? read_file(path, &size) : NULL;
+    snprintf(name, sizeof name, "%s.OZB", mu_terrain_light_name(world));   /* RENDER-WORLDS-Q: Kubera elements */
+    raw = world_path(path, sizeof path, root, folder, name) ? read_file(path, &size) : NULL;
     w->report.light_status = raw ? mu_terrain_light_bmp(raw, size, w->light_map, MU_TERRAIN_CELLS, &pixels) : -1;
     if (!raw)   /* the client loads nothing; the viewer lights the map white */
         for (int32_t i = 0; i < 3 * MU_TERRAIN_CELLS; ++i)
