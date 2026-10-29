@@ -85,8 +85,8 @@ def bind(lib):
     P, I, In, L = C.c_void_p, C.c_int32, C.POINTER(Inputs), C.POINTER(v.Log)
     for name, args in {'mu_acheron_create': [P, In], 'mu_acheron_move': [P, I, In, L],
                        'mu_acheron_visual': [P, I, In, L], 'mu_ferea_create': [P, In],
-                       'mu_ferea_move': [P, I, In, L], 'mu_swamp_create': [P, In], 'mu_swamp_move': [P, In],
-                       'mu_swamp_visual': [P, I, C.c_int, In, L], 'mu_kubera_create': [P, I, In, L],
+                       'mu_ferea_move': [P, I, In, L], 'mu_swamp_darkness_create': [P, In], 'mu_swamp_darkness_move': [P, In],
+                       'mu_swamp_darkness_visual': [P, I, C.c_int, In, L], 'mu_kubera_create': [P, I, In, L],
                        'mu_kubera_move': [P, I, In, L], 'mu_kubera_visual': [P, I, C.c_int, In, L]}.items():
         getattr(d, name).argtypes = args
         getattr(d, name).restype = C.c_int
@@ -272,7 +272,7 @@ def family(machine, lib, name, cases):
         inputs = Inputs(world, time, frame_time, now, (C.c_float * 3)(*hero), (C.c_int32 * 2)(*hero_tile),
                         ACTIONS_FN(actions_cb), v.RAND_FN(lambda ctx: crnd()), BONE_FN(bone_cb), None,
                         C.pointer(ch))
-        fn = getattr(lib.dll, 'mu_' + name)
+        fn = getattr(lib.dll, 'mu_' + name.replace('swamp_', 'swamp_darkness_', 1))
         if method == 'create':
             handled = fn(target, 0, C.byref(inputs), C.byref(log)) if prefix == 'kubera' else fn(target,
                                                                                                     C.byref(inputs))
