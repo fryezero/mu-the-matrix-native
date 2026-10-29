@@ -36,3 +36,13 @@ emitter in view to score the 136/140 lights; the two Bloody Tarkan type-67 veloc
 
 Local outputs: `native/scratch/render-worlds-p` and `renders/render-worlds-p`, deleted after merge with the worktree.
 No new local INPUT needs retention. The DATA-ACQ-002 inputs were only read.
+
+## Final locked gate
+
+Took the FIFO merge lock at 19:28 CDT and merged latest main `77c304a` (RENDER-WORLDS-O); conflicts in the
+Makefiles, dispatch includes, runtime visual chain, plan row and validator registry keep both sides. On the merged
+tree the P validator again passes 10,000 cases with zero mismatches/stops (the 51-mutant run is on the pre-merge
+tree; the P sources did not change in the merge). After `make -C native clean`, `bash scripts/local-macos-ci.sh`
+passes **1,685 tests across 38 discovery runs, 217 explicit optional/private skips, zero failures; 11/11 fixture
+scenarios; native viewer and reader builds; 1,650 audited files, zero rejected**. Preflight before the lock: 1,659
+tests, 213 skips, same scenarios, 1,632 files. No hosted workflow or original client was run.
