@@ -48,6 +48,15 @@ typedef struct mu_textures {
     /* RENDER-ITEMS-TEX-001: per mesh slot, the special IndexTexture the client stores for a special mesh name
      * (0x7725 skin, 0x791a hide, ...; 0 = the slot's own bitmap); NULL when the loader sets none */
     int32_t *client_index;
+    /* RENDER-ITEMS-TEX-002: model fields the item loader 0x00cd558e writes and the mesh draw reads. Zero / NULL
+     * leaves the previous behaviour (the model draw's texture type table zero, flags zero):
+     *  - texture_type: per mesh slot, TextureType (1 nude_, 2 cotton_, 3 cotton2_); NULL when the loader sets none;
+     *  - field: model +0xa6, set when a mesh name starts with "field_";
+     *  - skin_shift: model +0xa4, the wearer's skin index (0x0139d6a2) that RenderCharacter writes into its part
+     *    models (0x0136a4bd); 0 after the item loader's memset (0x00cd5623). */
+    int32_t *texture_type;
+    uint8_t field;
+    int8_t skin_shift;
 } mu_textures;
 
 /* Client bitmap index and file of each environment bitmap. */

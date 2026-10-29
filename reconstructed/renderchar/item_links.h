@@ -3,4 +3,5 @@ typedef struct { int32_t type, first, count; float z, rgb[3]; int flash, white; 
 static const mu_rc_link_chain mu_rc_link_chains[] = {
     {0x0af9, 2, 7, 0.0f, {1.00000000f, 0.30000000f, 0.10000000f}, 1, 0},
     {0x12f9, 1, 5, 10.0f, {0.50000000f, 0.50000000f, 0.80000000f}, 0, 1},
+    {0x0ef3, 0, 1, 0.0f, {1.00000000f, 0.30000000f, 0.10000000f}, 1, 0},
 };

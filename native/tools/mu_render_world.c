@@ -35,6 +35,18 @@ typedef struct world_options {
     int attachments;          /* draw the +15 class15_* attachments for level-15 parts */
 } world_options;
 
+
+/* RENDER-ITEMS-TEX-002: an attachment whose model type is known takes the client's item texture rule. */
+static void attach_item_textures(mu_renderchar_attachment *a, const char *game_root, const char *path, int no_textures)
+{
+    if (!game_root || no_textures || a->glow.type < 0)
+        return;
+    mu_hud_tip_tables tables;
+    mu_hud_tip_tables_load(game_root, &tables);
+    mu_item_textures_reload(&a->textures, &a->bmd, tables.have_items ? &tables.items : NULL, game_root, a->glow.type,
+                            path);
+    mu_hud_tip_tables_free(&tables);
+}
 static world_options W;
 
 static int slot_index(const char *name)
@@ -250,15 +262,11 @@ int mu_render_world_character(const mu_options *o)
             mu_character_item *item = &c.items[i];
             if (!item->loaded || W.glow[i].type < 0)
                 continue;
-            mu_textures fresh;
-            mu_item_textures_stats stats;
-            if (mu_item_textures_load(&fresh, &item->bmd, tables.have_items ? &tables.items : NULL, o->game_root,
-                                      W.glow[i].type, item->path, &stats) == 0 && stats.rule != MU_ITEM_RULE_FOLDER) {
-                mu_textures_free(&item->textures);
-                item->textures = fresh;
-            } else {
-                mu_textures_free(&fresh);
-            }
+            mu_item_textures_reload(&item->textures, &item->bmd, tables.have_items ? &tables.items : NULL,
+                                    o->game_root, W.glow[i].type, item->path);
+            /* RENDER-ITEMS-TEX-002: RenderCharacter writes the wearer's skin index into its part models (+0xa4) */
+            if (i >= MU_PART_HELM && i <= MU_PART_BOOTS && o->class_byte >= 0)
+                mu_item_textures_wear(&item->textures, o->game_root, (uint8_t)o->class_byte);
         }
         mu_hud_tip_tables_free(&tables);
     }
@@ -302,6 +310,7 @@ int mu_render_world_character(const mu_options *o)
                 continue;
             }
             att[k].glow.type = ATTACH[k].model;
+            attach_item_textures(&att[k], o->game_root, path, o->no_textures);
             attached++;
         }
     }
@@ -477,6 +486,7 @@ int mu_render_world_actor(const mu_options *o)
             continue;
         }
         weapons[s].glow.type = mu_renderchar_type_from_path(W.actor_weapons[s]);
+        attach_item_textures(&weapons[s], o->game_root, W.actor_weapons[s], o->no_textures);
         weapons[s].glow.level = W.actor_weapon_levels[s];
         loaded++;
     }

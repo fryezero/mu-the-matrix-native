@@ -11,6 +11,7 @@
 #include "../../reconstructed/actors/effect_class_table.h"
 #include "../../reconstructed/objects/object_render.h"
 #include "mu_data.h"
+#include "mu_item_textures.h"
 
 #define MONSTER_IDLE 0     /* docs/research/client-actors.md section 2 (inference) */
 #define MONSTER_WALK 2
@@ -114,6 +115,9 @@ static int load_player_npc(mu_world_actor *a, const char *root, const mu_monster
             mu_data_free(&table);
             return 1;
         }
+        /* RENDER-ITEMS-TEX-002: the client's item texture rule for the slot's type; parts take the NPC's skin */
+        if (!no_textures)
+            mu_item_textures_character(a->player, k, &table, root, type, row->class_byte);
         mu_character_item *part = &a->player->items[k];
         if (!no_textures && k <= 5 && part->textures.missing) {
             char player[4096], directory[4096];
