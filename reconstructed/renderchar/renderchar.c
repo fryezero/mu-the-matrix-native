@@ -149,11 +149,69 @@ static float client_wave(float a, float time)
     return (w + 1.0f) * 0.5f;
 }
 
+/* cvttss2si/cvttsd2si: out of range and NaN give the integer indefinite. */
+static int32_t clock_trunc(double x)
+{
+    return !(x >= -2147483648.0 && x < 2147483648.0) ? INT32_MIN : (int32_t)x;
+}
+
+/* Kind 3: a clock chain sliced from the pinned bytes (gen_item_bodies.slice_block).
+ * Integer, binary32 and binary64 registers; operands are data-image words,
+ * immediates or entry-local stores. Divisors 0 and -1 are excluded. */
+static float clock_program(const mu_rc_body_scalar *p, float time)
+{
+    int32_t i = 0;
+    float f = 0.0f;
+    double d = 0.0;
+    for (int n = 0; n < p->count; ++n) {
+        uint32_t word = (uint32_t)p->k[n];
+        int32_t ki = (int32_t)word;
+        float kf;
+        double kd;
+        memcpy(&kf, &word, 4);
+        memcpy(&kd, &p->k[n], 8);
+        switch (p->op[n]) {
+        case 1: f = time; break;
+        case 2: d = (double)time; break;
+        case 3: i = clock_trunc((double)time); break;
+        case 4: f = f * kf; break;
+        case 5: f = f / kf; break;
+        case 6: f = f + kf; break;
+        case 7: f = f - kf; break;
+        case 8: f = kf - f; break;
+        case 9: f = kf / f; break;
+        case 10: d = d * kd; break;
+        case 11: d = d / kd; break;
+        case 12: d = d + kd; break;
+        case 13: d = d - kd; break;
+        case 14: d = kd - d; break;
+        case 15: d = kd / d; break;
+        case 16: d = (double)f; break;
+        case 17: f = (float)d; break;
+        case 18: i = clock_trunc((double)f); break;
+        case 19: i = clock_trunc(d); break;
+        case 20: f = (float)i; break;
+        case 21: d = (double)i; break;
+        case 22: i = i % ki; break;
+        case 23: i = i / ki; break;
+        case 24: i = (int32_t)((uint32_t)i + word); break;
+        case 25: i = (int32_t)((uint32_t)i * word); break;
+        case 26: f = -f; break;
+        case 27: i = (int32_t)(0u - (uint32_t)i); break;
+        case 28: d = -d; break;
+        default: i = (int32_t)(word - (uint32_t)i); break;
+        }
+    }
+    return f;
+}
+
 /* Per-type straight-line scalar after a wave or sin call (generator parse).
  * Operation bit 8 marks the binary64 form (fstp qword .. cvtsd2ss). */
 static float body_scalar(const mu_rc_body_scalar *p, float time)
 {
     float a, value;
+    if (p->kind == 3)
+        return clock_program(p, time);
     memcpy(&a, &p->a, 4);
     value = p->kind == 1 ? client_wave(a, time) : client_sin(time * a);
     if (p->count && (p->op[0] & 8)) {

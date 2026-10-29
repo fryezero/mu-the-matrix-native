@@ -116,6 +116,6 @@ def main():
         import gen_item_bodies as gen
         import validate_item_types as old
         import item_pose_machine as pose
-        export_tables(rows,set(gen.REVIEWED_TYPES)|set(gen.ADDITIONAL_TYPES)|set(gen.CONTINUATION_TYPES)|set(gen.RANKED_TYPES)|set(gen.EXPANDED_TYPES)|set(gen.NEXT_TYPES)|set(gen.CLOCK_TYPES)|set(gen.CLUSTER_TYPES)|set(gen.WING_TYPES)|set(gen.VISIBLE_TYPES)|set(gen.SCALAR_TYPES)|set(pose.TYPES)|set(old.BODY)|{0x3895,0x3896,0x389b,0x389c,0x389d,0x389e},a.tables_dir)
+        export_tables(rows,set(gen.REVIEWED_TYPES)|set(gen.ADDITIONAL_TYPES)|set(gen.CONTINUATION_TYPES)|set(gen.RANKED_TYPES)|set(gen.EXPANDED_TYPES)|set(gen.NEXT_TYPES)|set(gen.CLOCK_TYPES)|set(gen.CLUSTER_TYPES)|set(gen.WING_TYPES)|set(gen.VISIBLE_TYPES)|set(gen.SCALAR_TYPES)|set(gen.CHAIN_TYPES)|set(gen.LEVEL_TYPES)|set(pose.TYPES)|set(old.BODY)|{0x3895,0x3896,0x389b,0x389c,0x389d,0x389e},a.tables_dir)
     print(f'{len(rows)} types, {len({r["shape"] for r in rows})} shapes')
 if __name__=='__main__':main()
