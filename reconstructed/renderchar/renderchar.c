@@ -942,7 +942,7 @@ int mu_rc_link_effects_time(int32_t type, float time, mu_rc_random_fn random, vo
     mu_rc_link_effect effects[20] = {0};
     int n = 0;
     if (chain_index >= 0) {
-        /* 0x012cb556 / 0x012cb7ab: shared bone chains, original random order. */
+        /* 0x012cb556 / 0x012cb7ab / 0x012cc846: shared bone chains, original random order. */
         const mu_rc_link_chain *chain = &mu_rc_link_chains[chain_index];
         for (int i = 0; i < chain->count; ++i) {
             int bone = chain->first + i;

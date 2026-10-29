@@ -10,11 +10,14 @@ import tempfile
 import gen_item_bodies as gen
 import pins
 import validate_item_clusters as clusters
+import validate_item_ranked as ranked
 import validate_item_wings_next as previous
 import validate_renderchar as v
 
 ROOT = Path(__file__).resolve().parents[1]
 TYPES = gen.CHAIN_TYPES + gen.LEVEL_TYPES
+# Table additions: 0x0ef3 chain row at 0x012cc846, 0x0f0b pulse row at 0x012cbb43.
+LINKS = (0x0ef3, 0x0f0b)
 
 
 def programs():
@@ -77,7 +80,24 @@ def level_cases(wa, lib):
     return {'cases': len(vectors), 'mismatches': 0}, vectors
 
 
-def mutations(vectors):
+def link_cases(wa, lib):
+    """Pinned RenderLinkItem callers with random sequences, clocks and hand variants."""
+    import random
+    rng, vectors = random.Random(0x2002e), []
+    for t in LINKS:
+        if not lib.mu_rc_link_supported(t):
+            raise AssertionError(('native admission', hex(t)))
+        for k in range(100):
+            values = [k]*32 if k < 30 else [rng.randrange(32768) for _ in range(32)]
+            for variant, time in enumerate((0, 700.25, 123456, -150.5)):
+                expected = ranked.original_link(wa, t, values, time, variant)
+                if clusters.c_effects(lib, t, values, time) != expected:
+                    raise AssertionError(('link', hex(t), k, variant))
+                vectors.append((t, values, time, expected))
+    return {'cases': len(vectors), 'mismatches': 0}, vectors
+
+
+def mutations(vectors, links):
     source = (ROOT/'reconstructed/renderchar/renderchar.c').read_text()
     changes = {
         'chain-kind': ('if (p->kind == 3)', 'if (p->kind == 4)'),
@@ -95,6 +115,8 @@ def mutations(vectors):
         'level-split': ('((s->item->item_level >> 3) & 15) >= 9)', '((s->item->item_level >> 3) & 15) >= 10)'),
         'mesh-index': ('d.mesh = (int32_t)words[0];', 'd.mesh = (int32_t)words[0] + 1;'),
         'object-alpha': ('&s->item->object_alpha, 4', '&base.alpha, 4'),
+        'link-flash': ('chain->flash && random(context) % 3 == 0', 'chain->flash && random(context) % 3 == 1'),
+        'link-pulse': ('sin2 * 0.35f + 0.65f, sin2, sin1', 'sin2 * 0.35f + 0.65f, sin1, sin1'),
     }
     caught = {}
     with tempfile.TemporaryDirectory() as tmp:
@@ -108,6 +130,7 @@ def mutations(vectors):
                             str(ROOT/'reconstructed/record-math/record_math.c'), '-lm', '-o', str(library)], check=True)
             lib = C.CDLL(str(library))
             detected = sum(v.c_stream(lib, case) != (0, expected) for case, expected in vectors)
+            detected += sum(clusters.c_effects(lib, t, values, time) != expected for t, values, time, expected in links)
             if not detected:
                 raise AssertionError(('surviving mutant', name))
             caught[name] = detected
@@ -134,10 +157,14 @@ def main():
         report['programs'] = len(first)
         report['families']['clocks'], clocks = clock_cases(wa, lib, first)
         report['families']['levels'], levels = level_cases(wa, lib)
+        report['families']['links'], links = link_cases(wa, lib)
         if args.mutations:
-            report['mutants'] = mutations(bodies + clocks + levels)
-        if gen.generate() != (ROOT/'reconstructed/renderchar/item_bodies.h').read_text():
-            raise AssertionError('body table drift')
+            report['mutants'] = mutations(bodies + clocks + levels, links)
+        import gen_item_links, gen_item_pulse_links
+        for name, text in (('item_bodies.h', gen.generate()), ('item_links.h', gen_item_links.generate()),
+                           ('item_pulse_links.h', gen_item_pulse_links.generate())):
+            if text != (ROOT/'reconstructed/renderchar'/name).read_text():
+                raise AssertionError(('table drift', name))
     args.output.write_text(json.dumps(report, indent=2)+'\n')
     print(json.dumps(report))
 

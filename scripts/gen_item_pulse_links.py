@@ -24,6 +24,8 @@ def rules():
                                       (expr(3,0.5,0.4), (const(0.3),)*3))]
     rows[0x0eed] = [(1,0x7ef7,(0,0,0),const(2),(expr(1),expr(1,0.9),const(0)),const(0)),
                     (1,0x7ef7,(0,0,0),expr(3,1,0.5),(const(0.5),)*3,const(0))]
+    # Part 12: 0x0f0b shares target 0x012cbb43 and its rule with 0x0eed.
+    rows[0x0f0b] = list(rows[0x0eed])
     rows[0x0eee] = [(1,0x7ef7,(x,0,0),expr(4,1,1),(expr(1,0.2),expr(1,0.1),expr(1,3)),const(0))
                     for x in (-15,10)] + [
                     (1,0x7f67,(10,0,0),const(0.6),(expr(6),)*3,expr(5,-1,360)),
