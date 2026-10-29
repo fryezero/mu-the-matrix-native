@@ -40,4 +40,17 @@ retention.
 
 ## Checks
 
-Pending the locked gate.
+Merge lock taken at 19:38 CDT (queue head). Latest main `3d17cac` (RENDER-WORLDS-O, P, ITEMS-002K, EFFECTS-004,
+TIME-002) merged as `4d52f56`; conflicts in both Makefiles, `mu_objects_runtime.c`, `scripts/validators.toml`,
+the coverage markdown and the status docs keep both sides (step-speed lookup: P's helper first, then the
+all-action PlaySpeed). World 136 is now P's class, so the portable test's unsupported sibling moved to 139
+(`f7c7049`). `native/build` rebuilt from clean after the merge (main includes 3735625). On `f7c7049`:
+
+- `bash scripts/local-macos-ci.sh` passes: **1,691 tests across 38 discovery runs, 218 explicit skips, zero
+  failures/errors; 11/11 fixture scenarios; native viewer and reader builds; publication audit 1,659 files,
+  zero rejected**. No hosted workflow dispatched. (The first locked run failed only on that sibling assertion.)
+- Registered private N/O/P/P2: **4/4 pass, no errors/skips** (P2: 6,000 cases, 35/35 mutants).
+- `world_handler_coverage.py`: 48 classes, 57 registrations, 288 addresses; 76/144, 26/48 after O and P.
+- P2 portable tests 4 pass + 1 private skip; native P2 host passes.
+
+Only this checks section changed after the gate.
