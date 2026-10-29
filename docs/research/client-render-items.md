@@ -110,6 +110,8 @@ record through `0x010fa28a`; `0x010f4ae9` returns its nested type map at record+
 all 38 nested head/node sets are absent. `lang/effect-inputs.json` records the exact missing addresses per
 world and snapshot. A future authorized capture needs the graph rooted at `0x06fbb7b0`, its nested maps,
 per-type vectors and effect-name string buffers. No live read was attempted in this run.
+RENDER-EFFECTS-008 read that graph live (38 worlds, 443 types, 758 entries; filled at startup) and consumes it
+natively: [client-render-effects-008.md](client-render-effects-008.md).
 
 | Snapshot | SHA-256 prefix | Muun records | Worlds | Missing nested maps |
 |---|---|---:|---:|---:|
