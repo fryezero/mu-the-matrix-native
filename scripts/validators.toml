@@ -2306,3 +2306,19 @@ args = ["--cases", "1000", "--mutations", "--output", "{report}"]
 "families.*.stopped" = 0
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
+
+[validate_item_textures]
+test = "reconstructed/objects/test_item_texture.py::ItemTextureTests.test_original_instructions"
+pins = ["text", "data", "section3"]
+families = ["item_open", "registrations", "startup_names"]
+cases = 2491
+mutants = 16
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--text", "{text}", "--data", "{data}", "--section3", "{section3}", "--cases", "1000", "--mutations", "--output", "{report}"]
+[validate_item_textures.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0

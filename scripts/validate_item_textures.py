@@ -97,7 +97,8 @@ class Tally:
 
 
 # ---------------------------------------------------------------- 0x00cd558e under Unicorn
-PREFIXED = ['nude_body.jpg', 'NUDE_x.tga', 'Nude_a.jpg', 'cotton_a.jpg', 'Cotton_b.tga', 'cotton2_c.jpg',
+PREFIXED = ['nude_body.jpg', 'NUDE_x.tga', 'Nude_a.jpg', 'nudeA.jpg', 'Nudes.tga', 'cottonx.jpg', 'skinA.jpg',
+            'hairA.jpg', 'HQskin.jpg', 'cotton_a.jpg', 'Cotton_b.tga', 'cotton2_c.jpg',
             'COTTON2_d.jpg', 'cotton2x.jpg', 'skin_01.jpg', 'SKIN_a.jpg', 'skin.jpg', 'level1.jpg', 'LEVEL_a.jpg',
             'levex.jpg', 'hid', 'Hide.jpg', 'hidden.tga', 'hair_r.jpg', 'HAIR_a.jpg', 'hair.jpg', 'field_wood.jpg',
             'field_abcd', 'field_ab.jpgx', 'Field_wood.jpg', 'field.jpg', 'HQskin_a.jpg', 'hqskin_b.jpg',

@@ -137,6 +137,9 @@ int main(int argc, char **argv)
         } else {
             mu_item_textures_load(&textures, &bmd, t.have_items ? &t.items : NULL, root, (int32_t)type, path, &ts);
         }
+        if (getenv("MU_ITEM_TEXTURES_NAMES"))   /* local survey aid: every mesh name */
+            for (int k = 0; k < bmd.mesh_count; ++k)
+                fprintf(stderr, "0x%04x\t%s\n", type, bmd.meshes[k].texture);
         mu_renderchar_glow glow = {0};
         glow.type = (int32_t)type;
         mu_item record;

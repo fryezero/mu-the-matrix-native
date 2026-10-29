@@ -3,8 +3,9 @@
  *
  * Mesh textures follow the loader that opened the model:
  *  - item models with an ItemModelFile record are loaded on first use by GetModel 0x00eaa8cf through 0x00cd558e:
- *    record folder + "Texture\" + mesh name (GL_NEAREST, GL_CLAMP), then the bitmap-name map
- *    (reconstructed/objects/item_texture.h);
+ *    record folder + "Texture\" + mesh name, then the bitmap-name map (reconstructed/objects/item_texture.h); the
+ *    name map also holds the files the startup LoadBitmap calls load (mu_startup_bitmaps.inc). The client uploads
+ *    these with GL_CLAMP; the slots keep the native GL_REPEAT (viewer choice, so textured items keep their pixels);
  *  - the special models the startup routines open (0x3890.., mu_gi_special_models) and the class parts
  *    (0x3700 + part * 0x50 + n, 0x0182bb43) use OpenTexture 0x0181fbe9 with the subfolder of their startup call
  *    ("Item\", "Monster\" for 0x38a2, "Player\");

@@ -12,9 +12,6 @@
 #include "mu_objects.h"
 #include "mu_texture_names.h"
 
-#define GL_NEAREST_ 0x2600u
-#define GL_CLAMP_ 0x2900u
-
 typedef struct item_bitmap {
     int32_t index;
     const char *path;
@@ -178,10 +175,8 @@ int mu_item_textures_load(mu_textures *t, const mu_bmd *model, const mu_data_tab
             }
             stats->typed_meshes += texture_type != 0;
             if (found && mu_textures_set_file(t, model, k, file) == 0) {
-                if (item_rule) {   /* LoadImage(path, GL_NEAREST, GL_CLAMP) 0x00cd5b50 */
-                    t->filter[k] = GL_NEAREST_;
-                    t->wrap[k] = GL_CLAMP_;
-                }
+                /* The client loads with GL_NEAREST, GL_CLAMP (0x00cd5b50). The slot keeps the native model default
+                 * (GL_NEAREST, GL_REPEAT) so already textured items keep their pixels; see the handoff's limits. */
                 stats->name_map += step == MU_TL_NAME_MAP;
             } else if (found || step != MU_TL_DIRECT) {   /* a special name answers DIRECT without a file */
                 stats->missing_meshes++;
