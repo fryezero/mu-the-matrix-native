@@ -80,6 +80,9 @@ int mu_terrain_height_rgb(const uint8_t *file, size_t size, float *height);
 int mu_terrain_height_is_rgb(int32_t world_index, int *unresolved);
 /* Folder number whose Data\World<n> holds the tile bitmaps of map folder `folder` (0x01829457). */
 int32_t mu_terrain_tile_folder(int32_t folder);
+/* Primary light file stem (no extension) OpenWorld loads for `world`: Kubera Mine 0x7b..0x7f take
+ * TerrainLight_Fire/_Water/_Earth/_Wind/_Dark, every other world TerrainLight. */
+const char *mu_terrain_light_name(int32_t world);
 
 /* The world handler table built by 0x00ea488e (one shared handler object per
  * class, registered for the listed worlds): -1 when no handler is registered
