@@ -123,6 +123,22 @@ int32_t mu_terrain_tile_folder(int32_t folder)
     return folder - 1 >= 0x80 && folder - 1 <= 0x82 ? 0x81 : folder;
 }
 
+/* RENDER-WORLDS-Q: OpenWorld 0x0182876e (0x01828e8e..0x01828eef) asks the Kubera Mine predicate
+ * 0x00e1e4b6 (worlds 0x7b..0x7f) and then loads <folder>\\<name> with the name 0x00e18e27 returns for
+ * the world; other worlds reach the same call with TerrainLight.bmp. The earlier branches for world 30
+ * (0x0095fb7c) and world 0x22 are not modelled here. */
+const char *mu_terrain_light_name(int32_t world)
+{
+    switch (world) {
+    case 0x7b: return "TerrainLight_Fire";
+    case 0x7c: return "TerrainLight_Water";
+    case 0x7d: return "TerrainLight_Earth";
+    case 0x7e: return "TerrainLight_Wind";
+    case 0x7f: return "TerrainLight_Dark";
+    default: return "TerrainLight";
+    }
+}
+
 static uint32_t read32(const uint8_t *p) { return (uint32_t)p[0] | (uint32_t)p[1] << 8 | (uint32_t)p[2] << 16 | (uint32_t)p[3] << 24; }
 
 int mu_terrain_light_bmp(const uint8_t *file, size_t size, float *out, int32_t capacity, int32_t *pixels)

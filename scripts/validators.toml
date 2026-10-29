@@ -2245,3 +2245,20 @@ args = ["--output", "{report}"]
 "families.*.stopped" = 0
 "remapped_folders.130" = 129
 "remapped_folders.131" = 129
+
+[validate_world_light_name]
+test = "reconstructed/objects/test_worlds_q.py::WorldsQTests.test_original_light_name"
+pins = ["text", "data"]
+families = ["light_name"]
+cases = 304
+mutants = 4
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/terrain"]
+args = ["--mutations", "--output", "{report}"]
+[validate_world_light_name.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"old_rule_mismatches" = 5
+"mutants.*.detected" = {truthy = true}
+"mutants.*.stopped" = 0
