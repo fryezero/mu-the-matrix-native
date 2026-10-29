@@ -486,6 +486,15 @@ $(NET_SO): $(NET_SRC) core/mu_protocol.c $(NET_HDR)
 	$(CC) $(CFLAGS) -fPIC -shared $(NET_SRC) core/mu_protocol.c -o $@
 	$(call MULTI_DEPS,$(CFLAGS))
 
+# TEST-FLAKE-001: the connect spy test_transport.py inserts into a child to see socket/connect calls.
+SPY_SO := $(BUILD)/libmuconnectspy.$(SHLIB_EXT)
+
+all: $(SPY_SO)
+
+$(SPY_SO): tests/connect_spy.c
+	@mkdir -p $(BUILD)
+	$(CC) $(CFLAGS) -fPIC -shared $< -o $@ $(if $(filter Darwin,$(UNAME)),,-ldl)
+
 # ---- SESSION-CORE-001: the session core and its domains (native/session) ----
 # scripts/gen_domains.py generates the domain, route, intent and behaviour lists into build/gen and
 # fails the build on a broken rule (a duplicate route binding, an unrouted intent kind, ...). Two
