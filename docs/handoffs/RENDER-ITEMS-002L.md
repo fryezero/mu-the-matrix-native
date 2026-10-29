@@ -57,7 +57,22 @@ chain reaches a draw word at eight clocks including INT_MIN/2^31, and the signed
 
 ## Native gallery
 
-GALLERY
+The real native inventory renderer (`mu-render ui inventory`) used installed geometry and textures
+for codes 21, 116, 1056, 2106, 2657 and 3903 (types `0x0afb, 0x0b5a, 0x0f06, 0x1320, 0x1547,
+0x1a25`), time 123456. All six models are drawn and none are missing. The before binary uses the
+`f4eba8a` item sources with the same surrounding renderer.
+
+- **Level 0:** triangles go **4,544 to 5,166** and **1,150 of 1,804,656 pixels** change: extra
+  blade/UV passes and armour trim. Framebuffer SHA-256 `77007c3c…6e911` before, `fa40964e…7f158` after.
+- **Level 13:** the six types formerly drew one refused pass. Now they take the full +13 glow
+  passes, and triangles go **4,544 to 38,660**, with **2,881 pixels** changing. These items
+  saturate white offline. The already-admitted part-11 code 28 and the ordinary code 0 saturate
+  the same way at +13 with the before binary, so this is existing offline-renderer behaviour,
+  not a new effect.
+
+The ordinary control (codes 0,1,2,3,7,8, 162 triangles) is byte-identical, framebuffer SHA-256
+`df03a29015909de199d353d327efd2b852f79f813bd5260d0358622313b14930`, the same as part 11. Two crop
+pairs were inspected. These are offline native renders, not original-client pixel comparisons.
 
 ## Limits and coordination
 
