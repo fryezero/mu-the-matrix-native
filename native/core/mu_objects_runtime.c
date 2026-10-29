@@ -16,6 +16,8 @@
 #include "../../reconstructed/objects/worlds_h.h"
 #include "../../reconstructed/objects/worlds_i.h"
 #include "../../reconstructed/objects/worlds_n.h"
+#include "../../reconstructed/objects/worlds_p2.h"
+#include "../../reconstructed/joints/joints.h"
 #include "../../reconstructed/objects/icarus.h"
 
 #include <math.h>
@@ -110,10 +112,13 @@ int mu_objects_start(mu_objects *o, const char *game_root)
         mu_obj_log create_log = {0, 8, 0, created};
         const int status = mu_obj_create(&o->records[i], o->world, img, &sector, i, &create_log);
         for (int32_t k = 0; k < create_log.count; ++k)   /* a handler's PlaySpeed write (login world type 5) */
-            if (created[k].call == MU_OBJ_CALL_PLAY_SPEED && created[k].args[1] == 0 &&
+            if (created[k].call == MU_OBJ_CALL_PLAY_SPEED &&
+                (created[k].args[1] == 0 || created[k].args[1] == MU_OBJ_PLAY_SPEED_ALL) &&
                 created[k].args[0] < MU_OBJECT_TYPES) {
                 rt->play_speed[created[k].args[0]] = fbits(created[k].args[2]);
-                rt->play_speed_set[created[k].args[0]] = 1;
+                rt->play_speed_set[created[k].args[0]] = created[k].args[1] ? 2 : 1;   /* 2: every action */
+            } else if (created[k].call == MU_OBJ_CALL_MODEL_STREAM) {
+                ++rt->create_unsupported;   /* Ignis StreamMesh byte: no native consumer (RENDER-WORLDS-P2) */
             }
         for (int32_t k = 0; k < create_log.count; ++k)
             if ((o->world == 2 || o->world == 3 || o->world == 57 || o->world == 58) &&
@@ -191,7 +196,8 @@ static int32_t step_rand(void *context)
 static float step_speed(void *context, int32_t type, int32_t action)
 {
     step_context *c = context;
-    if (action == 0 && type >= 0 && type < MU_OBJECT_TYPES && c->o->rt.play_speed_set[type])
+    if (type >= 0 && type < MU_OBJECT_TYPES && c->o->rt.play_speed_set[type] &&
+        (action == 0 || c->o->rt.play_speed_set[type] == 2))
         return c->o->rt.play_speed[type];
     return 0.0f;
 }
@@ -202,6 +208,20 @@ static uint8_t step_handler(void *context, int32_t index)
     if (!c->in->x2d)
         return 0;
     return mu_obj_handler_moves(image(c->o, index), c->o->world, c->in->x2d, c->in->y2d, c->in->scene_state);
+}
+
+/* Kanturu Underground's action table (RENDER-WORLDS-P2): key count of the loaded model, PlaySpeed from its
+ * creation hook (0.3 for every action). Out-of-range actions and unset speeds are refused. */
+static int kanturu_table(void *context, int32_t type, int32_t action, int32_t *count, int16_t *keys, float *speed)
+{
+    step_context *c = context;
+    const mu_object_model *m = type >= 0 && type < MU_OBJECT_TYPES ? c->o->models[type] : NULL;
+    if (!m || !m->loaded || action < 0 || action >= m->bmd.action_count || c->o->rt.play_speed_set[type] != 2)
+        return 0;
+    *count = m->bmd.action_count;
+    *keys = (int16_t)m->bmd.actions[action].keys;
+    *speed = c->o->rt.play_speed[type];
+    return 1;
 }
 
 static void tick(mu_objects *o, int32_t index, float speed)
@@ -400,6 +420,9 @@ void mu_objects_step(mu_objects *o, const mu_objects_step_inputs *in)
                 tick(o, i, fbits(m->args[0]));
             } else if (m->call == MU_MARKET_BONE_LIGHT) {
                 market_bone_light(o, i, m);
+            } else if (m->call == MU_KANTURU_UG_ACTION_STEP) {   /* after the tick, as in the client */
+                if (!mu_kanturu_ug_move(image(o, i), i, &mi, kanturu_table, 0.1f /* render-pass frame time */, NULL))
+                    ++rt->move_unsupported;
             } else if (m->call == MU_DEEP_DUNGEON_KEYED_EFFECT) {
                 ++rt->move_unsupported;   /* No native keyed-effect consumer; preserve the refusal. */
             } else if (m->call == MU_OBJ_CALL_ADD_LIGHT && rt->light_count < MU_OBJECT_STEP_LIGHTS) {
@@ -691,6 +714,19 @@ static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_obje
     }
     else if (o->world == 80 || o->world == 81)
         return;
+    else if (o->world == 137) {   /* RENDER-WORLDS-P2: Kanturu Underground slot 0x34 */
+        const int32_t type = mu_obj_i32(img, MU_OBJF_TYPE);
+        const int bones_ready = posed && m && m->loaded && m->bmd.bone_count > 4;
+        if ((type == 8 || (type >= 92 && type <= 96)) && !bones_ready) ++o->rt.draw_unsupported;
+        mu_kanturu_ug_visual(img, i, m && m->loaded, world_time, visual_rand, bones_ready ? visual_bone : NULL,
+                             &c, &log);
+        for (int32_t k = 0; k < log.count; ++k)   /* joint kinds the native pool does not model: refused */
+            if (events[k].call == MU_ICARUS_JOINT &&
+                !mu_jt_kind_supported((int32_t)events[k].args[0], (int32_t)events[k].args[10])) {
+                events[k].call = 0;
+                ++o->rt.draw_unsupported;
+            }
+    }
     else if (o->world == 57 || o->world == 58)
         mu_raklion_visual(img, i, m && m->loaded, visual_rand, &c, &log);
     else if (o->world == 64)
@@ -769,7 +805,7 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
     const int primary_visual = o->world == 4 || o->world == 7 || o->world == 8 || (o->world == 10 && t == 10) ||
                                o->world == 62 || o->world == 63 || o->world == 64 || o->world == 82 ||
                                o->world == 79 || o->world == 100 || o->world == 57 || o->world == 58 ||
-                               o->world == 80 || o->world == 81;
+                               o->world == 80 || o->world == 81 || o->world == 137;
     mu_obj_draw_inputs in;
     memset(&in, 0, sizeof in);
     in.world = o->world;
