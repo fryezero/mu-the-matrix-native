@@ -326,6 +326,9 @@ static int draw_model(const hud_options *o, const mu_data_table *items, mu_raste
     mu_renderchar_env env;
     mu_renderchar_default_env(&env);
     mu_lang *lang = mu_lang_load_default();
+    static int warned;
+    if (!lang && !warned++)   /* RENDER-ITEMS-002M: the +13 passes then add white enchant light */
+        fprintf(stderr, "mu-render: MU_LANG_DIR unset: EnchantEffect colours fall back to white (1,1,1)\n");
     env.lang = lang;
     env.time = (float)o->time_ms;
     const float light[3] = {1.0f, 1.0f, 1.0f};
