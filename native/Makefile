@@ -655,6 +655,10 @@ $(BUILD)/worlds-m-host: tests/worlds_m_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-m-host.o
 	$(CXX) $(BUILD)/worlds-m-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
 
+$(BUILD)/worlds-g2-host: tests/worlds_g2_host.c $(LIB) $(HEADERS)
+	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-g2-host.o
+	$(CXX) $(BUILD)/worlds-g2-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+
 $(BUILD)/worlds-n-host: tests/worlds_n_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-n-host.o
 	$(CXX) $(BUILD)/worlds-n-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
