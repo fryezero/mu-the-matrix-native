@@ -333,22 +333,28 @@ static void graph_scan(const uint8_t *b, uint32_t n, int depth, uint32_t obj_byt
                 continue;
             }
         }
+        /* A vector's three words can be followed by bytes that also read as a string's size and capacity
+           (RENDER-EFFECTS-008: a map-object effect type node, capacity word 0xbd): a candidate of both shapes is
+           followed as both, so it is never copied short. */
+        int vector = 0;
+        if (o + 12 <= n) {   /* std::vector: begin <= end <= capacity end */
+            uint32_t e = u32(b, o + 4), c = u32(b, o + 8);
+            vector = (p & 3) == 0 && p <= e && e <= c && c > p && c - p <= CHASE_MAX && ((e - p) & 3) == 0;
+            if (vector)
+                gpush(p, c - p, depth - 1, 0);
+        }
         if (o + 0x18 <= n) {   /* std::string with a heap buffer */
             uint32_t size = u32(b, o + 0x10), cap = u32(b, o + 0x14);
             if (cap >= 0x10 && cap < CHASE_MAX && size <= cap && followable(p)) {
                 uint32_t len = size + 1;
                 free(copy_block(p, &len, 1));
-                o += 0x14;
+                o += vector ? 8 : 0x14;
                 continue;
             }
         }
-        if (o + 12 <= n) {   /* std::vector: begin <= end <= capacity end */
-            uint32_t e = u32(b, o + 4), c = u32(b, o + 8);
-            if ((p & 3) == 0 && p <= e && e <= c && c > p && c - p <= CHASE_MAX && ((e - p) & 3) == 0) {
-                gpush(p, c - p, depth - 1, 0);
-                o += 8;
-                continue;
-            }
+        if (vector) {
+            o += 8;
+            continue;
         }
         if (obj_bytes)
             gpush(p, obj_bytes, depth - 1, 0);

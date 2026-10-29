@@ -135,7 +135,7 @@ int mu_effect_scene_create(mu_effect_scene *s, const char *client_path, const fl
             snprintf(error, error_size, "scene is full (%u instances)", s->instance_capacity);
             return -1;
         }
-        s->instance_capacity = 256;
+        s->instance_capacity = s->instance_limit ? s->instance_limit : 256;
         s->instances = calloc(s->instance_capacity, sizeof *s->instances);
         if (!s->instances)
             return -1;

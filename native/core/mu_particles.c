@@ -1517,6 +1517,7 @@ struct mu_effect_scene *mu_world_particles_ein_scene(mu_world_particles *p)
         return NULL;
     }
     mu_effect_scene_set_world(s, p->map);
+    s->instance_limit = MU_WORLD_EIN_LINKS;   /* RENDER-EFFECTS-008: the map-object table attaches thousands */
     p->ein = s;
     return s;
 }
@@ -1543,35 +1544,62 @@ static int o_ein_valid(void *c, const char *path)
     return ok;
 }
 
-/* The factory's clone (position, rotation, scale; template transform off, no tint, no actions, start 0), then
- * 0x0129f9c6: owner = the object, record {effect, template scale = the effect's scale, bone, follow, timed,
- * lifetime}. */
-static void o_ein_attach(void *c, int32_t object, const char *path, const float position[3], const float rotation[3],
-                         float scale, int32_t bone, int follow, int timed, float lifetime)
+/* The factory 0x00a797a0's clone (template transform off): the instance index, or -1 for a null effect. */
+int32_t mu_world_particles_ein_create(mu_world_particles *p, const char *path, const float position[3],
+                                      const float rotation[3], float scale, int tint, const int32_t *actions,
+                                      uint32_t action_count, float start_frame)
 {
-    mu_world_particles *p = c;
     mu_effect_scene *s = mu_world_particles_ein_scene(p);
     char error[256];
-    if (!s || p->ein_link_count >= MU_WORLD_EIN_LINKS) {
-        ++p->ein_invalid;
-        return;
-    }
-    const int instance = mu_effect_scene_create(s, path, position, rotation, scale, 0, 0, NULL, 0, 0.0f, error,
-                                                sizeof error);
-    if (instance < 0) {
+    if (!s || p->ein_link_count >= MU_WORLD_EIN_LINKS)
+        return -1;
+    return mu_effect_scene_create(s, path, position, rotation, scale, 0, tint, actions, action_count, start_frame,
+                                  error, sizeof error);
+}
+
+/* 0x0129f9c6: owner = the object, record {effect, template scale = the effect's scale, bone, follow, timed,
+ * lifetime}. */
+void mu_world_particles_ein_link(mu_world_particles *p, int32_t object, int32_t instance, int32_t bone, int follow,
+                                 int timed, float lifetime)
+{
+    if (!p->ein || instance < 0 || p->ein_link_count >= MU_WORLD_EIN_LINKS) {
         ++p->ein_invalid;
         return;
     }
     p->ein_links[p->ein_link_count].object = object;
     p->ein_links[p->ein_link_count].instance = instance;
     p->ein_links[p->ein_link_count].bone = bone;
-    p->ein_links[p->ein_link_count].template_scale = s->instances[instance].fx.scale;
+    p->ein_links[p->ein_link_count].template_scale = p->ein->instances[instance].fx.scale;
     p->ein_links[p->ein_link_count].lifetime = lifetime;
     p->ein_links[p->ein_link_count].follow = (uint8_t)(follow != 0);
     p->ein_links[p->ein_link_count].timed = (uint8_t)(timed != 0);
     p->ein_links[p->ein_link_count].live = 1;
     ++p->ein_link_count;
     ++p->ein_attached;
+}
+
+/* RENDER-EFFECTS-008: 0x009b0451, the object's list +0x3d0 cleared (its effects are no longer updated or drawn). */
+void mu_world_particles_ein_clear(mu_world_particles *p, int32_t object)
+{
+    for (int32_t k = 0; k < p->ein_link_count; ++k)
+        if (p->ein_links[k].live && p->ein_links[k].object == object) {
+            p->ein_links[k].live = 0;
+            p->ein->instances[p->ein_links[k].instance].owner.visible = 0;
+        }
+}
+
+/* The factory's clone (position, rotation, scale; template transform off, no tint, no actions, start 0), then
+ * the attach. */
+static void o_ein_attach(void *c, int32_t object, const char *path, const float position[3], const float rotation[3],
+                         float scale, int32_t bone, int follow, int timed, float lifetime)
+{
+    mu_world_particles *p = c;
+    const int32_t instance = mu_world_particles_ein_create(p, path, position, rotation, scale, 0, NULL, 0, 0.0f);
+    if (instance < 0) {
+        ++p->ein_invalid;
+        return;
+    }
+    mu_world_particles_ein_link(p, object, instance, bone, follow, timed, lifetime);
 }
 
 /* 0x0129f671(dt) for one object: timed records lose dt and leave the list at zero or below (their effect is
