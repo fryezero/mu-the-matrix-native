@@ -96,7 +96,30 @@ ReceiveTeleport `0x0128136d` with a non-zero number runs these before it compare
 
 ## Checks
 
-CHECKS_PLACEHOLDER
+- **Gate.** `nice -n 10 bash scripts/local-macos-ci.sh` after merging #279: 38 suites, 1,815 tests, 1,574 passed,
+  241 skipped, 0 failures. Fixtures, viewer and live readers ok; audit 1,806 files, 0 rejected.
+- **New validator** `validate_teleport_clear` (`--cases 500 --mutations`), 0 mismatches:
+  - teleport_clears 500, plates_hidden 1,540, clear_characters 100 and clear_items 24 cases (2,164 in all).
+  - Coverage: 15,500 kills, 3,108 removeInfo (247 in Chaos Castle worlds), 162 owned-object kills, 40,000 tails.
+  - 6/6 mutants caught.
+  - Registry row in `scripts/validators.toml`; the private test is `tests/test_orphan_validators_private.py`, and
+    the portable test is `reconstructed/map/test_map_clear.py` (6).
+- **Private validators rerun** (`run_validators.py --private --jobs 2`, `MU_RECOVERY_INTEGRATION=1`,
+  `MU_SNAPSHOT_DIR=~/Documents/MTM/mu-mac-tools/native/scratch`, `MU_SECTION3=<pinned main-01ced000.bin>`,
+  `MU_GAME_ROOT=<installed client>`):
+  - Pass: validate_teleport_clear, validate_map, validate_map_polish, validate_session_map_overlay,
+    validate_names, validate_audio, validate_audio_voices, validate_audio_music, validate_audio_combat,
+    validate_audio_domains, validate_audio_items, validate_audio_charsel.
+  - `validate_audio_callers` fails to link on origin/main as well: its hand-written source list lacks the object
+    worlds that the RENDER-WORLDS lanes added (`mu_kardamahal_create`, ...). None of its files changed here.
+- **Tests:**
+  - `native/tests/test_native_names.py` 12/12, private GfxRoute and GfxTravel included.
+  - `test_native_audio.py` 15 (1 private skip); the other audio suites (charsel, combat, cues, domain_world,
+    domains, items) ok.
+- **Headless app-plan journey** (installed plan with this build, field session, Volum 9):
+  - `skill_casts` 1, `kills` 1, `drops` 1, `space_picks` 1, pickups 1.
+  - Audio peak 31,656, RMS 4,606, 0 full-scale samples.
+  - Travel 0 → 3 → 2 with `travel_plates_removed` 4 and `stale_plates` 0.
 
 ## Limits
 
