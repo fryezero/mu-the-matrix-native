@@ -9,12 +9,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 
 #include "../../reconstructed/movement/client_movement.h"
 #include "mu_lang.h"
 #include "mu_raster.h"
 #include "mu_scene.h"
 #include "mu_particles.h"
+#include "mu_named_bones.h"
+#include "mu_texture_names.h"
 #include "../../reconstructed/path/client_path.h"
 #include "../../reconstructed/objects/object_render.h"
 
@@ -94,27 +97,42 @@ static const weapon_info weapons[] = {
 };
 
 /* RENDER-EFFECTS-007: the arrow models of the loader 0x018202b4 calls 0x018333b8..0x01837389 (static); AccessModel
- * appends the number (01) when it is not -1. 0x459 draws no model (RenderEffects skips it); 0x613..0x617 have no
- * loader call in that range. */
+ * appends the number (01) when it is not -1. 0x459 draws no model (RenderEffects skips it). RENDER-EFFECTS-009:
+ * 0x613..0x617 from the other startup routines' AccessModel calls (0x018273a2, 0x0182e8f3, 0x0182ebac, 0x0182ee41,
+ * 0x0182fc7a; static). */
+static const struct { int32_t type; const char *file, *subfolder; } arrow_models[] = {
+        {0x43c, "Data/Skill/ArrowSteel01.bmd", "Skill\\"}, {0x43d, "Data/Skill/ArrowThunder01.bmd", "Skill\\"},
+        {0x43e, "Data/Skill/ArrowLaser01.bmd", "Skill\\"}, {0x43f, "Data/Skill/ArrowV01.bmd", "Skill\\"}, {0x440, "Data/Skill/ArrowSaw01.bmd", "Skill\\"},
+        {0x441, "Data/Skill/ArrowNature01.bmd", "Skill\\"}, {0x442, "Data/Skill/ArrowBomb01.bmd", "Skill\\"},
+        {0x443, "Data/Skill/ArrowWing01.bmd", "Skill\\"}, {0x458, "Data/Skill/ArrowDouble01.bmd", "Skill\\"},
+        {0x45a, "Data/Skill/Arrow_Spark.bmd", "Skill\\"}, {0x45b, "Data/Skill/CW_Bow_Skill.bmd", "Skill\\"},
+        {0x45c, "Data/Skill/sketbows_arrows.bmd", "Skill\\"}, {0x45d, "Data/Skill/bloodangel_bow_arrow.bmd", "Skill\\"},
+        {0x45e, "Data/Skill/absolute_gunbow_arrow.bmd", "Skill\\"}, {0x471, "Data/Skill/KCross.bmd", "Skill\\"},
+        {0x474, "Data/Skill/Carow.bmd", "Skill\\"}, {0x47f, "Data/Skill/LaceArrow.bmd", "Skill\\"}, {0x525, "Data/Skill/gamble_arrows01.bmd", "Skill\\"},
+        {0x5b0, "Data/Skill/devilcrossbow_arrow.bmd", "Skill\\"}, {0x5b1, "Data/Skill/angelic_arrows.bmd", "Skill\\"},
+        {0x60a, "Data/Skill/Darkangel_Bow_arrow.bmd", "Effect\\"}, {0x60d, "Data/Skill/HolyAngelBowArrow.bmd", "Effect\\"},
+        {0x60e, "Data/Skill/hs_soularcherbow_arrow.bmd", "Effect\\"}, {0x60f, "Data/Skill/blue_eyebow_stand_arrow.bmd", "Effect\\"},
+        {0x610, "Data/Skill/matery_bow6_arrow.bmd", "Effect\\"}, {0x612, "Data/Skill/arrow_mastery7s.bmd", "Effect\\"},
+        {0x613, "Data/Skill/8cha_arrow.bmd", "Skill\\"}, {0x614, "Data/Item/apocalypse_arrow.bmd", NULL},
+        {0x615, "Data/Skill/lightning_arrow.bmd", "Skill\\"}, {0x616, "Data/Item/TempleGuard_bow_arrow.bmd", NULL},
+        {0x617, "Data/Skill/Imperial_arrow.bmd", "Skill\\"},
+};
+
 const char *mu_combat_arrow_file(int32_t type)
 {
-    static const struct { int32_t type; const char *file; } arrows[] = {
-        {0x43c, "Data/Skill/ArrowSteel01.bmd"}, {0x43d, "Data/Skill/ArrowThunder01.bmd"},
-        {0x43e, "Data/Skill/ArrowLaser01.bmd"}, {0x43f, "Data/Skill/ArrowV01.bmd"}, {0x440, "Data/Skill/ArrowSaw01.bmd"},
-        {0x441, "Data/Skill/ArrowNature01.bmd"}, {0x442, "Data/Skill/ArrowBomb01.bmd"},
-        {0x443, "Data/Skill/ArrowWing01.bmd"}, {0x458, "Data/Skill/ArrowDouble01.bmd"},
-        {0x45a, "Data/Skill/Arrow_Spark.bmd"}, {0x45b, "Data/Skill/CW_Bow_Skill.bmd"},
-        {0x45c, "Data/Skill/sketbows_arrows.bmd"}, {0x45d, "Data/Skill/bloodangel_bow_arrow.bmd"},
-        {0x45e, "Data/Skill/absolute_gunbow_arrow.bmd"}, {0x471, "Data/Skill/KCross.bmd"},
-        {0x474, "Data/Skill/Carow.bmd"}, {0x47f, "Data/Skill/LaceArrow.bmd"}, {0x525, "Data/Skill/gamble_arrows01.bmd"},
-        {0x5b0, "Data/Skill/devilcrossbow_arrow.bmd"}, {0x5b1, "Data/Skill/angelic_arrows.bmd"},
-        {0x60a, "Data/Skill/Darkangel_Bow_arrow.bmd"}, {0x60d, "Data/Skill/HolyAngelBowArrow.bmd"},
-        {0x60e, "Data/Skill/hs_soularcherbow_arrow.bmd"}, {0x60f, "Data/Skill/blue_eyebow_stand_arrow.bmd"},
-        {0x610, "Data/Skill/matery_bow6_arrow.bmd"}, {0x612, "Data/Skill/arrow_mastery7s.bmd"},
-    };
-    for (size_t k = 0; k < sizeof arrows / sizeof arrows[0]; ++k)
-        if (arrows[k].type == type)
-            return arrows[k].file;
+    for (size_t k = 0; k < sizeof arrow_models / sizeof arrow_models[0]; ++k)
+        if (arrow_models[k].type == type)
+            return arrow_models[k].file;
+    return NULL;
+}
+
+/* RENDER-EFFECTS-009: the OpenTexture subfolder the startup opener passes for the arrow model (the recorded
+ * startup table, reconstructed/objects/texture_preload.inc; static for 0x613/0x615/0x617), NULL: the model's own. */
+static const char *arrow_texture_subfolder(int32_t type)
+{
+    for (size_t k = 0; k < sizeof arrow_models / sizeof arrow_models[0]; ++k)
+        if (arrow_models[k].type == type)
+            return arrow_models[k].subfolder;
     return NULL;
 }
 
@@ -126,6 +144,23 @@ const char *mu_combat_weapon_file(int32_t weapon)
 }
 
 static void init_env(mu_combat *c);
+
+/* RENDER-EFFECTS-009: bitmap-name map entries of the startup opener's LoadBitmap calls next to the arrow models
+ * (0x0185baac: the JPEG loader inserts the lowercased file name, first load wins) that mu_texture_names does not
+ * rebuild: LoadBitmap("Effect\\devil_arrow.jpg", 0x8182) at 0x01833b47, right after AccessModel(0x5b0) and before
+ * the opener's OpenTexture calls (static). OpenTexture(0x5b0, "Skill\\") then reuses that bitmap. */
+static int startup_bitmap_name(const char *root, const char *name, char *path, size_t size)
+{
+    static const struct { const char *name, *directory; } names[] = {{"devil_arrow.jpg", "Data/Effect"}};
+    for (size_t k = 0; k < sizeof names / sizeof names[0]; ++k) {
+        if (strcasecmp(name, names[k].name) != 0)
+            continue;
+        char directory[2048];
+        snprintf(directory, sizeof directory, "%s/%s", root, names[k].directory);
+        return mu_image_resolve(directory, name, path, size);
+    }
+    return 0;
+}
 
 /* ---------------------------------------------------------------- resources */
 
@@ -145,6 +180,7 @@ static const struct { int32_t id; const char *dir, *name; char kind; } bitmap_fi
     {0x7fd8, "Effect", "JointEnergy01.jpg", 'j'},
     {0x7fd3, "Effect", "JointSpirit01.jpg", 'j'},
     {0x7fd5, "Effect", "Spark01.jpg", 'j'},         /* the Twisting Slash swirl's spark joints (NATIVE-JOINT-001) */
+    {0x7fd6, "Effect", "JointLaser01.jpg", 'j'},    /* RENDER-EFFECTS-009: the arrows' 0x7fd6/5 trails */
 };
 
 static int32_t bitmap_slot(const mu_combat *c, int32_t id)
@@ -222,6 +258,18 @@ static void load_models(mu_combat *c, const char *root)
         char directory[2048];
         mu_path_directory(path, directory, sizeof directory);
         mu_textures_load(&m->textures, &m->bmd, directory);
+        const char *subfolder = i == MU_COMBAT_MODEL_BOW_ARROW ? arrow_texture_subfolder(m->type) : NULL;
+        /* RENDER-EFFECTS-009: OpenTexture's later steps (the name map, Data\Item\, Data\Item\Texture\) for the
+         * meshes the model's folder lacks: 0x5b0's devil_arrow.jpg (LoadBitmap Effect\devil_arrow.jpg, 0x01833b47)
+         * and 0x5b1's arrows_angelic.jpg drew white without them */
+        for (int32_t k = 0; subfolder && m->textures.missing > 0 && k < m->bmd.mesh_count; ++k) {
+            char found[4096];
+            if (!m->textures.slots[k] &&
+                (mu_texture_names_find(root, p.world, subfolder, m->bmd.meshes[k].texture, found, sizeof found, NULL) ||
+                 startup_bitmap_name(root, m->bmd.meshes[k].texture, found, sizeof found)) &&
+                mu_textures_set_file(&m->textures, &m->bmd, k, found) == 0)
+                ++c->arrow_textures_retried;
+        }
         m->loaded = 1;
     }
     if (quake_missing) {
@@ -354,7 +402,7 @@ static float env_terrain_height(void *context, float x, float y);
 static const mu_sfx_object *env_object(void *context, int32_t index)
 {
     mu_combat *c = context;
-    if (index < 0 || index > MU_COMBAT_HERO_OBJECT)
+    if (index < 0 || index >= MU_COMBAT_EFFECT_OBJECT(MU_SFX_EFFECTS))
         return NULL;
     return &c->objects[index];
 }
@@ -380,6 +428,46 @@ static void refresh_objects(mu_combat *c)
     memcpy(h->angle, c->walk->hero.angle, sizeof h->angle);   /* RENDER-EFFECTS-004: Rageful Blow aims along it */
 }
 
+/* RENDER-EFFECTS-009: an arrow effect's object view for the joints that follow it (OBJECT +0x00 live, +0x5c type,
+ * +0x158 position, +0x164 angle, +0xec light, +0x188 the trail point field_188) */
+static void effect_object(mu_combat *c, const mu_sfx_effect *e)
+{
+    const int32_t i = (int32_t)(e - c->effects);
+    if (i < 0 || i >= MU_SFX_EFFECTS)
+        return;
+    mu_sfx_object *o = &c->objects[MU_COMBAT_EFFECT_OBJECT(i)];
+    memset(o, 0, sizeof *o);
+    if (!mu_sfx_is_arrow(e->type))
+        return;
+    o->live = e->live;
+    o->visible = e->live;
+    o->type = e->type;
+    memcpy(o->position, e->position, sizeof o->position);
+    memcpy(o->angle, e->angle, sizeof o->angle);
+    memcpy(o->light, e->light, sizeof o->light);
+    memcpy(o->eye_188, e->field_188, sizeof o->eye_188);
+    o->scale = e->scale;
+}
+
+/* RENDER-EFFECTS-009: one unsupported request of a kind (the total stays stats.unsupported) */
+static void unsupported(mu_combat *c, char routine, int32_t type, int32_t subtype)
+{
+    ++c->stats.unsupported;
+    for (int32_t i = 0; i < c->unsupported_kind_count; ++i)
+        if (c->unsupported_kinds[i].routine == routine && c->unsupported_kinds[i].type == type &&
+            c->unsupported_kinds[i].subtype == subtype) {
+            ++c->unsupported_kinds[i].count;
+            return;
+        }
+    if (c->unsupported_kind_count < (int32_t)(sizeof c->unsupported_kinds / sizeof c->unsupported_kinds[0])) {
+        const int32_t i = c->unsupported_kind_count++;
+        c->unsupported_kinds[i].routine = routine;
+        c->unsupported_kinds[i].type = type;
+        c->unsupported_kinds[i].subtype = subtype;
+        c->unsupported_kinds[i].count = 1;
+    }
+}
+
 static mu_sfx_effect *effect_slot(mu_combat *c)
 {
     for (int i = 0; i < MU_SFX_EFFECTS; ++i)
@@ -401,7 +489,7 @@ static void create_effect(mu_combat *c, int32_t type, int32_t subtype, const flo
         if (mu_sfx_is_arrow(type))
             ++c->stats.arrows;   /* RENDER-EFFECTS-007: the other bows' arrows too */
     } else {
-        ++c->stats.unsupported;
+        unsupported(c, 'e', type, subtype);
     }
 }
 
@@ -421,7 +509,7 @@ static void create_particle(mu_combat *c, const mu_sfx_call *call)
                                   call->subtype, call->scale);
         ++c->stats.particles_created;
     } else {
-        ++c->stats.unsupported;
+        unsupported(c, 'p', call->type, call->subtype);
     }
 }
 
@@ -436,7 +524,7 @@ static void create_joint(mu_combat *c, int32_t type, const float position[3], co
     if (i >= 0)
         ++c->stats.joints_created;
     else if (i == -2)
-        ++c->stats.unsupported;
+        unsupported(c, 'j', type, subtype);
 }
 
 static void add_light(mu_combat *c, float x, float y, const float rgb[3], int32_t range)
@@ -482,10 +570,17 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
     case MU_SFX_CALL_PARTICLE:
         create_particle(c, call);
         return 0;
-    case MU_SFX_CALL_JOINT:
-        create_joint(c, call->type, call->position, call->target, call->angle, call->subtype, call->owner,
+    case MU_SFX_CALL_JOINT: {
+        int32_t target = call->owner;
+        if (target == -2 && e && e >= c->effects && e < c->effects + MU_SFX_EFFECTS && mu_sfx_is_arrow(e->type)) {
+            effect_object(c, e);   /* "this effect": the arrow (RENDER-EFFECTS-009) */
+            c->objects[MU_COMBAT_EFFECT_OBJECT(e - c->effects)].live = 1;   /* created, SetLive at the end */
+            target = MU_COMBAT_EFFECT_OBJECT((int32_t)(e - c->effects));
+        }
+        create_joint(c, call->type, call->position, call->target, call->angle, call->subtype, target,
                      call->scale, c->hero_key & 0xffff, 0);
         return 0;
+    }
     case MU_SFX_CALL_EFFECT: {
         mu_sfx_info info;
         memset(&info, 0, sizeof info);
@@ -571,6 +666,58 @@ static int env_model(void *context, int32_t type, uint16_t action, int16_t *keys
     return 1;   /* a missing native model: the client has it */
 }
 
+/* RENDER-EFFECTS-009: the named-bone service for the effect models (mu_sfx_env.bone_named / bone_transform). The
+ * client reads the global BoneTransform, which holds the bones of the last Animation call; the native answers with
+ * the effect's own model posed at its frame, angle and scale (model-space bones, as Animation without translate). */
+static mu_combat_model *effect_model(mu_combat *c, int32_t type)
+{
+    for (int i = 0; i < MU_COMBAT_MODELS; ++i)
+        if (c->models[i].type == type && c->models[i].loaded)
+            return &c->models[i];
+    return NULL;
+}
+
+static int32_t env_bone_named(void *context, const mu_sfx_effect *e, const char *name, int32_t fallback)
+{
+    mu_combat_model *m = effect_model(context, e->type);
+    if (!m)
+        return fallback;
+    const char *names[MU_MODEL_MAX_BONES];
+    const int32_t n = m->bmd.bone_count < MU_MODEL_MAX_BONES ? m->bmd.bone_count : MU_MODEL_MAX_BONES;
+    for (int32_t i = 0; i < n; ++i)
+        names[i] = m->bmd.bones[i].name;
+    return mu_named_bone_index(names, n, n > 0, name, fallback);
+}
+
+static void env_bone_transform(void *context, const mu_sfx_effect *e, int32_t bone, const float in[3], int translate,
+                               float out[3])
+{
+    mu_combat_model *m = effect_model(context, e->type);
+    static const float zero[12] = {0};
+    const float *matrix = zero;   /* a bone the model lacks: the native reads no stale matrix (inference) */
+    float origin[3] = {0.0f, 0.0f, 0.0f}, scale = 1.0f;
+    if (m) {
+        mu_model_params p = m->model.params;
+        for (int k = 0; k < 3; ++k) {
+            p.origin[k] = e->position[k];
+            p.angles[k] = e->angle[k];
+        }
+        p.body_scale = e->scale;
+        mu_model_apply_params(&m->model, &p);
+        const int32_t keys = m->bmd.action_count > 0 ? m->bmd.actions[0].keys : 1;
+        float frame = e->frame;
+        if (keys > 0 && frame >= (float)keys)
+            frame = 0.0f;
+        mu_model_set_state(&m->model, 0, frame, frame, 0);
+        const float *bones = mu_model_pose(&m->model) == MU_MODEL_OK ? mu_model_bone_matrices(&m->model) : NULL;
+        if (bones && bone >= 0 && bone < m->bmd.bone_count && bone < MU_MODEL_MAX_BONES)
+            matrix = bones + 12 * bone;
+        memcpy(origin, e->position, sizeof origin);
+        scale = e->scale;
+    }
+    mu_pt_transform_position(matrix, in, out, translate, scale, origin);
+}
+
 /* The joint module's view of the skill environment. */
 static int32_t jt_rand(void *context) { return crt_rand(context); }
 static float jt_height(void *context, float x, float y) { return env_terrain_height(context, x, y); }
@@ -603,6 +750,8 @@ static void init_env(mu_combat *c)
     c->env.object = env_object;
     c->env.call = env_call;
     c->env.model = env_model;
+    c->env.bone_named = env_bone_named;         /* RENDER-EFFECTS-009 */
+    c->env.bone_transform = env_bone_transform;
     c->env.serial = c->serial;
     c->env.report_checks = 1;
     c->env.hero_object = MU_COMBAT_HERO_OBJECT;
@@ -634,9 +783,43 @@ static void create_arrow(mu_combat *c, float angle_offset)
     create_effect(c, MU_SFX_MODEL_ARROW, 0, pos, angle, light, MU_COMBAT_HERO_OBJECT, &info);
 }
 
+/* RENDER-EFFECTS-009: TransformPosition(the hero's bone, in, out, 1) for the sparks: the bone of the posed hero
+ * model rotated and placed like the weapon attach (mu_character's link-bone path), at the hero's position. */
+static void hero_bone(void *context, int32_t owner, int32_t bone, const float in[3], float out[3])
+{
+    mu_combat *c = context;
+    (void)owner;
+    float p[3];
+    if (!c->hero_character || mu_model_rotation_position(&c->hero_character->player, bone, in, p) != MU_MODEL_OK) {
+        memcpy(out, in, 3 * sizeof *out);
+        return;
+    }
+    for (int k = 0; k < 3; ++k)
+        out[k] = c->hero_character->params.position[k] + p[k];
+}
+
+/* Bow 0x12f9's sparks after the shots (0x0158dfdc, mu_sfx_bow_sparks, verified). The bone is
+ * Weapon[Weapon[0].LinkBone].LinkBone: the byte +0x19b1 + 0x3fc * (byte +0x19b1). For the Player's link bone 33 that
+ * byte lies past the hero's record (CharactersClient + 0x3670 * (i + 2) + 0x2f6d, another slot's data); the native
+ * has no such record and reads it as 0 (MU_COMBAT_SPARK_BONE, inference: a cleared slot). 0x0129f12c then needs the
+ * hero's own bones and bone < the model's bone count. */
+static void bow_sparks(mu_combat *c)
+{
+    const mu_character *h = c->hero_character;
+    const int32_t link = h ? h->items[MU_CHARACTER_WEAPON_ITEM(0)].link_bone : -1;
+    const int32_t bone = link == 0 ? link : (link == 1 ? h->items[MU_CHARACTER_WEAPON_ITEM(1)].link_bone
+                                                      : MU_COMBAT_SPARK_BONE);
+    const int32_t count = h && h->player.bmd ? h->player.bmd->bone_count : 0;
+    mu_sfx_env env = c->env;
+    env.owner_bone = hero_bone;
+    const int n = mu_sfx_bow_sparks((int16_t)c->weapon_item[0], MU_COMBAT_HERO_OBJECT, h != NULL, bone,
+                                    mu_owner_bone_valid(h != NULL, h != NULL, count, bone), &env);
+    c->stats.bow_sparks += (uint32_t)n;
+}
+
 /* RENDER-EFFECTS-004: CreateArrows 0x0158d5bd / CreateArrow 0x0158cf57 (verified) for the hero. The services
  * the native session does not model answer as for a character without master-tree skills, item option 0x54 or
- * skill-tree value. RENDER-EFFECTS-007: every bow's arrow but 0x615/0x617 has a reconstructed effect. */
+ * skill-tree value. RENDER-EFFECTS-007/009: every bow's arrow has a reconstructed effect. */
 static void create_arrows(mu_combat *c, uint16_t skill, uint16_t flag, uint16_t index)
 {
     float pos[3], angle[3], light[3];
@@ -653,11 +836,13 @@ static void create_arrows(mu_combat *c, uint16_t skill, uint16_t flag, uint16_t 
         mu_sfx_arrow_effect out;
         if (!mu_sfx_create_arrow(&a, pos, shots.angle[k], skill, flag, index, shots.last[k], &c->env, &out) ||
             out.routine != MU_SFX_CALL_ARROW_EFFECT || out.owner != MU_SFX_ARROW_OWNER_OBJECT) {
-            ++c->stats.unsupported;
+            unsupported(c, 'a', c->weapon_item[0], skill);
             continue;
         }
         create_effect(c, out.type, out.subtype, out.position, out.angle, light, MU_COMBAT_HERO_OBJECT, &out.info);
     }
+    if (shots.bow_sparks)
+        bow_sparks(c);
     for (int k = 0; k < shots.serial_steps; ++k) {
         ++c->serial;
         c->env.serial = c->serial;
@@ -826,6 +1011,8 @@ static void move_pools(mu_combat *c)
     for (int i = 0; i < MU_SFX_EFFECTS; ++i)
         if (c->effects[i].live && !mu_sfx_effect_move(&c->effects[i], &c->env))
             c->effects[i].live = 0;   /* an unsupported kind ends at once */
+    for (int i = 0; i < MU_SFX_EFFECTS; ++i)
+        effect_object(c, &c->effects[i]);   /* MoveJoints reads the arrows after MoveEffects (RENDER-EFFECTS-009) */
     c->jenv.serial = c->serial;
     mu_joints_move_all(c->joints, MU_SFX_JOINTS, &c->jenv, c->time_step, joint_inputs, c);
     int32_t kept = 0;
@@ -1878,13 +2065,20 @@ void mu_combat_report_summary(const mu_combat *c, FILE *out, int quiet)
             " \"particles_created\": %u, \"joints_created\": %u, \"projectile_hits\": %u, \"area_requests\": %u,"
             " \"sprites\": %u, \"unsupported\": %u, \"hero_shocks\": %u, \"hero_deaths\": %u,"
             " \"monster_voices\": %u, \"requests_sent\": %u, \"requests_unsent\": %u,"
-            " \"sounds\": %u, \"bitmaps_loaded\": %d, \"models_loaded\": %d, \"skill_table\": %d}\n",
+            " \"sounds\": %u, \"bitmaps_loaded\": %d, \"models_loaded\": %d, \"skill_table\": %d,"
+            " \"bow_sparks\": %u, \"arrow_textures_retried\": %d}\n",
             c->config.weapon, (double)c->config.attack_speed, s->attacks, s->skills, s->arrows, s->fx_created,
             s->hits, s->misses, s->shocks, s->kills, s->deaths, s->removed, s->respawns, s->points_created,
             s->monster_attacks, s->hero_hits, s->picks, s->pick_hits, s->particles_created, s->joints_created,
             s->projectile_hits, s->area_requests, s->sprites, s->unsupported, s->hero_shocks, s->hero_deaths,
             s->monster_voices, s->requests_sent, s->requests_unsent,
-            c->sounds_played, loaded_bitmaps(c), loaded_models(c), (int)mu_lang_skill_count(c->lang));
+            c->sounds_played, loaded_bitmaps(c), loaded_models(c), (int)mu_lang_skill_count(c->lang), s->bow_sparks,
+            c->arrow_textures_retried);
+    fprintf(out, "{\"combat_unsupported\": [");
+    for (int32_t i = 0; i < c->unsupported_kind_count; ++i)
+        fprintf(out, "%s[\"%c\", %d, %d, %u]", i ? ", " : "", c->unsupported_kinds[i].routine,
+                c->unsupported_kinds[i].type, c->unsupported_kinds[i].subtype, c->unsupported_kinds[i].count);
+    fprintf(out, "]}\n");
     if (!quiet)
         for (int32_t i = 0; i < c->log_count; ++i)
             fprintf(out, "{\"combat_log\": \"%s\"}\n", c->log[i]);

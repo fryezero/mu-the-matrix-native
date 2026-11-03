@@ -10,15 +10,16 @@ static int arrow_straight_skill(uint16_t skill)
 }
 
 /* The arrow types reconstructed here and the subtypes CreateArrow passes (0, 2 for 0x34/0x1a0, 0x63 for flag 2).
- * 0x615 and 0x617 are not: their MoveEffect cases place sprites at model bones looked up by name
- * (0x0129f18a "Line003", 0x012bd35a "red_01"), which no native service answers. */
+ * RENDER-EFFECTS-009: 0x615 and 0x617 too; their MoveEffect cases place sprites at model bones looked up by name
+ * (0x0129f18a "Line003", 0x012bd35a "red_01" ...) through env->bone_named / env->bone_transform. */
 static int arrow_kind(int32_t type)
 {
     switch (type) {
     case 0x43c: case 0x43d: case 0x43e: case 0x43f: case 0x440: case 0x441: case 0x442: case 0x443:
     case 0x458: case 0x459: case 0x45a: case 0x45b: case 0x45c: case 0x45d: case 0x45e:
     case 0x471: case 0x474: case 0x47f: case 0x525: case 0x5b0: case 0x5b1:
-    case 0x60a: case 0x60d: case 0x60e: case 0x60f: case 0x610: case 0x612: case 0x613: case 0x614: case 0x616:
+    case 0x60a: case 0x60d: case 0x60e: case 0x60f: case 0x610: case 0x612: case 0x613: case 0x614: case 0x615:
+    case 0x616: case 0x617:
         return 1;
     default:
         return 0;
@@ -337,14 +338,17 @@ static int arrow_create(mu_sfx_effect *e, int32_t type, int32_t subtype, float p
         e->serial = env ? env->serial : 0;
         break;
     }
-    case 0x616:                                 /* 0x013ccebc */
+    case 0x615: case 0x616: case 0x617:         /* 0x013ccdda / 0x013ccebc / 0x013ccf98 */
         copy3(e->impact, e->position);
         e->field_70 = 30;
         e->lifetime = e->field_70;
         e->scale = 1.0f;
         e->gravity = -10.0f;
         set3(e->direction, 0.0f, -70.0f, 0.0f);
-        copy3(e->light, header_light);
+        if (type == 0x617)
+            set3(e->light, 1.0f, 1.0f, 1.0f);
+        else
+            copy3(e->light, header_light);
         e->serial = env ? env->serial : 0;
         break;
     case 0x525:                                 /* 0x013cd05a (subtype 3 is not an arrow's) */
@@ -456,6 +460,46 @@ static void arrow_bone(const mu_sfx_env *env, mu_sfx_effect *e, int32_t bone, fl
         env->bone(env->context, e, bone, out);
     else
         copy3(out, e->position);
+}
+
+/* RENDER-EFFECTS-009: 0x012bd35a(name, fallback) on the effect model's bone records (first equal name). */
+static int32_t arrow_bone_named(const mu_sfx_env *env, const mu_sfx_effect *e, const char *name, int32_t fallback)
+{
+    return env && env->bone_named ? env->bone_named(env->context, e, name, fallback) : fallback;
+}
+
+/* TransformPosition 0x012b6ef1(model, BoneTransform + 0x30 * bone, in, out, translate) */
+static void arrow_bone_transform(const mu_sfx_env *env, const mu_sfx_effect *e, int32_t bone, const float in[3],
+                                 int translate, float out[3])
+{
+    if (env && env->bone_transform)
+        env->bone_transform(env->context, e, bone, in, translate, out);
+    else
+        copy3(out, in);
+}
+
+/* vec3::Normalize 0x00cfd0cc -> 0x00cfd15f: v * (1 / |v|), zero when |v| is within 1e-6 of 0 (0x00a72592) */
+static void arrow_normalize(float v[3])
+{
+    const float length = sqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+    if (f32bits(0x358637bdu) > length && length > -f32bits(0x358637bdu)) {
+        v[0] = v[1] = v[2] = 0.0f;
+        return;
+    }
+    const float k = 1.0f / length;
+    for (int i = 0; i < 3; ++i)
+        v[i] = v[i] * k;
+}
+
+/* 0x0150e746(model, bitmap, bone, scale, light, effect, 0, 0, ones): CreateSprite at TransformPosition(bone,
+ * (0, 0, 0), translate 1), the bone being 0x012bd35a(name, -1). */
+static void arrow_bone_sprite(const mu_sfx_env *env, mu_sfx_effect *e, const char *name, int32_t bitmap, float scale,
+                              const float light[3])
+{
+    static const float zero[3] = {0.0f, 0.0f, 0.0f};
+    float p[3] = {0.0f, 0.0f, 0.0f};
+    arrow_bone_transform(env, e, arrow_bone_named(env, e, name, -1), zero, 1, p);
+    call_sprite(env, e, bitmap, p, scale, light, 0.0f);
 }
 
 /* 0x0150de66: fall by the gravity, bounce off the terrain (gravity and forward speed x 0.4). */
@@ -779,6 +823,62 @@ static void arrow_move(mu_sfx_effect *e, const mu_sfx_env *env, float light[3], 
         call_particle(env, e, 0x83b8, e->position, e->angle, c, 2, 0.6f, -1);
         (void)env_rand(env);   /* rand() % 3 & 0: always the first case */
         call_particle(env, e, 0x8084, e->position, e->angle, c, 0x1e, 2.0f, -1);
+        break;
+    }
+    case 0x615: {                               /* 0x0146a1f9: lightning_arrow */
+        if (!arrow_model(env, e))
+            return;
+        /* 0x0129f18a(o, "Line003", 0): BoneTransform's matrix (no own buffer); NULL skips to the hit check */
+        const int32_t bone = arrow_bone_named(env, e, "Line003", -1);
+        if (bone >= 0) {
+            static const float zero[3] = {0.0f, 0.0f, 0.0f};
+            float b[3] = {0.0f, 0.0f, 0.0f};
+            arrow_bone_transform(env, e, bone, zero, 0, b);
+            float g = arrow_rand_range(env, 0.0f, 15.0f) / 70.0f + 0.5f;
+            set3(c, F_0_2 * g, F_0_3 * g, 1.0f * g);
+            call_sprite(env, e, 0x810a, b, 1.0f, c, 0.0f);
+            g = arrow_rand_range(env, 0.0f, 15.0f) / 70.0f + 0.5f;
+            set3(c, F_0_4 * g, 0.45f * g, 1.0f * g);
+            call_sprite(env, e, 0x81cf, b, F_0_1, c, 0.0f);
+            const float n = 10.0f;
+            float m[12], d[3], step[3];
+            mu_angle_matrix(e->angle, m);
+            for (int k = 0; k < 3; ++k)
+                d[k] = -(e->direction[k] / n);
+            mu_vector_rotate(d, m, step);
+            set3(c, 0.25f, 0.75f, 1.0f);
+            for (int i = 0; (float)i < n; ++i) {
+                for (int k = 0; k < 3; ++k)
+                    p[k] = b[k] + step[k] * (float)i;
+                for (int k = 0; k < 3; ++k)
+                    p[k] = arrow_rand_range(env, -5.0f, 5.0f) + p[k];
+                call_particle(env, e, 0x8081 + smod(env_rand(env), 3), p, e->angle, c, 8, 0.35f, -1);
+            }
+        }
+        break;
+    }
+    case 0x617: {                               /* 0x0146af38: Imperial_arrow */
+        if (!arrow_model(env, e))
+            return;
+        set3(c, 1.0f, 1.0f, 1.0f);
+        arrow_bone_sprite(env, e, "red_01", 0x7fe0, F_0_2, c);
+        arrow_bone_sprite(env, e, "red_02", 0x7fe0, F_0_4, c);
+        arrow_bone_sprite(env, e, "red_01", 0x80ba, 0.15f, c);
+        arrow_bone_sprite(env, e, "red_02", 0x80ba, 0.35f, c);
+        set3(c, 0.6f, F_0_2, 1.0f);
+        arrow_bone_sprite(env, e, "t1", 0x7f7a, F_0_1, c);
+        arrow_bone_sprite(env, e, "t2", 0x7f7a, F_0_2, c);
+        arrow_bone_sprite(env, e, "t3", 0x7f7a, F_0_3, c);
+        arrow_bone_sprite(env, e, "t4", 0x7f7a, F_0_4, c);
+        arrow_bone_sprite(env, e, "t5", 0x7f7a, F_0_3, c);
+        float d[3];
+        for (int k = 0; k < 3; ++k)
+            d[k] = e->impact[k] - e->position[k];
+        arrow_normalize(d);
+        set3(c, 0.5f, F_0_2, 1.0f);
+        call_particle(env, e, 0x85fb, e->position, d, c, 2, F_0_1, -1);
+        set3(c, 1.0f, 1.0f, 1.0f);
+        call_particle(env, e, 0x8450, e->position, d, c, 4, F_0_1, -1);
         break;
     }
     case 0x616: {                               /* 0x0146aa05 */
