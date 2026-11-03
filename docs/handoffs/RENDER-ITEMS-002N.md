@@ -87,7 +87,9 @@ owner effects, Muun and nested map-object tables, and the earlier limits are unc
 
 ## Release
 
-RELEASE_LINE
+Latest main **f858e134** (RENDER-WORLDS-AFTER3, APP-REFRESH-003, PLAY-FIX-001) was merged in **be4bdd18** without conflicts. Main changed no item body, executor or validator input. Three earlier portable assertions listed these former rejections as refused (`test_item_continuation`, `test_item_gear`), or parsed program rows without the `phases` field (`test_item_scalars`). They now check the part-14 admission and accept the field. Portable renderchar suite in the gate: **72 tests, seventeen private skips**.
+
+`native/build` was removed, then `nice -n 10 bash scripts/local-macos-ci.sh` passes **1,820 tests across 38 suites, 242 explicit skips, zero failures**. Fixtures pass, and the publication audit accepts **1,809 staged files, zero rejected**. After the merge, all five private validators pass again through `scripts/run_validators.py --private --jobs 2`, with the counts above.
 
 Steward validators: validate_item_quality, validate_item_carry, validate_item_chains, validate_item_scalars,
 validate_item_wings_next (env `MU_RECOVERY_INTEGRATION=1`; pinned captures through the `evidence` link).
