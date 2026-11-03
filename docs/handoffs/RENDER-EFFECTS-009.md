@@ -97,8 +97,8 @@ Steward validators: validate_render_effects9, validate_render_effects7, validate
 validate_render_effects5, validate_render_effects4, validate_skill_fx, validate_particles, validate_joints,
 validate_combat, validate_world_particle_consumers, validate_map_effects, validate_pets, validate_effects.
 
-Env: `MU_RECOVERY_INTEGRATION=1`, `MU_SECTION3=/Users/frye/Documents/MTM/main-exe-study/evidence/x86-linux-capture-04/main-01ced000.bin`,
-`MU_GAME_ROOT="/Users/frye/Library/Application Support/MuTheMatrix/prefix/drive_c/MuTheMatrix"`.
+Env: `MU_RECOVERY_INTEGRATION=1`, `MU_SECTION3=…/main-exe-study/evidence/x86-linux-capture-04/main-01ced000.bin`,
+`MU_GAME_ROOT` = the installed client (`…/MuTheMatrix/prefix/drive_c/MuTheMatrix`).
 
 ## Remaining
 
