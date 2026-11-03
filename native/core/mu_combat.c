@@ -380,6 +380,25 @@ static void refresh_objects(mu_combat *c)
     memcpy(h->angle, c->walk->hero.angle, sizeof h->angle);   /* RENDER-EFFECTS-004: Rageful Blow aims along it */
 }
 
+/* RENDER-EFFECTS-009: one unsupported request of a kind (the total stays stats.unsupported) */
+static void unsupported(mu_combat *c, char routine, int32_t type, int32_t subtype)
+{
+    ++c->stats.unsupported;
+    for (int32_t i = 0; i < c->unsupported_kind_count; ++i)
+        if (c->unsupported_kinds[i].routine == routine && c->unsupported_kinds[i].type == type &&
+            c->unsupported_kinds[i].subtype == subtype) {
+            ++c->unsupported_kinds[i].count;
+            return;
+        }
+    if (c->unsupported_kind_count < (int32_t)(sizeof c->unsupported_kinds / sizeof c->unsupported_kinds[0])) {
+        const int32_t i = c->unsupported_kind_count++;
+        c->unsupported_kinds[i].routine = routine;
+        c->unsupported_kinds[i].type = type;
+        c->unsupported_kinds[i].subtype = subtype;
+        c->unsupported_kinds[i].count = 1;
+    }
+}
+
 static mu_sfx_effect *effect_slot(mu_combat *c)
 {
     for (int i = 0; i < MU_SFX_EFFECTS; ++i)
@@ -401,7 +420,7 @@ static void create_effect(mu_combat *c, int32_t type, int32_t subtype, const flo
         if (mu_sfx_is_arrow(type))
             ++c->stats.arrows;   /* RENDER-EFFECTS-007: the other bows' arrows too */
     } else {
-        ++c->stats.unsupported;
+        unsupported(c, 'e', type, subtype);
     }
 }
 
@@ -421,7 +440,7 @@ static void create_particle(mu_combat *c, const mu_sfx_call *call)
                                   call->subtype, call->scale);
         ++c->stats.particles_created;
     } else {
-        ++c->stats.unsupported;
+        unsupported(c, 'p', call->type, call->subtype);
     }
 }
 
@@ -436,7 +455,7 @@ static void create_joint(mu_combat *c, int32_t type, const float position[3], co
     if (i >= 0)
         ++c->stats.joints_created;
     else if (i == -2)
-        ++c->stats.unsupported;
+        unsupported(c, 'j', type, subtype);
 }
 
 static void add_light(mu_combat *c, float x, float y, const float rgb[3], int32_t range)
@@ -653,7 +672,7 @@ static void create_arrows(mu_combat *c, uint16_t skill, uint16_t flag, uint16_t 
         mu_sfx_arrow_effect out;
         if (!mu_sfx_create_arrow(&a, pos, shots.angle[k], skill, flag, index, shots.last[k], &c->env, &out) ||
             out.routine != MU_SFX_CALL_ARROW_EFFECT || out.owner != MU_SFX_ARROW_OWNER_OBJECT) {
-            ++c->stats.unsupported;
+            unsupported(c, 'a', c->weapon_item[0], skill);
             continue;
         }
         create_effect(c, out.type, out.subtype, out.position, out.angle, light, MU_COMBAT_HERO_OBJECT, &out.info);
@@ -1885,6 +1904,11 @@ void mu_combat_report_summary(const mu_combat *c, FILE *out, int quiet)
             s->projectile_hits, s->area_requests, s->sprites, s->unsupported, s->hero_shocks, s->hero_deaths,
             s->monster_voices, s->requests_sent, s->requests_unsent,
             c->sounds_played, loaded_bitmaps(c), loaded_models(c), (int)mu_lang_skill_count(c->lang));
+    fprintf(out, "{\"combat_unsupported\": [");
+    for (int32_t i = 0; i < c->unsupported_kind_count; ++i)
+        fprintf(out, "%s[\"%c\", %d, %d, %u]", i ? ", " : "", c->unsupported_kinds[i].routine,
+                c->unsupported_kinds[i].type, c->unsupported_kinds[i].subtype, c->unsupported_kinds[i].count);
+    fprintf(out, "]}\n");
     if (!quiet)
         for (int32_t i = 0; i < c->log_count; ++i)
             fprintf(out, "{\"combat_log\": \"%s\"}\n", c->log[i]);

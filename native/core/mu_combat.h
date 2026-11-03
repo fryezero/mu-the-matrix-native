@@ -218,6 +218,10 @@ typedef struct mu_combat {
     char log[48][96];
     int32_t log_count;
     struct mu_lang *lang;   /* NATIVE-LANG-001: skill table (names, distance, mana), or NULL */
+    /* RENDER-EFFECTS-009: the unsupported requests by kind (routine 'e' effect, 'p' particle, 'j' joint, 'a' arrow
+     * shot), reported as one {"combat_unsupported": ...} line */
+    struct { char routine; int32_t type, subtype; uint32_t count; } unsupported_kinds[64];
+    int32_t unsupported_kind_count;
 } mu_combat;
 
 /* Binds the combat state to a session (all pointers stay owned by the
