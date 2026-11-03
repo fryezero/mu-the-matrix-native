@@ -223,7 +223,8 @@ def family_service(m, slib, rng, cases, report):
         model = am.Region('model', fx.MODEL, am.poison(0x100, 0x55), bytes(0x100))
         model.define(fx.MODEL + 0x22, struct.pack('<h', count))
         model.define(fx.MODEL + 0x2c, struct.pack('<I', BONES if records else 0))
-        bones = am.defined_region('bones', BONES, names_bytes(names) or b'\0', writable=False)
+        table = names + ['Object0%02d' % k for k in range(max(0, count - len(names)))]   # records past the names
+        bones = am.defined_region('bones', BONES, names_bytes(table) or b'\0', writable=False)
         obj = am.Region('object', re7.OBJ, am.poison(0x400, 0x29), bytes(0x400))
         obj.define(re7.OBJ + 0x5c, struct.pack('<i', 0x617))
         obj.define(re7.OBJ + 0x318, struct.pack('<I', OBJ_BONES if own_bones else 0))
@@ -232,7 +233,7 @@ def family_service(m, slib, rng, cases, report):
         sname.define(fx.INPUTS + 0x20, enc + bytes(0x20 - len(enc)))
         case = re7.Case(rng, [], [], 0.0, has_model=has_model)
         stubs = case.stubs(m)
-        c_names = (C.c_char_p * max(1, len(names)))(*[x.encode() for x in names])
+        c_names = (C.c_char_p * max(1, len(table)))(*[x.encode() for x in table])
         mine_index = slib.mu_named_bone_index(c_names, count, records, enc, fallback) if has_model else None
         # std::string(name) at INPUTS through the client's constructor, then the lookups
         regions = [model, bones, obj, sname]
