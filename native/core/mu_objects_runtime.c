@@ -656,21 +656,18 @@ void mu_objects_apply_lights(const mu_objects *o, mu_world *map)
 typedef struct render_context {
     mu_objects *o;
     const mu_obj_render_inputs *in;
+    const float *eye;
 } render_context;
 
-/* 0x017fcd18 for world 0 (Lorencia): types 0x37 and 0x3c; the predicate's default chain (camera and
- * event-state singletons) answers no here (static reading, not executed). Worlds 134..145 end in their class
- * slot 0x10 (RENDER-WORLDS-Q2, which may set the range). */
+/* 0x017fcd18, the whole draw-first predicate (RENDER-WORLDS-AFTER4): the world cases, the default chain and the
+ * class slot 0x10 of 134..145 (RENDER-WORLDS-Q2, which may set the range). The camera position is the frustum's
+ * apex (VectorIRotate of the zero corner plus the camera position); the tower state (0x009a6ef3() + 0x78) +4 keeps
+ * its constructor value 0 (0x009a62f1). */
 static uint8_t render_first(void *context, int32_t index)
 {
     render_context *c = context;
-    if (mu_class_first_owned(c->o->world))
-        return (uint8_t)mu_class_first(image(c->o, index), c->o->world, c->in->x2d, c->in->y2d,
-                                       c->in->scene_state);
-    if (c->o->world != 0)
-        return 0;
-    const int32_t t = mu_obj_i32(image(c->o, index), MU_OBJF_TYPE);
-    return (uint8_t)(t == 0x37 || t == 0x3c);
+    const mu_draw_first_inputs in = {c->in->x2d, c->in->y2d, c->in->scene_state, c->eye, 0};
+    return (uint8_t)mu_draw_first(image(c->o, index), c->o->world, &in);
 }
 
 void mu_objects_visibility(mu_objects *o, const mu_terrain_frustum *f, int32_t scene_state)
@@ -681,7 +678,7 @@ void mu_objects_visibility(mu_objects *o, const mu_terrain_frustum *f, int32_t s
     if (!rt->ready)
         return;
     mu_obj_render_inputs in;
-    render_context c = {o, &in};
+    render_context c = {o, &in, f->vertex[0]};
     memset(&in, 0, sizeof in);
     in.world = o->world;
     in.scene_state = scene_state;
