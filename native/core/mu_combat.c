@@ -93,6 +93,31 @@ static const weapon_info weapons[] = {
     [MU_COMBAT_WEAPON_STAFF] = {{0x14e6, -1}, 0, 0, "Data/Item/Staff01.bmd"},
 };
 
+/* RENDER-EFFECTS-007: the arrow models of the loader 0x018202b4 calls 0x018333b8..0x01837389 (static); AccessModel
+ * appends the number (01) when it is not -1. 0x459 draws no model (RenderEffects skips it); 0x613..0x617 have no
+ * loader call in that range. */
+const char *mu_combat_arrow_file(int32_t type)
+{
+    static const struct { int32_t type; const char *file; } arrows[] = {
+        {0x43c, "Data/Skill/ArrowSteel01.bmd"}, {0x43d, "Data/Skill/ArrowThunder01.bmd"},
+        {0x43e, "Data/Skill/ArrowLaser01.bmd"}, {0x43f, "Data/Skill/ArrowV01.bmd"}, {0x440, "Data/Skill/ArrowSaw01.bmd"},
+        {0x441, "Data/Skill/ArrowNature01.bmd"}, {0x442, "Data/Skill/ArrowBomb01.bmd"},
+        {0x443, "Data/Skill/ArrowWing01.bmd"}, {0x458, "Data/Skill/ArrowDouble01.bmd"},
+        {0x45a, "Data/Skill/Arrow_Spark.bmd"}, {0x45b, "Data/Skill/CW_Bow_Skill.bmd"},
+        {0x45c, "Data/Skill/sketbows_arrows.bmd"}, {0x45d, "Data/Skill/bloodangel_bow_arrow.bmd"},
+        {0x45e, "Data/Skill/absolute_gunbow_arrow.bmd"}, {0x471, "Data/Skill/KCross.bmd"},
+        {0x474, "Data/Skill/Carow.bmd"}, {0x47f, "Data/Skill/LaceArrow.bmd"}, {0x525, "Data/Skill/gamble_arrows01.bmd"},
+        {0x5b0, "Data/Skill/devilcrossbow_arrow.bmd"}, {0x5b1, "Data/Skill/angelic_arrows.bmd"},
+        {0x60a, "Data/Skill/Darkangel_Bow_arrow.bmd"}, {0x60d, "Data/Skill/HolyAngelBowArrow.bmd"},
+        {0x60e, "Data/Skill/hs_soularcherbow_arrow.bmd"}, {0x60f, "Data/Skill/blue_eyebow_stand_arrow.bmd"},
+        {0x610, "Data/Skill/matery_bow6_arrow.bmd"}, {0x612, "Data/Skill/arrow_mastery7s.bmd"},
+    };
+    for (size_t k = 0; k < sizeof arrows / sizeof arrows[0]; ++k)
+        if (arrows[k].type == type)
+            return arrows[k].file;
+    return NULL;
+}
+
 const char *mu_combat_weapon_file(int32_t weapon)
 {
     if (weapon < 0 || weapon > MU_COMBAT_WEAPON_STAFF)
@@ -161,6 +186,7 @@ static void load_models(mu_combat *c, const char *root)
         {0x464, "Data/Skill/EarthQuake03.bmd"}, {0x465, "Data/Skill/EarthQuake04.bmd"},
         {0x466, "Data/Skill/EarthQuake05.bmd"}, {0x468, "Data/Skill/EarthQuake07.bmd"},
         {0x469, "Data/Skill/EarthQuake08.bmd"}, {0x46a, "Data/Skill/flashing.bmd"}, {0x46b, "Data/Skill/tail.bmd"},
+        {-1, NULL},   /* MU_COMBAT_MODEL_BOW_ARROW: chosen from the bow below */
     };
     int32_t quake_missing = 0;
     for (int i = 0; i < MU_COMBAT_MODELS; ++i) {
@@ -169,6 +195,10 @@ static void load_models(mu_combat *c, const char *root)
         const char *file = files[i].file;
         if (i == MU_COMBAT_MODEL_WEAPON)
             file = mu_combat_weapon_file(c->config.weapon);   /* Twisting Slash draws the weapon */
+        if (i == MU_COMBAT_MODEL_BOW_ARROW) {
+            m->type = c->weapon_item[0] >= 0 ? mu_sfx_arrow_type(c->weapon_item[0]) : -1;
+            file = mu_combat_arrow_file(m->type);
+        }
         if (!file)
             continue;
         char path[4096], message[512], text[96];
@@ -229,6 +259,8 @@ int mu_combat_init(mu_combat *c, const char *root, mu_walk *walk, mu_character *
     }
     c->weapon_item[0] = weapons[config->weapon].item[0];
     c->weapon_item[1] = weapons[config->weapon].item[1];
+    if (config->weapon == MU_COMBAT_WEAPON_BOW && config->bow_item)
+        c->weapon_item[0] = config->bow_item;   /* RENDER-EFFECTS-007: another bow (its arrow model, same draw) */
     /* SetAttackSpeed 0x0138dc60 over the Player actions; actions it does not
      * store keep the loader's speed (marked < 0 here) */
     for (int32_t i = 0; i < MU_PLAYER_ACTIONS; ++i)
@@ -366,8 +398,8 @@ static void create_effect(mu_combat *c, int32_t type, int32_t subtype, const flo
     memcpy(creation_light, light, sizeof creation_light);
     if (mu_sfx_effect_create(e, type, subtype, position, angle, creation_light, owner, 0.0f, info, &c->env)) {
         ++c->stats.fx_created;
-        if (type == MU_SFX_MODEL_ARROW)
-            ++c->stats.arrows;
+        if (mu_sfx_is_arrow(type))
+            ++c->stats.arrows;   /* RENDER-EFFECTS-007: the other bows' arrows too */
     } else {
         ++c->stats.unsupported;
     }
@@ -604,7 +636,7 @@ static void create_arrow(mu_combat *c, float angle_offset)
 
 /* RENDER-EFFECTS-004: CreateArrows 0x0158d5bd / CreateArrow 0x0158cf57 (verified) for the hero. The services
  * the native session does not model answer as for a character without master-tree skills, item option 0x54 or
- * skill-tree value; only the Arrow01 (0x43b) shots of the bows here have a reconstructed effect. */
+ * skill-tree value. RENDER-EFFECTS-007: every bow's arrow but 0x615/0x617 has a reconstructed effect. */
 static void create_arrows(mu_combat *c, uint16_t skill, uint16_t flag, uint16_t index)
 {
     float pos[3], angle[3], light[3];

@@ -190,6 +190,35 @@ void mu_effect_object_matrix(float out[16], const float position[3], float scale
     out[15] = 1.0f;
 }
 
+/* RENDER-EFFECTS-007: 0x0129faee, an object's world matrix for a record following bone -1 (verified). The 4x4 of
+ * 0x00cef49d(rad z, rad y, rad x) with rad = binary32 angle * 0.017453292 (0x00a8c87e) and binary32 sin/cos; its 3x3
+ * scaled by the object scale (+0xa0), the position (+0x158) in elements 12..14. Column-major like the bone path. */
+void mu_effect_object_world_matrix(float out[16], const float angle[3], const float position[3], float scale)
+{
+    const float to_rad = 0.017453292f;
+    const float a = angle[2] * to_rad, b = angle[1] * to_rad, c = angle[0] * to_rad;
+    const float cc = (float)cos((double)c), sc = (float)sin((double)c);
+    const float cb = (float)cos((double)b), sb = (float)sin((double)b);
+    const float ca = (float)cos((double)a), sa = (float)sin((double)a);
+    out[0] = cb * ca;
+    out[4] = -(cb * sa);
+    out[8] = sb;
+    out[1] = sc * sb * ca + cc * sa;
+    out[5] = -(sc * sb * sa) + cc * ca;
+    out[9] = -(sc * cb);
+    out[2] = -(cc * sb * ca) + sc * sa;
+    out[6] = cc * sb * sa + sc * ca;
+    out[10] = cc * cb;
+    out[3] = out[7] = out[11] = 0.0f;
+    out[15] = 1.0f;
+    static const int scaled[9] = {0, 4, 8, 1, 5, 9, 2, 6, 10};
+    for (int k = 0; k < 9; ++k)
+        out[scaled[k]] = out[scaled[k]] * scale;
+    out[12] = position[0];
+    out[13] = position[1];
+    out[14] = position[2];
+}
+
 void mu_effect_scene_update(mu_effect_scene *s, float dt)
 {
     for (uint32_t i = 0; i < s->instance_count; ++i) {

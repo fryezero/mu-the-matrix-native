@@ -102,13 +102,13 @@ class RenderEffects(unittest.TestCase):
             for name in names: (assets/name).unlink()
             for name in ('Spark02.OZJ', 'Explotion01.OZJ', 'Fire01.OZJ'): (effect/name).unlink()
 
-    def cast_as(self, skill, weapon, cls, frames):
+    def cast_as(self, skill, weapon, cls, frames, extra=()):
         with tempfile.TemporaryDirectory() as tmp:
             cmd = [str(ROOT/'native/build/mu-walk'), '--game-root', str(self.root), '--headless',
                    '--backend', 'soft', '--no-audio', '--no-items', '--no-players', '--tile', '120,120',
                    '--placement', str(self.placement), '--combat', '--combat-weapon', weapon, '--class', str(cls),
                    '--combat-script', f'2:skill:{skill}:spider;3:stop', '--frames', str(frames), '--every', '1',
-                   '--width', '160', '--height', '100', '--out-dir', tmp]
+                   '--width', '160', '--height', '100', '--out-dir', tmp, *extra]
             p = subprocess.run(cmd, capture_output=True, text=True)
             self.assertEqual(p.returncode, 0, p.stderr)
             rows = [json.loads(x) for x in p.stdout.splitlines() if x.startswith('{')]
@@ -152,6 +152,30 @@ class RenderEffects(unittest.TestCase):
             self.assertEqual((summary['arrows'], summary['unsupported']), (3, 0))
             frames = [r for r in rows if 'combat_frame' in r]
             self.assertTrue(any(f['effect_types'].count(0x43b) == 3 for f in frames))
+        finally:
+            arrow.unlink()
+
+    def test_other_bows_arrows_session(self):
+        """RENDER-EFFECTS-007: the crossbow fires ArrowSteel (0x43c), another bow its own arrow; the bow's arrow
+        model loads in its own slot and draws (removing it changes pixels)."""
+        rows, _ = self.cast_as(24, 'crossbow', 2, 30)
+        summary = next(r for r in rows if r.get('combat') is True)
+        self.assertEqual((summary['arrows'], summary['unsupported']), (3, 0))
+        frames = [r for r in rows if 'combat_frame' in r]
+        self.assertTrue(any(f['effect_types'].count(0x43c) == 3 for f in frames))
+        arrow = self.root/'Data/Skill/LaceArrow.bmd'
+        arrow.write_bytes(nf.synthetic_layout(401, actions=1, keys=(8,)))
+        try:
+            rows, images = self.cast_as(24, 'bow', 2, 30, ('--combat-bow', '0x12fa'))
+            summary = next(r for r in rows if r.get('combat') is True)
+            self.assertEqual(summary['arrows'], 3)
+            frames = [r for r in rows if 'combat_frame' in r]
+            self.assertTrue(any(f['effect_types'].count(0x47f) == 3 for f in frames))
+            arrow.rename(arrow.with_suffix('.off'))
+            try: _, absent = self.cast_as(24, 'bow', 2, 30, ('--combat-bow', '0x12fa'))
+            finally: arrow.with_suffix('.off').rename(arrow)
+            self.assertTrue(images)
+            self.assertNotEqual(images, absent)
         finally:
             arrow.unlink()
 
@@ -209,6 +233,40 @@ class RenderEffects(unittest.TestCase):
             self.assertTrue(r['all_mutants_caught'])
             self.assertEqual(len(r['mutants']), 25)
             self.assertEqual(r['instruction_cases'], 1190)
+
+    @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'requires pinned private instructions')
+    def test_other_bows_arrows_original_instructions_and_compiled_mutants(self):
+        """RENDER-EFFECTS-007: 30 arrow types x subtypes 0/2/0x63 (+ Arrow01/0x63), CreateEffect and MoveEffect; bow
+        0x12f9's sparks; the rank-5 pants' group-9 path has no owner effects; bone -1 world matrix 0x0129faee; Rudolph's 0x3fa and Shiny01 0x7f66/7."""
+        with tempfile.TemporaryDirectory() as tmp:
+            report = Path(tmp)/'report.json'
+            subprocess.run([sys.executable, str(ROOT/'scripts/validate_render_effects7.py'), '--cases', '2',
+                            '--mutations', '--output', str(report)], check=True, capture_output=True)
+            r = json.loads(report.read_text())
+            self.assertTrue(r['all_equal'])
+            self.assertTrue(r['all_mutants_caught'])
+            self.assertEqual(len(r['mutants']), 31)
+            self.assertEqual(r['instruction_cases'], 596)
+
+    def test_rudolph_gold_pieces_effect_pixels(self):
+        """RENDER-EFFECTS-007: Rudolph's 0x3fa gold pieces are created, kept and drawn; without sulgold.bmd none draw."""
+        subprocess.run(['make', '-C', str(ROOT/'native'), 'build/pet-gold-host'], check=True, capture_output=True)
+        with tempfile.TemporaryDirectory() as tmp:
+            monster = Path(tmp)/'Data/Monster'
+            monster.mkdir(parents=True)
+            nf.write_textured_model(monster, 47).rename(monster/'sulgold.bmd')
+
+            def run():
+                p = subprocess.run([str(ROOT/'native/build/pet-gold-host'), tmp], capture_output=True, text=True)
+                self.assertEqual(p.returncode, 0, p.stderr)
+                return json.loads(p.stdout)
+            with_model = run()
+            (monster/'sulgold.bmd').unlink()
+            without = run()
+        self.assertEqual((with_model['created'], with_model['live'], with_model['drawn'], with_model['unsupported']),
+                         (8, 8, 8, 0))
+        self.assertGreater(with_model['pixels'], 0)
+        self.assertEqual((without['created'], without['drawn'], without['pixels']), (8, 0, 0))
 
     def test_world_particle_consumers_and_sprite_registrations(self):
         subprocess.run(['make', '-C', str(ROOT/'native'), 'build/particle-consumers-host'], check=True,

@@ -73,6 +73,8 @@ typedef struct mu_draw_model_fields {
     float alt_color[3];          /* +0x44 */
     uint8_t alt_on_skin;         /* +0xca */
     uint8_t flag_a5;             /* +0xa5 */
+    uint8_t light_mesh_set;      /* RENDER-JOINTS-001: 1 = light_mesh replaces the model's +0x94 */
+    int8_t light_mesh;           /* +0x94 StreamMesh at the call (-1 none) */
 } mu_draw_model_fields;
 
 void mu_draw_default_options(mu_draw_options *options);

@@ -32,6 +32,16 @@ static void sprite(void *ctx,int32_t type,const float p[3],float scale,const flo
     ++sprites;
 }
 static void sound(void *ctx,int32_t id) { (void)ctx; assert(id==0x442);++sounds; }
+static int colored;
+/* RENDER-JOINTS-001: type 109's CreateJoint 0x7f7d 0xd with the colour (0.7, 0.05, 0) and width 225 x scale */
+static void joint_light(void *ctx,int32_t type,const float p[3],const float t[3],const float a[3],int32_t sub,
+                        int32_t owner,float scale,const float l[3])
+{
+    (void)ctx;(void)t;(void)a;
+    assert(type==0x7f7d && sub==13 && owner==-1 && scale==450 && p[0]==99);
+    assert(l[0]==0.7f && l[1]==0.05f && l[2]==0);
+    ++colored;
+}
 static void visual(void *ctx,mu_objects *o,int32_t i,int has,mu_object_model *m)
 {(void)ctx;(void)o;(void)i;(void)has;(void)m;++generic;}
 int main(int argc,char **argv)
@@ -42,7 +52,7 @@ int main(int argc,char **argv)
     assert(mu_bmd_load_file(argv[1],&m->bmd,error,sizeof error)==0);
     assert(mu_model_init(&m->model,&m->bmd,NULL,error,sizeof error)==0);m->loaded=1;
     o->count=1;o->rt.ready=1;o->rt.images=calloc(1,MU_OBJ_SIZE);assert(o->rt.images);
-    o->rt.particle=particle;o->rt.sprite=sprite;o->rt.visual=visual;o->sound=sound;
+    o->rt.particle=particle;o->rt.sprite=sprite;o->rt.visual=visual;o->sound=sound;o->rt.joint_light=joint_light;
     uint8_t *img=o->rt.images;
     img[MU_OBJF_LIVE]=img[MU_OBJF_VISIBLE]=1;
     mu_obj_set_i32(img,MU_OBJF_HIDDEN_MESH,-2);
@@ -61,7 +71,7 @@ int main(int argc,char **argv)
         else if(current_type==35) assert(sprites-olds==200);
         else if(current_type==58) assert(sprites-olds==200);
         else if(current_type==20) assert(sounds-old_sound==200);
-        else if(current_type==109) assert(o->rt.draw_unsupported-refused==200);
+        else if(current_type==109) assert(o->rt.draw_unsupported==refused && colored==200);   /* RENDER-JOINTS-001 */
         else assert(particles>oldp);
         uint32_t seed=o->rt.seed;oldp=particles;olds=sprites;old_sound=sounds;
         m->loaded=0;assert(!mu_objects_prepare_index(o,0,NULL,6,&options));m->loaded=1;

@@ -176,6 +176,21 @@ static void ein_requests(const char *root, int valid)
         run(o, 2, &p, 1);
         assert(p.ein_unposed == 4);
         model->bmd.bone_count = bones;
+        /* RENDER-EFFECTS-007: bone -1 follows the object's world matrix 0x0129faee (translation = position, the
+         * 3x3 scaled by +0xa0), counted as an update, not as unposed */
+        for (int32_t q = 0; q < 4; ++q)
+            p.ein_links[q].bone = -1;
+        const unsigned long long unposed = p.ein_unposed, updates = p.ein_updates;
+        run(o, 2, &p, 1);
+        assert(p.ein_unposed == unposed && p.ein_updates == updates + 4);
+        const uint8_t *img0 = o->rt.images;
+        const float *ext = p.ein->instances[p.ein_links[0].instance].external;
+        float expect[16];
+        mu_effect_object_world_matrix(expect, (const float *)(const void *)(img0 + MU_OBJF_ANGLE),
+                                      (const float *)(const void *)(img0 + MU_OBJF_POSITION),
+                                      mu_obj_f32(img0, MU_OBJF_SCALE));
+        assert(memcmp(ext, expect, sizeof expect) == 0);
+        assert(ext[12] == mu_obj_f32(img0, MU_OBJF_POSITION) && ext[15] == 1.0f);
     } else {
         /* the factory fails for every path: requested again each step, refused and counted, nothing created */
         assert(o->rt.move_unsupported == STEPS && p.ein_attached == 0 && (!p.ein || p.ein->instance_count == 0));

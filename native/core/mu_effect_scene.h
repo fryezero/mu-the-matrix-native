@@ -80,6 +80,9 @@ void mu_effect_scene_attach(mu_effect_scene *scene, uint32_t instance, const flo
 
 /* Object matrix of 0x0129f4cb without a bone: uniform scale, then translation. */
 void mu_effect_object_matrix(float out[16], const float position[3], float scale);
+/* RENDER-EFFECTS-007: 0x0129faee, the object's world matrix (angle +0x164, position +0x158, scale +0xa0) of a record
+ * following bone -1. */
+void mu_effect_object_world_matrix(float out[16], const float angle[3], const float position[3], float scale);
 
 void mu_effect_scene_update(mu_effect_scene *scene, float dt);
 

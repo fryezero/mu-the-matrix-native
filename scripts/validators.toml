@@ -602,11 +602,11 @@ test = "reconstructed/joints/test_joints.py::ClientComparison.test_unicorn_compa
 pins = ["text", "data"]
 families = ["joint_create", "joint_move", "joint_render"]
 cases = 180
-mutants = 9
+mutants = 31
 cases_at = "families.*.cases"
-mutants_at = "negative_controls"
+mutants_at = ["negative_controls", "mutants"]
 build = ["reconstructed/joints"]
-args = ["--text", "{text}", "--data", "{data}", "--cases", "60", "--output", "{report}"]
+args = ["--text", "{text}", "--data", "{data}", "--cases", "60", "--mutations", "--mutant-cases", "120", "--output", "{report}"]
 
 [validate_lang]
 test = "native/tests/test_native_lang.py::PrivateValidator.test_client_consumers_equal_the_native_module"
@@ -2005,6 +2005,20 @@ mutants_at = "mutants"
 build = ["reconstructed/particles", "reconstructed/combat"]
 args = ["--cases", "200", "--particle-cases", "200", "--mutations", "--output", "{report}"]
 [validate_render_effects6.expect]
+all_equal = true
+all_mutants_caught = true
+
+[validate_render_effects7]
+test = "native/tests/test_render_effects.py::RenderEffects.test_other_bows_arrows_original_instructions_and_compiled_mutants"
+pins = ["text", "data", "flag", "feature"]
+families = ["effect_create", "effect_move", "sparks", "pants_owner", "world_matrix", "pt_create", "pt_move", "pt_render"]
+cases = 596
+mutants = 31
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/combat", "reconstructed/renderchar", "reconstructed/model-codec", "reconstructed/particles"]
+args = ["--cases", "2", "--mutations", "--output", "{report}"]
+[validate_render_effects7.expect]
 all_equal = true
 all_mutants_caught = true
 

@@ -222,7 +222,10 @@ int mu_objects_start(mu_objects *o, const char *game_root)
                 rt->play_speed[created[k].args[0]] = fbits(created[k].args[2]);
                 rt->play_speed_set[created[k].args[0]] = created[k].args[1] ? 2 : 1;   /* 2: every action */
             } else if (created[k].call == MU_OBJ_CALL_MODEL_STREAM) {
-                ++rt->create_unsupported;   /* Ignis StreamMesh byte: no native consumer (RENDER-WORLDS-P2) */
+                /* RENDER-JOINTS-001: the model's StreamMesh byte (+0x94, Ignis 79/148), read by the mesh draw */
+                const int32_t t = mu_obj_i32(img, MU_OBJF_TYPE);
+                if (t >= 0 && t < MU_OBJECT_TYPES)
+                    rt->stream[t] = (uint8_t)created[k].args[0];
             }
         for (int32_t k = 0; k < create_log.count; ++k)   /* RENDER-WORLDS-P deferred class create */
             if (created[k].call == MU_WP_CREATE)
@@ -576,6 +579,9 @@ void mu_objects_step(mu_objects *o, const mu_objects_step_inputs *in)
                     if (pushed.count && o->sound) o->sound(o->sound_context, (int32_t)output[0].args[0]);
                 } else if (m->call == MU_OBJ_CALL_TICK) {
                     tick(o, i, fbits(m->args[0]));
+                } else if (m->call == MU_OBJ_CALL_MODEL_STREAM) {   /* RENDER-JOINTS-001 (Dungeon 0x16..0x18) */
+                    if (t >= 0 && t < MU_OBJECT_TYPES)
+                        rt->stream[t] = (uint8_t)m->args[0];
                 } else if (m->call == MU_MARKET_BONE_LIGHT) {
                     market_bone_light(o, i, m);
                 } else if (m->call == MU_KANTURU_UG_ACTION_STEP) {   /* after the tick, as in the client */
@@ -802,6 +808,11 @@ static int pose_object(mu_objects *o, uint8_t *img, mu_object_model *m, const mu
     mu_model_params p = m->model.params;
     if (mu_world_after_enabled(o->world))
         p.light_skip_mesh = -1;
+    /* RENDER-JOINTS-001: the StreamMesh byte (+0x94) a create, move or class slot wrote for this model; the mesh
+     * draw 0x012b8d1d draws that mesh with the body colour, unlit, and gives it the u/v scroll */
+    const int32_t type = mu_obj_i32(img, MU_OBJF_TYPE);
+    if (type >= 0 && type < MU_OBJECT_TYPES && o->rt.stream[type] != 0xff)
+        p.light_skip_mesh = (int8_t)o->rt.stream[type];
     memcpy(p.origin, img + MU_OBJF_POSITION, 12);
     memcpy(p.angles, img + MU_OBJF_ANGLE, 12);
     p.body_scale = mu_obj_f32(img, MU_OBJF_SCALE);
@@ -946,8 +957,19 @@ static void consume_visual(mu_objects *o, const mu_obj_log *log)
             }
             rt->joint(rt->hook_context, (int32_t)e->args[0], position, target, angle,
                       (int32_t)e->args[10], e->args[11] ? e->object : -1, fbits(e->args[12]));
+        } else if (e->call == MU_URUK_COLORED_JOINT && rt->joint_light &&
+                   mu_jt_kind_supported((int32_t)e->args[0], (int32_t)e->args[10])) {
+            float position[3], target[3], angle[3], light[3];   /* RENDER-JOINTS-001: 0x7f7d 0xd with a colour */
+            for (int q = 0; q < 3; ++q) {
+                position[q] = fbits(e->args[1 + q]);
+                target[q] = fbits(e->args[4 + q]);
+                angle[q] = fbits(e->args[7 + q]);
+                light[q] = fbits(e->args[13 + q]);
+            }
+            rt->joint_light(rt->hook_context, (int32_t)e->args[0], position, target, angle, (int32_t)e->args[10],
+                            e->args[11] ? e->object : -1, fbits(e->args[12]), light);
         } else if (e->call == MU_URUK_KEYED_EFFECT || e->call == MU_URUK_COLORED_JOINT) {
-            ++rt->draw_unsupported; /* No native key/color consumer; preserve the refusal. */
+            ++rt->draw_unsupported; /* No native key consumer (or no colour-joint hook); preserve the refusal. */
         } else if (e->call == MU_OBJ_CALL_SOUND) {
             ++rt->sound_events;
             if (o->sound) o->sound(o->sound_context, (int32_t)e->args[0]);
@@ -1341,9 +1363,9 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
     return m;
 }
 
-/* RENDER-WORLDS-AFTER2: a slot's RenderBody/RenderMesh calls as draws, with the body colour (+0x54) at each
- * call. A mesh that is the model's StreamMesh (+0x94) is drawn without the stream scroll (no native consumer)
- * and counted; a texture argument without a native bitmap is refused and counted. */
+/* RENDER-WORLDS-AFTER2: a slot's RenderBody/RenderMesh calls as draws, with the body colour (+0x54) and the
+ * model's StreamMesh byte (+0x94, RENDER-JOINTS-001: the mesh draw's light_mesh) at each call; a texture argument
+ * without a native bitmap is refused and counted. */
 static int32_t slot_meshes(mu_objects *o, const mu_obj_event *events, int32_t n, const float color[3],
                            uint8_t stream, const mu_world *map, mu_object_model *m, mu_object_mesh *meshes,
                            int32_t capacity, int after)
@@ -1378,10 +1400,10 @@ static int32_t slot_meshes(mu_objects *o, const mu_obj_event *events, int32_t n,
             body_options(ev, m, map, &mesh->options);
         else
             mesh_options(ev, m, map, &mesh->options);
-        if (stream != 0xff && (ev->call == MU_OBJ_CALL_BODY || ev->args[0] == stream))
-            ++rt->draw_unsupported;
         memset(&mesh->fields, 0, sizeof mesh->fields);
         memcpy(mesh->fields.color, current, sizeof current);
+        mesh->fields.light_mesh_set = 1;
+        mesh->fields.light_mesh = (int8_t)stream;
         mesh->options.fields = NULL;   /* set by the caller after copying (points into the array) */
         if (after)
             ++rt->after_meshes;
