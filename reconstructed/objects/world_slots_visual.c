@@ -7,6 +7,7 @@
  * docs/research/client-worlds-after2.md. */
 #include "world_visual_internal.h"
 #include <math.h>
+#include <stdio.h>
 
 typedef struct slot {
     uint8_t *o, *b;
@@ -1153,6 +1154,564 @@ static void aida_after(const slot *s)
 static int none_custom(const slot *s) { (void)s; return 0; }
 static void none_after(const slot *s) { (void)s; }
 
+/* ==== RENDER-WORLDS-AFTER3: the custom/after slots of 133, 141, 143, 144 and 145 (client-worlds-after3.md).
+ * Types above 300 (133's 0x199..0x19e, 141's 0x40e) are never passed by the world manager and are left. ==== */
+static void body_t(const slot *s, uint32_t flags, int32_t blend, float light, float u, float v, int32_t hidden,
+                   int32_t texture)
+{
+    const uint32_t a[8] = {flags, wv_bits(A(s)), (uint32_t)blend, wv_bits(light), wv_bits(u), wv_bits(v),
+                           (uint32_t)hidden, (uint32_t)texture};
+    wv_emit(s->l, MU_OBJ_CALL_BODY, s->i, a, 8);
+}
+/* RenderMesh(m, flags, alpha, m, light, u, v, texture): the mesh is its own blend mesh */
+static void mesh_own(const slot *s, int32_t m, uint32_t flags, float light, int32_t texture)
+{
+    mesh(s, m, flags, A(s), m, light, U(s), V(s), texture);
+}
+typedef struct saved_color {
+    float c[3];
+} saved_color;
+static saved_color save_color(const slot *s)
+{
+    const saved_color k = {{mu_obj_f32(s->b, MU_MDL_COLOR), mu_obj_f32(s->b, MU_MDL_COLOR + 4),
+                            mu_obj_f32(s->b, MU_MDL_COLOR + 8)}};
+    return k;
+}
+static void restore_color(const slot *s, saved_color k) { color(s, k.c[0], k.c[1], k.c[2]); }
+static void set_light(const slot *s, float v)   /* OBJECT +0xec, the object light */
+{
+    for (uint32_t q = 0; q < 3; ++q)
+        mu_obj_set_f32(s->o, MU_OBJF_LIGHT + 4 * q, v);
+}
+/* 0x8320/0x8348/0x838a/0x848e/0x8589 + (int)(WorldTime * 0.015) % 32: the class's 32 water bitmaps */
+static int32_t water(const slot *s, int32_t base) { return base + cvtt(s->time * 0.015f) % 32; }
+/* the scrolling water body of 133 (types 6, 0xaa) and 143 (type 0): StreamMesh 0, then the whole body */
+static void water_body(const slot *s, int32_t n, float k)
+{
+    const float w = wave(s, -1.5f);
+    set_light(s, 0.2f);
+    stream(s, 0);
+    const float t = tmod(s, n, k, 0);
+    body_t(s, 0x42, BM(s), BL(s), -t, w * 0.011f - t, -1, -1);
+    stream(s, 0xff);
+}
+
+/* ---- Temple of Arnil 133 (0x85): custom 0x00d80cea, after 0x00d81c49, world test 0x00d83ada ---- */
+static int arnil_custom(const slot *s)
+{
+    switch (mu_obj_i32(s->o, MU_OBJF_TYPE)) {
+    case 6: case 0xe: case 0x7b: case 0x80: case 0x8f: case 0xaa:
+        return 1;
+    case 0x84: case 0x86:
+        mesh_std(s, 0, 2, -1);
+        return 1;
+    case 0x1b: {
+        const float w = wave(s, -1.5f) * 0.4f + 0.2f;
+        mesh_std(s, 0, 2, -1);
+        grey(s, w);
+        mesh_std(s, 1, 0x42, -1);
+        return 1;
+    }
+    case 0x4d: case 0x4e: case 0x4f: case 0x50: case 0x51: case 0x67: {
+        const float w = wave(s, -1.5f) * (mu_obj_i32(s->o, MU_OBJF_TYPE) == 0x67 ? 0.4f : 0.8f) + 0.2f;
+        mesh_std(s, 0, 2, -1);
+        mesh_std(s, 1, 2, -1);
+        grey(s, w);
+        mesh(s, 2, 0x42, A(s), BM(s), w, U(s), V(s), -1);
+        return 1;
+    }
+    case 0x60: case 0x62: case 0x63: case 0x64: case 0x65: case 0x66: {
+        const float w = wave(s, -1.5f) * 0.8f + 0.2f;
+        mesh_std(s, 0, 2, -1);
+        grey(s, w);
+        mesh(s, 1, 0x42, A(s), BM(s), w, U(s), V(s), -1);
+        return 1;
+    }
+    case 0x91: case 0x94: {   /* StreamMesh k for mesh k; 0x94 stops after mesh 3 and leaves it set */
+        const float t = tmod(s, 0x4b0, 0.00083f, 0);
+        const int last = mu_obj_i32(s->o, MU_OBJF_TYPE) == 0x91 ? 5 : 3;
+        mesh_std(s, 0, 2, -1);
+        for (int32_t m = 1; m <= last; ++m) {
+            stream(s, (uint8_t)m);
+            if (m == 2 || m == 4)
+                mesh(s, m, 2, A(s), BM(s), BL(s), -t * (m == 2 ? 4.0f : 2.0f), V(s), -1);
+            else
+                mesh(s, m, 2, A(s), BM(s), BL(s), U(s), t * (m == 1 ? 2.0f : 1.0f), -1);
+        }
+        if (last == 5)
+            stream(s, 0xff);
+        return 1;
+    }
+    case 0x92: {
+        const float t = tmod(s, 0x4b0, 0.00083f, 0);
+        stream(s, 0);
+        mesh(s, 0, 2, A(s), BM(s), BL(s), U(s), t, -1);
+        return 1;
+    }
+    default:
+        return 0;
+    }
+}
+static void arnil_after(const slot *s)
+{
+    switch (mu_obj_i32(s->o, MU_OBJF_TYPE)) {
+    case 6: case 0xaa:
+        water_body(s, 1000000, 1e-05f);
+        break;
+    case 0x80: {
+        const float w = wave(s, -1.5f) * 0.7f + 0.3f;
+        mesh_std(s, 0, 2, -1);
+        mesh_std(s, 1, 0x42, -1);
+        mesh_std(s, 3, 0x42, -1);
+        mesh_std(s, 4, 0x42, -1);
+        grey(s, w);
+        mesh(s, 2, 0x42, A(s), BM(s), w, U(s), V(s), -1);
+        break;
+    }
+    case 0x84: case 0x86:
+        mesh(s, 1, 0x42, A(s), 1, BL(s), U(s), V(s), -1);
+        break;
+    case 0x8f:
+        body_t(s, 2, BM(s), BL(s), U(s), V(s), H(s), water(s, 0x8320));
+        break;
+    default:
+        body_std(s, H(s));
+        break;
+    }
+}
+
+/* ---- Swamp of Destruction 144 (0x90): custom 0x00e46e94, after 0x00e48f1c, world test 0x00e4bb8d ---- */
+static int swamp_custom(const slot *s)
+{
+    const int32_t t = mu_obj_i32(s->o, MU_OBJF_TYPE);
+    switch (t) {
+    case 3: case 4: case 6: case 0xb:
+        body(s, 2, BM(s), BL(s), U(s), V(s), -1);
+        mesh(s, 0, 2, A(s), 0, wave(s, -1.5f) * 0.5f + 0.5f, U(s), V(s),
+             t == 3 ? 0x8344 : t == 4 ? 0x8345 : t == 6 ? 0x8346 : 0x8347);
+        return 1;
+    case 0xd:
+        mesh(s, 0, 2, A(s), -1, -1.0f, U(s), V(s), -1);
+        mesh(s, 1, 2, A(s), 1, wave(s, -4.0f) * 0.5f + 0.7f, U(s), V(s), -1);
+        return 1;
+    case 0x20: case 0x40: case 0x4c:
+        return 1;
+    case 0x7c: case 0x7d: case 0x7e: case 0x7f: case 0x80: {
+        const float w = wave(s, -1.0f) * 0.6f + 0.4f;
+        mesh(s, 0, 2, A(s), -1, w, U(s), V(s), -1);
+        mesh(s, 1, 2, A(s), -1, w, U(s), V(s), -1);
+        mesh(s, 2, 2, A(s), 2, w, U(s), V(s), -1);
+        mesh(s, 3, 2, A(s), 3, w, tmod(s, 50000, 0.0002f, 0), V(s), -1);
+        return 1;
+    }
+    case 0x86: case 0x87:   /* the colour copies around mesh 1 change nothing */
+        mesh_std(s, 0, 2, -1);
+        mesh(s, 1, 2, A(s), 1, wave(s, -1.5f) * 0.6f + 0.3f, U(s), V(s), -1);
+        return 1;
+    case 0x89: case 0x8a: {
+        mesh_std(s, 0, 2, -1);
+        const float w = wave(s, -1.5f);
+        const saved_color k = save_color(s);
+        grey(s, t == 0x89 ? w * 0.5f + 0.5f : w * 0.4f + 0.6f);
+        mesh(s, 0, 2, A(s), 0, BL(s), U(s), V(s), t == 0x89 ? 0x8341 : 0x8342);
+        restore_color(s, k);
+        return 1;
+    }
+    case 0x99:
+        mesh(s, 0, 0x42, A(s), 0, wave(s, -1.5f) * 0.5f + 0.5f, U(s), V(s), -1);
+        return 1;
+    default:
+        return 0;
+    }
+}
+static void swamp_after(const slot *s)
+{
+    if (!s->o[MU_OBJF_LIVE])
+        return;
+    switch (mu_obj_i32(s->o, MU_OBJF_TYPE)) {
+    case 0x20:
+        mesh(s, 0, 2, A(s), 0, BL(s), U(s), tmod(s, 100000, 0.0004f, 1), -1);
+        break;
+    case 0x40:
+        body_t(s, 2, BM(s), BL(s), U(s), V(s), H(s), water(s, 0x8348));
+        break;
+    default:
+        body_std(s, H(s));
+        break;
+    }
+}
+
+/* ---- 145 (0x91): custom 0x00d76059 (no world test: an alpha below 0.9 answers handled), after 0x00d77d18,
+ * world test 0x00d79e40 ---- */
+#define MU_OBJF_FADE_188 0x188   /* f32, type 0x99's glow alpha */
+static void play(mu_obj_log *l, int32_t i, uint32_t id, uint32_t owner);
+static int m145_custom(const slot *s)
+{
+    if (0.9f > A(s))
+        return 1;
+    switch (mu_obj_i32(s->o, MU_OBJF_TYPE)) {
+    case 0x13: case 0x2d: case 0x2e: case 0x31:
+        return 1;
+    case 0x54: case 0x55:
+        body(s, 2, BM(s), BL(s), U(s), V(s), -1);
+        mesh(s, 0, 2, A(s), 0, wave(s, -1.5f) * 0.6f + 0.4f, U(s), V(s), 0x83ab);
+        return 1;
+    case 0x56: case 0x57: case 0x5a: case 0x5b:
+        mesh_std(s, 0, 2, -1);
+        mesh(s, 1, 0x42, A(s), 1, wave(s, -1.5f) * 0.6f + 0.4f, U(s), V(s), -1);
+        return 1;
+    case 0x5d:
+        mesh(s, 0, 0x42, A(s), 0, wave(s, -1.5f) * 0.6f + 0.4f, U(s), V(s), -1);
+        mesh_std(s, 1, 2, -1);
+        return 1;
+    case 0x5f:
+        for (int32_t m = 0; m < 4; ++m)
+            mesh_std(s, m, 2, -1);
+        mesh_own(s, 3, 2, BL(s), 0x83b0);
+        mesh_own(s, 4, 2, wave(s, -1.0f) * 0.6f + 0.4f, -1);
+        mesh_own(s, 5, 2, wave(s, -1.0f) * 0.6f + 0.4f, -1);
+        mesh_own(s, 6, 0x42, BL(s), -1);
+        return 1;
+    case 0x61:
+        mesh_std(s, 0, 2, -1);
+        mesh_std(s, 1, 2, -1);
+        mesh_own(s, 2, 2, wave(s, -1.5f) * 0.6f + 0.4f, -1);
+        mesh_std(s, 3, 2, -1);
+        mesh_own(s, 3, 0x42, wave(s, -1.5f) * 0.6f + 0.4f, 0x83ac);
+        mesh_std(s, 4, 2, -1);
+        return 1;
+    case 0x71:
+        mesh_std(s, 0, 2, -1);
+        mesh_own(s, 1, 2, wave(s, -1.5f) * 0.6f + 0.4f, -1);
+        return 1;
+    case 0x77:
+        for (int32_t m = 0; m < 4; ++m)
+            mesh_std(s, m, 2, -1);
+        for (int32_t m = 4; m < 7; ++m)
+            mesh_own(s, m, 2, A(s) * wave(s, -1.5f) * 0.6f + 0.4f, -1);
+        return 1;
+    case 0x88: case 0x89: case 0x8a: case 0x8b: case 0x8c:
+        mesh_std(s, 0, 2, -1);
+        return 1;
+    case 0x8e:
+        mesh_std(s, 0, 2, -1);
+        mesh_own(s, 0, 2, A(s) * wave(s, -1.5f) * 0.5f + 1.5f, 0x83ad);
+        return 1;
+    case 0x98:
+        for (int32_t m = 0; m <= 0xd; ++m)
+            if (m != 0xb)
+                mesh_std(s, m, 2, -1);
+        return 1;
+    case 0x99: {   /* the glow fades in while the model's action is not 0; action 2 past frame 1 plays 0x5b4 */
+        mesh(s, 0, 2, 1.0f, BM(s), BL(s), U(s), V(s), -1);
+        float f = mu_obj_f32(s->o, MU_OBJF_FADE_188);
+        f = action(s) != 0 ? f + 0.03f : f - 0.01f;
+        mu_obj_set_f32(s->o, MU_OBJF_FADE_188, f);
+        if (action(s) == 2 && (float)(int16_t)mu_obj_u16(s->b, 0xb4) > 1.0f)
+            play(s->l, s->i, 0x5b4, 0);
+        f = f > 0.0f ? f : 0.0f;   /* 0x0184f93f, then 0x0184f927 */
+        f = f > 1.0f ? 1.0f : f;
+        mu_obj_set_f32(s->o, MU_OBJF_FADE_188, f);
+        mesh(s, 1, 0x42, f, 1, f, U(s), V(s), -1);
+        return 1;
+    }
+    case 0xa0: case 0xa1: case 0xa4:
+        mesh(s, 0, 2, A(s), 0, wave(s, -1.5f) * 0.2f + 0.8f, U(s), V(s), -1);
+        return 1;
+    default:
+        return 0;
+    }
+}
+static void m145_after(const slot *s)
+{
+    switch (mu_obj_i32(s->o, MU_OBJF_TYPE)) {
+    case 0x31:
+        body_t(s, 2, BM(s), BL(s), U(s), V(s), H(s), water(s, 0x838a));
+        break;
+    case 0x88: case 0x89: case 0x8a: case 0x8b: case 0x8c:
+        mesh_own(s, 1, 2, A(s), -1);
+        mesh_own(s, 2, 0x42, A(s), -1);
+        mesh(s, 2, 0x44, 0.3f, 2, BL(s), U(s), V(s), -1);
+        break;
+    case 0x8e:
+        mesh_own(s, 2, 2, A(s), -1);
+        mesh_own(s, 1, 2, A(s), -1);
+        mesh(s, 2, 0x44, 0.3f, 2, BL(s), U(s), V(s), -1);
+        break;
+    case 0x98:
+        mesh_own(s, 0xb, 2, wave(s, -1.5f) * 0.6f + 0.4f, -1);
+        break;
+    default:
+        body_std(s, H(s));
+        break;
+    }
+}
+
+/* ---- Kardamahal 143 (0x8f): custom 0x00e0f4bc, after 0x00e118fd, world test 0x00e136f3. The custom slot keeps
+ * the body colour in a vector object (0x0095ea8e .. 0x0095eda9) around its textured meshes. ---- */
+static void colored(const slot *s, float r, float g, float bl, int32_t m, int32_t texture)
+{
+    const saved_color k = save_color(s);
+    color(s, r, g, bl);
+    mesh_own(s, m, 2, BL(s), texture);
+    mesh_own(s, m, 0x44, BL(s), -1);
+    mesh_own(s, 1, 2, BL(s), -1);
+    restore_color(s, k);
+}
+static int kardamahal_custom(const slot *s)
+{
+    const int32_t t = mu_obj_i32(s->o, MU_OBJF_TYPE);
+    switch (t) {
+    case 0: case 0x1c: case 0x21:
+        return 1;
+    case 0x6f: case 0x71: case 0x7b: case 0xaa: {
+        body(s, 2, BM(s), BL(s), U(s), V(s), -1);
+        const saved_color k = save_color(s);
+        const float w = wave(s, -2.5f) * (t == 0x71 ? 0.6f : 0.3f) + (t == 0x71 ? 0.4f : 0.7f);
+        grey(s, w);
+        const int32_t m = t == 0x7b ? 7 : t == 0xaa ? 1 : 0;
+        mesh_own(s, m, 2, BL(s), t == 0x6f ? 0x85b7 : t == 0x71 ? 0x85aa : t == 0x7b ? 0x85b8 : 0x85bb);
+        restore_color(s, k);
+        if (t == 0x71)
+            mesh_own(s, 1, 2, BL(s), 0x85ab);
+        else if (t != 0x6f)
+            mesh_own(s, m, 0x44, BL(s), -1);
+        return 1;
+    }
+    case 0x73: {
+        body(s, 2, BM(s), BL(s), U(s), V(s), -1);
+        const saved_color k = save_color(s);
+        const float w = wave(s, -2.5f) * 0.6f + 0.4f;
+        grey(s, w);
+        grey(s, w);
+        mesh_own(s, 6, 2, BL(s), 0x85ac);
+        restore_color(s, k);
+        mesh_own(s, 6, 0x44, BL(s), -1);
+        grey(s, w);
+        mesh_own(s, 7, 2, BL(s), 0x85ad);
+        restore_color(s, k);
+        grey(s, w);
+        mesh_own(s, 4, 2, BL(s), -1);
+        restore_color(s, k);
+        mesh_own(s, 4, 0x44, BL(s), -1);
+        grey(s, w);
+        mesh_own(s, 5, 2, BL(s), -1);
+        restore_color(s, k);
+        return 1;
+    }
+    case 0x7e: case 0x7f: case 0x80: case 0x81: case 0x82: {
+        body(s, 2, BM(s), BL(s), U(s), V(s), 1);
+        const float x = wave(s, -2.5f) * 0.6f + 0.4f;
+        switch (t) {
+        case 0x7e: colored(s, 0.74f * x, 0.17f * x, 0.62f * x, 2, 0x85ae); break;
+        case 0x7f: colored(s, x * 0.77f, x * 0.74f, x * 0.63f, 2, 0x85af); break;
+        case 0x80: colored(s, x, x * 0.6f, x * 0.2f, 2, 0x85b0); break;
+        case 0x81: colored(s, x * 0.1f, x * 0.41f, x * 0.8f, 2, 0x85b1); break;
+        default: colored(s, x * 0.12f, x * 0.58f, x * 0.32f, 2, 0x85b2); break;
+        }
+        return 1;
+    }
+    case 0x85:
+        mesh_std(s, 0, 2, -1);
+        mesh_std(s, 1, 2, -1);
+        return 1;
+    case 0x8c:
+        mesh(s, 0, 2, A(s), 0, BL(s), U(s), V(s), -1);
+        return 1;
+    case 0x96: case 0x97: case 0x98: case 0x99:
+        stream(s, 0);
+        mesh(s, 0, 2, A(s), BM(s), BL(s), tmod(s, 100000, 8e-05f, 0), V(s), -1);
+        stream(s, 0xff);
+        return 1;
+    default:
+        return 0;
+    }
+}
+static void kardamahal_after(const slot *s)
+{
+    switch (mu_obj_i32(s->o, MU_OBJF_TYPE)) {
+    case 0:
+        s->o[MU_OBJF_LIGHT_FULL] = 0;
+        s->o[MU_OBJF_LIGHT_ENABLE] = 0;
+        water_body(s, 500000, 2e-05f);
+        break;
+    case 4: case 0x21: case 0x72:
+        body_std(s, H(s));
+        break;
+    case 0x1c:
+        body_t(s, 2, BM(s), BL(s), U(s), V(s), H(s), water(s, 0x8589));
+        break;
+    case 0x71: {   /* AddTerrainLight 0x016cacfc(x, y, light, 3, frame light) */
+        if (!s->model || !s->model->rand_fn)
+            break;
+        float l = (float)(s->model->rand_fn(s->model->rand_context) % 4 + 3) * 0.1f * 0.4f;
+        l = l + 0.4f;
+        const uint32_t a[6] = {wv_bits(mu_obj_f32(s->o, MU_OBJF_POSITION)),
+                               wv_bits(mu_obj_f32(s->o, MU_OBJF_POSITION + 4)), wv_bits(l * 1.0f),
+                               wv_bits(l * 0.2f), wv_bits(l * 0.1f), 3};
+        wv_emit(s->l, MU_OBJ_CALL_ADD_LIGHT, s->i, a, 6);
+        break;
+    }
+    case 0x85:
+        mesh(s, 2, 2, A(s), 2, BL(s), (float)(cvtt(s->time) % 3000) / 3000.0f, V(s), -1);
+        break;
+    default:
+        break;
+    }
+}
+
+/* ---- Tormenta Island 141 (0x8d): custom 0x00e4cbd7 (types 0x7d..0x9a through the table 0x00e4eed3), after
+ * 0x00e4f952, world test 0x00e54061 ---- */
+static void glow_pair(const slot *s, int32_t m0, int32_t t0, int32_t m1, int32_t t1)   /* wave(-1) glows */
+{
+    const float w = wave(s, -1.0f) * 0.5f + 0.5f;
+    mesh_own(s, m0, 0x42, w, t0);
+    if (m1 >= 0)
+        mesh_own(s, m1, 0x42, w, t1);
+}
+static int tormenta_custom(const slot *s)
+{
+    const int32_t t = mu_obj_i32(s->o, MU_OBJF_TYPE);
+    switch (t) {
+    case 0xc: case 0x48:
+        body(s, 2, BM(s), BL(s), U(s), V(s), -1);
+        return 1;
+    case 0x14: {
+        body(s, 2, BM(s), BL(s), U(s), V(s), -1);
+        const float w = wave(s, -1.0f) * 0.5f + 0.5f;
+        mesh_own(s, 0, 0x42, w, 0x84be);
+        mesh_own(s, 1, 0x42, w, 0x84bf);
+        mesh_own(s, 2, 0x42, w, 0x84c0);
+        return 1;
+    }
+    case 0x88: {
+        body(s, 2, BM(s), BL(s), U(s), V(s), -1);
+        const float w = wave(s, -1.0f) * 0.5f + 0.5f;
+        mesh_own(s, 0, 0x42, w, 0x84bb);
+        mesh_own(s, 1, 0x42, w, 0x84bc);
+        mesh_own(s, 2, 0x42, w, 0x84bd);
+        return 1;
+    }
+    case 0x15: case 0x94: case 0x95: case 0x96: case 0x97: case 0x98: case 0x99: case 0x9a: {
+        static const int32_t tex[8][2] = {{0x84c1, 0x84c2}, {0x84c3, 0x84c4}, {0x84c5, 0x84c6}, {0x84c7, 0x84c8},
+                                          {0x84ca, 0x84c9}, {0x84cc, -1}, {0x84cb, -1}, {0x84cb, 0x84cc}};
+        const int k = t == 0x15 ? 0 : t - 0x93;
+        body(s, 2, BM(s), BL(s), U(s), V(s), -1);
+        glow_pair(s, 0, tex[k][0], tex[k][1] < 0 ? -1 : 1, tex[k][1]);
+        return 1;
+    }
+    case 0x1e: case 0x1f: case 0x20: case 0x22: case 0x41:
+        return 1;
+    case 0x2c: {   /* drawn only while 1 <= model frame < the frame count of the object's action (table +8) */
+        const float n = s->model ? (float)s->model->action_frames : 0.0f;
+        if (!(frame(s) >= 1.0f && n > frame(s)))
+            return 1;
+    }
+    /* fall through */
+    case 0x2b:
+        mesh(s, 0, 2, A(s), 0, BL(s), U(s), tmod(s, 100000, 0.0004f, 1), -1);
+        return 1;
+    case 0x4b: case 0x50:
+        mesh_std(s, 1, 2, -1);
+        mesh_std(s, 2, 2, -1);
+        return 1;
+    case 0x4c: case 0x4d: case 0x4e:
+        mesh_std(s, 0, 2, -1);
+        mesh_std(s, 1, 2, -1);
+        return 1;
+    case 0x4f:
+        mesh_std(s, 0, 2, -1);
+        mesh_std(s, 2, 2, -1);
+        return 1;
+    case 0x76:
+        mesh_std(s, 0, 2, -1);
+        return 1;
+    case 0x78: case 0x86: case 0x87:
+        mesh_std(s, 0, 2, -1);
+        glow_pair(s, 1, -1, -1, -1);
+        return 1;
+    case 0x79: case 0x7a: case 0x7b: {
+        const int32_t n = t == 0x79 ? 5 : 4, first = t == 0x7b ? 2 : 0, count = t == 0x79 ? 3 : 2;
+        for (int32_t m = 0; m < n; ++m)
+            mesh_std(s, m, 2, -1);
+        for (int32_t m = first; m < first + count; ++m)
+            mesh_own(s, m, 0x42, 0.5f, -1);
+        return 1;
+    }
+    case 0x7c: case 0x7d: case 0x7e: case 0x7f: case 0x80:
+        mesh_std(s, 0, 2, -1);
+        mesh_std(s, 1, 2, -1);
+        mesh_std(s, 3, 2, -1);
+        mesh_std(s, 4, 2, -1);
+        glow_pair(s, 2, -1, 5, -1);
+        return 1;
+    case 0x89:
+        body(s, 0x42, BM(s), wave(s, -0.8f) * 0.4f + 0.6f, U(s), V(s), -1);
+        return 1;
+    case 0x8a: case 0x8b: case 0x8c: case 0x8d: case 0x8e: {
+        mesh_std(s, 0, 2, -1);
+        const float w = wave(s, -1.0f) * 0.5f + 0.5f;
+        mesh_own(s, 1, 0x42, w, -1);
+        mesh(s, 2, 0x42, A(s), 2, w, U(s), tmod(s, 100000, 0.0001f, 0), -1);
+        return 1;
+    }
+    default:
+        return 0;
+    }
+}
+static void tormenta_after(const slot *s)
+{
+    const int32_t t = mu_obj_i32(s->o, MU_OBJF_TYPE);
+    switch (t) {
+    case 0xc:
+        mesh(s, 0, 0x42, A(s), 0, BL(s), U(s), V(s), -1);
+        break;
+    case 0x48:
+        mesh(s, 1, 0x42, A(s), 1, BL(s), U(s), V(s), -1);
+        break;
+    case 0x41:
+        body_t(s, 2, BM(s), BL(s), U(s), V(s), H(s), water(s, 0x848e));
+        break;
+    case 0x4b: case 0x50: {
+        const float w = wave(s, -1.0f) * 0.5f + 0.5f;
+        mesh_own(s, 0, 0x42, w, -1);
+        mesh_own(s, 1, 0x42, w, t == 0x4b ? 0x84af : 0x84b9);
+        mesh_own(s, 2, 0x42, w, t == 0x4b ? 0x84b0 : 0x84ba);
+        break;
+    }
+    case 0x4c: case 0x4d: case 0x4e: {
+        const float w = wave(s, -1.0f) * 0.5f + 0.5f;
+        const int32_t k = 0x84b1 + 2 * (t - 0x4c);
+        mesh_own(s, 2, 0x42, w, -1);
+        mesh_own(s, 0, 0x42, w, k);
+        mesh_own(s, 1, 0x42, w, k + 1);
+        break;
+    }
+    case 0x4f: {
+        const float w = wave(s, -1.0f) * 0.5f + 0.5f;
+        mesh_own(s, 1, 0x42, w, -1);
+        mesh_own(s, 0, 0x42, w, 0x84b7);
+        mesh_own(s, 2, 0x42, w, 0x84b8);
+        break;
+    }
+    case 0x76: {
+        const float w = wave(s, -1.0f) * 0.5f + 0.5f;
+        mesh(s, 1, 0x42, A(s), 2, w, U(s), V(s), -1);
+        mesh(s, 2, 0x42, A(s), 2, w, tmod(s, 0x4b0, 0.00083f, 0), V(s), -1);
+        break;
+    }
+    case 0x79:
+        glow_pair(s, 5, -1, -1, -1);
+        break;
+    case 0x7a: case 0x7b:
+        glow_pair(s, 4, -1, -1, -1);
+        break;
+    default:
+        body_std(s, H(s));
+        break;
+    }
+}
+
 /* ---- the pre-move slot 0x74 (the world manager 0x00ea2c2b calls it before the registry tick and slot 0x30).
  * Imperial Guardian 69 0x00dd2fae; 70/71/72 0x00dd886b/0x00dde51d/0x00de5441 call the world-69 handler's slot
  * (0x00dd8a3c(0x45)), so `state` is that handler's +0x14; Loren Market 79 0x00e6dd0a (its world test result is
@@ -1252,9 +1811,78 @@ static const struct {
     {136, 0x8342, "Object137\\hsBurntwoodA02_R.jpg", 0x2601, 0x2900},
     {136, 0x8343, "Object137\\hsvallistaA02_R.jpg", 0x2601, 0x2900},
     {142, 0x8538, "Object143\\solived01_R.jpg", 0x2601, 0x2901},
+    /* RENDER-WORLDS-AFTER3: the class loaders (slot 0x24) of 141, 143, 144, 145 */
+    {141, 0x84af, "Object142\\sostone0101_R.jpg", 0x2601, 0x2901},
+    {141, 0x84b0, "Object142\\sostone0102_R.jpg", 0x2601, 0x2901},
+    {141, 0x84b2, "Object142\\sostone0201_R.jpg", 0x2601, 0x2901},
+    {141, 0x84b1, "Object142\\sostone0202_R.jpg", 0x2601, 0x2901},
+    {141, 0x84b3, "Object142\\sostone0301_R.jpg", 0x2601, 0x2901},
+    {141, 0x84b4, "Object142\\sostone0302_R.jpg", 0x2601, 0x2901},
+    {141, 0x84b6, "Object142\\sostone0401_R.jpg", 0x2601, 0x2901},
+    {141, 0x84b5, "Object142\\sostone0402_R.jpg", 0x2601, 0x2901},
+    {141, 0x84b7, "Object142\\sostone0501_R.jpg", 0x2601, 0x2901},
+    {141, 0x84b8, "Object142\\sostone0502_R.jpg", 0x2601, 0x2901},
+    {141, 0x84ba, "Object142\\sostone0601_R.jpg", 0x2601, 0x2901},
+    {141, 0x84b9, "Object142\\sostone0602_R.jpg", 0x2601, 0x2901},
+    {141, 0x84bb, "Object142\\sotodoA01_R.jpg", 0x2601, 0x2901},
+    {141, 0x84bc, "Object142\\sotodoA02_R.jpg", 0x2601, 0x2901},
+    {141, 0x84bd, "Object142\\sotodoA03_R.jpg", 0x2601, 0x2901},
+    {141, 0x84be, "Object142\\sotodoB01_R.jpg", 0x2601, 0x2901},
+    {141, 0x84bf, "Object142\\sotodoB02_R.jpg", 0x2601, 0x2901},
+    {141, 0x84c0, "Object142\\sotodoB03_R.jpg", 0x2601, 0x2901},
+    {141, 0x84c2, "Object142\\sotodoB04_R.jpg", 0x2601, 0x2901},
+    {141, 0x84c1, "Object142\\sotodoB05_R.jpg", 0x2601, 0x2901},
+    {141, 0x84c4, "Object142\\sotodoC01_R.jpg", 0x2601, 0x2901},
+    {141, 0x84c3, "Object142\\sotodoC02_R.jpg", 0x2601, 0x2901},
+    {141, 0x84c6, "Object142\\sotodoC03_R.jpg", 0x2601, 0x2901},
+    {141, 0x84c5, "Object142\\sotodoC04_R.jpg", 0x2601, 0x2901},
+    {141, 0x84c7, "Object142\\sotodoC05_R.jpg", 0x2601, 0x2901},
+    {141, 0x84c8, "Object142\\sotodoC06_R.jpg", 0x2601, 0x2901},
+    {141, 0x84c9, "Object142\\sototoD01_R.jpg", 0x2601, 0x2901},
+    {141, 0x84ca, "Object142\\sototoD02_R.jpg", 0x2601, 0x2901},
+    {141, 0x84cb, "Object142\\sototoD03_R.jpg", 0x2601, 0x2901},
+    {141, 0x84cc, "Object142\\sototoD04_R.jpg", 0x2601, 0x2901},
+    {143, 0x85aa, "Object144\\hsFieldLighting01_R.jpg", 0x2601, 0x2900},
+    {143, 0x85ab, "Object144\\hsFieldLighting02_R.jpg", 0x2601, 0x2900},
+    {143, 0x85ac, "Object144\\hsMegalithSpaceB02_R.jpg", 0x2601, 0x2900},
+    {143, 0x85ad, "Object144\\hsMegalithSpaceD02_R.jpg", 0x2601, 0x2900},
+    {143, 0x85ae, "Object144\\hsAttributesDarkness02_R.jpg", 0x2601, 0x2900},
+    {143, 0x85af, "Object144\\hsAttributesEarthA02_R.jpg", 0x2601, 0x2900},
+    {143, 0x85b0, "Object144\\hsAttributesFireA02_R.jpg", 0x2601, 0x2900},
+    {143, 0x85b1, "Object144\\hsAttributesWaterA02_R.jpg", 0x2601, 0x2900},
+    {143, 0x85b2, "Object144\\hsAttributesWindA02_R.jpg", 0x2601, 0x2900},
+    {143, 0x85b7, "Object144\\sdsaferzone05B_R.jpg", 0x2601, 0x2900},
+    {143, 0x85b8, "Object144\\sdsaferzone14B_R.jpg", 0x2601, 0x2900},
+    {143, 0x85bb, "Object144\\sdsaferzone14B01_R.jpg", 0x2601, 0x2900},
+    {144, 0x8341, "Object145\\hsBurntwoodA01_R.jpg", 0x2601, 0x2900},
+    {144, 0x8342, "Object145\\hsBurntwoodA02_R.jpg", 0x2601, 0x2900},
+    {144, 0x8344, "Object145\\sostone10_R.jpg", 0x2601, 0x2900},
+    {144, 0x8345, "Object145\\soMyobi01_R.jpg", 0x2601, 0x2900},
+    {144, 0x8346, "Object145\\soGuan01_R.jpg", 0x2601, 0x2900},
+    {144, 0x8347, "Object145\\soMyobi02_R.jpg", 0x2601, 0x2900},
+    {145, 0x83ab, "Object146\\hsAquilasDecoA03_R.jpg", 0x2601, 0x2901},
+    {145, 0x83ac, "Object146\\hsAquilasSafezonStageA06_R.jpg", 0x2601, 0x2901},
+    {145, 0x83ad, "Object146\\hsChandelierB01_R.jpg", 0x2601, 0x2901},
+    {145, 0x83b0, "Object146\\hsEagleStatueA01_R.jpg", 0x2601, 0x2901},
 };
+/* The 32 water bitmaps a class loader registers in a loop (Object<world + 1>\wt%02d_R.jpg, GL_LINEAR, GL_REPEAT):
+ * 133 0x8320 (0x00d80941), 141 0x848e, 143 0x8589, 144 0x8348 (0x00e465ca), 145 0x838a. */
+static const struct {
+    int32_t world, base;
+} waters[] = {{133, 0x8320}, {141, 0x848e}, {143, 0x8589}, {144, 0x8348}, {145, 0x838a}};
+static char water_paths[sizeof waters / sizeof waters[0]][32][24];
 int mu_world_slot_bitmap(int32_t world, int32_t index, const char **path, uint32_t *filter, uint32_t *wrap)
 {
+    for (size_t k = 0; k < sizeof waters / sizeof waters[0]; ++k)
+        if (waters[k].world == world && index >= waters[k].base && index < waters[k].base + 32) {
+            char *name = water_paths[k][index - waters[k].base];
+            snprintf(name, sizeof water_paths[0][0], "Object%d\\wt%02d_R.jpg", (int)world + 1,
+                     (int)(index - waters[k].base));
+            *path = name;
+            *filter = 0x2601;
+            *wrap = 0x2901;
+            return 1;
+        }
     for (size_t k = 0; k < sizeof bitmaps / sizeof bitmaps[0]; ++k)
         if (bitmaps[k].index == index && (bitmaps[k].world == world || bitmaps[k].world < 0)) {
             *path = bitmaps[k].path;
@@ -1265,8 +1893,12 @@ int mu_world_slot_bitmap(int32_t world, int32_t index, const char **path, uint32
     return 0;
 }
 /* The bitmaps the custom and after slots of `world` name for objects of `type` (Chrome01 0x7f1f included). */
-int32_t mu_world_slot_bitmaps(int32_t world, int32_t type, int32_t out[4])
+int32_t mu_world_slot_bitmaps(int32_t world, int32_t type, int32_t out[MU_WORLD_SLOT_BITMAPS])
 {
+    static const struct {
+        int32_t world, type, base;
+    } water_uses[] = {{133, 0x8f, 0x8320}, {141, 0x41, 0x848e}, {143, 0x1c, 0x8589}, {144, 0x40, 0x8348},
+                      {145, 0x31, 0x838a}};
     static const struct {
         int32_t world, type, list[4];
     } uses[] = {
@@ -1284,8 +1916,25 @@ int32_t mu_world_slot_bitmaps(int32_t world, int32_t type, int32_t out[4])
         {137, 8, {0x7f1f}}, {137, 0x5c, {0x7f1f}}, {137, 0x5d, {0x7f1f}}, {137, 0x5e, {0x7f1f}},
         {137, 0x5f, {0x7f1f}}, {137, 0x60, {0x7f1f}}, {137, 0xa, {0x7f1f}}, {137, 0x4c, {0x7f1f}},
         {142, 0x77, {0x8538}},
+        /* RENDER-WORLDS-AFTER3 */
+        {141, 0x14, {0x84be, 0x84bf, 0x84c0}}, {141, 0x15, {0x84c1, 0x84c2}}, {141, 0x88, {0x84bb, 0x84bc, 0x84bd}},
+        {141, 0x94, {0x84c3, 0x84c4}}, {141, 0x95, {0x84c5, 0x84c6}}, {141, 0x96, {0x84c7, 0x84c8}},
+        {141, 0x97, {0x84ca, 0x84c9}}, {141, 0x98, {0x84cc}}, {141, 0x99, {0x84cb}}, {141, 0x9a, {0x84cb, 0x84cc}},
+        {141, 0x4b, {0x84af, 0x84b0}}, {141, 0x4c, {0x84b1, 0x84b2}}, {141, 0x4d, {0x84b3, 0x84b4}},
+        {141, 0x4e, {0x84b5, 0x84b6}}, {141, 0x4f, {0x84b7, 0x84b8}}, {141, 0x50, {0x84b9, 0x84ba}},
+        {143, 0x6f, {0x85b7}}, {143, 0x71, {0x85aa, 0x85ab}}, {143, 0x73, {0x85ac, 0x85ad}}, {143, 0x7b, {0x85b8}},
+        {143, 0x7e, {0x85ae}}, {143, 0x7f, {0x85af}}, {143, 0x80, {0x85b0}}, {143, 0x81, {0x85b1}},
+        {143, 0x82, {0x85b2}}, {143, 0xaa, {0x85bb}},
+        {144, 3, {0x8344}}, {144, 4, {0x8345}}, {144, 6, {0x8346}}, {144, 0xb, {0x8347}}, {144, 0x89, {0x8341}},
+        {144, 0x8a, {0x8342}},
+        {145, 0x54, {0x83ab}}, {145, 0x55, {0x83ab}}, {145, 0x61, {0x83ac}}, {145, 0x8e, {0x83ad}},
+        {145, 0x5f, {0x83b0}},
     };
     int32_t n = 0;
+    for (size_t k = 0; k < sizeof water_uses / sizeof water_uses[0]; ++k)
+        if (water_uses[k].world == world && water_uses[k].type == type)
+            for (int32_t j = 0; j < 32; ++j)
+                out[n++] = water_uses[k].base + j;
     for (size_t k = 0; k < sizeof uses / sizeof uses[0]; ++k)
         if (uses[k].world == world && uses[k].type == type)
             for (int j = 0; j < 4 && uses[k].list[j]; ++j)
@@ -1306,6 +1955,8 @@ static const struct {
     {136, kethotum2_custom, kethotum2_after}, {137, kanturu_custom, kanturu_after}, {138, ignis_custom, ignis_after},
     {139, none_custom, none_after},
     {140, tarkan_custom, tarkan_after}, {142, karutan2_custom, karutan2_after},
+    {133, arnil_custom, arnil_after}, {141, tormenta_custom, tormenta_after},   /* RENDER-WORLDS-AFTER3 */
+    {143, kardamahal_custom, kardamahal_after}, {144, swamp_custom, swamp_after}, {145, m145_custom, m145_after},
 };
 static int find(int32_t cls)
 {
@@ -1322,11 +1973,15 @@ static int world_test(int32_t cls, int32_t world)
 {
     return world == cls || (cls == 91 && world == 92);   /* 0x00d6a614 */
 }
+static int custom_world_test(int32_t cls, int32_t world)
+{
+    return cls == 145 || world_test(cls, world);   /* 145's custom slot has none */
+}
 int mu_class_custom(int32_t cls, uint8_t *o, uint8_t *b, int32_t i, int32_t world, float time,
                     const mu_slot_model *model, mu_obj_log *l)
 {
     const int k = find(cls);
-    if (k < 0 || !world_test(cls, world) || !o || !b)
+    if (k < 0 || !custom_world_test(cls, world) || !o || !b)
         return 0;
     const slot s = {o, b, i, time, model, l};
     return classes[k].custom(&s);
