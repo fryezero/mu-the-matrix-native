@@ -819,7 +819,7 @@ static void bow_sparks(mu_combat *c)
 
 /* RENDER-EFFECTS-004: CreateArrows 0x0158d5bd / CreateArrow 0x0158cf57 (verified) for the hero. The services
  * the native session does not model answer as for a character without master-tree skills, item option 0x54 or
- * skill-tree value. RENDER-EFFECTS-007: every bow's arrow but 0x615/0x617 has a reconstructed effect. */
+ * skill-tree value. RENDER-EFFECTS-007/009: every bow's arrow has a reconstructed effect. */
 static void create_arrows(mu_combat *c, uint16_t skill, uint16_t flag, uint16_t index)
 {
     float pos[3], angle[3], light[3];
