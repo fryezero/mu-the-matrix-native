@@ -217,3 +217,12 @@ Dungeon's DungeonStone 0x43a add no skill credit: primary routes stay 20/23 and 
 65/77. Triple Shot stays P for the native bow; the other 32 arrow models were measured (none shares
 Arrow01's create/move) and remain open with bow 0x12f9's sparks, Rudolph 0x3fa and the pet particle
 kinds.
+
+## RENDER-EFFECTS-007 evidence and limits
+
+[New finding](client-render-effects-007.md): 5,960 original-instruction comparisons, zero mismatches, 31/31 compiled
+mutants. Triple Shot (24) stays P; its other bows now have their own arrows: 30 of the 32 models besides Arrow01
+(bow arrow models with create/move 1/33 → 31/33; 0x615/0x617 need named model bones), and bow 0x12f9's fifteen
+sparks are verified. Primary routes stay 20/23 and weighted coverage 65/77. The rank-5 pants have no owner block
+(verified), EffectManager bone −1 attaches, and Rudolph's 0x3fa and its Shiny01 0x7f66/7 are pet cosmetics without
+skill credit. The arrows' joint and particle kinds are created as calls but not yet native kinds.

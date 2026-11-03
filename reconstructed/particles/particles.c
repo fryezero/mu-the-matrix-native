@@ -60,7 +60,7 @@ int mu_pt_kind_supported(int32_t type, int32_t subtype)
     case MU_PT_BITMAP_WATERFALL1:
         return subtype == 2;
     case MU_PT_BITMAP_SHINY1:
-        return subtype == 0 || subtype == 1;
+        return subtype == 0 || subtype == 1 || subtype == 7;   /* 7: RENDER-EFFECTS-007, Rudolph's twinkle */
     case MU_PT_BITMAP_WATERFALL2:
         return subtype == 2;
     case MU_PT_BITMAP_WATERFALL3:
@@ -394,6 +394,22 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
         /* 0x015e5c73: subtypes 0 and 1 */
         p->lifetime = 18;
         p->angle[0] = 45.0f;
+        if (p->subtype == 7) {   /* RENDER-EFFECTS-007, 0x015e64d3: a scattered, drifting twinkle */
+            p->scale = 0.1f;
+            p->start[0] = p->scale;
+            p->lifetime = mu_pt_rand(h) % 10 + 20;
+            for (int k = 0; k < 3; ++k)
+                p->position[k] = (float)(mu_pt_rand(h) % 50 - 25) + p->position[k];
+            p->gravity = 1.0f;
+            for (int k = 0; k < 3; ++k)
+                p->angle[k] = (float)(mu_pt_rand(h) % 360);
+            float m[12];
+            mu_angle_matrix(p->angle, m);
+            const float half = 0.5f;
+            const float v[3] = {0.8f * half, 0.8f * half, 0.8f * half};
+            mu_vector_rotate(v, m, p->velocity);
+            p->rotation = (float)(mu_pt_rand(h) % 20 - 10);
+        }
         break;
     case 0x831d:                                   /* 0x0160702e */
         p->lifetime = p->initial_lifetime = 30;
@@ -788,6 +804,10 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
             break;
         case MU_PT_BITMAP_SHINY1:
             /* 0x016599cd: the size follows a sine of the lifetime; subtype 1 smaller and spinning */
+            if (p->subtype == 7) {   /* RENDER-EFFECTS-007, 0x01658fef */
+                p->scale = (float)sin((double)((float)p->lifetime * 2.0f * 0.017453292f));
+                break;
+            }
             p->scale = (float)sin((double)((float)p->lifetime * 10.0f * 0.017453292f));
             if (p->subtype == 1) {
                 p->scale = p->scale * 0.75f;

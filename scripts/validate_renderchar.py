@@ -793,7 +793,12 @@ def bits_list(values):
     return tuple(f2u(v) for v in values)
 
 
-def c_stream(lib, case, generic=False):
+def colour_record(kind, alpha, rgb):
+    """Draw-stream form of an immediate glColor (kind 1 = 3f, 2 = 3fv, 3 = 4f)."""
+    return ('COLOR', [0, kind, alpha, 0, 0, 0, 0, 0], tuple(rgb), 0, (0, 0, 0), 0)
+
+
+def c_stream(lib, case, generic=False, carry=None):
     item = CItem(type=case['type'], item_level=case['item_level'], option1=case['option1'], ext_option=case['ext'],
                  select=0, render_type=case['render_type'], a10=case['a10'], a11=case['a11'], a12=case['a12'], a13=0,
                  alpha=u2f(case['alpha']), light=F3(*[u2f(x) for x in case['light']]),
@@ -806,10 +811,26 @@ def c_stream(lib, case, generic=False):
                    shade=F3(*[u2f(x) for x in case['model_shade']]), flag_ca=case['model_ca'])
     out = (CDraw * 32)()
     count = ctypes.c_int32()
-    entry = lib.mu_rc_item_draws_generic if generic else lib.mu_rc_item_draws
-    status = entry(ctypes.byref(item), ctypes.byref(model), out, 32, ctypes.byref(count))
+    if carry is not None:
+        # Generator probe: client model fields written back after helper call k.
+        fields = (CDraw * max(1, len(carry)))()
+        for k, record in enumerate(carry):
+            if record is not None:
+                fields[k].entry = 1
+                fields[k].body_light = F3(*[u2f(x) for x in record[2]])
+                fields[k].level_field = record[3]
+                fields[k].shade = F3(*[u2f(x) for x in record[4]])
+                fields[k].flag_ca = record[5]
+        status = lib.mu_rc_item_draws_carry(ctypes.byref(item), ctypes.byref(model), out, 32, ctypes.byref(count),
+                                            fields, len(carry))
+    else:
+        entry = lib.mu_rc_item_draws_generic if generic else lib.mu_rc_item_draws
+        status = entry(ctypes.byref(item), ctypes.byref(model), out, 32, ctypes.byref(count))
     stream = []
     for d in out[:min(count.value, 32)]:
+        if d.entry == 3:
+            stream.append(colour_record(d.flags, f2u(d.alpha), bits_list(d.body_light)))
+            continue
         if d.entry == 1:
             args = [d.flags, f2u(d.alpha), d.blend_mesh & 0xffffffff, f2u(d.blend_light), f2u(d.u), f2u(d.v),
                     d.hidden & 0xffffffff, d.texture & 0xffffffff]
@@ -852,7 +873,9 @@ def client_stream(world_args, case, world_factory=None):
         if call[0] in ('BODY', 'MESH'):
             s = call[3]
             stream.append((call[0], call[2], tuple(s['body_light']), s['level_field'], tuple(s['shade']), s['flag_ca']))
-    others = [c for c in w.calls if c[0] not in ('BODY', 'MESH')]
+        elif call[0] == 'COLOR':
+            stream.append(call[1])
+    others = [c for c in w.calls if c[0] not in ('BODY', 'MESH', 'COLOR')]
     return result, stream, others, m
 
 

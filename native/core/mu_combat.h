@@ -81,9 +81,12 @@ typedef struct mu_combat_config {
     int32_t counter_attack;   /* 1: hit monsters attack the hero back (demo) */
     int32_t hero_hp;          /* demo hit points of the hero (0: the hero cannot die) */
     int32_t hero_respawn_steps; /* demo: steps from the death action to the respawn */
+    int16_t bow_item;         /* RENDER-EFFECTS-007: the bow's item model type for MU_COMBAT_WEAPON_BOW (0: Bow01) */
 } mu_combat_config;
 
 void mu_combat_default_config(mu_combat_config *config);
+/* RENDER-EFFECTS-007: Data/Skill file of a bow arrow model type (NULL: none). */
+const char *mu_combat_arrow_file(int32_t type);
 
 /* Bitmap slots the renderer binds by id. */
 enum { MU_COMBAT_BITMAPS = 16 };
@@ -112,7 +115,9 @@ enum {
     /* RENDER-EFFECTS-004: Rageful Blow's pieces */
     MU_COMBAT_MODEL_QUAKE1, MU_COMBAT_MODEL_QUAKE2, MU_COMBAT_MODEL_QUAKE3, MU_COMBAT_MODEL_QUAKE4,
     MU_COMBAT_MODEL_QUAKE5, MU_COMBAT_MODEL_QUAKE7, MU_COMBAT_MODEL_QUAKE8, MU_COMBAT_MODEL_FLASHING,
-    MU_COMBAT_MODEL_TAIL, MU_COMBAT_MODELS
+    MU_COMBAT_MODEL_TAIL,
+    MU_COMBAT_MODEL_BOW_ARROW,   /* RENDER-EFFECTS-007: the arrow model of the equipped bow (not Arrow01) */
+    MU_COMBAT_MODELS
 };
 
 #define MU_COMBAT_PARTICLES 2048

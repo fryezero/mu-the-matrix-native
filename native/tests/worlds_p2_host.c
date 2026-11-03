@@ -4,6 +4,7 @@
 #include "../../reconstructed/objects/worlds_p2.h"
 #include <assert.h>
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 static int sprites, particles, joints, sounds;
@@ -24,7 +25,10 @@ static void particle(void *ctx, int32_t type, const float p[3], const float a[3]
 static void joint(void *ctx, int32_t type, const float p[3], const float t[3], const float a[3], int32_t sub,
                   int32_t owner, float scale)
 {
-    (void)ctx; (void)type; (void)p; (void)t; (void)a; (void)sub; (void)owner; (void)scale;
+    (void)ctx; (void)p; (void)t; (void)a; (void)owner;
+    /* RENDER-JOINTS-001: Kanturu's lightning kinds now reach the joint pool */
+    assert((type == 0x7f7d && (sub == 12 || sub == 14 || sub == 15) && scale >= 75.0f) ||
+           (type == 0x7f7c && sub == 0x12 && scale == 40.0f));
     ++joints;
 }
 static void sound(void *ctx, int32_t id) { (void)ctx; assert(id == 0x570); ++sounds; }
@@ -97,14 +101,17 @@ int main(int argc, char **argv)
     }
     assert(seen[0] && seen[1] && seen[2] && seen[3]);   /* type 125 runs its full 0-1-2-3 cycle */
     assert(o->rt.move_unsupported == 0 && o->rt.light_count == 0);
-    /* Type 8's bone 4 sprite and particle every frame; joints of kinds the pool lacks are refused. */
-    assert(sprites == STEPS && particles == STEPS && joints == 0 && o->rt.draw_unsupported > 0);
+    /* Type 8's bone 4 sprite and particle every frame; RENDER-JOINTS-001: the joints are no longer refused. */
+    printf("{\"kanturu_joints\": %d, \"draw_unsupported\": %ld}\n", joints, o->rt.draw_unsupported);
+    assert(sprites == STEPS && particles == STEPS && joints > 0 && o->rt.draw_unsupported == 0);
     o->records = NULL;
     mu_objects_runtime_free(o);
     free(o);
     /* ---- Ignis Volcano ---- */
     o = start(138, i_types, rec);
-    assert(o->rt.created == N && o->rt.create_unsupported == 2);   /* types 79/148: StreamMesh refused */
+    /* RENDER-JOINTS-001: types 79/148 write the model's StreamMesh byte 0 (consumed by the mesh draw) */
+    assert(o->rt.created == N && o->rt.create_unsupported == 0 && o->rt.stream[79] == 0 && o->rt.stream[148] == 0 &&
+           o->rt.stream[88] == 0xff);
     for (int i = 0; i < N; ++i) {
         const uint8_t *img = o->rt.images + i * MU_OBJ_SIZE;
         const int t = i_types[i];
