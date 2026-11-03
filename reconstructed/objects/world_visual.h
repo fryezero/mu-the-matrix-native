@@ -72,4 +72,12 @@ void mu_losttower_push(uint8_t *, int32_t, const float[3], uint16_t, mu_obj_log 
  * (world_first_visual.c). mu_class_first_owned: the worlds whose answer it is. */
 int mu_class_first_owned(int32_t world);
 int mu_class_first(uint8_t *o, int32_t world, const float x2d[4], const float y2d[4], int32_t scene_state);
+/* RENDER-WORLDS-AFTER4: the whole draw-first predicate 0x017fcd18 (world_draw_first_visual.c). */
+typedef struct mu_draw_first_inputs {
+    const float *x2d, *y2d;   /* CreateFrustrum2D polygon */
+    int32_t scene_state;
+    const float *eye;         /* [0x0bdc5ab4] camera position (world 0x49's fade) */
+    int32_t tower_state;      /* (0x009a6ef3() + 0x78) +4 (world 0x27) */
+} mu_draw_first_inputs;
+int mu_draw_first(uint8_t *o, int32_t world, const mu_draw_first_inputs *in);
 #endif
