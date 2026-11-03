@@ -106,6 +106,10 @@ APP-REFRESH-002: installed Preview rebuilt from main `52aa5c2` (before #275/#276
 tables, 47 object worlds, refreshed music table); app smoke, Help, Warps, Deep Dungeon 3 and Abyss 2 shown. No source
 change. [Install, inputs and follow-ups](handoffs/APP-REFRESH-002.md).
 
+APP-REFRESH-003: Preview reinstalled from 82849bc (main with #278); journey proofs: skill cast, kill/drop/Space
+pickup, Warps travel 0->3->2, BGM PCM peak. Windowed input report; app build no longer bundles a stale
+mu-client. Gate passes 1,805 tests. [Proofs, install and follow-ups](handoffs/APP-REFRESH-003.md).
+
 README-REFRESH-003 updates the public README through PR #207, with current session/render/audio/data coverage and explicit offline, live-comparison and 25 fps limits. Existing pinned images reused. [Handoff](handoffs/README-REFRESH-003.md).
 
 SESSION-GLOBALS-001: explicit session/runtime state ownership and committed sequential/fresh-process parity checks. [Inventory and checks](handoffs/SESSION-GLOBALS-001.md).
