@@ -115,10 +115,10 @@ static void map_report_summary(const struct mu_world_rt *a, const void *self)
     int npcs = 0;
     for (int i = 0; i < overlay.count; ++i) if (overlay.markers[i].type == 1) ++npcs;
     if (a->mapsess)   /* NATIVE-MAP-001 */
-        printf("{\"map\": true, \"world\": %d, \"tile\": [%d, %d], \"travels\": %u, \"travel_failures\": %u,"
+        printf("{\"map\": true, \"world\": %d, \"tile\": [%d, %d], \"travels\": %u, \"travel_failures\": %u, \"travel_plates_removed\": %u,"
                " \"zen\": %lld, \"moves\": %d, \"gates\": %d, \"loading_world\": %d, \"map_shown\": %d,"
                " \"map_available\": %d, \"units\": %d, \"npc_units\": %d, \"move_open\": %d}\n", a->world, a->walk.hero.tile[0],
-               a->walk.hero.tile[1], a->travels, a->travel_failures, (long long)a->mapsess->zen, a->mapsess->nentries,
+               a->walk.hero.tile[1], a->travels, a->travel_failures, a->travel_plates_removed, (long long)a->mapsess->zen, a->mapsess->nentries,
                a->mapsess->ngates, a->mapsess->loading_world, a->mapsess->hud.shown, a->mapsess->hud.available,
                overlay.count, npcs, a->mapsess->move_open);
 }

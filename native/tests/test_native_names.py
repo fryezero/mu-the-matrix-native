@@ -169,6 +169,59 @@ class GfxRoute(unittest.TestCase):
         self.assertIn('removeInfo([{"key":265,"type":2}])', text)      # the Hound dies
 
 
+class TravelClearsTheOldWorld(Build):
+    """PLAY-FIX-001: ReceiveTeleport's ClearCharacters(HeroKey) 0x0137c276 (reconstructed/map/map_clear.c) before a
+    world change: the old world's monster loses its plate through removeInfo, the hero keeps its own."""
+
+    def test_only_the_hero_keeps_a_plate(self):
+        from test_native_map import second_world, write_lang
+        second_world(self.root)
+        lang = Path(self.tmp.name)/'lang'
+        write_lang(lang)
+        env = dict(os.environ, MU_LANG_DIR=str(lang))
+        with tempfile.TemporaryDirectory() as out:
+            result = subprocess.run([str(WALK), '--game-root', str(self.root), '--headless', '--backend', 'soft',
+                                     '--no-audio', '--placement', str(self.placement), '--width', '64', '--height',
+                                     '64', '--tile', '120,120', '--frames', '12', '--every', '1', '--out-dir', out,
+                                     '--travel-script', '4:move:2'], capture_output=True, text=True, env=env)
+        self.assertEqual(result.returncode, 0, result.stderr[-2000:])
+        self.assertIn('travel: world 0 -> 1', result.stderr)
+        rows = [json.loads(line) for line in result.stdout.splitlines() if line.startswith('{')]
+        frames = [r for r in rows if 'names_frame' in r]
+        travel = next(r for r in rows if r.get('map'))
+        self.assertEqual(sorted(p[0] for p in frames[1]['plates']), [MONSTER, HERO])   # Lorencia stand-in
+        self.assertEqual([p[0] for p in frames[-1]['plates']], [HERO])
+        self.assertEqual((travel['world'], travel['travels'], travel['travel_plates_removed']), (1, 1, 1))
+
+
+TRAVEL_LANG = os.environ.get('MU_LANG_DIR')
+
+
+@unittest.skipUnless(PRIVATE and GFX_MOVIES and TRAVEL_LANG and Path(GFX_LIB).exists() and WORLD.exists(),
+                     'private: MU_RECOVERY_INTEGRATION=1, MU_GAME_ROOT, MU_LANG_DIR, MU_NAMES_GFX_MOVIES, libmugfx')
+class GfxTravel(unittest.TestCase):
+    def test_no_old_world_plate_stays_in_the_movie(self):
+        """PLAY-FIX-001: Lorencia -> Noria through the Move request; the real movie gets removeInfo for the four
+        field monsters, the hero's clip is added once and stays, no clip is left without a plate."""
+        with tempfile.TemporaryDirectory() as tmp:
+            log = Path(tmp)/'gfx.log'
+            env = {**os.environ, 'MU_GFX_LIB': GFX_LIB, 'MU_GFX_LOG': str(log), 'MU_GFX_SINGLE_BUFFER': '1'}
+            r = subprocess.run([str(WORLD), '--game-root', os.environ['MU_GAME_ROOT'], '--headless', '--backend', 'gl',
+                                '--frames', '200', '--every', '1000', '--out-dir', tmp, '--placement', str(PLACEMENT),
+                                '--tile', '182,128', '--gfx', GFX_MOVIES, '--travel-script', '100:move:3', '--quiet'],
+                               capture_output=True, text=True, timeout=600, env=env)
+            self.assertEqual(r.returncode, 0, r.stderr[-2000:])
+            text = log.read_text()
+        rows = [json.loads(line) for line in r.stdout.splitlines() if line.startswith('{')]
+        bridge = next(x for x in rows if x.get('names_gfx'))
+        travel = next(x for x in rows if x.get('map'))
+        self.assertEqual((travel['world'], travel['travel_plates_removed']), (3, 4))
+        self.assertEqual((bridge['movie_plates'], bridge['stale_plates']), (1, 0))
+        self.assertEqual(text.count('addInfo([{"key":4660,'), 1)
+        for key in (264, 265, 266, 267):                                 # the four Lorencia field monsters
+            self.assertIn(f'removeInfo([{{"key":{key},"type":2}}])', text)
+
+
 @unittest.skipUnless(PRIVATE, 'private: MU_RECOVERY_INTEGRATION=1 and MU_GAME_ROOT')
 class Lorencia(unittest.TestCase):
     def test_monsters_get_plates_npcs_none(self):
