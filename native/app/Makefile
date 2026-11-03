@@ -39,8 +39,12 @@ all: $(STAMP)
 # Rebuild when a build variable changes (make does not track them itself).
 $(shell mkdir -p '$(B)' && { printf '%s\n' '$(VARS)' | cmp -s - '$(B)/.vars' || { printf '%s\n' '$(VARS)' > '$(B)/.vars'; rm -f '$(B)/Info.plist' '$(B)/mu-native-data' '$(STAMP)'; }; })
 
-$(CLIENT):
+# Always ask the client submake too: an existing mu-client would otherwise be bundled stale (APP-REFRESH-003).
+.PHONY: client
+client:
 	$(MAKE) -C .. client
+$(CLIENT): client
+	@test -x $@
 
 # Always ask the converter submake to check source dependencies.
 .PHONY: converter
