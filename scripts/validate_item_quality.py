@@ -163,20 +163,38 @@ MUTANTS = {
                  '            continue;\n            memcpy(s->model->body_light, &words[8], 12);\n            s->model->level_field'),
     'exit-light': ('            memcpy(s->model->body_light, &words[8], 12);\n            s->model->level_field',
                    '            memcpy(s->model->body_light, &words[8], 8);\n            s->model->level_field'),
+    # Omitting the level write is equivalent here: RenderObjDraw rewrites the level word before any
+    # helper reads it. A wrong level, shade or flag value is caught.
     'exit-level': ('            s->model->level_field = (int32_t)words[11];\n            memcpy(s->model->shade',
-                   '            memcpy(s->model->shade'),
+                   '            s->model->level_field = (int32_t)words[11] + 1;\n            memcpy(s->model->shade'),
+    'exit-shade': ('            memcpy(s->model->shade, &words[12], 12);\n            s->model->flag_ca = (uint8_t)words[15];',
+                   '            memcpy(s->model->shade, &words[8], 12);\n            s->model->flag_ca = (uint8_t)words[15];'),
+    'exit-flag': ('            s->model->flag_ca = (uint8_t)words[15];\n            continue;',
+                  '            s->model->flag_ca = (uint8_t)(words[15] ^ 1u);\n            continue;'),
     'random-modulus': ('float x = (float)(value % (int32_t)p->a);', 'float x = (float)(value % ((int32_t)p->a + 1));'),
-    'random-op': ('        case 1: x = x * k; break;\n        case 2: x = x + k; break;',
-                  '        case 1: x = x + k; break;\n        case 2: x = x + k; break;'),
+    'random-op': ('        default: x = x / k; break;', '        default: x = x * k; break;'),
     'random-phase': ('if (p->phases & (1u << phase))', 'if (p->phases)'),
-    'random-order': ('value = random_program(p, rank5_random(s));', 'value = random_program(p, rank5_random(s) + 1);'),
+    'random-value': ('value = random_program(p, rank5_random(s));', 'value = random_program(p, rank5_random(s) + 1);'),
     'mesh-index': ('d.mesh = (int32_t)words[0];', 'd.mesh = (int32_t)words[0] + 1;'),
     'object-alpha': ('&s->item->object_alpha, 4', '&base.alpha, 4'),
 }
 
 
+def run_c(lib, case, sequence):
+    used = [0]
+
+    def draw():
+        used[0] += 1
+        return sequence[used[0] - 1] if used[0] <= len(sequence) else 0
+    status, actual = v.c_stream(lib, case, random=draw)
+    return status, actual, used[0]
+
+
 def mutations(vectors):
     source = (ROOT/'reconstructed/renderchar/renderchar.c').read_text()
+    # Rand results consumed by the validated library; equal to the client's count (compare()).
+    reference = C.CDLL(str(v.LIBRARY))
+    counts = [run_c(reference, case, sequence)[2] for case, sequence, _ in vectors]
     caught = {}
     with tempfile.TemporaryDirectory() as tmp:
         for name, (old, new) in MUTANTS.items():
@@ -189,14 +207,9 @@ def mutations(vectors):
                             str(ROOT/'reconstructed/record-math/record_math.c'), '-lm', '-o', str(library)], check=True)
             lib = C.CDLL(str(library))
             detected = 0
-            for case, sequence, expected in vectors:
-                used = [0]
-
-                def draw():
-                    used[0] += 1
-                    return sequence[used[0] - 1] if used[0] <= len(sequence) else 0
-                status, actual = v.c_stream(lib, case, random=draw)
-                detected += status != 0 or actual != expected
+            for (case, sequence, expected), count in zip(vectors, counts):
+                status, actual, used = run_c(lib, case, sequence)
+                detected += status != 0 or actual != expected or used != count
             if not detected:
                 raise AssertionError(('surviving mutant', name))
             caught[name] = detected

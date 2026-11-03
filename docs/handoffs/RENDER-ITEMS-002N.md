@@ -1,82 +1,98 @@
-# RENDER-ITEMS-002 part 14 (WIP, stopped on owner request)
+# RENDER-ITEMS-002 part 14
 
-Branch `claude/render-items-002n`, worktree `~/Documents/MTM/worktrees/render-items-002n` (Claude Opus 5.5).
-The branch is based on `origin/claude/render-items-002m` (part 13, PR #275, not merged when this started;
-its base is main `7f18bf05`). **No source change yet.** This commit holds only this handoff. Bodies stay
-**1,162/1,674**. No PR and no `ready-prs.txt` line. No gate has been run on this branch.
+Base main `d5ffde0a` (includes part 13, #275), branch/worktree `claude/render-items-002n` (Claude Opus 5.5).
+Checkpoints are pushed. Only this lane is edited and built. No live client, launcher or hosted workflow is used.
+The macOS 27.2 toolchain (Apple clang 21) was clean-rebuilt first. The base table reproduces byte for byte
+under it.
 
-## What was done: survey of the 469 remaining non-stopping types
+## Coverage and implementation
 
-These are probe and screen results only (verified by Unicorn runs against the pinned text/data). None is a
-passing validation. Scratch scripts are in `~/Documents/MTM/mu-mac-tools/native/scratch/render-items-002n/`
-(kept as resume inputs, about 1.7 MB):
+Bounded bodies increase **1,162 to 1,213 of 1,674**, adding **51 types**. Skins stay **17/17** and links stay
+**eighteen targets/twenty-four types**. **461 bodies remain** (418 non-stopping). Membership is in
+`gen_item_bodies.QUALITY_TYPES` (51) and `EXIT_TYPES` (34 of them) and in both TSVs. The survey has 497
+complete shapes, up from 461. Shape identities, ranks and stops are unchanged.
 
-- `common.py`: shared imports. `remaining()` lists the 469 types from `item-body-types.tsv`.
-- `diag.py` → `diag.json`: first probe-stage reason per type (without scalar programs).
-- `fits.py` → `fits.pkl`: `gen.fit(scalars=True)`, carry off then on. **66 types fit**, none needed carry.
-- `base.py` → `base_types.pkl`: the current 1,143-row table. It reproduces `item_bodies.h` byte for byte.
-- `build.py`: builds a scratch library (base table plus candidates) under `scratch/.../build/<name>/`.
-- `screen.py <fits.pkl> <name>`: runs all 292 full-comparison states of `validate_item_clusters.body_cases`
-  with `validate_item_carry.ColourWorld` and records every failing case with quality, level and diff kind.
-  Results: `s1.screen.pkl` (the 66 fits) and `s2.screen.pkl` (19 carry refits).
-- `show.py <lib> <type> <k,..>`: client-versus-C stream diff. `callers.py <type> <k>`: draw and rand call
-  sites. `disx.py a b`: disassembly with data constants. `exitstate.py <type> <k> <rets>`: model fields at
-  helper return sites.
+The refusals part 13 labelled "quality 1-2" and "1-ulp quality 0" have other causes (verified, details in the
+[finding](../research/client-render-items.md#part-14-recordquality-probes-exit-model-fields-and-body-random-render-items-002n)).
+Wing records of kind B 0x26/0x5b force glow level 9, a helper phase the record-free probes never sampled.
+The binary32 per-type pulse agreed with the shared binary64 pulse at every probe clock. Some bodies leave the
+model at fields other than their last draw's.
 
-Probe-stage breakdown (no scalar programs): 185 services (mostly `effect` calls, 13 `glPushMatrix/Pop`,
-3 `transform`), 182 phase-0 inference failures (52 draw count, 42 blend light, 36 body light, 17 V, 10 U,
-9 BODY light, 7 COLOR), 54 group/phase count mismatches, plus the 66 fits.
+- **Supplementary probes** (part-14 types only): records `(0,0,0)/(0,0x26,0)/(0,0x5b,0)` × qualities 0/1/2/9
+  × levels 0/7/13 with six further seeds, plus excellent/ancient tails at qualities 1/2/9. Wings, precision
+  and UV-clock bodies fit through them (17 types without EXIT).
+- **EXIT entry** (34 types): model fields at the return sites of RenderObjDraw's helper calls, inferred as a
+  recipe pseudo-record. `apply_recipe` entry 4 writes them to the model and draws nothing. A probe-only fix
+  makes the plain `part_body` fallback write back and advance the phase when `probe_carry` is set.
+- **Body random** (2 types, `0x0b22`, `0x0f0d`): scalar kind 4, `(float)(rand() % n)` then binary32
+  constants, parsed at the rand return site. The executor draws through `mu_rc_item_context.random` once per
+  program in client order, only in the program's phases mask. A program row gains a `phases` byte, zero for
+  every earlier row. `v.c_stream` takes an optional random source.
 
-**0 of the 66 fits pass.** The real causes, which correct part 13's labels:
+`renderchar.c` changes are confined to the recipe executor (EXIT, kind 4, the scalar loop after the level split)
+and the probe-only fallback. The part-11/12 validators' program-row regexes accept the new field. Part 13's
+table parser knows entry 4.
 
-1. **Wings, 25 types** (`0x230a..0x2712`; "quality 1-2" in part 13). Every failure is a record with kind B
-   `0x26`/`0x5b`, which forces glow level 9. The standard probes use record `(0,0,0)` at levels 0/7/13. For
-   wings the glow rows map those levels to 0, so helper phase 1 (`0x44/0x48`) is never sampled and its
-   recipe is empty, which gives missing draws (verified `0x230f` k=17).
-   **Fix:** supplementary probes for part-14 types only, so earlier tables reproduce: records
-   `(0,0x26,0)`/`(0,0x5b,0)`/`(0,0,0)` × quality 0/1/2/9 × levels 0/7/13. `gen.sample` needs `quality` and
-   `record` parameters. Assign the phase from the render_type 0x40000 bit, not from the index.
-2. **1-ulp blend light, about 17 types** (`0xf0c, 0x1105, 0x1546` plus the mixed `0x156x`). The client
-   computes `wave(-4,0)*0.7f + 0.3f` in binary32 with no clamp (`0x01712b6e..0x01712b93`). That is a
-   part-11 kind-1 program that `parse_scalar` already parses. The shared input 20 (binary64 pulse with
-   clamp) agrees at every probe clock, so the program fallback never runs. **Fix:** the same supplementary
-   probes, with more clocks, make input 20 fail and the existing fallback select the program.
-   Alternatively, prefer program inputs (index ≥35) in `infer` for part-14 types.
-3. **Body light at the ancient/helper passes, 19 types** (`0xb10, 0xb12, 0x1569..0x1574, 0x170f, 0x1718,
-   0x1728, 0x1732, 0x1752`). Carry refits (`fits_carry.pkl`) still fail. The body leaves the model at
-   *exit* fields that are not its last draw's fields. Verified on `0xb10` k=32: the last draw's light is
-   (1, 0.8, 0.2), but at the return to `0x017e1f3d` the model light is (1,1,1). The helpers then overwrite
-   it, and the ancient pass keeps the helpers' light. **Fix design:** a new recipe entry kind 4 = EXIT
-   (fields 8..15 = body light, level, shade, flag) inferred like the other words. The generator snapshots
-   model fields at each helper's return site in RenderObjDraw. Find the sites by scanning the
-   `0x0176ce74..0x017e7000` text for `e8` calls to `0x016e036c/0x016dc148/0x016dec15` and hooking the
-   following addresses. `apply_recipe` writes EXIT to `s->model` without emitting it. The probe entry
-   `mu_rc_item_draws_carry` takes the exit snapshots instead of the last draws. Use a new row flag so part-13
-   carry rows are unchanged. `0x2003/7/9/f/10` fail carry refit at the probe stage. Check them after EXIT.
-4. **Body random, 56 types** (12 among the fits: `0xb22, 0xb3b, 0xb43, 0xb45, 0xf0d, 0x10fd, 0x171d..f,
-   0x1742..4`). Idiom: `call 0x01989721; cdq; push N; pop ecx; idiv ecx; cvtsi2ss xmm0,edx;
-   divss K; addss K2` (e.g. `0x016ebefc`: %15 /21.5 +0.4 → blend light; `0x01752cb4`: %15 /37.5 +0.5,
-   which then scales the body-light vector (0.9,0.4,0.2) through `0x00cfcd74`). **Fix design:** program
-   kind 4 = random chain parsed at the rand return site. The executor draws through
-   `mu_rc_item_context.random` (as rank 5 does), with per-phase draw counts in client order. The
-   validator stubs rand with a sequence and compares the consumed count (pattern:
-   `validate_item_next.rank5_cases`). `c_stream` would need a context entry. Body-light products need a
-   multiply source, or keep those types out.
-5. **UV words** `0x1108, 0x1328` (MESH arg5): not investigated yet.
+## Checks
 
-Not started: the 187 "no recipe" clusters beyond the counts above, effects (169) and matrix services (13).
+`scripts/validate_item_quality.py --mutations` has a manifest row and the private test
+`ItemQuality.test_original_instructions`. Client and C get the same rand sequence and must consume the same
+number of results. It passes **28,080 comparisons, zero mismatches**: 14,892 full body streams (51 × 292
+states), 13,056 kind-B 0x26/0x5b record cases (qualities 0/1/2/9, levels 0-15, two tail pairs), and 132
+random-edge cases with 132 rand results compared. **11/11 separately compiled mutants** are caught (counts in
+the finding). Omitting the EXIT level write is equivalent here (RenderObjDraw rewrites it) and is not
+counted. The body table reproduces.
 
-## Next steps (in order)
+Inherited validators were rerun on this source through `scripts/run_validators.py --private`, with counts
+and mutant detections identical to part 13's report: part 13 `validate_item_carry` **114,388, zero, 12/12**;
+part 12 `validate_item_chains` **35,346, zero, 17/17**; part 11 `validate_item_scalars` **26,154, zero,
+11/11**; part 10 `validate_item_wings_next` **33,622, zero, 12/12**. Each regenerates the full table without
+drift. With this part: **237,590 instruction comparisons, zero mismatches, 63/63 mutants**.
 
-1. Add supplementary probes (item 1/2) behind a new list `QUALITY_TYPES`. Refit the 66 and the 182
-   inference failures with `scalars=True`, then screen. Expect the wings and most of the precision cluster.
-2. Add the EXIT entry (item 3), refit and screen.
-3. Add random programs (item 4) if time allows.
-4. Write `scripts/validate_item_quality.py` as a copy of `validate_item_carry.py` (bodies plus a family for
-   the new probes), compiled mutants (phase-1 recipe drop, program-versus-shared input, exit light, random
-   modulus/order), a manifest row and a private test. Then: old-versus-new library equality (pattern in
-   parts 12/13), the gallery with `MU_LANG_DIR` set, docs, merge main, the gate, the part 10-13
-   validators, and the PR.
+Compiled C-to-C, main `d5ffde0a` library against this one: **1,147 earlier types (1,143 bodies and 4 skin
+types) in 36,704 random cases**, each with and without a rand context, zero mismatches. Over all 1,691
+survey types, admission changes for exactly the 51 new types. Portable `test_item_quality.py`: **5 tests,
+one private skip**. It checks admission and refusal, the record helper phase on wings, EXIT fields versus the
+last draw (`0xb10`), and one rand result per body pass for the random types.
 
-Steward validators (when PR-ready): the new one plus validate_item_carry, validate_item_chains,
-validate_item_scalars, validate_item_wings_next.
+## Native gallery
+
+`mu-render ui inventory` with installed data (`MU_GAME_ROOT` = the free-runtime prefix) and `MU_LANG_DIR` set
+rendered codes 42, 60, 1062, 2691, 6185 and 6571 (types `0x0b10, 0x0b22, 0x0f0c, 0x1569, 0x230f, 0x2491`) at
+time 123456. All six models are drawn and none are missing. The before binary uses main's `renderchar.c` and
+`item_bodies.h` with the same surrounding renderer.
+
+- **Level 0:** triangles go **3,052 to 4,672** and **6,617 of 1,804,656 pixels** change. The sword draws its
+  translucent blade passes. The refused fallback's opaque black disc becomes the blue orb of `0x0b22`. SHA-256
+  `179cd9db…54af` before, `b3f28efc…d8df8` after.
+- **Level 13:** triangles go **3,052 to 17,480** and **6,977 pixels** change, with coloured glow passes. SHA-256
+  `179cd9db…54af` before, `b4c5cb32…19e6db` after.
+- `0x2491` now draws only its frame. Its own body code draws BODY with constant hidden mesh 0 and then mesh 1
+  (no effect calls), so that matches the instructions. Whether the original inventory shows feathers through
+  another path needs a live look.
+
+The ordinary control (codes 0,1,2,3,7,8, 162 triangles) is byte-identical, framebuffer SHA-256
+`df03a29015909de199d353d327efd2b852f79f813bd5260d0358622313b14930`. Two crop pairs were inspected. These are
+offline native renders, not original-client pixel comparisons.
+
+## Limits and what is left
+
+461 bodies remain. At the probe stage of the 469 part-13 refusals, 185 call body-owned effects/particles or
+matrix/transform services. Most of the rest are no-recipe clusters (draw count/phase mismatches,
+unexplained words). Nine random bodies (`0xb3b, 0xb43, 0xb45, 0x171d..f, 0x1742..4`) fit no recipe with
+scripted rand. `0x171d` scales the body-light vector by its rand value (`0x00cfcd74`), which needs a product
+source. Next useful steps: a product/vector-scale source for those random bodies, then the count/phase
+clusters (`diag.py` reasons). The supplementary probes and EXIT inference apply only to part-14 types. Rank-5
+owner effects, Muun and nested map-object tables, and the earlier limits are unchanged.
+
+## Release
+
+RELEASE_LINE
+
+Steward validators: validate_item_quality, validate_item_carry, validate_item_chains, validate_item_scalars,
+validate_item_wings_next (env `MU_RECOVERY_INTEGRATION=1`; pinned captures through the `evidence` link).
+
+Cleanup removes `mu-mac-tools/native/{scratch,renders}/render-items-002n/`, the build directories, the worktree
+and the local branch. The shared Python/evidence symlinks are never committed. No new local input needs to be
+kept. The gallery used NATIVE-LANG-001's decoded tables in `mu-mac-tools/native/scratch/lang/`, which this lane
+does not own and does not delete.
