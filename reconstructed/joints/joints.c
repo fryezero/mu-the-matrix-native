@@ -120,7 +120,7 @@ int mu_jt_kind_supported(int32_t type, int32_t subtype)
     case MU_JT_BITMAP_SPIRIT:
         return subtype == 0;
     case MU_JT_BITMAP_SPARK:
-        return subtype == 0;
+        return subtype == 0 || subtype == 3;   /* 3: RENDER-EFFECTS-009, bow 0x12f9's sparks */
     case MU_JT_BITMAP_FLARE:
         return subtype == 0 || subtype == 1 || subtype == 41 || subtype == 42;
     case MU_JT_BITMAP_LASER:
@@ -325,9 +325,9 @@ int mu_jt_create(mu_jt_joint *j, int32_t type, const float position[3], const fl
         }
         break;
     case MU_JT_BITMAP_SPARK:
-        if (subtype != 0)
+        if (subtype != 0 && subtype != 3)
             break;
-        /* 0x0154323e, subtype 0: 0x01543264 */
+        /* 0x0154323e, subtype 0: 0x01543264; subtype 3 (0x01543446) is the same body */
         j->scale = 2.0f;
         j->velocity = (float)(imod(jrand(env), 20) + 6);
         j->lifetime = imod(jrand(env), 8) + 8;
@@ -817,6 +817,12 @@ int mu_jt_move(mu_jt_joint *j, const mu_jt_env *env, const mu_jt_move_inputs *in
     }
     case MU_JT_BITMAP_SPARK:
         /* 0x0156977b: subtype 0 has no case (the head's forward motion only) */
+        if (j->subtype == 3) {   /* 0x0156985b (RENDER-EFFECTS-009): speeding up, the colour fading to grey */
+            j->velocity = j->velocity + F_0_1;
+            j->light[0] = j->light[0] / f32bits(0x3f8ccccdu);   /* 1.1 */
+            j->light[1] = j->light[0];
+            j->light[2] = j->light[0];
+        }
         break;
     case MU_JT_BITMAP_FLARE: {
         if (j->subtype == 41) {   /* 0x015788c9 */

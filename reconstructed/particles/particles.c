@@ -36,7 +36,8 @@ int mu_pt_kind_supported(int32_t type, int32_t subtype)
     case MU_PT_BITMAP_FIRE:
         return (subtype >= 0 && subtype <= 6) || subtype == 17;
     case MU_PT_BITMAP_SMOKE:
-        return subtype == 0 || subtype == 1 || subtype == 2 || (subtype >= 3 && subtype <= 8 && subtype != 5) || subtype == 0x75 || subtype == 0x7f || subtype == 21;
+        return subtype == 0 || subtype == 1 || subtype == 2 || (subtype >= 3 && subtype <= 8 && subtype != 5) || subtype == 0x75 || subtype == 0x7f || subtype == 21 ||
+               subtype == 0xd;   /* 0xd: RENDER-EFFECTS-009, Carow 0x474's trail */
     case MU_PT_BITMAP_SPARK2:
         return subtype == 0 || subtype == 1 || subtype == 2;   /* 2: Inferno; 1: NATIVE-HELPERS-002 (the angel's sparkles) */
     case 0x7f54: return subtype == 0;          /* Explosion01, Meteorite and Inferno */
@@ -215,7 +216,12 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
         break;
     case MU_PT_BITMAP_SMOKE:
         /* 0x015c4c55, subtype table 0x016163a0 */
-        if (subtype == 21) { /* 0x015c6a19 */
+        if (subtype == 0xd) {   /* 0x015c5882 (RENDER-EFFECTS-009): the argument scale is replaced */
+            p->lifetime = 20;
+            p->scale = (float)(mu_pt_rand(h) % 64 + 64) * 0.01f;
+            p->rotation = (float)(mu_pt_rand(h) % 360);
+            p->gravity = (float)(mu_pt_rand(h) % 32 + 60) * 0.1f;
+        } else if (subtype == 21) { /* 0x015c6a19 */
             p->lifetime = 80;
             p->scale = (float)(mu_pt_rand(h) % 64 + 64) * p->scale * 0.005f;
             p->rotation = (float)(mu_pt_rand(h) % 360);
@@ -591,7 +597,13 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
             break;
         case MU_PT_BITMAP_SMOKE:
             /* 0x016333e0, subtype table 0x0168f2fc */
-            if (p->subtype == 21) { /* 0x016366eb */
+            if (p->subtype == 0xd) {   /* 0x0163533b (RENDER-EFFECTS-009): a fading orange puff */
+                const float l = (float)p->lifetime / 20.0f;
+                p->light[0] = l * 1.0f;
+                p->light[1] = l * 0.5f;
+                p->light[2] = l * 0.1f;
+                p->scale += 0.09f;
+            } else if (p->subtype == 21) { /* 0x016366eb */
                 p->light[0] = p->light[1] = p->light[2] = (float)p->lifetime / 50.0f;
                 p->gravity -= 0.1f;
                 p->position[0] -= p->gravity * 0.2f;

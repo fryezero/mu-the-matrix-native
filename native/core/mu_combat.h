@@ -123,6 +123,8 @@ enum {
 #define MU_COMBAT_PARTICLES 2048
 #define MU_COMBAT_LIGHTS 256
 #define MU_COMBAT_HERO_OBJECT MU_WORLD_ACTORS_MAX   /* object index of the hero in the effect environment */
+/* RENDER-EFFECTS-009: bow 0x12f9's spark bone when the link-bone byte lies outside the hero's record (inference) */
+#define MU_COMBAT_SPARK_BONE 0
 
 /* One AddTerrainLight call of the last logic step (re-applied after the
  * frame light copy of every rendered frame). */
@@ -158,6 +160,7 @@ typedef struct mu_combat_stats {
     uint32_t particles_created, joints_created, projectile_hits, area_requests, unsupported, sprites;
     uint32_t hero_shocks, hero_deaths;
     uint32_t monster_voices;  /* NATIVE-ITEMS-001: monster hurt and death sounds played */
+    uint32_t bow_sparks;      /* RENDER-EFFECTS-009: bow 0x12f9's spark particles */
 } mu_combat_stats;
 
 struct mu_world_particles;
@@ -222,6 +225,7 @@ typedef struct mu_combat {
      * shot), reported as one {"combat_unsupported": ...} line */
     struct { char routine; int32_t type, subtype; uint32_t count; } unsupported_kinds[64];
     int32_t unsupported_kind_count;
+    int32_t arrow_textures_retried;   /* RENDER-EFFECTS-009: bow-arrow meshes found by OpenTexture's later steps */
 } mu_combat;
 
 /* Binds the combat state to a session (all pointers stay owned by the

@@ -30,6 +30,7 @@ import validate_skill_fx as fx
 import validate_combat as vc
 import validate_particles as pt
 import validate_render_effects7 as re7
+import validate_render_effects as base
 
 ROOT = Path(__file__).resolve().parents[1]
 f32 = fx.f32
@@ -269,6 +270,67 @@ def family_service(m, slib, rng, cases, report):
                      ('/own' if own else '/global') + ('/records' if records else '/no records'))
 
 
+PARTICLE_KINDS = [(0x7f5a, 0xd)]   # Carow 0x474's trail (bow 0x12f9)
+PT_MUTANTS = [
+    ('trail_life', 'p->lifetime = 20;\n            p->scale = (float)(mu_pt_rand(h) % 64 + 64) * 0.01f;',
+     'p->lifetime = 24;\n            p->scale = (float)(mu_pt_rand(h) % 64 + 64) * 0.01f;', 'create'),
+    ('trail_rise', 'p->gravity = (float)(mu_pt_rand(h) % 32 + 60) * 0.1f;\n        } else if (subtype == 21) {',
+     'p->gravity = (float)(mu_pt_rand(h) % 32 + 50) * 0.1f;\n        } else if (subtype == 21) {', 'create'),
+    ('trail_fade', 'const float l = (float)p->lifetime / 20.0f;', 'const float l = (float)p->lifetime / 25.0f;', 'move'),
+    ('trail_grow', 'p->scale += 0.09f;\n            } else if (p->subtype == 21)', 'p->scale += 0.08f;\n            } else if (p->subtype == 21)',
+     'move'),
+]
+JOINT_KINDS = [(0x7fd5, 3)]   # bow 0x12f9's spark joint
+JOINT_MUTANTS = [
+    # (name, old, new, family) on reconstructed/joints/joints.c
+    ('spark_speed', 'j->velocity = j->velocity + F_0_1;', 'j->velocity = j->velocity + F_0_2;', 'joint_move'),
+    ('spark_fade', 'j->light[0] = j->light[0] / f32bits(0x3f8ccccdu);   /* 1.1 */',
+     'j->light[0] = j->light[0] / 1.2f;   /* 1.1 */', 'joint_move'),
+    ('spark_kind', 'return subtype == 0 || subtype == 3;   /* 3: RENDER-EFFECTS-009, bow 0x12f9\'s sparks */',
+     'return subtype == 0;   /* 3: RENDER-EFFECTS-009, bow 0x12f9\'s sparks */', 'joint_create'),
+]
+
+
+def joint_families(text, data, cases, mutations):
+    """validate_joints' create, move and render families (CreateJoint 0x0153b02c, MoveJoint 0x01556c26,
+    RenderJoints 0x01589b56) on the kinds this lane adds; its families read the module's KINDS."""
+    import validate_joints as vj
+    out, mutants = {}, {}
+    saved = vj.KINDS
+    vj.KINDS = JOINT_KINDS
+    try:
+        m = machine(text, data)
+        lib = vj.load_library(ROOT/f'reconstructed/joints/libclient_joints.{fx.SUFFIX}')
+        for name, family in vj.FAMILIES:
+            report = pt.Report()
+            family(m, lib, random.Random('render-effects-009-' + name), cases, report, vj.collections_default())
+            out[name] = {'families': report.families, 'coverage': report.coverage}
+        if mutations:
+            families = dict(vj.FAMILIES)
+            with tempfile.TemporaryDirectory(prefix='render-effects9-joints-') as tmp:
+                for name, old, new, family in JOINT_MUTANTS:
+                    dest = Path(tmp)/name
+                    for directory in ('joints', 'record-math', 'movement'):
+                        shutil.copytree(ROOT/'reconstructed'/directory, dest/directory,
+                                        ignore=shutil.ignore_patterns('*.dylib', '*.so', '*.d', '__pycache__'))
+                    if (ROOT/'reconstructed/deps.mk').exists():
+                        shutil.copy(ROOT/'reconstructed/deps.mk', dest/'deps.mk')
+                    path = dest/'joints'/'joints.c'
+                    text_c = path.read_text()
+                    assert text_c.count(old) == 1, name
+                    path.write_text(text_c.replace(old, new))
+                    subprocess.run(['make', '-s', '-C', str(dest/'joints')], check=True, capture_output=True)
+                    mlib = vj.load_library(dest/f'joints/libclient_joints.{fx.SUFFIX}')
+                    report = pt.Report()
+                    families[family](m, mlib, random.Random('render-effects-009-' + family), max(40, cases), report,
+                                     vj.collections_default())
+                    f = report.families[family]
+                    mutants[name] = {'cases': f['cases'], 'caught': f['cases'] - f['equal']}
+    finally:
+        vj.KINDS = saved
+    return out, mutants
+
+
 def compile_mutant(directory, name, old, new):
     base = ROOT/'reconstructed'/'combat'
     if (base/'arrow_fx.inc').read_text().count(old) != 1:
@@ -310,7 +372,9 @@ def compare(text, data, lib, name, kinds, cases):
 
 BODIES = {'move_615': (0x0146a1f9, 0x0146aa05), 'move_617': (0x0146af38, 0x0146b64c),
           'bone_find': (0x0129f18a, 0x0129f24f), 'bone_index': (0x012bd35a, 0x012bd3b8),
-          'owner_bone': (0x0129f12c, 0x0129f18a), 'bone_sprite': (0x0150e746, 0x0150e7c9)}
+          'owner_bone': (0x0129f12c, 0x0129f18a), 'bone_sprite': (0x0150e746, 0x0150e7c9),
+          'create_7fd5_3': (0x01543446, 0x015434ea), 'move_7fd5_3': (0x0156985b, 0x015698ed),
+          'create_7f5a_d': (0x015c5882, 0x015c594a), 'move_7f5a_d': (0x0163533b, 0x01635435)}
 
 
 def run(cases, mutations):
@@ -320,6 +384,20 @@ def run(cases, mutations):
     lib = fx.load_library(ROOT/'reconstructed'/('combat/libcombat.' + fx.SUFFIX))
     for name in ('effect_create', 'effect_move'):
         result['comparisons'][name] = compare(text, data, lib, name, KINDS, cases * len(KINDS))
+    plib = pt.load_library(ROOT/'reconstructed'/('particles/libclient_particles.' + fx.SUFFIX))
+    for name in ('create', 'move', 'render'):   # CreateParticle 0x0168fafd, MoveParticles, RenderParticles
+        r = base.compare(text, data, plib, 'pt', name, PARTICLE_KINDS, cases * 20)
+        result['comparisons']['pt_' + name] = {'families': {'pt_' + name: r['families'][name]},
+                                               'coverage': r['coverage']}
+    if mutations:
+        with tempfile.TemporaryDirectory(prefix='render-effects9-pt-') as tmp:
+            for name, old, new, family in PT_MUTANTS:
+                mlib = base.compile_mutant(Path(tmp), name, 'pt', old, new)
+                f = base.compare(text, data, mlib, 'pt', family, PARTICLE_KINDS, max(40, cases * 20))['families'][family]
+                result['mutants'][name] = {'cases': f['cases'], 'caught': f['cases'] - f['equal']}
+    joints, joint_mutants = joint_families(text, data, cases * 20, mutations)
+    result['comparisons'].update(joints)
+    result['mutants'].update(joint_mutants)
     with tempfile.TemporaryDirectory(prefix='render-effects9-svc-') as tmp:
         report = pt.Report()
         family_service(machine(text, data), service_library(tmp), random.Random('render-effects-009-svc'),
