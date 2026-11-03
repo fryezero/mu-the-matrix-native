@@ -347,13 +347,18 @@ BONE_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.POINTER(Effect), ctypes
 TIME_FN = ctypes.CFUNCTYPE(ctypes.c_uint32, ctypes.c_void_p)
 OWNER_BONE_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int32, ctypes.c_int32, ctypes.POINTER(ctypes.c_float),
                                  ctypes.POINTER(ctypes.c_float))
+BONE_NAMED_FN = ctypes.CFUNCTYPE(ctypes.c_int32, ctypes.c_void_p, ctypes.POINTER(Effect), ctypes.c_char_p,
+                                 ctypes.c_int32)
+BONE_TRANSFORM_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.POINTER(Effect), ctypes.c_int32,
+                                     ctypes.POINTER(ctypes.c_float), ctypes.c_int, ctypes.POINTER(ctypes.c_float))
 
 
 class Env(ctypes.Structure):
     _fields_ = [('context', ctypes.c_void_p), ('rand', RAND_FN), ('height', HEIGHT_FN), ('object', OBJECT_FN),
                 ('call', CALL_FN), ('model', MODEL_FN), ('serial', ctypes.c_uint8),
                 ('report_checks', ctypes.c_uint8), ('hero_object', ctypes.c_int32), ('bone', BONE_FN),
-                ('time_ms', TIME_FN), ('owner_bone', OWNER_BONE_FN), ('world_time', ctypes.c_float)]   # NATIVE-HELPERS-002
+                ('time_ms', TIME_FN), ('owner_bone', OWNER_BONE_FN), ('world_time', ctypes.c_float),   # NATIVE-HELPERS-002
+                ('bone_named', BONE_NAMED_FN), ('bone_transform', BONE_TRANSFORM_FN)]   # RENDER-EFFECTS-009
 
 
 def load_library(path):

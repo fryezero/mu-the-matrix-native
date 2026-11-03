@@ -67,7 +67,7 @@ CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_perf_mesh.c
             core/mu_camera.c core/mu_raster.c core/mu_scene.c core/mu_textures.c core/mu_options.c core/mu_character.c \
             core/mu_terrain.c core/mu_world_haze.c core/mu_frame.c core/mu_frame_time.c core/mu_actor.c core/mu_gif.c \
             core/mu_ui_raster.c core/mu_ui_assets.c core/mu_ui_font.c \
-            core/mu_effect.c core/mu_effect_scene.c core/mu_edge.c core/mu_walk.c core/mu_renderchar.c core/mu_path.c \
+            core/mu_effect.c core/mu_effect_scene.c core/mu_named_bones.c core/mu_edge.c core/mu_walk.c core/mu_renderchar.c core/mu_path.c \
             core/mu_world_actors.c core/mu_charsel.c core/mu_charsel_ui.c core/mu_login.c \
             core/mu_data.c core/mu_hud.c core/mu_hud_tip.c core/mu_objects.c core/mu_texture_names.c core/mu_item_textures.c core/mu_objects_icarus.c core/mu_objects_raklion.c core/mu_objects_runtime.c core/mu_objects_runtime_worlds_b.c core/mu_objects_worlds_p.c core/mu_combat.c core/mu_env.c \
             core/mu_particles.c core/mu_joints.c core/mu_lang.c core/mu_items.c \
@@ -107,7 +107,7 @@ RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.
              $(RECON)/quest/quest_wrap.c $(RECON)/quest/quest_classic.c \
              $(RECON)/skill/skill_table.c $(RECON)/skill/skill_use.c $(RECON)/skill/skill_tooltip.c $(RECON)/skill/skill_list.c \
              $(RECON)/skill/master_tree.c $(RECON)/skill/skill_canuse.c $(RECON)/skill/tree4.c $(RECON)/skill/tree4_ui.c $(RECON)/skill/tree4_side.c \
-             $(RECON)/map/map_hud.c $(RECON)/map/map_move.c $(RECON)/map/map_gate.c $(RECON)/social/social.c \
+             $(RECON)/map/map_hud.c $(RECON)/map/map_move.c $(RECON)/map/map_gate.c $(RECON)/map/map_clear.c $(RECON)/social/social.c \
              $(RECON)/mix/mix_rules.c $(RECON)/mix/mix_source.c $(RECON)/mix/mix_manager.c $(RECON)/mix/item_actions.c $(RECON)/mix/item_services.c \
              $(RECON)/progress/progress_calc.c $(RECON)/progress/progress_bar.c $(RECON)/progress/progress_recv.c \
              $(RECON)/progress/progress_window.c $(RECON)/progress/progress_options.c \
@@ -630,6 +630,10 @@ $(CORE_OBJ): $(GEN_STAMP) $(LAYOUT_STAMP)
 $(BUILD)/icarus-host: tests/icarus_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/icarus-host.o
 	$(CXX) $(BUILD)/icarus-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+
+$(BUILD)/render-light-host: tests/render_light_host.c $(LIB) $(HEADERS)
+	$(CC) $(CFLAGS) -c $< -o $(BUILD)/render-light-host.o
+	$(CXX) $(BUILD)/render-light-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
 
 $(BUILD)/worlds-e-host: tests/worlds_e_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-e-host.o

@@ -9,7 +9,14 @@
  * container.mon_<key>) instead of the addMC event's clip value.  Positions
  * are window pixels divided by the Retina scale (the movies lay out in
  * points).  The movie loads asynchronously: when its channel appears, the
- * plates created so far are replayed (layer choice). */
+ * plates created so far are replayed (layer choice).
+ *
+ * PLAY-FIX-001: the bridge keeps the list of clips the movie holds (addInfo
+ * minus removeInfo).  A world change re-attaches the bridge to the reloaded
+ * names model on the same layer: the movie and its clips (the hero's plate,
+ * which ClearCharacters spares) stay, and the replay adds only the keys the
+ * movie lacks.  world_names_gfx_stale counts clips with no plate in the
+ * model (what the travel bug left floating). */
 #ifndef WORLD_NAMES_GFX_H
 #define WORLD_NAMES_GFX_H
 
@@ -24,11 +31,14 @@ typedef struct world_names_gfx {
     int bound;
     long calls;
     int probe;
+    int32_t movie_keys[MU_NAMES_MAX * 2], movie_count;   /* PLAY-FIX-001: the clips the movie holds */
 } world_names_gfx;
 
 void world_names_gfx_attach(world_names_gfx *b, world_gfx *g, mu_names *names, double scale);
 /* Per frame (before the names update): binds when the movie's channel exists. */
 void world_names_gfx_frame(world_names_gfx *b);
+/* Clips the movie holds without a plate in the names model. */
+int32_t world_names_gfx_stale(const world_names_gfx *b);
 /* 1 while the movie draws the names (the stand-in stays off). */
 int world_names_gfx_active(const world_names_gfx *b);
 

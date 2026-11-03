@@ -176,6 +176,13 @@ class PreviewApp(unittest.TestCase):
             undefined = set(subprocess.run(['nm', '-u', str(f)], capture_output=True, text=True).stdout.split())
             self.assertFalse(undefined & NETWORK_IMPORTS, f'{f.name} imports {undefined & NETWORK_IMPORTS}')
 
+    def test_app_build_rebuilds_a_stale_client(self):
+        # APP-REFRESH-003: the bundle step asks the client submake even when native/build/mu-client exists.
+        dry = subprocess.run(['make', '-n', '-C', str(NATIVE / 'app'), f'B={self.dir / "build"}',
+                              f'MUGFX_LIB={self.stub}', f'CLIENT_SHA256={TEST_PIN}'], capture_output=True, text=True)
+        self.assertEqual(dry.returncode, 0, dry.stderr)
+        self.assertIn('-C .. client', dry.stdout)
+
     def test_check_bundle(self):
         env, _ = self.env('check')
         r = self.launch(env, '--check-bundle')
@@ -413,7 +420,8 @@ class PreviewAppPrivate(unittest.TestCase):
         app = NATIVE / 'build/app' / f'{NAME}.app'
         subprocess.run(['make', '-C', str(NATIVE), 'preview-app'], check=True, capture_output=True)
         with tempfile.TemporaryDirectory() as tmp:
-            env = {k: v for k, v in os.environ.items() if not k.startswith('MU_NATIVE_')}
+            # MU_NATIVE_SCRATCH: a manifest-bearing export set (the shared scratch has none; APP-REFRESH-003)
+            env = {k: v for k, v in os.environ.items() if not k.startswith('MU_NATIVE_') or k == 'MU_NATIVE_SCRATCH'}
             env.update(MU_NATIVE_SUPPORT_DIR=f'{tmp}/support', MU_NATIVE_LOG_DIR=f'{tmp}/logs',
                        MU_NATIVE_GAME_ROOT=os.environ['MU_GAME_ROOT'])
             r = subprocess.run([str(app / 'Contents/MacOS/MuNativePreview'), '--smoke', '--backend', 'gl',

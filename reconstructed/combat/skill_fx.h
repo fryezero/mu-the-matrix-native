@@ -229,6 +229,15 @@ typedef struct mu_sfx_env {
     uint32_t (*time_ms)(void *context);
     void (*owner_bone)(void *context, int32_t owner, int32_t bone, const float in[3], float out[3]);
     float world_time;        /* 0x06fce370, warp pulse clock */
+    /* RENDER-EFFECTS-009, the named-bone service (NULL: no model answers a name):
+     * bone_named: 0x012bd35a(name, fallback) on the model of the effect's type (the first bone record whose name equals
+     * `name`, else `fallback`; also 0x0129f18a(name, 0)'s search, which answers NULL where this answers -1);
+     * bone_transform: TransformPosition 0x012b6ef1(that model, BoneTransform 0x06fce398 + 0x30 * bone, in,
+     * out, translate): the bone's rotation and translation, with translate the model's BodyScale +0x74 and
+     * BodyOrigin +0x78 as well. NULL: out = in. */
+    int32_t (*bone_named)(void *context, const struct mu_sfx_effect *effect, const char *name, int32_t fallback);
+    void (*bone_transform)(void *context, const struct mu_sfx_effect *effect, int32_t bone, const float in[3],
+                           int translate, float out[3]);
 } mu_sfx_env;
 
 /* CreateEffect 0x013c0f19 for the supported types and subtypes, from a

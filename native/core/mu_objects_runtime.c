@@ -134,7 +134,7 @@ static void load_slot_bitmaps(mu_objects *o, const char *game_root)
 {
     for (int32_t t = 0; game_root && t < MU_OBJECT_TYPES; ++t) {
         mu_object_model *m = o->models[t];
-        int32_t want[4];
+        int32_t want[MU_WORLD_SLOT_BITMAPS];
         const int32_t n = m && m->loaded ? mu_world_slot_bitmaps(o->world, t, want) : 0;
         for (int32_t k = 0; k < n; ++k) {
             const char *path;
@@ -656,21 +656,18 @@ void mu_objects_apply_lights(const mu_objects *o, mu_world *map)
 typedef struct render_context {
     mu_objects *o;
     const mu_obj_render_inputs *in;
+    const float *eye;
 } render_context;
 
-/* 0x017fcd18 for world 0 (Lorencia): types 0x37 and 0x3c; the predicate's default chain (camera and
- * event-state singletons) answers no here (static reading, not executed). Worlds 134..145 end in their class
- * slot 0x10 (RENDER-WORLDS-Q2, which may set the range). */
+/* 0x017fcd18, the whole draw-first predicate (RENDER-WORLDS-AFTER4): the world cases, the default chain and the
+ * class slot 0x10 of 134..145 (RENDER-WORLDS-Q2, which may set the range). The camera position is the frustum's
+ * apex (VectorIRotate of the zero corner plus the camera position); the tower state (0x009a6ef3() + 0x78) +4 keeps
+ * its constructor value 0 (0x009a62f1). */
 static uint8_t render_first(void *context, int32_t index)
 {
     render_context *c = context;
-    if (mu_class_first_owned(c->o->world))
-        return (uint8_t)mu_class_first(image(c->o, index), c->o->world, c->in->x2d, c->in->y2d,
-                                       c->in->scene_state);
-    if (c->o->world != 0)
-        return 0;
-    const int32_t t = mu_obj_i32(image(c->o, index), MU_OBJF_TYPE);
-    return (uint8_t)(t == 0x37 || t == 0x3c);
+    const mu_draw_first_inputs in = {c->in->x2d, c->in->y2d, c->in->scene_state, c->eye, 0};
+    return (uint8_t)mu_draw_first(image(c->o, index), c->o->world, &in);
 }
 
 void mu_objects_visibility(mu_objects *o, const mu_terrain_frustum *f, int32_t scene_state)
@@ -681,7 +678,7 @@ void mu_objects_visibility(mu_objects *o, const mu_terrain_frustum *f, int32_t s
     if (!rt->ready)
         return;
     mu_obj_render_inputs in;
-    render_context c = {o, &in};
+    render_context c = {o, &in, f->vertex[0]};
     memset(&in, 0, sizeof in);
     in.world = o->world;
     in.scene_state = scene_state;
@@ -752,11 +749,16 @@ typedef struct class_context {
     float time;
     mu_obj_log log;
 } class_context;
-static void slot_model(const mu_objects *o, int32_t t, int16_t *flags, int32_t capacity, mu_slot_model *out)
+static void slot_model(mu_objects *o, int32_t t, int16_t *flags, int32_t capacity, mu_slot_model *out)
 {
     const mu_object_model *m = t >= 0 && t < MU_OBJECT_TYPES ? o->models[t] : NULL;
     out->mesh_count = 0;
     out->sub_flag = flags;
+    /* RENDER-WORLDS-AFTER3: the key count of the object's action (Tormenta 0x2c) and rand (Kardamahal 0x71) */
+    const int32_t a = mu_obj_u16(o->rt.model_fields, MU_MDL_ACTION);
+    out->action_frames = (int16_t)(m && m->loaded && a < m->bmd.action_count ? m->bmd.actions[a].keys : 0);
+    out->rand_fn = objects_rand;
+    out->rand_context = o;
     for (int32_t k = 0; m && m->loaded && k < m->bmd.mesh_count && k < capacity; ++k) {
         uint8_t name[32] = {0}, sub[5];
         memcpy(name, m->bmd.meshes[k].texture, strnlen(m->bmd.meshes[k].texture, sizeof name));
@@ -768,6 +770,10 @@ static void slot_fields(mu_objects *o, const uint8_t *img, int32_t t)
 {
     uint8_t *b = o->rt.model_fields;
     memcpy(b + 0xac, img + MU_OBJF_FRAME, 4);
+    const float f = mu_obj_f32(img, MU_OBJF_FRAME);   /* +0xb4: Animation's (short)(int)frame (0x012b5128) */
+    const int32_t i32 = f >= -2147483648.0f && f < 2147483648.0f ? (int32_t)f : INT32_MIN;   /* cvttss2si */
+    const int16_t whole = (int16_t)(uint16_t)((uint32_t)i32 & 0xffffu);
+    memcpy(b + 0xb4, &whole, 2);
     memcpy(b + MU_MDL_ACTION, img + MU_OBJF_ACTION, 2);
     b[0x94] = t >= 0 && t < MU_OBJECT_TYPES ? o->rt.stream[t] : 0xff;
 }
@@ -1304,6 +1310,9 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
                 rt->play_speed_set[e->args[0]] = 1;
         } else if (e->call == MU_OBJ_CALL_PLAY_SPEED) {
             ++rt->draw_unsupported;   /* another action's PlaySpeed: no per-action table outside 135/136 */
+        } else if (e->call == MU_OBJ_CALL_SOUND) {   /* RENDER-WORLDS-AFTER3: 145 type 0x99 */
+            ++rt->sound_events;
+            if (o->sound) o->sound(o->sound_context, (int32_t)e->args[0]);
         }
     }
     if (sc.log.overflow)
@@ -1514,7 +1523,7 @@ static int32_t texture_slot(const mu_object_model *m, const char *name)
     return -1;
 }
 
-mu_object_model *mu_objects_prepare_after(mu_objects *o, int32_t k, const mu_world *map, int32_t scene_state,
+mu_object_model *mu_objects_prepare_after(mu_objects *o, int32_t k, mu_world *map, int32_t scene_state,
                                           mu_object_mesh *meshes, int32_t capacity, int32_t *count)
 {
     mu_objects_runtime *rt = &o->rt;
@@ -1554,6 +1563,21 @@ mu_object_model *mu_objects_prepare_after(mu_objects *o, int32_t k, const mu_wor
         memcpy(colour, rt->model_fields + MU_MDL_COLOR, 12);
         if (t >= 0 && t <= 300)   /* the world manager 0x00ea306c calls slot 0x3c for types 0..300 */
             mu_class_after(o->world, img, rt->model_fields, i, o->world, map ? map->time : 0.0f, &model, &log);
+        for (int32_t e = 0; e < log.count; ++e) {   /* Kardamahal 0x71's AddTerrainLight 0x016cacfc (AFTER3) */
+            const mu_obj_event *ev = &events[e];
+            if (ev->call != MU_OBJ_CALL_ADD_LIGHT)
+                continue;
+            if (!map) {
+                ++rt->draw_unsupported;
+                continue;
+            }
+            /* RENDER-WORLDS-AFTER4: the after pass runs after RenderTerrain and the characters, so the light
+             * lands in this frame's light grid for the objects drawn after it; the next frame-light copy
+             * (mu_world_frame, 0x016ca4fa) replaces it, as in the client's next logic step. */
+            const float rgb[3] = {fbits(ev->args[2]), fbits(ev->args[3]), fbits(ev->args[4])};
+            mu_world_add_light(map, fbits(ev->args[0]), fbits(ev->args[1]), rgb, (int32_t)ev->args[5]);
+            ++rt->render_light_events;
+        }
         if (t < MU_OBJECT_TYPES)
             rt->stream[t] = rt->model_fields[0x94];
         if (log.overflow)

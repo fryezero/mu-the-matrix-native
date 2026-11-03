@@ -44,6 +44,27 @@ static void set(world_names_gfx *b, const char *path, const char *value)
     mu_gfx_layer_set_variable(b->layer, MU_GFX_MAIN, path, value);
 }
 
+static int movie_find(const world_names_gfx *b, int32_t key)
+{
+    for (int32_t i = 0; i < b->movie_count; ++i)
+        if (b->movie_keys[i] == key)
+            return i;
+    return -1;
+}
+
+static void movie_add(world_names_gfx *b, int32_t key)
+{
+    if (movie_find(b, key) < 0 && b->movie_count < (int32_t)(sizeof b->movie_keys / sizeof b->movie_keys[0]))
+        b->movie_keys[b->movie_count++] = key;
+}
+
+static void movie_del(world_names_gfx *b, int32_t key)
+{
+    int i = movie_find(b, key);
+    if (i >= 0)
+        b->movie_keys[i] = b->movie_keys[--b->movie_count];
+}
+
 static void add_json(world_names_gfx *b, const char *json)
 {
     char args[4200];
@@ -62,13 +83,15 @@ static void add_info(void *user, const mu_hn_info *info)
     char json[4096];
     mu_hn_info_json(&scaled, json, sizeof json);
     add_json(b, json);
+    movie_add(b, info->key);
 }
 
 static void remove_info(void *user, int32_t key, int32_t type)
 {
     world_names_gfx *b = user;
-    if (!b->bound)
-        return;
+    if (!b->bound && !(b->path[0] && movie_find(b, key) >= 0))
+        return;   /* (a kept clip can leave before the rebind) */
+    movie_del(b, key);
     char args[64];
     snprintf(args, sizeof args, "[{\"key\":%d,\"type\":%d}]", (int)key, (int)type);
     invoke(b, b->path, "removeInfo", args);
@@ -159,8 +182,19 @@ static void op(void *user, int32_t type, const mu_hn_op *o)
 
 void world_names_gfx_attach(world_names_gfx *b, world_gfx *g, mu_names *names, double scale)
 {
+    struct mu_gfx_layer *layer = world_gfx_layer(g);
+    world_names_gfx kept;
+    int keep = b->bound && b->layer == layer;   /* the same movie (a world change): its clips stay */
+    if (keep)
+        kept = *b;
     memset(b, 0, sizeof *b);
-    b->layer = world_gfx_layer(g);
+    if (keep) {
+        memcpy(b->path, kept.path, sizeof b->path);
+        memcpy(b->movie_keys, kept.movie_keys, sizeof b->movie_keys);
+        b->movie_count = kept.movie_count;
+        b->calls = kept.calls;
+    }
+    b->layer = layer;
     b->names = names;
     b->scale = scale > 0.0 ? scale : 1.0;
     mu_names_sink sink = {b, add_info, remove_info, op};
@@ -173,6 +207,8 @@ static void replay(world_names_gfx *b)
     const mu_names *n = b->names;
     for (int32_t i = 0; i < n->plate_count; ++i) {
         const mu_names_plate *p = &n->plates[i];
+        if (movie_find(b, p->key) >= 0)
+            continue;   /* PLAY-FIX-001: the movie still holds this clip (the hero after a world change) */
         char name[600], guild[600], server[600], json[2200];
         quote(name, sizeof name, p->name);
         quote(guild, sizeof guild, p->guild);
@@ -187,6 +223,7 @@ static void replay(world_names_gfx *b)
                  p->hp_show ? "true" : "false", p->name_show ? "true" : "false", p->strife ? "true" : "false",
                  (int)p->gens);
         add_json(b, json);
+        movie_add(b, p->key);
         if (p->message[0] && (int32_t)(p->message_until - n->now) > 0) {
             mu_hn_op m = {p->key, MU_HN_OP_MESSAGE, (double)(p->message_until - n->now), 0, {0}};
             snprintf(m.text, sizeof m.text, "%s", p->message);
@@ -216,6 +253,18 @@ void world_names_gfx_frame(world_names_gfx *b)
     snprintf(b->path, sizeof b->path, "%s", path);
     b->bound = 1;
     replay(b);
+}
+
+int32_t world_names_gfx_stale(const world_names_gfx *b)
+{
+    int32_t stale = 0;
+    for (int32_t i = 0; i < b->movie_count; ++i) {
+        int found = 0;
+        for (int32_t k = 0; b->names && k < b->names->plate_count && !found; ++k)
+            found = b->names->plates[k].key == b->movie_keys[i];
+        stale += !found;
+    }
+    return stale;
 }
 
 int world_names_gfx_active(const world_names_gfx *b)

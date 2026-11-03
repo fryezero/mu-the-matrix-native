@@ -123,6 +123,11 @@ enum {
 #define MU_COMBAT_PARTICLES 2048
 #define MU_COMBAT_LIGHTS 256
 #define MU_COMBAT_HERO_OBJECT MU_WORLD_ACTORS_MAX   /* object index of the hero in the effect environment */
+/* RENDER-EFFECTS-009: the object index of effect record i as a joint target (the arrows' own joints, owner "this
+ * effect"); other effects keep no object */
+#define MU_COMBAT_EFFECT_OBJECT(i) (MU_COMBAT_HERO_OBJECT + 1 + (i))
+/* RENDER-EFFECTS-009: bow 0x12f9's spark bone when the link-bone byte lies outside the hero's record (inference) */
+#define MU_COMBAT_SPARK_BONE 0
 
 /* One AddTerrainLight call of the last logic step (re-applied after the
  * frame light copy of every rendered frame). */
@@ -158,6 +163,7 @@ typedef struct mu_combat_stats {
     uint32_t particles_created, joints_created, projectile_hits, area_requests, unsupported, sprites;
     uint32_t hero_shocks, hero_deaths;
     uint32_t monster_voices;  /* NATIVE-ITEMS-001: monster hurt and death sounds played */
+    uint32_t bow_sparks;      /* RENDER-EFFECTS-009: bow 0x12f9's spark particles */
 } mu_combat_stats;
 
 struct mu_world_particles;
@@ -182,7 +188,7 @@ typedef struct mu_combat {
     mu_sfx_particle particles[MU_COMBAT_PARTICLES];
     int32_t particle_count;
     mu_sfx_joint joints[MU_SFX_JOINTS];
-    mu_sfx_object objects[MU_WORLD_ACTORS_MAX + 1];
+    mu_sfx_object objects[MU_WORLD_ACTORS_MAX + 1 + MU_SFX_EFFECTS];   /* + the arrow effects (RENDER-EFFECTS-009) */
     mu_sfx_env env;
     mu_jt_env jenv;            /* NATIVE-JOINT-001: the joint module's view of env (mu_joints.h) */
     uint32_t crt_seed;         /* the client's rand() recurrence for the effect randomness */
@@ -218,6 +224,11 @@ typedef struct mu_combat {
     char log[48][96];
     int32_t log_count;
     struct mu_lang *lang;   /* NATIVE-LANG-001: skill table (names, distance, mana), or NULL */
+    /* RENDER-EFFECTS-009: the unsupported requests by kind (routine 'e' effect, 'p' particle, 'j' joint, 'a' arrow
+     * shot), reported as one {"combat_unsupported": ...} line */
+    struct { char routine; int32_t type, subtype; uint32_t count; } unsupported_kinds[64];
+    int32_t unsupported_kind_count;
+    int32_t arrow_textures_retried;   /* RENDER-EFFECTS-009: bow-arrow meshes found by OpenTexture's later steps */
 } mu_combat;
 
 /* Binds the combat state to a session (all pointers stay owned by the

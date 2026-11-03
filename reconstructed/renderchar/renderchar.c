@@ -87,6 +87,9 @@ static int body_type(int32_t type)
     return -1;
 }
 
+/* Recipe-only entry (part 14): the body's exit model fields, words 8..15. */
+#define RECIPE_EXIT 4
+
 static int apply_recipe(sink *s, const mu_rc_body_recipe *recipe, const uint32_t *input,
                         const mu_rc_draw *base, mu_rc_draw *last)
 {
@@ -96,6 +99,14 @@ static int apply_recipe(sink *s, const mu_rc_body_recipe *recipe, const uint32_t
         for (int k = 0; k < 16; ++k) {
             int source = recipe->draw[i].source[k];
             words[k] = source ? input[source - 1] : recipe->draw[i].value[k];
+        }
+        if (recipe->draw[i].entry == RECIPE_EXIT) {
+            /* Model fields the body leaves when its helper call returns; not a draw. */
+            memcpy(s->model->body_light, &words[8], 12);
+            s->model->level_field = (int32_t)words[11];
+            memcpy(s->model->shade, &words[12], 12);
+            s->model->flag_ca = (uint8_t)words[15];
+            continue;
         }
         mu_rc_draw d = *base;
         d.entry = recipe->draw[i].entry;
@@ -274,6 +285,27 @@ static float body_scalar(const mu_rc_body_scalar *p, float time)
     return value;
 }
 
+static int32_t rank5_random(const sink *s);
+
+/* Kind 4 (part 14): (float)(rand() % n), then binary32 mul/add/sub/div constants
+ * (gen_item_bodies.parse_random). */
+static float random_program(const mu_rc_body_scalar *p, int32_t value)
+{
+    float x = (float)(value % (int32_t)p->a);
+    for (int i = 0; i < p->count; ++i) {
+        float k;
+        uint32_t bits = (uint32_t)p->k[i];
+        memcpy(&k, &bits, 4);
+        switch (p->op[i]) {
+        case 1: x = x * k; break;
+        case 2: x = x + k; break;
+        case 3: x = x - k; break;
+        default: x = x / k; break;
+        }
+    }
+    return x;
+}
+
 /* Apply a shared mesh/body recipe to one generic helper call. Selectors refer
  * to the actual draw arguments and current model fields, never saved pixels.
  * Phases: base, colour2, colour, excellent, ancient, base with flag 0x40000. */
@@ -373,16 +405,25 @@ static void emit_parameter_body(sink *s, int phase, uint32_t flags, float alpha,
         memcpy(&input[33], &value, 4);
     }
     input[34] = (uint32_t)s->item->object_hidden;
-    for (int k = 0; k < mu_rc_body_types[type].scalar_count; ++k) {
-        float value = body_scalar(&mu_rc_body_scalars[mu_rc_body_types[type].scalar_first + k], s->item->time);
-        memcpy(&input[35 + k], &value, 4);
-    }
     /* The helper's optional level word is supplied only above the +7 quality cap. */
     if (mu_rc_body_types[type].level_split && (phase == 0 || phase == 5) &&
         s->item->quality > 1 && mu_rc_item_glow_level(s->item) >= 9 &&
         s->item->item_level != -1 &&
         ((s->item->item_level >> 3) & 15) >= 9)
         phase = phase == 5 ? 7 : 6;
+    for (int k = 0; k < mu_rc_body_types[type].scalar_count; ++k) {
+        const mu_rc_body_scalar *p = &mu_rc_body_scalars[mu_rc_body_types[type].scalar_first + k];
+        float value = 0.0f;
+        if (p->kind == 4) {
+            /* Body random: one CRT rand per program, in client call order, only in
+             * the phases whose helper call draws it. */
+            if (p->phases & (1u << phase))
+                value = random_program(p, rank5_random(s));
+        } else {
+            value = body_scalar(p, s->item->time);
+        }
+        memcpy(&input[35 + k], &value, 4);
+    }
     mu_rc_draw last;
     if (apply_recipe(s, &mu_rc_body_recipes[mu_rc_body_types[type].recipe[phase]], input, &base, &last) &&
         mu_rc_body_types[type].carry)
@@ -530,6 +571,10 @@ static void part_body(sink *s, float alpha, uint32_t flags, int32_t a6, int32_t 
     if (a6 != -1 && a7 != -1) {
         emit(s, MU_RC_ENTRY_BODY, 0, flags, alpha, a6, -1);
         emit(s, MU_RC_ENTRY_MESH, a6, flags, it->object_alpha, 0, a7);
+    } else if (probe_carry) {
+        /* Probe entry for a type outside the table: same draw, plus the client's
+         * fields written back, so later helpers see them in order. */
+        emit_parameter_body(s, flags & 0x40000u ? 5 : 0, flags, alpha, -1, -1);
     } else {
         emit(s, MU_RC_ENTRY_BODY, 0, flags, alpha, -1, -1);
     }

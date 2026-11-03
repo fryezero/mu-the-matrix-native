@@ -288,6 +288,57 @@ int mu_teleport_changes_world(const mu_teleport *t, int32_t current_world);
 #define MU_TELEPORT_TEXT_MOVED 484        /* "%s%s": map name + GlobalText[484] (" - Welcome") */
 #define MU_TELEPORT_LOADING_WORLD 30      /* LoadingWorld after a world change: the render skips while >= 30 */
 
+/* ---- PLAY-FIX-001: what a numbered teleport clears (docs/research/client-maps.md) ----
+ *
+ * ReceiveTeleport 0x0128136d with number [4] != 0, before it compares the world: ClearItems 0x017ea38b,
+ * ClearCharacters(HeroKey [0x06fca288]) 0x0137c276, then 0x00fcf496 on the singleton 0x01ec9808 (it erases the
+ * entries of every key but the hero's); only then ClearWorldMap and LoadWorld when the world differs.  A zero
+ * number returns before any of it (verified, scripts/validate_teleport_clear.py). */
+enum { MU_MAP_CLEAR_ITEMS = 1, MU_MAP_CLEAR_CHARACTERS, MU_MAP_CLEAR_OTHERS, MU_MAP_CLEAR_WORLD_MAP, MU_MAP_CLEAR_LOAD };
+/* The calls in order (kinds above, MU_MAP_CLEAR_LOAD last); returns the count (at most 5). */
+int32_t mu_teleport_clears(const mu_teleport *t, int32_t current_world, int32_t out[5]);
+
+/* 0x009dacb8 (verified): the worlds whose characters keep no hudPlayerName plate (18..23, 53 and 97, the
+ * Chaos Castle worlds). */
+int mu_map_plates_hidden(int32_t world);
+
+#define MU_MAP_CHARACTERS 400      /* CharactersClient, 0x3670-byte records */
+#define MU_MAP_OWNED_OBJECTS 10    /* 0x0bdc3220, 0x3d8-byte objects with the owner at +0x34c */
+#define MU_MAP_SCENE_MAIN 6        /* SceneFlag [0x01d1df70] in the world */
+
+typedef struct mu_map_clear_slot {
+    uint8_t live;                  /* Object (+0x3254) +0: Live */
+    int16_t key;                   /* +0x3e */
+} mu_map_clear_slot;
+
+typedef struct mu_map_owned {
+    uint8_t live;
+    int32_t owner;                 /* the character slot whose Object is +0x34c, -1 none */
+} mu_map_owned;
+
+/* ClearCharacters 0x0137c276 (verified), per slot in order:
+ *   live and key != `key`: KILL (Live = 0 through 0x0129f4a5 -> 0x009b0451), REMOVE_INFO when
+ *     scene == 6 and the world keeps plates, or when the world hides plates and the slot's key is the hero's
+ *     (removeInfo 0x009a176b -> hudPlayerName 0x00c83a04), RELEASE 0x0098294d, OWNED for each live object it
+ *     owns (killed, index = object), DETACH 0x00c9321b;
+ *   every slot (dead, hero, killed): RESET, the fixed tail 0x0137c3ac..0x0137c450 (buffs, parts, effects and
+ *     joints of the record; 16 calls, compared as one sequence).
+ * Slots and owned objects are updated; returns the event count (stops at `capacity`). */
+enum { MU_MAP_CLEAR_KILL = 1, MU_MAP_CLEAR_REMOVE_INFO, MU_MAP_CLEAR_RELEASE, MU_MAP_CLEAR_OWNED,
+       MU_MAP_CLEAR_DETACH, MU_MAP_CLEAR_RESET };
+typedef struct mu_map_clear_event {
+    int32_t kind, slot, index;
+} mu_map_clear_event;
+int32_t mu_map_clear_characters(mu_map_clear_slot *slots, int32_t count, mu_map_owned *owned, int32_t owned_count,
+                                int32_t key, int32_t scene, int32_t world, int32_t hero_key,
+                                mu_map_clear_event *events, int32_t capacity);
+
+/* ClearItems 0x017ea38b (verified): with the hudPlayerName handler present, its item lists (+0x60, +0x68)
+ * are cleared and the movie gets clearAllItem unless both are empty (0x00c841cf); then all 1,000 item
+ * objects (0x0b4781f8, 0x560 bytes) get Live = 0.  Returns 1 when clearAllItem is invoked. */
+#define MU_MAP_ITEMS 1000
+int mu_map_clear_items(int handler, int list_a_empty, int list_b_empty, uint8_t *item_live, int32_t count);
+
 #ifdef __cplusplus
 }
 #endif
