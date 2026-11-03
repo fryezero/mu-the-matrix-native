@@ -2,6 +2,7 @@
 #include "mu_world_names.h"
 
 #include "mu_lang.h"
+#include "../../reconstructed/map/map.h"
 
 #include <ctype.h>
 #include <math.h>
@@ -237,4 +238,32 @@ void mu_world_names_draw(mu_world_names *wn, uint8_t *frame, int32_t width, int3
 {
     if (wn->has_fonts)
         mu_names_draw(&wn->names, &wn->fonts, frame, width, height);
+}
+
+int32_t mu_world_names_clear_characters(mu_world_names *wn, int32_t world)
+{
+    mu_map_clear_slot slots[MU_NAMES_MAX];
+    mu_map_clear_event events[MU_NAMES_MAX * 6];
+    for (int32_t i = 0; i < MU_NAMES_MAX; ++i) {
+        slots[i].live = wn->names.used[i];
+        slots[i].key = wn->names.chars[i].key;
+    }
+    int32_t n = mu_map_clear_characters(slots, MU_NAMES_MAX, NULL, 0, wn->hero_key, MU_MAP_SCENE_MAIN, world,
+                                        wn->hero_key, events, MU_NAMES_MAX * 6);
+    int32_t removed = 0;
+    for (int32_t k = 0; k < n; ++k)
+        if (events[k].kind == MU_MAP_CLEAR_REMOVE_INFO) {
+            uint32_t before = wn->names.stats.removed;
+            mu_names_remove(&wn->names, wn->names.chars[events[k].slot].key, 0);
+            removed += wn->names.stats.removed != before;
+        }
+    for (int32_t k = 0; k < n; ++k)   /* Live = 0: the killed records are gone (no further movie call) */
+        if (events[k].kind == MU_MAP_CLEAR_KILL) {
+            wn->names.used[events[k].slot] = 0;
+            if (wn->names.hovered_current == &wn->names.chars[events[k].slot])
+                wn->names.hovered_current = NULL;
+        }
+    if (wn->hovered >= 0 && !mu_names_find(&wn->names, actor_key(wn, wn->hovered)))
+        wn->hovered = -1;
+    return removed;
 }

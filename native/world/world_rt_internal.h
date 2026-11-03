@@ -134,6 +134,7 @@ struct mu_world_rt {
     int no_map;
     mu_map_session *mapsess;
     uint32_t travels, travel_failures;
+    uint32_t travel_plates_removed;   /* PLAY-FIX-001: removeInfo calls of ClearCharacters at world changes */
     int32_t start_world;
     const char *start_placement, *start_npc_demo, *start_players;
     int start_set;

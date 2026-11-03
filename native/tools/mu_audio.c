@@ -17,6 +17,7 @@
  */
 #define _POSIX_C_SOURCE 200809L
 #include <dirent.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -277,18 +278,25 @@ static int command_render(const options *o)
     char digest[65];
     mu_sha256_hex(wav + 44, size - 44, digest);
     float peak = 0.0f;
+    double square = 0.0;
+    size_t full = 0;   /* PLAY-FIX-001: 16-bit samples at full scale, and the RMS of the written PCM */
     for (size_t i = 0; i < 2*sink.frames; i++) {
         float v = sink.samples[i] < 0 ? -sink.samples[i] : sink.samples[i];
         if (v > peak) peak = v;
+        int16_t q = (int16_t)(wav[44 + 2*i] | wav[45 + 2*i] << 8);
+        square += (double)q*q;
+        full += q >= 32767 || q <= -32768;
     }
+    double rms = sink.frames ? sqrt(square/(double)(2*sink.frames)) : 0.0;
     free(wav);
     free(sink.samples);
     if (!ok) {
         fprintf(stderr, "cannot write %s\n", o->out);
         return 1;
     }
-    printf("{\"frames\": %zu, \"rate\": %u, \"seconds\": %.3f, \"peak\": %.6f, \"pcm_sha256\": \"%s\"}\n",
-           sink.frames, o->rate, (double)sink.frames/o->rate, (double)peak, digest);
+    printf("{\"frames\": %zu, \"rate\": %u, \"seconds\": %.3f, \"peak\": %.6f, \"rms16\": %.1f, \"fullscale\": %zu,"
+           " \"pcm_sha256\": \"%s\"}\n",
+           sink.frames, o->rate, (double)sink.frames/o->rate, (double)peak, rms, full, digest);
     return 0;
 }
 

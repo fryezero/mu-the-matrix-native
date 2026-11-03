@@ -110,6 +110,14 @@ APP-REFRESH-003: Preview reinstalled from 82849bc (main with #278); journey proo
 pickup, Warps travel 0->3->2, BGM PCM peak. Windowed input report; app build no longer bundles a stale
 mu-client. Gate passes 1,805 tests. [Proofs, install and follow-ups](handoffs/APP-REFRESH-003.md).
 
+PLAY-FIX-001: two Preview bugs from APP-REFRESH-003 fixed.
+- A world change now runs the client's ClearCharacters(HeroKey) `0x0137c276` (with ClearItems `0x017ea38b`; Unicorn,
+  0 mismatches, 6/6 mutants), so no old-world name floats after travel; the hero's plate stays.
+- Mixed audio passes a transparent −0.3 dBFS limiter: no full-scale samples at Volum 9 (628 before). The level/9
+  curve was already the client's.
+- The Kardamahal map name matches the original.
+[Causes, checks and limits](handoffs/PLAY-FIX-001.md).
+
 README-REFRESH-003 updates the public README through PR #207, with current session/render/audio/data coverage and explicit offline, live-comparison and 25 fps limits. Existing pinned images reused. [Handoff](handoffs/README-REFRESH-003.md).
 
 SESSION-GLOBALS-001: explicit session/runtime state ownership and committed sequential/fresh-process parity checks. [Inventory and checks](handoffs/SESSION-GLOBALS-001.md).

@@ -84,6 +84,11 @@ static void names_report_summary(const struct mu_world_rt *a, const void *self)
         char line[512];
         mu_names_report(&a->names->names, line, sizeof line);
         printf("{%s}\n", line);
+#ifndef MU_WORLD_NO_GL
+        if (a->names_gfx.layer)   /* PLAY-FIX-001: the clips the real movie holds */
+            printf("{\"names_gfx\": true, \"bound\": %d, \"movie_plates\": %d, \"stale_plates\": %d}\n",
+                   a->names_gfx.bound, (int)a->names_gfx.movie_count, (int)world_names_gfx_stale(&a->names_gfx));
+#endif
         if (!a->quiet)
             for (int32_t i = 0; i < a->names->names.plate_count; ++i) {
                 const mu_names_plate *p = &a->names->names.plates[i];
