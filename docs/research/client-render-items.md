@@ -14,6 +14,7 @@ Its rank-5 no-owner mesh streams draw; the owner effects (19/19 types) are verif
 Part 9 reaches **769/1,674 bodies** and **fifteen link targets/twenty types**.
 Part 10 reaches **880/1,674 bodies** and **seventeen link targets/twenty-two types**.
 Part 11 reaches **967/1,674 bodies** with per-type wave/sine scalar programs; links are unchanged.
+[Part 14 below](#part-14-recordquality-probes-exit-model-fields-and-body-random-render-items-002n) reaches **1,213/1,674 bodies**.
 Muun/map-object effect placement remains deferred. All parts run offline.
 
 ## Identity and evidence
@@ -1137,3 +1138,85 @@ Body-owned effects still need consumers outside the draw-record ABI. The quality
 quality-1 draws are quality-dependent recipes, which the probes (quality 9) cannot infer. They are not claimed.
 Rank-5 owner effects, Muun and nested map-object tables, and the earlier record, buff, selection, shadow,
 override, NewUI and Box of Luck limits are unchanged.
+
+## Part 14, record/quality probes, exit model fields and body random, RENDER-ITEMS-002N
+
+Bounded bodies increase **1,162 to 1,213 of 1,674**, adding **51 types**. Skins stay **17/17** and links stay
+**eighteen targets/twenty-four types**. Membership is in `gen_item_bodies.QUALITY_TYPES` (51; 34 of them also in
+`EXIT_TYPES`) and in both TSVs. **461 bodies remain.**
+
+### Why part 13's quality-dependent refusals failed (verified)
+
+Part 13 labelled 25 refusals "extra draws at quality 1-2" and 17 "1-ulp blend light on the quality-0 path". The
+full comparisons show different causes:
+
+- **Wings.** Every failing case has a record of kind B `0x26` or `0x5b`. That record forces glow level 9
+  (`0x0176dc26/0x0176dc50`), so RenderObjDraw runs the `0x44` (and above quality 1, `0x48`) helper. The
+  probes use a record-free item at levels 0/7/13. The wing glow rows map those to 0, so the helper phase was
+  never sampled and its recipe was empty: missing draws (`0x230f`, state 17).
+- **Blend precision.** `0x0f0c` draws its last mesh with `wave(-4,0) * 0.7f + 0.3f` in binary32 and no clamp
+  (`0x01712b6e..0x01712b93`). The shared input 20 is the binary64 armour pulse with a clamp. Both agree at
+  every probe clock, so the per-type program (part-11 kind 1, already parseable) was never tried.
+- **Body light at helper passes.** `0xb10` and similar bodies leave the model at fields that are not their last
+  draw's. At the return to `0x017e1f3d`, the model light is (1,1,1) after a last draw at (1, 0.8, 0.2).
+  Part 13's carry rule (last draw) does not fit them.
+
+### Supplementary probes
+
+For `QUALITY_TYPES` only, `gen_item_bodies.supplement` adds probes. They cover records `(0,0,0)`,
+`(0,0x26,0)` and `(0,0x5b,0)` at qualities 0, 1, 2 and 9 and levels 0/7/13, with six further seeds (further
+clocks). The excellent/ancient tails are probed at qualities 1, 2 and 9. Earlier types keep the record-free
+quality-9 probes, so their recipes do not change.
+
+### Exit model fields (EXIT entry)
+
+The generator hooks the 65 return sites of RenderObjDraw's calls to the three helpers (`0x016e036c`,
+`0x016dc148`, `0x016dec15`) and snapshots body light, level word, shade and `+0xca` there. Each helper's group
+gains an EXIT pseudo-record, inferred like any draw word. The probe entry `mu_rc_item_draws_carry` starts
+each later helper from those fields. Recipe entry 4 makes `apply_recipe` write words 8..15 to the model. It
+is not a draw and never reaches the draw stream. The excellent tail is not one of the three helpers. It has
+no snapshot and needs none, because nothing follows it.
+
+One probe-path fix was needed. For a type outside the table, the plain `part_body` fallback did not write
+back or advance the probe phase, so every later helper read the wrong snapshot. This affects only the probe
+entry (`probe_carry` set). The rendering path is unchanged.
+
+### Body random (kind-4 programs)
+
+At a CRT rand (`0x01989721`) return site the generator accepts exactly `cdq; push n; pop ecx` (or
+`mov ecx, n`)`; idiv ecx; cvtsi2ss xmm0, edx`, then up to four binary32 `mulss/addss/subss/divss` data
+constants. Programs record the phases whose helper call draws them. A type whose rand site has another form,
+draws one site twice in a helper, or draws in some probes of a phase only is refused. In the probes, rand
+returns a scripted sequence. The executor draws through `mu_rc_item_context.random`, as rank 5 does, once
+per program in client call order, only in the program's phases. Two types are admitted. `0x0b22` uses
+`(rand() % 15) / 21.5 + 0.4` as a mesh blend light (`0x016ebefc`). `0x0f0d` uses `(rand() % 20) / 52.5 +
+0.4`. Both draw it in the body phases 0/5. Nine more random bodies (`0xb3b, 0xb43, 0xb45, 0x171d..0x171f,
+0x1742..0x1744`) fit the old constant-rand probes but no recipe with scripted rand. `0x171d` (verified,
+`0x01752cb4`) scales the body-light vector (0.9, 0.4, 0.2) by its value through `0x00cfcd74`, and the recipe
+has no product source for that. They stay refused.
+
+### Checks
+
+`scripts/validate_item_quality.py --mutations` has a manifest row and the private test
+`ItemQuality.test_original_instructions`. Client and C get the same rand sequence, and the number of rand
+results each consumes must also match. It passes **28,080 comparisons, zero mismatches**:
+
+| Family | Cases | Mismatches |
+|---|---:|---:|
+| Full body streams, 51 types times 292 states, rand scripted, glColor recorded | 14,892 | 0 |
+| Kind-B 0x26/0x5b records, qualities 0/1/2/9, levels 0-15, two tail pairs | 13,056 | 0 |
+| Random types in the 11 survey states with edge sequences (0, 32767, n-1, multiples of n) | 132 | 0 |
+
+The random family compares 132 rand results. All **11/11 separately compiled mutants** are caught, counting rand results consumed as well as draw words: exit off 2,006; exit light 2,006; exit level (+1) 12,624; exit shade 13,878; exit flag 13,447; random modulus 721; random divide 895; random phase mask 934; random value 1,228; mesh index 22,052; object alpha 20,956. Omitting the exit level write is equivalent in this domain, because RenderObjDraw rewrites the level word before any helper reads it. It is documented here and not counted. The body table reproduces from the pinned instructions.
+
+Compiled C-to-C, base `d5ffde0a` library against this one: **1,147 earlier types (1,143 bodies and 4 skin
+types) in 36,704 random cases**, each with and without a rand context, zero mismatches. Over all 1,691 survey
+types, admission changes for exactly the 51 new types.
+
+### Limits
+
+**461 bodies** remain (418 non-stopping). At the probe stage of the 469 part-13 refusals, 185 call body-owned
+effects/particles or matrix/transform services. Most of the rest are no-recipe clusters (draw count/phase
+mismatches, unexplained draw words), plus the random bodies above. The record/quality probes and EXIT inference apply only to part-14 types. Earlier rows keep
+their part-1..13 probes and still pass their own validators. Rank-5 owner effects, Muun and nested map-object
+tables, and the earlier limits are unchanged.

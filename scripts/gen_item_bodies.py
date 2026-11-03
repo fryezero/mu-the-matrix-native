@@ -192,7 +192,29 @@ COLOUR_TYPES = [
     0x170d, 0x1921, 0x1922, 0x1923, 0x1939, 0x1b1d, 0x1b1f, 0x1b32, 0x1f1d, 0x2702,
 ]
 
+# Part 14: bodies fitted with the supplementary probes (records 0x26/0x5b, qualities
+# 0-2, further clocks and scripted rand results); EXIT_TYPES also infer the model
+# fields each helper call leaves. Independent full streams checked.
+QUALITY_TYPES = [
+    0x0b10, 0x0b12, 0x0b22, 0x0f0c, 0x0f0d, 0x1105, 0x1108, 0x1328, 0x1546, 0x1569,
+    0x156a, 0x156b, 0x156c, 0x156d, 0x156e, 0x156f, 0x1570, 0x1571, 0x1572, 0x1573,
+    0x1574, 0x170f, 0x1718, 0x1728, 0x1732, 0x1752, 0x230a, 0x230e, 0x230f, 0x2310,
+    0x2317, 0x2318, 0x2381, 0x2392, 0x2393, 0x23ec, 0x23fd, 0x2402, 0x248e, 0x2490,
+    0x2491, 0x2492, 0x2495, 0x2498, 0x249a, 0x2504, 0x251a, 0x251b, 0x270f, 0x2711,
+    0x2712,
+]
+EXIT_TYPES = [
+    0x0b10, 0x0b12, 0x0b22, 0x1569, 0x156a, 0x156b, 0x156c, 0x156d, 0x156e, 0x156f,
+    0x1570, 0x1571, 0x1572, 0x1573, 0x1574, 0x170f, 0x1718, 0x1728, 0x1732, 0x1752,
+    0x230a, 0x230e, 0x2310, 0x2318, 0x2381, 0x2392, 0x2393, 0x23ec, 0x23fd, 0x2402,
+    0x2491, 0x2495, 0x2498, 0x249a,
+]
+
 PROBE_SEEDS = (3401, 7254, 9874, 3404, 7257, 9877, 3407, 7260, 9880, 3413, 7266, 9886)
+# Part 14 supplementary probes (QUALITY_TYPES only; see supplement()).
+SUPPLEMENT_SEEDS = (5101, 5102, 5103, 5104, 5105, 5106)
+SUPPLEMENT_RECORDS = ((0, 0, 0), (0, 0x26, 0), (0, 0x5b, 0))
+SUPPLEMENT_QUALITIES = (0, 1, 2, 9)
 
 DIM_TYPES = [0xae6 + group * 512 + index for group in (7, 8, 9, 11)
              for index in (*range(0x11c, 0x12c), 0x13a, 0x15d, 0x193)]
@@ -315,6 +337,53 @@ def parse_scalar(wa, helper, ret):
     if double and (not ops or _text(wa, at, 4) != bytes.fromhex('f20f5ac0')):
         return None
     return kind, a, tuple(ops)
+
+
+# Part 14: body random. CRT rand 0x01989721, then at the return site
+# cdq; (push n; pop ecx | mov ecx, n); idiv ecx; cvtsi2ss xmm0, edx and up to four
+# binary32 mulss/addss/subss/divss data constants: (float)(rand() % n) op k ...
+RAND = 0x01989721
+
+
+def parse_random(wa, ret):
+    """Return (4, n, ops) for the idiom at a rand return site, or None."""
+    import struct
+    at = ret
+    if _text(wa, at, 1) != b'\x99':
+        return None
+    at += 1
+    code = _text(wa, at, 5)
+    if code[:1] == b'\x6a' and code[2:3] == b'\x59':
+        n, at = struct.unpack_from('<b', code, 1)[0], at + 3
+    elif code[:1] == b'\xb9':
+        n, at = struct.unpack_from('<i', code, 1)[0], at + 5
+    else:
+        return None
+    if n <= 0 or _text(wa, at, 6) != bytes.fromhex('f7f9f30f2ac2'):
+        return None
+    at += 6
+    ops = []
+    while len(ops) < 4:
+        code = _text(wa, at, 8)
+        if code[:2] != b'\xf3\x0f' or code[2] not in SCALAR_OPS or code[3] != 0x05:
+            break
+        word = _word(wa, struct.unpack_from('<I', code, 4)[0])
+        if word is None:
+            return None
+        ops.append((SCALAR_OPS[code[2]], word))
+        at += 8
+    return 4, n, tuple(ops)
+
+
+def random_value(program, value):
+    """Reference evaluation of a kind-4 program for one rand() result."""
+    f = lambda x: v.u2f(v.f2u(x))
+    _, n, ops = program[:3]
+    x = f(float(value - int(value / n) * n))
+    for op, word in ops:
+        k = v.u2f(word)
+        x = f(x * k if op == 1 else x + k if op == 2 else x - k if op == 3 else math_div(x, k))
+    return v.f2u(x)
 
 
 def wave_helper(a, time):
@@ -801,9 +870,38 @@ def record_colours(world, tags=None):
 
 _sample_state = None
 _site_sink = None
+# Part 14: model fields when a RenderObjDraw helper call returns, as (site, fields).
+_EXITS = []
+# Part 14 body random (extended probes only): the scripted rand results, the calls
+# as (helper tag, return site, value), and return sites in first-call order.
+_RAND = {'on': False, 'seq': [], 'calls': [], 'order': [], 'masks': {}}
+RAND_ABSENT = 0x7fc0dead   # input word of a kind-4 program in a group that does not draw it
+HELPERS = (0x016e036c, 0x016dc148, 0x016dec15)   # body, BodyColor2, BodyColor
+_helper_returns = None
 
 
-def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=False):
+def helper_returns(wa):
+    """Return sites of the helper calls inside RenderObjDraw (0x0176ce74)."""
+    global _helper_returns
+    if _helper_returns is None or _helper_returns[0] is not wa:
+        import struct
+        text, found = wa[0], []
+        start, end = 0x0176ce74 - 0x00401000, 0x017e7000 - 0x00401000
+        for i in range(start, end):
+            if text[i] == 0xe8:
+                target = (0x00401000 + i + 5 + struct.unpack_from('<i', text, i + 1)[0]) & 0xffffffff
+                if target in HELPERS:
+                    found.append(0x00401000 + i + 5)
+        _helper_returns = (wa, tuple(found))
+    return _helper_returns[1]
+
+
+def exit_record(fields):
+    """EXIT pseudo-draw in client-stream form: words 8..15 are the model fields."""
+    return ('EXIT', [0] * 8, tuple(fields[0]), fields[1], tuple(fields[2]), fields[3])
+
+
+def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=False, quality=9, record=(0, 0, 0)):
     import math
     global _sample_state
     tags = []
@@ -847,6 +945,25 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=Fals
                     if ops is not None:
                         _site_sink.add(('clock', ops))
             self.m.uc.hook_add(UC_HOOK_BLOCK, block, begin=clocks[0], end=clocks[-1])
+            import struct
+            def returned(uc, address, size, context):
+                raw = self.m.read(v.MODEL, 0xd0)
+                _EXITS.append((hex(address), (struct.unpack_from('<3I', raw, 0x54), struct.unpack_from('<i', raw, 0x40)[0],
+                                              struct.unpack_from('<3I', raw, 0x44), raw[0xca])))
+            for address in helper_returns(wa):
+                self.m.uc.hook_add(UC_HOOK_CODE, returned, begin=address, end=address)
+            def rand(m):
+                if not _RAND['on']:
+                    return 0
+                value = _RAND['seq'].pop(0) if _RAND['seq'] else 0
+                site = hex(m.r32(m.uc.reg_read(m.x86.UC_X86_REG_ESP)))
+                _RAND['calls'].append((m.backtrace()[1], site, value))
+                if site not in _RAND['order']:
+                    _RAND['order'].append(site)
+                if _site_sink is not None:
+                    _site_sink.add(('rand', site))
+                return value
+            self.m.stub(RAND, rand, 0)
     global _site_sink
     _site_sink = sites
     if _sample_state is None or _sample_state[0] is not wa:
@@ -856,8 +973,13 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=Fals
         tags = _sample_state[2]
         tags.clear()
     factory = _sample_state[1]
+    _EXITS.clear()
+    _RAND['calls'].clear()
+    if _RAND['on']:
+        draw = random.Random(seed * 131 + lv * 7 + quality * 3 + opt + 2 * ext + 11 * (record[1] & 0xff))
+        _RAND['seq'][:] = [draw.randrange(32768) for _ in range(64)]
     case = v.random_case_any(random.Random(seed), t)
-    case.update(item_level=lv << 3, quality=9, option1=opt, ext=ext, record=(0, 0, 0), a10=0xffffffff, a11=0xffffffff, render_type=(2, 0x102, 0x40042)[seed % 3])
+    case.update(item_level=lv << 3, quality=quality, option1=opt, ext=ext, record=record, a10=0xffffffff, a11=0xffffffff, render_type=(2, 0x102, 0x40042)[seed % 3])
     case['object_hidden'] = (-1, 0, 2)[(seed // 3) % 3] if t in WING_TYPES else 0
     (r, st, other, m) = v.client_stream(wa, case, factory)
     generic_case = dict(case)
@@ -884,7 +1006,28 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=Fals
         other = []
     if not r['ok'] or other or len(groups) != len(generic):
         return None
-    if carry:
+    if carry == 'exit':
+        # Each helper starts from the model fields the previous helper call left
+        # (its return site in RenderObjDraw); they join the group as an EXIT record.
+        queue, last = list(_EXITS), []
+        for index, (tag, bs) in enumerate(groups):
+            if tag in ('empty', 'omitted-ancient'):
+                last.append(None)
+                continue
+            k = next((i for i, (site, _) in enumerate(queue) if site == tag), None)
+            if k is None and index == len(groups) - 1:
+                # The excellent tail draws outside the three helpers; nothing follows it.
+                last.append(None)
+                continue
+            if k is None:
+                return None
+            last.append(exit_record(queue[k][1]))
+            del queue[:k + 1]
+            bs.append(last[-1])
+        (_, generic) = v.c_stream(lib, generic_case, True, carry=last)
+        if len(generic) != len(groups):
+            return None
+    elif carry:
         # Inputs as the carry executor sees them: each helper starts from the
         # model fields of the previous helper's last client draw.
         last = [next((b for b in reversed(bs) if b[0] != 'COLOR'), None) for _, bs in groups]
@@ -904,10 +1047,23 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=Fals
     wave = f(f(w + 1) * 0.5)
     blend = f(wave * 0.7 + f(0.3))
     if blend > 1: blend = 1.0
+    calls = {}
+    if _RAND['calls']:
+        group_tags = [tag for tag, _ in groups]
+        for tag, site, value in _RAND['calls']:
+            if tag not in group_tags or (tag, site) in calls:
+                return None   # random outside a helper group, or one site drawn twice
+            calls[(tag, site)] = value
+    def program_input(program, tag):
+        if program[0] != 4:
+            return scalar_value(program, time)
+        value = calls.get((tag, program[3]))
+        return RAND_ABSENT if value is None else random_value(program, value)
     return [(flat(a) + [case['object_alpha']] +
              [v.f2u(f(v.u2f(word) * pulse)) for word in flat(a)[8:11]] + [v.f2u(blend)] + [v.f2u(x) for x in body_scalars(time)] + [case['object_hidden'] & 0xffffffff] +
-             [scalar_value(program, time) for program in params],
-             [(b[0], flat(b)) for b in bs]) for (a, (_, bs)) in zip(generic, groups)]
+             [program_input(program, tag) for program in params],
+             [(b[0], flat(b)) for b in bs], frozenset(site for (g, site) in calls if g == tag))
+            for (a, (tag, bs)) in zip(generic, groups)]
 
 def infer(samples):
     if any((s is None for s in samples)):
@@ -936,39 +1092,59 @@ def infer(samples):
 
 ALL_TYPES = (REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES + RANKED_TYPES + EXPANDED_TYPES +
              NEXT_TYPES + CLOCK_TYPES + CLUSTER_TYPES + WING_TYPES + VISIBLE_TYPES + SCALAR_TYPES +
-             CHAIN_TYPES + LEVEL_TYPES + COLOUR_TYPES + CARRY_TYPES)
+             CHAIN_TYPES + LEVEL_TYPES + COLOUR_TYPES + CARRY_TYPES + QUALITY_TYPES)
 
 
-def fit(wa, lib, t, scalars=False, carry=False):
+def fit(wa, lib, t, scalars=False, carry=False, extended=False):
     """Probe one type; return (phase rules, scalar programs), or None if no recipe fits.
 
     With scalars, a type that does not fit the shared inputs is probed again with
     the parsed per-type scalar sites appended as further inputs."""
     sites = set()
-    rules = _fit(wa, lib, t, (), sites, carry)
-    if rules is not None or not scalars:
-        return None if rules is None else (rules, ())
-    programs = []
-    # Helper programs keep their part-11 order; clock chains follow them.
-    ordered = sorted(site for site in sites if site[0] != 'clock') + sorted(site for site in sites if site[0] == 'clock')
-    for helper, ret in ordered:
-        program = (3, 0, ret) if helper == 'clock' else parse_scalar(wa, helper, ret)
-        if program is not None and program not in programs:
-            programs.append(program)
-    if not programs:
+    _RAND['on'], _RAND['order'][:] = extended, []
+    try:
+        rules = _fit(wa, lib, t, (), sites, carry, extended)
+        drawn = list(_RAND['order'])
+        if drawn:
+            rules = None   # random consumption must be modelled
+        if rules is not None or not scalars:
+            return None if rules is None else (rules, ())
+        programs = []
+        # Helper programs keep their part-11 order; clock chains follow them; body
+        # random programs come last in first-call order.
+        ordered = (sorted(site for site in sites if site[0] not in ('clock', 'rand')) +
+                   sorted(site for site in sites if site[0] == 'clock'))
+        for helper, ret in ordered:
+            program = (3, 0, ret) if helper == 'clock' else parse_scalar(wa, helper, ret)
+            if program is not None and program not in programs:
+                programs.append(program)
+        for site in drawn:
+            program = parse_random(wa, int(site, 16))
+            if program is None:
+                return None
+            programs.append(program + (site, 0))
+        if not programs:
+            return None
+        rules = _fit(wa, lib, t, tuple(programs), None, carry, extended)
+        if rules is None or _RAND['order'] != drawn:
+            return None
+        masks = dict(_RAND['masks'])
+    finally:
+        _RAND['on'] = False
+    programs = [p[:4] + (masks.get(p[3], 0),) if p[0] == 4 else p for p in programs]
+    if any(p[0] == 4 and not p[4] for p in programs):
         return None
-    rules = _fit(wa, lib, t, tuple(programs), None, carry)
-    if rules is None:
-        return None
-    # Keep only referenced programs, renumbered in first-use order.
-    used = sorted({value - 35 for rule in rules for _, cells in rule for op, value in cells if op == 'in' and value >= 35})
+    # Keep only referenced programs, renumbered in first-use order; every body
+    # random program stays, because each one consumes a rand result.
+    used = sorted({value - 35 for rule in rules for _, cells in rule for op, value in cells if op == 'in' and value >= 35} |
+                  {k for k, p in enumerate(programs) if p[0] == 4})
     remap = {old: 35 + new for new, old in enumerate(used)}
     rules = [[(entry, [(op, remap.get(value - 35, value) if op == 'in' and value >= 35 else value) for op, value in cells])
               for entry, cells in rule] for rule in rules]
     return rules, tuple(programs[k] for k in used)
 
 
-def _fit(wa, lib, t, params, sites, carry=False):
+def _fit(wa, lib, t, params, sites, carry=False, extended=False):
     levels = range(16) if t >= 0x3700 else (0, 7, 13)
     ss = [sample(wa, lib, t, lv, seed, params=params, sites=sites, carry=carry) for lv in levels
           for seed in PROBE_SEEDS]
@@ -999,8 +1175,20 @@ def _fit(wa, lib, t, params, sites, carry=False):
                 return None
             continue
         phases[phase] = [s[-1] for s in extra]
+    if extended and not supplement(wa, lib, t, params, sites, carry, ss, phases):
+        return None
     if any(s is None for s in ss):
         return None
+    # Phases whose helper call draws each body-random site.
+    _RAND['masks'] = {}
+    for phase, pairs in enumerate(phases):
+        for pair in pairs:
+            for site in pair[2]:
+                _RAND['masks'][site] = _RAND['masks'].get(site, 0) | 1 << phase
+    for phase, pairs in enumerate(phases):
+        for pair in pairs:
+            if any(_RAND['masks'][site] >> phase & 1 and site not in pair[2] for site in _RAND['masks']):
+                return None   # a phase draws a site in some probes only
     rules = [infer(pairs) if pairs else [] for pairs in phases]
     if any(rule is None for rule in rules):
         return None
@@ -1011,12 +1199,53 @@ def _fit(wa, lib, t, params, sites, carry=False):
     return rules
 
 
+def supplement(wa, lib, t, params, sites, carry, ss, phases):
+    """Part 14: further probes for QUALITY_TYPES. Records of kind B 0x26/0x5b force glow
+    level 9, so they reach helper phases the record-free probes skip (wings map levels
+    0/7/13 to 0). Qualities 0-2 cap the glow level, and the further clocks separate
+    binary32 programs from the shared binary64 pulse. False when a probe is unusable."""
+    for record in SUPPLEMENT_RECORDS:
+        for quality in SUPPLEMENT_QUALITIES:
+            for lv in (0, 7, 13):
+                for seed in SUPPLEMENT_SEEDS:
+                    stream = sample(wa, lib, t, lv, seed, params=params, sites=sites, carry=carry,
+                                    quality=quality, record=record)
+                    if stream is None:
+                        ss.append(None)
+                        if sites is None:
+                            return False
+                        continue
+                    phases[5 if seed % 3 == 2 else 0].append(stream[0])
+                    for pair in stream[1:]:
+                        flags = pair[0][0] & ~0x100
+                        if flags not in (0x44, 0x48, 0x240, 0x1040):
+                            raise ValueError(f'unclassified helper flags {flags:#x}')
+                        phases[1 if flags in (0x44, 0x48) else 2].append(pair)
+            if quality == 0:
+                continue  # no excellent or ancient pass at quality 0
+            for opt, ext, phase, flags in ((1, 0, 3, 0x42), (0, 1, 4, 0x840)):
+                if ext and t in DIM_TYPES:
+                    continue
+                for seed in SUPPLEMENT_SEEDS:
+                    stream = sample(wa, lib, t, 0, seed, opt, ext, params=params, sites=sites, carry=carry,
+                                    quality=quality, record=record)
+                    if stream is None:
+                        ss.append(None)
+                        if sites is None:
+                            return False
+                        continue
+                    if stream[-1][0][0] & ~0x100 == flags:
+                        phases[phase].append(stream[-1])
+    return True
+
+
 def extract():
     wa = tuple((pin.read() for pin in (pins.TEXT, pins.DATA, pins.FLAG, pins.FEATURE)))
     lib = C.CDLL(str(v.LIBRARY))
     types = {}
     for t in ALL_TYPES:
-        fitted = fit(wa, lib, t, scalars=True, carry=t in CARRY_TYPES)
+        fitted = fit(wa, lib, t, scalars=True, carry='exit' if t in EXIT_TYPES else t in CARRY_TYPES,
+                     extended=t in QUALITY_TYPES)
         if fitted is not None:
             types[t] = fitted
     if set(types) != set(ALL_TYPES):
@@ -1042,7 +1271,9 @@ def render(types):
              ' * source=0 selects value; source=1..16 copies the generic draw word;',
              ' * source=17 copies OBJECT alpha. source=18..20 copies pulsed body light; source=21 copies armour blend pulse. source=22..34 selects clock scalars; source=35 copies OBJECT hidden mesh;',
              ' * source=36.. selects the type\'s own scalar program (kind 1 = wave 0x0185bdc4(a,0), 2 = sin(time*a), then mul/add/sub/div, binary32 or op|8 binary64 with one final rounding;',
-             ' * kind 3 = clock chain of op/k pairs, see gen_item_bodies.C_TIME_F..C_D_NEG). See client-render-items.md. */',
+             ' * kind 3 = clock chain of op/k pairs, see gen_item_bodies.C_TIME_F..C_D_NEG; kind 4 = (float)(rand() % a) then binary32',
+             ' * mul/add/sub/div, drawn once in each phase of its phases mask). Entry 4 (EXIT) writes words 8..15 to the model',
+             ' * fields and draws nothing. See client-render-items.md. */',
              '#define MU_RC_BODY_SCALARS 8',
              'typedef struct { uint8_t count; struct { int32_t entry; uint8_t source[16]; uint32_t value[16]; } draw[16]; } mu_rc_body_recipe;',
              'static const mu_rc_body_recipe mu_rc_body_recipes[] = {']
@@ -1051,17 +1282,19 @@ def render(types):
         for entry, cells in rule:
             sources = ', '.join(str(v + 1 if op == 'in' else 0) for op, v in cells)
             values = ', '.join('0' if op == 'in' else '0x%08xu' % (v & 0xffffffff) for op, v in cells)
-            lines.append('        {%d, {%s}, {%s}},' % ({'BODY': 1, 'MESH': 2, 'COLOR': 3}[entry], sources, values))
+            lines.append('        {%d, {%s}, {%s}},' % ({'BODY': 1, 'MESH': 2, 'COLOR': 3, 'EXIT': 4}[entry], sources, values))
         lines.append('    }},')
-    lines += ['};', 'typedef struct { uint8_t kind, count; uint32_t a; uint8_t op[%d]; uint64_t k[%d]; } mu_rc_body_scalar;' % (CLOCK_OPS, CLOCK_OPS),
+    lines += ['};', 'typedef struct { uint8_t kind, count; uint32_t a; uint8_t op[%d]; uint64_t k[%d]; uint8_t phases; } mu_rc_body_scalar;' % (CLOCK_OPS, CLOCK_OPS),
               'static const mu_rc_body_scalar mu_rc_body_scalars[] = {']
-    for kind, a, ops in programs:
+    for program in programs:
+        kind, a, ops = program[:3]
         ops = list(ops) + [(0, 0)] * (CLOCK_OPS - len(ops))
-        lines.append('    {%d, %d, 0x%08xu, {%s}, {%s}},' % (
+        # Kind 4 (body random) also carries the phases whose helper call draws it.
+        lines.append('    {%d, %d, 0x%08xu, {%s}, {%s}, 0x%02x},' % (
             kind, sum(1 for op, _ in ops if op), a, ', '.join(str(op) for op, _ in ops),
-            ', '.join('0x%xull' % k for _, k in ops)))
+            ', '.join('0x%xull' % k for _, k in ops), program[4] if kind == 4 else 0))
     if not programs:
-        lines.append('    {0, 0, 0, {0}, {0}},')
+        lines.append('    {0, 0, 0, {0}, {0}, 0},')
     lines += ['};', 'static const struct { int32_t type; uint16_t recipe[8]; uint8_t level_split, retain_ancient; uint8_t dim, plain, pulse, blend_pulse; uint16_t scalar_mask; uint8_t carry; uint16_t scalar_first; uint8_t scalar_count; } mu_rc_body_types[] = {']
     for t, indices, first, count in rows:
         rules = types[t][0]
