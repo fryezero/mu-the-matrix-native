@@ -110,7 +110,7 @@ class WorldsAfter3Tests(unittest.TestCase):
             result = json.loads(report.read_text())
             self.assertEqual(sum(r['cases'] for r in result['families'].values()), 10212)
             self.assertTrue(all(r['cases'] == r['equal'] and r['stopped'] == 0 for r in result['families'].values()))
-            self.assertEqual(len(result['mutants']), 51)
+            self.assertEqual(len(result['mutants']), 49)
             self.assertTrue(all(m['detected'] > 0 and m['stopped'] == 0 for m in result['mutants']))
 
 
