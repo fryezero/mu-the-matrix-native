@@ -488,3 +488,58 @@ A 13-segment `mu-audio` render with the JSONL log selects the expected track per
 including iDoppelganger for world 65 once the event input is set. Its PCM decodes from the installed
 file. The manager's caller and event input, indices 10/14/52, the virtualised gap and the LIVE-PLAY
 FMOD comparison remain open.
+
+## Output stage and the Volum 9 peak, PLAY-FIX-001, 2026-11-03
+
+**The original's curve** (verified, `scripts/validate_audio.py` `settings` family):
+- The options window's level becomes `(float)level / 9.0f` for the Effect group. The client fragments are
+  `0x00f2fe04..0x00f2fe11` and `0x00c764c0..0x00c764cd`.
+- A level of 9 therefore gives gain 1.0, and FMOD's ChannelGroup volume is linear amplitude.
+- The Music group gets 0.4 or 1.0 from OpenWorld, and the music check box mutes it.
+- The client applies no other gain: SND_Play ignores its object, and there is no Channel::setVolume import.
+- Native already used the same mapping.
+
+**What the APP-REFRESH-003 capture held** (`IsMusicPlay=1`, `Volum=9`, Lorencia 179,131):
+- No music played: the hero stood outside the safe zone, so Lorencia selects no track there.
+- The full-scale samples came from Effect-group voices summing past full scale at gain 1.0, at the moments they
+  overlapped:
+  - wind, birds, the blacksmith and harp NPC loops;
+  - swing, skill, Budge attack and death sounds.
+- `nBlackSmith.wav` is 8-bit and already reaches full scale in the source (peak 32,768).
+- Sources measured with afconvert (peak/RMS, 16-bit):
+  - main_theme.mp3 31,766 / 3,971;
+  - Devias.mp3 32,732 / 4,713;
+  - Noria.mp3 full scale (3 samples) / 5,006;
+  - Kardamahal_Underground_Temple.mp3 full scale (124 samples) / 7,741.
+
+**Native output stage** (native choice: FMOD's own output stage is outside the pinned captures):
+- `mu_audio_limiter` is a linked-stereo peak limiter: instant attack, 50 ms release, ceiling −0.3 dBFS (31,656).
+- It ends `mu_audio_engine_mix` and the shell's sum of its two engines.
+- While no frame exceeds the ceiling, its gain is exactly 1, so the samples are bit-identical. A single voice
+  therefore stays at source × group gain at every level.
+
+**Measured.** Headless app-plan journey: cast, kill, drop and pickup, 1,111,672 stereo frames. Values are peak /
+RMS / full-scale samples, before → after:
+
+| Volum | before | after |
+|---|---|---|
+| 0 | 0 / 0 / 0 | 0 / 0 / 0 |
+| 3 | 16,674 / 1,611 / 0 | identical |
+| 5 | 27,789 / 2,685 / 0 | identical |
+| 7 | 32,768 / 3,759 / 19 | 31,656 / 3,738 / 0 |
+| 9 | 32,768 / 4,828 / 628 | 31,656 / 4,606 / 0 |
+
+- Lorencia town square (main theme at 0.4 plus the ambient loops), Volum 9: 180 → 0 full-scale samples; RMS
+  4,186 → 4,087.
+- Portable test `test_levels_peak_rms_and_no_clipping`:
+  - At levels 0..9, one voice measures source × level/9 within 1 LSB, and its RMS ratio is within 1%.
+  - Two 0.8 voices at level 9 stay at or below the ceiling with no full-scale sample; at level 4 they sum
+    unchanged.
+  - A source that is itself at full scale stays at or below the ceiling.
+
+**Limits.**
+- FMOD Ex documents constant-power panning for mono sounds (about −3 dB per side at the centre). The native engine
+  still feeds mono at full level to both sides: FMOD's mixer is not in the captures, so this is unverified and
+  left unchanged.
+- In the native session Kardamahal's track did not start (peak 24,139 either way), so a music source that clips
+  itself was measured only offline.
