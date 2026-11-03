@@ -420,7 +420,8 @@ class PreviewAppPrivate(unittest.TestCase):
         app = NATIVE / 'build/app' / f'{NAME}.app'
         subprocess.run(['make', '-C', str(NATIVE), 'preview-app'], check=True, capture_output=True)
         with tempfile.TemporaryDirectory() as tmp:
-            env = {k: v for k, v in os.environ.items() if not k.startswith('MU_NATIVE_')}
+            # MU_NATIVE_SCRATCH: a manifest-bearing export set (the shared scratch has none; APP-REFRESH-003)
+            env = {k: v for k, v in os.environ.items() if not k.startswith('MU_NATIVE_') or k == 'MU_NATIVE_SCRATCH'}
             env.update(MU_NATIVE_SUPPORT_DIR=f'{tmp}/support', MU_NATIVE_LOG_DIR=f'{tmp}/logs',
                        MU_NATIVE_GAME_ROOT=os.environ['MU_GAME_ROOT'])
             r = subprocess.run([str(app / 'Contents/MacOS/MuNativePreview'), '--smoke', '--backend', 'gl',
