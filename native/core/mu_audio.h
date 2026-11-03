@@ -12,6 +12,10 @@
  *     its group and the master group, 0 when either is muted;
  *   - linear interpolation to the output rate; mono sources feed both output
  *     channels at full level;
+ *   - PLAY-FIX-001: a peak limiter on the mixed output (mu_audio_limiter), so
+ *     overlapping voices never reach full scale; it is the identity while the
+ *     mix stays below its ceiling, so every voice keeps the client's group
+ *     gain (level / 9 for effects, 0.4 or 1.0 for music);
  *   - end callbacks (natural end, Channel::stop, ChannelGroup::stop, voice
  *     stealing, Sound::release) are queued and delivered by System::update.
  *
@@ -45,6 +49,25 @@ enum {
     MU_AUDIO_ERR_MEMORY = 0x2b,
     MU_AUDIO_VOICES = 16
 };
+
+/* PLAY-FIX-001: the output stage.  The client hands everything to FMOD Ex (no
+ * gain of its own beyond the group volumes, docs/research/client-audio.md);
+ * FMOD's own output stage is outside the pinned captures.  Native choice: a
+ * linked-stereo peak limiter with instant attack and a 50 ms release to the
+ * ceiling MU_AUDIO_CEILING (-0.3 dBFS).  While no frame exceeds the ceiling the
+ * gain is exactly 1 and the samples pass unchanged (bit for bit), so a single
+ * voice at any level stays at source x group gain; only a sum above the
+ * ceiling is pulled down instead of clipping. */
+#define MU_AUDIO_CEILING 0.9660509f
+#define MU_AUDIO_RELEASE_MS 50.0
+typedef struct mu_audio_limiter {
+    float gain, release, ceiling;
+    uint64_t limited_frames;       /* frames whose gain was below 1 */
+} mu_audio_limiter;
+void mu_audio_limiter_init(mu_audio_limiter *limiter, uint32_t rate);
+void mu_audio_limiter_process(mu_audio_limiter *limiter, float *stereo, uint32_t frames);
+/* Frames the engine's limiter has reduced so far. */
+uint64_t mu_audio_engine_limited_frames(const mu_audio_engine *engine);
 
 mu_audio_engine *mu_audio_engine_new(const mu_audio_engine_config *config);
 void mu_audio_engine_free(mu_audio_engine *engine);

@@ -311,8 +311,47 @@ class NativeAudioTests(unittest.TestCase):
         level = ctypes.c_float(ctypes.c_float(3.0).value/9.0).value
         self.assertTrue(all(v == round(ctypes.c_float(0.25*level).value*32768) for v in values))
 
+    def test_levels_peak_rms_and_no_clipping(self):
+        """PLAY-FIX-001: per options level 0..9 (Effect group = level / 9, the client's mapping verified by
+        validate_audio), one voice keeps source x level / 9 exactly; overlapping voices whose sum passes full scale
+        are limited to MU_AUDIO_CEILING instead of clipping; a source that is itself at full scale is not pushed
+        past it."""
+        tone = [0.9*math.sin(2*math.pi*441*i/RATE) for i in range(RATE//10)]   # peak 0.9 (29,491), mono
+        loud = [0.8 if (i//50) % 2 else -0.8 for i in range(RATE//10)]          # square, peak 0.8
+        full = [1.0 if (i//25) % 2 else -1.0 for i in range(RATE//10)]          # at full scale itself
+        root, table = self.game('levels', {'Data/Sound/t.wav': pcm16_wav(tone), 'Data/Sound/a.wav': pcm16_wav(loud),
+                                           'Data/Sound/b.wav': pcm16_wav(loud, 2), 'Data/Sound/f.wav': pcm16_wav(full)},
+                                ['sound\t40\tData\\Sound\\t.wav\t1\t1\t0x18433ed',
+                                 'sound\t41\tData\\Sound\\a.wav\t1\t1\t0x18433ed',
+                                 'sound\t42\tData\\Sound\\b.wav\t1\t1\t0x18433ed',
+                                 'sound\t43\tData\\Sound\\f.wav\t1\t1\t0x18433ed'])
+        ceiling = round(0.9660509*32768)
+        source = max(abs(round(v*32768)) for v in tone)
+        for level in range(10):
+            stats, values = self.render(root, table, f'0 effectlevel {level}\n0 play 40\n80 end\n', '--no-options')
+            gain = ctypes.c_float(ctypes.c_float(float(level)).value/9.0).value
+            peak = max(abs(v) for v in values)
+            self.assertLessEqual(abs(peak - source*gain), 1.0, level)            # source x level / 9, no limiting
+            self.assertLessEqual(peak, source)
+            self.assertEqual(stats['fullscale'], 0)
+            if level:
+                rms = math.sqrt(sum(v*v for v in values)/len(values))
+                self.assertAlmostEqual(rms/(source*gain/math.sqrt(2)), 1.0, delta=0.01)
+        # two loud voices: 0.8 + 0.8 sums to 1.6 at level 9 -> limited, never full scale; at level 4 the sum
+        # (0.71) is below the ceiling and passes unchanged
+        stats, values = self.render(root, table, '0 effectlevel 9\n0 play 41\n0 play 42\n80 end\n', '--no-options')
+        self.assertEqual(stats['fullscale'], 0)
+        self.assertLessEqual(max(abs(v) for v in values), ceiling)
+        stats, values = self.render(root, table, '0 effectlevel 4\n0 play 41\n0 play 42\n80 end\n', '--no-options')
+        gain = ctypes.c_float(ctypes.c_float(4.0).value/9.0).value
+        self.assertLessEqual(abs(max(values) - 2*0.8*gain*32768), 1.0)
+        # a source already at full scale stays at or below its own level
+        stats, values = self.render(root, table, '0 effectlevel 9\n0 play 43\n80 end\n', '--no-options')
+        self.assertEqual(stats['fullscale'], 0)
+        self.assertLessEqual(max(abs(v) for v in values), ceiling)
+
     def test_resampling_loop_and_single_instance(self):
-        ramp = [i/400 for i in range(400)]
+        ramp = [0.9*i/400 for i in range(400)]   # below MU_AUDIO_CEILING (PLAY-FIX-001): no limiting
         root, table = self.game('resample', {'Data/Sound/r.wav': pcm16_wav(ramp, 1, 22050)},
                                 ['sound\t7\tData\\Sound\\r.wav\t1\t1\t0x18433ed'])
         stats, values = self.render(root, table, '0 play 7 1\n20 play 7 1\n120 end\n', '--no-options')
