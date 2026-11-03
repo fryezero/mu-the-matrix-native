@@ -62,6 +62,12 @@ void mu_world_names_step(mu_world_names *wn);
 void mu_world_names_frame(mu_world_names *wn, uint32_t now_ms);
 /* A received chat line (the demo echoes the hero's own lines). */
 void mu_world_names_chat(mu_world_names *wn, const char *name, const char *text);
+/* PLAY-FIX-001: ClearCharacters(HeroKey) 0x0137c276, which ReceiveTeleport runs for a numbered teleport before it
+ * loads the next world (reconstructed/map/map_clear.c, verified): every character record but the hero's is
+ * killed and, in the main scene of a world that keeps plates (0x009dacb8), loses its plate through removeInfo
+ * (the sink gets it).  A record exists while its slot is used (the client's Object Live stays 1 through the
+ * death fade).  Returns the removeInfo count. */
+int32_t mu_world_names_clear_characters(mu_world_names *wn, int32_t world);
 /* Stand-in drawing into an RGBA frame (top row first). */
 void mu_world_names_draw(mu_world_names *wn, uint8_t *frame, int32_t width, int32_t height);
 

@@ -354,6 +354,17 @@ void mu_world_rt_input_report(const mu_world_rt *a, FILE *out)
     fprintf(out, "{\"input_items\":true,\"kills\":%u,\"drops\":%u,\"lands\":%u,\"space_picks\":%u}\n",
             a->combat ? a->combat->stats.kills : 0u, a->ground ? a->ground->stats.drops : 0u,
             a->ground ? a->ground->stats.lands : 0u, a->ground ? a->ground->stats.space_picks : 0u);
+    /* PLAY-FIX-001: after world changes, the plates of the model and the clips the real movie holds */
+    fprintf(out, "{\"input_travel\":true,\"world\":%d,\"travels\":%u,\"travel_plates_removed\":%u,\"plates\":%d,"
+                 "\"movie_plates\":%d,\"stale_plates\":%d}\n",
+            (int)a->world, a->travels, a->travel_plates_removed, a->names ? (int)a->names->names.plate_count : 0,
+#ifndef MU_WORLD_NO_GL
+            a->names_gfx.layer ? (int)a->names_gfx.movie_count : -1,
+            a->names_gfx.layer ? (int)world_names_gfx_stale(&a->names_gfx) : -1
+#else
+            -1, -1
+#endif
+            );
 #ifndef MU_WORLD_NO_GL
     if (a->gfx) {
         char b[4096]; world_gfx_report(a->gfx, b, sizeof b); fprintf(out, "{%s}\n", b);
