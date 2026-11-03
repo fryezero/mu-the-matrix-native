@@ -143,7 +143,25 @@ class WorldsQTests(unittest.TestCase):
         o = self.obj(161)
         self.lib.mu_worlds_q_visual(o, 0, 1, C.byref(self.inputs(126, rand=lambda: 81)), C.byref(log))
         self.assertEqual(v.log_events(log)[-1][:3], (q.Q_KEYED_EFFECT, 0, 0x195))
+        # RENDER-WORLDS-Q2: Ferea's visual 0x00de6405 (type 161 is not one of its types)
+        self.assertEqual(self.lib.mu_worlds_q_visual(o, 0, 1, C.byref(self.inputs(112)), C.byref(log)), 0)
+        o = self.obj(141)
+        self.assertEqual(self.lib.mu_worlds_q_visual(o, 0, 1, C.byref(self.inputs(112)), C.byref(log)), 1)
+        self.assertEqual(v.log_events(log)[-1][:3], (PARTICLE, 0, 0x801c))
+        self.assertEqual(self.lib.mu_worlds_q_visual(o, 0, 0, C.byref(self.inputs(112)), C.byref(log)), 0)
+        o = self.obj(17)   # a named bone without a lookup: refused before any request (the client would fault)
+        start = len(v.log_events(log))
         self.assertEqual(self.lib.mu_worlds_q_visual(o, 0, 1, C.byref(self.inputs(112)), C.byref(log)), -1)
+        self.assertEqual(len(v.log_events(log)), start)
+        inputs = self.inputs(112)
+        names = ['Bip01', 'e01', 'e02', 'e03', 'e04', 'e05', 'e06']
+        inputs.bone_index = keep = q.INDEX_FN(lambda ctx, n: names.index(n.decode()) if n.decode() in names else -1)
+        o = self.obj(36)
+        self.assertEqual(self.lib.mu_worlds_q_visual(o, 0, 1, C.byref(inputs), C.byref(log)), 1)
+        sprites = v.log_events(log)[start:]
+        self.assertEqual([(e[2], e[3]) for e in sprites], [(0x7f26, v.bits(k * 10.0)) for k in range(1, 7)
+                                                           for _ in range(2)])
+        del keep
 
     def test_log_capacity_preserves_state(self):
         for world, typ in ((91, 16), (123, 47), (112, 123)):

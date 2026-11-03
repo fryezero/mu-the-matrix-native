@@ -26,7 +26,7 @@ def programs():
     table = source[source.index('mu_rc_body_scalars[] = {'):]
     table = table[:table.index('};')]
     entries = re.findall(r'\n    \{(\d), (\d), 0x[0-9a-f]{8}u, \{([^}]*)\}, \{([^}]*)\}\},', table)
-    rows = re.findall(r'\n    \{(0x[0-9a-f]{4}), \{[^}]*\}(?:, \d+){7}, (\d+), (\d+)\},', source)
+    rows = re.findall(r'\n    \{(0x[0-9a-f]{4}), \{[^}]*\}(?:, \d+){8}, (\d+), (\d+)\},', source)
     first = {}
     for t, start, count in rows:
         if int(t, 16) not in TYPES:

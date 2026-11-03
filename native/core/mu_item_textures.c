@@ -120,7 +120,8 @@ int32_t mu_item_textures_overrides(int32_t type, const mu_data_table *items, int
                             if (status != MU_RC_OK)
                                 continue;
                             for (int32_t i = 0; i < n && i < 48; ++i)
-                                add_unique(out, capacity, &count, draws[i].texture);
+                                if (draws[i].entry != MU_RC_ENTRY_COLOR)
+                                    add_unique(out, capacity, &count, draws[i].texture);
                         }
     return count;
 }

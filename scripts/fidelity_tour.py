@@ -13,6 +13,7 @@ A tour manifest (JSON) names, per map, a live capture taken under the game lock 
       "masks": [[x0, y0, x1, y1], ...],               # client-area rectangles left out of the image stats (HUD)
       "native_args": ["--no-audio"],                  # extra mu-world options (optional)
       "draw_all": false,                              # draw every step, as the client (render-time emitters)
+      "live_time": false,                             # end on the capture's WorldTime (time-dependent fields)
       "maps": [
         {"name": "01-dungeon", "world": 1, "tile": [108, 247],     # tile: optional, else from the snapshots
          "live_png": "live/01-dungeon.png",                         # winshot.swift window shot
@@ -462,7 +463,25 @@ def render(m, binary, only=None):
             # draw all steps, not only the saved ones (RENDER-WORLDS-G2). The interval equals the frame count, so
             # only the first and last frames are sampled.
             cmd += ['--time-series-every', str(min(int(m['frames']), 10000))]
-        run = subprocess.run(cmd, capture_output=True, text=True)
+        live_time = None
+        if m.get('live_time') and e.get('live_globals') and Path(e['live_globals']).exists():
+            live_time = live_camera(read_globals(e['live_globals'])).get('world_time')
+        if live_time is not None and math.isfinite(live_time):
+            # RENDER-WORLDS-Q2: the headless clock is WorldTime; start it so the last step's tick is the capture's
+            # (40 ms steps first, then corrected from the reported tick; the frame cap depends on the clock, so a
+            # few passes may be needed). The tick reached is logged.
+            target, start = int(live_time), int(live_time) - 40 * (int(m['frames']) - 1)
+            for _ in range(6):
+                run = subprocess.run(cmd + ['--time-series-start-ms', str(max(start, 1))], capture_output=True,
+                                     text=True)
+                ticks = [json.loads(x).get('tick') for x in run.stdout.splitlines() if x.startswith('{"frame"')]
+                if not ticks or ticks[-1] == target:
+                    break
+                start += target - ticks[-1]
+            print(json.dumps({'live_time': target, 'last_tick': ticks[-1] if ticks else None, 'map': e['name']}),
+                  file=sys.stderr)
+        else:
+            run = subprocess.run(cmd, capture_output=True, text=True)
         (out / 'native.jsonl').write_text(run.stdout)
         (out / 'native.log').write_text(run.stderr)
         results.append((e['name'], run.returncode))

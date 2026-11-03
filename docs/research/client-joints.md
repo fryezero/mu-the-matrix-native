@@ -241,6 +241,7 @@ sequences, before = main (#114 build), after = this branch, with contact sheets 
 
 ## 10. Not ported
 
+- (RENDER-JOINTS-001 added 0x7f7d 0xc..0xf and 0x7f7c 0x12, section 11.)
 - MoveObject's particle kinds of Dungeon, Devias, Noria and Atlans (`0x1a5`, `0x8016`, `0x7f5a` 0x15, `0x7f26` 9,
   `0x7fcd`), the character-select scene's kinds, other joint kinds (`0x7f78`, `0x7f79`, `0x7fd6`, `0x7ff9`, …), the
   `0x7f78`/`0x7fdd` second move, `0x7fd6` 0x36's tail shift.
@@ -248,11 +249,84 @@ sequences, before = main (#114 build), after = this branch, with contact sheets 
 - The world objects of Dungeon, Devias, Noria and Atlans are not placed natively (no decoded object lists), so their
   ported visuals are not seen yet.
 
+## 11. Kanturu Underground's and Uruk Mountain's lightning, and the StreamMesh consumer (RENDER-JOINTS-001)
+
+The world lanes refused four Kanturu Underground kinds (RENDER-WORLDS-P2) and Uruk Mountain's coloured joint
+(RENDER-WORLDS-I), and counted every mesh drawn while it was its model's StreamMesh (RENDER-WORLDS-P2, AFTER2).
+All are now drawn. C: `reconstructed/joints/kanturu_joints.inc` (included by `joints.c`, as `icarus_joints.inc`).
+
+### Kinds (verified)
+
+| Kind (who creates it) | Create | Move | Render |
+|---|---|---|---|
+| `0x7f7d` 0xc (Kanturu 66/122, width 30w + rand % 10w) `0x01546828` | velocity rand % 20 + 80; **blue = the record's previous tail count**; 30 tails, LifeTime 4, no closing shift; head moved by R(angle)(0, w, 0)·w/2, start = head; target = argument + (rand % 2a) − a per axis, a = (int)(w/4) | `0x01572296`: from the start, max_tails − 1 times: + (rand % 2b − b) per axis (b = (int)(w/5)), tail shift, + 8 % of the gap to the target; last tail at the target | the bolt path and the 0xb..0xd texture rule (u over (max − 1)/2, − t) |
+| `0x7f7d` 0xd (Uruk 109, colour (0.7, 0.05, 0), width 225 × scale) `0x01546c21` | 50 tails, LifeTime 20, no closing shift; target = head + R(angle)(0, w, 0); then **width = rand % 10 + 20** | `0x01572665`: from the start, max_tails − 5 steps of (target − start)/50, a tail each; light / 1.2 below LifeTime 4 | as 0xc |
+| `0x7f7d` 0xe (Kanturu 54/120, owner the object) `0x01546e03` | width ≤ 0 returns before the clamp (NaN goes on); 50 tails, LifeTime 20, no closing shift; head + R(angle)(x, y, 1100)·0.028w, x, y = rand % 10 − 5 (y drawn first); start = head; target = argument | `0x01572911`: s = 0.028w; max_tails − 5 steps of normalise(target − start)·20s, each + (rand % (int)10s − (int)5s) in x and y (y drawn first), a tail each; four steps of a fifth of what is left (jittered the same way); the last tail at the target; light / 1.2 below LifeTime 4 | the bolt path; per tail colour light × 1 (no factor) |
+| `0x7f7d` 0xf (Kanturu 65/121) `0x015470a7` | as 0xe with the offset R(angle)(0, −1100, 0)·0.028w | `0x01573171`: as 0xe without the jitter; the last four steps **build a jitter vector of two rand() calls (rand % (int)20s − (int)10s) and never add it** | as 0xe |
+| `0x7f7c` 0x12 (Kanturu 8/92..96 at bone 4, width 40) `0x01545672` | the 0x7f7c head (velocity 50) then velocity 80, 5 tails, LifeTime 10, light (1, 1, 1), start = head | `0x0156d601`, loop `0x0156d9ef..0x0156f5ce`: from the start, per tail MoveHumming(110) toward the target, jitter x/z = rand % 64 − 32, tail shift with R(angle + jitter), at width ≥ 50 AddTerrainLight(head, (f/10, f/10, f/2), range 2), f = (rand % 4 + 4)·0.04, then the forward step; the closing shift follows | the bolt path; colour light × brightness |
+
+CreateJoint's argument 12 (a colour pointer, `0x0153b297`): when not NULL the common part's light is that colour,
+otherwise (1, 1, 1). `mu_jt_env.has_creation_light` selects it (only the Uruk path sets it natively; the eye trails
+`0x7fd6` copy the same colour in their own case, unchanged). Divisors: (int)(w/4), (int)(w/5), (int)(0.28w) and
+(int)(0.56w) of 0xc/0xe/0xf fault the client when zero (widths below 4–5, 3.6, 1.8); the Kanturu widths are ≥ 30.
+These are recorded boundaries, not compared.
+
+### StreamMesh (verified consumer; native wiring)
+
+The consumer of the model's StreamMesh byte `+0x94` is the mesh draw `0x012b8d1d` itself (CLIENT-MESHDRAW-EXEC-001,
+already compared under Unicorn, `mu_meshdraw_model.light_mesh`): that mesh is drawn with the body colour and no
+per-normal light, and takes the call's u/v offsets (the scroll) even when it is not the blend mesh. Natively the byte
+was recorded per model but never reached the draw. Now:
+
+- Ignis 79/148's create write (0) and MoveObject's write (Dungeon 0x16..0x18: 1) set the model's byte;
+- every class-slot RenderMesh/RenderBody passes the byte at the call (`mu_draw_model_fields.light_mesh`);
+- the object's primary draw (pose) uses the model's byte when one was written.
+
+### Checks
+
+`scripts/validate_joints.py --cases 3000 --mutations`: 9,000 cases equal (create/move/render 3,000 each; 555 per
+family on the five new kinds, with and without argument 12, NaN and early-return widths, widths at 50), zero
+mismatches/stops; **22/22 compiled mutants** (separately built copies of `reconstructed/joints`, run on the new kinds)
+plus the 9 earlier negative controls. Registered (`validate_joints`, now with `--mutations`).
+
+Native: `worlds_p2_host` (Kanturu: 36 joints of the four kinds reach the pool, `draw_unsupported` 0; Ignis:
+`create_unsupported` 0, StreamMesh 0 recorded for 79/148), `worlds_i_host` (Uruk 109: 200 coloured 0xd joints, no
+refusal), `test_joints.py` worked examples.
+
+Refused counters, mu-world at the DATA-ACQ-002 arrival tiles (new summary fields `objects_draw_unsupported`,
+`objects_move_unsupported`), base origin/main `8eb54978` → lane:
+
+| View | Draws refused | Creates refused | Draw-all draws refused |
+|---|---:|---:|---:|
+| 137 Kanturu Underground | 0 → 0 | 0 → 0 | 1 → 0 |
+| 138 Ignis Volcano | 32 → 0 | 11 → 0 | 400 → 0 |
+| 144 Swamp of Destruction | 0 → 0 | 0 → 0 | 0 → 0 (its joint kinds were already native) |
+| 91, 131, 134, 136, 142 (StreamMesh) | 14, 4, 10, 6, 2 → 0, 0, 4, 0, 0 | — | — |
+
+All 32 views: 72 → 8 refused draws (the 8 left are other causes in 112, 132, 134).
+
+Fidelity (masked mean |Δ|, DATA-ACQ-002): 137 6.362 → 6.362 (live clock 5.043 → 5.043), 138 3.825 → 3.825 (live
+clock 3.850 → 3.850), 144 12.395 → 12.395 (draw-all 12.399 → 12.399). No new joint or stream mesh is in view at the
+three arrival tiles in the scored frame. Byte comparison base vs lane: October 22 tour 28/28 PNG, 14/14 OBJECT, 14/14
+light identical; DATA-ACQ-002 61/64 PNG, 32/32 OBJECT, 32/32 light identical; the three changed frames are intended
+StreamMesh scrolls (142's red crystal beam, inside the masked top-right box, both frames; a translucent mesh at 131's
+bottom-left, first frame only); scores unchanged to three decimals.
+
+Inspected frames (local, `renders/render-joints-001`): Kanturu at 26,216 (draw-all, 60 steps): the 0xe/0xf beams
+between the capsule emitters (none before); at 135,136 the 0x7f7c 0x12 arcs at a crystal's flare; Ignis at 74,113
+and 93,116: the lava meshes of types 79/148 now scroll (a magenta probe on the stream mesh marks the same region).
+
+### Limits
+
+- Uruk Mountain (100) has no capture; its 0xd joints are checked by the instruction comparison and the host only.
+- The client's per-type StreamMesh initial value is taken as −1 (as AFTER2); a model whose BMD sets it otherwise is
+  not modelled.
+
 ## Reproduce
 
 ```sh
 make -C reconstructed/joints && make -C reconstructed/combat && make -C reconstructed/particles && make -C native all world
-scripts/validate_joints.py --cases 3000 --output /tmp/joints.json
+scripts/validate_joints.py --cases 3000 --mutations --output /tmp/joints.json
 scripts/validate_skill_fx.py --cases 3000 --output /tmp/skillfx.json
 scripts/validate_particles.py --cases 3000 --heavy-cases 300 --output /tmp/particles.json
 native/build/mu-world --game-root "$MU_GAME_ROOT" --world 141 --tile 82,19 --objects-dir LOCAL_PLAIN_DIR

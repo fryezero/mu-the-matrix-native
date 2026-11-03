@@ -72,7 +72,7 @@ int main(int argc, char **argv)
         assert(o->rt.move_unsupported == (owned ? 0 : N * STEPS));
         if (world == 91) assert(mu_obj_f32(img(o, 22), MU_OBJF_BLEND_V) < -0.4f);
         if (world == 112) assert(mu_obj_f32(img(o, 51), MU_OBJF_ALPHA_TARGET) == 0.1f);
-        /* Visual: Acheron's type 55 particle replaces the generic hook; Ferea keeps it. */
+        /* Visual: Acheron's type 55 particle replaces the generic hook; since RENDER-WORLDS-Q2 Ferea's does too. */
         o->rt.visual = visual;
         generic = 0;
         mu_draw_options options;
@@ -80,8 +80,15 @@ int main(int argc, char **argv)
         mu_obj_set_i32(img(o, 55), MU_OBJF_HIDDEN_MESH, -1);
         (void)mu_objects_prepare_index(o, at(55), NULL, 6, &options);
         if (world == 91) assert(o->rt.particle_events == particles + 1 && generic == 0);
-        else if (world == 112 || world == 111) assert(generic == 1);
+        else if (world == 111) assert(generic == 1);
         else assert(generic == 0);
+        if (world == 112) {   /* Ferea's type 141: one CreateParticle 0x801c per draw, no owner (RENDER-WORLDS-Q2) */
+            o->models[141] = m;
+            mu_obj_set_i32(img(o, 55), MU_OBJF_TYPE, 141);
+            const long before = o->rt.particle_events;
+            (void)mu_objects_prepare_index(o, at(55), NULL, 6, &options);
+            assert(o->rt.particle_events == before + 1 && generic == 0);
+        }
         o->records = NULL;
         mu_objects_runtime_free(o);
         free(o);

@@ -22,7 +22,7 @@ def programs():
     table = source[source.index('mu_rc_body_scalars[] = {'):]
     table = table[:table.index('};')]
     entries = re.findall(r'\n    (\{\d, \d, 0x[0-9a-f]{8}u, \{[^}]*\}, \{[^}]*\}\}),', table)
-    rows = re.findall(r'\n    \{(0x[0-9a-f]{4}), \{[^}]*\}(?:, \d+){7}, (\d+), (\d+)\},', source)
+    rows = re.findall(r'\n    \{(0x[0-9a-f]{4}), \{[^}]*\}(?:, \d+){8}, (\d+), (\d+)\},', source)
     first, used = {}, []
     # Part 11 rows only; later parts reuse the table with their own validators.
     for t, start, count in rows:

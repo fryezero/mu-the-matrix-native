@@ -126,7 +126,7 @@ HEADERS := $(wildcard core/*.h) $(wildcard $(RECON)/model-codec/*.h) $(RECON)/re
            $(RECON)/movement/client_movement.h $(RECON)/path/client_path.h \
            $(wildcard $(RECON)/renderchar/*.h) $(RECON)/charsel/charsel.h $(RECON)/charsel/charsel_gfx.h $(RECON)/charsel/charcreate.h \
            $(wildcard $(RECON)/data/*.h) $(wildcard $(RECON)/hud/*.h) $(RECON)/scene/scene.h \
-           $(wildcard $(RECON)/combat/*.h) $(RECON)/joints/joints.h $(RECON)/joints/icarus_joints.inc $(RECON)/particles/icarus_clouds.inc $(RECON)/particles/worlds_l.inc $(RECON)/particles/worlds_m.inc \
+           $(wildcard $(RECON)/combat/*.h) $(RECON)/joints/joints.h $(RECON)/joints/icarus_joints.inc $(RECON)/joints/kanturu_joints.inc $(RECON)/particles/icarus_clouds.inc $(RECON)/particles/worlds_l.inc $(RECON)/particles/worlds_m.inc \
            $(RECON)/environment/env.h $(RECON)/environment/env_internal.h \
            $(RECON)/particles/particles.h $(RECON)/particles/world_flames.h $(RECON)/particles/particles_internal.h \
            $(wildcard $(RECON)/items/*.h) \
@@ -267,6 +267,14 @@ $(BUILD)/inventory-skin-host: tests/inventory_skin_host.c world/world_gfx_game.c
 	  $(CC) $(CFLAGS) $(JPEG_CFLAGS) -DGL_SILENCE_DEPRECATION -c $$f -o $(BUILD)/inventory-skin/$$(basename $$f .c).o || exit; \
 	done
 	$(CXX) $(BUILD)/inventory-skin/*.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(GL_LIBS) -lm -o $@
+
+# SPRITE-DRAW-001: one sprite through the shared sprite pass, raster and headless GL.
+$(BUILD)/sprite-draw-host: tests/sprite_draw_host.c viewer/gl_backend.c viewer/gl_batch.c viewer/gl_headless.c $(LIB)
+	@mkdir -p $(BUILD)/sprite-draw
+	for f in tests/sprite_draw_host.c viewer/gl_backend.c viewer/gl_batch.c viewer/gl_headless.c; do \
+	  $(CC) $(CFLAGS) $(JPEG_CFLAGS) -DGL_SILENCE_DEPRECATION -c $$f -o $(BUILD)/sprite-draw/$$(basename $$f .c).o || exit; \
+	done
+	$(CXX) $(BUILD)/sprite-draw/*.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(GL_LIBS) -lm -o $@
 
 # Synthetic native helper/effect ownership regression host.
 $(BUILD)/helper-fx-host: tests/helper_fx_host.c $(LIB)
@@ -674,6 +682,10 @@ $(BUILD)/globals-owner-host: tests/globals_owner_host.c $(WORLD_RT_HDR) $(WORLD_
 $(BUILD)/perf-players-host: tests/perf_players_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/perf-players-host.o
 	$(CXX) $(BUILD)/perf-players-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) -lm -o $@
+
+$(BUILD)/pet-gold-host: tests/pet_gold_host.c $(LIB) $(HEADERS) $(BUILD)/libmusession_world.a $(BUILD)/libmuaudio.a
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c $< -o $(BUILD)/pet_gold_host.o
+	$(CXX) $(BUILD)/pet_gold_host.o $(BUILD)/libmusession_world.a $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(AUDIO_LIBS) -lm -o $@
 
 $(BUILD)/particle-consumers-host: tests/particle_consumers_host.c $(LIB) $(HEADERS) $(BUILD)/libmusession_world.a $(BUILD)/libmuaudio.a
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c $< -o $(BUILD)/particle_consumers_host.o
