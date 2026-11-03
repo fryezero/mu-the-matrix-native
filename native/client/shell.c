@@ -103,6 +103,8 @@ struct mu_shell {
     uint16_t hero_level;
     /* audio */
     mu_audio_host *audio;
+    mu_audio_limiter out_limiter;   /* PLAY-FIX-001: the sum of the shell and world engines */
+    int out_limiter_ready;
     mu_audio_table sound_table;
     /* input */
     int32_t mouse_x, mouse_y;
@@ -1720,6 +1722,11 @@ void mu_shell_mix(mu_shell *s, float *out, uint32_t frames)
             done += n;
         }
     }
+    if (!s->out_limiter_ready) {
+        mu_audio_limiter_init(&s->out_limiter, mu_shell_audio_rate(s));
+        s->out_limiter_ready = 1;
+    }
+    mu_audio_limiter_process(&s->out_limiter, out, frames);
 }
 
 void mu_shell_world_menu(mu_shell *s, int kind)

@@ -676,6 +676,30 @@ args = ["--text", "{text}", "--data", "{data}", "--cases", "500", "--mutations",
 "mutations" = {len = 3}
 "mutations.*" = {truthy = true}
 
+[validate_teleport_clear]
+test = "tests/test_orphan_validators_private.py::OrphanValidators.test_teleport_clear"
+pins = ["text", "data"]
+families = ["clear_characters", "clear_items", "plates_hidden", "teleport_clears"]
+cases = 2164
+mutants = 6
+cases_at = ["teleport_clears.cases", "plates_hidden.cases", "clear_characters.cases", "clear_items.cases"]
+mutants_at = "mutations"
+needs = ["cc"]
+build = ["reconstructed/map"]
+args = ["--text", "{text}", "--data", "{data}", "--cases", "500", "--mutations", "--output", "{report}"]
+note = "PLAY-FIX-001: ReceiveTeleport's ClearItems/ClearCharacters order, 0x009dacb8, ClearCharacters 0x0137c276, ClearItems 0x017ea38b"
+[validate_teleport_clear.expect]
+"teleport_clears.cases" = 500
+"teleport_clears.mismatches" = 0
+"plates_hidden.cases" = 1540
+"plates_hidden.mismatches" = 0
+"clear_characters.cases" = 100
+"clear_characters.mismatches" = 0
+"clear_items.cases" = 24
+"clear_items.mismatches" = 0
+"mutations" = {len = 6}
+"mutations.*" = {truthy = true}
+
 [validate_meshdraw]
 test = "native/tests/test_native_viewer.py::PrivateInstalledTests.test_private_client_mesh_draw_execution"
 pins = ["text", "data", "flag", "feature09"]
@@ -2523,6 +2547,23 @@ args = ["--cases", "1000", "--mutations", "--output", "{report}"]
 "families.*.stopped" = 0
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
+
+[validate_worlds_after3]
+test = "reconstructed/objects/test_worlds_after3.py::WorldsAfter3Tests.test_original_instructions"
+pins = ["text", "data"]
+families = ["custom_133", "after_133", "custom_141", "after_141", "custom_143", "after_143", "custom_144", "after_144", "custom_145", "after_145", "loaders"]
+cases = 10212
+mutants = 49
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+[validate_worlds_after3.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0
+
 [validate_item_carry]
 test = "reconstructed/renderchar/test_item_carry.py::ItemCarry.test_original_instructions"
 pins = ["text", "data", "flag", "feature"]

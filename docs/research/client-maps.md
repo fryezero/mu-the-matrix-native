@@ -258,3 +258,68 @@ empty vector. Native count/name/head/capacity checks reject malformed data atomi
 hudMap movie arrays verify add/update/remove, stale retention on malformed frames, empty refresh
 and host rebind. Travel requests and placement remain in mu_map; the encrypted full milestone,
 party feed and locale formatter limits above remain open. No live session was accessed.
+
+## What a numbered teleport clears, PLAY-FIX-001, 2026-11-03
+
+ReceiveTeleport `0x0128136d`. When the number `[4]` is not 0, the handler clears before it compares the world
+`[6]` with World `0x01cf15fc`. Same world and different world both get this clear. The order is (verified):
+
+1. ClearItems `0x017ea38b`.
+2. ClearCharacters(HeroKey `[0x06fca288]`) `0x0137c276` at `0x01281791`.
+3. `0x00fcf496` on the singleton `0x01ec9808` (getter `0x00fcfca4`). It erases the map entries whose key
+   (`0x00fce740`) is not the hero's.
+4. Only then ClearWorldMap and LoadWorld, when the world differs.
+
+A zero number takes the same-map branch `0x01281749` and clears nothing.
+
+- **ClearCharacters `0x0137c276`** (verified) runs over the 400 CharactersClient records (getter `0x0095f6db`,
+  `0x009a13f4`: base `+8`, 0x3670 bytes each; Object at `+0x3254`, key at `+0x3e`).
+  - For a live record whose key differs from the argument, it does these in order:
+    - Live = 0 (`0x0129f4a5(0)` → `0x009b0451`).
+    - removeInfo through `0x009a176b` → hudPlayerName `0x00c83a04`. This happens when SceneFlag `[0x01d1df70]` is 6
+      and `0x009dacb8(World)` is false. In a world where `0x009dacb8` is true, it happens only when the record's
+      key is the hero's.
+    - `0x0098294d(c)`.
+    - Kills the live objects among the 10 at `0x0bdc3220` (0x3d8 bytes) whose owner `+0x34c` is this Object.
+    - `0x00c9321b(c)`.
+  - Every record, the hero's and the dead ones included, then gets the 16-call tail `0x0137c3ac..0x0137c450`.
+    It releases buffs, parts, effects and joints: `0x00eb1015`, `0x009b9f1f`, `0x00a0b72b`, `0x0106ba49`,
+    `0x013bb41e`, `0x013bb435`, `0x0137aafe`, `0x009ebf04`, `0x0142ec9d`, `0x01553af0`, `0x015ae627`,
+    `0x016928cd` and `0x01536055`, with three singleton getters.
+- **`0x009dacb8(world)`** (verified) is true for 18..23, 53 and 97 (the Chaos Castle worlds). Those keep no plates.
+- **ClearItems `0x017ea38b`** (verified):
+  - When the hudPlayerName handler exists (smart pointer of `0x01d22c60`), `0x00c841cf` invokes `clearAllItem`
+    (string `0x01a9ec28`) and clears the item lists `+0x60`/`+0x68`, unless both are empty (`0x00c898d9`,
+    `0x00c89902`).
+  - Then all 1,000 item objects (`0x0b4781f8`, 0x560 bytes) get Live = 0.
+
+**Native.**
+- `reconstructed/map/map_clear.c`: `mu_teleport_clears`, `mu_map_plates_hidden`, `mu_map_clear_characters` and
+  `mu_map_clear_items`.
+- `native/core/mu_world_names.c` `mu_world_names_clear_characters` runs ClearCharacters over the names model before
+  `world_rt_travel` unloads the world. A record exists while its slot is used; the client's Object Live stays 1
+  through the death fade. The old world's plates leave the real movie through removeInfo.
+- `world/world_names_gfx.c` keeps the movie's clip list across the re-attach to the same layer. The hero's clip
+  stays and is not added again; `stale_plates` counts clips without a plate.
+- The ground items are the items part's own labels (not the movie's). They go with the part at the unload.
+
+**Cause of the APP-REFRESH-003 floating names:**
+- The cause is in the client, not the fixture. Travel freed and rebuilt the names model, but never sent removeInfo
+  for the old world's plates, so the movie kept "Budge Dragon", "Hound" and "Bull Fighter" at their last
+  positions.
+- The real server would send the next world's viewport. The offline demo spawns monsters only in the start world
+  (its placement), and that stays so: no world's monsters are invented.
+- Same-world numbered teleports (a Move to the current map) still keep the demo actors and their plates. The
+  client clears them and the server re-sends the viewport; the demo stands in for that re-send.
+
+**Checks:**
+- `scripts/validate_teleport_clear.py --cases 500 --mutations`:
+  - teleport_clears 500, plates_hidden 1,540, clear_characters 100 and clear_items 24 cases; 0 mismatches.
+  - clear_characters covers 15,500 kills, 3,108 removeInfo (247 in Chaos Castle worlds), 162 owned-object kills
+    and 40,000 tails.
+  - 6/6 planted mistakes caught.
+- `reconstructed/map/test_map_clear.py` (6 portable checks).
+- `native/tests/test_native_names.py`:
+  - `TravelClearsTheOldWorld` (portable, synthetic two worlds).
+  - `GfxTravel` (private, real movie): Lorencia → Noria sends removeInfo for keys 264..267, adds the hero (4660)
+    once, and leaves 1 clip and 0 stale.

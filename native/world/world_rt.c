@@ -231,7 +231,8 @@ void world_rt_hero_item_textures(mu_world_rt *a, int first, int last)
  * target with the existing loader (load()), the hero at the packet's tile and direction.  The client loads
  * synchronously inside the packet handler and shows no loading picture (live capture, 0.4 s frames); it sets
  * LoadingWorld = 30, which MoveHero counts down before the render.  The demo files (placement, NPC table,
- * players) belong to the start world and are left out elsewhere. */
+ * players) belong to the start world and are left out elsewhere: the real server would send the next world's
+ * viewport, which the offline demo does not invent. */
 int world_rt_travel(mu_world_rt *a, const mu_teleport *t)
 {
     char error[512];
@@ -258,6 +259,11 @@ int world_rt_travel(mu_world_rt *a, const mu_teleport *t)
         a->travels++;
         return 0;
     }
+    /* PLAY-FIX-001: ReceiveTeleport's ClearItems and ClearCharacters(HeroKey) run before the world changes
+     * (0x01281786/0x01281791, verified): the other characters' plates leave the movie, the hero's stays.  The
+     * ground items are the items part's own labels and go with its close below. */
+    if (a->names)
+        a->travel_plates_removed += (uint32_t)mu_world_names_clear_characters(a->names, a->world);
 #ifndef MU_WORLD_NO_GL
     int had_gl = a->gl_ready;
     if (had_gl)
@@ -762,6 +768,8 @@ void mu_world_rt_set_gfx(mu_world_rt *a, struct world_gfx *gfx, double scale)
     if (a->gfxmap && gfx != a->gfxmap_owner) {
         world_gfx_map_close(a->gfxmap); a->gfxmap = NULL; a->gfxmap_owner = NULL;
     }
+    if (gfx != a->gfx)   /* PLAY-FIX-001: another layer, another movie: the bridge's clip list starts empty */
+        memset(&a->names_gfx, 0, sizeof a->names_gfx);
     a->gfx = gfx;
     if (gfx) {
         world_gfx_set_perf(gfx, a->perf);

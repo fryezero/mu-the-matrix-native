@@ -18,6 +18,8 @@ RENDER-ITEMS-TEX-001: item bodies drew white because native item meshes took the
 
 RENDER-JOINTS-001: the joint kinds the world lanes refused are native and verified: `0x7f7d` 0xc/0xe/0xf and `0x7f7c` 0x12 (Kanturu Underground), `0x7f7d` 0xd with CreateJoint's colour argument (Uruk Mountain); the model StreamMesh byte now reaches the mesh draw (unlit, scrolled), so Ignis 79/148 and the class-slot stream meshes draw as the client; 9,000 instruction cases, 22/22 mutants; refused draws 64 → 0 for these causes, 72 → 8 overall (138: 32 → 0, creates 11 → 0); arrival-view fidelity unchanged (nothing new in view). [Handoff](handoffs/RENDER-JOINTS-001.md).
 
+RENDER-WORLDS-AFTER3: the custom (slot 0x38) and after (slot 0x3c) renders of classes 133, 141, 143, 144 and 145 are reconstructed and wired natively, with each class's 32 animated water bitmaps and its loader bitmaps; 10,212 instruction cases, 49/49 mutants; Kardamahal 10.91 → 10.30 (live clock 10.24), 29/32 captures byte-identical. [Handoff](handoffs/RENDER-WORLDS-AFTER3.md).
+
 RENDER-WORLDS-Q2: Ferea's visual 0x00de6405 is reconstructed (23 types, named bones) and drawn natively; the class slot 0x10 of worlds 134..145 (the draw-first answer of 0x017fcd18) writes Twisted Karutan's range −800 and draws the listed types first; Kanturu Underground's blend light is right (the tour's clock differed: new `live_time` tour option); Ferea door states and the Swamp variant are server-written; 4,000 instruction cases, 50/50 mutants; Ferea 2.348 → 2.250, Twisted Karutan range 3,868 → 0, Kanturu (live clock) 6.362 → 5.043. [Handoff](handoffs/RENDER-WORLDS-Q2.md).
 
 RENDER-WORLDS-AFTER2: the custom (slot 0x38) and after (slot 0x3c) renders of classes 91, 113, 131, 132, 134..140 and 142 are reconstructed and wired natively (flagged objects leave the first pass; slot draws use every mesh), bitmaps bind to model meshes, and the pre-move slot 0x74 of 69..72, 79, 80/81 and 122 plays its sounds; 32,216 instruction cases, 33/33 mutants; Acheron after-character 58 → 6, Kanturu Underground hidden-mesh/after-character 24/20 → 0, Twisted Karutan image 13.5 → 7.1. [Handoff](handoffs/RENDER-WORLDS-AFTER2.md).
@@ -105,6 +107,18 @@ scratch discovery and zero/overwritten fixture MP/AG. Final local gate passes,
 APP-REFRESH-002: installed Preview rebuilt from main `52aa5c2` (before #275/#276) with new Native Data (map-effect
 tables, 47 object worlds, refreshed music table); app smoke, Help, Warps, Deep Dungeon 3 and Abyss 2 shown. No source
 change. [Install, inputs and follow-ups](handoffs/APP-REFRESH-002.md).
+
+APP-REFRESH-003: Preview reinstalled from 82849bc (main with #278); journey proofs: skill cast, kill/drop/Space
+pickup, Warps travel 0->3->2, BGM PCM peak. Windowed input report; app build no longer bundles a stale
+mu-client. Gate passes 1,805 tests. [Proofs, install and follow-ups](handoffs/APP-REFRESH-003.md).
+
+PLAY-FIX-001: two Preview bugs from APP-REFRESH-003 fixed.
+- A world change now runs the client's ClearCharacters(HeroKey) `0x0137c276` (with ClearItems `0x017ea38b`; Unicorn,
+  0 mismatches, 6/6 mutants), so no old-world name floats after travel; the hero's plate stays.
+- Mixed audio passes a transparent −0.3 dBFS limiter: no full-scale samples at Volum 9 (628 before). The level/9
+  curve was already the client's.
+- The Kardamahal map name matches the original.
+[Causes, checks and limits](handoffs/PLAY-FIX-001.md).
 
 README-REFRESH-003 updates the public README through PR #207, with current session/render/audio/data coverage and explicit offline, live-comparison and 25 fps limits. Existing pinned images reused. [Handoff](handoffs/README-REFRESH-003.md).
 

@@ -2,6 +2,7 @@
 #include "mu_audio.h"
 
 #include <ctype.h>
+#include <math.h>
 #include <dirent.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -63,6 +64,7 @@ struct mu_audio_engine {
     uint64_t next_channel;
     pending_end *pending;
     size_t pending_count, pending_capacity;
+    mu_audio_limiter limiter;      /* PLAY-FIX-001 */
 };
 
 static void logf_engine(mu_audio_engine *e, const char *format, ...)
@@ -622,6 +624,7 @@ mu_audio_engine *mu_audio_engine_new(const mu_audio_engine_config *config)
     if (!e) return NULL;
     if (config) e->config = *config;
     if (!e->config.rate) e->config.rate = 44100;
+    mu_audio_limiter_init(&e->limiter, e->config.rate);
     /* 0 selects the default single driver; a negative value reports none. */
     e->config.drivers = e->config.drivers == 0 ? 1 : e->config.drivers < 0 ? 0 : e->config.drivers;
     if (e->config.game_root) {
@@ -717,6 +720,34 @@ void mu_audio_engine_mix(mu_audio_engine *e, float *out, uint32_t frames)
                     break;
                 }
             }
+        }
+    }
+    mu_audio_limiter_process(&e->limiter, out, frames);
+}
+
+uint64_t mu_audio_engine_limited_frames(const mu_audio_engine *e) { return e->limiter.limited_frames; }
+
+void mu_audio_limiter_init(mu_audio_limiter *l, uint32_t rate)
+{
+    l->gain = 1.0f;
+    l->ceiling = MU_AUDIO_CEILING;
+    l->release = (float)(1.0 - exp(-1000.0/(MU_AUDIO_RELEASE_MS*(double)(rate ? rate : 44100))));
+    l->limited_frames = 0;
+}
+
+void mu_audio_limiter_process(mu_audio_limiter *l, float *out, uint32_t frames)
+{
+    for (uint32_t f = 0; f < frames; f++) {
+        float left = out[2*f], right = out[2*f + 1];
+        float peak = fmaxf(fabsf(left), fabsf(right));
+        if (peak > l->ceiling && l->ceiling/peak < l->gain)
+            l->gain = l->ceiling/peak;   /* instant attack: this frame lands on the ceiling */
+        if (l->gain < 1.0f) {
+            out[2*f] = left*l->gain;
+            out[2*f + 1] = right*l->gain;
+            l->limited_frames++;
+            l->gain += (1.0f - l->gain)*l->release;
+            if (l->gain > 0.99999f) l->gain = 1.0f;
         }
     }
 }
