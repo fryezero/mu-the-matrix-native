@@ -180,6 +180,7 @@ static const struct { int32_t id; const char *dir, *name; char kind; } bitmap_fi
     {0x7fd8, "Effect", "JointEnergy01.jpg", 'j'},
     {0x7fd3, "Effect", "JointSpirit01.jpg", 'j'},
     {0x7fd5, "Effect", "Spark01.jpg", 'j'},         /* the Twisting Slash swirl's spark joints (NATIVE-JOINT-001) */
+    {0x7fd6, "Effect", "JointLaser01.jpg", 'j'},    /* RENDER-EFFECTS-009: the arrows' 0x7fd6/5 trails */
 };
 
 static int32_t bitmap_slot(const mu_combat *c, int32_t id)
@@ -401,7 +402,7 @@ static float env_terrain_height(void *context, float x, float y);
 static const mu_sfx_object *env_object(void *context, int32_t index)
 {
     mu_combat *c = context;
-    if (index < 0 || index > MU_COMBAT_HERO_OBJECT)
+    if (index < 0 || index >= MU_COMBAT_EFFECT_OBJECT(MU_SFX_EFFECTS))
         return NULL;
     return &c->objects[index];
 }
@@ -425,6 +426,27 @@ static void refresh_objects(mu_combat *c)
     h->weapon = (int16_t)(c->weapon_item[0] < 0 ? -1 : c->weapon_item[0] - 0xae6);   /* TS: o + 0x56 */
     memcpy(h->position, c->walk->hero.position, sizeof h->position);
     memcpy(h->angle, c->walk->hero.angle, sizeof h->angle);   /* RENDER-EFFECTS-004: Rageful Blow aims along it */
+}
+
+/* RENDER-EFFECTS-009: an arrow effect's object view for the joints that follow it (OBJECT +0x00 live, +0x5c type,
+ * +0x158 position, +0x164 angle, +0xec light, +0x188 the trail point field_188) */
+static void effect_object(mu_combat *c, const mu_sfx_effect *e)
+{
+    const int32_t i = (int32_t)(e - c->effects);
+    if (i < 0 || i >= MU_SFX_EFFECTS)
+        return;
+    mu_sfx_object *o = &c->objects[MU_COMBAT_EFFECT_OBJECT(i)];
+    memset(o, 0, sizeof *o);
+    if (!mu_sfx_is_arrow(e->type))
+        return;
+    o->live = e->live;
+    o->visible = e->live;
+    o->type = e->type;
+    memcpy(o->position, e->position, sizeof o->position);
+    memcpy(o->angle, e->angle, sizeof o->angle);
+    memcpy(o->light, e->light, sizeof o->light);
+    memcpy(o->eye_188, e->field_188, sizeof o->eye_188);
+    o->scale = e->scale;
 }
 
 /* RENDER-EFFECTS-009: one unsupported request of a kind (the total stays stats.unsupported) */
@@ -548,10 +570,17 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
     case MU_SFX_CALL_PARTICLE:
         create_particle(c, call);
         return 0;
-    case MU_SFX_CALL_JOINT:
-        create_joint(c, call->type, call->position, call->target, call->angle, call->subtype, call->owner,
+    case MU_SFX_CALL_JOINT: {
+        int32_t target = call->owner;
+        if (target == -2 && e && e >= c->effects && e < c->effects + MU_SFX_EFFECTS && mu_sfx_is_arrow(e->type)) {
+            effect_object(c, e);   /* "this effect": the arrow (RENDER-EFFECTS-009) */
+            c->objects[MU_COMBAT_EFFECT_OBJECT(e - c->effects)].live = 1;   /* created, SetLive at the end */
+            target = MU_COMBAT_EFFECT_OBJECT((int32_t)(e - c->effects));
+        }
+        create_joint(c, call->type, call->position, call->target, call->angle, call->subtype, target,
                      call->scale, c->hero_key & 0xffff, 0);
         return 0;
+    }
     case MU_SFX_CALL_EFFECT: {
         mu_sfx_info info;
         memset(&info, 0, sizeof info);
@@ -982,6 +1011,8 @@ static void move_pools(mu_combat *c)
     for (int i = 0; i < MU_SFX_EFFECTS; ++i)
         if (c->effects[i].live && !mu_sfx_effect_move(&c->effects[i], &c->env))
             c->effects[i].live = 0;   /* an unsupported kind ends at once */
+    for (int i = 0; i < MU_SFX_EFFECTS; ++i)
+        effect_object(c, &c->effects[i]);   /* MoveJoints reads the arrows after MoveEffects (RENDER-EFFECTS-009) */
     c->jenv.serial = c->serial;
     mu_joints_move_all(c->joints, MU_SFX_JOINTS, &c->jenv, c->time_step, joint_inputs, c);
     int32_t kept = 0;

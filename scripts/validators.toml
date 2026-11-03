@@ -2046,6 +2046,20 @@ args = ["--cases", "2", "--mutations", "--output", "{report}"]
 all_equal = true
 all_mutants_caught = true
 
+[validate_render_effects9]
+test = "native/tests/test_render_effects9.py::BowSession.test_original_instructions_and_compiled_mutants"
+pins = ["text", "data"]
+families = ["effect_create", "effect_move", "named_bones", "pt_create", "pt_move", "pt_render", "joint_create", "joint_move", "joint_render"]
+cases = 304
+mutants = 25
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/combat", "reconstructed/particles", "reconstructed/joints"]
+args = ["--cases", "2", "--mutations", "--output", "{report}"]
+[validate_render_effects9.expect]
+all_equal = true
+all_mutants_caught = true
+
 [validate_map_effects]
 test = "native/tests/test_native_map_effects.py::MapEffectsHost.test_original_instructions_and_compiled_mutants"
 pins = ["text", "data"]

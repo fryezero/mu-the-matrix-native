@@ -123,6 +123,9 @@ enum {
 #define MU_COMBAT_PARTICLES 2048
 #define MU_COMBAT_LIGHTS 256
 #define MU_COMBAT_HERO_OBJECT MU_WORLD_ACTORS_MAX   /* object index of the hero in the effect environment */
+/* RENDER-EFFECTS-009: the object index of effect record i as a joint target (the arrows' own joints, owner "this
+ * effect"); other effects keep no object */
+#define MU_COMBAT_EFFECT_OBJECT(i) (MU_COMBAT_HERO_OBJECT + 1 + (i))
 /* RENDER-EFFECTS-009: bow 0x12f9's spark bone when the link-bone byte lies outside the hero's record (inference) */
 #define MU_COMBAT_SPARK_BONE 0
 
@@ -185,7 +188,7 @@ typedef struct mu_combat {
     mu_sfx_particle particles[MU_COMBAT_PARTICLES];
     int32_t particle_count;
     mu_sfx_joint joints[MU_SFX_JOINTS];
-    mu_sfx_object objects[MU_WORLD_ACTORS_MAX + 1];
+    mu_sfx_object objects[MU_WORLD_ACTORS_MAX + 1 + MU_SFX_EFFECTS];   /* + the arrow effects (RENDER-EFFECTS-009) */
     mu_sfx_env env;
     mu_jt_env jenv;            /* NATIVE-JOINT-001: the joint module's view of env (mu_joints.h) */
     uint32_t crt_seed;         /* the client's rand() recurrence for the effect randomness */

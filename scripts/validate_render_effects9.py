@@ -280,7 +280,7 @@ PT_MUTANTS = [
     ('trail_grow', 'p->scale += 0.09f;\n            } else if (p->subtype == 21)', 'p->scale += 0.08f;\n            } else if (p->subtype == 21)',
      'move'),
 ]
-JOINT_KINDS = [(0x7fd5, 3)]   # bow 0x12f9's spark joint
+JOINT_KINDS = [(0x7fd5, 3), (0x7fd6, 5)]   # bow 0x12f9's spark joint, the arrows' trail
 JOINT_MUTANTS = [
     # (name, old, new, family) on reconstructed/joints/joints.c
     ('spark_speed', 'j->velocity = j->velocity + F_0_1;', 'j->velocity = j->velocity + F_0_2;', 'joint_move'),
@@ -288,6 +288,11 @@ JOINT_MUTANTS = [
      'j->light[0] = j->light[0] / 1.2f;   /* 1.1 */', 'joint_move'),
     ('spark_kind', 'return subtype == 0 || subtype == 3;   /* 3: RENDER-EFFECTS-009, bow 0x12f9\'s sparks */',
      'return subtype == 0;   /* 3: RENDER-EFFECTS-009, bow 0x12f9\'s sparks */', 'joint_create'),
+    ('trail_lifetime', 'j->lifetime = 999999999;', 'j->lifetime = 99999999;', 'joint_create'),
+    ('trail_tails', 'j->max_tails = 10;\n            j->scale = scale;\n            const mu_jt_object *t',
+     'j->max_tails = 12;\n            j->scale = scale;\n            const mu_jt_object *t', 'joint_create'),
+    ('trail_follow', 'copy3(j->position, t->eye_188);\n            break;\n        }\n        copy3(j->position, j->subtype == 0x43',
+     'copy3(j->position, t->eye_194);\n            break;\n        }\n        copy3(j->position, j->subtype == 0x43', 'joint_move'),
 ]
 
 
@@ -296,8 +301,15 @@ def joint_families(text, data, cases, mutations):
     RenderJoints 0x01589b56) on the kinds this lane adds; its families read the module's KINDS."""
     import validate_joints as vj
     out, mutants = {}, {}
-    saved = vj.KINDS
+    saved, saved_region = vj.KINDS, vj.object_region
     vj.KINDS = JOINT_KINDS
+
+    def object_region(objects):   # MoveJoint's 0x7fd6/5 looks up the target's model: its type +0x5c
+        region = saved_region(objects)
+        for i in range(len(objects)):
+            region.define(vj.OBJECTS + 0x400 * i + 0x5c, struct.pack('<i', 0x474))
+        return region
+    vj.object_region = object_region
     try:
         m = machine(text, data)
         lib = vj.load_library(ROOT/f'reconstructed/joints/libclient_joints.{fx.SUFFIX}')
@@ -327,7 +339,7 @@ def joint_families(text, data, cases, mutations):
                     f = report.families[family]
                     mutants[name] = {'cases': f['cases'], 'caught': f['cases'] - f['equal']}
     finally:
-        vj.KINDS = saved
+        vj.KINDS, vj.object_region = saved, saved_region
     return out, mutants
 
 
