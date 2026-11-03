@@ -323,6 +323,14 @@ class CDraw(ctypes.Structure):
                 ('shade', F3), ('flag_ca', ctypes.c_uint8)]
 
 
+RANDOM_FN = ctypes.CFUNCTYPE(ctypes.c_int32, ctypes.c_void_p)
+
+
+class CContext(ctypes.Structure):
+    _fields_ = [('lighting', ctypes.c_int32), ('blue_mesh', ctypes.c_int32), ('random', RANDOM_FN),
+                ('context', ctypes.c_void_p)]
+
+
 class CModel(ctypes.Structure):
     _fields_ = [('body_light', F3), ('level_field', ctypes.c_int32), ('shade', F3), ('flag_ca', ctypes.c_uint8),
                 ('hide_skin', ctypes.c_uint8)]
@@ -798,7 +806,7 @@ def colour_record(kind, alpha, rgb):
     return ('COLOR', [0, kind, alpha, 0, 0, 0, 0, 0], tuple(rgb), 0, (0, 0, 0), 0)
 
 
-def c_stream(lib, case, generic=False, carry=None):
+def c_stream(lib, case, generic=False, carry=None, random=None):
     item = CItem(type=case['type'], item_level=case['item_level'], option1=case['option1'], ext_option=case['ext'],
                  select=0, render_type=case['render_type'], a10=case['a10'], a11=case['a11'], a12=case['a12'], a13=0,
                  alpha=u2f(case['alpha']), light=F3(*[u2f(x) for x in case['light']]),
@@ -823,6 +831,11 @@ def c_stream(lib, case, generic=False, carry=None):
                 fields[k].flag_ca = record[5]
         status = lib.mu_rc_item_draws_carry(ctypes.byref(item), ctypes.byref(model), out, 32, ctypes.byref(count),
                                             fields, len(carry))
+    elif random is not None:
+        # Part 14: rand results for body-random programs come from the context.
+        context = CContext(0, -1, RANDOM_FN(lambda _: random()), None)
+        status = lib.mu_rc_item_draws_context(ctypes.byref(item), ctypes.byref(model), out, 32, ctypes.byref(count),
+                                              ctypes.byref(context))
     else:
         entry = lib.mu_rc_item_draws_generic if generic else lib.mu_rc_item_draws
         status = entry(ctypes.byref(item), ctypes.byref(model), out, 32, ctypes.byref(count))

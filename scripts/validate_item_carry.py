@@ -38,7 +38,7 @@ def gen_rules(t):
         source = (ROOT/'reconstructed/renderchar/item_bodies.h').read_text()
         recipes = source[source.index('mu_rc_body_recipes[] = {'):source.index('mu_rc_body_scalar;')]
         blocks = re.findall(r'\n    \{\d+, \{(.*?)\n    \}\},', recipes, re.S)
-        parsed = [[({1: 'BODY', 2: 'MESH', 3: 'COLOR'}[int(entry)], None)
+        parsed = [[({1: 'BODY', 2: 'MESH', 3: 'COLOR', 4: 'EXIT'}[int(entry)], None)
                    for entry in re.findall(r'\n        \{(\d), \{', block)] for block in blocks]
         for row in re.findall(r'\n    \{(0x[0-9a-f]{4}), \{([^}]*)\}', source[source.index('mu_rc_body_types[] = {'):]):
             _rules[int(row[0], 16)] = [parsed[int(k)] for k in row[1].split(', ')]

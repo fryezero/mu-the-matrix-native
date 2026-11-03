@@ -78,9 +78,12 @@ class ItemContinuation(unittest.TestCase):
                     self.assertEqual((status, draws), (2, []))
 
     def test_rejected_fitting_candidates_remain_refused(self):
+        # Part 14 admits these former rejections: their kind-B 0x26/0x5b helper phase was unsampled.
+        import gen_item_bodies as gen
         for t in (0x230f, 0x2317, 0x248e, 0x2490, 0x2492, 0x2504, 0x270f):
             with self.subTest(t=t):
-                self.assertEqual(self.draws(self.item(type=t)), (1, []))
+                self.assertIn(t, gen.QUALITY_TYPES)
+                self.assertEqual(self.draws(self.item(type=t))[0], 0)
 
     @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'original captures are opt-in')
     def test_private_signed_clock_edges(self):

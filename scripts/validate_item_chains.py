@@ -25,7 +25,7 @@ def programs():
     source = (ROOT/'reconstructed/renderchar/item_bodies.h').read_text()
     table = source[source.index('mu_rc_body_scalars[] = {'):]
     table = table[:table.index('};')]
-    entries = re.findall(r'\n    \{(\d), (\d), 0x[0-9a-f]{8}u, \{([^}]*)\}, \{([^}]*)\}\},', table)
+    entries = re.findall(r'\n    \{(\d), (\d), 0x[0-9a-f]{8}u, \{([^}]*)\}, \{([^}]*)\}(?:, 0x[0-9a-f]{2})?\},', table)
     rows = re.findall(r'\n    \{(0x[0-9a-f]{4}), \{[^}]*\}(?:, \d+){8}, (\d+), (\d+)\},', source)
     first = {}
     for t, start, count in rows:
