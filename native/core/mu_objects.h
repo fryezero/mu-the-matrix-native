@@ -130,6 +130,7 @@ typedef struct mu_objects_runtime {
     uint32_t steps;
     long ticks, moved, light_events, particle_events, sound_events, move_unsupported;
     long drawn, draw_unsupported, draw_skipped, culled;
+    long render_light_events;         /* RENDER-WORLDS-AFTER4: AddTerrainLight calls of the after pass */
     /* NATIVE-LOGIN-001 */
     uint32_t now_ms;                  /* timeGetTime of the step and the frame (mu_objects_set_clock) */
     float play_speed[MU_OBJECT_TYPES];   /* action 0 PlaySpeeds set by a world handler's creation hook */
@@ -342,8 +343,9 @@ int32_t mu_objects_first_meshes(mu_objects *objects, int32_t draw_index, const m
 void mu_objects_after_visibility(mu_objects *objects, const mu_terrain_frustum *frustum, int32_t scene_state);
 /* The after-character draw of rt.after_list[k]: the RenderObject setup (body light, pose) and the
  * world's slot 0x3c, whose RenderMesh calls (and, in world 0x5d, RenderBody calls: mesh_plus_one 0) land
- * in meshes (at most capacity). Returns the model, or NULL; *count receives the mesh calls. */
-mu_object_model *mu_objects_prepare_after(mu_objects *objects, int32_t k, const mu_world *map, int32_t scene_state,
+ * in meshes (at most capacity). Returns the model, or NULL; *count receives the mesh calls. A slot's
+ * AddTerrainLight goes into map's frame light at once (objects drawn after it read it). */
+mu_object_model *mu_objects_prepare_after(mu_objects *objects, int32_t k, mu_world *map, int32_t scene_state,
                                           mu_object_mesh *meshes, int32_t capacity, int32_t *count);
 /* Stand-in billboards (sprites of this frame and particles) of bitmap table entry `slot`
  * (rt.bitmap_ids[slot]), 4 vertices each, additive. Returns the vertex count. */

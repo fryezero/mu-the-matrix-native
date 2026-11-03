@@ -210,8 +210,17 @@ def native_bmd(scratch):
     out = Path(scratch) / ('libbmd.' + v.SUFFIX)
     sources = [ROOT / 'native/core/mu_bmd.c', ROOT / 'reconstructed/model-codec/client_lea.c',
                ROOT / 'reconstructed/model-codec/model_codec.c']
-    subprocess.run(['cc', '-std=c11', '-O1', '-shared', '-fPIC', '-o', str(out)] + [str(s) for s in sources] + ['-lm'],
-                   check=True)
+    # v14 files decrypt through model-recovery/modulus.cpp (Crypto++): the native build's object (build = native)
+    modulus = ROOT / 'native/build/modulus.o'
+    subprocess.run(['make', '-s', '-C', str(ROOT / 'native'), 'build/modulus.o'], check=True)
+    prefix = subprocess.run(['brew', '--prefix', 'cryptopp'], capture_output=True, text=True).stdout.strip() \
+        if shutil.which('brew') else '/usr'
+    objects = []
+    for n, src in enumerate(sources):
+        objects.append(str(Path(scratch) / ('bmd%d.o' % n)))
+        subprocess.run(['cc', '-std=c11', '-O1', '-fPIC', '-c', str(src), '-o', objects[-1]], check=True)
+    subprocess.run(['c++', '-shared', '-o', str(out)] + objects + [str(modulus), '-L' + prefix + '/lib', '-lcryptopp',
+                    '-lm'], check=True)
     dll = C.CDLL(str(out))
     dll.mu_bmd_load_file.argtypes = [C.c_char_p, C.POINTER(Bmd), C.c_char_p, C.c_size_t]
     dll.mu_bmd_free.argtypes = [C.POINTER(Bmd)]

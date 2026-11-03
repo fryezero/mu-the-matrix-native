@@ -2540,6 +2540,25 @@ args = ["--cases", "1000", "--mutations", "--output", "{report}"]
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
 
+[validate_worlds_after4]
+test = "reconstructed/objects/test_worlds_after4.py::WorldsAfter4Tests.test_original_instructions"
+pins = ["text", "data", "flag", "feature09"]
+families = ["draw_first", "action_keys"]
+cases = 9181
+mutants = 40
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+needs = ["game_root"]
+build = ["reconstructed/objects", "native"]
+args = ["--cases", "9000", "--mutations", "--game-root", "{game_root}", "--output", "{report}"]
+[validate_worlds_after4.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"families.draw_first.cases" = 9000
+"families.action_keys.cases" = 181
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0
+
 [validate_item_carry]
 test = "reconstructed/renderchar/test_item_carry.py::ItemCarry.test_original_instructions"
 pins = ["text", "data", "flag", "feature"]
