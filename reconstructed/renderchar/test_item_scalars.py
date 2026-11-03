@@ -18,7 +18,7 @@ def program(entry):
     import re
     kind, count, a = re.match(r'\{(\d), (\d), (0x[0-9a-f]{8})u', entry).groups()
     ops = [int(x) for x in re.search(r', \{([0-9, ]+)\}, ', entry).group(1).split(', ')]
-    ks = [int(x[:-3], 16) for x in re.search(r'\{(0x[^{}]*)\}\}$', entry).group(1).split(', ')]
+    ks = [int(x[:-3], 16) for x in re.search(r'\{(0x[^{}]*)\}(?:, 0x[0-9a-f]{2})?\}$', entry).group(1).split(', ')]
     return int(kind), int(a, 16), tuple(zip(ops[:int(count)], ks[:int(count)]))
 
 
