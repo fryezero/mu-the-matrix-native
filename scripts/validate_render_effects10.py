@@ -4,6 +4,7 @@
 * The pets' particle kinds (the visuals 0x00eaeaf8): Clud64 0x7ffd/0xb, firehik03 0x8085/1, Impack01 0x7efa/1 and
   firehik_mono 0x8086/4, 0x8087/8, 0x8089/5 (owner = the pet), with 0x7efa/2 that shares Impack01's body.
 * Arrows 0x615 / 0x617's particle kinds: 0x8081..0x8083/8, 0x85fb/2 and 0x8450/4.
+* The other bows' most requested kinds: 0x7fcd/1, 0x7f73..0x7f75/0, 0x7f5a/0x86, 0x810a/0x24 and 0xe, 0x7f26/0x1e.
   Both through validate_particles' create (CreateParticle 0x015ae7b0), move (MoveParticles 0x01616c80) and render
   (RenderParticles 0x0159123f) families against reconstructed/particles (pet_kinds.inc, arrow_kinds.inc,
   world_owned_fx.inc).
@@ -39,6 +40,10 @@ ROOT = Path(__file__).resolve().parents[1]
 f32 = fx.f32
 PET_KINDS = [(0x7ffd, 0xb), (0x8085, 1), (0x7efa, 1), (0x7efa, 2), (0x8086, 4), (0x8087, 8), (0x8089, 5)]
 ARROW_KINDS = [(0x8081, 8), (0x8082, 8), (0x8083, 8), (0x85fb, 2), (0x8450, 4)]
+# the most requested kinds of the other bows' arrows (drop01 0x7fcd/1: ArrowWing/ArrowBomb; flower1..3: ArrowNature;
+# smoke01/0x86 and 0x810a/0x24: 0x616; 0x810a/0xe: 0x60a/0x60e; Spark03/0x1e: 0x525)
+BOW_KINDS = [(0x7fcd, 1), (0x7f73, 0), (0x7f74, 0), (0x7f75, 0), (0x7f5a, 0x86), (0x810a, 0x24), (0x810a, 0xe),
+             (0x7f26, 0x1e)]
 OWNED = {(0x8086, 4), (0x8087, 8), (0x8089, 5)}   # their create and move read the owner OBJECT's +0x158
 FUNCTORS = {0x613: 0x00a4269f, 0x614: 0x00a42984, 0x615: 0x00a42b8c, 0x616: 0x00a42f55, 0x617: 0x00a43160}
 TICK, SET_ACTION, RENDER_MESH = 0x012b4dd3, 0x012affa4, 0x00966e4a
@@ -77,6 +82,20 @@ PT_MUTANTS = [
     ('trail_grow', 'arrow_kinds.inc', '(p->type == 0x85fb ? 0.4f : 0.2f)', '(p->type == 0x85fb ? 0.4f : 0.25f)', 'move', (0x8450, 4)),
     ('trail_blend', 'arrow_kinds.inc', 'if (p->type == 0x8450)\n        state(out', 'if (p->type == 0x85fb)\n        state(out',
      'render', (0x8450, 4)),
+    ('drop_rise', 'particles.c', '(float)(mu_pt_rand(h) % 20 + 10) * 0.3f * p->scale', '(float)(mu_pt_rand(h) % 20 + 10) * 0.25f * p->scale',
+     'move', (0x7fcd, 1)),
+    ('leaf_fall', 'arrow_kinds.inc', 'p->velocity[2] = (float)(mu_pt_rand(h) % 32 - 32) * 0.1f;',
+     'p->velocity[2] = (float)(mu_pt_rand(h) % 32 - 16) * 0.1f;', 'create', (0x7f74, 0)),
+    ('leaf_rest', 'arrow_kinds.inc', 'p->frame = 1;\n        }', 'p->frame = 2;\n        }', 'move', (0x7f73, 0)),
+    ('smoke_grow', 'bow_kinds.inc', 'p->scale = p->scale + 0.04f;', 'p->scale = p->scale + 0.05f;', 'move', (0x7f5a, 0x86)),
+    ('star_back', 'bow_kinds.inc', 'p->angle[2] = p->angle[2] - 180.0f;', 'p->angle[2] = p->angle[2] - 90.0f;', 'create', (0x810a, 0x24)),
+    ('star_size', 'bow_kinds.inc', 'p->scale = (float)p->lifetime * p->initial_scale / (float)p->initial_lifetime;',
+     'p->scale = (float)p->lifetime * p->initial_scale / (float)(p->initial_lifetime + 1);', 'move', (0x810a, 0x24)),
+    ('glint_spin', 'bow_kinds.inc', 'p->rotation = p->rotation - 10.0f;', 'p->rotation = p->rotation - 12.0f;', 'move', (0x810a, 0xe)),
+    ('glint_alpha', 'bow_kinds.inc', 's->light[k] = p->light[k] * p->alpha;\n}', 's->light[k] = p->light[k];\n}', 'render', (0x810a, 0xe)),
+    ('spark_wander', 'bow_kinds.inc', 'if (p->lifetime <= 45) {', 'if (p->lifetime < 45) {', 'move', (0x7f26, 0x1e)),
+    ('spark_age', 'bow_kinds.inc', 'p->lifetime = p->lifetime - 1;\n        if (p->lifetime <= 0)',
+     'p->lifetime = p->lifetime - 0;\n        if (p->lifetime <= 0)', 'move', (0x7f26, 0x1e)),
     ('arrow_alpha', 'arrow_kinds.inc', 's->light[k] = p->light[k] * p->alpha;', 's->light[k] = p->light[k];', 'render', (0x8083, 8)),
 ]
 FN_MUTANTS = [
@@ -130,9 +149,11 @@ _random_particle = pt.random_particle
 def random_particle(rng, kind):
     """validate_particles' record, with the lifetimes these kinds branch on (the fades below 15, 5, 4 and 3 steps)."""
     p = _random_particle(rng, kind)
-    if kind in PET_KINDS or kind in ARROW_KINDS:
-        p.lifetime = rng.choice([30, 20, 16, 15, 14, 14, 8, 6, 5, 5, 4, 4, 4, 3, 3, 2, 1, 0, -1, rng.randrange(-2, 40)])
-        p.initial_lifetime = rng.choice([5, 20, 8, 1, rng.randrange(1, 30)])
+    if kind in PET_KINDS or kind in ARROW_KINDS or kind in BOW_KINDS:
+        p.lifetime = rng.choice([30, 20, 16, 15, 14, 14, 8, 6, 5, 5, 4, 4, 4, 3, 3, 2, 1, 0, -1, 46, 45, 44,
+                                 rng.randrange(-2, 55)])
+        p.initial_lifetime = rng.choice([5, 20, 8, 1, 25, rng.randrange(1, 30)])
+        p.frame = rng.choice([0, 0, 1, p.frame])
     return p
 
 
@@ -393,7 +414,7 @@ def run(cases, mutations):
     data = am.load_pinned(pins.DATA.default_str(), am.DATA_BYTES, am.DATA_SHA256, 'data')
     result = {'text_sha256': am.TEXT_SHA256, 'data_sha256': am.DATA_SHA256, 'comparisons': {}, 'mutants': {}}
     plib = pt.load_library(ROOT/'reconstructed'/('particles/libclient_particles.' + fx.SUFFIX))
-    for group, kinds in (('pets', PET_KINDS), ('arrows', ARROW_KINDS)):
+    for group, kinds in (('pets', PET_KINDS), ('arrows', ARROW_KINDS), ('bows', BOW_KINDS)):
         for name in ('create', 'move', 'render'):
             r = pt_compare(text, data, plib, name, kinds, cases * len(kinds))
             result['comparisons'][group + '_' + name] = {'families': {group + '_' + name: r['families']['pt_' + name]},

@@ -209,8 +209,8 @@ class ClientComparison(unittest.TestCase):
             r = json.loads(report.read_text())
         self.assertTrue(r['all_equal'])
         self.assertTrue(r['all_mutants_caught'])
-        self.assertEqual(len(r['mutants']), 44)
-        self.assertEqual(r['instruction_cases'], 106)
+        self.assertEqual(len(r['mutants']), 54)
+        self.assertEqual(r['instruction_cases'], 154)
 
 
 if __name__ == '__main__':

@@ -21,7 +21,7 @@
  * the joints' textures (JointThunder01, Spark01, JointSpirit01, JointEnergy01; LoadBitmap 0x0182239b..) and
  * the login scene's clouds and WATERFALL1; NATIVE-CHARSEL-002 the character-select scene's WATERFALL2/3,
  * fantaB, Spark04, magic_ground1_3 and Impack03 (the selection light 0x8022 subtype 5 draws Impack03). */
-#define MU_WORLD_PT_EFFECTS 66
+#define MU_WORLD_PT_EFFECTS 70
 static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     MU_PT_BITMAP_FIRE, MU_PT_BITMAP_SMOKE, MU_PT_BITMAP_FLARE, MU_PT_BITMAP_SPARK3, MU_PT_BITMAP_THUNDER,
     MU_PT_BITMAP_SPARK2, MU_PT_BITMAP_SHINY2, MU_JT_BITMAP_THUNDER, MU_JT_BITMAP_SPARK, MU_JT_BITMAP_SPIRIT,
@@ -38,7 +38,8 @@ static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     MU_SFX_BITMAP_LIGHTING_A + 3, MU_SFX_BITMAP_LIGHTING_A + 4, 0x831d, 0x83b3, 0x8086, 0x8438, 0x7fdd,
     0x7fe0, 0x8098, 0x83de, 0x84e2, MU_JT_BITMAP_LASER, MU_PT_BITMAP_SMOKE5, 0x8016, 0x806e, 0x8084, 0x8085, 0x7f8a, 0x7f21,
     0x7f54, 0x7f84, 0x7f38, 0x8021, 0x7f6b, 0x8087, 0x8089, 0x801e, 0x8184,
-    0x7ffd, 0x8081, 0x8082, 0x8083, 0x85fb, 0x8450, MU_PT_BITMAP_RAIN_SPLASH, MU_PT_BITMAP_RAIN_RING};
+    0x7ffd, 0x8081, 0x8082, 0x8083, 0x85fb, 0x8450, 0x810a, 0x7f73, 0x7f74, 0x7f75, MU_PT_BITMAP_RAIN_SPLASH,
+    MU_PT_BITMAP_RAIN_RING};
 static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     "Data/Effect/Fire01.OZJ", "Data/Effect/smoke01.OZJ", "Data/Effect/flare01.OZJ", "Data/Effect/Spark03.OZJ",
     "Data/Effect/Thunder01.OZJ", "Data/Effect/Spark02.OZJ", "Data/Effect/Shiny02.OZJ",
@@ -72,7 +73,10 @@ static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     /* RENDER-EFFECTS-010: arrows 0x615 / 0x617's particles, LoadBitmap 0x01821acf / 0x01821aef / 0x01821b0f
      * (lighting_mega01..03, LINEAR/REPEAT), 0x018267da (aura_0316_mono) and 0x01838af0 (Wind_smoke, LINEAR/CLAMP) */
     "Data/Effect/lighting_mega01.OZJ", "Data/Effect/lighting_mega02.OZJ", "Data/Effect/lighting_mega03.OZJ",
-    "Data/Effect/aura_0316_mono.OZJ", "Data/Effect/Wind_smoke.OZJ"};
+    "Data/Effect/aura_0316_mono.OZJ", "Data/Effect/Wind_smoke.OZJ",
+    /* RENDER-EFFECTS-010: the bows' pin_star03 0x810a (LoadBitmap 0x0182d4b5, LINEAR/CLAMP) and ArrowNature's
+     * leaves Skill\flower1..3.tga 0x7f73..0x7f75 (0x01834adb.., NEAREST/CLAMP) */
+    "Data/Effect/pin_star03.OZJ", "Data/Skill/flower1.OZT", "Data/Skill/flower2.OZT", "Data/Skill/flower3.OZT"};
 
 /* The world objects' effect models (AccessModel, static readings of the loaders): the Tormenta handler's
  * hs_fieldtornado (0x00e4c4de). */
@@ -210,7 +214,8 @@ static void load_bitmaps(mu_world_particles *p, const char *root, int no_assets)
         if (i < MU_WORLD_PT_EFFECTS) {
             /* LoadBitmap("Effect\\...", index, GL_LINEAR, GL_CLAMP) in the effect loader (0x01820f19 ...);
              * Impack03 0x7b78: GL_NEAREST in OpenCharacterSceneData (0x0182a6c2, static) */
-            t->filter[i] = bitmap_ids[i] == MU_PT_BITMAP_IMPACK03 ? 0x2600 : 0x2601;
+            t->filter[i] = bitmap_ids[i] == MU_PT_BITMAP_IMPACK03 ||
+                                   (bitmap_ids[i] >= 0x7f73 && bitmap_ids[i] <= 0x7f75) ? 0x2600 : 0x2601;
             t->wrap[i] = bitmap_ids[i] == 0x7f21 || bitmap_ids[i] == 0x84e2 ||
                          (bitmap_ids[i] >= 0x8081 && bitmap_ids[i] <= 0x8083) ? 0x2901 : 0x2900;
             snprintf(relative, sizeof relative, "%s", effect_files[i]);
