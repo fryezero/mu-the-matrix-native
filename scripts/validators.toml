@@ -2611,6 +2611,24 @@ args = ["--cases", "9000", "--mutations", "--game-root", "{game_root}", "--outpu
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
 
+[validate_worlds_after5]
+test = "reconstructed/objects/test_worlds_after5.py::WorldsAfter5Tests.test_original_instructions"
+pins = ["text", "data", "feature09"]
+families = ["set_action", "tick"]
+cases = 6000
+mutants = 29
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "3000", "--mutations", "--output", "{report}"]
+[validate_worlds_after5.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"families.set_action.cases" = 3000
+"families.tick.cases" = 3000
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0
+
 [validate_item_carry]
 test = "reconstructed/renderchar/test_item_carry.py::ItemCarry.test_original_instructions"
 pins = ["text", "data", "flag", "feature"]
