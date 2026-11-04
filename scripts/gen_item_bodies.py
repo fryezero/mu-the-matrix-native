@@ -851,22 +851,9 @@ def flat(d):
 # Part 13: immediate glColor3f/3fv/4f calls of the body join the draw stream as
 # COLOR records (kind, alpha, RGB read at call time) in call order. The native
 # raster keeps the current colour across draws, like GL.
-COLOUR_SLOTS = {0x1a7c76c: (1, 3), 0x1a7c770: (2, 1), 0x1a7c754: (3, 4)}
-
-
-def record_colours(world, tags=None):
-    m = world.m
-    for slot, (kind, count) in COLOUR_SLOTS.items():
-        def colour(m, kind=kind):
-            if kind == 2:
-                rgb, alpha = tuple(m.r32(m.arg(0) + 4 * k) for k in range(3)), v.f2u(1.0)
-            else:
-                rgb, alpha = tuple(m.arg(k) for k in range(3)), m.arg(3) if kind == 3 else v.f2u(1.0)
-            world.calls.append(('COLOR', v.colour_record(kind, alpha, rgb)))
-            if tags is not None:
-                tags.append(m.backtrace()[1])
-            return 0
-        m.stub(m.r32(slot), colour, 4 * count)
+# glColor3f/3fv/4f recorders (part 13) live in validate_renderchar, which compares them too.
+COLOUR_SLOTS = v.COLOUR_SLOTS
+record_colours = v.record_colours
 
 _sample_state = None
 _site_sink = None
