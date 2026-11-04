@@ -155,6 +155,8 @@ void mu_world_particles_close(mu_world_particles *p);
 
 /* The module's rand() (MSVC LCG). */
 int32_t mu_world_particles_rand(mu_world_particles *p);
+/* The table slot of LoadBitmap index `bitmap` (bitmaps.slots/filter/wrap/images), -1 when the table has none. */
+int32_t mu_world_particles_bitmap_slot(int32_t bitmap);
 
 /* CreateParticle 0x0168fafd(type, position, angle, light, subtype, scale,
  * owner NULL, 0). Returns 1 when kept. */

@@ -120,6 +120,11 @@ static int32_t slot_of(int32_t bitmap)
     return -1;
 }
 
+int32_t mu_world_particles_bitmap_slot(int32_t bitmap)
+{
+    return slot_of(bitmap);
+}
+
 int32_t mu_world_particles_rand(mu_world_particles *p)
 {
     p->rand_state = p->rand_state * 214013u + 2531011u;   /* rand() 0x01989721 */
