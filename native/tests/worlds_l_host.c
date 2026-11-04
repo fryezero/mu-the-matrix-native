@@ -63,11 +63,13 @@ int main(int argc,char **argv)
     assert(mu_world_particles_sprite(&p,0x7f6b,pos,1.2f,light,-1,0,0,4)>=0);
     assert(mu_world_particles_draw(&p,identity,&target)==8);
     assert(p.stats.drawn_particles==7&&p.stats.drawn_sprites==1&&vertices==48);
-    /* Old slots remain stable; the four new load-time registrations precede rain. */
+    /* The four load-time registrations (Shiny04, firehik_mono02, firehik_mono03, WATERFALL5) by their bitmap
+     * index, with the loader's sampling (RENDER-EFFECTS-010 appends slots after them). */
     const int sizes[][2]={{16,16},{32,32},{64,32},{128,128}};
-    for(int i=MU_WORLD_PT_BITMAPS-7;i<MU_WORLD_PT_BITMAPS-3;++i) {
-        assert(p.bitmaps.slots[i]&&p.bitmaps.filter[i]==0x2601&&p.bitmaps.wrap[i]==0x2900);
-        int n=i-(MU_WORLD_PT_BITMAPS-7);
+    const int ids[]={0x7f6b,0x8087,0x8089,0x801e};
+    for(int n=0;n<4;++n) {
+        int i=mu_world_particles_bitmap_slot(ids[n]);
+        assert(i>=0&&p.bitmaps.slots[i]&&p.bitmaps.filter[i]==0x2601&&p.bitmaps.wrap[i]==0x2900);
         assert(p.bitmaps.images[i].width==sizes[n][0]&&p.bitmaps.images[i].height==sizes[n][1]);
     }
     producers(argv[2]);

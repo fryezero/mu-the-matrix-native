@@ -110,8 +110,10 @@ enum {
     MU_SFX_CALL_BONE = 0x012b678d,            /* model TransformByObjectBone(out, o, bone (range), 0): env->bone answers */
     MU_SFX_CALL_KILL = 0x009b0451,            /* NATIVE-HELPERS-002: SetLive(o, 0)'s cleanup of the record (o = -2) */
     MU_SFX_CALL_ITEM_LINKS = 0x01295f18,      /* RENDER-EFFECTS-004: the item initialiser's +0x358 list reset (o = -2) */
-    MU_SFX_CALL_WALL = 0x016d34cd             /* RENDER-EFFECTS-004: TerrainWall[(y << 8) + x], unmasked index:
+    MU_SFX_CALL_WALL = 0x016d34cd,            /* RENDER-EFFECTS-004: TerrainWall[(y << 8) + x], unmasked index:
                                                  subtype = x, range = y; returns the attribute word */
+    MU_SFX_CALL_OWNER_FLAG = 0x014eca8b       /* RENDER-EFFECTS-010: the owner OBJECT's +0x64 (owner = the effect's
+                                                 owner): returns it, and sets it to 1 when it was 0 */
 };
 
 #define MU_SFX_EFFECTS 200
@@ -478,5 +480,26 @@ int mu_sfx_bow_sparks(int16_t weapon, int32_t object, int has_model, int32_t bon
 
 int mu_sfx_create_arrow(const mu_sfx_archer *a, const float position[3], const float angle[3], uint16_t skill,
                         uint16_t flag, uint16_t index, int32_t last, const mu_sfx_env *env, mu_sfx_arrow_effect *out);
+
+/* RENDER-EFFECTS-010: one RenderMeshDefault 0x00966e4a(mesh, flags, alpha, select, colour scale, u, v, texture)
+ * call of a render-registry functor, with the model colour +0x54 it sets before the call. */
+enum { MU_SFX_MESH_PASSES = 8 };
+typedef struct mu_sfx_mesh_pass {
+    int32_t mesh;
+    uint32_t flags;
+    float alpha;
+    int32_t select;
+    float color_scale, u, v;
+    int32_t texture;          /* -1: the mesh's own */
+    float color[3];
+} mu_sfx_mesh_pass;
+/* RENDER-EFFECTS-010: the render-registry functors of arrows 0x613..0x617 (registered at 0x00a13aeb..0x00a13b2f:
+ * 0x00a4269f, 0x00a42984, 0x00a42b8c, 0x00a42f55, 0x00a43160). RenderObject's draw 0x017edf43 hands these types
+ * to them instead of RenderBody. Each ticks the animation (0x012b4dd3; SetAction(o, 0) 0x012affa4 when it answers
+ * 0), then draws its meshes one by one with their own flags, blend mesh and colour, and restores the model colour.
+ * world_time is 0x06fce370 (0x615's sheet). Returns the number of passes written (0: not one of these types). */
+int mu_sfx_arrow_render_passes(const mu_sfx_effect *e, float world_time, mu_sfx_mesh_pass out[MU_SFX_MESH_PASSES]);
+/* The speed those functors give the tick 0x012b4dd3: the record's +0xbc, 0.003 for 0x614 (0x00a429be). */
+float mu_sfx_arrow_tick_speed(const mu_sfx_effect *e);
 
 #endif

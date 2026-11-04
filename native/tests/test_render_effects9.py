@@ -142,7 +142,7 @@ class BowSession(unittest.TestCase):
         self.assertEqual(summary['arrows'], 4)
         self.assertGreater(summary['sprites'], 0)
         self.assertEqual(summary['sprites'] % 9, 0)
-        self.assertEqual(sorted([k[0], k[1], k[2]] for k in kinds), [['p', 0x8450, 4], ['p', 0x85fb, 2]])
+        self.assertEqual(kinds, [])   # RENDER-EFFECTS-010: its 0x85fb/2 and 0x8450/4 trails are supported
         model = self.root/'Data/Skill/Imperial_arrow.bmd'
         saved = model.read_bytes()
         try:
