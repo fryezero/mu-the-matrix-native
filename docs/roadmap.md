@@ -246,6 +246,7 @@ RENDER-WORLDS-AFTER2 class custom/after slots (91, 113, 131..140, 142), slot bit
 RENDER-JOINTS-001 Kanturu/Uruk joint kinds and the StreamMesh consumer are implemented: [checks and remaining work](handoffs/RENDER-JOINTS-001.md).
 RENDER-WORLDS-AFTER3 class custom/after slots of 133, 141, 143, 144, 145 and their bitmaps are implemented: [checks and remaining work](handoffs/RENDER-WORLDS-AFTER3.md).
 RENDER-WORLDS-AFTER4 draw-first predicate, render-time terrain light and action key proof are implemented: [checks and remaining work](handoffs/RENDER-WORLDS-AFTER4.md).
+RENDER-WORLDS-AFTER5 action registry data source (MapObjectAnimationInfo) and its SetAction/tick handlers are implemented: [checks and remaining work](handoffs/RENDER-WORLDS-AFTER5.md).
 RENDER-WORLDS-Q2 Ferea visual, class draw-first slot 0x10 of 134..145 and the live-clock tour are implemented: [checks and remaining work](handoffs/RENDER-WORLDS-Q2.md).
 
 RENDER-WORLDS-G3 Abyss 2 swimmers' blend mesh and Vulcanus' clouds 0xb haze are implemented; the Deep Dungeon dragon fire producer is identified: [checks and remaining work](handoffs/RENDER-WORLDS-G3.md).
