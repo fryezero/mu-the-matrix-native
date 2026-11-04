@@ -45,6 +45,8 @@ struct mu_world_raven;
 struct mu_world_pets;
 
 enum { MU_WH_EFFECT_BASE = 0x10000000 };
+/* RENDER-EFFECTS-010: a pet's OBJECT as a particle owner is MU_WH_PET_BASE + the pet's key (mu_world_pets). */
+enum { MU_WH_PET_BASE = 0x18000000 };
 int32_t mu_world_helpers_effect_id(struct mu_world_helpers *w, const mu_hp_object *object);
 
 enum { MU_WH_OWNERS = 9, MU_WH_MODELS = 16 };
