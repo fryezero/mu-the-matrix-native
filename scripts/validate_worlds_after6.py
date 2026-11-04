@@ -29,6 +29,7 @@ rand). All OBJECT bytes, the tick's return value and the rand sequence are compa
 0x0bdc58c8 / 0x0bdc58e4 the client writes are not native state and are not compared.
 """
 import argparse
+import atexit
 import ctypes as C
 import hashlib
 import json
@@ -78,7 +79,9 @@ def build(root, scene_source=None):
     subprocess.run(['make', '-s', '-C', str(root / 'particles')], check=True)
     lib = bind(root / 'objects' / ('libobjects.' + v.SUFFIX))
     lib.particles = vp.load_library(root / 'particles' / ('libclient_particles.' + v.SUFFIX))
-    lib.scene = scene_library(root / 'objects', scene_source or ROOT / 'native/core/mu_effect_scene.c')
+    scratch = tempfile.mkdtemp(prefix='worlds-after6-scene-')
+    atexit.register(shutil.rmtree, scratch, True)
+    lib.scene = scene_library(scratch, scene_source or ROOT / 'native/core/mu_effect_scene.c')
     return lib
 
 
