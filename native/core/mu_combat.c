@@ -1050,8 +1050,6 @@ static void move_pools(mu_combat *c)
         if (c->effects[i].live && !mu_sfx_effect_move(&c->effects[i], &c->env))
             c->effects[i].live = 0;   /* an unsupported kind ends at once */
     for (int i = 0; i < MU_SFX_EFFECTS; ++i)
-        arrow_tick(c, &c->effects[i]);
-    for (int i = 0; i < MU_SFX_EFFECTS; ++i)
         effect_object(c, &c->effects[i]);   /* MoveJoints reads the arrows after MoveEffects (RENDER-EFFECTS-009) */
     c->jenv.serial = c->serial;
     mu_joints_move_all(c->joints, MU_SFX_JOINTS, &c->jenv, c->time_step, joint_inputs, c);
@@ -1715,7 +1713,8 @@ static int32_t model_slot(const mu_combat *c, int32_t type)
 }
 
 /* RENDER-EFFECTS-010: the render-registry functors of 0x613..0x617 tick the arrow's animation (0x012b4dd3) each
- * time they draw it; the native ticks once per logic step, with the loop of MU_SFX_CALL_ANIMATION (inference). */
+ * time they draw it, with the loop of MU_SFX_CALL_ANIMATION (inference). RENDER-EFFECTS-011: the native ticks there
+ * too, once per drawn frame in mu_combat_draw_models, as the client (it ticked once per logic step before). */
 static void arrow_tick(mu_combat *c, mu_sfx_effect *e)
 {
     mu_sfx_mesh_pass passes[MU_SFX_MESH_PASSES];
@@ -1800,6 +1799,7 @@ int32_t mu_combat_draw_models(mu_combat *c, mu_combat_model_fn draw, void *conte
         }
         p.body_scale = e->type == MU_SFX_TWISTING_SWIRL ? 1.0f : e->scale;
         mu_model_apply_params(&m->model, &p);
+        arrow_tick(c, e);   /* RENDER-EFFECTS-011: the functor's tick before its passes (0x00a4269f..) */
         int32_t keys = m->bmd.action_count > 0 ? m->bmd.actions[0].keys : 1;
         float frame = e->frame;
         if (keys > 0 && frame >= (float)keys)
