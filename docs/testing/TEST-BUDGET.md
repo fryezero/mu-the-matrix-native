@@ -96,4 +96,13 @@ capture them in the cached value and replay them, as `gen_item_bodies._original`
 
 ## Timings
 
-{{TIMINGS}}
+| Check | Before | After | How |
+|---|---|---|---|
+| `validate_item_continuation` (25,772 cases, 9 mutants) | 867.7 s (mutants, no cache) | 719.9 s `--no-mutants` cold cache · **23.1 s** `--no-mutants` warm · 30.1 s mutants warm | reports byte-identical; warm mutant run catches all 9 with the same counts |
+| `validate_item_ranked` (17,736 cases, 6 mutants) | 687.5 s | 97.3 s first `--cache` run (generator cache already warm) · **27.2 s** mutants warm · 23.3 s `--no-mutants` warm | byte-identical |
+| `validate_item_expansion` (52,172 cases, 7 mutants) | 822.4 s | 228.4 s first `--cache` run · **30.0 s** mutants warm · 23.1 s `--no-mutants` warm | byte-identical |
+| Other 9 rows sharing the generator (clusters, chains, next, gear, coverage, scalars, carry, wings_next, quality) | ~11–15 min each (same 800–960 s generator) | {{OTHER_ITEM}} | first `--cache` run, generator cache warm |
+| Validator rows a lane reruns | all nearby rows, with mutants | `--affected`: 0–94 of 170 rows on the last 12 merged PRs (median 62), without mutants | selection only, below |
+| `make test` work items a lane runs | 154 items, 321 s serial (orchestrator's measurement) | `--affected`: {{SUITES}} | estimate from recorded per-item times |
+| Full gate (`local-macos-ci.sh`) | {{GATE_BEFORE}} | {{GATE_AFTER}} | steward only |
+
