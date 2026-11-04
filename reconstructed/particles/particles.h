@@ -133,6 +133,9 @@ typedef struct mu_pt_host {
     void (*sound)(void *context, int32_t id);
     void (*light)(void *context, float x, float y, const float rgb[3], int32_t range);
     float wind_sum[3];      /* MoveParticles list +0x14..+0x1c, flare drift */
+    /* RENDER-EFFECTS-011: the owner OBJECT's live byte +0x00 (0x0095f977; firehik03/0x11 dies with its owner).
+     * NULL: every owner is live. */
+    int (*owner_live)(void *context, int32_t owner);
 } mu_pt_host;
 
 /* 1 when CreateParticle, MoveParticles and RenderParticles are reconstructed

@@ -150,6 +150,7 @@ HEIGHT_FN = ctypes.CFUNCTYPE(ctypes.c_float, ctypes.c_void_p, ctypes.c_float, ct
 OWNER_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int32, ctypes.POINTER(ctypes.c_float))
 CLOUD_OWNER_FN = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_int32, ctypes.c_int)
 BITMAP_HEIGHT_FN = ctypes.CFUNCTYPE(ctypes.c_float, ctypes.c_void_p, ctypes.c_int32)
+OWNER_LIVE_FN = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_int32)
 
 
 class Particle(ctypes.Structure):
@@ -170,7 +171,8 @@ class Host(ctypes.Structure):
     _fields_ = [('context', ctypes.c_void_p), ('rand', RAND_FN), ('terrain_height', HEIGHT_FN),
                 ('owner_position', OWNER_FN), ('world', ctypes.c_int32), ('world_time', ctypes.c_float),
                 ('frame_time', ctypes.c_float), ('drop_divisor', ctypes.c_int32), ('scene_state', ctypes.c_int32),
-                ('bitmap_height', BITMAP_HEIGHT_FN), ('cloud_owner', CLOUD_OWNER_FN), ('sound', SOUND_FN), ('light', LIGHT_FN), ('wind_sum', F3)]
+                ('bitmap_height', BITMAP_HEIGHT_FN), ('cloud_owner', CLOUD_OWNER_FN), ('sound', SOUND_FN), ('light', LIGHT_FN), ('wind_sum', F3),
+                ('owner_live', OWNER_LIVE_FN)]   # RENDER-EFFECTS-011
 
 
 class Bitmap(ctypes.Structure):
