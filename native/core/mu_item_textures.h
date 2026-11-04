@@ -82,7 +82,8 @@ int32_t mu_item_textures_type_of_path(const mu_data_table *items, const char *ga
 int32_t mu_item_textures_overrides(int32_t type, const mu_data_table *items, int32_t *out, int32_t capacity);
 
 /* The LoadBitmap registration of a client bitmap index: path relative to Data ("Item\texture\x.jpg"), filter and
- * wrap. Returns 0 when the index is not in the item table. */
+ * wrap of the bitmap the index holds after the startup loader (RENDER-ITEMS-TEX-003: every startup LoadBitmap call,
+ * immediate and computed, replayed through 0x00c97730's rule, mu_it_registration). Returns 0 when it holds none. */
 int mu_item_bitmap_registration(int32_t index, const char **path, uint32_t *filter, uint32_t *wrap);
 
 #endif

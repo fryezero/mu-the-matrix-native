@@ -89,6 +89,43 @@ class ManifestTests(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 lang.main([str(source), '--out', str(output), '--main-exe', str(self.client)])
 
+    def test_mapanim_step_is_recorded_after_the_lang_export(self):
+        # NATIVE-DATA-MANIFEST-001: the pinned live-read table joins a published lang export as one more step.
+        sys.path.insert(0, str(NATIVE.parent/'scripts'))
+        import native_data_manifest as manifest
+        import live_lang_to_plain as lang
+        import build_native_data_export as export
+        from test_native_lang import synthetic_snapshot
+        source = self.base/'snapshot'
+        source.write_bytes(synthetic_snapshot())
+        output = self.base/'exported-lang'
+        table = self.base/'mapanim.tsv'
+        table.write_text('# authored\n#world\ttype\taction\tspeed\thandler\tparam\textra\n'
+                         '9\t1\t0\t0.5\t2\t0\t2,5,1\n9\t1\t1\t1e-05\t1\t0\t0\n12\t3\t0\t-0.25\t0\t300\t-\n')
+        pin = {'sha256': hashlib.sha256(table.read_bytes()).hexdigest(), 'step': 'mapanim-v1-live-read-2026-11-04',
+               'rows': 3, 'worlds': 2}
+        with patch.object(manifest, 'TOOL', self.tool):
+            self.assertEqual(lang.main([str(source), '--out', str(output), '--main-exe', str(self.client)]), 0)
+            before = (output/'native-data.manifest').read_text()
+            for bad in (dict(pin, sha256='0'*64), dict(pin, rows=4)):
+                with self.assertRaises(SystemExit):
+                    export.add_mapanim(output, table, self.client, bad)
+                self.assertFalse((output/'mapanim.tsv').exists())
+            self.assertEqual(export.add_mapanim(output, table, self.client, pin), {'mapanim_rows': 3, 'mapanim_worlds': 2})
+            text = (output/'native-data.manifest').read_text()
+            self.assertIn('producer lang-export-v1-mapanim-v1-live-read-2026-11-04\n', text)
+            self.assertIn(f'input {pin["sha256"]} {table.stat().st_size} 1/0/mapanim.tsv\n', text)
+            self.assertIn(f'file {pin["sha256"]} {table.stat().st_size} mapanim.tsv\n', text)
+            self.assertIn(next(r for r in before.splitlines() if r.startswith('input ')), text)   # earlier provenance
+            manifest.run('check', output, self.client)
+            with self.assertRaises(SystemExit):                                                # only once
+                export.add_mapanim(output, table, self.client, pin)
+        malformed = '9\t1\t0\t0.5\t2\t0\n'
+        with self.assertRaises(SystemExit):
+            export.mapanim_rows(malformed)
+        with self.assertRaises(SystemExit):
+            export.mapanim_rows('9\t1\t0\tfast\t2\t0\t-\n')
+
     def test_mismatch_build_and_installed_client(self):
         self.manifest.write_text(self.manifest.read_text().replace(TEST_PIN, '0'*64, 1))
         self.check(False)

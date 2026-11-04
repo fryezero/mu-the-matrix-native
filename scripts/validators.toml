@@ -2069,6 +2069,20 @@ args = ["--cases", "2", "--mutations", "--output", "{report}"]
 all_equal = true
 all_mutants_caught = true
 
+[validate_render_effects10]
+test = "native/tests/test_render_effects10.py::ClientComparison.test_original_instructions_and_compiled_mutants"
+pins = ["text", "data"]
+families = ["pets_create", "pets_move", "pets_render", "arrows_create", "arrows_move", "arrows_render", "bows_create", "bows_move", "bows_render", "functor", "arc_create", "ground_move"]
+cases = 154
+mutants = 54
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/combat", "reconstructed/particles"]
+args = ["--cases", "2", "--mutations", "--output", "{report}"]
+[validate_render_effects10.expect]
+all_equal = true
+all_mutants_caught = true
+
 [validate_map_effects]
 test = "native/tests/test_native_map_effects.py::MapEffectsHost.test_original_instructions_and_compiled_mutants"
 pins = ["text", "data"]
@@ -2461,9 +2475,9 @@ args = ["--cases", "1000", "--mutations", "--output", "{report}"]
 [validate_item_textures]
 test = "reconstructed/objects/test_item_texture.py::ItemTextureTests.test_original_instructions"
 pins = ["text", "data", "section3"]
-families = ["item_open", "registrations", "startup_names", "part_skin", "skin_bitmap"]
-cases = 5965
-mutants = 22
+families = ["item_open", "registrations", "startup_names", "part_skin", "skin_bitmap", "reregister"]
+cases = 10598
+mutants = 31
 cases_at = "families.*.cases"
 mutants_at = "mutants"
 build = ["reconstructed/objects"]
@@ -2603,6 +2617,24 @@ args = ["--cases", "9000", "--mutations", "--game-root", "{game_root}", "--outpu
 "families.*.stopped" = 0
 "families.draw_first.cases" = 9000
 "families.action_keys.cases" = 181
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0
+
+[validate_worlds_after5]
+test = "reconstructed/objects/test_worlds_after5.py::WorldsAfter5Tests.test_original_instructions"
+pins = ["text", "data", "feature09"]
+families = ["set_action", "tick"]
+cases = 6000
+mutants = 29
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "3000", "--mutations", "--output", "{report}"]
+[validate_worlds_after5.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"families.set_action.cases" = 3000
+"families.tick.cases" = 3000
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
 

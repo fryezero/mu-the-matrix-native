@@ -116,6 +116,9 @@ RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.
 # RENDER-EFFECTS-008: the map-object effect table and its attach 0x0183067e
 CORE_SRC += core/mu_map_effects.c
 RECON_SRC += $(RECON)/objects/map_effects.c
+# RENDER-WORLDS-AFTER5: the object action registry 0x01ec7d5c and its MapObjectAnimationInfo rows
+CORE_SRC += core/mu_objects_anim.c
+RECON_SRC += $(RECON)/objects/action_registry.c
 CORE_OBJ := $(patsubst %.c,$(BUILD)/%.o,$(CORE_SRC))
 RECON_OBJ := $(patsubst $(RECON)/%.c,$(BUILD)/recon/%.o,$(RECON_SRC))
 MODULUS_OBJ := $(BUILD)/modulus.o
@@ -634,6 +637,10 @@ $(BUILD)/icarus-host: tests/icarus_host.c $(LIB) $(HEADERS)
 $(BUILD)/render-light-host: tests/render_light_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/render-light-host.o
 	$(CXX) $(BUILD)/render-light-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+
+$(BUILD)/anim-host: tests/anim_host.c $(LIB) $(HEADERS)
+	$(CC) $(CFLAGS) -c $< -o $(BUILD)/anim-host.o
+	$(CXX) $(BUILD)/anim-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
 
 $(BUILD)/worlds-e-host: tests/worlds_e_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-e-host.o

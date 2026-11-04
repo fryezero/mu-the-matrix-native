@@ -130,6 +130,9 @@ KINDS = [(0x7ef7, 1)] + [(0x7f3c, s) for s in (0, 1, 2, 3, 4, 5, 6, 17)] + [(0x7
                                                             # NATIVE-HELPERS-002: the helpers' kinds
                                                             (0x7f25, 1), (0x7f5b, 0), (0x7f5e, 0), (0x7fcd, 0), (0x7f26, 0xf), (0x831d, 6), (0x83b3, 6),
                                                             (0x8086, 0x13), (0x8086, 0x18), (0x7f26, 0x2a), (0x7f5a, 0x7f), (0x7f5a, 0x75)]
+# Kinds whose create and move read the owner OBJECT unconditionally (a NULL owner faults in the client); the
+# create and move families give them owner 0 (RENDER-EFFECTS-010: the Skeleton pet's firehik_mono flames).
+OWNED_KINDS = set()
 BITMAP_RECORD_GET = 0x00ebbec8   # the bitmap record by index (this = 0x0bdc5f00), smoke02's height (NATIVE-HELPERS-002)
 STATE_BLEND = 0x0184abd5         # (SRC_ALPHA, ONE_MINUS_SRC_ALPHA), smoke02's render (NATIVE-HELPERS-002)
 
@@ -536,7 +539,7 @@ def family_create(m, lib, rng, cases, report, negatives):
         light = [rf(rng, 0.0, 1.5) for _ in range(3)]
         scale = f32(rng.choice([1.0, 1.0, 0.5, 2.0, 4.0, rf(rng, 0.1, 8.0)]))
         arg8 = rng.randrange(-2**31, 2**31)
-        owner = 0 if kind[0] == 0x7f89 and kind[1] < 6 else rng.choice([-1, -1, 0])
+        owner = 0 if (kind[0] == 0x7f89 and kind[1] < 6) or kind in OWNED_KINDS else rng.choice([-1, -1, 0])
         world = rng.choice([0, 2, 0x22, 0x8d, 0x8b, 0x5d])
         world_time = f32(rng.choice([0.0, 39.0, 123456.0, rng.uniform(0, 3.0e6)]))
         scene = rng.choice([6, 5, 5, 3])
@@ -677,7 +680,7 @@ def family_move(m, lib, rng, cases, report, negatives):
     for n in range(cases):
         kind = KINDS[n % len(KINDS)]
         p = random_particle(rng, kind)
-        if kind[0] == 0x7f89 and kind[1] < 6: p.owner = 0
+        if (kind[0] == 0x7f89 and kind[1] < 6) or kind in OWNED_KINDS: p.owner = 0
         world = rng.choice([0, 0x22, 0x8d, 2])
         dt = f32(rng.choice([0.1, 0.1, rf(rng, 0.0, 2.0)]))
         case = Case(rng, height=rng.uniform(-50, 400), owners=[[rf(rng, 0, 25600), rf(rng, 0, 25600), 150.0]])
