@@ -1,7 +1,8 @@
 /* RENDER-EFFECTS-008: the map-object effect table through the production loader (mu_map_effects), the attach
  * 0x0183067e and the objects runtime's per-frame update. argv[1]: an authored 21-bone model; argv[2]: a game root
  * whose Data/Effect holds synthetic fxa.ein and fxb.ein; argv[3]: a lang directory with a synthetic
- * mapeffects.tsv (test_native_map_effects.py writes all three). */
+ * mapeffects.tsv (test_native_map_effects.py writes all three). RENDER-WORLDS-AFTER6: "primed" counts the links whose
+ * instance holds 0x0129f4cb's external matrix (mu_effect_prime_matrix of its object) right after the attach. */
 #include "../core/mu_map_effects.h"
 #include "../core/mu_objects.h"
 #include "../core/mu_particles.h"
@@ -69,9 +70,19 @@ static void world(const mu_map_effects *table, const char *root, int id, const p
     mu_map_effects_attach_world(table, id, o, &p, &stats);
     printf("{\"world\": %d, \"cleared\": %ld, \"requested\": %ld, \"invalid\": %ld, \"attached\": %ld, \"primed\": %ld,"
            " \"links\": [", id, stats.cleared, stats.requested, stats.invalid, stats.attached, stats.primed);
-    for (int32_t q = 0; q < p.ein_link_count; ++q)
+    int primed = 0;
+    for (int32_t q = 0; q < p.ein_link_count; ++q) {
         printf("%s[%d, %d, %d, %d, %.1f]", q ? ", " : "", p.ein_links[q].object, p.ein_links[q].bone,
                p.ein_links[q].follow, p.ein_links[q].timed, (double)p.ein_links[q].template_scale);
+        const mu_effect_instance *inst = &p.ein->instances[p.ein_links[q].instance];
+        const uint8_t *img = mu_objects_object_image(o, p.ein_links[q].object);
+        float expect[16];
+        mu_effect_prime_matrix(expect, p.ein_links[q].follow, (const float *)(const void *)(img + MU_OBJF_ANGLE),
+                               (const float *)(const void *)(img + MU_OBJF_POSITION), mu_obj_f32(img, MU_OBJF_SCALE));
+        primed += inst->has_external && !memcmp(inst->external, expect, sizeof expect) &&
+                  inst->fx.scale == p.ein_links[q].template_scale;   /* the dt-0 update keeps the template scale */
+    }
+    printf("], \"primed_external\": %d", primed);
     run(o, n, &p, STEPS);
     int external = 0, visible = 0;
     for (int32_t q = 0; q < p.ein_link_count; ++q) {
@@ -79,7 +90,7 @@ static void world(const mu_map_effects *table, const char *root, int id, const p
         external += inst->has_external;
         visible += inst->owner.visible;
     }
-    printf("], \"updates\": %llu, \"unposed\": %llu, \"external\": %d, \"owner_visible\": %d, \"instances\": %u}\n",
+    printf(", \"updates\": %llu, \"unposed\": %llu, \"external\": %d, \"owner_visible\": %d, \"instances\": %u}\n",
            (unsigned long long)p.ein_updates, (unsigned long long)p.ein_unposed, external, visible,
            p.ein ? p.ein->instance_count : 0u);
     o->records = NULL;

@@ -2618,18 +2618,19 @@ args = ["--cases", "3000", "--mutations", "--output", "{report}"]
 [validate_worlds_after6]
 test = "reconstructed/objects/test_worlds_after6.py::WorldsAfter6Tests.test_original_instructions"
 pins = ["text", "data", "feature09"]
-families = ["hover", "camera"]
-cases = 6000
-mutants = 27
+families = ["hover", "camera", "sprite_visible"]
+cases = 6300
+mutants = 28
 cases_at = "families.*.cases"
 mutants_at = "mutants"
-build = ["reconstructed/objects"]
+build = ["reconstructed/objects", "reconstructed/particles"]
 args = ["--cases", "3000", "--mutations", "--output", "{report}"]
 [validate_worlds_after6.expect]
 "families.*.mismatch_count" = 0
 "families.*.stopped" = 0
 "families.hover.cases" = 3000
 "families.camera.cases" = 3000
+"families.sprite_visible.cases" = 300
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
 

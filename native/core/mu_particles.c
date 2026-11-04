@@ -1614,6 +1614,36 @@ static void o_ein_attach(void *c, int32_t object, const char *path, const float 
     mu_world_particles_ein_link(p, object, instance, bone, follow, timed, lifetime);
 }
 
+/* The owner fields the node update reads from the object (+5, +6, +0x2a, +0x38, +0xd0, +0x1e8). */
+static void ein_owner(mu_effect_instance *inst, const uint8_t *img)
+{
+    inst->owner.flag5 = img[5];
+    inst->owner.flag6 = img[6];
+    inst->owner.action = mu_obj_u16(img, MU_OBJF_ACTION);
+    inst->owner.visible = img[0x38];
+    inst->owner.frame = mu_obj_f32(img, MU_OBJF_FRAME);
+    memcpy(inst->owner.tint, img + 0x1e8, sizeof inst->owner.tint);
+}
+
+void mu_world_particles_ein_prime(mu_world_particles *p, int32_t object, const uint8_t *img)
+{
+    if (!p->ein || !img)
+        return;
+    float angle[3], position[3];
+    memcpy(angle, img + MU_OBJF_ANGLE, sizeof angle);
+    memcpy(position, img + MU_OBJF_POSITION, sizeof position);
+    for (int32_t k = 0; k < p->ein_link_count; ++k) {
+        if (!p->ein_links[k].live || p->ein_links[k].object != object)
+            continue;
+        mu_effect_instance *inst = &p->ein->instances[p->ein_links[k].instance];
+        ein_owner(inst, img);
+        float m[16];
+        mu_effect_prime_matrix(m, p->ein_links[k].follow, angle, position, mu_obj_f32(img, MU_OBJF_SCALE));
+        mu_effect_scene_attach(p->ein, (uint32_t)p->ein_links[k].instance, m);
+        mu_effect_scene_update_one(p->ein, (uint32_t)p->ein_links[k].instance, 0.0f);
+    }
+}
+
 /* 0x0129f671(dt) for one object: timed records lose dt and leave the list at zero or below (their effect is
  * no longer updated or drawn); each effect takes template scale x object scale (+0xa0), the owner fields
  * (+5, +6, +0x2a, +0x38, +0xd0, +0x1e8) and an external matrix, then its node update. Following bone b of a
@@ -1640,12 +1670,7 @@ static void o_ein_update(void *c, int32_t object, const uint8_t *img, const floa
             }
         }
         inst->fx.scale = p->ein_links[k].template_scale * mu_obj_f32(img, MU_OBJF_SCALE);
-        inst->owner.flag5 = img[5];
-        inst->owner.flag6 = img[6];
-        inst->owner.action = mu_obj_u16(img, MU_OBJF_ACTION);
-        inst->owner.visible = img[0x38];
-        inst->owner.frame = mu_obj_f32(img, MU_OBJF_FRAME);
-        memcpy(inst->owner.tint, img + 0x1e8, sizeof inst->owner.tint);
+        ein_owner(inst, img);
         const int32_t bone = p->ein_links[k].bone;
         float m[16];
         if (p->ein_links[k].follow && bone >= 0) {

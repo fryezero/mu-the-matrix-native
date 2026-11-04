@@ -150,6 +150,7 @@ class WorldsAfter6Tests(unittest.TestCase):
             result = json.loads(report.read_text())
             self.assertEqual(result['families']['hover']['cases'], 3000)
             self.assertEqual(result['families']['camera']['cases'], 3000)
+            self.assertEqual(result['families']['sprite_visible']['cases'], 300)
             self.assertTrue(all(r['cases'] == r['equal'] and r['stopped'] == 0 for r in result['families'].values()))
             self.assertEqual(len(result['mutants']), len(wa6.MUTATIONS))
             self.assertTrue(all(m['detected'] > 0 and m['stopped'] == 0 for m in result['mutants']))

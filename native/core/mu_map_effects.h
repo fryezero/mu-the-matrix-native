@@ -37,8 +37,9 @@ void mu_map_effects_free(mu_map_effects *table);
 
 /* 0x0183067e for the objects of world (the world loaders run it after the map objects exist): the objects'
  * effect lists are cleared and the table's entries created through the particle module's EffectManager scene
- * and attached (the RENDER-EFFECTS-006 records, updated each frame after RenderObjectVisual). 0x0129f4cb's
- * first update (dt 0) is left to that first per-frame update, which runs before the first draw. */
+ * and attached (the RENDER-EFFECTS-006 records, updated each frame after RenderObjectVisual). After each found
+ * object's entries, 0x0129f4cb's dt-0 update runs on its records (RENDER-WORLDS-AFTER6,
+ * mu_world_particles_ein_prime). */
 void mu_map_effects_attach_world(const mu_map_effects *table, int32_t world, struct mu_objects *objects,
                                  struct mu_world_particles *particles, mu_map_effects_stats *stats);
 

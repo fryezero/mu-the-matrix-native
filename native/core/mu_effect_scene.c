@@ -219,6 +219,14 @@ void mu_effect_object_world_matrix(float out[16], const float angle[3], const fl
     out[14] = position[2];
 }
 
+void mu_effect_prime_matrix(float out[16], int follow, const float angle[3], const float position[3], float scale)
+{
+    if (follow)
+        mu_effect_object_world_matrix(out, angle, position, scale);
+    else
+        mu_effect_object_matrix(out, position, scale);
+}
+
 void mu_effect_scene_update(mu_effect_scene *s, float dt)
 {
     for (uint32_t i = 0; i < s->instance_count; ++i) {

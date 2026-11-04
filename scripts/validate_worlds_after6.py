@@ -13,6 +13,14 @@ camera: tick handler 8 (0x00ce23ad). With exactly seven extras the segment Camer
 the object's box, turned by 0x0185c113 (sin/cos 0x009681bd/0x009fa223) and placed: FaceNormalize 0x00d01206,
 CollisionDetectLineToFace 0x0184f96c with InsideTest 0x018506bc after 0x0184f957. A face hit sets +0xd8 = 0.1,
 a miss 1.0.
+sprite_visible: 0x01692887 (thiscall on the sprite array 0x0a3da070) against mu_pt_sprites_mark_visible
+(reconstructed/particles): over the 1000 records of 0x3d8 bytes, +0xb = 1 where the byte +0 (0x0095f977) is not 0.
+It has no frustum test of its own (SPRITE-DRAW-001 named one as left).
+prime: 0x0129f4cb (thiscall on a map object), the dt-0 update the attach 0x0183067e runs once per object after its
+table entries: over the object's +0x3d0 std::list (MSVC nodes; record +0 effect, +0x10 follow), the node update
+0xa75708(0.0, external matrix, object) of every effect (stubbed and recorded), the matrix being 0x0129faee's world
+matrix for a following record and the scale (+0xa0) / position (+0x158) matrix otherwise. Native: the matrix of
+mu_effect_prime_matrix (native/core/mu_effect_scene.c, its text compiled alone with the two matrices it calls).
 live_rows (private, --lang-dir): every handler 8 row of the local mapanim.tsv (world 145) in its world's table,
 over camera/hero placements around the object.
 
@@ -33,16 +41,21 @@ import tempfile
 import actor_machine as am
 import validate_object_render as v
 import validate_worlds_after5 as a5
+import validate_particles as vp
 import pins
 
 ROOT = Path(__file__).resolve().parents[1]
 VIEW, VIEW_BYTES = 0x0bdc5800, 0x400
 MOUSE_START, MOUSE_END, CAMERA = 0x0bdc5984, 0x0bdc5990, 0x0bdc5ab4
 NEAREST = 0x0bdc58c8
+MARK_VISIBLE, SPRITES, SPRITE_BYTES = 0x01692887, 0x0a3da070, 0x3d8
+PRIME, NODE_UPDATE, PRIME_OBJECT, PRIME_LIST = 0x0129f4cb, 0x00a75708, 0x22000000, 0x23000000
 OBB = 0x31c
 BODIES = {'tick_4': (0x00ce1947, 0x00ce1b61), 'tick_6': (0x00ce1e4b, 0x00ce20c2), 'tick_8': (0x00ce23ad, 0x00ce2ee2),
           'line_face': (0x0184f96c, 0x018500bf), 'segment_box': (0x018500bf, 0x0185038d),
-          'axis': (0x01850d88, 0x01851174), 'turn': (0x0185c113, 0x0185c354), 'face_normal': (0x00d01206, 0x00d014c9)}
+          'axis': (0x01850d88, 0x01851174), 'turn': (0x0185c113, 0x0185c354), 'face_normal': (0x00d01206, 0x00d014c9),
+          'mark_visible': (0x01692887, 0x016928cd), 'live': (0x0095f977, 0x0095f986),
+          'prime': (0x0129f4cb, 0x0129f671), 'world_matrix': (0x0129faee, 0x0129fbaa)}
 
 FPTR = C.POINTER(C.c_float)
 
@@ -59,10 +72,14 @@ def bind(path):
     return lib
 
 
-def build(root):
+def build(root, scene_source=None):
     import subprocess
     subprocess.run(['make', '-s', '-C', str(root / 'objects')], check=True)
-    return bind(root / 'objects' / ('libobjects.' + v.SUFFIX))
+    subprocess.run(['make', '-s', '-C', str(root / 'particles')], check=True)
+    lib = bind(root / 'objects' / ('libobjects.' + v.SUFFIX))
+    lib.particles = vp.load_library(root / 'particles' / ('libclient_particles.' + v.SUFFIX))
+    lib.scene = scene_library(root / 'objects', scene_source or ROOT / 'native/core/mu_effect_scene.c')
+    return lib
 
 
 # ---------------------------------------------------------------- the client side
@@ -375,9 +392,134 @@ def live_rows(machine, registry, lib, g, lang_dir, per_row):
     return tally
 
 
+# ---------------------------------------------------------------- sprite_visible
+
+def sprite_visible(machine, lib, g, cases):
+    tally = v.Tally('sprite_visible')
+    for n in range(cases):
+        density = g.choice([0.0, 0.01, 0.3, 0.9, 1.0])
+        live = [g.choice([1, 1, 1, 2, 0x80, 0xff]) if g.random() < density else 0 for _ in range(1000)]
+        visible = [g.choice([0, 1, 0, 7]) for _ in range(1000)]
+        data = bytearray(am.poison(SPRITE_BYTES * 1000, 0x27))
+        for i in range(1000):
+            data[i * SPRITE_BYTES] = live[i]
+            data[i * SPRITE_BYTES + 0xb] = visible[i]
+        r = v.run(machine, MARK_VISIBLE, [], v.global_regions(0, 6, [am.defined_region('sprites', SPRITES, bytes(data))]),
+                  {}, ecx=SPRITES)
+        stop = v.stopped_reason(r)
+        if stop:
+            tally.add(False, {'case': n}, stop)
+            continue
+        sp = vp.Sprites()
+        for i in range(1000):
+            sp.records[i].live, sp.records[i].visible = live[i], visible[i]
+        lib.particles.mu_pt_sprites_mark_visible(C.byref(sp))
+        out = r['regions']['sprites']
+        client_visible = [out[i * SPRITE_BYTES + 0xb] for i in range(1000)]
+        native_visible = [sp.records[i].visible for i in range(1000)]
+        others = bytes(out[k] for k in range(len(out)) if k % SPRITE_BYTES != 0xb) == \
+            bytes(data[k] for k in range(len(data)) if k % SPRITE_BYTES != 0xb)
+        tally.count('live', sum(1 for x in live if x))
+        tally.count('raised', sum(1 for a, b in zip(visible, client_visible) if a != b))
+        diff = [i for i in range(1000) if client_visible[i] != native_visible[i]]
+        tally.add(not diff and others, {'case': n, 'diff': diff[:8], 'others': others})
+    return tally
+
+
+# ---------------------------------------------------------------- prime
+
+SCENE_FUNCTIONS = ('void mu_effect_object_matrix(', 'void mu_effect_object_world_matrix(', 'void mu_effect_prime_matrix(')
+
+
+def scene_library(directory, source):
+    """The three matrix functions of native/core/mu_effect_scene.c, their text compiled alone."""
+    import subprocess
+    text = Path(source).read_text()
+    bodies = []
+    for head in SCENE_FUNCTIONS:
+        start = text.index(head)
+        bodies.append(text[start:text.index('\n}\n', start) + 3])
+    body = '\n'.join(bodies)
+    tag = hashlib.sha256(body.encode()).hexdigest()[:12]
+    src = Path(directory) / ('prime_' + tag + '.c')
+    src.write_text('#include <math.h>\n#include <string.h>\n' + body)
+    out = Path(directory) / ('prime_' + tag + '.' + v.SUFFIX)
+    subprocess.run(['clang', '-std=c11', '-O2', '-fPIC', '-ffp-contract=off', '-fno-fast-math', '-shared', str(src),
+                    '-lm', '-o', str(out)], check=True, capture_output=True)
+    lib = C.CDLL(str(out))
+    lib.mu_effect_prime_matrix.argtypes = [C.c_float * 16, C.c_int, C.c_float * 3, C.c_float * 3, C.c_float]
+    lib.mu_effect_prime_matrix.restype = None
+    return lib
+
+
+def prime_case(g):
+    obj = bytearray(am.poison(0x3d8, 0x29))
+    angle = [f32(g.choice([0.0, 0.0, 90.0, -45.0, 180.0, g.uniform(-720.0, 720.0)])) for _ in range(3)]
+    position = [f32(g.uniform(-30000.0, 30000.0)) for _ in range(3)]
+    scale = f32(g.choice([1.0, 0.5, 1.3, g.uniform(0.01, 4.0), 0.0]))
+    v.put_f(obj, 0x164, *angle)
+    v.put_f(obj, 0x158, *position)
+    v.put_f(obj, 0xa0, scale)
+    records = [{'effect': 0x24000000 + 0x100 * k, 'follow': g.choice([1, 1, 1, 0, 2, 0xff]),
+                'bone': g.choice([0, 0, -1, 3]), 'timed': g.choice([0, 0, 1]), 'scale': f32(g.choice([50.0, 60.0])),
+                'lifetime': f32(g.choice([0.0, 100.0]))} for k in range(g.choice([0, 1, 1, 2, 3, 5]))]
+    # the list: head node at PRIME_LIST, record nodes after it (next +0, prev +4, value +8)
+    nodes = bytearray(am.poison(0x20 * (len(records) + 1), 0x31))
+    addr = [PRIME_LIST + 0x20 * i for i in range(len(records) + 1)]
+    for i, a in enumerate(addr):
+        nxt, prv = addr[(i + 1) % len(addr)], addr[(i - 1) % len(addr)]
+        struct.pack_into('<II', nodes, a - PRIME_LIST, nxt, prv)
+        if i:
+            r = records[i - 1]
+            struct.pack_into('<IIfiBBxxf', nodes, a - PRIME_LIST + 8, r['effect'], 0, r['scale'], r['bone'],
+                             r['follow'], r['timed'], r['lifetime'])
+    struct.pack_into('<II', obj, 0x3d0, PRIME_LIST, len(records))
+    return {'object': bytes(obj), 'nodes': bytes(nodes), 'records': records, 'angle': angle, 'position': position,
+            'scale': scale}
+
+
+def prime(machine, scene, g, cases):
+    tally = v.Tally('prime')
+    for n in range(cases):
+        case = prime_case(g)
+        calls = []
+
+        def node_update(m):
+            matrix = struct.unpack('<16f', bytes(m.uc.mem_read(m.argument(1), 0x40)))
+            calls.append((m.uc.reg_read(m.x86.UC_X86_REG_ECX), m.argument(0), matrix, m.argument(2)))
+            return 1, 12
+        regions = v.global_regions(0, 6, [
+            am.defined_region('object', PRIME_OBJECT, case['object']),
+            am.defined_region('list', PRIME_LIST, case['nodes'], writable=False),
+            am.defined_region('cookie', a5.COOKIE, struct.pack('<I', 0xbb40e64e), writable=False),
+            am.defined_region('matherr', a5.MATHERR, struct.pack('<I', 0xbb40e64e), writable=False),
+            am.defined_region('isa', a5.ISA, struct.pack('<I', 0), writable=False)])
+        r = v.run(machine, PRIME, [], regions, {NODE_UPDATE: node_update}, ecx=PRIME_OBJECT)
+        stop = v.stopped_reason(r)
+        if stop:
+            tally.add(False, {'case': n}, stop)
+            continue
+        mine = []
+        for rec in case['records']:
+            out = (C.c_float * 16)()
+            scene.mu_effect_prime_matrix(out, rec['follow'], (C.c_float * 3)(*case['angle']),
+                                         (C.c_float * 3)(*case['position']), case['scale'])
+            mine.append((rec['effect'], 0, tuple(out), PRIME_OBJECT))
+        same = len(mine) == len(calls) and all(
+            a[0] == b[0] and a[1] == b[1] and a[3] == b[3] and
+            struct.pack('<16f', *a[2]) == struct.pack('<16f', *b[2]) for a, b in zip(mine, calls))
+        unchanged = r['regions']['object'] == case['object']
+        tally.count('records', len(calls))
+        tally.count('following', sum(1 for rec in case['records'] if rec['follow']))
+        tally.add(same and unchanged, {'case': n, 'calls': [(hex(c[0]), c[1], c[2][:4]) for c in calls[:2]],
+                                       'mine': [(hex(c[0]), c[1], c[2][:4]) for c in mine[:2]],
+                                       'unchanged': unchanged})
+    return tally
+
+
 # ---------------------------------------------------------------- mutants
 
-A = 'action_registry.c'
+A = 'objects/action_registry.c'
 MUTATIONS = [
     ('axis hi', A, 'return !(lo_segment > hi) && !(lo > hi_segment);', 'return !(lo_segment >= hi) && !(lo > hi_segment);'),
     ('axis lo', A, 'return !(lo_segment > hi) && !(lo > hi_segment);', 'return !(lo_segment > hi);'),
@@ -410,6 +552,10 @@ MUTATIONS = [
     ('line plane', A, 'if (-0.5f >= n[0] || n[0] >= 0.5f)', 'if (n[0] >= 0.5f)'),
     ('inside flip', A, 'if (!(sign > 0.0f) ? 0.0f >= term : term >= 0.0f)', 'if (0.0f >= term)'),
     ('normal zero', A, '    if (length == 0.0)\n        return;\n', ''),
+    ('sprite live', 'particles/sprites.c', '        if (s->records[i].live)\n', '        if (s->records[i].live == 1)\n'),
+    ('prime follow', 'scene/mu_effect_scene.c', '    if (follow)\n        mu_effect_object_world_matrix',
+     '    if (follow == 1)\n        mu_effect_object_world_matrix'),
+    ('prime scale', 'scene/mu_effect_scene.c', '    out[0] = out[5] = out[10] = scale;', '    out[0] = out[5] = scale;'),
 ]
 
 
@@ -417,6 +563,8 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--cases', type=int, default=3000)
     p.add_argument('--per-row', type=int, default=40)
+    p.add_argument('--sprite-cases', type=int, default=300)
+    p.add_argument('--prime-cases', type=int, default=1000)
     p.add_argument('--only')
     p.add_argument('--lang-dir', help='local lang directory with mapanim.tsv (live_rows)')
     p.add_argument('--mutations', action='store_true')
@@ -425,7 +573,7 @@ def main():
     text, data = pins.TEXT.read(), pins.DATA.read()
     machine = v.Machine(text, data)
     registry = a5.Registry(machine)
-    families = ['hover', 'camera'] + (['live_rows'] if a.lang_dir else [])
+    families = ['hover', 'camera', 'sprite_visible', 'prime'] + (['live_rows'] if a.lang_dir else [])
     names = [n for n in families if not a.only or n in a.only.split(',')]
     report = {'text_sha256': pins.TEXT.sha256, 'data_sha256': pins.DATA.sha256, 'families': {}, 'mutants': [],
               'bodies': {k: {'start': hex(s), 'end': hex(e), 'sha256': hashlib.sha256(
@@ -440,6 +588,10 @@ def main():
         for name in only or names:
             if name == 'live_rows':
                 out[name] = live_rows(machine, registry, library, seed(name), a.lang_dir, a.per_row)
+            elif name == 'sprite_visible':
+                out[name] = sprite_visible(machine, library, seed(name), a.sprite_cases)
+            elif name == 'prime':
+                out[name] = prime(machine, library.scene, seed(name), a.prime_cases)
             else:
                 out[name] = family(machine, registry, library, seed(name), a.cases, name)
         return out
@@ -450,16 +602,20 @@ def main():
         for label, file, old, new in MUTATIONS:
             with tempfile.TemporaryDirectory(prefix='worlds-after6-mut-') as mtmp:
                 root = Path(mtmp)
-                for d in ['objects', 'terrain', 'record-math', 'model-codec', 'particles', 'movement']:
+                for d in ['objects', 'terrain', 'record-math', 'model-codec', 'particles', 'movement', 'combat',
+                          'environment']:
                     shutil.copytree(ROOT / 'reconstructed' / d, root / d,
                                     ignore=shutil.ignore_patterns('*.dylib', '*.so', '*.o', '*.d', '__pycache__'))
                 if (ROOT / 'reconstructed/deps.mk').exists():
                     shutil.copy(ROOT / 'reconstructed/deps.mk', root / 'deps.mk')
-                path = root / 'objects' / file
+                (root / 'scene').mkdir()
+                shutil.copy(ROOT / 'native/core/mu_effect_scene.c', root / 'scene' / 'mu_effect_scene.c')
+                path = root / file
                 s = path.read_text()
                 assert s.count(old) == 1, (label, old)
                 path.write_text(s.replace(old, new, 1))
-                tallies = run_all(build(root), [n for n in names if n != 'live_rows'])
+                tallies = run_all(build(root, root / 'scene' / 'mu_effect_scene.c'),
+                                  [n for n in names if n != 'live_rows'])
                 cases = sum(t.cases for t in tallies.values())
                 detected = sum(t.cases - t.equal - t.stopped for t in tallies.values())
                 stopped = sum(t.stopped for t in tallies.values())
