@@ -123,6 +123,11 @@ APP-REFRESH-003: Preview reinstalled from 82849bc (main with #278); journey proo
 pickup, Warps travel 0->3->2, BGM PCM peak. Windowed input report; app build no longer bundles a stale
 mu-client. Gate passes 1,805 tests. [Proofs, install and follow-ups](handoffs/APP-REFRESH-003.md).
 
+APP-REFRESH-004: Preview reinstalled from 26b9ef07 (main with #280-#286 and #288; #287 was dropped by the steward)
+with new Native Data from the canonical export set (incl. `mapanim.tsv`). Proofs: cast, kill/drop/Space pickup,
+travel 0->3->2 with 0 stale plates, audio peak -0.300 dBFS (0 full-scale), Swamp 144 velocity differences 1,563 -> 0,
+bow 0x12f9 15 sparks. [Install, rollback, proofs and follow-ups](handoffs/APP-REFRESH-004.md).
+
 PLAY-FIX-001: two Preview bugs from APP-REFRESH-003 fixed.
 - A world change now runs the client's ClearCharacters(HeroKey) `0x0137c276` (with ClearItems `0x017ea38b`; Unicorn,
   0 mismatches, 6/6 mutants), so no old-world name floats after travel; the hero's plate stays.
