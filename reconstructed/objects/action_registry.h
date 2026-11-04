@@ -37,13 +37,18 @@ typedef struct mu_anim_inputs {
     mu_anim_model_fn model;
     mu_obj_rand_fn rand_fn;         /* the client's rand() 0x01989721 */
     void *context;
-    float hero[2];                  /* [[0x0a39d754] + 0x33ac] x, y (0x00cfc922) */
+    float hero[3];                  /* [[0x0a39d754] + 0x33ac] x, y, z (0x00cfc922) */
+    /* RENDER-WORLDS-AFTER6. CameraPosition 0x0bdc5ab4 (tick handler 8); NULL: handler 8 is unsupported. */
+    const float *camera;
+    /* The mouse segment MousePosition 0x0bdc5984 -> MouseTarget 0x0bdc5990 (tick handlers 4 and 6, tested
+     * against the object's OBB +0x31c); NULL: their hover branches are unsupported. */
+    const float *mouse_start, *mouse_end;
 } mu_anim_inputs;
 
 enum {
     MU_ANIM_NONE = 0,         /* no model, action out of range, or no entry: only the action switch (if any) */
     MU_ANIM_APPLIED = 1,
-    MU_ANIM_UNSUPPORTED = 2   /* tick handlers 4, 6 and 8 (hero box collision 0x018500bf), or malformed extras */
+    MU_ANIM_UNSUPPORTED = 2   /* a missing camera or mouse segment (tick handlers 8, 4 and 6), or malformed extras */
 };
 
 /* 1000 * action + type (0x0112bbba; the factor is (int)pow(10, digits of 300)). */
@@ -54,7 +59,13 @@ const mu_anim_entry *mu_anim_find(const mu_anim_inputs *in, int32_t type, int32_
 /* SetAction 0x00ce4a17 and its handlers 0x00ce1460..0x00ce15de. */
 int mu_action_set(uint8_t *object, int32_t action, const mu_anim_inputs *in);
 /* The tick 0x00ce4b5b and its handlers 0x00ce1646..0x00ce23ad; *found is the tick's return value (1 when the
- * current action has an entry and the type a model). */
+ * current action has an entry and the type a model).
+ *
+ * RENDER-WORLDS-AFTER6: handlers 4 (0x00ce1947) and 6 (0x00ce1e4b) test the mouse segment against the object's
+ * OBB +0x31c with 0x018500bf (mu_pick_segment_obb). Handler 8 (0x00ce23ad) fades the object while it stands
+ * between the camera and the hero: with exactly seven extras (size x, y, z; offset x, y, z; rate) the segment
+ * CameraPosition -> hero is tested against a coarse box, then against the six faces of the object's turned box
+ * (CollisionDetectLineToFace 0x0184f96c); a face hit sets +0xd8 = 0.1, a miss 1.0. */
 int mu_action_tick(uint8_t *object, const mu_anim_inputs *in, int *found);
 
 /* The worlds the factory 0x00ea488e registers a class for (the tails run only there). */
