@@ -7,6 +7,9 @@
   flare_mono 0x8184/1 and lighting_mega01..03 0x8081..0x8083/0. Through validate_particles' create (CreateParticle
   0x015ae7b0), move (MoveParticles 0x01616c80) and render (RenderParticles 0x0159123f) families against
   reconstructed/particles; the owner OBJECT regions also define their live byte.
+* The bows' effects (reconstructed/combat/bow_fx.inc): 0x477/3 and /4, 0x60b/0 and 0x611/0, through
+  validate_render_effects7's CreateEffect (0x013c0eaa) and MoveEffect (0x0142fd09) families with
+  validate_render_effects9's case.
 
 No client bytes or decoded data are written by this tool.
 """
@@ -26,6 +29,8 @@ import actor_machine as am
 import pins
 import validate_skill_fx as fx
 import validate_particles as pt
+import validate_render_effects7 as re7
+import validate_render_effects9 as re9
 
 ROOT = Path(__file__).resolve().parents[1]
 f32 = fx.f32
@@ -98,6 +103,61 @@ PT_MUTANTS = [
     ('mega_fade', 'bow_kinds2.inc', 'p->alpha = p->alpha - 0.15f;', 'p->alpha = p->alpha - 0.1f;', 'move', (0x8081, 0)),
     ('mega_out', 'bow_kinds2.inc', 'if (0.1f > p->alpha)', 'if (0.15f > p->alpha)', 'move', (0x8083, 0)),
 ]
+
+
+FX_KINDS = [(0x477, 3), (0x477, 4), (0x60b, 0), (0x611, 0)]
+FX_MUTANTS = [
+    # (name, old, new, family, kind) on reconstructed/combat/bow_fx.inc
+    ('ring_scale', '* f32bits(0x3d4ccccdu);   /* the info key', '* f32bits(0x3dcccccdu);   /* the info key', 'create', (0x477, 3)),
+    ('ring_lift', 'e->position[2] = e->position[2] - 50.0f;', 'e->position[2] = e->position[2] - 40.0f;', 'create', (0x477, 4)),
+    ('ring_turn', 'e->angle[2] = angle_arg[2];', 'e->angle[2] = e->angle[2];', 'create', (0x477, 3)),
+    ('ring_life', 'e->lifetime = 15;', 'e->lifetime = 20;', 'create', (0x477, 4)),
+    ('ring_grow', '(three ? f32bits(0x3ba3d70au) : f32bits(0x3b03126fu))', '(three ? f32bits(0x3b03126fu) : f32bits(0x3b03126fu))',
+     'move', (0x477, 3)),
+    ('ring_cap', 'const float most = three ? 1.5f : 2.5f;', 'const float most = three ? 1.5f : 2.0f;', 'move', (0x477, 4)),
+    ('ring_fade', '(three ? f32bits(0x3fa66666u) : f32bits(0x3f99999au))', '(three ? f32bits(0x3fa66666u) : f32bits(0x3fa66666u))',
+     'move', (0x477, 4)),
+    ('burst_mesh', 'e->blend_mesh = 0;', 'e->blend_mesh = -1;', 'create', (0x60b, 0)),
+    ('burst_grow', 'e->scale = e->scale + f32bits(0x3f19999au);', 'e->scale = e->scale + 0.5f;', 'move', (0x60b, 0)),
+    ('burst_end', 'if (F_0_2 > e->blend_light) {', 'if (F_0_1 > e->blend_light) {', 'move', (0x60b, 0)),
+    ('burst_model', 'if (env && env->model && !env->model(env->context, e->type, e->action, &keys))\n            return;',
+     'if (0)\n            return;', 'move', (0x60b, 0)),
+    ('wave_scale', 'e->scale = scale;                          /* the argument', 'e->scale = e->scale;                          /* the argument',
+     'create', (0x611, 0)),
+    ('wave_pitch', 'e->angle[0] = -90.0f;', 'e->angle[0] = 90.0f;', 'create', (0x611, 0)),
+    ('wave_fade', 'e->alpha = (float)e->lifetime / (float)e->field_70;', 'e->alpha = (float)(e->lifetime - 1) / (float)e->field_70;',
+     'move', (0x611, 0)),
+]
+
+
+def fx_compare(text, data, lib, name, kinds, cases, seed='render-effects-011-fx-'):
+    saved = re7.Case
+    re7.Case = re9.Case
+    report = pt.Report()
+    try:
+        getattr(re7, 'family_' + name)(re9.machine(text, data), lib, random.Random(seed + name), cases, report, kinds)
+    finally:
+        re7.Case = saved
+    family = report.families.pop('effect_' + name)
+    return {'families': {'fx_' + name: family}, 'coverage': {'fx_' + name: report.coverage.get('effect_' + name, {})}}
+
+
+def compile_fx_mutant(directory, name, old, new):
+    base = ROOT/'reconstructed'/'combat'
+    if (base/'bow_fx.inc').read_text().count(old) != 1:
+        raise ValueError(f'{name}: expected exactly one mutation site')
+    work = Path(directory)/name
+    work.mkdir()
+    for f in ('skill_fx.c', 'pet_fx.inc', 'arrow_fx.inc'):
+        shutil.copy(base/f, work/f)
+    (work/'bow_fx.inc').write_text((base/'bow_fx.inc').read_text().replace(old, new))
+    others = ['combat.c', '../objects/world_warp.c', '../joints/joints.c', '../record-math/record_math.c',
+              '../movement/client_movement.c']
+    out = Path(directory)/(name + '.' + fx.SUFFIX)
+    subprocess.run(['clang', '-std=c11', '-O2', '-fPIC', '-ffp-contract=off', '-fno-fast-math', '-shared', '-I',
+                    str(base), str(work/'skill_fx.c'), *[str(base/p) for p in others], '-lm', '-o', str(out)],
+                   check=True, capture_output=True)
+    return fx.load_library(out)
 
 
 # ---------------------------------------------------------------- particle families
@@ -200,7 +260,11 @@ BODIES = {'create_flare_5': (0x015bea78, 0x015bee03), 'move_flare_5': (0x0162d77
           'render_8084_1e': (0x015a4461, 0x015a453e),
           'create_8184_1': (0x015f95ef, 0x015f96dc), 'move_8184_1': (0x0167252c, 0x016725b0),
           'create_8081_0': (0x015d2e4c, 0x015d2f79), 'move_8081_0': (0x01644e1d, 0x01644f65),
-          'owner_live': (0x0095f977, 0x0095f986)}
+          'owner_live': (0x0095f977, 0x0095f986),
+          'create_477': (0x013d9444, 0x013d9567), 'create_477_2_4': (0x013d97f4, 0x013d98a5),
+          'move_477_3_4': (0x014719f8, 0x01471b7b), 'create_60b': (0x014001e3, 0x0140020c),
+          'move_60b': (0x01468a1f, 0x01468ae5), 'create_611': (0x0140fea0, 0x0140ff17),
+          'move_611': (0x014c4c8e, 0x014c4cd0)}
 
 
 def run(cases, mutations):
@@ -212,7 +276,16 @@ def run(cases, mutations):
         r = pt_compare(text, data, plib, name, BOW2_KINDS, cases * len(BOW2_KINDS))
         result['comparisons']['bows2_' + name] = {'families': {'bows2_' + name: r['families']['pt_' + name]},
                                                   'coverage': r['coverage']}
+    lib = fx.load_library(ROOT/'reconstructed'/('combat/libcombat.' + fx.SUFFIX))
+    for name in ('create', 'move'):
+        r = fx_compare(text, data, lib, name, FX_KINDS, cases * len(FX_KINDS) * 2)
+        result['comparisons']['fx_' + name] = r
     if mutations:
+        with tempfile.TemporaryDirectory(prefix='render-effects11-fx-') as tmp:
+            for name, old, new, family, kind in FX_MUTANTS:
+                mlib = compile_fx_mutant(tmp, name, old, new)
+                f = fx_compare(text, data, mlib, family, [kind], max(40, cases))['families']['fx_' + family]
+                result['mutants'][name] = {'cases': f['cases'], 'caught': f['cases'] - f['equal']}
         with tempfile.TemporaryDirectory(prefix='render-effects11-pt-') as tmp:
             for name, file, old, new, family, kind in PT_MUTANTS:
                 mlib = compile_pt_mutant(tmp, name, file, old, new)

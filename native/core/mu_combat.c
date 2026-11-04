@@ -220,6 +220,10 @@ static void load_models(mu_combat *c, const char *root)
         {0x41d, "Data/Skill/Circle02.bmd"}, {0x457, "Data/Skill/Inferno01.bmd"}, {0x421, "Data/Skill/Laser01.bmd"},
         {0x419, "Data/Skill/Stone01.bmd"}, {0x41a, "Data/Skill/Stone02.bmd"}, {MU_SFX_TWISTING_SWIRL, NULL},
         {0x412, "Data/Skill/Ice01.bmd"}, {0x41b, "Data/Skill/Ice02.bmd"}, {0x41f, "Data/Skill/Magic02.bmd"},
+        /* RENDER-EFFECTS-011: AccessModel 0x01833c1e (Data\Skill\m_Waves), 0x018370f6 (Data\Effect\Darkangel_effect,
+         * textures Effect\ REPEAT/NEAREST) and 0x0183721f (Data\Effect\ringofpower, likewise); static */
+        {0x477, "Data/Skill/m_Waves.bmd"}, {0x60b, "Data/Effect/Darkangel_effect.bmd"},
+        {0x611, "Data/Effect/ringofpower.bmd"},
         /* RENDER-EFFECTS-004: Rageful Blow, loader 0x0183451b..0x018345cf */
         {0x462, "Data/Skill/EarthQuake01.bmd"}, {0x463, "Data/Skill/EarthQuake02.bmd"},
         {0x464, "Data/Skill/EarthQuake03.bmd"}, {0x465, "Data/Skill/EarthQuake04.bmd"},
@@ -237,6 +241,15 @@ static void load_models(mu_combat *c, const char *root)
         if (i == MU_COMBAT_MODEL_BOW_ARROW) {
             m->type = c->weapon_item[0] >= 0 ? mu_sfx_arrow_type(c->weapon_item[0]) : -1;
             file = mu_combat_arrow_file(m->type);
+        }
+        if (i >= MU_COMBAT_MODEL_RING && i <= MU_COMBAT_MODEL_POWER_RING) {
+            /* RENDER-EFFECTS-011: only for the equipped bow whose arrows request it (arrow_fx.inc: 0x45b, 0x47f
+             * and 0x60d create 0x477, 0x60a 0x60b, 0x610 0x611) */
+            const int32_t arrow = c->weapon_item[0] >= 0 ? mu_sfx_arrow_type(c->weapon_item[0]) : -1;
+            const int needed = m->type == 0x477 ? arrow == 0x45b || arrow == 0x47f || arrow == 0x60d
+                                                : arrow == (m->type == 0x60b ? 0x60a : 0x610);
+            if (!needed)
+                continue;
         }
         if (!file)
             continue;
