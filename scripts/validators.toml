@@ -1161,20 +1161,29 @@ note = "the math-data directory {math_data} (capture.json, record-bias, record-t
 [validate_renderchar]
 test = "reconstructed/renderchar/test_renderchar.py::RenderCharLibrary.test_private_original_render_instructions"
 pins = ["text", "data", "flag", "feature09"]
-families = ["back", "character", "items", "light"]
-cases = 625
-cases_at = ["back.checks", "character.compared", "light.compared", "items.compared"]
-build = ["reconstructed/renderchar"]
-args = ["--text", "{text}", "--data", "{data}", "--flag", "{flag}", "--feature", "{feature09}", "--sections", "back,character,items,light", "--back-checks", "100", "--characters", "60", "--classify", "none", "--cases", "500", "--light-cases", "60", "--output", "{report}"]
-note = "one run of the three test invocations; 625 comparisons after item-cluster expansion changes the seeded generic candidate population (500 item requests, 106 record-type-4 exclusions, 394 compared)"
+families = ["back", "character", "items", "light", "colours", "rank5"]
+cases = 1706
+mutants = 4
+cases_at = ["back.checks", "character.compared", "light.compared", "items.compared", "colours.compared", "rank5.compared"]
+mutants_at = "mutants"
+build = ["reconstructed/renderchar", "reconstructed/model-codec"]
+args = ["--text", "{text}", "--data", "{data}", "--flag", "{flag}", "--feature", "{feature09}", "--sections", "back,character,items,light,colours,rank5", "--back-checks", "100", "--characters", "60", "--classify", "none", "--cases", "500", "--light-cases", "60", "--targeted-cases", "480", "--mutations", "--output", "{report}"]
+note = "one run of the test invocations; refused states are redrawn (RENDER-ITEMS-002O), so the compared counts are the requested ones and do not drift with item merges: 100 back checks, 60 characters, 86 light cases, 500 generic item states, 480 states over the COLOR-recipe bodies, 480 over the rank-5 pose bodies"
 [validate_renderchar.expect]
 "back.ok" = true
 "character.ok" = true
+"character.compared" = 60
 "items.matches" = {same_as = "items.compared"}
 "items.cases" = 500
-"items.excluded" = 106
-"items.compared" = 394
+"items.compared" = 500
+"colours.matches" = {same_as = "colours.compared"}
+"colours.compared" = 480
+"colours.colour_records" = {min = 1}
+"rank5.matches" = {same_as = "rank5.compared"}
+"rank5.compared" = 480
+"rank5.rank5" = 480
 "light.matches" = {same_as = "light.compared"}
+"mutants.*" = {truthy = true}
 
 [validate_rotation]
 test = "reconstructed/record-math/test_rotation.py::RotationTests.test_private_original_rotation_instructions"
@@ -2655,4 +2664,19 @@ build = ["reconstructed/renderchar"]
 args = ["--mutations", "--output", "{report}"]
 [validate_item_quality.expect]
 "families.*.mismatches" = 0
+"mutants.*" = {truthy = true}
+
+[validate_item_product]
+test = "reconstructed/renderchar/test_item_product.py::ItemProduct.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "products"]
+cases = 2874
+mutants = 7
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar"]
+args = ["--mutations", "--output", "{report}"]
+[validate_item_product.expect]
+"families.*.mismatches" = 0
+"families.products.residues" = 15
 "mutants.*" = {truthy = true}
