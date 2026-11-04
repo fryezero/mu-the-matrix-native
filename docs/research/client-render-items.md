@@ -1220,3 +1220,48 @@ effects/particles or matrix/transform services. Most of the rest are no-recipe c
 mismatches, unexplained draw words), plus the random bodies above. The record/quality probes and EXIT inference apply only to part-14 types. Earlier rows keep
 their part-1..13 probes and still pass their own validators. Rank-5 owner effects, Muun and nested map-object
 tables, and the earlier limits are unchanged.
+
+## Part 15, body random scaling a constant body light, RENDER-ITEMS-002O
+
+Bounded bodies increase **1,213 to 1,219 of 1,674**, adding **6 types** (`gen_item_bodies.PRODUCT_TYPES`:
+`0x171d..0x171f`, `0x1742..0x1744`; each `0x174x` shares the body code of `0x171x`). Skins stay **17/17** and
+links stay **eighteen targets/twenty-four types**. **455 bodies remain**. The survey keeps 798 shapes; the three
+shapes of these types are now complete.
+
+### The body (verified)
+
+Part 14 left these bodies refused because the light of one draw is a product. At `0x01752c6c..0x01752d45`
+(`0x171d`; `0x01752f50..` for `0x171e`, `0x017531a8..` for `0x171f`) the body saves `model+0x54`, sets it
+to a constant vector with `0x00cfcead` (vec3 set: three binary32 stores), draws `rand()` and computes
+`(float)(rand() % 15) / 37.5 + 0.5`, scales the vector with `0x00cfcd74` (`*=`: `0x00cfcb3c` multiplies each
+component with `mulss`, `0x00cfc8f2` assigns), draws mesh 4 (`0x42`) with it, and restores the saved light.
+The constants are (0.9, 0.4, 0.2), (0.8, 0.5, 0.2) and (0.1, 0.4, 0.3).
+
+- **Generator.** `parse_scale` reads the idiom around the rand return site (the three pushed constants, the
+  `model+0x54` receiver of both calls) and adds three **kind-5 programs** after the kind-4 program: value =
+  binary32 `k * (program a)`, one per light channel. The recipe inference matches the draw's light words to
+  them like any other input. Only `PRODUCT_TYPES` get them; every earlier row is generated unchanged.
+- **Executor.** `renderchar.c`'s scalar loop evaluates kind 5 from the kind-4 value already in the input
+  array (`input[35 + a]`); no extra rand is consumed.
+- The other three random bodies (`0xb3b`, `0xb43`, `0xb45`) draw rand at `0x011ff68d`, outside the body
+  helpers; they stay refused.
+
+### Checks
+
+`scripts/validate_item_product.py --mutations` has a manifest row and the private test
+`ItemProduct.test_original_instructions`. Client and C get the same rand sequence and must consume the same
+number of results. It passes **2,874 comparisons, zero mismatches**:
+
+| Family | Cases | Mismatches |
+|---|---:|---:|
+| Full body streams, 6 types times 292 states, rand scripted, glColor recorded | 1,752 | 0 |
+| Product types in the 11 survey states, every residue 0..14 of the modulus, 32767 and random sequences | 1,122 | 0 |
+
+All **7/7 separately compiled mutants** are caught: product off, constant, source index, operation and kind
+2,874 each; random phase 2,237; mesh index 2,874. The body table reproduces from the pinned instructions.
+
+Compiled C-to-C, main `5cb6fa6d` library against this one: **1,194 earlier body types, 19 rank-5 and 4 skin
+types in 77,888 random cases** (32 states each, with and without a rand context), zero mismatches. Over all
+1,691 survey types, admission changes for exactly the 6 new types. Portable `test_item_product.py`: 3 tests,
+one private skip; it checks admission, refusal outside the domain and the product light of one draw for rand
+results 0, 14 and 108.
