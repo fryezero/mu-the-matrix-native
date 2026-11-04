@@ -106,7 +106,10 @@ branch reached only by kind-5 programs, which only the 6 new types have.
 
 ## Release
 
-Main `5cb6fa6d` is the base and was still the latest `origin/main` at the final check (no merge needed).
+Base main `5cb6fa6d`. Latest main `26a6848c` (#285-#289, incl. RENDER-ITEMS-TEX-003) was merged after the checks.
+Only `docs/status.md` and `docs/handoff.md` conflicted; both sides are kept. The merge changed no file the
+validators above build or import, so they were not rerun. After it, the native build passes and
+`native/tests/test_native_item_textures` passes 6/6 including TEX-003's private installed survey (52 s).
 
 Steward validators: validate_renderchar, validate_item_product, validate_item_next, validate_item_carry,
 validate_item_quality (mutants only for validate_renderchar and validate_item_product; env
