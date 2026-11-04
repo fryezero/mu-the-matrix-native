@@ -430,7 +430,7 @@ int mu_sfx_effect_create(mu_sfx_effect *e, int32_t type, int32_t subtype, const 
     if (pet_effect_kind(type, subtype))
         return pet_effect_create(e, env);   /* RENDER-EFFECTS-007 */
     if (bow_effect_kind(type, subtype))
-        return bow_effect_create(e, angle, scale, info);   /* RENDER-EFFECTS-011 */
+        return bow_effect_create(e, angle, scale, info, env);   /* RENDER-EFFECTS-011 */
     switch (type) {
     case MU_SFX_MODEL_ARROW: {
         /* 0x013cb34d, with the other bows' arrows (RENDER-EFFECTS-007, arrow_fx.inc) */

@@ -7,7 +7,7 @@
   flare_mono 0x8184/1 and lighting_mega01..03 0x8081..0x8083/0. Through validate_particles' create (CreateParticle
   0x015ae7b0), move (MoveParticles 0x01616c80) and render (RenderParticles 0x0159123f) families against
   reconstructed/particles; the owner OBJECT regions also define their live byte.
-* The bows' effects (reconstructed/combat/bow_fx.inc): 0x477/3 and /4, 0x60b/0 and 0x611/0, through
+* The bows' effects (reconstructed/combat/bow_fx.inc): 0x477/3 and /4, 0x60b/0, 0x611/0 and 0x45f/0 and /1, through
   validate_render_effects7's CreateEffect (0x013c0eaa) and MoveEffect (0x0142fd09) families with
   validate_render_effects9's case.
 
@@ -105,7 +105,7 @@ PT_MUTANTS = [
 ]
 
 
-FX_KINDS = [(0x477, 3), (0x477, 4), (0x60b, 0), (0x611, 0)]
+FX_KINDS = [(0x477, 3), (0x477, 4), (0x60b, 0), (0x611, 0), (0x45f, 0), (0x45f, 1)]
 FX_MUTANTS = [
     # (name, old, new, family, kind) on reconstructed/combat/bow_fx.inc
     ('ring_scale', '* f32bits(0x3d4ccccdu);   /* the info key', '* f32bits(0x3dcccccdu);   /* the info key', 'create', (0x477, 3)),
@@ -125,19 +125,43 @@ FX_MUTANTS = [
     ('wave_scale', 'e->scale = scale;                          /* the argument', 'e->scale = e->scale;                          /* the argument',
      'create', (0x611, 0)),
     ('wave_pitch', 'e->angle[0] = -90.0f;', 'e->angle[0] = 90.0f;', 'create', (0x611, 0)),
+    ('wing_scatter', '(float)(smod(env_rand(env), 20) - 10) * 4.0f + e->position[k];',
+     '(float)(smod(env_rand(env), 20) - 10) * 3.0f + e->position[k];', 'create', (0x45f, 0)),
+    ('wing_way', 'e->direction[k] = from[k] - e->position[k];', 'e->direction[k] = e->position[k] - from[k];', 'create', (0x45f, 1)),
+    ('wing_norm', 'if (f32bits(0x358637bdu) > length) {', 'if (0) {', 'create', (0x45f, 0)),
+    ('wing_alpha', 'f32bits(0x3ca3d70au) + f32bits(0x3f19999au);', 'f32bits(0x3ca3d70au) + 0.5f;', 'create', (0x45f, 1)),
+    ('wing_spin', 'e->spin[k] = (float)(smod(env_rand(env), 10) - 5);', 'e->spin[k] = (float)(smod(env_rand(env), 10) - 4);',
+     'create', (0x45f, 0)),
+    ('wing_fade', 'e->alpha = e->alpha * fade;', 'e->alpha = e->alpha * 0.95f;', 'move', (0x45f, 0)),
+    ('wing_shrink', 'if (e->subtype == 1)\n            e->scale', 'if (e->subtype == 0)\n            e->scale', 'move', (0x45f, 1)),
     ('wave_fade', 'e->alpha = (float)e->lifetime / (float)e->field_70;', 'e->alpha = (float)(e->lifetime - 1) / (float)e->field_70;',
      'move', (0x611, 0)),
 ]
 
 
+_random_arrow = re7.random_arrow
+
+
+def random_effect(rng, kind):
+    """validate_render_effects7's record, with 0x45f's spin (+0x194) and the alphas and blend lights the kinds
+    branch on (0x60b dies below a blend light of 0.2)."""
+    e = _random_arrow(rng, kind)
+    for k in range(3):
+        e.spin[k] = f32(rng.choice([0.0, -5.0, 4.0, rng.uniform(-5.0, 5.0)]))
+    e.alpha = f32(rng.choice([1.0, 0.6, 0.78, rng.uniform(0.0, 1.0)]))
+    e.blend_light = f32(rng.choice([1.0, 0.27, 0.26, 0.2, rng.uniform(0.0, 1.0)]))
+    return e
+
+
 def fx_compare(text, data, lib, name, kinds, cases, seed='render-effects-011-fx-'):
-    saved = re7.Case
-    re7.Case = re9.Case
+    saved = re7.Case, re7.MOVE_DEFINED, re7.random_arrow
+    re7.Case, re7.random_arrow = re9.Case, random_effect
+    re7.MOVE_DEFINED = saved[1] | {'spin'}
     report = pt.Report()
     try:
         getattr(re7, 'family_' + name)(re9.machine(text, data), lib, random.Random(seed + name), cases, report, kinds)
     finally:
-        re7.Case = saved
+        re7.Case, re7.MOVE_DEFINED, re7.random_arrow = saved
     family = report.families.pop('effect_' + name)
     return {'families': {'fx_' + name: family}, 'coverage': {'fx_' + name: report.coverage.get('effect_' + name, {})}}
 
@@ -264,7 +288,8 @@ BODIES = {'create_flare_5': (0x015bea78, 0x015bee03), 'move_flare_5': (0x0162d77
           'create_477': (0x013d9444, 0x013d9567), 'create_477_2_4': (0x013d97f4, 0x013d98a5),
           'move_477_3_4': (0x014719f8, 0x01471b7b), 'create_60b': (0x014001e3, 0x0140020c),
           'move_60b': (0x01468a1f, 0x01468ae5), 'create_611': (0x0140fea0, 0x0140ff17),
-          'move_611': (0x014c4c8e, 0x014c4cd0)}
+          'move_611': (0x014c4c8e, 0x014c4cd0), 'create_45f': (0x013e45bc, 0x013e4aa9),
+          'move_45f_0': (0x01488ec6, 0x01489069), 'move_45f_1': (0x0148922a, 0x0148932a)}
 
 
 def run(cases, mutations):
