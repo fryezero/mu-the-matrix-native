@@ -898,6 +898,8 @@ static mu_hp_mount *effect_mount(mu_world_helpers *w, int32_t id)
 
 int mu_world_helpers_effect_object(mu_world_helpers *w, int32_t id, mu_jt_object *out)
 {
+    if (w && w->pets && id >= MU_WH_PET_BASE)
+        return mu_world_pets_object(w->pets, id - MU_WH_PET_BASE, out);
     mu_hp_mount *m = effect_mount(w, id);
     if (!m)
         return 0;

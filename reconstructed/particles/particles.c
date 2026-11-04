@@ -26,12 +26,17 @@ static void copy3(float d[3], const float s[3])
 #include "worlds_m.inc"
 #include "owner_fx.inc"
 #include "world_owned_fx.inc"
+#include "pet_kinds.inc"
+#include "arrow_kinds.inc"
+#include "bow_kinds.inc"
 
 int mu_pt_kind_supported(int32_t type, int32_t subtype)
 {
     if (mu_pt_worlds_l_kind(type, subtype) || mu_pt_worlds_m_kind(type, subtype)) return 1;
     if (mu_pt_owner_fx_kind(type, subtype)) return 1;
     if (mu_pt_world_owned_kind(type, subtype)) return 1;   /* RENDER-EFFECTS-006 */
+    if (mu_pt_pet_kind(type, subtype) || mu_pt_arrow_kind(type, subtype) || mu_pt_bow_kind(type, subtype))
+        return 1;   /* RENDER-EFFECTS-010 */
     switch (type) {
     case MU_PT_BITMAP_FIRE:
         return (subtype >= 0 && subtype <= 6) || subtype == 17;
@@ -43,8 +48,9 @@ int mu_pt_kind_supported(int32_t type, int32_t subtype)
     case 0x7f54: return subtype == 0;          /* Explosion01, Meteorite and Inferno */
     case MU_PT_BITMAP_SMOKE5:
     case MU_PT_BITMAP_SMOKE2:
-    case MU_PT_BITMAP_DROP:
         return subtype == 0;                   /* NATIVE-HELPERS-002 (the mounts' dust) */
+    case MU_PT_BITMAP_DROP:
+        return subtype == 0 || subtype == 1;   /* 1: RENDER-EFFECTS-010, ArrowWing/ArrowBomb (bows 0x12f3/0x12f4) */
     case MU_PT_BITMAP_RAIN_SPLASH:
     case MU_PT_BITMAP_RAIN_RING:
         return subtype == 0;
@@ -176,6 +182,18 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
     }
     if (mu_pt_world_owned_kind(type, subtype)) {
         mu_pt_world_owned_create(p, h, scale);
+        return 1;
+    }
+    if (mu_pt_pet_kind(type, subtype)) {
+        mu_pt_pet_create(p, h, scale);
+        return 1;
+    }
+    if (mu_pt_arrow_kind(type, subtype)) {
+        mu_pt_arrow_create(p, h, scale);
+        return 1;
+    }
+    if (mu_pt_bow_kind(type, subtype)) {
+        mu_pt_bow_create(p, h, scale);
         return 1;
     }
     if (mu_pt_world_flame_kind(type, subtype)) {
@@ -391,7 +409,7 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
         break;
     }
     case MU_PT_BITMAP_DROP:
-        /* NATIVE-HELPERS-002, 0x015b7799 (Atlans' drop01), subtype 0 */
+        /* NATIVE-HELPERS-002, 0x015b7799 (Atlans' drop01), subtypes 0 and 1 (RENDER-EFFECTS-010) */
         p->lifetime = mu_pt_rand(h) % 10 + 0x1e;
         p->scale = (float)(mu_pt_rand(h) % 6 + 4) * 0.03f;
         p->light[0] = p->light[1] = p->light[2] = 1.0f;
@@ -577,6 +595,12 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
             mu_pt_owner_fx_move(p, h);
         else if (mu_pt_world_owned_kind(p->type, p->subtype))
             mu_pt_world_owned_move(p, h);
+        else if (mu_pt_pet_kind(p->type, p->subtype))
+            mu_pt_pet_move(p, h);
+        else if (mu_pt_arrow_kind(p->type, p->subtype))
+            mu_pt_arrow_move(p, h);
+        else if (mu_pt_bow_kind(p->type, p->subtype))
+            mu_pt_bow_move(p, h);
         else if (mu_pt_world_flame_kind(p->type, p->subtype))
             mu_pt_world_flame_move(p, h);
         else switch (p->type) {
@@ -810,6 +834,13 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
         case MU_PT_BITMAP_DROP:
             /* NATIVE-HELPERS-002, 0x0162267d, subtype 0: the next sheet cell and a jitter, rising */
             p->frame = p->frame + 1;
+            if (p->subtype == 1) {   /* RENDER-EFFECTS-010, 0x0162284b: a wider jitter, a slower rise, growing */
+                p->position[0] = (float)(mu_pt_rand(h) % 30 - 15) * 1.0f * p->scale + p->position[0];
+                p->position[1] = (float)(mu_pt_rand(h) % 30 - 15) * 1.0f * p->scale + p->position[1];
+                p->position[2] = (float)(mu_pt_rand(h) % 20 + 10) * 0.3f * p->scale + p->position[2];
+                p->scale = p->scale + 0.002f;
+                break;
+            }
             p->position[0] = (float)(mu_pt_rand(h) % 20 - 10) * 2.5f * p->scale + p->position[0];
             p->position[1] = (float)(mu_pt_rand(h) % 20 - 10) * 2.5f * p->scale + p->position[1];
             p->position[2] = (float)(mu_pt_rand(h) % 20 + 10) * 2.5f * p->scale + p->position[2];
@@ -1054,6 +1085,10 @@ int mu_pt_render_record(mu_pt_particle *p, const mu_pt_bitmap *b, uint8_t mode, 
     default:
         break;
     }
+    if (p->type == 0x7ffd && p->subtype == 0xb)
+        state(out, MU_PT_STATE_SUBTRACT, 0);         /* RENDER-EFFECTS-010, Clud64: 0x01594fe7 */
+    mu_pt_arrow_render(p, out, s);
+    mu_pt_bow_render(p, s);
     mu_pt_worlds_m_render(p, s);
     mu_pt_owner_fx_render(p, s);
     if (mu_pt_world_owned_kind(p->type, p->subtype) && !mu_pt_world_owned_render(p, s))

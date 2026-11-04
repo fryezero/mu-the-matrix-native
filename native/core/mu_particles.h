@@ -51,7 +51,7 @@
  * MoveParticles in that order each step; the effect models before the joints, the joints before the sprite
  * section. Viewer choices: these pools are the module's own (the skills keep theirs in mu_combat), the effect
  * models play their first action (frame += speed, looping) and the tornado's PlayBuffer is counted, not played. */
-enum { MU_WORLD_PT_BITMAPS = 62, MU_WORLD_PT_CAPACITY = 4096, MU_WORLD_PT_SHADOW_MESHES = 64,
+enum { MU_WORLD_PT_BITMAPS = 72, MU_WORLD_PT_CAPACITY = 4096, MU_WORLD_PT_SHADOW_MESHES = 64,
        MU_WORLD_FX_EFFECTS = MU_SFX_EFFECTS, MU_WORLD_FX_MODELS = 18, MU_WORLD_EIN_LINKS = 4096, MU_WORLD_FX_QUADS = 8192,
        MU_WORLD_FX_LIGHTS = MU_JT_JOINTS + MU_SFX_EFFECTS };
 
@@ -151,6 +151,8 @@ void mu_world_particles_close(mu_world_particles *p);
 
 /* The module's rand() (MSVC LCG). */
 int32_t mu_world_particles_rand(mu_world_particles *p);
+/* The table slot of LoadBitmap index `bitmap` (bitmaps.slots/filter/wrap/images), -1 when the table has none. */
+int32_t mu_world_particles_bitmap_slot(int32_t bitmap);
 
 /* CreateParticle 0x0168fafd(type, position, angle, light, subtype, scale,
  * owner NULL, 0). Returns 1 when kept. */

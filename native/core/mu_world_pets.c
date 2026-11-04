@@ -288,13 +288,40 @@ static void r_sprite(void *c, int32_t bitmap, const float position[3], float sca
         mu_world_particles_sprite(d->w->particles, bitmap, position, scale, light, -1, 0.0f, 0, 4);
 }
 
+/* CreateParticle's owner OBJECT: the pet's own (the Skeleton's flames follow it, RENDER-EFFECTS-010). */
+static int32_t pet_owner_id(const mu_world_pets *pp, const mu_hp_object *owner)
+{
+    for (int32_t i = 0; owner && i < pp->p.count; ++i)
+        if (&pp->p.list[i].object == owner)
+            return MU_WH_PET_BASE + pp->p.list[i].key;
+    return MU_PT_NO_OWNER;
+}
+
+int mu_world_pets_object(const mu_world_pets *pp, int32_t key, struct mu_jt_object *out)
+{
+    for (int32_t i = 0; pp && i < pp->p.count; ++i)
+        if (pp->p.list[i].key == key) {
+            const mu_hp_object *o = &pp->p.list[i].object;
+            memset(out, 0, sizeof *out);
+            out->live = o->live;
+            out->visible = o->visible;
+            out->action = o->action;
+            out->type = o->type;
+            memcpy(out->position, o->position, sizeof out->position);
+            memcpy(out->light, o->light, sizeof out->light);
+            return 1;
+        }
+    return 0;
+}
+
 static void r_particle(void *c, int32_t bitmap, const float position[3], const float angle[3], const float light[3],
                        int32_t subtype, float scale, const mu_hp_object *owner, int32_t arg8)
 {
     draw_context *d = c;
-    (void)owner, (void)arg8;
+    (void)arg8;
     d->pp->stats.particles++;
-    if (d->w->particles && mu_world_particles_create(d->w->particles, bitmap, position, angle, light, subtype, scale))
+    if (d->w->particles && mu_world_particles_create_owned(d->w->particles, bitmap, position, angle, light, subtype,
+                                                           scale, pet_owner_id(d->pp, owner)))
         d->pp->stats.particles_kept++;
 }
 

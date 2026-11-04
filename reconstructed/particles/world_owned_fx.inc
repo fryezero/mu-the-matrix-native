@@ -3,11 +3,12 @@
  *   flare01 0x7ef7/9    the shoal effect 0x199's trail (MoveEffect 0x01435dfb)
  *   Spark02 0x7f25/15   the sea leaf 0x59a/3's sparks, owned by the effect (0x014eda39)
  *   0x7efa/2            Old Kethotum type 15's mist (RENDER-WORLDS-P, scale 0.25)
+ *   Impack01 0x7efa/1   the Panda's puff at bone 7 (RENDER-EFFECTS-010, the visuals 0x00eaeaf8)
  *   Spark03 0x7f26/14   Old Kethotum type 15's sparks (scale 0.06) */
 static int mu_pt_world_owned_kind(int32_t type, int32_t subtype)
 {
     return (type == 0x7ef7 && subtype == 9) || (type == 0x7f25 && subtype == 15) ||
-           (type == 0x7efa && subtype == 2) || (type == 0x7f26 && subtype == 14);
+           (type == 0x7efa && (subtype == 1 || subtype == 2)) || (type == 0x7f26 && subtype == 14);
 }
 
 static void mu_pt_world_owned_create(mu_pt_particle *p, const mu_pt_host *h, float scale)
@@ -25,7 +26,7 @@ static void mu_pt_world_owned_create(mu_pt_particle *p, const mu_pt_host *h, flo
     case 0x7efa: {                                 /* 0x015c336e, subtypes 1 and 2 */
         float m[12], v[3];
         p->scale = 0.1f;
-        p->start[0] = scale;                       /* subtype 2 only (0x015c3397) */
+        p->start[0] = p->subtype == 2 ? scale : p->scale;   /* 0x015c3397 / 0x015c33bb */
         p->lifetime = mu_pt_rand(h) % 10 + 20;
         for (int k = 0; k < 3; ++k)
             p->position[k] = (float)(mu_pt_rand(h) % 50 - 25) + p->position[k];
@@ -88,7 +89,9 @@ static void mu_pt_world_owned_move(mu_pt_particle *p, const mu_pt_host *h)
         break;
     }
     case 0x7efa:                                   /* 0x016329f8: swells and shrinks with its lifetime */
-        p->scale = (float)sin((double)((float)p->lifetime * 2.0f * 0.0174532924f)) * p->start[0];   /* pi / 180 */
+        p->scale = (float)sin((double)((float)p->lifetime * 2.0f * 0.0174532924f));   /* pi / 180 */
+        if (p->subtype == 2)
+            p->scale = p->scale * p->start[0];     /* subtype 1: 0x016329a3, the sine alone */
         break;
     case 0x7f26:                                   /* 0x01651e01 (jump table 0x0168f628) */
         for (int k = 0; k < 3; ++k)
@@ -104,9 +107,9 @@ static void mu_pt_world_owned_move(mu_pt_particle *p, const mu_pt_host *h)
 }
 
 /* RenderParticles: 0x7ef7/9, 0x7f25/15 and 0x7f26/14 take the kinds' plain sprite; 0x7efa's subtype table
- * 0x015ae4bf sends subtype 2 to 0x015954cc, past the sprite: only the blend state is set. Returns 0 then. */
+ * 0x015ae4bf sends subtypes 1 and 2 to 0x015954cc, past the sprite: only the blend state is set. Returns 0 then. */
 static int mu_pt_world_owned_render(const mu_pt_particle *p, mu_pt_sprite_call *s)
 {
     (void)s;
-    return !(p->type == 0x7efa && p->subtype == 2);
+    return !(p->type == 0x7efa && (p->subtype == 1 || p->subtype == 2));
 }
