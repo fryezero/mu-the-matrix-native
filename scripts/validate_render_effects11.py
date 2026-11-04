@@ -59,8 +59,8 @@ PT_MUTANTS = [
      'render', (0x83b3, 1)),
     ('spark4_size', 'bow_kinds2.inc', '(float)(mu_pt_rand(h) % 5) / 10.0f + 0.2f;', '(float)(mu_pt_rand(h) % 10) / 10.0f + 0.2f;',
      'create', (0x8155, 2)),
-    ('spark4_dim', 'bow_kinds2.inc', 'p->light[k] = p->light[k] / 1.05f;\n        p->scale = p->scale - 0.01f;\n        p->lifetime = p->lifetime - 1;\n        if (p->lifetime <= 0)\n            p->live = 0;\n        return;\n    case MU_PT_BITMAP_SMOKE:',
-     'p->light[k] = p->light[k] / 1.06f;\n        p->scale = p->scale - 0.01f;\n        p->lifetime = p->lifetime - 1;\n        if (p->lifetime <= 0)\n            p->live = 0;\n        return;\n    case MU_PT_BITMAP_SMOKE:', 'move', (0x8155, 2)),
+    ('spark4_dim', 'bow_kinds2.inc', 'p->light[k] = p->light[k] / 1.05f;\n        p->scale = p->scale - 0.01f;\n        p->lifetime = p->lifetime - 1;\n        if (p->lifetime <= 0)\n            p->live = 0;\n        return;\n    case 0x8108: {',
+     'p->light[k] = p->light[k] / 1.06f;\n        p->scale = p->scale - 0.01f;\n        p->lifetime = p->lifetime - 1;\n        if (p->lifetime <= 0)\n            p->live = 0;\n        return;\n    case 0x8108: {', 'move', (0x8155, 2)),
     ('spark4_alpha', 'bow_kinds2.inc', 'if (p->type == 0x8155 || p->type == 0x8084)', 'if (p->type == 0x8084)',
      'render', (0x8155, 2)),
     ('smoke_size', 'bow_kinds2.inc', '(float)(mu_pt_rand(h) % 32 + 48) * 0.01f * scale + scale;',
@@ -104,6 +104,24 @@ PT_MUTANTS = [
      'p->light[0] = p->light[1] = 0.0f;\n        return;', 'create', (0x8082, 0)),
     ('mega_fade', 'bow_kinds2.inc', 'p->alpha = p->alpha - 0.15f;', 'p->alpha = p->alpha - 0.1f;', 'move', (0x8081, 0)),
     ('mega_out', 'bow_kinds2.inc', 'if (0.1f > p->alpha)', 'if (0.15f > p->alpha)', 'move', (0x8083, 0)),
+    ('trail_half', 'bow_kinds2.inc', 'q[k] = 0.5f * (o[k] - p->position[k]);', 'q[k] = 0.4f * (o[k] - p->position[k]);',
+     'move', (0x7f5a, 0x6d)),
+    ('trail_owner', 'bow_kinds2.inc', 'if (p->owner == MU_PT_NO_OWNER || p->lifetime == 0)', 'if (p->lifetime == 0)',
+     'move', (0x7f5a, 0x6d)),
+    ('trail_dim', 'bow_kinds2.inc', 'const float base[3] = {0.3f, 0.4f, 0.5f};', 'const float base[3] = {0.3f, 0.4f, 0.6f};',
+     'move', (0x7f5a, 0x6d)),
+    ('star_drift', 'bow_kinds2.inc', '2.5f * d[k];', '2.0f * d[k];', 'move', (0x8108, 3)),
+    ('star_cap', 'bow_kinds2.inc', 'p->light[k] = 1.0f > c ? c : 1.0f;', 'p->light[k] = c;', 'move', (0x8108, 3)),
+    ('star_life', 'bow_kinds2.inc', 'case 0x8108:                                   /* 0x015f696e */\n        p->lifetime = 10;',
+     'case 0x8108:                                   /* 0x015f696e */\n        p->lifetime = 12;', 'create', (0x8108, 3)),
+]
+RENDER_MUTANTS = [
+    # (name, old, new) on reconstructed/combat/arrow_fx.inc, RenderEffects' case 0x45e
+    ('r45e_speed', '*tick_speed = e->velocity * 2.0f;', '*tick_speed = e->velocity;'),
+    ('r45e_draws', '(e->lifetime <= 0x45 ? 2 : 1) : 2;', '(e->lifetime < 0x45 ? 2 : 1) : 2;'),
+    ('r45e_star', 's * F_0_1, -2);', 's * F_0_2, -2);'),
+    ('r45e_smoke', '(float)smod(env_rand(env), 8) * f32bits(0x3d8f5c29u) + F_0_8;', '(float)smod(env_rand(env), 8) * f32bits(0x3d8f5c29u) + 1.0f;'),
+    ('r45e_decal', '*decal = e->subtype >= 3 && e->subtype <= 7;', '*decal = e->subtype >= 3 && e->subtype <= 6;'),
 ]
 
 
@@ -130,7 +148,7 @@ FX_MUTANTS = [
     ('wing_scatter', '(float)(smod(env_rand(env), 20) - 10) * 4.0f + e->position[k];',
      '(float)(smod(env_rand(env), 20) - 10) * 3.0f + e->position[k];', 'create', (0x45f, 0)),
     ('wing_way', 'e->direction[k] = from[k] - e->position[k];', 'e->direction[k] = e->position[k] - from[k];', 'create', (0x45f, 1)),
-    ('wing_norm', 'if (f32bits(0x358637bdu) > length) {', 'if (0) {', 'create', (0x45f, 0)),
+    ('wing_norm', 'v[k] = v[k] / length;', 'v[k] = v[k] / (length + 1.0f);', 'create', (0x45f, 0)),
     ('wing_alpha', 'f32bits(0x3ca3d70au) + f32bits(0x3f19999au);', 'f32bits(0x3ca3d70au) + 0.5f;', 'create', (0x45f, 1)),
     ('wing_spin', 'e->spin[k] = (float)(smod(env_rand(env), 10) - 5);', 'e->spin[k] = (float)(smod(env_rand(env), 10) - 4);',
      'create', (0x45f, 0)),
@@ -460,6 +478,14 @@ def run(cases, mutations):
             for name, old, new, family, kind in FX_MUTANTS:
                 mlib = compile_fx_mutant(tmp, name, old, new)
                 f = fx_compare(text, data, mlib, family, [kind], max(40, cases))['families']['fx_' + family]
+                result['mutants'][name] = {'cases': f['cases'], 'caught': f['cases'] - f['equal']}
+        with tempfile.TemporaryDirectory(prefix='render-effects11-r45e-') as tmp:
+            for name, old, new in RENDER_MUTANTS:
+                mlib = bind_render(re9.compile_mutant(Path(tmp), name, old, new))
+                report = pt.Report()
+                family_render45e(re9.machine(text, data), mlib, random.Random('render-effects-011-render45e'),
+                                 max(40, cases * 4), report)
+                f = report.families['render_45e']
                 result['mutants'][name] = {'cases': f['cases'], 'caught': f['cases'] - f['equal']}
         with tempfile.TemporaryDirectory(prefix='render-effects11-pt-') as tmp:
             for name, file, old, new, family, kind in PT_MUTANTS:
