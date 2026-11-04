@@ -18,6 +18,7 @@ from collections import defaultdict
 import ctypes as C
 import hashlib
 import json
+import math
 from pathlib import Path
 import random
 import shutil
@@ -106,7 +107,7 @@ PT_MUTANTS = [
 ]
 
 
-FX_KINDS = [(0x477, 3), (0x477, 4), (0x60b, 0), (0x611, 0), (0x45f, 0), (0x45f, 1)]
+FX_KINDS = [(0x477, 3), (0x477, 4), (0x60b, 0), (0x611, 0), (0x45f, 0), (0x45f, 1), (0x70c, 0)]
 FX_MUTANTS = [
     # (name, old, new, family, kind) on reconstructed/combat/bow_fx.inc
     ('ring_scale', '* f32bits(0x3d4ccccdu);   /* the info key', '* f32bits(0x3dcccccdu);   /* the info key', 'create', (0x477, 3)),
@@ -135,6 +136,14 @@ FX_MUTANTS = [
      'create', (0x45f, 0)),
     ('wing_fade', 'e->alpha = e->alpha * fade;', 'e->alpha = e->alpha * 0.95f;', 'move', (0x45f, 0)),
     ('wing_shrink', 'if (e->subtype == 1)\n            e->scale', 'if (e->subtype == 0)\n            e->scale', 'move', (0x45f, 1)),
+    ('mark_child', 'call_effect_ks(env, e, 0x703, e->position, e->angle, light, 0, MU_SFX_NO_OWNER, 0xffff, 0.25f);',
+     'call_effect_ks(env, e, 0x703, e->position, e->angle, light, 0, MU_SFX_NO_OWNER, 0xffff, 0.5f);', 'create', (0x70c, 0)),
+    ('mark_stone', 'const int32_t stone = 0x419 + smod(env_rand(env), 2);', 'const int32_t stone = 0x419;', 'create', (0x70c, 0)),
+    ('mark_turn', 'e->angle[2] = arrow_rand_range(env, 0.0f, 360.0f);\n        return 1;',
+     'e->angle[2] = arrow_rand_range(env, 0.0f, 180.0f);\n        return 1;', 'create', (0x70c, 0)),
+    ('mark_pulse', '(float)(e->lifetime - 30) * 2.0f;', '(float)(e->lifetime - 29) * 2.0f;', 'move', (0x70c, 0)),
+    ('mark_abs', 't = 0.0f > t ? -t : t;', 't = t;', 'move', (0x70c, 0)),
+    ('mark_dim', 'if (e->lifetime < 25)\n            for', 'if (e->lifetime <= 25)\n            for', 'move', (0x70c, 0)),
     ('wave_fade', 'e->alpha = (float)e->lifetime / (float)e->field_70;', 'e->alpha = (float)(e->lifetime - 1) / (float)e->field_70;',
      'move', (0x611, 0)),
 ]
@@ -151,13 +160,34 @@ def random_effect(rng, kind):
         e.spin[k] = f32(rng.choice([0.0, -5.0, 4.0, rng.uniform(-5.0, 5.0)]))
     e.alpha = f32(rng.choice([1.0, 0.6, 0.78, rng.uniform(0.0, 1.0)]))
     e.blend_light = f32(rng.choice([1.0, 0.27, 0.26, 0.2, rng.uniform(0.0, 1.0)]))
+    e.field_d8 = f32(rng.uniform(0.0, 1.0))
+    if kind[0] == 0x70c:   # the pulse peaks at life 30, the light fades below 25
+        e.lifetime = rng.choice([50, 40, 31, 30, 29, 25, 24, 20, 2, 1, rng.randrange(1, 60)])
+        e.field_70 = rng.choice([20, 20, 20, 7, rng.randrange(1, 40)])
     return e
+
+
+CRT_POW = 0x0198c480
+
+
+class PowCase(re9.Case):
+    """validate_render_effects9's case with the CRT pow (0x0198c480, two doubles; 0x70c's move through 0x00cee37c) as
+    the host's double pow."""
+
+    def stubs(self, m):
+        s = super().stubs(m)
+
+        def crt_pow(mm):
+            x, y = struct.unpack('<2d', struct.pack('<4I', *[mm.argument(i) for i in range(4)]))
+            return mm.x87_return(math.pow(x, y), double=True)
+        s[CRT_POW] = crt_pow
+        return s
 
 
 def fx_compare(text, data, lib, name, kinds, cases, seed='render-effects-011-fx-'):
     saved = re7.Case, re7.MOVE_DEFINED, re7.random_arrow
-    re7.Case, re7.random_arrow = re9.Case, random_effect
-    re7.MOVE_DEFINED = saved[1] | {'spin'}
+    re7.Case, re7.random_arrow = PowCase, random_effect
+    re7.MOVE_DEFINED = saved[1] | {'spin', 'field_d8'}
     report = pt.Report()
     try:
         getattr(re7, 'family_' + name)(re9.machine(text, data), lib, random.Random(seed + name), cases, report, kinds)
@@ -403,7 +433,9 @@ BODIES = {'create_flare_5': (0x015bea78, 0x015bee03), 'move_flare_5': (0x0162d77
           'move_477_3_4': (0x014719f8, 0x01471b7b), 'create_60b': (0x014001e3, 0x0140020c),
           'move_60b': (0x01468a1f, 0x01468ae5), 'create_611': (0x0140fea0, 0x0140ff17),
           'move_611': (0x014c4c8e, 0x014c4cd0), 'create_45f': (0x013e45bc, 0x013e4aa9),
-          'move_45f_0': (0x01488ec6, 0x01489069), 'move_45f_1': (0x0148922a, 0x0148932a)}
+          'move_45f_0': (0x01488ec6, 0x01489069), 'move_45f_1': (0x0148922a, 0x0148932a),
+          'create_70c': (0x0141a4c4, 0x0141a97b), 'move_70c': (0x014d2131, 0x014d2253),
+          'render_45e': (0x01518f49, 0x0151930a)}
 
 
 def run(cases, mutations):

@@ -178,6 +178,8 @@ typedef struct mu_sfx_effect {
     float field_cc;          /* +0xcc the shoal's pitch swing (0x199; +0xc8 gravity is its yaw swing) */
     /* RENDER-EFFECTS-007 */
     float field_188[3];      /* +0x188 the arrows' trail point (position, or one step ahead) */
+    /* RENDER-EFFECTS-011 */
+    float field_d8;          /* +0xd8 effect 0x70c's pulse (pow((1 - |20 - 2 (life - 30)| / 20), 2)) */
 } mu_sfx_effect;
 
 /* CreateEffect's info block (argument 8, 0x20 bytes). */

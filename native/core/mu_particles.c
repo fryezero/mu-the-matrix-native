@@ -178,6 +178,14 @@ static int h_owner_live(void *c, int32_t owner)
     return o && o->live;
 }
 
+/* RENDER-EFFECTS-011: CreateParticle 0x0168fafd from a move (smoke01/0x6d's trail): appended to the list being
+ * moved, which visits it later in the same pass (the client's std::list push_back) */
+static int h_create(void *c, int32_t type, const float position[3], const float angle[3], const float light[3],
+                    int32_t subtype, float scale)
+{
+    return mu_world_particles_create(c, type, position, angle, light, subtype, scale);
+}
+
 static void h_sound(void *context, int32_t id)
 {
     (void)id;
@@ -210,6 +218,7 @@ static void host(mu_world_particles *p, mu_pt_host *h)
     h->sound = h_sound;
     h->light = h_light;
     h->owner_live = h_owner_live;
+    h->create = h_create;
 }
 
 /* ---- assets ---- */
