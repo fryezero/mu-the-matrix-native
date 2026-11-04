@@ -525,9 +525,10 @@ def prime(machine, scene, g, cases):
 A = 'objects/action_registry.c'
 MUTATIONS = [
     ('axis hi', A, 'return !(lo_segment > hi) && !(lo > hi_segment);', 'return !(lo_segment >= hi) && !(lo > hi_segment);'),
-    ('axis lo', A, 'return !(lo_segment > hi) && !(lo > hi_segment);', 'return !(lo_segment > hi);'),
-    ('axis sign', A, '        if (e[k] > 0.0f)\n', '        if (e[k] >= 0.0f)\n'),
-    ('segment axes', A, 'overlap(a[2], p1, p2, b) && overlap(b->x, p1, p2, b)', 'overlap(b->x, p1, p2, b)'),
+    ('axis lo', A, 'return !(lo_segment > hi) && !(lo > hi_segment);',
+     'return !(lo_segment > hi) && !(lo > hi_segment + 50.0f);'),
+    ('axis half', A, '            hi = hi + e[k];', '            hi = hi + 0.5f * e[k];'),
+    ('segment axes', A, 'overlap(a[1], p1, p2, b) && overlap(a[2], p1, p2, b) &&', 'overlap(a[1], p1, p2, b) &&'),
     ('cross', A, 'out[1] = a[2] * b[0] - a[0] * b[2];', 'out[1] = a[0] * b[2] - a[2] * b[0];'),
     ('hover box', A, 'memcpy(&b, o + MU_OBJF_OBB, sizeof b);', 'memcpy(&b, o + MU_OBJF_OBB + 4, sizeof b);'),
     ('h4 leave', A, '                if (!h)\n                    mu_action_set(o, back(e), in);',
@@ -535,26 +536,27 @@ MUTATIONS = [
     ('h6 latch', A, '            } else if (h && mu_obj_i32(o, OBJ_LIMIT) == 0) {', '            } else if (h) {'),
     ('h6 reset', A, '            } else {\n                mu_obj_set_i32(o, OBJ_LIMIT, 0);\n            }\n            break;',
      '            }\n            break;'),
-    ('h6 lock', A, '            } else if (at_end(o, e, r, 1)) {', '            } else if (at_end(o, e, r, 0)) {'),
+    ('h6 lock', A, '                    mu_action_set(o, back(e), in);\n            } else if (at_end(o, e, r, 1)) {\n                mu_action_set',
+     '                    mu_action_set(o, back(e), in);\n            } else if (at_end(o, e, r, 0)) {\n                mu_action_set'),
     ('h8 size', A, 'if (e->extra_count != 7)', 'if (e->extra_count < 7)'),
     ('h8 coarse max', A, 'larger(larger((float)e->extra[0], (float)e->extra[1]), (float)e->extra[2])',
      'larger((float)e->extra[0], (float)e->extra[1])'),
     ('h8 coarse side', A, 'const float side = 2.0f * coarse.z[2];', 'const float side = coarse.z[2];'),
-    ('h8 coarse offset', A, '        coarse.start[k] = (float)e->extra[3 + k] + coarse.start[k];\n', ''),
+    ('h8 coarse offset', A, 'coarse.start[k] = (float)e->extra[3 + k] + coarse.start[k];',
+     'coarse.start[k] = 0.0f * (float)e->extra[3 + k] + coarse.start[k];'),
     ('h8 half', A, 'const float hx = (float)e->extra[0] * scale * 0.5f', 'const float hx = (float)e->extra[0] * scale'),
     ('h8 offset scale', A, 'c[i][k] = (float)e->extra[3 + k] * scale + c[i][k];', 'c[i][k] = (float)e->extra[3 + k] + c[i][k];'),
-    ('turn degrees', A, 'const float k = 0.0174532924f;', 'const float k = 0.0174532f;'),
+    ('turn axes', A, 'const float a = angles[0] * k, b = angles[1] * k', 'const float a = angles[1] * k, b = angles[0] * k'),
     ('turn order', A, 'out[1] = sc * cb * v[0] + (sc * sb * sa + cc * ca) * v[1]', 'out[1] = sc * cb * v[0] + (sc * sb * sa - cc * ca) * v[1]'),
     ('turn z', A, 'out[2] = -sb * v[0] + cb * sa * v[1] + cb * ca * v[2];', 'out[2] = sb * v[0] + cb * sa * v[1] + cb * ca * v[2];'),
     ('h8 face 2', A, '{0, 4, 6, 3}, {1, 5, 7, 3}', '{0, 4, 6, 2}, {1, 5, 7, 3}'),
     ('h8 normal', A, '{{0, 1, 3}, {4, 5, 6}', '{{0, 3, 1}, {4, 5, 6}'),
     ('h8 alpha', A, 'hit ? 0.100000001f : 1.0f', 'hit ? 0.0f : 1.0f'),
-    ('line t', A, 'if (!(t >= 0.0f) || !(9999999.0f >= t))', 'if (!(t > 0.0f) || !(9999999.0f >= t))'),
-    ('line range', A, '        ok = within(x[0], origin[0], target[0]) && within(x[1], origin[1], target[1]);',
-     '        ok = within(x[0], origin[0], target[0]);'),
+    ('line t', A, '/ dot(dir, n);', '/ (dot(dir, n) * 2.0f);'),
+    ('line range', A, '    if (!ok)\n        return 0;\n    if (-0.5f', '    (void)ok;\n    if (-0.5f'),
     ('line plane', A, 'if (-0.5f >= n[0] || n[0] >= 0.5f)', 'if (n[0] >= 0.5f)'),
-    ('inside flip', A, 'if (!(sign > 0.0f) ? 0.0f >= term : term >= 0.0f)', 'if (0.0f >= term)'),
-    ('normal zero', A, '    if (length == 0.0)\n        return;\n', ''),
+    ('inside flip', A, 'if (!(sign > 0.0f) ? 0.0f >= term : term >= 0.0f)', 'if (!(sign > 1.0f) ? 0.0f >= term : term >= 0.0f)'),
+    ('normal z', A, 'n[2] = (float)((double)nz / length);', 'n[2] = (float)((double)nz / length) * 0.5f;'),
     ('sprite live', 'particles/sprites.c', '        if (s->records[i].live)\n', '        if (s->records[i].live == 1)\n'),
     ('prime follow', 'scene/mu_effect_scene.c', '    if (follow)\n        mu_effect_object_world_matrix',
      '    if (follow == 1)\n        mu_effect_object_world_matrix'),
@@ -571,6 +573,7 @@ def main():
     p.add_argument('--only')
     p.add_argument('--lang-dir', help='local lang directory with mapanim.tsv (live_rows)')
     p.add_argument('--mutations', action='store_true')
+    p.add_argument('--mutant', help='with --mutations: only these comma-separated mutant names')
     p.add_argument('--output')
     a = p.parse_args()
     text, data = pins.TEXT.read(), pins.DATA.read()
@@ -602,7 +605,7 @@ def main():
         report['families'][name] = tally.report()
         print(name, json.dumps(tally.report())[:3000], flush=True)
     if a.mutations:
-        for label, file, old, new in MUTATIONS:
+        for label, file, old, new in [m for m in MUTATIONS if not a.mutant or m[0] in a.mutant.split(',')]:
             with tempfile.TemporaryDirectory(prefix='worlds-after6-mut-') as mtmp:
                 root = Path(mtmp)
                 for d in ['objects', 'terrain', 'record-math', 'model-codec', 'particles', 'movement', 'combat',
