@@ -15,13 +15,21 @@ Families (docs/research/client-render-items-tex.md):
                  bytes (0x0139d6a2 and its callees as client code): model +0xa4 equals mu_it_part_skin.
   skin_bitmap    the mesh draw's skin substitution 0x012b8e78..0x012b9471 for every +0xa4 byte and twelve
                  IndexTextures: the index it binds equals mu_it_skin_bitmap.
-  registrations  every LoadBitmap 0x0185baac site of the item bitmap table (native/core/mu_item_bitmaps.inc) runs
-                 from its first push: path, index, filter, wrap and the two flags must equal the table entry, and
-                 every static site of an index in the table must agree.
+  registrations  RENDER-ITEMS-TEX-003: the item bitmap table (native/core/mu_item_bitmaps.inc) is every LoadBitmap
+                 0x0185baac call of the startup routines (those the startup loader 0x0182049e reaches by direct
+                 calls, and the startup opener). Each immediate site runs from its first push; the five computed
+                 runs (loops whose path is sprintf'd and whose index is base + i) run as client code with sprintf,
+                 OpenTexture and LoadBitmap as stubs. The calls (index, path, filter, wrap, flags 1/0), in table
+                 order, must equal the table; every startup LoadBitmap site must be covered.
+  reregister     RENDER-ITEMS-TEX-003: 0x00c97730(index, path, filter, wrap), the step LoadBitmap ends in, runs as
+                 client code (_stricmp, memset and 0x00c99025 as client code; the std::map members, _splitpath, the
+                 string members, the unload 0x00c97916 and the jpg/tga loaders are stubs) on synthetic slot states
+                 and call sequences, against mu_it_register: the same unload/load requests, return value and slot.
+                 Then every table index replays its calls through 0x00c97730 from an empty slot; the bitmap it holds
+                 must equal mu_it_registration over the table.
 
---emit-table PATH --ids 0x84d9,... [--skins] writes the item bitmap table (--skins adds every registered wearer skin
-index 0x7725..0x790a): each index's static LoadBitmap sites (immediate
-path), the routine that holds them and whether the startup loader 0x0182049e reaches it by direct calls.
+--emit-table PATH writes the item bitmap table: every startup LoadBitmap call, sorted by index (stable: the calls of
+an index in the client's call order), with its site, its routine and whether the startup loader reaches it.
 --emit-names PATH writes the startup name list. --mutations compiles planted mistakes that a family must catch. Inputs: the pinned text, data and section-3
 captures (scripts/pins.py; section 3 holds the CRT locale state _strnicmp reads).
 """
@@ -62,7 +70,8 @@ SECTION3_BASE, SECTION3_INIT = 0x01ced000, 0x20000
 PART_SKIN, PART_SKIN_END = 0x0136a4a9, 0x0136a4c3
 SKIN_SWITCH, SKIN_SWITCH_END, SKIN_SWITCH_RETURN = 0x012b8e78, 0x012b9471, 0x012bb34b
 BODIES = {'item_open': (ITEM_OPEN, ITEM_OPEN_END), 'get_model': (0x00eaa8cf, 0x00eaaa3e),
-          'part_skin': (PART_SKIN, PART_SKIN_END), 'skin_switch': (SKIN_SWITCH, SKIN_SWITCH_END)}
+          'part_skin': (PART_SKIN, PART_SKIN_END), 'skin_switch': (SKIN_SWITCH, SKIN_SWITCH_END),
+          'register': (0x00c97730, 0x00c97916)}   # RENDER-ITEMS-TEX-003: LoadBitmap's step 0x00c97730
 WEARER_MODEL, WEARER_CHARACTER = 0x44000000, 0x44001000
 
 MODEL, NAMES, INDEX, TYPES, ENTRY, HEAP, ARGS = (0x42000000, 0x42001000, 0x42002000, 0x42003000, 0x42004000,
@@ -87,7 +96,19 @@ def bind(lib):
     lib.mu_it_open.argtypes = [C.POINTER(Host), C.c_char_p, C.c_char_p, C.POINTER(C.c_int32), C.POINTER(C.c_int),
                                C.POINTER(C.c_int)]
     lib.mu_it_open.restype = C.c_int32
+    lib.mu_it_register.argtypes = [C.POINTER(Bitmap), C.c_char_p, C.c_uint32, C.c_uint32]
+    lib.mu_it_register.restype = C.c_int
+    lib.mu_it_registration.argtypes = [C.POINTER(Call), C.c_size_t, C.c_int32, C.POINTER(Bitmap)]
+    lib.mu_it_registration.restype = C.c_int
     return lib
+
+
+class Call(C.Structure):   # mu_it_call
+    _fields_ = [('index', C.c_int32), ('path', C.c_char_p), ('filter', C.c_uint32), ('wrap', C.c_uint32)]
+
+
+class Bitmap(C.Structure):   # mu_it_bitmap
+    _fields_ = [('path', C.c_char_p), ('filter', C.c_uint32), ('wrap', C.c_uint32), ('refs', C.c_uint8)]
 
 
 class Tally:
@@ -502,49 +523,132 @@ def startup_reach(text, start=STARTUP_LOADER, limit=200000):
 STARTUP_OPENER = 0x01832af3
 
 
-def registrations_for(text, data, ids):
-    out = {}
-    for site, first, args in scan_calls(text, LOAD_BITMAP):
-        if args[1] in ids and args[0] is not None:
-            path = string_at(data, args[0])
-            if path:
-                out.setdefault(args[1], []).append({'site': site, 'first': first, 'path': path, 'filter': args[2],
-                                                     'wrap': args[3], 'flags': (args[4], args[5])})
-    return out
-
-
 def c_string(s):
     return '"' + s.replace('\\', '\\\\').replace('"', '\\"') + '"'
 
 
-def emit_table(path, text, data, ids):
-    regs = registrations_for(text, data, ids)
+# RENDER-ITEMS-TEX-003: the startup LoadBitmap calls whose index or path is computed. Each run is a loop (or two
+# sprintf'd constants) inside a startup routine's EBP frame, executed from its first instruction to the first one
+# after it: (start, end, routine).
+COMPUTED_RUNS = [
+    (0x01825019, 0x0182506d, 0x0182049e),   # 0x83d7 + i, "Effect\ad00%d.jpg" (i + 1), i = 0..5
+    (0x0182c344, 0x0182c4ec, 0x0182bb43),   # 0x7935 + i / 0x793e + i, "Player\InvenArmorMale%d.tga" / Pants (i + 40),
+                                            # i = 0..5, then 0x7946/0x7947 (succubus files, sprintf without arguments)
+    (0x018327d3, 0x01832825, 0x0183220e),   # 0x8300 + i, "Item\texture\fire_sq_%05d.jpg" (i), i = 0..11
+    (0x01835dd8, 0x01835e26, STARTUP_OPENER),   # 0x8100 + i, "Effect\xsuper000%d.jpg" (i + 1), i = 0..5
+]
+SPRINTF, OPEN_TEXTURE, ACCESS_MODEL = 0x009619dd, 0x0181fbe9, 0x018202b4
+
+
+def c_format(form, values):
+    """sprintf's %d / %0Nd / %s as the computed runs use them."""
+    k = 0
+
+    def piece(match):
+        nonlocal k
+        value = values[k]
+        k += 1
+        if match.group(2) == 's':
+            return value
+        return f'%{match.group(1)}d' % struct.unpack('<i', struct.pack('<I', value))[0]
+    return re.sub(r'%(0?\d*)([ds])', piece, form)
+
+
+def run_computed(machine, start, end):
+    """One computed run as client code; returns (LoadBitmap calls [(site, path, index, filter, wrap, f5, f6)], stop)."""
+    calls = []
+
+    def sprintf(mm):
+        out, form = mm.argument(0), mm.cstring(mm.argument(1))
+        n = len(re.findall(r'%0?\d*[ds]', form))
+        values = [mm.argument(2 + i) for i in range(n)]
+        values = [mm.cstring(v) if f == 's' else v for v, f in zip(values, re.findall(r'%0?\d*([ds])', form))]
+        text = c_format(form, values)
+        mm.uc.mem_write(out, text.encode('latin1') + b'\0')
+        return len(text)
+
+    def load_bitmap(mm):
+        ret = mm.read32(mm.uc.reg_read(mm.x86.UC_X86_REG_ESP))
+        calls.append((ret - 5, mm.cstring(mm.argument(0)), *[mm.argument(i) for i in range(1, 6)]))
+        return 1
+    reached = []
+
+    def stop_at(mm):
+        reached.append(end)
+        return 0
+    stubs = {SPRINTF: sprintf, LOAD_BITMAP: load_bitmap, OPEN_TEXTURE: lambda mm: 0, ACCESS_MODEL: lambda mm: 0,
+             end: stop_at}
+    r = machine.execute(start, [], [], stubs, frame=(0x1000, {-0x1000: am.SENTINEL}))
+    stop = None if am_ok(r) and reached == [end] else {'stopped': r['stopped'], 'error': r['error'],
+                                                      'run': hex(start)}
+    return calls, stop
+
+
+def startup_calls(machine, text, data):
+    """Every LoadBitmap call of the startup routines, as client code: each immediate site from its first push, each
+    computed run whole. Returns (calls, stops, uncovered sites); a call is a dict with the call's index, path,
+    filter, wrap, flags, site, routine and order (the client's call order inside its routine)."""
     reach = startup_reach(text)
-    lines = ['/* Generated by scripts/validate_item_textures.py --emit-table: the LoadBitmap 0x0185baac registrations of',
-             ' * the client bitmaps the item body draws name (RENDER-ITEMS-TEX-001) and of the wearer skin bitmaps',
-             ' * 0x7725..0x790a that skin/hair mesh names bind with the model\'s +0xa4 shift (RENDER-ITEMS-TEX-002,',
-             ' * --skins). index, path under Data, filter, wrap;',
-             ' * the comment gives the call site, its routine and whether the startup loader 0x0182049e reaches that',
-             ' * routine by direct calls. */',
-             'static const item_bitmap item_bitmaps[] = {']
-    missing = []
-    for index in sorted(ids):
-        entries = regs.get(index)
-        if not entries:
-            missing.append(index)
+    calls, stops, sites = [], [], set()
+    for site, first, args in scan_calls(text, LOAD_BITMAP):
+        routine = routine_of(text, site)
+        if routine not in reach and routine != STARTUP_OPENER:
             continue
-        e = entries[0]
-        routine = routine_of(text, e['site'])
-        when = ('startup' if routine in reach else 'startup opener, no direct caller' if routine == STARTUP_OPENER
-                else 'not reached from startup')
-        lines.append(f'    {{0x{index:04x}, {c_string(e["path"])}, 0x{e["filter"]:04x}, 0x{e["wrap"]:04x}}},'
-                     f' /* 0x{e["site"]:08x} in 0x{routine:08x}, {when}; {len(entries)} site(s) */')
+        sites.add(site)
+        if args[1] is None or args[0] is None or not string_at(data, args[0]):
+            continue   # a computed run
+        got = []
+
+        def load(mm):
+            got.append([mm.cstring(mm.argument(0)), *[mm.argument(i) for i in range(1, 6)]])
+            return 1
+        r = machine.execute(first, [], [], {LOAD_BITMAP: load, site + 8: lambda mm: 0})
+        if not am_ok(r) or len(got) != 1:
+            stops.append({'site': hex(site), 'stopped': r['stopped'], 'error': r['error']})
+            continue
+        path, index, filt, wrap, f5, f6 = got[0]
+        calls.append({'index': index, 'path': path, 'filter': filt, 'wrap': wrap, 'flags': (f5, f6), 'site': site,
+                      'routine': routine, 'order': (site, 0), 'run': None})
+    for start, end, routine in COMPUTED_RUNS:
+        got, stop = run_computed(machine, start, end)
+        if stop:
+            stops.append(stop)
+        for k, (site, path, index, filt, wrap, f5, f6) in enumerate(got):
+            calls.append({'index': index, 'path': path, 'filter': filt, 'wrap': wrap, 'flags': (f5, f6),
+                          'site': site, 'routine': routine, 'order': (start, k), 'run': start})
+    covered = {c['site'] for c in calls}
+    calls.sort(key=lambda c: (c['index'], c['order']))
+    return calls, stops, sorted(sites - covered)
+
+
+def emit_table(path, machine, text, data):
+    calls, stops, uncovered = startup_calls(machine, text, data)
+    if stops or uncovered:
+        raise SystemExit(f'startup LoadBitmap calls not reproduced: {stops[:4]} uncovered {uncovered[:8]}')
+    by_index = {}
+    for c in calls:
+        by_index.setdefault(c['index'], []).append(c)
+    for index, group in by_index.items():   # the call order is only known inside one routine
+        if len(group) > 1 and len({c['routine'] for c in group}) > 1:
+            raise SystemExit(f'index 0x{index:04x}: calls in several startup routines')
+    reach = startup_reach(text)
+    lines = ['/* Generated by scripts/validate_item_textures.py --emit-table: every LoadBitmap 0x0185baac call of the',
+             ' * startup routines (those the startup loader 0x0182049e reaches by direct calls, and the startup opener',
+             ' * 0x01832af3), immediate and computed (RENDER-ITEMS-TEX-003). The client registers them all before an',
+             ' * item first draws; the body draws and the wearer skin name them by index. index, path under Data,',
+             ' * filter, wrap; sorted by index, the calls of one index in the client\'s call order (mu_it_registration',
+             ' * replays them through 0x00c97730\'s rule). The comment gives the call site, its routine and whether',
+             ' * the startup loader reaches that routine by direct calls. */',
+             'static const mu_it_call item_bitmaps[] = {']
+    for c in calls:
+        when = 'startup' if c['routine'] in reach else 'startup opener, no direct caller'
+        run = f', run 0x{c["run"]:08x} call {c["order"][1]}' if c['run'] else ''
+        lines.append(f'    {{0x{c["index"]:04x}, {c_string(c["path"])}, 0x{c["filter"]:04x}, 0x{c["wrap"]:04x}}},'
+                     f' /* 0x{c["site"]:08x} in 0x{c["routine"]:08x}, {when}{run} */')
     lines += ['};', '']
-    if missing:
-        lines.insert(-2, '/* not registered by an immediate LoadBitmap call: ' +
-                     ', '.join(f'0x{i:04x}' for i in missing) + ' */')
     Path(path).write_text('\n'.join(lines))
-    return missing
+    repeated = {i: len(g) for i, g in by_index.items() if len(g) > 1}
+    return len(calls), len(by_index), repeated
 
 
 # The wearer skin bitmaps (RENDER-ITEMS-TEX-002): 0x7725 skin, 0x7776 hair, 0x77c7 HQskin, 0x7818 HQskin2, 0x7869
@@ -628,24 +732,184 @@ def table_entries(path=TABLE):
 
 
 def family_registrations(machine, text, data, entries):
+    """RENDER-ITEMS-TEX-003: the table is every startup LoadBitmap call, in table order, as client code makes it."""
     tally = Tally('registrations')
-    regs = registrations_for(text, data, {e[0] for e in entries})
-    for index, path, filt, wrap in entries:
-        sites = regs.get(index, [])
-        if not sites:
-            tally.add(False, {'index': hex(index), 'sites': 0})
-            continue
-        for s in sites:
-            calls = []
+    calls, stops, uncovered = startup_calls(machine, text, data)
+    for stop in stops:
+        tally.add(False, stopped=stop)
+    tally.add(not uncovered and len(calls) == len(entries),
+              {'uncovered_sites': [hex(x) for x in uncovered[:8]], 'calls': len(calls), 'table': len(entries)})
+    for k, c in enumerate(calls):
+        client = (c['index'], c['path'], c['filter'], c['wrap'])
+        tally.add(c['flags'] == (1, 0) and k < len(entries) and client == entries[k],
+                  {'site': hex(c['site']), 'client': client, 'flags': c['flags'],
+                   'table': entries[k] if k < len(entries) else None})
+        tally.count('computed calls' if c['run'] else 'immediate calls')
+    tally.count('indices', len({c['index'] for c in calls}))
+    tally.count('indices with several calls', sum(1 for i in {c['index'] for c in calls}
+                                                  if sum(1 for d in calls if d['index'] == i) > 1))
+    return tally.report()
 
-            def load(mm):
-                calls.append([mm.cstring(mm.argument(0)), *[mm.argument(i) for i in range(1, 6)]])
-                return 1
-            r = machine.execute(s['first'], [], [], {LOAD_BITMAP: load, s['site'] + 8: lambda mm: 0})
-            tally.add(am_ok(r) and calls == [[path, index, filt, wrap, 1, 0]],
-                      {'index': hex(index), 'site': hex(s['site']), 'client': calls, 'table': [path, filt, wrap]})
-            tally.count('sites')
-        tally.count('indices')
+
+# ---------------------------------------------------------------- 0x00c97730 (RENDER-ITEMS-TEX-003)
+REGISTER = 0x00c97730
+MAP_FIND, MAP_END, ITER_NE, ITER_DEREF = 0x00c9d0e8, 0x00c9d05e, 0x00c9b1c9, 0x00c9b287
+UNLOAD, LOAD_JPG, LOAD_TGA = 0x00c97916, 0x00c982ea, 0x00c988fc
+STR_DEFAULT, STR_ASSIGN = 0x008e6d00, 0x0094afda
+REG_THIS, REG_NODE, REG_BITMAP, REG_PATH, REG_END = 0x42020000, 0x42021000, 0x42022000, 0x42023000, 0x42024000
+REG_POOL = ['Data\\Item\\Texture\\a.jpg', 'Data\\item\\texture\\A.JPG', 'Data\\Item\\Texture\\a.tga',
+            'Data\\Effect\\b.TGA', 'Data\\Effect\\b.tga', 'Data\\Effect\\c.bmp', 'Data\\Effect\\noext',
+            'Data\\Effect\\d.', 'Data\\Eff.ect\\e', 'Data\\Effect\\blur_aura002.jpg',
+            'Data\\Item\\texture\\blur_aura002.jpg', 'Data\\Effect\\x.jpgx', 'Data\\Effect\\y.Jpg', 'Data\\Effect\\z.tGa']
+REG_PARAMS = [(0x2600, 0x2900), (0x2601, 0x2900), (0x2601, 0x2901), (0x2600, 0x2901)]
+
+
+def run_register_client(machine, slot, index, path, filt, wrap, sec3):
+    """0x00c97730(index, path, filter, wrap) as client code on one slot state (None, or dict path/filter/wrap/refs).
+    Returns (requests, return byte, slot after, stop)."""
+    events = []
+    strings = Strings(machine)
+    state = {'present': slot is not None, 'filter': slot and slot['filter'], 'wrap': slot and slot['wrap']}
+    record = bytearray(0x240)
+    if slot:
+        raw = slot['path'].encode('latin1')
+        record[4:4 + len(raw)] = raw
+        record[0x219] = slot['refs']
+
+    def ecx(mm):
+        return mm.uc.reg_read(mm.x86.UC_X86_REG_ECX)
+
+    def find(mm):
+        out = mm.argument(0)
+        if mm.read32(mm.argument(1)) != index:
+            raise ValueError('map key')
+        mm.uc.mem_write(out, struct.pack('<I', REG_NODE if state['present'] else REG_END))
+        return out, 8
+
+    def end(mm):
+        mm.uc.mem_write(mm.argument(0), struct.pack('<I', REG_END))
+        return mm.argument(0), 4
+
+    def loader(kind):
+        def stub(mm):
+            if mm.argument(0) != index:
+                raise ValueError('load index')
+            events.append(('load', kind, index, strings.get(mm.argument(1)), mm.argument(2), mm.argument(3)))
+            raw = strings.get(mm.argument(1)).encode('latin1')
+            mm.uc.mem_write(REG_BITMAP + 4, raw + b'\0')
+            mm.uc.mem_write(REG_BITMAP + 0x219, b'\x01')
+            state.update(present=True, filter=mm.argument(2), wrap=mm.argument(3))
+            return 1, 0x10
+        return stub
+
+    def unload(mm):
+        events.append(('unload', mm.argument(0), mm.argument(1)))
+        state['present'] = False
+        mm.uc.mem_write(REG_BITMAP + 0x219, b'\x00')
+        return 0, 8
+
+    def splitpath(mm):
+        p, drive, directory, fname, ext = (mm.argument(k) for k in range(5))
+        if drive or directory or fname:
+            raise ValueError('unmodelled _splitpath outputs')
+        name = mm.cstring(p, 300)
+        base = max(name.rfind('\\'), name.rfind('/'))
+        dot = name.rfind('.')
+        mm.uc.mem_write(ext, (name[dot:] if dot > base else '').encode('latin1')[:255] + b'\0')
+        return 0
+
+    stubs = {MAP_FIND: find, MAP_END: end,
+             ITER_NE: lambda mm: (int(mm.read32(ecx(mm)) != mm.read32(mm.argument(0))), 4),
+             ITER_DEREF: lambda mm: (mm.read32(ecx(mm)), 0),
+             STR_CSTR: lambda mm: (mm.read32(ecx(mm)), 0), STR_DTOR: lambda mm: (0, 0),
+             STR_DEFAULT: lambda mm: (strings.put(ecx(mm), '') or ecx(mm), 0),
+             STR_ASSIGN: lambda mm: (strings.put(ecx(mm), mm.cstring(mm.argument(0))) or ecx(mm), 4),
+             SPLITPATH: splitpath, LOG: lambda mm: 0, UNLOAD: unload, LOAD_JPG: loader('jpg'), LOAD_TGA: loader('tga')}
+    heap = bytearray(0x10000)   # the path argument's text, then the strings the stubs make
+    raw = path.encode('latin1') + b'\0'
+    heap[:len(raw)] = raw
+    strings.next = HEAP + ((len(raw) + 15) & ~15)
+    strings.value[REG_PATH] = path
+    regions = [am.defined_region('this', REG_THIS, bytes(0x100), writable=False),
+               am.defined_region('node', REG_NODE, struct.pack('<II', 0, REG_BITMAP), writable=False),
+               am.defined_region('bitmap', REG_BITMAP, bytes(record)),
+               am.defined_region('heap', HEAP, bytes(heap)),
+               am.defined_region('path-object', REG_PATH, struct.pack('<I', HEAP) + bytes(0x1c), writable=False),
+               am.defined_region('locale-changed', LOCALE_CHANGED, bytes(4), writable=False),
+               am.defined_region('sse2-flag', SSE2_FLAG, bytes(4), writable=False),
+               am.defined_region('section3-init', SECTION3_BASE, sec3[:SECTION3_INIT], writable=False)]
+    r = machine.execute(REGISTER, [index, REG_PATH, filt, wrap], regions, stubs, ecx=REG_THIS, cleanup=0x10)
+    stop = None if r['ok'] else {'stopped': r['stopped'], 'error': r['error'],
+                                 'checks': {k: v for k, v in r['checks'].items() if not v}}
+    after = None
+    if state['present']:
+        raw = r['regions']['bitmap']
+        after = {'path': raw[4:0x200].split(b'\0')[0].decode('latin1'), 'filter': state['filter'],
+                 'wrap': state['wrap'], 'refs': raw[0x219]}
+    return events, r['eax'] & 0xff, after, stop
+
+
+def run_register_c(lib, slot, index, path, filt, wrap, keep):
+    b = Bitmap()
+    if slot:
+        raw = slot['path'].encode('latin1')
+        keep.append(raw)
+        b.path, b.filter, b.wrap, b.refs = raw, slot['filter'], slot['wrap'], slot['refs']
+    raw = path.encode('latin1')
+    keep.append(raw)
+    what = lib.mu_it_register(C.byref(b), raw, filt, wrap)
+    events = []
+    if what & 1:
+        events.append(('unload', index, 1))
+    for bit, kind in ((2, 'jpg'), (4, 'tga')):
+        if what & bit:
+            events.append(('load', kind, index, path, filt, wrap))
+    after = None if not b.path else {'path': b.path.decode('latin1'), 'filter': b.filter, 'wrap': b.wrap,
+                                     'refs': b.refs}
+    return events, int(bool(what & 0xe)), after
+
+
+def family_reregister(machine, lib, entries, sec3, cases, seed='items-tex-register'):
+    tally = Tally('reregister')
+    g = random.Random(seed)
+    for n in range(cases):
+        slot = None if g.random() < 0.35 else {'path': g.choice(REG_POOL), 'refs': g.choice([0, 1, 1, 2, 7, 255]),
+                                                'filter': g.choice(REG_PARAMS)[0], 'wrap': g.choice(REG_PARAMS)[1]}
+        index = g.choice([0x854c, 0x8531, 0x7fe7, g.randrange(0x7530, 0x8700)])
+        c_slot = slot
+        for _ in range(g.choice([1, 1, 2, 3])):
+            path = g.choice(REG_POOL)
+            if slot and g.random() < 0.4:   # the same file, often in another case
+                path = g.choice([slot['path'], slot['path'].upper(), slot['path'].lower()])
+            filt, wrap = g.choice(REG_PARAMS)
+            events, ret, after, stop = run_register_client(machine, slot, index, path, filt, wrap, sec3)
+            keep = []
+            c_events, c_ret, c_after = run_register_c(lib, c_slot, index, path, filt, wrap, keep)
+            tally.add(stop is None and (events, ret, after) == (c_events, c_ret, c_after),
+                      {'case': n, 'slot': slot, 'call': (path, filt, wrap), 'client': (events, ret, after),
+                       'c': (c_events, c_ret, c_after)}, stop)
+            tally.count('reference' if not events and ret else 'unload' if any(e[0] == 'unload' for e in events)
+                        else 'load' if events else 'nothing loaded')
+            slot, c_slot = after, c_after
+    # every table index, replayed from an empty slot through 0x00c97730, against mu_it_registration
+    keep = [e[1].encode('latin1') for e in entries]
+    table = (Call * len(entries))(*[Call(e[0], keep[k], e[2], e[3]) for k, e in enumerate(entries)])
+    by_index = {}
+    for e in entries:
+        by_index.setdefault(e[0], []).append(e)
+    for index, group in by_index.items():
+        slot, stop = None, None
+        for _, path, filt, wrap in group:
+            _, _, slot, stop = run_register_client(machine, slot, index, path, filt, wrap, sec3)
+            if stop:
+                break
+        b = Bitmap()
+        held = lib.mu_it_registration(table, len(entries), index, C.byref(b))
+        native = (b.path.decode('latin1'), b.filter, b.wrap) if held else None
+        client = (slot['path'], slot['filter'], slot['wrap']) if slot else None
+        tally.add(client == native, {'index': hex(index), 'calls': len(group), 'client': client, 'c': native}, stop)
+        tally.count('table indices')
+        tally.count('table indices with several calls', len(group) > 1)
     return tally.report()
 
 
@@ -683,6 +947,17 @@ MUTANTS = [
      'return (int8_t)(mu_character_skin_index(class_byte) & 0x3f);', 'part_skin'),
     ('item_texture.c', 'case MU_TL_HQ_SKIN3: case MU_TL_HQ_HAIR:', 'case MU_TL_HQ_SKIN3:', 'skin_bitmap'),
     ('item_texture.c', 'return index_texture + skin;', 'return index_texture + (uint8_t)skin;', 'skin_bitmap'),
+    # RENDER-ITEMS-TEX-003
+    ('mu_item_bitmaps.inc', '{0x8531, ', None, 'registrations'),
+    ('mu_item_bitmaps.inc', '"Item\\\\texture\\\\fire_sq_00005.jpg"', 'drop', 'registrations'),
+    ('mu_item_bitmaps.inc', '{0x854c, ', 'swap', 'registrations'),
+    ('item_texture.c', 'if (same_nocase(slot->path, path)) {', 'if (strcmp(slot->path, path) == 0) {', 'reregister'),
+    ('item_texture.c', 'if (same_nocase(slot->path, path)) {', 'if (0) {', 'reregister'),
+    ('item_texture.c', 'if (slot->path && slot->refs != 0) {', 'if (slot->path) {', 'reregister'),
+    ('item_texture.c', 'if (same_nocase(ext, "jpg"))', 'if (strcmp(ext, "jpg") == 0)', 'reregister'),
+    ('item_texture.c', '    else\n        return what;\n', '', 'reregister'),
+    ('item_texture.c', 'i < count && calls[i].index == index; ++i)', 'i < count && i <= lo && calls[i].index == index; ++i)',
+     'reregister'),
 ]
 
 
@@ -700,10 +975,18 @@ def build_mutant(tmp, file, old, new):
         return out
     if file == 'mu_item_bitmaps.inc':
         s = TABLE.read_text()
-        line = next(l for l in s.split('\n') if old in l)
-        flipped = line.replace('0x2900}', '0x2901}') if '0x2900}' in line else line.replace('0x2901}', '0x2900}')
+        lines = s.split('\n')
         out = dest / file
-        out.write_text(s.replace(line, flipped))
+        if new == 'drop':
+            out.write_text('\n'.join(l for l in lines if old not in l))
+        elif new == 'swap':   # the calls of one index in the other order
+            k = [i for i, l in enumerate(lines) if old in l]
+            lines[k[0]], lines[k[1]] = lines[k[1]], lines[k[0]]
+            out.write_text('\n'.join(lines))
+        else:
+            line = next(l for l in lines if old in l)
+            flipped = line.replace('0x2900}', '0x2901}') if '0x2900}' in line else line.replace('0x2901}', '0x2900}')
+            out.write_text(s.replace(line, flipped))
         return out
     for f in ('item_texture.c', 'item_texture.h', 'texture_lookup.h'):
         shutil.copy(ROOT / 'reconstructed/objects' / f, dest / f)
@@ -726,8 +1009,7 @@ def main():
     ap.add_argument('--cases', type=int, default=3000)
     ap.add_argument('--mutations', action='store_true')
     ap.add_argument('--emit-table', type=Path)
-    ap.add_argument('--ids', default='')
-    ap.add_argument('--skins', action='store_true', help='--emit-table: add every registered skin index')
+    ap.add_argument('--register-cases', type=int, default=1000)
     ap.add_argument('--emit-names', type=Path)
     ap.add_argument('--output', type=Path)
     a = ap.parse_args()
@@ -739,11 +1021,9 @@ def main():
         print('wrote', a.emit_names, n, 'names; conflicts', sorted(conflicts))
         return 0
     if a.emit_table:
-        ids = {int(x, 16) for x in a.ids.split(',') if x}
-        if a.skins:
-            ids |= {i for i in registrations_for(text, data, set(range(SKIN_FIRST, SKIN_LAST + 1)))}
-        missing = emit_table(a.emit_table, text, data, ids)
-        print('wrote', a.emit_table, 'unregistered', [hex(i) for i in missing])
+        calls, indices, repeated = emit_table(a.emit_table, am.ActorMachine(text, data), text, data)
+        print('wrote', a.emit_table, calls, 'calls,', indices, 'indices; several calls',
+              {hex(i): n for i, n in repeated.items()})
         return 0
     sec3 = vo.load_pinned(a.section3, vo.SECTION3_BYTES, vo.SECTION3_SHA256, 'third section')
     machine = am.ActorMachine(text, data)
@@ -762,6 +1042,7 @@ def main():
     fam['startup_names'] = family_names(machine, text, data, names_entries())
     fam['part_skin'] = family_part_skin(machine, lib)
     fam['skin_bitmap'] = family_skin_bitmap(machine, lib)
+    fam['reregister'] = family_reregister(machine, lib, entries, sec3, a.register_cases)
     for name, r in fam.items():
         print(name, {k: r[k] for k in ('cases', 'equal', 'stopped', 'mismatch_count')}, flush=True)
     if a.mutations:
@@ -776,6 +1057,10 @@ def main():
                     r = family_skin_bitmap(machine, bind(C.CDLL(str(path))))
                 elif family == 'startup_names':
                     r = family_names(machine, text, data, names_entries(path))
+                elif family == 'reregister':
+                    mutant_lib = lib if file == 'mu_item_bitmaps.inc' else bind(C.CDLL(str(path)))
+                    mutant_table = table_entries(path) if file == 'mu_item_bitmaps.inc' else entries
+                    r = family_reregister(machine, mutant_lib, mutant_table, sec3, min(a.register_cases, 500))
                 else:
                     r = family_registrations(machine, text, data, table_entries(path))
             m = {'family': family, 'file': file, 'change': (new if new is not None else f'wrap flip at {old}'),
