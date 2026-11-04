@@ -9,6 +9,13 @@ Sections:
   reconstructed/renderchar mu_rc_item_draws bit for bit. A sweep over every
   item type classifies the types whose stream differs in any of a fixed set of
   configurations as type-specific (--emit-special writes the generated table).
+  Immediate glColor3f/3fv/4f calls are part of the stream (COLOR records, read
+  at call time); a state the C refuses is redrawn, so all --cases are compared.
+* colours, rank5: --targeted-cases random states over the body types whose
+  recipes hold COLOR records, and over the rank-5 bodies, which run the real
+  pose caller with authored tracks (RENDER-ITEMS-002O). types: every generic
+  type with --type-states random states (a sweep, not in the manifest row).
+  --mutations compiles the COLOR-record mutants against all compared streams.
 
 The client routines run as client code; only the services listed in
 SERVICES are replaced (docs/research/client-renderchar.md). Needs the pinned
@@ -21,6 +28,7 @@ import hashlib
 import json
 import random
 import struct
+import subprocess
 import sys
 import time as clock
 from pathlib import Path
@@ -615,18 +623,23 @@ def character_section(world_args, lib, args):
                for g in range(16)}
     matches, refused, failures = 0, 0, []
     for index in range(args.characters):
-        ch = random_character(rng, generic)
-        status, mine = character_c(lib, ch)
-        if status == 2:
+        # A character the C refuses is redrawn (counted), so compared stays args.characters while
+        # item merges change the generic part population.
+        for _ in range(64):
+            ch = random_character(rng, generic)
+            status, mine = character_c(lib, ch)
+            if status != 2:
+                break
             refused += 1
-            continue
+        else:
+            raise AssertionError('64 refused characters in a row')
         result, client, w = character_client(world_args, ch)
         if result['ok'] and status == 0 and client == mine:
             matches += 1
         elif len(failures) < 10:
             failures.append({'character': {k: v for k, v in ch.items() if k != 'speeds'}, 'result': result,
                              'client': client, 'c': mine, 'backtrace': None if result['ok'] else w.m.backtrace()})
-    compared = args.characters - refused
+    compared = args.characters
     return {'characters': args.characters, 'refused': refused, 'compared': compared, 'matches': matches,
             'failures': failures, 'ok': matches == compared}
 
@@ -806,6 +819,34 @@ def colour_record(kind, alpha, rgb):
     return ('COLOR', [0, kind, alpha, 0, 0, 0, 0, 0], tuple(rgb), 0, (0, 0, 0), 0)
 
 
+# glColor3f/3fv/4f slots of the second section: (COLOR kind, argument words).
+COLOUR_SLOTS = {0x1a7c76c: (1, 3), 0x1a7c770: (2, 1), 0x1a7c754: (3, 4)}
+
+
+def record_colours(world, tags=None):
+    """Record immediate glColor calls into the draw stream as COLOR records, the colour read at call time."""
+    m = world.m
+    for slot, (kind, count) in COLOUR_SLOTS.items():
+        def colour(m, kind=kind):
+            if kind == 2:
+                rgb, alpha = tuple(m.r32(m.arg(0) + 4 * k) for k in range(3)), f2u(1.0)
+            else:
+                rgb, alpha = tuple(m.arg(k) for k in range(3)), m.arg(3) if kind == 3 else f2u(1.0)
+            world.calls.append(('COLOR', colour_record(kind, alpha, rgb)))
+            if tags is not None:
+                tags.append(m.backtrace()[1])
+            return 0
+        m.stub(m.r32(slot), colour, 4 * count)
+
+
+class ColourWorld(World):
+    """The item world with glColor calls in the stream. mu_rc_item_draws emits COLOR records
+    (RENDER-ITEMS-002M); without this recorder the client's calls went to the unchecked others."""
+    def install(self):
+        super().install()
+        record_colours(self)
+
+
 def c_stream(lib, case, generic=False, carry=None, random=None):
     item = CItem(type=case['type'], item_level=case['item_level'], option1=case['option1'], ext_option=case['ext'],
                  select=0, render_type=case['render_type'], a10=case['a10'], a11=case['a11'], a12=case['a12'], a13=0,
@@ -892,6 +933,35 @@ def client_stream(world_args, case, world_factory=None):
     return result, stream, others, m
 
 
+class Rank5:
+    """Rank-5 bodies (item_pose_machine.TYPES) run the real pose caller 0x012b5064. The plain world has
+    no bone tracks, so the client faults at 0x012b51a7 and records no draw. Here they run with authored
+    tracks, body random and the engine name lookup of validate_item_next, against mu_rc_item_draws_context."""
+
+    def __init__(self, world_args, lib, seed):
+        import validate_item_next as nxt   # imports this module; loaded lazily
+        subprocess.run(['make', '-s', '-C', str(Path(__file__).resolve().parents[1]/'reconstructed/model-codec')],
+                       check=True)
+        self.nxt, self.world_args, self.lib = nxt, world_args, lib
+        self.types, self.payload = frozenset(nxt.pose.TYPES), None
+        self.rng = random.Random(seed ^ 0x12b5064)
+
+    def compare(self, case):
+        """(status, C stream, client result, client stream, machine); rand counts must agree too."""
+        if self.payload is None:
+            self.payload = self.nxt.pose.seed()
+        rng = self.rng
+        k, lighting, value = rng.randrange(584), rng.randrange(2), rng.randrange(32768)
+        blue, black = rng.choice(((-1, -1), (3, 1)))
+        calls = []
+        world = self.nxt.rank5_world(self.payload, k, lighting, blue, black, value, calls, ColourWorld)
+        result, stream, _, m = client_stream(self.world_args, case, world)
+        (status, cstream), consumed = self.nxt.rank5_c(self.lib, case, lighting, blue, black, value)
+        if consumed != len(calls):
+            status = ('rand', consumed, len(calls))
+        return status, cstream, result, stream, m
+
+
 def random_case(rng, item_type):
     case = random_case_any(rng, item_type)
     if 0xa99 <= item_type <= 0xaa1:
@@ -955,6 +1025,9 @@ def main():
     parser.add_argument('--back-types', choices=('sample', 'weapons'), default='sample')
     parser.add_argument('--emit-back', type=Path, help='write the extracted back-carry matrix table')
     parser.add_argument('--back-checks', type=int, default=300)
+    parser.add_argument('--targeted-cases', type=int, default=480, help='random states in the colours and rank5 sections')
+    parser.add_argument('--type-states', type=int, default=4, help='random states per generic type (types)')
+    parser.add_argument('--mutations', action='store_true', help='compile the COLOR-record mutants')
     parser.add_argument('--output', type=Path)
     args = parser.parse_args()
     text = rmach.load_pinned(args.text, rmach.TEXT_BYTES, rmach.TEXT_SHA256, 'text')
@@ -1035,43 +1108,132 @@ def main():
     rng = random.Random(args.seed)
     generic = [t for t in range(0xae6, 0xae6 + 16 * 512) if not lib.mu_rc_item_special(t) and t not in special]
     generic += list(range(0xa99, 0xaa2)) * 20          # +15 attachment models (level/option/ext 0)
-    matches, failures, excluded = 0, [], 0
-    controls = {'cases': [], 'level-8': 0, 'time+1000ms': 0, 'quality-1': 0, 'excellent-flipped': 0}
-    for index in range(args.cases):
-        case = random_case(rng, rng.choice(generic))
-        status, cstream = c_stream(lib, case)
-        if status == 2:                      # outside the reconstructed domain (record type 4)
-            excluded += 1
-            continue
-        result, stream, others, m = client_stream(world_args, case)
+    rank5 = Rank5(world_args, lib, args.seed)
+    vectors = []
+    report['items'] = compare_cases(world_args, lib, rank5, rng, (rng.choice(generic) for _ in range(args.cases)),
+                                    vectors, controls=300)
+    report['items']['generic_types'] = len(generic)
+    # Targeted random states: the immediate-glColor bodies, the rank-5 pose bodies, optionally every type.
+    for name in ('colours', 'rank5', 'types'):
+        if name in sections:
+            trng = random.Random(f'{args.seed}:{name}')
+            if name == 'types':
+                types = [t for t in sorted(set(generic)) for _ in range(args.type_states)]
+            else:
+                pool = colour_body_types() if name == 'colours' else sorted(rank5.types)
+                types = [trng.choice(pool) for _ in range(args.targeted_cases)]
+            report[name] = compare_cases(world_args, lib, rank5, trng, types, vectors)
+            report[name]['types'] = len(set(types))
+    if args.mutations:
+        report['mutants'] = colour_mutants(vectors)
+    report['seconds'] = round(clock.time() - started, 1)
+    text_out = json.dumps(report, indent=1, default=str)
+    if args.output:
+        args.output.write_text(text_out)
+    compared = [k for k in ('items', 'colours', 'rank5', 'types') if k in report]
+    print(json.dumps({'classification': report.get('classification'),
+                      **{k: {f: x for f, x in report[k].items() if f != 'failures'} for k in compared},
+                      'mutants': report.get('mutants'), 'seconds': report['seconds']}))
+    for k in compared:
+        if report[k]['failures']:
+            print(k, json.dumps(report[k]['failures'][:2], indent=1, default=str)[:6000])
+    return 0 if all(report[k]['matches'] == report[k]['compared'] for k in compared) else 1
+
+
+def compare_cases(world_args, lib, rank5, rng, types, vectors, controls=0):
+    """Client RenderObjDraw against mu_rc_item_draws, one random state per type (glColor recorded,
+    rank-5 posed). A state the C refuses (MU_RC_UNSUPPORTED: record kinds, a10/a11 on bodies) is
+    redrawn for the same type and counted as refused, so every request is compared and the count does
+    not drift as item merges grow the body table. Matched non-rank-5 cases go to vectors (mutants)."""
+    matches, failures, refused, rank5_compared, colours, total = 0, [], 0, 0, 0, 0
+    negative = {'cases': 0, 'level-8': 0, 'time+1000ms': 0, 'quality-1': 0, 'excellent-flipped': 0}
+    for item_type in types:
+        for _ in range(64):
+            case = random_case(rng, item_type)
+            status, cstream = c_stream(lib, case)
+            if status != 2:
+                break
+            refused += 1
+        else:
+            raise AssertionError(('64 refused states in a row', hex(item_type)))
+        total += 1
+        posed = case['type'] in rank5.types
+        if posed:
+            status, cstream, result, stream, m = rank5.compare(case)
+            rank5_compared += 1
+        else:
+            result, stream, _, m = client_stream(world_args, case, ColourWorld)
+        colours += sum(1 for d in stream if d[0] == 'COLOR')
         if result['ok'] and status == 0 and stream == cstream:
             matches += 1
-            if len(controls['cases']) < 300:
+            if not posed:
+                vectors.append((case, stream))
+            if negative['cases'] < controls and not posed:
                 # negative controls: the C with one input changed must differ from the client
-                controls['cases'].append(1)
+                negative['cases'] += 1
                 for name, change in (('level-8', {'item_level': case['item_level'] - 8}),
                                      ('time+1000ms', {'time': f2u(u2f(case['time']) + 1000.0)}),
                                      ('quality-1', {'quality': case['quality'] - 1}),
                                      ('excellent-flipped', {'option1': 1 - case['option1'] if case['option1'] in (0, 1) else 1})):
                     mutated = dict(case, **change)
                     if c_stream(lib, mutated)[1] != stream:
-                        controls[name] += 1
+                        negative[name] += 1
         elif len(failures) < 20:
             failures.append({'case': {k: (hex(v) if isinstance(v, int) else v) for k, v in case.items()},
                              'result': result, 'status': status, 'client': stream, 'c': cstream,
                              'backtrace': m.backtrace() if not result['ok'] else None})
-    report['items'] = {'cases': args.cases, 'excluded': excluded, 'compared': args.cases - excluded, 'matches': matches,
-                       'failures': failures, 'generic_types': len(generic),
-                       'negative_controls': {k: (len(v) if k == 'cases' else v) for k, v in controls.items()}}
-    report['seconds'] = round(clock.time() - started, 1)
-    text_out = json.dumps(report, indent=1, default=str)
-    if args.output:
-        args.output.write_text(text_out)
-    print(json.dumps({'classification': report.get('classification'), 'items': {k: v for k, v in report['items'].items() if k != 'failures'},
-                      'seconds': report['seconds']}))
-    if failures:
-        print(json.dumps(failures[:2], indent=1, default=str)[:6000])
-    return 0 if matches == args.cases - excluded else 1
+    section = {'cases': total, 'compared': total, 'matches': matches, 'refused': refused,
+               'failures': failures, 'rank5': rank5_compared, 'colour_records': colours}
+    if controls:
+        section['negative_controls'] = negative
+    return section
+
+
+def colour_body_types():
+    """Body types whose generated recipes hold a COLOR entry (item_bodies.h)."""
+    import re
+    source = (Path(__file__).resolve().parents[1]/'reconstructed/renderchar/item_bodies.h').read_text()
+    recipes = source[source.index('mu_rc_body_recipes[] = {'):source.index('mu_rc_body_scalar;')]
+    blocks = re.findall(r'\n    \{\d+, \{(.*?)\n    \}\},', recipes, re.S)
+    coloured = {k for k, block in enumerate(blocks) if re.search(r'\n        \{3, \{', block)}
+    rows = re.findall(r'\n    \{(0x[0-9a-f]{4}), \{([^}]*)\}', source[source.index('mu_rc_body_types[] = {'):])
+    types = sorted(int(t, 16) for t, phases in rows if coloured & {int(k) for k in phases.split(', ')})
+    if not types:
+        raise AssertionError('no COLOR recipe in item_bodies.h')
+    return types
+
+
+# Planted mistakes in the COLOR records of the recipe executor (anchors as validate_item_carry's).
+COLOUR_MUTANTS = {
+    'colour-drop': ('            ++s->count;\n            continue;\n        }', '            continue;\n        }'),
+    'colour-rgb': ('memcpy(d.body_light, &words[8], 12);\n            if', 'memcpy(d.body_light, &words[9], 12);\n            if'),
+    'colour-alpha': ('memcpy(&d.alpha, &words[2], 4);\n            memcpy(d.body_light',
+                     'memcpy(&d.alpha, &words[1], 4);\n            memcpy(d.body_light'),
+    'colour-kind': ('d.entry = MU_RC_ENTRY_COLOR;\n            d.flags = words[1];',
+                    'd.entry = MU_RC_ENTRY_COLOR;\n            d.flags = 2;'),
+}
+
+
+def colour_mutants(vectors):
+    """Compile each mutant separately; every one must change at least one compared stream."""
+    import tempfile
+    root = Path(__file__).resolve().parents[1]
+    source = (root/'reconstructed/renderchar/renderchar.c').read_text()
+    caught = {}
+    with tempfile.TemporaryDirectory() as tmp:
+        for name, (old, new) in COLOUR_MUTANTS.items():
+            if source.count(old) != 1:
+                raise AssertionError(('mutant anchor', name, source.count(old)))
+            path, library = Path(tmp)/(name + '.c'), Path(tmp)/(name + '.dylib')
+            path.write_text(source.replace(old, new))
+            subprocess.run(['clang', '-shared', '-fPIC', '-O2', '-std=c11', '-ffp-contract=off',
+                            '-I', str(root/'reconstructed/renderchar'), str(path),
+                            str(root/'reconstructed/record-math/record_math.c'), '-lm', '-o', str(library)], check=True)
+            mutant = ctypes.CDLL(str(library))
+            caught[name] = sum(c_stream(mutant, case) != (0, stream) for case, stream in vectors)
+            if not caught[name]:
+                raise AssertionError(('surviving mutant', name))
+    return caught
 
 
 if __name__ == '__main__':

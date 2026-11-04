@@ -210,13 +210,19 @@ class RenderCharLibrary(unittest.TestCase):
                             '--output', str(report)], check=True, capture_output=True)
             subprocess.run([sys.executable, str(ROOT/'scripts/validate_renderchar.py'), '--text', str(text),
                             '--data', str(data), '--flag', str(flag), '--feature', str(feature),
-                            '--sections', 'items', '--classify', 'none', '--cases', '500',
-                            '--output', str(Path(directory)/'items.json')], check=True, capture_output=True)
+                            '--sections', 'items,colours,rank5', '--classify', 'none', '--cases', '500',
+                            '--targeted-cases', '480', '--output', str(Path(directory)/'items.json')],
+                           check=True, capture_output=True)
             back = json.loads(report.read_text())
             items = json.loads((Path(directory)/'items.json').read_text())
         self.assertTrue(back['back']['ok'])
         self.assertTrue(back['character']['ok'])
-        self.assertEqual(items['items']['matches'], items['items']['compared'])
+        self.assertEqual(back['character']['compared'], 60)
+        # Refused states are redrawn: every requested state is compared, glColor records included.
+        for section, cases in (('items', 500), ('colours', 480), ('rank5', 480)):
+            self.assertEqual(items[section]['compared'], cases)
+            self.assertEqual(items[section]['matches'], cases)
+        self.assertGreater(items['colours']['colour_records'], 0)
 
     def test_refuses_unpinned_text(self):
         with tempfile.NamedTemporaryFile() as handle:

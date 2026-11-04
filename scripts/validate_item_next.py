@@ -23,6 +23,42 @@ class Context(C.Structure):
                 ('random',clusters.RANDOM),('context',C.c_void_p)]
 
 
+def rank5_world(payload, k, lighting, blue, black, value, calls, base=v.World):
+    """World with authored pose tracks for the rank-5 bodies (real pose caller 0x012b5064).
+
+    Body random returns value (appended to calls); the engine name lookup 0x012bd4a6 gives
+    blue for names containing "Blue", else black. Also used by validate_renderchar's items."""
+    class World(base):
+        def __init__(self,*args):
+            super().__init__(*args)
+            m=self.m
+            m.write(pose.pose.WINDOW,payload)
+            m.heap=pose.pose.WINDOW+0x100000
+            m.ensure(pose.pose.ROOT_MATRIX,48)
+            m.write(pose.pose.ROOT_MATRIX,struct.pack('<12f',1,0,0,4,0,1,0,5,0,0,1,6))
+            m.ensure(0x06fce398,0x1000);m.ensure(pose.pose.QUATERNIONS,32)
+            m.stub(0x01989721,lambda mm:calls.append(value) or value,0)
+            # Engine name lookup is supplied independently of the mesh stream.
+            def named(mm):
+                addr=mm.arg(0)
+                n=mm.r32(addr+16)
+                data=addr if mm.r32(addr+20)<16 else mm.r32(addr)
+                name=mm.read(data,n)
+                return blue if b'Blue' in name else black
+            m.stub(0x012bd4a6,named,4)
+        def add_model(self,*args,**kwargs):
+            super().add_model(*args,**kwargs)
+            m=self.m
+            m.write(v.MODEL+0x22,struct.pack('<hhh',2,6,2))
+            m.write(v.MODEL+0x2c,payload[0x2c:0x34])
+            m.w32(v.MODEL+0x60,0xffffffff)
+            m.write(v.MODEL+0x50,bytes([lighting]))
+            m.wf(v.MODEL+0x74,1)
+            m.write(v.OBJ+0x2c,struct.pack('<H',k%2))
+            m.write(v.OBJ+0xd0,struct.pack('<2f',(k%5)*0.5,(k%3)*0.5))
+    return World
+
+
 def rank5_cases(wa, lib, records=False):
     payload = pose.seed()
     vectors = []
@@ -45,34 +81,7 @@ def rank5_cases(wa, lib, records=False):
                 case['time']=v.f2u((-500.5,-1,0,79.9,80,6282.9,6283,2147483648)[k//5])
             blue,black = (-1,-1) if k%4<2 else (3,1)
             calls=[]
-            class World(v.World):
-                def __init__(self,*args):
-                    super().__init__(*args)
-                    m=self.m
-                    m.write(pose.pose.WINDOW,payload)
-                    m.heap=pose.pose.WINDOW+0x100000
-                    m.ensure(pose.pose.ROOT_MATRIX,48)
-                    m.write(pose.pose.ROOT_MATRIX,struct.pack('<12f',1,0,0,4,0,1,0,5,0,0,1,6))
-                    m.ensure(0x06fce398,0x1000);m.ensure(pose.pose.QUATERNIONS,32)
-                    m.stub(0x01989721,lambda mm:calls.append(value) or value,0)
-                    # Engine name lookup is supplied independently of the mesh stream.
-                    def named(mm):
-                        addr=mm.arg(0)
-                        n=mm.r32(addr+16)
-                        data=addr if mm.r32(addr+20)<16 else mm.r32(addr)
-                        name=mm.read(data,n)
-                        return blue if b'Blue' in name else black
-                    m.stub(0x012bd4a6,named,4)
-                def add_model(self,*args,**kwargs):
-                    super().add_model(*args,**kwargs)
-                    m=self.m
-                    m.write(v.MODEL+0x22,struct.pack('<hhh',2,6,2))
-                    m.write(v.MODEL+0x2c,payload[0x2c:0x34])
-                    m.w32(v.MODEL+0x60,0xffffffff)
-                    m.write(v.MODEL+0x50,bytes([lighting]))
-                    m.wf(v.MODEL+0x74,1)
-                    m.write(v.OBJ+0x2c,struct.pack('<H',k%2))
-                    m.write(v.OBJ+0xd0,struct.pack('<2f',(k%5)*0.5,(k%3)*0.5))
+            World=rank5_world(payload,k,lighting,blue,black,value,calls)
             result, stream, other, _ = v.client_stream(wa,case,World)
             actual, consumed = rank5_c(lib,case,lighting,blue,black,value)
             if not result['ok'] or other or actual!=(0,stream) or consumed!=len(calls):

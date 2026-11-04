@@ -419,6 +419,14 @@ static void emit_parameter_body(sink *s, int phase, uint32_t flags, float alpha,
              * the phases whose helper call draws it. */
             if (p->phases & (1u << phase))
                 value = random_program(p, rank5_random(s));
+        } else if (p->kind == 5) {
+            /* Part 15: one channel of a constant body-light vector (0x00cfcead) scaled by
+             * the earlier kind-4 value a (0x00cfcd74 -> 0x00cfcb3c, binary32 mulss). */
+            float k, r;
+            uint32_t bits = (uint32_t)p->k[0];
+            memcpy(&k, &bits, 4);
+            memcpy(&r, &input[35 + p->a], 4);
+            value = k * r;
         } else {
             value = body_scalar(p, s->item->time);
         }

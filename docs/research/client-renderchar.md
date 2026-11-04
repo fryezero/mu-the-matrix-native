@@ -325,6 +325,14 @@ restored client text, so CI does not run them. CI runs the portable worked examp
 | RenderCharacter plans (random classes, actions, safe zone, parts, levels, weapons including special types and kinds, wings) | 252 | 252 |
 | Weapon link bones extracted | 749 model indices | 749 executed to the join |
 
+**RENDER-ITEMS-002O (2026-11-04).** The item comparison now records the client's `glColor3f/3fv/4f` calls
+as COLOR records at call time (`ColourWorld`); before, they went to an unchecked list while the library emits
+COLOR records (#275), which made 2 of 390 cases fail on main. Rank-5 bodies run the real pose caller with
+authored tracks (`validate_item_next.rank5_world`); the plain world faulted at `0x012b51a7`. A refused state
+is redrawn, so every requested case is compared and the manifest counts no longer move with item merges.
+New sections `colours` and `rank5` (480 random states each) and `--mutations` (four COLOR-record mutants).
+Counts and runs: [handoff](../handoffs/RENDER-ITEMS-002O.md). The table above is the earlier run.
+
 **Negative controls.** On 300 matching cases, the C with one input changed
 differs from the client in this many cases: level − 1 step (item level − 8):
 89; time + 1000 ms: 184; quality − 1: 111; excellent flag flipped: 205.
