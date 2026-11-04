@@ -203,6 +203,8 @@ QUALITY_TYPES = [
     0x2491, 0x2492, 0x2495, 0x2498, 0x249a, 0x2504, 0x251a, 0x251b, 0x270f, 0x2711,
     0x2712,
 ]
+# Part 15: body random scaling a constant body-light vector (0x00cfcead, 0x00cfcd74).
+PRODUCT_TYPES = [0x171d, 0x171e, 0x171f, 0x1742, 0x1743, 0x1744]
 EXIT_TYPES = [
     0x0b10, 0x0b12, 0x0b22, 0x1569, 0x156a, 0x156b, 0x156c, 0x156d, 0x156e, 0x156f,
     0x1570, 0x1571, 0x1572, 0x1573, 0x1574, 0x170f, 0x1718, 0x1728, 0x1732, 0x1752,
@@ -345,8 +347,8 @@ def parse_scalar(wa, helper, ret):
 RAND = 0x01989721
 
 
-def parse_random(wa, ret):
-    """Return (4, n, ops) for the idiom at a rand return site, or None."""
+def parse_random(wa, ret, end=False):
+    """Return (4, n, ops) for the idiom at a rand return site, or None (with end: and its end address)."""
     import struct
     at = ret
     if _text(wa, at, 1) != b'\x99':
@@ -372,7 +374,48 @@ def parse_random(wa, ret):
             return None
         ops.append((SCALAR_OPS[code[2]], word))
         at += 8
-    return 4, n, tuple(ops)
+    return ((4, n, tuple(ops)), at) if end else (4, n, tuple(ops))
+
+
+# Part 15: body light set to a constant vector and scaled by the random value.
+# 0x00cfcead is vec3::set(x, y, z) (binary32 stores), 0x00cfcd74 vec3::operator*=(float)
+# (0x00cfcb3c multiplies each component in binary32, 0x00cfc8f2 assigns). At the site:
+#   3 x (push ecx; movss xmm0, [k]; movss [esp], xmm0)  mov ecx,[ebp+8]; add ecx,0x54
+#   call 0x00cfcead; call rand; <kind-4 idiom>; push ecx; movss [esp], xmm0
+#   mov ecx,[ebp+8]; add ecx,0x54; call 0x00cfcd74
+VEC_SET, VEC_SCALE = 0x00cfcead, 0x00cfcd74
+MODEL_LIGHT_ECX = bytes.fromhex('8b4d0883c154')       # mov ecx,[ebp+8]; add ecx,0x54
+
+
+def _calls(wa, at, target):
+    import struct
+    code = _text(wa, at, 5)
+    return code[:1] == b'\xe8' and (at + 5 + struct.unpack_from('<i', code, 1)[0]) & 0xffffffff == target
+
+
+def parse_scale(wa, ret):
+    """The constant body-light words (x, y, z) a kind-4 value scales at this rand site, or None."""
+    import struct
+    parsed = parse_random(wa, ret, end=True)
+    if parsed is None:
+        return None
+    at = parsed[1]
+    if (_text(wa, at, 6) != bytes.fromhex('51f30f110424') or _text(wa, at + 6, 6) != MODEL_LIGHT_ECX or
+            not _calls(wa, at + 12, VEC_SCALE)):
+        return None
+    start = ret - 5 - 5 - 6
+    if not _calls(wa, ret - 10, VEC_SET) or _text(wa, start, 6) != MODEL_LIGHT_ECX:
+        return None
+    words = []
+    for k in range(3):   # pushed z, y, x
+        code = _text(wa, start - 14 * (3 - k), 14)
+        if code[:5] != bytes.fromhex('51f30f1005') or code[9:] != bytes.fromhex('f30f110424'):
+            return None
+        word = _word(wa, struct.unpack_from('<I', code, 5)[0])
+        if word is None:
+            return None
+        words.append(word)
+    return tuple(reversed(words))
 
 
 def random_value(program, value):
@@ -1042,6 +1085,9 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=Fals
                 return None   # random outside a helper group, or one site drawn twice
             calls[(tag, site)] = value
     def program_input(program, tag):
+        if program[0] == 5:
+            value = program_input(params[program[1]], tag)
+            return RAND_ABSENT if value == RAND_ABSENT else v.f2u(f(v.u2f(value) * v.u2f(program[2][0][1])))
         if program[0] != 4:
             return scalar_value(program, time)
         value = calls.get((tag, program[3]))
@@ -1079,7 +1125,7 @@ def infer(samples):
 
 ALL_TYPES = (REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES + RANKED_TYPES + EXPANDED_TYPES +
              NEXT_TYPES + CLOCK_TYPES + CLUSTER_TYPES + WING_TYPES + VISIBLE_TYPES + SCALAR_TYPES +
-             CHAIN_TYPES + LEVEL_TYPES + COLOUR_TYPES + CARRY_TYPES + QUALITY_TYPES)
+             CHAIN_TYPES + LEVEL_TYPES + COLOUR_TYPES + CARRY_TYPES + QUALITY_TYPES + PRODUCT_TYPES)
 
 
 def fit(wa, lib, t, scalars=False, carry=False, extended=False):
@@ -1110,6 +1156,11 @@ def fit(wa, lib, t, scalars=False, carry=False, extended=False):
             if program is None:
                 return None
             programs.append(program + (site, 0))
+            scale = parse_scale(wa, int(site, 16)) if t in PRODUCT_TYPES else None
+            ref = len(programs) - 1
+            for word in scale or ():
+                # Kind 5: the value of the kind-4 program at index a times one binary32 light constant.
+                programs.append((5, ref, ((1, word),)))
         if not programs:
             return None
         rules = _fit(wa, lib, t, tuple(programs), None, carry, extended)
@@ -1128,7 +1179,9 @@ def fit(wa, lib, t, scalars=False, carry=False, extended=False):
     remap = {old: 35 + new for new, old in enumerate(used)}
     rules = [[(entry, [(op, remap.get(value - 35, value) if op == 'in' and value >= 35 else value) for op, value in cells])
               for entry, cells in rule] for rule in rules]
-    return rules, tuple(programs[k] for k in used)
+    kept = [programs[k] for k in used]
+    kept = [(5, remap[p[1]] - 35, p[2]) if p[0] == 5 else p for p in kept]
+    return rules, tuple(kept)
 
 
 def _fit(wa, lib, t, params, sites, carry=False, extended=False):
@@ -1232,7 +1285,7 @@ def extract():
     types = {}
     for t in ALL_TYPES:
         fitted = fit(wa, lib, t, scalars=True, carry='exit' if t in EXIT_TYPES else t in CARRY_TYPES,
-                     extended=t in QUALITY_TYPES)
+                     extended=t in QUALITY_TYPES or t in PRODUCT_TYPES)
         if fitted is not None:
             types[t] = fitted
     if set(types) != set(ALL_TYPES):
@@ -1259,7 +1312,8 @@ def render(types):
              ' * source=17 copies OBJECT alpha. source=18..20 copies pulsed body light; source=21 copies armour blend pulse. source=22..34 selects clock scalars; source=35 copies OBJECT hidden mesh;',
              ' * source=36.. selects the type\'s own scalar program (kind 1 = wave 0x0185bdc4(a,0), 2 = sin(time*a), then mul/add/sub/div, binary32 or op|8 binary64 with one final rounding;',
              ' * kind 3 = clock chain of op/k pairs, see gen_item_bodies.C_TIME_F..C_D_NEG; kind 4 = (float)(rand() % a) then binary32',
-             ' * mul/add/sub/div, drawn once in each phase of its phases mask). Entry 4 (EXIT) writes words 8..15 to the model',
+             ' * mul/add/sub/div, drawn once in each phase of its phases mask; kind 5 = the type\'s program a (kind 4)',
+             ' * times the binary32 k[0], one channel of a scaled constant body light). Entry 4 (EXIT) writes words 8..15 to the model',
              ' * fields and draws nothing. See client-render-items.md. */',
              '#define MU_RC_BODY_SCALARS 8',
              'typedef struct { uint8_t count; struct { int32_t entry; uint8_t source[16]; uint32_t value[16]; } draw[16]; } mu_rc_body_recipe;',

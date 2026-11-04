@@ -2633,3 +2633,18 @@ args = ["--mutations", "--output", "{report}"]
 [validate_item_quality.expect]
 "families.*.mismatches" = 0
 "mutants.*" = {truthy = true}
+
+[validate_item_product]
+test = "reconstructed/renderchar/test_item_product.py::ItemProduct.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "products"]
+cases = 2874
+mutants = 7
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar"]
+args = ["--mutations", "--output", "{report}"]
+[validate_item_product.expect]
+"families.*.mismatches" = 0
+"families.products.residues" = 15
+"mutants.*" = {truthy = true}
