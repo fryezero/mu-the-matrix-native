@@ -42,3 +42,25 @@ def prepare_output(args, directory):
 def publish(args, directory, producer, inputs):
     if not args.raw_output:
         run('write', directory, args.main_exe, producer, *inputs)
+
+
+def producer(directory):
+    """The producer line of a published export, or None when the directory has no manifest."""
+    path = Path(directory) / 'native-data.manifest'
+    if not path.is_file():
+        return None
+    for line in path.read_text(encoding='ascii').splitlines()[:3]:
+        if line.startswith('producer '):
+            return line[len('producer '):]
+    raise SystemExit(f'{path}: no producer line')
+
+
+def publish_step(main_exe, directory, step, inputs):
+    """Record a later step's outputs in an already published export (NATIVE-DATA-MANIFEST-001).
+
+    Check the export (run('check', ...)) before the step writes its outputs. The engine keeps the earlier
+    input provenance; the producer names every step in order (lang-export-v1-effects-v1-mapanim-v1-...)."""
+    previous = producer(directory)
+    if previous is None:
+        raise SystemExit(f'{directory}: a later step needs a published export')
+    run('write', directory, main_exe, f'{previous}-{step}', *inputs)

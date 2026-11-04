@@ -26,6 +26,7 @@ SESSION-GLOBALS-001: explicit session/runtime state ownership and committed sequ
 SESSION-SKILL-001: session-owned learned skills, hotkeys and trees in headless/GFx builds; demo replies use one plaintext fixture feed and encrypted casts stay unsent. [Checks and limits](handoffs/SESSION-SKILL-001.md).
 
 INTEGRATION-GREEN-001 completed: reproducible private input identities, repaired harness entry points, 38/38 private-enabled directories green; [counts and legitimate skips](handoffs/INTEGRATION-GREEN-001.md).
+NATIVE-DATA-MANIFEST-001 PR-ready: canonical manifest-bearing export set with AFTER5's mapanim step, app default scratch; [handoff](handoffs/NATIVE-DATA-MANIFEST-001.md).
 INTEGRATION-GREEN-002 PR-ready: full private suites and validators on main `d5ffde0a`, rechecked on `debbe1b6`; two open regressions and one local-data follow-up named; [handoff](handoffs/INTEGRATION-GREEN-002.md).
 
 RENDER-WORLDS-G implements the 48-class inventory and all three primary Santa Village/Vulcanus methods. Six thousand instruction cases, 13/13 mutants, 28 unaffected first/final hashes unchanged; full Mac gate passes; [limits and remaining work](handoffs/RENDER-WORLDS-G.md).

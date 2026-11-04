@@ -23,9 +23,12 @@ enum Paths {
         env["MU_NATIVE_GAME_ROOT"] ?? home + "/Library/Application Support/MuTheMatrix/prefix/drive_c/MuTheMatrix"
     }
     /// Local plaintexts made by the repository's live readers (never in the repository or the bundle).
+    /// NATIVE-DATA-MANIFEST-001: the canonical manifest-bearing export set
+    /// (scripts/build_native_data_export.py) when it exists; setup refuses the unversioned scratch root's folders.
     static var defaultScratch: String {
         if let path = env["MU_NATIVE_SCRATCH"] { return path }
         let current = home + "/Documents/MTM/mu-mac-tools/native/scratch"
+        if isDir(current + "/native-data/export") { return current + "/native-data/export" }
         return isDir(current) ? current : home + "/Documents/mu-mac-tools/native/scratch"
     }
 

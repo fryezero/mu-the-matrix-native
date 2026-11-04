@@ -91,6 +91,19 @@ A recorded empty optional set does not claim acquisition of every world.
    A failed forced regeneration leaves the old movie files intact, but refuses
    the incomplete set. Choose a new empty folder and retry after fixing the input.
 
+## The canonical development export set
+
+`scripts/build_native_data_export.py` (NATIVE-DATA-MANIFEST-001) runs the commands of step 4 in one fixed recipe,
+over the local snapshots of the supported build. It writes
+`~/Documents/MTM/mu-mac-tools/native/scratch/native-data/export` (`lang`, `objects/live/plain`, `audio/tables`).
+Without `MU_NATIVE_SCRATCH` or a `scratch` setting, the app's default scratch folder is that set when it exists.
+The script refuses an existing destination: rebuild into a new folder with `--out`.
+
+The lang component also records RENDER-WORLDS-AFTER5's `mapanim.tsv` (MapObjectAnimationInfo, live read
+2026-11-04) as a later step (`native_data_manifest.publish_step`). The table's SHA-256 is pinned in the recipe;
+a new read needs a new table, pin and date. Setup copies it with the other lang files, and the client reads it
+through `MU_LANG_DIR`. Without it, object animation keeps CreateObject's speeds.
+
 ## A genuinely new client build
 
 An unknown executable is refused even during setup. A user must obtain a native
