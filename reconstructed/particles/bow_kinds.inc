@@ -2,7 +2,7 @@
  * Included after the shared helpers; admission is limited to the verified kind/subtype pairs:
  *   smoke01 0x7f5a/0x86     0x616's smoke (create 0x015cc802, move 0x0163eec2, render 0x01596575)
  *   0x810a/0x24             0x616's flight sparks (create 0x015b4d61, move 0x0161d606, render 0x0159faca)
- *   0x810a/0xe              0x60a / 0x60e's glints (create 0x015b2166, move 0x0161b194, render 0x0159faca)
+ *   0x810a/0xe              0x613's glints (create 0x015b2166, move 0x0161b194, render 0x0159faca)
  *   Spark03 0x7f26/0x1e     0x525's sparks (create 0x015e033d, move 0x01653bcc, the plain sprite 0x015a531f) */
 static float rand_range(const mu_pt_host *h, float lo, float hi, int32_t steps);   /* defined below */
 

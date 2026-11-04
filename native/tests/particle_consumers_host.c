@@ -85,8 +85,9 @@ int main(int argc, char **argv)
     const mu_world_particles_target target = {NULL, backend};
     assert(mu_world_particles_draw(&particles, identity, &target) == 9);
     assert(particles.stats.drawn_sprites == 3 && particles.stats.drawn_particles == 6 && vertices == 54);
-    /* Last three effect slots, before rain02/rain03; actual loader sampling metadata. */
-    for (int i = MU_WORLD_PT_BITMAPS - 10; i < MU_WORLD_PT_BITMAPS - 7; ++i) {
+    /* Magic_Ground2, lightning3 and Impack03 (slots 52..54; RENDER-EFFECTS-010 appends its bitmaps after
+     * them); actual loader sampling metadata. */
+    for (int i = 52; i < 55; ++i) {
         assert(particles.bitmaps.slots[i] && particles.bitmaps.filter[i] == 0x2601);
         assert(particles.bitmaps.wrap[i] == 0x2900 && particles.bitmaps.components[i] == 3);
     }
