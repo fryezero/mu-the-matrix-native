@@ -15,24 +15,18 @@
 #include "mu_objects.h"
 #include "mu_texture_names.h"
 
-typedef struct item_bitmap {
-    int32_t index;
-    const char *path;
-    uint32_t filter, wrap;
-} item_bitmap;
-
 #include "mu_item_bitmaps.inc"
 
 int mu_item_bitmap_registration(int32_t index, const char **path, uint32_t *filter, uint32_t *wrap)
 {
-    for (size_t i = 0; i < sizeof item_bitmaps / sizeof item_bitmaps[0]; ++i)
-        if (item_bitmaps[i].path && item_bitmaps[i].index == index) {
-            *path = item_bitmaps[i].path;
-            *filter = item_bitmaps[i].filter;
-            *wrap = item_bitmaps[i].wrap;
-            return 1;
-        }
-    return 0;
+    /* RENDER-ITEMS-TEX-003: every startup LoadBitmap call, replayed through 0x00c97730's rule */
+    mu_it_bitmap b;
+    if (!mu_it_registration(item_bitmaps, sizeof item_bitmaps / sizeof item_bitmaps[0], index, &b))
+        return 0;
+    *path = b.path;
+    *filter = b.filter;
+    *wrap = b.wrap;
+    return 1;
 }
 
 static int is_special(int32_t index)

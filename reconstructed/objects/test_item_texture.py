@@ -1,5 +1,6 @@
 """The item model loader's texture step 0x00cd558e and the item bitmap tables (RENDER-ITEMS-TEX-001); the wearer skin
-(RENDER-ITEMS-TEX-002)."""
+(RENDER-ITEMS-TEX-002); every startup LoadBitmap registration and 0x00c97730's re-registration rule
+(RENDER-ITEMS-TEX-003)."""
 import ctypes as C
 import json
 import os
@@ -70,6 +71,53 @@ class ItemTextureTests(unittest.TestCase):
         self.assertEqual(entries[0x77c7], ('Player\\HQSkinClass101.jpg', 0x2600, 0x2900))
         self.assertNotIn(0x7776, entries)   # hair at skin index 0 is not registered
         self.assertEqual(sum(1 for i in entries if it.SKIN_FIRST <= i <= it.SKIN_LAST), 146)
+
+    def registration(self, calls, index):
+        keep = [c[1].encode('latin1') for c in calls]
+        table = (it.Call * len(calls))(*[it.Call(c[0], keep[k], c[2], c[3]) for k, c in enumerate(calls)])
+        b = it.Bitmap()
+        if not self.lib.mu_it_registration(table, len(calls), index, C.byref(b)):
+            return None
+        return b.path.decode('latin1'), b.filter, b.wrap
+
+    def test_every_startup_registration(self):
+        # RENDER-ITEMS-TEX-003: the table is every startup LoadBitmap call, not the indices one body probe named, so
+        # bodies admitted later find their bitmaps (the 61 indices of #265/#275/#282 were all registered at startup)
+        calls = it.table_entries()
+        indices = [c[0] for c in calls]
+        self.assertEqual(indices, sorted(indices))
+        self.assertEqual((len(calls), len(set(indices))), (1553, 1550))
+        self.assertNotIn(0, indices)   # index 0 (object +0x68 passed as the mesh texture) is never registered
+        for index, path in ((0x7fe7, 'Effect\\Lava.jpg'), (0x8186, 'effect\\volcano_stone_bg.jpg'),
+                            (0x82e3, 'Effect\\black_gold_crom02_mono.jpg'), (0x8531, 'Effect\\ef_line01.jpg')):
+            self.assertEqual(self.registration(calls, index)[0], path)
+        # computed runs: index base + i, sprintf'd paths
+        self.assertEqual(self.registration(calls, 0x8300), ('Item\\texture\\fire_sq_00000.jpg', 0x2600, 0x2900))
+        self.assertEqual(self.registration(calls, 0x830b)[0], 'Item\\texture\\fire_sq_00011.jpg')
+        self.assertNotIn('fire_sq', self.registration(calls, 0x830c)[0])   # the loop ends at i = 11
+        self.assertEqual(self.registration(calls, 0x8105)[0], 'Effect\\xsuper0006.jpg')
+        self.assertEqual(self.registration(calls, 0x793a)[0], 'Player\\InvenArmorMale45.tga')
+        # two calls: a later file replaces the first; the same file under _stricmp only counts a reference
+        self.assertEqual(self.registration(calls, 0x854c)[0], 'Item\\texture\\Blur_Aura002.jpg')
+        self.assertEqual(self.registration(calls, 0x7f6c)[0], 'Effect\\shiny05.jpg')
+        self.assertNotIn('not reached', it.TABLE.read_text())
+
+    def test_reregister_rule(self):
+        def call(slot, path, filt=0x2601, wrap=0x2900):
+            keep = []
+            return it.run_register_c(self.lib, slot, 0x854c, path, filt, wrap, keep)
+        events, ret, slot = call(None, 'Data\\Effect\\a.JPG')
+        self.assertEqual((events, ret, slot['refs']), ([('load', 'jpg', 0x854c, 'Data\\Effect\\a.JPG', 0x2601, 0x2900)], 1, 1))
+        events, ret, after = call(slot, 'data\\effect\\A.jpg', 0x2600, 0x2901)   # the same file: a reference
+        self.assertEqual((events, ret, after['path'], after['filter'], after['refs']), ([], 1, 'Data\\Effect\\a.JPG', 0x2601, 2))
+        events, ret, after = call(slot, 'Data\\Item\\a.tga')   # another file: unload, then the tga loader
+        self.assertEqual([e[:2] for e in events], [('unload', 0x854c), ('load', 'tga')])
+        events, ret, after = call(slot, 'Data\\Item\\a.bmp')   # no loader for the extension: the index is empty
+        self.assertEqual((events, ret, after), ([('unload', 0x854c, 1)], 0, None))
+        released = dict(slot, refs=0)   # no reference left: no unload, the load replaces it
+        events, ret, after = call(released, 'Data\\Item\\b.jpg')
+        self.assertEqual(([e[0] for e in events], after['path']), (['load'], 'Data\\Item\\b.jpg'))
+        self.assertEqual(call(released, 'Data\\Item\\b.')[2], released)   # nothing loads, nothing changes
         names = it.names_entries()
         keys = [n[0].split('\\')[-1].lower() for n in names]
         self.assertEqual(len(keys), len(set(keys)))
@@ -92,7 +140,7 @@ class ItemTextureTests(unittest.TestCase):
             subprocess.run([sys.executable, str(ROOT / 'scripts/validate_item_textures.py'), '--cases', '1000',
                             '--mutations', '--output', str(report)], check=True, capture_output=True)
             result = json.loads(report.read_text())
-            self.assertEqual(len(result['families']), 5)
+            self.assertEqual(len(result['families']), 6)
             self.assertTrue(all(r['cases'] == r['equal'] and r['stopped'] == 0 for r in result['families'].values()))
             self.assertEqual(len(result['mutants']), len(it.MUTANTS))
             self.assertTrue(all(m['detected'] > 0 and m['stopped'] == 0 for m in result['mutants']))
