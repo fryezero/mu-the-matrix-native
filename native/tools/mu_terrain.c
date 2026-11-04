@@ -375,7 +375,8 @@ static int command_render(const args *a)
         for (int32_t step = 0; step < a->object_steps; ++step) {
             const float t = a->time - 40.0f * (float)(a->object_steps - 1 - step);
             mu_objects_step_inputs in = {6, w->layer1[(ty << 8) + tx], t, {hx, hy, 0.0f},
-                                         a->have_frustum ? frustum.x2d : NULL, a->have_frustum ? frustum.y2d : NULL};
+                                         a->have_frustum ? frustum.x2d : NULL, a->have_frustum ? frustum.y2d : NULL,
+                                         NULL};
             mu_objects_step(&objects, &in);
         }
         mu_objects_apply_lights(&objects, w);

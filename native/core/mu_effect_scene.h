@@ -83,6 +83,9 @@ void mu_effect_object_matrix(float out[16], const float position[3], float scale
 /* RENDER-EFFECTS-007: 0x0129faee, the object's world matrix (angle +0x164, position +0x158, scale +0xa0) of a record
  * following bone -1. */
 void mu_effect_object_world_matrix(float out[16], const float angle[3], const float position[3], float scale);
+/* RENDER-WORLDS-AFTER6: the external matrix of 0x0129f4cb's dt-0 update for one list record: the object's world
+ * matrix (0x0129faee) when the record follows (+0x10), whatever its bone; otherwise scale (+0xa0) and position. */
+void mu_effect_prime_matrix(float out[16], int follow, const float angle[3], const float position[3], float scale);
 
 void mu_effect_scene_update(mu_effect_scene *scene, float dt);
 

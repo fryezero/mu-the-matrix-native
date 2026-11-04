@@ -93,7 +93,8 @@ class WorldsAfter5Tests(unittest.TestCase):
         _, _, o = self.run_case('tick', wake, kind=146, hero=(1500.0, 1000.0), loops=(0, 1))
         self.assertEqual((o['action'], o['limit']), (0, 0))   # far: the latch clears
 
-    def test_tick_unported_handlers(self):
+    def test_tick_handlers_without_view_inputs(self):
+        # RENDER-WORLDS-AFTER6 ported 4, 6 and 8; without a mouse segment or camera (NULL here) they are refused
         for handler in (4, 6, 8):
             status, found, _ = self.run_case('tick', [row(13, 0, 0.16, handler, extra=(0, 1, 2, 3, 4, 5, 6))])
             self.assertEqual((status, found), (2, 1))

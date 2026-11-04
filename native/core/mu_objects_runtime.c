@@ -581,7 +581,7 @@ void mu_objects_step(mu_objects *o, const mu_objects_step_inputs *in)
                     if (pushed.count && o->sound) o->sound(o->sound_context, (int32_t)output[0].args[0]);
                 } else if (m->call == MU_OBJ_CALL_TICK) {
                     tick(o, i, fbits(m->args[0]));
-                    mu_objects_anim_tick(o, i, in->hero, step_rand, &c);   /* RENDER-WORLDS-AFTER5 */
+                    mu_objects_anim_tick(o, i, in->hero, in->camera, step_rand, &c);   /* RENDER-WORLDS-AFTER5/6 */
                 } else if (m->call == MU_OBJ_CALL_MODEL_STREAM) {   /* RENDER-JOINTS-001 (Dungeon 0x16..0x18) */
                     if (t >= 0 && t < MU_OBJECT_TYPES)
                         rt->stream[t] = (uint8_t)m->args[0];

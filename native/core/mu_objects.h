@@ -280,10 +280,12 @@ int32_t mu_objects_animated(const mu_objects *objects);
  * (mu_objects_start reads MU_LANG_DIR). Returns the row count; 0 (no change) without the file or rows. */
 int32_t mu_objects_anim_load(mu_objects *objects, const char *dir);
 /* The world manager tails: SetAction(object, 0) after the create (0x00ea2ad6) and the registry tick after the
- * Animation tick (0x00ea2c2b). No-ops outside the factory class worlds or without rows. */
+ * Animation tick (0x00ea2c2b). No-ops outside the factory class worlds or without rows. RENDER-WORLDS-AFTER6:
+ * camera is CameraPosition (tick handler 8; NULL counts it unsupported). Map objects carry no OBB +0x31c
+ * natively, so the mouse-over handlers 4 and 6 get no mouse segment (counted unsupported; no live row uses them). */
 void mu_objects_anim_create(mu_objects *objects, int32_t index, mu_obj_rand_fn rand_fn, void *context);
-void mu_objects_anim_tick(mu_objects *objects, int32_t index, const float hero[3], mu_obj_rand_fn rand_fn,
-                          void *context);
+void mu_objects_anim_tick(mu_objects *objects, int32_t index, const float hero[3], const float *camera,
+                          mu_obj_rand_fn rand_fn, void *context);
 
 typedef struct mu_objects_step_inputs {
     int32_t scene_state;              /* 0x01d1df70 (6 in the world) */
@@ -291,6 +293,7 @@ typedef struct mu_objects_step_inputs {
     float time;                       /* 0x06fce370 (ms) */
     float hero[3];
     const float *x2d, *y2d;           /* last CreateFrustrum2D polygon (Tormenta slot 0x1c) */
+    const float *camera;              /* CameraPosition 0x0bdc5ab4 (RENDER-WORLDS-AFTER6), NULL when unknown */
 } mu_objects_step_inputs;
 
 /* One logic step: MoveObjects (mu_obj_move_pass) with MoveObject for the objects it names
