@@ -15,6 +15,7 @@
 #include "mu_lang.h"
 #include "mu_raster.h"
 #include "mu_scene.h"
+#include "mu_objects.h"
 #include "mu_particles.h"
 #include "mu_named_bones.h"
 #include "mu_texture_names.h"
@@ -183,6 +184,8 @@ static const struct { int32_t id; const char *dir, *name; char kind; } bitmap_fi
     {0x7fd6, "Effect", "JointLaser01.jpg", 'j'},    /* RENDER-EFFECTS-009: the arrows' 0x7fd6/5 trails */
 };
 
+static void arrow_tick(mu_combat *c, mu_sfx_effect *e);   /* RENDER-EFFECTS-010 */
+
 static int32_t bitmap_slot(const mu_combat *c, int32_t id)
 {
     for (int32_t i = 0; i < c->bitmap_count; ++i)
@@ -269,6 +272,16 @@ static void load_models(mu_combat *c, const char *root)
                  startup_bitmap_name(root, m->bmd.meshes[k].texture, found, sizeof found)) &&
                 mu_textures_set_file(&m->textures, &m->bmd, k, found) == 0)
                 ++c->arrow_textures_retried;
+        }
+        if (i == MU_COMBAT_MODEL_BOW_ARROW && m->type == 0x615) {
+            /* RENDER-EFFECTS-010: the 0x615 functor draws elec_light with Item\texture\elec_light.jpg 0x8551
+             * (LoadBitmap 0x0182ece3, LINEAR/REPEAT) */
+            char directory[4096];
+            const int32_t index = 0x8551;
+            const char *name = "elec_light.jpg", *dir = directory;
+            if (!mu_objects_resolve(root, "Data/Item/Texture", directory, sizeof directory))
+                snprintf(directory, sizeof directory, "%s/Data/Item/Texture", root);
+            mu_textures_add_extras(&m->textures, &index, &dir, &name, 1, 0x2601, 0x2901);
         }
         m->loaded = 1;
     }
@@ -1012,6 +1025,8 @@ static void move_pools(mu_combat *c)
         if (c->effects[i].live && !mu_sfx_effect_move(&c->effects[i], &c->env))
             c->effects[i].live = 0;   /* an unsupported kind ends at once */
     for (int i = 0; i < MU_SFX_EFFECTS; ++i)
+        arrow_tick(c, &c->effects[i]);
+    for (int i = 0; i < MU_SFX_EFFECTS; ++i)
         effect_object(c, &c->effects[i]);   /* MoveJoints reads the arrows after MoveEffects (RENDER-EFFECTS-009) */
     c->jenv.serial = c->serial;
     mu_joints_move_all(c->joints, MU_SFX_JOINTS, &c->jenv, c->time_step, joint_inputs, c);
@@ -1674,6 +1689,23 @@ static int32_t model_slot(const mu_combat *c, int32_t type)
     return -1;
 }
 
+/* RENDER-EFFECTS-010: the render-registry functors of 0x613..0x617 tick the arrow's animation (0x012b4dd3) each
+ * time they draw it; the native ticks once per logic step, with the loop of MU_SFX_CALL_ANIMATION (inference). */
+static void arrow_tick(mu_combat *c, mu_sfx_effect *e)
+{
+    mu_sfx_mesh_pass passes[MU_SFX_MESH_PASSES];
+    if (!e->live || !mu_sfx_arrow_render_passes(e, 0.0f, passes))
+        return;
+    const int32_t slot = model_slot(c, e->type);
+    if (slot < 0)
+        return;
+    const mu_bmd *b = &c->models[slot].bmd;
+    const int32_t keys = b->action_count > 0 ? b->actions[0].keys : 1;
+    e->frame = e->frame + mu_sfx_arrow_tick_speed(e);
+    if (keys > 1 && e->frame >= (float)keys)
+        e->frame = e->frame - (float)keys;
+}
+
 int32_t mu_combat_draw_models(mu_combat *c, mu_combat_model_fn draw, void *context)
 {
     int32_t drawn = 0;
@@ -1750,6 +1782,36 @@ int32_t mu_combat_draw_models(mu_combat *c, mu_combat_model_fn draw, void *conte
         mu_model_set_state(&m->model, 0, frame, frame, 0);
         if (mu_model_pose(&m->model) != MU_MODEL_OK || mu_model_transform_all(&m->model) != MU_MODEL_OK)
             continue;
+        /* RENDER-EFFECTS-010: RenderObject's draw 0x017edf43 hands 0x613..0x617 to their render-registry
+         * functors, which draw mesh by mesh with their own flags, blend mesh and model colour (the glow meshes
+         * additive) and skip RenderBody */
+        mu_sfx_mesh_pass passes[MU_SFX_MESH_PASSES];
+        const int32_t pass_count = mu_sfx_arrow_render_passes(e, c->map ? c->map->time : c->env.world_time, passes);
+        if (pass_count > 0) {
+            for (int32_t k = 0; k < pass_count; ++k) {
+                const mu_sfx_mesh_pass *q = &passes[k];
+                if (q->mesh < 0 || q->mesh >= (int32_t)m->bmd.mesh_count)
+                    continue;
+                mu_draw_options options;
+                mu_draw_default_options(&options);
+                mu_draw_model_fields fields;
+                memset(&fields, 0, sizeof fields);
+                memcpy(fields.color, q->color, sizeof fields.color);
+                options.flags = q->flags;
+                options.alpha = q->alpha;
+                options.select = q->select;
+                options.color_scale = q->color_scale;
+                options.u_offset = q->u;
+                options.v_offset = q->v;
+                options.texture = q->texture;
+                options.textures = &m->textures;
+                options.mesh_plus_one = q->mesh + 1;
+                options.fields = &fields;
+                draw(context, &m->model, &m->textures, slot, &options);
+            }
+            ++drawn;
+            continue;
+        }
         /* RenderObject 0x017edf43: RenderBody(flags, alpha, BlendMesh +0x74,
          * BlendMeshLight +0xa8, U +0xac, V +0xb0, hidden +0x68, -1) with flags 2,
          * or 0x82 when +0x80 == 0x80 (static reading) */

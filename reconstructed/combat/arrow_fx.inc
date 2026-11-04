@@ -952,3 +952,73 @@ int mu_sfx_bow_sparks(int16_t weapon, int32_t object, int has_model, int32_t bon
     }
     return n;
 }
+
+/* ------------------------------------------------------------------------
+ * RENDER-EFFECTS-010: the render-registry functors of 0x613..0x617 (verified, scripts/validate_render_effects10.py).
+ * The registrations 0x00a16273(type, functor) at 0x00a13aeb..0x00a13b2f; the functors' passes in call order. */
+
+typedef struct arrow_pass_row {
+    int8_t mesh;
+    uint8_t flags;
+    int8_t select;            /* MU_SFX_PASS_BLEND_MESH: the record's BlendMesh +0x74 */
+    float r, g, b;
+} arrow_pass_row;
+enum { MU_SFX_PASS_BLEND_MESH = -100 };
+
+static void arrow_pass(mu_sfx_mesh_pass *p, const mu_sfx_effect *e, const arrow_pass_row *row)
+{
+    p->mesh = row->mesh;
+    p->flags = row->flags;
+    p->alpha = e->alpha;                       /* +0xdc */
+    p->select = row->select == MU_SFX_PASS_BLEND_MESH ? e->blend_mesh : row->select;
+    p->color_scale = e->blend_light;           /* +0xa8 */
+    p->u = e->blend_u;                         /* +0xac */
+    p->v = e->blend_v;                         /* +0xb0 */
+    p->texture = -1;
+    set3(p->color, row->r, row->g, row->b);    /* 0x00cfcead / 0x00cfcede on the model's +0x54 */
+}
+
+float mu_sfx_arrow_tick_speed(const mu_sfx_effect *e)
+{
+    return e->type == 0x614 ? f32bits(0x3b449ba6u) : e->velocity;   /* 0.003 */
+}
+
+int mu_sfx_arrow_render_passes(const mu_sfx_effect *e, float world_time, mu_sfx_mesh_pass out[MU_SFX_MESH_PASSES])
+{
+    static const arrow_pass_row r613[] = {    /* 0x00a4269f: 8cha_arrow */
+        {0, 2, 0, 0.4f, 1.0f, 0.7f}, {1, 2, 1, 0.4f, 1.0f, 0.7f}, {2, 2, 2, 0.4f, 0.5f, 1.0f},
+        {3, 2, 3, 0.4f, 0.5f, 1.0f}};
+    static const arrow_pass_row r614[] = {    /* 0x00a42984: apocalypse_arrow */
+        {0, 2, 0, 1.0f, 1.0f, 1.0f}, {1, 2, -1, 1.0f, 1.0f, 1.0f}, {2, 2, 2, 1.0f, 0.15f, 0.2f}};
+    static const arrow_pass_row r615[] = {    /* 0x00a42b8c: lightning_arrow (mesh 2 below) */
+        {1, 2, 0, 1.0f, 1.0f, 1.0f}, {1, 0x44, 1, 0.5f, 0.4f, 1.0f},
+        {0, 0x42, MU_SFX_PASS_BLEND_MESH, 1.0f, 1.0f, 1.0f}, {2, 0x42, 2, 1.0f, 1.0f, 1.0f},
+        {3, 0x42, 3, 0.25f, 0.45f, 1.0f}};
+    static const arrow_pass_row r616[] = {    /* 0x00a42f55: TempleGuard_bow_arrow */
+        {0, 0x42, 0, 1.0f, 1.0f, 1.0f}, {2, 0x42, 2, 1.0f, 1.0f, 1.0f}, {1, 0x42, 1, 0.3f, 0.7f, 1.0f}};
+    static const arrow_pass_row r617[] = {    /* 0x00a43160: Imperial_arrow */
+        {2, 2, MU_SFX_PASS_BLEND_MESH, 1.0f, 1.0f, 1.0f}, {2, 6, 2, 0.6f, 0.6f, 0.8f},
+        {5, 0x42, 5, 0.7f, 0.9f, 1.0f}, {4, 0x42, 4, 0.7f, 0.2f, 1.0f}, {0, 0x42, 0, 0.7f, 0.4f, 1.0f},
+        {1, 0x42, 1, 1.0f, 1.0f, 1.0f}, {3, 0x42, 3, 0.7f, 0.65f, 1.0f}};
+    const arrow_pass_row *rows;
+    int n;
+    switch (e->type) {
+    case 0x613: rows = r613, n = 4; break;
+    case 0x614: rows = r614, n = 3; break;
+    case 0x615: rows = r615, n = 5; break;
+    case 0x616: rows = r616, n = 3; break;
+    case 0x617: rows = r617, n = 7; break;
+    default: return 0;
+    }
+    for (int i = 0; i < n; ++i)
+        arrow_pass(&out[i], e, &rows[i]);
+    if (e->type == 0x615) {
+        /* 0x00a42dcf: elec_light on Item\texture\elec_light.jpg 0x8551 (LoadBitmap 0x0182ece3), a 6-cell strip
+         * stepping every 25 ms over 150 ms of the clock */
+        const int32_t cell = trunc_i32(world_time) % (6 * 25) / 25;
+        out[3].u = (float)(cell % 6) * f32bits(0x3e2aaaabu);   /* 1/6 */
+        out[3].v = (float)(cell / 6) * 1.0f;
+        out[3].texture = 0x8551;
+    }
+    return n;
+}
