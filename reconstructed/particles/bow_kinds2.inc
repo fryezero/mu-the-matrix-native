@@ -11,7 +11,10 @@
  *   Snow_Chip02_red 0x83b8/2 0x1326 (create 0x015e30d4, move 0x01657383, plain sprite 0x015aa005)
  *   firehik01 0x8084/0x1e    0x1326 (create 0x015d6c25, move 0x0164a207, render 0x015a4461)
  *   flare_mono 0x8184/1      0x12ff (create 0x015f95ef, move 0x0167252c, plain sprite 0x0159cf8f)
- *   lighting_mega01..03 0x8081..0x8083/0  0x130c (create 0x015d2e4c, move 0x01644e1d, plain sprite 0x015a006f) */
+ *   lighting_mega01..03 0x8081..0x8083/0  0x130c (create 0x015d2e4c, move 0x01644e1d, plain sprite 0x015a006f)
+ * and the two kinds 0x45e's RenderEffects case (0x01518f49) asks for every drawn frame:
+ *   smoke01 0x7f5a/0x6d      (create 0x015cad8d, move 0x0163c877: a trail of unowned 0x6d halfway to its owner)
+ *   pin_star 0x8108/3        (create 0x015f696e, move 0x0166e3b9: drifts 2.5 along its rotation, plain 0x0159c043) */
 
 static int mu_pt_bow2_kind(int32_t type, int32_t subtype)
 {
@@ -19,7 +22,8 @@ static int mu_pt_bow2_kind(int32_t type, int32_t subtype)
     case 0x7f78: return subtype == 5;
     case 0x83b3: return subtype == 1;
     case 0x8155: return subtype == 2;
-    case MU_PT_BITMAP_SMOKE: return subtype == 0x18 || subtype == 0x4e || subtype == 0x7a;
+    case MU_PT_BITMAP_SMOKE: return subtype == 0x18 || subtype == 0x4e || subtype == 0x7a || subtype == 0x6d;
+    case 0x8108: return subtype == 3;
     case 0x8085: return subtype == 0x11;
     case 0x810c: return subtype == 0;
     case 0x83b8: return subtype == 2;
@@ -28,6 +32,25 @@ static int mu_pt_bow2_kind(int32_t type, int32_t subtype)
     case 0x8081: case 0x8082: case 0x8083: return subtype == 0;
     default: return 0;
     }
+}
+
+static float f32bits_pt(uint32_t bits)
+{
+    float f;
+    memcpy(&f, &bits, sizeof f);
+    return f;
+}
+
+/* VectorNormalize 0x00cff0d3: divides by the length; zero below 1e-6 */
+static void bow2_normalize(float v[3])
+{
+    const float length = sqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+    if (f32bits_pt(0x358637bdu) > length) {
+        v[0] = v[1] = v[2] = 0.0f;
+        return;
+    }
+    for (int k = 0; k < 3; ++k)
+        v[k] = v[k] / length;
 }
 
 static void bow2_angle_rotate(const float angle[3], const float in[3], float out[3])
@@ -64,7 +87,18 @@ static void mu_pt_bow2_create(mu_pt_particle *p, const mu_pt_host *h, float scal
             p->velocity[k] = (float)(mu_pt_rand(h) % 5) + -2.0f;
         p->gravity = 0.5f;
         return;
+    case 0x8108:                                   /* 0x015f696e */
+        p->lifetime = 10;
+        p->initial_lifetime = p->lifetime;
+        p->rotation = (float)(mu_pt_rand(h) % 360);
+        return;
     case MU_PT_BITMAP_SMOKE:                       /* 0x015c6bcd (0x18, 0x4e) / 0x015cb8ee (0x7a) */
+        if (p->subtype == 0x6d) {                  /* 0x015cad8d */
+            p->lifetime = 10;
+            p->initial_lifetime = p->lifetime;
+            p->rotation = (float)(mu_pt_rand(h) % 360);
+            return;
+        }
         p->lifetime = 32;
         if (p->subtype == 0x7a) {
             p->initial_lifetime = p->lifetime;
@@ -182,7 +216,40 @@ static void mu_pt_bow2_move(mu_pt_particle *p, const mu_pt_host *h)
         if (p->lifetime <= 0)
             p->live = 0;
         return;
+    case 0x8108: {                                 /* 0x0166e3b9 */
+        p->scale = p->scale + 0.01f;
+        const float c = (float)p->lifetime / (float)p->initial_lifetime * 1.0f;
+        for (int k = 0; k < 3; ++k)
+            p->light[k] = 1.0f > c ? c : 1.0f;
+        float spin[3] = {0.0f, 0.0f, p->rotation}, d[3];
+        const float forward[3] = {0.0f, -1.0f, 0.0f};
+        bow2_angle_rotate(spin, forward, d);       /* AngleToVector 0x00d015d5 (it normalises), normalised again */
+        bow2_normalize(d);
+        bow2_normalize(d);
+        for (int k = 0; k < 3; ++k)
+            p->position[k] = p->position[k] + 2.5f * d[k];
+        return;
+    }
     case MU_PT_BITMAP_SMOKE:
+        if (p->subtype == 0x6d) {                  /* 0x0163c877 */
+            const float base[3] = {0.3f, 0.4f, 0.5f};
+            const float r = (float)p->lifetime / (float)p->initial_lifetime;
+            for (int k = 0; k < 3; ++k)
+                p->light[k] = base[k] * r;
+            if (p->owner == MU_PT_NO_OWNER || p->lifetime == 0)
+                return;
+            float o[3] = {0.0f, 0.0f, 0.0f}, q[3];
+            if (h && h->owner_position)
+                h->owner_position(h->context, p->owner, o);   /* the owner OBJECT's +0x158 */
+            for (int k = 0; k < 3; ++k)
+                q[k] = 0.5f * (o[k] - p->position[k]);
+            for (int k = 0; k < 3; ++k)
+                q[k] = p->position[k] + q[k];
+            const float scale = (float)(mu_pt_rand(h) % 8) * f32bits_pt(0x3d8f5c29u) + 0.8f;   /* 0.07 */
+            if (h && h->create)                    /* CreateParticle 0x0168fafd, no owner */
+                h->create(h->context, MU_PT_BITMAP_SMOKE, q, p->angle, base, 0x6d, scale);
+            return;
+        }
         if (p->subtype == 0x7a) {                  /* 0x0163e5d1 */
             const float d = (float)p->initial_lifetime;
             p->light[0] = p->light[0] - p->field_7c / d;

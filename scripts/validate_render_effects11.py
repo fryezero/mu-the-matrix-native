@@ -35,7 +35,8 @@ import validate_render_effects9 as re9
 ROOT = Path(__file__).resolve().parents[1]
 f32 = fx.f32
 BOW2_KINDS = [(0x7f78, 5), (0x83b3, 1), (0x8155, 2), (0x7f5a, 0x18), (0x7f5a, 0x4e), (0x7f5a, 0x7a), (0x8085, 0x11),
-              (0x810c, 0), (0x83b8, 2), (0x8084, 0x1e), (0x8184, 1), (0x8081, 0), (0x8082, 0), (0x8083, 0)]
+              (0x810c, 0), (0x83b8, 2), (0x8084, 0x1e), (0x8184, 1), (0x8081, 0), (0x8082, 0), (0x8083, 0),
+              (0x7f5a, 0x6d), (0x8108, 3)]   # the last two: 0x45e's RenderEffects case
 
 PT_MUTANTS = [
     # (name, file, old, new, family, kind) on reconstructed/particles
@@ -184,6 +185,100 @@ def compile_fx_mutant(directory, name, old, new):
     return fx.load_library(out)
 
 
+# ---------------------------------------------------------------- RenderEffects' case 0x45e
+
+RENDER_45E, RENDER_NEXT, RENDER_END = 0x01518f49, 0x015324fc, 0x01532501
+RENDER_OBJECT, TERRAIN_DECAL = 0x016d4fe4, 0x016cdd5f
+RENDER_FRAME = 0xc + 0x1bf0 + 8   # RenderEffects 0x015181fa: SEH frame, 0x1bf0 locals, esi and edi
+
+
+def bind_render(lib):
+    lib.mu_sfx_arrow_render_extras.argtypes = [C.POINTER(fx.Effect), C.POINTER(fx.Env), C.POINTER(C.c_float),
+                                               C.POINTER(C.c_int), C.POINTER(C.c_int)]
+    lib.mu_sfx_arrow_render_extras.restype = C.c_int
+    return lib
+
+
+def family_render45e(m, lib, rng, cases, report, kinds=None):
+    """RenderEffects 0x015181fa entered at its case 0x45e (0x01518f49) with the effect at [ebp-0x10], left at the
+    loop's next record (0x015324fc) for its epilogue: the model getter, the animation tick, RenderObject, the decal
+    and CreateParticle are recording stubs (validate_skill_fx's case)."""
+    for n in range(cases):
+        sub = rng.choice([0, 2, 0x63, 0, 2, 3, 4, 5, 6, 7, 8, 9, 0xb])
+        e = re7.random_arrow(rng, (0x45e, sub))
+        e.type, e.subtype = 0x45e, sub
+        e.lifetime = rng.choice([e.lifetime, 0x45, 0x46, 0x44, 100])
+        e.velocity = f32(rng.choice([0.3, 0.0, 0.25, rng.uniform(0.0, 2.0)]))
+        objects = [fx.random_object(rng) for _ in range(2)]
+        has_model = rng.random() < 0.85
+        case = re9.Case(rng, objects, fx.rand_values(rng, 40), vc_rfloat(rng), 1, 10, has_model)
+        stubs = case.stubs(m)
+        extra = []
+
+        def render_object(mm):
+            extra.append(('render', fx.owner_of(mm.argument(0)), [mm.argument(i) for i in range(1, 6)]))
+            return 0
+
+        def decal(mm):
+            extra.append(('decal', mm.argument(0)))
+            return 0
+
+        def blend(mm):   # EnableAlphaBlend 0x0184aa2b before the decal
+            return 0
+        stubs.update({RENDER_OBJECT: render_object, TERRAIN_DECAL: decal, pt.STATE_ADD: blend,
+                      RENDER_NEXT: fx.jump_stub(RENDER_END)})
+        raw, mask = fx.effect_to_bytes(e, re7.MOVE_DEFINED | {'velocity'})
+        record = am.Region('record', fx.POOL, raw, mask)
+        model = am.Region('model', fx.MODEL, am.poison(0x2000, 0x55), bytes(0x2000))
+        clock = f32(rng.choice([0.0, 1000.0, rng.uniform(0.0, 1.0e5)]))
+        regions = [record, fx.object_region(objects), model,
+                   am.defined_region('clock', 0x06fce370, struct.pack('<f', clock), writable=False)]
+        r = m.execute(RENDER_45E, [0], regions, stubs, frame=pt.mid_frame(RENDER_FRAME, {-0x10: fx.POOL}), cleanup=4)
+        env = case.env()
+        speed, decal_flag, draws = C.c_float(0.0), C.c_int(0), C.c_int(0)
+        drawn = lib.mu_sfx_arrow_render_extras(C.byref(e), C.byref(env), C.byref(speed), C.byref(decal_flag),
+                                               C.byref(draws))
+        mismatch = None
+        if vc_ok(r):
+            ticks = [c for c in case.client_calls if c[0] == 'animation']
+            client = [c for c in case.client_calls if c[0] != 'animation']
+            if not has_model:
+                if ticks or client or extra or case.client_rand:
+                    mismatch = ('no model drew', ticks, client, extra)
+            else:
+                mine_ticks = [fx.f32(speed.value)]
+                if [t[2] for t in ticks] != mine_ticks and not (len(ticks) == 1 and vc_same(ticks[0][2], speed.value)):
+                    mismatch = ('tick speed', ticks, speed.value)
+                elif [x for x in extra if x[0] == 'render'] != [('render', -2, [0, 0, 0, 0xffffffff, 0xffffffff])] * draws.value:
+                    mismatch = ('render object', extra, draws.value)
+                elif any(x[0] == 'decal' for x in extra) != bool(decal_flag.value) or \
+                        [x for x in extra if x[0] == 'decal'] not in ([], [('decal', 0x8002)]):
+                    mismatch = ('decal', extra, decal_flag.value)
+                else:
+                    mismatch = re7.compare_calls(client, case.c_calls)
+                if mismatch is None and case.client_rand != case.c_rand:
+                    mismatch = ('rand calls', case.client_rand, case.c_rand)
+        equal = vc_ok(r) and mismatch is None and drawn == 1
+        report.add('render_45e', equal, {'case': n, 'subtype': sub, 'model': has_model, 'mismatch': mismatch,
+                                          'stopped': r['stopped'], 'error': r['error'], 'checks': r['checks']})
+        report.cover('render_45e', f'sub {sub:#x}/' + ('model' if has_model else 'no model') +
+                     ''.join('/' + x[0] for x in extra[1:]))
+
+
+def vc_rfloat(rng):
+    return f32(rng.uniform(0.1, 400.0))
+
+
+def vc_ok(r):
+    import validate_combat as vc
+    return vc.ok(r)
+
+
+def vc_same(a, b):
+    import validate_combat as vc
+    return vc.same(a, b)
+
+
 # ---------------------------------------------------------------- particle families
 
 WORLD_TIME = [0.0]   # the case's clock [0x06fce370] (smoke01/0x4e sways by its sine)
@@ -204,8 +299,27 @@ class OwnerCase(pt.Case):
             region.define(region.base, bytes([alive]))
         return out
 
+    def stubs(self, m):
+        s = super().stubs(m)
+
+        def create(mm):   # CreateParticle 0x0168fafd from a move (smoke01/0x6d's trail)
+            a = [mm.argument(i) for i in range(8)]
+            self.client_calls.append(('create', a[0], mm.floats(a[1], 3), mm.floats(a[2], 3), mm.floats(a[3], 3), a[4],
+                                      pt.from_bits(a[5]), a[6], a[7]))
+            return 0
+        s[pt.CREATE_PARTICLE] = create
+        return s
+
     def host(self, world=0, world_time=0.0, *a, **kw):
         host = super().host(world, WORLD_TIME[0], *a, **kw)
+
+        def create(ctx, kind, position, angle, light, subtype, scale):
+            self.c_calls.append(('create', kind, list(position[:3]), list(angle[:3]), list(light[:3]), subtype, scale,
+                                 0, 0))
+            return 1
+        cfn = pt.PT_CREATE_FN(create)
+        self._keep.append(cfn)
+        host.create = cfn
 
         def owner_live(ctx, index):
             return int(self.alive[index] != 0)
@@ -305,6 +419,10 @@ def run(cases, mutations):
     for name in ('create', 'move'):
         r = fx_compare(text, data, lib, name, FX_KINDS, cases * len(FX_KINDS) * 2)
         result['comparisons']['fx_' + name] = r
+    report = pt.Report()
+    family_render45e(re9.machine(text, data), bind_render(lib), random.Random('render-effects-011-render45e'),
+                     cases * 12, report)
+    result['comparisons']['render_45e'] = {'families': report.families, 'coverage': report.coverage}
     if mutations:
         with tempfile.TemporaryDirectory(prefix='render-effects11-fx-') as tmp:
             for name, old, new, family, kind in FX_MUTANTS:

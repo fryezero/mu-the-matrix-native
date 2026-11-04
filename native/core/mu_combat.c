@@ -1730,19 +1730,24 @@ static int32_t model_slot(const mu_combat *c, int32_t type)
 /* RENDER-EFFECTS-010: the render-registry functors of 0x613..0x617 tick the arrow's animation (0x012b4dd3) each
  * time they draw it, with the loop of MU_SFX_CALL_ANIMATION (inference). RENDER-EFFECTS-011: the native ticks there
  * too, once per drawn frame in mu_combat_draw_models, as the client (it ticked once per logic step before). */
-static void arrow_tick(mu_combat *c, mu_sfx_effect *e)
+static void model_tick(mu_combat *c, mu_sfx_effect *e, float speed)
 {
-    mu_sfx_mesh_pass passes[MU_SFX_MESH_PASSES];
-    if (!e->live || !mu_sfx_arrow_render_passes(e, 0.0f, passes))
-        return;
     const int32_t slot = model_slot(c, e->type);
     if (slot < 0)
         return;
     const mu_bmd *b = &c->models[slot].bmd;
     const int32_t keys = b->action_count > 0 ? b->actions[0].keys : 1;
-    e->frame = e->frame + mu_sfx_arrow_tick_speed(e);
+    e->frame = e->frame + speed;
     if (keys > 1 && e->frame >= (float)keys)
         e->frame = e->frame - (float)keys;
+}
+
+static void arrow_tick(mu_combat *c, mu_sfx_effect *e)
+{
+    mu_sfx_mesh_pass passes[MU_SFX_MESH_PASSES];
+    if (!e->live || !mu_sfx_arrow_render_passes(e, 0.0f, passes))
+        return;
+    model_tick(c, e, mu_sfx_arrow_tick_speed(e));
 }
 
 int32_t mu_combat_draw_models(mu_combat *c, mu_combat_model_fn draw, void *context)
@@ -1815,6 +1820,15 @@ int32_t mu_combat_draw_models(mu_combat *c, mu_combat_model_fn draw, void *conte
         p.body_scale = e->type == MU_SFX_TWISTING_SWIRL ? 1.0f : e->scale;
         mu_model_apply_params(&m->model, &p);
         arrow_tick(c, e);   /* RENDER-EFFECTS-011: the functor's tick before its passes (0x00a4269f..) */
+        /* RENDER-EFFECTS-011: RenderEffects' case 0x45e (0x01518f49, verified): a tick at twice the speed, the
+         * model drawn twice for the arrows' subtypes, smoke01/0x6d and pin_star/3 owned by the arrow each drawn
+         * frame (through the session's particle route); the subtypes 3..7 decal 0x8002 is counted only */
+        float extra_speed = 0.0f;
+        int decal = 0, draws = 1;
+        if (mu_sfx_arrow_render_extras(e, &c->env, &extra_speed, &decal, &draws)) {
+            model_tick(c, e, extra_speed);
+            c->stats.render_decals += (uint32_t)decal;
+        }
         int32_t keys = m->bmd.action_count > 0 ? m->bmd.actions[0].keys : 1;
         float frame = e->frame;
         if (keys > 0 && frame >= (float)keys)
@@ -1864,7 +1878,8 @@ int32_t mu_combat_draw_models(mu_combat *c, mu_combat_model_fn draw, void *conte
         options.u_offset = e->blend_u;
         options.v_offset = e->blend_v;
         options.textures = &m->textures;
-        draw(context, &m->model, &m->textures, slot, &options);
+        for (int k = 0; k < draws; ++k)
+            draw(context, &m->model, &m->textures, slot, &options);
         ++drawn;
     }
     return drawn;

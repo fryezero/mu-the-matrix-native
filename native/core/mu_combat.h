@@ -166,6 +166,7 @@ typedef struct mu_combat_stats {
     uint32_t hero_shocks, hero_deaths;
     uint32_t monster_voices;  /* NATIVE-ITEMS-001: monster hurt and death sounds played */
     uint32_t bow_sparks;      /* RENDER-EFFECTS-009: bow 0x12f9's spark particles */
+    uint32_t render_decals;   /* RENDER-EFFECTS-011: 0x45e subtypes 3..7 terrain decals (counted, not drawn) */
 } mu_combat_stats;
 
 struct mu_world_particles;
