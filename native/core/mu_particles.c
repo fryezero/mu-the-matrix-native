@@ -21,7 +21,7 @@
  * the joints' textures (JointThunder01, Spark01, JointSpirit01, JointEnergy01; LoadBitmap 0x0182239b..) and
  * the login scene's clouds and WATERFALL1; NATIVE-CHARSEL-002 the character-select scene's WATERFALL2/3,
  * fantaB, Spark04, magic_ground1_3 and Impack03 (the selection light 0x8022 subtype 5 draws Impack03). */
-#define MU_WORLD_PT_EFFECTS 70
+#define MU_WORLD_PT_EFFECTS 72
 static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     MU_PT_BITMAP_FIRE, MU_PT_BITMAP_SMOKE, MU_PT_BITMAP_FLARE, MU_PT_BITMAP_SPARK3, MU_PT_BITMAP_THUNDER,
     MU_PT_BITMAP_SPARK2, MU_PT_BITMAP_SHINY2, MU_JT_BITMAP_THUNDER, MU_JT_BITMAP_SPARK, MU_JT_BITMAP_SPIRIT,
@@ -38,7 +38,8 @@ static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     MU_SFX_BITMAP_LIGHTING_A + 3, MU_SFX_BITMAP_LIGHTING_A + 4, 0x831d, 0x83b3, 0x8086, 0x8438, 0x7fdd,
     0x7fe0, 0x8098, 0x83de, 0x84e2, MU_JT_BITMAP_LASER, MU_PT_BITMAP_SMOKE5, 0x8016, 0x806e, 0x8084, 0x8085, 0x7f8a, 0x7f21,
     0x7f54, 0x7f84, 0x7f38, 0x8021, 0x7f6b, 0x8087, 0x8089, 0x801e, 0x8184,
-    0x7ffd, 0x8081, 0x8082, 0x8083, 0x85fb, 0x8450, 0x810a, 0x7f73, 0x7f74, 0x7f75, MU_PT_BITMAP_RAIN_SPLASH,
+    0x7ffd, 0x8081, 0x8082, 0x8083, 0x85fb, 0x8450, 0x810a, 0x7f73, 0x7f74, 0x7f75, 0x810c, 0x83b8,
+    MU_PT_BITMAP_RAIN_SPLASH,
     MU_PT_BITMAP_RAIN_RING};
 static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     "Data/Effect/Fire01.OZJ", "Data/Effect/smoke01.OZJ", "Data/Effect/flare01.OZJ", "Data/Effect/Spark03.OZJ",
@@ -76,7 +77,10 @@ static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     "Data/Effect/aura_0316_mono.OZJ", "Data/Effect/Wind_smoke.OZJ",
     /* RENDER-EFFECTS-010: the bows' pin_star03 0x810a (LoadBitmap 0x0182d4b5, LINEAR/CLAMP) and ArrowNature's
      * leaves Skill\flower1..3.tga 0x7f73..0x7f75 (0x01834adb.., NEAREST/CLAMP) */
-    "Data/Effect/pin_star03.OZJ", "Data/Skill/flower1.OZT", "Data/Skill/flower2.OZT", "Data/Skill/flower3.OZT"};
+    "Data/Effect/pin_star03.OZJ", "Data/Skill/flower1.OZT", "Data/Skill/flower2.OZT", "Data/Skill/flower3.OZT",
+    /* RENDER-EFFECTS-011: the bows' pin_star02_pupple 0x810c (LoadBitmap 0x0182e275, LINEAR/CLAMP) and
+     * Snow_Chip02_red 0x83b8 (0x0183863c, LINEAR/REPEAT) */
+    "Data/Effect/pin_star02_pupple.OZJ", "Data/Effect/Snow_Chip02_red.OZJ"};
 
 /* The world objects' effect models (AccessModel, static readings of the loaders): the Tormenta handler's
  * hs_fieldtornado (0x00e4c4de). */
@@ -162,6 +166,13 @@ static int h_cloud_owner(void *c, int32_t index, int reset)
     return o[MU_OBJF_VISIBLE] == 1;
 }
 
+/* RENDER-EFFECTS-011: the owner OBJECT's live byte +0x00 (0x0095f977); an unknown owner is dead. */
+static int h_owner_live(void *c, int32_t owner)
+{
+    const mu_jt_object *o = fx_object(c, owner);
+    return o && o->live;
+}
+
 static void h_sound(void *context, int32_t id)
 {
     (void)id;
@@ -193,6 +204,7 @@ static void host(mu_world_particles *p, mu_pt_host *h)
     h->cloud_owner = h_cloud_owner;
     h->sound = h_sound;
     h->light = h_light;
+    h->owner_live = h_owner_live;
 }
 
 /* ---- assets ---- */
@@ -217,7 +229,7 @@ static void load_bitmaps(mu_world_particles *p, const char *root, int no_assets)
             t->filter[i] = bitmap_ids[i] == MU_PT_BITMAP_IMPACK03 ||
                                    (bitmap_ids[i] >= 0x7f73 && bitmap_ids[i] <= 0x7f75) ? 0x2600 : 0x2601;
             t->wrap[i] = bitmap_ids[i] == 0x7f21 || bitmap_ids[i] == 0x84e2 ||
-                         (bitmap_ids[i] >= 0x8081 && bitmap_ids[i] <= 0x8083) ? 0x2901 : 0x2900;
+                         (bitmap_ids[i] >= 0x8081 && bitmap_ids[i] <= 0x8083) || bitmap_ids[i] == 0x83b8 ? 0x2901 : 0x2900;
             snprintf(relative, sizeof relative, "%s", effect_files[i]);
         } else {
             /* the world's rain02/rain03: GL_NEAREST, GL_CLAMP (0x01829e21) */
@@ -399,6 +411,14 @@ static const mu_jt_object *fx_object(mu_world_particles *p, int32_t index)
         const mu_env_object *b = &p->environment->env.boids[index - MU_WORLD_FX_BOID_BASE];
         memset(o, 0, sizeof *o); o->live = b->live; o->visible = b->visible; o->type = b->type;
         memcpy(o->position, b->position, 12); memcpy(o->light, b->light, 12);
+        return o;
+    }
+    if (index >= MU_WORLD_FX_COMBAT_BASE && index < MU_WORLD_FX_BOID_BASE) {   /* RENDER-EFFECTS-011 */
+        const mu_jt_object *c = p->combat_object ? p->combat_object(p->combat_context, index - MU_WORLD_FX_COMBAT_BASE)
+                                                 : NULL;
+        if (!c)
+            return NULL;
+        *o = *c;
         return o;
     }
     if (index >= MU_WH_EFFECT_BASE && index < MU_WORLD_FX_HERO_OBJECT)

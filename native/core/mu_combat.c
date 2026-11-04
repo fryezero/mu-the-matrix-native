@@ -420,6 +420,11 @@ static const mu_sfx_object *env_object(void *context, int32_t index)
     return &c->objects[index];
 }
 
+const mu_jt_object *mu_combat_object(void *context, int32_t index)
+{
+    return env_object(context, index);
+}
+
 /* The objects the effects read: the placed actors by index, the hero at
  * MU_COMBAT_HERO_OBJECT. visible: live and drawn (the client's frustum test
  * +0x0b is taken as true for everything near the hero). */
@@ -506,7 +511,7 @@ static void create_effect(mu_combat *c, int32_t type, int32_t subtype, const flo
     }
 }
 
-static void create_particle(mu_combat *c, const mu_sfx_call *call)
+static void create_particle(mu_combat *c, const mu_sfx_call *call, const mu_sfx_effect *e)
 {
     if (c->particle_count >= MU_COMBAT_PARTICLES)
         return;
@@ -516,10 +521,18 @@ static void create_particle(mu_combat *c, const mu_sfx_call *call)
         ++c->particle_count;
         ++c->stats.particles_created;
     } else if (c->legacy_particles && mu_pt_kind_supported(call->type, call->subtype)) {
-        /* NATIVE-PARTICLE-001: kinds of the legacy particle module (Fire01 1..3, smoke01 3, Spark02 0);
-         * the owner is not modelled there (these calls pass none) */
-        mu_world_particles_create(c->legacy_particles, call->type, call->position, call->angle, call->light,
-                                  call->subtype, call->scale);
+        /* NATIVE-PARTICLE-001: kinds of the legacy particle module (Fire01 1..3, smoke01 3, Spark02 0).
+         * RENDER-EFFECTS-011: an arrow's "this effect" owner (-2) is its effect OBJECT (firehik03/0x11 dies with
+         * it); other owners are not modelled there */
+        int32_t owner = -1;
+        if (call->owner == -2 && e && e >= c->effects && e < c->effects + MU_SFX_EFFECTS && mu_sfx_is_arrow(e->type) &&
+            c->legacy_particles->combat_object) {
+            effect_object(c, e);
+            c->objects[MU_COMBAT_EFFECT_OBJECT(e - c->effects)].live = 1;   /* created, SetLive at the end */
+            owner = MU_WORLD_FX_COMBAT_BASE + MU_COMBAT_EFFECT_OBJECT((int32_t)(e - c->effects));
+        }
+        mu_world_particles_create_owned(c->legacy_particles, call->type, call->position, call->angle, call->light,
+                                        call->subtype, call->scale, owner);
         ++c->stats.particles_created;
     } else {
         unsupported(c, 'p', call->type, call->subtype);
@@ -581,7 +594,7 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
         add_light(c, call->position[0], call->position[1], call->light, call->range);
         return 0;
     case MU_SFX_CALL_PARTICLE:
-        create_particle(c, call);
+        create_particle(c, call, e);
         return 0;
     case MU_SFX_CALL_JOINT: {
         int32_t target = call->owner;
@@ -934,7 +947,7 @@ static void end_of_attack(mu_combat *c)
             memcpy(call.position, c->actors->list[t].position, sizeof call.position);
             memcpy(call.angle, h->angle, sizeof call.angle);
             call.light[0] = 0.4f; call.light[1] = 0.6f; call.light[2] = 1.0f;
-            for (int k = 0; k < 10; ++k) create_particle(c, &call);
+            for (int k = 0; k < 10; ++k) create_particle(c, &call, NULL);
         }
         break;
     case 7:

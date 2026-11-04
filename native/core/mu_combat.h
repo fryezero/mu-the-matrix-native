@@ -177,7 +177,7 @@ typedef struct mu_combat {
     uint32_t actor_revisions[MU_WORLD_ACTORS_MAX];
     /* NATIVE-PARTICLE-001: when set, CreateSprite calls and the particle kinds skill_fx does not reconstruct go
      * to the legacy particle module (mu_particles.h), which draws them in its sprite pass. */
-    struct mu_world_particles *legacy_particles;
+    struct mu_world_particles *legacy_particles;   /* its combat_object: mu_combat_object (RENDER-EFFECTS-011) */
     mu_walk *walk;
     mu_character *hero_character;
     mu_world_actors *actors;
@@ -241,6 +241,9 @@ typedef struct mu_combat {
 int mu_combat_init(mu_combat *combat, const char *game_root, mu_walk *walk, mu_character *hero,
                    mu_world_actors *actors, const mu_combat_config *config, char *error, size_t error_size);
 void mu_combat_free(mu_combat *combat);
+/* RENDER-EFFECTS-011: the session's OBJECT by index (actors, the hero, the arrow effects), NULL outside; the
+ * world particle module's combat_object for arrow-owned particles. */
+const mu_jt_object *mu_combat_object(void *combat, int32_t index);
 
 /* Item model file of the demo weapon (Data/Item/...), NULL for fists. */
 const char *mu_combat_weapon_file(int32_t weapon);

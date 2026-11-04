@@ -51,7 +51,7 @@
  * MoveParticles in that order each step; the effect models before the joints, the joints before the sprite
  * section. Viewer choices: these pools are the module's own (the skills keep theirs in mu_combat), the effect
  * models play their first action (frame += speed, looping) and the tornado's PlayBuffer is counted, not played. */
-enum { MU_WORLD_PT_BITMAPS = 72, MU_WORLD_PT_CAPACITY = 4096, MU_WORLD_PT_SHADOW_MESHES = 64,
+enum { MU_WORLD_PT_BITMAPS = 74, MU_WORLD_PT_CAPACITY = 4096, MU_WORLD_PT_SHADOW_MESHES = 64,
        MU_WORLD_FX_EFFECTS = MU_SFX_EFFECTS, MU_WORLD_FX_MODELS = 18, MU_WORLD_EIN_LINKS = 4096, MU_WORLD_FX_QUADS = 8192,
        MU_WORLD_FX_LIGHTS = MU_JT_JOINTS + MU_SFX_EFFECTS };
 
@@ -127,9 +127,13 @@ typedef struct mu_world_particles {
         ein_links[MU_WORLD_EIN_LINKS];
     int32_t ein_link_count;
     uint64_t ein_requests, ein_attached, ein_invalid, ein_updates, ein_unposed, ein_expired;
+    /* RENDER-EFFECTS-011: the combat session's OBJECTs (its arrows as "this effect" owners) at
+     * MU_WORLD_FX_COMBAT_BASE + its object index; NULL none */
+    const mu_jt_object *(*combat_object)(void *context, int32_t index);
+    void *combat_context;
 } mu_world_particles;
 
-enum { MU_WORLD_ACTOR_FX_BASE = 0x08000000 };
+enum { MU_WORLD_ACTOR_FX_BASE = 0x08000000, MU_WORLD_FX_COMBAT_BASE = 0x20000000 };
 
 /* RENDER-EFFECTS-006: the objects' EffectManager scene (NULL until a world object asks for an effect) and its
  * render pass, as the actors' scene (mu_world_actors). */
