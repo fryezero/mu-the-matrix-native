@@ -11,6 +11,7 @@ import ctypes as C
 from pathlib import Path
 import random
 import subprocess
+import original_cache
 import pins
 import validate_renderchar as v
 ROOT = Path(__file__).resolve().parents[1]
@@ -896,6 +897,35 @@ def helper_returns(wa):
     return _helper_returns[1]
 
 
+def _original(wa, case, factory, tags):
+    """The pinned instructions for one sample: client_stream plus what the world's hooks record (helper tags,
+    helper exits, random draws and their sites, wave/clock sites). TEST-SPEED-001: cached by the case and the
+    random sequence when MU_VALIDATOR_CACHE is set; the generic C stream is always computed fresh."""
+    global _site_sink
+    sites = _site_sink
+
+    def run():
+        global _site_sink
+        _site_sink = set()
+        try:
+            r, st, other, _ = v.client_stream(wa, case, factory)
+            return r['ok'], st, other, list(tags), list(_EXITS), list(_RAND['calls']), frozenset(_site_sink)
+        finally:
+            _site_sink = sites
+    key = (case, _RAND['on'], tuple(_RAND['seq']) if _RAND['on'] else ())
+    ok, st, other, tagged, exits, calls, found = original_cache.named('gen_item_bodies', Path(__file__)).get(
+        'sample', key, run)
+    tags[:] = tagged
+    _EXITS[:] = exits
+    _RAND['calls'][:] = calls
+    for _, site, _ in calls:
+        if site not in _RAND['order']:
+            _RAND['order'].append(site)
+    if sites is not None:
+        sites.update(found)
+    return {'ok': ok}, st, other
+
+
 def exit_record(fields):
     """EXIT pseudo-draw in client-stream form: words 8..15 are the model fields."""
     return ('EXIT', [0] * 8, tuple(fields[0]), fields[1], tuple(fields[2]), fields[3])
@@ -981,7 +1011,7 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=Fals
     case = v.random_case_any(random.Random(seed), t)
     case.update(item_level=lv << 3, quality=quality, option1=opt, ext=ext, record=record, a10=0xffffffff, a11=0xffffffff, render_type=(2, 0x102, 0x40042)[seed % 3])
     case['object_hidden'] = (-1, 0, 2)[(seed // 3) % 3] if t in WING_TYPES else 0
-    (r, st, other, m) = v.client_stream(wa, case, factory)
+    r, st, other = _original(wa, case, factory, tags)
     generic_case = dict(case)
     if t in (0x0eee, 0x18fe, 0x1cfe):
         f = lambda x: v.u2f(v.f2u(x))

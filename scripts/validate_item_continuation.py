@@ -10,6 +10,7 @@ import subprocess
 import tempfile
 import gen_item_bodies as gen
 import gen_skin_bodies as skins
+import original_cache
 import pins
 import validate_item_clusters as clusters
 import validate_renderchar as v
@@ -62,7 +63,8 @@ def skin_cases(wa, lib):
                             ext=(0,1,2,0x10,0x20,0x33)[state % 6])
             case.update(record=rng.choice([None,(0,0,0),(6,0,0),(0,0x26,0),(0,0x5b,0)]),
                         a10=0xffffffff, a11=0xffffffff)
-            result, stream, other, _ = v.client_stream(wa, case, reset)
+            result, stream, other = original_cache.active().get(   # TEST-SPEED-001: original side only
+                'continuation.skin', case, lambda: v.client_stream(wa, case, reset)[:3])
             effects = [c[1] for c in other if c[0] == 'skin_sprite']
             if not result['ok'] or len(effects) != len(other) or v.c_stream(lib, case) != (0, stream) or \
                     c_skin_effect(lib, t, v.u2f(case['time'])) != effects:

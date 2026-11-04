@@ -29,6 +29,22 @@ as ``all(...)`` in a test), ``contains`` (a substring) or ``same_as`` (equal to 
 
 ``prepare`` lists commands (argument lists, placeholders allowed) run in the row's work directory before
 the validator; a command whose last two items are ``">"`` and a path writes its standard output there.
+
+TEST-SPEED-001 (see docs/testing/TEST-BUDGET.md):
+
+  run_validators.py --private --no-mutants --only validate_hud     the row without its planted mistakes
+  run_validators.py --list-affected origin/main                    the rows a diff can affect, and why
+  run_validators.py --private --no-mutants --affected origin/main  run exactly those
+  run_validators.py --private --cache --only validate_item_ranked  reuse cached original-side results
+
+``--no-mutants`` removes the mutant switches (``--mutations``/``--mutants`` and their ``--mutant-cases``/
+``--mutation-cases`` values) from a row's arguments and drops the expectations that read mutant results (the
+row's ``mutants_at`` paths and every expectation path naming mutants, mutations or negative controls). A
+``--mutations N`` with a number is a count of random input cases (effects, effect_tree, meshdraw), not planted
+mistakes, and stays; rows whose negative controls are built in (no switch) run unchanged. Every run records
+each row's wall time in verify-runs/validator-times.json and ``--jobs`` starts the longest rows first.
+``--cache`` sets MU_VALIDATOR_CACHE for the validators that support it (scripts/original_cache.py: only the
+original-instruction side is cached, the C side always runs); ``--no-cache`` clears it.
 """
 from __future__ import annotations
 
@@ -53,10 +69,13 @@ except ModuleNotFoundError:  # pragma: no cover - Python < 3.11
     import tomli as tomllib  # type: ignore[no-redef]
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import affected  # noqa: E402
+import original_cache  # noqa: E402
 import pins  # noqa: E402
 
 REPO = pins.REPO
 MANIFEST = REPO / 'scripts' / 'validators.toml'
+TIMES = REPO / 'verify-runs' / 'validator-times.json'
 PLACEHOLDER = re.compile(r'\{([a-z0-9_]+)\}')
 SPECIAL = {'game_root', 'evidence', 'math_data', 'report', 'work', 'repo', 'python', 'so'}
 KINDS = {'validator', 'helper'}
@@ -105,6 +124,152 @@ def load_manifest(path=MANIFEST) -> dict[str, dict]:
                 if key in pins.PINS and key not in row['pins']:
                     raise ManifestError(f'{name}: placeholder {{{key}}} is not listed in pins')
     return rows
+
+
+# ---------------------------------------------------------------------------------------------
+# --no-mutants
+
+MUTANT_SWITCHES = ('--mutations', '--mutants')            # store_true: run the planted mistakes
+MUTANT_OPTIONS = ('--mutant-cases', '--mutation-cases')   # their case counts (a value follows)
+MUTANT_WORDS = re.compile(r'mutant|mutation|negative_control', re.I)
+
+
+def _is_count(arg: str | None) -> bool:
+    return arg is not None and arg.isdigit()
+
+
+def strip_mutants(row: dict) -> tuple[dict, list[str]]:
+    """(the row without its planted mistakes, the arguments removed). A row with no mutant switch is returned
+    unchanged with nothing removed: either it has no mutants or its negative controls are built in."""
+    args, removed, i = row['args'], [], 0
+    kept = []
+    while i < len(args):
+        arg = args[i]
+        name = arg.split('=', 1)[0]
+        nxt = args[i + 1] if i + 1 < len(args) else None
+        if name in MUTANT_SWITCHES and '=' not in arg and not _is_count(nxt):
+            removed.append(arg)
+        elif name in MUTANT_OPTIONS:
+            if '=' in arg:
+                removed.append(arg)
+            else:
+                removed += [arg] + ([nxt] if nxt is not None else [])
+                i += 1
+        else:
+            kept.append(arg)
+        i += 1
+    if not any(a.split('=', 1)[0] in MUTANT_SWITCHES for a in removed):
+        return row, []
+    out = dict(row)
+    out['args'] = kept
+    at = row.get('mutants_at') or []
+    at = [at] if isinstance(at, str) else list(at)
+    roots = {'.'.join(p.split('.')[:p.split('.').index('*')] if '*' in p.split('.') else p.split('.')) for p in at}
+    roots.discard('')
+
+    def mutant_path(path: str) -> bool:
+        return bool(MUTANT_WORDS.search(path)) or any(path == r or path.startswith(r + '.') for r in roots)
+    out['expect'] = {path: value for path, value in row['expect'].items()
+                     if not mutant_path(path)
+                     and not (isinstance(value, dict) and 'same_as' in value and mutant_path(value['same_as']))}
+    out['mutants'] = None
+    out['mutants_at'] = None
+    out['_mutants_skipped'] = removed
+    return out, removed
+
+
+# ---------------------------------------------------------------------------------------------
+# --affected
+
+VALIDATOR_INFRA = {'scripts/run_validators.py': 'the validator runner', 'scripts/pins.py': 'the pinned inputs'}
+
+
+def row_deps(name: str, row: dict, root: Path = REPO) -> affected.Deps:
+    """What a manifest row reads: its script and the scripts it imports, its owning test, its build
+    directories with what their Makefiles reach, and the repository paths its arguments name."""
+    deps = affected.Deps()
+    script = root / 'scripts' / f'{name}.py'
+    if script.is_file():
+        deps.update(affected.python_deps(script, root))
+    deps.files.setdefault(f'scripts/{name}.py', f'is scripts/{name}.py')
+    if row.get('test'):
+        test = row['test'].split('::')[0]
+        deps.files.setdefault(test, f'owning test {test}')
+        if (root / test).is_file():
+            deps.update(affected.python_deps(root / test, root))
+    if row.get('parent'):
+        deps.files.setdefault(f"scripts/{row['parent']}.py", f"parent {row['parent']}")
+    for directory in row['build']:
+        deps.update(affected.makefile_deps(directory, root))
+    for arg in row['args'] + [a for command in row['prepare'] for a in command]:
+        text = arg.replace('{repo}/', '')
+        target = affected._string_path(text, root / 'scripts', root)
+        if target is not None:
+            where = affected.rel(target, root)
+            (deps.dirs if target.is_dir() else deps.files).setdefault(where, f'argument names {where}')
+            if target.suffix == '.py':
+                deps.update(affected.python_deps(target, root))
+    return deps
+
+
+def manifest_changes(rows: dict, base: str, root: Path = REPO, manifest: Path = MANIFEST) -> set[str]:
+    """Rows added or changed in the manifest since BASE."""
+    try:
+        old_text = affected.git('show', f'{base}:{manifest.relative_to(root).as_posix()}', root=root)
+        old = tomllib.loads(old_text)
+    except (SystemExit, ValueError, tomllib.TOMLDecodeError):
+        return set(rows)
+    current = tomllib.loads(manifest.read_text())
+    return {name for name in rows if old.get(name) != current.get(name)}
+
+
+def affected_rows(rows: dict, ref: str, root: Path = REPO, manifest: Path = MANIFEST,
+                  changed: list[str] | None = None) -> dict[str, list[str]]:
+    """{row: [why]} for the rows a diff from merge-base(REF, HEAD) to the working tree can affect."""
+    changed = affected.changed_files(ref, root) if changed is None else changed
+    units = {name: row_deps(name, row, root) for name, row in rows.items()}
+    selected = affected.select(units, changed, VALIDATOR_INFRA)
+    manifest_rel = manifest.relative_to(root).as_posix() if manifest.is_relative_to(root) else None
+    if manifest_rel in changed:
+        for name in manifest_changes(rows, affected.merge_base(ref, root), root, manifest):
+            selected.setdefault(name, []).insert(0, f'{manifest_rel}: its row changed')
+    return {name: selected[name] for name in rows if name in selected}
+
+
+# ---------------------------------------------------------------------------------------------
+# recorded wall times
+
+def load_times(path: Path = TIMES) -> dict:
+    try:
+        return json.loads(path.read_text())
+    except (OSError, ValueError):
+        return {}
+
+
+def time_key(name: str, no_mutants: bool) -> str:
+    return f'{name} --no-mutants' if no_mutants else name
+
+
+def record_times(entries: list[dict], no_mutants: bool, path: Path = TIMES) -> None:
+    times = load_times(path)
+    for entry in entries:
+        if entry.get('status') in ('pass', 'fail') and entry.get('seconds') is not None:
+            times[time_key(entry['name'], no_mutants and bool(entry.get('mutants_skipped')))] = entry['seconds']
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(times, indent=1, sort_keys=True) + '\n')
+
+
+def longest_first(names: list[str], no_mutants: bool, times: dict | None = None) -> list[str]:
+    """Rows with no recorded time first (they may be long), then by recorded time, longest first; a row
+    recorded only in the other mode uses that time."""
+    times = load_times() if times is None else times
+
+    def seconds(name):
+        for key in (time_key(name, no_mutants), time_key(name, not no_mutants)):
+            if key in times:
+                return times[key]
+        return None
+    return sorted(names, key=lambda n: (seconds(n) is not None, -(seconds(n) or 0)))
 
 
 # ---------------------------------------------------------------------------------------------
@@ -319,6 +484,8 @@ def run_row(name: str, row: dict, out_dir: Path | None = None, keep_work: bool =
     """Run one manifest row; returns its summary entry (status pass/fail/skip/error)."""
     started = time.time()
     entry = {'name': name, 'test': row.get('test'), 'families': row['families'], 'pins': {}}
+    if row.get('_mutants_skipped'):
+        entry['mutants_skipped'] = row['_mutants_skipped']
     if row['kind'] == 'helper':
         entry.update(status='skip', reason=f"helper module, exercised through {row['parent']}")
         return entry
@@ -417,6 +584,8 @@ def finish(entry, row, report: Path, exit_code, stdout, stderr, keep_name=True) 
 def recheck(rows: dict, directory: Path) -> dict:
     """Re-judge a --report directory against the current manifest without running anything."""
     summary = json.loads((directory / 'summary.json').read_text())
+    if summary.get('no_mutants'):
+        rows = {name: strip_mutants(row)[0] for name, row in rows.items()}
     for name, entry in summary['rows'].items():
         if name not in rows or entry.get('status') == 'skip' or 'exit' not in entry:
             continue
@@ -504,6 +673,8 @@ def public(text: str) -> str:
 def write_index(index_path: Path, summary: dict, note: str | None = None) -> None:
     """Regenerate the validators part of docs/evidence-index.json from a summary; everything else (the
     human-written findings and the other validation fields) is kept as it is."""
+    if summary.get('no_mutants'):
+        raise SystemExit('--index records the mutant counts: regenerate it from a run without --no-mutants')
     index = json.loads(index_path.read_text())
     validation = index.setdefault('validation', {})
     rows, helpers = {}, []
@@ -589,7 +760,20 @@ def main(argv=None) -> int:
     parser.add_argument('--recheck', type=Path, help='re-judge a --report directory against the manifest')
     parser.add_argument('--resume', action='store_true',
                         help='with --report: keep its finished rows, run the missing and killed ones')
+    parser.add_argument('--no-mutants', action='store_true',
+                        help='run without the planted mistakes and their expectations (TEST-SPEED-001)')
+    parser.add_argument('--affected', metavar='REF',
+                        help='only the rows a diff from merge-base(REF, HEAD) to the working tree can affect')
+    parser.add_argument('--list-affected', metavar='REF', help='print the rows --affected REF selects, and why')
+    parser.add_argument('--cache', nargs='?', const=str(original_cache.DEFAULT), metavar='DIR',
+                        help='reuse cached original-instruction results (scripts/original_cache.py; default DIR '
+                             '~/Documents/MTM/mu-mac-tools/native/cache/validators)')
+    parser.add_argument('--no-cache', action='store_true', help=f'never use the cache, even if {original_cache.ENV} is set')
     args = parser.parse_args(argv)
+    if args.no_cache:
+        os.environ.pop(original_cache.ENV, None)
+    elif args.cache:
+        os.environ[original_cache.ENV] = str(Path(args.cache).expanduser())
     rows = load_manifest(args.manifest)
     if args.recheck:
         summary = recheck(rows, args.recheck)
@@ -602,6 +786,15 @@ def main(argv=None) -> int:
         print(f'{args.index}: validators regenerated from {args.source / "summary.json"}')
         return 0
     names = select(rows, args.only)
+    if args.list_affected or args.affected:
+        why = affected_rows(rows, args.list_affected or args.affected, root=REPO, manifest=args.manifest)
+        names = [name for name in names if name in why]
+        print(affected.show({n: why[n] for n in names}, len(rows), 'manifest rows'), flush=True)
+        if args.list_affected:
+            return 0
+    if args.no_mutants:
+        stripped = {name: strip_mutants(rows[name]) for name in names}
+        rows = {**rows, **{name: row for name, (row, _) in stripped.items()}}
     if args.list:
         list_rows(rows, names)
         return 0
@@ -617,6 +810,10 @@ def main(argv=None) -> int:
     if args.report:
         args.report.mkdir(parents=True, exist_ok=True)
     summary = {'date': datetime.date.today().isoformat(), 'environment': environment(), 'rows': {}}
+    if args.no_mutants:
+        summary['no_mutants'] = True
+    if os.environ.get(original_cache.ENV):
+        summary['original_cache'] = 'on'
     if args.resume:
         if not args.report or not (args.report / 'summary.json').exists():
             raise SystemExit('--resume needs --report DIR with a summary.json from an earlier run')
@@ -633,14 +830,18 @@ def main(argv=None) -> int:
         entry = run_row(name, rows[name], args.report)
         with lock:
             summary['rows'][name] = entry
-            print(f"{entry['status']:5} {name:40} {entry.get('seconds', 0):8.1f}s  {entry.get('reason', '')[:160]}",
-                  flush=True)
+            note = '  (mutants skipped)' if entry.get('mutants_skipped') else ''
+            print(f"{entry['status']:5} {name:40} {entry.get('seconds', 0):8.1f}s  {entry.get('reason', '')[:160]}"
+                  f"{note}", flush=True)
             if args.report:
                 write_summary(args.report, summary)
         return entry
 
+    if args.jobs > 1:
+        names = longest_first(names, args.no_mutants)
     with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, args.jobs)) as pool:
-        list(pool.map(one, names))
+        entries = list(pool.map(one, names))
+    record_times(entries, args.no_mutants)
     totals = summarize(summary)
     if args.report:
         write_summary(args.report, summary)
@@ -658,6 +859,11 @@ def summarize(summary: dict) -> dict:
 def print_totals(summary: dict) -> None:
     totals = summarize(summary)
     print(f"{totals['pass']} pass, {totals['fail']} fail, {totals['error']} error, {totals['skip']} skip")
+    if summary.get('no_mutants'):
+        ran = [e for e in summary['rows'].values() if e.get('status') != 'skip']
+        skipped = sum(1 for e in ran if e.get('mutants_skipped'))
+        print(f'mutants skipped (--no-mutants): {skipped} of {len(ran)} rows run; the others have no mutant switch '
+              '(no mutants, or negative controls built into the run)')
 
 
 def write_summary(directory: Path, summary: dict) -> None:
