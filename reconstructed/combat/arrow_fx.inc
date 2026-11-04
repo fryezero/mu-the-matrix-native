@@ -125,8 +125,7 @@ static int arrow_create(mu_sfx_effect *e, int32_t type, int32_t subtype, float p
                         const mu_sfx_info *info, const mu_sfx_env *env)
 {
     const int straight = arrow_straight_skill(e->skill);
-    if (info->skill == 0x2d8)
-        return 0;   /* 0x013cd5b0: the arc skill's branch is not reconstructed */
+    (void)info;
     switch (type) {
     case 0x471: case 0x458:                     /* 0x013ca9f2 / 0x013cac12 */
         e->lifetime = 30;
@@ -376,6 +375,12 @@ static int arrow_create(mu_sfx_effect *e, int32_t type, int32_t subtype, float p
         if (!straight)
             e->angle[1] = (float)smod(env_rand(env), 360);
         call_joint_args(env, e, 0x7f79, e->position, e->position, e->angle, 0xf, 50.0f, 0x28, 0, NULL);
+    }
+    if (e->skill == 0x2d8) {                    /* RENDER-EFFECTS-010, 0x013cd5b6: the arc skill lobs its arrows */
+        e->lifetime = 40;
+        e->direction[1] = -((float)smod(env_rand(env), 80) + 45.0f);
+        e->angle[0] = -((float)smod(env_rand(env), 60) + 32.0f);
+        e->gravity = (float)(smod(env_rand(env), 80) + 1) * F_0_1 + 26.0f;
     }
     e->serial = env ? env->serial : 0;         /* 0x013cd66f */
     return 1;

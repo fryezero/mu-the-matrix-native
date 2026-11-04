@@ -2060,6 +2060,20 @@ args = ["--cases", "2", "--mutations", "--output", "{report}"]
 all_equal = true
 all_mutants_caught = true
 
+[validate_render_effects10]
+test = "native/tests/test_render_effects10.py::ClientComparison.test_original_instructions_and_compiled_mutants"
+pins = ["text", "data"]
+families = ["pets_create", "pets_move", "pets_render", "arrows_create", "arrows_move", "arrows_render", "functor", "arc_create", "ground_move"]
+cases = 106
+mutants = 44
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/combat", "reconstructed/particles"]
+args = ["--cases", "2", "--mutations", "--output", "{report}"]
+[validate_render_effects10.expect]
+all_equal = true
+all_mutants_caught = true
+
 [validate_map_effects]
 test = "native/tests/test_native_map_effects.py::MapEffectsHost.test_original_instructions_and_compiled_mutants"
 pins = ["text", "data"]

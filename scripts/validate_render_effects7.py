@@ -225,7 +225,7 @@ def family_create(m, lib, rng, cases, report, kinds):
         supported = lib.mu_sfx_effect_create(C.byref(e), kind[0], kind[1], F3(*pos), F3(*angle), source_light, owner,
                                              scale, C.byref(info), C.byref(env))
         mismatch = None
-        refused = kind[0] == 0x442 and info.skill in STRAIGHT or info.skill == 0x2d8
+        refused = kind[0] == 0x442 and info.skill in STRAIGHT   # RENDER-EFFECTS-010: the arc skill 0x2d8 is reconstructed
         if vc.ok(r) and not refused:
             raw = r['regions']['record']
             mismatch = fx.compare_effect(e, raw, record.defined)

@@ -625,6 +625,14 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
         if (e)
             check_arrow(c, e);
         return 0;
+    case MU_SFX_CALL_OWNER_FLAG: {   /* RENDER-EFFECTS-010: test and set the owner's +0x64 */
+        for (int32_t i = 0; i < c->ground_owner_count; ++i)
+            if (c->ground_owner[i] == call->owner)
+                return 1;
+        if (c->ground_owner_count < 8)
+            c->ground_owner[c->ground_owner_count++] = call->owner;
+        return 0;
+    }
     case MU_SFX_CALL_CHECK_MAGIC:
         if (e) {
             int32_t before = e->lifetime;
@@ -637,6 +645,10 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
     case MU_SFX_CALL_SOUND:
         play(c, mu_combat_effect_sound(call->type), -3);
         return 0;
+    case MU_SFX_CALL_ATTRIBUTE: {   /* RENDER-EFFECTS-010: TerrainWall[TERRAIN_INDEX(x, y)] (the lobbed Arrow01) */
+        const int32_t index = ((call->range & 0xff) << 8) + (call->subtype & 0xff);
+        return c->map ? c->map->attributes[index] : 0;
+    }
     case MU_SFX_CALL_WALL: {   /* RENDER-EFFECTS-004: TerrainWall[(y << 8) + x]; out-of-grid reads as open */
         const int32_t index = (call->range << 8) + call->subtype;
         return c->map && index >= 0 && index < 0x10000 ? c->map->attributes[index] : 0;

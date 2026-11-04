@@ -33,6 +33,7 @@ import validate_particles as pt
 import validate_skill_fx as fx
 import validate_render_effects7 as re7
 import validate_render_effects9 as re9
+import validate_render_effects as base
 
 ROOT = Path(__file__).resolve().parents[1]
 f32 = fx.f32
@@ -52,6 +53,7 @@ PT_MUTANTS = [
      'if (p->type == 0x7ffd && p->subtype == 0xc)\n        state(out, MU_PT_STATE_SUBTRACT', 'render', (0x7ffd, 0xb)),
     ('flame_life', 'pet_kinds.inc', 'p->lifetime = mu_pt_rand(h) % 5 + 34;', 'p->lifetime = mu_pt_rand(h) % 5 + 33;', 'create', (0x8085, 1)),
     ('flame_fade', 'pet_kinds.inc', 'pet_flame_fade(p, h, 15, 0.2f);', 'pet_flame_fade(p, h, 14, 0.2f);', 'move', (0x8085, 1)),
+    ('flame_out', 'pet_kinds.inc', 'pet_flame_fade(p, h, 15, 0.2f);', 'pet_flame_fade(p, h, 15, 0.25f);', 'move', (0x8085, 1)),
     ('flame_spin', 'pet_kinds.inc', 'p->rotation = p->rotation + 3.0f;', 'p->rotation = p->rotation + 4.0f;', 'move', (0x8085, 1)),
     ('puff_start', 'world_owned_fx.inc', 'p->start[0] = p->subtype == 2 ? scale : p->scale;', 'p->start[0] = scale;',
      'create', (0x7efa, 1)),
@@ -62,12 +64,12 @@ PT_MUTANTS = [
      'copy3(p->start, p->owner_position);                        /* the owner', 'create', (0x8086, 4)),
     ('mono_below', 'pet_kinds.inc', 'p->type == 0x8089 ? 4 : 5', 'p->type == 0x8089 ? 5 : 5', 'move', (0x8089, 5)),
     ('mono_push', 'pet_kinds.inc', 'd[k] = 8.0f * d[k];', 'd[k] = 7.0f * d[k];', 'move', (0x8087, 8)),
-    ('mono_follow', 'pet_kinds.inc', 'p->position[k] = p->position[k] + o[k];', 'p->position[k] = p->position[k] + p->start[k];',
+    ('mono_follow', 'pet_kinds.inc', 'p->position[k] = p->position[k] - p->start[k];', 'p->position[k] = p->position[k] - o[k];',
      'move', (0x8086, 4)),
     ('mono_grow', 'pet_kinds.inc', 'p->scale = (float)(10 - p->lifetime) * 0.02f + p->scale;',
      'p->scale = (float)(9 - p->lifetime) * 0.02f + p->scale;', 'move', (0x8087, 8)),
     ('spark_life', 'arrow_kinds.inc', 'p->initial_lifetime = 5;\n        p->lifetime = 5;', 'p->initial_lifetime = 6;\n        p->lifetime = 5;',
-     'move', (0x8082, 8)),
+     'create', (0x8082, 8)),
     ('spark_shrink', 'arrow_kinds.inc', 'p->scale = p->scale - 0.018f;', 'p->scale = p->scale - 0.02f;', 'move', (0x8081, 8)),
     ('trail_speed', 'arrow_kinds.inc', 'rand_range(h, 7.0f, 10.0f, 10)', 'rand_range(h, 7.0f, 11.0f, 10)', 'create', (0x85fb, 2)),
     ('trail_angle', 'arrow_kinds.inc', 'p->angle[0] = p->angle[1] = p->angle[2] = 0.0f;', 'p->angle[0] = p->angle[1] = 0.0f;',
@@ -95,11 +97,47 @@ FN_MUTANTS = [
     ('f614_speed', 'e->type == 0x614 ? f32bits(0x3b449ba6u)', 'e->type == 0x613 ? f32bits(0x3b449ba6u)', 0x614),
 ]
 
+PATH_MUTANTS = [
+    # (name, file: arrow_fx.inc or skill_fx.c, old, new, family, arrow type)
+    ('arc_life', 'arrow', 'e->lifetime = 40;\n        e->direction[1] = -(', 'e->lifetime = 30;\n        e->direction[1] = -(',
+     'arc_create', 0x60a),
+    ('arc_pitch', 'arrow', 'e->angle[0] = -((float)smod(env_rand(env), 60) + 32.0f);',
+     'e->angle[0] = -((float)smod(env_rand(env), 60) + 30.0f);', 'arc_create', 0x43c),
+    ('arc_gravity', 'arrow', '* F_0_1 + 26.0f;', '* F_0_1 + 25.0f;', 'arc_create', 0x617),
+    ('ground_margin', 'fx', 'if (ground + 20.0f > e->position[2]) {', 'if (ground + 10.0f > e->position[2]) {',
+     'ground_move', 0x43c),
+    ('ground_high', 'fx', 'if (e->position[2] > ground + 600.0f)', 'if (e->position[2] > ground + 500.0f)',
+     'ground_move', 0x441),
+    ('ground_sound', 'fx', 'call_sound(env, e, 0x55e);', 'call_sound(env, e, 0x55f);', 'ground_move', 0x43b),
+    ('ground_spot', 'fx', 'const float p[3] = {e->position[0], e->position[1], ground};',
+     'const float p[3] = {e->position[0], e->position[1], e->position[2]};', 'ground_move', 0x60e),
+    ('ground_skill', 'fx', 'e->skill == 0x7fc || e->skill == 0x7fd) {', 'e->skill == 0x7fc) {', 'ground_move', 0x471),
+    ('lob_pitch', 'fx', 'if (e->angle[0] > 50.0f)\n                e->angle[0] = 50.0f;', 'if (e->angle[0] > 45.0f)\n                e->angle[0] = 45.0f;',
+     'ground_move', 0x43b),
+    ('lob_wall', 'fx', 'if (!(attribute & 8)) {\n                const float ground', 'if (!(attribute & 4)) {\n                const float ground',
+     'ground_move', 0x43b),
+    ('lob_check', 'fx', 'call_particle(env, e, MU_SFX_BITMAP_FIRE, e->position, e->angle, light, 5, 1.0f, MU_SFX_NO_OWNER);\n            break;',
+     'call_particle(env, e, MU_SFX_BITMAP_FIRE, e->position, e->angle, light, 5, 1.0f, MU_SFX_NO_OWNER);\n            check(env, e, MU_SFX_CALL_CHECK_ARROW);\n            break;',
+     'ground_move', 0x43b),
+]
+
 
 # ---------------------------------------------------------------- particle families
 
+_random_particle = pt.random_particle
+
+
+def random_particle(rng, kind):
+    """validate_particles' record, with the lifetimes these kinds branch on (the fades below 15, 5, 4 and 3 steps)."""
+    p = _random_particle(rng, kind)
+    if kind in PET_KINDS or kind in ARROW_KINDS:
+        p.lifetime = rng.choice([30, 20, 16, 15, 14, 14, 8, 6, 5, 5, 4, 4, 4, 3, 3, 2, 1, 0, -1, rng.randrange(-2, 40)])
+        p.initial_lifetime = rng.choice([5, 20, 8, 1, rng.randrange(1, 30)])
+    return p
+
+
 def pt_compare(text, data, lib, name, kinds, cases):
-    pt.KINDS, pt.OWNED_KINDS = kinds, OWNED
+    pt.KINDS, pt.OWNED_KINDS, pt.random_particle = kinds, OWNED, random_particle
     m = pt.PtMachine(text, data)   # a fresh machine for every family and mutant
     report = pt.Report()
     dict(pt.FAMILIES)[name](m, lib, random.Random('render-effects-010-' + name), cases, report, defaultdict(int))
@@ -218,6 +256,124 @@ def functor_machine(text, data):
     return fx.FxMachine(text, data)
 
 
+# ---------------------------------------------------------------- the arrow paths of the arc and ground skills
+
+ARROWS = [0x43b, 0x43c, 0x43d, 0x43e, 0x43f, 0x440, 0x441, 0x442, 0x443, 0x458, 0x459, 0x45a, 0x45b, 0x45c, 0x45d,
+          0x45e, 0x471, 0x474, 0x47f, 0x525, 0x5b0, 0x5b1, 0x60a, 0x60d, 0x60e, 0x60f, 0x610, 0x612, 0x613, 0x614,
+          0x615, 0x616, 0x617]
+GROUND_SKILLS = [0x2d8, 0x7e7, 0x7fc, 0x7fd]
+OWNER_FLAG = 0x014eca8b
+
+
+class GroundCase(re9.Case):
+    """validate_render_effects9's case with the owners' +0x64 flag on the C side (MU_SFX_CALL_OWNER_FLAG)."""
+
+    def __init__(self, *a, flags=(), **kw):
+        super().__init__(*a, **kw)
+        self.c_flags = list(flags)
+
+    def env(self, *args, **kwargs):
+        env = super().env(*args, **kwargs)
+        inner = self._call7   # validate_render_effects7's callback (a struct field read back would not dispatch)
+
+        def call(ctx, cp, ep):
+            c = cp.contents
+            if c.routine == OWNER_FLAG:
+                old = self.c_flags[c.owner]
+                if old == 0:
+                    self.c_flags[c.owner] = 1
+                return old
+            return inner(ctx, cp, ep)
+        self._ground = fx.CALL_FN(call)
+        env.call = self._ground
+        return env
+
+
+def family_ground(m, lib, rng, cases, report, kinds):
+    """MoveEffect 0x0142fd09 for arrows of the arc skill 0x2d8 and the ground skills 0x7e7/0x7fc/0x7fd (the test
+    0x014eca00..0x014ecb6e), every arrow type; CreateEffect for the arc skill (0x013cd5b6) is family arc_create."""
+    for n in range(cases):
+        kind = kinds[n % len(kinds)]
+        e = re7.random_arrow(rng, kind)
+        e.skill = rng.choice(GROUND_SKILLS)
+        objects = [fx.random_object(rng) for _ in range(2)]
+        e.owner = rng.choice([0, 1])   # a NULL owner faults in the client's ground test
+        flags = [rng.choice([0, 0, 1, 7]) for _ in objects]
+        hero_obj = rng.choice([-1, 0, 1])
+        keys = rng.choice([1, 7, 10, 30])
+        has_model = rng.random() < 0.9
+        z = e.position[2]
+        height = f32(rng.choice([z - rng.uniform(-40.0, 19.0), z - 20.0, z - rng.uniform(10.0, 20.0), z - 15.0,
+                                 z - rng.uniform(21.0, 599.0), z - 600.0, z - rng.uniform(601.0, 900.0),
+                                 vc.rfloat(rng, 0.1, 600.0)]))
+        names = re9.random_names(rng, kind[0])
+        case = GroundCase(rng, objects, fx.rand_values(rng, 120), height, rng.choice([0, 1, 1]), keys, has_model,
+                          names=names, records=True, flags=flags)
+        raw, mask = fx.effect_to_bytes(e, re7.MOVE_DEFINED | {'skill'})
+        record = am.Region('record', fx.POOL, raw, mask)
+        model = am.Region('model', fx.MODEL, am.poison(0x2000, 0x55), bytes(0x2000))
+        model.define(fx.MODEL + 0x30, struct.pack('<I', fx.MODEL + 0x1000))
+        model.define(fx.MODEL + 0x22, struct.pack('<h', len(names)))
+        model.define(fx.MODEL + 0x2c, struct.pack('<I', re9.BONES))
+        for a in range(0x100):
+            model.define(fx.MODEL + 0x1000 + 16 * a + 8, struct.pack('<h', keys))
+        bones = am.defined_region('bones', re9.BONES, re9.names_bytes(names) or b'\0', writable=False)
+        case.attributes = [rng.choice([0, 0, 8, 4, 0xc, 0x108]) for _ in range(0x10000)]   # TerrainWall
+        objs = fx.object_region(objects, writable=True)
+        for i, f in enumerate(flags):
+            objs.define(fx.OBJECTS + 0x400 * i + 0x64, struct.pack('<i', f))
+        clock = f32(rng.choice([0.0, 1000.0, rng.uniform(0.0, 1.0e5)]))
+        hero_char = (fx.object_address(hero_obj) - 0x3254) & 0xffffffff if hero_obj >= 0 else 0x5000000
+        regions = [record, objs, model, bones,
+                   am.Region('quake', fx.QUAKE, am.poison(4, 0x21), bytes(4)),
+                   am.defined_region('world', fx.WORLD, struct.pack('<i', 0), writable=False),
+                   am.defined_region('clock', 0x06fce370, struct.pack('<f', clock), writable=False),
+                   am.defined_region('hero', fx.HERO_POINTER, struct.pack('<I', hero_char), writable=False),
+                   am.defined_region('terrain-wall', fx.TERRAIN_WALL, struct.pack('<65536H', *case.attributes),
+                                     writable=False)]
+        r = m.execute(fx.MOVE_EFFECT, [fx.POOL, 0], regions, case.stubs(m))
+        env = case.env(hero_object=hero_obj)
+        env.world_time = clock
+        supported = lib.mu_sfx_effect_move(C.byref(e), C.byref(env))
+        mismatch = None
+        if vc.ok(r):
+            out = r['regions']['record']
+            mismatch = fx.compare_effect(e, out, record.defined, re7.MOVE_DEFINED | {'frame'})
+            if mismatch is None:
+                mismatch = re7.compare_calls(case.client_calls, case.c_calls)
+            if mismatch is None and case.client_rand != case.c_rand:
+                mismatch = ('rand calls', case.client_rand, case.c_rand)
+            if mismatch is None:
+                theirs = [struct.unpack_from('<i', r['regions']['objects'], 0x400 * i + 0x64)[0] for i in range(len(flags))]
+                if theirs != case.c_flags:
+                    mismatch = ('owner +0x64', theirs, case.c_flags)
+        report.add('ground_move', supported and vc.ok(r) and mismatch is None,
+                   {'case': n, 'kind': [hex(kind[0]), kind[1]], 'skill': hex(e.skill), 'mismatch': mismatch,
+                    'stopped': r['stopped'], 'error': r['error']})
+        landed = any(c[0] == 'effect' and c[1] == 0x70c for c in case.client_calls)
+        report.cover('ground_move', f'{e.skill:#x}/' + ('landed' if landed else
+                                                        'killed high' if ('kill',) in case.client_calls else 'flying') +
+                     ('/sound' if any(c[0] == 'sound' and c[1] == 0x55e for c in case.client_calls) else ''))
+
+
+def family_arc_create(m, lib, rng, cases, report, kinds):
+    saved = re7.random_info
+
+    def info(r):
+        i = saved(r)
+        i.skill = 0x2d8
+        return i
+    re7.random_info, saved_case = info, re7.Case
+    re7.Case = re9.Case
+    try:
+        re7.family_create(m, lib, rng, cases, report, kinds)
+    finally:
+        re7.random_info, re7.Case = saved, saved_case
+    f = report.families.pop('effect_create')
+    report.families['arc_create'] = f
+    report.coverage['arc_create'] = report.coverage.pop('effect_create', {})
+
+
 BODIES = {'functor_613': (0x00a4269f, 0x00a42984), 'functor_614': (0x00a42984, 0x00a42b8c),
           'functor_615': (0x00a42b8c, 0x00a42f55), 'functor_616': (0x00a42f55, 0x00a43160),
           'functor_617': (0x00a43160, 0x00a435ac), 'registry_calls': (0x00a13ada, 0x00a13b34),
@@ -228,7 +384,8 @@ BODIES = {'functor_613': (0x00a4269f, 0x00a42984), 'functor_614': (0x00a42984, 0
           'move_7ffd_b': (0x016305fa, 0x0163075d), 'move_8085_1': (0x0164b824, 0x0164bb00),
           'move_8086_4': (0x0164723f, 0x016479fa), 'move_8087_8': (0x0162679b, 0x01626f6b),
           'move_8089_5': (0x0164c420, 0x0164cbe9), 'move_8081_8': (0x01645975, 0x016459fe),
-          'move_85fb_2': (0x0168bbdf, 0x0168bc78), 'move_8450_4': (0x01687e08, 0x01687e9d)}
+          'move_85fb_2': (0x0168bbdf, 0x0168bc78), 'move_8450_4': (0x01687e08, 0x01687e9d),
+          'arc_create': (0x013cd5a4, 0x013cd66f), 'ground_test': (0x014eca00, 0x014ecb6e)}
 
 
 def run(cases, mutations):
@@ -246,6 +403,11 @@ def run(cases, mutations):
     family_functor(functor_machine(text, data), lib, random.Random('render-effects-010-functor'),
                    cases * len(FUNCTORS), report, sorted(FUNCTORS))
     result['comparisons']['functor'] = {'families': report.families, 'coverage': report.coverage}
+    kinds = [(t, s) for t in ARROWS for s in (0, 2)]
+    for name, family in (('arc_create', family_arc_create), ('ground_move', family_ground)):
+        report = pt.Report()
+        family(re9.machine(text, data), lib, random.Random('render-effects-010-' + name), cases * 6, report, kinds)
+        result['comparisons'][name] = {'families': report.families, 'coverage': report.coverage}
     if mutations:
         with tempfile.TemporaryDirectory(prefix='render-effects10-pt-') as tmp:
             for name, file, old, new, family, kind in PT_MUTANTS:
@@ -259,6 +421,17 @@ def run(cases, mutations):
                 family_functor(functor_machine(text, data), mlib, random.Random('render-effects-010-functor'),
                                max(40, cases), report, [kind])
                 f = report.families['functor']
+                result['mutants'][name] = {'cases': f['cases'], 'caught': f['cases'] - f['equal']}
+    if mutations:
+        families = {'arc_create': family_arc_create, 'ground_move': family_ground}
+        with tempfile.TemporaryDirectory(prefix='render-effects10-path-') as tmp:
+            for name, file, old, new, family, kind in PATH_MUTANTS:
+                mlib = (bind(re9.compile_mutant(Path(tmp), name, old, new)) if file == 'arrow' else
+                        bind(base.compile_mutant(Path(tmp), name, 'fx', old, new)))
+                report = pt.Report()
+                families[family](re9.machine(text, data), mlib, random.Random('render-effects-010-' + family),
+                                 max(40, cases * 2), report, [(kind, 0), (kind, 2)])
+                f = report.families[family]
                 result['mutants'][name] = {'cases': f['cases'], 'caught': f['cases'] - f['equal']}
     result['bodies'] = {name: {'start': hex(a), 'end': hex(b),
                                'sha256': hashlib.sha256(text[a - am.TEXT_BASE:b - am.TEXT_BASE]).hexdigest()}

@@ -110,8 +110,10 @@ enum {
     MU_SFX_CALL_BONE = 0x012b678d,            /* model TransformByObjectBone(out, o, bone (range), 0): env->bone answers */
     MU_SFX_CALL_KILL = 0x009b0451,            /* NATIVE-HELPERS-002: SetLive(o, 0)'s cleanup of the record (o = -2) */
     MU_SFX_CALL_ITEM_LINKS = 0x01295f18,      /* RENDER-EFFECTS-004: the item initialiser's +0x358 list reset (o = -2) */
-    MU_SFX_CALL_WALL = 0x016d34cd             /* RENDER-EFFECTS-004: TerrainWall[(y << 8) + x], unmasked index:
+    MU_SFX_CALL_WALL = 0x016d34cd,            /* RENDER-EFFECTS-004: TerrainWall[(y << 8) + x], unmasked index:
                                                  subtype = x, range = y; returns the attribute word */
+    MU_SFX_CALL_OWNER_FLAG = 0x014eca8b       /* RENDER-EFFECTS-010: the owner OBJECT's +0x64 (owner = the effect's
+                                                 owner): returns it, and sets it to 1 when it was 0 */
 };
 
 #define MU_SFX_EFFECTS 200
