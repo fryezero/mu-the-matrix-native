@@ -66,6 +66,11 @@ void mu_world_pets_step(mu_world_pets *pp, struct mu_world_helpers *w);
 long mu_world_pets_draw(mu_world_pets *pp, struct mu_world_helpers *w, const struct mu_terrain_frustum *frustum,
                         const struct mu_world_helpers_target *target);
 
+/* RENDER-EFFECTS-010: the pet with map key `key` as a particle owner (live, visible, type, position +0x158);
+ * 0 when there is none. Its owner id is MU_WH_PET_BASE + key (mu_world_helpers.h). */
+struct mu_jt_object;
+int mu_world_pets_object(const mu_world_pets *pp, int32_t key, struct mu_jt_object *out);
+
 void mu_world_pets_report_frame(const mu_world_pets *pp, FILE *out, int32_t frame);
 void mu_world_pets_report_summary(const mu_world_pets *pp, FILE *out);
 

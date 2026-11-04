@@ -230,7 +230,10 @@ int main(void) {
         env.update(HOME=str(home), CFFIXED_USER_HOME=str(home))
         self.assertIn(f'scratch: {legacy}', self.launch(env, '--print-settings').stdout)
         current.mkdir(parents=True)
-        self.assertIn(f'scratch: {current}', self.launch(env, '--print-settings').stdout)
+        self.assertIn(f'scratch: {current}\n', self.launch(env, '--print-settings').stdout)
+        # NATIVE-DATA-MANIFEST-001: the canonical manifest-bearing export set wins when it exists.
+        (current / 'native-data/export').mkdir(parents=True)
+        self.assertIn(f'scratch: {current}/native-data/export\n', self.launch(env, '--print-settings').stdout)
         env['MU_NATIVE_SCRATCH'] = str(base / 'explicit')
         self.assertIn(f'scratch: {base / "explicit"}', self.launch(env, '--print-settings').stdout)
 
@@ -391,6 +394,37 @@ int main(void) {
         self.assertIn('Native Data cannot be used:', r.stdout+r.stderr)
         self.assertFalse((base/'support/Native Data/native-data.manifest').exists())
 
+    def test_setup_imports_a_recorded_mapanim_table_and_refuses_an_unrecorded_one(self):
+        # NATIVE-DATA-MANIFEST-001: the lang export's mapanim.tsv (RENDER-WORLDS-AFTER5's object animation rows)
+        # reaches Native Data/lang, where the client reads it through MU_LANG_DIR; only when the manifest has it.
+        table = '#world\ttype\taction\tspeed\thandler\tparam\textra\n9\t1\t0\t0.5\t2\t0\t2,5,1\n'
+        for recorded in (True, False):
+            scratch = self.dir / f'mapanim-{recorded}'
+            shutil.copytree(self.scratch, scratch)
+            lang = scratch / 'lang'
+            shutil.rmtree(lang / 'tools')
+            if recorded:
+                (lang / 'mapanim.tsv').write_text(table)
+            stamp(self.manifest_tool, lang, self.root / 'main.exe')
+            if not recorded:
+                (lang / 'mapanim.tsv').write_text(table)                 # added after the manifest
+            env, base = self.env(f'mapanim-{recorded}', MU_NATIVE_SCRATCH=str(scratch))
+            r = self.launch(env, '--setup', check=False)
+            nd = base / 'support/Native Data'
+            if not recorded:
+                self.assertEqual(r.returncode, 1)
+                self.assertIn('Native Data cannot be used:', r.stdout + r.stderr)
+                self.assertFalse((nd / 'native-data.manifest').exists())
+                self.assertFalse((nd / 'lang/mapanim.tsv').exists())
+                continue
+            self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+            self.assertEqual((nd / 'lang/mapanim.tsv').read_text(), table)
+            self.assertIn(' lang/mapanim.tsv\n', (nd / 'native-data.manifest').read_text())
+            check = subprocess.run([str(self.manifest_tool), 'check', str(nd), str(self.root / 'main.exe')],
+                                   capture_output=True, text=True)
+            self.assertEqual(check.returncode, 0, check.stderr)
+            self.assertEqual(self.plan(env)['env']['MU_LANG_DIR'], str(nd / 'lang'))
+
     # ---- launch
 
     def test_smoke_runs_the_whole_flow_offline_under_the_guard(self):
@@ -420,8 +454,9 @@ class PreviewAppPrivate(unittest.TestCase):
         app = NATIVE / 'build/app' / f'{NAME}.app'
         subprocess.run(['make', '-C', str(NATIVE), 'preview-app'], check=True, capture_output=True)
         with tempfile.TemporaryDirectory() as tmp:
-            # MU_NATIVE_SCRATCH: a manifest-bearing export set (the shared scratch has none; APP-REFRESH-003)
-            env = {k: v for k, v in os.environ.items() if not k.startswith('MU_NATIVE_') or k == 'MU_NATIVE_SCRATCH'}
+            # Without MU_NATIVE_SCRATCH the app takes scratch/native-data/export (NATIVE-DATA-MANIFEST-001,
+            # scripts/build_native_data_export.py); MU_NATIVE_SCRATCH still selects another manifest-bearing set.
+            env ={k: v for k, v in os.environ.items() if not k.startswith('MU_NATIVE_') or k == 'MU_NATIVE_SCRATCH'}
             env.update(MU_NATIVE_SUPPORT_DIR=f'{tmp}/support', MU_NATIVE_LOG_DIR=f'{tmp}/logs',
                        MU_NATIVE_GAME_ROOT=os.environ['MU_GAME_ROOT'])
             r = subprocess.run([str(app / 'Contents/MacOS/MuNativePreview'), '--smoke', '--backend', 'gl',
@@ -430,6 +465,10 @@ class PreviewAppPrivate(unittest.TestCase):
             self.assertEqual(r.returncode, 0, r.stdout[-3000:])
             self.assertEqual(result['smoke'], 'ok')
             self.assertEqual(result['nonet']['inet_denied'], 0)
+            nd = Path(tmp) / 'support/Native Data'
+            scratch = Path(json.loads((nd / 'setup.json').read_text())['scratch'])
+            if (scratch / 'lang/mapanim.tsv').is_file():                  # AFTER5's rows reach the client's lang
+                self.assertEqual((nd / 'lang/mapanim.tsv').read_bytes(), (scratch / 'lang/mapanim.tsv').read_bytes())
 
 
 if __name__ == '__main__':

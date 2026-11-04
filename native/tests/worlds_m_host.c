@@ -70,8 +70,9 @@ int main(int argc,char **argv)
     assert(p.list.count==6&&p.stats.unsupported==0);
     assert(mu_world_particles_draw(&p,identity,&target)==6);
     assert(p.stats.drawn_particles==6&&vertices==36);
-    /* flare_mono is the last effect slot, before rain02/rain03, with the loader's sampling. */
-    const int slot=MU_WORLD_PT_BITMAPS-3;
+    /* flare_mono (0x8184) by its bitmap index, with the loader's sampling. */
+    const int slot=mu_world_particles_bitmap_slot(0x8184);
+    assert(slot>=0);
     assert(p.bitmaps.slots[slot]&&p.bitmaps.filter[slot]==0x2601&&p.bitmaps.wrap[slot]==0x2900);
     assert(p.bitmaps.images[slot].width==64&&p.bitmaps.images[slot].height==16);
     producers(argv[2]);

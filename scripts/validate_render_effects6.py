@@ -131,9 +131,9 @@ PARTICLE_MUTANTS = [
     ('trail-bright', 'p->lifetime >= 75 ?', 'p->lifetime > 75 ?', 'move'),
     ('spark-tint', 'p->light[k] = p->light[k] * p->start[k];', 'p->light[k] = p->light[k];', 'move'),
     ('spark-bounce', 'p->lifetime = p->lifetime - 4;', 'p->lifetime = p->lifetime - 3;', 'move'),
-    ('mist-pulse', '2.0f * 0.0174532924f)) * p->start[0];', '0.0174532924f)) * p->start[0];', 'move'),
+    ('mist-pulse', '* 2.0f * 0.0174532924f));   /* pi / 180 */', '* 0.0174532924f));   /* pi / 180 */', 'move'),   # RENDER-EFFECTS-010 anchor
     ('glint-fade', 'p->alpha = p->alpha - 0.001f;', 'p->alpha = p->alpha - 0.002f;', 'move'),
-    ('mist-drawn', 'return !(p->type == 0x7efa && p->subtype == 2);', 'return 1;', 'render'),
+    ('mist-drawn', 'return !(p->type == 0x7efa && (p->subtype == 1 || p->subtype == 2));', 'return 1;', 'render'),
 ]
 
 

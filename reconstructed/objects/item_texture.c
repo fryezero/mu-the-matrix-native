@@ -126,3 +126,70 @@ int32_t mu_it_skin_bitmap(int32_t index_texture, int8_t skin)
         return index_texture;
     }
 }
+
+/* RENDER-ITEMS-TEX-003: 0x00c97730 for one LoadBitmap call. See item_texture.h. */
+
+/* _stricmp 0x0198c794 in the C locale. */
+static int same_nocase(const char *a, const char *b)
+{
+    for (;; ++a, ++b) {
+        if (tolower((unsigned char)*a) != tolower((unsigned char)*b))
+            return 0;
+        if (!*a)
+            return 1;
+    }
+}
+
+/* 0x00c99025(path, out, 0): the _splitpath extension without its dot ("" when it is "" or "."). */
+static const char *extension(const char *path)
+{
+    const char *base = path;
+    for (const char *p = path; *p; ++p)
+        if (*p == '\\' || *p == '/')
+            base = p + 1;
+    const char *dot = strrchr(base, '.');
+    return dot && dot[1] ? dot + 1 : "";
+}
+
+int mu_it_register(mu_it_bitmap *slot, const char *path, uint32_t filter, uint32_t wrap)
+{
+    int what = 0;
+    if (slot->path && slot->refs != 0) {             /* 0x00c977a1 */
+        if (same_nocase(slot->path, path)) {         /* 0x00c977c3 */
+            slot->refs = (uint8_t)(slot->refs + 1);
+            return MU_IT_REG_REFERENCE;
+        }
+        what |= MU_IT_REG_UNLOAD;                    /* 0x00c9784d */
+        slot->path = NULL;
+        slot->refs = 0;
+    }
+    const char *ext = extension(path);
+    if (same_nocase(ext, "jpg"))                     /* 0x00c97886 */
+        what |= MU_IT_REG_JPG;
+    else if (same_nocase(ext, "tga"))                /* 0x00c978c9 */
+        what |= MU_IT_REG_TGA;
+    else
+        return what;
+    slot->path = path;
+    slot->filter = filter;
+    slot->wrap = wrap;
+    slot->refs = 1;
+    return what;
+}
+
+int mu_it_registration(const mu_it_call *calls, size_t count, int32_t index, mu_it_bitmap *out)
+{
+    size_t lo = 0, hi = count;
+    while (lo < hi) {                                /* the first call of the index */
+        const size_t mid = lo + (hi - lo) / 2;
+        if (calls[mid].index < index)
+            lo = mid + 1;
+        else
+            hi = mid;
+    }
+    mu_it_bitmap slot = {NULL, 0, 0, 0};
+    for (size_t i = lo; i < count && calls[i].index == index; ++i)
+        mu_it_register(&slot, calls[i].path, calls[i].filter, calls[i].wrap);
+    *out = slot;
+    return slot.path != NULL;
+}

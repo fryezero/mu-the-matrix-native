@@ -1066,6 +1066,30 @@ int mu_sfx_effect_move(mu_sfx_effect *e, const mu_sfx_env *env)
         light[1] = lum * 0.5f;
         light[2] = lum * F_0_2;
         call_terrain_light(env, e, light, 2);
+        if (sub == 3 || sub == 4 || e->skill == 0x2d8) {
+            /* RENDER-EFFECTS-010, 0x01464b8f: the lobbed arrow (the arc skill 0x2d8) pitches by its gravity up to
+             * 50 and rests on the ground unless the tile has wall bit 8; no hit check */
+            if (sub == 3 || e->skill == 0x2d8)
+                e->angle[0] = e->angle[0] + e->gravity;
+            if (e->angle[0] > 50.0f)
+                e->angle[0] = 50.0f;
+            mu_sfx_call c;
+            memset(&c, 0, sizeof c);
+            c.routine = MU_SFX_CALL_ATTRIBUTE;
+            c.subtype = trunc_i32(e->position[0] / 100.0f);
+            c.range = trunc_i32(e->position[1] / 100.0f);
+            c.owner = -2;
+            const int attribute = env && env->call ? env->call(env->context, &c, e) : 0;
+            if (!(attribute & 8)) {
+                const float ground = env_height(env, e->position[0], e->position[1]);
+                if (ground > e->position[2]) {
+                    e->position[2] = ground + 10.0f;
+                    e->direction[0] = e->direction[1] = e->direction[2] = 0.0f;
+                }
+            }
+            call_particle(env, e, MU_SFX_BITMAP_FIRE, e->position, e->angle, light, 5, 1.0f, MU_SFX_NO_OWNER);
+            break;
+        }
         call_particle(env, e, MU_SFX_BITMAP_FIRE, e->position, e->angle, light, 0, 1.0f, MU_SFX_NO_OWNER);
         check(env, e, MU_SFX_CALL_CHECK_ARROW);
         break;
@@ -1780,6 +1804,26 @@ int mu_sfx_effect_move(mu_sfx_effect *e, const mu_sfx_env *env)
     }
     default:
         break;
+    }
+
+    /* RENDER-EFFECTS-010, 0x014eca00: the effects of skills 0x7e7, 0x7fc and 0x7fd (their arrows) test the
+     * ground. Within 20 of it: the owner's first landing plays 0x55e, effect 0x70c lies on the ground and the
+     * record dies; more than 600 above it, the record dies too. A NULL owner faults in the client. */
+    if (e->skill == 0x7e7 || e->skill == 0x7fc || e->skill == 0x7fd) {
+        const float ground = env_height(env, e->position[0], e->position[1]);
+        if (ground + 20.0f > e->position[2]) {
+            mu_sfx_call c;
+            memset(&c, 0, sizeof c);
+            c.routine = MU_SFX_CALL_OWNER_FLAG;
+            c.owner = e->owner;
+            if (!env_call(env, &c, e))
+                call_sound(env, e, 0x55e);
+            const float p[3] = {e->position[0], e->position[1], ground};
+            call_effect_key(env, e, 0x70c, p, e->angle, light, MU_SFX_NO_OWNER, 0xffff);
+            kill_effect(env, e);
+        }
+        if (e->position[2] > ground + 600.0f)
+            kill_effect(env, e);
     }
 
     /* after the switch 0x014eca00: types 0x453, 0x454, 0x461, ... skip the
