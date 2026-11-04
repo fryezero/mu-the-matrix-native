@@ -72,12 +72,23 @@ int mu_action_set(uint8_t *o, int32_t action, const mu_anim_inputs *in)
 
 /* ---- tick handlers (+0x18), 0x00ce1646.. ---- */
 
+/* The current action's record (model +0x30 + action * 16): keys +8, lock +0xa. The handlers read it unchecked;
+ * natively a read without a record is refused. */
+typedef struct record {
+    int16_t keys;
+    uint8_t lock, valid, refused;
+} record;
+
 /* The end of the current action: frame +0xd0 >= keys - speed (keys - 1 first when the action locks positions and
  * `locked` asks for it). False for a NaN frame (comiss; jb). */
-static int at_end(const uint8_t *o, const mu_anim_entry *e, int16_t keys, uint8_t lock, int locked)
+static int at_end(const uint8_t *o, const mu_anim_entry *e, record *r, int locked)
 {
-    float limit = (float)keys;
-    if (locked && lock)
+    if (!r->valid) {
+        r->refused = 1;
+        return 0;
+    }
+    float limit = (float)r->keys;
+    if (locked && r->lock)
         limit = limit - 1.0f;
     return mu_obj_f32(o, MU_OBJF_FRAME) >= limit - e->speed;
 }
@@ -91,20 +102,20 @@ static float hero_distance(const uint8_t *o, const mu_anim_inputs *in)
     return (float)sqrt((double)sum);
 }
 
-static int tick_handler(uint8_t *o, const mu_anim_entry *e, int16_t keys, uint8_t lock, const mu_anim_inputs *in)
+static int tick_handler(uint8_t *o, const mu_anim_entry *e, record *r, const mu_anim_inputs *in)
 {
     switch (e->handler) {
     case 0:
         return MU_ANIM_APPLIED;
     case 1:   /* 0x00ce165c: the last action of the vector at the end */
-        if (at_end(o, e, keys, lock, 0)) {
+        if (at_end(o, e, r, 0)) {
             if (e->extra_count < 1)
                 return MU_ANIM_UNSUPPORTED;
             mu_action_set(o, back(e), in);
         }
         return MU_ANIM_APPLIED;
     case 2:   /* 0x00ce1737: after +0x34 loops */
-        if (at_end(o, e, keys, lock, 0)) {
+        if (at_end(o, e, r, 0)) {
             if (mu_obj_i32(o, OBJ_LOOPS) >= mu_obj_i32(o, OBJ_LIMIT)) {
                 if (e->extra_count < 1)
                     return MU_ANIM_UNSUPPORTED;
@@ -114,7 +125,7 @@ static int tick_handler(uint8_t *o, const mu_anim_entry *e, int16_t keys, uint8_
         }
         return MU_ANIM_APPLIED;
     case 3:   /* 0x00ce1830: after +0x34 loops, a random action of extra[2..] */
-        if (at_end(o, e, keys, lock, 0)) {
+        if (at_end(o, e, r, 0)) {
             if (mu_obj_i32(o, OBJ_LOOPS) >= mu_obj_i32(o, OBJ_LIMIT)) {
                 if (e->extra_count <= 2)
                     return MU_ANIM_UNSUPPORTED;   /* the client divides by size - 2 */
@@ -147,13 +158,13 @@ static int tick_handler(uint8_t *o, const mu_anim_entry *e, int16_t keys, uint8_
             if (!seven) {   /* the hero leaves param */
                 if (hero_distance(o, in) > (float)e->param)
                     mu_action_set(o, back(e), in);
-            } else if (at_end(o, e, keys, lock, 1)) {
+            } else if (at_end(o, e, r, 1)) {
                 mu_obj_set_i32(o, OBJ_LIMIT, mu_obj_i32(o, OBJ_LIMIT) + 1);
                 mu_action_set(o, back(e), in);
             }
             break;
         case 1: case 3:
-            if (at_end(o, e, keys, lock, 0))
+            if (at_end(o, e, r, 0))
                 mu_action_set(o, back(e), in);
             break;
         default:
@@ -182,9 +193,9 @@ int mu_action_tick(uint8_t *o, const mu_anim_inputs *in, int *found)
     if (!in->model(in->context, type, action, &count, &keys, &lock))
         return MU_ANIM_NONE;
     *found = 1;
-    if (action >= (int32_t)(int16_t)count)
-        return MU_ANIM_UNSUPPORTED;   /* the handlers read the action record unchecked */
-    return tick_handler(o, e, keys, lock, in);
+    record r = {keys, lock, (uint8_t)(action < (int32_t)(int16_t)count), 0};
+    const int status = tick_handler(o, e, &r, in);
+    return r.refused ? MU_ANIM_UNSUPPORTED : status;
 }
 
 int mu_anim_class_world(int32_t world)
