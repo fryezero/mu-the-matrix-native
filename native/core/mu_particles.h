@@ -146,6 +146,11 @@ int32_t mu_world_particles_ein_create(mu_world_particles *p, const char *path, c
 void mu_world_particles_ein_link(mu_world_particles *p, int32_t object, int32_t instance, int32_t bone, int follow,
                                  int timed, float lifetime);
 void mu_world_particles_ein_clear(mu_world_particles *p, int32_t object);
+/* RENDER-WORLDS-AFTER6: 0x0129f4cb, the dt-0 update of an object's records at attach time: the owner fields from
+ * the object image, the external matrix of mu_effect_prime_matrix (the world matrix for a following record,
+ * whatever its bone; otherwise scale and position), then the node update with dt 0. The effect's scale stays the
+ * template's (only the per-frame update multiplies it by the object scale). Timed records are not aged. */
+void mu_world_particles_ein_prime(mu_world_particles *p, int32_t object, const uint8_t *image);
 
 /* Loads the effect bitmaps (Data/Effect, the world's rain02/rain03) unless
  * no_assets, seeds rand(). Returns 0, or 1 with a message. */

@@ -164,6 +164,7 @@ mu_map_effects *mu_map_effects_load_default(void)
 typedef struct attach_context {
     mu_world_particles *particles;
     mu_map_effects_stats *stats;
+    struct mu_objects *objects;
 } attach_context;
 
 static void op_clear(void *c, int32_t object)
@@ -212,11 +213,12 @@ static void op_release(void *c, int32_t handle)
     (void)handle;   /* the scene keeps every instance; the list record holds the attached ones */
 }
 
+/* RENDER-WORLDS-AFTER6: 0x0129f4cb, the object's dt-0 update after its entries (mu_world_particles_ein_prime). */
 static void op_prime(void *c, int32_t object)
 {
     attach_context *a = c;
-    (void)object;
     ++a->stats->primed;
+    mu_world_particles_ein_prime(a->particles, object, mu_objects_object_image(a->objects, object));
 }
 
 void mu_map_effects_attach_world(const mu_map_effects *table, int32_t world, struct mu_objects *objects,
@@ -227,7 +229,7 @@ void mu_map_effects_attach_world(const mu_map_effects *table, int32_t world, str
         stats = &local;
     if (!table || !objects || !particles || !objects->rt.ready)
         return;
-    attach_context a = {particles, stats};
+    attach_context a = {particles, stats, objects};
     const mu_map_effect_ops ops = {&a, op_clear, op_create, op_attach, op_release, op_prime};
     mu_map_effects_attach(&table->table, world, &objects->rt.world, &ops);
 }

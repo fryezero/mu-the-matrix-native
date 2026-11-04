@@ -53,6 +53,8 @@ class MapEffectsHost(unittest.TestCase):
         self.assertEqual(deep['unposed'], 0)
         self.assertEqual(deep['updates'], 4 * 30)
         self.assertEqual((deep['external'], deep['owner_visible'], deep['instances']), (4, 4, 4))
+        # RENDER-WORLDS-AFTER6: 0x0129f4cb's dt-0 update ran at the attach (before any frame) on every link
+        self.assertEqual((deep['primed_external'], canyon['primed_external'], absent['primed_external']), (4, 1, 0))
         self.assertEqual((canyon['attached'], canyon['updates'], canyon['unposed'], canyon['external']),
                          (1, 30, 0, 1))
         self.assertEqual((absent['cleared'], absent['requested'], absent['attached'], absent['instances']),

@@ -12,6 +12,7 @@ TABLE = '\n'.join([
     '144\t13\t0\t0.25\t1\t300\t1',
     '144\t13\t1\t0.5\t1\t300\t0',
     '144\t32\t0\t0.07\t0\t300\t-',
+    '144\t99\t0\t0.16\t8\t300\t60,60,200,0,0,0,7',   # RENDER-WORLDS-AFTER6: the camera -> hero fade
     '51\t32\t0\t0.48\t0\t0\t-',
     ''])
 

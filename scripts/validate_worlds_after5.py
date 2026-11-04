@@ -64,7 +64,9 @@ MODEL_FN = C.CFUNCTYPE(C.c_int, C.c_void_p, C.c_int32, C.c_int32, C.POINTER(C.c_
 
 class AnimInputs(C.Structure):
     _fields_ = [('entries', C.POINTER(AnimEntry)), ('count', C.c_int32), ('model', MODEL_FN),
-                ('rand_fn', v.RAND_FN), ('context', C.c_void_p), ('hero', C.c_float * 2)]
+                ('rand_fn', v.RAND_FN), ('context', C.c_void_p), ('hero', C.c_float * 3),
+                ('camera', C.POINTER(C.c_float)), ('mouse_start', C.POINTER(C.c_float)),
+                ('mouse_end', C.POINTER(C.c_float))]   # RENDER-WORLDS-AFTER6: z and the pointers (NULL here)
 
 
 def bind(path):
@@ -202,7 +204,7 @@ def native(lib, case, call):
         return 1
     model_fn, rand_fn = MODEL_FN(model), v.RAND_FN(lambda c: rand())
     inputs = AnimInputs(C.cast(entries, C.POINTER(AnimEntry)), len(case['entries']), model_fn, rand_fn, None,
-                        (C.c_float * 2)(*case['hero']))
+                        (C.c_float * 3)(case['hero'][0], case['hero'][1], 0.0))
     obj = C.create_string_buffer(case['object'], v.OBJ_SIZE)
     found = C.c_int(0)
     if call == 'set':

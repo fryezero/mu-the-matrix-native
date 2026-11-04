@@ -139,16 +139,16 @@ void mu_objects_anim_create(mu_objects *o, int32_t index, mu_obj_rand_fn rand_fn
     o->rt.anim_unsupported += status == MU_ANIM_UNSUPPORTED;
 }
 
-void mu_objects_anim_tick(mu_objects *o, int32_t index, const float hero[3], mu_obj_rand_fn rand_fn, void *context)
+void mu_objects_anim_tick(mu_objects *o, int32_t index, const float hero[3], const float *camera,
+                          mu_obj_rand_fn rand_fn, void *context)
 {
     if (!active(o, index))
         return;
     anim_context c = {o, rand_fn, context};
     mu_anim_inputs in = inputs(&c);
-    if (hero) {
-        in.hero[0] = hero[0];
-        in.hero[1] = hero[1];
-    }
+    if (hero)
+        memcpy(in.hero, hero, sizeof in.hero);
+    in.camera = camera;   /* RENDER-WORLDS-AFTER6: tick handler 8 */
     int found = 0;
     const int status = mu_action_tick(o->rt.images + (size_t)index * MU_OBJ_SIZE, &in, &found);
     o->rt.anim_ticks += found;

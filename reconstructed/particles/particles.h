@@ -337,7 +337,8 @@ int32_t mu_pt_sprite_create(mu_pt_sprites *s, int32_t bitmap, const float positi
                             const float light[3], int32_t owner, float rotation, int32_t blend, int32_t axes,
                             const mu_pt_sheet *sheet);
 
-/* 0x01692887: visible = 1 for every live sprite. */
+/* 0x01692887 (verified, RENDER-WORLDS-AFTER6 validate_worlds_after6 sprite_visible): visible (+0xb) = 1 for
+ * every sprite whose live byte (+0, 0x0095f977) is not 0. The routine has no frustum test of its own. */
 void mu_pt_sprites_mark_visible(mu_pt_sprites *s);
 
 /* RenderSprites 0x0169270e(mode) (verified): mode 1 skips sprites above z 350;
