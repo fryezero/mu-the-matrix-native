@@ -854,7 +854,7 @@ static void hero_bone(void *context, int32_t owner, int32_t bone, const float in
 /* Bow 0x12f9's sparks after the shots (0x0158dfdc, mu_sfx_bow_sparks, verified). The bone is
  * Weapon[Weapon[0].LinkBone].LinkBone: the byte +0x19b1 + 0x3fc * (byte +0x19b1). For the Player's link bone 33 that
  * byte lies past the hero's record (CharactersClient + 0x3670 * (i + 2) + 0x2f6d, another slot's data); the native
- * has no such record and reads it as 0 (MU_COMBAT_SPARK_BONE, inference: a cleared slot). 0x0129f12c then needs the
+ * has no such record and reads it as 0 (MU_COMBAT_SPARK_BONE; RENDER-EFFECTS-011 read 0 live). 0x0129f12c then needs the
  * hero's own bones and bone < the model's bone count. */
 static void bow_sparks(mu_combat *c)
 {

@@ -128,7 +128,9 @@ enum {
 /* RENDER-EFFECTS-009: the object index of effect record i as a joint target (the arrows' own joints, owner "this
  * effect"); other effects keep no object */
 #define MU_COMBAT_EFFECT_OBJECT(i) (MU_COMBAT_HERO_OBJECT + 1 + (i))
-/* RENDER-EFFECTS-009: bow 0x12f9's spark bone when the link-bone byte lies outside the hero's record (inference) */
+/* RENDER-EFFECTS-009: bow 0x12f9's spark bone when the link-bone byte lies outside the hero's record.
+ * RENDER-EFFECTS-011: live read 2026-11-04, the hero (Nighty) in Lorencia: [[0x0a39d754] + 0x9c4d] = 0 (and the 32
+ * bytes around it); verified for that state, the other slot may hold data in a crowded scene */
 #define MU_COMBAT_SPARK_BONE 0
 
 /* One AddTerrainLight call of the last logic step (re-applied after the
