@@ -94,3 +94,13 @@ STEWARD_PLACEHOLDER
 ## Cleanup
 
 CLEANUP_PLACEHOLDER
+
+## WIP (stopped by owner, 2026-11-04 ~15:00)
+
+- Done and verified: 16 particle kinds, 7 effect kinds, RenderEffects 0x45e, effect 0x70c; validate_render_effects11
+  `--cases 20 --mutations`: 1,760 cases, 0 mismatches, 75/75 mutants (54 s). 29 affected rows rerun without mutants:
+  all pass. Bows 598 → 77 vs main 90e11d71; 10 other combat/pet scenes and the 32 DATA-ACQ-002 tours byte-identical
+  (frame reports differ only in paths and the bitmaps list). Spark bone read live: 0. Merged main 90e11d71.
+- Next: rerun `run_validators.py --private --only validate_render_effects11` (interrupted), unit tests
+  (test_render_effects11 passed earlier), audit; fill CHECKS/STEWARD/CLEANUP placeholders and MERGED_MAIN_NOTE; PR;
+  ready-prs line; clean up (base worktree ~/Documents/MTM/worktrees/re011-base, renders/ and scratch/render-effects-011).
