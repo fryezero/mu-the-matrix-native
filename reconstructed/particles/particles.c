@@ -29,6 +29,7 @@ static void copy3(float d[3], const float s[3])
 #include "pet_kinds.inc"
 #include "arrow_kinds.inc"
 #include "bow_kinds.inc"
+#include "bow_kinds2.inc"   /* RENDER-EFFECTS-011 */
 
 int mu_pt_kind_supported(int32_t type, int32_t subtype)
 {
@@ -37,6 +38,7 @@ int mu_pt_kind_supported(int32_t type, int32_t subtype)
     if (mu_pt_world_owned_kind(type, subtype)) return 1;   /* RENDER-EFFECTS-006 */
     if (mu_pt_pet_kind(type, subtype) || mu_pt_arrow_kind(type, subtype) || mu_pt_bow_kind(type, subtype))
         return 1;   /* RENDER-EFFECTS-010 */
+    if (mu_pt_bow2_kind(type, subtype)) return 1;   /* RENDER-EFFECTS-011 */
     switch (type) {
     case MU_PT_BITMAP_FIRE:
         return (subtype >= 0 && subtype <= 6) || subtype == 17;
@@ -194,6 +196,10 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
     }
     if (mu_pt_bow_kind(type, subtype)) {
         mu_pt_bow_create(p, h, scale);
+        return 1;
+    }
+    if (mu_pt_bow2_kind(type, subtype)) {
+        mu_pt_bow2_create(p, h, scale);
         return 1;
     }
     if (mu_pt_world_flame_kind(type, subtype)) {
@@ -601,6 +607,8 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
             mu_pt_arrow_move(p, h);
         else if (mu_pt_bow_kind(p->type, p->subtype))
             mu_pt_bow_move(p, h);
+        else if (mu_pt_bow2_kind(p->type, p->subtype))
+            mu_pt_bow2_move(p, h);
         else if (mu_pt_world_flame_kind(p->type, p->subtype))
             mu_pt_world_flame_move(p, h);
         else switch (p->type) {
@@ -1065,7 +1073,8 @@ int mu_pt_render_record(mu_pt_particle *p, const mu_pt_bitmap *b, uint8_t mode, 
             for (int k = 0; k < 3; ++k) s->light[k] = p->light[k] * p->alpha;
         break;
     case 0x831d: case 0x83b3:
-        for (int k = 0; k < 3; ++k) s->light[k] = p->light[k] * p->alpha;
+        if (p->subtype != 1 || p->type != 0x83b3)   /* 0x83b3/1 draws its light (RENDER-EFFECTS-011) */
+            for (int k = 0; k < 3; ++k) s->light[k] = p->light[k] * p->alpha;
         break;
     case MU_PT_BITMAP_SPARK3:
         if (p->subtype == 0x2a)
@@ -1093,6 +1102,8 @@ int mu_pt_render_record(mu_pt_particle *p, const mu_pt_bitmap *b, uint8_t mode, 
     mu_pt_owner_fx_render(p, s);
     if (mu_pt_world_owned_kind(p->type, p->subtype) && !mu_pt_world_owned_render(p, s))
         return 1;   /* RENDER-EFFECTS-006: the blend state without a sprite */
+    if (!mu_pt_bow2_render(p, s))
+        return 1;   /* RENDER-EFFECTS-011: Flare/5 at lifetime 60 */
     out->sprites = 1;
     return 1;
 }

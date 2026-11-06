@@ -147,7 +147,8 @@ class Effect(ctypes.Structure):
                 ('impact', ctypes.c_float*3), ('heading_yz', ctypes.c_float*2), ('field_4', ctypes.c_uint8),
                 ('field_c0', ctypes.c_float), ('spin', ctypes.c_float*3),   # RENDER-EFFECTS-004
                 ('field_cc', ctypes.c_float),   # RENDER-EFFECTS-006
-                ('field_188', ctypes.c_float*3)]   # RENDER-EFFECTS-007
+                ('field_188', ctypes.c_float*3),   # RENDER-EFFECTS-007
+                ('field_d8', ctypes.c_float)]   # RENDER-EFFECTS-011
 
 
 class Info(ctypes.Structure):
@@ -420,6 +421,7 @@ EFFECT_FIELDS = [
     ('field_c0', 0xc0, 'f', 1), ('spin', 0x194, 'f', 3),   # RENDER-EFFECTS-004
     ('field_cc', 0xcc, 'f', 1),   # RENDER-EFFECTS-006
     ('field_188', 0x188, 'f', 3),   # RENDER-EFFECTS-007
+    ('field_d8', 0xd8, 'f', 1),   # RENDER-EFFECTS-011
 ]
 # visible (+0x0b) is an input of the hit checks only; owner (+0x34c) is a pointer handled separately.
 
