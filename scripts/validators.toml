@@ -2763,3 +2763,17 @@ cases = 1028
 mismatches = 0
 equivalent = 0
 "mutants_caught" = {len = 10}
+
+[validate_render_effects13]
+test = "native/tests/test_render_effects13.py::ClientComparison.test_original_instructions_and_compiled_mutants"
+pins = ["text", "data"]
+families = ["joint_create", "joint_move", "joint_render", "create", "move", "render"]
+cases = 180
+mutants = 16
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/joints", "reconstructed/particles"]
+args = ["--cases", "20", "--mutations", "--output", "{report}"]
+[validate_render_effects13.expect]
+all_equal = true
+all_mutants_caught = true

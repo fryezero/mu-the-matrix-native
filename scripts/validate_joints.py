@@ -319,6 +319,9 @@ class Case(sf.Case):
             c = cp.contents
             if c.routine == sf.TERRAIN_LIGHT:
                 self.c_calls.append(('light', c.position[0], c.position[1], list(c.light), c.range, sf.FRAME_LIGHT))
+            elif c.routine == sf.CREATE_PARTICLE:
+                self.c_calls.append(('particle', c.type, list(c.position), list(c.angle), list(c.light), c.subtype,
+                                     c.scale, c.owner, 0))
             elif c.routine == sf.CREATE_EFFECT_WRAPPER:
                 self.c_calls.append(('effect', c.type, list(c.position), list(c.angle), list(c.light), c.subtype,
                                      c.owner, None))
