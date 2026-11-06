@@ -96,8 +96,8 @@ Across all 4,919 codes, the map's values differ from the old native source for 4
 
 The `render_item3d` family covers every map key RenderItem3D does not special-case, plus the absent codes. It
 always includes 0x19ab, and draws inventory geometry at 1280 × 800 to 1920 × 1080 with frame scales 0.5–2.
-Eight compiled or source mutants are caught: scale × factor, offset y from x, rotation order, a scaled default
-record, an absent code returning the first row, a five-column load, the converter reading one word late, and
+Eight compiled or source mutants are caught: scale × factor, offset y from x, rotation order, a map miss that
+uses itemtrsdata.bmd (the probe carries a synthetic bmd table for every code), an absent code returning the first row, a five-column load, the converter reading one word late, and
 `MU_WINDOW_TITLE` "Mu".
 
 Modelled, not client code: the GFx manager, hover and NewUI queries are synthetic, as in `validate_hud`'s item3d.

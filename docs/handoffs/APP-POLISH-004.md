@@ -1,6 +1,6 @@
 # APP-POLISH-004
 
-Claude Opus 5.5. Branch `claude/app-polish-004` from main `7d7d694b`, merged up to `6ef9059e` (#304, #305).
+Claude Opus 5.5. Branch `claude/app-polish-004` from main `7d7d694b`, merged up to `eb2a8e76` (#304, #305, #306).
 PR-ready for the merge steward. No full gate, installation, original-client run or live read. The installed
 Native Preview and the Wine apps were not touched.
 
@@ -52,6 +52,11 @@ Full addresses in [client-app-polish4](../research/client-app-polish4.md).
   `test_native_item_textures`, `test_native_hud` and `test_inventory_skin` now import from the repository root
   too (`python -m unittest native.tests.<module>`).
 - `scripts/validate_app_polish4.py` + validator row `validate_app_polish4`.
+- `scripts/audit_repository.py` (orchestrator request): `violations()` rejects lines starting `<<<<<<< `,
+  `=======` alone, or `>>>>>>> ` in any audited file (`CONFLICT_MARKER_EXEMPT` is the explicit, empty exception
+  list). The audit and the gate therefore fail on #303-style markers. `tests/test_repository_policy.py` plants
+  each kind (caught, line 4) and lookalikes (not caught), and scans every tracked text file. On main `6ef9059e`'s
+  `docs/handoff.md` it reports `merge conflict marker (line 5)`; current main is clean.
 
 ## Checks
 
@@ -64,15 +69,16 @@ All heavy commands ran with `nice -n 10`, `make -j4`, validator runner `--jobs 2
 |---|---|---|
 | `make -j4` (after the mu_hud change) | pass | 13.5 s |
 | `validate_app_polish4` full, no mutants | trs_lookup 5,276, render_item3d 5,207, window_name 2; 0 mismatches | 30.3 s |
-| `validate_app_polish4 --mutants` (once, at the end) | MUTANTS_RESULT | MUTANTS_TIME |
+| `validate_app_polish4 --mutants` (once, at the end) | 10,485 cases, 0 mismatches; 8/8 mutants caught, 0 equivalent | 34.5 s |
 | `test_app_polish4` (private) | 4 tests OK | 32 s |
 | `test_native_app` | 19 tests OK | 64 s |
 | `test_native_item_textures` (root and `native/tests`) | 7 tests OK | 51 s |
 | `test_native_hud`, `test_inventory_skin` (root and `native/tests`) | 6 + 4 tests OK | 1 s + 5 s |
 | `test_native_lang`, `test_native_fidelity`, `test_native_gfx3` (6b: mu_lang/mu_hud users) | 15 (2 skipped), 12 (1 skipped), 12 (5 skipped) OK | 5 s, 11 s, 6 s |
-| Existing validators compiling mu_lang.c/mu_hud.c or importing the converter, `--no-mutants --cache` | VALIDATORS_RESULT | VALIDATORS_TIME |
+| Existing validators compiling mu_lang.c/mu_hud.c or importing the converter, `--no-mutants --cache` | 28 pass, 0 fail (5 social2 helper rows skip by design: run inside `validate_social2`); started at `610b97fd`, #306's mu_combat.c merged mid-run (no check input) | 18 min 13 s |
 | Byte identity, 32 DATA-ACQ-002 tours, default draw, `MU_LANG_DIR` with `itemtrs.tsv`, main `6ef9059e` vs branch | 128/128 PNG, 64/64 OBJECT/light dumps, 32/32 logs and 33 JSON identical; 32/32 `native.jsonl` identical after normalising the output folder name | 57 s + 67 s |
-| `audit_repository.py` | AUDIT_RESULT | AUDIT_TIME |
+| `audit_repository.py` (with the new marker rule) | 1,935 files, 0 rejected | 30 s |
+| `tests.test_repository_policy` | 9 tests OK | 0.6 s |
 
 `--list-affected origin/main` selects all 184 rows, because a scripts/ helper used only by tests
 (`guarded_run.py`) counts as an unmapped input. Without that file it selects 92 rows. 58 of those match only on

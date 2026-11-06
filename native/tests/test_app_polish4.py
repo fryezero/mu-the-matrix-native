@@ -67,10 +67,11 @@ class AppPolish4(unittest.TestCase):
                                  (0.5, 0.5, -90.0, 0.0, 0.0, f32(0.55)))       # the default record 0x06fbaa40
                 self.assertEqual(nat.lookup(absent), (0, None))
             self.assertEqual(nat.title, 'MU')
-            # no itemtrs.tsv: mu_lang_item_trs is -1 and the bmd stand-in (here none: the default record) applies
+            # no itemtrs.tsv: mu_lang_item_trs is -1 and the probe's synthetic itemtrsdata.bmd x 200 stands in
             bare = v.Native(Path(tmp)/'without', src, None)
             self.assertEqual(bare.lookup(0x19ab)[0], -1)
-            self.assertEqual(bare.resolve(0x19ab)[0], 0)
+            found, t = bare.resolve(0x19ab)
+            self.assertEqual((found, t.offset_x, t.offset_y, *t.rotation), (1, 0.25, 0.75, 10.0, 20.0, 30.0))
 
     def test_window_title_has_no_diagnostics_by_default(self):
         main = (ROOT/'native/client/main.c').read_text()

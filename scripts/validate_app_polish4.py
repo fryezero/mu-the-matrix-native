@@ -54,10 +54,11 @@ SECURITY_COOKIE = 0x01cf65c0
 
 MUTANTS = [
     ('native/core/mu_hud.c', '    out->scale = v[5];', '    out->scale = v[5] * scale_factor;'),
-    ('native/core/mu_hud.c', '    out->offset_y = v[1];', '    out->offset_y = v[0];'),
+    ('native/core/mu_hud.c', '    out->offset_y = v[1];\n    out->rotation[0] = v[2];',
+     '    out->offset_y = v[0];\n    out->rotation[0] = v[2];'),
     ('native/core/mu_hud.c', '    out->rotation[0] = v[2];', '    out->rotation[0] = v[3];'),
-    ('native/core/mu_hud.c', '        return mu_hud_trs_find(NULL, code, 1.0f, out);',
-     '        return mu_hud_trs_find(NULL, code, scale_factor, out);'),
+    ('native/core/mu_hud.c', '    if (found < 0)\n        return mu_hud_trs_find(bmd,',
+     '    if (found <= 0)\n        return mu_hud_trs_find(bmd,'),
     ('native/core/mu_lang.c', '    if (!r)\n        return 0;\n    memcpy(values, r->v, sizeof(float) * 6);',
      '    if (!r)\n        r = L->itemtrs;\n    memcpy(values, r->v, sizeof(float) * 6);'),
     ('native/core/mu_lang.c', 'load_rows(dir, "itemtrs.tsv", 6,', 'load_rows(dir, "itemtrs.tsv", 5,'),
@@ -79,8 +80,8 @@ def sources(mutation=None):
                  'scripts/live_lang_to_plain.py', 'native/client/main.c'):
         text = (ROOT/name).read_text()
         if mutation and mutation[0] == name:
-            if mutation[1] not in text:
-                raise SystemExit(f'mutant anchor missing in {name}: {mutation[1]!r}')
+            if text.count(mutation[1]) != 1:
+                raise SystemExit(f'mutant anchor not unique in {name}: {mutation[1]!r}')
             text = text.replace(mutation[1], mutation[2], 1)
         out[name] = text
     return out
@@ -120,9 +121,17 @@ class Native:
             '#include "native/core/mu_hud.h"',
             function(src['native/core/mu_hud.c'], 'int mu_hud_trs_find('),
             function(src['native/core/mu_hud.c'], 'int mu_hud_item_trs('),
-            '/* the GFx item pass and mu_hud_inventory_pass_at pass 200 (NATIVE-HUD-001) for the bmd stand-in */',
-            'int resolve(const mu_lang *L, int32_t code, mu_item_trs *out) {'
-            ' return mu_hud_item_trs(L, NULL, code, 200.0f, out); }',
+            '/* the GFx item pass and mu_hud_inventory_pass_at pass 200 (NATIVE-HUD-001) for the bmd stand-in; a',
+            ' * synthetic itemtrsdata.bmd holds every code -0x400..0x2fff, so a map miss that used it would show */',
+            '#define BMD_LOW (-0x400)',
+            '#define BMD_N 0x3400',
+            'static uint32_t bmd_codes[BMD_N]; static float bmd_values[BMD_N][7]; static mu_hud_trs_table bmd;',
+            'int resolve(const mu_lang *L, int32_t code, mu_item_trs *out) {',
+            '    if (!bmd.count) { for (int i = 0; i < BMD_N; i++) { bmd_codes[i] = (uint32_t)(BMD_LOW + i);',
+            '        float v[7] = {0.25f, 0.75f, 2000.0f, 10.0f, 20.0f, 30.0f, 0.001f + (float)(i % 7) * 0.0001f};',
+            '        for (int k = 0; k < 7; k++) bmd_values[i][k] = v[k]; }',
+            '        bmd.codes = bmd_codes; bmd.values = bmd_values; bmd.count = BMD_N; }',
+            '    return mu_hud_item_trs(L, &bmd, code, 200.0f, out); }',
             f'const char *window_title(void) {{ return "{title}"; }}', ''])
         (work/'probe.c').write_text(probe)
         cc = shutil.which('cc') or shutil.which('clang')
