@@ -19,9 +19,9 @@ int main(int argc, char **argv)
     assert(mu_model_init(&m->model, &m->bmd, NULL, error, sizeof error) == 0);
     m->loaded = 1;
     assert(m->bmd.action_count == 2);
-    const int worlds[] = {91, 112, 122, 123, 127, 114};   /* 114: unowned (111 is Arca War since S2) */
+    const int worlds[] = {91, 112, 122, 123, 127, 73};   /* 73: no class (111 is Arca War since S2, 114 since S3) */
     for (unsigned w = 0; w < sizeof worlds / sizeof *worlds; ++w) {
-        const int world = worlds[w], owned = world != 114;
+        const int world = worlds[w], owned = world != 73;
         mu_objects *o = calloc(1, sizeof *o);
         mu_object_record rec[N];
         memset(rec, 0, sizeof rec);
@@ -80,7 +80,7 @@ int main(int argc, char **argv)
         mu_obj_set_i32(img(o, 55), MU_OBJF_HIDDEN_MESH, -1);
         (void)mu_objects_prepare_index(o, at(55), NULL, 6, &options);
         if (world == 91) assert(o->rt.particle_events == particles + 1 && generic == 0);
-        else if (world == 114) assert(generic == 1);
+        else if (world == 73) assert(generic == 1);
         else assert(generic == 0);
         if (world == 112) {   /* Ferea's type 141: one CreateParticle 0x801c per draw, no owner (RENDER-WORLDS-Q2) */
             o->models[141] = m;
