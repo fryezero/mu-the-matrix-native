@@ -780,6 +780,8 @@ static void slot_model(mu_objects *o, int32_t t, int16_t *flags, int32_t capacit
     out->rand_fn = objects_rand;
     out->rand_context = o;
     out->handler_state = o->rt.q_handler.ferea_state;   /* RENDER-WORLDS-SLOTS: Ferea's custom slot */
+    out->bone = NULL;                                    /* set by class_custom_call where a slot reads bones */
+    out->bone_context = NULL;
     for (int32_t k = 0; m && m->loaded && k < m->bmd.mesh_count && k < capacity; ++k) {
         uint8_t name[32] = {0}, sub[5];
         memcpy(name, m->bmd.meshes[k].texture, strnlen(m->bmd.meshes[k].texture, sizeof name));
@@ -798,6 +800,8 @@ static void slot_fields(mu_objects *o, const uint8_t *img, int32_t t)
     memcpy(b + MU_MDL_ACTION, img + MU_OBJF_ACTION, 2);
     b[0x94] = t >= 0 && t < MU_OBJECT_TYPES ? o->rt.stream[t] : 0xff;
 }
+static int class_custom_call(mu_objects *o, uint8_t *img, int32_t index, float time, mu_slot_model *model,
+                             mu_obj_log *log);
 static uint8_t class_custom(void *context, int32_t index)
 {
     class_context *c = context;
@@ -812,7 +816,7 @@ static uint8_t class_custom(void *context, int32_t index)
     int16_t flags[64];
     mu_slot_model model;
     slot_model(o, t, flags, 64, &model);
-    const int handled = mu_class_custom(o->world, img, o->rt.model_fields, index, o->world, c->time, &model, &c->log);
+    const int handled = class_custom_call(o, img, index, c->time, &model, &c->log);
     if (t < MU_OBJECT_TYPES)
         o->rt.stream[t] = o->rt.model_fields[0x94];
     return (uint8_t)handled;
@@ -897,6 +901,43 @@ static void visual_bone(void *context, int32_t bone, const float local[3], float
     for (int r = 0; r < 3; ++r) {
         out[r] = b[4 * r] * local[0] + b[4 * r + 1] * local[1] + b[4 * r + 2] * local[2] + b[4 * r + 3];
     }
+}
+
+/* RENDER-WORLDS-SLOTS: the class custom render (slot 0x38) with posed bones where it reads them (Vulcanus'
+ * statues 63 0x43/0x44: TransformPosition on bones 6 and 4, as RenderObject's Animation posed them before the
+ * custom render). Its CreateSprite/CreateParticle requests go to the visual pass's consumer at once (the client
+ * creates them there) and leave the slot log, which keeps only the draws. Without a pose they are left out
+ * and counted; the draws, rand draws and object writes stay. */
+static void consume_visual(mu_objects *o, const mu_obj_log *log);
+static int class_custom_call(mu_objects *o, uint8_t *img, int32_t index, float time, mu_slot_model *model,
+                             mu_obj_log *log)
+{
+    const int32_t t = mu_obj_i32(img, MU_OBJF_TYPE);
+    visual_context vc = {o, NULL};
+    if (o->world == 63 && (t == 0x43 || t == 0x44)) {
+        mu_object_model *m = o->models[t];
+        if (m && m->loaded && m->bmd.bone_count > 6 && pose_object(o, img, m, NULL)) {
+            vc.m = m;
+            model->bone = visual_bone;
+            model->bone_context = &vc;
+        } else {
+            ++o->rt.draw_unsupported;
+        }
+    }
+    const int32_t first = log->count;
+    const int handled = mu_class_custom(o->world, img, o->rt.model_fields, index, o->world, time, model, log);
+    mu_obj_event requests[8];
+    mu_obj_log req = {0, 8, 0, requests};
+    for (int32_t k = first; k < log->count; ++k)
+        if (log->events[k].call == MU_OBJ_CALL_SPRITE || log->events[k].call == MU_OBJ_CALL_PARTICLE) {
+            if (req.count < req.capacity)
+                requests[req.count++] = log->events[k];
+            else
+                ++o->rt.draw_unsupported;
+            log->events[k].call = 0;
+        }
+    consume_visual(o, &req);
+    return handled;
 }
 
 /* RENDER-WORLDS-Q2: 0x0129f18a's search, the first bone of the object's model with this name (-1: none). */

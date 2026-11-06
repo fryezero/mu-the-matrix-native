@@ -178,6 +178,108 @@ static void ferea_after(const slot *s)
     }
 }
 
+/* ---- Vulcanus 63 (custom 0x00e8f515, after 0x00e8ff20, world test 0x00e94004: 0x3f) ---- */
+static void vulc_sprite(const slot *s, const float p[3], const float light[3])   /* CreateSprite 0x01692eb7 */
+{
+    wv_sprite(s->i, 0x7ef7, p, mu_obj_f32(s->o, MU_OBJF_SCALE) * 5.0f, light, s->l);
+}
+/* CreateParticle 0x0168fafd(0x7f5a, point, object angle, light, sub, scale * 1.5, no owner) */
+static void vulc_particle(const slot *s, const float p[3], const float light[3], int32_t sub)
+{
+    uint32_t a[13] = {0x7f5a};
+    memcpy(a + 1, p, 12);
+    memcpy(a + 4, s->o + MU_OBJF_ANGLE, 12);
+    memcpy(a + 7, light, 12);
+    a[10] = (uint32_t)sub;
+    a[11] = wv_bits(mu_obj_f32(s->o, MU_OBJF_SCALE) * 1.5f);
+    a[12] = 0;
+    wv_emit(s->l, MU_OBJ_CALL_PARTICLE, s->i, a, 13);
+}
+/* the lava statues 0x43/0x44: the scrolling body (StreamMesh 1), mesh 0 and its red 0x44 glow, two flares on
+ * bone 6 (its origin and 350 below), then a spark from bone 4 inside a frame window */
+static int vulcanus_statue(const slot *s, int32_t t)
+{
+    stream(s, 1);
+    body(s, 2, BM(s), BL(s), U(s), tmod(s, 10000, 1e-4f, 0), -1);
+    stream(s, 0xff);
+    mesh_std(s, 0, 2, -1);
+    color(s, 1.0f, 0.0f, 0.0f);
+    const float red[3] = {1.0f, 0.0f, 0.0f};
+    mesh_a(s, 0, 0x44, 0.2f, 0, 0.2f, U(s), V(s), -1);
+    const float origin[3] = {0.0f, 0.0f, 0.0f}, below[3] = {0.0f, 0.0f, -350.0f};
+    float p[3];
+    if (s->model->bone) {
+        s->model->bone(s->model->bone_context, 6, origin, p);
+        vulc_sprite(s, p, red);
+        s->model->bone(s->model->bone_context, 6, below, p);
+        vulc_sprite(s, p, red);
+    }
+    if (t == 0x43) {   /* the eyes: shut between frames 35 and 37; between 1 and 2 they open on a 2 in 1000 */
+        float f = mu_obj_f32(s->o, MU_OBJF_FRAME);
+        if (f >= 35.0f && 37.0f >= f) {
+            const uint16_t shut = 0xffff;   /* the object's u16 +0x54 */
+            memcpy(s->o + 0x54, &shut, 2);
+        }
+        f = mu_obj_f32(s->o, MU_OBJF_FRAME);
+        if (f >= 1.0f && 2.0f >= f && (int16_t)mu_obj_u16(s->o, 0x54) != 1) {
+            mu_obj_set_f32(s->o, MU_OBJF_FRAME, 1.0f);
+            const int32_t r = s->model->rand_fn(s->model->rand_context) % 1000;
+            const uint16_t value = r >= 0 && r < 2 ? 1 : 0xffff;
+            memcpy(s->o + 0x54, &value, 2);
+        }
+        const float light[3] = {0.4f, 0.1f, 0.1f}, side[3] = {-150.0f, 0.0f, 0.0f};
+        if (s->model->bone) {
+            s->model->bone(s->model->bone_context, 4, side, p);
+            f = mu_obj_f32(s->o, MU_OBJF_FRAME);
+            if (f >= 35.0f && 50.0f > f)
+                vulc_particle(s, p, light, 0x3f);
+        }
+    } else {
+        const float light[3] = {0.3f, 0.1f, 0.1f};
+        float local[3];
+        local[0] = (float)(s->model->rand_fn(s->model->rand_context) % 20) - 30.0f;
+        local[1] = (float)(s->model->rand_fn(s->model->rand_context) % 20) - 30.0f;
+        local[2] = 0.0f;
+        const float f = mu_obj_f32(s->o, MU_OBJF_FRAME);
+        if (s->model->bone) {
+            s->model->bone(s->model->bone_context, 4, local, p);
+            if (f >= 7.0f && 13.0f > f)
+                vulc_particle(s, p, light, 0x12);
+        }
+    }
+    return 1;
+}
+static int vulcanus_custom(const slot *s)
+{
+    const int32_t t = mu_obj_i32(s->o, MU_OBJF_TYPE);
+    switch (t) {
+    case 0xf:
+        stream(s, 0);
+        body(s, 2, BM(s), BL(s), U(s), tmod(s, 10000, 1e-4f, 1), -1);
+        stream(s, 0xff);
+        return 1;
+    case 0x43: case 0x44:
+        return vulcanus_statue(s, t);
+    case 0x46:
+        return 1;
+    default:   /* types 0x842..0x848 are above the world manager's 300 */
+        return 0;
+    }
+}
+static void vulcanus_after(const slot *s)
+{
+    switch (mu_obj_i32(s->o, MU_OBJF_TYPE)) {
+    case 0x10:
+        body(s, 2, 0, (csin(s->time * 0.002f) + 1.0f) * 0.5f, U(s), V(s), H(s));
+        break;
+    case 0x46:
+        body(s, 2, BM(s), BL(s), U(s), V(s), -1);
+        break;
+    default:
+        break;
+    }
+}
+
 /* ---- Swamp of Darkness 122 (custom 0x00e54752, after 0x00e555d2, world test 0x00e543a1: 0x7a) ---- */
 static void dark_glow(const slot *s, int32_t m, float light, int32_t texture, int n)
 {
@@ -458,7 +560,7 @@ static int32_t kubera_uses(int32_t world, int32_t type, int32_t *out, int32_t ro
 static int more_class(int32_t world)
 {
     switch (world) {
-    case 79: case 112: case 114: case 122:
+    case 63: case 79: case 112: case 114: case 122:
         return world;
     case 123: case 124: case 125: case 126: case 127:
         return 123;
@@ -474,6 +576,8 @@ int mu_slots_more_custom(int32_t cls, const slot *s, int32_t world)
         return s->b && market_world(cls, world) ? market_custom(s) : 0;
     case 112:
         return s->o && s->b ? ferea_custom(s) : 0;
+    case 63:
+        return world == 0x3f ? vulcanus_custom(s) : 0;
     case 122:
         return world == 0x7a && s->o && s->b ? dark_custom(s) : 0;
     case 123:
@@ -492,6 +596,10 @@ void mu_slots_more_after(int32_t cls, const slot *s, int32_t world)
     case 112:
         if (s->o && s->b)
             ferea_after(s);
+        break;
+    case 63:
+        if (world == 0x3f)
+            vulcanus_after(s);
         break;
     case 122:
         if (world == 0x7a && s->o && s->b)

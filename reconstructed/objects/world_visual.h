@@ -47,6 +47,9 @@ typedef struct mu_slot_model {
     mu_obj_rand_fn rand_fn;    /* rand() of Kardamahal's after slot (type 0x71); NULL: no light request */
     void *rand_context;
     int32_t handler_state;     /* RENDER-WORLDS-SLOTS: Ferea's handler state (+0x48 field 0, 0x00dee9ee) */
+    mu_world_bone_fn bone;     /* RENDER-WORLDS-SLOTS: TransformPosition 0x012b6ef1 on the posed bone (Vulcanus);
+                                * NULL: no posed bones, the sprite/particle requests are left out */
+    void *bone_context;
 } mu_slot_model;
 int mu_class_slots(int32_t world);
 int mu_class_custom(int32_t cls, uint8_t *object, uint8_t *b, int32_t index, int32_t world, float time,

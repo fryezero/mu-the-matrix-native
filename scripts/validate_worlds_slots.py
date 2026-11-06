@@ -29,6 +29,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CLASSES = {
     79: (0xe6ce2d, 0xe6d062, [79, 79, 114, 78, 80], [8, 0x1e, 0x32, 0x44]),
     114: (0xe1f6ca, 0xe1f8ff, [114, 114, 79, 113, 115], [8, 0x1e, 0x32, 0x44]),
+    63: (0xe8f515, 0xe8ff20, [63, 63, 62, 64, 0], [0xf, 0x10, 0x43, 0x44, 0x46]),
     112: (0xde8a10, 0xde9eab, [112, 112, 111, 113, 0],
           [0x27, 0x2b, 0x33, 0x4b, 0x51, 0x57, 0x5f, 0x72, 0x73, 0x7b, 0x8a, 0x99, 0x9a, 0x9b]),
     122: (0xe54752, 0xe555d2, [122, 122, 121, 123, 0],
@@ -44,6 +45,15 @@ LOADERS = {123: (0xe18efb, [123, 124, 125, 126, 127]), 112: (0xde5977, [112])}
 MEMBERS = {123: [123, 124, 125, 126, 127]}
 # types whose branches depend on the object action (1/3) and frame: drawn with those more often
 ACTION_TYPES = {123: [0x2f, 0x34], 112: [0x27]}
+# types whose branches read the object frame (Vulcanus' statues: 1..2, 7..13, 35..50)
+FRAME_TYPES = {63: [0x43, 0x44]}
+SPRITE, PARTICLE, TRANSFORM = 0x1692eb7, 0x168fafd, 0x12b6ef1
+BONE = C.CFUNCTYPE(None, C.c_void_p, C.c_int32, C.POINTER(C.c_float), C.POINTER(C.c_float))
+
+
+def bone_offset(k):
+    """The stub's posed bone k: a point it adds to the local offset (the same arithmetic in the C callback)."""
+    return (10.5 * k, -20.25 * k, 3.0 * k)
 # world: (slot 0x1c, its own types)
 INVISIBLE = {
     142: (0xe673b4, [0xa0, 0xa1]),
@@ -61,7 +71,7 @@ TRIVIAL = {62: (None, 0xe428af), 64: (0xdc6a2e, 0xdc6a5b), 95: (None, BASE_AFTER
            115: (BASE_CUSTOM, BASE_AFTER), 116: (BASE_CUSTOM, BASE_AFTER), 117: (BASE_CUSTOM, BASE_AFTER),
            118: (BASE_CUSTOM, BASE_AFTER), 119: (BASE_CUSTOM, BASE_AFTER), 120: (BASE_CUSTOM, BASE_AFTER)}
 DUEL_TEST = 0xdc6bfa   # 64's custom calls it and answers no either way
-FOCUS = {123: [0x2f, 0x34, 0x71, 0x75, 0x6d, 0xa0, 0x86, 0x4c]}
+FOCUS = {123: [0x2f, 0x34, 0x71, 0x75, 0x6d, 0xa0, 0x86, 0x4c], 63: [0x43, 0x44, 0x43, 0x44]}
 BODY, MESH = a2.BODY, a2.MESH
 RAND = 0x1989721
 
@@ -143,12 +153,32 @@ def loaded_handler(machine, cls, world):
     return _HANDLERS[key]
 
 
-class SlotModel(C.Structure):   # mu_slot_model with RENDER-WORLDS-SLOTS' handler state
-    _fields_ = a2.SlotModel._fields_ + [('handler_state', C.c_int32)]
+class SlotModel(C.Structure):   # mu_slot_model with RENDER-WORLDS-SLOTS' handler state and bone callback
+    _fields_ = a2.SlotModel._fields_ + [('handler_state', C.c_int32), ('bone', BONE), ('bone_context', C.c_void_p)]
 
 
 class Library(a3.Library):
     pass
+
+
+def slot_events(events, model):
+    """validate_worlds_after3's draws/sounds/lights, plus the sprite and particle requests in order."""
+    stream, colour, out = model[0x94], list(struct.unpack_from('<3I', model, 0x54)), []
+    for e in events:
+        call, args = e[0], list(e[2:])
+        if call == a2.STREAM:
+            stream = args[0] & 0xff
+        elif call == a2.COLOR:
+            colour = args[:3]
+        elif call in (BODY, MESH):
+            out.append((call,) + tuple(args[:8]) + (stream,) + tuple(colour))
+        elif call == SPRITE:
+            out.append((SPRITE,) + tuple(args[:12]))
+        elif call == PARTICLE:
+            out.append((PARTICLE,) + tuple(args[:13]))
+        else:
+            out.append(('unexpected', call))
+    return out
 
 
 def slot_family(machine, lib, g, cases, world_cls, after):
@@ -161,6 +191,11 @@ def slot_family(machine, lib, g, cases, world_cls, after):
         count, subs, array, records = a2.slot_meshes(g)
         o, b = a2.slot_object(g, typ), a2.slot_model(g, count)
         o[0] = g.choice([0, 1, 1, 1])
+        if typ in FRAME_TYPES.get(world_cls, []):
+            v.put_f(o, 0xd0, v.f32(g.choice([0.99, 1.0, 1.5, 2.0, 2.01, 6.99, 7.0, 10.0, 13.0, 34.99, 35.0, 36.0,
+                                             37.0, 37.01, 49.99, 50.0, g.uniform(0, 60)])))
+            struct.pack_into('<H', o, 0x54, g.choice([1, 0xffff, 0, 2, g.randrange(0x10000)]))
+            v.put_f(o, 0xa0, v.f32(g.choice([1.0, 0.5, g.uniform(0, 3)])))
         if typ in ACTION_TYPES.get(world_cls, []):
             struct.pack_into('<H', o, 0x2a, g.choice([1, 3, 1, 3, 0, 2]))
             v.put_f(o, 0xd0, v.f32(g.choice([2.99, 3.0, 3.01, 10.0, 28.0, 29.0, 30.0, g.uniform(0, 40)])))
@@ -182,7 +217,31 @@ def slot_family(machine, lib, g, cases, world_cls, after):
                              struct.unpack_from('<3I', model, 0x54))
                 return (0, 32)
             return stub
-        stubs = {BODY: recorder(BODY), MESH: recorder(MESH), RAND: lambda m: ra()}
+        bones = []
+
+        def transform(m):
+            a = [m.argument(k) for k in range(4)]
+            k = (a[0] - 0x6fce398) // 0x30
+            assert a[0] == 0x6fce398 + 0x30 * k and a[3] == 0 and m.uc.reg_read(m.x86.UC_X86_REG_ECX) == v.MODEL
+            local = struct.unpack('<3f', bytes(m.uc.mem_read(a[1], 12)))
+            bones.append(k)
+            m.uc.mem_write(a[2], v.pack_f(*(v.f32(x + d) for x, d in zip(local, bone_offset(k)))))
+            return (0, 16)
+
+        def sprite(m):
+            a = [m.argument(k) for k in range(9)]
+            assert a[4] == v.OBJECTS and a[5:8] == [0, 0, 4]
+            calls.append((SPRITE, a[0]) + v.read_vec(m, a[1]) + (a[2],) + v.read_vec(m, a[3]) + (0, 1, 0, 4))
+            return 0
+
+        def particle(m):
+            a = [m.argument(k) for k in range(8)]
+            assert a[6] in (0, v.OBJECTS) and a[7] == 0
+            calls.append((PARTICLE, a[0]) + v.read_vec(m, a[1]) + v.read_vec(m, a[2]) + v.read_vec(m, a[3]) +
+                         (a[4], a[5], int(a[6] == v.OBJECTS)))
+            return 0
+        stubs = {BODY: recorder(BODY), MESH: recorder(MESH), RAND: lambda m: ra(), TRANSFORM: transform,
+                 SPRITE: sprite, PARTICLE: particle}
         fake = bytearray(loaded_handler(machine, world_cls, world))
         if world_cls == 112:
             struct.pack_into('<i', fake, 0x48, state)   # the door state object {state, ...} (0x00dee9ee)
@@ -206,7 +265,14 @@ def slot_family(machine, lib, g, cases, world_cls, after):
         flags = (C.c_int16 * 16)(*(subs + [0] * (16 - len(subs))))
         frames = struct.unpack_from('<h', actions, 16 * act + 8)[0]
         rand_fn = v.RAND_FN(lambda c: rb())
-        model = SlotModel(count, flags, frames, rand_fn, None, state)
+        cbones = []
+
+        def c_bone(ctx, k, local, out):
+            cbones.append(k)
+            for q, d in enumerate(bone_offset(k)):
+                out[q] = v.f32(local[q] + d)
+        bone_fn = BONE(c_bone)
+        model = SlotModel(count, flags, frames, rand_fn, None, state, bone_fn, None)
         cls = world if world in MEMBERS.get(world_cls, []) else world_cls   # the native passes the world
         if after:
             lib.dll.mu_class_after(cls, co, cb, 0, world, time, C.byref(model), C.byref(log))
@@ -215,14 +281,16 @@ def slot_family(machine, lib, g, cases, world_cls, after):
             answer = 1 if lib.dll.mu_class_custom(cls, co, cb, 0, world, time, C.byref(model),
                                                   C.byref(log)) else 0
             client = result['eax'] & 0xff
-        mine = a3.native_events(v.log_events(log), b)
+        mine = slot_events(v.log_events(log), b)
         named = (C.c_int32 * 36)()
-        listed = set(named[:lib.dll.mu_world_slot_bitmaps(world, typ, named)])
+        listed = set(named[:lib.dll.mu_world_slot_bitmaps(cls, typ, named)])   # the handler's world (Ferea: none)
         textures = {c[8] for c in calls if c[0] in (BODY, MESH) and c[8] != 0xffffffff}
         bitmaps_ok = all(x in listed for x in textures if 0x7000 <= x < 0x9000)
         if textures:
             t.count('bitmap meshes')
-        ok = (bitmaps_ok and calls == mine and client == answer and ra.seed == rb.seed and
+        if any(c[0] in (SPRITE, PARTICLE) for c in calls):
+            t.count('sprites/particles')
+        ok = (bitmaps_ok and calls == mine and bones == cbones and client == answer and ra.seed == rb.seed and
               result['regions']['object'] == co.raw[:v.OBJ_SIZE] and result['regions']['model'] == cb.raw[:0x100])
         t.count(f'answer {client}')
         t.count('drawn' if calls else 'no draw')
@@ -482,6 +550,24 @@ MUTATIONS = [
     ('Market after wave u', W, 'csin(s->time*0.0007f)*0.05f', 'csin(s->time * 0.0007f) * 0.06f', 'after_79'),
     ('Market after 0x44 blend', W, 'mesh(s,0,0x42,A(s),0,BL(s),U(s),V(s),-1);', 'mesh(s, 0, 0x42, A(s), -1, BL(s), U(s), V(s), -1);', 'after_114'),
     ('Market after 0x1e hidden', W, 'body_std(s,H(s));', 'body_std(s, -1);', 'after_79'),
+    # Vulcanus
+    ('Vulcanus 0xf scroll sign', W, 'tmod(s,10000,1e-4f,1),-1);stream(s,0xff);return1;', 'tmod(s, 10000, 1e-4f, 0), -1); stream(s, 0xff); return 1;', 'custom_63'),
+    ('Vulcanus statue stream', W, 'stream(s,1);body(', 'stream(s, 2); body(', 'custom_63'),
+    ('Vulcanus glow colour', W, 'color(s,1.0f,0.0f,0.0f);', 'color(s, 1.0f, 0.1f, 0.0f);', 'custom_63'),
+    ('Vulcanus glow alpha', W, 'mesh_a(s,0,0x44,0.2f,0,0.2f,', 'mesh_a(s, 0, 0x44, 0.3f, 0, 0.2f,', 'custom_63'),
+    ('Vulcanus flare depth', W, 'below[3]={0.0f,0.0f,-350.0f}', 'below[3] = {0.0f, 0.0f, -300.0f}', 'custom_63'),
+    ('Vulcanus flare scale', W, 'MU_OBJF_SCALE)*5.0f', 'MU_OBJF_SCALE) * 4.0f', 'custom_63'),
+    ('Vulcanus eyes shut window', W, 'if(f>=35.0f&&37.0f>=f){', 'if (f >= 35.0f && 36.0f >= f) {', 'custom_63'),
+    ('Vulcanus eyes open chance', W, 'r>=0&&r<2?1:0xffff', 'r >= 0 && r < 3 ? 1 : 0xffff', 'custom_63'),
+    ('Vulcanus eyes frame reset', W, 'mu_obj_set_f32(s->o,MU_OBJF_FRAME,1.0f);', '', 'custom_63'),
+    ('Vulcanus spark window', W, 'if(f>=35.0f&&50.0f>f)', 'if (f >= 35.0f && 50.0f >= f)', 'custom_63'),
+    ('Vulcanus spark bone', W, 'bone(s->model->bone_context,4,side,p);', 'bone(s->model->bone_context, 6, side, p);', 'custom_63'),
+    ('Vulcanus 0x44 spark sub', W, 'vulc_particle(s,p,light,0x12);', 'vulc_particle(s, p, light, 0x13);', 'custom_63'),
+    ('Vulcanus 0x44 offset', W, '%20)-30.0f;local[2]', '% 20) - 20.0f; local[2]', 'custom_63'),
+    ('Vulcanus particle scale', W, 'MU_OBJF_SCALE)*1.5f);', 'MU_OBJF_SCALE) * 1.0f);', 'custom_63'),
+    ('Vulcanus custom world', W, 'returnworld==0x3f?vulcanus_custom', 'return world == 0x3e ? vulcanus_custom', 'custom_63'),
+    ('Vulcanus after 0x10 blend', W, 'body(s,2,0,(csin(', 'body(s, 2, -1, (csin(', 'after_63'),
+    ('Vulcanus after 0x46 hidden', W, 'case0x46:body(s,2,BM(s),BL(s),U(s),V(s),-1);', 'case 0x46: body(s, 2, BM(s), BL(s), U(s), V(s), H(s));', 'after_63'),
     # Ferea
     ('Ferea door scroll sign', W, 'V(s)+0.1f);', 'V(s) + 0.2f);', 'custom_112'),
     ('Ferea door closing', W, 'elseif(act==2)', 'else if (act == 3)', 'custom_112'),

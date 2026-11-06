@@ -7,7 +7,7 @@
 #include "../core/mu_objects.h"
 #include "../core/mu_terrain.h"
 
-static const char *model_path;
+static const char *model_path, *boned_path;
 
 static mu_objects *population(int32_t world, int32_t type)
 {
@@ -71,6 +71,7 @@ int main(int argc, char **argv)
 {
     assert(argc > 1);
     model_path = argv[1];
+    boned_path = argc > 2 ? argv[2] : argv[1];
     mu_world *map = calloc(1, sizeof *map);
     assert(map);
     int32_t draws;
@@ -119,6 +120,27 @@ int main(int argc, char **argv)
         first_pass(o, map, &draws, tex);
         assert(draws == 4 && tex[0] == 0xffffffffu && tex[1] == 0x8273 && tex[3] == 0x8273);
         release(o, 0x83);
+    }
+    /* Vulcanus statue 0x44 without bone 6: the draws stay, the flares and spark are refused and counted, and the
+     * slot's two rand draws for the spark offset still happen */
+    {
+        mu_objects *o = population(63, 0x44);
+        first_pass(o, map, &draws, tex);
+        assert(draws == 3 && o->rt.draw_unsupported == 1 && o->rt.sprite_events == 0 &&
+               o->rt.particle_events == 0 && o->rt.seed == msvc_next(msvc_next(1)));
+        release(o, 0x44);
+    }
+    /* with seven posed bones: two flares on bone 6 and, at frame 36, the eyes shut and a spark from bone 4 */
+    {
+        const char *one = model_path;
+        model_path = boned_path;
+        mu_objects *o = population(63, 0x43);
+        model_path = one;
+        mu_obj_set_f32(o->rt.images, MU_OBJF_FRAME, 36.0f);
+        first_pass(o, map, &draws, tex);
+        assert(draws == 3 && o->rt.draw_unsupported == 0 && o->rt.sprite_events == 2 && o->rt.sprite_count == 2 &&
+               o->rt.particle_events == 1 && mu_obj_u16(o->rt.images, 0x54) == 0xffff && o->rt.seed == 1);
+        release(o, 0x43);
     }
     /* a world without these slots keeps RenderBody in the first pass */
     {

@@ -17,7 +17,12 @@ class WorldsSlotsHost(unittest.TestCase):
                       bytes(24)]
             model = Path(td) / 's.bmd'
             model.write_bytes(b''.join(chunks))
-            subprocess.run([str(NATIVE / 'build/worlds-slots-host'), str(model)], check=True)
+            # Seven bones (Vulcanus' statues read bones 4 and 6), each a root with two keys.
+            bone = b'\0' + b'bone'.ljust(32, b'\0') + struct.pack('<h', -1) + struct.pack('<6f', 0, 2, 3, 4, 2, 3) + bytes(24)
+            boned = Path(td) / 'b.bmd'
+            boned.write_bytes(b''.join([b'BMD\x0a', b'boned'.ljust(32, b'\0'), struct.pack('<HHH', 0, 7, 1),
+                                        struct.pack('<hB', 2, 0)] + [bone] * 7))
+            subprocess.run([str(NATIVE / 'build/worlds-slots-host'), str(model), str(boned)], check=True)
 
 
 if __name__ == '__main__':
