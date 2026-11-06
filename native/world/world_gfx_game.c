@@ -274,7 +274,7 @@ static int place_item(const wg_items *w, const mu_gfx_item_draw *d, int32_t stag
     mu_item3d_in sys;
     memset(&sys, 0, sizeof sys);
     sys.cursor_in = win.cursor_in;
-    mu_hud_trs_find(w->have_trs ? &w->trs : NULL, d->code, ITEM_SCALE_FACTOR, &sys.trs);
+    mu_hud_item_trs(w->lang, w->have_trs ? &w->trs : NULL, d->code, ITEM_SCALE_FACTOR, &sys.trs);
     mu_item record;
     if (w->have_items && mu_item_find(&w->items, (uint32_t)d->code, &record) == 0) {
         sys.kind_b_6a = record.attributes.kind_b == 0x6a;
