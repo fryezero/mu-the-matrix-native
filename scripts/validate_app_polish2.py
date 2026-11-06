@@ -96,7 +96,7 @@ void finish(void){mu_gfx_layer_close(g.layer);}
     c=work/'probe.c';c.write_text(source)
     lib=work/'probe.so'
     layer=(ROOT/'native/gfx/mu_gfx_layer.c').read_text()
-    if mutation and mutation[0] in layer: layer=layer.replace(*mutation)
+    if mutation and mutation[0] != 'demo' and mutation[0] in layer: layer=layer.replace(*mutation)
     layer_path=work/'layer.c';layer_path.write_text(layer)
     subprocess.run([os.environ.get('CC','cc'),'-std=c11','-O1','-shared','-fPIC','-DMU_GFX_NO_GL',
         '-I',str(ROOT),'-I',str(ROOT/'native/session'),'-I',str(ROOT/'native/gfx'),'-I',str(ROOT/'reconstructed/hud'),'-I',str(work/'gen'),str(c),str(layer_path),

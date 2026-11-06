@@ -5,8 +5,8 @@
  * product variant of the library).
  *
  * A seed sets exactly what the account flow's join answer would set - phase IN_WORLD, the place,
- * the hero's class/level/name and optional recorded fixture vitals, the selected character - and nothing else: every other piece of
- * state still arrives as framed bytes from the transport (normally a fixture scenario). The
+ * the hero's class/level/name, optional recorded fixture vitals and the selected character. Every other
+ * piece of state still arrives as framed bytes from the transport (normally a fixture scenario). The
  * seeded session's link is the GAME connection, opened to cfg->connect_server (in a fixture run:
  * the scenario's game endpoint), because a seeded session has already hopped. It exists because
  * the account and join bodies are not reconstructed yet (NET-ACCOUNT-001).
