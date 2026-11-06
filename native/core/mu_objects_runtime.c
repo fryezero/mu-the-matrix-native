@@ -26,6 +26,7 @@
 #include "../../reconstructed/objects/worlds_r2.h"
 #include "../../reconstructed/objects/worlds_s.h"
 #include "../../reconstructed/objects/worlds_s2.h"
+#include "../../reconstructed/objects/worlds_s3.h"
 #include "../../reconstructed/joints/joints.h"
 #include "../../reconstructed/objects/icarus.h"
 
@@ -218,6 +219,10 @@ int mu_objects_start(mu_objects *o, const char *game_root)
             /* RENDER-WORLDS-S: Debenter's +0x60 == 9 needs its model posed at creation: refused (unsupported) */
             status = mu_worlds_q_create(img, i, &q, &create_log) < 0 ? MU_OBJ_UNSUPPORTED : MU_OBJ_OK;
         }
+        if (status == MU_OBJ_UNSUPPORTED && o->world >= 69 && o->world <= 72) {   /* RENDER-WORLDS-S3 slot 0x2c */
+            mu_imperial_create(img, o->world, objects_rand, o);
+            status = MU_OBJ_OK;
+        }
         for (int32_t k = 0; k < create_log.count; ++k)   /* a handler's PlaySpeed write (login world type 5) */
             if (created[k].call == MU_OBJ_CALL_PLAY_SPEED &&
                 (created[k].args[1] == 0 || created[k].args[1] == MU_OBJ_PLAY_SPEED_ALL) &&
@@ -237,7 +242,7 @@ int mu_objects_start(mu_objects *o, const char *game_root)
             if (created[k].call == MU_WR_CREATE)
                 mu_scorched_canyon_create(img, o->world, objects_rand, o);
         for (int32_t k = 0; k < create_log.count; ++k)
-            if ((o->world == 2 || o->world == 3 || o->world == 57 || o->world == 58) &&
+            if ((o->world == 2 || o->world == 3 || o->world == 57 || o->world == 58 || o->world == 121) &&
                 created[k].call == MU_OBJ_CALL_CREATE_EFFECT && rt->startup_effect_count < 12)
                 rt->startup_effects[rt->startup_effect_count++] = created[k];
         if (status == MU_OBJ_SKIPPED) {
@@ -556,7 +561,11 @@ void mu_objects_step(mu_objects *o, const mu_objects_step_inputs *in)
         if (status == MU_OBJ_OK) mu_objects_raklion_move(o, t, in->hero);
         ++rt->moved;
         /* RENDER-WORLDS-Q: slot 0x30 follows the generic part, so its events come after the tick's. */
-        const int q_move = status == MU_OBJ_UNSUPPORTED && mu_worlds_q_owns(o->world);
+        /* RENDER-WORLDS-S3: the Imperial Guardian slot 0x30 takes the same class pass; its post-tick cases run once
+         * its own tick is applied (mu_imperial_move_cases below). */
+        const int imperial = status == MU_OBJ_UNSUPPORTED && o->world >= 69 && o->world <= 72;
+        const int q_move = (status == MU_OBJ_UNSUPPORTED && mu_worlds_q_owns(o->world)) || imperial;
+        int imperial_cases = 0;
         if (status == MU_OBJ_UNSUPPORTED && !q_move)
             ++rt->move_unsupported;
         /* RENDER-WORLDS-AFTER2: the pre-move slot 0x74 (world manager 0x00ea2c2b) before slot 0x30's events are
@@ -570,7 +579,10 @@ void mu_objects_step(mu_objects *o, const mu_objects_step_inputs *in)
                 if (o->sound) o->sound(o->sound_context, (int32_t)pre[j].args[0]);
             }
         for (int pass = 0; pass <= q_move; ++pass) {
-            if (pass) {
+            if (pass && imperial) {
+                log.count = 0;
+                imperial_cases = mu_imperial_move_tick(image(o, i), i, o->world, o->world, mi.has_model, &log);
+            } else if (pass) {
                 const mu_q_inputs q = q_inputs(o, in->hero, in->time);
                 log.count = 0;
                 if (mu_worlds_q_move(image(o, i), i, &q, &log) < 0)   /* Debenter 9/11 without an action record */
@@ -636,6 +648,8 @@ void mu_objects_step(mu_objects *o, const mu_objects_step_inputs *in)
                     ++rt->move_unsupported;   /* StopBuffer has no native consumer; refused and counted */
                 }
             }
+            if (pass && imperial_cases)
+                mu_imperial_move_cases(image(o, i), o->world, &rt->imperial_frame);
         }
     }
     if (o->world == 10) rt->icarus_count=sky_ordinal;
@@ -1149,6 +1163,35 @@ static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_obje
     }
     else if (o->world == 145)
         return;
+    else if (o->world >= 69 && o->world <= 72 && m && m->loaded) {   /* RENDER-WORLDS-S3 Imperial Guardian slot 0x34 */
+        (void)visual_rand(&c); /* Outer RenderObjectVisual flicker draw. */
+        mu_q_inputs q = q_inputs(o, NULL, world_time);
+        q.actions = NULL;
+        const int32_t last_bone = mu_imperial_visual_bones(o->world, mu_obj_i32(img, MU_OBJF_TYPE));
+        q.bone = posed && m->bmd.bone_count > last_bone ? visual_bone : NULL;
+        q.context = &c;
+        q.rand_fn = visual_rand;
+        if (mu_imperial_visual(img, i, o->world, &q, &log) < 0) ++o->rt.draw_unsupported;
+        for (int32_t k = 0; k < log.count; ++k)   /* 0x7fd5 subtype 5 has no native kind: refused (0x7f42: owned_effect) */
+            if (events[k].call == MU_ICARUS_JOINT &&
+                !mu_jt_kind_supported((int32_t)events[k].args[0], (int32_t)events[k].args[10])) {
+                events[k].call = 0;
+                ++o->rt.draw_unsupported;
+            }
+    }
+    else if (o->world == 114 && m && m->loaded) {   /* RENDER-WORLDS-S3 Event square: Loren Market's visual body */
+        const int32_t type = mu_obj_i32(img, MU_OBJF_TYPE);
+        const int bones_ready = posed && m->bmd.bone_count > (type == 30 ? 3 : 2);
+        if ((type == 30 || type == 35) && !bones_ready) ++o->rt.draw_unsupported;
+        (void)visual_rand(&c); /* Outer RenderObjectVisual flicker draw. */
+        mu_event_square_visual(img, i, o->world, world_time, visual_rand, bones_ready ? visual_bone : NULL, &c, &log);
+    }
+    else if (o->world == 121 && m && m->loaded) {   /* RENDER-WORLDS-S3 Test Area */
+        (void)visual_rand(&c); /* Outer RenderObjectVisual flicker draw. */
+        mu_test_area_visual(img, i, 1, visual_rand, &c, &log);
+    }
+    else if ((o->world >= 69 && o->world <= 72) || o->world == 114 || o->world == 121)
+        return;
     else if ((o->world == 0x87 || o->world == 0x88 || o->world == 0x8c) && m && m->loaded) {   /* RENDER-WORLDS-P */
         const int32_t type = mu_obj_i32(img, MU_OBJF_TYPE);
         const int needs_bones = o->world == 0x87 && (type == 15 || type == 16);
@@ -1274,6 +1317,7 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
                                o->world == 80 || o->world == 81 || (o->world >= 128 && o->world <= 130) ||
                                o->world == 0x87 || o->world == 0x88 || o->world == 0x8c || o->world == 137 ||
                                (o->world >= 142 && o->world <= 144) || o->world == 145 ||
+                               (o->world >= 69 && o->world <= 72) || o->world == 114 || o->world == 121 ||
                                (o->world >= 0x83 && o->world <= 0x86) ||
                                mu_worlds_q_owns(o->world);   /* RENDER-WORLDS-Q; 112 since RENDER-WORLDS-Q2 */
     mu_obj_draw_inputs in;

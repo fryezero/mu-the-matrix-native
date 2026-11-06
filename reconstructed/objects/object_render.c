@@ -9,6 +9,7 @@
 #include "worlds_r2.h"
 #include "worlds_s.h"
 #include "worlds_s2.h"
+#include "worlds_s3.h"
 #include "world_visual.h"
 /* World-object creation, move pass and render pass of the client
  * (NATIVE-OBJECTS-002). See object_render.h and docs/research/client-objects-render.md.
@@ -524,6 +525,11 @@ int mu_obj_create(const mu_object_record *r, int32_t world, uint8_t *o, int32_t 
         if (world == 145) mu_aquila_create(o, world);
         else if (world == 139) mu_boss_battle_create(o, world);
         else mu_world115_create(o, world);
+        return MU_OBJ_OK;
+    }
+    if (world == 114 || world == 121) {   /* RENDER-WORLDS-S3 (69..72 run in the host's class pass) */
+        if (world == 114) mu_market_create(o, index, log);   /* 0x00e1e989 is Loren Market's create */
+        else mu_test_area_create(o, index, log);
         return MU_OBJ_OK;
     }
     if (world == 113 || (world >= 116 && world <= 120)) {   /* RENDER-WORLDS-N */
@@ -1102,6 +1108,11 @@ int mu_obj_move(uint8_t *o, int32_t index, const mu_obj_move_inputs *in, mu_obj_
         if (world == 145) mu_aquila_move(o, index, in, log);
         else if (world == 139) mu_boss_battle_move(o, world);
         else mu_world115_move(o, world);
+        return MU_OBJ_OK;
+    }
+    if (world == 114 || world == 121) {   /* RENDER-WORLDS-S3 */
+        if (world == 114) mu_event_square_move(o, index, in, log);
+        else mu_test_area_move(o, in->time);
         return MU_OBJ_OK;
     }
     if (world == 113 || (world >= 116 && world <= 120)) {   /* RENDER-WORLDS-N */
