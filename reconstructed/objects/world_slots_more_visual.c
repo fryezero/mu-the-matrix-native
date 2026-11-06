@@ -49,6 +49,135 @@ static void market_after(const slot *s)
 }
 static int market_world(int32_t cls, int32_t world) { return world == (cls == 114 ? 0x72 : 0x4f); }
 
+/* ---- Ferea 112 (custom 0x00de8a10, after 0x00de9eab; no world test, both test the object and model) ---- */
+/* RenderMesh with an explicit alpha (the slot passes 1.0 instead of the object's) */
+static void mesh_a(const slot *s, int32_t m, uint32_t flags, float alpha, int32_t blend, float light, float u, float v,
+                   int32_t texture)
+{
+    const uint32_t a[8] = {(uint32_t)m, flags, wv_bits(alpha), (uint32_t)blend, wv_bits(light), wv_bits(u),
+                           wv_bits(v), (uint32_t)texture};
+    wv_emit(s->l, MU_OBJ_CALL_MESH, s->i, a, 8);
+}
+static void body_a(const slot *s, float alpha, int32_t blend, float light, float u, float v, int32_t texture)
+{
+    const uint32_t a[8] = {2, wv_bits(alpha), (uint32_t)blend, wv_bits(light), wv_bits(u), wv_bits(v), 0xffffffffu,
+                           (uint32_t)texture};
+    wv_emit(s->l, MU_OBJ_CALL_BODY, s->i, a, 8);
+}
+/* (float)((int)WorldTime % n) * 0.0001 * k * 2 - 1: the scroll phase of the after slot and types 0x57/0x5f */
+static float ferea_scroll(const slot *s, int32_t n, float k)
+{
+    return (float)(cvtt(s->time) % n) * 1e-4f * k * 2.0f - 1.0f;
+}
+static int ferea_custom(const slot *s)
+{
+    switch (mu_obj_i32(s->o, MU_OBJF_TYPE)) {
+    case 0x27: {   /* the door: meshes at full alpha, mesh 3 scrolled by the opening (action 1) or closing (2) */
+        static const int32_t solid[] = {0, 1, 2, 4, 5};
+        for (int k = 0; k < 5; ++k)
+            mesh_a(s, solid[k], 2, 1.0f, -1, 1.0f, 0.0f, 0.0f, -1);
+        const uint16_t act = mu_obj_u16(s->o, MU_OBJF_ACTION);
+        if (act == 1)
+            mu_obj_set_f32(s->o, MU_OBJF_BLEND_V, V(s) + 0.1f);
+        else if (act == 2)
+            mu_obj_set_f32(s->o, MU_OBJF_BLEND_V, V(s) - 0.1f);
+        stream(s, 3);
+        mesh_a(s, 3, 2, 1.0f, -1, BL(s), U(s), V(s), -1);
+        return 1;
+    }
+    case 0x2b: case 0x33: case 0x72:
+        return 1;
+    case 0x4b: case 0x51:
+        mesh_std(s, 0, 2, -1);
+        mesh(s, 0, 0x44, A(s), 0, BL(s), U(s), V(s), -1);
+        mesh_std(s, 1, 2, -1);
+        mesh_std(s, 5, 2, -1);
+        return 1;
+    case 0x57: case 0x5f: {
+        const float x = (float)(cvtt(s->time) % 5000) * 1e-4f * 2.0f * 2.0f - 1.0f;
+        for (int32_t m = 0; m <= 3; ++m)
+            mesh_std(s, m, 2, -1);
+        mesh_std(s, 3, 0x42, -1);
+        mesh(s, 4, 2, A(s), 4, BL(s), U(s), -x, -1);
+        return 1;
+    }
+    case 0x73: {
+        const float w = (csin(s->time * 0.002f) + 1.0f) * 0.5f * 0.5f + 0.5f;
+        mesh_std(s, 0, 2, -1);
+        mesh_a(s, 1, 2, 1.0f, 1, w, U(s), V(s), -1);
+        mesh_std(s, 2, 2, -1);
+        return 1;
+    }
+    case 0x7b: {   /* the statue: hs_statueB while the handler's door state (+0x48) is 2 or 3 */
+        const int32_t state = s->model->handler_state;
+        body_a(s, 1.0f, -1, BL(s), 0.0f, 0.0f, state == 3 || state == 2 ? 0x8225 : -1);
+        return 1;
+    }
+    case 0x8a: {
+        const float w = (csin(s->time * 0.002f) + 1.0f) * 0.3f + 0.2f;
+        mesh_std(s, 0, 2, -1);
+        mesh_std(s, 1, 2, -1);
+        mesh(s, 2, 2, A(s), 2, BL(s), U(s), V(s), -1);
+        mesh(s, 3, 2, A(s), 3, w, U(s), V(s), -1);
+        mesh_std(s, 4, 2, -1);
+        return 1;
+    }
+    case 0x99: case 0x9b:
+        mesh_std(s, 0, 2, -1);
+        return 1;
+    case 0x9a: {
+        const float w = (float)((double)(csin(s->time * 0.002f) + 1.0f) * 0.3 + 0.20000000298023224);
+        mesh_std(s, 0, 2, -1);
+        mesh(s, 1, 2, A(s), 1, w, U(s), V(s), -1);
+        return 1;
+    }
+    default:   /* types 0x607, 0x8c6 and 0x8c7 are above the world manager's 300 */
+        return 0;
+    }
+}
+static void ferea_after(const slot *s)
+{
+    const int32_t t = mu_obj_i32(s->o, MU_OBJF_TYPE);
+    switch (t) {
+    case 0x2b:
+        body(s, 2, BM(s), BL(s), U(s), V(s), -1);
+        break;
+    case 0x33:
+        body(s, 2, -1, 1.0f, 0.0f, 0.0f, -1);
+        break;
+    case 0x4b: case 0x51: {
+        const float a = (csin(s->time * 0.007f) + 2.0f) * 0.5f, x = ferea_scroll(s, 0x8238, 0.3f);
+        mesh(s, 2, 2, A(s), 2, BL(s), U(s), V(s), -1);
+        mesh(s, 3, 2, A(s), 3, t == 0x51 ? 0.7f : 1.0f, U(s), V(s), -1);
+        mesh(s, 4, 2, A(s), 4, a, U(s), -x, -1);
+        mesh(s, 6, 2, A(s), 6, BL(s), U(s), V(s), -1);
+        break;
+    }
+    case 0x57: {
+        const float x = ferea_scroll(s, 0x1a0b, 1.5f);
+        mesh(s, 5, 2, A(s), 5, BL(s), x, -x, -1);
+        break;
+    }
+    case 0x72: {
+        const float x = ferea_scroll(s, 0x8238, 0.3f);
+        mesh(s, 0, 2, A(s), 0, BL(s), x, -x, -1);
+        break;
+    }
+    case 0x99:
+        mesh(s, 1, 2, A(s), 1, BL(s), U(s), ferea_scroll(s, 0x2711, 1.0f), -1);
+        mesh(s, 2, 2, A(s), 2, BL(s), U(s), U(s), -1);   /* the client passes U as v */
+        break;
+    case 0x9b: {
+        const float x = ferea_scroll(s, 0x411c, 0.6f);
+        mesh(s, 1, 2, A(s), 1, BL(s), U(s), V(s), -1);
+        mesh(s, 2, 2, A(s), 2, BL(s), x, -x, -1);
+        break;
+    }
+    default:
+        break;
+    }
+}
+
 /* ---- Kubera 123..127 (custom 0x00e1a5df, after 0x00e1b6f5, world test 0x00e1e4b6: 0x7b..0x7f) ----
  * The handler's bitmap fields +0x1c..+0x48 (twelve words), written per world by the class loader (slot 0x24,
  * 0x00e18efb) after its LoadBitmap calls; the constructor 0x00e18da5 clears +0x1c..+0x24 and +0x38..+0x48. */
@@ -268,7 +397,7 @@ static int32_t kubera_uses(int32_t world, int32_t type, int32_t *out, int32_t ro
 static int more_class(int32_t world)
 {
     switch (world) {
-    case 79: case 114:
+    case 79: case 112: case 114:
         return world;
     case 123: case 124: case 125: case 126: case 127:
         return 123;
@@ -282,6 +411,8 @@ int mu_slots_more_custom(int32_t cls, const slot *s, int32_t world)
     switch (more_class(cls)) {
     case 79: case 114:
         return s->b && market_world(cls, world) ? market_custom(s) : 0;
+    case 112:
+        return s->o && s->b ? ferea_custom(s) : 0;
     case 123:
         return kubera_world(world) && s->o && s->b ? kubera_custom(s, world) : 0;
     default:
@@ -295,6 +426,10 @@ void mu_slots_more_after(int32_t cls, const slot *s, int32_t world)
         if (market_world(cls, world))
             market_after(s);
         break;
+    case 112:
+        if (s->o && s->b)
+            ferea_after(s);
+        break;
     case 123:
         if (kubera_world(world) && s->o && s->b)
             kubera_after(s, world);
@@ -306,6 +441,12 @@ void mu_slots_more_after(int32_t cls, const slot *s, int32_t world)
 /* the LoadBitmap registration of bitmap `index` in `world` (the class loaders of these classes) */
 int mu_slots_more_bitmap(int32_t world, int32_t index, const char **path, uint32_t *filter, uint32_t *wrap)
 {
+    if (world == 112 && index == 0x8225) {   /* Ferea's loader 0x00de5977 */
+        *path = "Object113\\hs_statueB.jpg";
+        *filter = 0x2601;
+        *wrap = 0x2900;
+        return 1;
+    }
     for (size_t k = 0; kubera_world(world) && k < sizeof kubera_bitmaps / sizeof kubera_bitmaps[0]; ++k)
         if (kubera_bitmaps[k].index == index) {
             *path = kubera_bitmaps[k].path;
@@ -317,6 +458,10 @@ int mu_slots_more_bitmap(int32_t world, int32_t index, const char **path, uint32
 }
 int32_t mu_slots_more_bitmaps(int32_t world, int32_t type, int32_t *out, int32_t room)
 {
+    if (world == 112 && type == 0x7b && room > 0) {
+        out[0] = 0x8225;
+        return 1;
+    }
     return kubera_uses(world, type, out, room);
 }
 /* the handler's bitmap words +0x1c..+0x48 after the class loader of `world` (0 outside Kubera's worlds) */

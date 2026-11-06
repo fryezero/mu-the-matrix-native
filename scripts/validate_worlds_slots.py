@@ -29,16 +29,18 @@ ROOT = Path(__file__).resolve().parents[1]
 CLASSES = {
     79: (0xe6ce2d, 0xe6d062, [79, 79, 114, 78, 80], [8, 0x1e, 0x32, 0x44]),
     114: (0xe1f6ca, 0xe1f8ff, [114, 114, 79, 113, 115], [8, 0x1e, 0x32, 0x44]),
+    112: (0xde8a10, 0xde9eab, [112, 112, 111, 113, 0],
+          [0x27, 0x2b, 0x33, 0x4b, 0x51, 0x57, 0x5f, 0x72, 0x73, 0x7b, 0x8a, 0x99, 0x9a, 0x9b]),
     123: (0xe1a5df, 0xe1b6f5, [123, 124, 125, 126, 127, 122, 128],
           [0x1d, 0x1e, 0x2f, 0x34, 0x48, 0x4c, 0x5e, 0x6d, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7e,
            0x83, 0x86, 0x8b, 0x8c, 0x92, 0x93, 0x9f, 0xa0]),
 }
 # the class loaders (slot 0x24) that write the handler's bitmap fields: class -> (loader, worlds)
-LOADERS = {123: (0xe18efb, [123, 124, 125, 126, 127])}
+LOADERS = {123: (0xe18efb, [123, 124, 125, 126, 127]), 112: (0xde5977, [112])}
 # member worlds of a class whose slots the native calls with cls = the world
 MEMBERS = {123: [123, 124, 125, 126, 127]}
 # types whose branches depend on the object action (1/3) and frame: drawn with those more often
-ACTION_TYPES = {123: [0x2f, 0x34]}
+ACTION_TYPES = {123: [0x2f, 0x34], 112: [0x27]}
 # world: (slot 0x1c, its own types)
 INVISIBLE = {
     142: (0xe673b4, [0xa0, 0xa1]),
@@ -173,6 +175,8 @@ def slot_family(machine, lib, g, cases, world_cls, after):
             return stub
         stubs = {BODY: recorder(BODY), MESH: recorder(MESH), RAND: lambda m: ra()}
         fake = bytearray(loaded_handler(machine, world_cls, world))
+        if world_cls == 112:
+            struct.pack_into('<i', fake, 0x48, state)   # the door state object {state, ...} (0x00dee9ee)
         regions = v.global_regions(world, 6, [am.defined_region('object', v.OBJECTS, bytes(o)),
                                               am.defined_region('model', v.MODEL, bytes(b)),
                                               am.defined_region('actions', v.ACTIONS, bytes(actions),
@@ -238,7 +242,10 @@ def loaders_family(machine, lib, g, cases):
             words = (C.c_int32 * 12)()
             have = lib.dll.mu_slots_more_handler(world, words)
             client = list(struct.unpack_from('<12i', handler, 0x1c))
-            if world in worlds:
+            if world in worlds and cls == 112:   # Ferea's loader writes no handler field
+                t.count('no handler words')
+                t.add(not have and client == [0] * 12, {'world': world, 'have': have, 'client': client})
+            elif world in worlds:
                 t.count('handler words')
                 t.add(bool(have) and list(words) == client, {'world': world, 'c': [hex(x) for x in words],
                                                              'client': [hex(x) for x in client]})
@@ -379,6 +386,23 @@ MUTATIONS = [
     ('Market after wave u', W, 'csin(s->time*0.0007f)*0.05f', 'csin(s->time * 0.0007f) * 0.06f', 'after_79'),
     ('Market after 0x44 blend', W, 'mesh(s,0,0x42,A(s),0,BL(s),U(s),V(s),-1);', 'mesh(s, 0, 0x42, A(s), -1, BL(s), U(s), V(s), -1);', 'after_114'),
     ('Market after 0x1e hidden', W, 'body_std(s,H(s));', 'body_std(s, -1);', 'after_79'),
+    # Ferea
+    ('Ferea door scroll sign', W, 'V(s)+0.1f);', 'V(s) + 0.2f);', 'custom_112'),
+    ('Ferea door closing', W, 'elseif(act==2)', 'else if (act == 3)', 'custom_112'),
+    ('Ferea door stream', W, 'stream(s,3);mesh_a', 'stream(s, 2); mesh_a', 'custom_112'),
+    ('Ferea 0x4b glow blend', W, 'mesh(s,0,0x44,A(s),0,BL(s),U(s),V(s),-1);', 'mesh(s, 0, 0x44, A(s), -1, BL(s), U(s), V(s), -1);', 'custom_112'),
+    ('Ferea 0x57 scroll period', W, '%5000)*1e-4f*2.0f*2.0f', '% 5000) * 1e-4f * 2.0f * 1.0f', 'custom_112'),
+    ('Ferea 0x73 pulse', W, '*0.5f*0.5f+0.5f', '* 0.5f * 0.5f + 0.4f', 'custom_112'),
+    ('Ferea statue state 2', W, 'state==3||state==2', 'state == 3', 'custom_112'),
+    ('Ferea 0x8a glow mesh', W, 'mesh(s,3,2,A(s),3,w,U(s),V(s),-1);', 'mesh(s, 3, 2, A(s), 2, w, U(s), V(s), -1);', 'custom_112'),
+    ('Ferea 0x9a double', W, '*0.3+0.20000000298023224', '* 0.3 + 0.2', 'custom_112'),
+    ('Ferea 0x72 drawn first', W, 'case0x2b:case0x33:case0x72:return1;', 'case 0x2b: case 0x33: return 1;', 'custom_112'),
+    ('Ferea after 0x51 light', W, 't==0x51?0.7f:1.0f', 't == 0x51 ? 0.8f : 1.0f', 'after_112'),
+    ('Ferea after 0x4b pulse', W, '(csin(s->time*0.007f)+2.0f)*0.5f', '(csin(s->time * 0.007f) + 1.0f) * 0.5f', 'after_112'),
+    ('Ferea after 0x57 period', W, 'ferea_scroll(s,0x1a0b,1.5f)', 'ferea_scroll(s, 0x1a0c, 1.5f)', 'after_112'),
+    ('Ferea after 0x99 v', W, 'BL(s),U(s),U(s),-1);', 'BL(s), U(s), V(s), -1);', 'after_112'),
+    ('Ferea after 0x33 light', W, 'body(s,2,-1,1.0f,0.0f,0.0f,-1);', 'body(s, 2, -1, BL(s), 0.0f, 0.0f, -1);', 'after_112'),
+    ('Ferea after 0x9b sign', W, 'mesh(s,2,2,A(s),2,BL(s),x,-x,-1);', 'mesh(s, 2, 2, A(s), 2, BL(s), x, x, -1);', 'after_112'),
     # Kubera
     ('Kubera 0x83 drawn in the first pass', W, 'case0x79:case0x83:', 'case 0x79:', 'custom_123'),
     ('Kubera gem backwards scroll', W, '-r*0.002f', 'r * 0.002f', 'custom_123'),
