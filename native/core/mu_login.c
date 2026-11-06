@@ -116,7 +116,7 @@ void mu_login_step(mu_login_session *s, uint32_t now)
                        y1 > 255 ? 255 : y1);
     if (s->has_objects) {
         mu_objects_set_clock(&s->objects, now);
-        mu_objects_step_inputs in = {MU_LOGIN_SCENE, 0, s->map->time, {0.0f, 0.0f, 0.0f}, fr->x2d, fr->y2d};
+        mu_objects_step_inputs in = {MU_LOGIN_SCENE, 0, s->map->time, {0.0f, 0.0f, 0.0f}, fr->x2d, fr->y2d, NULL};
         mu_objects_step(&s->objects, &in);   /* MoveObjects 0x016d82c7 with CGMLogInScene_Ex slot 0x30 */
         mu_objects_apply_lights(&s->objects, s->map);
     }

@@ -6,7 +6,10 @@ showed a much larger cause: natively, item meshes took their bitmaps only from t
 looks there for an item model. [Checks and limits](../handoffs/RENDER-ITEMS-TEX-001.md). RENDER-ITEMS-TEX-002 applies
 the upload parameters, TextureType, the `field_` flag and the wearer's skin bitmaps, and converts the in-world
 loaders ([below](#render-items-tex-002-upload-parameters-texturetype-and-the-wearers-skin),
-[checks](../handoffs/RENDER-ITEMS-TEX-002.md)).
+[checks](../handoffs/RENDER-ITEMS-TEX-002.md)). RENDER-ITEMS-TEX-003 registers every startup LoadBitmap call with
+0x00c97730's re-registration rule and explains index 0 as object `+0x68`
+([below](#render-items-tex-003-every-startup-registration-and-index-0),
+[checks](../handoffs/RENDER-ITEMS-TEX-003.md)).
 
 Inputs: the pinned text (capture 09), data (run 10) and section 3 (capture 04, CRT locale state) of
 `scripts/pins.py`. Body hashes: `0x00cd558e..0x00cd5c91` sha256 `634484bf…da25`, GetModel `0x00eaa8cf..0x00eaaa3e`
@@ -285,3 +288,133 @@ The authored wearer (survey host `--wearer`) is the first class slot whose `requ
 stage; 1,483 types have one. At `+0xa4 = 0`, 13 armour types stay white on their hair meshes (0x7776 and 0x78ba
 are not registered at index 0), as in the client for a model nobody has worn. With a wearer, only the 15 index-0
 body draws remain (RENDER-ITEMS-002).
+
+## RENDER-ITEMS-TEX-003: every startup registration and index 0
+
+Inputs as above. New compared body (sha256 in the validator report): LoadBitmap's step `0x00c97730..0x00c97916`.
+
+### Why 89 types turned white again (verified)
+
+`mu_item_bitmaps.inc` held only the indices that TEX-001/002's probe of the body executor named at the time (235: 89
+override indices and 146 skins). Bodies admitted afterwards (RENDER-ITEMS-002 parts 12–14, #265/#275/#282) name 61
+more indices. All 61 have an immediate LoadBitmap call in a startup routine, for example:
+
+- 0x7fe7 `Effect\Lava.jpg` at `0x01822de5` and 0x8186 `effect\volcano_stone_bg.jpg` at `0x01823b14`;
+- 0x82e3 `Effect\black_gold_crom02_mono.jpg` at `0x01824525` and 0x8531 `Effect\ef_line01.jpg` at `0x01828164`;
+- all four in `0x0182049e`; most others are in `0x0182cd66`.
+
+The client registers them before an item first draws, the same as the first 89. Nothing new loads them. The table was
+a subset.
+
+### The registrations (verified, `registrations`)
+
+The table is now every LoadBitmap `0x0185baac` call of the startup routines (those `0x0182049e` reaches by direct
+calls, and the opener `0x01832af3`): 1,522 call sites, 1,553 calls, 1,550 indices. 1,515 sites have an immediate
+path and index. Seven sites compute them in five runs:
+
+| Run | Routine | Index | Path | i |
+|---|---|---|---|---|
+| `0x01825019..0x0182506d` | `0x0182049e` | 0x83d7 + i | `Effect\ad00%d.jpg` (i + 1) | 0..5 |
+| `0x0182c344..0x0182c4ec` | `0x0182bb43` | 0x7935 + i, 0x793e + i | `Player\InvenArmorMale%d.tga`, `Player\InvenPantsMale%d.tga` (i + 40) | 0..5 |
+| (same run) | `0x0182bb43` | 0x7946, 0x7947 | `Item\Texture\succubus_armor.tga`, `succubus_pants2.tga` (sprintf without arguments) | |
+| `0x018327d3..0x01832825` | `0x0183220e` | 0x8300 + i | `Item\texture\fire_sq_%05d.jpg` (i) | 0..11 |
+| `0x01835dd8..0x01835e26` | `0x01832af3` | 0x8100 + i | `Effect\xsuper000%d.jpg` (i + 1) | 0..5 |
+
+They give 38 calls. Every startup path ends in jpg or tga (1,236 jpg, 57 JPG, 218 tga, 4 TGA), and every call passes
+flags (1, 0), so LoadBitmap prefixes `Data\`.
+
+### Re-registration (verified, `reregister`)
+
+LoadBitmap ends in `0x00c97730(index, "Data\" + path, filter, wrap)` on the bitmap table `0x0bdc5f00`:
+
+1. **Same file.** If the index holds a bitmap with a non-zero reference byte `+0x219`, and its file equals the path
+   under `_stricmp` `0x0198c794`, the byte is incremented and the call returns 1. Nothing loads, so the first call's
+   filter and wrap stay.
+2. **Another file.** If the held file differs, the "[Check] … old file / new file" message `0x01a9fd98` is logged and
+   `0x00c97916(index, 1)` unloads the old bitmap.
+3. **Load.** The extension (`_splitpath` through `0x00c99025`, without the dot) picks the loader under `_stricmp`:
+   `jpg` → `0x00c982ea`, `tga` → `0x00c988fc`. Any other extension loads nothing and returns 0.
+
+Three indices have two startup calls:
+
+- 0x7952: the same file twice (a reference);
+- 0x7f6c: `shiny05.jpg`, then `Shiny05.jpg` (a reference under `_stricmp`, so the first spelling stays);
+- 0x854c: `Effect\Blur_Aura002.jpg` (`0x0182ecad`), then `Item\texture\Blur_Aura002.jpg` (`0x0182f126`). The second
+  replaces the first. Both are straight-line code in `0x0182cd66`.
+
+No index has calls in two startup routines, so their relative order does not matter. `mu_it_register` is one call
+and `mu_it_registration` replays an index's calls in table order (`reconstructed/objects/item_texture.{h,c}`).
+`mu_item_bitmap_registration` uses it.
+
+Outside the startup routines, 822 more immediate sites register 528 other indices (world, UI and event routines).
+Four startup indices (0x7f89, 0x8004, 0x8021, 0x8025) are registered again there with another file. The table keeps
+the startup state, which is what an item drawn before those routines run sees. No body draw names any of them.
+
+### Index 0 (verified)
+
+No LoadBitmap call registers index 0. LoadImage's new indices start at 0x865d (`0x00c98243`; `0x00c98211`), so they
+never reach 0 either. BindTexture `0x0184acf6` looks the index up through `0x00ebbec8` → `0x00c97c2d`. A miss returns
+the zeroed static record `0x01ec3030` (`0x00c97cac..`), whose `+0x215` texture name 0 is bound with
+`glBindTexture(GL_TEXTURE_2D, 0)`. With texturing on, the client therefore draws index 0 untextured too.
+
+Index 0 is not a constant, though. In all 23 bodies that draw it, the mesh-draw texture argument is object `+0x68`
+(HiddenMesh). There are 35 call sites, each `push dword ptr [eax+0x68]` with `eax = [ebp+0xc]` (the object), for
+example:
+
+- `0x01702deb` (0x0b1d), `0x016ed79c` (0x0eee) and `0x016e0a3a` (0x230a/0x2495);
+- `0x016fb1dd` (0x2537) and `0x0170e146` (0x280b, 0x280e, 0x2837..0x283a).
+
+Under Unicorn (`client_stream`, the eleven classify states), the argument follows object `+0x68`: 0 gives 0, −1 gives
+−1 (own texture) and 3 gives 3. For 0x0eee and 0x2537 the body pass's hidden mesh does the same.
+
+The body executor's domain is `+0x68 = 0`: `renderchar.c` refuses any other value except for the seeds
+0x2322..0x2327, and its recipes store the word as the constant 0. The client's item objects hold −1.
+ItemObjectAttribute `0x016da00b` sets −1 for every type (2 for 0xb05/0xeed/0xf0b/0x1711/0x16f6, 1 for 0x10f0), and
+both RenderObjectScreen `0x016c2d82` (inventory, [client-fidelity.md](client-fidelity.md)) and the ground items call
+it. None of the 23 types is among its exceptions. In the client's inventory and on the ground, these meshes therefore
+draw their own textures. Natively they stay white until the executor admits `+0x68 = −1` (RENDER-ITEMS-002 domain).
+This is not a registration.
+
+### Survey (installed data, real renderer, 48 states per type)
+
+| | Main `5cb6fa6d` | TEX-003 |
+|---|---:|---:|
+| Types with a white pass, of 1,691 | 125 | 36 |
+| Of the 1,230 implemented | 124 | 35 |
+| White passes / passes | 10,320 / 612,090 | 3,696 / 612,090 |
+| Unresolved override bitmaps | 142 (61 indices + index 0) | 23 (index 0 only) |
+| With an authored wearer | | 23 (index 0 only) |
+
+The 36 that remain:
+
+- **13 armour types** with `+0xa4 = 0` (the hair meshes, 0x7776/0x78ba not registered, as in TEX-002): 0x191b,
+  0x1957, 0x1978, 0x197a, 0x1991, 0x19a6, 0x19aa, 0x19c8, 0x19ca, 0x19f7, 0x19f9, 0x19fa (body not implemented) and
+  0x1a05.
+- **23 bodies** that pass object `+0x68 = 0` as a mesh texture. TEX-002's 15 are 0x0eee, 0x0f00, 0x0f01, 0x0f0e,
+  0x151a, 0x252b, 0x252c, 0x2537, 0x2538, 0x280b, 0x280e and 0x2837..0x283a. Eight came with later bodies: 0x0b1d,
+  0x0b1e, 0x0b1f, 0x1305, 0x151b, 0x151c, 0x230a and 0x2495.
+
+The survey limit is re-measured, not restored: registrations cannot bring it under 30, because 23 + 13 = 36 types stay
+white in the executor's domain. The private test now requires every white type to be special-only or index-0-only,
+with no other unresolved index. It pins the counts (13, 23).
+
+### Unicorn comparison (TEX-003 families)
+
+| Family | Cases | What runs as client code |
+|---|---:|---|
+| registrations | 1,554 | One count check: every startup site is covered, and call count = table size. Then the 1,553 calls in table order. The 1,515 immediate sites each run from their first push. The five runs execute whole, with sprintf, OpenTexture and LoadBitmap as stubs. Each call's index, path, filter, wrap and flags must equal the table. |
+| reregister | 3,314 | `0x00c97730` with `_stricmp`, memset and `0x00c99025` as client code. The std::map members, `_splitpath`, the string members, the unload and the two loaders are stubs. 1,764 synthetic calls (1,000 sequences over held, released and empty slots, with case and extension variants) are compared with `mu_it_register`: requests, return byte and slot. Then all 1,550 table indices are replayed from an empty slot and compared with `mu_it_registration`. |
+
+New compiled mutants, all caught:
+
+| Family | Mutation | Cases caught |
+|---|---|---:|
+| registrations | a flipped wrap at 0x8531 | 1 |
+| registrations | a dropped computed call (`fire_sq_00005`) | 582 |
+| registrations | 0x854c's two calls swapped | 2 |
+| reregister | case-sensitive path compare | 164 |
+| reregister | never a reference (always replace) | 251 |
+| reregister | reference byte ignored | 87 |
+| reregister | case-sensitive extension | 207 |
+| reregister | any extension loads | 277 |
+| reregister | first call only (no replay) | 1 |

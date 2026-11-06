@@ -406,9 +406,9 @@ type	visibility	shape	body_implemented	stopped_states
 0x171a	weapon	cdc9260d47f391aa	1	0
 0x171b	weapon	efd21592326a9026	1	0
 0x171c	weapon	c0077867b09e2ebc	1	0
-0x171d	weapon	77ed2fa955e3c2b8	0	0
-0x171e	weapon	74e589c9d379efe4	0	0
-0x171f	weapon	56deed7ab49a43b6	0	0
+0x171d	weapon	77ed2fa955e3c2b8	1	0
+0x171e	weapon	74e589c9d379efe4	1	0
+0x171f	weapon	56deed7ab49a43b6	1	0
 0x1720	weapon	b9dec1de220d2ad5	1	0
 0x1721	weapon	1ccec23d3b4063d8	1	0
 0x1722	weapon	ca937af6425ec75d	0	0
@@ -443,9 +443,9 @@ type	visibility	shape	body_implemented	stopped_states
 0x173f	weapon	cdc9260d47f391aa	1	0
 0x1740	weapon	efd21592326a9026	1	0
 0x1741	weapon	c0077867b09e2ebc	1	0
-0x1742	weapon	77ed2fa955e3c2b8	0	0
-0x1743	weapon	74e589c9d379efe4	0	0
-0x1744	weapon	56deed7ab49a43b6	0	0
+0x1742	weapon	77ed2fa955e3c2b8	1	0
+0x1743	weapon	74e589c9d379efe4	1	0
+0x1744	weapon	56deed7ab49a43b6	1	0
 0x1745	weapon	b9dec1de220d2ad5	1	0
 0x1746	weapon	d7cdd240beefa434	0	0
 0x1747	weapon	7b98fceb54efe7e5	1	0

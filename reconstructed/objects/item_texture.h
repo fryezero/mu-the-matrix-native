@@ -16,6 +16,7 @@
 #ifndef MU_ITEM_TEXTURE_H
 #define MU_ITEM_TEXTURE_H
 
+#include <stddef.h>
 #include <stdint.h>
 
 #include "texture_lookup.h"
@@ -35,5 +36,33 @@ int32_t mu_it_open(const mu_tl_host *h, const char *folder, const char *name, in
  * 0x7818, 0x7869, 0x78ba) plus +0xa4 (movsx); other indices are unchanged. */
 int8_t mu_it_part_skin(uint8_t class_byte);
 int32_t mu_it_skin_bitmap(int32_t index_texture, int8_t skin);
+
+/* RENDER-ITEMS-TEX-003: the bitmap registrations the item draws name. LoadBitmap 0x0185baac(path, index, filter,
+ * wrap, 1, 0) calls 0x00c97730(index, "Data\" + path, filter, wrap) on the bitmap table 0x0bdc5f00:
+ *   - the index holds a bitmap with a non-zero reference byte (+0x219) whose file equals the path under _stricmp
+ *     0x0198c794: the byte is incremented and nothing loads, so the first call's filter and wrap stay;
+ *   - it holds another file: the "[Check]" message, then 0x00c97916(index, 1) unloads it;
+ *   - then the extension (_splitpath through 0x00c99025, without the dot) selects the loader under _stricmp: "jpg"
+ *     0x00c982ea, "tga" 0x00c988fc; any other extension loads nothing.
+ * mu_it_register applies one call to a slot (the loaders leave one reference) and returns the MU_IT_REG_ bits of
+ * what the client does. mu_it_registration replays the calls of one index from a table sorted by index (stable:
+ * calls of an index in the client's call order) and gives the bitmap the index holds afterwards; it returns 0 when
+ * the index holds none. */
+enum { MU_IT_REG_UNLOAD = 1, MU_IT_REG_JPG = 2, MU_IT_REG_TGA = 4, MU_IT_REG_REFERENCE = 8 };
+
+typedef struct mu_it_call {
+    int32_t index;
+    const char *path;        /* under Data\ */
+    uint32_t filter, wrap;
+} mu_it_call;
+
+typedef struct mu_it_bitmap {
+    const char *path;        /* NULL: no bitmap */
+    uint32_t filter, wrap;
+    uint8_t refs;            /* +0x219 */
+} mu_it_bitmap;
+
+int mu_it_register(mu_it_bitmap *slot, const char *path, uint32_t filter, uint32_t wrap);
+int mu_it_registration(const mu_it_call *calls, size_t count, int32_t index, mu_it_bitmap *out);
 
 #endif

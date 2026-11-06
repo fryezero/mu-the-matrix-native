@@ -34,6 +34,7 @@
 #include "../../reconstructed/objects/objects.h"
 #include "../../reconstructed/objects/object_render.h"
 #include "../../reconstructed/objects/worlds_q.h"
+#include "../../reconstructed/objects/action_registry.h"
 #include "mu_bmd.h"
 #include "mu_model.h"
 #include "mu_raster.h"
@@ -43,6 +44,8 @@
 #include "mu_effect.h"
 
 #define MU_OBJECT_TYPES 512
+#define MU_OBJECT_ANIM_ENTRIES 256   /* RENDER-WORLDS-AFTER5: rows of one world (live: 47 at most) */
+#define MU_OBJECT_ANIM_EXTRA 2048
 
 enum {
     MU_OBJECTS_FILE_OK = 0,
@@ -131,6 +134,12 @@ typedef struct mu_objects_runtime {
     long ticks, moved, light_events, particle_events, sound_events, move_unsupported;
     long drawn, draw_unsupported, draw_skipped, culled;
     long render_light_events;         /* RENDER-WORLDS-AFTER4: AddTerrainLight calls of the after pass */
+    /* RENDER-WORLDS-AFTER5: the world's MapObjectAnimationInfo rows (MU_LANG_DIR/mapanim.tsv, mu_objects_anim.c)
+     * for the action registry: SetAction(0) after create, the registry tick after the Animation tick. */
+    mu_anim_entry anim[MU_OBJECT_ANIM_ENTRIES];
+    int32_t anim_extra[MU_OBJECT_ANIM_EXTRA];
+    int32_t anim_count;
+    long anim_sets, anim_ticks, anim_unsupported;
     /* NATIVE-LOGIN-001 */
     uint32_t now_ms;                  /* timeGetTime of the step and the frame (mu_objects_set_clock) */
     float play_speed[MU_OBJECT_TYPES];   /* action 0 PlaySpeeds set by a world handler's creation hook */
@@ -267,6 +276,16 @@ int mu_objects_start(mu_objects *objects, const char *game_root);
 void mu_objects_runtime_free(mu_objects *objects);
 /* Objects whose animation frame is not 0 (they have been ticked through keys). */
 int32_t mu_objects_animated(const mu_objects *objects);
+/* RENDER-WORLDS-AFTER5 (mu_objects_anim.c): <dir>/mapanim.tsv, the rows of objects->world, into the runtime
+ * (mu_objects_start reads MU_LANG_DIR). Returns the row count; 0 (no change) without the file or rows. */
+int32_t mu_objects_anim_load(mu_objects *objects, const char *dir);
+/* The world manager tails: SetAction(object, 0) after the create (0x00ea2ad6) and the registry tick after the
+ * Animation tick (0x00ea2c2b). No-ops outside the factory class worlds or without rows. RENDER-WORLDS-AFTER6:
+ * camera is CameraPosition (tick handler 8; NULL counts it unsupported). Map objects carry no OBB +0x31c
+ * natively, so the mouse-over handlers 4 and 6 get no mouse segment (counted unsupported; no live row uses them). */
+void mu_objects_anim_create(mu_objects *objects, int32_t index, mu_obj_rand_fn rand_fn, void *context);
+void mu_objects_anim_tick(mu_objects *objects, int32_t index, const float hero[3], const float *camera,
+                          mu_obj_rand_fn rand_fn, void *context);
 
 typedef struct mu_objects_step_inputs {
     int32_t scene_state;              /* 0x01d1df70 (6 in the world) */
@@ -274,6 +293,7 @@ typedef struct mu_objects_step_inputs {
     float time;                       /* 0x06fce370 (ms) */
     float hero[3];
     const float *x2d, *y2d;           /* last CreateFrustrum2D polygon (Tormenta slot 0x1c) */
+    const float *camera;              /* CameraPosition 0x0bdc5ab4 (RENDER-WORLDS-AFTER6), NULL when unknown */
 } mu_objects_step_inputs;
 
 /* One logic step: MoveObjects (mu_obj_move_pass) with MoveObject for the objects it names

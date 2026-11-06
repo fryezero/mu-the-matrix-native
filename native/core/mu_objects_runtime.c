@@ -186,6 +186,7 @@ int mu_objects_start(mu_objects *o, const char *game_root)
     rt->slot_index = -1;
     const int32_t n = o->count > 0 ? o->count : 0;
     rt->q_handler.swamp_variant = 1;   /* Swamp of Darkness constructor (0x00e54359: +0x78 = 1) */
+    mu_objects_anim_load(o, getenv("MU_LANG_DIR"));   /* RENDER-WORLDS-AFTER5: absent file = no rows */
     rt->images = calloc((size_t)(n ? n : 1), MU_OBJ_SIZE);
     rt->pointers = calloc((size_t)(n ? n : 1), sizeof *rt->pointers);
     rt->next = calloc((size_t)(n ? n : 1), sizeof *rt->next);
@@ -241,6 +242,7 @@ int mu_objects_start(mu_objects *o, const char *game_root)
             ++rt->outside;
             continue;
         }
+        mu_objects_anim_create(o, i, objects_rand, o);   /* RENDER-WORLDS-AFTER5: create tail SetAction(0) */
         if (status == MU_OBJ_UNSUPPORTED)
             ++rt->create_unsupported;
         if (status == MU_OBJ_UNSUPPORTED || !runtime_hides_modelled(o->world)) {
@@ -579,6 +581,7 @@ void mu_objects_step(mu_objects *o, const mu_objects_step_inputs *in)
                     if (pushed.count && o->sound) o->sound(o->sound_context, (int32_t)output[0].args[0]);
                 } else if (m->call == MU_OBJ_CALL_TICK) {
                     tick(o, i, fbits(m->args[0]));
+                    mu_objects_anim_tick(o, i, in->hero, in->camera, step_rand, &c);   /* RENDER-WORLDS-AFTER5/6 */
                 } else if (m->call == MU_OBJ_CALL_MODEL_STREAM) {   /* RENDER-JOINTS-001 (Dungeon 0x16..0x18) */
                     if (t >= 0 && t < MU_OBJECT_TYPES)
                         rt->stream[t] = (uint8_t)m->args[0];

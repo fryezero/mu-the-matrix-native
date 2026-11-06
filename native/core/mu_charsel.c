@@ -380,7 +380,7 @@ static void step(mu_charsel_session *s)
     /* MoveObjects 0x016d82c7 with CGMCharacterScene_Ex slot 0x30 (NATIVE-CHARSEL-002) */
     if (s->has_objects) {
         mu_objects_set_clock(s->objects, f->now);
-        mu_objects_step_inputs in = {MU_CHARSEL_SCENE, 0, s->map->time, {0.0f, 0.0f, 0.0f}, fr->x2d, fr->y2d};
+        mu_objects_step_inputs in = {MU_CHARSEL_SCENE, 0, s->map->time, {0.0f, 0.0f, 0.0f}, fr->x2d, fr->y2d, NULL};
         mu_objects_step(s->objects, &in);
         mu_objects_apply_lights(s->objects, s->map);
     }

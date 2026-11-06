@@ -229,6 +229,10 @@ typedef struct mu_combat {
     struct { char routine; int32_t type, subtype; uint32_t count; } unsupported_kinds[64];
     int32_t unsupported_kind_count;
     int32_t arrow_textures_retried;   /* RENDER-EFFECTS-009: bow-arrow meshes found by OpenTexture's later steps */
+    /* RENDER-EFFECTS-010: the owners' OBJECT +0x64 the ground skills' arrows set when they land (MoveEffect
+     * 0x014eca8b); the client's clearing site was not found, so a session keeps them (inference) */
+    int32_t ground_owner[8];
+    int32_t ground_owner_count;
 } mu_combat;
 
 /* Binds the combat state to a session (all pointers stay owned by the

@@ -51,7 +51,7 @@
  * MoveParticles in that order each step; the effect models before the joints, the joints before the sprite
  * section. Viewer choices: these pools are the module's own (the skills keep theirs in mu_combat), the effect
  * models play their first action (frame += speed, looping) and the tornado's PlayBuffer is counted, not played. */
-enum { MU_WORLD_PT_BITMAPS = 62, MU_WORLD_PT_CAPACITY = 4096, MU_WORLD_PT_SHADOW_MESHES = 64,
+enum { MU_WORLD_PT_BITMAPS = 72, MU_WORLD_PT_CAPACITY = 4096, MU_WORLD_PT_SHADOW_MESHES = 64,
        MU_WORLD_FX_EFFECTS = MU_SFX_EFFECTS, MU_WORLD_FX_MODELS = 18, MU_WORLD_EIN_LINKS = 4096, MU_WORLD_FX_QUADS = 8192,
        MU_WORLD_FX_LIGHTS = MU_JT_JOINTS + MU_SFX_EFFECTS };
 
@@ -142,6 +142,11 @@ int32_t mu_world_particles_ein_create(mu_world_particles *p, const char *path, c
 void mu_world_particles_ein_link(mu_world_particles *p, int32_t object, int32_t instance, int32_t bone, int follow,
                                  int timed, float lifetime);
 void mu_world_particles_ein_clear(mu_world_particles *p, int32_t object);
+/* RENDER-WORLDS-AFTER6: 0x0129f4cb, the dt-0 update of an object's records at attach time: the owner fields from
+ * the object image, the external matrix of mu_effect_prime_matrix (the world matrix for a following record,
+ * whatever its bone; otherwise scale and position), then the node update with dt 0. The effect's scale stays the
+ * template's (only the per-frame update multiplies it by the object scale). Timed records are not aged. */
+void mu_world_particles_ein_prime(mu_world_particles *p, int32_t object, const uint8_t *image);
 
 /* Loads the effect bitmaps (Data/Effect, the world's rain02/rain03) unless
  * no_assets, seeds rand(). Returns 0, or 1 with a message. */
@@ -151,6 +156,8 @@ void mu_world_particles_close(mu_world_particles *p);
 
 /* The module's rand() (MSVC LCG). */
 int32_t mu_world_particles_rand(mu_world_particles *p);
+/* The table slot of LoadBitmap index `bitmap` (bitmaps.slots/filter/wrap/images), -1 when the table has none. */
+int32_t mu_world_particles_bitmap_slot(int32_t bitmap);
 
 /* CreateParticle 0x0168fafd(type, position, angle, light, subtype, scale,
  * owner NULL, 0). Returns 1 when kept. */

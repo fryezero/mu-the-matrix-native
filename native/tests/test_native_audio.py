@@ -13,8 +13,9 @@ Portable (synthetic WAV files only, CI-safe on macOS and Linux):
     dummy driver when sdl2-config is present.
 Private (MU_RECOVERY_INTEGRATION=1 and MU_GAME_ROOT): every installed WAV
 decodes, the platform decoder opens installed MP3/OGG music, and, with
-MU_AUDIO_TABLE (scripts/extract_audio_tables.py --tsv), the installed sound
-table lists and a scripted scene renders. Outputs stay in temporary folders.
+MU_AUDIO_TABLE (scripts/extract_audio_tables.py --tsv; default: the table of
+scratch/native-data/export, scripts/build_native_data_export.py), the installed
+sound table lists and a scripted scene renders. Outputs stay in temporary folders.
 """
 import ctypes
 import hashlib
@@ -485,7 +486,9 @@ class NativeAudioTests(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertGreater(json.loads(result.stdout)['frames'], 44100)
                 out.unlink()
-        table = os.environ.get('MU_AUDIO_TABLE')
+        # Default: the canonical export set's table (NATIVE-DATA-MANIFEST-001, scripts/build_native_data_export.py).
+        default = Path.home()/'Documents/MTM/mu-mac-tools/native/scratch/native-data/export/audio/tables/audio-tables.tsv'
+        table = os.environ.get('MU_AUDIO_TABLE') or (str(default) if default.is_file() else None)
         if table:
             listing = subprocess.run([str(TOOL), 'list', '--table', table, '--root', game], capture_output=True,
                                      text=True, check=True).stdout

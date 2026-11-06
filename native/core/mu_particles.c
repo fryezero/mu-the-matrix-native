@@ -21,7 +21,7 @@
  * the joints' textures (JointThunder01, Spark01, JointSpirit01, JointEnergy01; LoadBitmap 0x0182239b..) and
  * the login scene's clouds and WATERFALL1; NATIVE-CHARSEL-002 the character-select scene's WATERFALL2/3,
  * fantaB, Spark04, magic_ground1_3 and Impack03 (the selection light 0x8022 subtype 5 draws Impack03). */
-#define MU_WORLD_PT_EFFECTS 60
+#define MU_WORLD_PT_EFFECTS 70
 static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     MU_PT_BITMAP_FIRE, MU_PT_BITMAP_SMOKE, MU_PT_BITMAP_FLARE, MU_PT_BITMAP_SPARK3, MU_PT_BITMAP_THUNDER,
     MU_PT_BITMAP_SPARK2, MU_PT_BITMAP_SHINY2, MU_JT_BITMAP_THUNDER, MU_JT_BITMAP_SPARK, MU_JT_BITMAP_SPIRIT,
@@ -37,7 +37,9 @@ static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     MU_SFX_BITMAP_LIGHTING_A, MU_SFX_BITMAP_LIGHTING_A + 1, MU_SFX_BITMAP_LIGHTING_A + 2,
     MU_SFX_BITMAP_LIGHTING_A + 3, MU_SFX_BITMAP_LIGHTING_A + 4, 0x831d, 0x83b3, 0x8086, 0x8438, 0x7fdd,
     0x7fe0, 0x8098, 0x83de, 0x84e2, MU_JT_BITMAP_LASER, MU_PT_BITMAP_SMOKE5, 0x8016, 0x806e, 0x8084, 0x8085, 0x7f8a, 0x7f21,
-    0x7f54, 0x7f84, 0x7f38, 0x8021, 0x7f6b, 0x8087, 0x8089, 0x801e, 0x8184, MU_PT_BITMAP_RAIN_SPLASH, MU_PT_BITMAP_RAIN_RING};
+    0x7f54, 0x7f84, 0x7f38, 0x8021, 0x7f6b, 0x8087, 0x8089, 0x801e, 0x8184,
+    0x7ffd, 0x8081, 0x8082, 0x8083, 0x85fb, 0x8450, 0x810a, 0x7f73, 0x7f74, 0x7f75, MU_PT_BITMAP_RAIN_SPLASH,
+    MU_PT_BITMAP_RAIN_RING};
 static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     "Data/Effect/Fire01.OZJ", "Data/Effect/smoke01.OZJ", "Data/Effect/flare01.OZJ", "Data/Effect/Spark03.OZJ",
     "Data/Effect/Thunder01.OZJ", "Data/Effect/Spark02.OZJ", "Data/Effect/Shiny02.OZJ",
@@ -65,7 +67,16 @@ static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     "Data/Effect/Shiny04.OZJ", "Data/Effect/firehik_mono02.OZJ",
     "Data/Effect/firehik_mono03.OZJ", "Data/Effect/WATERFALL5.OZJ",
     /* RENDER-WORLDS-M: flare_mono, LoadBitmap 0x0184119c (Uruk's 0x8184/2), LINEAR/CLAMP/1/0. */
-    "Data/Effect/flare_mono.OZJ"};
+    "Data/Effect/flare_mono.OZJ",
+    /* RENDER-EFFECTS-010: the Demon pet's Clud64 0x7ffd (startup LoadBitmap "Effect\\Clud64.jpg", LINEAR/CLAMP) */
+    "Data/Effect/Clud64.OZJ",
+    /* RENDER-EFFECTS-010: arrows 0x615 / 0x617's particles, LoadBitmap 0x01821acf / 0x01821aef / 0x01821b0f
+     * (lighting_mega01..03, LINEAR/REPEAT), 0x018267da (aura_0316_mono) and 0x01838af0 (Wind_smoke, LINEAR/CLAMP) */
+    "Data/Effect/lighting_mega01.OZJ", "Data/Effect/lighting_mega02.OZJ", "Data/Effect/lighting_mega03.OZJ",
+    "Data/Effect/aura_0316_mono.OZJ", "Data/Effect/Wind_smoke.OZJ",
+    /* RENDER-EFFECTS-010: the bows' pin_star03 0x810a (LoadBitmap 0x0182d4b5, LINEAR/CLAMP) and ArrowNature's
+     * leaves Skill\flower1..3.tga 0x7f73..0x7f75 (0x01834adb.., NEAREST/CLAMP) */
+    "Data/Effect/pin_star03.OZJ", "Data/Skill/flower1.OZT", "Data/Skill/flower2.OZT", "Data/Skill/flower3.OZT"};
 
 /* The world objects' effect models (AccessModel, static readings of the loaders): the Tormenta handler's
  * hs_fieldtornado (0x00e4c4de). */
@@ -103,6 +114,11 @@ static int32_t slot_of(int32_t bitmap)
         if (bitmap_ids[i] == bitmap)
             return i;
     return -1;
+}
+
+int32_t mu_world_particles_bitmap_slot(int32_t bitmap)
+{
+    return slot_of(bitmap);
 }
 
 int32_t mu_world_particles_rand(mu_world_particles *p)
@@ -203,8 +219,10 @@ static void load_bitmaps(mu_world_particles *p, const char *root, int no_assets)
         if (i < MU_WORLD_PT_EFFECTS) {
             /* LoadBitmap("Effect\\...", index, GL_LINEAR, GL_CLAMP) in the effect loader (0x01820f19 ...);
              * Impack03 0x7b78: GL_NEAREST in OpenCharacterSceneData (0x0182a6c2, static) */
-            t->filter[i] = bitmap_ids[i] == MU_PT_BITMAP_IMPACK03 ? 0x2600 : 0x2601;
-            t->wrap[i] = bitmap_ids[i] == 0x7f21 || bitmap_ids[i] == 0x84e2 ? 0x2901 : 0x2900;
+            t->filter[i] = bitmap_ids[i] == MU_PT_BITMAP_IMPACK03 ||
+                                   (bitmap_ids[i] >= 0x7f73 && bitmap_ids[i] <= 0x7f75) ? 0x2600 : 0x2601;
+            t->wrap[i] = bitmap_ids[i] == 0x7f21 || bitmap_ids[i] == 0x84e2 ||
+                         (bitmap_ids[i] >= 0x8081 && bitmap_ids[i] <= 0x8083) ? 0x2901 : 0x2900;
             snprintf(relative, sizeof relative, "%s", effect_files[i]);
         } else {
             /* the world's rain02/rain03: GL_NEAREST, GL_CLAMP (0x01829e21) */
@@ -1614,6 +1632,36 @@ static void o_ein_attach(void *c, int32_t object, const char *path, const float 
     mu_world_particles_ein_link(p, object, instance, bone, follow, timed, lifetime);
 }
 
+/* The owner fields the node update reads from the object (+5, +6, +0x2a, +0x38, +0xd0, +0x1e8). */
+static void ein_owner(mu_effect_instance *inst, const uint8_t *img)
+{
+    inst->owner.flag5 = img[5];
+    inst->owner.flag6 = img[6];
+    inst->owner.action = mu_obj_u16(img, MU_OBJF_ACTION);
+    inst->owner.visible = img[0x38];
+    inst->owner.frame = mu_obj_f32(img, MU_OBJF_FRAME);
+    memcpy(inst->owner.tint, img + 0x1e8, sizeof inst->owner.tint);
+}
+
+void mu_world_particles_ein_prime(mu_world_particles *p, int32_t object, const uint8_t *img)
+{
+    if (!p->ein || !img)
+        return;
+    float angle[3], position[3];
+    memcpy(angle, img + MU_OBJF_ANGLE, sizeof angle);
+    memcpy(position, img + MU_OBJF_POSITION, sizeof position);
+    for (int32_t k = 0; k < p->ein_link_count; ++k) {
+        if (!p->ein_links[k].live || p->ein_links[k].object != object)
+            continue;
+        mu_effect_instance *inst = &p->ein->instances[p->ein_links[k].instance];
+        ein_owner(inst, img);
+        float m[16];
+        mu_effect_prime_matrix(m, p->ein_links[k].follow, angle, position, mu_obj_f32(img, MU_OBJF_SCALE));
+        mu_effect_scene_attach(p->ein, (uint32_t)p->ein_links[k].instance, m);
+        mu_effect_scene_update_one(p->ein, (uint32_t)p->ein_links[k].instance, 0.0f);
+    }
+}
+
 /* 0x0129f671(dt) for one object: timed records lose dt and leave the list at zero or below (their effect is
  * no longer updated or drawn); each effect takes template scale x object scale (+0xa0), the owner fields
  * (+5, +6, +0x2a, +0x38, +0xd0, +0x1e8) and an external matrix, then its node update. Following bone b of a
@@ -1640,12 +1688,7 @@ static void o_ein_update(void *c, int32_t object, const uint8_t *img, const floa
             }
         }
         inst->fx.scale = p->ein_links[k].template_scale * mu_obj_f32(img, MU_OBJF_SCALE);
-        inst->owner.flag5 = img[5];
-        inst->owner.flag6 = img[6];
-        inst->owner.action = mu_obj_u16(img, MU_OBJF_ACTION);
-        inst->owner.visible = img[0x38];
-        inst->owner.frame = mu_obj_f32(img, MU_OBJF_FRAME);
-        memcpy(inst->owner.tint, img + 0x1e8, sizeof inst->owner.tint);
+        ein_owner(inst, img);
         const int32_t bone = p->ein_links[k].bone;
         float m[16];
         if (p->ein_links[k].follow && bone >= 0) {
