@@ -2743,6 +2743,21 @@ args = ["--mutations", "--output", "{report}"]
 "families.products.residues" = 15
 "mutants.*" = {truthy = true}
 
+[validate_item_derived]
+test = "reconstructed/renderchar/test_item_derived.py::ItemDerived.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "derived", "records"]
+cases = 36252
+mutants = 7
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar"]
+args = ["--mutations", "--output", "{report}"]
+[validate_item_derived.expect]
+"families.*.mismatches" = 0
+"families.derived.programs" = 118
+"mutants.*" = {truthy = true}
+
 [validate_item_hiddenmesh]
 test = "reconstructed/renderchar/test_item_hiddenmesh.py::ItemHiddenMesh.test_private_original_instructions"
 pins = ["text", "data", "flag", "feature"]

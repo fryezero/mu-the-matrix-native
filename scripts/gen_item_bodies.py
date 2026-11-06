@@ -206,6 +206,21 @@ QUALITY_TYPES = [
 ]
 # Part 15: body random scaling a constant body-light vector (0x00cfcead, 0x00cfcd74).
 PRODUCT_TYPES = [0x171d, 0x171e, 0x171f, 0x1742, 0x1743, 0x1744]
+# Part 16: draw words one binary32 operation away from another input or program (kind-6
+# derived programs, gen_item_bodies.derive). Independent full streams checked.
+DERIVED_TYPES = [
+    0x0afd, 0x0b0c, 0x0b4a, 0x0b56, 0x0b6d, 0x0b6e, 0x0b6f, 0x0b70, 0x0b71, 0x0b72,
+    0x0b73, 0x0f2d, 0x0f2f, 0x0f30, 0x110a, 0x12f9, 0x12ff, 0x1300, 0x132e, 0x1554,
+    0x1556, 0x1557, 0x1585, 0x1586, 0x1587, 0x1589, 0x158a, 0x158b, 0x158c, 0x158d,
+    0x158e, 0x16fc, 0x16fd, 0x16fe, 0x1757, 0x1759, 0x175a, 0x175b, 0x175c, 0x175d,
+    0x1afa, 0x1afd, 0x1b33, 0x1be6, 0x1cfa, 0x1cfd, 0x1efa, 0x1efd, 0x20fa, 0x20fd,
+    0x23ac, 0x24ad, 0x24b5, 0x25fa, 0x25fb, 0x2789, 0x278a,
+]
+# Part 16 types that also carry the model fields of their last draw (the part-13 rule).
+DERIVED_CARRY = [
+    0x0afd, 0x0b0c, 0x0b56, 0x12ff, 0x1300, 0x1554, 0x1556, 0x1557, 0x16fc, 0x16fd,
+    0x16fe, 0x23ac, 0x25fa,
+]
 EXIT_TYPES = [
     0x0b10, 0x0b12, 0x0b22, 0x1569, 0x156a, 0x156b, 0x156c, 0x156d, 0x156e, 0x156f,
     0x1570, 0x1571, 0x1572, 0x1573, 0x1574, 0x170f, 0x1718, 0x1728, 0x1732, 0x1752,
@@ -428,6 +443,81 @@ def random_value(program, value):
         k = v.u2f(word)
         x = f(x * k if op == 1 else x + k if op == 2 else x - k if op == 3 else math_div(x, k))
     return v.f2u(x)
+
+
+def derived_value(program, word):
+    """Reference evaluation of a kind-6 program: input word as binary32, then binary32 operations."""
+    f = lambda x: v.u2f(v.f2u(x))
+    x = v.u2f(word)
+    for op, k_word in program[2]:
+        k = v.u2f(k_word)
+        x = f(x * k if op == 1 else x + k if op == 2 else x - k if op == 3 else math_div(x, k))
+    return v.f2u(x)
+
+
+# Part 16: float words of each draw entry, and the float inputs a derived program may read
+# (generic float words, object alpha, pulsed light, blend pulse, clock scalars; programs at 35..).
+DERIVED_FIELDS = {'BODY': (1, 3, 4, 5, 8, 9, 10, 12, 13, 14), 'MESH': (2, 4, 5, 6, 8, 9, 10, 12, 13, 14)}
+DERIVED_SOURCES = (1, 3, 4, 5, 8, 9, 10, 12, 13, 14, *range(16, 34))
+_operands = None
+
+
+def sse_operands(wa):
+    """(op, constant word) of every binary32 mulss/addss/subss/divss xmm, [abs] in the text."""
+    global _operands
+    if _operands is None or _operands[0] is not wa:
+        import re
+        import struct
+        found = set()
+        for m in re.finditer(rb'\xf3\x0f([\x58\x59\x5c\x5e])([\x05\x0d\x15\x1d\x25\x2d\x35\x3d])', wa[0], re.S):
+            word = _word(wa, struct.unpack_from('<I', wa[0], m.end())[0]) if m.end() + 4 <= len(wa[0]) else None
+            if word is not None:
+                found.add((SCALAR_OPS[m.group(1)[0]], word))
+        _operands = (wa, found)
+    return _operands[1]
+
+
+def derive(wa, phases, width):
+    """Kind-6 candidates (6, a, ((op, k),)) for the words no input or constant explains: the same
+    binary32 operation with one constant maps input a to the word in every probe of the phase, and
+    the text holds that operation on that constant (sse_operands)."""
+    import math
+    f = lambda x: v.u2f(v.f2u(x))
+    found = []
+    for pairs in phases:
+        if not pairs or len({len(p[1]) for p in pairs}) != 1 or len({tuple(e for e, _ in p[1]) for p in pairs}) != 1:
+            continue
+        for k, (entry, _) in enumerate(pairs[0][1]):
+            for field in DERIVED_FIELDS.get(entry, ()):
+                ys = [p[1][k][1][field] for p in pairs]
+                if len(set(ys)) == 1 or any([p[0][i] for p in pairs] == ys for i in range(width)):
+                    continue
+                order = [field] + list(range(35, width)) + [i for i in DERIVED_SOURCES if i != field]
+                for source in order:
+                    xs = [v.u2f(p[0][source]) for p in pairs]
+                    if len(set(xs)) == 1 or any(math.isnan(x) or math.isinf(x) for x in xs):
+                        continue
+                    y0, x0 = v.u2f(ys[0]), xs[0]
+                    hit = None
+                    for op in (1, 2, 3, 4):
+                        guess = (y0 / x0 if x0 else None, y0 - x0, x0 - y0, x0 / y0 if y0 else None)[op - 1]
+                        if guess is None or math.isinf(guess) or math.isnan(guess) or abs(guess) > 3e38:
+                            continue
+                        for word in range(v.f2u(f(guess)) - 2, v.f2u(f(guess)) + 3):
+                            word &= 0xffffffff
+                            if (op, word) not in sse_operands(wa):
+                                continue
+                            program = (6, source, ((op, word),))
+                            if all(derived_value(program, p[0][source]) == y for p, y in zip(pairs, ys)):
+                                hit = program
+                                break
+                        if hit:
+                            break
+                    if hit:
+                        if hit not in found:
+                            found.append(hit)
+                        break
+    return found
 
 
 def wave_helper(a, time):
@@ -1114,17 +1204,26 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=Fals
             if tag not in group_tags or (tag, site) in calls:
                 return None   # random outside a helper group, or one site drawn twice
             calls[(tag, site)] = value
-    def program_input(program, tag):
+    def program_input(program, tag, row):
+        if program[0] == 6:
+            # Part 16: input a (any earlier input or program) then binary32 operations.
+            value = row[program[1]]
+            return RAND_ABSENT if value == RAND_ABSENT else derived_value(program, value)
         if program[0] == 5:
-            value = program_input(params[program[1]], tag)
+            value = program_input(params[program[1]], tag, row)
             return RAND_ABSENT if value == RAND_ABSENT else v.f2u(f(v.u2f(value) * v.u2f(program[2][0][1])))
         if program[0] != 4:
             return scalar_value(program, time)
         value = calls.get((tag, program[3]))
         return RAND_ABSENT if value is None else random_value(program, value)
-    return [(flat(a) + [case['object_alpha']] +
-             [v.f2u(f(v.u2f(word) * pulse)) for word in flat(a)[8:11]] + [v.f2u(blend)] + [v.f2u(x) for x in body_scalars(time)] + [case['object_hidden'] & 0xffffffff] +
-             [program_input(program, tag) for program in params],
+
+    def inputs(a, tag):
+        row = (flat(a) + [case['object_alpha']] +
+               [v.f2u(f(v.u2f(word) * pulse)) for word in flat(a)[8:11]] + [v.f2u(blend)] + [v.f2u(x) for x in body_scalars(time)] + [case['object_hidden'] & 0xffffffff])
+        for program in params:
+            row.append(program_input(program, tag, row))
+        return row
+    return [(inputs(a, tag),
              [(b[0], flat(b)) for b in bs], frozenset(site for (g, site) in calls if g == tag))
             for (a, (tag, bs)) in zip(generic, groups)]
 
@@ -1155,7 +1254,7 @@ def infer(samples):
 
 ALL_TYPES = (REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES + RANKED_TYPES + EXPANDED_TYPES +
              NEXT_TYPES + CLOCK_TYPES + CLUSTER_TYPES + WING_TYPES + VISIBLE_TYPES + SCALAR_TYPES +
-             CHAIN_TYPES + LEVEL_TYPES + COLOUR_TYPES + CARRY_TYPES + QUALITY_TYPES + PRODUCT_TYPES)
+             CHAIN_TYPES + LEVEL_TYPES + COLOUR_TYPES + CARRY_TYPES + QUALITY_TYPES + PRODUCT_TYPES + DERIVED_TYPES)
 
 
 def fit(wa, lib, t, scalars=False, carry=False, extended=False):
@@ -1191,9 +1290,19 @@ def fit(wa, lib, t, scalars=False, carry=False, extended=False):
             for word in scale or ():
                 # Kind 5: the value of the kind-4 program at index a times one binary32 light constant.
                 programs.append((5, ref, ((1, word),)))
-        if not programs:
+        if not programs and t not in DERIVED_TYPES:
             return None
         rules = _fit(wa, lib, t, tuple(programs), None, carry, extended)
+        # Part 16: words one binary32 operation away from an input become kind-6 programs.
+        for _ in range(3 if t in DERIVED_TYPES else 0):
+            if rules is not None:
+                break
+            width = 35 + len(programs)
+            extra = [p for p in derive(wa, _PHASES, width) if p not in programs]
+            if not extra:
+                break
+            programs.extend(extra)
+            rules = _fit(wa, lib, t, tuple(programs), None, carry, extended)
         if rules is None or _RAND['order'] != drawn:
             return None
         masks = dict(_RAND['masks'])
@@ -1204,14 +1313,24 @@ def fit(wa, lib, t, scalars=False, carry=False, extended=False):
         return None
     # Keep only referenced programs, renumbered in first-use order; every body
     # random program stays, because each one consumes a rand result.
-    used = sorted({value - 35 for rule in rules for _, cells in rule for op, value in cells if op == 'in' and value >= 35} |
-                  {k for k, p in enumerate(programs) if p[0] == 4})
+    used = {value - 35 for rule in rules for _, cells in rule for op, value in cells if op == 'in' and value >= 35} | \
+        {k for k, p in enumerate(programs) if p[0] == 4}
+    while True:   # a kept kind-6 program keeps the program it reads
+        more = {programs[k][1] - 35 for k in used if programs[k][0] == 6 and programs[k][1] >= 35} - used
+        if not more:
+            break
+        used |= more
+    used = sorted(used)
     remap = {old: 35 + new for new, old in enumerate(used)}
     rules = [[(entry, [(op, remap.get(value - 35, value) if op == 'in' and value >= 35 else value) for op, value in cells])
               for entry, cells in rule] for rule in rules]
     kept = [programs[k] for k in used]
-    kept = [(5, remap[p[1]] - 35, p[2]) if p[0] == 5 else p for p in kept]
+    kept = [(5, remap[p[1]] - 35, p[2]) if p[0] == 5 else
+            (6, remap[p[1] - 35] if p[1] >= 35 else p[1], p[2]) if p[0] == 6 else p for p in kept]
     return rules, tuple(kept)
+
+
+_PHASES = []   # the phases of the last _fit call (part 16 derive)
 
 
 def _fit(wa, lib, t, params, sites, carry=False, extended=False):
@@ -1259,6 +1378,7 @@ def _fit(wa, lib, t, params, sites, carry=False, extended=False):
         for pair in pairs:
             if any(_RAND['masks'][site] >> phase & 1 and site not in pair[2] for site in _RAND['masks']):
                 return None   # a phase draws a site in some probes only
+    _PHASES[:] = phases
     rules = [infer(pairs) if pairs else [] for pairs in phases]
     if any(rule is None for rule in rules):
         return None
@@ -1314,7 +1434,7 @@ def extract():
     lib = C.CDLL(str(v.LIBRARY))
     types = {}
     for t in ALL_TYPES:
-        fitted = fit(wa, lib, t, scalars=True, carry='exit' if t in EXIT_TYPES else t in CARRY_TYPES,
+        fitted = fit(wa, lib, t, scalars=True, carry='exit' if t in EXIT_TYPES else t in CARRY_TYPES or t in DERIVED_CARRY,
                      extended=t in QUALITY_TYPES or t in PRODUCT_TYPES)
         if fitted is not None:
             types[t] = fitted
@@ -1343,7 +1463,8 @@ def render(types):
              ' * source=36.. selects the type\'s own scalar program (kind 1 = wave 0x0185bdc4(a,0), 2 = sin(time*a), then mul/add/sub/div, binary32 or op|8 binary64 with one final rounding;',
              ' * kind 3 = clock chain of op/k pairs, see gen_item_bodies.C_TIME_F..C_D_NEG; kind 4 = (float)(rand() % a) then binary32',
              ' * mul/add/sub/div, drawn once in each phase of its phases mask; kind 5 = the type\'s program a (kind 4)',
-             ' * times the binary32 k[0], one channel of a scaled constant body light). Entry 4 (EXIT) writes words 8..15 to the model',
+             ' * times the binary32 k[0], one channel of a scaled constant body light; kind 6 = input a (absolute index)',
+             ' * then binary32 mul/add/sub/div). Entry 4 (EXIT) writes words 8..15 to the model',
              ' * fields and draws nothing. See client-render-items.md. */',
              '#define MU_RC_BODY_SCALARS 8',
              'typedef struct { uint8_t count; struct { int32_t entry; uint8_t source[16]; uint32_t value[16]; } draw[16]; } mu_rc_body_recipe;',
@@ -1373,7 +1494,7 @@ def render(types):
                      (t, ', '.join(map(str, indices)), t in LEVEL_SPLIT, t in ATLAS_TYPES, t in DIM_TYPES, t in PLAIN_TYPES, t in PULSE_TYPES,
                       any(op == 'in' and value == 20 for rule in rules for _, cells in rule for op, value in cells),
                       sum(1 << k for k in range(13) if any(op == 'in' and value == 21+k for rule in rules for _, cells in rule for op,value in cells)),
-                      t in CARRY_TYPES, first, count))
+                      t in CARRY_TYPES or t in DERIVED_CARRY, first, count))
     return '\n'.join(lines + ['};', ''])
 
 
