@@ -171,12 +171,15 @@ static void combat_draw(mu_world_rt *a, combat_part *p)
     mu_combat_draw_models(c, combat_model_gl, p);
     mu_combat_quad quads[1024];
     int32_t n = mu_combat_quads(c, quads, 1024);
+    /* RENDER-EFFECTS-015: RenderEffects' terrain decals first (0x70a, 0x70c, 0x45e), then the frame's quads */
+    static mu_combat_quad decals[MU_COMBAT_DECAL_QUADS];
+    const int32_t decal_count = mu_combat_decal_quads(c, decals, MU_COMBAT_DECAL_QUADS);
     glDepthMask(GL_FALSE);
     glDisable(GL_ALPHA_TEST);
     glDisable(GL_CULL_FACE);
     glEnable(GL_BLEND);
-    for (int32_t i = 0; i < n; ++i) {
-        const mu_combat_quad *q = &quads[i];
+    for (int32_t i = 0; i < decal_count + n; ++i) {
+        const mu_combat_quad *q = i < decal_count ? &decals[i] : &quads[i - decal_count];
         if (q->bitmap >= 0) {
             const mu_combat_bitmap *b = &c->bitmaps[q->bitmap];
             if (!p->combat_tex[q->bitmap]) {
@@ -185,8 +188,9 @@ static void combat_draw(mu_world_rt *a, combat_part *p)
                 glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+                const GLint wrap = b->wrap ? GL_CLAMP_TO_EDGE : GL_REPEAT;   /* RENDER-EFFECTS-015: decal GL_CLAMP */
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrap);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap);
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, b->image.width, b->image.height, 0, GL_RGBA,
                              GL_UNSIGNED_BYTE, b->image.rgba);
             }
