@@ -568,7 +568,7 @@ static int more_class(int32_t world)
         return -1;
     }
 }
-int mu_slots_more_class(int32_t world) { return more_class(world); }
+int mu_slots_more_class(int32_t world) { return more_class(world) >= 0 ? more_class(world) : mu_slots2_class(world); }
 int mu_slots_more_custom(int32_t cls, const slot *s, int32_t world)
 {
     switch (more_class(cls)) {
@@ -583,7 +583,7 @@ int mu_slots_more_custom(int32_t cls, const slot *s, int32_t world)
     case 123:
         return kubera_world(world) && s->o && s->b ? kubera_custom(s, world) : 0;
     default:
-        return 0;
+        return mu_slots2_custom(cls, s, world);   /* RENDER-WORLDS-SLOTS2 */
     }
 }
 void mu_slots_more_after(int32_t cls, const slot *s, int32_t world)
@@ -610,6 +610,7 @@ void mu_slots_more_after(int32_t cls, const slot *s, int32_t world)
             kubera_after(s, world);
         break;
     default:
+        mu_slots2_after(cls, s, world);   /* RENDER-WORLDS-SLOTS2 */
         break;
     }
 }
@@ -635,7 +636,7 @@ int mu_slots_more_bitmap(int32_t world, int32_t index, const char **path, uint32
             *wrap = kubera_bitmaps[k].wrap;
             return 1;
         }
-    return 0;
+    return mu_slots2_bitmap(world, index, path, filter, wrap);   /* RENDER-WORLDS-SLOTS2 */
 }
 int32_t mu_slots_more_bitmaps(int32_t world, int32_t type, int32_t *out, int32_t room)
 {
@@ -647,7 +648,7 @@ int32_t mu_slots_more_bitmaps(int32_t world, int32_t type, int32_t *out, int32_t
         out[0] = type == 0x7e ? 0x8245 : 0x8273;   /* 0x8245: Effect\Chrome09 (every world) */
         return 1;
     }
-    return kubera_uses(world, type, out, room);
+    return kubera_world(world) ? kubera_uses(world, type, out, room) : mu_slots2_bitmaps(world, type, out, room);
 }
 /* the handler's bitmap words +0x1c..+0x48 after the class loader of `world` (0 outside Kubera's worlds) */
 int mu_slots_more_handler(int32_t world, int32_t out[12])

@@ -293,11 +293,207 @@ def rng_family(machine, lib, g, cases, worlds):
     return t
 
 
+
+# ---------------------------------------------------------------- the custom (0x38) and after (0x3c) slots
+import validate_worlds_after2 as a2
+import validate_worlds_slots as ws
+IG_TYPES = [0, 1, 3, 0x25, 0x29, 0x2c, 0x2f, 0x30, 0x31, 0x37, 0x40, 0x46, 0x51, 0x73, 0x75]
+ACHERON_TYPES = [0x11, 0x30, 0x42, 0x44, 0x4f, 0x6e, 0x1c, 0x1d, 0x1e, 0x2d, 0x2e, 0x50]
+DEBENTER_TYPES = [0xb, 0x25, 0x32] + list(range(0x37, 0x45))
+URUK_SLOT_TYPES = [0x10, 0x2c, 0x31, 0x39, 0x3a, 0x46, 0x47, 0x48, 0x49, 0x54, 0x55, 0x56]
+NARS_TYPES = [0, 6, 0x10, 0x11, 0x15, 0x16, 0x17, 0x18, 0x1b, 0x22, 0x23, 0x24, 0x25, 0x26, 0x4d, 0x8e, 0x96]
+# class: (custom 0x38, after 0x3c (None: empty/base, compared by validate_worlds_slots' trivial family),
+#         worlds the slot is tried in, case types)
+SLOTS2 = {
+    62: (0xe426cf, None, [62, 62, 61, 63, 0], [0x10, 0xf, 0x11]),
+    69: (0xdc8b33, 0xdc9f33, [69, 69, 70, 71, 72, 73, 74, 68, 75, 0], IG_TYPES),
+    70: (0xdd57fa, 0xdd5888, [70, 70, 69, 71, 72, 0], IG_TYPES),
+    71: (0xdda8f5, 0xdda93e, [71, 71, 70, 72, 69, 0], IG_TYPES),
+    72: (0xde08df, 0xde0ff6, [72, 72, 73, 74, 71, 75, 69, 0], IG_TYPES + [0x60, 0x61, 0x64, 0x62, 0x63]),
+    82: (0xe2caaf, 0xe2d4a8, [82, 82, 83, 90, 91, 81, 0], [0xa, 0xf, 0x10, 0x13, 0x14, 0x1f, 0x21, 0x46, 0x48]),
+    95: (0xdbee19, None, [95, 95, 96, 94, 97, 0], DEBENTER_TYPES),
+    100: (0xe702eb, None, [100, 100, 101, 99, 102, 0], URUK_SLOT_TYPES),
+    110: (0xe28bb2, 0xe28faf, [110, 110, 111, 109, 112, 0], NARS_TYPES),
+    92: (0xd7c02e, 0xd7de81, [92, 96, 101, 111, 92, 96, 101, 111, 91, 95, 100, 110, 0],
+         ACHERON_TYPES + DEBENTER_TYPES + URUK_SLOT_TYPES + NARS_TYPES),
+}
+ARCA_MEMBERS = [92, 96, 101, 111]
+# the base classes Arca War's slots reach through the registry (custom, after)
+ARCA_BASES = {91: (0xd6c427, 0xd6d3d7), 95: (0xdbee19, 0xd5cc60), 100: (0xe702eb, 0xd5cc60), 110: (0xe28bb2, 0xe28faf)}
+IG69_GET = 0xdd8a3c   # the world-69 handler (0x45), whose slot 0x38 70..72 forward to
+PUSH, POP = 0x12b7e53, 0x12b7e65   # glPushMatrix / glPopMatrix wrappers (Nars after)
+EFFECT = 0x13c0eaa
+BASES = {w: 0x41040000 + 0x1000 * k for k, w in enumerate(list(ARCA_BASES) + [69])}
+
+
+def handler_with(custom, after):
+    h = bytearray(v.fake_object())
+    struct.pack_into('<I', h, 0x200 + 0x38, custom)
+    struct.pack_into('<I', h, 0x200 + 0x3c, after)
+    struct.pack_into('<I', h, 0, 0)   # vtable pointer set by the caller (the region's base)
+    return h
+
+
+def base_regions():
+    out = []
+    for w, address in BASES.items():
+        custom, after = ARCA_BASES.get(w, (0xdc8b33, 0xdc9f33))
+        h = handler_with(custom, after)
+        struct.pack_into('<I', h, 0, address + 0x200)
+        out.append(am.defined_region(f'base{w}', address, bytes(h), writable=False))
+    return out
+
+
+def slot2_events(events, model):
+    """validate_worlds_slots' draws (with the StreamMesh byte and colour at the call), plus CreateEffect (type,
+    position, angle, light, subtype, owner, scale), in order."""
+    stream, colour, out = model[0x94], list(struct.unpack_from('<3I', model, 0x54)), []
+    for e in events:
+        call, args = e[0], list(e[2:])
+        if call == a2.STREAM:
+            stream = args[0] & 0xff
+        elif call == a2.COLOR:
+            colour = args[:3]
+        elif call in (ws.BODY, ws.MESH):
+            out.append((call,) + tuple(args[:8]) + (stream,) + tuple(colour))
+        elif call == EFFECT:
+            out.append((EFFECT,) + tuple(args[:13]))
+        else:
+            out.append(('unexpected', call))
+    return out
+
+
+def slot2_family(machine, lib, g, cases, cls, after):
+    custom, after_addr, worlds, types = SLOTS2[cls]
+    t = v.Tally(('after2_' if after else 'custom2_') + str(cls))
+    for n in range(cases):
+        world = (g.choice(ARCA_MEMBERS) if cls == 92 else cls) if g.random() < 0.75 else g.choice(worlds)
+        typ = n if n <= 300 else g.choice(types + ([0x73, 0x75] * 4 if cls in (69, 70, 71, 72) else []))\
+            if g.random() < 0.9 else g.randrange(0, 301)
+        count, subs, array, records = a2.slot_meshes(g)
+        o, b = a2.slot_object(g, typ), a2.slot_model(g, count)
+        o[0] = g.choice([0, 1, 1, 1])
+        if typ in (0x73, 0x75):   # the bone-9 effect latch: frame windows (0, 0.4) and (7, 7.5), state +0x60
+            v.put_f(o, 0xd0, v.f32(g.choice([1e-6, 0.2, 0.39999, 7.0001, 7.2, 7.4999]) if g.random() < 0.5 else
+                                   g.choice([0.0, 0.4, 0.41, 6.99, 7.0, 7.5, 7.6, -0.1, float('nan'), g.uniform(-1, 10)])))
+            v.put_i(o, 0x60, g.choice([0x64, 0x65]) if g.random() < 0.7 else
+                    g.choice([0x63, 0x66, 0, g.randrange(-5, 300)]))
+        if g.random() < 0.05:
+            v.put_f(o, 0xb0, v.f32(g.choice([float('nan'), 1e30, -1e30, 0.0])))
+        actions = bytearray(g.getrandbits(8) for _ in range(16 * a2.ACTION_COUNT))
+        time = v.f32(g.choice([0.0, g.uniform(0, 100000), g.uniform(0, 1e7), g.uniform(1e7, 3e9),
+                               g.uniform(-3e9, 0), 2147483648.0, -2147483904.0]))
+        seed = g.randrange(2**32)
+        ra, rb = v.MsvcRand(seed), v.MsvcRand(seed)
+        calls, bones = [], []
+        base = world - 1   # Arca War's handler +0x1c (production: the world below)
+        stage = g.randrange(6)
+
+        def recorder(address):
+            def stub(m):
+                model = bytes(m.uc.mem_read(v.MODEL, 0x100))
+                calls.append((address,) + tuple(m.argument(k) for k in range(8)) + (model[0x94],) +
+                             struct.unpack_from('<3I', model, 0x54))
+                return (0, 32)
+            return stub
+
+        def transform(m):
+            a = [m.argument(k) for k in range(4)]
+            k = (a[0] - 0x6fce398) // 0x30
+            assert a[0] == 0x6fce398 + 0x30 * k and a[3] == 0 and m.uc.reg_read(m.x86.UC_X86_REG_ECX) == v.MODEL
+            local = struct.unpack('<3f', bytes(m.uc.mem_read(a[1], 12)))
+            bones.append(k)
+            m.uc.mem_write(a[2], v.pack_f(*(v.f32(x + d) for x, d in zip(local, ws.bone_offset(k)))))
+            return (0, 16)
+
+        def effect(m):
+            a = [m.argument(k) for k in range(14)]
+            assert a[5] == v.OBJECTS and a[6] == 0xffffffff and a[7:10] == [0, 0, 0] and a[11:] == [0xffffffff, 0, 0], a
+            calls.append((EFFECT, a[0]) + v.read_vec(m, a[1]) + v.read_vec(m, a[2]) + v.read_vec(m, a[3]) +
+                         (a[4], 1, a[10]))
+            return 0
+
+        def lookup(m):
+            assert m.uc.reg_read(m.x86.UC_X86_REG_ECX) == s2.REGISTRY
+            w = struct.unpack('<i', struct.pack('<I', m.argument(0)))[0]
+            return (BASES[w], 4)
+        stubs = {ws.BODY: recorder(ws.BODY), ws.MESH: recorder(ws.MESH), RAND: lambda m: ra(),
+                 ws.TRANSFORM: transform, EFFECT: effect, PUSH: lambda m: (0, 4), POP: lambda m: (0, 0),
+                 MANAGER_GET: lambda m: s2.REGISTRY, 0xea4679: lookup,
+                 IG69_GET: lambda m: BASES[69] if m.argument(0) == 0x45 else 0}
+        regions = v.global_regions(world, 6, [am.defined_region('object', v.OBJECTS, bytes(o)),
+                                              am.defined_region('model', v.MODEL, bytes(b)),
+                                              am.defined_region('actions', v.ACTIONS, bytes(actions),
+                                                                writable=False),
+                                              am.defined_region('meshes', a2.MESHES, bytes(array), writable=False),
+                                              am.defined_region('subs', a2.SUBS, bytes(records), writable=False),
+                                              am.defined_region('time', v.TIME, v.pack_f(time), writable=False),
+                                              am.defined_region('fake', v.FAKE, v.fake_object(), writable=False),
+                                              am.defined_region('arca', s2.ARCA, s2.arca_handler(base, stage),
+                                                                writable=False),
+                                              am.defined_region('list', s2.LIST, struct.pack('<4i', *s2.ARCA_WORLDS),
+                                                                writable=False)] + base_regions())
+        start = after_addr if after else custom
+        result = v.run(machine, start, [v.OBJECTS, v.MODEL, 0], regions, stubs,
+                       ecx=s2.ARCA if cls == 92 else v.FAKE, cleanup=12)
+        stop = v.stopped_reason(result)
+        if stop:
+            t.add(False, {'case': n, 'world': world, 'type': hex(typ)}, stop)
+            continue
+        co = C.create_string_buffer(bytes(o), v.OBJ_SIZE)
+        cb = C.create_string_buffer(bytes(b), 0x100)
+        log = v.new_log()
+        flags = (C.c_int16 * 16)(*(subs + [0] * (16 - len(subs))))
+        act = struct.unpack_from('<H', o, 0x2a)[0]
+        frames = struct.unpack_from('<h', actions, 16 * act + 8)[0]
+        rand_fn = v.RAND_FN(lambda c: rb())
+        cbones = []
+
+        def c_bone(ctx, k, local, out):
+            cbones.append(k)
+            for q, d in enumerate(ws.bone_offset(k)):
+                out[q] = v.f32(local[q] + d)
+        bone_fn = ws.BONE(c_bone)
+        model = ws.SlotModel(count, flags, frames, rand_fn, None, 0, bone_fn, None)
+        ccls = world if cls == 92 and world in ARCA_MEMBERS else cls
+        if after:
+            lib.dll.mu_class_after(ccls, co, cb, 0, world, time, C.byref(model), C.byref(log))
+            answer, client = 0, 0
+        else:
+            answer = 1 if lib.dll.mu_class_custom(ccls, co, cb, 0, world, time, C.byref(model), C.byref(log)) else 0
+            client = result['eax'] & 0xff
+        mine = slot2_events(v.log_events(log), b)
+        named = (C.c_int32 * 36)()
+        listed = set(named[:lib.dll.mu_world_slot_bitmaps(world, typ, named)])
+        textures = {c[8] for c in calls if c[0] in (ws.BODY, ws.MESH) and c[8] != 0xffffffff}
+        bitmaps_ok = all(x in listed for x in textures if 0x7000 <= x < 0x9000)
+        if textures:
+            t.count('bitmap meshes')
+        if any(c[0] == EFFECT for c in calls):
+            t.count('effects')
+        ok = (bitmaps_ok and calls == mine and bones == cbones and client == answer and ra.seed == rb.seed and
+              result['regions']['object'] == co.raw[:v.OBJ_SIZE] and result['regions']['model'] == cb.raw[:0x100])
+        t.count(f'answer {client}')
+        t.count('drawn' if calls else 'no draw')
+        if (world == cls or (cls == 92 and world in ARCA_MEMBERS)) and typ in types:
+            t.count('case types')
+        t.add(ok, {'case': n, 'world': world, 'type': hex(typ), 'client': [tuple(hex(x) for x in c) for c in calls[:6]],
+                   'native': [tuple(hex(x) for x in c) for c in mine[:6]], 'answer': (client, answer),
+                   'object': result['regions']['object'] == co.raw[:v.OBJ_SIZE],
+                   'model': result['regions']['model'] == cb.raw[:0x100], 'rand': ra.seed == rb.seed,
+                   'bones': (bones, cbones), 'bitmaps': (sorted(textures), sorted(listed))})
+    return t
+
+
 FAMILIES = {}
 for _w in SLOT34:
     FAMILIES[f'rng_{_w}'] = (lambda w: lambda m, l, g, n: rng_family(m, l, g, n, [w]))(_w)
 FAMILIES['rng_empty'] = lambda m, l, g, n: rng_family(m, l, g, n, list(EMPTY))
 FAMILIES['rng_drawn'] = lambda m, l, g, n: rng_family(m, l, g, n, DRAWN)
+for _c, (_cu, _af, _w, _t) in SLOTS2.items():
+    FAMILIES[f'custom2_{_c}'] = (lambda c: lambda m, l, g, n: slot2_family(m, l, g, n, c, False))(_c)
+    if _af:
+        FAMILIES[f'after2_{_c}'] = (lambda c: lambda m, l, g, n: slot2_family(m, l, g, n, c, True))(_c)
 S = 'world_slots2_visual.c'
 MUTATIONS = [
     # the outer draw's model gate and world set

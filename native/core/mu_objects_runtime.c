@@ -915,9 +915,12 @@ static int class_custom_call(mu_objects *o, uint8_t *img, int32_t index, float t
 {
     const int32_t t = mu_obj_i32(img, MU_OBJF_TYPE);
     visual_context vc = {o, NULL};
-    if (o->world == 63 && (t == 0x43 || t == 0x44)) {
+    /* Vulcanus' statues read bones 4 and 6; RENDER-WORLDS-SLOTS2: Imperial Guardian's 0x73/0x75 bone 9 */
+    const int32_t last_bone = o->world == 63 && (t == 0x43 || t == 0x44) ? 6 :
+                              o->world >= 69 && o->world <= 72 && (t == 0x73 || t == 0x75) ? 9 : -1;
+    if (last_bone >= 0) {
         mu_object_model *m = o->models[t];
-        if (m && m->loaded && m->bmd.bone_count > 6 && pose_object(o, img, m, NULL)) {
+        if (m && m->loaded && m->bmd.bone_count > last_bone && pose_object(o, img, m, NULL)) {
             vc.m = m;
             model->bone = visual_bone;
             model->bone_context = &vc;
@@ -930,7 +933,8 @@ static int class_custom_call(mu_objects *o, uint8_t *img, int32_t index, float t
     mu_obj_event requests[8];
     mu_obj_log req = {0, 8, 0, requests};
     for (int32_t k = first; k < log->count; ++k)
-        if (log->events[k].call == MU_OBJ_CALL_SPRITE || log->events[k].call == MU_OBJ_CALL_PARTICLE) {
+        if (log->events[k].call == MU_OBJ_CALL_SPRITE || log->events[k].call == MU_OBJ_CALL_PARTICLE ||
+            log->events[k].call == MU_OBJ_CALL_EFFECT) {   /* RENDER-WORLDS-SLOTS2: Imperial Guardian 0x52d */
             if (req.count < req.capacity)
                 requests[req.count++] = log->events[k];
             else

@@ -1,6 +1,7 @@
 /* RENDER-WORLDS-SLOTS2: RenderObjectVisual's outer flicker draw (0x017f9758: rand() % 30 at 0x017f9797) in the
  * production first pass (mu_objects_prepare_index) of every class world: one draw of the object generator for an
- * object with a model and a type no slot of the world draws for, none without a model. Production runtime. */
+ * object with a model and a type no slot of the world draws for, none without a model. Then the custom slots this
+ * lane adds, in the same pass. Production runtime. */
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,6 +55,21 @@ static void release(mu_objects *o, int32_t type)
 
 static uint32_t msvc_next(uint32_t seed) { return seed * 214013u + 2531011u; }
 
+/* the first pass: the custom slot's RenderBody/RenderMesh count and their textures */
+static int32_t slot_draws(mu_objects *o, mu_world *map, uint32_t textures[8])
+{
+    mu_draw_options options;
+    (void)mu_objects_prepare_index(o, 0, map, 6, &options);
+    int32_t draws = 0;
+    for (int32_t k = 0; k < o->rt.slot_count; ++k)
+        if (o->rt.slot_events[k].call == MU_OBJ_CALL_BODY || o->rt.slot_events[k].call == MU_OBJ_CALL_MESH) {
+            if (draws < 8)
+                textures[draws] = o->rt.slot_events[k].args[7];
+            ++draws;
+        }
+    return draws;
+}
+
 int main(int argc, char **argv)
 {
     assert(argc > 1);
@@ -80,6 +96,35 @@ int main(int argc, char **argv)
             }
             release(o, type);
         }
+    uint32_t tex[8];
+    /* Santa Village 0x10: meshes 0..2 and mesh 2's 0x44 glow */
+    mu_objects *o = population(62, 0x10, 1);
+    assert(slot_draws(o, map, tex) == 4 && o->rt.slot_index == 0);
+    release(o, 0x10);
+    /* Arca War 96 forwards to Debenter's 0x32: the body mesh and its solight02 glow */
+    o = population(96, 0x32, 1);
+    assert(slot_draws(o, map, tex) == 2 && tex[0] == 0xffffffffu && tex[1] == 0x81a7);
+    release(o, 0x32);
+    /* Arca War 101 forwards to Uruk Mountain's 0x10: meshes 0 and 1 */
+    o = population(101, 0x10, 1);
+    assert(slot_draws(o, map, tex) == 2);
+    release(o, 0x10);
+    /* Imperial Guardian 72 type 0x60: the grey body (after world 69's slot answered no) */
+    o = population(72, 0x60, 1);
+    assert(slot_draws(o, map, tex) == 1 && tex[0] == 0xffffffffu);
+    release(o, 0x60);
+    /* World 82 type 0xa: flagged for the after pass, nothing drawn first */
+    o = population(82, 0xa, 1);
+    assert(slot_draws(o, map, tex) == 0 && o->rt.images[MU_OBJF_AFTER_CHARACTER] == 1);
+    release(o, 0xa);
+    /* Imperial Guardian 70 type 0x73 (world 69's slot): four meshes; without bone 9 the effect is refused and
+     * counted, and the frame latch +0x60 still turns 0x64 into 0x65 */
+    o = population(70, 0x73, 1);
+    mu_obj_set_f32(o->rt.images, MU_OBJF_FRAME, 0.2f);
+    mu_obj_set_i32(o->rt.images, 0x60, 0x64);
+    assert(slot_draws(o, map, tex) == 4 && o->rt.draw_unsupported == 1 && o->rt.effect_events == 0 &&
+           mu_obj_i32(o->rt.images, 0x60) == 0x65);
+    release(o, 0x73);
     free(map);
     return failures != 0;
 }
