@@ -83,7 +83,7 @@ int main(int argc,char **argv)
         assert(p.list.count==0&&p.stats.overflow==overflow+1&&p.stats.unsupported==unsupported&&p.rand_calls>calls);
         p.list.capacity=capacity;
     }
-    const int absent[][2]={{0x7f5a,70},{0x7f5a,23},{0x7f89,26},{0x801b,8},{0x8184,1},{0x7fd5,1}};
+    const int absent[][2]={{0x7f5a,70},{0x7f5a,23},{0x7f89,26},{0x801b,8},{0x8184,3},{0x7fd5,1}};   /* 0x8184/1: RENDER-EFFECTS-011 */
     for(unsigned i=0;i<sizeof absent/sizeof *absent;++i)
         assert(!mu_pt_kind_supported(absent[i][0],absent[i][1]));
     mu_world_particles_close(&p);
