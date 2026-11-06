@@ -82,6 +82,24 @@ int mu_hud_trs_find(const mu_hud_trs_table *table, int32_t code, float scale_fac
     return 0;
 }
 
+int mu_hud_item_trs(const mu_lang *lang, const mu_hud_trs_table *bmd, int32_t code, float scale_factor,
+                    mu_item_trs *out)
+{
+    float v[6];
+    int found = mu_lang_item_trs(lang, code, v);
+    if (found < 0)
+        return mu_hud_trs_find(bmd, code, scale_factor, out);
+    if (!found)
+        return mu_hud_trs_find(NULL, code, 1.0f, out);   /* the default record 0x06fbaa40 */
+    out->offset_x = v[0];
+    out->offset_y = v[1];
+    out->rotation[0] = v[2];
+    out->rotation[1] = v[3];
+    out->rotation[2] = v[4];
+    out->scale = v[5];
+    return 1;
+}
+
 void mu_hud_inventory_init(mu_hud_inventory *inv)
 {
     memset(inv, 0, sizeof *inv);
@@ -197,8 +215,9 @@ static void pass_emit(void *user, const mu_slot_call *call)
 }
 
 int32_t mu_hud_inventory_pass_at(const mu_hud_inventory *inv, const mu_hud_window_geometry *geo, int32_t screen_w,
-                              int32_t screen_h, const mu_hud_trs_table *trs, float scale_factor,
-                              int32_t hover_item, float time, mu_hud_item_draw *draws, int32_t max)
+                                int32_t screen_h, const mu_lang *lang, const mu_hud_trs_table *trs,
+                                float scale_factor, int32_t hover_item, float time, mu_hud_item_draw *draws,
+                                int32_t max)
 {
     mu_slot_page page = {&inv->grid, geo->slot_x, geo->slot_y, geo->cell_w, geo->cell_h, geo->gap_x, geo->gap_y};
     mu_slot_frame frame = {1, geo->align, geo->movie_x, geo->movie_y, geo->alpha, geo->scale, &page, 1, 1};
@@ -230,7 +249,7 @@ int32_t mu_hud_inventory_pass_at(const mu_hud_inventory *inv, const mu_hud_windo
         memset(&sys, 0, sizeof sys);
         sys.cursor_in = win.cursor_in;
         sys.time = time;
-        mu_hud_trs_find(trs, it->code, scale_factor, &sys.trs);
+        mu_hud_item_trs(lang, trs, it->code, scale_factor, &sys.trs);
         if (it->has_record) {
             sys.kind_b_6a = it->record.attributes.kind_b == 0x6a;
             sys.kind_a_22 = it->record.attributes.kind_a == 0x22;
@@ -253,7 +272,8 @@ int32_t mu_hud_inventory_pass(const mu_hud_inventory *inv, const mu_hud_window_g
                               int32_t screen_h, const mu_hud_trs_table *trs, float scale_factor,
                               int32_t hover_item, mu_hud_item_draw *draws, int32_t max)
 {
-    return mu_hud_inventory_pass_at(inv, geo, screen_w, screen_h, trs, scale_factor, hover_item, 0.0f, draws, max);
+    return mu_hud_inventory_pass_at(inv, geo, screen_w, screen_h, NULL, trs, scale_factor, hover_item, 0.0f, draws,
+                                    max);
 }
 
 void mu_hud_item_projection(int32_t screen_w, int32_t screen_h, float m[16])

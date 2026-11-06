@@ -59,13 +59,17 @@ struct mu_lang {
     size_t nskillreq;
     struct int_row *soulconv;
     size_t nsoulconv;
+    /* APP-POLISH-004: ItemTRSData 0x06fbb624 (RenderItem3D's render info) */
+    struct int_row *itemtrs;
+    size_t nitemtrs;
+    int has_itemtrs;
     text_entry *questtext;
     size_t nquesttext;
 };
 
 typedef struct int_row {
     int32_t key;
-    int32_t v[4];
+    int32_t v[6];
 } int_row;
 
 /* ---- reading --------------------------------------------------------- */
@@ -484,8 +488,8 @@ static long load_rows(const char *dir, const char *name, int nv, int_row **out, 
     while ((line = next_line(&cursor))) {
         if (!*line || *line == '#')
             continue;
-        char *f[6];
-        if (split(line, f, 6) != nv + 1)
+        char *f[8];
+        if (split(line, f, 8) != nv + 1)
             continue;
         int_row r;
         memset(&r, 0, sizeof r);
@@ -756,6 +760,8 @@ mu_lang *mu_lang_load(const char *dir)
     any |= load_charinfo(L, dir);
     any |= load_skillreq(L, dir);
     any |= load_rows(dir, "soulconv.tsv", 3, &L->soulconv, &L->nsoulconv, NULL) > 0;
+    L->has_itemtrs = load_rows(dir, "itemtrs.tsv", 6, &L->itemtrs, &L->nitemtrs, NULL) > 0;
+    any |= L->has_itemtrs;
     any |= load_text(dir, "questtext.txt", &L->questtext, &L->nquesttext);
     if (!any) {
         mu_lang_free(L);
@@ -795,6 +801,7 @@ void mu_lang_free(mu_lang *L)
     free(L->codes);
     free(L->pentagram);
     free(L->invenanim);
+    free(L->itemtrs);
     free(L->legendary);
     for (size_t i = 0; i < L->ncash_sets; ++i) {
         free((char *)L->cash_sets[i].name);
@@ -1057,6 +1064,17 @@ int mu_lang_inven_anim(const mu_lang *L, int32_t code, uint16_t *action, float *
     *action = (uint16_t)r->v[2];
     uint32_t bits = (uint32_t)r->v[3];
     memcpy(speed, &bits, sizeof *speed);
+    return 1;
+}
+
+int mu_lang_item_trs(const mu_lang *L, int32_t code, float values[6])
+{
+    if (!L || !L->has_itemtrs)
+        return -1;
+    const int_row *r = find_row(L->itemtrs, L->nitemtrs, code);
+    if (!r)
+        return 0;
+    memcpy(values, r->v, sizeof(float) * 6);   /* the record's binary32 words, as written */
     return 1;
 }
 

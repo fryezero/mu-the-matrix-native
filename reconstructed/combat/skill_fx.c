@@ -302,7 +302,7 @@ static int effect_supported(int32_t type, int32_t sub)
     case MU_SFX_MODEL_CIRCLE: case MU_SFX_MODEL_CIRCLE_LIGHT: case MU_SFX_MODEL_INFERNO:
     case MU_SFX_MODEL_LASER: case MU_SFX_TWISTING_SLASH: case MU_SFX_TWISTING_SWIRL:
         return sub == 0;
-    case MU_SFX_MODEL_STONE1: case MU_SFX_MODEL_STONE2: return sub == 0 || sub == 1;
+    case MU_SFX_MODEL_STONE1: case MU_SFX_MODEL_STONE2: return sub == 0 || sub == 1 || sub == 0x13;   /* 0x13: 0x70c's */
     case MU_SFX_MODEL_DUNGEON_STONE: return sub == 0;   /* RENDER-EFFECTS-005 */
     /* RENDER-EFFECTS-006: the subtypes the world objects ask for */
     case MU_SFX_MODEL_FLYBAT: return sub == 0;
@@ -721,9 +721,10 @@ int mu_sfx_effect_create(mu_sfx_effect *e, int32_t type, int32_t subtype, const 
         break;
     case MU_SFX_MODEL_STONE1:
     case MU_SFX_MODEL_STONE2: {
-        /* 0x013d49a0: subtype 0 flings the stone out (0x013d49cc), subtype 1 lifts it (0x013d4b0a) */
+        /* 0x013d49a0: subtype 0 flings the stone out (0x013d49cc), subtype 1 lifts it (0x013d4b0a);
+         * RENDER-EFFECTS-014: subtype 0x13 (0x013d5665) repeats subtype 0's body */
         float v[3] = {0.0f, 0.0f, 0.0f}, m[12];
-        if (subtype == 0)
+        if (subtype == 0 || subtype == 0x13)
             v[1] = (float)(smod(env_rand(env), 256) + 64) * F_0_1;
         e->lifetime = smod(env_rand(env), 16) + 32;
         e->scale = (float)(smod(env_rand(env), 4) + 8) * F_0_1;
@@ -1609,8 +1610,8 @@ int mu_sfx_effect_move(mu_sfx_effect *e, const mu_sfx_env *env)
     }
     case MU_SFX_MODEL_STONE1:
     case MU_SFX_MODEL_STONE2:
-        if (sub == 0) {
-            /* 0x01459d34: bounce on the ground */
+        if (sub == 0 || sub == 0x13) {
+            /* 0x01459d34: bounce on the ground (RENDER-EFFECTS-014: 0x13 at 0x0145bf6a, smoke 0x7f40 below) */
             e->position[0] = e->position[0] + e->direction[0];
             e->position[1] = e->position[1] + e->direction[1];
             e->position[2] = e->position[2] + e->direction[2];
@@ -1628,9 +1629,15 @@ int mu_sfx_effect_move(mu_sfx_effect *e, const mu_sfx_env *env)
             } else {
                 e->angle[0] = e->angle[0] - e->scale * 32.0f;
             }
-            if (env_rand(env) % 10 == 0)
-                call_particle(env, e, MU_SFX_BITMAP_FIRE, e->position, e->angle, e->light, env_rand(env) % 3 + 1,
-                              1.0f, MU_SFX_NO_OWNER);
+            if (env_rand(env) % 10 == 0) {
+                if (sub == 0x13) {   /* 0x0145c2b0: grey (0.3) particle 0x7f40 */
+                    const float grey[3] = {0.3f, 0.3f, 0.3f};
+                    call_particle(env, e, 0x7f40, e->position, e->angle, grey, env_rand(env) % 3 + 1, 1.0f,
+                                  MU_SFX_NO_OWNER);
+                } else
+                    call_particle(env, e, MU_SFX_BITMAP_FIRE, e->position, e->angle, e->light, env_rand(env) % 3 + 1,
+                                  1.0f, MU_SFX_NO_OWNER);
+            }
         } else {
             /* 0x0145a0d2: rises */
             float m[12], p[3];

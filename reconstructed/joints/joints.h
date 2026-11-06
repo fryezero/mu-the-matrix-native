@@ -55,7 +55,9 @@ enum {
     MU_JT_CALL_EFFECT = 0x013c0eaa,         /* CreateEffect(type, pos, angle, light, sub, owner, ...) */
     MU_JT_CALL_SPRITE = 0x01692eb7,         /* CreateSprite(bitmap, pos, scale, light, owner, rotation, blend, axes) */
     MU_JT_CALL_AREA_ATTACK = 0x013bc25e,    /* the hero's area attack request (skill, range, pos, serial, ...) */
-    MU_JT_CALL_DELETE = 0x01553a54         /* DeleteJoint(type, target, subtype) */
+    MU_JT_CALL_DELETE = 0x01553a54,        /* DeleteJoint(type, target, subtype) */
+    MU_JT_CALL_SOUND = 0x00a6ac96,         /* RENDER-EFFECTS-014: PlayBuffer(type, 0, 0) */
+    MU_JT_CALL_CHECK_ARROW = 0x013bd374    /* RENDER-EFFECTS-014: owner +0x158 = position, then CheckClientArrow(owner) */
 };
 
 /* GL state wrappers of RenderJoints' render types. */
@@ -127,6 +129,7 @@ typedef struct mu_jt_object {
     int8_t level;              /* +0x41 the item level byte the area-skill caller stores (RenderPartObject glow) */
     float scale;               /* +0xa0 (RENDER-EFFECTS-006: the owned effects 0x195/0x59a scale their drift by it) */
     int32_t lifetime;           /* +0x6c, RENDER-EFFECTS-013: owning arrow lifetime */
+    float impact[3];            /* +0x110, RENDER-EFFECTS-014: arrow 0x459's ring point (Flare/b's pull) */
 } mu_jt_object;
 
 /* One call into another subsystem, in client order; vectors are the values at

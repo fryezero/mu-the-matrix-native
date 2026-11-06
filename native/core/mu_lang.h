@@ -115,6 +115,11 @@ char *mu_lang_ascii(char *dst, size_t cap, const char *src);
 int mu_lang_pentagram_tier(const mu_lang *lang, int32_t code, int32_t *tier);
 /* InvenItemAnimation 0x0111d824: 1 with the record's action (+8) and speed (+0xc), 0 when absent. */
 int mu_lang_inven_anim(const mu_lang *lang, int32_t code, uint16_t *action, float *speed);
+/* ItemTRSData 0x06fbb624 (APP-POLISH-004): RenderItem3D 0x016c154e finds the code through 0x011204db and copies
+ * the record at node +0x14: slot offset factors x, y (+0, +4), rotation x, y, z in degrees (+8..+0x10) and
+ * scale (+0x14). 1 with those six floats; 0 when the code is absent (the client then uses its default record
+ * 0x06fbaa40); -1 without the table (no itemtrs.tsv). */
+int mu_lang_item_trs(const mu_lang *lang, int32_t code, float values[6]);
 /* LegendaryItemSetType 0x011288c7: the four codes at record +4 of the set type, or the default record's;
  * 0 without the table. */
 int mu_lang_legendary(const mu_lang *lang, int32_t type, int32_t codes[4]);

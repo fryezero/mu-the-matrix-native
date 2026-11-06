@@ -391,8 +391,12 @@ static int render_inventory(const hud_options *o)
     }
     mu_hud_window_geometry geo = mu_hud_inventory_geometry_live();
     mu_hud_item_draw draws[MU_HUD_MAX_ITEMS];
-    int32_t n = mu_hud_inventory_pass_at(&inv, &geo, o->width, o->height, have_trs ? &trs : NULL, o->item_scale,
-                                         o->hover, (float)o->time_ms, draws, MU_HUD_MAX_ITEMS);
+    mu_lang *lang = mu_lang_load_default();   /* APP-POLISH-004: ItemTRSData (itemtrs.tsv) when MU_LANG_DIR has it */
+    int32_t n = mu_hud_inventory_pass_at(&inv, &geo, o->width, o->height, lang, have_trs ? &trs : NULL,
+                                         o->item_scale, o->hover, (float)o->time_ms, draws, MU_HUD_MAX_ITEMS);
+    float probe[6];
+    const char *render_info = mu_lang_item_trs(lang, 0, probe) >= 0 ? "itemtrs" : have_trs ? "itemtrsdata" : "default";
+    mu_lang_free(lang);
     scene sc;
     if (scene_open(&sc, o))
         return 1;
@@ -468,7 +472,7 @@ static int render_inventory(const hud_options *o)
              "\"items_placed\": %d, \"items_rejected\": %d, \"slot_calls\": %d, \"models_drawn\": %d, "
              "\"special\": %d, \"models_missing\": %d, \"triangles\": %ld, \"render_info\": \"%s\", "
              "\"tooltip_lines\": %d, \"tooltip_unsupported\": %d, \"tooltip_box\": [%d, %d, %d, %d]",
-             placed, rejected, n, drawn, special, missing, triangles, have_trs ? "itemtrsdata" : "default",
+             placed, rejected, n, drawn, special, missing, triangles, render_info,
              tip_lines, unsupported, box[0], box[1], box[2], box[3]);
     int result = finish(o, &sc, extra);
     scene_close(&sc);

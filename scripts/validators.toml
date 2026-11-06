@@ -2813,6 +2813,24 @@ mismatches = 0
 equivalent = 0
 "mutants_caught" = {len = 14}
 
+[validate_app_polish4]
+test = "native/tests/test_app_polish4.py::AppPolish4.test_original_instructions"
+pins = ["text", "data", "lang3"]
+needs = ["cc"]
+cases = 10485
+cases_at = "families.*.cases"
+mutants = 8
+mutants_at = "mutants"
+note = "APP-POLISH-004; compiles native/core/mu_lang.c, mu_hud.c's mu_hud_item_trs, reconstructed/hud/item_slots.c and the converter's read_itemtrs from their source text; MU_SNAPSHOT_DIR for lang3"
+args = ["--text", "{text}", "--data", "{data}", "--snapshot", "{lang3}", "--mutants", "--output", "{report}"]
+[validate_app_polish4.expect]
+"families.trs_lookup.cases" = 5276
+"families.render_item3d.cases" = 5207
+"families.window_name.cases" = 2
+"families.*.mismatches" = 0
+"mutants.*" = true
+"ok" = true
+
 [validate_render_effects13]
 test = "native/tests/test_render_effects13.py::ClientComparison.test_original_instructions_and_compiled_mutants"
 pins = ["text", "data"]
@@ -2858,6 +2876,20 @@ args = ["--cases", "1000", "--mutations", "--output", "{report}"]
 "families.*.stopped" = 0
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
+
+[validate_render_effects14]
+test = "native/tests/test_render_effects14.py::ClientComparison.test_original_instructions_and_compiled_mutants"
+pins = ["text", "data"]
+families = ["joint_create", "joint_move", "joint_render", "create", "move", "render", "owner_flag_create", "owner_flag_move", "fx_create", "fx_move"]
+cases = 660
+mutants = 48
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/joints", "reconstructed/particles", "reconstructed/combat"]
+args = ["--cases", "20", "--mutations", "--output", "{report}"]
+[validate_render_effects14.expect]
+all_equal = true
+all_mutants_caught = true
 
 [validate_worlds_s3]
 test = "reconstructed/objects/test_worlds_s3.py::WorldsS3Tests.test_original_instructions"

@@ -218,6 +218,64 @@ int main(void) {
         r = subprocess.run([str(probe)], capture_output=True, text=True, env=strict, check=True)
         self.assertEqual(r.stdout.split()[3], '0')                             # strict: AF_UNIX refused too
 
+    def test_guard_stays_active_under_the_documented_nice_command(self):
+        """APP-POLISH-004: /usr/bin/nice drops DYLD_* (SIP), so the guard is set by scripts/guarded_run.py,
+        which lowers the child's priority itself: `nice -n 10 python scripts/guarded_run.py --guard ... -- prog`."""
+        probe = self.dir / 'nice-probe'
+        source = self.dir / 'nice-probe.c'
+        source.write_text(r'''
+#include <errno.h>
+#include <stdio.h>
+#include <sys/resource.h>
+#include <sys/socket.h>
+int main(void) {
+    int a = socket(AF_INET, SOCK_STREAM, 0); int ea = errno;
+    printf("%d %d %d\n", a < 0 ? -1 : 1, a < 0 ? ea : 0, getpriority(PRIO_PROCESS, 0));
+    return 0;
+}''')
+        subprocess.run(['clang', '-o', str(probe), str(source)], check=True, capture_output=True)
+        guard = self.app / 'Contents/Frameworks/libmu-nonet.dylib'
+        helper = NATIVE.parent / 'scripts/guarded_run.py'
+        env = {k: v for k, v in os.environ.items() if not k.startswith('DYLD_') and k != 'MU_NONET_REPORT'}
+        report = self.dir / 'nice-guard.json'
+        documented = ['/usr/bin/nice', '-n', '10', sys.executable, str(helper), '--guard', str(guard),
+                      '--report', str(report), '--', str(probe)]
+        base = os.getpriority(os.PRIO_PROCESS, 0)                             # the test may run under nice already
+        r = subprocess.run(documented, capture_output=True, text=True, env=env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(r.stdout.split(), ['-1', '13', str(min(20, base + 10))])   # refused (EACCES), niced
+        rep = json.loads(report.read_text())
+        self.assertEqual((rep['guard'], rep['phase'], rep['inet_denied']), ('mu-nonet', 'exit', 1))
+        # --nice raises a child's niceness without an outer nice; --strict fails on the refused call
+        r = subprocess.run([sys.executable, str(helper), '--guard', str(guard), '--report', str(report),
+                            '--nice', '7', '--', str(probe)], capture_output=True, text=True, env=env)
+        self.assertEqual((r.returncode, r.stdout.split()[1:]), (0, ['13', str(max(base, 7))]), r.stderr)
+        r = subprocess.run([sys.executable, str(helper), '--guard', str(guard), '--report', str(report),
+                            '--strict', '--', str(probe)], capture_output=True, text=True, env=env)
+        self.assertEqual(r.returncode, 4)
+        # a protected launcher between the helper and the program is refused before anything runs
+        r = subprocess.run([sys.executable, str(helper), '--guard', str(guard), '--report', str(report),
+                            '--', '/usr/bin/nice', '-n', '10', str(probe)], capture_output=True, text=True, env=env)
+        self.assertEqual(r.returncode, 2)
+        self.assertIn('SIP-protected', r.stderr)
+        # a program that does not load the guard (hardened runtime: dyld ignores DYLD_*) fails the run
+        hardened = self.dir / 'nice-probe-hardened'
+        shutil.copy2(probe, hardened)
+        subprocess.run(['codesign', '-f', '-s', '-', '-o', 'runtime', str(hardened)], check=True, capture_output=True)
+        r = subprocess.run([sys.executable, str(helper), '--guard', str(guard), '--report', str(report),
+                            '--', str(hardened)], capture_output=True, text=True, env=env)
+        self.assertEqual(r.returncode, 3)
+        self.assertEqual(r.stdout.split()[:2], ['1', '0'])
+        self.assertIn('did not load', r.stderr)
+        # the trap itself: the guard named in front of /usr/bin/nice never loads while SIP is on
+        sip = subprocess.run(['csrutil', 'status'], capture_output=True, text=True).stdout
+        if 'enabled' in sip:
+            report.unlink(missing_ok=True)
+            trap = dict(env, DYLD_INSERT_LIBRARIES=str(guard), MU_NONET_REPORT=str(report))
+            r = subprocess.run(['/usr/bin/nice', '-n', '10', str(probe)], capture_output=True, text=True, env=trap)
+            self.assertEqual(r.stdout.split()[:2], ['1', '0'])                 # the socket was NOT refused
+            self.assertFalse(report.exists())
+
     # ---- data setup and plan
 
     def test_default_scratch_uses_current_workspace_and_preserves_legacy_fallback(self):
