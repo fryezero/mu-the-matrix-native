@@ -23,6 +23,7 @@ import validate_render_effects11 as re11
 ROOT = Path(__file__).resolve().parents[1]
 KINDS = [(0x7f78, 11), (0x7f79, 14)]
 PT_KINDS = [(0x7f5a, 0x22), (0x7f5a, 0x23), (0x7f26, 0xa)]
+FX_KINDS = [(0x703, 0), (0x704, 0), (0x705, 0), (0x705, 1), (0x705, 3), (0x706, 0), (0x419, 0x13), (0x41a, 0x13)]
 CLOCK = 0x0bdc5eb0
 MUTANTS = [
     ('bow_joints.inc', 'j->lifetime = 30; /* Flare/b */', 'j->lifetime = 31; /* Flare/b */', 'joint_create'),
@@ -209,6 +210,109 @@ def family_joint_move(m, lib, rng, cases, report, negatives):
             negatives['flare_sound_off_30'] += any(c[0] == 'sound' for c in case.client_calls) != (before.lifetime == 30)
 
 
+def family_owner_flag(m, lib, rng, cases, report, negatives):
+    """OBJECT +0x64, the ground skills' landing-sound flag (set at 0x014ecaab): CreateEffect 0x40a clears it for
+    subtypes 0 and 1 with a live owner (0x013ff56c / 0x013ff5b8) and MoveEffect 0x40a adds one per step
+    (0x014f7225..0x014f7232). Compared with that contract; the client's other OBJECT bytes stay unchanged."""
+    import validate_render_effects7 as re7
+    sf = jt.sf
+    for n in range(cases):
+        create = n % 2 == 0
+        objects = [sf.random_object(rng) for _ in range(2)]
+        for o in objects:
+            o.live = rng.choice([0, 1, 1, 2])
+        owner = rng.choice([-1, 0, 1, 1])
+        sub = rng.choice([0, 1, 1, 0, 2])
+        flags = [rng.choice([0, 1, 1, 2, 7, -1, 0x7fffffff]) for _ in objects]
+        region = sf.object_region(objects, writable=True)
+        for i in range(len(objects)):
+            region.define(sf.OBJECTS + 0x400*i + 0x64, struct.pack('<i', flags[i]))
+            region.define(sf.OBJECTS + 0x400*i + 0xdc, struct.pack('<f', 0.5))
+        case = re7.Case(rng, objects, sf.rand_values(rng), 100.0)
+        hero = jt.am.Region('hero-data', sf.HERO_DATA, jt.am.poison(0x3000, 0x13), bytes(0x3000))
+        common = [region, hero,
+                  jt.am.defined_region('hero-ptr', sf.HERO_DATA_PTR, struct.pack('<I', sf.HERO_DATA), writable=False),
+                  jt.am.defined_region('hero', sf.HERO_POINTER, struct.pack('<I', 0x5000000), writable=False)]
+        if create:
+            info = re7.random_info(rng)
+            inputs = jt.am.defined_region('inputs', sf.INPUTS, struct.pack('<9f', *([100.0]*3), *([0.0]*3), *([1.0]*3)) +
+                                          sf.info_bytes(info), writable=True)
+            record = jt.am.Region('record', sf.POOL, jt.am.poison(0x3d8, 0x31), bytes(0x3d8))
+            record.define(sf.POOL, b'\0')
+            r = m.execute(sf.CREATE_EFFECT, [0x40a, sub, sf.INPUTS, sf.INPUTS + 12, sf.INPUTS + 24,
+                                             sf.object_address(owner), jt.bits(0.0), sf.INPUTS + 36],
+                          [inputs, record] + common, case.stubs(m), ecx=sf.POOL, cleanup=0x20)
+        else:
+            e = sf.random_effect(rng, (0x40a, sub))
+            e.owner = owner
+            e.lifetime = rng.choice([70, 69, 35, 1, 0])
+            e.field_70 = 70
+            raw, mask = sf.effect_to_bytes(e, re7.MOVE_DEFINED)
+            record = jt.am.Region('record', sf.POOL, raw, mask)
+            model = jt.am.Region('model', sf.MODEL, jt.am.poison(0x2000, 0x55), bytes(0x2000))
+            model.define(sf.MODEL + 0x30, struct.pack('<I', sf.MODEL + 0x1000))
+            regions = [record, model, jt.am.Region('quake', sf.QUAKE, jt.am.poison(4, 0x21), bytes(4)),
+                       jt.am.defined_region('world', sf.WORLD, struct.pack('<i', 0), writable=False),
+                       jt.am.defined_region('clock', 0x06fce370, struct.pack('<f', 1000.0), writable=False)] + common
+            r = m.execute(sf.MOVE_EFFECT, [sf.POOL, 0], regions, case.stubs(m))
+        mismatch = None
+        if jt.vc.ok(r):
+            got = r['regions']['objects']
+            live = owner >= 0 and objects[owner].live != 0
+            for i in range(len(objects)):
+                want = flags[i]
+                if i == owner and live:
+                    want = (0 if sub in (0, 1) else flags[i]) if create else ((flags[i] + 1 + 2**31) % 2**32 - 2**31)
+                value = struct.unpack('<i', got[0x400*i + 0x64:0x400*i + 0x68])[0]
+                if value != want:
+                    mismatch = ('flag', i, value, want)
+            expect = bytearray(region.data)
+            for i in range(len(objects)):
+                expect[0x400*i + 0x64:0x400*i + 0x68] = got[0x400*i + 0x64:0x400*i + 0x68]
+                expect[0x400*i + 0xdc:0x400*i + 0xe0] = got[0x400*i + 0xdc:0x400*i + 0xe0]   # the owner's alpha
+            if mismatch is None and any(region.defined[k] and got[k] != expect[k] for k in range(len(expect))):
+                mismatch = ('object write',)
+        family = 'owner_flag_create' if create else 'owner_flag_move'
+        report.add(family, jt.vc.ok(r) and mismatch is None,
+                   {'case': n, 'sub': sub, 'owner': owner, 'mismatch': mismatch, 'stopped': r['stopped'],
+                    'error': r['error']})
+        report.cover(family, f'sub {sub} ' + ('live owner' if owner >= 0 and objects[owner].live else 'no owner'))
+
+
+def fx_compare(text, data, lib, name, cases, seed='effects14-fx-'):
+    """re11's CreateEffect / MoveEffect comparison on 0x70c's rings and stones; 0x706 writes +0xb0 too."""
+    import validate_render_effects7 as re7
+    saved = re7.MOVE_DEFINED
+    re7.MOVE_DEFINED = saved | {'blend_v'}
+    try:
+        return re11.fx_compare(text, data, lib, name, FX_KINDS, cases, seed)
+    finally:
+        re7.MOVE_DEFINED = saved
+
+
+def compile_skill_mutant(directory, name, file, old, new):
+    """A planted mistake in bow_fx.inc (re11's compiler) or skill_fx.c."""
+    if file == 'bow_fx.inc':
+        return re11.compile_fx_mutant(directory, name, old, new)
+    import shutil
+    import subprocess
+    base = ROOT/'reconstructed'/'combat'
+    if (base/file).read_text().count(old) != 1:
+        raise ValueError(f'{name}: expected exactly one mutation site')
+    work = Path(directory)/name
+    work.mkdir()
+    for f in ('skill_fx.c', 'pet_fx.inc', 'arrow_fx.inc', 'bow_fx.inc'):
+        text = (base/f).read_text()
+        (work/f).write_text(text.replace(old, new) if f == file else text)
+    others = ['combat.c', '../objects/world_warp.c', '../joints/joints.c', '../record-math/record_math.c',
+              '../movement/client_movement.c']
+    out = Path(directory)/(name + '.' + jt.SUFFIX)
+    subprocess.run(['clang', '-std=c11', '-O2', '-fPIC', '-ffp-contract=off', '-fno-fast-math', '-shared', '-I',
+                    str(base), str(work/'skill_fx.c'), *[str(base/q) for q in others], '-lm', '-o', str(out)],
+                   check=True, capture_output=True)
+    return jt.sf.load_library(out)
+
+
 def configure():
     re12.configure()
     jt.KINDS = list(KINDS)
@@ -256,6 +360,12 @@ def main():
     for name in ('create', 'move', 'render'):
         getattr(pt, 'family_' + name)(pm, plib, random.Random('effects14-' + name), a.cases*len(PT_KINDS), r,
                                       jt.collections_default())
+    family_owner_flag(m, None, random.Random('effects14-owner-flag'), a.cases*2, r, negatives)
+    fxlib = jt.sf.load_library(ROOT/f'reconstructed/combat/libcombat.{jt.SUFFIX}')
+    for name in ('create', 'move'):
+        res = fx_compare(text, data, fxlib, name, a.cases*len(FX_KINDS))
+        r.families.update(res['families'])
+        r.coverage.update(res['coverage'])
     equal = all(f['equal'] == f['cases'] for f in r.families.values())
     print(json.dumps(dict(instruction_cases=sum(f['cases'] for f in r.families.values()), all_equal=equal,
                           families={k: (v['cases'], v['equal']) for k, v in r.families.items()},
