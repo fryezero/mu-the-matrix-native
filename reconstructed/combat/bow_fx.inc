@@ -57,6 +57,14 @@ uint32_t mu_sfx_sound_site(int32_t sound, uint32_t *routine)
     return 0;
 }
 
+/* position + (0, 0, z) as the vector sum 0x00cfca74 (so -0 + 0 = +0 in x and y) */
+static void lifted(float out[3], const float position[3], float z)
+{
+    out[0] = position[0] + 0.0f;
+    out[1] = position[1] + 0.0f;
+    out[2] = position[2] + z;
+}
+
 /* 0x012af5cb(position, angle, target): the heading (0x012aed9e) to the target and the pitch over the ground
  * distance (sqrtf 0x00961a07); the length 0x00cfd020 it then takes is discarded */
 static void bow_aim(const float p[3], float angle[3], const float t[3])
@@ -171,15 +179,12 @@ static int bow_effect_create(mu_sfx_effect *e, const float angle_arg[3], float s
         set3(e->light, 1.0f, 1.0f, 1.0f);
         float light[3] = {0.5f, f32bits(0x3f266666u), 1.0f};   /* 0.65 */
         float p[3];
-        copy3(p, e->position);
-        p[2] = p[2] + 300.0f;
+        lifted(p, e->position, 300.0f);
         call_effect_ks(env, e, 0x700, p, e->angle, light, 0, MU_SFX_NO_OWNER, 0xffff, 2.5f);
         set3(light, f32bits(0x3f266666u), F_0_3, f32bits(0x3f333333u));   /* (0.65, 0.3, 0.7) */
-        copy3(p, e->position);
-        p[2] = p[2] + 250.0f;
+        lifted(p, e->position, 250.0f);
         call_effect_ks(env, e, 0x702, p, e->angle, light, 0, MU_SFX_NO_OWNER, 0xffff, 1.5f);
-        copy3(p, e->position);
-        p[2] = p[2] + 250.0f;
+        lifted(p, e->position, 250.0f);
         call_effect_ks(env, e, 0x702, p, e->angle, light, 0, MU_SFX_NO_OWNER, 0xffff, 2.0f);
         call_effect_ks(env, e, 0x707, e->position, e->angle, e->light, 0, MU_SFX_NO_OWNER, 0xffff, F_0_8);
         const float z = e->position[2];

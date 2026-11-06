@@ -50,7 +50,8 @@ MOVE_DEFINED = re7.MOVE_DEFINED | {'spin', 'field_d8'}
 FX_MUTANTS = [
     # (name, old, new, family) on bow_fx.inc
     ('rain_life', 'e->lifetime = 20; /* rain life */', 'e->lifetime = 21; /* rain life */', 'create'),
-    ('rain_ring_lift', 'p[2] = p[2] + 300.0f;', 'p[2] = p[2] + 200.0f;', 'create'),
+    ('rain_ring_lift', 'lifted(p, e->position, 300.0f);', 'lifted(p, e->position, 200.0f);', 'create'),
+    ('rain_signed_zero', 'out[1] = position[1] + 0.0f;', 'out[1] = position[1];', 'create'),
     ('rain_ring_scale', 'light, 0, MU_SFX_NO_OWNER, 0xffff, 2.5f);', 'light, 0, MU_SFX_NO_OWNER, 0xffff, 2.0f);',
      'create'),
     ('rain_707_light', 'call_effect_ks(env, e, 0x707, e->position, e->angle, e->light,',
@@ -213,6 +214,8 @@ def family_create(m, lib, rng, cases, report):
         objects = [fx.random_object(rng) for _ in range(2)]
         owner = rng.choice([-1, 0, 1])
         pos = [vc.rfloat(rng, 0.05, 30000.0), vc.rfloat(rng, 0.05, 30000.0), vc.rfloat(rng, 0.05, 600.0)]
+        if n // len(KINDS) % 4 == 1:
+            pos[n // len(KINDS) % 8 // 4] = -0.0   # every fourth round: a signed zero in x or y (the rings' lift)
         angle = [vc.rfloat(rng, 0.1, 360.0) if k == 2 or rng.random() < 0.3 else 0.0 for k in range(3)]
         light = [vc.rfloat(rng, 0.1, 1.5) for _ in range(3)]
         scale = f32(rng.choice([0.0, 1.0, 1.0, 1.8, -1.0, vc.rfloat(rng, 0.2, 3.0)]))

@@ -48,7 +48,7 @@ class ClientComparison(unittest.TestCase):
         self.assertTrue(report['all_equal'])
         self.assertTrue(report['all_mutants_caught'])
         self.assertEqual(report['instruction_cases'], 509)
-        self.assertEqual(len(report['mutants']), 33)
+        self.assertEqual(len(report['mutants']), 34)
 
 
 if __name__ == '__main__':
