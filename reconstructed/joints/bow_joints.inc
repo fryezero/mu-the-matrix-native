@@ -83,8 +83,13 @@ static int move_bow_joint(mu_jt_joint *j, const mu_jt_env *env)
             const float down[3] = {0.0f, -1.0f, 0.0f};
             mu_angle_matrix(j->angle, m);
             mu_vector_rotate(down, m, d);
-            normalize3(d);
-            for (int k = 0; k < 3; ++k) j->position[k] = t->position[k] + d[k] * 15.0f;
+            /* AngleToVector calls 0x00cff0d3: divide each component by the float length.
+             * normalize3's reciprocal multiplication is a different client helper (0x00cfd15f). */
+            const float length = sqrtf(d[0] * d[0] + d[1] * d[1] + d[2] * d[2]);
+            for (int k = 0; k < 3; ++k) {
+                d[k] = F_TINY > length ? 0.0f : d[k] / length;
+                j->position[k] = t->position[k] + d[k] * 15.0f;
+            }
         }
     } else if (j->type == 0x7f79) { /* 0x0157d2f5 */
         if (!t) { j->live = 0; return 0; }

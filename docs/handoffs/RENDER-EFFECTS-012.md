@@ -11,7 +11,8 @@ No pet-specific code changed. Nine bow scenes change visually; the other 24 rema
 Started from `origin/claude/render-effects-011` at `a1fe59cb5816abbd7cce89fb39549e87136a4f58` using the
 owner-authorized fallback after batch 32 reported failure with PR #292 still open. The fallback includes
 011 and its known limits; 012 depends on it. The baseline was taken once from that unchanged base.
-The current `origin/main` (`90e11d71` at the initial fetch) was already its ancestor.
+After #292 merged at 2026-11-06 03:11:38 UTC, main `9e93e6c9` was merged in `fbb7c282`.
+That merge changed no files (`git diff 02a8463f..fbb7c282` is empty), so source checks remain valid.
 Worktree: `~/Documents/MTM/worktrees/render-effects-012`, branch `codex/render-effects-012`.
 Shared `tools/python`, `evidence`, `input` links are never committed.
 

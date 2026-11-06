@@ -13,7 +13,8 @@ create/move families. It executes CreateJoint `0x0153b02c`, MoveJoint `0x01556c2
 external calls are controlled recording services; the original vector helpers execute. Text SHA-256:
 `2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724`; data SHA-256:
 `c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f`.
-`MU_SECTION3` points to the pinned `main-01ced000.bin` input; no captured bytes are committed.
+`MU_SECTION3` is provided for affected validators that need initialized section-3 data. These new families
+use text/data plus declared synthetic globals. No captured bytes are committed.
 Final counts and wall times are recorded in the [handoff](../handoffs/RENDER-EFFECTS-012.md).
 
 | Kind (subtypes hexadecimal) | Create body | Move body | Reconstructed behaviour |
@@ -30,7 +31,10 @@ Final counts and wall times are recorded in the [handoff](../handoffs/RENDER-EFF
 RenderJoints `0x0158b39f` adds Flare02/c's per-tail colour multiplier
 `(num_tails - 1 - tail_index) / max_tails * 2`. This comes after the thunder-bolt colour case.
 The first instruction sample exposed this missing call and multishot's incorrectly inherited arrow check;
-both were corrected before the final run. The comparison includes state, colour, binding, UVs, corner order,
+both were corrected. The first full sample then found three one-ULP 0x828c/2 position mismatches:
+AngleToVector calls 0x00cff0d3, which divides each component by the float length; the reused
+0x00cfd15f helper multiplied by its reciprocal. The bow path now follows the former. No comparison
+tolerance was relaxed, and the failing base run compiled no mutants. The comparison includes state, colour, binding, UVs, corner order,
 quad count, owner death, closing tails and random-call counts. Flare02 create samples include skill 0 and 1;
 skill 3's non-null-owner colour read is statically transcribed, outside that sampled domain.
 The 0x814c/0x8182/0x8185 move domain requires an owner because the original dereferences it unconditionally;
@@ -41,7 +45,8 @@ both live and dead owners are sampled. Other move kinds include null owners.
 Combat's bitmap capacity grows 16 to 24, with a compile-time table/capacity assertion. The eight appended
 registrations match the existing startup bitmap survey: Flare02 (0x018228e5), force_Pillar (0x01835b52),
 !SwordEff (0x01835b72), sharke_arrows (0x01821dd9), devil_arrow (0x01833b47), arrows_angelic (0x01833ba0),
-Swordeff_mono2 (0x01837b6c), Swordeff_mono3 (0x0182f066). They use the existing joint renderer.
+Swordeff_mono2 (0x01837b6c), Swordeff_mono3 (0x0182f066). They use the existing joint renderer, including its current linear/repeat bitmap upload policy; this lane
+does not claim exact texture-edge sampling against the original clamp registrations.
 
 The native arrow emission callback had discarded CreateJoint's key, skill and colour, substituting the hero key.
 It now forwards those arguments for arrows. This is necessary for Flare02's lifetime and the coloured trails.
