@@ -2,6 +2,47 @@
 // the mu-client launch plan, logs and the child process. No AppKit here (main.swift has the UI), no network.
 import Foundation
 
+// Shell-style words only. No shell execution, expansion, globbing or command substitution.
+enum ExtraArguments {
+    enum ParseError: Error, CustomStringConvertible {
+        case unfinished
+        var description: String { "MU_NATIVE_EXTRA_ARGS: unfinished quote or escape" }
+    }
+
+    static func split(_ input: String) throws -> [String] {
+        let chars = Array(input)
+        var words: [String] = [], word = ""
+        var quote: Character? = nil
+        var started = false, i = 0
+        while i < chars.count {
+            let c = chars[i]
+            if c == "\\" && quote != "'" {
+                i += 1
+                guard i < chars.count else { throw ParseError.unfinished }
+                let next = chars[i]
+                if quote == "\"" && !["$", "`", "\"", "\\", "\n"].contains(next) {
+                    word.append("\\")
+                }
+                if next != "\n" { word.append(next); started = true }
+            } else if let q = quote {
+                if c == q { quote = nil } else { word.append(c) }
+            } else if c == "'" || c == "\"" {
+                quote = c
+                started = true
+            } else if [" ", "\t", "\n"].contains(c) {
+                if started { words.append(word); word = ""; started = false }
+            } else {
+                word.append(c)
+                started = true
+            }
+            i += 1
+        }
+        guard quote == nil else { throw ParseError.unfinished }
+        if started { words.append(word) }
+        return words
+    }
+}
+
 // ---------------------------------------------------------------- paths
 
 enum Paths {
@@ -465,7 +506,7 @@ struct LaunchPlan {
         return (wi, hi)
     }
 
-    static func make(settings s: PreviewSettings, gameRoot: String, screen: (Double, Double)?) -> LaunchPlan {
+    static func make(settings s: PreviewSettings, gameRoot: String, screen: (Double, Double)?) throws -> LaunchPlan {
         let nd = NativeData(dir: s.nativeDataDir)
         let (w, h) = windowSize(s.windowSize, screen: screen)
         var args = ["--game-root", gameRoot, "--session", Paths.session, "--width", String(w), "--height", String(h),
@@ -512,7 +553,7 @@ struct LaunchPlan {
             }
         }
         if let extra = Paths.env["MU_NATIVE_EXTRA_ARGS"] {   // diagnostics: more mu-client options
-            args += extra.split(separator: " ").map(String.init)
+            args += try ExtraArguments.split(extra)
         }
         return LaunchPlan(executable: Paths.client, args: args, env: env, notes: notes)
     }

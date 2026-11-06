@@ -30,7 +30,9 @@ func smoke(_ args: [String]) -> Int32 {
         _ = DataSetup.run(settings: s, gameRoot: root, force: false) { print("setup: \($0)") }
     }
     if let error = DataManifest.check(s.nativeDataDir, gameRoot: root) { fail(error) }
-    let plan = LaunchPlan.make(settings: s, gameRoot: root, screen: nil)
+    let plan: LaunchPlan
+    do { plan = try LaunchPlan.make(settings: s, gameRoot: root, screen: nil) }
+    catch { fail(String(describing: error)) }
     var extra = ["--headless", "--backend", option(args, "--backend") ?? "soft", "--auto",
                  "--frames", option(args, "--frames") ?? "300", "--quiet"]
     if let size = option(args, "--size") {
@@ -106,7 +108,7 @@ if let first = cliArgs.first {
                                 headless run of the whole flow under the network guard; exit 0 when it reached the world
           --check-bundle        check the bundled files
         Environment: MU_NATIVE_SUPPORT_DIR, MU_NATIVE_LOG_DIR, MU_NATIVE_GAME_ROOT, MU_NATIVE_SCRATCH,
-          MU_NATIVE_SESSION (tests); MU_NATIVE_EXTRA_ARGS (more mu-client options, separated by spaces)
+          MU_NATIVE_SESSION (tests); MU_NATIVE_EXTRA_ARGS (shell-style quoted mu-client options; no expansion)
         """)
         exit(0)
     case "--print-settings":
@@ -130,7 +132,8 @@ if let first = cliArgs.first {
             if wh.count == 2 { screen = (wh[0], wh[1]) }
         }
         if let error = DataManifest.check(s.nativeDataDir, gameRoot: root) { fail(error) }
-        print(LaunchPlan.make(settings: s, gameRoot: root, screen: screen).json)
+        do { print(try LaunchPlan.make(settings: s, gameRoot: root, screen: screen).json) }
+        catch { fail(String(describing: error)) }
         exit(0)
     case "--setup":
         let s = PreviewSettings.load()
@@ -278,7 +281,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         let size = NSScreen.main.map { ($0.visibleFrame.width, $0.visibleFrame.height) }.map { (Double($0.0), Double($0.1)) }
-        let plan = LaunchPlan.make(settings: settings, gameRoot: root, screen: size)
+        let plan: LaunchPlan
+        do { plan = try LaunchPlan.make(settings: settings, gameRoot: root, screen: size) }
+        catch { showFailure(String(describing: error), log: AppLog.clientLog); return }
         AppLog.write("plan \(plan.args) env \(plan.env) notes \(plan.notes)")
         let r = ClientRun(plan: plan)
         do {
