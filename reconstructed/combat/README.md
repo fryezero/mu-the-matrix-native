@@ -24,6 +24,8 @@ limits; `native/core/mu_combat.*` uses this library in the walk-around world.
 | `mu_sfx_particle_create`, `mu_sfx_particle_move`, `mu_sfx_particle_render`, `mu_sfx_sprite_corners` | `0x015ae7b0`, MoveParticles `0x01616c80`, RenderParticles `0x0159123f` / RenderSprite `0x0184c39c` | verified |
 | `mu_sfx_joint_create`, `mu_sfx_joint_move`, `mu_sfx_joint_render` | CreateJoint `0x0153b02c`, MoveJoint `0x01556c26`, RenderJoints `0x01589b56` | verified |
 | `mu_player_shock`, `mu_player_die`, `mu_player_attack_sound`, `mu_class_check` | SetPlayerShock `0x0138f92f`, SetPlayerDie `0x01393a61` (Player branches), `0x01393924`, `0x00b99205` | verified |
+| `mu_sfx_effect_render_ops` (RENDER-EFFECTS-015) | RenderEffects `0x015181fa`'s decal cases 0x70a `0x0152dc88`, 0x70c `0x0152e296`, 0x45e `0x0151919b` | verified |
+| `mu_sfx_sound_site` (RENDER-EFFECTS-015) | the PlayBuffer `0x00a6ac96` sites of the reconstructed effect sounds | verified (call bytes) |
 
 Build with `-ffp-contract=off` (binary32 operations in source order); `sqrt` uses host libm in place of the CRT.
 
