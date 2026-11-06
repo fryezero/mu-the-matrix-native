@@ -421,6 +421,14 @@ void mu_dom_hero_seed(mu_session *s, const struct mu_session_seed *seed)
     h->attr[MU_PRG_A_CLASS] = seed->class_byte;
     mu_prg_set32(h->attr, MU_PRG_A_LEVEL, (uint32_t)(seed->level > 0 ? seed->level : 1));
     snprintf(h->name, sizeof h->name, "%s", seed->name);
+    /* Offline join data only. No formula, packet handler or recurring refill. */
+    static const size_t current[4] = {MU_PRG_A_LIFE, MU_PRG_A_MANA, MU_PRG_A_SHIELD, MU_PRG_A_AG};
+    static const size_t maximum[4] = {MU_PRG_A_LIFE_MAX, MU_PRG_A_MANA_MAX, MU_PRG_A_SHIELD_MAX, MU_PRG_A_AG_MAX};
+    for (int i = 0; i < 4; ++i) {
+        mu_prg_set32(h->attr, current[i], (uint32_t)seed->vitals[i]);
+        mu_prg_set32(h->attr, maximum[i], (uint32_t)seed->vitals[i]);
+        mu_prg_set32(h->attr, MU_PRG_A_MLIFE_MAX + 4 * (size_t)i, (uint32_t)seed->vitals[i]);
+    }
     mu_session_touch(s, MU_DOMAIN_HERO);
 }
 #endif
