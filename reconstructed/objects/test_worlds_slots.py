@@ -119,8 +119,9 @@ class WorldsSlotsTests(unittest.TestCase):
     def test_trivial_slots(self):
         for world in (62, 64, 95, 100, 115, 116, 117, 118, 119, 120):
             o = self.obj(0x10)
-            answer, events, _ = self.slot(world, world, o)
-            self.assertEqual((answer, events), (0, []))
+            if world not in (62, 95, 100):   # their custom slots draw (RENDER-WORLDS-SLOTS2); the after slots stay empty
+                answer, events, _ = self.slot(world, world, o)
+                self.assertEqual((answer, events), (0, []))
             self.assertEqual(self.slot(world, world, o, after=True)[1], [])
 
     @unittest.skipUnless(PRIVATE, 'private instruction captures required')
