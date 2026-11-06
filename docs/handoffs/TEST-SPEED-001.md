@@ -1,6 +1,6 @@
 # TEST-SPEED-001
 
-PR-ready, resumed from `96865d8c`, merged stopped main `90e11d71` and latest main `9e93e6c9` (#292).
+PR-ready, resumed from `96865d8c`, merged stopped main `90e11d71` main `9e93e6c9` (#292), then latest main `2531746f` (#293/#294).
 The merge steward owns the merge. No live game or service was used; no validator expectations or C behavior changed.
 
 ## Delivered
@@ -58,8 +58,9 @@ MU_WORLD_PT_BITMAPS grew. Private failures still require private execution; a po
 | Build after #292 | pass | 12.49 s | 8.3–20.0 |
 | test_test_budget + test_run_test_suites + test_validators_manifest | 60 tests, pass | 14.66 s | 4.7–5.1 |
 | All suites, MU_GATE_JOBS=4 | 38 suites, 1916 tests, 1667 passed, 249 skipped, 0 failures, 0 errors; 0 failed suite(s); 196.9s wall, jobs=4 | 196.92 s process wall | 5.1–17.3 |
-| Repository audit | Audited 1865 staged files; 0 rejected. | 13.58 s | 10.4–12.2 |
+| Repository audit | Audited 1873 staged files; 0 rejected. | 13.43 s | 4.1–4.2 |
 | Item validators | 13 pass, 482,408 cases, no mutants, zero mismatches | 618.24 s cold row + 1326.40 s two-worker batch | cold 4.8 → 14.6; batch 4.9–25.2 |
+| After #293/#294, 98 affected items only | 15 suites, 1288 tests, 1090 passed, 198 skipped, 0 failures, 0 errors; 0 failed suite(s); 174.5s wall, jobs=2 | 201.47 s including selection; build 0.53 s | 3.0–6.5 |
 
 Perf004: 80.5 s inside the full gate, load 5.1–17.3; source inspected, no extra benchmark and no tests removed.
 The full macOS CI wrapper was not rerun in this lane. The requested all-suite runner gate passed once; the steward

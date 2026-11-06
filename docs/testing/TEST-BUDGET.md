@@ -169,14 +169,17 @@ a tracked-symlink selector correction before cache population; it is not counted
 | Build after #292 | pass | 12.49 s | 8.3–20.0 |
 | test_test_budget + test_run_test_suites + test_validators_manifest | 60 tests, pass | 14.66 s | 4.7–5.1 |
 | All suites, MU_GATE_JOBS=4 | 38 suites, 1916 tests, 1667 passed, 249 skipped, 0 failures, 0 errors; 0 failed suite(s); 196.9s wall, jobs=4 | 196.92 s process wall | 5.1–17.3 |
-| Repository audit | Audited 1865 staged files; 0 rejected. | 13.58 s | 10.4–12.2 |
+| Repository audit | Audited 1873 staged files; 0 rejected. | 13.43 s | 4.1–4.2 |
 | Item validators | 13 pass, 482,408 cases, no mutants, zero mismatches | 618.24 s cold row + 1326.40 s two-worker batch | cold 4.8 → 14.6; batch 4.9–25.2 |
+| After #293/#294, 98 affected items only | 15 suites, 1288 tests, 1090 passed, 198 skipped, 0 failures, 0 errors; 0 failed suite(s); 174.5s wall, jobs=2 | 201.47 s including selection; build 0.53 s | 3.0–6.5 |
+
+After #293/#294 landed during publication, their app/world changes selected 98 of 159 items. Only those were rerun under brief 6; both sides of status-doc conflicts were retained. Item harness/cache inputs were unchanged.
 
 The requested full gate here is `scripts/run_test_suites.py` with all suites, after the build, plus a separate audit.
 The broader `local-macos-ci.sh` fixture/viewer/live-reader stages remain the steward's batch responsibility.
 
 Perf004 analysis was limited to source inspection and this required gate: its module took 80.5 s at gate load
-5.1–17.3. It performs six large serial/parallel buffer comparisons, eight small/empty-count comparisons, three
+5.1–17.3. It performs six large serial/parallel buffer comparisons, four small/empty-count comparisons across eight executions, three
 topology variants, six GL variants and lease-audit equivalence checks. No checks were removed and no extra perf004
 benchmark run was needed. Its source/target dependencies stay selected for relevant native changes.
 
