@@ -27,7 +27,7 @@ MUTANTS = [
 ]
 PT_MUTANTS = [
     ('shiny_alpha', 'p->alpha = 1.0f; /* Shiny01/3 */', 'p->alpha = 0.5f; /* Shiny01/3 */'),
-    ('shiny_velocity', '(float)(mu_pt_rand(h) % 8) - 4.0f;', '(float)(mu_pt_rand(h) % 8) - 3.0f;'),
+    ('shiny_velocity', 'p->velocity[0] = (float)(mu_pt_rand(h) % 8) - 4.0f;', 'p->velocity[0] = (float)(mu_pt_rand(h) % 8) - 3.0f;'),
     ('shiny_life', 'p->lifetime = 30; /* Shiny01/3 */', 'p->lifetime = 29; /* Shiny01/3 */'),
     ('shiny_size', '(float)(mu_pt_rand(h) % 10) / 20.0f + 0.5f;', '(float)(mu_pt_rand(h) % 10) / 10.0f + 0.5f;'),
     ('shiny_fade', 'p->light[k] /= 1.05f; /* Shiny01/3 */', 'p->light[k] /= 1.04f; /* Shiny01/3 */'),
@@ -77,6 +77,7 @@ def main():
     for name in ('create', 'move', 'render'):
         getattr(pt, 'family_' + name)(pm, plib, random.Random('effects13-' + name), a.cases, r, jt.collections_default())
     equal = all(f['equal'] == f['cases'] for f in r.families.values())
+    print(json.dumps(dict(instruction_cases=sum(f['cases'] for f in r.families.values()), all_equal=equal, families=r.families)), flush=True)
     mutants = []
     if a.mutations and equal:
         jt.MUTANTS = MUTANTS
@@ -90,6 +91,7 @@ def main():
                 f = rr.families[family]
                 mutants.append(dict(name=name, cases=f['cases'], detected=f['cases']-f['equal'],
                                     stopped=sum(bool(x.get('stopped')) for x in f['first_failures'])))
+                print('mutant', json.dumps(mutants[-1]), flush=True)
     result = dict(families=r.families, coverage=r.coverage, instruction_cases=sum(f['cases'] for f in r.families.values()),
                   all_equal=equal, mutants=mutants,
                   all_mutants_caught=all(x['detected'] and not x['stopped'] for x in mutants),
