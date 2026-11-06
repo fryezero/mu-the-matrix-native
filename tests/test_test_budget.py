@@ -219,8 +219,11 @@ args = []
 
 
 class AffectedValidators(unittest.TestCase):
-    """A small repository: alpha builds reconstructed/alpha (whose Makefile reaches ../shared), beta imports
-    helper_beta and names reconstructed/beta/beta.c, gamma builds reconstructed/gamma."""
+    """A small repository: alpha builds reconstructed/alpha (whose Makefile reaches ../shared and compiles
+    alpha.c, which includes shared.h), beta imports helper_beta and names reconstructed/beta/beta.c, gamma builds
+    reconstructed/gamma (every *.c there, by wildcard). Since TEST-SPEED-004 a row's inputs are what it compiles
+    and imports; there is no "unmapped input selects everything" (a row that cannot be derived carries its own
+    fallback, AffectedFallback)."""
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -232,17 +235,23 @@ class AffectedValidators(unittest.TestCase):
             'scripts/helper_beta.py': 'X = 1\n',
             'scripts/pins.py': 'PINS = {}\n',
             'scripts/run_validators.py': '# runner\n',
+            'scripts/affected.py': '# selector\n',
+            'scripts/original_cache.py': '# cache\n',
             'scripts/validators.toml': MANIFEST,
-            'reconstructed/alpha/Makefile': 'include ../deps.mk\nCFLAGS += -I../shared\nall:\n',
-            'reconstructed/alpha/alpha.c': '',
+            'reconstructed/alpha/Makefile': 'include ../deps.mk\nCFLAGS += -I../shared\nall: alpha.o\n'
+                                            'alpha.o: alpha.c\n\tcc $(CFLAGS) -c alpha.c -o alpha.o\n',
+            'reconstructed/alpha/alpha.c': '#include "shared.h"\n',
             'reconstructed/alpha/test_alpha.py': '',
             'reconstructed/alpha/README.md': '',
             'reconstructed/deps.mk': '',
             'reconstructed/shared/shared.h': '',
+            'reconstructed/shared/unused.h': '',
             'reconstructed/beta/beta.c': '',
             'reconstructed/beta/other.c': '',
-            'reconstructed/gamma/Makefile': 'all:\n',
+            'reconstructed/gamma/Makefile': 'SRC := $(wildcard *.c)\nall: gamma.o\n'
+                                            'gamma.o: $(SRC)\n\tcc -c $(SRC) -o gamma.o\n',
             'reconstructed/gamma/gamma.c': '',
+            'reconstructed/gamma/extra.c': '',
             'reconstructed/other/gamma_table.h': '',
             'tests/test_beta.py': '', 'tests/test_gamma.py': '', 'docs/status.md': '',
         }
@@ -258,7 +267,7 @@ class AffectedValidators(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
-    def select(self, *changes, commit=True, edit=None):
+    def select(self, *changes, commit=True, edit=None, ref='base', since=False):
         git(self.repo, 'reset', '-q', '--hard', 'base')
         git(self.repo, 'clean', '-qfd')
         if edit:
@@ -266,38 +275,47 @@ class AffectedValidators(unittest.TestCase):
         for path in changes:
             target = self.repo / path
             target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_text(target.read_text() + '\n# changed\n' if target.exists() else 'new\n')
+            target.write_text(target.read_text() + '\n// changed\n' if target.exists() else 'new\n')
         if commit:
             git(self.repo, 'add', '-A')
             git(self.repo, 'commit', '-qm', 'change')
-        return rv.affected_rows(self.rows, 'base', root=self.repo, manifest=self.repo / 'scripts/validators.toml')
+        affected.clear_caches(self.repo)
+        return rv.affected_rows(self.rows, ref, root=self.repo, manifest=self.repo / 'scripts/validators.toml',
+                                since=since)
 
-    def test_build_dir_and_what_its_makefile_reaches(self):
+    def test_compiled_inputs_header_and_make_fragment(self):
         self.assertEqual(list(self.select('reconstructed/alpha/alpha.c')), ['validate_alpha'])
-        self.assertEqual(list(self.select('reconstructed/shared/shared.h')), ['validate_alpha'])
+        self.assertEqual(list(self.select('reconstructed/shared/shared.h')), ['validate_alpha'])  # cc -MM
+        self.assertEqual(self.select('reconstructed/shared/unused.h'), {})                         # never included
         self.assertEqual(list(self.select('reconstructed/deps.mk')), ['validate_alpha'])
 
     def test_docs_and_unit_tests_in_a_build_dir_are_not_compiled(self):
         self.assertEqual(self.select('reconstructed/alpha/README.md', 'docs/status.md'), {})
 
-    def test_owning_test_script_helper_and_named_source(self):
-        self.assertEqual(list(self.select('reconstructed/alpha/test_alpha.py')), ['validate_alpha'])
+    def test_script_helper_and_named_source_but_not_the_owning_test(self):
+        self.assertEqual(self.select('reconstructed/alpha/test_alpha.py'), {})   # runs in the gate, not the row
+        self.assertEqual(self.select('tests/test_gamma.py'), {})
         self.assertEqual(list(self.select('scripts/helper_beta.py')), ['validate_beta'])
         self.assertEqual(list(self.select('reconstructed/beta/beta.c')), ['validate_beta'])
-        self.assertEqual(len(self.select('reconstructed/beta/other.c')), 3)  # unmapped code fails open
+        self.assertEqual(self.select('reconstructed/beta/other.c'), {})   # no row compiles or names it
         self.assertEqual(list(self.select('reconstructed/other/gamma_table.h')), ['validate_gamma'])
-        self.assertEqual(list(self.select('tests/test_gamma.py')), ['validate_gamma'])
 
-    def test_uncommitted_and_untracked_changes_count(self):
+    def test_uncommitted_untracked_and_deleted_sources_count(self):
         self.assertEqual(list(self.select('reconstructed/gamma/gamma.c', commit=False)), ['validate_gamma'])
         self.assertEqual(list(self.select('reconstructed/gamma/new.c', commit=False)), ['validate_gamma'])
 
-    def test_shared_infrastructure_selects_every_row(self):
-        for path in ('scripts/pins.py', 'scripts/run_validators.py'):
+        def delete():
+            (self.repo / 'reconstructed/gamma/extra.c').unlink()
+        why = self.select(edit=delete)
+        self.assertEqual(list(why), ['validate_gamma'])
+        self.assertIn('deleted from reconstructed/gamma/', why['validate_gamma'][0])
+
+    def test_tooling_selects_no_row_and_pins_only_its_users(self):
+        for path in ('scripts/run_validators.py', 'scripts/affected.py', 'scripts/original_cache.py',
+                     'scripts/guarded_run.py', 'scripts/new_test_helper.py'):
             with self.subTest(path=path):
-                why = self.select(path)
-                self.assertEqual(sorted(why), ['validate_alpha', 'validate_beta', 'validate_gamma'])
-                self.assertIn('selects everything', why['validate_beta'][0])
+                self.assertEqual(self.select(path), {})
+        self.assertEqual(list(self.select('scripts/pins.py')), ['validate_alpha'])   # the row importing it
 
     def test_a_changed_manifest_row_selects_only_that_row(self):
         path = self.repo / 'scripts/validators.toml'
@@ -309,13 +327,43 @@ class AffectedValidators(unittest.TestCase):
         self.assertEqual(list(why), ['validate_gamma'])
         self.assertIn('its row changed', why['validate_gamma'][0])
 
+    def test_makefile_change_counts_only_if_the_dry_run_changes(self):
+        makefile = self.repo / 'reconstructed/gamma/Makefile'
+
+        def unrelated():
+            makefile.write_text(makefile.read_text() + '\n# a comment\nhost: host.c\n\tcc host.c -o host\n')
+        self.assertEqual(self.select(edit=unrelated), {})
+
+        def flags():
+            makefile.write_text(makefile.read_text().replace('cc -c', 'cc -O2 -c'))
+        why = self.select(edit=flags)
+        self.assertEqual(list(why), ['validate_gamma'])
+        self.assertIn('make -C reconstructed/gamma (default goal) uses reconstructed/gamma/Makefile',
+                      why['validate_gamma'][0])
+
+    def test_affected_since_diffs_the_ref_itself(self):
+        # main moves on (gamma.c); the branch (from base) changes alpha.c
+        git(self.repo, 'checkout', '-qb', 'upstream')
+        (self.repo / 'reconstructed/gamma/gamma.c').write_text('int main_change;\n')
+        git(self.repo, 'commit', '-qam', 'main')
+        git(self.repo, 'checkout', '-qb', 'lane', 'base')
+        (self.repo / 'reconstructed/alpha/alpha.c').write_text('#include "shared.h"\nint lane;\n')
+        git(self.repo, 'commit', '-qam', 'lane')
+        manifest = self.repo / 'scripts/validators.toml'
+        affected.clear_caches(self.repo)
+        lane = rv.affected_rows(self.rows, 'upstream', root=self.repo, manifest=manifest)
+        since = rv.affected_rows(self.rows, 'upstream', root=self.repo, manifest=manifest, since=True)
+        self.assertEqual(list(lane), ['validate_alpha'])                        # merge-base(main, HEAD) = base
+        self.assertEqual(sorted(since), ['validate_alpha', 'validate_gamma'])   # main's tree differs in both
+
     def test_test_hosts_and_swift_are_gate_owned_but_references_still_select(self):
         self.assertEqual(self.select('native/tests/unused_host.c'), {})
         self.assertEqual(self.select('native/app/Sources/Unused.swift'), {})
+
         def edit():
             (self.repo / 'scripts/validate_beta.py').write_text("HOST = 'native/tests/referenced.c'\n")
         self.assertEqual(list(self.select('native/tests/referenced.c', edit=edit)), ['validate_beta'])
-        self.assertEqual(len(self.select('native/new_production.c')), 3)
+        self.assertEqual(self.select('native/new_production.c'), {})
 
     def test_owning_test_imports_do_not_become_validator_dependencies(self):
         def edit():
@@ -340,6 +388,11 @@ class AffectedValidators(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertIn('affected: 1 of 3 manifest rows selected', out.getvalue())
         self.assertRegex(out.getvalue(), r'validate_beta: scripts/helper_beta.py: imports scripts/helper_beta.py')
+        out = io.StringIO()
+        with redirect_stdout(out), mock.patch.object(rv, 'REPO', self.repo):
+            code = rv.main(['--manifest', str(self.repo / 'scripts/validators.toml'), '--list-affected-since', 'base'])
+        self.assertEqual(code, 0)
+        self.assertIn('affected: 1 of 3 manifest rows selected', out.getvalue())
 
 
 class AffectedDeps(unittest.TestCase):
@@ -367,7 +420,7 @@ class AffectedDeps(unittest.TestCase):
             deps = affected.python_deps(repo / 'scripts' / 'a.py', repo)
         self.assertIn('scripts/b.py', deps.files)
         self.assertNotIn('scripts', deps.dirs)                      # a search path, not every file in it
-        self.assertIn('build/mu-walk', deps.names)                  # a target named before it is built
+        self.assertIn('build/mu-walk', deps.words)                  # a target named before it is built
         self.assertTrue(deps.why('reconstructed/objects/objects.c'))   # ROOT / 'reconstructed' / d
         self.assertIsNone(deps.why('reconstructed/ui/ui.c'))
         self.assertIsNone(deps.why('scripts/c.py'))
@@ -397,11 +450,17 @@ class AffectedSuites(unittest.TestCase):
         self.assertEqual(list(self.pick('docs/status.md')), ['tests'])
         self.assertEqual(self.pick(), {})
 
-    def test_infrastructure_selects_everything(self):
+    def test_infrastructure_selects_everything_tooling_its_tests(self):
         total = sum(len(rts.units(s)) for s in self.suites)
-        for path in ('Makefile', 'scripts/run_test_suites.py', 'scripts/local-macos-ci.sh', 'scripts/affected.py'):
+        for path in ('Makefile', 'scripts/local-macos-ci.sh'):
             with self.subTest(path=path):
                 self.assertEqual(len(self.pick(path)), total)
+        for path in ('scripts/run_test_suites.py', 'scripts/affected.py', 'scripts/run_validators.py',
+                     'scripts/original_cache.py'):
+            with self.subTest(path=path):
+                why = self.pick(path)
+                self.assertIn('tests', why)                     # the tooling tests
+                self.assertLess(len(why), total // 2, sorted(why))
 
     def test_a_test_module_and_its_host(self):
         why = self.pick('native/tests/test_native_perf004.py', 'native/tests/perf_players_host.c')
@@ -460,7 +519,7 @@ class TightenedSelection(unittest.TestCase):
             (root / 'build').mkdir()
             (root / 'build/host').write_text('binary')
             (root / 'test.py').write_text("TOOL = 'build/host'")
-            self.assertIn('build/host', affected.python_deps(root / 'test.py', root).names)
+            self.assertIn('build/host', affected.python_deps(root / 'test.py', root).words)
 
 
 class AffectedRun(unittest.TestCase):

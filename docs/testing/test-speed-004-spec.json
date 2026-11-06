@@ -1,0 +1,885 @@
+{
+ "old": "eb2a8e76",
+ "note": "Lane cases: the PR head, diffed from merge-base(main before the merge, head); all rows. Since cases: the merged commit, diffed from each lane-tested commit (groups as the steward log and PR bodies record them), restricted to lane_rows (the PR's 'Steward validators' list: the steward's question is which of those must run again). steward_ran: what the steward actually ran for that PR; lane_ran: what the lane ran at its tested commit. must_*: units that saw a recorded failure.",
+ "cases": [
+  {
+   "pr": 292,
+   "mode": "lane",
+   "tree": "a1fe59cb",
+   "base": "90e11d71",
+   "suites": true
+  },
+  {
+   "pr": 292,
+   "mode": "since",
+   "tree": "9e93e6c9",
+   "tested": [
+    [
+     "03bec39b",
+     "*"
+    ]
+   ],
+   "steward_ran": [
+    "validate_item_effects",
+    "validate_item_types",
+    "validate_combat",
+    "validate_crypto",
+    "validate_item_models",
+    "validate_meshdraw",
+    "validate_model_edge",
+    "validate_model_light",
+    "validate_npc_dialogue",
+    "validate_particles",
+    "validate_protocol",
+    "validate_skill_fx",
+    "validate_terrain",
+    "validate_viewport_monsters",
+    "validate_render_worlds_a",
+    "validate_icarus_c2",
+    "validate_worlds_d",
+    "validate_worlds_e",
+    "validate_audio_callers",
+    "validate_item_gear",
+    "validate_audio_combat",
+    "validate_render_effects",
+    "validate_render_effects3",
+    "validate_render_effects4",
+    "validate_render_effects5",
+    "validate_render_effects6",
+    "validate_render_effects7",
+    "validate_render_effects9",
+    "validate_render_effects10",
+    "validate_render_effects11",
+    "validate_world_particle_consumers",
+    "validate_audio_domains",
+    "validate_audio_items",
+    "validate_worlds_l",
+    "validate_audio_charsel",
+    "validate_item_wings_next",
+    "validate_worlds_m",
+    "validate_worlds_g3",
+    "validate_worlds_after4",
+    "validate_worlds_after6"
+   ],
+   "lane_rows": [
+    "validate_audio_callers",
+    "validate_audio_charsel",
+    "validate_audio_combat",
+    "validate_audio_domains",
+    "validate_audio_items",
+    "validate_combat",
+    "validate_crypto",
+    "validate_icarus_c2",
+    "validate_item_effects",
+    "validate_item_gear",
+    "validate_item_models",
+    "validate_item_types",
+    "validate_item_wings_next",
+    "validate_meshdraw",
+    "validate_model_edge",
+    "validate_model_light",
+    "validate_npc_dialogue",
+    "validate_particles",
+    "validate_protocol",
+    "validate_render_effects",
+    "validate_render_effects10",
+    "validate_render_effects11",
+    "validate_render_effects3",
+    "validate_render_effects4",
+    "validate_render_effects5",
+    "validate_render_effects6",
+    "validate_render_effects7",
+    "validate_render_effects9",
+    "validate_render_worlds_a",
+    "validate_skill_fx",
+    "validate_terrain",
+    "validate_viewport_monsters",
+    "validate_world_particle_consumers",
+    "validate_worlds_after4",
+    "validate_worlds_after6",
+    "validate_worlds_d",
+    "validate_worlds_e",
+    "validate_worlds_g3",
+    "validate_worlds_l",
+    "validate_worlds_m"
+   ]
+  },
+  {
+   "pr": 293,
+   "mode": "lane",
+   "tree": "e753b3ba",
+   "base": "9e93e6c9",
+   "suites": true
+  },
+  {
+   "pr": 293,
+   "mode": "since",
+   "tree": "d69eb2c7",
+   "tested": [
+    [
+     "144aa1f8",
+     "*"
+    ]
+   ],
+   "steward_ran": [
+    "validate_app_polish1"
+   ],
+   "lane_rows": [
+    "validate_app_polish1"
+   ]
+  },
+  {
+   "pr": 294,
+   "mode": "lane",
+   "tree": "8b059268",
+   "base": "d69eb2c7",
+   "suites": true
+  },
+  {
+   "pr": 294,
+   "mode": "since",
+   "tree": "2531746f",
+   "tested": [
+    [
+     "7c6bd1ba",
+     "*"
+    ]
+   ],
+   "steward_ran": [
+    "validate_app_polish2",
+    "validate_app_polish1"
+   ],
+   "lane_rows": [
+    "validate_app_polish2"
+   ]
+  },
+  {
+   "pr": 296,
+   "mode": "lane",
+   "tree": "116942e4",
+   "base": "2531746f",
+   "suites": true
+  },
+  {
+   "pr": 296,
+   "mode": "since",
+   "tree": "5a91b98d",
+   "tested": [
+    [
+     "fbb7c282",
+     "*"
+    ],
+    [
+     "c76a168f",
+     [
+      "validate_joints",
+      "validate_icarus",
+      "validate_icarus_c2",
+      "validate_render_effects9",
+      "validate_render_effects12"
+     ]
+    ],
+    [
+     "b9308616",
+     [
+      "validate_meshdraw",
+      "validate_model_light",
+      "validate_audio_domains"
+     ]
+    ]
+   ],
+   "steward_ran": [
+    "validate_render_effects12"
+   ],
+   "lane_rows": [
+    "validate_audio_callers",
+    "validate_audio_charsel",
+    "validate_audio_combat",
+    "validate_audio_domains",
+    "validate_audio_items",
+    "validate_combat",
+    "validate_crypto",
+    "validate_icarus",
+    "validate_icarus_c2",
+    "validate_item_models",
+    "validate_joints",
+    "validate_meshdraw",
+    "validate_model_edge",
+    "validate_model_light",
+    "validate_npc_dialogue",
+    "validate_protocol",
+    "validate_render_effects",
+    "validate_render_effects10",
+    "validate_render_effects11",
+    "validate_render_effects12",
+    "validate_render_effects3",
+    "validate_render_effects4",
+    "validate_render_effects5",
+    "validate_render_effects6",
+    "validate_render_effects7",
+    "validate_render_effects9",
+    "validate_skill_fx",
+    "validate_terrain",
+    "validate_viewport_monsters",
+    "validate_worlds_after4",
+    "validate_worlds_d"
+   ]
+  },
+  {
+   "pr": 297,
+   "mode": "lane",
+   "tree": "51891ad7",
+   "base": "5a91b98d",
+   "suites": true
+  },
+  {
+   "pr": 297,
+   "mode": "since",
+   "tree": "6efe2702",
+   "tested": [
+    [
+     "817d5da1",
+     "*"
+    ]
+   ],
+   "steward_ran": [],
+   "lane_rows": [
+    "validate_item_carry",
+    "validate_item_chains",
+    "validate_item_clusters",
+    "validate_item_continuation",
+    "validate_item_coverage",
+    "validate_item_expansion",
+    "validate_item_gear",
+    "validate_item_next",
+    "validate_item_product",
+    "validate_item_quality",
+    "validate_item_ranked",
+    "validate_item_scalars",
+    "validate_item_wings_next"
+   ]
+  },
+  {
+   "pr": 298,
+   "mode": "lane",
+   "tree": "10cf76bb",
+   "base": "6efe2702",
+   "suites": true
+  },
+  {
+   "pr": 298,
+   "mode": "since",
+   "tree": "742ef666",
+   "tested": [
+    [
+     "eebaf1cf",
+     "*"
+    ]
+   ],
+   "steward_ran": [
+    "validate_app_polish1",
+    "validate_app_polish2",
+    "validate_gfx3"
+   ],
+   "lane_rows": [
+    "validate_app_polish1",
+    "validate_app_polish2",
+    "validate_gfx3"
+   ]
+  },
+  {
+   "pr": 299,
+   "mode": "lane",
+   "tree": "27f33bb9",
+   "base": "742ef666",
+   "suites": true
+  },
+  {
+   "pr": 299,
+   "mode": "since",
+   "tree": "b907c53d",
+   "tested": [
+    [
+     "5eea9e47",
+     "*"
+    ]
+   ],
+   "steward_ran": [
+    "validate_meshdraw",
+    "validate_worlds_after6"
+   ],
+   "lane_rows": [
+    "validate_meshdraw"
+   ]
+  },
+  {
+   "pr": 300,
+   "mode": "lane",
+   "tree": "c309902d",
+   "base": "b907c53d",
+   "suites": true
+  },
+  {
+   "pr": 300,
+   "mode": "since",
+   "tree": "137db14d",
+   "tested": [
+    [
+     "dad007dc",
+     "*"
+    ]
+   ],
+   "steward_ran": [
+    "validate_item_types",
+    "validate_item_gear",
+    "validate_item_wings_next",
+    "validate_render_effects5",
+    "validate_render_effects7",
+    "validate_render_effects9",
+    "validate_render_effects10",
+    "validate_render_effects11",
+    "validate_render_effects12",
+    "validate_render_effects13",
+    "validate_app_polish1"
+   ],
+   "lane_rows": [
+    "validate_app_polish1",
+    "validate_audio_callers",
+    "validate_audio_charsel",
+    "validate_audio_combat",
+    "validate_audio_domains",
+    "validate_audio_items",
+    "validate_combat",
+    "validate_crypto",
+    "validate_icarus",
+    "validate_icarus_c2",
+    "validate_item_effects",
+    "validate_item_gear",
+    "validate_item_models",
+    "validate_item_types",
+    "validate_item_wings_next",
+    "validate_joints",
+    "validate_meshdraw",
+    "validate_model_edge",
+    "validate_model_light",
+    "validate_npc_dialogue",
+    "validate_particles",
+    "validate_protocol",
+    "validate_render_effects",
+    "validate_render_effects10",
+    "validate_render_effects11",
+    "validate_render_effects12",
+    "validate_render_effects13",
+    "validate_render_effects3",
+    "validate_render_effects4",
+    "validate_render_effects5",
+    "validate_render_effects6",
+    "validate_render_effects7",
+    "validate_render_effects9",
+    "validate_render_worlds_a",
+    "validate_skill_fx",
+    "validate_terrain",
+    "validate_viewport_monsters",
+    "validate_world_particle_consumers",
+    "validate_worlds_after4",
+    "validate_worlds_after6",
+    "validate_worlds_d",
+    "validate_worlds_e",
+    "validate_worlds_g3",
+    "validate_worlds_l",
+    "validate_worlds_m"
+   ]
+  },
+  {
+   "pr": 301,
+   "mode": "lane",
+   "tree": "ca46f0ab",
+   "base": "137db14d",
+   "suites": true,
+   "lane_ran": [
+    "validate_worlds_s",
+    "validate_object_render",
+    "validate_worlds_q",
+    "validate_worlds_q2",
+    "validate_worlds_after4",
+    "validate_worlds_o",
+    "validate_worlds_p2",
+    "validate_worlds_r2",
+    "validate_charsel_world",
+    "validate_login_world",
+    "validate_audio_callers"
+   ]
+  },
+  {
+   "pr": 301,
+   "mode": "since",
+   "tree": "83a21893",
+   "tested": [
+    [
+     "9d56b89d",
+     "*"
+    ]
+   ],
+   "steward_ran": [],
+   "lane_rows": [
+    "validate_audio_callers",
+    "validate_charsel_world",
+    "validate_login_world",
+    "validate_object_render",
+    "validate_worlds_after4",
+    "validate_worlds_o",
+    "validate_worlds_p2",
+    "validate_worlds_q",
+    "validate_worlds_q2",
+    "validate_worlds_r2",
+    "validate_worlds_s"
+   ]
+  },
+  {
+   "pr": 302,
+   "mode": "lane",
+   "tree": "b4968a50",
+   "base": "83a21893",
+   "suites": true,
+   "lane_ran": [
+    "validate_worlds_s2",
+    "validate_object_render",
+    "validate_worlds_q",
+    "validate_worlds_q2",
+    "validate_worlds_s",
+    "validate_worlds_i",
+    "validate_worlds_after4",
+    "validate_charsel_world",
+    "validate_login_world",
+    "validate_audio_callers"
+   ]
+  },
+  {
+   "pr": 302,
+   "mode": "since",
+   "tree": "7403244e",
+   "tested": [
+    [
+     "6e7f2958",
+     "*"
+    ]
+   ],
+   "steward_ran": [],
+   "lane_rows": [
+    "validate_audio_callers",
+    "validate_charsel_world",
+    "validate_login_world",
+    "validate_object_render",
+    "validate_worlds_after4",
+    "validate_worlds_i",
+    "validate_worlds_q",
+    "validate_worlds_q2",
+    "validate_worlds_s",
+    "validate_worlds_s2"
+   ]
+  },
+  {
+   "pr": 295,
+   "mode": "lane",
+   "tree": "5a3c7a72",
+   "base": "7403244e",
+   "suites": true
+  },
+  {
+   "pr": 295,
+   "mode": "since",
+   "tree": "7d7d694b",
+   "tested": [
+    [
+     "eed17e53",
+     "*"
+    ],
+    [
+     "f57e2b46",
+     [
+      "validate_item_ranked",
+      "validate_item_continuation",
+      "validate_item_expansion",
+      "validate_item_clusters",
+      "validate_item_next",
+      "validate_item_coverage",
+      "validate_item_scalars",
+      "validate_item_chains",
+      "validate_item_carry",
+      "validate_item_quality",
+      "validate_item_product",
+      "validate_renderchar",
+      "validate_render_effects4",
+      "validate_fidelity",
+      "validate_item_hiddenmesh"
+     ]
+    ]
+   ],
+   "steward_ran": [
+    "validate_fidelity",
+    "validate_render_effects4"
+   ],
+   "lane_rows": [
+    "validate_fidelity",
+    "validate_item_carry",
+    "validate_item_chains",
+    "validate_item_clusters",
+    "validate_item_continuation",
+    "validate_item_coverage",
+    "validate_item_effects",
+    "validate_item_expansion",
+    "validate_item_gear",
+    "validate_item_hiddenmesh",
+    "validate_item_next",
+    "validate_item_product",
+    "validate_item_quality",
+    "validate_item_ranked",
+    "validate_item_scalars",
+    "validate_item_types",
+    "validate_item_wings_next",
+    "validate_render_effects",
+    "validate_render_effects10",
+    "validate_render_effects11",
+    "validate_render_effects12",
+    "validate_render_effects3",
+    "validate_render_effects4",
+    "validate_render_effects5",
+    "validate_render_effects7",
+    "validate_render_effects9",
+    "validate_renderchar"
+   ]
+  },
+  {
+   "pr": 303,
+   "mode": "lane",
+   "tree": "00392ee3",
+   "base": "7d7d694b",
+   "suites": true,
+   "lane_ran": [
+    "validate_worlds_s3",
+    "validate_worlds_i",
+    "validate_worlds_o",
+    "validate_object_render",
+    "validate_charsel_world",
+    "validate_login_world",
+    "validate_audio_callers",
+    "validate_worlds_after4"
+   ]
+  },
+  {
+   "pr": 303,
+   "mode": "since",
+   "tree": "8b94f677",
+   "tested": [
+    [
+     "317156ff",
+     "*"
+    ]
+   ],
+   "steward_ran": [
+    "validate_audio_callers"
+   ],
+   "lane_rows": [
+    "validate_audio_callers",
+    "validate_charsel_world",
+    "validate_login_world",
+    "validate_object_render",
+    "validate_worlds_after4",
+    "validate_worlds_i",
+    "validate_worlds_o",
+    "validate_worlds_s3"
+   ]
+  },
+  {
+   "pr": 304,
+   "mode": "lane",
+   "tree": "9233d5cb",
+   "base": "8b94f677",
+   "suites": true
+  },
+  {
+   "pr": 304,
+   "mode": "since",
+   "tree": "b8645181",
+   "tested": [
+    [
+     "c4a54f01",
+     "*"
+    ]
+   ],
+   "steward_ran": [],
+   "lane_rows": []
+  },
+  {
+   "pr": 305,
+   "mode": "lane",
+   "tree": "90b9510b",
+   "base": "b8645181",
+   "suites": true
+  },
+  {
+   "pr": 305,
+   "mode": "since",
+   "tree": "6ef9059e",
+   "tested": [
+    [
+     "90b9510b",
+     "*"
+    ]
+   ],
+   "steward_ran": [],
+   "lane_rows": []
+  },
+  {
+   "pr": 306,
+   "mode": "lane",
+   "tree": "d1a9420c",
+   "base": "6ef9059e",
+   "suites": true
+  },
+  {
+   "pr": 306,
+   "mode": "since",
+   "tree": "eb2a8e76",
+   "tested": [
+    [
+     "7b7c260e",
+     "*"
+    ],
+    [
+     "354e03c8",
+     [
+      "validate_combat",
+      "validate_item_effects",
+      "validate_particles",
+      "validate_skill_fx"
+     ]
+    ]
+   ],
+   "steward_ran": [
+    "validate_charsel_world",
+    "validate_login_world",
+    "validate_fidelity",
+    "validate_icarus",
+    "validate_icarus_c2",
+    "validate_render_worlds_a",
+    "validate_worlds_after",
+    "validate_worlds_after2",
+    "validate_worlds_after3",
+    "validate_worlds_after4",
+    "validate_worlds_after5",
+    "validate_worlds_after6",
+    "validate_worlds_d",
+    "validate_worlds_e",
+    "validate_worlds_g3",
+    "validate_audio_callers",
+    "validate_audio_charsel",
+    "validate_audio_combat",
+    "validate_audio_domains",
+    "validate_audio_items",
+    "validate_viewport_monsters",
+    "validate_meshdraw",
+    "validate_model_edge",
+    "validate_model_light",
+    "validate_terrain",
+    "validate_app_polish1"
+   ],
+   "lane_rows": [
+    "validate_app_polish1",
+    "validate_audio_callers",
+    "validate_audio_charsel",
+    "validate_audio_combat",
+    "validate_audio_domains",
+    "validate_audio_items",
+    "validate_charsel_world",
+    "validate_combat",
+    "validate_fidelity",
+    "validate_icarus",
+    "validate_icarus_c2",
+    "validate_item_carry",
+    "validate_item_chains",
+    "validate_item_clusters",
+    "validate_item_continuation",
+    "validate_item_coverage",
+    "validate_item_effects",
+    "validate_item_expansion",
+    "validate_item_gear",
+    "validate_item_next",
+    "validate_item_product",
+    "validate_item_quality",
+    "validate_item_ranked",
+    "validate_item_scalars",
+    "validate_item_types",
+    "validate_item_wings_next",
+    "validate_joints",
+    "validate_login_world",
+    "validate_meshdraw",
+    "validate_model_edge",
+    "validate_model_light",
+    "validate_particles",
+    "validate_render_effects",
+    "validate_render_effects10",
+    "validate_render_effects11",
+    "validate_render_effects12",
+    "validate_render_effects13",
+    "validate_render_effects14",
+    "validate_render_effects3",
+    "validate_render_effects4",
+    "validate_render_effects5",
+    "validate_render_effects6",
+    "validate_render_effects7",
+    "validate_render_effects9",
+    "validate_render_worlds_a",
+    "validate_renderchar",
+    "validate_skill_fx",
+    "validate_terrain",
+    "validate_viewport_monsters",
+    "validate_world_particle_consumers",
+    "validate_worlds_after",
+    "validate_worlds_after2",
+    "validate_worlds_after3",
+    "validate_worlds_after4",
+    "validate_worlds_after5",
+    "validate_worlds_after6",
+    "validate_worlds_d",
+    "validate_worlds_e",
+    "validate_worlds_g3",
+    "validate_worlds_l",
+    "validate_worlds_m"
+   ]
+  },
+  {
+   "pr": 307,
+   "mode": "lane",
+   "tree": "7fcb9efa",
+   "base": "eb2a8e76",
+   "suites": true,
+   "lane_ran": [
+    "validate_app_polish4",
+    "validate_lang",
+    "validate_fidelity",
+    "validate_app_polish2"
+   ]
+  },
+  {
+   "pr": 307,
+   "mode": "since",
+   "tree": "72728f3f",
+   "tested": [
+    [
+     "610b97fd",
+     "*"
+    ]
+   ],
+   "steward_ran": [
+    "validate_app_polish4"
+   ],
+   "lane_rows": [
+    "validate_app_polish2",
+    "validate_app_polish4",
+    "validate_fidelity",
+    "validate_lang"
+   ]
+  },
+  {
+   "pr": 308,
+   "mode": "lane",
+   "tree": "90a8648f",
+   "base": "72728f3f",
+   "suites": true,
+   "lane_ran": [
+    "validate_worlds_slots",
+    "validate_worlds_after2",
+    "validate_worlds_after3",
+    "validate_worlds_after",
+    "validate_object_render",
+    "validate_worlds_after4"
+   ]
+  },
+  {
+   "pr": 308,
+   "mode": "since",
+   "tree": "0122f192",
+   "tested": [
+    [
+     "75817a78",
+     "*"
+    ]
+   ],
+   "steward_ran": [],
+   "lane_rows": [
+    "validate_object_render",
+    "validate_worlds_after",
+    "validate_worlds_after2",
+    "validate_worlds_after3",
+    "validate_worlds_after4",
+    "validate_worlds_slots"
+   ]
+  },
+  {
+   "pr": 287,
+   "mode": "lane",
+   "tree": "724ad10a",
+   "base": "5d2088ac",
+   "suites": true,
+   "failure": "steward batch 27: worlds_l_host.c:69 / worlds_m_host.c:75 asserts after MU_WORLD_PT_BITMAPS grew",
+   "must_suites": [
+    "native/tests/test_native_worlds_l.py",
+    "native/tests/test_native_worlds_m.py"
+   ]
+  },
+  {
+   "pr": 282,
+   "mode": "lane",
+   "tree": "852261fe",
+   "base": "2bd386f5",
+   "suites": true,
+   "failure": "INTEGRATION-GREEN-002: renderchar continuation/gear/scalars stale assertions, item-texture survey, validate_renderchar",
+   "must_suites": [
+    "reconstructed/renderchar",
+    "native/tests/test_native_item_textures.py"
+   ],
+   "must_rows": [
+    "validate_renderchar"
+   ]
+  },
+  {
+   "pr": 283,
+   "mode": "lane",
+   "tree": "e4fefcf2",
+   "base": "9e8db598",
+   "suites": true,
+   "failure": "TEST-SPEED-001 audit: test_native_particles",
+   "must_suites": [
+    "native/tests/test_native_particles.py"
+   ]
+  },
+  {
+   "pr": 280,
+   "mode": "lane",
+   "tree": "39561c9f",
+   "base": "994460cb",
+   "suites": true,
+   "failure": "TEST-SPEED-001 audit: test_native_audio",
+   "must_suites": [
+    "native/tests/test_native_audio.py"
+   ]
+  },
+  {
+   "pr": 260,
+   "mode": "since",
+   "tree": "72077f1a",
+   "tested": [
+    [
+     "ab73bb4b",
+     "*"
+    ]
+   ],
+   "failure": "steward batch 2: Q swamp_darkness.c and R2 swamp_destruction.c both define mu_swamp_* (link failure of reconstructed/objects)",
+   "must_rows": [
+    "validate_worlds_q",
+    "validate_worlds_r2"
+   ]
+  }
+ ]
+}
