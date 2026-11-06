@@ -19,7 +19,7 @@ static int arrow_kind(int32_t type)
     case 0x458: case 0x459: case 0x45a: case 0x45b: case 0x45c: case 0x45d: case 0x45e:
     case 0x471: case 0x474: case 0x47f: case 0x525: case 0x5b0: case 0x5b1:
     case 0x60a: case 0x60d: case 0x60e: case 0x60f: case 0x610: case 0x612: case 0x613: case 0x614: case 0x615:
-    case 0x616: case 0x617:
+    case 0x616: case 0x617: case 0x38b5:
         return 1;
     default:
         return 0;
@@ -28,11 +28,12 @@ static int arrow_kind(int32_t type)
 
 int mu_sfx_is_arrow(int32_t type)
 {
-    return type == MU_SFX_MODEL_ARROW || arrow_kind(type);
+    return type != 0x38b5 && (type == MU_SFX_MODEL_ARROW || arrow_kind(type));
 }
 
 static int arrow_supported(int32_t type, int32_t sub)
 {
+    if (type == 0x38b5) return sub == 1;
     if (type == MU_SFX_MODEL_ARROW)
         return sub == 0 || sub == 2 || sub == 0x63;
     return arrow_kind(type) && (sub == 0 || sub == 2 || sub == 0x63);
@@ -258,6 +259,10 @@ static int arrow_create(mu_sfx_effect *e, int32_t type, int32_t subtype, float p
     }
     static const float header_light[3] = {0.3f, 0.8f, 1.0f};
     switch (type) {
+    case 0x38b5:                                /* 0x013cb6b6 */
+        e->lifetime = 13;
+        e->blend_mesh = -2;
+        break;
     case 0x443:                                 /* 0x013cb5a3 */
         e->scale = 1.8f;
         e->direction[1] = -50.0f;
@@ -528,6 +533,11 @@ static void arrow_move(mu_sfx_effect *e, const mu_sfx_env *env, float light[3], 
     const int straight = arrow_straight_skill(e->skill);
     float p[3], c[3];
     switch (type) {
+    case 0x38b5: /* 0x014348b7, subtype 1 */
+        e->scale = e->scale + 0.1f;
+        e->blend_light = (float)e->lifetime / 18.0f;
+        e->alpha = e->blend_light;
+        return;   /* skips the arrow hit check; common MoveEffect closing code still runs */
     case 0x43c: case 0x43d: case 0x43e: case 0x43f: case 0x440: case 0x45e: case 0x5b0:
         break;
     case 0x441: case 0x443: {                   /* 0x014652c7 / 0x014659fd */
