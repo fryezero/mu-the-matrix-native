@@ -709,11 +709,11 @@ static void feed_main(mu_gfx_layer *L)
     if (!mv->path[0])
         return;
     if (h->hp != s->hp || h->max_hp != s->max_hp || h->mp != s->mp || h->max_mp != s->max_mp || h->sd != s->sd ||
-        h->max_sd != s->max_sd || h->ag != s->ag || h->max_ag != s->max_ag)
+        h->max_sd != s->max_sd || h->ag != s->ag || h->max_ag != s->max_ag || h->is_toxic != s->is_toxic)
         invokef(L, MU_GFX_MAIN, mv->path, "setHPMP",
-                "[{\"isToxic\":false,\"hp\":%d,\"maxHp\":%d,\"mp\":%d,\"maxMp\":%d,\"Shield\":%d,\"ShieldMax\":%d,"
+                "[{\"isToxic\":%s,\"hp\":%d,\"maxHp\":%d,\"mp\":%d,\"maxMp\":%d,\"Shield\":%d,\"ShieldMax\":%d,"
                 "\"SkillMana\":%d,\"SkillManaMax\":%d}]",
-                h->hp, h->max_hp, h->mp, h->max_mp, h->sd, h->max_sd, h->ag, h->max_ag);
+                h->is_toxic ? "true" : "false", h->hp, h->max_hp, h->mp, h->max_mp, h->sd, h->max_sd, h->ag, h->max_ag);
     if (L->exp_json[0] && L->exp_json_dirty) {   /* NATIVE-PROGRESS-001: the client's own object */
         char path[128];
         snprintf(path, sizeof path, "%s.mcExpBar", mv->path);

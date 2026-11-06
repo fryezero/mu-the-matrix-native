@@ -82,6 +82,7 @@ typedef struct mu_gfx_hero {
     char name[32], class_name[32];
     int32_t level, master_level, points;
     int32_t hp, max_hp, mp, max_mp, sd, max_sd, ag, max_ag;
+    int is_toxic;               /* setHPMP: states 0x37 or 0x136, display only */
     int64_t exp, exp_max;
     int32_t strength, agility, vitality, energy, command;
     int64_t zen, ruud;
