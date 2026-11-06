@@ -525,19 +525,28 @@ static int buff_tooltip(void *user, int32_t buff, char *html, size_t cap)
     return 0;
 }
 
+/* Intact updater 0x00c71798..0x00c717ce, before setHPMP. */
+static int toxic_state(int32_t id)
+{
+    return id == 0x37 || id == 0x136;
+}
+
 /* The demo buffs of --gfx-open "buffs=1:2:8" (no server: labelled demo) through the bufflist's addBuff rule. */
 static void demo_buffs(world_gfx *g, const char *open)
 {
     const char *p = open ? strstr(open, "buffs=") : NULL;
-    if (!p || !g->lang)
+    if (!p)
         return;
     for (p += 6; *p && *p != ',';) {
         char *end = NULL;
         long v = strtol(p, &end, 0);
         if (end == p)
             break;
+        mu_gfx_hero h = *mu_gfx_layer_hero(g->layer);
+        h.is_toxic |= toxic_state((int32_t)v);
+        mu_gfx_layer_set_hero(g->layer, &h);
         mu_lang_addbuff a;
-        if (mu_lang_buff_addbuff(g->lang, (int32_t)v, &a)) {
+        if (g->lang && mu_lang_buff_addbuff(g->lang, (int32_t)v, &a)) {
             mu_gfx_buff b = {a.buff, a.is_debuff, a.is_cash, a.has_detail, a.detail};
             mu_gfx_layer_add_buff(g->layer, &b);
         }
@@ -1253,7 +1262,7 @@ static void progress_sync(world_gfx *g)
  * Copy only display values. No local spending, clamping or regeneration. */
 static void vitals_sync(world_gfx *g)
 {
-    if (!g->layer)
+    if (!g->layer || !g->session)
         return;
     mu_hero_stats v;
     mu_session_hero(g->session, &v);
@@ -1266,17 +1275,6 @@ static void vitals_sync(world_gfx *g)
     h.max_sd = v.max_sd;
     h.ag = v.ag;
     h.max_ag = v.max_ag;
-    /* The offline join fixture does not populate maximum-vital fields yet.
-     * Its existing progression facade has them. This fallback is display-only;
-     * positive session maxima always win, including the third-class selection. */
-    if (g->progress && (h.max_hp <= 0 || h.max_mp <= 0 || h.max_sd <= 0 || h.max_ag <= 0)) {
-        mu_progress_view p;
-        mu_progress_get_view(g->progress, &p);
-        if (h.max_hp <= 0) h.max_hp = p.life_max;
-        if (h.max_mp <= 0) h.max_mp = p.mana_max;
-        if (h.max_sd <= 0) h.max_sd = p.shield_max;
-        if (h.max_ag <= 0) h.max_ag = p.ag_max;
-    }
     mu_gfx_layer_set_hero(g->layer, &h);
 }
 

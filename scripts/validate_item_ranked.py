@@ -8,6 +8,7 @@ import random
 import struct
 import subprocess
 import tempfile
+import original_cache
 import pins
 import validate_item_clusters as clusters
 import validate_renderchar as v
@@ -58,7 +59,8 @@ def link_cases(wa, lib):
         for k in range(100):
             values = [k]*32 if k < 30 else [rng.randrange(32768) for _ in range(32)]
             for variant, time in enumerate((0, 700.25, 123456, -150.5)):
-                expected = original_link(wa, t, values, time, variant)
+                expected = original_cache.active().get('ranked.link', (t, values, time, variant),   # TEST-SPEED-001
+                                                       lambda: original_link(wa, t, values, time, variant))
                 if clusters.c_effects(lib, t, values, time) != expected:
                     raise AssertionError((hex(t), k, variant, expected, clusters.c_effects(lib,t,values,time)))
                 vectors.append((t, values, time, expected))
