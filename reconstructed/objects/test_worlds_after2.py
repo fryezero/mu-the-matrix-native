@@ -47,7 +47,8 @@ class WorldsAfter2Tests(unittest.TestCase):
 
     def test_classes(self):
         self.assertEqual([w for w in range(0, 200) if self.dll.mu_class_slots(w)],
-                         [91, 113, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145])
+                         [63, 79, 91, 112, 113, 114, 122, 123, 124, 125, 126, 127,   # + RENDER-WORLDS-SLOTS
+                          131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145])
 
     def test_kanturu_flags_leave_the_first_pass(self):
         o = self.obj(8)
