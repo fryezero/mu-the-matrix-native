@@ -96,7 +96,9 @@ typedef struct mu_combat_bitmap {
     mu_image image;           /* client upload (power of two, rows in upload order) */
     int8_t components;
     int loaded;
-    uint32_t wrap;            /* RENDER-EFFECTS-015: 0x2900 (GL_CLAMP) for the decal bitmaps; 0 = repeat */
+    uint32_t wrap;            /* LoadBitmap's wrap: 0x2900 GL_CLAMP or 0x2901 GL_REPEAT (RENDER-EFFECTS-016: every
+                                 bitmap as its LoadBitmap call; 015 set the decal bitmaps', 0 meant repeat) */
+    uint32_t filter;          /* RENDER-EFFECTS-016: LoadBitmap's filter, 0x2601 GL_LINEAR or 0x2600 GL_NEAREST */
 } mu_combat_bitmap;
 
 /* A model the effects draw (Data/Skill, the demo weapon for Twisting Slash). */
@@ -297,6 +299,8 @@ typedef struct mu_combat_quad {
     uint8_t additive;         /* blend (ONE, ONE) instead of (SRC_ALPHA, ONE_MINUS_SRC_ALPHA) */
     uint8_t depth_test;
     uint32_t src, dst;        /* when non-zero: the GL blend factors (they override additive) */
+    uint8_t alpha_test;       /* RENDER-EFFECTS-016: GL_ALPHA_TEST (GREATER 0.25) on, as EnableAlphaTest leaves it */
+    uint8_t depth_mask;       /* RENDER-EFFECTS-016: depth writes on (EnableAlphaTest(1)) */
 } mu_combat_quad;
 
 /* The frame's quads: joints (RenderJoints), particles (RenderParticles mode
@@ -307,8 +311,9 @@ int32_t mu_combat_quads(mu_combat *combat, mu_combat_quad *quads, int32_t max);
 
 /* RENDER-EFFECTS-015: RenderEffects' terrain decals of the live effects (mu_sfx_effect_render_ops: 0x70a, 0x70c,
  * 0x45e subtypes 3..7), one world-space quad per terrain tile of each RenderTerrainAlphaBitmap call, in the blend its
- * wrapper chose (additive; 0x70c's crater (SRC_ALPHA, ONE_MINUS_SRC_ALPHA), its alpha test not modelled), depth test
- * on. Needs the world map. Returns the number of quads written. */
+ * wrapper chose (mu_sfx_render_state: additive; 0x70c's crater (SRC_ALPHA, ONE_MINUS_SRC_ALPHA) with the alpha test
+ * and depth writes of EnableAlphaTest(1), RENDER-EFFECTS-016), depth test on. Needs the world map. Returns the number
+ * of quads written. */
 int32_t mu_combat_decal_quads(mu_combat *combat, mu_combat_quad *quads, int32_t max);
 enum { MU_COMBAT_DECAL_QUADS = 8192 };
 

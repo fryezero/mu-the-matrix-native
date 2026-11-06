@@ -165,40 +165,47 @@ static int startup_bitmap_name(const char *root, const char *name, char *path, s
 
 /* ---------------------------------------------------------------- resources */
 
-static const struct { int32_t id; const char *dir, *name; char kind; uint32_t wrap; } bitmap_files[] = {
-    {MU_BITMAP_FONT_DAMAGE, "Interface", "Font_Damage.tga", 't', 0},
-    {0x7dfe, "Interface", "FontSC.tga", 't', 0},
-    {0x7df3, "Interface", "Hit.tga", 't', 0},
-    {0x7df4, "Interface", "font_miss.tga", 't', 0},
-    {0x7df5, "Interface", "resist.tga", 't', 0},
-    {0x7df6, "Interface", "block.tga", 't', 0},
-    {0x7df7, "Interface", "parry.tga", 't', 0},
-    {0x7df8, "Interface", "absorb.tga", 't', 0},
-    {0x7f2b, "Effect", "Thunder01.jpg", 'j', 0},
-    {0x7f84, "Effect", "Magic_Ground2.jpg", 'j', 0},
-    {0x7f3c, "Effect", "Fire01.jpg", 'j', 0},          /* LoadBitmap 0x0185baac call sites (static) */
-    {0x7f26, "Effect", "Spark03.jpg", 'j', 0},
-    {0x7fd8, "Effect", "JointEnergy01.jpg", 'j', 0},
-    {0x7fd3, "Effect", "JointSpirit01.jpg", 'j', 0},
-    {0x7fd5, "Effect", "Spark01.jpg", 'j', 0},         /* the Twisting Slash swirl's spark joints (NATIVE-JOINT-001) */
-    {0x7fd6, "Effect", "JointLaser01.jpg", 'j', 0},    /* RENDER-EFFECTS-009: the arrows' 0x7fd6/5 trails */
-    {0x7f79, "Effect", "Flare02.jpg", 'j', 0},
-    {0x7f78, "Effect", "Flare.jpg", 'j', 0},           /* RENDER-EFFECTS-014: 0x459's Flare/b joints */
-    {0x80e3, "Effect", "force_Pillar.jpg", 'j', 0},
-    {0x80e4, "Effect", "!SwordEff.jpg", 'j', 0},
-    {0x814c, "Skill", "sharke_arrows.jpg", 'j', 0},
-    {0x8182, "Effect", "devil_arrow.jpg", 'j', 0},
-    {0x8185, "Effect", "arrows_angelic.jpg", 'j', 0},
-    {0x828c, "Effect", "Swordeff_mono2.jpg", 'j', 0},
-    {0x85cc, "Effect", "Swordeff_mono3.jpg", 'j', 0},
-    /* RENDER-EFFECTS-015: RenderEffects' terrain decals of 0x70a, 0x70c and 0x45e (startup LoadBitmap calls in
-     * 0x0182049e, 0x0182cd66 and the opener 0x01832af3, LINEAR and GL_CLAMP; mu_item_bitmaps.inc) */
-    {0x8070, "Effect", "empact01.jpg", 'j', 0x2900}, {0x7f87, "Effect", "enemy_ring02.jpg", 'j', 0x2900},
-    {0x8147, "Effect", "Shockwave2.jpg", 'j', 0x2900}, {0x824c, "Effect", "Wave.jpg", 'j', 0x2900},
-    {0x8078, "Effect", "lightmarks.jpg", 'j', 0x2900}, {0x7fe9, "Effect", "Cratered.tga", 't', 0x2900},
-    {0x810a, "Effect", "pin_star03.jpg", 'j', 0x2900}, {0x8155, "Effect", "Spark04.jpg", 'j', 0x2900},
-    {0x8179, "Effect", "bostar3_R.jpg", 'j', 0x2900}, {0x8013, "Effect", "damage01mono.jpg", 'j', 0x2900},
-    {0x8002, "Effect", "PoundingBall.jpg", 'j', 0x2900},
+/* RENDER-EFFECTS-016: filter and wrap as the client's LoadBitmap 0x0185baac call of each index (site in the comment;
+ * the generated startup table mu_item_bitmaps.inc lists every call, one per index here): GL_LINEAR 0x2601 or
+ * GL_NEAREST 0x2600, GL_CLAMP 0x2900 or GL_REPEAT 0x2901. Before, all but the decals loaded LINEAR and REPEAT. */
+static const struct { int32_t id; const char *dir, *name; char kind; uint32_t filter, wrap; char decal; } bitmap_files[] = {
+    {MU_BITMAP_FONT_DAMAGE, "Interface", "Font_Damage.tga", 't', 0x2601, 0x2900, 0},   /* 0x01820a39 */
+    {0x7dfe, "Interface", "FontSC.tga", 't', 0x2601, 0x2900, 0},                     /* 0x01820bb9 */
+    {0x7df3, "Interface", "Hit.tga", 't', 0x2601, 0x2900, 0},                        /* 0x01820a79 */
+    {0x7df4, "Interface", "font_miss.tga", 't', 0x2601, 0x2900, 0},                  /* 0x01820a59 */
+    {0x7df5, "Interface", "resist.tga", 't', 0x2601, 0x2900, 0},                     /* 0x01820a99 */
+    {0x7df6, "Interface", "block.tga", 't', 0x2601, 0x2900, 0},                      /* 0x01820ab9 */
+    {0x7df7, "Interface", "parry.tga", 't', 0x2601, 0x2900, 0},                      /* 0x01820ad9 */
+    {0x7df8, "Interface", "absorb.tga", 't', 0x2601, 0x2900, 0},                     /* 0x01820af9 */
+    {0x7f2b, "Effect", "Thunder01.jpg", 'j', 0x2601, 0x2901, 0},                     /* 0x01822365 */
+    {0x7f84, "Effect", "Magic_Ground2.jpg", 'j', 0x2601, 0x2900, 0},                 /* 0x01821599 */
+    {0x7f3c, "Effect", "Fire01.jpg", 'j', 0x2601, 0x2900, 0},                        /* 0x01820f19 */
+    {0x7f26, "Effect", "Spark03.jpg", 'j', 0x2601, 0x2900, 0},                       /* 0x01821639 */
+    {0x7fd8, "Effect", "JointEnergy01.jpg", 'j', 0x2601, 0x2900, 0},                 /* 0x01822425 */
+    {0x7fd3, "Effect", "JointSpirit01.jpg", 'j', 0x2601, 0x2900, 0},                 /* 0x018223c5 */
+    {0x7fd5, "Effect", "Spark01.jpg", 'j', 0x2601, 0x2900, 0},         /* 0x01822385; the Twisting Slash swirl's spark joints */
+    {0x7fd6, "Effect", "JointLaser01.jpg", 'j', 0x2601, 0x2900, 0},    /* 0x018223e5; RENDER-EFFECTS-009: the arrows' trails */
+    {0x7f79, "Effect", "Flare02.jpg", 'j', 0x2601, 0x2901, 0},                       /* 0x018228e5 */
+    {0x7f78, "Effect", "Flare.jpg", 'j', 0x2601, 0x2900, 0},           /* 0x01822545; RENDER-EFFECTS-014: 0x459's joints */
+    {0x80e3, "Effect", "force_Pillar.jpg", 'j', 0x2601, 0x2901, 0},                  /* 0x01835b52 (startup opener) */
+    {0x80e4, "Effect", "!SwordEff.jpg", 'j', 0x2601, 0x2901, 0},                     /* 0x01835b72 (startup opener) */
+    {0x814c, "Skill", "sharke_arrows.jpg", 'j', 0x2601, 0x2900, 0},                  /* 0x01821dd9 */
+    {0x8182, "Effect", "devil_arrow.jpg", 'j', 0x2601, 0x2900, 0},                   /* 0x01833b47 (startup opener) */
+    {0x8185, "Effect", "arrows_angelic.jpg", 'j', 0x2601, 0x2900, 0},                /* 0x01833ba0 (startup opener) */
+    {0x828c, "Effect", "Swordeff_mono2.jpg", 'j', 0x2601, 0x2900, 0},                /* 0x01837b6c (startup opener) */
+    {0x85cc, "Effect", "Swordeff_mono3.jpg", 'j', 0x2601, 0x2901, 0},                /* 0x0182f066 in 0x0182cd66 */
+    /* RENDER-EFFECTS-015: RenderEffects' terrain decals of 0x70a, 0x70c and 0x45e */
+    {0x8070, "Effect", "empact01.jpg", 'j', 0x2601, 0x2900, 1},        /* 0x018218d9 */
+    {0x7f87, "Effect", "enemy_ring02.jpg", 'j', 0x2601, 0x2900, 1},    /* 0x018215f9 */
+    {0x8147, "Effect", "Shockwave2.jpg", 'j', 0x2601, 0x2900, 1},      /* 0x0183611a (startup opener) */
+    {0x824c, "Effect", "Wave.jpg", 'j', 0x2601, 0x2900, 1},            /* 0x01837137 (startup opener) */
+    {0x8078, "Effect", "lightmarks.jpg", 'j', 0x2601, 0x2900, 1},      /* 0x01821a19 */
+    {0x7fe9, "Effect", "Cratered.tga", 't', 0x2600, 0x2900, 1},        /* 0x01822c65: GL_NEAREST (RENDER-EFFECTS-016) */
+    {0x810a, "Effect", "pin_star03.jpg", 'j', 0x2601, 0x2900, 1},      /* 0x0182d4bf in 0x0182cd66 */
+    {0x8155, "Effect", "Spark04.jpg", 'j', 0x2601, 0x2900, 1},         /* 0x01822625 */
+    {0x8179, "Effect", "bostar3_R.jpg", 'j', 0x2601, 0x2900, 1},       /* 0x01822685 */
+    {0x8013, "Effect", "damage01mono.jpg", 'j', 0x2601, 0x2900, 1},    /* 0x01821819 */
+    {0x8002, "Effect", "PoundingBall.jpg", 'j', 0x2601, 0x2900, 1},    /* 0x01820f79 */
 };
 
 _Static_assert(sizeof bitmap_files / sizeof bitmap_files[0] == MU_COMBAT_BITMAPS, "combat bitmap capacity");
@@ -220,12 +227,13 @@ static void load_bitmaps(mu_combat *c, const char *root)
         mu_combat_bitmap *b = &c->bitmaps[c->bitmap_count++];
         b->id = bitmap_files[i].id;
         b->wrap = bitmap_files[i].wrap;
+        b->filter = bitmap_files[i].filter;
         char directory[2048], path[4096], error[256], text[96];
         snprintf(directory, sizeof directory, "%s/Data/%s", root, bitmap_files[i].dir);
         if (!mu_image_resolve(directory, bitmap_files[i].name, path, sizeof path) ||
             mu_texture_upload_file(path, bitmap_files[i].kind, &b->image, &b->components, error, sizeof error) !=
                 MU_IMAGE_OK) {
-            if (bitmap_files[i].wrap) {   /* RENDER-EFFECTS-015: one summary line for the decal bitmaps */
+            if (bitmap_files[i].decal) {   /* RENDER-EFFECTS-015: one summary line for the decal bitmaps */
                 ++decals_missing;
                 continue;
             }
@@ -1876,7 +1884,7 @@ typedef struct decal_sink {
     mu_combat *c;
     mu_combat_quad *quads;
     int32_t max, n, bitmap, count;
-    int32_t routine;          /* the blend wrapper in effect */
+    mu_sfx_gl_state gl;       /* RENDER-EFFECTS-016: the GL state the wrappers left (mu_sfx_render_state) */
     float color[4], uv[2];
     float corner[4][5];
 } decal_sink;
@@ -1926,12 +1934,17 @@ static void dq_end(void *x)
     memset(q, 0, sizeof *q);
     q->bitmap = d->bitmap;
     q->depth_test = 1;
-    if (d->routine == MU_SFX_RENDER_BLEND_ALPHA) {
-        q->src = 0x0302;   /* EnableAlphaTest: (SRC_ALPHA, ONE_MINUS_SRC_ALPHA) */
-        q->dst = 0x0303;
-    } else {
+    if (!d->gl.gl_blend) {   /* after DisableAlphaBlend: no blending, (ONE, ZERO) */
+        q->src = 1;
+        q->dst = 0;
+    } else if (d->gl.gl_src == 1 && d->gl.gl_dst == 1) {
         q->additive = 1;   /* EnableAlphaBlend: (ONE, ONE) */
+    } else {
+        q->src = d->gl.gl_src;   /* EnableAlphaTest: (SRC_ALPHA, ONE_MINUS_SRC_ALPHA) */
+        q->dst = d->gl.gl_dst;
     }
+    q->alpha_test = d->gl.gl_alpha_test;     /* RENDER-EFFECTS-016: 0x70c's crater (EnableAlphaTest(1)) */
+    q->depth_mask = d->gl.gl_depth_mask;
     for (int v = 0; v < 4; ++v) {
         memcpy(q->position[v], d->corner[v], sizeof q->position[v]);
         q->texcoord[v][0] = d->corner[v][3];
@@ -1963,7 +1976,9 @@ static int32_t decal_quads_scene(mu_combat *c, mu_terrain_scene *scene, float wo
     d.quads = quads;
     d.max = max;
     d.bitmap = -1;
-    d.routine = MU_SFX_RENDER_BLEND_ADD;
+    /* the state before RenderEffects' first wrapper does not matter here: every decal case starts with
+     * EnableAlphaBlend or EnableAlphaTest(1), which set blend, alpha test and depth mask themselves */
+    mu_sfx_render_state(&d.gl, MU_SFX_RENDER_BLEND_OFF, 0);
     const mu_terrain_sink sink = {&d, dq_state, dq_bind, dq_begin, dq_tex, dq_color3, dq_color4, dq_vertex, dq_end};
     for (int i = 0; i < MU_SFX_EFFECTS; ++i) {
         const mu_sfx_effect *e = &c->effects[i];
@@ -1974,7 +1989,7 @@ static int32_t decal_quads_scene(mu_combat *c, mu_terrain_scene *scene, float wo
         for (int k = 0; k < count; ++k) {
             const mu_sfx_render_op *op = &ops[k];
             if (op->routine != MU_SFX_RENDER_DECAL) {
-                d.routine = op->routine;
+                mu_sfx_render_state(&d.gl, op->routine, op->argument);
                 continue;
             }
             ++c->stats.decals;
@@ -2249,7 +2264,8 @@ static void raster_model(void *context, const mu_model *model, const mu_textures
 
 /* One quad through the raster backend: blend, depth test as the quad says,
  * depth writes and culling off, bilinear sampling. */
-static void raster_quad(mu_raster *raster, const mu_combat_quad *q, const mu_image *texture, uint32_t wrap)
+static void raster_quad(mu_raster *raster, const mu_combat_quad *q, const mu_image *texture, uint32_t wrap,
+                        uint32_t filter)
 {
     mu_meshdraw_state state;
     mu_meshdraw_state_defaults(&state);
@@ -2262,19 +2278,20 @@ static void raster_quad(mu_raster *raster, const mu_combat_quad *q, const mu_ima
     }
     state.fog = 0;
     state.depth_test = q->depth_test;
-    state.depth_mask = 0;
+    state.depth_mask = q->depth_mask;          /* RENDER-EFFECTS-016: EnableAlphaTest(1) writes depth */
     state.cull = 0;
-    state.alpha_test = 0;
+    state.alpha_test = q->alpha_test;          /* GREATER 0.25 (the raster's alpha reference) */
     state.texture = texture != NULL;
     const mu_image *slot = texture;
     const mu_image *const *saved_textures = raster->textures;
     int32_t saved_count = raster->texture_count;
     int saved_linear = raster->linear;
-    const uint32_t *saved_wrap = raster->texture_wrap;
+    const uint32_t *saved_wrap = raster->texture_wrap, *saved_filter = raster->texture_filter;
     raster->textures = &slot;
     raster->texture_count = 1;
-    raster->linear = 1;
-    raster->texture_wrap = wrap ? &wrap : NULL;   /* RENDER-EFFECTS-015: the decal bitmaps' GL_CLAMP */
+    raster->linear = filter != 0x2600u;           /* RENDER-EFFECTS-016: LoadBitmap's filter (Cratered: NEAREST) */
+    raster->texture_filter = NULL;
+    raster->texture_wrap = wrap ? &wrap : NULL;   /* LoadBitmap's wrap (015: the decals; 016: every bitmap) */
     mu_render_backend backend;
     mu_raster_backend(raster, &backend);
     backend.prepare(backend.context, &state, 0);
@@ -2291,6 +2308,7 @@ static void raster_quad(mu_raster *raster, const mu_combat_quad *q, const mu_ima
     raster->texture_count = saved_count;
     raster->linear = saved_linear;
     raster->texture_wrap = saved_wrap;
+    raster->texture_filter = saved_filter;
 }
 
 void mu_combat_draw_raster(mu_combat *c, mu_raster *raster)
@@ -2299,7 +2317,8 @@ void mu_combat_draw_raster(mu_combat *c, mu_raster *raster)
     mu_combat_quad *decals = malloc(sizeof *decals * MU_COMBAT_DECAL_QUADS);   /* RENDER-EFFECTS-015 */
     const int32_t decal_count = decals ? mu_combat_decal_quads(c, decals, MU_COMBAT_DECAL_QUADS) : 0;
     for (int32_t i = 0; i < decal_count; ++i)
-        raster_quad(raster, &decals[i], &c->bitmaps[decals[i].bitmap].image, c->bitmaps[decals[i].bitmap].wrap);
+        raster_quad(raster, &decals[i], &c->bitmaps[decals[i].bitmap].image, c->bitmaps[decals[i].bitmap].wrap,
+                    c->bitmaps[decals[i].bitmap].filter);
     free(decals);
     mu_combat_quad quads[1024];
     int32_t n = mu_combat_quads(c, quads, 1024);
@@ -2311,7 +2330,7 @@ void mu_combat_draw_raster(mu_combat *c, mu_raster *raster)
         if (q->eye_space)
             memcpy(raster->view, identity, sizeof identity);
         raster_quad(raster, q, q->bitmap >= 0 ? &c->bitmaps[q->bitmap].image : NULL,
-                    q->bitmap >= 0 ? c->bitmaps[q->bitmap].wrap : 0);
+                    q->bitmap >= 0 ? c->bitmaps[q->bitmap].wrap : 0, q->bitmap >= 0 ? c->bitmaps[q->bitmap].filter : 0x2601u);
         memcpy(raster->view, saved, sizeof saved);
     }
 }

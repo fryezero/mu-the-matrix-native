@@ -45,6 +45,7 @@ enum {
     MU_PT_BITMAP_SHINY2 = 0x7f67,       /* Effect\Shiny02.jpg (sprites) */
     MU_PT_BITMAP_THUNDER = 0x7f2b,      /* Effect\Thunder01.jpg */
     MU_PT_BITMAP_FIRE = 0x7f3c,         /* Effect\Fire01.jpg (a strip of four cells) */
+    MU_PT_BITMAP_FIRE06 = 0x7f40,       /* Effect\Fire06.jpg: Fire01's case in all three routines (RENDER-EFFECTS-016) */
     MU_PT_BITMAP_SMOKE = 0x7f5a,        /* Effect\smoke01.jpg */
     MU_PT_BITMAP_CLOUDS = 0x7f89,       /* Effect\clouds.jpg (the login scene's mist, NATIVE-JOINT-001) */
     MU_PT_BITMAP_SHINY1 = 0x7f66,       /* Effect\Shiny01.jpg (Noria's lamp sparkles) */
@@ -155,7 +156,8 @@ typedef struct mu_pt_host {
  *   Atlans) and Spark03 0x7f26 0xf (Fenrir's sparks);
  *   RENDER-EFFECTS-003: Spark02/2, explosion 0x7f54/0, flare01 0x7ef7/0,
  *   smoke01 subtypes 4, 6, 7 and 8; RENDER-WORLDS-L: WATERFALL3/16,
- *   firehik_mono01/2, mono02/6, mono03/2, WATERFALL5/0, WATERFALL3/8, WATERFALL2/4. */
+ *   firehik_mono01/2, mono02/6, mono03/2, WATERFALL5/0, WATERFALL3/8, WATERFALL2/4;
+ *   RENDER-EFFECTS-016: Fire06 0x7f40 1..3 (0x70c's stones). */
 int mu_pt_kind_supported(int32_t type, int32_t subtype);
 
 /* The wrapper 0x0168fafd's drop rule (verified): in world 0x8b only, r =

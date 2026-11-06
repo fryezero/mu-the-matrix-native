@@ -535,6 +535,25 @@ typedef struct mu_sfx_render_op {
 } mu_sfx_render_op;
 int mu_sfx_effect_render_ops(const mu_sfx_effect *e, float world_time, mu_sfx_render_op out[MU_SFX_RENDER_OPS]);
 
+/* RENDER-EFFECTS-016: the GL state the three wrappers above leave. Each tests its cache byte before it calls
+ * glEnable/glDisable/glBlendFunc/glDepthMask, so the GL fields change only where the cache disagrees:
+ *   EnableAlphaBlend 0x0184aa2b: blend 3 (ONE, ONE), cull off, depth mask off, alpha test off, texture on, and
+ *     glDisable(GL_FOG) when the fog flag is set;
+ *   EnableAlphaTest 0x0184a990(argument): blend 2 (SRC_ALPHA, ONE_MINUS_SRC_ALPHA), cull off, depth mask on when
+ *     the argument is non-zero (else kept), alpha test on (glAlphaFunc(GL_GREATER, 0.25), 0x0184b056), texture on,
+ *     glEnable(GL_FOG) when the flag is set;
+ *   DisableAlphaBlend 0x0184a7f3: blend 0 (glDisable(GL_BLEND)), cull on, depth mask on, alpha test off, texture
+ *     on, glEnable(GL_FOG) when the flag is set.
+ * Caches: blend 0x0bdc58c4, cull 0x0bdc597f, depth mask 0x0bdc5980, alpha test 0x0bdc58b5, texture 0x0bdc597d;
+ * the fog flag 0x0bdc597c is only read. Other routines leave the state unchanged and return 0. */
+typedef struct mu_sfx_gl_state {
+    int32_t blend;                  /* cache 0x0bdc58c4 */
+    uint8_t cull, depth_mask, alpha_test, texture, fog_flag;   /* caches; fog_flag 0x0bdc597c */
+    uint8_t gl_blend, gl_cull, gl_depth_mask, gl_alpha_test, gl_texture, gl_fog;   /* the GL enables */
+    uint32_t gl_src, gl_dst;        /* the last glBlendFunc */
+} mu_sfx_gl_state;
+int mu_sfx_render_state(mu_sfx_gl_state *state, int32_t routine, int32_t argument);
+
 /* RENDER-EFFECTS-015: the PlayBuffer call site of an effect sound the reconstructed effect and joint routines play
  * (0x582, 0x55d, 0x97, 0x96, 0x55e, 0x42; one site each), *routine its routine (CreateEffect 0x013c0f19,
  * MoveEffect 0x0142fd09, MoveJoint 0x01556c26); 0 for another sound. */
