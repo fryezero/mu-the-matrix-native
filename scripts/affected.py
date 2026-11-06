@@ -144,7 +144,7 @@ def _parse_python(path: Path) -> tuple[tuple[str, ...], tuple[str, ...]]:
 
 def _module_file(name: str, near: Path, root: Path) -> Path | None:
     parts = name.split('.')
-    for base in (near, root / 'scripts'):
+    for base in (near, root / 'scripts', root / 'native/tests'):
         for candidate in (base.joinpath(*parts).with_suffix('.py'), base.joinpath(*parts, '__init__.py')):
             if candidate.is_file():
                 return candidate

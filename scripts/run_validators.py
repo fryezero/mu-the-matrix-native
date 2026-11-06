@@ -202,8 +202,8 @@ def row_deps(name: str, row: dict, root: Path = REPO) -> affected.Deps:
     if row.get('test'):
         test = row['test'].split('::')[0]
         deps.files.setdefault(test, f'owning test {test}')
-        if (root / test).is_file():
-            deps.update(affected.python_deps(root / test, root))
+        # The owning unittest is a trigger, not executed by this subprocess. Its
+        # other fixtures/builds cannot change the standalone validator's result.
     if row.get('parent'):
         deps.files.setdefault(f"scripts/{row['parent']}.py", f"parent {row['parent']}")
     for directory in row['build']:

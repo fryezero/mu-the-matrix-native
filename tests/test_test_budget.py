@@ -309,6 +309,27 @@ class AffectedValidators(unittest.TestCase):
         self.assertEqual(list(why), ['validate_gamma'])
         self.assertIn('its row changed', why['validate_gamma'][0])
 
+    def test_test_hosts_and_swift_are_gate_owned_but_references_still_select(self):
+        self.assertEqual(self.select('native/tests/unused_host.c'), {})
+        self.assertEqual(self.select('native/app/Sources/Unused.swift'), {})
+        def edit():
+            (self.repo / 'scripts/validate_beta.py').write_text("HOST = 'native/tests/referenced.c'\n")
+        self.assertEqual(list(self.select('native/tests/referenced.c', edit=edit)), ['validate_beta'])
+        self.assertEqual(len(self.select('native/new_production.c')), 3)
+
+    def test_owning_test_imports_do_not_become_validator_dependencies(self):
+        def edit():
+            (self.repo / 'tests/test_beta.py').write_text('import helper_gamma\n')
+            (self.repo / 'scripts/helper_gamma.py').write_text('VALUE = 1\n')
+            (self.repo / 'scripts/validate_gamma.py').write_text('import helper_gamma\n')
+        # The real gamma consumer is selected; beta's unused test import is not.
+        self.assertEqual(list(self.select('scripts/helper_gamma.py', edit=edit)), ['validate_gamma'])
+
+    def test_direct_compiler_source_header_closure(self):
+        def edit():
+            (self.repo / 'reconstructed/beta/beta.c').write_text('#include "adapter.h"\n')
+        self.assertEqual(list(self.select('reconstructed/beta/adapter.h', edit=edit)), ['validate_beta'])
+
     def test_reasons_are_printed(self):
         self.select('scripts/helper_beta.py')
         out = io.StringIO()
@@ -495,6 +516,10 @@ class ValidatorTargets(unittest.TestCase):
             self.assertEqual(run.call_count, 2)
             self.assertEqual(run.call_args.args[0][-1], 'two')
             self.assertIn('-j4', run.call_args.args[0])
+
+    def test_validator_imports_native_fixture_source_without_owning_test(self):
+        deps = rv.row_deps('validate_meshdraw', rv.load_manifest()['validate_meshdraw'])
+        self.assertTrue(deps.why('native/tests/native_fixtures.py'))
 
     def test_native_rows_have_target_provenance(self):
         rows = rv.load_manifest()
