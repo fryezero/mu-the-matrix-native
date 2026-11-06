@@ -262,11 +262,13 @@ int mu_world_particles_named_bone_position(const mu_model *model, const mu_bmd *
 /* RenderObjectVisual 0x017f9758 for an object of the world (Lorencia and
  * Tormenta Island; other worlds do nothing). has_model: the model getter's
  * answer; model/bmd: the posed model for the bone positions (NULL when the
- * object was not posed: the bone helpers then leave their output alone).
+ * object was not posed: the bone helpers then leave their output alone);
+ * outer_rand: the rand() the object runtime drew at 0x017f9797 for this object
+ * (RENDER-WORLDS-SLOTS3; the particle generator does not draw it).
  * Writes back BlendMeshLight / v scroll and the light the visual sets.
  * Returns 1 when handled. */
 int mu_world_particles_object_visual(mu_world_particles *p, mu_pt_visual_object *object, int has_model,
-                                     const mu_model *model, const mu_bmd *bmd);
+                                     const mu_model *model, const mu_bmd *bmd, int32_t outer_rand);
 
 /* Hooks the module into the object runtime (CreateParticle of the move pass,
  * RenderObjectVisual after RenderObject, the login world's CreateSprite) and the
