@@ -1,7 +1,7 @@
 """RENDER-WORLDS-Q native checks.
 
 Production host: Acheron, Ferea, Swamp of Darkness and Kubera Mine populations through creation, steps
-and the primary visual (sibling world 111 unchanged). Terrain: a synthetic World124 holding only one
+and the primary visual (sibling world 114 unchanged). Terrain: a synthetic World124 holding only one
 elemental light file loads it exactly for its Kubera world (0x00e18e27's names).
 Private (MU_RECOVERY_INTEGRATION=1, MU_GAME_ROOT): the installed Kubera worlds load their light files.
 """

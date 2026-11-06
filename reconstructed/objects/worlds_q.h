@@ -21,6 +21,7 @@ typedef struct mu_q_handler {
     uint8_t *ferea_object;      /* Ferea +0x50: the type-39 object */
     uint8_t swamp_variant;      /* Swamp of Darkness +0x78: constructor 1 */
     uint8_t *kubera_object;     /* Kubera +0x14: the type-158 object */
+    int32_t arca_stage;         /* RENDER-WORLDS-S2: Arca War +0x30, server state; constructor 0 (0x00d7a185) */
 } mu_q_handler;
 
 typedef struct mu_q_inputs {
@@ -67,4 +68,7 @@ int mu_worlds_q_owns(int32_t world);
 int mu_worlds_q_create(uint8_t *o, int32_t index, const mu_q_inputs *in, mu_obj_log *log);
 int mu_worlds_q_move(uint8_t *o, int32_t index, const mu_q_inputs *in, mu_obj_log *log);
 int mu_worlds_q_visual(const uint8_t *o, int32_t index, int model_present, const mu_q_inputs *in, mu_obj_log *log);
+/* The highest bone the visual of `type` in `world` transforms (the model must be posed with more), -1 for none
+ * (RENDER-WORLDS-S2: Acheron, Debenter, Nars and the Arca War worlds on them). */
+int32_t mu_worlds_q_visual_bones(int32_t world, int32_t type);
 #endif

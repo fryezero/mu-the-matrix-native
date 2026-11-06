@@ -57,7 +57,7 @@ class WorldsSTests(unittest.TestCase):
             obj, events = self.create(world, 51)
             self.assertEqual((self.f(obj, 0xc0), events), (-30, []))
         self.assertEqual(self.lib.mu_aquila_create(None, 145), 0)
-        self.assertEqual([self.lib.mu_worlds_q_owns(w) for w in (94, 95, 96)], [0, 1, 0])
+        self.assertEqual([self.lib.mu_worlds_q_owns(w) for w in (94, 95, 96)], [0, 1, 1])   # 96: Arca War (S2)
 
     def move(self, world, typ, rand=0, alpha=1.0, point=(0.0, 0.0)):
         obj, _ = self.create(world, typ)

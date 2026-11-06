@@ -418,3 +418,21 @@ New compiled mutants, all caught:
 | reregister | case-sensitive extension | 207 |
 | reregister | any extension loads | 277 |
 | reregister | first call only (no replay) | 1 |
+
+
+## RENDER-ITEMS-HIDDENMESH: copy the caller's hidden mesh
+
+The former index-0 draw arguments now copy OBJECT +0x68 as source 35. The generator varies the word independently
+of render flags, and the shared inventory/ground/equipment adapter supplies ItemObjectAttribute's value.
+The initializer stores -1 at `0x016da0cc` and `0x016da12a`; six types receive 1 or 2 instead. The full sweep found
+182 reader recipes, including 157 additional BODY visibility readers and two further texture readers with no
+installed item records. The owner expanded the lane to those readers. They use the same copy mechanism.
+
+The installed survey measures 36 to 13 white types, and 23 to 0 with a wearer. All 4,758 mesh slots keep their
+pixel hash, filter and wrap. Non-reading types keep their draw streams and control-gallery pixels. Reader
+visibility changes are deliberate: most now show mesh 0, and type 0x10f0 shows mesh 0 while hiding mesh 1.
+Wing 0x2491's blue feather mesh now draws around its gold frame. Body coverage remains 1,219/1,674.
+
+[The handoff](../handoffs/RENDER-ITEMS-HIDDENMESH.md) records every changed type, initializer exceptions,
+comparison domains, actual counts/times, image evidence and remaining limits. TEX-003's +0x68 follow-up is
+addressed; its non-startup registration limit and TEX-002's other texture-history limits remain.
