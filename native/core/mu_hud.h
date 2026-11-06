@@ -27,6 +27,7 @@
 #include <stdint.h>
 
 #include "mu_data.h"
+#include "mu_lang.h"
 #include "../../reconstructed/hud/inv_grid.h"
 #include "../../reconstructed/hud/item_slots.h"
 
@@ -43,6 +44,14 @@ void mu_hud_trs_free(mu_hud_trs_table *table);
  * record (0x008dcce0: offsets 0.5/0.5, rotation -90,0,0, scale 0.55) when absent
  * or when table is NULL.  Returns 1 when a record was found. */
 int mu_hud_trs_find(const mu_hud_trs_table *table, int32_t code, float scale_factor, mu_item_trs *out);
+/* APP-POLISH-004: the render info RenderItem3D 0x016c154e reads. It finds the code in ItemTRSData
+ * 0x06fbb624 (0x011204db; the client fills that map from Lang.mpr, not from itemtrsdata.bmd) and copies node
+ * +0x14, or the default record 0x06fbaa40 on a miss (0x016c1613..0x016c1660). Lang's itemtrs.tsv
+ * (mu_lang_item_trs) holds that map: its record, or the default record when the code is absent. Without the
+ * table, `bmd` scaled by `scale_factor` stands in (NATIVE-HUD-001's calibration; the file lacks 2,667 of the
+ * map's 4,919 codes, e.g. wing 0x19ab). Returns 1 when a record was found. */
+int mu_hud_item_trs(const mu_lang *lang, const mu_hud_trs_table *bmd, int32_t code, float scale_factor,
+                    mu_item_trs *out);
 
 enum { MU_HUD_MAX_ITEMS = 64 };
 
@@ -99,10 +108,12 @@ typedef struct mu_hud_item_draw {
 int32_t mu_hud_inventory_pass(const mu_hud_inventory *inv, const mu_hud_window_geometry *geo, int32_t screen_w,
                               int32_t screen_h, const mu_hud_trs_table *trs, float scale_factor,
                               int32_t hover_item, mu_hud_item_draw *draws, int32_t max);
-/* The same pass with the frame clock supplied to the special-code spin. */
+/* The same pass with the frame clock supplied to the special-code spin and the render info of `lang`'s
+ * ItemTRSData when it has one (mu_hud_item_trs; NULL: `trs`). */
 int32_t mu_hud_inventory_pass_at(const mu_hud_inventory *inv, const mu_hud_window_geometry *geo, int32_t screen_w,
-                                int32_t screen_h, const mu_hud_trs_table *trs, float scale_factor,
-                                int32_t hover_item, float time, mu_hud_item_draw *draws, int32_t max);
+                                int32_t screen_h, const mu_lang *lang, const mu_hud_trs_table *trs,
+                                float scale_factor, int32_t hover_item, float time, mu_hud_item_draw *draws,
+                                int32_t max);
 
 /* Column-major glOrtho(0, W, 0, H, 20, 2000) of the item pass 0x00abfcca. */
 void mu_hud_item_projection(int32_t screen_w, int32_t screen_h, float m[16]);

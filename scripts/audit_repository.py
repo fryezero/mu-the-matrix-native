@@ -71,6 +71,12 @@ REVIEWED_MEDIA = {
 }
 
 
+# APP-POLISH-004: unresolved merge-conflict lines (#303's markers reached main in batch 42). Tracked text files
+# that legitimately contain such lines are listed here, explicitly; none do today.
+CONFLICT_MARKER = re.compile(r'^(?:<{7} |={7}\r?$|>{7} )', re.M)
+CONFLICT_MARKER_EXEMPT = frozenset()
+
+
 def violations(name, content):
     path = pathlib.PurePosixPath(name)
     if name in REVIEWED_MEDIA and hashlib.sha256(content).hexdigest() == REVIEWED_MEDIA[name]:
@@ -93,6 +99,9 @@ def violations(name, content):
         errors.append('GitHub credential pattern')
     if re.search(r'-----BEGIN [A-Z ]*PRIVATE KEY-----',text):
         errors.append('private key marker')
+    if name not in CONFLICT_MARKER_EXEMPT and CONFLICT_MARKER.search(text):
+        line = text.count('\n', 0, CONFLICT_MARKER.search(text).start()) + 1
+        errors.append(f'merge conflict marker (line {line})')
     return errors
 
 

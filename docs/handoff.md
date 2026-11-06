@@ -16,6 +16,8 @@ RENDER-WORLDS-S PR-ready: Aquila's Temple (145) and Debenter (95) primary create
 
 TEST-SPEED-002 PR-ready: meshdraw 367.99 → 57.21 s warm with byte-identical reports, 4/4 controls and a caught compiled C mutation; fifteen native build rows use target dependencies. Six-PR selection replay has zero identified misses. [Checks, commands and limits](handoffs/TEST-SPEED-002.md).
 
+APP-POLISH-004 PR-ready: the window title drops the scene/fps suffix (diagnostic behind --title-stats; the original's name is MU, CreateWindowExW 0x01211646/86). Inventory icons use the original's ItemTRSData 0x06fbb624 (Lang.mpr, find 0x011204db) instead of itemtrsdata.bmd x 200: wing 0x19ab 0.55 -> 0.44; the original neither clips nor bounds-fits, so its left-edge overlap stays. validate_app_polish4 10,485 cases, 0 mismatches. scripts/guarded_run.py keeps the network guard under nice. Needs itemtrs.tsv in the next refresh. [Handoff](handoffs/APP-POLISH-004.md)
+
 APP-POLISH-003 PR-ready: the level-1 Dark Knight fixture joins with recorded full vitals 1100/200/52/25; session HUD maxima need no progression fallback. Toxic states 0x37/0x136 select the original green HP bitmap through the display fixture. Buff replication remains open. [Evidence and limits](research/client-app-polish3.md), [checks](handoffs/APP-POLISH-003.md).
 
 TEST-SPEED-001 PR-ready on main `2531746f`: original-side caching and no-mutant/affected runners; 13 item rows pass. Suite-selection median remains near 97%, with no identified recorded-failure miss. [Commands and evidence](testing/TEST-BUDGET.md), [checks and limits](handoffs/TEST-SPEED-001.md).
