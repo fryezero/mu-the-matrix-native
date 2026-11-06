@@ -6,7 +6,7 @@ slots. [Finding, addresses, fidelity and limits](../research/client-worlds-slots
 - Claude Opus 5.5 lane. Worktree `~/Documents/MTM/worktrees/render-worlds-slots2`, branch `claude/render-worlds-slots2`.
 - Started from `origin/claude/render-worlds-slots` `83f8f1d9`, while #308 was queued.
 - Merged origin/main `0122f192` (#307 and the #308 merge) as `a953eb59`: HUD/app code only, no compiled input of my
-  checks.
+  checks. Merged `97e0a92a` (#309, combat) as `e53759b8`; `validators.toml` kept both rows.
 - Input links `tools/python`, `evidence` and `input` point at the main checkout and are never committed.
 
 ## What changed
@@ -79,7 +79,8 @@ paths (worlds_s2/s3, render_effects14: joints/particles/combat, not this code):
 
 Steward validators: validate_worlds_slots2 (mutants: yes, new; done once), validate_worlds_slots, validate_worlds_after2,
 validate_worlds_after3, validate_worlds_after, validate_worlds_after4 (no mutants) (ran at `600ddb01`; later commits
-touch only native/tests hosts, the coverage JSON and docs). Env as above.
+touch only native/tests hosts, the coverage JSON and docs; after merging #309 (`mu_combat.c`, built by the native
+row) validate_worlds_after4 passed again at `e53759b8`, 9,181 cases, 18 s). Env as above.
 
 ## Remaining
 
