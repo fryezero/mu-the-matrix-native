@@ -8,7 +8,8 @@ static int bow_joint_kind(int32_t type, int32_t sub)
     case 0x814c: case 0x8182: case 0x8185: return sub == 10;
     case 0x85cc: return sub == 0;
     case 0x828c: return sub == 2;
-    case 0x7f79: return sub == 12 || sub == 15 || sub == 18 || sub == 22;
+    case 0x7f79: return sub == 12 || sub == 14 || sub == 15 || sub == 18 || sub == 22;
+    case 0x7f78: return sub == 11;   /* RENDER-EFFECTS-014: 0x459's guided flares */
     default: return 0;
     }
 }
@@ -64,6 +65,9 @@ static void create_bow_joint(mu_jt_joint *j, float scale, const float target_pos
         }
         if (j->subtype == 15) { /* 0x0154ceaa */
             j->light[0] = 0.4f; j->light[1] = 0.9f; j->light[2] = 0.5f;
+        } else if (j->subtype == 14) { /* 0x0154ce29: white, otherwise as /15 */
+            j->light[0] = j->light[1] = j->light[2] = 1.0f;
+            j->max_tails = 16;
         } else if (j->subtype == 12) {
             j->light[0] = 0.6f; j->light[1] = 0.2f; j->light[2] = 0.8f;
         } else if (j->subtype == 22) {
@@ -71,13 +75,86 @@ static void create_bow_joint(mu_jt_joint *j, float scale, const float target_pos
         }
         copy3(j->target_position, target_position);
         break;
+    case 0x7f78: /* 0x015496cb, subtype 0xb at 0x0154b471 */
+        j->velocity = 0.0f;
+        j->light[0] = 0.2f; j->light[1] = 0.2f; j->light[2] = 1.0f; /* Flare/b */
+        j->phase = 0;
+        j->lifetime = 30; /* Flare/b */
+        j->max_tails = 15; /* Flare/b */
+        j->jitter[0] = (float)imod(jrand(env), 3000);
+        j->scale = 30.0f; /* Flare/b */
+        copy3(j->target_position, target_position);
+        break;
     }
 }
 
-/* Returns 1 only for the early return which omits MoveJoint's closing tail shift. */
-static int move_bow_joint(mu_jt_joint *j, const mu_jt_env *env)
+/* 0x01579b40..0x0157ab78 with 0x0157c24e, Flare/b of the arrow 0x459: the head rides the ambient clock's
+ * pseudo-random direction from the target point, blended toward the owner's +0x110 point plus a cosine
+ * wobble. The joint created with skill 1 carries its arrow: it writes the owner's position and runs
+ * CheckClientArrow (one report). A null or dead owner goes straight to the tail. */
+static void move_flare_orbit(mu_jt_joint *j, const mu_jt_env *env, int32_t index)
 {
     const mu_jt_object *t = jobject(env, j->target);
+    if (!t) return;   /* 0x01579b64 */
+    if (!t->live) { j->live = 0; j->lifetime = -1; return; }   /* 0x01579b7b */
+    const int32_t clock = env ? env->ambient_clock : 0;
+    const uint32_t c = (uint32_t)index * 0xd1e3u + (uint32_t)(index % 2 != 0 ? clock : -(int64_t)clock);
+    float v[3] = {f32bits(0x3d449ba6u), f32bits(0x3d7b15b5u), f32bits(0x3de3f141u)};   /* 0x01acd974 */
+    for (int k = 0; k < 3; ++k) v[k] = v[k] * 1.5f; /* Flare/b rates */
+    const float a = (float)(int32_t)(c + 0xd903u) * v[0];
+    const float b = (float)(int32_t)c * v[1];
+    const float e = (float)(int32_t)(c + 0x2b67u) * v[2];
+    const float r0 = fsin(a) * fcos(b), r1 = fsin(a) * fsin(b), r2 = fcos(a);
+    const float s = fsin(e), co = fcos(e);
+    float d[3];
+    d[2] = r0;
+    d[1] = s * r1 + co * r2;
+    d[0] = co * r1 - s * r2;
+    const float q = (float)j->lifetime * 40.0f / 30.0f;
+    float blend = 20.0f > q ? q * 4.0f : q * 1.0f + 60.0f;
+    blend = blend / (float)(int32_t)((uint32_t)j->phase + 30u) * 30.0f;
+    if (j->lifetime == 30) {   /* 0x01579f9b: PlayBuffer(0x42, 0, 0) */
+        mu_jt_call c0 = {0};
+        c0.routine = MU_JT_CALL_SOUND; c0.type = 0x42; c0.owner = -1;
+        jcall(env, &c0);
+    }
+    float reach = q - 10.0f;
+    if (0.0f > reach) reach = 0.0f;
+    reach = 150.0f > reach * 5.0f ? reach * 5.0f : 150.0f; /* Flare/b reach */
+    for (int k = 0; k < 3; ++k) j->position[k] = d[k] * reach + j->target_position[k];
+    for (int k = 0; k < 3; ++k) {
+        const int32_t w = (int32_t)((uint32_t)index * 0xc81fu + (uint32_t)k * 0xe7fu + (uint32_t)((int32_t)c / 10));
+        const float pull = (100.0f - blend) * (fcos((float)w * 0.01f) * 25.0f + t->impact[k]);
+        j->position[k] = (blend * j->position[k] + pull) * 0.01f;
+    }
+    const float light[3] = {0.3f, 0.3f, 0.5f}; /* Flare/b sprites */
+    if (j->skill == 1) {   /* 0x0157a6cb: owner position = head, then CheckClientArrow 0x013bd374 */
+        mu_jt_call c1 = {0};
+        c1.routine = MU_JT_CALL_CHECK_ARROW; c1.owner = j->target;
+        copy3(c1.position, j->position);
+        jcall(env, &c1);
+    }
+    static const int32_t bitmaps[3] = {0x7f67, 0x7ef7, 0x7ef7};
+    for (int n = 0; n < 3; ++n) {   /* 0x0157a942: Shiny02 and two flare01 sprites on the owner */
+        mu_jt_call c2 = {0};
+        c2.routine = MU_JT_CALL_SPRITE; c2.type = bitmaps[n];
+        c2.angle[0] = (float)imod(jrand(env), 360);
+        c2.scale = (float)(imod(jrand(env), 2) + 8) * (n == 0 ? F_0_1 : f32bits(0x3e3851ecu));
+        copy3(c2.position, j->position); copy3(c2.light, light);
+        c2.owner = j->target; c2.subtype = 0; c2.range = 4;
+        jcall(env, &c2);
+    }
+    /* 0x0157c24e: subtypes 5, 7 and 0xb skip the last-ten-steps fade */
+}
+
+/* Returns 1 only for the early return which omits MoveJoint's closing tail shift, 2 to go straight to it. */
+static int move_bow_joint(mu_jt_joint *j, const mu_jt_env *env, int32_t index)
+{
+    const mu_jt_object *t = jobject(env, j->target);
+    if (j->type == 0x7f78) {
+        move_flare_orbit(j, env, index);
+        return 2;
+    }
     if (j->type == 0x80e3) { /* 0x01583f63 */
         if (j->subtype == 4) {
             if (!t || !t->live) j->lifetime = 0;
@@ -105,6 +182,22 @@ static int move_bow_joint(mu_jt_joint *j, const mu_jt_env *env)
     } else if (j->type == 0x7f79) { /* 0x0157d2f5 */
         if (!t) { j->live = 0; return 0; }
         if (!t->live) j->live = 0;
+        if (j->subtype == 14 && j->live == 1) { /* 0x0157d395: Spark03 sprite, red smoke, sparks */
+            mu_jt_call c = {0};
+            c.routine = MU_JT_CALL_SPRITE; c.type = 0x7f26; c.scale = 5.0f; c.owner = -1; c.range = 4;
+            copy3(c.position, j->position); copy3(c.light, j->light);
+            jcall(env, &c);
+            memset(&c, 0, sizeof c);
+            c.routine = MU_JT_CALL_PARTICLE; c.type = 0x7f5a; c.owner = -1; c.scale = 1.0f;
+            copy3(c.position, j->position); copy3(c.angle, j->angle); copy3(c.light, j->light);
+            c.subtype = 0x22; jcall(env, &c);
+            c.subtype = 0x23; jcall(env, &c); /* Flare02/e smoke */
+            j->light[0] = 0.7f; j->light[1] = 0.3f; j->light[2] = 0.3f; /* Flare02/e spark colour */
+            c.type = 0x7f26; c.subtype = 0xa; c.scale = 4.0f;
+            copy3(c.light, j->light);
+            jcall(env, &c);
+            j->light[0] = 1.0f; j->light[1] = 1.0f; j->light[2] = 0.2f; /* Flare02/e after */
+        }
         if (j->subtype == 15 && j->live == 1) { /* 0x0157d54d: two particles, before fade */
             mu_jt_call c = {0};
             c.routine = MU_JT_CALL_PARTICLE; c.type = 0x7f66;
