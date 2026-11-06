@@ -220,6 +220,11 @@ static void load_models(mu_combat *c, const char *root)
         {0x41d, "Data/Skill/Circle02.bmd"}, {0x457, "Data/Skill/Inferno01.bmd"}, {0x421, "Data/Skill/Laser01.bmd"},
         {0x419, "Data/Skill/Stone01.bmd"}, {0x41a, "Data/Skill/Stone02.bmd"}, {MU_SFX_TWISTING_SWIRL, NULL},
         {0x412, "Data/Skill/Ice01.bmd"}, {0x41b, "Data/Skill/Ice02.bmd"}, {0x41f, "Data/Skill/Magic02.bmd"},
+        /* RENDER-EFFECTS-011: AccessModel 0x01833c1e (Data\Skill\m_Waves), 0x018370f6 (Data\Effect\Darkangel_effect,
+         * textures Effect\ REPEAT/NEAREST) and 0x0183721f (Data\Effect\ringofpower, likewise); static */
+        {0x477, "Data/Skill/m_Waves.bmd"}, {0x60b, "Data/Effect/Darkangel_effect.bmd"},
+        {0x611, "Data/Effect/ringofpower.bmd"},
+        {0x45f, "Data/Skill/darkwing_hetachi.bmd"},   /* AccessModel 0x01833729, textures Skill\\ REPEAT/NEAREST */
         /* RENDER-EFFECTS-004: Rageful Blow, loader 0x0183451b..0x018345cf */
         {0x462, "Data/Skill/EarthQuake01.bmd"}, {0x463, "Data/Skill/EarthQuake02.bmd"},
         {0x464, "Data/Skill/EarthQuake03.bmd"}, {0x465, "Data/Skill/EarthQuake04.bmd"},
@@ -237,6 +242,16 @@ static void load_models(mu_combat *c, const char *root)
         if (i == MU_COMBAT_MODEL_BOW_ARROW) {
             m->type = c->weapon_item[0] >= 0 ? mu_sfx_arrow_type(c->weapon_item[0]) : -1;
             file = mu_combat_arrow_file(m->type);
+        }
+        if (i >= MU_COMBAT_MODEL_RING && i <= MU_COMBAT_MODEL_FEATHER) {
+            /* RENDER-EFFECTS-011: only for the equipped bow whose arrows request it (arrow_fx.inc: 0x45b, 0x47f
+             * and 0x60d create 0x477, 0x60a 0x60b, 0x610 0x611) */
+            const int32_t arrow = c->weapon_item[0] >= 0 ? mu_sfx_arrow_type(c->weapon_item[0]) : -1;
+            const int needed = m->type == 0x477   ? arrow == 0x45b || arrow == 0x47f || arrow == 0x60d
+                               : m->type == 0x45f ? arrow == 0x45c   /* 0x45c's 0x45f/0, 0x45f/1 */
+                                                  : arrow == (m->type == 0x60b ? 0x60a : 0x610);
+            if (!needed)
+                continue;
         }
         if (!file)
             continue;
@@ -420,6 +435,11 @@ static const mu_sfx_object *env_object(void *context, int32_t index)
     return &c->objects[index];
 }
 
+const mu_jt_object *mu_combat_object(void *context, int32_t index)
+{
+    return env_object(context, index);
+}
+
 /* The objects the effects read: the placed actors by index, the hero at
  * MU_COMBAT_HERO_OBJECT. visible: live and drawn (the client's frustum test
  * +0x0b is taken as true for everything near the hero). */
@@ -506,7 +526,7 @@ static void create_effect(mu_combat *c, int32_t type, int32_t subtype, const flo
     }
 }
 
-static void create_particle(mu_combat *c, const mu_sfx_call *call)
+static void create_particle(mu_combat *c, const mu_sfx_call *call, const mu_sfx_effect *e)
 {
     if (c->particle_count >= MU_COMBAT_PARTICLES)
         return;
@@ -516,10 +536,18 @@ static void create_particle(mu_combat *c, const mu_sfx_call *call)
         ++c->particle_count;
         ++c->stats.particles_created;
     } else if (c->legacy_particles && mu_pt_kind_supported(call->type, call->subtype)) {
-        /* NATIVE-PARTICLE-001: kinds of the legacy particle module (Fire01 1..3, smoke01 3, Spark02 0);
-         * the owner is not modelled there (these calls pass none) */
-        mu_world_particles_create(c->legacy_particles, call->type, call->position, call->angle, call->light,
-                                  call->subtype, call->scale);
+        /* NATIVE-PARTICLE-001: kinds of the legacy particle module (Fire01 1..3, smoke01 3, Spark02 0).
+         * RENDER-EFFECTS-011: an arrow's "this effect" owner (-2) is its effect OBJECT (firehik03/0x11 dies with
+         * it); other owners are not modelled there */
+        int32_t owner = -1;
+        if (call->owner == -2 && e && e >= c->effects && e < c->effects + MU_SFX_EFFECTS && mu_sfx_is_arrow(e->type) &&
+            c->legacy_particles->combat_object) {
+            effect_object(c, e);
+            c->objects[MU_COMBAT_EFFECT_OBJECT(e - c->effects)].live = 1;   /* created, SetLive at the end */
+            owner = MU_WORLD_FX_COMBAT_BASE + MU_COMBAT_EFFECT_OBJECT((int32_t)(e - c->effects));
+        }
+        mu_world_particles_create_owned(c->legacy_particles, call->type, call->position, call->angle, call->light,
+                                        call->subtype, call->scale, owner);
         ++c->stats.particles_created;
     } else {
         unsupported(c, 'p', call->type, call->subtype);
@@ -581,7 +609,7 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
         add_light(c, call->position[0], call->position[1], call->light, call->range);
         return 0;
     case MU_SFX_CALL_PARTICLE:
-        create_particle(c, call);
+        create_particle(c, call, e);
         return 0;
     case MU_SFX_CALL_JOINT: {
         int32_t target = call->owner;
@@ -826,7 +854,7 @@ static void hero_bone(void *context, int32_t owner, int32_t bone, const float in
 /* Bow 0x12f9's sparks after the shots (0x0158dfdc, mu_sfx_bow_sparks, verified). The bone is
  * Weapon[Weapon[0].LinkBone].LinkBone: the byte +0x19b1 + 0x3fc * (byte +0x19b1). For the Player's link bone 33 that
  * byte lies past the hero's record (CharactersClient + 0x3670 * (i + 2) + 0x2f6d, another slot's data); the native
- * has no such record and reads it as 0 (MU_COMBAT_SPARK_BONE, inference: a cleared slot). 0x0129f12c then needs the
+ * has no such record and reads it as 0 (MU_COMBAT_SPARK_BONE; RENDER-EFFECTS-011 read 0 live). 0x0129f12c then needs the
  * hero's own bones and bone < the model's bone count. */
 static void bow_sparks(mu_combat *c)
 {
@@ -934,7 +962,7 @@ static void end_of_attack(mu_combat *c)
             memcpy(call.position, c->actors->list[t].position, sizeof call.position);
             memcpy(call.angle, h->angle, sizeof call.angle);
             call.light[0] = 0.4f; call.light[1] = 0.6f; call.light[2] = 1.0f;
-            for (int k = 0; k < 10; ++k) create_particle(c, &call);
+            for (int k = 0; k < 10; ++k) create_particle(c, &call, NULL);
         }
         break;
     case 7:
@@ -1036,8 +1064,6 @@ static void move_pools(mu_combat *c)
     for (int i = 0; i < MU_SFX_EFFECTS; ++i)
         if (c->effects[i].live && !mu_sfx_effect_move(&c->effects[i], &c->env))
             c->effects[i].live = 0;   /* an unsupported kind ends at once */
-    for (int i = 0; i < MU_SFX_EFFECTS; ++i)
-        arrow_tick(c, &c->effects[i]);
     for (int i = 0; i < MU_SFX_EFFECTS; ++i)
         effect_object(c, &c->effects[i]);   /* MoveJoints reads the arrows after MoveEffects (RENDER-EFFECTS-009) */
     c->jenv.serial = c->serial;
@@ -1702,20 +1728,26 @@ static int32_t model_slot(const mu_combat *c, int32_t type)
 }
 
 /* RENDER-EFFECTS-010: the render-registry functors of 0x613..0x617 tick the arrow's animation (0x012b4dd3) each
- * time they draw it; the native ticks once per logic step, with the loop of MU_SFX_CALL_ANIMATION (inference). */
-static void arrow_tick(mu_combat *c, mu_sfx_effect *e)
+ * time they draw it, with the loop of MU_SFX_CALL_ANIMATION (inference). RENDER-EFFECTS-011: the native ticks there
+ * too, once per drawn frame in mu_combat_draw_models, as the client (it ticked once per logic step before). */
+static void model_tick(mu_combat *c, mu_sfx_effect *e, float speed)
 {
-    mu_sfx_mesh_pass passes[MU_SFX_MESH_PASSES];
-    if (!e->live || !mu_sfx_arrow_render_passes(e, 0.0f, passes))
-        return;
     const int32_t slot = model_slot(c, e->type);
     if (slot < 0)
         return;
     const mu_bmd *b = &c->models[slot].bmd;
     const int32_t keys = b->action_count > 0 ? b->actions[0].keys : 1;
-    e->frame = e->frame + mu_sfx_arrow_tick_speed(e);
+    e->frame = e->frame + speed;
     if (keys > 1 && e->frame >= (float)keys)
         e->frame = e->frame - (float)keys;
+}
+
+static void arrow_tick(mu_combat *c, mu_sfx_effect *e)
+{
+    mu_sfx_mesh_pass passes[MU_SFX_MESH_PASSES];
+    if (!e->live || !mu_sfx_arrow_render_passes(e, 0.0f, passes))
+        return;
+    model_tick(c, e, mu_sfx_arrow_tick_speed(e));
 }
 
 int32_t mu_combat_draw_models(mu_combat *c, mu_combat_model_fn draw, void *context)
@@ -1787,6 +1819,16 @@ int32_t mu_combat_draw_models(mu_combat *c, mu_combat_model_fn draw, void *conte
         }
         p.body_scale = e->type == MU_SFX_TWISTING_SWIRL ? 1.0f : e->scale;
         mu_model_apply_params(&m->model, &p);
+        arrow_tick(c, e);   /* RENDER-EFFECTS-011: the functor's tick before its passes (0x00a4269f..) */
+        /* RENDER-EFFECTS-011: RenderEffects' case 0x45e (0x01518f49, verified): a tick at twice the speed, the
+         * model drawn twice for the arrows' subtypes, smoke01/0x6d and pin_star/3 owned by the arrow each drawn
+         * frame (through the session's particle route); the subtypes 3..7 decal 0x8002 is counted only */
+        float extra_speed = 0.0f;
+        int decal = 0, draws = 1;
+        if (mu_sfx_arrow_render_extras(e, &c->env, &extra_speed, &decal, &draws)) {
+            model_tick(c, e, extra_speed);
+            c->stats.render_decals += (uint32_t)decal;
+        }
         int32_t keys = m->bmd.action_count > 0 ? m->bmd.actions[0].keys : 1;
         float frame = e->frame;
         if (keys > 0 && frame >= (float)keys)
@@ -1836,7 +1878,8 @@ int32_t mu_combat_draw_models(mu_combat *c, mu_combat_model_fn draw, void *conte
         options.u_offset = e->blend_u;
         options.v_offset = e->blend_v;
         options.textures = &m->textures;
-        draw(context, &m->model, &m->textures, slot, &options);
+        for (int k = 0; k < draws; ++k)
+            draw(context, &m->model, &m->textures, slot, &options);
         ++drawn;
     }
     return drawn;

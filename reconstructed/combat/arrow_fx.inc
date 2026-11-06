@@ -1027,3 +1027,25 @@ int mu_sfx_arrow_render_passes(const mu_sfx_effect *e, float world_time, mu_sfx_
     }
     return n;
 }
+
+/* RENDER-EFFECTS-011: RenderEffects' case 0x45e (0x01518f49, absolute_gunbow_arrow), each drawn frame once the model
+ * exists: model colour (1, 1, 1), the animation tick (0x012b4dd3) at twice the record's speed, RenderObject, then two
+ * particles owned by this effect: smoke01 0x7f5a/0x6d (light (0.3, 0.4, 0.5), scale s = rand % 8 x 0.07 + 0.8) and
+ * pin_star 0x8108/3 (light 1, scale s x 0.1). Subtypes 3..7 also lay the terrain decal 0x8002
+ * (RenderTerrainAlphaBitmap 0x016cdd5f; no arrow has these subtypes): *decal. The others draw the model a second
+ * time with the same arguments (0x015192a2..0x015192f4; subtypes 9 and 0xb only at lifetime <= 0x45): *draws is
+ * 1 or 2. Returns 0 for other types. */
+int mu_sfx_arrow_render_extras(mu_sfx_effect *e, const mu_sfx_env *env, float *tick_speed, int *decal, int *draws)
+{
+    if (e->type != 0x45e)
+        return 0;
+    *tick_speed = e->velocity * 2.0f;
+    *decal = e->subtype >= 3 && e->subtype <= 7;
+    *draws = *decal ? 1 : (e->subtype == 9 || e->subtype == 0xb) ? (e->lifetime <= 0x45 ? 2 : 1) : 2;
+    const float s = (float)smod(env_rand(env), 8) * f32bits(0x3d8f5c29u) + F_0_8;   /* 0.07 */
+    float light[3] = {F_0_3, F_0_4, 0.5f};
+    call_particle(env, e, 0x7f5a, e->position, e->angle, light, 0x6d, s, -2);
+    set3(light, 1.0f, 1.0f, 1.0f);
+    call_particle(env, e, 0x8108, e->position, e->angle, light, 3, s * F_0_1, -2);
+    return 1;
+}
