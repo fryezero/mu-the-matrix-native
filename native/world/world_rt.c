@@ -348,6 +348,8 @@ void mu_world_rt_default_options(mu_world_rt_options *o)
     o->audio_rate = 44100;
     o->demo_world = -1;
     mu_combat_default_config(&o->combat_config);
+    /* Offline preview join: recorded level-1 Dark Knight HP, client-progression section 7. */
+    o->combat_config.hero_hp = 1100;
     mu_world_items_default_config(&o->items_config);
     mu_progress_default_config(&o->progress_config);
     o->progress_config.class_byte = 0xff;   /* unset: the hero's class */

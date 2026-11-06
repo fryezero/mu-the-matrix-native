@@ -2,6 +2,7 @@
 #define _POSIX_C_SOURCE 200809L
 #include "../world_rt_internal.h"
 #include "../../session/mu_session_seed.h"
+#include "../../fixture/hero_join.h"
 #include "../../fixture/mu_fixture.h"
 #include "../../fixture/skills_demo.h"
 #include "../../core/mu_lang.h"
@@ -39,6 +40,7 @@ static int open_skills(mu_world_rt *a, void *self)
     mu_fixture_endpoint(p->fixture, "game", &cfg.connect_server);
     mu_session_seed seed = {0}; seed.class_byte = a->walk.hero.class_byte;
     seed.place.world = a->walk.world;
+    mu_fixture_hero_join(&seed);
     p->session = mu_session_open_seeded(&cfg, &seed, error, sizeof error);
     if (!p->session) return 1;
     return mu_session_skills_bind(p->session, a->lang, getenv("MU_LANG_DIR"), a->root) != 0;

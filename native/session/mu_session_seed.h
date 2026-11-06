@@ -5,7 +5,7 @@
  * product variant of the library).
  *
  * A seed sets exactly what the account flow's join answer would set - phase IN_WORLD, the place,
- * the hero's class/level/name, the selected character - and nothing else: every other piece of
+ * the hero's class/level/name and optional recorded fixture vitals, the selected character - and nothing else: every other piece of
  * state still arrives as framed bytes from the transport (normally a fixture scenario). The
  * seeded session's link is the GAME connection, opened to cfg->connect_server (in a fixture run:
  * the scenario's game endpoint), because a seeded session has already hopped. It exists because
@@ -24,6 +24,7 @@ typedef struct mu_session_seed {
     int32_t level;
     char name[11];
     int32_t slot;
+    int32_t vitals[4];           /* optional offline join HP/MP/SD/AG, current = maximum */
 } mu_session_seed;
 
 mu_session *mu_session_open_seeded(const mu_session_config *cfg, const mu_session_seed *seed, char *error,
