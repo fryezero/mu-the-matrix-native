@@ -4,7 +4,8 @@ Aquila's Temple (145) and Debenter (95) primary create/move/visual methods, plus
 Battle (139) and world 115's create/move. [Addresses, ranking, provenance and limits](../research/client-worlds-s.md).
 
 - Claude Opus 5.5 lane. Worktree `~/Documents/MTM/worktrees/render-worlds-s`, branch `claude/render-worlds-s`, from
-  origin/main `5a91b98d`; merged `742ef666` (#297 TEST-SPEED-001, #298 APP-POLISH-003) as `dd13e492`. Input links
+  origin/main `5a91b98d`; merged `742ef666` (#297 TEST-SPEED-001, #298 APP-POLISH-003) as `dd13e492` and `137db14d`
+  (#299 TEST-SPEED-002, #300 RENDER-EFFECTS-013) as `9d56b89d`. Input links
   `tools/python`, `evidence`, `input` from the main checkout, never committed.
 - Base coverage was **109/144 and 37/48**, not R2's 85/144: later lanes had closed most of R2's list. The 12 class
   rows still missing primary methods are ranked in the finding (Warps destination first, then field maps without a
@@ -49,7 +50,9 @@ change. Only authored C/Python, synthetic fixtures and reviewed summaries are co
 
 ## Checks
 
-Under the 2026-11-04 test budget: no lane gate. Code-final commit `96930986`; afterwards only docs changed.
+Under the 2026-11-04 test budget: no lane gate. Lane code final at `96930986`; the last main merge `9d56b89d`
+brought joint/particle/combat and validator-runner changes, so the build, the world hosts and the eleven rows
+were rerun there (rows below); afterwards only docs changed.
 `nice -n 10` throughout; load 1m 5–15 (other lanes active).
 
 | Check | Result | Wall |
@@ -57,7 +60,10 @@ Under the 2026-11-04 test budget: no lane gate. Code-final commit `96930986`; af
 | `nice -n 10 make -j4` after the main merge | pass | 21.9 s |
 | `validate_worlds_s --cases 1000 --mutations` (once, final C) | 11 families, 11,000 cases equal, 0 stops; 61/61 mutants detected | 236.2 s |
 | First mutant attempt | stopped at mutant 16 (did not compile: unused parameter); replaced by a value mutant, rerun above | 57.9 s |
-| `run_validators.py --private --no-mutants --cache --jobs 2 --only` 11 rows at `96930986` | 11 pass: worlds_s 11,000, object_render 1,984, worlds_q 11,000, worlds_q2 4,000, worlds_after4 9,181, worlds_o 9,000, worlds_p2 6,000, worlds_r2 9,000, charsel_world 1,200, login_world 1,200, audio_callers 5,528 cases | 50.9 s |
+| `run_validators.py --private --no-mutants --cache --jobs 2 --only` 11 rows at `96930986` (before the last merge) | 11 pass: worlds_s 11,000, object_render 1,984, worlds_q 11,000, worlds_q2 4,000, worlds_after4 9,181, worlds_o 9,000, worlds_p2 6,000, worlds_r2 9,000, charsel_world 1,200, login_world 1,200, audio_callers 5,528 cases | 50.9 s |
+| Same 11 rows at `9d56b89d` (final) | 11 pass, same case counts | 25.1 s |
+| Build after the last merge | pass | 11.9 s |
+| World hosts after the last merge (20 modules) | 30 tests, OK (5 skipped) | 36.3 s |
 | `run_test_suites.py reconstructed/objects` | 147 tests, 120 passed, 27 skipped, 0 failures (first run: 4 neighbour-world failures, fixed) | 1.8 s |
 | `test_native_worlds_*` (19 modules) + `test_render_worlds_a` | 30 tests, OK (5 skipped) | 38.5 s |
 | `run_test_suites.py tests` | 223 tests, 181 passed, 42 skipped, 0 failures | 16.6 s |
@@ -79,7 +85,7 @@ cover code paths this diff changes:
 
 Steward validators: validate_worlds_s, validate_object_render, validate_worlds_q, validate_worlds_q2,
 validate_worlds_after4, validate_worlds_o, validate_worlds_p2, validate_worlds_r2, validate_charsel_world,
-validate_login_world, validate_audio_callers (ran at `96930986`; no mutants needed). Env: `MU_RECOVERY_INTEGRATION=1`,
+validate_login_world, validate_audio_callers (ran at `9d56b89d`; no mutants needed). Env: `MU_RECOVERY_INTEGRATION=1`,
 `MU_SECTION3=~/Documents/MTM/main-exe-study/evidence/x86-linux-capture-04/main-01ced000.bin`,
 `MU_EVIDENCE_DIR=~/Documents/MTM/mu-the-matrix-native/evidence`,
 `MU_GAME_ROOT="$HOME/Library/Application Support/MuTheMatrix/prefix/drive_c/MuTheMatrix"`.
