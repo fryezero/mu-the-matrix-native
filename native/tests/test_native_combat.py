@@ -314,10 +314,10 @@ class InstalledTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         summary = next(json.loads(l) for l in result.stdout.splitlines() if l.startswith('{"combat": true'))
         # bitmaps: + Spark01, the swirl's spark joints (NATIVE-JOINT-001), + JointLaser01, the arrows' 0x7fd6 trails
-        # (RENDER-EFFECTS-009, #283): all 16 bitmap_files. models: every MU_COMBAT_MODELS slot, the 8
+        # (RENDER-EFFECTS-009, #283), + eight bow trail bitmaps (RENDER-EFFECTS-012): all 24. Models: the 8
         # skill models + the weapon, + Ice01/Ice02/Magic02 (RENDER-EFFECTS-002, #221) + Rageful Blow's 9 (RENDER-EFFECTS-004,
         # #247); all 20 Data/Skill files exist in the installed client (INTEGRATION-GREEN-002)
-        self.assertEqual((summary['bitmaps_loaded'], summary['models_loaded']), (16, 21))
+        self.assertEqual((summary['bitmaps_loaded'], summary['models_loaded']), (24, 21))
         self.assertEqual(summary['pick_hits'], 1)
         self.assertGreaterEqual(summary['kills'], 1)
 
