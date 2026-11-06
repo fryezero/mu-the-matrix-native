@@ -1,5 +1,7 @@
 # Current status
 
+RENDER-WORLDS-SLOTS2 PR-ready: RenderObjectVisual's outer `rand() % 30` now drawn in every class world (verified under Unicorn: 57/58, 62, 63, 64, 82, 100/101, 128..130, 137, the 93/94 scenes and the empty-slot worlds 113, 115..120, 138, 139 lacked it), and 17 more class slots: 125 → 142/144 (Santa 62, Imperial Guardian 69..72, 82, Arca War 92, Debenter 95, Uruk 100, Nars 110). Captures: Deep Dungeon 1..5 and Ignis change only by the RNG phase of their flicker lights; the other 26 and the October 22 tour are byte-identical. Test Area 121's two slots remain. [Handoff](handoffs/RENDER-WORLDS-SLOTS2.md)
+
 RENDER-WORLDS-SLOTS PR-ready: the world classes' custom render, after render and invisible-move slots. Census of all 48 classes × 3 slots: 49 → 125/144 native and instruction-compared (19 missing, none in a captured or warp-reachable world). New: custom/after of Vulcanus 63, Loren Market 79/Event square 114, Ferea 112, Swamp of Darkness 122 and Kubera 123..127 (with their bitmaps and handler state), invisible move of 142..145, and 60 trivial/base slots. Every hook around the class slot in RenderObjectVisual, the custom render and the after chain is a no-op in all 57 class worlds, so the direct dispatch is complete. Loren Market now draws RenderObjectVisual's outer rand. [Handoff](handoffs/RENDER-WORLDS-SLOTS.md)
 
 RENDER-EFFECTS-016 PR-ready: the ground skills' leftovers. Fire06 0x7f40/1..3 (0x70c's stone particle) through Fire01's create, move and render cases and a Fire06 slot in the world particle table; 0x70c's crater decal under EnableAlphaTest(1) (alpha test GREATER 0.25, depth writes; the three blend wrappers' GL state reconstructed); every combat bitmap with its LoadBitmap filter and wrap (CLAMP except Thunder01, Flare02, force_Pillar, !SwordEff, Swordeff_mono3; Cratered NEAREST). Ground scenes 2044/2045 x Bow01/0x12f7: 53/46/27/13 → 0 unsupported. Bows 0x12f7 and 0x1303 change in 3 frames each (0x459's Flare trails, now clamped); the other 344 bow/staff frames and the 32 tours are byte-identical. [Finding](research/client-render-effects-016.md), [handoff](handoffs/RENDER-EFFECTS-016.md).
@@ -176,6 +178,14 @@ export input changed). Proofs on the installed app: arrival HUD 1100/1100, one H
 Hound 26 tiles from the arrival, cast/kill/Space pickup, travel 0->3->2 with 0 stale plates, audio peak -0.300 dBFS,
 formerly white items textured (0x0b1d, 0x151a, 0x2537), bows 0x12fc/0x130a/0x131e 4 joints and 0 unsupported,
 arrivals at 145/95/110 without a crash. [Install, rollback, proofs and follow-ups](handoffs/APP-REFRESH-005.md).
+
+APP-REFRESH-006 PR-ready: Preview reinstalled from 7e6a9292 (main with #303-#311) with new Native Data
+(`APP-REFRESH-006/Native Data`: APP-REFRESH-004's plus `lang/itemtrs.tsv`, 4,919 ItemTRSData rows). The Native Data
+export now requires a recorded itemtrs.tsv. Proofs on the installed app: title "... OFFLINE PREVIEW (no server
+connection)" without fps, inventory icons from ItemTRSData (wing 0x19ab smaller, weapons upright), cast/kill/Space
+pickup, travel 0->3->2 with 0 stale plates, HUD 1100/1100 and one Hound hit -> 1077, audio peak -0.300 dBFS, Kubera
+arrival (tour |d| 1.591); ground skills 2044/2045 with 0x70c rings, decals and 2-48 sound cues; #310 bodies drawn.
+[Install, rollback, proofs and follow-ups](handoffs/APP-REFRESH-006.md).
 
 PLAY-FIX-001: two Preview bugs from APP-REFRESH-003 fixed.
 - A world change now runs the client's ClearCharacters(HeroKey) `0x0137c276` (with ClearItems `0x017ea38b`; Unicorn,
