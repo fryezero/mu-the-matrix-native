@@ -26,6 +26,7 @@ limits; `native/core/mu_combat.*` uses this library in the walk-around world.
 | `mu_player_shock`, `mu_player_die`, `mu_player_attack_sound`, `mu_class_check` | SetPlayerShock `0x0138f92f`, SetPlayerDie `0x01393a61` (Player branches), `0x01393924`, `0x00b99205` | verified |
 | `mu_sfx_effect_render_ops` (RENDER-EFFECTS-015) | RenderEffects `0x015181fa`'s decal cases 0x70a `0x0152dc88`, 0x70c `0x0152e296`, 0x45e `0x0151919b` | verified |
 | `mu_sfx_sound_site` (RENDER-EFFECTS-015) | the PlayBuffer `0x00a6ac96` sites of the reconstructed effect sounds | verified (call bytes) |
+| `mu_sfx_render_state` (RENDER-EFFECTS-016) | EnableAlphaBlend `0x0184aa2b`, EnableAlphaTest `0x0184a990`, DisableAlphaBlend `0x0184a7f3`: caches and GL state | verified |
 
 Build with `-ffp-contract=off` (binary32 operations in source order); `sqrt` uses host libm in place of the CRT.
 
