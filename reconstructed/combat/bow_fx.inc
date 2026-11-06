@@ -468,3 +468,63 @@ int mu_sfx_effect_render_ops(const mu_sfx_effect *e, float world_time, mu_sfx_re
     }
     return n;
 }
+
+/* ---------------------------------------------------------------- RENDER-EFFECTS-016: the wrappers' GL state */
+
+static void gl_cap(uint8_t *cache, uint8_t *gl, uint8_t on)
+{   /* the wrappers' cached glEnable/glDisable: movzx, test; a call only when the byte is zero (enable) or
+     * non-zero (disable) */
+    if (on ? *cache == 0 : *cache != 0) {
+        *cache = on;
+        *gl = on;
+    }
+}
+
+static void gl_blend_func(mu_sfx_gl_state *s, int32_t id, uint32_t src, uint32_t dst)
+{
+    if (s->blend != id) {                                   /* 0x0184a993 / 0x0184aa2e */
+        s->blend = id;
+        s->gl_blend = 1;
+        s->gl_src = src;
+        s->gl_dst = dst;
+    }
+}
+
+int mu_sfx_render_state(mu_sfx_gl_state *s, int32_t routine, int32_t argument)
+{
+    switch (routine) {
+    case MU_SFX_RENDER_BLEND_ADD:                           /* 0x0184aa2b */
+        gl_blend_func(s, 3, 1u, 1u);
+        gl_cap(&s->cull, &s->gl_cull, 0);                   /* 0x0184a720 */
+        gl_cap(&s->depth_mask, &s->gl_depth_mask, 0);       /* 0x0184a763 */
+        gl_cap(&s->alpha_test, &s->gl_alpha_test, 0);
+        gl_cap(&s->texture, &s->gl_texture, 1);
+        if (s->fog_flag)
+            s->gl_fog = 0;
+        return 1;
+    case MU_SFX_RENDER_BLEND_ALPHA:                         /* 0x0184a990 */
+        gl_blend_func(s, 2, 0x0302u, 0x0303u);
+        gl_cap(&s->cull, &s->gl_cull, 0);
+        if ((uint8_t)argument)                              /* movzx byte [ebp+8] */
+            gl_cap(&s->depth_mask, &s->gl_depth_mask, 1);   /* 0x0184a743 */
+        gl_cap(&s->alpha_test, &s->gl_alpha_test, 1);
+        gl_cap(&s->texture, &s->gl_texture, 1);
+        if (s->fog_flag)
+            s->gl_fog = 1;
+        return 1;
+    case MU_SFX_RENDER_BLEND_OFF:                           /* 0x0184a7f3 */
+        if (s->blend != 0) {
+            s->blend = 0;
+            s->gl_blend = 0;
+        }
+        gl_cap(&s->cull, &s->gl_cull, 1);                   /* 0x0184a6fd */
+        gl_cap(&s->depth_mask, &s->gl_depth_mask, 1);
+        gl_cap(&s->alpha_test, &s->gl_alpha_test, 0);
+        gl_cap(&s->texture, &s->gl_texture, 1);
+        if (s->fog_flag)
+            s->gl_fog = 1;
+        return 1;
+    default:
+        return 0;
+    }
+}

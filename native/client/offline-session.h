@@ -16,6 +16,12 @@
  *   servers FILE        server list, `mu-render ui servers --list` format
  *   characters FILE     character list, `mu-charsel --list` format
  *   join SLOT WORLD X,Y [ANGLE]   where the character with SLOT enters
+ *   skills FILE         APP-POLISH-005: the learned skills and saved hotkeys the server sends at the
+ *                       join, per class ("list CLASS SKILL..." / "keys CLASS K1..K9 K0" lines, the
+ *                       skills fixture's demo file format); absent: the fixture's built-in lists
+ *   hero SLOT str=N agi=N vit=N ene=N cmd=N [points=N]   APP-POLISH-005: the stats the server sends
+ *                       at the join (0x55 0x57) for the character in SLOT, at the list entry's level;
+ *                       absent: the fixture's level-1 class start stats
  *
  * Relative FILE paths are taken next to the session file. The login accepts
  * any input: nothing typed is kept (the front end counts keystrokes for the
@@ -29,11 +35,19 @@
 
 #define MU_OFFLINE_PATH 1024
 #define MU_OFFLINE_JOINS 10
+#define MU_OFFLINE_HEROES 10
 
 typedef struct mu_offline_join {
     int32_t slot, world, tile[2];
     float angle;
 } mu_offline_join;
+
+/* APP-POLISH-005: a "hero" line, the join stats of one character (OFFLINE DEMO data). */
+typedef struct mu_offline_hero {
+    int32_t slot;
+    int32_t stats[5];           /* strength, agility, vitality, energy, command */
+    int32_t points;             /* free stat points */
+} mu_offline_hero;
 
 typedef struct mu_offline_session {
     char servers_path[MU_OFFLINE_PATH];      /* empty: built-in list */
@@ -42,6 +56,9 @@ typedef struct mu_offline_session {
     mu_charsel_list characters;
     mu_offline_join joins[MU_OFFLINE_JOINS];
     int32_t join_count;
+    char skills_path[MU_OFFLINE_PATH];       /* APP-POLISH-005: empty: the fixture's built-in lists */
+    mu_offline_hero heroes[MU_OFFLINE_HEROES];
+    int32_t hero_count;
     /* what the network layer would have told the client so far */
     int32_t protocol;           /* 0, 0x14 after the login, 0x33 with the list */
     int32_t server_group, server_slot;   /* the chosen server (-1 none) */
@@ -69,6 +86,8 @@ int32_t mu_offline_session_character_list(mu_offline_session *s); /* returns 0x3
 /* The join answer for a character slot: its world and tile (default
  * Lorencia 133,127 facing 0 when the file has no join line). */
 mu_offline_join mu_offline_session_join(const mu_offline_session *s, int32_t slot);
+/* APP-POLISH-005: the "hero" line of a slot, or NULL. */
+const mu_offline_hero *mu_offline_session_hero(const mu_offline_session *s, int32_t slot);
 /* The list entry of a slot, or NULL. */
 const mu_charsel_entry *mu_offline_session_character(const mu_offline_session *s, int32_t slot);
 

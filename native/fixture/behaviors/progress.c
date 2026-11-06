@@ -253,8 +253,16 @@ static void *progress_open(mu_fixture_ctx *ctx, const char *args, char *error, s
     p->points = mu_fx_arg_int(args, "points", 0);
     p->master_level = mu_fx_arg_int(args, "master_level", 0);
     int32_t cls = p->class_byte & 15;
-    for (int i = 0; i < 5; i++)
-        p->stats[i] = (i == 4 && cls != 4) ? 0 : START[cls][i];
+    /* APP-POLISH-005: the offline session's join stats (str..cmd), else the class start stats */
+    static const char *const names[5] = {"str", "agi", "vit", "ene", "cmd"};
+    for (int i = 0; i < 5; i++) {
+        p->stats[i] = mu_fx_arg_int(args, names[i], (i == 4 && cls != 4) ? 0 : START[cls][i]);
+        if (p->stats[i] < 0 || p->stats[i] > 0xffff) {
+            snprintf(error, error_size, "%s=%d: outside 0..65535", names[i], (int)p->stats[i]);
+            free(p);
+            return NULL;
+        }
+    }
     p->next = mu_prg_exp_table(p->level + 1) - mu_prg_exp_table(p->level);
     int64_t lv = p->level + p->master_level;
     p->master_next = mu_prg_exp_table(lv + 1) - mu_prg_exp_table(lv);

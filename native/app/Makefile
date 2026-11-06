@@ -85,7 +85,7 @@ $(B)/Info.plist: Info.plist.in Makefile
 	plutil -lint $@
 
 $(STAMP): $(CLIENT) $(CONVERTER) $(B)/mu-native-data $(B)/MuNativePreview $(B)/libmu-nonet.dylib $(B)/AppIcon.icns $(B)/Info.plist bundle-dylibs.sh \
-          ../client/demo-session.txt ../client/demo-servers.txt ../client/demo-characters.txt \
+          ../client/demo-session.txt ../client/demo-servers.txt ../client/demo-characters.txt ../client/demo-skills.txt \
           ../world/lorencia-demo-placement.txt ../world/lorencia-demo-npc.txt ../world/lorencia-demo-players.txt \
           $(MUGFX_LIB)
 	rm -rf $(APPQ)
@@ -98,7 +98,8 @@ $(STAMP): $(CLIENT) $(CONVERTER) $(B)/mu-native-data $(B)/MuNativePreview $(B)/l
 	@if [ -n "$(MUGFX_LIB)" ]; then cp "$(MUGFX_LIB)" $(APPQ)/Contents/Frameworks/libmugfx.dylib && echo "bundled libmugfx ($(MUGFX_LIB))"; \
 	  else echo "NOTE: no libmugfx (native/gfx/build-mugfx.sh or MUGFX_LIB=...): the app uses the GFx stand-ins"; fi
 	cp $(B)/AppIcon.icns $(APPQ)/Contents/Resources/
-	cp ../client/demo-session.txt ../client/demo-servers.txt ../client/demo-characters.txt $(APPQ)/Contents/Resources/session/
+	cp ../client/demo-session.txt ../client/demo-servers.txt ../client/demo-characters.txt ../client/demo-skills.txt \
+	  $(APPQ)/Contents/Resources/session/
 	cp ../world/lorencia-demo-placement.txt ../world/lorencia-demo-npc.txt ../world/lorencia-demo-players.txt \
 	  $(APPQ)/Contents/Resources/world/
 	./bundle-dylibs.sh $(APPQ) "$(SDL3_LIB)"

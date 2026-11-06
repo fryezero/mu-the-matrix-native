@@ -4,9 +4,13 @@ RENDER-WORLDS-SLOTS2 PR-ready: RenderObjectVisual's outer `rand() % 30` now draw
 
 RENDER-WORLDS-SLOTS PR-ready: the world classes' custom render, after render and invisible-move slots. Census of all 48 classes × 3 slots: 49 → 125/144 native and instruction-compared (19 missing, none in a captured or warp-reachable world). New: custom/after of Vulcanus 63, Loren Market 79/Event square 114, Ferea 112, Swamp of Darkness 122 and Kubera 123..127 (with their bitmaps and handler state), invisible move of 142..145, and 60 trivial/base slots. Every hook around the class slot in RenderObjectVisual, the custom render and the after chain is a no-op in all 57 class worlds, so the direct dispatch is complete. Loren Market now draws RenderObjectVisual's outer rand. [Handoff](handoffs/RENDER-WORLDS-SLOTS.md)
 
+RENDER-EFFECTS-016 PR-ready: the ground skills' leftovers. Fire06 0x7f40/1..3 (0x70c's stone particle) through Fire01's create, move and render cases and a Fire06 slot in the world particle table; 0x70c's crater decal under EnableAlphaTest(1) (alpha test GREATER 0.25, depth writes; the three blend wrappers' GL state reconstructed); every combat bitmap with its LoadBitmap filter and wrap (CLAMP except Thunder01, Flare02, force_Pillar, !SwordEff, Swordeff_mono3; Cratered NEAREST). Ground scenes 2044/2045 x Bow01/0x12f7: 53/46/27/13 → 0 unsupported. Bows 0x12f7 and 0x1303 change in 3 frames each (0x459's Flare trails, now clamped); the other 344 bow/staff frames and the 32 tours are byte-identical. [Finding](research/client-render-effects-016.md), [handoff](handoffs/RENDER-EFFECTS-016.md).
+
 RENDER-EFFECTS-015 PR-ready: the ground skills' rain 0x70a (create, move, decal render) with its rings 0x700..0x702/0x707 and the ring models min_elf_skill_ring01..08; 0x70c's own decals and 0x45e's PoundingBall decal (subtypes 3..7) drawn as clamped terrain decals; the reconstructed effect sounds carry their PlayBuffer sites, so 0x55d, 0x55e, 0x42, 0x96 and 0x97 now play. Ground skill 2044 with Bow01: 3 → 14 arrows, 0x70c, its rings and stones land; 0x70a no longer unsupported (Fire06 0x7f40 particles remain). The 40 bow and 10 staff scenes stay at 0 unsupported and byte-identical. [Finding](research/client-render-effects-015.md), [handoff](handoffs/RENDER-EFFECTS-015.md).
 
 RENDER-EFFECTS-014 PR-ready: bow joints 0x7f78/b (arrow 0x459's guided flares, owner write-back and arrow check) and 0x7f79/e with smoke01 0x22/0x23 and Spark03 0xa; the 33 bows' unsupported requests fall 15 → 0, with 119 arrows retained. 0x70c's rings 0x703..0x706 and stones /0x13 are reconstructed. The ground skills' +0x64 flag is verified: CreateEffect 0x40a clears it. 0x70a (the rain that lands 0x70c natively) is still open. [Finding](research/client-render-effects-014.md), [handoff](handoffs/RENDER-EFFECTS-014.md).
+
+TEST-SPEED-004 PR-ready: `--affected` selects a validator row only when the diff touches its derived inputs (imports and importlib loads, paths its code builds classified by use, per-target `make -nB` + `cc -MM` compiled inputs, its own script and manifest row); tooling/tests/docs select no row; per-row fallback (none today) instead of "unmapped → everything"; new `--affected-since <tested>` for the steward. Replay #292–#308: lane rows 1,331 → 619, steward rows 169 → 99 (#306: the steward's own 26), zero misses incl. #287 worlds_l/m and #260's link failure. Lanes: run what `--affected origin/main` selects and trust it. Each cached validator row is cold once after the merge. [Handoff](handoffs/TEST-SPEED-004.md), [TEST-BUDGET](testing/TEST-BUDGET.md#test-speed-004-each-rows-exact-inputs).
 
 TEST-SPEED-003 PR-ready: the original-side validator cache keeps 4 keys per name (LRU, 250 MB cap, concurrent-safe merge), so a lane branch and main stay warm side by side: item_product main/branch alternation 586/605 s cold → 34–37 s warm on every switch, byte-identical reports. `test_joints` builds libcombat itself, so fresh-worktree `--affected` passes. Full suites 1,973 tests, 0 failures, 198 s. [Handoff](handoffs/TEST-SPEED-003.md).
 
@@ -23,6 +27,8 @@ RENDER-WORLDS-S2 PR-ready: Nars (110) and the Arca War class (92, 96, 101, 111) 
 RENDER-WORLDS-S PR-ready: Aquila's Temple (145) and Debenter (95) primary create/move/visual methods, plus the return-false slots of Boss Battle (139) and world 115's create/move; +11 verified methods, +3 classes: 109 → 120/144 and 37 → 40/48 (24 missing). 11,000 instruction cases, zero mismatches, 61/61 mutants. Debenter runs on the Q inputs; its key-9 create, recordless swing, bone types and 0x199 word4 effect are refused and counted when unsupported. No live capture exists for these worlds: the October 22 tour and all 32 DATA-ACQ-002 captures are byte-identical. Next (S2): Nars (110), then the Arca War class. [Handoff](handoffs/RENDER-WORLDS-S.md)
 
 TEST-SPEED-002 PR-ready: meshdraw 367.99 → 57.21 s warm with byte-identical reports, 4/4 controls and a caught compiled C mutation; fifteen native build rows use target dependencies. Six-PR selection replay has zero identified misses. [Checks, commands and limits](handoffs/TEST-SPEED-002.md).
+
+APP-POLISH-005 PR-ready: the offline Elf Windleaf (Lorencia field) casts ground skill 2044 through the bar: session 'skills'/'hero' lines feed the fixture's skill list, hotkeys and join stats; the usability check reads the character's Item.bmd weapons; mu-client prints an effects line (sound cues, 0x70a/0x70c/rings maxima, decals). Proof: cast ok, 121 effects, 11 live 0x70c, 66 rings, 2 cues. [Handoff](handoffs/APP-POLISH-005.md).
 
 APP-POLISH-004 PR-ready: the window title drops the scene/fps suffix (diagnostic behind --title-stats; the original's name is MU, CreateWindowExW 0x01211646/86). Inventory icons use the original's ItemTRSData 0x06fbb624 (Lang.mpr, find 0x011204db) instead of itemtrsdata.bmd x 200: wing 0x19ab 0.55 -> 0.44; the original neither clips nor bounds-fits, so its left-edge overlap stays. validate_app_polish4 10,485 cases, 0 mismatches. scripts/guarded_run.py keeps the network guard under nice. Needs itemtrs.tsv in the next refresh. [Handoff](handoffs/APP-POLISH-004.md)
 
@@ -178,6 +184,14 @@ export input changed). Proofs on the installed app: arrival HUD 1100/1100, one H
 Hound 26 tiles from the arrival, cast/kill/Space pickup, travel 0->3->2 with 0 stale plates, audio peak -0.300 dBFS,
 formerly white items textured (0x0b1d, 0x151a, 0x2537), bows 0x12fc/0x130a/0x131e 4 joints and 0 unsupported,
 arrivals at 145/95/110 without a crash. [Install, rollback, proofs and follow-ups](handoffs/APP-REFRESH-005.md).
+
+APP-REFRESH-006 PR-ready: Preview reinstalled from 7e6a9292 (main with #303-#311) with new Native Data
+(`APP-REFRESH-006/Native Data`: APP-REFRESH-004's plus `lang/itemtrs.tsv`, 4,919 ItemTRSData rows). The Native Data
+export now requires a recorded itemtrs.tsv. Proofs on the installed app: title "... OFFLINE PREVIEW (no server
+connection)" without fps, inventory icons from ItemTRSData (wing 0x19ab smaller, weapons upright), cast/kill/Space
+pickup, travel 0->3->2 with 0 stale plates, HUD 1100/1100 and one Hound hit -> 1077, audio peak -0.300 dBFS, Kubera
+arrival (tour |d| 1.591); ground skills 2044/2045 with 0x70c rings, decals and 2-48 sound cues; #310 bodies drawn.
+[Install, rollback, proofs and follow-ups](handoffs/APP-REFRESH-006.md).
 
 PLAY-FIX-001: two Preview bugs from APP-REFRESH-003 fixed.
 - A world change now runs the client's ClearCharacters(HeroKey) `0x0137c276` (with ClearItems `0x017ea38b`; Unicorn,

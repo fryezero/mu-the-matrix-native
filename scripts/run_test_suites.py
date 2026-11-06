@@ -17,8 +17,11 @@ merge-base(REF, HEAD) to the working tree can affect and prints why each was cho
 prints them. The mapping (scripts/affected.py, docs/testing/TEST-BUDGET.md): a suite directory depends on its own
 files and on what its Makefile reaches with ../; a native/tests module on its imports, the paths and names it
 quotes, and every source and header of the make targets it names (plus the default goal if it runs make); the
-`tests` suite (repository policy, manifests) runs on every diff; the Makefile, this runner and
-scripts/local-macos-ci.sh select everything.
+`tests` suite (repository policy, manifests) runs on every diff; the Makefile and scripts/local-macos-ci.sh select
+everything. Since TEST-SPEED-004 the selection tooling (affected.TOOLING, this runner among it) selects only the
+modules that import or name it, and `tests` (the tooling tests); a changed Makefile counts for a native target
+only if its dry run changes; `--affected-since REF` diffs REF itself (the commit a lane tested) instead of the
+merge base.
 
 Isolation in the pool: every suite gets its own TMPDIR (tempfile.* inside it is private), and every `make` a test
 starts goes through a shim that holds one lock for the duration of the build, so two suites never build into
@@ -28,6 +31,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import functools
 import json
 import os
 from pathlib import Path
@@ -52,8 +56,7 @@ LONGEST_FIRST = tuple(f'native/tests/test_{m}.py' for m in (
 # counts are summed back into one row. MU_GATE_JOBS=1 never shards.
 SHARDED = ('native/tests',)
 TAIL_LINES = 60
-INFRA = {'Makefile': 'the top-level Makefile (TEST_SUITES, make test)', 'scripts/run_test_suites.py': 'this runner',
-         'scripts/local-macos-ci.sh': 'the gate'}
+INFRA = {'Makefile': 'the top-level Makefile (TEST_SUITES, make test)', 'scripts/local-macos-ci.sh': 'the gate'}
 ALWAYS = ('tests',)   # repository policy and manifest checks: ~2 s, read the whole tree
 
 RAN = re.compile(r'^Ran (\d+) tests? in ([\d.]+)s$', re.M)
@@ -226,6 +229,11 @@ def unit_id(unit: tuple[str, str]) -> str:
 def unit_deps(unit: tuple[str, str], root: Path = ROOT):
     """What one work item reads (scripts/affected.py): a whole-suite item its directory and what the suite's
     Makefile reaches; a native/tests module its imports, quoted paths and the make targets it names."""
+    return _unit_deps(unit, root).copy()
+
+
+@functools.lru_cache(maxsize=None)
+def _unit_deps(unit: tuple[str, str], root: Path = ROOT):
     import affected
     suite, pattern = unit
     if pattern == 'test_*.py':
@@ -233,17 +241,34 @@ def unit_deps(unit: tuple[str, str], root: Path = ROOT):
         deps.built_dirs.discard(suite)
         deps.dirs[suite] = f'in suite {suite}'
         for module in sorted((root / suite).glob('test_*.py')):
-            deps.update(affected.python_deps(module, root))
+            deps.update(affected.python_deps(module, root, tooling='direct'))
         return deps
     module = root / suite / pattern
-    deps = affected.python_deps(module, root)
+    deps = affected.python_deps(module, root, tooling='direct')
     make_dir = 'native' if suite.startswith('native/') else suite
-    targets = [t for t in affected.make_targets(make_dir, root) if _names_target(t, deps.names)]
+    words = make_words(deps, root)
+    targets = [t for t in affected.make_targets(make_dir, root) if _names_target(t, words)]
     if needs_default_goal(deps, make_dir, root):
         targets.append(None)
     for target in targets:
         deps.update(affected.target_deps(make_dir, target, root))
     return deps
+
+
+def make_words(deps, root: Path = ROOT) -> set[str]:
+    """The quoted strings of the modules in DEPS that run make themselves (a validator imported for its tables
+    quoting 'client' as a key does not build the `client` target)."""
+    import affected
+    words: set[str] = set()
+    for name in deps.files:
+        if not name.endswith('.py'):
+            continue
+        path = root / name
+        if path.is_file():
+            module_words = affected._module(path, root).sink.deps.words
+            if 'make' in module_words or any(w.startswith('make ') for w in module_words):
+                words |= module_words
+    return words
 
 
 def needs_default_goal(deps, directory: str, root: Path) -> bool:
@@ -287,24 +312,30 @@ def needs_default_goal(deps, directory: str, root: Path) -> bool:
     return False
 
 
-def _names_target(target: str, names: dict) -> bool:
+def _names_target(target: str, names) -> bool:
     short = target[len('build/'):] if target.startswith('build/') else None
     return target in names or (short is not None and short in names)
 
 
 def affected_units(suites: list[str], ref: str, changed: list[str] | None = None,
-                   root: Path = ROOT) -> dict[str, list[str]]:
-    """{unit id: [why]} for the work items of SUITES a diff can affect."""
+                   root: Path = ROOT, since: bool = False, base: str | None = None) -> dict[str, list[str]]:
+    """{unit id: [why]} for the work items of SUITES a diff can affect (SINCE: from REF itself, not the merge
+    base). BASE (default: from REF) lets a changed Makefile count only for targets whose dry run it changes."""
     import concurrent.futures
     import affected
-    changed = affected.changed_files(ref, root) if changed is None else changed
+    if base is None:
+        try:
+            base = affected.base_commit(ref, root, since)
+        except SystemExit:
+            base = None
+    changed = affected.changed_files(ref, root, since) if changed is None else changed
     work = [u for s in suites for u in units(s)]
     if not changed:
         return {}
     native = [u for u in work if u[1] != 'test_*.py']
     if native:   # warm the make dry-run cache in parallel (one `make -nB` per target, ~0.3 s each)
-        names = {t for u in native for t in affected.make_targets('native', root)
-                 if _names_target(t, affected.python_deps(root / u[0] / u[1], root).names)}
+        words = {u: make_words(affected.python_deps(root / u[0] / u[1], root, tooling='direct'), root) for u in native}
+        names = {t for u in native for t in affected.make_targets('native', root) if _names_target(t, words[u])}
         with concurrent.futures.ThreadPoolExecutor(2) as pool:
             list(pool.map(lambda t: affected.target_deps('native', t, root), sorted(names) + [None]))
     deps = {unit_id(u): unit_deps(u, root) for u in work}
@@ -314,7 +345,7 @@ def affected_units(suites: list[str], ref: str, changed: list[str] | None = None
         for unit, dep in deps.items():
             if unit.endswith('/' + name) or (root / unit / name).is_file():
                 dep.dirs['docs'] = 'reads documentation (brief 6c)'
-    selected = affected.select(deps, changed, INFRA)
+    selected = affected.select(deps, changed, INFRA, base=base, root=root)
     for suite in ALWAYS:
         if suite in deps:
             selected.setdefault(suite, ['runs on every diff (repository policy and manifest checks)'])
@@ -422,6 +453,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument('--logs', type=Path, help='log directory (default verify-runs/test-suites-<stamp>)')
     ap.add_argument('--affected', metavar='REF', help='only the work items a diff from merge-base(REF, HEAD) can affect')
     ap.add_argument('--list-affected', metavar='REF', help='print the work items --affected REF selects, and why')
+    ap.add_argument('--affected-since', metavar='REF', help='only the work items whose inputs differ between REF '
+                    'itself (e.g. a lane-tested commit) and the working tree')
+    ap.add_argument('--list-affected-since', metavar='REF', help='print the work items --affected-since REF selects')
     a = ap.parse_args(argv)
     if a.list:
         print('\n'.join(makefile_suites()))
@@ -429,13 +463,14 @@ def main(argv: list[str] | None = None) -> int:
     suites = a.suites or makefile_suites()
     check_suites(suites)
     only = None
-    if a.affected or a.list_affected:
+    ref = a.affected or a.list_affected or a.affected_since or a.list_affected_since
+    if ref:
         sys.path.insert(0, str(ROOT / 'scripts'))
         import affected
-        why = affected_units(suites, a.affected or a.list_affected)
+        why = affected_units(suites, ref, since=bool(a.affected_since or a.list_affected_since))
         total = sum(len(units(s)) for s in suites)
         print(affected.show(why, total, 'work items'), flush=True)
-        if a.list_affected:
+        if a.list_affected or a.list_affected_since:
             return 0
         if not why:
             print('run_test_suites: nothing to run for this diff')
