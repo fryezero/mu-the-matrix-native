@@ -64,7 +64,8 @@ only docs changed. `nice -n 10` throughout; load 1m 6–12 (other lanes active).
 | `run_test_suites.py reconstructed/objects` | 152 tests, 124 passed, 28 skipped, 0 failures | 3.0 s |
 | `test_worlds_s2` + `test_native_worlds_s2` | 6 tests OK (1 private skipped) | 0.3 s |
 | `tests.test_validators_manifest` | 17 tests OK | 0.6 s |
-| `scripts/audit_repository.py` | see PR body (final, with docs) | |
+| `scripts/audit_repository.py` | 1,911 files, 0 rejected (final, with docs) | 28 s |
+| Docs readers (6c): `test_world_captures_2`, `test_repository_policy`, `test_native_item_textures`, `test_native_data_manifest` | 32 tests OK (1 skipped) | 8.4 s |
 | `world_handler_coverage.py --write-markdown` | 48 classes, 57 registrations, 288 addresses; 126/144, 42/48 | < 1 s |
 | Byte identity "before" (base binary, once) | Oct 22 tour 17 s; DATA-ACQ-002 53 s | 70 s |
 | Byte identity "after" (lane binary) | identical (above) | 63 s |
