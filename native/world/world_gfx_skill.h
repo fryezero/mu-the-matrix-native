@@ -26,6 +26,9 @@ struct mu_skill_book *wg_skill_book(wg_skill *s);
 struct mu_session *wg_skill_session(wg_skill *s);
 void wg_skill_set_world(wg_skill *s, int32_t world);
 void wg_skill_set_buffs(wg_skill *s, const int32_t *ids, int count);
+/* APP-POLISH-005: the chosen character's equipped weapons for the usability check: item codes (-1 empty) and
+ * Item.bmd kind bytes (+0x251) of equipment slots 0 (right hand) and 1 (left hand); NULL: the demo sword. */
+void wg_skill_set_equipment(wg_skill *s, const int32_t code[2], const uint8_t kind[2]);
 /* The common RenderBitmap path for tree icons and the Imprint overlays; GL context must be current. */
 void wg_skill_draw(wg_skill *s, int32_t bitmap, float x, float y, float w, float h, float u, float v, float uw,
                     float vh, uint32_t color);

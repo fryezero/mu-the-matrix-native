@@ -50,6 +50,12 @@ typedef struct mu_world_rt_options {
     int32_t level;                 /* NATIVE-PROGRESS-001: the character's level (0: progress_config's) */
     int has_items;                 /* the front end's equipment (mu-client): applied after the class parts */
     const char *items[MU_CHARACTER_ITEMS];   /* index 1..5 body parts, 6/7 weapons, 8 wing; empty skipped */
+    /* APP-POLISH-005: the offline session's join data for the fixture server (OFFLINE DEMO): the learned skills and
+     * hotkeys file (list/keys lines, NULL: the fixture's built-in lists) and the hero's join stats at `level` */
+    const char *skill_demo;
+    int has_hero_stats;
+    int32_t hero_stats[5];         /* strength, agility, vitality, energy, command */
+    int32_t hero_points;
     /* presentation */
     int32_t width, height;         /* drawable pixels */
     float near_plane;              /* CameraViewNear (the client's 20) */
@@ -115,6 +121,8 @@ typedef struct mu_input_action { int32_t frame; char what[64]; } mu_input_action
 /* Parse schedule syntax only. Actions remain scene-specific. -1 rejects overflow or malformed frames. */
 int mu_input_script_parse(const char *text, mu_input_action out[MU_INPUT_SCRIPT_MAX]);
 void mu_world_rt_input_report(const mu_world_rt *rt, FILE *out);
+/* APP-POLISH-005: {"effects": true, ...}: the combat's sound cues, effects and the ground skills' live maxima. */
+void mu_world_rt_effects_report(const mu_world_rt *rt, FILE *out);
 /* Legacy adapters feed the same router, retained for existing hosts. */
 void mu_world_rt_message(mu_world_rt *rt, uint32_t message, uint32_t wparam, uint32_t lparam);
 void mu_world_rt_key(mu_world_rt *rt, int vk, int down);

@@ -52,6 +52,9 @@ struct world_gfx {
     mu_dlg_tables dlg;
     int have_dlg, dlg_open, hide_contribute;
     int32_t world;                  /* the session's world (ItemValue reads the current world) */
+    int has_equip;                  /* APP-POLISH-005: the hero's weapons for the skill checks, kept over rebinds */
+    int32_t equip_code[2];
+    uint8_t equip_kind[2];
     int32_t dlg_state;
     char dlg_title[96];
     /* NATIVE-QUEST-001: the quest session (reconstructed/quest with the demo server) */
@@ -1464,6 +1467,7 @@ void world_gfx_rebind_skills(world_gfx *g, struct mu_session *session)
     int32_t w,h;mu_gfx_layer_stage_size(g->layer,&w,&h);(void)h;
     wg_skill_set_screen(g->skill,w);
     wg_skill_set_world(g->skill,g->world);
+    if(g->has_equip)wg_skill_set_equipment(g->skill,g->equip_code,g->equip_kind);
     g->tree=wg_tree_open(g->skill,g->layer,g->lang);
     for(int movie=MU_GFX_MASTER_TREE;movie<=MU_GFX_TREE5;++movie)wg_tree_call(g->tree,movie,"UIInit","[]");
 }
@@ -1525,6 +1529,18 @@ void world_gfx_frame(world_gfx *g, double dt_ms, int draw)
     }
     if (draw)
         mu_gfx_layer_draw_gl(g->layer);
+}
+
+void world_gfx_set_equipment(world_gfx *g, const int32_t code[2], const uint8_t kind[2])
+{
+    if (!g)
+        return;
+    g->has_equip = code != NULL;
+    for (int i = 0; i < 2; i++) {
+        g->equip_code[i] = code ? code[i] : -1;
+        g->equip_kind[i] = kind ? kind[i] : 0;
+    }
+    wg_skill_set_equipment(g->skill, code, kind);
 }
 
 void world_gfx_set_location(world_gfx *g, int world, float x, float y)

@@ -36,6 +36,9 @@ world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int widt
                           int shared, const char *open, struct mu_session *session, char *error, size_t error_size);
 void world_gfx_close(world_gfx *g);
 void world_gfx_rebind_skills(world_gfx *g, struct mu_session *session);
+/* APP-POLISH-005: the hero's equipped weapons for the skill usability check (wg_skill_set_equipment), kept over
+ * skill rebinds; NULL: the demo sword. */
+void world_gfx_set_equipment(world_gfx *g, const int32_t code[2], const uint8_t kind[2]);
 /* NATIVE-PERF-001: the window changed size (drawable pixels): every movie's stage and the client's window
  * placement (SetWindowSize, SetScale(83) below 700 points of height) follow. */
 void world_gfx_resize(world_gfx *g, int width, int height);

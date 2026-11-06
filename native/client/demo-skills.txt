@@ -1,0 +1,11 @@
+# Offline demo skills for mu-client (APP-POLISH-005): the learned skills and the saved
+# skill bar the server sends when a character enters the world (opcode 0xA0 sub 0x20 / 0x03),
+# in the skills fixture's demo format. Classes without a line keep the fixture's built-in lists.
+#   list CLASS SKILL...        the learned skills (indices of the client's skill table)
+#   keys CLASS K1 .. K9 K0     the bar's ten hotkeys (-1 empty)
+# Elf (class index 2): the built-in Elf list plus 2044 (Raining Arrow of Saturation, the
+# ground skill whose rain 0x70a lands as 0x70c with its rings, stones and decals). Hotkey 1
+# Triple Shot, hotkey 2 the ground skill. The skill table asks a bow or crossbow, arrows and
+# 1302 agility for 2044; demo-session.txt's "hero 2" line gives Windleaf that agility.
+list 2 24 26 27 28 30 31 32 51 52 33 34 35 36 2044
+keys 2 24 2044 26 27 28 30 31 32 51 52
