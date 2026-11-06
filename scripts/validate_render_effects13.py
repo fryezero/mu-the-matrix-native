@@ -27,7 +27,7 @@ MUTANTS = [
 ]
 PT_MUTANTS = [
     ('shiny_alpha', 'p->alpha = 1.0f; /* Shiny01/3 */', 'p->alpha = 0.5f; /* Shiny01/3 */'),
-    ('shiny_velocity', 'p->velocity[0] = (float)(mu_pt_rand(h) % 8) - 4.0f;', 'p->velocity[0] = (float)(mu_pt_rand(h) % 8) - 3.0f;'),
+    ('shiny_velocity', 'p->alpha = 1.0f; /* Shiny01/3 */\n            p->velocity[0] = (float)(mu_pt_rand(h) % 8) - 4.0f;', 'p->alpha = 1.0f; /* Shiny01/3 */\n            p->velocity[0] = (float)(mu_pt_rand(h) % 8) - 3.0f;'),
     ('shiny_life', 'p->lifetime = 30; /* Shiny01/3 */', 'p->lifetime = 29; /* Shiny01/3 */'),
     ('shiny_size', '(float)(mu_pt_rand(h) % 10) / 20.0f + 0.5f;', '(float)(mu_pt_rand(h) % 10) / 10.0f + 0.5f;'),
     ('shiny_fade', 'p->light[k] /= 1.05f; /* Shiny01/3 */', 'p->light[k] /= 1.04f; /* Shiny01/3 */'),
@@ -55,6 +55,12 @@ def configure():
         return r
     jt.object_region = region
     pt.KINDS = [(0x7f66, 3)]
+    old_particle = pt.random_particle
+    def particle_record(rng, kind):
+        p = old_particle(rng, kind)
+        p.alpha = pt.f32(rng.choice([-0.1, 0.0, 0.001, 0.002, 0.5, 1.0]))
+        return p
+    pt.random_particle = particle_record
 
 
 def main():
