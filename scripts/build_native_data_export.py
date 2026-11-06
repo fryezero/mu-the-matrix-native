@@ -4,7 +4,8 @@
 App setup imports only manifest-bearing exports (DATA-ACQ-004). This script replays the repository's own
 exporters over the local snapshots in one fixed order and writes one set:
 
-    <out>/lang                 live_lang_to_plain (3 snapshots), live_effect_table_to_plain, mapanim.tsv
+    <out>/lang                 live_lang_to_plain (3 snapshots, incl. itemtrs.tsv), live_effect_table_to_plain,
+                               mapanim.tsv
     <out>/objects/live/plain   live_objects_to_plain, 47 worlds (31 with the installed EncTerrain<n>.obj)
     <out>/audio/tables         extract_audio_tables over the pinned text/data captures
 
@@ -17,6 +18,12 @@ mapanim.tsv (RENDER-WORLDS-AFTER5's MapObjectAnimationInfo rows) comes from a li
 snapshot was not kept, so it enters as a pre-converted table: its SHA-256 is pinned below, its rows are
 checked against the format native/core/mu_objects_anim.c reads, and the manifest records it as an input with
 the step `mapanim-v1-live-read-2026-11-04`. A new read means a new table, pin and date.
+
+itemtrs.tsv (APP-POLISH-004's ItemTRSData, RenderItem3D's inventory render info) is written by
+live_lang_to_plain itself and so recorded by the lang export's own manifest. The converter skips a table that a
+snapshot lacks without failing, so the set requires it: the file must be present, recorded in the manifest and
+hold the pinned number of codes (every lang snapshot holds the same 4,919), or the build fails. Without it the
+app silently keeps the itemtrsdata.bmd stand-in.
 
 All outputs are decoded game data: local only, never committed. The destination must not exist; the set is
 built next to it and renamed into place when every check passes.
@@ -45,6 +52,8 @@ EFFECTS = 'render-effects-008/live/s2-lorencia-fxt.bin'
 MAPANIM = {'table': 'render-worlds-after5/lang/mapanim.tsv',
            'sha256': 'd7a2cc72e2854f1edb1738df34ab63dae60676887a3fb5d3fe330015a57de814',
            'step': 'mapanim-v1-live-read-2026-11-04', 'rows': 143, 'worlds': 10}
+# ItemTRSData rows every lang snapshot holds (lang3/lang4/lang5: the same 4,919 records; APP-REFRESH-006).
+ITEMTRS = {'file': 'itemtrs.tsv', 'rows': 4919}
 # (snapshot, installed): installed worlds take the record version of Data/World<n>/EncTerrain<n>.obj.
 OBJECTS = [(f'objects/live/dumps/{n}.bin', False) for n in ('login', 'fryezen2', 'charsel', 'nighty')] + \
     [(f'fidelity2/live/{n}-obj.bin', False) for n in (
@@ -86,6 +95,35 @@ def mapanim_rows(text):
     return rows, len(worlds)
 
 
+def itemtrs_rows(text):
+    """Codes in an itemtrs.tsv as mu_lang loads it (code + six signed binary32 words); SystemExit when malformed."""
+    codes = set()
+    for number, line in enumerate(text.split('\n'), 1):
+        if not line or line.startswith('#'):
+            continue
+        col = line.split('\t')
+        if len(col) != 7 or not all(INT.match(c) and -2**31 <= int(c) < 2**31 for c in col):
+            raise SystemExit(f'itemtrs.tsv line {number}: not code, x, y, rx, ry, rz, scale (signed 32-bit words)')
+        if int(col[0]) in codes:
+            raise SystemExit(f'itemtrs.tsv line {number}: code {col[0]} repeated')
+        codes.add(int(col[0]))
+    return len(codes)
+
+
+def require_itemtrs(lang, pin=ITEMTRS):
+    """The lang export must carry ItemTRSData, recorded by its manifest, with the pinned number of codes."""
+    path = Path(lang) / pin['file']
+    if not path.is_file():
+        raise SystemExit(f'{lang}: no {pin["file"]} (a lang snapshot without ItemTRSData 0x06fbb624?)')
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    if f'file {digest} {path.stat().st_size} {pin["file"]}\n' not in (Path(lang) / 'native-data.manifest').read_text():
+        raise SystemExit(f'{path}: not recorded in the export manifest')
+    rows = itemtrs_rows(path.read_text(encoding='ascii'))
+    if rows != pin['rows']:
+        raise SystemExit(f'{path}: {rows} codes, expected {pin["rows"]}')
+    return {'itemtrs_rows': rows}
+
+
 def add_mapanim(lang, table, main_exe, pin=MAPANIM):
     """Add the pinned mapanim.tsv to a published lang export and record it in the export's manifest."""
     table = Path(table)
@@ -121,6 +159,7 @@ def build(out, scratch, game_root, text, data):
     for snapshot in LANG:
         python('live_lang_to_plain.py', scratch / snapshot, '--out', lang, '--main-exe', main_exe)
     manifest.run('check', lang, main_exe)
+    summary.update(require_itemtrs(lang))
     python('live_effect_table_to_plain.py', scratch / EFFECTS, lang)
     manifest.publish_step(main_exe, lang, 'effects-v1', [scratch / EFFECTS])
     summary.update(add_mapanim(lang, scratch / MAPANIM['table'], main_exe))

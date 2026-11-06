@@ -128,6 +128,39 @@ class ManifestTests(unittest.TestCase):
         with self.assertRaises(SystemExit):
             export.mapanim_rows('9\t1\t0\tfast\t2\t0\t-\n')
 
+    def test_lang_export_requires_recorded_itemtrs(self):
+        # APP-REFRESH-006: the set must carry APP-POLISH-004's itemtrs.tsv; the converter skips a missing table.
+        sys.path.insert(0, str(NATIVE.parent/'scripts'))
+        import native_data_manifest as manifest
+        import live_lang_to_plain as lang
+        import build_native_data_export as export
+        from test_native_lang import synthetic_snapshot
+        pin = {'file': 'itemtrs.tsv', 'rows': 2}
+        with patch.object(manifest, 'TOOL', self.tool):
+            for name, table in (('without', None), ('with', {0x19ab: (0.5, 0.44, 270, 0, 2, 0.44),
+                                                             3: (0.67, 0.75, 180, 270, 15, 0.55)})):
+                source, output = self.base/f'snapshot-{name}', self.base/f'lang-{name}'
+                source.write_bytes(synthetic_snapshot(table))
+                self.assertEqual(lang.main([str(source), '--out', str(output), '--main-exe', str(self.client)]), 0)
+            with self.assertRaises(SystemExit):                                                # table absent
+                export.require_itemtrs(self.base/'lang-without', pin)
+            output = self.base/'lang-with'
+            text = (output/'itemtrs.tsv').read_text()
+            self.assertEqual(export.require_itemtrs(output, pin), {'itemtrs_rows': 2})
+            self.assertIn(f'file {hashlib.sha256(text.encode()).hexdigest()} {len(text)} itemtrs.tsv\n',
+                          (output/'native-data.manifest').read_text())
+            with self.assertRaises(SystemExit):                                                # wrong count
+                export.require_itemtrs(output, dict(pin, rows=4919))
+            (output/'itemtrs.tsv').write_text(text + '7\t0\t0\t0\t0\t0\t0\n')
+            with self.assertRaises(SystemExit):                                                # unrecorded
+                export.require_itemtrs(output, dict(pin, rows=3))
+        self.assertEqual(export.itemtrs_rows('#h\n1\t-1\t2\t3\t4\t5\t6\n2\t0\t0\t0\t0\t0\t2147483647\n'), 2)
+        for bad in ('1\t2\t3\n', '1\t0\t0\t0\t0\t0\t0.5\n', '1\t0\t0\t0\t0\t0\t2147483648\n',
+                    '1\t0\t0\t0\t0\t0\t0\n1\t0\t0\t0\t0\t0\t0\n'):
+            with self.assertRaises(SystemExit):
+                export.itemtrs_rows(bad)
+        self.assertEqual(export.ITEMTRS, {'file': 'itemtrs.tsv', 'rows': 4919})
+
     def test_mismatch_build_and_installed_client(self):
         self.manifest.write_text(self.manifest.read_text().replace(TEST_PIN, '0'*64, 1))
         self.check(False)
