@@ -8,6 +8,7 @@ import struct
 import subprocess
 import tempfile
 import sys
+import original_cache
 import pins
 import validate_renderchar as v
 import validate_item_types as previous
@@ -37,46 +38,54 @@ def c_effects(lib, t, values, time=None):
                       tuple(v.f2u(x) for x in s.light), v.f2u(s.rotation), s.blend, s.axes, e.particle))
     return status, calls, len(consumed)
 
+def client_link(wa, t, values, variant):
+    """The pinned link-effect branch 0x012bd910 for one case: (run result, sprite/particle calls, randoms used)."""
+    w = v.link_world(wa, t)
+    m = w.m
+    seq, consumed, observed, transform = iter(values), [], [], []
+    def rand(mm):
+        r = next(seq); consumed.append(r); return r
+    m.stub(0x01989721, rand, 0)
+    def position(mm):
+        transform[:] = [(mm.arg(0)-0x06fce398)//48,
+                         tuple(mm.read(mm.arg(1),12))]
+        mm.write(mm.arg(2), mm.read(mm.arg(1),12))
+        return 0
+    m.stub(0x012b6ef1, position, 16)
+    def sprite(mm):
+        assert mm.read(mm.arg(8),12) == struct.pack('<iif',1,1,1)
+        observed.append((mm.arg(0), transform[0], struct.unpack('<3I',mm.read(mm.arg(1),12)),
+                         mm.arg(2), struct.unpack('<3I',mm.read(mm.arg(3),12)),
+                         mm.arg(5),mm.arg(6),mm.arg(7),0))
+        return 0
+    def particle(mm):
+        observed.append((mm.arg(0), transform[0], struct.unpack('<3I',mm.read(mm.arg(1),12)),
+                         mm.arg(5), struct.unpack('<3I',mm.read(mm.arg(3),12)),
+                         0,0,4,mm.arg(4)))
+        return 0
+    m.stub(0x01692eb7,sprite,0)
+    m.stub(0x0168fafd,particle,0)
+    time = (0.0, 700.25, 123456.0, -150.5)[variant]
+    m.wf(0x06fce370, time)
+    part=v.CHAR+0x19ac
+    m.write(part,struct.pack('<hBBBB',t,variant*4,variant&1,0,47))
+    result=m.run(0x012bd910,[0,0,v.f2u(15),v.CHAR,part,t,variant*4,variant&1,variant&1,1,0,variant>>1])
+    return result, observed, len(consumed)
+
 def link_cases(wa, lib, types=(0x14f0, 0x12fb)):
     rng = random.Random(0x2002c)
     vectors = []
+    cache = original_cache.active()   # TEST-SPEED-001: the original side only; the C side always runs
     for t in types:
         for k in range(100):
             values = [k]*32 if k<30 else [rng.randrange(32768) for _ in range(32)]
             for variant in range(4):
-                w = v.link_world(wa, t)
-                m = w.m
-                seq, consumed, observed, transform = iter(values), [], [], []
-                def rand(mm):
-                    r = next(seq); consumed.append(r); return r
-                m.stub(0x01989721, rand, 0)
-                def position(mm):
-                    transform[:] = [(mm.arg(0)-0x06fce398)//48,
-                                     tuple(mm.read(mm.arg(1),12))]
-                    mm.write(mm.arg(2), mm.read(mm.arg(1),12))
-                    return 0
-                m.stub(0x012b6ef1, position, 16)
-                def sprite(mm):
-                    assert mm.read(mm.arg(8),12) == struct.pack('<iif',1,1,1)
-                    observed.append((mm.arg(0), transform[0], struct.unpack('<3I',mm.read(mm.arg(1),12)),
-                                     mm.arg(2), struct.unpack('<3I',mm.read(mm.arg(3),12)),
-                                     mm.arg(5),mm.arg(6),mm.arg(7),0))
-                    return 0
-                def particle(mm):
-                    observed.append((mm.arg(0), transform[0], struct.unpack('<3I',mm.read(mm.arg(1),12)),
-                                     mm.arg(5), struct.unpack('<3I',mm.read(mm.arg(3),12)),
-                                     0,0,4,mm.arg(4)))
-                    return 0
-                m.stub(0x01692eb7,sprite,0)
-                m.stub(0x0168fafd,particle,0)
                 time = (0.0, 700.25, 123456.0, -150.5)[variant]
-                m.wf(0x06fce370, time)
-                part=v.CHAR+0x19ac
-                m.write(part,struct.pack('<hBBBB',t,variant*4,variant&1,0,47))
-                result=m.run(0x012bd910,[0,0,v.f2u(15),v.CHAR,part,t,variant*4,variant&1,variant&1,1,0,variant>>1])
+                result, observed, consumed = cache.get('clusters.link', (t, values, variant),
+                                                       lambda: client_link(wa, t, values, variant))
                 actual=c_effects(lib,t,values,time)
-                if not result['ok'] or actual!=(0,observed,len(consumed)):
-                    raise AssertionError((hex(t),k,variant,result,observed,actual,len(consumed)))
+                if not result['ok'] or actual!=(0,observed,consumed):
+                    raise AssertionError((hex(t),k,variant,result,observed,actual,consumed))
                 vectors.append((t,values,time,actual))
     return {'cases':len(vectors),'mismatches':0,'types':[hex(t) for t in types]},vectors
 
@@ -123,6 +132,8 @@ def body_cases(wa, lib, types, screen=False, allowed_services=None, world_class=
             reused = v.client_stream(wa,case,reset)
             if fresh[:3] != reused[:3]:
                 raise AssertionError(('reset-world control',hex(t),config,fresh[:3],reused[:3]))
+    cache = original_cache.active()   # TEST-SPEED-001: the original side only; the C side always runs
+    world = f'clusters.body:{world_class.__module__}.{world_class.__qualname__}'
     for t in types:
         rng = random.Random(0x2002c + t)
         pending = []
@@ -137,7 +148,7 @@ def body_cases(wa, lib, types, screen=False, allowed_services=None, world_class=
                         a10=0xffffffff, a11=0xffffffff)
             if configure_case:
                 configure_case(case,k)
-            result, stream, other, machine = v.client_stream(wa, case, reset)
+            result, stream, other = cache.get(world, case, lambda: v.client_stream(wa, case, reset)[:3])
             status, actual = v.c_stream(lib, case)
             if not result['ok'] or status or actual != stream or other != (allowed_services or {}).get(t, []):
                 failure = (t, k, case, stream, actual, result, other)

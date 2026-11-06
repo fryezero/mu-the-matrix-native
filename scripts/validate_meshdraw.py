@@ -273,6 +273,36 @@ def read_tables(data):
 # Emulator.
 
 
+def cached_original(machine, family, inputs, compute):
+    """Cache only a reset-independent original call and its observed instrumentation.
+
+    Every caller initializes its input memory. No caller reads the machine after these
+    calls except through the returned values and counters. Native replay and host libm
+    comparisons stay live, including the trig comparisons made inside original hooks.
+    """
+    import original_cache
+    cache = original_cache.named('validate_meshdraw', Path(__file__))
+    if not cache.enabled:
+        return compute()
+    key = hashlib.sha256(original_cache.canonical(inputs).encode()).hexdigest()
+    def capture():
+        coverage, x87 = machine.coverage, machine.x87_count
+        machine.coverage, machine.x87_count = collections.Counter(), collections.Counter()
+        machine.cache_trig = []
+        try:
+            result = compute()
+            return result, dict(machine.coverage), dict(machine.x87_count), machine.cache_trig
+        finally:
+            machine.coverage, machine.x87_count = coverage, x87
+            machine.cache_trig = None
+    result, coverage, x87, trig = cache.get(family, key, capture)
+    machine.coverage.update(coverage)
+    machine.x87_count.update(x87)
+    for name, args, value in trig:
+        machine.record_trig(name, args, value)
+    return result
+
+
 class Machine:
     def __init__(self, text, data, flag, feature):
         from unicorn import (Uc, UC_ARCH_X86, UC_MODE_32, UC_HOOK_CODE, UC_HOOK_MEM_UNMAPPED, UC_HOOK_MEM_WRITE,
@@ -397,11 +427,10 @@ class Machine:
         x86 = self.x86
         if address == POW_RETURN:
             name = 'pow'
-            base, exponent_arg = struct.unpack('<dd', bytes(uc.mem_read(self.esp(), 16)))
-            host = math.pow(base, exponent_arg)
+            args = struct.unpack('<dd', bytes(uc.mem_read(self.esp(), 16)))
         else:
             name, function = TRIG_RETURNS[address]
-            host = function(struct.unpack('<d', bytes(uc.mem_read(self.esp(), 8)))[0])
+            args = struct.unpack('<d', bytes(uc.mem_read(self.esp(), 8)))
         top = (uc.reg_read(x86.UC_X86_REG_FPSW) >> 11) & 7
         mantissa, exponent = uc.reg_read(getattr(x86, f'UC_X86_REG_FP{(top) & 7}'))
         if (exponent & 0x7fff) == 0x7fff:
@@ -409,6 +438,13 @@ class Machine:
         else:
             result = math.ldexp(mantissa, (exponent & 0x7fff)-16383-63) if mantissa else 0.0
         result = -result if exponent & 0x8000 else result
+        self.record_trig(name, args, result)
+
+    def record_trig(self, name, args, result):
+        if getattr(self, 'cache_trig', None) is not None:
+            self.cache_trig.append((name, args, result))
+            return
+        host = {'pow': math.pow, 'sin': math.sin, 'cos': math.cos}[name](*args)
         entry = self.trig_stats.setdefault(name, {'calls': 0, 'binary32_differences': 0, 'binary64_differences': 0})
         entry['calls'] += 1
         same32 = struct.pack('<f', f32(result)) == struct.pack('<f', f32(host)) or (
@@ -543,6 +579,9 @@ class Machine:
         return records, error_record
 
     def run_case(self, case, limit=200_000_000):
+        return cached_original(self, 'draw', (case, limit), lambda: self._run_case(case, limit))
+
+    def _run_case(self, case, limit=200_000_000):
         from unicorn import UcError
         x86, uc = self.x86, self.uc
         records, error_record = self.layout(case)
@@ -629,6 +668,10 @@ def st0(machine):
 
 
 def call_math(machine, address, *floats):
+    return cached_original(machine, 'math', (address, floats), lambda: _call_math(machine, address, *floats))
+
+
+def _call_math(machine, address, *floats):
     uc, x86 = machine.uc, machine.x86
     machine.state = {'stopped': None, 'stream': [], 'fault': None}
     esp = STACK+STACK_BYTES-0x1000
@@ -705,6 +748,10 @@ NAME_AT, OBJECT_AT, PTD_AT = ARENA+0x00700000, ARENA+0x00700100, ARENA+0x0070020
 
 
 def run_name_parser(machine, name, sse):
+    return cached_original(machine, 'name', (name, sse), lambda: _run_name_parser(machine, name, sse))
+
+
+def _run_name_parser(machine, name, sse):
     """Client 0x01185111 on a 32-byte name: (result byte, six object bytes)."""
     uc, x86 = machine.uc, machine.x86
     machine.state = {'stopped': None, 'stream': [], 'fault': None}
@@ -741,14 +788,17 @@ def installed_names(game_root):
     data = Path(game_root)/'Data'
     data = data if data.is_dir() else Path(game_root)
     names = set()
-    for path in sorted(data.rglob('*')):
-        if path.suffix.lower() != '.bmd' or not path.is_file():
-            continue
-        result = subprocess.run([str(native_tool()), 'info', str(path)], capture_output=True, text=True)
-        if result.returncode:
-            continue
-        for mesh in json.loads(result.stdout).get('mesh_list', []):
-            names.add(mesh['texture'].encode('latin-1'))
+    paths = [p for p in sorted(data.rglob('*')) if p.suffix.lower() == '.bmd' and p.is_file()]
+    for start in range(0, len(paths), 64):
+        batch = paths[start:start + 64]
+        result = subprocess.run([str(ROOT/'native/build/meshdraw-info-batch'), *map(str, batch)],
+                                capture_output=True, text=True, check=True)
+        lines = result.stdout.splitlines()
+        if len(lines) != len(batch):
+            raise RuntimeError('info batch did not return one result per input')
+        for line in lines:
+            for mesh in json.loads(line).get('mesh_list', []):
+                names.add(mesh['texture'].encode('latin-1'))
     return sorted(names)
 
 
@@ -1115,7 +1165,10 @@ def main():
     for name, (start, end, digest) in {**BODIES, **NAME_PARSER_BODIES}.items():
         if hashlib.sha256(text[start-TEXT_BASE:end-TEXT_BASE]).hexdigest() != digest:
             raise SystemExit(f'pinned body {name} differs')
-    subprocess.run(['make', '-C', str(ROOT/'native')], check=True, capture_output=True)
+    subprocess.run(['make', '-j4', '-C', str(ROOT/'native'), 'build/mu-render',
+                    'build/meshdraw-info-batch',
+                    'build/libmumeshdraw.' + ('dylib' if sys.platform == 'darwin' else 'so')],
+                   check=True, capture_output=True)
     machine = Machine(text, data, flag, feature)
     rng = random.Random(args.seed)
     report = {'text_sha256': tracks.TEXT_SHA256, 'data_sha256': tracks.DATA_SHA256,

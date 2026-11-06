@@ -1,5 +1,9 @@
 # Plan: the rest of the native macOS port
 
+TEST-SPEED-002 PR-ready: meshdraw 367.99 → 57.21 s warm with byte-identical reports, 4/4 controls and a caught compiled C mutation; fifteen native build rows use target dependencies. Six-PR selection replay has zero identified misses. [Checks, commands and limits](../../handoffs/TEST-SPEED-002.md).
+
+APP-POLISH-003 PR-ready: the level-1 Dark Knight fixture joins with recorded full vitals 1100/200/52/25; session HUD maxima need no progression fallback. Toxic states 0x37/0x136 select the original green HP bitmap through the display fixture. Buff replication remains open. [Evidence and limits](../../research/client-app-polish3.md), [checks](../../handoffs/APP-POLISH-003.md).
+
 APP-POLISH-002 PR-ready: the world HUD displays session HP/MP/SD/AG and stops its demo animation; missing offline maxima use the existing progression view. Original setHPMP body and base viewport: 1,028 cases, 0 mismatches, 10/10 mutants. Main HUD 1:1 at 1504×936 is supported by base noScale and Main.onResize. [Checks and limits](../../handoffs/APP-POLISH-002.md).
 
 Status classes: **EA** evidence-available (restored text, installed data or the fixture are enough),
@@ -196,6 +200,7 @@ content (cash-shop catalogues, event schedules) is observable only live (OP).
 
 | ID | Scope | Completion evidence | Depends on | Status |
 |---|---|---|---|---|
+| TEST-SPEED-001 | Select affected checks, skip unchanged mutants, cache pinned original instruction results | Timing and selection replay in [test budget](../../testing/TEST-BUDGET.md) | GATE-PAR-001 | PR-ready; full batch gate remains with steward |
 | VERIFY-HARNESS-001 | One manifest-driven validator runner (`scripts/validators.toml`: pins, cases, mutants, owning test); pins in `scripts/pins.py` instead of 31 pasted digests; a shared Unicorn machine for the 19 standalone setups; `docs/evidence-index.json` regenerated from runs; the ~25 orphan validators referenced by tests | Every validator reachable from `make integration`; index regenerated; no pasted digests left (grep test) | — | EA |
 | VERIFY-HARNESS-002 | Migrate only map_client_window and model_hierarchy_common to existing pins/loading; remove their grep exceptions | Eight before/after reports, eleven metadata constants and five error outcomes agree; 72 private owning tests pass; locked Mac gate 1,608 tests / 11 fixtures | VERIFY-HARNESS-001 | Implemented bounded follow-up; eight exceptions and shared-machine consolidation remain; [handoff](../../handoffs/VERIFY-HARNESS-002.md) |
 | INTEGRATION-GREEN-001 | Reproducible private integration inputs: effects initialized-range pin, model-manifest drift diagnosis, full offline private suite | Exact corpus identities, charcreate 6/6, full private and local Mac gates; [provenance](../../research/private-integration-inputs.md) | VERIFY-HARNESS-001, CHARSEL-RT-001 | Implemented, 2026-10-28; 38/38 private-enabled directories green; [counts and skips](../../handoffs/INTEGRATION-GREEN-001.md) |

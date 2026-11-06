@@ -12,6 +12,14 @@ The suite list lives only in the top-level Makefile (`TEST_SUITES`); `make test`
                    suite runs to the end, and the summary names each suite with its counts. The exit status is
                    non-zero if any suite failed, and each failed suite's log tail is printed.
 
+`--affected REF` (TEST-SPEED-001, for lanes; the steward keeps the full gate) runs only the work items a diff from
+merge-base(REF, HEAD) to the working tree can affect and prints why each was chosen; `--list-affected REF` only
+prints them. The mapping (scripts/affected.py, docs/testing/TEST-BUDGET.md): a suite directory depends on its own
+files and on what its Makefile reaches with ../; a native/tests module on its imports, the paths and names it
+quotes, and every source and header of the make targets it names (plus the default goal if it runs make); the
+`tests` suite (repository policy, manifests) runs on every diff; the Makefile, this runner and
+scripts/local-macos-ci.sh select everything.
+
 Isolation in the pool: every suite gets its own TMPDIR (tempfile.* inside it is private), and every `make` a test
 starts goes through a shim that holds one lock for the duration of the build, so two suites never build into
 native/build or reconstructed/* at the same time. Logs: verify-runs/test-suites-<stamp>/ (ignored).
@@ -19,6 +27,7 @@ native/build or reconstructed/* at the same time. Logs: verify-runs/test-suites-
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import os
 from pathlib import Path
@@ -43,6 +52,9 @@ LONGEST_FIRST = tuple(f'native/tests/test_{m}.py' for m in (
 # counts are summed back into one row. MU_GATE_JOBS=1 never shards.
 SHARDED = ('native/tests',)
 TAIL_LINES = 60
+INFRA = {'Makefile': 'the top-level Makefile (TEST_SUITES, make test)', 'scripts/run_test_suites.py': 'this runner',
+         'scripts/local-macos-ci.sh': 'the gate'}
+ALWAYS = ('tests',)   # repository policy and manifest checks: ~2 s, read the whole tree
 
 RAN = re.compile(r'^Ran (\d+) tests? in ([\d.]+)s$', re.M)
 RESULT = re.compile(r'^(OK|FAILED)(?: \((.*)\))?$', re.M)
@@ -211,10 +223,113 @@ def unit_id(unit: tuple[str, str]) -> str:
     return unit[0] if unit[1] == 'test_*.py' else f'{unit[0]}/{unit[1]}'
 
 
-def run_parallel(suites: list[str], jobs: int, logdir: Path) -> int:
+def unit_deps(unit: tuple[str, str], root: Path = ROOT):
+    """What one work item reads (scripts/affected.py): a whole-suite item its directory and what the suite's
+    Makefile reaches; a native/tests module its imports, quoted paths and the make targets it names."""
+    import affected
+    suite, pattern = unit
+    if pattern == 'test_*.py':
+        deps = affected.makefile_deps(suite, root)
+        deps.built_dirs.discard(suite)
+        deps.dirs[suite] = f'in suite {suite}'
+        for module in sorted((root / suite).glob('test_*.py')):
+            deps.update(affected.python_deps(module, root))
+        return deps
+    module = root / suite / pattern
+    deps = affected.python_deps(module, root)
+    make_dir = 'native' if suite.startswith('native/') else suite
+    targets = [t for t in affected.make_targets(make_dir, root) if _names_target(t, deps.names)]
+    if needs_default_goal(deps, make_dir, root):
+        targets.append(None)
+    for target in targets:
+        deps.update(affected.target_deps(make_dir, target, root))
+    return deps
+
+
+def needs_default_goal(deps, directory: str, root: Path) -> bool:
+    """Omit the default only for statically explicit make commands. Computed commands and helpers
+    remain conservative. Inspect imported helpers too; a mere comment mentioning make is not a call."""
+    import affected
+    known = set(affected.make_targets(directory, root))
+    for name in deps.files:
+        path = root / name
+        if path.suffix != '.py' or not path.is_file():
+            continue
+        try:
+            tree = ast.parse(path.read_text())
+        except (SyntaxError, OSError):
+            return True
+        if any(isinstance(node, ast.Constant) and isinstance(node.value, str) and
+               re.match(r'^make\s', node.value) for node in ast.walk(tree)):
+            return True
+        commands = [node for node in ast.walk(tree) if isinstance(node, (ast.List, ast.Tuple)) and node.elts
+                    and isinstance(node.elts[0], ast.Constant) and node.elts[0].value == 'make']
+        make_literals = [node for node in ast.walk(tree) if isinstance(node, ast.Constant) and node.value == 'make']
+        if len(make_literals) != len(commands):
+            return True  # e.g. a shell command or a wrapper constructing the argv
+        for command in commands:
+            args = command.elts[1:]
+            explicit = False
+            i = 0
+            while i < len(args):
+                arg = args[i]
+                text = arg.value if isinstance(arg, ast.Constant) and isinstance(arg.value, str) else None
+                if text in ('-C', '-f', '-j', '-I', '-W', '-o'):
+                    i += 2
+                    continue
+                if text in known:
+                    explicit = True
+                elif text is None or (not text.startswith('-') and '=' not in text):
+                    return True
+                i += 1
+            if not explicit:
+                return True
+    return False
+
+
+def _names_target(target: str, names: dict) -> bool:
+    short = target[len('build/'):] if target.startswith('build/') else None
+    return target in names or (short is not None and short in names)
+
+
+def affected_units(suites: list[str], ref: str, changed: list[str] | None = None,
+                   root: Path = ROOT) -> dict[str, list[str]]:
+    """{unit id: [why]} for the work items of SUITES a diff can affect."""
+    import concurrent.futures
+    import affected
+    changed = affected.changed_files(ref, root) if changed is None else changed
+    work = [u for s in suites for u in units(s)]
+    if not changed:
+        return {}
+    native = [u for u in work if u[1] != 'test_*.py']
+    if native:   # warm the make dry-run cache in parallel (one `make -nB` per target, ~0.3 s each)
+        names = {t for u in native for t in affected.make_targets('native', root)
+                 if _names_target(t, affected.python_deps(root / u[0] / u[1], root).names)}
+        with concurrent.futures.ThreadPoolExecutor(2) as pool:
+            list(pool.map(lambda t: affected.target_deps('native', t, root), sorted(names) + [None]))
+    deps = {unit_id(u): unit_deps(u, root) for u in work}
+    # Brief 6c: these modules read documentation, sometimes through computed paths.
+    for name in ('test_world_captures_2.py', 'test_repository_policy.py',
+                 'test_native_item_textures.py', 'test_native_data_manifest.py'):
+        for unit, dep in deps.items():
+            if unit.endswith('/' + name) or (root / unit / name).is_file():
+                dep.dirs['docs'] = 'reads documentation (brief 6c)'
+    selected = affected.select(deps, changed, INFRA)
+    for suite in ALWAYS:
+        if suite in deps:
+            selected.setdefault(suite, ['runs on every diff (repository policy and manifest checks)'])
+    for path in changed:   # a native/tests helper or host no module reaches: every native/tests module
+        if path.startswith('native/tests/') and not path.split('/')[-1].startswith('test_') and \
+                not any(path in r for u in native for r in selected.get(unit_id(u), [])):
+            for u in native:
+                selected.setdefault(unit_id(u), []).append(f'{path}: native/tests file no module names')
+    return {unit_id(u): selected[unit_id(u)] for u in work if unit_id(u) in selected}
+
+
+def run_parallel(suites: list[str], jobs: int, logdir: Path, only: set[str] | None = None) -> int:
     scratch = Path(tempfile.mkdtemp(prefix='mugate-', dir='/tmp'))
     bindir = make_shim(scratch)
-    work = [u for s in suites for u in units(s)]
+    work = [u for s in suites for u in units(s) if only is None or unit_id(u) in only]
     queue = order(work)
     print(f'run_test_suites: {len(suites)} suites ({len(work)} work items), jobs={jobs}, logs {shown(logdir)}',
           flush=True)
@@ -305,12 +420,27 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument('suites', nargs='*', help='suite directories (default: the Makefile TEST_SUITES)')
     ap.add_argument('--list', action='store_true', help='print the Makefile suite list and exit')
     ap.add_argument('--logs', type=Path, help='log directory (default verify-runs/test-suites-<stamp>)')
+    ap.add_argument('--affected', metavar='REF', help='only the work items a diff from merge-base(REF, HEAD) can affect')
+    ap.add_argument('--list-affected', metavar='REF', help='print the work items --affected REF selects, and why')
     a = ap.parse_args(argv)
     if a.list:
         print('\n'.join(makefile_suites()))
         return 0
     suites = a.suites or makefile_suites()
     check_suites(suites)
+    only = None
+    if a.affected or a.list_affected:
+        sys.path.insert(0, str(ROOT / 'scripts'))
+        import affected
+        why = affected_units(suites, a.affected or a.list_affected)
+        total = sum(len(units(s)) for s in suites)
+        print(affected.show(why, total, 'work items'), flush=True)
+        if a.list_affected:
+            return 0
+        if not why:
+            print('run_test_suites: nothing to run for this diff')
+            return 0
+        only = set(why)
     jobs = jobs_from_env()
     if a.logs:
         logdir = a.logs.resolve()
@@ -318,6 +448,8 @@ def main(argv: list[str] | None = None) -> int:
     else:
         (ROOT / 'verify-runs').mkdir(exist_ok=True)
         logdir = Path(tempfile.mkdtemp(prefix=time.strftime('test-suites-%Y%m%d-%H%M%S-'), dir=ROOT / 'verify-runs'))
+    if only is not None:
+        return run_parallel(suites, jobs, logdir, only)
     return run_sequential(suites, logdir) if jobs == 1 else run_parallel(suites, jobs, logdir)
 
 
