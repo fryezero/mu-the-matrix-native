@@ -537,6 +537,25 @@ class ValidatorTargets(unittest.TestCase):
             self.assertIsNone(dep.why('native/app/Launcher.swift'), name)
 
 
+class SuitesBuildWhatTheyLink(unittest.TestCase):
+    """TEST-SPEED-003: a test module that loads another reconstructed directory's library runs that directory's make
+    itself. Otherwise it passes only after another suite happened to build it, and `--affected` in a fresh worktree
+    fails (test_joints needed reconstructed/combat/libcombat)."""
+
+    def test_every_foreign_library_is_built_by_its_loader(self):
+        root = Path(__file__).resolve().parents[1]
+        missing = []
+        for module in sorted([*root.glob('reconstructed/*/test_*.py'), *root.glob('native/tests/test_*.py')]):
+            text = module.read_text()
+            own = module.parent.name if module.parent.parent.name == 'reconstructed' else None
+            for directory in sorted(set(re.findall(r"reconstructed/([\w.-]+)/lib\w+", text)) - {own}):
+                built = (re.search(rf"reconstructed/{re.escape(directory)}['\"]", text)
+                         or ("'reconstructed'/" in text and f"'{directory}'" in text))
+                if not built:
+                    missing.append(f'{module.relative_to(root)}: reconstructed/{directory}')
+        self.assertEqual(missing, [], 'load a library only after `make -C reconstructed/<dir>`')
+
+
 class OriginalCache(unittest.TestCase):
     """scripts/original_cache.py: off by default, keyed by the code that drives the original side, and the C side
     (here a plain function standing for the compiled library) is compared fresh on every run."""
@@ -590,8 +609,9 @@ class OriginalCache(unittest.TestCase):
         self.assertNotEqual(first.key, second.key)
         self.assertEqual(second.get('family', {'x': 1}, lambda: 2), 2)
         second.save()
-        self.assertEqual(sorted(p.name for p in (self.base / 'cache' / 'validate_fake').iterdir()),
-                         [second.path.name], 'the older key is deleted')
+        self.assertEqual(sorted(p.name for p in (self.base / 'cache' / 'validate_fake').glob('*.pickle.xz')),
+                         sorted([first.path.name, second.path.name]), 'the older key is kept (TEST-SPEED-003)')
+        self.assertEqual(self.cache().get('family', {'x': 1}, lambda: 3), 2, 'the new key never reads the old file')
 
     def test_pin_changes_invalidate_warm_entries(self):
         import dataclasses

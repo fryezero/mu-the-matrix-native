@@ -201,6 +201,9 @@ typedef struct mu_objects_runtime {
     long effect_events;
     void *hook_context;
     mu_q_handler q_handler;   /* RENDER-WORLDS-Q handler members (Ferea state 0, Swamp variant 1 as constructed) */
+    /* RENDER-WORLDS-S3: the Imperial Guardian class static type 20 shares (0x01ec9164 + 4 * (world - 69), zero at
+     * load). The client keeps it for the process; here it lives as long as the loaded world. */
+    float imperial_frame;
 } mu_objects_runtime;
 
 typedef struct mu_objects {

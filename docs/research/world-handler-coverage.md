@@ -19,10 +19,10 @@ N = not reachable through the Warps window or ordinary warps (reason in JSON).
 | Vulcanus | 63 | `0x1aad63c` | `0xe8ec09` V | `0xe8ec80` V | `0xe8ece1` V | C |
 | Duel Arena | 64 | `0x1aa7c54` | `0xdc6643` V | `0xdc6685` V | `0xdc6790` V | N |
 | World 82 class | 82 | `0x1aaab3c` | `0xe2bf57` V | `0xe2bf8d` V | `0xe2c002` V | N |
-| World 69 class | 69 | `0x1aa7dd4` | `0xdc6fab` M | `0xdc7136` M | `0xdc73d0` M | N |
-| World 70 class | 70 | `0x1aa7f84` | `0xdd3c76` M | `0xdd3e01` M | `0xdd4097` M | N |
-| World 71 class | 71 | `0x1aa8038` | `0xdd8d6d` M | `0xdd8ef8` M | `0xdd9192` M | N |
-| World 72 class | 72 | `0x1aa8230` | `0xdde9e0` M | `0xddeb8a` M | `0xddee5e` M | N |
+| World 69 class | 69 | `0x1aa7dd4` | `0xdc6fab` V | `0xdc7136` V | `0xdc73d0` V | N |
+| World 70 class | 70 | `0x1aa7f84` | `0xdd3c76` V | `0xdd3e01` V | `0xdd4097` V | N |
+| World 71 class | 71 | `0x1aa8038` | `0xdd8d6d` V | `0xdd8ef8` V | `0xdd9192` V | N |
+| World 72 class | 72 | `0x1aa8230` | `0xdde9e0` V | `0xddeb8a` V | `0xddee5e` V | N |
 | Loren Market | 79 | `0x1aac310` | `0xe6c0ec` V | `0xe6c1bf` V | `0xe6c678` V | C |
 | Karutan | 80, 81 | `0x1aa9a4c` | `0xe13a87` V | `0xe13a9e` V | `0xe13be4` V | E |
 | World 91 class | 91 | `0x1aa59cc` | `0xd6a6d7` V | `0xd6a7aa` V | `0xd6ae34` V | C |
@@ -34,14 +34,14 @@ N = not reachable through the Warps window or ordinary warps (reason in JSON).
 | World 110 class | 110 | `0x1aaa95c` | `0xe260f0` V | `0xe26668` V | `0xe26ae7` V | N |
 | World 112 class | 112 | `0x1aa86e0` | `0xde5cb0` V | `0xde5de2` V | `0xde6405` V | C |
 | World 113 class | 113 | `0x1aaac94` | `0xe3441c` V | `0xe3473f` V | `0xd5cc9b` V | C |
-| World 114 class | 114 | `0x1aaa60c` | `0xe1e989` M | `0xe1ea5c` M | `0xe1ef15` M | N |
+| World 114 class | 114 | `0x1aaa60c` | `0xe1e989` V | `0xe1ea5c` V | `0xe1ef15` V | N |
 | World 115 class | 115 | `0x1aaa7dc` | `0xd5cb99` V | `0xd5cc16` V | `0xd5cc9b` V | N |
 | World 116 class | 116 | `0x1aaafe0` | `0xe3e34b` V | `0xe3e46d` V | `0xd5cc9b` V | C |
 | World 117 class | 117 | `0x1aab0a8` | `0xe3efe6` V | `0xe3f125` V | `0xd5cc9b` V | C |
 | World 118 class | 118 | `0x1aab170` | `0xe3fce8` V | `0xe3fe3c` V | `0xd5cc9b` V | C |
 | World 119 class | 119 | `0x1aab240` | `0xe409e8` V | `0xe40b38` V | `0xd5cc9b` V | C |
 | World 120 class | 120 | `0x1aab320` | `0xe41823` V | `0xe41a1f` V | `0xd5cc9b` V | C |
-| World 121 class | 121 | `0x1aa51fc` | `0xd585b0` M | `0xd58809` M | `0xd58888` M | N |
+| World 121 class | 121 | `0x1aa51fc` | `0xd585b0` V | `0xd58809` V | `0xd58888` V | N |
 | World 122 class | 122 | `0x1aac070` | `0xe54429` V | `0xe54646` V | `0xe5540e` V | C |
 | World 123 class | 123, 124, 125, 126, 127 | `0x1aaa564` | `0xe19bb3` V | `0xe19ed0` V | `0xe1b5fb` V | C |
 | World 128 class | 128 | `0x1aa5320` | `0xd5cf32` V | `0xd5d04a` V | `0xd5d564` V | C |
@@ -63,7 +63,7 @@ N = not reachable through the Warps window or ordinary warps (reason in JSON).
 | Swamp of Destruction | 144 | `0x1aab6a8` | `0xe46625` V | `0xe4696f` V | `0xe47bc2` V | C |
 | Aquila's Temple | 145 | `0x1aa5e78` | `0xd75a6c` V | `0xd75ac6` V | `0xd77b3e` V | N |
 
-42/48 classes have at least one verified primary method. Of 144 primary methods: 126 verified families, 0 static-only C, 18 missing.
+48/48 classes have at least one verified primary method. Of 144 primary methods: 144 verified families, 0 static-only C, 0 missing.
 Original populated captures: 27 classes from DATA-ACQ-002, 5 from earlier live reads, 16 not reachable by warp.
 
 The companion [JSON](world-handler-coverage.json) records factory, constructor and related entry points

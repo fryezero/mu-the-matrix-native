@@ -1,4 +1,4 @@
-# Test budget: what runs when (TEST-SPEED-001 / TEST-SPEED-002)
+# Test budget: what runs when (TEST-SPEED-001 / 002 / 003)
 
 The owner asked for agents' finish phase to run only the checks a change needs. The policy is the brief's
 "TEST BUDGET" section (2026-11-04); this page is the tooling that applies it and the measured effect.
@@ -98,8 +98,9 @@ an advisory conservative selector, not a complete dependency proof. The steward 
 The pinned client never changes, so the original side of a validator case is a function of the pins, the Python
 code that drives Unicorn, and the case input. With `--cache` (or `MU_VALIDATOR_CACHE=<dir>`) that side is stored in
 `<dir>/<name>/<key>.pickle.xz`; the key hashes every pin's sha256, the Unicorn and Python versions and the sha256
-of every Python file in the closure of the script that runs the original side. Any harness change starts a new key
-(the old file is deleted). Pins are still read and verified before using the cache. The key includes the section3 pin as well as text, data, flag and feature pins. Portable tests prove that changing a pin or harness source invalidates warm entries and that a changed C result still fails against a warm cache. Only the original side is cached: the C library is called for every case and compared
+of every Python file in the closure of the script that runs the original side. Any harness change starts a new key;
+since TEST-SPEED-003 the older keys are kept (four most recently used per name, 250 MB for the whole directory, see
+[below](#test-speed-003-multi-key-cache-and-self-built-suite-libraries)), so a lane branch and main stay warm side by side. Pins are still read and verified before using the cache. The key includes the section3 pin as well as text, data, flag and feature pins. Portable tests prove that changing a pin or harness source invalidates warm entries and that a changed C result still fails against a warm cache. Only the original side is cached: the C library is called for every case and compared
 with the cached original exactly as with a fresh one, and a C mutant run with a warm cache is still caught.
 
 Wired into the shared item harness, so every validator using it gets the cache:
@@ -391,3 +392,68 @@ list for shared tooling changes. The selector is conservative and shared infrast
 | Repository audit, docs staged | 1,884 staged files, 0 rejected | 15.7 s | 6.52 → 5.88 |
 
 The full gate includes `tests/`: 234 tests in 25.1 s, among them every `test_test_budget`, `test_validator_original_cache` and `test_validators_manifest` case.
+
+## TEST-SPEED-003: multi-key cache and self-built suite libraries
+
+[Handoff](../handoffs/TEST-SPEED-003.md).
+
+**Cache thrash.** Until now `original_cache` kept one key per name and deleted the others on every save. A lane
+branch and the steward's main with different harness versions (a changed `gen_item_bodies.py`, say) evicted each
+other on every switch, so `validate_item_clusters`/`gear`/`wings_next` ran cold again (+300–650 s each, seen by
+RENDER-ITEMS-HIDDENMESH). Now:
+
+- **Per name:** the 4 most recently used keys stay (`MU_VALIDATOR_CACHE_KEYS`). Loading a key marks it used by
+  touching its mtime.
+- **Whole directory:** capped at 250 MB (`MU_VALIDATOR_CACHE_MAX_MB`). Least recently used files go first; the file
+  just written is never removed. Writer temp files older than 6 h are removed.
+- **Keys:** unchanged in content (format, validator, Python and Unicorn versions, every pin's sha256, the harness
+  code closure, `extra`). A file is returned only for the key stored inside it; a renamed or damaged file is a miss.
+- **Concurrent writers:** a save holds a per-name `flock` and merges what another worker saved under the same key
+  since this one loaded (two `--jobs` workers both filling `gen_item_bodies`). The file is replaced atomically, so
+  a reader sees the old or the new file, never a partial one. The old code lost one worker's entries in 3 of 3
+  test runs.
+- **Migration:** in place. Same paths and file format, so the existing shared directory stays valid. Worktrees
+  still on the old code keep deleting other keys of a name when they save, until they merge main.
+- **One-time cost:** `original_cache.py` is in the closure of every cached validator, so this PR is a new key for
+  each of them, and each row is cold once after the merge.
+
+Measured on `validate_item_product` (2,874 cases: bodies 1,752, products 1,122; 0 mismatches), `--no-mutants`,
+`--jobs 2`, `nice -n 10`, with a scratch cache directory (the shared one was in use) at `dacc64f2`. "Branch" is
+main plus one comment line in `scripts/gen_item_bodies.py`, which gives a new generator key.
+
+| Run | Wall | Generator cache | Load 1m start → end |
+|---|---:|---|---|
+| main, cold | 586.16 s | 24,708 hits, 91,272 misses | 9.61 → 5.15 |
+| main, warm | 33.67 s | 115,980 hits, 0 misses | 4.90 → 4.36 |
+| branch, cold (the old code deleted main's key here) | 605.45 s | 24,708 hits, 91,272 misses | 4.15 → 9.43 |
+| main again | **35.88 s** (old code: cold, ~586 s) | 115,980 hits, 0 misses | → 7.57 |
+| branch again | **37.29 s** (old code: cold, ~605 s) | 115,980 hits, 0 misses | → 6.36 |
+| main again | **34.39 s** (old code: cold, ~586 s) | 115,980 hits, 0 misses | 6.36 → 5.78 |
+
+All six reports are byte-identical (sha256 `b2bad7fe8465d3b716b1cce4901790b044491cd59ff2a2b07866f5918eb92b3a`).
+The three switches took 107.6 s; with the old code they would have been three cold runs, about 1,777 s by the
+cold walls above. Those "old code" figures are estimates from the measured cold walls, not new runs: the old save
+provably deletes the other key (the replaced unit assertion). The scratch directory held two generator keys:
+3.1 MB.
+
+**`test_joints` build dependency.** `reconstructed/joints/test_joints.py` loads `reconstructed/combat/libcombat`
+but built only its own directory. It passed only when another suite had built combat first, so in a fresh
+worktree `--affected` errored (RENDER-WORLDS-S2). The test now runs `make -C reconstructed/combat` first, as
+`test_items` and `test_worlds_o`/`q`/`g2` already do. `test_native_character`'s private test had the same gap
+for `reconstructed/model-codec/libcharacter` and gets the same one-line build. No check changed.
+`tests/test_test_budget.py::SuitesBuildWhatTheyLink` statically requires every `reconstructed/*` and
+`native/tests` test module that loads another directory's library to build that directory too.
+
+Proof: with `libcombat.dylib` removed, `run_test_suites.py reconstructed/joints` failed with 1 error before the
+fix, and after it passed (15 tests, 1 skipped, 1.5 s).
+
+### Delivery checks
+
+| Check | Result | Wall | Load 1m |
+|---|---|---:|---|
+| `test_test_budget` + `test_validator_original_cache` (incl. 8 new tests) | 54 pass | 21.6 s | 9.59 → 11.83 |
+| New cache tests against the old `original_cache.py` | 3 fail, 3 error, as intended (concurrency lost entries 3/3) | 0.1 s | — |
+| `make -j4` before / after merging main `b8645181` | pass | 24.5 s / 14.9 s | 8.12 → 11.11 / → 17.11 |
+| Full suites, `MU_GATE_JOBS=4`, `nice -n 10`, at the merge | 38 suites, 1,973 tests: 1,716 pass, 257 skip, 0 fail | 198.0 s | 12.54 → 26.87 |
+| Item row cold / warm (above) | identical reports | 586.16 s / 33.67 s | above |
+| Repository audit, docs staged | 1,925 staged files, 0 rejected | 16.7 s | 16.27 → 13.13 |
