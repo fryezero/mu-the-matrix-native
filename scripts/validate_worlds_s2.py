@@ -377,7 +377,7 @@ MUTANTS = [
     ('nars.c', 'in->world == 110 || in->world == 111', 'in->world == 110 || in->world == 112', 'nars_create'),
     ('nars.c', 'NARS_HEIGHT, -2800.0f', 'NARS_HEIGHT, -2600.0f', 'nars_create'),
     ('nars.c', 'MU_OBJF_ANGLE + 8, 340.0f', 'MU_OBJF_ANGLE + 4, 340.0f', 'nars_create'),
-    ('nars.c', 'case 6: case 11: case 12: case 28:', 'case 6: case 11: case 12: case 27:', 'nars_create'),
+    ('nars.c', 'case 6: case 11: case 12: case 28:', 'case 6: case 11: case 12: case 31:', 'nars_create'),
     ('nars.c', '== 6); break;', '== 11); break;', 'nars_create'),
     ('nars.c', 'case 8: case 9: mu_obj_set_f32(o, MU_OBJF_RANGE, -800.0f)', 'case 8: case 9: mu_obj_set_f32(o, MU_OBJF_RANGE, -700.0f)', 'nars_create'),
     ('nars.c', 'case 79:\n    case 146:', 'case 78:\n    case 146:', 'nars_create'),
