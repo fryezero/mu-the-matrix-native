@@ -188,6 +188,38 @@ void world_rt_unload(mu_world_rt *a)
 
 /* The front end's equipment (the chosen character's items), after load() equipped the class parts: with combat
  * its weapons replace the stand-in weapon. */
+/* APP-POLISH-005: the chosen character's weapons as the skill usability check reads them: each loaded weapon
+ * model's Item.bmd record (the model type of its path, the record of that model index) in the record's own
+ * equipment slot (+0x256: 0 right hand, 1 left hand), with its code and kind byte (+0x251). */
+static void world_rt_equipment_codes(mu_world_rt *a)
+{
+    a->equip_code[0] = a->equip_code[1] = -1;
+    a->equip_kind[0] = a->equip_kind[1] = 0;
+    mu_data_table items = {0};
+    char path[4096];
+    int have = 0;
+    for (int k = 0; k < 2 && !have; ++k) {
+        mu_data_free(&items);
+        snprintf(path, sizeof path, "%s/Data/Local/%s", a->root, k ? "item.bmd" : "Item.bmd");
+        have = mu_data_load(path, NULL, &items) == 0 && items.result.status == 0;
+    }
+    for (int slot = 0; have && slot < MU_CHARACTER_WEAPON_SLOTS; ++slot) {
+        const mu_character_item *it = &a->ch.items[MU_CHARACTER_WEAPON_ITEM(slot)];
+        mu_item record;
+        int32_t type = it->loaded ? mu_item_textures_type_of_path(&items, a->root, it->path) : -1;
+        if (type < 0 || mu_item_model(&items, type, &record) != 1 || record.attributes.slot > 1 ||
+            a->equip_code[record.attributes.slot] >= 0)
+            continue;
+        a->equip_code[record.attributes.slot] = (int32_t)record.code;
+        a->equip_kind[record.attributes.slot] = record.attributes.kind_b;
+    }
+    mu_data_free(&items);
+#ifndef MU_WORLD_NO_GL
+    if (a->gfx)
+        world_gfx_set_equipment(a->gfx, a->equip_code, a->equip_kind);
+#endif
+}
+
 int world_rt_apply_equipment(mu_world_rt *a, char *error, size_t error_size)
 {
     if (!a->equip_set)
@@ -202,6 +234,7 @@ int world_rt_apply_equipment(mu_world_rt *a, char *error, size_t error_size)
         if (a->equip[i] && a->equip[i][0] && mu_character_set_item(&a->ch, i, a->equip[i], 0, error, error_size))
             return 1;
     world_rt_hero_item_textures(a, 1, MU_CHARACTER_ITEMS);
+    world_rt_equipment_codes(a);
     mu_walk_place(&a->walk, &a->ch);
     return 0;
 }
@@ -422,6 +455,11 @@ mu_world_rt *mu_world_rt_open(const mu_world_rt_options *o, char *error, size_t 
     a->height = o->height;
     a->near_plane = o->near_plane;
     a->boots = o->boots;
+    a->skill_demo = o->skill_demo;   /* APP-POLISH-005 */
+    a->has_hero_stats = o->has_hero_stats;
+    a->hero_level = o->level;
+    memcpy(a->hero_stats, o->hero_stats, sizeof a->hero_stats);
+    a->hero_points = o->hero_points;
     a->quiet = o->quiet;
     a->sound_table = o->sound_table;
     a->audio = o->audio;
@@ -777,6 +815,8 @@ void mu_world_rt_set_gfx(mu_world_rt *a, struct world_gfx *gfx, double scale)
         world_gfx_set_perf(gfx, a->perf);
         world_rt_names_gfx_attach(a, scale);
         world_gfx_quest_setup(gfx, a->npc_demo ? a->npc_demo->quests : NULL);   /* NATIVE-QUEST-001 */
+        if (a->equip_set)   /* APP-POLISH-005: the character's weapons for the skill checks */
+            world_gfx_set_equipment(gfx, a->equip_code, a->equip_kind);
     } else if (a->names)
         mu_names_set_sink(&a->names->names, NULL);
 }

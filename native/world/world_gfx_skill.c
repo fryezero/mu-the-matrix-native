@@ -33,12 +33,20 @@ struct wg_skill {
     int32_t world;
     int32_t buffs[64];
     int nbuffs;
+    int has_equip;                 /* APP-POLISH-005: the chosen character's weapons */
+    int32_t equip_code[2];
+    uint8_t equip_kind[2];
 };
 
-/* OFFLINE DEMO equipment: a right-hand sword (kind 1). No native equipment packet feed exists yet. */
+/* The equipped item in `slot` has kind byte `kind` (+0x251, 0x00987982).  APP-POLISH-005: the chosen
+ * character's weapons (wg_skill_set_equipment); without them the OFFLINE DEMO equipment, a right-hand sword
+ * (kind 1). No native equipment packet feed exists yet. */
 static int demo_item_kind(void *user, int slot, int kind)
 {
-    (void)user;
+    const wg_skill *s = user;
+    if (s && s->has_equip)
+        return slot >= 0 && slot < 2 && s->equip_code[slot] >= 0 && s->equip_code[slot] <= 0x2c00 &&
+               s->equip_kind[slot] == kind;
     return slot == 0 && kind == 1;
 }
 
@@ -72,9 +80,24 @@ void wg_skill_set_world(wg_skill *s, int32_t world)
     for (int i = 0; i < 15; i++)
         state.items[i].code = -1;
     state.items[0].code = 0;       /* demo sword group 0/index 0 */
+    if (s->has_equip)              /* APP-POLISH-005: the character's weapons */
+        for (int i = 0; i < 2; i++)
+            state.items[i].code = s->equip_code[i];
     mu_skill_env skills = {.user = s, .buff = demo_buff};
     state.skills = &skills;
     mu_skill_book_set_use_state(s->book, &state);
+}
+
+void wg_skill_set_equipment(wg_skill *s, const int32_t code[2], const uint8_t kind[2])
+{
+    if (!s)
+        return;
+    s->has_equip = code != NULL;
+    for (int i = 0; i < 2; i++) {
+        s->equip_code[i] = code ? code[i] : -1;
+        s->equip_kind[i] = kind ? kind[i] : 0;
+    }
+    wg_skill_set_world(s, s->world);
 }
 
 void wg_skill_set_buffs(wg_skill *s, const int32_t *ids, int count)

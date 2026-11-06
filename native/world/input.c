@@ -337,6 +337,37 @@ int mu_world_rt_action(mu_world_rt *a, const char *action)
     return -2;
 }
 
+void world_rt_effects_sample(mu_world_rt *a)
+{
+    uint32_t rain = 0, landing = 0, rings = 0;
+    for (int i = 0; a->combat && i < MU_SFX_EFFECTS; ++i) {
+        const mu_sfx_effect *e = &a->combat->effects[i];
+        if (!e->live)
+            continue;
+        rain += e->type == 0x70a;
+        landing += e->type == 0x70c;
+        rings += e->type >= 0x703 && e->type <= 0x706;
+    }
+    if (rain > a->fx_max_rain) a->fx_max_rain = rain;
+    if (landing > a->fx_max_landing) a->fx_max_landing = landing;
+    if (rings > a->fx_max_rings) a->fx_max_rings = rings;
+}
+
+/* APP-POLISH-005: the combat's effect sounds and the ground skills' effects, as mu-world's combat summary counts
+ * them (sounds: effect and skill sound cues played; decals: RenderTerrainAlphaBitmap calls drawn), one line. */
+void mu_world_rt_effects_report(const mu_world_rt *a, FILE *out)
+{
+    if (!a)
+        return;
+    const mu_combat *c = a->combat;
+    fprintf(out, "{\"effects\":true,\"combat\":%d,\"skills\":%u,\"sounds\":%u,\"effects_created\":%u,"
+                 "\"max_live_0x70a\":%u,\"max_live_0x70c\":%u,\"max_live_rings\":%u,\"decals\":%u,"
+                 "\"decal_quads\":%u,\"unsupported\":%u}\n",
+            c != NULL, c ? c->stats.skills : 0u, c ? c->sounds_played : 0u, c ? c->stats.fx_created : 0u,
+            a->fx_max_rain, a->fx_max_landing, a->fx_max_rings, c ? c->stats.decals : 0u,
+            c ? c->stats.decal_quads : 0u, c ? c->stats.unsupported : 0u);
+}
+
 void mu_world_rt_input_report(const mu_world_rt *a, FILE *out)
 {
     if (!a) return;

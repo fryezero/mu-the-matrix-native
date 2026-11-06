@@ -714,6 +714,13 @@ static int open_world(mu_shell *s)
     c.has_items = 1;
     for (int i = 0; i < MU_CHARACTER_ITEMS; ++i)
         c.items[i] = entry ? entry->items[i] : NULL;
+    /* APP-POLISH-005: the session's skills file and the slot's join stats go to the fixture server */
+    c.skill_demo = s->session.skills_path[0] ? s->session.skills_path : NULL;
+    const mu_offline_hero *hero = mu_offline_session_hero(&s->session, s->hero_slot);
+    c.has_hero_stats = hero != NULL;
+    for (int i = 0; i < 5; ++i)
+        c.hero_stats[i] = hero ? hero->stats[i] : 0;
+    c.hero_points = hero ? hero->points : 0;
     char error[512];
     s->world = mu_world_rt_open(&c, error, sizeof error);
     if (!s->world) {

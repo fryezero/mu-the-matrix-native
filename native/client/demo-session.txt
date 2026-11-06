@@ -10,6 +10,12 @@ characters demo-characters.txt
 # join SLOT WORLD X,Y [ANGLE]: where the character in SLOT enters the world
 join 0 0 133,127        # Lorencia town square
 join 1 0 140,130 90
-join 2 2 197,48         # Devias
+join 2 0 182,128        # Lorencia field (APP-POLISH-005: monsters in reach of the bow)
 join 3 3 175,110        # Noria
 join 4 0 136,124
+# skills FILE: the learned skills and the saved skill bar per class (APP-POLISH-005)
+skills demo-skills.txt
+# hero SLOT str agi vit ene cmd [points]: the stats the server sends at the join (0x55 0x57), at the
+# list entry's level. Windleaf (Elf, level 320): the fixture's class start stats 22/25/20/15 and its
+# five points per level, 1,595 at level 320; 1,277 of them on agility for the 1,302 that 2044 asks.
+hero 2 str=22 agi=1302 vit=20 ene=15 cmd=0 points=318

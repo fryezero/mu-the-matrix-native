@@ -65,6 +65,10 @@ struct mu_world_rt {
     float angle, near_plane;
     uint8_t class_byte;
     int32_t boots;                 /* NATIVE-PATH-002: hero boots level (run counter) */
+    /* APP-POLISH-005: the fixture server's join data (mu_world_rt_options) */
+    const char *skill_demo;
+    int has_hero_stats;
+    int32_t hero_level, hero_stats[5], hero_points;
     int has_auto;                  /* the tool's --auto-move: the summary's run row */
     mu_world *map;
     mu_camera_info info;
@@ -130,6 +134,9 @@ struct mu_world_rt {
     mu_npc *npc;
     /* NATIVE-SKILL-001 */
     uint32_t skill_casts, skill_refused;
+    /* APP-POLISH-005: the most effects of the ground skills live in one frame (rain 0x70a, landing 0x70c with its
+     * stones, rings 0x703..0x706), sampled by the combat part's frame hook */
+    uint32_t fx_max_rain, fx_max_landing, fx_max_rings;
     /* NATIVE-MAP-001 */
     int no_map;
     mu_map_session *mapsess;
@@ -140,6 +147,8 @@ struct mu_world_rt {
     int start_set;
     const char *equip[MU_CHARACTER_ITEMS];   /* the embedding front end's equipment, applied again after a travel */
     int equip_combat, equip_set;
+    int32_t equip_code[2];         /* APP-POLISH-005: the weapons' Item.bmd codes by equipment slot (-1 empty) */
+    uint8_t equip_kind[2];         /* and their kind bytes (+0x251), for the skill usability check */
     /* NATIVE-PROGRESS-001 */
     int progress_on;
     mu_progress_config progress_config;
@@ -170,6 +179,10 @@ int world_rt_load(mu_world_rt *a);
 void world_rt_unload(mu_world_rt *a);
 int world_rt_travel(mu_world_rt *a, const mu_teleport *t);
 int world_rt_apply_equipment(mu_world_rt *a, char *error, size_t error_size);
+/* APP-POLISH-005 (parts/skills.c): the skills/progress fixture lines of a world fixture scenario. */
+void world_rt_skills_fixture_lines(const mu_world_rt *a, FILE *out);
+/* APP-POLISH-005 (input.c): one frame's live ground-skill effects into the report maxima. */
+void world_rt_effects_sample(mu_world_rt *a);
 /* RENDER-ITEMS-TEX-002: the hero's loaded items [first, last) take the client's item texture rule (type from the
  * ItemModelFile record that names the file, or the class part file) and the parts the hero's skin index. */
 void world_rt_hero_item_textures(mu_world_rt *a, int first, int last);
