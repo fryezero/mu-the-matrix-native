@@ -1,4 +1,4 @@
-# Test budget: what runs when (TEST-SPEED-001)
+# Test budget: what runs when (TEST-SPEED-001 / TEST-SPEED-002)
 
 The owner asked for agents' finish phase to run only the checks a change needs. The policy is the brief's
 "TEST BUDGET" section (2026-11-04); this page is the tooling that applies it and the measured effect.
@@ -70,7 +70,8 @@ It may select too much, never knowingly too little:
 
 - **A validator row** reads its script and every repository Python file it imports or names (closure, resolved
   next to the file and in `scripts/`); every path its string literals name (a file, or everything under a directory);
-  every file whose base name it quotes; its owning test file (and that file's closure); its `build` directories (all
+  every file whose base name it quotes; its owning test file; its explicit `build_targets` through forced make dry runs and header dependencies,
+  or, without targets, its `build` directories (all
   files except `*.md` and `test_*.py`) and everything their Makefile reaches with `../` (`-I../record-math`,
   `include ../deps.mk`, `RECON := ../reconstructed`); the paths its `args`/`prepare` name; its own manifest row
   (compared with REF's `validators.toml`). `scripts/pins.py`, `scripts/run_validators.py` and
@@ -225,3 +226,168 @@ renderchar suite containing continuation/gear/scalars' stale assertions and `tes
 `test_native_particles`; #280 retains `test_native_audio`. The renderchar and item-texture private failures recorded
 in INTEGRATION-GREEN-002 stay selected, but need private execution to be observed. This audits selection against
 recorded failures, not a claim that historical gates were re-executed or that all possible misses have been disproved.
+
+## TEST-SPEED-002: measured non-item costs and narrower validator builds
+
+[Implementation and safety](../research/test-speed-002.md), [handoff](../handoffs/TEST-SPEED-002.md),
+[selection lists and compiled-input provenance](test-speed-002-selection.json).
+
+Meshdraw's full row falls from **367.99 s to 57.21 s warm**, about **6.4×**. The row still checks 14,619
+registered comparisons: 843 synthetic/installed draws, 247 pinned draws and 13,529 names, plus 100,256 sampled
+math calls. Zero mismatches; all four built-in negative controls caught. `--mutations 300` is random input
+coverage and stays enabled. These rows have no optional compiled-mutant flag, so controls run in both modes.
+A separate compiled mutation of production `mu_meshdraw_sub_from_name` produces 44 mismatches among 4,038
+synthetic names with 8,076 original-cache hits and zero misses, 1.24 s. The worktree library was never mutated.
+
+All five full meshdraw reports are byte-identical, including coverage, trig observations, counts, and controls:
+`2d6410499a2b13b13797071c8709b66eece6c51d7c1f8f98d93eb68c5100e8a1`.
+The cache-disabled, cold, warm and warm-control runs use the same integrated tree. The old-harness baseline
+precedes integration of #296; its meshdraw, BMD, model-recovery and terrain production sources did not change.
+Loads below are start/end 1-minute readings, not peaks. Other lanes ran concurrently; these are observed times.
+
+| Meshdraw full row | Wall | Load 1m |
+|---|---:|---|
+| Old harness, full, uncached | 367.99 s | 8.11 → 6.02 |
+| Batch host, cache disabled | 110.57 s | 8.92 → 8.66 |
+| Batch host, cold original cache | 97.50 s | 5.81 → 6.77 |
+| Batch host, warm original cache | 57.21 s | 6.69 → 6.53 |
+| Warm, controls enabled | 59.49 s | 6.00 → 11.65 |
+
+The cold cache had zero loaded entries, 127,512 misses and 893 repeated-case hits. Warm runs had 128,405 hits
+and zero misses. Its compressed disk footprint is **7.7 MiB** (8,054,060 bytes); the shared cache totals **63 MiB**, including the
+pre-existing item cache. It is disposable. Deleting it restores cold execution. Native output is never cached;
+model parsing, replay and name parsing run on every check. Host math comparisons also run on hits.
+
+The largest meshdraw profile cost was 13,874 subprocess calls, 335 s cumulative, including 313 s collecting
+installed texture names. The test-only batch host calls the existing info entry point once per file, 64 files
+per process. The original-side cache separately avoids repeated Unicorn calls and preserves their observations.
+
+Terrain's experimental scene-generation change yielded the same full report but no measured improvement:
+324.54 s before, load 8.11→6.48, versus 343.68 s after, load 8.92→6.71. It was reverted. No terrain speedup is
+claimed. Model-edge's profile spent 199 s in emulation/hooks and 122 s in Python LEA decoding; cumulative times
+overlap. The fresh worktree lacked model-recovery's readers. Its prerequisite is now declared for model-edge
+and terrain. The following full runs used the readers. Stateful model-edge original execution remains uncached.
+
+| Other full row | Cases | Wall | Load 1m | Result |
+|---|---:|---:|---|---|
+| `validate_terrain` | 583,500 | 324.54 s | 8.11 → 6.48 | pass |
+| `validate_model_edge` | 954 | 106.86 s | 6.48 → 5.51 | pass |
+| `validate_audio_domains` | 2,544 | 22.38 s | 6.02 → 5.81 | pass |
+| `validate_model_light` | 1,433 | 4.81 s | 5.81 → 5.82 | pass |
+
+### Profiling sample
+
+Two workers, `nice -n 10`, no optional mutants. Meshdraw used per-folder 1, mutations 10, math-sweep 200;
+terrain used scale-002 1 and installed world 1; model-edge used sample 20. Those three used cProfile and their
+wall times include its overhead and the fresh-worktree builds. Other rows used registry sample counts.
+Missing inputs were fixed before the full rows above. The terrain profile ends before installed-world work,
+so its 61/97 s synthetic-scene share is not a full-row share. No failed exploratory sample is called a pass.
+
+| Row | Wall | Load 1m | Result |
+|---|---:|---|---|
+| `validate_meshdraw` | 371.84 s | 10.51 → 9.13 | exit 0; reduced sample below full-registry count |
+| `validate_terrain` | 115.01 s | 10.51 → 9.26 | missing v14 reader; full rerun passed below |
+| `validate_model_edge` | 353.98 s | 9.26 → 5.41 | pass |
+| `validate_audio_callers` | 3.58 s | 9.13 → 8.56 | pass |
+| `validate_audio_combat` | 17.73 s | 8.56 → 7.18 | pass |
+| `validate_audio_domains` | 0.00 s | 7.18 → 7.18 | missing snapshot location; full rerun passed below |
+| `validate_audio_items` | 2.60 s | 7.18 → 6.85 | pass |
+| `validate_audio_charsel` | 3.04 s | 6.85 → 6.85 | pass |
+| `validate_worlds_after6` | 52.77 s | 6.85 → 5.53 | 7300 cases, 0 mismatches; stale total corrected, saved report passes |
+| `validate_worlds_e` | 16.48 s | 5.53 → 5.41 | pass |
+| `validate_worlds_after4` | 20.74 s | 5.41 → 6.32 | pass |
+| `validate_render_effects` | 0.90 s | 5.41 → 5.38 | pass |
+| `validate_render_effects3` | 0.86 s | 5.38 → 5.38 | pass |
+| `validate_render_effects4` | 5.41 s | 5.38 → 5.35 | pass |
+| `validate_render_effects5` | 4.68 s | 5.35 → 5.48 | pass |
+| `validate_render_effects6` | 1.45 s | 5.48 → 5.48 | pass |
+| `validate_render_effects7` | 1.63 s | 5.48 → 5.48 | pass |
+| `validate_render_effects9` | 1.50 s | 5.48 → 6.32 | pass |
+| `validate_render_effects10` | 0.48 s | 6.32 → 6.32 | pass |
+| `validate_render_effects11` | 0.35 s | 6.32 → 6.32 | pass |
+| `validate_combat` | 0.93 s | 6.32 → 6.32 | pass |
+| `validate_skill_fx` | 1.19 s | 6.32 → 6.32 | pass |
+| `validate_particles` | 0.89 s | 6.32 → 6.14 | pass |
+| `validate_model_light` | 0.01 s | 6.32 → 6.32 | missing snapshot location; full rerun passed below |
+
+`worlds_after6` already included a 1,000-case prime family, but its registry total still said 6,300. The total
+now says 7,300. Rejudging the saved full report passes; no comparison, case input or family check changed.
+
+### Selection replay and miss analysis
+
+The replay uses the final 178-row registry and the same source tree for both algorithms, with PR-only new rows
+added from that PR's manifest. In #295 this adds `validate_item_hiddenmesh`. Counts include helper rows.
+The before rule is TEST-SPEED-001's directory/owning-test closure; the after rule uses declared build targets
+and actual validator imports. PR file lists and head SHAs, both selected sets, removed-row reasons, declared
+rows and all fifteen native rows' compiled-input provenance are saved in the JSON above. Historical gates
+were not rerun. This compares selection rules, not the steward's smaller hand-picked lists.
+
+| PR | Rows before → after | Miss audit |
+|---|---:|---|
+| #292 | 99 → 93 | 0 identified |
+| #293 | 72 → 56 | 0 identified |
+| #294 | 72 → 56 | 0 identified |
+| #295 | 43 → 35 | 0 identified |
+| #296 | 43 → 31 | 0 identified |
+| #297 | 178 → 178 | 0 identified |
+
+Removed rows were checked against their script/import inputs and compiled sources/includes. #292's declared
+crypto, item-model, NPC-dialogue and protocol rows had no changed production input. The same four plus
+worlds_after4 are removed from #296's broader historical list. Their earlier native-directory matches and
+owning-test imports were over-selection. #293/#294 retain their app-polish rows; meshdraw, terrain and other
+unrelated native consumers no longer inherit the whole native directory. The new hiddenmesh and effects12
+rows remain selected. Zero required reruns were identified as missing in this audit. This is a bounded source
+and recorded-result audit, not a proof about arbitrary future computed dependencies.
+
+`build_targets` takes precedence over a row's directory-wide `build` dependency. It also limits the runner's
+make invocation. Targets are derived from the artifacts consumed by the script; selection expands them with
+`make -nB`, recursive includes, `.d` files and included make fragments. Failed dry runs retain directory-wide
+fallbacks. Archive consumers remain broad. The owning test file triggers its row, but its unrelated imported
+tests do not run inside that validator. Actual validator imports, including `native_fixtures`, still count.
+Native Swift app sources and C test hosts are gate-owned unless explicitly referenced by a validator. Unknown
+production inputs still select everything. #297 deliberately selects every row because it changes shared tooling.
+
+No suite-selection narrowing was attempted. The native archive and uncertain computed dependencies remain;
+the steward still runs the full batch gate. The shared module resolver now also recognizes native test helpers.
+
+### Paste-ready commands
+
+Before a heavy step, check load, free memory and disk as in the brief. Use the lane's own worktree.
+
+```sh
+export MU_RECOVERY_INTEGRATION=1
+export MU_GAME_ROOT="$HOME/Library/Application Support/MuTheMatrix/prefix/drive_c/MuTheMatrix"
+export MU_SECTION3="$HOME/Documents/MTM/main-exe-study/evidence/x86-linux-capture-04/main-01ced000.bin"
+export MU_OBJECTS_PLAIN_DIR="$HOME/Documents/MTM/mu-mac-tools/native/scratch/objects/live/plain"
+export MU_SNAPSHOT_DIR="$HOME/Documents/MTM/mu-mac-tools/native/scratch"
+
+# Lane: inspect selection, then run only affected rows, without optional mutants.
+tools/python/bin/python scripts/run_validators.py --list-affected origin/main
+nice -n 10 tools/python/bin/python scripts/run_validators.py --private --no-mutants --cache --affected origin/main --jobs 2 --report verify-runs/lane-validators
+
+# Steward for TEST-SPEED-002: its only changed validator harness.
+nice -n 10 tools/python/bin/python scripts/run_validators.py --private --no-mutants --cache --only validate_meshdraw --jobs 2 --report verify-runs/test-speed-002
+
+# Tooling-lane exception used here; ordinary lanes still avoid a full gate.
+MU_RECOVERY_INTEGRATION=0 MU_GATE_JOBS=4 nice -n 10 tools/python/bin/python scripts/run_test_suites.py
+```
+
+For steward selection, use `--list-affected <last-tested-ref>` and the row's `build_targets` provenance rather
+than matching every changed path against the word `native` in `build`. Keep the brief's explicit lane validator
+list for shared tooling changes. The selector is conservative and shared infrastructure intentionally selects all.
+
+### Delivery checks
+
+| Check | Result | Wall | Load 1m |
+|---|---|---:|---|
+| Initial build | pass | 17.28 s | 5.57 → 27.62 |
+| Build after main integration | pass | 13.54 s | 4.84 → 13.82 |
+| Initial budget tests | 38 pass | 11.72 s | 13.25 → 11.42 |
+| Initial cache/runner/manifest tests | 29 pass | 3.01 s | 8.26 → 8.26 |
+| Expanded targeted check | 71 pass; one fixture assertion corrected below | 21.21 s | 11.69 → 10.36 |
+| Focused assertion recheck | 1 pass | 0.15 s | 8.92 → 8.92 |
+| Production name-parser C mutant | 44/4038 mismatches; 8076 hits, zero misses | 1.24 s | 10.87 → 10.87 |
+| Full gate, all suites, `MU_GATE_JOBS=4`, at `5eea9e47` | 38 suites, 1,939 tests: 1,687 pass, 252 skip, 0 fail | 190.6 s | 10.50 → 20.23 |
+| Repository audit, docs staged | 1,884 staged files, 0 rejected | 15.7 s | 6.52 → 5.88 |
+
+The full gate includes `tests/`: 234 tests in 25.1 s, among them every `test_test_budget`, `test_validator_original_cache` and `test_validators_manifest` case.
