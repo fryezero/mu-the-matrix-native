@@ -579,12 +579,39 @@ void mu_obj_move_pass(mu_obj_world *w, int32_t world, mu_obj_answer_fn handler_m
         }
 }
 
+/* RENDER-WORLDS-SLOTS: the types whose objects the slot 0x1c of worlds 142..144 moves while their sector is
+ * invisible (Twisted Karutan 0x00e673b4, Kardamahal 0x00e0e539, Swamp of Destruction 0x00e46a9f; Swamp tests
+ * 0x8d twice). */
+static int handler_move_type(int32_t world, int32_t t)
+{
+    static const int32_t swamp[] = {4, 6, 0xa, 0xd, 0x12, 0x15, 0x17, 0x18, 0x1b, 0x1c, 0x22, 0x24, 0x25, 0x26,
+                                    0x2b, 0x3b, 0x40, 0x42, 0x43, 0x49, 0x4e, 0x5e, 0x6a, 0x6b, 0x6d, 0x6e, 0x6f,
+                                    0x71, 0x74, 0x78, 0x7a, 0x7d, 0x7f, 0x82, 0x83, 0x84, 0x8d, 0x8e, 0x90, 0x91,
+                                    0x92, 0x94, 0xb5, 0x27, 0x23, 0x5a, 0x99, 0x4a, 0x4d, 0x10, 0x21, 0x7e, 0x1a,
+                                    0x79, 0x39, 0x70, 0x81, 0x4f, 0x19, 0x37, 0x52, 0x5b, 0xb7, 0xc8, 0x8c, 0x1f,
+                                    0x93, 0x36};
+    if (world == 142)
+        return t == 0xa0 || t == 0xa1;
+    if (world == 143)
+        return t == 0x71 || t == 0x80;
+    for (size_t k = 0; world == 144 && k < sizeof swamp / sizeof swamp[0]; ++k)
+        if (t == swamp[k])
+            return 1;
+    return 0;
+}
+
 uint8_t mu_obj_handler_moves(const uint8_t *o, int32_t world, const float *x2d, const float *y2d, int32_t scene_state)
 {
-    if (world != 0x8d)
+    if (world == 145)
+        return o[MU_OBJF_VISIBLE] ? 1 : 0;   /* 0x00d7565d: the last render pass's visibility */
+    if (world == 143 && !o)
+        return 0;   /* 0x00e0e539 tests the object pointer first */
+    if (world != 0x8d && (world < 142 || world > 144))
         return 0;   /* base class slot 0x1c 0x00d5cbbc */
     const int32_t t = mu_obj_i32(o, MU_OBJF_TYPE);
-    if (t != 0x1f && t != 0x20)
+    if (world != 0x8d && !handler_move_type(world, t))
+        return 0;
+    if (world == 0x8d && t != 0x1f && t != 0x20)
         return 0;
     const float x = mu_obj_f32(o, MU_OBJF_POSITION) * 0.01f, y = mu_obj_f32(o, MU_OBJF_POSITION + 4) * 0.01f;
     return (uint8_t)mu_terrain_test_frustum_2d(x2d, y2d, scene_state, x, y, mu_obj_f32(o, MU_OBJF_RANGE));

@@ -643,6 +643,10 @@ $(BUILD)/render-light-host: tests/render_light_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/render-light-host.o
 	$(CXX) $(BUILD)/render-light-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
 
+$(BUILD)/worlds-slots-host: tests/worlds_slots_host.c $(LIB) $(HEADERS)
+	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-slots-host.o
+	$(CXX) $(BUILD)/worlds-slots-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+
 $(BUILD)/anim-host: tests/anim_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/anim-host.o
 	$(CXX) $(BUILD)/anim-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
