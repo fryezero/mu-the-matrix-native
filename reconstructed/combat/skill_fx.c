@@ -161,6 +161,7 @@ static void call_sound(const mu_sfx_env *env, mu_sfx_effect *e, int32_t sound)
     c.routine = MU_SFX_CALL_SOUND;
     c.type = sound;
     c.owner = MU_SFX_NO_OWNER;
+    c.arg8 = (int32_t)mu_sfx_sound_site(sound, NULL);   /* RENDER-EFFECTS-015: the call site */
     env_call(env, &c, e);
 }
 

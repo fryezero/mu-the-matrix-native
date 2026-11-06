@@ -89,13 +89,14 @@ void mu_combat_default_config(mu_combat_config *config);
 const char *mu_combat_arrow_file(int32_t type);
 
 /* Bitmap slots the renderer binds by id. */
-enum { MU_COMBAT_BITMAPS = 25 };
+enum { MU_COMBAT_BITMAPS = 36 };   /* RENDER-EFFECTS-015: + the eleven decal bitmaps */
 
 typedef struct mu_combat_bitmap {
     int32_t id;               /* client bitmap index (0x7534 font, 0x7df3.. specials, 0x7f2b, 0x7f84) */
     mu_image image;           /* client upload (power of two, rows in upload order) */
     int8_t components;
     int loaded;
+    uint32_t wrap;            /* RENDER-EFFECTS-015: 0x2900 (GL_CLAMP) for the decal bitmaps; 0 = repeat */
 } mu_combat_bitmap;
 
 /* A model the effects draw (Data/Skill, the demo weapon for Twisting Slash). */
@@ -119,6 +120,8 @@ enum {
     MU_COMBAT_MODEL_QUAKE5, MU_COMBAT_MODEL_QUAKE7, MU_COMBAT_MODEL_QUAKE8, MU_COMBAT_MODEL_FLASHING,
     MU_COMBAT_MODEL_TAIL,
     MU_COMBAT_MODEL_BOW_ARROW,   /* RENDER-EFFECTS-007: the arrow model of the equipped bow (not Arrow01) */
+    /* RENDER-EFFECTS-015: min_elf_skill_ring01..08 (0x700..0x707), the ground skills' rings */
+    MU_COMBAT_MODEL_ELF_RING1, MU_COMBAT_MODEL_ELF_RING8 = MU_COMBAT_MODEL_ELF_RING1 + 7,
     MU_COMBAT_MODELS
 };
 
@@ -168,7 +171,9 @@ typedef struct mu_combat_stats {
     uint32_t hero_shocks, hero_deaths;
     uint32_t monster_voices;  /* NATIVE-ITEMS-001: monster hurt and death sounds played */
     uint32_t bow_sparks;      /* RENDER-EFFECTS-009: bow 0x12f9's spark particles */
-    uint32_t render_decals;   /* RENDER-EFFECTS-011: 0x45e subtypes 3..7 terrain decals (counted, not drawn) */
+    uint32_t render_decals;   /* RENDER-EFFECTS-011: 0x45e subtypes 3..7 terrain decals (RENDER-EFFECTS-015: drawn) */
+    uint32_t decals, decal_quads, decal_quads_dropped;   /* RENDER-EFFECTS-015: RenderTerrainAlphaBitmap calls drawn,
+                                                           their terrain tiles, and tiles past the caller's buffer */
 } mu_combat_stats;
 
 struct mu_world_particles;
@@ -299,6 +304,13 @@ typedef struct mu_combat_quad {
  * and RenderSpriteUV with the session's camera modelview. Returns the
  * number of quads written. */
 int32_t mu_combat_quads(mu_combat *combat, mu_combat_quad *quads, int32_t max);
+
+/* RENDER-EFFECTS-015: RenderEffects' terrain decals of the live effects (mu_sfx_effect_render_ops: 0x70a, 0x70c,
+ * 0x45e subtypes 3..7), one world-space quad per terrain tile of each RenderTerrainAlphaBitmap call, in the blend its
+ * wrapper chose (additive; 0x70c's crater (SRC_ALPHA, ONE_MINUS_SRC_ALPHA), its alpha test not modelled), depth test
+ * on. Needs the world map. Returns the number of quads written. */
+int32_t mu_combat_decal_quads(mu_combat *combat, mu_combat_quad *quads, int32_t max);
+enum { MU_COMBAT_DECAL_QUADS = 8192 };
 
 /* Effect models: places and poses the model of every live model effect and
  * calls draw for it with the options RenderObject passes to RenderBody

@@ -2909,3 +2909,17 @@ args = ["--cases", "1000", "--mutations", "--output", "{report}"]
 "families.chains.cases" = 1881
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
+
+[validate_render_effects15]
+test = "native/tests/test_render_effects15.py::ClientComparison.test_original_instructions_and_compiled_mutants"
+pins = ["text", "data"]
+families = ["fx_create", "fx_move", "render_decals", "render_45e_decal", "sound_sites"]
+cases = 509
+mutants = 34
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/combat"]
+args = ["--cases", "20", "--mutations", "--output", "{report}"]
+[validate_render_effects15.expect]
+all_equal = true
+all_mutants_caught = true
