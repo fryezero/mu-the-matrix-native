@@ -16,6 +16,7 @@ Part 10 reaches **880/1,674 bodies** and **seventeen link targets/twenty-two typ
 Part 11 reaches **967/1,674 bodies** with per-type wave/sine scalar programs; links are unchanged.
 [Part 14 below](#part-14-recordquality-probes-exit-model-fields-and-body-random-render-items-002n) reaches **1,213/1,674 bodies**.
 [Part 16 below](#part-16-census-of-the-455-remaining-bodies-and-derived-body-programs-render-items-002p) reaches **1,276/1,674 bodies** and groups the rest by blocker.
+[Part 17 below](#part-17-owner-effect-programs-of-the-armour-bodies-render-items-002q) reaches **1,319/1,674 bodies** with owner-effect programs.
 Muun/map-object effect placement remains deferred. All parts run offline.
 
 ## Identity and evidence
@@ -1373,3 +1374,111 @@ refusal, kind-6 sources, and `0x1afa`'s light as the generic light times (0.85, 
 transform (bone sprites) or a per-type effect program over the owner host (armour group). The remaining no-recipe
 words need two-operation or integer derivations. The quality-0 armour types and the level-split wings need
 per-quality probes. Muun, nested map-object tables and the earlier limits are unchanged.
+
+## Part 17, owner-effect programs of the armour bodies, RENDER-ITEMS-002Q
+
+Bounded bodies increase **1,276 to 1,319 of 1,674**, adding **43 types** (`gen_item_owner_fx.OWNER_FX_TYPES`): the
+38 worn chest pieces `0x1bc3..0x1c78` that part 16 named, and five helm bodies (`0x19f4`, `0x19fa`, `0x1a00`,
+`0x1a1f`, `0x1a78`) with one owner-bone sprite. Skins stay **17/17**, links stay **eighteen targets/twenty-four
+types**. **355 bodies remain.** The survey keeps 798 shapes; complete shapes go 543 to 556.
+
+### The effect blocks (verified)
+
+Each body ends its RenderPartObjectBody type case with an effect block after the type's mesh draws. The locals
+are vec3/float objects constructed at the scope entry (`0x0173d2d8`, `0x01741212`; `0x0095ea8e` zeroes them).
+The blocks use only these services:
+
+- `0x012b678d(model; out, OBJECT, bone, local)`: nothing when the bone is negative or not below the item model's
+  bone count (+0x22); otherwise the OBJECT owner bone (`0x0129f12c`: OBJECT +0x318 + 0x30·bone, when the OBJECT
+  model has that bone) or BoneTransform `0x06fce398` + 0x30·bone, VectorTransform `0x00d002b2` of the local point,
+  times the model scale (+0x74), plus the OBJECT position (+0x158). For worn parts the native part model's
+  origin is the OBJECT position and its scale the object scale, so the existing owner transform serves it.
+- CreateSprite `0x01692eb7(bitmap, position, scale, light, OBJECT, 0.0, 0, 4, axes)`; the axes object
+  `0x00a0c1d0` holds the words 1, 1 and 1.0f.
+- CreateParticle `0x0168fafd(bitmap, position, angle, light, subtype, scale, 0, 0)`. The angle is OBJECT +0x164
+  (`0x810a`/7 and `0x7f26`/0x26) or a normalized owner-bone difference (`0x810a`/15).
+- `rand() % 2` (and/jns/dec/or/inc idiom) and `rand() % 5` (cdq/idiv) gates that skip to the block end.
+- `0x011ff622(lo, hi, steps)`: one rand, `(rand() % (b - a + 1) + a) / steps` in binary32 with
+  `a = (int)(steps·lo)`, `b = (int)(steps·hi)`, then the two clamps.
+- vec3 helpers: set/construct (`0x00cfcead`, `0x0098a0e5`), assign `0x00cfc8f2`, subtract `0x00cfcad8`,
+  add `0x00cfca74`, normalize `0x00cfd0cc` (`0x00cfd15f`: length `(float)sqrt((double)((x·x + y·y) + z·z))`,
+  zero vector below 1e-6, otherwise each component times 1/length).
+
+Thirteen blocks (eleven for the armour, two for the helms) reduce to seven distinct programs. Four code
+templates: (1) sprites `0x7f7a` at four owner bones (two each) and `0x8109` at bone 35, one `% 2` gate, particle
+`0x810a`/7 with the OBJECT angle and a `0x011ff622(…, 100)` scale; (2) sprites, a `% 2` gate with particle
+`0x7f26`/0x26, a second sprite/particle pair; (3) the same with a further owner transform; (4) the 0x1bde,
+0x1bf0..0x1c78 bodies: sprite `0x810a` at bone 26, the normalized direction from bone 19 to bone 26, then a
+`% 2` or `% 5` gate, a position jitter from three `0x011ff622(-k, k, 1)` draws and a particle `0x810a`/15 along
+that direction; twice (bones 26 and 35).
+
+### Reading the programs (generator; static with concrete frames)
+
+`scripts/gen_item_owner_fx.py` runs each type in four survey states under Unicorn, finds the block (from the
+last draw before the first effect service to the first unconditional jump after the last one), and walks it
+with an abstract interpreter over the MSVC idioms above. Constants fold exactly in binary32; owner positions,
+randoms, the OBJECT angle and normalized vectors become registers. A frame word the block reads before writing
+it comes from the frame at the block start, and must be the same in every state. A gated region's writes are
+unreadable after the join. Any other instruction, call or operand refuses the type. The output,
+`reconstructed/renderchar/item_owner_fx.h`, is a flat op table (const, mov, add, sub, gate, range, transform,
+normalize, angle, sprite, particle) with one row per type: first op, count, registers and the highest bone.
+
+Refused by the reader ("no draw before the effect block"): `0x0f1e` and `0x174a` (their owner-bone particle is
+created in RenderObjDraw at `0x017d40c4`/`0x017dda31`, before the body helper) and the wings `0x23a8`/`0x23a9`
+(owner-bone particles plus item-bone sprites `0x0150e746`, also before the body draws). `0x24c6` faults in the
+plain world at `0x01782fec`.
+
+### Executor and native consumers
+
+- `renderchar.c` (`owner_fx.inc`) runs the program after the type's base body draws (phases 0, 5, 6, 7), only
+  through `mu_rc_item_draws_owner`. Its random comes from the owner host, in client order. It runs only when
+  `mu_rc_item_owner_fx(type)` (highest bone + 1) is at most the host's OBJECT bone count and the new
+  `item_bones`. Below that the client reads stale positions or BoneTransform, and the library creates nothing.
+- `mu_rc_owner_fx` gains `angle[3]` (zero for the rank-5 block); `mu_rc_owner_host` gains `item_bones` and the
+  OBJECT `angle[3]`. The draws are generated by `gen_item_bodies` with the effect requests set aside (all 43
+  fit the generic recipes without carry or programs beyond the parsed ones).
+- Native (`mu_renderchar.c`): requests go to the existing consumers, `mu_world_particles_create` (now with the
+  request's angle) and `mu_world_particles_sprite`. `mu_renderchar_owner` gains `refused`
+  (requests no native kind creates, plus programs outside the bone domain) and the OBJECT angle;
+  `mu-render character --world-render` prints `owner_refused`.
+- Native result (`mu-render character --world-render`, synthetic 50-bone part, armour `0x1bc3`): frame 0
+  creates the nine sprites (the `% 2` gate is odd); over three frames 27 sprites are created and the one opened
+  gate's CreateParticle `0x810a`/7 is refused (no native particle kind). A 35-bone part is outside the
+  program's bone domain: no effects, one refusal (`test_native_renderchar.test_armour_owner_effect_program`).
+
+Effects routed vs refused (static, by request kind in the seven programs): sprites `0x7f7a` (15 sites),
+`0x8109` (4) and `0x810a` (5) go to the native sprite pool; the particles `0x810a`/7 (4 sites), `0x810a`/15 (4)
+and `0x7f26`/0x26 (2) have no native CreateParticle kind and are counted in `owner_refused` (RENDER-EFFECTS
+lanes own those kinds).
+
+### Checks
+
+`scripts/validate_item_ownerfx.py --mutations` (manifest row, private test `ItemOwnerFx.test_original_instructions`):
+**14,964 comparisons, zero mismatches** (671 s at `121f24f7`):
+
+| Family | Cases | Mismatches |
+|---|---:|---:|
+| Body streams, 43 types × 292 states, no owner host (the client's effect requests set aside; the C creates none and draws no rand) | 12,556 | 0 |
+| Owner: full RenderObjDraw with OBJECT +0x318 owner bones, bone counts from the program's need to 80, random model scale, OBJECT position and angle, scripted rand; directed states with equal bone-19/26 matrices (zero normalize) and integer matrices. Draw stream, every request bit for bit (6,864 sprites, 1,530 particles) and the rand count (7,041) | 2,064 | 0 |
+| Refusal: bone counts one or more below the need, and no OBJECT +0x318: the C creates nothing and draws no rand; the draws still equal the client's | 344 | 0 |
+
+All **14/14 separately compiled mutants** are caught (anchors match once): gate modulus 672, gate target 85, range
+low bound 1,054, range span 904, normalize zero path 54, normalize scale 375, transform bone 2,064, add 635,
+subtract 612, OBJECT angle 551, sprite scale 2,064, particle subtype 1,205, bone domain 172, phase 474. The two
+`0x011ff622` clamps cannot change a result for the programs' constant bounds and have no mutant. Both tables
+(`item_bodies.h`, `item_owner_fx.h`) reproduce from the pinned instructions.
+
+Compiled C-to-C, main `ad2968fc` library against this one, all 1,691 survey types × 32 random states, with and
+without a rand context: **108,224 cases**; 105,472 identical, and the 2,752 different ones are exactly the 43 new
+types (refused before). Portable `test_item_ownerfx.py`: 4 tests, one private skip (admission/refusal, the bone
+need, `0x19f4`'s sprite, `0x1bc3`'s gate with the OBJECT angle).
+
+### Limits
+
+- 355 bodies remain. The owner programs run only with an owner host (worn parts): inventory and ground items
+  draw the bodies and create no effects (the client would create them at BoneTransform positions there).
+- Programs refuse states whose OBJECT model or item model lacks the program's highest bone (the client reads
+  BoneTransform `0x06fce398` or leaves the position unchanged).
+- Effects created in RenderObjDraw before the body helper are not read: `0x0f1e`, `0x174a`, the wings
+  `0x23a8`/`0x23a9`, and 76 of the 80 traced bone-sprite (`0x0150e746`) types. They need a pre-draw hook and,
+  for bone sprites, an item-bone host (the item's own BoneTransform and named-bone lookups `0x012bd35a`).
