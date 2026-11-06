@@ -4,7 +4,7 @@ RENDER-WORLDS-S3, 2026-11-06. Reconstructs the create (+2c), move (+30) and visu
 Imperial Guardian (Varka) classes (worlds 69, 70, 71, 72), Event square (world 114, not world 79's Loren Market
 class) and Test Area (world 121). Coverage on base `83a21893` advances from **120/144 to 138/144 primary methods
 and from 40/48 to 46/48 classes** (0 static-only, 6 missing: Nars 110 and the Arca War class 92/96/101/111, which
-RENDER-WORLDS-S2 takes).
+RENDER-WORLDS-S2 takes). With S2 merged (`317156ff`) the inventory reads 144/144 and 48/48.
 
 Labels: **verified** = compared with the original instructions under Unicorn; **static** = read from decoded
 instructions only; **inference** = neither. None of these worlds has a live arrival capture and the installed object
@@ -170,7 +170,7 @@ encrypted as for 145/95/139, so no population exists. Headless `mu-world` arriva
 71 (110,190), 72 (30,70), 114 (30,30) and 121 (110,30), 25 steps at 1722 × 1048: rc 0, terrain and hero drawn
 (mean luminance 8–38), zero objects. These tiles come from a coarse brightness scan, not from gates.
 
-Byte identity, base `83a21893` against this lane at the default draw: the October 22 fourteen-view tour **28/28 PNG,
+Byte identity, base `83a21893` against this lane merged with S2 (`317156ff`) at the default draw: the October 22 fourteen-view tour **28/28 PNG,
 14/14 OBJECT, 14/14 light identical**; all 32 DATA-ACQ-002 captures **64/64 frame PNG, 64/64 comparison PNG, 32/32
 OBJECT, 32/32 light identical**. Loren Market (79) is captured and unchanged.
 
