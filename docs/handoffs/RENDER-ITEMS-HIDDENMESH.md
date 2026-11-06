@@ -54,7 +54,8 @@ The 13 remaining types are TEX-002/003's unworn hair meshes, not missing item bi
 1,219/1,674, plus 17 skins. The survey reports 1,236 implemented types. All 4,758 mesh slots' pixel hashes,
 filter and wrap are identical, with and without a wearer. Before was captured once from main in this lane's
 worktree. C-to-C comparisons over 1,236 types and 32 states each give 39,552 identical old-domain streams;
-with new caller defaults, exactly the 182 named types change. No unrelated type's stream changes.
+with new caller defaults, exactly the 182 named types change. No unrelated type's stream changes. All 1,509 other survey rows remain identical; 170 reader rows change,
+11 have no model, and 0x10f0 swaps meshes without changing its pass count.
 
 TEX-003's full galleries intentionally change where they contain a reader. Removing those items gives exact
 framebuffer identity at time 123456:
@@ -72,7 +73,10 @@ framebuffer identity at time 123456:
 For the expanded scope's filtered galleries, a baseline executable was linked from the three main-source
 objects and the unchanged native objects, without editing or building the main checkout.
 
-Six window-only before/after PNG crops were inspected. They are local evidence, removed at cleanup:
+Six window-only before/after PNG crops were inspected. The requested small review artifacts are retained in
+`/Users/frye/Documents/MTM/mu-mac-tools/native/review-artifacts/RENDER-ITEMS-HIDDENMESH/` as
+`b1d.png`, `eee.png`, `151a.png`, `2537.png`, `afa.png`, `2491.png`, with before on the left. Full renders,
+scratch and build products are removed. No client image is committed.
 
 | Type | Evidence | Changed pixels |
 |---|---|---:|
@@ -88,7 +92,32 @@ client screenshot. Type 0x0ef2 has an identical +0 inventory image; its stream c
 
 ## Checks
 
-Validation is in progress; the final counts and wall times will replace this paragraph before PR-ready.
+`MU_RECOVERY_INTEGRATION=1`, `MU_GAME_ROOT=/Users/frye/Library/Application Support/MuTheMatrix/prefix/drive_c/MuTheMatrix`,
+`MU_SECTION3=/Users/frye/Documents/MTM/main-exe-study/evidence/x86-linux-capture-04/main-01ced000.bin`.
+Pinned text SHA-256 `2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724`; data
+`c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f`.
+
+| Check | Cases/result | Wall time |
+|---|---|---:|
+| Full recipe generation | Every admitted recipe rebuilt from pinned instructions | 633.41 s |
+| Small comparison | 1,691 initializer + 368 affected + 2,545 additional + 208 generic controls + 418 rank-5; 0 mismatches | 12.12 s |
+| `validate_item_hiddenmesh --cases 292 --mutations` | 116,281 comparisons, 0 mismatches; 6/6 mutants caught, none equivalent | 434.31 s |
+| C-to-C old-domain and caller-default comparison | 39,552 unchanged old-domain streams; exactly 182 changed types with new defaults | 3.47 s |
+| Baseline build | `nice -n 10 make -j4`, pass | 25.25 s |
+| Changed-tree build | `nice -n 10 make -j4`, pass | 10.10 s |
+| Baseline surveys and galleries | Captured once | 51.32 s |
+| Changed surveys and galleries | 13/0 white types; 4,758 identical slots | 44.86 s |
+| Expanded-scope filtered galleries | Six unchanged framebuffer hashes | 9.30 s |
+| Portable renderchar suite | 78 tests, 59 pass, 19 private skips | 0.31 s |
+| Native item textures/renderchar/items/HUD/inventory skin/character modules | 43/43 tests pass, private installed checks enabled | 101.26 s |
+
+The full new row comprises 1,691 initializer cases, 13,432 affected-texture cases, 93,148 additional-reader
+cases, 7,592 non-reading controls and 418 posed rank-5 controls. Every reader gets 292 states at 0 and -1;
+0x10f0 also gets all 292 at 1. Legacy random services are held at zero as described under limits.
+Mutant detections: hidden input zero 50,718; reject -1 56,940; default initializer zero 1,685; positive exception
+zero 293; BODY hidden zero 96,005; texture zero 110,956. This is the only mutant run in the lane.
+
+Existing validator rows and the final publication audit are pending.
 
 ## Changed types and reasons
 
@@ -300,5 +329,4 @@ remain distinct. MESH rows replace unregistered bitmap 0 with each listed mesh's
 ## Release
 
 Pending final validators, latest-main integration, publication audit and ready-prs line.
-Cleanup removes this lane's renders, scratch, build products, worktree and local branch. No new private input
-needs to be retained. The remote branch remains for the merge steward.
+Cleanup removes this lane's renders, scratch, build products, worktree and local branch. Only the six small requested review PNGs are retained outside the render/scratch folders. The remote branch remains for the merge steward.
