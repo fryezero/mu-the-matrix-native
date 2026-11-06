@@ -92,8 +92,7 @@ int32_t mu_item_textures_overrides(int32_t type, const mu_data_table *items, int
                             it.a12 = 3;
                             it.alpha = it.object_alpha = 1.0f;
                             it.blend_mesh = -1;
-                            if (type >= 0x2322 && type <= 0x2327)
-                                it.object_hidden = -1;   /* as mu_renderchar's fill_item */
+                            it.object_hidden = mu_rc_item_hidden_mesh(type);   /* as mu_renderchar's fill_item */
                             it.time = times[k];
                             it.quality = 5;
                             for (int c = 0; c < 3; ++c)
