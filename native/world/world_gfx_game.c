@@ -247,30 +247,6 @@ static item_model *model_for(wg_items *w, int32_t code, int32_t type)
     return m;
 }
 
-/* APP-POLISH-004: the render info RenderItem3D 0x016c154e reads. It finds the code in ItemTRSData 0x06fbb624
- * (0x011204db, filled from Lang.mpr) and copies node +0x14, or the default record 0x06fbaa40 on a miss
- * (0x016c1613..0x016c1660). Lang's itemtrs.tsv holds that map; without it, itemtrsdata.bmd scaled by
- * NATIVE-HUD-001's authored factor stands in (it lacks 2,667 of the map's 4,919 codes, e.g. wing 0x19ab). */
-static void item_render_info(const mu_lang *lang, const mu_hud_trs_table *bmd, int32_t code, mu_item_trs *out)
-{
-    float v[6];
-    int found = mu_lang_item_trs(lang, code, v);
-    if (found < 0) {
-        mu_hud_trs_find(bmd, code, ITEM_SCALE_FACTOR, out);
-        return;
-    }
-    if (!found) {
-        mu_hud_trs_find(NULL, code, 1.0f, out);
-        return;
-    }
-    out->offset_x = v[0];
-    out->offset_y = v[1];
-    out->rotation[0] = v[2];
-    out->rotation[1] = v[3];
-    out->rotation[2] = v[4];
-    out->scale = v[5];
-}
-
 /* Slot wrapper + RenderItem3D (reconstructed/hud) for one item of the pass. */
 static int place_item(const wg_items *w, const mu_gfx_item_draw *d, int32_t stage_w,
                       int32_t stage_h, mu_item3d_out *out)
@@ -298,7 +274,7 @@ static int place_item(const wg_items *w, const mu_gfx_item_draw *d, int32_t stag
     mu_item3d_in sys;
     memset(&sys, 0, sizeof sys);
     sys.cursor_in = win.cursor_in;
-    item_render_info(w->lang, w->have_trs ? &w->trs : NULL, d->code, &sys.trs);
+    mu_hud_item_trs(w->lang, w->have_trs ? &w->trs : NULL, d->code, ITEM_SCALE_FACTOR, &sys.trs);
     mu_item record;
     if (w->have_items && mu_item_find(&w->items, (uint32_t)d->code, &record) == 0) {
         sys.kind_b_6a = record.attributes.kind_b == 0x6a;
