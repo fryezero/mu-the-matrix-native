@@ -44,7 +44,8 @@ int mu_pt_kind_supported(int32_t type, int32_t subtype)
         return (subtype >= 0 && subtype <= 6) || subtype == 17;
     case MU_PT_BITMAP_SMOKE:
         return subtype == 0 || subtype == 1 || subtype == 2 || (subtype >= 3 && subtype <= 8 && subtype != 5) || subtype == 0x75 || subtype == 0x7f || subtype == 21 ||
-               subtype == 0xd;   /* 0xd: RENDER-EFFECTS-009, Carow 0x474's trail */
+               subtype == 0xd ||   /* 0xd: RENDER-EFFECTS-009, Carow 0x474's trail */
+               subtype == 0x22 || subtype == 0x23;   /* RENDER-EFFECTS-014: Flare02/e's red smoke */
     case MU_PT_BITMAP_SPARK2:
         return subtype == 0 || subtype == 1 || subtype == 2;   /* 2: Inferno; 1: NATIVE-HELPERS-002 (the angel's sparkles) */
     case 0x7f54: return subtype == 0;          /* Explosion01, Meteorite and Inferno */
@@ -61,7 +62,8 @@ int mu_pt_kind_supported(int32_t type, int32_t subtype)
     case MU_PT_BITMAP_FLARE:
         return subtype == 0 || subtype == 1;   /* 0: Icarus; NATIVE-FIDELITY-002: Icarus's cloud puffs */
     case MU_PT_BITMAP_SPARK3:
-        return subtype == 0 || subtype == 1 || subtype == 11 || subtype == 0xf || subtype == 0x2a;   /* 0xf: NATIVE-HELPERS-002 (Fenrir) */
+        return subtype == 0 || subtype == 1 || subtype == 0xa || subtype == 11 || subtype == 0xf ||
+               subtype == 0x2a;   /* 0xf: NATIVE-HELPERS-002 (Fenrir); 0xa: RENDER-EFFECTS-014 (Flare02/e) */
     case 0x831d: case 0x83b3: return subtype == 6;
     case 0x8086: return subtype == 0x13 || subtype == 0x18;
     case MU_PT_BITMAP_CLOUDS:
@@ -240,7 +242,12 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
         break;
     case MU_PT_BITMAP_SMOKE:
         /* 0x015c4c55, subtype table 0x016163a0 */
-        if (subtype == 0xd) {   /* 0x015c5882 (RENDER-EFFECTS-009): the argument scale is replaced */
+        if (subtype == 0x22 || subtype == 0x23) {   /* RENDER-EFFECTS-014, 0x015c5390: the passed light is replaced */
+            p->light[0] = 1.0f; p->light[1] = 0.2f; p->light[2] = 0.2f; /* smoke01/0x22 */
+            p->lifetime = 30; /* smoke01/0x22 */
+            p->rotation = (float)(mu_pt_rand(h) % 360);
+            p->velocity[1] = subtype == 0x23 ? -5.0f : 0.0f; /* smoke01/0x23 */
+        } else if (subtype == 0xd) {   /* 0x015c5882 (RENDER-EFFECTS-009): the argument scale is replaced */
             p->lifetime = 20;
             p->scale = (float)(mu_pt_rand(h) % 64 + 64) * 0.01f;
             p->rotation = (float)(mu_pt_rand(h) % 360);
@@ -370,6 +377,15 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
             p->position[0] += rand_range(h, -10.0f, 10.0f, 1);
             p->position[1] += rand_range(h, -10.0f, 10.0f, 1);
             p->position[2] += rand_range(h, -10.0f, 10.0f, 1);
+            break;
+        }
+        if (subtype == 0xa) { /* RENDER-EFFECTS-014, 0x015de10a */
+            p->alpha = 1.0f; /* Spark03/0xa */
+            p->velocity[0] = (float)(mu_pt_rand(h) % 8) + -4.0f;
+            p->velocity[1] = 0.0f;
+            p->velocity[2] = (float)(mu_pt_rand(h) % 8) + -4.0f; /* Spark03/0xa z */
+            p->lifetime = 20; /* Spark03/0xa */
+            p->scale = (float)(mu_pt_rand(h) % 5) / 10.0f + 1.0f; /* Spark03/0xa */
             break;
         }
         if (subtype == 11) { /* 0x015de226..0x015de357, weapon sparks */
@@ -637,7 +653,10 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
             break;
         case MU_PT_BITMAP_SMOKE:
             /* 0x016333e0, subtype table 0x0168f2fc */
-            if (p->subtype == 0xd) {   /* 0x0163533b (RENDER-EFFECTS-009): a fading orange puff */
+            if (p->subtype == 0x22 || p->subtype == 0x23) {   /* RENDER-EFFECTS-014, 0x01636d78 / 0x01636c98 */
+                for (int k = 0; k < 3; ++k) p->light[k] /= 1.04f; /* smoke01/0x22 */
+                p->scale += 0.06f; /* smoke01/0x22 */
+            } else if (p->subtype == 0xd) {   /* 0x0163533b (RENDER-EFFECTS-009): a fading orange puff */
                 const float l = (float)p->lifetime / 20.0f;
                 p->light[0] = l * 1.0f;
                 p->light[1] = l * 0.5f;
@@ -805,6 +824,13 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
                 p->velocity[0] += rand_range(h, -0.6f, 0.6f, 10);
                 p->velocity[1] += rand_range(h, 0.3f, 0.8f, 10);
                 p->velocity[2] += rand_range(h, -0.2f, 0.8f, 10);
+                break;
+            }
+            if (p->subtype == 0xa) { /* RENDER-EFFECTS-014, 0x01651a45 */
+                for (int k = 0; k < 3; ++k) p->light[k] /= 1.08f; /* Spark03/0xa */
+                p->scale -= 0.03f; /* Spark03/0xa */
+                p->alpha -= 0.001f; /* Spark03/0xa */
+                if (0.0f >= p->alpha) p->live = 0; /* Spark03/0xa */
                 break;
             }
             if (p->subtype == 11) { /* 0x01651b78..0x01651ca6 */

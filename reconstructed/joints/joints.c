@@ -718,7 +718,11 @@ int mu_jt_move(mu_jt_joint *j, const mu_jt_env *env, const mu_jt_move_inputs *in
         }
     }
     const mu_jt_object *t = jobject(env, j->target);
-    if (bow_joint_kind(j->type, j->subtype) && move_bow_joint(j, env)) return 1;
+    if (bow_joint_kind(j->type, j->subtype)) {
+        const int r = move_bow_joint(j, env, in->index);
+        if (r == 1) return 1;
+        if (r == 2) goto tail;
+    }
     switch (j->type) {
     case 0x472:
         if (j->target < 0) break;

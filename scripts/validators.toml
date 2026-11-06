@@ -2844,6 +2844,20 @@ args = ["--cases", "1000", "--mutations", "--output", "{report}"]
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
 
+[validate_render_effects14]
+test = "native/tests/test_render_effects14.py::ClientComparison.test_original_instructions_and_compiled_mutants"
+pins = ["text", "data"]
+families = ["joint_create", "joint_move", "joint_render", "create", "move", "render", "owner_flag_create", "owner_flag_move", "fx_create", "fx_move"]
+cases = 660
+mutants = 48
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/joints", "reconstructed/particles", "reconstructed/combat"]
+args = ["--cases", "20", "--mutations", "--output", "{report}"]
+[validate_render_effects14.expect]
+all_equal = true
+all_mutants_caught = true
+
 [validate_worlds_s3]
 test = "reconstructed/objects/test_worlds_s3.py::WorldsS3Tests.test_original_instructions"
 pins = ["text", "data"]
