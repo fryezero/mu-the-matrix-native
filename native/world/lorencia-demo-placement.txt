@@ -31,6 +31,7 @@ actor 750 146 133 6 label dimension door (effects)
 # Field monsters east of town (outside the safe zone), wandering like the
 # server would move them.
 actor 0 181 125 2 wander 4 label bull fighter
-actor 1 185 131 6 wander 4 label hound
+# Keep the Hound away from the field arrival at 179,131. Demo placement only.
+actor 1 205 131 6 wander 4 label hound
 actor 2 178 133 0 wander 3 label budge dragon
 actor 3 187 122 4 wander 4 label spider

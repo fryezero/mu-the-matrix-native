@@ -10,6 +10,8 @@ from unittest.mock import patch
 import sys
 
 NATIVE = Path(__file__).resolve().parents[1]
+# Support both package invocation from the repository and suite discovery.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 PIN = '3cf91f3c203d305a771b04d00b271871f7ce1c6779b22e30fbae8c4f35b5527a'
 CLIENT = b'authored synthetic client build\n'
 TEST_PIN = hashlib.sha256(CLIENT).hexdigest()
