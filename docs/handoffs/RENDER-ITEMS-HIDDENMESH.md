@@ -75,7 +75,7 @@ For the expanded scope's filtered galleries, a baseline executable was linked fr
 objects and the unchanged native objects, without editing or building the main checkout.
 
 Six window-only before/after PNG crops were inspected. The requested small review artifacts are retained in
-`/Users/frye/Documents/MTM/mu-mac-tools/native/review-artifacts/RENDER-ITEMS-HIDDENMESH/` as
+`~/Documents/MTM/mu-mac-tools/native/review-artifacts/RENDER-ITEMS-HIDDENMESH/` as
 `b1d.png`, `eee.png`, `151a.png`, `2537.png`, `afa.png`, `2491.png`, with before on the left. Full renders,
 scratch and build products are removed. No client image is committed.
 
@@ -93,8 +93,8 @@ client screenshot. Type 0x0ef2 has an identical +0 inventory image; its stream c
 
 ## Checks
 
-`MU_RECOVERY_INTEGRATION=1`, `MU_GAME_ROOT=/Users/frye/Library/Application Support/MuTheMatrix/prefix/drive_c/MuTheMatrix`,
-`MU_SECTION3=/Users/frye/Documents/MTM/main-exe-study/evidence/x86-linux-capture-04/main-01ced000.bin`.
+`MU_RECOVERY_INTEGRATION=1`, `MU_GAME_ROOT=~/Library/Application Support/MuTheMatrix/prefix/drive_c/MuTheMatrix`,
+`MU_SECTION3=~/Documents/MTM/main-exe-study/evidence/x86-linux-capture-04/main-01ced000.bin`.
 Pinned text SHA-256 `2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724`; data
 `c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f`.
 
@@ -109,6 +109,7 @@ Pinned text SHA-256 `2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc
 | Baseline surveys and galleries | Captured once | 51.32 s |
 | Changed surveys and galleries | 13/0 white types; 4,758 identical slots | 44.86 s |
 | Expanded-scope filtered galleries | Six unchanged framebuffer hashes | 9.30 s |
+| Manifest, repository-policy and capture-document modules | 28/28 tests pass | 1.06 s |
 | Portable renderchar suite | 78 tests, 59 pass, 19 private skips | 0.31 s |
 | Native item textures/renderchar/items/HUD/inventory skin/character modules | 43/43 tests pass, private installed checks enabled | 101.26 s |
 
