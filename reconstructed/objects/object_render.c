@@ -8,6 +8,7 @@
 #include "worlds_p2.h"
 #include "worlds_r2.h"
 #include "worlds_s.h"
+#include "worlds_s2.h"
 #include "world_visual.h"
 /* World-object creation, move pass and render pass of the client
  * (NATIVE-OBJECTS-002). See object_render.h and docs/research/client-objects-render.md.
@@ -348,6 +349,21 @@ static int world_create(uint8_t *o, int32_t world, int32_t index, mu_obj_log *lo
 
 static int32_t create_rand(void *seed) { return mu_obj_msvc_rand(seed); }
 
+/* RENDER-WORLDS-S2: the Arca War class on world 101 forwards create/move to Uruk Mountain's class (base 100),
+ * which runs with world 101. */
+typedef struct uruk_arca {
+    uint8_t *o;
+    int32_t index;
+    const mu_obj_move_inputs *in;
+    mu_obj_log *log;
+} uruk_arca;
+static int uruk_arca_forward(void *context, int32_t slot, int32_t base)
+{
+    const uruk_arca *a = context;
+    if (base != 100) return 0;
+    return slot == MU_ARCA_CREATE_SLOT ? mu_uruk_create(a->o, 101) : mu_uruk_move(a->o, a->index, a->in, a->log);
+}
+
 int mu_obj_create(const mu_object_record *r, int32_t world, uint8_t *o, int32_t *sector_out, int32_t index,
                   mu_obj_log *log)
 {
@@ -475,6 +491,11 @@ int mu_obj_create(const mu_object_record *r, int32_t world, uint8_t *o, int32_t 
     if (world == 79 || world == 100) {
         if (world == 79) mu_market_create(o, index, log);
         else mu_uruk_create(o, world);
+        return MU_OBJ_OK;
+    }
+    if (world == 101) {   /* RENDER-WORLDS-S2: Arca War on Uruk Mountain forwards to Uruk's class */
+        uruk_arca a = {o, index, NULL, log};
+        mu_arca_create(o, world, mu_arca_base_world(world), uruk_arca_forward, &a);
         return MU_OBJ_OK;
     }
     if (world == 64 || world == 82) {
@@ -1059,6 +1080,11 @@ int mu_obj_move(uint8_t *o, int32_t index, const mu_obj_move_inputs *in, mu_obj_
     }
     if (world == 100) {
         mu_uruk_move(o, index, in, log);
+        return MU_OBJ_OK;
+    }
+    if (world == 101) {   /* RENDER-WORLDS-S2: Arca War on Uruk Mountain */
+        uruk_arca a = {o, index, in, log};
+        mu_arca_move(world, mu_arca_base_world(world), uruk_arca_forward, &a);
         return MU_OBJ_OK;
     }
     if (world == 137 || world == 138) {   /* RENDER-WORLDS-P2 */

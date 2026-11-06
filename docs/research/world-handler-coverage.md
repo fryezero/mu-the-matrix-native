@@ -26,12 +26,12 @@ N = not reachable through the Warps window or ordinary warps (reason in JSON).
 | Loren Market | 79 | `0x1aac310` | `0xe6c0ec` V | `0xe6c1bf` V | `0xe6c678` V | C |
 | Karutan | 80, 81 | `0x1aa9a4c` | `0xe13a87` V | `0xe13a9e` V | `0xe13be4` V | E |
 | World 91 class | 91 | `0x1aa59cc` | `0xd6a6d7` V | `0xd6a7aa` V | `0xd6ae34` V | C |
-| World 92 class | 92, 96, 101, 111 | `0x1aa6154` | `0xd7bd7d` M | `0xd7be29` M | `0xd7be80` M | N |
+| World 92 class | 92, 96, 101, 111 | `0x1aa6154` | `0xd7bd7d` V | `0xd7be29` V | `0xd7be80` V | N |
 | CGMCharacterScene_Ex | 93 | `0x1aa7338` | `0xdaa2b2` V | `0xdaa82b` V | `0xdaa9dd` V | E |
 | CGMLogInScene_Ex | 94 | `0x1aaa874` | `0xe24a4d` V | `0xe24acd` V | `0xe24be1` V | E |
 | Debenter | 95 | `0x1aa7b84` | `0xdbd210` V | `0xdbd4e6` V | `0xdbd735` V | N |
 | Uruk Mountain | 100 | `0x1aac418` | `0xe6f0a2` V | `0xe6f1ca` V | `0xe6f3d5` V | N |
-| World 110 class | 110 | `0x1aaa95c` | `0xe260f0` M | `0xe26668` M | `0xe26ae7` M | N |
+| World 110 class | 110 | `0x1aaa95c` | `0xe260f0` V | `0xe26668` V | `0xe26ae7` V | N |
 | World 112 class | 112 | `0x1aa86e0` | `0xde5cb0` V | `0xde5de2` V | `0xde6405` V | C |
 | World 113 class | 113 | `0x1aaac94` | `0xe3441c` V | `0xe3473f` V | `0xd5cc9b` V | C |
 | World 114 class | 114 | `0x1aaa60c` | `0xe1e989` M | `0xe1ea5c` M | `0xe1ef15` M | N |
@@ -63,7 +63,7 @@ N = not reachable through the Warps window or ordinary warps (reason in JSON).
 | Swamp of Destruction | 144 | `0x1aab6a8` | `0xe46625` V | `0xe4696f` V | `0xe47bc2` V | C |
 | Aquila's Temple | 145 | `0x1aa5e78` | `0xd75a6c` V | `0xd75ac6` V | `0xd77b3e` V | N |
 
-40/48 classes have at least one verified primary method. Of 144 primary methods: 120 verified families, 0 static-only C, 24 missing.
+42/48 classes have at least one verified primary method. Of 144 primary methods: 126 verified families, 0 static-only C, 18 missing.
 Original populated captures: 27 classes from DATA-ACQ-002, 5 from earlier live reads, 16 not reachable by warp.
 
 The companion [JSON](world-handler-coverage.json) records factory, constructor and related entry points
