@@ -174,7 +174,7 @@ typedef struct owner_services {
     const mu_model *model;
     const mu_renderchar_owner *owner;
     mu_world_particles *particles;
-    long created;
+    long created, refused;
 } owner_services;
 
 static void owner_transform(void *context, int32_t bone, const float local[3], float out[3])
@@ -184,22 +184,28 @@ static void owner_transform(void *context, int32_t bone, const float local[3], f
                              o->model->params.origin);
 }
 
+/* The rank-5 block passes a zero angle; the RENDER-ITEMS-002Q programs pass theirs (OBJECT +0x164 or a
+ * normalized bone difference). A request no native kind creates counts as refused. */
 static void owner_emit(void *context, const mu_rc_owner_fx *fx)
 {
     owner_services *o = context;
-    if (!o->particles)
+    long created = 0;
+    if (!o->particles) {
+        o->refused++;
         return;
+    }
     if (fx->kind == MU_RC_OWNER_PARTICLE) {
-        static const float zero[3] = {0.0f, 0.0f, 0.0f};
-        o->created += mu_world_particles_create(o->particles, fx->bitmap, fx->position, zero, fx->light,
-                                                fx->subtype, fx->scale);
+        created = mu_world_particles_create(o->particles, fx->bitmap, fx->position, fx->angle, fx->light,
+                                            fx->subtype, fx->scale);
     } else if (o->particles->sprites) {
         /* The client's owner is the OBJECT; native sprites are not owner-bound. */
         uint64_t before = o->particles->sprites->created;
         mu_world_particles_sprite(o->particles, fx->bitmap, fx->position, fx->scale, fx->light, MU_PT_NO_OWNER,
                                   0.0f, 0, 4);
-        o->created += o->particles->sprites->created != before;
+        created = o->particles->sprites->created != before;
     }
+    o->created += created;
+    o->refused += !created;
 }
 
 static int32_t owner_random(void *context)
@@ -244,9 +250,17 @@ static int draw_item(const mu_model *model, const mu_renderchar_glow *glow, cons
             if (context.blue_mesh == -1 && !strcmp(name, "Item1161_Blue.jpg")) context.blue_mesh = i;
         }
     }
-    owner_services services = {model, owner, env->particles, 0};
+    owner_services services = {model, owner, env->particles, 0, 0};
     mu_rc_owner_host host = {owner && owner->bones ? owner->bone_count : 0, -1, owner_transform, owner_random,
-                             owner_emit, &services};
+                             owner_emit, &services, model->bmd->bone_count, {0.0f, 0.0f, 0.0f}};
+    /* RENDER-ITEMS-002Q: worn parts' transform is 0x012b678d (owner bone, body scale, OBJECT position); the
+     * part model's origin is the OBJECT position (mu_character slot_params), so owner_transform serves both. */
+    const int fx_bones = owner ? mu_rc_item_owner_fx(glow->type) : 0;
+    if (owner) {
+        memcpy(host.angle, owner->angle, sizeof host.angle);
+        if (fx_bones > host.bones || fx_bones > host.item_bones)
+            services.refused++;
+    }
     if (owner && mu_rc_item_rank5(glow->type))
         for (int i = 0; i < model->bmd->mesh_count; ++i)
             if (host.black_mesh == -1 && !strcmp(model->bmd->meshes[i].texture, "Item1161_Black.jpg"))
@@ -254,8 +268,10 @@ static int draw_item(const mu_model *model, const mu_renderchar_glow *glow, cons
     int status = glow->type < 0 ? MU_RC_SPECIAL : owner ?
         mu_rc_item_draws_owner(&it, &m, draws, 32, &count, &context, &host) :
         mu_rc_item_draws_context(&it, &m, draws, 32, &count, &context);
-    if (owner)
+    if (owner) {
         owner->effects += services.created;
+        owner->refused += services.refused;
+    }
     if (status != MU_RC_OK) {
         /* plain textured body (viewer fallback) */
         count = 1;

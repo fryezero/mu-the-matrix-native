@@ -221,6 +221,10 @@ DERIVED_CARRY = [
     0x0afd, 0x0b0c, 0x0b56, 0x12ff, 0x1300, 0x1554, 0x1556, 0x1557, 0x16fc, 0x16fd,
     0x16fe, 0x23ac, 0x25fa,
 ]
+# Part 17 (RENDER-ITEMS-002Q): bodies whose type case ends in an owner-effect block (gen_item_owner_fx). Their
+# draws are generated here with the effect requests set aside; renderchar.c runs the effect program.
+from gen_item_owner_fx import OWNER_FX_TYPES
+
 EXIT_TYPES = [
     0x0b10, 0x0b12, 0x0b22, 0x1569, 0x156a, 0x156b, 0x156c, 0x156d, 0x156e, 0x156f,
     0x1570, 0x1571, 0x1572, 0x1573, 0x1574, 0x170f, 0x1718, 0x1728, 0x1732, 0x1752,
@@ -1154,6 +1158,8 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=Fals
         groups.append(('omitted-ancient', []))
     if t == 0x0eee and other == [('gl', 'glPushMatrix', []), ('gl', 'glPopMatrix', [])]:
         other = []
+    if t in OWNER_FX_TYPES:
+        other = [c for c in other if c[0] != 'effect']
     if not r['ok'] or other or len(groups) != len(generic):
         return None
     if carry == 'exit':
@@ -1254,7 +1260,8 @@ def infer(samples):
 
 ALL_TYPES = (REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES + RANKED_TYPES + EXPANDED_TYPES +
              NEXT_TYPES + CLOCK_TYPES + CLUSTER_TYPES + WING_TYPES + VISIBLE_TYPES + SCALAR_TYPES +
-             CHAIN_TYPES + LEVEL_TYPES + COLOUR_TYPES + CARRY_TYPES + QUALITY_TYPES + PRODUCT_TYPES + DERIVED_TYPES)
+             CHAIN_TYPES + LEVEL_TYPES + COLOUR_TYPES + CARRY_TYPES + QUALITY_TYPES + PRODUCT_TYPES + DERIVED_TYPES +
+             OWNER_FX_TYPES)
 
 
 def fit(wa, lib, t, scalars=False, carry=False, extended=False):
