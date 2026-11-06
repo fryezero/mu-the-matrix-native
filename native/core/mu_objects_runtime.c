@@ -332,7 +332,7 @@ static float step_speed(void *context, int32_t type, int32_t action)
 static uint8_t step_handler(void *context, int32_t index)
 {
     step_context *c = context;
-    if (!c->in->x2d)
+    if (!c->in->x2d && c->o->world != 145)   /* 145's slot 0x1c reads no frustum (RENDER-WORLDS-SLOTS) */
         return 0;
     return mu_obj_handler_moves(image(c->o, index), c->o->world, c->in->x2d, c->in->y2d, c->in->scene_state);
 }
@@ -779,6 +779,7 @@ static void slot_model(mu_objects *o, int32_t t, int16_t *flags, int32_t capacit
     out->action_frames = (int16_t)(m && m->loaded && a < m->bmd.action_count ? m->bmd.actions[a].keys : 0);
     out->rand_fn = objects_rand;
     out->rand_context = o;
+    out->handler_state = o->rt.q_handler.ferea_state;   /* RENDER-WORLDS-SLOTS: Ferea's custom slot */
     for (int32_t k = 0; m && m->loaded && k < m->bmd.mesh_count && k < capacity; ++k) {
         uint8_t name[32] = {0}, sub[5];
         memcpy(name, m->bmd.meshes[k].texture, strnlen(m->bmd.meshes[k].texture, sizeof name));

@@ -46,6 +46,7 @@ typedef struct mu_slot_model {
     int16_t action_frames;     /* model action table (+0x30) record of the object's action (+0x2a), +8 */
     mu_obj_rand_fn rand_fn;    /* rand() of Kardamahal's after slot (type 0x71); NULL: no light request */
     void *rand_context;
+    int32_t handler_state;     /* RENDER-WORLDS-SLOTS: Ferea's handler state (+0x48 field 0, 0x00dee9ee) */
 } mu_slot_model;
 int mu_class_slots(int32_t world);
 int mu_class_custom(int32_t cls, uint8_t *object, uint8_t *b, int32_t index, int32_t world, float time,

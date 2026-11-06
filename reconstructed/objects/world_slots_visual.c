@@ -9,93 +9,7 @@
 #include <math.h>
 #include <stdio.h>
 
-typedef struct slot {
-    uint8_t *o, *b;
-    int32_t i;
-    float time;
-    const mu_slot_model *model;
-    mu_obj_log *l;
-} slot;
-
-static float A(const slot *s) { return mu_obj_f32(s->o, MU_OBJF_ALPHA); }
-static int32_t BM(const slot *s) { return mu_obj_i32(s->o, MU_OBJF_BLEND_MESH); }
-static float BL(const slot *s) { return mu_obj_f32(s->o, MU_OBJF_BLEND_LIGHT); }
-static float U(const slot *s) { return mu_obj_f32(s->o, MU_OBJF_BLEND_U); }
-static float V(const slot *s) { return mu_obj_f32(s->o, MU_OBJF_BLEND_V); }
-static int32_t H(const slot *s) { return mu_obj_i32(s->o, MU_OBJF_HIDDEN_MESH); }
-
-static void mesh(const slot *s, int32_t m, uint32_t flags, float alpha, int32_t blend, float light, float u, float v,
-                 int32_t texture)
-{
-    const uint32_t a[8] = {(uint32_t)m, flags, wv_bits(alpha), (uint32_t)blend, wv_bits(light), wv_bits(u),
-                           wv_bits(v), (uint32_t)texture};
-    wv_emit(s->l, MU_OBJ_CALL_MESH, s->i, a, 8);
-}
-/* RenderMesh(m, flags, alpha, blend mesh, blend light, u, v, texture) with the object's own fields */
-static void mesh_std(const slot *s, int32_t m, uint32_t flags, int32_t texture)
-{
-    mesh(s, m, flags, A(s), BM(s), BL(s), U(s), V(s), texture);
-}
-/* RenderMesh(m, flags, alpha, m, light, u, v, -1): the mesh is its own blend mesh */
-static void mesh_self(const slot *s, int32_t m, uint32_t flags, float light, float u, float v)
-{
-    mesh(s, m, flags, A(s), m, light, u, v, -1);
-}
-static void body(const slot *s, uint32_t flags, int32_t blend, float light, float u, float v, int32_t hidden)
-{
-    const uint32_t a[8] = {flags, wv_bits(A(s)), (uint32_t)blend, wv_bits(light), wv_bits(u), wv_bits(v),
-                           (uint32_t)hidden, 0xffffffffu};
-    wv_emit(s->l, MU_OBJ_CALL_BODY, s->i, a, 8);
-}
-static void body_std(const slot *s, int32_t hidden)
-{
-    body(s, 2, BM(s), BL(s), U(s), V(s), hidden);
-}
-static void stream(const slot *s, uint8_t value)
-{
-    const uint32_t a[1] = {value};
-    s->b[0x94] = value;
-    wv_emit(s->l, MU_OBJ_CALL_MODEL_STREAM, s->i, a, 1);
-}
-static void color(const slot *s, float r, float g, float bl)
-{
-    const uint32_t a[3] = {wv_bits(r), wv_bits(g), wv_bits(bl)};
-    mu_obj_set_f32(s->b, MU_MDL_COLOR, r);
-    mu_obj_set_f32(s->b, MU_MDL_COLOR + 4, g);
-    mu_obj_set_f32(s->b, MU_MDL_COLOR + 8, bl);
-    wv_emit(s->l, MU_OBJ_CALL_COLOR, s->i, a, 3);
-}
-static void grey(const slot *s, float v) { color(s, 1.0f * v, 1.0f * v, 1.0f * v); }
-static void set_hidden(const slot *s, int32_t v) { mu_obj_set_i32(s->o, MU_OBJF_HIDDEN_MESH, v); }
-static void set_after(const slot *s) { s->o[MU_OBJF_AFTER_CHARACTER] = 1; }
-static float frame(const slot *s) { return mu_obj_f32(s->b, 0xac); }
-static uint16_t action(const slot *s) { return mu_obj_u16(s->b, MU_MDL_ACTION); }
-
-static int32_t cvtt(float v)   /* cvttss2si */
-{
-    return !(v >= -2147483648.0f && v < 2147483648.0f) ? INT32_MIN : (int32_t)v;
-}
-/* (float)((int)WorldTime % n) * k, or with the tick negated first */
-static float tmod(const slot *s, int32_t n, float k, int negate)
-{
-    int32_t t = cvtt(s->time);
-    if (negate)
-        t = (int32_t)(0u - (uint32_t)t);
-    return (float)(t % n) * k;
-}
-/* 0x0185bdc4(period, phase): (±cos + 1) / 2 of the clock phase (as mount_render.c's mu_hp_wave) */
-static float wave_at(const slot *s, float period, float phase)
-{
-    float a = phase * 0.017453292f;
-    a = (a * 1000.0f) / period + s->time;
-    const int32_t t = !(a > -2147483904.0f && a < 2147483648.0f) ? INT32_MIN : (int32_t)a;
-    const int32_t m = (int32_t)(6283.1855f / period);
-    const float x = (float)(t % m) * 0.001f * period;
-    const float w = 3.1415927f > x ? -(float)cos((double)x) : (float)cos((double)x);
-    return (w + 1.0f) * 0.5f;
-}
-static float wave(const slot *s, float period) { return wave_at(s, period, 0.0f); }
-static float csin(float x) { return (float)sin((double)x); }   /* 0x009681bd */
+#include "world_visual_slots.h"
 
 /* ---- Bloody Tarkan 140 (0x8c): custom 0x00d9a2ed, after 0x00d9ac50, world test 0x00d9bd83 ---- */
 static int tarkan_custom(const slot *s)
@@ -1967,7 +1881,7 @@ static int find(int32_t cls)
 }
 int mu_class_slots(int32_t world)
 {
-    return find(world) >= 0;
+    return find(world) >= 0 || mu_slots_more_class(world) >= 0;   /* RENDER-WORLDS-SLOTS */
 }
 static int world_test(int32_t cls, int32_t world)
 {
@@ -1981,17 +1895,21 @@ int mu_class_custom(int32_t cls, uint8_t *o, uint8_t *b, int32_t i, int32_t worl
                     const mu_slot_model *model, mu_obj_log *l)
 {
     const int k = find(cls);
+    const slot s = {o, b, i, time, model, l};
+    if (k < 0 && o && b)
+        return mu_slots_more_custom(cls, &s, world);
     if (k < 0 || !custom_world_test(cls, world) || !o || !b)
         return 0;
-    const slot s = {o, b, i, time, model, l};
     return classes[k].custom(&s);
 }
 void mu_class_after(int32_t cls, uint8_t *o, uint8_t *b, int32_t i, int32_t world, float time,
                     const mu_slot_model *model, mu_obj_log *l)
 {
     const int k = find(cls);
+    const slot s = {o, b, i, time, model, l};
+    if (k < 0 && o && b)
+        mu_slots_more_after(cls, &s, world);
     if (k < 0 || !world_test(cls, world) || !o || !b)
         return;
-    const slot s = {o, b, i, time, model, l};
     classes[k].after(&s);
 }

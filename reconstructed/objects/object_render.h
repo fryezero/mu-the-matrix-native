@@ -200,7 +200,8 @@ void mu_obj_move_pass(mu_obj_world *w, int32_t world, mu_obj_answer_fn handler_m
 
 /* The world handler's slot 0x1c, which MoveObjects asks for objects of invisible sectors:
  * the base class 0x00d5cbbc answers 0; Tormenta (0x00e4bfff) answers TestFrustrum2D(x*0.01,
- * y*0.01, range) for types 0x1f and 0x20. */
+ * y*0.01, range) for types 0x1f and 0x20; 142..144 the same test for their own types; 145 (0x00d7565d)
+ * answers the object's visible byte +0xb (RENDER-WORLDS-SLOTS). */
 uint8_t mu_obj_handler_moves(const uint8_t *object, int32_t world, const float *x2d, const float *y2d,
                              int32_t scene_state);
 
