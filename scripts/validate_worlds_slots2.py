@@ -497,7 +497,7 @@ for _c, (_cu, _af, _w, _t) in SLOTS2.items():
 S = 'world_slots2_visual.c'
 MUTATIONS = [
     # the outer draw's model gate and world set
-    ('Flicker without the model gate', S, 'if(!has_model)return0;', 'if (0) return 0;', 'rng_57'),
+    ('Flicker without the model gate', S, 'if(!has_model)return0;', 'if (!has_model && world < 0) return 0;', 'rng_57'),
     ('Flicker misses Raklion 57', S, 'returnworld==57||', 'return ', 'rng_57'),
     ('Flicker misses Raklion 58', S, 'world==58||(world>=62', '(world >= 62', 'rng_58'),
     ('Flicker misses Santa 62', S, '(world>=62&&world<=64)', '(world >= 63 && world <= 64)', 'rng_62'),
@@ -551,7 +551,7 @@ MUTATIONS = [
     # Uruk Mountain 100
     ('Uruk 0x10 v nudge', S, 'V(s)-0.005f', 'V(s) - 0.004f', 'custom2_100'),
     ('Uruk clamp value', S, 'returnx>1.0f?1.0f:x;', 'return x > 1.0f ? 0.99f : x;', 'custom2_100'),
-    ('Uruk 0x2c hidden', S, 'set_hidden(s,2);mesh(s,0,2', 'set_hidden(s, 3); mesh(s, 0, 2', 'custom2_100'),
+    ('Uruk 0x2c hidden reset', S, 'mesh_std(s,1,0x42,-1);set_hidden(s,-1);', 'mesh_std(s, 1, 0x42, -1); set_hidden(s, -2);', 'custom2_100'),
     ('Uruk 0x46 blend', S, 'body(s,2,4,w,U(s),V(s),H(s));', 'body(s, 2, 3, w, U(s), V(s), H(s));', 'custom2_100'),
     ('Uruk 0x49 glows', S, 'for(intk=0;k<3;++k)', 'for (int k = 0; k < 2; ++k)', 'custom2_100'),
     ('Uruk world', S, 'world==100||world==101?uruk_custom', 'world == 100 ? uruk_custom', 'custom2_100'),
