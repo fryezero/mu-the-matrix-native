@@ -57,8 +57,11 @@ static int combat_open(struct mu_world_rt *a, void *self)
             fprintf(stderr, "combat: %s\n", a->combat ? error : "out of memory");
             return 1;
         }
-        if (a->has_particles)   /* NATIVE-PARTICLE-001: the skills' sprites and their legacy particle kinds */
+        if (a->has_particles) {   /* NATIVE-PARTICLE-001: the skills' sprites and their legacy particle kinds */
             a->combat->legacy_particles = &a->particles;
+            a->particles.combat_object = mu_combat_object;   /* RENDER-EFFECTS-011: arrow-owned particles */
+            a->particles.combat_context = a->combat;
+        }
         if (a->has_sound) {   /* NATIVE-COMBAT-002: swings, skills, the hero's voice through SND_Play */
             a->combat->play_sound = combat_sound;
             a->combat->sound_context = a;
