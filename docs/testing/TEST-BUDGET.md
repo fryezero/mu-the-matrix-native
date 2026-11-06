@@ -1,0 +1,227 @@
+# Test budget: what runs when (TEST-SPEED-001)
+
+The owner asked for agents' finish phase to run only the checks a change needs. The policy is the brief's
+"TEST BUDGET" section (2026-11-04); this page is the tooling that applies it and the measured effect.
+[Handoff](../handoffs/TEST-SPEED-001.md).
+
+## Commands
+
+Check `uptime`, `memory_pressure | tail -1`, and `df -h ~` before each heavy command. Wait at load >14
+or free memory <25%; follow the brief's swap-growth rule. Run one heavy command at a time.
+
+Set the private environment once, in the lane or steward worktree:
+
+```sh
+export MU_RECOVERY_INTEGRATION=1
+export MU_GAME_ROOT="$HOME/Library/Application Support/MuTheMatrix/prefix/drive_c/MuTheMatrix"
+export MU_SECTION3="$HOME/Documents/MTM/main-exe-study/evidence/x86-linux-capture-04/main-01ced000.bin"
+export MU_EVIDENCE_DIR="$HOME/Documents/MTM/mu-the-matrix-native/evidence"
+```
+
+Lane finish. The unit command uses the portable gate environment. Private instruction comparisons run in the
+validator command, so unit tests do not silently repeat their own private mutant runs:
+
+```sh
+nice -n 10 make -j4
+MU_RECOVERY_INTEGRATION=0 MU_GATE_JOBS=2 nice -n 10 tools/python/bin/python scripts/run_test_suites.py --affected origin/main
+nice -n 10 tools/python/bin/python scripts/audit_repository.py
+nice -n 10 tools/python/bin/python scripts/run_validators.py --private --no-mutants --cache --affected origin/main --jobs 2 --report verify-runs/lane-validators
+# Set MUTANT_ROWS to the comma-separated rows whose checks or mutant targets you changed.
+# Leave empty if none. Run this once, after iteration is finished.
+if [ -n "${MUTANT_ROWS:-}" ]; then
+  nice -n 10 tools/python/bin/python scripts/run_validators.py --private --cache --only "$MUTANT_ROWS" --jobs 2 --report verify-runs/lane-mutants
+fi
+```
+
+The audit is required when files were added or renamed. Inspect selection first with `--list-affected origin/main`
+on either runner. Review its reasons; list the affected compiled sources and validators in the PR. Brief 6b also
+requires checking consumers of changed constants, struct fields and table sizes. A computed dependency can evade
+static discovery. Select those consumers explicitly if they are absent. Include any required installed-data test
+separately with its private environment; portable unit selection alone does not execute private tests.
+
+Steward per batch. Set `STEWARD_ROWS` to the union of the PRs' listed validators. No mutant reruns unless a PR
+explicitly delegates them. The full gate's portable suite environment keeps validators separate:
+
+```sh
+MU_RECOVERY_INTEGRATION=0 MU_GATE_JOBS=4 nice -n 10 bash scripts/local-macos-ci.sh
+if [ -n "${STEWARD_ROWS:-}" ]; then
+  nice -n 10 tools/python/bin/python scripts/run_validators.py --private --no-mutants --cache --only "$STEWARD_ROWS" --jobs 2 --report verify-runs/steward-validators
+fi
+```
+
+For a docs-only batch, brief 6c replaces the full gate with the audit and `test_world_captures_2`,
+`test_repository_policy`, `test_native_item_textures`, `test_native_data_manifest`. The affected selector includes
+these through `tests` plus the two native modules. A full uncached, mutant-enabled registry run belongs to an
+explicit integration lane, not an ordinary finish.
+
+## Flags
+
+| Command | Flag | What it does |
+|---|---|---|
+| `run_validators.py` | `--no-mutants` | Removes the mutant switches from each row's arguments (`--mutations`, `--mutants`, and with them `--mutant-cases N`/`--mutation-cases N`) and drops the expectations that read mutant results (the row's `mutants_at` paths and every path naming mutants, mutations or negative controls). At replay base 90e11d71, the registry has 115 rows with a removable switch. `--mutations N` with a number (effects, effect_tree, meshdraw) is a count of random input cases, not planted mistakes, and stays; 16 rows have negative controls built into every run and are unchanged. The summary says how many rows ran without mutants; `--index` refuses such a summary (the evidence index records mutant counts). |
+| `run_validators.py` | `--affected REF` / `--list-affected REF` | Rows a diff from `merge-base(REF, HEAD)` to the working tree (commits, staged, unstaged, untracked) can affect, with the reason for each. |
+| `run_validators.py` | `--cache [DIR]` / `--no-cache` | Reuse original-instruction results (below). Default DIR `~/Documents/MTM/mu-mac-tools/native/cache/validators`. |
+| `run_validators.py` | (always) | Wall times in `verify-runs/validator-times.json` (ignored); `--jobs N` starts the longest rows first, unknown rows first of all. |
+| `run_test_suites.py` | `--affected REF` / `--list-affected REF` | Work items (suites; `native/tests` per module) a diff can affect, with the reason for each. Lanes only: the steward keeps the full gate. |
+
+### How `--affected` maps a diff (scripts/affected.py)
+
+It may select too much, never knowingly too little:
+
+- **A validator row** reads its script and every repository Python file it imports or names (closure, resolved
+  next to the file and in `scripts/`); every path its string literals name (a file, or everything under a directory);
+  every file whose base name it quotes; its owning test file (and that file's closure); its `build` directories (all
+  files except `*.md` and `test_*.py`) and everything their Makefile reaches with `../` (`-I../record-math`,
+  `include ../deps.mk`, `RECON := ../reconstructed`); the paths its `args`/`prepare` name; its own manifest row
+  (compared with REF's `validators.toml`). `scripts/pins.py`, `scripts/run_validators.py` and
+  `scripts/affected.py` select every row.
+- **A suite directory** (`reconstructed/*`, `asset-recovery`, `model-recovery`) runs if the diff touches the
+  directory, what its Makefile reaches with `../`, or what its test modules import or name.
+- A `native/tests` module follows its Python import/path closure and the native make targets it names.
+  Explicit target commands no longer inherit the native default goal just because their source mentions `make`.
+  A missing/computed target or make wrapper retains the default. Failed dry runs fall back to the whole make
+  directory. Header dependencies follow recursive includes and `.d` files; computed includes keep the broad
+  include-directory fallback. Target names remain visible before and after build outputs exist.
+- `tests` runs for every diff. Docs also select the four brief-6c modules, two inside `tests`. Infrastructure
+  selects all suites. Unmapped non-doc inputs select everything, with the reason printed. Validator manifest
+  changes are handled row by row; unreferenced unit-test files cannot alter standalone validator execution.
+- Local untracked directory symlinks such as `input` are excluded from the diff; tracked symlinks still count.
+
+The native archive links almost all core/reconstructed sources, so selection remains broad for C changes.
+The replay below quantifies this limit; do not promise a large suite saving. Imports or paths computed at runtime
+can remain invisible, especially when the same changed path is already mapped to a different consumer. This is
+an advisory conservative selector, not a complete dependency proof. The steward keeps a full batch gate.
+
+### Original-instruction cache (scripts/original_cache.py)
+
+The pinned client never changes, so the original side of a validator case is a function of the pins, the Python
+code that drives Unicorn, and the case input. With `--cache` (or `MU_VALIDATOR_CACHE=<dir>`) that side is stored in
+`<dir>/<name>/<key>.pickle.xz`; the key hashes every pin's sha256, the Unicorn and Python versions and the sha256
+of every Python file in the closure of the script that runs the original side. Any harness change starts a new key
+(the old file is deleted). Pins are still read and verified before using the cache. The key includes the section3 pin as well as text, data, flag and feature pins. Portable tests prove that changing a pin or harness source invalidates warm entries and that a changed C result still fails against a warm cache. Only the original side is cached: the C library is called for every case and compared
+with the cached original exactly as with a fresh one, and a C mutant run with a warm cache is still caught.
+
+Wired into the shared item harness, so every validator using it gets the cache:
+
+| Where | Original side cached | Used by |
+|---|---|---|
+| `gen_item_bodies._original` (cache `gen_item_bodies`) | each Unicorn sample of the body-table regeneration (`client_stream` + the helper tags, exits, random draws and sites its hooks record); the generic C stream and the fit stay live | the 13 validators that check `item_bodies.h` against `gen_item_bodies.generate()` (continuation, ranked, expansion, clusters, chains, next, gear, coverage, scalars, carry, wings_next, quality, product) |
+| `validate_item_clusters.body_cases` / `link_cases` | the body stream and the link-effect calls per case | body_cases: item_continuation, ranked, expansion, clusters, chains, next, gear, coverage, scalars, carry, wings_next; link_cases: continuation, expansion, clusters |
+| `validate_item_continuation.skin_cases`, `validate_item_ranked.link_cases` | per case | those two |
+
+The pattern for another validator: wrap the call that runs the pinned instructions for one case in
+`original_cache.active().get('<family>', <case input>, lambda: <run it>)`, return only plain data (no machine), and
+keep every C call outside the lambda. If the original run has side effects other code reads (hooks filling lists),
+capture them in the cached value and replay them, as `gen_item_bodies._original` does.
+
+## Timings
+
+The first three rows are retained pre-resume measurements. That session recorded load 3–23 overall, but did not
+save per-row load samples. Do not read those numbers as a controlled comparison against the merged tree.
+
+| Check | Before | After | How |
+|---|---|---|---|
+| `validate_item_continuation` (25,772 cases, 9 mutants) | 867.7 s (mutants, no cache) | 719.9 s `--no-mutants` cold cache · **23.1 s** `--no-mutants` warm · 30.1 s mutants warm | reports byte-identical; warm mutant run catches all 9 with the same counts |
+| `validate_item_ranked` (17,736 cases, 6 mutants) | 687.5 s | 97.3 s first `--cache` run (generator cache already warm) · **27.2 s** mutants warm · 23.3 s `--no-mutants` warm | byte-identical |
+| `validate_item_expansion` (52,172 cases, 7 mutants) | 822.4 s | 228.4 s first `--cache` run · **30.0 s** mutants warm · 23.1 s `--no-mutants` warm | byte-identical |
+| Other 9 original rows | Individually uncached runs not measured; each repeats the same historical 800–960 s generator work | 133.3–555.7 s, table below | generator warm; row-specific cases cold where cached |
+| Full macOS CI | Historical 116–130 s, load peaks 11.4–19.2, GATE-PAR-001 | policy unchanged; not re-timed here | steward per batch |
+
+### Resume measurements on merged main
+
+| Item row | Cases | First cached run after merge | Load 1m |
+|---|---|---|---|
+| `validate_item_continuation` | 25,772 | 618.1 s | 4.8 → 14.6, cold generator |
+| `validate_item_carry` | 114,388 | 555.7 s | 4.9–25.2, batch range |
+| `validate_item_chains` | 35,346 | 191.0 s | 4.9–25.2, batch range |
+| `validate_item_clusters` | 74,292 | 336.8 s | 4.9–25.2, batch range |
+| `validate_item_coverage` | 31,724 | 206.6 s | 4.9–25.2, batch range |
+| `validate_item_expansion` | 52,172 | 236.0 s | 4.9–25.2, batch range |
+| `validate_item_gear` | 25,256 | 140.6 s | 4.9–25.2, batch range |
+| `validate_item_next` | 14,992 | 184.8 s | 4.9–25.2, batch range |
+| `validate_item_product` | 2,874 | 54.2 s | 4.9–25.2, batch range |
+| `validate_item_quality` | 28,080 | 152.9 s | 4.9–25.2, batch range |
+| `validate_item_ranked` | 17,736 | 137.9 s | 4.9–25.2, batch range |
+| `validate_item_scalars` | 26,154 | 133.3 s | 4.9–25.2, batch range |
+| `validate_item_wings_next` | 33,622 | 217.5 s | 4.9–25.2, batch range |
+
+All thirteen rows passed. Every row after continuation logged **115,980 generator hits, zero misses**. The cold
+continuation rebuilt 91,272 generator entries after the main merge changed the harness. Main #292 changed none
+of these rows' Python hash closure or renderchar build inputs. No row was repeated to obtain a second warm timing.
+The two-worker batch wall was 1326.40 s, including per-row startup and report work, excluding the
+resource wait before it. Other lanes were active; these are observations, not isolated performance guarantees.
+
+| Small row | With mutants, retained | Without mutants | Cases | Load |
+|---|---|---|---|---|
+| `validate_item_effects` | 5.6 s | 1.4 s | 1,500 | old session 3–23; new 4.8–4.9 |
+| `validate_render_items` | 3.3 s | 1.9 s | 5,512 | old session 3–23; new 4.8–4.9 |
+
+The small comparison reuses the two completed mutant runs from the saved WIP. Non-mutant case reports are equal
+after removing the mutant field. No all-registry mutant run was launched. The retained full continuation/ranked/
+expansion report pairs were also rechecked byte-for-byte equal. A 162.2 s warmup attempt was interrupted to finish
+a tracked-symlink selector correction before cache population; it is not counted as a passing run or a speed sample.
+
+### Delivery checks
+
+| Check | Result | Wall | Load 1m |
+|---|---|---|---|
+| Initial `make -j4` | pass | 28.59 s | 2.6 → 17.2 |
+| Build after #292 | pass | 12.49 s | 8.3–20.0 |
+| test_test_budget + test_run_test_suites + test_validators_manifest | 60 tests, pass | 14.66 s | 4.7–5.1 |
+| All suites, MU_GATE_JOBS=4 | 38 suites, 1916 tests, 1667 passed, 249 skipped, 0 failures, 0 errors; 0 failed suite(s); 196.9s wall, jobs=4 | 196.92 s process wall | 5.1–17.3 |
+| Repository audit | Audited 1873 staged files; 0 rejected. | 13.43 s | 4.1–4.2 |
+| Item validators | 13 pass, 482,408 cases, no mutants, zero mismatches | 618.24 s cold row + 1326.40 s two-worker batch | cold 4.8 → 14.6; batch 4.9–25.2 |
+| After #293/#294, 98 affected items only | 15 suites, 1288 tests, 1090 passed, 198 skipped, 0 failures, 0 errors; 0 failed suite(s); 174.5s wall, jobs=2 | 201.47 s including selection; build 0.53 s | 3.0–6.5 |
+
+After #293/#294 landed during publication, their app/world changes selected 98 of 159 items. Only those were rerun under brief 6; both sides of status-doc conflicts were retained. Item harness/cache inputs were unchanged.
+
+The requested full gate here is `scripts/run_test_suites.py` with all suites, after the build, plus a separate audit.
+The broader `local-macos-ci.sh` fixture/viewer/live-reader stages remain the steward's batch responsibility.
+
+Perf004 analysis was limited to source inspection and this required gate: its module took 80.5 s at gate load
+5.1–17.3. It performs six large serial/parallel buffer comparisons, four small/empty-count comparisons across eight executions, three
+topology variants, six GL variants and lease-audit equivalence checks. No checks were removed and no extra perf004
+benchmark run was needed. Its source/target dependencies stay selected for relevant native changes.
+
+Cache retained at `~/Documents/MTM/mu-mac-tools/native/cache/validators`: **62M** total at handoff. Scratch,
+verify-runs and build outputs are removed after publication; this disposable cache is the retained input for the
+steward. Deleting it is safe and makes the next run cold.
+
+## Selection replay and misses
+
+[Frozen weights and selection lists](test-speed-001-selection.json). Replayed the twelve PRs ending at stopped main `90e11d71`, #280 through #291, with each merge's first-parent diff.
+Both selectors used the merged tree and the same frozen main-checkout timing weights: 397.4 s across 154 recorded
+items. Two new modules lack weights, so shares exclude their time; selection still includes them. This is a weighted
+serial-time estimate, not twelve timed gate runs. It excludes selector overhead: the twelve-diff analysis took
+44.0 s before and 61.4 s after, reusing in-process dependency discovery, at ending load 6.8 and 5.4 respectively. The prior WIP recorded rounded 96% and 57 validator rows without
+saving its weights or per-PR list. The reproducible baseline here is 96.6% and 62 rows. Manifest replay compares only
+the row edits in each historical PR, not later edits. Replay registry: 174 rows; replay suite work items: 156. Delivery also integrates #292; it does not change the item harness or its build inputs.
+
+| PR | Suite items before → after | Weighted time before → after | Validator rows before → after |
+|---|---|---|---|
+| #291 | 130 → 125 | 97.7% → 96.9% | 112 → 112 |
+| #290 | 114 → 156 | 95.7% → 100.0% | 39 → 174 |
+| #289 | 1 → 3 | 0.6% → 2.6% | 0 → 0 |
+| #287 | 121 → 116 | 96.6% → 95.7% | 62 → 62 |
+| #288 | 40 → 41 | 35.7% → 36.1% | 51 → 174 |
+| #286 | 120 → 115 | 96.5% → 95.6% | 65 → 65 |
+| #285 | 123 → 122 | 97.3% → 96.8% | 65 → 174 |
+| #284 | 31 → 32 | 38.7% → 39.1% | 16 → 16 |
+| #283 | 125 → 124 | 97.4% → 96.9% | 62 → 62 |
+| #282 | 114 → 156 | 95.7% → 100.0% | 39 → 174 |
+| #281 | 123 → 122 | 97.3% → 96.8% | 65 → 65 |
+| #280 | 134 → 133 | 98.6% → 98.2% | 98 → 98 |
+
+Median suite share: **96.6% → 96.8%**. Median validator rows: **62 → 81.5**. Narrower make/header mapping removes
+some unnecessary suites, but required docs coverage and the new unknown-input fallback offset that saving.
+`classify_item_bodies.py` triggers the all-suite fallback in #282/#290. Unmapped exporter/classifier scripts also
+increase validator selection in #285/#288/#290. This is a coverage tradeoff, not a speedup claim. Future work needs
+explicit ownership for those tools or a verified link dependency model, rather than dropping shared-library checks.
+
+Known-failure selection audit: zero identified misses. #287's original failing head `724ad10a`, before the host fixes,
+changes `mu_particles.h`; both `test_native_worlds_l` and `test_native_worlds_m` retain that dependency through their
+hosts. This catches the `MU_WORLD_PT_BITMAPS` growth documented in the steward's PR comment. #282 retains the
+renderchar suite containing continuation/gear/scalars' stale assertions and `test_native_item_textures`; #283 retains
+`test_native_particles`; #280 retains `test_native_audio`. The renderchar and item-texture private failures recorded
+in INTEGRATION-GREEN-002 stay selected, but need private execution to be observed. This audits selection against
+recorded failures, not a claim that historical gates were re-executed or that all possible misses have been disproved.
