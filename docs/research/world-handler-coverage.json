@@ -88,9 +88,9 @@
         },
         "custom_render": {
           "entry": "0xe426cf",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS2 complete slot (types 0..300, the world manager range); compiled C against original instructions with mutants (validate_worlds_slots2). See client-worlds-slots2.md.",
+          "source": "reconstructed/objects/world_slots2_visual.c"
         },
         "after_render": {
           "entry": "0xe428af",
@@ -244,15 +244,15 @@
         },
         "custom_render": {
           "entry": "0xe2caaf",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS2 complete slot (types 0..300, the world manager range); compiled C against original instructions with mutants (validate_worlds_slots2). See client-worlds-slots2.md.",
+          "source": "reconstructed/objects/world_slots2_visual.c"
         },
         "after_render": {
           "entry": "0xe2d4a8",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS2 complete slot (types 0..300, the world manager range); compiled C against original instructions with mutants (validate_worlds_slots2). See client-worlds-slots2.md.",
+          "source": "reconstructed/objects/world_slots2_visual.c"
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
@@ -296,15 +296,15 @@
         },
         "custom_render": {
           "entry": "0xdc8b33",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS2 complete slot (types 0..300, the world manager range); compiled C against original instructions with mutants (validate_worlds_slots2). See client-worlds-slots2.md.",
+          "source": "reconstructed/objects/world_slots2_visual.c"
         },
         "after_render": {
           "entry": "0xdc9f33",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS2 complete slot (types 0..300, the world manager range); compiled C against original instructions with mutants (validate_worlds_slots2). See client-worlds-slots2.md.",
+          "source": "reconstructed/objects/world_slots2_visual.c"
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
@@ -348,15 +348,15 @@
         },
         "custom_render": {
           "entry": "0xdd57fa",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS2 complete slot (types 0..300, the world manager range); compiled C against original instructions with mutants (validate_worlds_slots2). See client-worlds-slots2.md.",
+          "source": "reconstructed/objects/world_slots2_visual.c"
         },
         "after_render": {
           "entry": "0xdd5888",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS2 complete slot (types 0..300, the world manager range); compiled C against original instructions with mutants (validate_worlds_slots2). See client-worlds-slots2.md.",
+          "source": "reconstructed/objects/world_slots2_visual.c"
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
@@ -400,15 +400,15 @@
         },
         "custom_render": {
           "entry": "0xdda8f5",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS2 complete slot (types 0..300, the world manager range); compiled C against original instructions with mutants (validate_worlds_slots2). See client-worlds-slots2.md.",
+          "source": "reconstructed/objects/world_slots2_visual.c"
         },
         "after_render": {
           "entry": "0xdda93e",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS2 complete slot (types 0..300, the world manager range); compiled C against original instructions with mutants (validate_worlds_slots2). See client-worlds-slots2.md.",
+          "source": "reconstructed/objects/world_slots2_visual.c"
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
@@ -452,15 +452,15 @@
         },
         "custom_render": {
           "entry": "0xde08df",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS2 complete slot (types 0..300, the world manager range); compiled C against original instructions with mutants (validate_worlds_slots2). See client-worlds-slots2.md.",
+          "source": "reconstructed/objects/world_slots2_visual.c"
         },
         "after_render": {
           "entry": "0xde0ff6",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS2 complete slot (types 0..300, the world manager range); compiled C against original instructions with mutants (validate_worlds_slots2). See client-worlds-slots2.md.",
+          "source": "reconstructed/objects/world_slots2_visual.c"
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
@@ -664,15 +664,15 @@
         },
         "custom_render": {
           "entry": "0xd7c02e",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS2: for types 0..300 the slot forwards to its base world's class slot (Arca War's handler +0x1c through the registry); compiled C against original instructions with mutants (validate_worlds_slots2). See client-worlds-slots2.md.",
+          "source": "reconstructed/objects/world_slots2_visual.c"
         },
         "after_render": {
           "entry": "0xd7de81",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS2: for types 0..300 the slot forwards to its base world's class slot (Arca War's handler +0x1c through the registry); compiled C against original instructions with mutants (validate_worlds_slots2). See client-worlds-slots2.md.",
+          "source": "reconstructed/objects/world_slots2_visual.c"
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
@@ -820,9 +820,9 @@
         },
         "custom_render": {
           "entry": "0xdbee19",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS2 complete slot (types 0..300, the world manager range); compiled C against original instructions with mutants (validate_worlds_slots2). See client-worlds-slots2.md.",
+          "source": "reconstructed/objects/world_slots2_visual.c"
         },
         "after_render": {
           "entry": "0xd5cc60",
@@ -872,9 +872,9 @@
         },
         "custom_render": {
           "entry": "0xe702eb",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS2 complete slot (types 0..300, the world manager range); compiled C against original instructions with mutants (validate_worlds_slots2). See client-worlds-slots2.md.",
+          "source": "reconstructed/objects/world_slots2_visual.c"
         },
         "after_render": {
           "entry": "0xd5cc60",
@@ -924,15 +924,15 @@
         },
         "custom_render": {
           "entry": "0xe28bb2",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS2 complete slot (types 0..300, the world manager range); compiled C against original instructions with mutants (validate_worlds_slots2). See client-worlds-slots2.md.",
+          "source": "reconstructed/objects/world_slots2_visual.c"
         },
         "after_render": {
           "entry": "0xe28faf",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS2 complete slot (types 0..300, the world manager range); compiled C against original instructions with mutants (validate_worlds_slots2). See client-worlds-slots2.md.",
+          "source": "reconstructed/objects/world_slots2_visual.c"
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
