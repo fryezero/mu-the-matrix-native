@@ -160,12 +160,30 @@ repeated (brief 6). Checks at `f57e2b46` (the PR head adds only this handoff tex
 | `run_test_suites.py --affected origin/main`, portable, `MU_GATE_JOBS=2` | 3 suites, 115 work items, 1,077 tests: 913 pass, 164 skip, 0 failures/errors | 231.8 s (263.5 s with selection) | 3.1 → 19.4 |
 | Private `test_inventory_skin` + `test_native_item_textures` (merged `world_gfx.c`; 13-white survey pins) | 11/11 pass, no skips | 77.20 s | 7.4 |
 | `audit_repository.py` | 1,885 staged files, 0 rejected | 24.23 s | 6.6 |
-| Brief-6c doc modules after the final handoff edit (`test_world_captures_2`, `test_repository_policy`; private `test_native_data_manifest`, `test_native_item_textures`) | 11/11 + 22/22 pass | 0.14 s + 61.67 s | 6–7 |
+| Brief-6c doc modules after the `f57e2b46` handoff edit (`test_world_captures_2`, `test_repository_policy`; private `test_native_data_manifest`, `test_native_item_textures`) | 11/11 + 22/22 pass | 0.14 s + 61.67 s | 6–7 |
 
 Generator cache: ten rows hit all 115,980 generator samples. Continuation (cold), clusters and gear rebuilt
 91,272. Inference: the steward's batch 37 ran these rows on main at the same time, under a different harness key,
 and the cache keeps one file per name, so the two versions evicted each other. The row results do not depend on
 this; only the original side is cached. Reported for TEST-SPEED-002.
+
+After main `83a21893` (TEST-SPEED-002 #299, RENDER-EFFECTS-013 #300, RENDER-WORLDS-S #301), merge `eed17e53`;
+only the status/handoff lines conflicted (both kept). The merge changes no item harness file. It changes
+`reconstructed/particles/particles.c` (Shiny01 subtype 3), `reconstructed/joints/` and two native core files, so the
+rows building `particles` or `joints` and the affected unit suites are rerun at `eed17e53` (brief 6). The 11 item
+rows without those directories, `validate_renderchar`, `validate_render_effects4`, `validate_fidelity` and
+`validate_item_hiddenmesh` keep their `f57e2b46` results.
+
+| Check at `eed17e53` | Result | Wall time | Load 1m |
+|---|---|---:|---|
+| `nice -n 10 make -j4` | pass | 20.33 s | 7.7 |
+| `validate_item_types`, `item_gear`, `item_wings_next`, `item_effects`, `render_effects`, `render_effects3/5/7/9/10/11/12`, no mutants, `--cache --jobs 2` | 12 pass, 0 mismatches: 135,176 + 25,256 + 33,622 + 1,500 + 660 + 720 + 1,190 + 596 + 304 + 154 + 176 + 64 = 199,418 cases | 820.64 s (gear 763.7 s, wings_next 774.8 s, both cold; types 45.8 s; the rest ≤ 5.5 s) | 21.2 → 7.4 |
+| `run_test_suites.py --affected origin/main`, portable, `MU_GATE_JOBS=2` | 3 suites, 117 work items, 1,091 tests: 926 pass, 165 skip, 0 failures/errors | 253.1 s (285.5 s with selection) | 5.3 → 14.0 |
+| `audit_repository.py` | 1,905 staged files, 0 rejected | 23.99 s | 9.6 |
+| Brief-6c doc modules after the final handoff edit | 11/11 + 22/22 pass | 0.21 s + 72.02 s | 13.1 |
+
+The generator cache key changed with #299 (`85faf0df…` to `ca43a187…`): the key hashes the validator's whole Python
+closure, which includes the runner tooling. Gear and wings_next therefore ran cold; correctness does not depend on it.
 
 ### Existing affected rows, without mutants
 
@@ -422,6 +440,6 @@ remain distinct. MESH rows replace unregistered bitmap 0 with each listed mesh's
 
 ## Release
 
-PR-ready at the head that carries this handoff, after main `742ef666`. Steward validators are listed in the PR
+PR-ready at the head that carries this handoff, after main `83a21893`. Steward validators are listed in the PR
 body; none needs mutants (the new row's six ran once, above). Cleanup removes this lane's scratch and build
 products; the worktree stays until the steward merges, then the worktree and local branch are removed. Only the six small requested review PNGs are retained outside the render/scratch folders. The remote branch remains for the merge steward.
