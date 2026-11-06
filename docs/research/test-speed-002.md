@@ -20,11 +20,10 @@ host comparison runs after either a hit or a miss. Case inputs are hashed to kee
 cache keys. The existing identity includes all pin hashes, including section3, Python and Unicorn versions,
 and the Python harness import closure. Pins are still verified before any cache lookup.
 
-Terrain's decal loop used only every third generated scene. Each used scene had seed 800, with world as its
-only varying input. Its generator uses a local RNG. The loop now generates that template once, takes a new
-dictionary with the same world field for each load, and copies the same arrays into fresh ctypes buffers and
-client memory. Native calls, original calls, random case draws and comparisons are unchanged. No disk cache
-or emulated state replay is used for terrain.
+Terrain's profile suggested avoiding unused decal-scene generation. The experimental full report remained
+byte-identical, but wall time was 343.68 s versus 324.54 s before, at load endpoints 8.92/6.71 and 8.11/6.48.
+That edit was reverted. The profile had stopped before installed-world processing, so its synthetic-scene share
+was not the full row's share. No terrain speedup or original cache is claimed.
 
 Model-edge and terrain now declare model-recovery as a build prerequisite. This avoids the Python LEA fallback
 and the missing Crypto++ v14 reader in a new worktree. Model-edge's original execution remains uncached: its

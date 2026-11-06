@@ -1836,13 +1836,10 @@ def terrain2_checks(client, authored, report, g, scale=1):
 
     # (8) RenderTerrainAlphaBitmap 0x016cdd5f (decals).
     cases = matches = fans = 0
-    decal_scene = None  # seed 800 is the only scene consumed; arrays are copied into each machine.
     for case in range(60 * scale):
         world = g.choice([0, 142, 0x8d])
+        scene = synthetic_scene(800 + case % 3, world, extended=True)
         if case % 3 == 0:
-            if decal_scene is None:
-                decal_scene = synthetic_scene(800, extended=True)
-            scene = dict(decal_scene, world=world)
             client.load_scene(scene)
             built_scene = authored.scene(scene)
         x, y = f32(g.uniform(-200, 25800)), f32(g.uniform(-200, 25800))

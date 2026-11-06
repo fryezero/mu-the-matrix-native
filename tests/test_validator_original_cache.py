@@ -97,18 +97,6 @@ class MeshCache(unittest.TestCase):
             self.assertEqual(cache.data, {})
 
 
-class TerrainInputs(unittest.TestCase):
-    def test_decal_template_changes_only_world_and_owns_no_global_rng(self):
-        import random
-        import validate_terrain as terrain
-        with mock.patch.object(terrain, 'CELLS', 8):
-            state = random.getstate()
-            template = terrain.synthetic_scene(800, extended=True)
-            for world in (0, 142, 141):
-                self.assertEqual(dict(template, world=world), terrain.synthetic_scene(800, world, extended=True))
-            self.assertEqual(random.getstate(), state)
-
-
 class InfoBatch(unittest.TestCase):
     def test_batch_matches_each_original_entry_point_including_failures(self):
         subprocess.run(['make', '-j4', '-s', '-C', str(ROOT / 'native'), 'build/meshdraw-info-batch'],

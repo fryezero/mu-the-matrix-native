@@ -323,7 +323,9 @@ class AffectedValidators(unittest.TestCase):
             (self.repo / 'scripts/helper_gamma.py').write_text('VALUE = 1\n')
             (self.repo / 'scripts/validate_gamma.py').write_text('import helper_gamma\n')
         # The real gamma consumer is selected; beta's unused test import is not.
-        self.assertEqual(list(self.select('scripts/helper_gamma.py', edit=edit)), ['validate_gamma'])
+        edit()
+        self.assertIsNone(rv.row_deps('validate_beta', self.rows['validate_beta'], self.repo).why('scripts/helper_gamma.py'))
+        self.assertTrue(rv.row_deps('validate_gamma', self.rows['validate_gamma'], self.repo).why('scripts/helper_gamma.py'))
 
     def test_direct_compiler_source_header_closure(self):
         def edit():
