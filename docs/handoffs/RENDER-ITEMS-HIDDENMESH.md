@@ -7,8 +7,8 @@ No live client, network/login work or protected-module work. No full gate in thi
 
 The body generator probed OBJECT `+0x68` at zero except for six seeds. It therefore fitted zero constants where
 client BODY hidden-mesh and MESH texture arguments copy that word. ItemObjectAttribute `0x016da00b` initializes
-it to -1 at `0x016da0cc` and `0x016da12a`. RenderObjectScreen `0x016c2d82` and ground item creation call that
-initializer. TEX-003 identified 35 mesh texture call sites, including `0x01702deb`, `0x016ed79c`, `0x016e0a3a`
+it to -1 at `0x016da0cc` and `0x016da12a`. RenderObjectScreen `0x016c2d82` calls that initializer at `0x016c32c1` and has no direct +0x68 writes;
+ground item creation also calls it. TEX-003 identified 35 mesh texture call sites, including `0x01702deb`, `0x016ed79c`, `0x016e0a3a`
 and `0x0170e146`. Bitmap zero is unregistered; texture -1 means each mesh's own bitmap.
 
 The full generator run found 182 changed recipes: the 23 TEX-003 white types, plus 159 more readers. Of the
@@ -26,7 +26,8 @@ implemented `0x10f0` is compared at 0, -1 and its caller value 1. No whitelist o
 
 - The generator varies HiddenMesh independently of render flags for every existing recipe. The generated
   recipes copy source 35. The large textual table diff includes deduplication/index shifts; 182 types change
-  semantically, and all old zero-domain streams remain identical.
+  semantically, and all old zero-domain streams remain identical. All 485 changed phase-expanded argument
+  cells are exactly constant zero to source 35, only BODY hidden and MESH texture fields.
 - The executor admits 0 and -1, the exact ItemObjectAttribute exceptions, and the seeds' existing index domain.
 - The shared native item adapter and bitmap-override probe use the same initializer value. This reaches the
   software inventory, GFx inventory, ground raster/GL, hero and other equipment consumers.
@@ -117,7 +118,13 @@ cases, 7,592 non-reading controls and 418 posed rank-5 controls. Every reader ge
 Mutant detections: hidden input zero 50,718; reject -1 56,940; default initializer zero 1,685; positive exception
 zero 293; BODY hidden zero 96,005; texture zero 110,956. This is the only mutant run in the lane.
 
-Existing validator rows and the final publication audit are pending.
+After merging main `9e93e6c9`, the native build passes in 15.18 s. The six native modules above plus
+actor/player/helper/combat coverage pass 83/83 tests in 265.36 s elapsed, including a resource pause.
+The process timer reports 158.52 s excluding that pause. The merged effects changes touch neither the
+renderchar/model-codec/record-math sources nor this lane's generator/validator, so the full new row is not
+repeated. The affected effects rows are rerun without mutants after the merge.
+
+Existing item validator rows and the final publication audit are pending.
 
 ## Changed types and reasons
 
