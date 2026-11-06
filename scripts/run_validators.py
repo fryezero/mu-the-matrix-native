@@ -35,6 +35,8 @@ TEST-SPEED-001 (see docs/testing/TEST-BUDGET.md):
   run_validators.py --private --no-mutants --only validate_hud     the row without its planted mistakes
   run_validators.py --list-affected origin/main                    the rows a diff can affect, and why
   run_validators.py --private --no-mutants --affected origin/main  run exactly those
+  run_validators.py --list-affected-since <tested>                 the steward: rows whose inputs changed since
+                                                                   the commit the lane tested (TEST-SPEED-004)
   run_validators.py --private --cache --only validate_item_ranked  reuse cached original-side results
 
 ``--no-mutants`` removes the mutant switches (``--mutations``/``--mutants`` and their ``--mutant-cases``/
@@ -188,31 +190,28 @@ def strip_mutants(row: dict) -> tuple[dict, list[str]]:
 # ---------------------------------------------------------------------------------------------
 # --affected
 
-VALIDATOR_INFRA = {'scripts/run_validators.py': 'the validator runner', 'scripts/pins.py': 'the pinned inputs'}
+# pins.py is an input of every row with pins (it resolves and checks them); the rest of the tooling is
+# affected.TOOLING and selects no row.
+PINS = 'scripts/pins.py'
 
 
 def row_deps(name: str, row: dict, root: Path = REPO) -> affected.Deps:
-    """What a manifest row reads: its script and the scripts it imports, its owning test, its build
-    directories with what their Makefiles reach, and the repository paths its arguments name."""
+    """A manifest row's inputs (TEST-SPEED-004): its script and the Python it imports or loads, the repository
+    paths that code builds (classified by use, see scripts/affected.py), the compiled inputs of its build
+    targets (or of its build directories' default goals), the paths its args and prepare steps name, and
+    pins.py for a row with pins. The owning unit test is not an input: it runs in the gate, not in the row."""
     deps = affected.Deps()
     script = root / 'scripts' / f'{name}.py'
     if script.is_file():
-        deps.update(affected.python_deps(script, root))
+        deps.update(affected.python_deps(script, root, tooling=False))
     deps.files.setdefault(f'scripts/{name}.py', f'is scripts/{name}.py')
-    if row.get('test'):
-        test = row['test'].split('::')[0]
-        deps.files.setdefault(test, f'owning test {test}')
-        # The owning unittest is a trigger, not executed by this subprocess. Its
-        # other fixtures/builds cannot change the standalone validator's result.
+    if row.get('pins'):
+        deps.files.setdefault(PINS, f'{PINS} resolves the row\'s pins')
     if row.get('parent'):
         deps.files.setdefault(f"scripts/{row['parent']}.py", f"parent {row['parent']}")
     for directory in row['build']:
-        targets = build_targets(row, directory)
-        if targets:
-            for target in targets:
-                deps.update(affected.target_deps(directory, target, root))
-        else:
-            deps.update(affected.makefile_deps(directory, root))
+        for target in build_targets(row, directory) or (None,):
+            deps.update(affected.target_deps(directory, target, root))
     for arg in row['args'] + [a for command in row['prepare'] for a in command]:
         text = arg.replace('{repo}/', '')
         target = affected._string_path(text, root / 'scripts', root)
@@ -220,16 +219,7 @@ def row_deps(name: str, row: dict, root: Path = REPO) -> affected.Deps:
             where = affected.rel(target, root)
             (deps.dirs if target.is_dir() else deps.files).setdefault(where, f'argument names {where}')
             if target.suffix == '.py':
-                deps.update(affected.python_deps(target, root))
-    # Some validators compile C directly into temporary adapters, outside make.
-    # Follow the quoted source files' includes too (e.g. worlds_after4's mu_bmd.c).
-    sources = tuple(root / path for path in deps.files
-                    if Path(path).suffix in affected.SOURCES | affected.HEADERS and (root / path).is_file())
-    headers = affected._includes(sources, tuple(root / path for path in deps.dirs))
-    for header in headers:
-        path = affected.rel(header, root)
-        if path:
-            deps.files.setdefault(path, f'validator source includes {path}')
+                deps.update(affected.python_deps(target, root, tooling=False))
     return deps
 
 
@@ -245,23 +235,23 @@ def manifest_changes(rows: dict, base: str, root: Path = REPO, manifest: Path = 
 
 
 def affected_rows(rows: dict, ref: str, root: Path = REPO, manifest: Path = MANIFEST,
-                  changed: list[str] | None = None) -> dict[str, list[str]]:
-    """{row: [why]} for the rows a diff from merge-base(REF, HEAD) to the working tree can affect."""
-    changed = affected.changed_files(ref, root) if changed is None else changed
-    units = {name: row_deps(name, row, root) for name, row in rows.items()}
-    # Manifest rows are compared below. Unreferenced test files cannot change validator execution.
-    mapped = tuple(p for p in changed if p == 'scripts/validators.toml' or
-                   (p.endswith('.py') and Path(p).name.startswith('test_')) or
-                   # Swift app sources and test-only hosts are built by the gate, not standalone
-                   # validators. Explicit references still select rows through units above.
-                   (p.startswith('native/app/Sources/') and p.endswith('.swift')) or
-                   (p.startswith('native/tests/') and Path(p).suffix in {'.c', '.h'}))
-    selected = affected.select(units, changed, VALIDATOR_INFRA, mapped=mapped)
+                  changed: list[str] | None = None, since: bool = False,
+                  units: dict | None = None) -> dict[str, list[str]]:
+    """{row: [why]} for the rows whose inputs a diff touches: from merge-base(REF, HEAD), or from REF itself
+    (SINCE: the steward's "what changed since the lane-tested commit"), to the working tree."""
+    base = affected.base_commit(ref, root, since)
+    changed = affected.changed_files(ref, root, since) if changed is None else changed
+    units = units if units is not None else row_units(rows, root)
+    selected = affected.select(units, changed, base=base, root=root, unmapped_selects_all=False)
     manifest_rel = manifest.relative_to(root).as_posix() if manifest.is_relative_to(root) else None
     if manifest_rel in changed:
-        for name in manifest_changes(rows, affected.merge_base(ref, root), root, manifest):
+        for name in manifest_changes(rows, base, root, manifest):
             selected.setdefault(name, []).insert(0, f'{manifest_rel}: its row changed')
     return {name: selected[name] for name in rows if name in selected}
+
+
+def row_units(rows: dict, root: Path = REPO) -> dict[str, affected.Deps]:
+    return {name: row_deps(name, row, root) for name, row in rows.items()}
 
 
 # ---------------------------------------------------------------------------------------------
@@ -799,6 +789,10 @@ def main(argv=None) -> int:
     parser.add_argument('--affected', metavar='REF',
                         help='only the rows a diff from merge-base(REF, HEAD) to the working tree can affect')
     parser.add_argument('--list-affected', metavar='REF', help='print the rows --affected REF selects, and why')
+    parser.add_argument('--affected-since', metavar='REF',
+                        help='only the rows whose inputs differ between REF itself (e.g. the lane-tested commit) '
+                             'and the working tree (the steward\'s question)')
+    parser.add_argument('--list-affected-since', metavar='REF', help='print the rows --affected-since REF selects')
     parser.add_argument('--cache', nargs='?', const=str(original_cache.DEFAULT), metavar='DIR',
                         help='reuse cached original-instruction results (scripts/original_cache.py; default DIR '
                              '~/Documents/MTM/mu-mac-tools/native/cache/validators)')
@@ -820,11 +814,15 @@ def main(argv=None) -> int:
         print(f'{args.index}: validators regenerated from {args.source / "summary.json"}')
         return 0
     names = select(rows, args.only)
-    if args.list_affected or args.affected:
-        why = affected_rows(rows, args.list_affected or args.affected, root=REPO, manifest=args.manifest)
+    ref = args.list_affected or args.affected or args.list_affected_since or args.affected_since
+    if ref:
+        since = bool(args.list_affected_since or args.affected_since)
+        units = row_units(rows, REPO)
+        why = affected_rows(rows, ref, root=REPO, manifest=args.manifest, since=since, units=units)
         names = [name for name in names if name in why]
-        print(affected.show({n: why[n] for n in names}, len(rows), 'manifest rows'), flush=True)
-        if args.list_affected:
+        print(affected.show({n: why[n] for n in names}, len(rows), 'manifest rows',
+                            affected.fallback_units(units)), flush=True)
+        if args.list_affected or args.list_affected_since:
             return 0
     if args.no_mutants:
         stripped = {name: strip_mutants(rows[name]) for name in names}

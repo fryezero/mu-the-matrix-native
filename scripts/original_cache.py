@@ -80,14 +80,26 @@ def _stat(path: Path):
 
 def _read(path: Path, key: str) -> dict | None:
     """The entries of PATH if it stores KEY; None if it is missing, unreadable or for another key."""
+    return _read_stat(path, key)[0]
+
+
+def _read_stat(path: Path, key: str):
+    """(_read, _stat) of the same file: the stat of the file object actually read, so a save by another worker
+    between reading and stat-ing cannot make a reader believe it has entries it never loaded (TEST-SPEED-004)."""
     try:
-        with lzma.open(path, 'rb') as handle:
-            stored = pickle.load(handle)
-        if stored.get('key') == key:
-            return stored['entries']
-    except Exception:   # a damaged file is a miss, never an error
-        pass
-    return None
+        with open(path, 'rb') as raw:
+            st = os.fstat(raw.fileno())
+            seen = (st.st_ino, st.st_size)
+            try:
+                with lzma.open(raw, 'rb') as handle:
+                    stored = pickle.load(handle)
+                if stored.get('key') == key:
+                    return stored['entries'], seen
+            except Exception:   # a damaged file is a miss, never an error
+                pass
+            return None, seen
+    except OSError:
+        return None, None
 
 
 def _files(folder: Path) -> list[tuple[float, int, Path]]:
@@ -210,13 +222,13 @@ class Cache:
         self.data: dict[str, object] = {}
         self.seen = None   # (inode, size) of the file as loaded, to notice another writer's save
         if self.path.is_file():
-            self.data = _read(self.path, self.key) or {}
+            data, self.seen = _read_stat(self.path, self.key)
+            self.data = data or {}
             if self.data:
                 try:
                     os.utime(self.path)   # mark the key used: the per-name and size limits drop the least recent
                 except OSError:
                     pass
-            self.seen = _stat(self.path)
         self.loaded = len(self.data)
         self.hits = self.misses = 0
         self.dirty = False
