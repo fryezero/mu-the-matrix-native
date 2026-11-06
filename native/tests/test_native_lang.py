@@ -161,7 +161,8 @@ CHARINFO = {1: (20, b'Row A', 1, [1]*16, 1, 0, 3, b'', b'', 0),
 SOULCONV = (7628, 7630)
 
 
-def synthetic_snapshot():
+def synthetic_snapshot(itemtrs=None):
+    """itemtrs: {code: six binary32 values} mapped as ItemTRSData (APP-POLISH-004); None leaves the table out."""
     m = Memory()
     m.map(plain.TEXT + 0x38, {k: struct.pack('<Bxxxi', 0, k) + m.string(v) for k, v in TEXTS.items()})
     m.map(plain.SKILL + 0x108, {s['index']: skill_record(m, **{('type_' if k == 'type' else k): v
@@ -212,6 +213,8 @@ def synthetic_snapshot():
     m.manager[plain.CHARINFO - plain.MANAGER + 0x44:plain.CHARINFO - plain.MANAGER + 0x44 + 0xa4] = default
     m.map(plain.SOULCONV + 0x44, {c: struct.pack('<3i', i + 1, c, 1) for i, c in enumerate(SOULCONV)})
     m.map(plain.SKILLREQ + 0x54, {243: struct.pack('<7i', 0, 243, 15, 49, 242, 847, 10)})
+    if itemtrs is not None:
+        m.map(plain.ITEMTRS + 0x38, {k: struct.pack('<6f', *v) for k, v in itemtrs.items()})
     return m.snapshot()
 
 
