@@ -2743,6 +2743,25 @@ args = ["--mutations", "--output", "{report}"]
 "families.products.residues" = 15
 "mutants.*" = {truthy = true}
 
+[validate_item_hiddenmesh]
+test = "reconstructed/renderchar/test_item_hiddenmesh.py::ItemHiddenMesh.test_private_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["attributes", "affected", "additional", "controls", "rank5"]
+cases = 116281
+mutants = 6
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar", "reconstructed/model-codec"]
+args = ["--cases", "292", "--mutations", "--output", "{report}"]
+[validate_item_hiddenmesh.expect]
+"families.*.mismatches" = 0
+"families.attributes.cases" = 1691
+"families.affected.cases" = 13432
+"families.controls.cases" = 7592
+"families.additional.cases" = 93148
+"families.rank5.cases" = 418
+"mutants.*" = {all_min = 1}
+
 [validate_app_polish1]
 test = "native/tests/test_app_polish.py::ClientComparison.test_unicorn"
 pins = ["text", "data", "section3"]
