@@ -188,9 +188,11 @@ static void combat_draw(mu_world_rt *a, combat_part *p)
                 glGenTextures(1, &p->combat_tex[q->bitmap]);
                 glBindTexture(GL_TEXTURE_2D, p->combat_tex[q->bitmap]);
                 glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-                const GLint wrap = b->wrap ? GL_CLAMP_TO_EDGE : GL_REPEAT;   /* RENDER-EFFECTS-015: decal GL_CLAMP */
+                /* RENDER-EFFECTS-016: filter and wrap of each bitmap's LoadBitmap call (GL_CLAMP as clamp to edge) */
+                const GLint filter = b->filter == 0x2600u ? GL_NEAREST : GL_LINEAR;
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
+                const GLint wrap = b->wrap == 0x2900u ? GL_CLAMP_TO_EDGE : GL_REPEAT;
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrap);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap);
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, b->image.width, b->image.height, 0, GL_RGBA,
@@ -212,6 +214,11 @@ static void combat_draw(mu_world_rt *a, combat_part *p)
             glEnable(GL_DEPTH_TEST);
         else
             glDisable(GL_DEPTH_TEST);
+        if (q->alpha_test)   /* RENDER-EFFECTS-016: 0x70c's crater under EnableAlphaTest(1) (GREATER 0.25) */
+            glEnable(GL_ALPHA_TEST);
+        else
+            glDisable(GL_ALPHA_TEST);
+        glDepthMask(q->depth_mask ? GL_TRUE : GL_FALSE);
         if (q->eye_space) {   /* RenderSpriteUV draws eye-space corners with an identity modelview */
             glMatrixMode(GL_MODELVIEW);
             glPushMatrix();

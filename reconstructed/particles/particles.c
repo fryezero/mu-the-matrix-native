@@ -42,6 +42,11 @@ int mu_pt_kind_supported(int32_t type, int32_t subtype)
     switch (type) {
     case MU_PT_BITMAP_FIRE:
         return (subtype >= 0 && subtype <= 6) || subtype == 17;
+    case MU_PT_BITMAP_FIRE06:
+        /* RENDER-EFFECTS-016: the stones' one-in-ten particle (subtype rand % 3 + 1). CreateParticle's jump table
+         * 0x01615f68 (byte 1, 0x015ba585), MoveParticles' 0x0168eee0 (byte 0, 0x016282c9) and RenderParticles'
+         * 0x015ae397 (byte 0, 0x01597855) send 0x7f40 to Fire01's case; none of the three tests the type there */
+        return subtype >= 1 && subtype <= 3;
     case MU_PT_BITMAP_SMOKE:
         return subtype == 0 || subtype == 1 || subtype == 2 || (subtype >= 3 && subtype <= 8 && subtype != 5) || subtype == 0x75 || subtype == 0x7f || subtype == 21 ||
                subtype == 0xd ||   /* 0xd: RENDER-EFFECTS-009, Carow 0x474's trail */
@@ -210,6 +215,7 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
     }
     switch (type) {
     case MU_PT_BITMAP_FIRE:
+    case MU_PT_BITMAP_FIRE06:
         /* 0x015ba585, subtype table 0x01616318 */
         if (subtype == 0) {                         /* 0x015ba5b3 */
             p->lifetime = 24;
@@ -637,6 +643,7 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
             mu_pt_world_flame_move(p, h);
         else switch (p->type) {
         case MU_PT_BITMAP_FIRE:
+        case MU_PT_BITMAP_FIRE06:
             /* 0x016282c9, subtype table 0x0168f278 */
             p->gravity = p->gravity + 0.004f;
             if (p->subtype == 0 || p->subtype == 5 || p->subtype == 6 || p->subtype == 17) {
@@ -1076,6 +1083,7 @@ int mu_pt_render_record(mu_pt_particle *p, const mu_pt_bitmap *b, uint8_t mode, 
     s->axes = 4;
     switch (p->type) {
     case MU_PT_BITMAP_FIRE:
+    case MU_PT_BITMAP_FIRE06:
         /* 0x015978bb (subtypes 5, 17: the record's rotation) / 0x01597adf (the angle's x) */
         s->width = width * 0.25f;
         s->rotation = (p->subtype == 5 || p->subtype == 17) ? p->rotation : p->angle[0];

@@ -21,7 +21,7 @@
  * the joints' textures (JointThunder01, Spark01, JointSpirit01, JointEnergy01; LoadBitmap 0x0182239b..) and
  * the login scene's clouds and WATERFALL1; NATIVE-CHARSEL-002 the character-select scene's WATERFALL2/3,
  * fantaB, Spark04, magic_ground1_3 and Impack03 (the selection light 0x8022 subtype 5 draws Impack03). */
-#define MU_WORLD_PT_EFFECTS 72
+#define MU_WORLD_PT_EFFECTS 73
 static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     MU_PT_BITMAP_FIRE, MU_PT_BITMAP_SMOKE, MU_PT_BITMAP_FLARE, MU_PT_BITMAP_SPARK3, MU_PT_BITMAP_THUNDER,
     MU_PT_BITMAP_SPARK2, MU_PT_BITMAP_SHINY2, MU_JT_BITMAP_THUNDER, MU_JT_BITMAP_SPARK, MU_JT_BITMAP_SPIRIT,
@@ -39,6 +39,7 @@ static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     0x7fe0, 0x8098, 0x83de, 0x84e2, MU_JT_BITMAP_LASER, MU_PT_BITMAP_SMOKE5, 0x8016, 0x806e, 0x8084, 0x8085, 0x7f8a, 0x7f21,
     0x7f54, 0x7f84, 0x7f38, 0x8021, 0x7f6b, 0x8087, 0x8089, 0x801e, 0x8184,
     0x7ffd, 0x8081, 0x8082, 0x8083, 0x85fb, 0x8450, 0x810a, 0x7f73, 0x7f74, 0x7f75, 0x810c, 0x83b8,
+    MU_PT_BITMAP_FIRE06,
     MU_PT_BITMAP_RAIN_SPLASH,
     MU_PT_BITMAP_RAIN_RING};
 static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
@@ -80,7 +81,10 @@ static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     "Data/Effect/pin_star03.OZJ", "Data/Skill/flower1.OZT", "Data/Skill/flower2.OZT", "Data/Skill/flower3.OZT",
     /* RENDER-EFFECTS-011: the bows' pin_star02_pupple 0x810c (LoadBitmap 0x0182e275, LINEAR/CLAMP) and
      * Snow_Chip02_red 0x83b8 (0x0183863c, LINEAR/REPEAT) */
-    "Data/Effect/pin_star02_pupple.OZJ", "Data/Effect/Snow_Chip02_red.OZJ"};
+    "Data/Effect/pin_star02_pupple.OZJ", "Data/Effect/Snow_Chip02_red.OZJ",
+    /* RENDER-EFFECTS-016: Fire06 0x7f40, 0x70c's stone particle (LoadBitmap 0x018229e5 in 0x0182049e,
+     * LINEAR/CLAMP) */
+    "Data/Effect/Fire06.OZJ"};
 
 /* The world objects' effect models (AccessModel, static readings of the loaders): the Tormenta handler's
  * hs_fieldtornado (0x00e4c4de). */
