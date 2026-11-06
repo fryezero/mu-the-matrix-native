@@ -11,8 +11,8 @@ model folder only) and after.
 RENDER-ITEMS-TEX-002: the item loader's GL_CLAMP, TextureType and the wearer's skin bitmaps (0x7725 + model +0xa4).
 
 RENDER-ITEMS-TEX-003: the body draws' bitmaps come from every startup LoadBitmap registration, so a body admitted
-later finds its bitmap. What stays white: special mesh names (wearer skin bitmaps) or index 0, which is the object's
-HiddenMesh +0x68 that 35 body call sites pass as the mesh texture (0 in the body executor's domain).
+later finds its bitmap. RENDER-ITEMS-HIDDENMESH supplies ItemObjectAttribute's -1 to the 23 bodies
+that pass +0x68 as the mesh texture. Only unworn hair meshes stay white.
 """
 import json
 import os
@@ -170,6 +170,18 @@ class ItemTextureSurvey(unittest.TestCase):
             self.assertIn('bitmaps 1 missing 0', lines[0])
             self.assertLess(found['white_passes'], missing['white_passes'])
 
+    def test_hiddenmesh_uses_mesh_texture(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root, tsv = self.root(folder, lambda f: 'Data/Item/Texture')
+            model = next((root/'Data/Item').glob('*.bmd'))
+            records = [item_record(0x0f00 - 0x0ae6, b'Data\\Item\\', model.name.encode(), b'HiddenMesh item')]
+            (root/'Data/Local/item.bmd').write_bytes(counted(records, xor3))
+            tsv.write_text('type\tvisibility\tshape\tbody_implemented\tstopped_states\n0x0f00\tweapon\t-\t1\t0\n')
+            result, lines = survey(root, tsv, '--list')
+            self.assertEqual(result['missing_meshes'], 0)
+            self.assertEqual(result['implemented'], 1)
+            self.assertNotIn('0x0000', '\n'.join(lines))
+
     @unittest.skipUnless(PRIVATE, 'installed client data required')
     def test_private_installed_survey(self):
         root = os.environ['MU_GAME_ROOT']
@@ -184,21 +196,19 @@ class ItemTextureSurvey(unittest.TestCase):
         def missing_indices(line):
             words = line.split('\t')[-1].split()   # "bitmaps N missing M i1 i2 ..."
             return words[4:]
-        # RENDER-ITEMS-TEX-003: every bitmap a body draw names is registered except index 0, which no LoadBitmap
-        # registers (the dynamic LoadImage indices start at 0x865d) and which is object +0x68 passed as the mesh
-        # texture. What stays white is a special mesh name (the wearer's skin bitmaps) or index 0.
-        hair = [l for l in lines if not missing_indices(l)]
-        index0 = [l for l in lines if missing_indices(l)]
+        # ItemObjectAttribute now supplies -1, so the 23 former index-0 overrides use each mesh's own bitmap.
+        # Hair still needs a wearer: +0xa4 = 0 names unregistered 0x7776/0x78ba, as in TEX-002.
+        self.assertEqual(after['missing_bitmaps'], 0)
+        self.assertEqual(after['white_types'], 13)
+        self.assertEqual(len(lines), 13)
         for line in lines:
-            self.assertTrue(' special]' in line or missing_indices(line), line)
-        for line in index0:
-            self.assertEqual(set(missing_indices(line)), {'0x0000'}, line)
-        # at +0xa4 = 0, 13 armour types stay white on their hair meshes (0x7776/0x78ba are not registered), as for a
-        # model nobody has worn (RENDER-ITEMS-TEX-002); 23 bodies pass object +0x68 = 0 as a mesh texture
-        self.assertEqual((len(hair), len(index0), after['white_types']), (13, 23, 36))
+            self.assertIn(' special]', line)
+            self.assertEqual(missing_indices(line), [])
         worn, worn_lines = survey(root, TSV, '--wearer')
-        self.assertEqual(worn['white_types'], 23)   # with a wearer only index 0 is left
-        self.assertTrue(all(set(missing_indices(l)) == {'0x0000'} for l in worn_lines), worn_lines)
+        self.assertEqual(worn['white_types'], 0)
+        self.assertEqual(worn['missing_bitmaps'], 0)
+        self.assertEqual(worn_lines, [])
+
 
 
 if __name__ == '__main__':

@@ -1,5 +1,6 @@
 /* Loren Market, world 79. Slots 0x00e6c0ec/0x00e6c1bf/0x00e6c678. */
 #include "worlds_i.h"
+#include "worlds_s3.h"
 #include "worlds_g_internal.h"
 #include "world_visual_internal.h"
 int mu_market_create(uint8_t *o, int32_t index, mu_obj_log *log)
@@ -21,10 +22,10 @@ int mu_market_create(uint8_t *o, int32_t index, mu_obj_log *log)
     }
     return 0;
 }
-int mu_market_move(uint8_t *o, int32_t index, const mu_obj_move_inputs *in, mu_obj_log *log)
+/* The body after the world predicate, shared with Event square (RENDER-WORLDS-S3: 0x00e1ea5c is byte-identical
+ * to 0x00e6c1bf except its predicate call). */
+static int market_move(uint8_t *o, int32_t index, const mu_obj_move_inputs *in, mu_obj_log *log)
 {
-    if (in->world != 79)
-        return 0;
     mu_obj_alpha_step(o);
     if (0.01f > mu_obj_f32(o, MU_OBJF_ALPHA) || !in->has_model)
         return 0;
@@ -50,11 +51,9 @@ int mu_market_move(uint8_t *o, int32_t index, const mu_obj_move_inputs *in, mu_o
     }
     return 0;
 }
-int mu_market_visual(const uint8_t *o, int32_t index, int32_t world, float time,
-                     mu_obj_rand_fn random, mu_login_bone_fn bone, void *context, mu_obj_log *log)
+static int market_visual(const uint8_t *o, int32_t index, float time, mu_obj_rand_fn random, mu_login_bone_fn bone,
+                         void *context, mu_obj_log *log)
 {
-    if (world != 79)
-        return 0;
     const int32_t t = mu_obj_i32(o, MU_OBJF_TYPE);
     const float scale = mu_obj_f32(o, MU_OBJF_SCALE);
     const float zero[3] = {0, 0, 0}, white[3] = {1, 1, 1};
@@ -100,4 +99,32 @@ int mu_market_visual(const uint8_t *o, int32_t index, int32_t world, float time,
     }
     default: return 0;
     }
+}
+int mu_market_move(uint8_t *o, int32_t index, const mu_obj_move_inputs *in, mu_obj_log *log)
+{
+    if (in->world != 79)
+        return 0;
+    return market_move(o, index, in, log);
+}
+int mu_market_visual(const uint8_t *o, int32_t index, int32_t world, float time,
+                     mu_obj_rand_fn random, mu_login_bone_fn bone, void *context, mu_obj_log *log)
+{
+    if (world != 79)
+        return 0;
+    return market_visual(o, index, time, random, bone, context, log);
+}
+/* Event square, world 114 (RENDER-WORLDS-S3): move 0x00e1ea5c and visual 0x00e1ef15 test world 114 (0x00e20416)
+ * and are otherwise byte-identical to Loren Market's; its create 0x00e1e989 is mu_market_create. */
+int mu_event_square_move(uint8_t *o, int32_t index, const mu_obj_move_inputs *in, mu_obj_log *log)
+{
+    if (in->world != 114)
+        return 0;
+    return market_move(o, index, in, log);
+}
+int mu_event_square_visual(const uint8_t *o, int32_t index, int32_t world, float time,
+                           mu_obj_rand_fn random, mu_login_bone_fn bone, void *context, mu_obj_log *log)
+{
+    if (world != 114)
+        return 0;
+    return market_visual(o, index, time, random, bone, context, log);
 }

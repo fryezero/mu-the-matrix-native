@@ -703,6 +703,16 @@ static void scale_light(float out[3], const float light[3], float factor)
         out[k] = light[k] * factor;
 }
 
+/* ItemObjectAttribute 0x016da00b: default -1, with six explicit item exceptions. */
+int32_t mu_rc_item_hidden_mesh(int32_t type)
+{
+    switch (type) {
+    case 0x0b05: case 0x0eed: case 0x0f0b: case 0x1711: case 0x16f6: return 2;
+    case 0x10f0: return 1;
+    default: return -1;
+    }
+}
+
 int mu_rc_item_special(int32_t type)
 {
     if (mu_rc_item_rank5(type) || body_type(type) >= 0 || type == 0x3895 || type == 0x3896 ||
@@ -732,7 +742,8 @@ int mu_rc_item_draws_context(const mu_rc_item *it, mu_rc_model *model, mu_rc_dra
     if ((mu_rc_item_rank5(it->type) || body_type(it->type) >= 0 || (it->type >= 0x3890 && it->type <= 0x38a2)) &&
         (it->a10 != -1 || it->a11 != -1))
         return MU_RC_UNSUPPORTED;
-    if (it->object_hidden != 0 && !(it->type >= 0x2322 && it->type <= 0x2327))
+    if (it->object_hidden != 0 && it->object_hidden != -1 &&
+        it->object_hidden != mu_rc_item_hidden_mesh(it->type) && !(it->type >= 0x2322 && it->type <= 0x2327))
         return MU_RC_UNSUPPORTED;
     /* 0x016ed6e8 and the shared armour fallback: OBJECT blend writes survive the tails. */
     if (it->type == 0x0eee || it->type == 0x18fe || it->type == 0x1cfe) {

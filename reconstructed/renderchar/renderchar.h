@@ -84,7 +84,7 @@ typedef struct mu_rc_item {
     int32_t has_record;     /* item-table record for type-0xae6 exists */
     uint8_t kind_a, kind_b, item_kind; /* record +0x250, +0x251, +0x252 */
     float enchant[3];       /* EnchantEffect colour for the type (table 0x06fbb754 lookup) */
-    int32_t object_hidden;  /* OBJECT +0x68; six seed bodies accept explicit hidden mesh */
+    int32_t object_hidden;  /* OBJECT +0x68; 0/-1 and ItemObjectAttribute exceptions; seeds accept indices */
 } mu_rc_item;
 
 /* Effective glow level (0x0176cf4a..0x0176dce9). */
@@ -135,6 +135,9 @@ int mu_rc_item_draws_generic(const mu_rc_item *item, mu_rc_model *model, mu_rc_d
  * back to the model after helper call k. */
 int mu_rc_item_draws_carry(const mu_rc_item *item, mu_rc_model *model, mu_rc_draw *out, int32_t capacity,
                            int32_t *count, const mu_rc_draw *carry, int32_t carry_count);
+/* ItemObjectAttribute hidden mesh for inventory and ground item objects. */
+int32_t mu_rc_item_hidden_mesh(int32_t type);
+
 /* 1 when the type takes a type-specific branch the library does not reproduce. */
 int mu_rc_item_special(int32_t type);
 

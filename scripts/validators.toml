@@ -2743,6 +2743,25 @@ args = ["--mutations", "--output", "{report}"]
 "families.products.residues" = 15
 "mutants.*" = {truthy = true}
 
+[validate_item_hiddenmesh]
+test = "reconstructed/renderchar/test_item_hiddenmesh.py::ItemHiddenMesh.test_private_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["attributes", "affected", "additional", "controls", "rank5"]
+cases = 116281
+mutants = 6
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar", "reconstructed/model-codec"]
+args = ["--cases", "292", "--mutations", "--output", "{report}"]
+[validate_item_hiddenmesh.expect]
+"families.*.mismatches" = 0
+"families.attributes.cases" = 1691
+"families.affected.cases" = 13432
+"families.controls.cases" = 7592
+"families.additional.cases" = 93148
+"families.rank5.cases" = 418
+"mutants.*" = {all_min = 1}
+
 [validate_app_polish1]
 test = "native/tests/test_app_polish.py::ClientComparison.test_unicorn"
 pins = ["text", "data", "section3"]
@@ -2820,6 +2839,22 @@ mutants_at = "mutants"
 build = ["reconstructed/objects"]
 args = ["--cases", "1000", "--mutations", "--output", "{report}"]
 [validate_worlds_s2.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0
+
+[validate_worlds_s3]
+test = "reconstructed/objects/test_worlds_s3.py::WorldsS3Tests.test_original_instructions"
+pins = ["text", "data"]
+families = ["ig69_create", "ig69_move", "ig70_create", "ig70_move", "ig71_create", "ig71_move", "ig72_create", "ig72_move", "ig69_visual_bones", "ig69_visual_frames", "ig69_visual_emitters", "ig70_visual", "ig71_visual", "ig72_visual_bones", "ig72_visual_frames", "ig72_visual_emitters", "square_create", "square_move", "square_visual", "test_create", "test_move", "test_visual"]
+cases = 22000
+mutants = 75
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+[validate_worlds_s3.expect]
 "families.*.mismatch_count" = 0
 "families.*.stopped" = 0
 "mutants.*.detected" = {all_min = 1}
