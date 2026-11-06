@@ -792,7 +792,7 @@
     },
     {
       "class_id": "world-95",
-      "label": "World 95 class",
+      "label": "Debenter",
       "worlds": [
         95
       ],
@@ -802,21 +802,21 @@
       "handlers": {
         "create": {
           "entry": "0xdbd210",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method; 1000 original-instruction cases, compiled mutants. Predicate 0x00dbd14d (worlds 95/96) executed; switches on OBJECT +0x60, not the type. Key 9 (model pose, bones 23/22, joints 0x7fd6) is refused natively (no pose at creation). See client-worlds-s.md.",
+          "source": "reconstructed/objects/debenter.c"
         },
         "move": {
           "entry": "0xdbd4e6",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method; 1000 original-instruction cases, compiled mutants. SetAction and the action lookup executed as original; types 9/11 without an action record (the original faults) not sampled. See client-worlds-s.md.",
+          "source": "reconstructed/objects/debenter.c"
         },
         "visual": {
           "entry": "0xdbd735",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method; 1000 original-instruction cases, compiled mutants. No null test of object or model; types 11/21 pass an uninitialized local to TransformPosition (zero here). CreateEffect 0x199 with word4 goes to the keyed-effect consumer or is refused and counted. See client-worlds-s.md.",
+          "source": "reconstructed/objects/debenter.c"
         },
         "custom_render": {
           "entry": "0xdbee19",
@@ -1114,15 +1114,15 @@
       "handlers": {
         "create": {
           "entry": "0xd5cb99",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "The BaseMap default: returns false with no request or write; 1000 original-instruction cases, compiled mutant. See client-worlds-s.md.",
+          "source": "reconstructed/objects/worlds_s_stubs.c"
         },
         "move": {
           "entry": "0xd5cc16",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "The BaseMap default: returns false with no request or write; 1000 original-instruction cases, compiled mutant. See client-worlds-s.md.",
+          "source": "reconstructed/objects/worlds_s_stubs.c"
         },
         "visual": {
           "entry": "0xd5cc9b",
@@ -2148,7 +2148,7 @@
     },
     {
       "class_id": "world-139",
-      "label": "World 139 class",
+      "label": "Boss Battle",
       "worlds": [
         139
       ],
@@ -2158,21 +2158,21 @@
       "handlers": {
         "create": {
           "entry": "0xd9c180",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Returns false with no request or write (xor al, al); 1000 original-instruction cases, compiled mutant. See client-worlds-s.md.",
+          "source": "reconstructed/objects/worlds_s_stubs.c"
         },
         "move": {
           "entry": "0xd9c18d",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Returns false with no request or write (xor al, al); 1000 original-instruction cases, compiled mutant. See client-worlds-s.md.",
+          "source": "reconstructed/objects/worlds_s_stubs.c"
         },
         "visual": {
           "entry": "0xd9c1a7",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Returns false with no request or write (xor al, al); 1000 original-instruction cases, compiled mutant. See client-worlds-s.md.",
+          "source": "reconstructed/objects/worlds_s_stubs.c"
         },
         "custom_render": {
           "entry": "0xd9c19a",
@@ -2460,7 +2460,7 @@
     },
     {
       "class_id": "world-145",
-      "label": "World 145 class",
+      "label": "Aquila's Temple",
       "worlds": [
         145
       ],
@@ -2470,21 +2470,21 @@
       "handlers": {
         "create": {
           "entry": "0xd75a6c",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases, compiled mutants. No world predicate; range -150 for types 51/99/120/143/148. See client-worlds-s.md.",
+          "source": "reconstructed/objects/aquila.c"
         },
         "move": {
           "entry": "0xd75ac6",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method; 1000 original-instruction cases, compiled mutants. No world predicate and no null test (null objects not sampled). After-character from alpha < 0.9 for every type; lights of type 90 at the object and 136..140/142 at +0x188. See client-worlds-s.md.",
+          "source": "reconstructed/objects/aquila.c"
         },
         "visual": {
           "entry": "0xd77b3e",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method; 1000 original-instruction cases, compiled mutants. Bone matrix 0x0129fd4f(6) is a recording boundary (native: bone 6 of the posed model, refused and counted without it). See client-worlds-s.md.",
+          "source": "reconstructed/objects/aquila.c"
         },
         "custom_render": {
           "entry": "0xd76059",

@@ -86,6 +86,8 @@ class ManifestTests(unittest.TestCase):
 
     def test_manifest_shape_errors_are_reported(self):
         bad = {'unknown field': '[validate_x]\ntest = "t"\nfrobnicate = 1\n',
+               'targets outside build': '[validate_x]\ntest = "t"\nbuild_targets = { native = ["host"] }\n',
+               'empty targets': '[validate_x]\ntest = "t"\nbuild = ["native"]\nbuild_targets = { native = [] }\n',
                'unknown pin': '[validate_x]\ntest = "t"\npins = ["nope"]\n',
                'undeclared placeholder': '[validate_x]\ntest = "t"\npins = ["text"]\nargs = ["{data}"]\n',
                'helper without parent': '[validate_x]\nkind = "helper"\n',

@@ -29,13 +29,13 @@ N = not reachable through the Warps window or ordinary warps (reason in JSON).
 | World 92 class | 92, 96, 101, 111 | `0x1aa6154` | `0xd7bd7d` M | `0xd7be29` M | `0xd7be80` M | N |
 | CGMCharacterScene_Ex | 93 | `0x1aa7338` | `0xdaa2b2` V | `0xdaa82b` V | `0xdaa9dd` V | E |
 | CGMLogInScene_Ex | 94 | `0x1aaa874` | `0xe24a4d` V | `0xe24acd` V | `0xe24be1` V | E |
-| World 95 class | 95 | `0x1aa7b84` | `0xdbd210` M | `0xdbd4e6` M | `0xdbd735` M | N |
+| Debenter | 95 | `0x1aa7b84` | `0xdbd210` V | `0xdbd4e6` V | `0xdbd735` V | N |
 | Uruk Mountain | 100 | `0x1aac418` | `0xe6f0a2` V | `0xe6f1ca` V | `0xe6f3d5` V | N |
 | World 110 class | 110 | `0x1aaa95c` | `0xe260f0` M | `0xe26668` M | `0xe26ae7` M | N |
 | World 112 class | 112 | `0x1aa86e0` | `0xde5cb0` V | `0xde5de2` V | `0xde6405` V | C |
 | World 113 class | 113 | `0x1aaac94` | `0xe3441c` V | `0xe3473f` V | `0xd5cc9b` V | C |
 | World 114 class | 114 | `0x1aaa60c` | `0xe1e989` M | `0xe1ea5c` M | `0xe1ef15` M | N |
-| World 115 class | 115 | `0x1aaa7dc` | `0xd5cb99` M | `0xd5cc16` M | `0xd5cc9b` V | N |
+| World 115 class | 115 | `0x1aaa7dc` | `0xd5cb99` V | `0xd5cc16` V | `0xd5cc9b` V | N |
 | World 116 class | 116 | `0x1aaafe0` | `0xe3e34b` V | `0xe3e46d` V | `0xd5cc9b` V | C |
 | World 117 class | 117 | `0x1aab0a8` | `0xe3efe6` V | `0xe3f125` V | `0xd5cc9b` V | C |
 | World 118 class | 118 | `0x1aab170` | `0xe3fce8` V | `0xe3fe3c` V | `0xd5cc9b` V | C |
@@ -55,15 +55,15 @@ N = not reachable through the Warps window or ordinary warps (reason in JSON).
 | Burning Kethotum | 136 | `0x1aa6d38` | `0xd9381e` V | `0xd93b31` V | `0xd97186` V | C |
 | World 137 class | 137 | `0x1aa9404` | `0xe08cd8` V | `0xe08f8a` V | `0xe0a4bb` V | C |
 | World 138 class | 138 | `0x1aa9114` | `0xe05afe` V | `0xe05d76` V | `0xe07081` V | C |
-| World 139 class | 139 | `0x1aa7264` | `0xd9c180` M | `0xd9c18d` M | `0xd9c1a7` M | N |
+| Boss Battle | 139 | `0x1aa7264` | `0xd9c180` V | `0xd9c18d` V | `0xd9c1a7` V | N |
 | Bloody Tarkan | 140 | `0x1aa6e74` | `0xd9a022` V | `0xd9a0ad` V | `0xd9ac33` V | C |
 | Tormenta Island | 141 | `0x1aabd10` | `0xe4c6ba` V | `0xe4c95e` V | `0xe4ef4b` V | E |
 | Twisted Karutan | 142 | `0x1aac278` | `0xe67546` V | `0xe6766a` V | `0xe6841f` V | C |
 | Kardamahal | 143 | `0x1aa9930` | `0xe0ea04` V | `0xe0ed1c` V | `0xe117e8` V | C |
 | Swamp of Destruction | 144 | `0x1aab6a8` | `0xe46625` V | `0xe4696f` V | `0xe47bc2` V | C |
-| World 145 class | 145 | `0x1aa5e78` | `0xd75a6c` M | `0xd75ac6` M | `0xd77b3e` M | N |
+| Aquila's Temple | 145 | `0x1aa5e78` | `0xd75a6c` V | `0xd75ac6` V | `0xd77b3e` V | N |
 
-37/48 classes have at least one verified primary method. Of 144 primary methods: 109 verified families, 0 static-only C, 35 missing.
+40/48 classes have at least one verified primary method. Of 144 primary methods: 120 verified families, 0 static-only C, 24 missing.
 Original populated captures: 27 classes from DATA-ACQ-002, 5 from earlier live reads, 16 not reachable by warp.
 
 The companion [JSON](world-handler-coverage.json) records factory, constructor and related entry points
