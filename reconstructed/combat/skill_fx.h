@@ -178,6 +178,8 @@ typedef struct mu_sfx_effect {
     float field_cc;          /* +0xcc the shoal's pitch swing (0x199; +0xc8 gravity is its yaw swing) */
     /* RENDER-EFFECTS-007 */
     float field_188[3];      /* +0x188 the arrows' trail point (position, or one step ahead) */
+    /* RENDER-EFFECTS-011 */
+    float field_d8;          /* +0xd8 effect 0x70c's pulse (pow((1 - |20 - 2 (life - 30)| / 20), 2)) */
 } mu_sfx_effect;
 
 /* CreateEffect's info block (argument 8, 0x20 bytes). */
@@ -501,5 +503,9 @@ typedef struct mu_sfx_mesh_pass {
 int mu_sfx_arrow_render_passes(const mu_sfx_effect *e, float world_time, mu_sfx_mesh_pass out[MU_SFX_MESH_PASSES]);
 /* The speed those functors give the tick 0x012b4dd3: the record's +0xbc, 0.003 for 0x614 (0x00a429be). */
 float mu_sfx_arrow_tick_speed(const mu_sfx_effect *e);
+/* RENDER-EFFECTS-011: RenderEffects' case 0x45e (0x01518f49), each drawn frame: the tick speed (twice the record's)
+ * and its two particles (0x7f5a/0x6d, 0x8108/3, owner this effect) through env->call; *decal for subtypes 3..7
+ * (the terrain decal 0x8002); *draws: RenderObject once or twice. Returns 0 for other types. */
+int mu_sfx_arrow_render_extras(mu_sfx_effect *e, const mu_sfx_env *env, float *tick_speed, int *decal, int *draws);
 
 #endif

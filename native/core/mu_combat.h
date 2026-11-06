@@ -112,6 +112,8 @@ enum {
     MU_COMBAT_MODEL_INFERNO, MU_COMBAT_MODEL_LASER, MU_COMBAT_MODEL_STONE1, MU_COMBAT_MODEL_STONE2,
     MU_COMBAT_MODEL_WEAPON, MU_COMBAT_MODEL_ICE, MU_COMBAT_MODEL_ICE_DEBRIS,
     MU_COMBAT_MODEL_WAVE,
+    /* RENDER-EFFECTS-011: the bows' effects 0x477 (m_Waves), 0x60b (Darkangel_effect), 0x611 (ringofpower) */
+    MU_COMBAT_MODEL_RING, MU_COMBAT_MODEL_BURST, MU_COMBAT_MODEL_POWER_RING, MU_COMBAT_MODEL_FEATHER,
     /* RENDER-EFFECTS-004: Rageful Blow's pieces */
     MU_COMBAT_MODEL_QUAKE1, MU_COMBAT_MODEL_QUAKE2, MU_COMBAT_MODEL_QUAKE3, MU_COMBAT_MODEL_QUAKE4,
     MU_COMBAT_MODEL_QUAKE5, MU_COMBAT_MODEL_QUAKE7, MU_COMBAT_MODEL_QUAKE8, MU_COMBAT_MODEL_FLASHING,
@@ -126,7 +128,9 @@ enum {
 /* RENDER-EFFECTS-009: the object index of effect record i as a joint target (the arrows' own joints, owner "this
  * effect"); other effects keep no object */
 #define MU_COMBAT_EFFECT_OBJECT(i) (MU_COMBAT_HERO_OBJECT + 1 + (i))
-/* RENDER-EFFECTS-009: bow 0x12f9's spark bone when the link-bone byte lies outside the hero's record (inference) */
+/* RENDER-EFFECTS-009: bow 0x12f9's spark bone when the link-bone byte lies outside the hero's record.
+ * RENDER-EFFECTS-011: live read 2026-11-04, the hero (Nighty) in Lorencia: [[0x0a39d754] + 0x9c4d] = 0 (and the 32
+ * bytes around it); verified for that state, the other slot may hold data in a crowded scene */
 #define MU_COMBAT_SPARK_BONE 0
 
 /* One AddTerrainLight call of the last logic step (re-applied after the
@@ -164,6 +168,7 @@ typedef struct mu_combat_stats {
     uint32_t hero_shocks, hero_deaths;
     uint32_t monster_voices;  /* NATIVE-ITEMS-001: monster hurt and death sounds played */
     uint32_t bow_sparks;      /* RENDER-EFFECTS-009: bow 0x12f9's spark particles */
+    uint32_t render_decals;   /* RENDER-EFFECTS-011: 0x45e subtypes 3..7 terrain decals (counted, not drawn) */
 } mu_combat_stats;
 
 struct mu_world_particles;
@@ -177,7 +182,7 @@ typedef struct mu_combat {
     uint32_t actor_revisions[MU_WORLD_ACTORS_MAX];
     /* NATIVE-PARTICLE-001: when set, CreateSprite calls and the particle kinds skill_fx does not reconstruct go
      * to the legacy particle module (mu_particles.h), which draws them in its sprite pass. */
-    struct mu_world_particles *legacy_particles;
+    struct mu_world_particles *legacy_particles;   /* its combat_object: mu_combat_object (RENDER-EFFECTS-011) */
     mu_walk *walk;
     mu_character *hero_character;
     mu_world_actors *actors;
@@ -241,6 +246,9 @@ typedef struct mu_combat {
 int mu_combat_init(mu_combat *combat, const char *game_root, mu_walk *walk, mu_character *hero,
                    mu_world_actors *actors, const mu_combat_config *config, char *error, size_t error_size);
 void mu_combat_free(mu_combat *combat);
+/* RENDER-EFFECTS-011: the session's OBJECT by index (actors, the hero, the arrow effects), NULL outside; the
+ * world particle module's combat_object for arrow-owned particles. */
+const mu_jt_object *mu_combat_object(void *combat, int32_t index);
 
 /* Item model file of the demo weapon (Data/Item/...), NULL for fists. */
 const char *mu_combat_weapon_file(int32_t weapon);
