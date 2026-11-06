@@ -251,6 +251,8 @@ class JointTests(unittest.TestCase):
     def test_skill_fx_wraps_the_module(self):
         # NATIVE-COMBAT-002's mu_sfx_joint_create is mu_jt_create: one implementation
         sf = self.v.sf
+        # this suite builds what it links against: a fresh worktree has no libcombat yet (TEST-SPEED-003)
+        subprocess.run(['make', '-C', str(ROOT/'reconstructed/combat')], check=True, capture_output=True)
         combat = sf.load_library(ROOT/f'reconstructed/combat/libcombat.{SUFFIX}')
         for kind, scale in (((0x7fd8, 1), 5.0), ((0x7fd3, 0), 80.0), ((0x7f7d, 0x11), 1.0)):
             mine, ok, fx = self.create(kind, [5, 9], scale=scale, target=-1)
