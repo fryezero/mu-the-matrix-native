@@ -92,8 +92,30 @@ int main(void)
     const int32_t small = decal_quads_scene(c, &scene, 0.0f, quads, 10);
     assert(small == 10 && c->stats.decal_quads_dropped == (uint32_t)(n - 10));
 
+    /* 0x45e subtype 3 (no arrow uses it, so no scene shows it): PoundingBall 0x8002, size 2, light 0.3, turned by
+     * WorldTime, additive */
+    for (int k = 0; k < c->bitmap_count; ++k)
+        if (c->bitmaps[k].id == 0x8002) {
+            c->bitmaps[k].loaded = 1;
+            c->bitmaps[k].image.width = c->bitmaps[k].image.height = 4;
+        }
+    rain->live = 0;
+    mu_sfx_effect *ball = &c->effects[1];
+    memset(ball, 0, sizeof *ball);
+    ball->live = 1; ball->type = 0x45e; ball->subtype = 3;
+    ball->position[0] = at[0]; ball->position[1] = at[1];
+    mu_sfx_render_op ops[MU_SFX_RENDER_OPS];
+    assert(mu_sfx_effect_render_ops(ball, 90.0f, ops) == 2 && ops[0].routine == MU_SFX_RENDER_BLEND_ADD &&
+           ops[1].texture == 0x8002 && ops[1].size_x == 2.0f && ops[1].rotation == 90.0f &&
+           ops[1].light[0] == ops[1].light[2] && ops[1].light[0] > 0.29f && ops[1].light[0] < 0.31f);
+    const uint32_t before45e = c->stats.render_decals;
+    assert(decal_quads_scene(c, &scene, 90.0f, quads, MU_COMBAT_DECAL_QUADS) == 49 &&
+           c->stats.render_decals == before45e + 1 && quads[0].additive);
+    ball->subtype = 2;   /* the arrows' subtypes lay none */
+    assert(mu_sfx_effect_render_ops(ball, 90.0f, ops) == 0);
+
     free(c->walk);
     free(c);
-    puts("0x70a rings, sound site, rain arrows, landing flag and terrain decals through native routes: OK");
+    puts("0x70a rings, sound site, rain arrows, landing flag and terrain decals (0x70a, 0x45e/3) through native routes: OK");
     return 0;
 }

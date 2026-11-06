@@ -259,7 +259,7 @@ static void load_models(mu_combat *c, const char *root)
         {0x704, "Data/Effect/min_elf_skill_ring05.bmd"}, {0x705, "Data/Effect/min_elf_skill_ring06.bmd"},
         {0x706, "Data/Effect/min_elf_skill_ring07.bmd"}, {0x707, "Data/Effect/min_elf_skill_ring08.bmd"},
     };
-    int32_t quake_missing = 0;
+    int32_t quake_missing = 0, rings_missing = 0;
     for (int i = 0; i < MU_COMBAT_MODELS; ++i) {
         mu_combat_model *m = &c->models[i];
         m->type = files[i].type;
@@ -288,6 +288,10 @@ static void load_models(mu_combat *c, const char *root)
         if (mu_bmd_load_file(path, &m->bmd, message, sizeof message) != MU_BMD_OK) {
             if (i >= MU_COMBAT_MODEL_QUAKE1 && i < MU_COMBAT_MODEL_ELF_RING1) {   /* RENDER-EFFECTS-004: one summary line for Rageful Blow's pieces */
                 ++quake_missing;
+                continue;
+            }
+            if (i >= MU_COMBAT_MODEL_ELF_RING1) {   /* RENDER-EFFECTS-015: likewise for the ground skills' rings */
+                ++rings_missing;
                 continue;
             }
             snprintf(text, sizeof text, "model 0x%x missing (%s)", m->type, file);
@@ -332,6 +336,11 @@ static void load_models(mu_combat *c, const char *root)
         char text[96];
         snprintf(text, sizeof text, "Rageful Blow models: %d of %d missing", quake_missing,
                  MU_COMBAT_MODEL_ELF_RING1 - MU_COMBAT_MODEL_QUAKE1);
+        log_line(c, text);
+    }
+    if (rings_missing) {
+        char text[96];
+        snprintf(text, sizeof text, "ground-skill ring models: %d of 8 missing", rings_missing);
         log_line(c, text);
     }
 }

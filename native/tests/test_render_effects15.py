@@ -33,8 +33,8 @@ class Native(unittest.TestCase):
             self.assertEqual(p.returncode, 0, p.stderr)
             p = subprocess.run([str(host)], capture_output=True, text=True)
             self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
-            self.assertIn('0x70a rings, sound site, rain arrows, landing flag and terrain decals through native '
-                          'routes: OK', p.stdout)
+            self.assertIn('0x70a rings, sound site, rain arrows, landing flag and terrain decals (0x70a, 0x45e/3) '
+                          'through native routes: OK', p.stdout)
 
 
 @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'requires pinned private instructions')
