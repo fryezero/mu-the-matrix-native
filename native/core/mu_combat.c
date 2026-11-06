@@ -165,32 +165,40 @@ static int startup_bitmap_name(const char *root, const char *name, char *path, s
 
 /* ---------------------------------------------------------------- resources */
 
-static const struct { int32_t id; const char *dir, *name; char kind; } bitmap_files[] = {
-    {MU_BITMAP_FONT_DAMAGE, "Interface", "Font_Damage.tga", 't'},
-    {0x7dfe, "Interface", "FontSC.tga", 't'},
-    {0x7df3, "Interface", "Hit.tga", 't'},
-    {0x7df4, "Interface", "font_miss.tga", 't'},
-    {0x7df5, "Interface", "resist.tga", 't'},
-    {0x7df6, "Interface", "block.tga", 't'},
-    {0x7df7, "Interface", "parry.tga", 't'},
-    {0x7df8, "Interface", "absorb.tga", 't'},
-    {0x7f2b, "Effect", "Thunder01.jpg", 'j'},
-    {0x7f84, "Effect", "Magic_Ground2.jpg", 'j'},
-    {0x7f3c, "Effect", "Fire01.jpg", 'j'},          /* LoadBitmap 0x0185baac call sites (static) */
-    {0x7f26, "Effect", "Spark03.jpg", 'j'},
-    {0x7fd8, "Effect", "JointEnergy01.jpg", 'j'},
-    {0x7fd3, "Effect", "JointSpirit01.jpg", 'j'},
-    {0x7fd5, "Effect", "Spark01.jpg", 'j'},         /* the Twisting Slash swirl's spark joints (NATIVE-JOINT-001) */
-    {0x7fd6, "Effect", "JointLaser01.jpg", 'j'},    /* RENDER-EFFECTS-009: the arrows' 0x7fd6/5 trails */
-    {0x7f79, "Effect", "Flare02.jpg", 'j'},
-    {0x7f78, "Effect", "Flare.jpg", 'j'},           /* RENDER-EFFECTS-014: 0x459's Flare/b joints */
-    {0x80e3, "Effect", "force_Pillar.jpg", 'j'},
-    {0x80e4, "Effect", "!SwordEff.jpg", 'j'},
-    {0x814c, "Skill", "sharke_arrows.jpg", 'j'},
-    {0x8182, "Effect", "devil_arrow.jpg", 'j'},
-    {0x8185, "Effect", "arrows_angelic.jpg", 'j'},
-    {0x828c, "Effect", "Swordeff_mono2.jpg", 'j'},
-    {0x85cc, "Effect", "Swordeff_mono3.jpg", 'j'},
+static const struct { int32_t id; const char *dir, *name; char kind; uint32_t wrap; } bitmap_files[] = {
+    {MU_BITMAP_FONT_DAMAGE, "Interface", "Font_Damage.tga", 't', 0},
+    {0x7dfe, "Interface", "FontSC.tga", 't', 0},
+    {0x7df3, "Interface", "Hit.tga", 't', 0},
+    {0x7df4, "Interface", "font_miss.tga", 't', 0},
+    {0x7df5, "Interface", "resist.tga", 't', 0},
+    {0x7df6, "Interface", "block.tga", 't', 0},
+    {0x7df7, "Interface", "parry.tga", 't', 0},
+    {0x7df8, "Interface", "absorb.tga", 't', 0},
+    {0x7f2b, "Effect", "Thunder01.jpg", 'j', 0},
+    {0x7f84, "Effect", "Magic_Ground2.jpg", 'j', 0},
+    {0x7f3c, "Effect", "Fire01.jpg", 'j', 0},          /* LoadBitmap 0x0185baac call sites (static) */
+    {0x7f26, "Effect", "Spark03.jpg", 'j', 0},
+    {0x7fd8, "Effect", "JointEnergy01.jpg", 'j', 0},
+    {0x7fd3, "Effect", "JointSpirit01.jpg", 'j', 0},
+    {0x7fd5, "Effect", "Spark01.jpg", 'j', 0},         /* the Twisting Slash swirl's spark joints (NATIVE-JOINT-001) */
+    {0x7fd6, "Effect", "JointLaser01.jpg", 'j', 0},    /* RENDER-EFFECTS-009: the arrows' 0x7fd6/5 trails */
+    {0x7f79, "Effect", "Flare02.jpg", 'j', 0},
+    {0x7f78, "Effect", "Flare.jpg", 'j', 0},           /* RENDER-EFFECTS-014: 0x459's Flare/b joints */
+    {0x80e3, "Effect", "force_Pillar.jpg", 'j', 0},
+    {0x80e4, "Effect", "!SwordEff.jpg", 'j', 0},
+    {0x814c, "Skill", "sharke_arrows.jpg", 'j', 0},
+    {0x8182, "Effect", "devil_arrow.jpg", 'j', 0},
+    {0x8185, "Effect", "arrows_angelic.jpg", 'j', 0},
+    {0x828c, "Effect", "Swordeff_mono2.jpg", 'j', 0},
+    {0x85cc, "Effect", "Swordeff_mono3.jpg", 'j', 0},
+    /* RENDER-EFFECTS-015: RenderEffects' terrain decals of 0x70a, 0x70c and 0x45e (startup LoadBitmap calls in
+     * 0x0182049e, 0x0182cd66 and the opener 0x01832af3, LINEAR and GL_CLAMP; mu_item_bitmaps.inc) */
+    {0x8070, "Effect", "empact01.jpg", 'j', 0x2900}, {0x7f87, "Effect", "enemy_ring02.jpg", 'j', 0x2900},
+    {0x8147, "Effect", "Shockwave2.jpg", 'j', 0x2900}, {0x824c, "Effect", "Wave.jpg", 'j', 0x2900},
+    {0x8078, "Effect", "lightmarks.jpg", 'j', 0x2900}, {0x7fe9, "Effect", "Cratered.tga", 't', 0x2900},
+    {0x810a, "Effect", "pin_star03.jpg", 'j', 0x2900}, {0x8155, "Effect", "Spark04.jpg", 'j', 0x2900},
+    {0x8179, "Effect", "bostar3_R.jpg", 'j', 0x2900}, {0x8013, "Effect", "damage01mono.jpg", 'j', 0x2900},
+    {0x8002, "Effect", "PoundingBall.jpg", 'j', 0x2900},
 };
 
 _Static_assert(sizeof bitmap_files / sizeof bitmap_files[0] == MU_COMBAT_BITMAPS, "combat bitmap capacity");
@@ -207,19 +215,30 @@ static int32_t bitmap_slot(const mu_combat *c, int32_t id)
 
 static void load_bitmaps(mu_combat *c, const char *root)
 {
+    int32_t decals_missing = 0;
     for (size_t i = 0; i < sizeof bitmap_files / sizeof bitmap_files[0] && c->bitmap_count < MU_COMBAT_BITMAPS; ++i) {
         mu_combat_bitmap *b = &c->bitmaps[c->bitmap_count++];
         b->id = bitmap_files[i].id;
+        b->wrap = bitmap_files[i].wrap;
         char directory[2048], path[4096], error[256], text[96];
         snprintf(directory, sizeof directory, "%s/Data/%s", root, bitmap_files[i].dir);
         if (!mu_image_resolve(directory, bitmap_files[i].name, path, sizeof path) ||
             mu_texture_upload_file(path, bitmap_files[i].kind, &b->image, &b->components, error, sizeof error) !=
                 MU_IMAGE_OK) {
+            if (bitmap_files[i].wrap) {   /* RENDER-EFFECTS-015: one summary line for the decal bitmaps */
+                ++decals_missing;
+                continue;
+            }
             snprintf(text, sizeof text, "bitmap 0x%x (%s) missing", b->id, bitmap_files[i].name);
             log_line(c, text);
             continue;
         }
         b->loaded = 1;
+    }
+    if (decals_missing) {
+        char text[96];
+        snprintf(text, sizeof text, "ground-skill decal bitmaps: %d of 11 missing", decals_missing);
+        log_line(c, text);
     }
 }
 
@@ -243,8 +262,14 @@ static void load_models(mu_combat *c, const char *root)
         {0x466, "Data/Skill/EarthQuake05.bmd"}, {0x468, "Data/Skill/EarthQuake07.bmd"},
         {0x469, "Data/Skill/EarthQuake08.bmd"}, {0x46a, "Data/Skill/flashing.bmd"}, {0x46b, "Data/Skill/tail.bmd"},
         {-1, NULL},   /* MU_COMBAT_MODEL_BOW_ARROW: chosen from the bow below */
+        /* RENDER-EFFECTS-015: AccessModel(0x700..0x707, "Data\\Effect\\", min_elf_skill_ring01..08), textures
+         * Effect\\ (0x018271fa..0x0182736d, static) */
+        {0x700, "Data/Effect/min_elf_skill_ring01.bmd"}, {0x701, "Data/Effect/min_elf_skill_ring02.bmd"},
+        {0x702, "Data/Effect/min_elf_skill_ring03.bmd"}, {0x703, "Data/Effect/min_elf_skill_ring04.bmd"},
+        {0x704, "Data/Effect/min_elf_skill_ring05.bmd"}, {0x705, "Data/Effect/min_elf_skill_ring06.bmd"},
+        {0x706, "Data/Effect/min_elf_skill_ring07.bmd"}, {0x707, "Data/Effect/min_elf_skill_ring08.bmd"},
     };
-    int32_t quake_missing = 0;
+    int32_t quake_missing = 0, rings_missing = 0;
     for (int i = 0; i < MU_COMBAT_MODELS; ++i) {
         mu_combat_model *m = &c->models[i];
         m->type = files[i].type;
@@ -271,8 +296,12 @@ static void load_models(mu_combat *c, const char *root)
         char path[4096], message[512], text[96];
         snprintf(path, sizeof path, "%s/%s", root, file);
         if (mu_bmd_load_file(path, &m->bmd, message, sizeof message) != MU_BMD_OK) {
-            if (i >= MU_COMBAT_MODEL_QUAKE1) {   /* RENDER-EFFECTS-004: one summary line for Rageful Blow's pieces */
+            if (i >= MU_COMBAT_MODEL_QUAKE1 && i < MU_COMBAT_MODEL_ELF_RING1) {   /* RENDER-EFFECTS-004: one summary line for Rageful Blow's pieces */
                 ++quake_missing;
+                continue;
+            }
+            if (i >= MU_COMBAT_MODEL_ELF_RING1) {   /* RENDER-EFFECTS-015: likewise for the ground skills' rings */
+                ++rings_missing;
                 continue;
             }
             snprintf(text, sizeof text, "model 0x%x missing (%s)", m->type, file);
@@ -316,7 +345,12 @@ static void load_models(mu_combat *c, const char *root)
     if (quake_missing) {
         char text[96];
         snprintf(text, sizeof text, "Rageful Blow models: %d of %d missing", quake_missing,
-                 MU_COMBAT_MODELS - MU_COMBAT_MODEL_QUAKE1);
+                 MU_COMBAT_MODEL_ELF_RING1 - MU_COMBAT_MODEL_QUAKE1);
+        log_line(c, text);
+    }
+    if (rings_missing) {
+        char text[96];
+        snprintf(text, sizeof text, "ground-skill ring models: %d of 8 missing", rings_missing);
         log_line(c, text);
     }
 }
@@ -483,8 +517,8 @@ static void effect_object(mu_combat *c, const mu_sfx_effect *e)
         return;
     mu_sfx_object *o = &c->objects[MU_COMBAT_EFFECT_OBJECT(i)];
     memset(o, 0, sizeof *o);
-    if (!mu_sfx_is_arrow(e->type))
-        return;
+    if (!mu_sfx_is_arrow(e->type) && e->type != 0x70a)
+        return;   /* RENDER-EFFECTS-015: 0x70a owns the arrows of its rain (their CreateEffect reads its +0x158) */
     o->live = e->live;
     o->visible = e->live;
     o->type = e->type;
@@ -622,6 +656,38 @@ static void check_arrow(mu_combat *c, mu_sfx_effect *e)
     }
 }
 
+/* RENDER-EFFECTS-004: the hero as CreateArrow's archer; the services the native session does not model answer as
+ * for a character without master-tree skills, item option 0x54 or skill-tree value */
+static void hero_archer(const mu_combat *c, mu_sfx_archer *a)
+{
+    memset(a, 0, sizeof *a);
+    a->weapon = (int16_t)c->weapon_item[0];
+    a->is_hero = 1;
+    a->hero_weapon = c->weapon_item[0] < 0 ? -1 : c->weapon_item[0] - 0xae6;
+    a->key = (uint16_t)c->hero_key;
+}
+
+/* RENDER-EFFECTS-015: MoveEffect 0x70a's CreateArrow(caster, this effect, 0, 0x7e7, 0x7e7, 0x7e7, 0) (0x014d1cc6,
+ * 0x014d1f20, 0x014d20cb): the hero's bow's arrow from the effect's moved position, owned by the effect (its +0x64
+ * is the landing-sound flag). The arrow's CreateEffect reads the owner's position at the call. */
+static void rain_arrow(mu_combat *c, const mu_sfx_call *call, mu_sfx_effect *e)
+{
+    if (!e || e < c->effects || e >= c->effects + MU_SFX_EFFECTS)
+        return;
+    effect_object(c, e);
+    mu_sfx_archer a;
+    hero_archer(c, &a);
+    mu_sfx_arrow_effect out;
+    if (!mu_sfx_create_arrow(&a, call->position, call->angle, (uint16_t)call->type, (uint16_t)call->subtype,
+                             (uint16_t)call->range, 0, &c->env, &out) ||
+        out.routine != MU_SFX_CALL_ARROW_EFFECT || out.owner != MU_SFX_ARROW_OWNER_OBJECT) {
+        unsupported(c, 'a', c->weapon_item[0], call->type);
+        return;
+    }
+    create_effect(c, out.type, out.subtype, out.position, out.angle, call->light,
+                  MU_COMBAT_EFFECT_OBJECT((int32_t)(e - c->effects)), &out.info);
+}
+
 static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
 {
     mu_combat *c = context;
@@ -697,6 +763,14 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
             check_arrow(c, e);
         return 0;
     case MU_SFX_CALL_OWNER_FLAG: {   /* RENDER-EFFECTS-010: test and set the owner's +0x64 */
+        if (call->owner >= MU_COMBAT_EFFECT_OBJECT(0) && call->owner < MU_COMBAT_EFFECT_OBJECT(MU_SFX_EFFECTS)) {
+            /* RENDER-EFFECTS-015: the rain's arrows: the 0x70a record's own +0x64, cleared at its creation */
+            mu_sfx_effect *owner = &c->effects[call->owner - MU_COMBAT_EFFECT_OBJECT(0)];
+            const int32_t flag = owner->field_64;
+            if (flag == 0)
+                owner->field_64 = 1;
+            return flag != 0;
+        }
         for (int32_t i = 0; i < c->ground_owner_count; ++i)
             if (c->ground_owner[i] == call->owner)
                 return 1;
@@ -713,8 +787,17 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
             }
         }
         return 0;
-    case MU_SFX_CALL_SOUND:
-        play(c, mu_combat_effect_sound(call->type), -3);
+    case MU_SFX_CALL_SOUND: {
+        mu_combat_audio d = mu_combat_effect_sound(call->type);
+        if (!d.site)   /* RENDER-EFFECTS-015: the reconstructed routines' other PlayBuffer sites */
+            d.site = mu_sfx_sound_site(call->type, &d.routine);
+        play(c, d, -3);
+        return 0;
+    }
+    case MU_SFX_CALL_CASTER:   /* RENDER-EFFECTS-015: the character with the key; offline only the hero */
+        return (uint16_t)call->range == (uint16_t)c->hero_key && !c->hero_dead;
+    case MU_SFX_CALL_CREATE_ARROW:
+        rain_arrow(c, call, e);
         return 0;
     case MU_SFX_CALL_ATTRIBUTE: {   /* RENDER-EFFECTS-010: TerrainWall[TERRAIN_INDEX(x, y)] (the lobbed Arrow01) */
         const int32_t index = ((call->range & 0xff) << 8) + (call->subtype & 0xff);
@@ -921,11 +1004,7 @@ static void create_arrows(mu_combat *c, uint16_t skill, uint16_t flag, uint16_t 
     float pos[3], angle[3], light[3];
     hero_frame(c, pos, angle, light);
     mu_sfx_archer a;
-    memset(&a, 0, sizeof a);
-    a.weapon = c->weapon_item[0];
-    a.is_hero = 1;
-    a.hero_weapon = c->weapon_item[0] < 0 ? -1 : c->weapon_item[0] - 0xae6;
-    a.key = (uint16_t)c->hero_key;
+    hero_archer(c, &a);
     mu_sfx_arrow_shots shots;
     mu_sfx_create_arrows(&a, angle, skill, flag, index, &shots);
     for (int k = 0; k < shots.count && k < MU_SFX_ARROW_SHOTS; ++k) {
@@ -1104,9 +1183,12 @@ static void move_pools(mu_combat *c)
 {
     c->light_count = 0;
     refresh_objects(c);
-    for (int i = 0; i < MU_SFX_EFFECTS; ++i)
+    for (int i = 0; i < MU_SFX_EFFECTS; ++i) {
         if (c->effects[i].live && !mu_sfx_effect_move(&c->effects[i], &c->env))
             c->effects[i].live = 0;   /* an unsupported kind ends at once */
+        if (c->effects[i].type == 0x70a)
+            effect_object(c, &c->effects[i]);   /* RENDER-EFFECTS-015: its arrows read it later in this pass */
+    }
     for (int i = 0; i < MU_SFX_EFFECTS; ++i)
         effect_object(c, &c->effects[i]);   /* MoveJoints reads the arrows after MoveEffects (RENDER-EFFECTS-009) */
     c->jenv.serial = c->serial;
@@ -1267,8 +1349,8 @@ void mu_combat_attack(mu_combat *c, int32_t actor)
 /* RENDER-EFFECTS-014 (offline fixture): the ground skill 0x7fc / 0x7fd as the client's receive handler
  * 0x0125f53d..0x0125f5d9 runs it for a caster, here the hero: CreateEffect(0x70a, subtype 1 / 0, the hero, its key,
  * scale 1) and for 0x7fc CreateArrows(c, o, 0, 0x7fc, 1, 0) (0x0125f5d1). SetAction 0x012b001a(c, skill, 0x107, -1)
- * is not modelled and no request is sent. 0x70a (create 0x01418f78, move 0x014d1a18) is not reconstructed: it is
- * counted unsupported, and the skill-0x7e7 arrows its move fires (whose landings make 0x70c) do not occur. */
+ * is not modelled and no request is sent. RENDER-EFFECTS-015: 0x70a (create 0x01418f78, move 0x014d1a18, bow_fx.inc)
+ * rains the hero's skill-0x7e7 arrows (rain_arrow), whose landings make 0x70c, its rings and stones. */
 static void ground_volley(mu_combat *c, int32_t skill)
 {
     float pos[3], angle[3], light[3];
@@ -1788,6 +1870,132 @@ int32_t mu_combat_quads(mu_combat *c, mu_combat_quad *quads, int32_t max)
     return n;
 }
 
+/* ---------------------------------------------------------------- RENDER-EFFECTS-015: terrain decals */
+
+typedef struct decal_sink {
+    mu_combat *c;
+    mu_combat_quad *quads;
+    int32_t max, n, bitmap, count;
+    int32_t routine;          /* the blend wrapper in effect */
+    float color[4], uv[2];
+    float corner[4][5];
+} decal_sink;
+
+static void dq_state(void *x, int32_t state, int32_t argument) { (void)x, (void)state, (void)argument; }
+static void dq_bind(void *x, int32_t texture) { decal_sink *d = x; d->bitmap = bitmap_slot(d->c, texture); }
+static void dq_begin(void *x, int32_t mode) { decal_sink *d = x; (void)mode; d->count = 0; }
+static void dq_tex(void *x, float u, float v) { decal_sink *d = x; d->uv[0] = u, d->uv[1] = v; }
+
+static float unit(float v) { return v < 0.0f ? 0.0f : (v > 1.0f ? 1.0f : v); }   /* glColor's clamp */
+
+static void dq_color3(void *x, const float rgb[3])
+{
+    decal_sink *d = x;
+    for (int k = 0; k < 3; ++k)
+        d->color[k] = unit(rgb[k]);
+    d->color[3] = 1.0f;
+}
+
+static void dq_color4(void *x, float r, float g, float b, float a)
+{
+    decal_sink *d = x;
+    d->color[0] = unit(r), d->color[1] = unit(g), d->color[2] = unit(b), d->color[3] = unit(a);
+}
+
+static void dq_vertex(void *x, const float xyz[3])
+{
+    decal_sink *d = x;
+    if (d->count < 4) {
+        float *v = d->corner[d->count++];
+        v[0] = xyz[0], v[1] = xyz[1], v[2] = xyz[2], v[3] = d->uv[0], v[4] = d->uv[1];
+    }
+}
+
+/* one tile's GL_TRIANGLE_FAN of four corners = one quad (triangles 0-1-2, 0-2-3) */
+static void dq_end(void *x)
+{
+    decal_sink *d = x;
+    if (d->bitmap < 0 || d->count != 4)
+        return;
+    ++d->c->stats.decal_quads;
+    if (d->n >= d->max) {
+        ++d->c->stats.decal_quads_dropped;
+        return;
+    }
+    mu_combat_quad *q = &d->quads[d->n++];
+    memset(q, 0, sizeof *q);
+    q->bitmap = d->bitmap;
+    q->depth_test = 1;
+    if (d->routine == MU_SFX_RENDER_BLEND_ALPHA) {
+        q->src = 0x0302;   /* EnableAlphaTest: (SRC_ALPHA, ONE_MINUS_SRC_ALPHA) */
+        q->dst = 0x0303;
+    } else {
+        q->additive = 1;   /* EnableAlphaBlend: (ONE, ONE) */
+    }
+    for (int v = 0; v < 4; ++v) {
+        memcpy(q->position[v], d->corner[v], sizeof q->position[v]);
+        q->texcoord[v][0] = d->corner[v][3];
+        q->texcoord[v][1] = d->corner[v][4];
+        memcpy(q->color[v], d->color, sizeof q->color[v]);
+    }
+}
+
+static int dq_texture_size(void *x, int32_t texture, float *width, float *height)
+{
+    const mu_combat *c = x;
+    const int32_t slot = bitmap_slot(c, texture);
+    if (slot < 0)
+        return 0;
+    *width = (float)c->bitmaps[slot].image.width;
+    *height = (float)c->bitmaps[slot].image.height;
+    return 1;
+}
+
+/* the decals of the live effects over a terrain description (the session's map, or a test's) */
+static int32_t decal_quads_scene(mu_combat *c, mu_terrain_scene *scene, float world_time, mu_combat_quad *quads,
+                                 int32_t max)
+{
+    scene->texture_size = dq_texture_size;
+    scene->texture_context = c;
+    decal_sink d;
+    memset(&d, 0, sizeof d);
+    d.c = c;
+    d.quads = quads;
+    d.max = max;
+    d.bitmap = -1;
+    d.routine = MU_SFX_RENDER_BLEND_ADD;
+    const mu_terrain_sink sink = {&d, dq_state, dq_bind, dq_begin, dq_tex, dq_color3, dq_color4, dq_vertex, dq_end};
+    for (int i = 0; i < MU_SFX_EFFECTS; ++i) {
+        const mu_sfx_effect *e = &c->effects[i];
+        if (!e->live)
+            continue;
+        mu_sfx_render_op ops[MU_SFX_RENDER_OPS];
+        const int count = mu_sfx_effect_render_ops(e, world_time, ops);
+        for (int k = 0; k < count; ++k) {
+            const mu_sfx_render_op *op = &ops[k];
+            if (op->routine != MU_SFX_RENDER_DECAL) {
+                d.routine = op->routine;
+                continue;
+            }
+            ++c->stats.decals;
+            if (e->type == 0x45e)
+                ++c->stats.render_decals;
+            mu_terrain_decal(scene, op->texture, op->x, op->y, op->size_x, op->size_y, op->light, op->rotation,
+                             op->alpha, op->height, op->follow, op->flip, &sink);
+        }
+    }
+    return d.n;
+}
+
+int32_t mu_combat_decal_quads(mu_combat *c, mu_combat_quad *quads, int32_t max)
+{
+    if (!c->map)
+        return 0;
+    mu_terrain_scene scene;
+    mu_world_scene((mu_world *)c->map, &scene);   /* fills a description; the map is not changed */
+    return decal_quads_scene(c, &scene, c->map->time, quads, max);   /* WorldTime: 0x45e's decal turns with it */
+}
+
 static int32_t model_slot(const mu_combat *c, int32_t type)
 {
     for (int i = 0; i < MU_COMBAT_MODELS; ++i)
@@ -1891,12 +2099,13 @@ int32_t mu_combat_draw_models(mu_combat *c, mu_combat_model_fn draw, void *conte
         arrow_tick(c, e);   /* RENDER-EFFECTS-011: the functor's tick before its passes (0x00a4269f..) */
         /* RENDER-EFFECTS-011: RenderEffects' case 0x45e (0x01518f49, verified): a tick at twice the speed, the
          * model drawn twice for the arrows' subtypes, smoke01/0x6d and pin_star/3 owned by the arrow each drawn
-         * frame (through the session's particle route); the subtypes 3..7 decal 0x8002 is counted only */
+         * frame (through the session's particle route); the subtypes 3..7 decal 0x8002 is drawn with the other
+         * decals (RENDER-EFFECTS-015, mu_combat_decal_quads) */
         float extra_speed = 0.0f;
         int decal = 0, draws = 1;
         if (mu_sfx_arrow_render_extras(e, &c->env, &extra_speed, &decal, &draws)) {
             model_tick(c, e, extra_speed);
-            c->stats.render_decals += (uint32_t)decal;
+            (void)decal;   /* RENDER-EFFECTS-015: drawn and counted by mu_combat_decal_quads */
         }
         int32_t keys = m->bmd.action_count > 0 ? m->bmd.actions[0].keys : 1;
         float frame = e->frame;
@@ -2040,7 +2249,7 @@ static void raster_model(void *context, const mu_model *model, const mu_textures
 
 /* One quad through the raster backend: blend, depth test as the quad says,
  * depth writes and culling off, bilinear sampling. */
-static void raster_quad(mu_raster *raster, const mu_combat_quad *q, const mu_image *texture)
+static void raster_quad(mu_raster *raster, const mu_combat_quad *q, const mu_image *texture, uint32_t wrap)
 {
     mu_meshdraw_state state;
     mu_meshdraw_state_defaults(&state);
@@ -2061,9 +2270,11 @@ static void raster_quad(mu_raster *raster, const mu_combat_quad *q, const mu_ima
     const mu_image *const *saved_textures = raster->textures;
     int32_t saved_count = raster->texture_count;
     int saved_linear = raster->linear;
+    const uint32_t *saved_wrap = raster->texture_wrap;
     raster->textures = &slot;
     raster->texture_count = 1;
     raster->linear = 1;
+    raster->texture_wrap = wrap ? &wrap : NULL;   /* RENDER-EFFECTS-015: the decal bitmaps' GL_CLAMP */
     mu_render_backend backend;
     mu_raster_backend(raster, &backend);
     backend.prepare(backend.context, &state, 0);
@@ -2079,11 +2290,17 @@ static void raster_quad(mu_raster *raster, const mu_combat_quad *q, const mu_ima
     raster->textures = saved_textures;
     raster->texture_count = saved_count;
     raster->linear = saved_linear;
+    raster->texture_wrap = saved_wrap;
 }
 
 void mu_combat_draw_raster(mu_combat *c, mu_raster *raster)
 {
     mu_combat_draw_models(c, raster_model, raster);
+    mu_combat_quad *decals = malloc(sizeof *decals * MU_COMBAT_DECAL_QUADS);   /* RENDER-EFFECTS-015 */
+    const int32_t decal_count = decals ? mu_combat_decal_quads(c, decals, MU_COMBAT_DECAL_QUADS) : 0;
+    for (int32_t i = 0; i < decal_count; ++i)
+        raster_quad(raster, &decals[i], &c->bitmaps[decals[i].bitmap].image, c->bitmaps[decals[i].bitmap].wrap);
+    free(decals);
     mu_combat_quad quads[1024];
     int32_t n = mu_combat_quads(c, quads, 1024);
     float saved[16];
@@ -2093,7 +2310,8 @@ void mu_combat_draw_raster(mu_combat *c, mu_raster *raster)
         const mu_combat_quad *q = &quads[i];
         if (q->eye_space)
             memcpy(raster->view, identity, sizeof identity);
-        raster_quad(raster, q, q->bitmap >= 0 ? &c->bitmaps[q->bitmap].image : NULL);
+        raster_quad(raster, q, q->bitmap >= 0 ? &c->bitmaps[q->bitmap].image : NULL,
+                    q->bitmap >= 0 ? c->bitmaps[q->bitmap].wrap : 0);
         memcpy(raster->view, saved, sizeof saved);
     }
 }
@@ -2252,14 +2470,15 @@ void mu_combat_report_summary(const mu_combat *c, FILE *out, int quiet)
             " \"sprites\": %u, \"unsupported\": %u, \"hero_shocks\": %u, \"hero_deaths\": %u,"
             " \"monster_voices\": %u, \"requests_sent\": %u, \"requests_unsent\": %u,"
             " \"sounds\": %u, \"bitmaps_loaded\": %d, \"models_loaded\": %d, \"skill_table\": %d,"
-            " \"bow_sparks\": %u, \"arrow_textures_retried\": %d}\n",
+            " \"bow_sparks\": %u, \"arrow_textures_retried\": %d, \"decals\": %u, \"decal_quads\": %u,"
+            " \"decal_quads_dropped\": %u}\n",
             c->config.weapon, (double)c->config.attack_speed, s->attacks, s->skills, s->arrows, s->fx_created,
             s->hits, s->misses, s->shocks, s->kills, s->deaths, s->removed, s->respawns, s->points_created,
             s->monster_attacks, s->hero_hits, s->picks, s->pick_hits, s->particles_created, s->joints_created,
             s->projectile_hits, s->area_requests, s->sprites, s->unsupported, s->hero_shocks, s->hero_deaths,
             s->monster_voices, s->requests_sent, s->requests_unsent,
             c->sounds_played, loaded_bitmaps(c), loaded_models(c), (int)mu_lang_skill_count(c->lang), s->bow_sparks,
-            c->arrow_textures_retried);
+            c->arrow_textures_retried, s->decals, s->decal_quads, s->decal_quads_dropped);
     fprintf(out, "{\"combat_unsupported\": [");
     for (int32_t i = 0; i < c->unsupported_kind_count; ++i)
         fprintf(out, "%s[\"%c\", %d, %d, %u]", i ? ", " : "", c->unsupported_kinds[i].routine,

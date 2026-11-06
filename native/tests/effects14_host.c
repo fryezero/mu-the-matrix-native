@@ -69,13 +69,13 @@ int main(void)
         create_effect_scaled(c, kinds[k][0], kinds[k][1], at, at, white, -1, NULL, 0.25f);
     assert(c->stats.unsupported == 0);
 
-    /* the ground-skill fixture: 0x70a is refused (counted), 0x7fd fires no arrows of its own */
-    const uint32_t before = c->stats.unsupported;
+    /* the ground-skill fixture: 0x7fd creates 0x70a (RENDER-EFFECTS-015: no longer refused) and fires no arrows of
+     * its own */
+    const uint32_t before = c->stats.unsupported, arrows = c->stats.arrows;
     c->walk = calloc(1, sizeof *c->walk);
     assert(c->walk);
     ground_volley(c, 0x7fd);
-    assert(c->stats.unsupported == before + 1 && c->stats.skills == 1);
-    assert(c->unsupported_kinds[c->unsupported_kind_count - 1].type == 0x70a);
+    assert(c->stats.unsupported == before && c->stats.skills == 1 && c->stats.arrows == arrows);
     free(c->walk);
     free(p->sprites);
     mu_pt_system_free(&p->list);
