@@ -217,7 +217,7 @@ def body_cases(wa, lib):
 def owner_cases(wa, lib, plib, per_type, refuse=False):
     from item_body_machine import ResetWorld
     reset, vectors = ResetWorld(wa, OwnerWorld), []
-    coverage = {'sprites': 0, 'particles': 0, 'skipped_gates': 0, 'rand': 0}
+    coverage = {'sprites': 0, 'particles': 0, 'rand': 0}
     for t in TYPES:
         rng = random.Random((0x20051 if not refuse else 0x20052) + t)
         cases = [case for _, case in quality.state_cases(t)]
