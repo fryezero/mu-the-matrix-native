@@ -762,3 +762,7 @@ $(BUILD)/map-effects-host: tests/map_effects_host.c $(LIB) $(HEADERS)
 $(BUILD)/worlds-s-host: tests/worlds_s_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-s-host.o
 	$(CXX) $(BUILD)/worlds-s-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+
+$(BUILD)/worlds-s2-host: tests/worlds_s2_host.c $(LIB) $(HEADERS)
+	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-s2-host.o
+	$(CXX) $(BUILD)/worlds-s2-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@

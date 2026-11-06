@@ -1044,11 +1044,12 @@ typedef struct uruk_arca {
     float time;
     visual_context *c;
     mu_obj_log *log;
+    int model_present;
 } uruk_arca;
 static int uruk_arca_visual(void *context, int32_t slot, int32_t base)
 {
     const uruk_arca *a = context;
-    if (slot != MU_ARCA_VISUAL_SLOT || base != 100) return 0;
+    if (slot != MU_ARCA_VISUAL_SLOT || base != 100 || !a->model_present) return 0;
     return mu_uruk_visual(a->img, a->i, a->o->world, a->o->rt.uruk_weather, a->time, visual_rand, a->c, a->log);
 }
 
@@ -1076,14 +1077,14 @@ static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_obje
     }
     else if (o->world == 100 && m && m->loaded)
         mu_uruk_visual(img, i, o->world, o->rt.uruk_weather, world_time, visual_rand, &c, &log);
-    else if (o->world == 101 && m && m->loaded) {   /* RENDER-WORLDS-S2: Arca War forwards to Uruk's visual */
-        const int bones_ready = posed && m->bmd.bone_count > mu_arca_visual_bones(mu_obj_i32(img, MU_OBJF_TYPE));
-        uruk_arca a = {o, i, img, world_time, &c, &log};
+    else if (o->world == 101) {   /* RENDER-WORLDS-S2: Arca War; forwards to Uruk's visual (which needs the model) */
+        const int bones_ready = posed && m && m->bmd.bone_count > mu_arca_visual_bones(mu_obj_i32(img, MU_OBJF_TYPE));
+        uruk_arca a = {o, i, img, world_time, &c, &log, m && m->loaded};
         if (mu_arca_visual(img, i, o->world, mu_arca_base_world(o->world), o->rt.q_handler.arca_stage,
                            bones_ready ? visual_bone : NULL, &c, uruk_arca_visual, &a, &log) < 0)
             ++o->rt.draw_unsupported;   /* type 0x59b without bone 3 */
     }
-    else if (o->world == 79 || o->world == 100 || o->world == 101)
+    else if (o->world == 79 || o->world == 100)
         return;
     else if ((o->world == 80 || o->world == 81) && m && m->loaded) {
         const int32_t type = mu_obj_i32(img, MU_OBJF_TYPE);
