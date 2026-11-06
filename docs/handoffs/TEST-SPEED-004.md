@@ -63,7 +63,13 @@ Paste-ready replacement for the brief's item 8 lane/steward lines:
 
 | Check | Result | Wall | Load 1m |
 |---|---|---:|---|
-| CHECKS_TABLE |
+| Full gate: `run_test_suites.py`, all suites, `MU_GATE_JOBS=4`, `nice -n 10`, no MAKEFLAGS (after `make -j4`, 35 s) | 38 suites, 2,005 tests: 1,745 pass, 260 skip, 0 fail | 269.1 s | 6.6 → 32.0 |
+| Tooling modules: test_test_budget, test_affected_inputs, test_validator_original_cache, test_validators_manifest, test_run_test_suites, test_repository_policy | 102 tests OK | 50.8 s | 7.7 |
+| test_test_budget + test_affected_inputs (final code) | 57 tests OK | 35.4 s | ~12 |
+| Repository audit, staged | 1,948 files, 0 rejected | 22.1 s | ~9 |
+| Replay #292–#308 + 5 failure cases (39 cases), `replay_affected.py` | zero misses, 0 fallback rows | ~35 min | 4–16 |
+| Replay rerun after the last selector change (wide target patterns, direct tooling) | first 15 cases identical to the first run; stopped at the owner's 14:45 stop | — | — |
+| This PR's own selection: `--list-affected origin/main` | validators 0 of 186 (23.9 s); suites 4 of 167 (52.2 s at load 16; 266 s before the pattern fix) | | |
 
 Steward validators: none (tooling). The selection changes which rows run, not what any row checks.
 Env for the steward's gate: the usual portable gate (no `MU_*` private env); `MU_RECOVERY_INTEGRATION=1`,

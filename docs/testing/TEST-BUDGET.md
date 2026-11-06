@@ -507,7 +507,8 @@ picked rows by hand with `make -n -W`, include checks and script reading. That h
 - **Tooling** (`affected.TOOLING`: `affected.py`, `run_validators.py`, `run_test_suites.py`,
   `original_cache.py`, `guarded_run.py`, `replay_affected.py`) and `tests/`, `docs/` select **no row**. Their tests are
   the always-run `tests` suite (`test_test_budget`, `test_affected_inputs`, `test_validator_original_cache`,
-  `test_validators_manifest`, `test_run_test_suites`) plus every module that imports or names the file.
+  `test_validators_manifest`, `test_run_test_suites`) plus every test module that imports or names the file
+  itself (test_native_app for `guarded_run.py`), not every test that reaches it through a validator.
 - **No global fallback.** A path no row's inputs contain selects nothing. A row whose inputs cannot be derived
   (a module loaded from a computed name, a path built from an unknown value at the repository root, a file that
   does not parse) carries the reason. It is selected for every code change and listed at the end of
@@ -516,9 +517,11 @@ picked rows by hand with `make -n -W`, include checks and script reading. That h
 
 `--affected-since REF` diffs REF itself (the lane-tested commit) against the working tree, which is the
 steward's question; `--affected REF` diffs `merge-base(REF, HEAD)`, the lane's. Both runners take both.
-Suites keep their TEST-SPEED-001 rules plus: the tooling no longer selects every suite (only `tests` and the
-modules naming it), make targets are named only by modules that run `make`, and the Makefile dry-run
-comparison. The steward keeps the full gate.
+Suites keep their TEST-SPEED-001 rules plus the Python analysis above, the Makefile dry-run comparison, and:
+the tooling no longer selects every suite (only `tests` and the test modules naming it directly), and make
+targets are named only by modules that run `make`. A computed path naming more than 8 targets of a make
+directory (`NATIVE / 'build' / name`) stands for that whole directory instead of one dry run per target. The
+steward keeps the full gate.
 
 ### Replay of #292–#308
 
