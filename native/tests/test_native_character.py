@@ -210,6 +210,8 @@ class PrivateCharacterTests(CharacterBuild):
 
     def class_parts(self, class_byte):
         import ctypes
+        # builds what it links against: a fresh worktree has no libcharacter yet (TEST-SPEED-003)
+        subprocess.run(['make', '-C', str(cr.ROOT/'reconstructed/model-codec')], check=True, capture_output=True)
         handle = ctypes.CDLL(str(cr.ROOT/f'reconstructed/model-codec/libcharacter.{cr.SUFFIX}'))
         handle.mu_character_part_type.restype = ctypes.c_uint32
         handle.mu_character_part_file.argtypes = [ctypes.c_uint32, ctypes.c_char_p, ctypes.c_size_t]
