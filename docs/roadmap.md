@@ -1,5 +1,7 @@
 # Roadmap and work queue
 
+APP-POLISH-003 PR-ready: the level-1 Dark Knight fixture joins with recorded full vitals 1100/200/52/25; session HUD maxima need no progression fallback. Toxic states 0x37/0x136 select the original green HP bitmap through the display fixture. Buff replication remains open. [Evidence and limits](research/client-app-polish3.md), [checks](handoffs/APP-POLISH-003.md).
+
 TEST-SPEED-001 PR-ready on main `2531746f`: original-side caching and no-mutant/affected runners; 13 item rows pass. Suite-selection median remains near 97%, with no identified recorded-failure miss. [Commands and evidence](testing/TEST-BUDGET.md), [checks and limits](handoffs/TEST-SPEED-001.md).
 
 APP-POLISH-002 PR-ready: the world HUD displays session HP/MP/SD/AG and stops its demo animation; missing offline maxima use the existing progression view. Original setHPMP body and base viewport: 1,028 cases, 0 mismatches, 10/10 mutants. Main HUD 1:1 at 1504×936 is supported by base noScale and Main.onResize. [Checks and limits](handoffs/APP-POLISH-002.md).
