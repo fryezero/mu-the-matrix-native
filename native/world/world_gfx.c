@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "../core/mu_hud.h"
+#include "../session/domains/hero.h"
 #include "../core/mu_hud_tip.h"
 #include "../core/mu_lang.h"
 #include "../core/mu_npc.h"
@@ -35,6 +36,7 @@
 
 struct world_gfx {
     mu_lang *lang;
+    struct mu_session *session; /* borrowed; rebound before the world session is destroyed */
     char quest_item_name[96];
     mu_gfx_layer *layer;
     mu_hud_tip_tables tables;
@@ -1226,14 +1228,6 @@ static void progress_sync(world_gfx *g)
     h.vitality = v.stats[2] + v.added[2];
     h.energy = v.stats[3] + v.added[3];
     h.command = v.stats[4] + v.added[4];
-    h.max_hp = v.life_max;
-    h.max_mp = v.mana_max;
-    h.max_sd = v.shield_max;
-    h.max_ag = v.ag_max;
-    if (h.hp > h.max_hp)
-        h.hp = h.max_hp;
-    if (h.mp > h.max_mp)
-        h.mp = h.max_mp;
     const char *cname = mu_lang_text(g->lang, mu_ccr_class_name_text(p->hero[0x12], 1));
     if (cname && *cname)   /* the class name 0x0139cc2e (NATIVE-CHARCREATE-001) */
         mu_lang_ascii(h.class_name, sizeof h.class_name, cname);
@@ -1252,6 +1246,37 @@ static void progress_sync(world_gfx *g)
     snprintf(h.speed_text, sizeof h.speed_text, "%s", v.speed_text);
     for (int i = 0; i < 5; i++)
         h.added[i] = v.added[i];
+    mu_gfx_layer_set_hero(g->layer, &h);
+}
+
+/* APP-POLISH-002: setHPMP 0x00c717d4..0x00c719d6 reads the current hero.
+ * Copy only display values. No local spending, clamping or regeneration. */
+static void vitals_sync(world_gfx *g)
+{
+    if (!g->layer)
+        return;
+    mu_hero_stats v;
+    mu_session_hero(g->session, &v);
+    mu_gfx_hero h = *mu_gfx_layer_hero(g->layer);
+    h.hp = v.hp;
+    h.max_hp = v.max_hp;
+    h.mp = v.mp;
+    h.max_mp = v.max_mp;
+    h.sd = v.sd;
+    h.max_sd = v.max_sd;
+    h.ag = v.ag;
+    h.max_ag = v.max_ag;
+    /* The offline join fixture does not populate maximum-vital fields yet.
+     * Its existing progression facade has them. This fallback is display-only;
+     * positive session maxima always win, including the third-class selection. */
+    if (g->progress && (h.max_hp <= 0 || h.max_mp <= 0 || h.max_sd <= 0 || h.max_ag <= 0)) {
+        mu_progress_view p;
+        mu_progress_get_view(g->progress, &p);
+        if (h.max_hp <= 0) h.max_hp = p.life_max;
+        if (h.max_mp <= 0) h.max_mp = p.mana_max;
+        if (h.max_sd <= 0) h.max_sd = p.shield_max;
+        if (h.max_ag <= 0) h.max_ag = p.ag_max;
+    }
     mu_gfx_layer_set_hero(g->layer, &h);
 }
 
@@ -1276,6 +1301,7 @@ world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int widt
         snprintf(error, error_size, "out of memory");
         return NULL;
     }
+    g->session = session;
     g->root = game_root;
     g->mix = mu_mix_book_open(game_root);
     g->scale = scale > 0 ? scale : 1.0;
@@ -1291,7 +1317,7 @@ world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int widt
                                .width = width,
                                .height = height,
                                .shared = shared,
-                               .demo = 1,
+                               .demo = 0,
                                .tooltip = tooltip,
                                .tooltip_user = g,
                                .scale = scale,
@@ -1429,6 +1455,8 @@ int world_gfx_skill_action(world_gfx *g, const char *verb, int a, int b)
 void world_gfx_rebind_skills(world_gfx *g, struct mu_session *session)
 {
     if(!g)return;
+    g->session = session;
+    if (!session) g->progress = NULL; /* the old world destroys its progression facade next */
     mu_gfx_layer_set_skill_host(g->layer,NULL);
     wg_tree_close(g->tree);g->tree=NULL;
     wg_skill_close(g->skill);g->skill=NULL;
@@ -1486,8 +1514,17 @@ void world_gfx_frame(world_gfx *g, double dt_ms, int draw)
     wg_skill_tick(g->skill, dt_ms);
     wg_tree_tick(g->tree);
     progress_sync(g);   /* NATIVE-PROGRESS-001 */
+    vitals_sync(g);
     wg_options_step(g->options, dt_ms);
     mu_gfx_layer_advance(g->layer, dt_ms);
+    if (getenv("MU_HUD_TRACE") && (int)(g->time_ms / 1000) != (int)((g->time_ms - dt_ms) / 1000)) {
+        mu_hero_stats v;
+        mu_session_hero(g->session, &v);
+        const mu_gfx_hero *h = mu_gfx_layer_hero(g->layer);
+        fprintf(stderr, "hud_vitals t=%.0f session=%d,%d,%d,%d hud=%d,%d,%d,%d max=%d,%d,%d,%d\n",
+                g->time_ms, v.hp, v.mp, v.sd, v.ag, h->hp, h->mp, h->sd, h->ag,
+                h->max_hp, h->max_mp, h->max_sd, h->max_ag);
+    }
     if (draw)
         mu_gfx_layer_draw_gl(g->layer);
 }
