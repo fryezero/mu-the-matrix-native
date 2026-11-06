@@ -1,5 +1,7 @@
 # Plan: the rest of the native macOS port
 
+TEST-SPEED-002 PR-ready: meshdraw 367.99 → 57.21 s warm with byte-identical reports, 4/4 controls and a caught compiled C mutation; fifteen native build rows use target dependencies. Six-PR selection replay has zero identified misses. [Checks, commands and limits](../../handoffs/TEST-SPEED-002.md).
+
 APP-POLISH-002 PR-ready: the world HUD displays session HP/MP/SD/AG and stops its demo animation; missing offline maxima use the existing progression view. Original setHPMP body and base viewport: 1,028 cases, 0 mismatches, 10/10 mutants. Main HUD 1:1 at 1504×936 is supported by base noScale and Main.onResize. [Checks and limits](../../handoffs/APP-POLISH-002.md).
 
 Status classes: **EA** evidence-available (restored text, installed data or the fixture are enough),

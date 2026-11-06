@@ -1,5 +1,7 @@
 # Current status
 
+TEST-SPEED-002 PR-ready: meshdraw 367.99 → 57.21 s warm with byte-identical reports, 4/4 controls and a caught compiled C mutation; fifteen native build rows use target dependencies. Six-PR selection replay has zero identified misses. [Checks, commands and limits](handoffs/TEST-SPEED-002.md).
+
 TEST-SPEED-001 PR-ready on main `2531746f`: original-side caching and no-mutant/affected runners; 13 item rows pass. Suite-selection median remains near 97%, with no identified recorded-failure miss. [Commands and evidence](testing/TEST-BUDGET.md), [checks and limits](handoffs/TEST-SPEED-001.md).
 
 RENDER-EFFECTS-012 PR-ready: ten bow joint kinds, multishot02/1 and the gunbow's white model colour. The 33 bows' unsupported requests fall 77 → 27, with 119 arrows retained. Four joint kinds remain refused; ground-skill children/route, the decal, Uruk weather and Muun owners remain. [Finding](research/client-render-effects-012.md), [handoff](handoffs/RENDER-EFFECTS-012.md).
