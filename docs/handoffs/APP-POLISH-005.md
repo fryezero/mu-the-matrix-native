@@ -92,7 +92,7 @@ Bundled session, Windleaf. Flow: login → character select row 2 → key 2 → 
 | `test_app_polish5` alone (4 portable + 2 private mu-client runs) | 6/6 | 33 s |
 | Byte-identity sweep, DATA-ACQ-002's 32 tours, default draw: base main `9e1a0ce6` vs `f2b847ed` | 64 PNG + 64 object/light dumps byte-identical; the 32 native.jsonl files identical after normalising the output path | 48.7 s + 48.9 s |
 | `validate_session_party`, `validate_app_polish2` (no mutants, cached) at `f2b847ed` | 200 + 1,028 cases, 0 mismatches | 0.8 s + 2.8 s |
-| `scripts/audit_repository.py` (3 new files) | see PR | see PR |
+| `scripts/audit_repository.py` (4 new files) | 1,969 staged files, 0 rejected | 19.3 s |
 | Headless / windowed proofs | above | 11.6 s / 22.8 s |
 
 - **Steward validators:** `validate_session_party`, `validate_app_polish2` (no mutants), ran at `f2b847ed`.
