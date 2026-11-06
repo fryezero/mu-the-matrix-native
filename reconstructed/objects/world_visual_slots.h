@@ -99,4 +99,11 @@ int mu_slots_more_custom(int32_t cls, const slot *s, int32_t world);
 void mu_slots_more_after(int32_t cls, const slot *s, int32_t world);
 int mu_slots_more_bitmap(int32_t world, int32_t index, const char **path, uint32_t *filter, uint32_t *wrap);
 int32_t mu_slots_more_bitmaps(int32_t world, int32_t type, int32_t *out, int32_t room);
+/* RENDER-WORLDS-SLOTS2 (world_slots2_visual.c): the classes it adds (62, 69..72, 82, 95, 100, 110 and Arca War 92
+ * on 92/96/101/111), behind RENDER-WORLDS-SLOTS's in the same chain. */
+int mu_slots2_class(int32_t world);
+int mu_slots2_custom(int32_t cls, const slot *s, int32_t world);
+void mu_slots2_after(int32_t cls, const slot *s, int32_t world);
+int mu_slots2_bitmap(int32_t world, int32_t index, const char **path, uint32_t *filter, uint32_t *wrap);
+int32_t mu_slots2_bitmaps(int32_t world, int32_t type, int32_t *out, int32_t room);
 #endif

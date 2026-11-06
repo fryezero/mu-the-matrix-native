@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 static int sprites, particles, joints, effects;
+static long guardian_effects;
 static void sprite(void *ctx, int32_t type, const float p[3], float scale, const float l[3], int32_t owner,
                    float rotation, int32_t a, int32_t b)
 {
@@ -33,6 +34,11 @@ static void effect(void *ctx, int32_t type, int32_t sub, const float p[3], const
                    int32_t owner)
 {
     (void)ctx; (void)a; (void)l;
+    if (type == 0x52d) {   /* RENDER-WORLDS-SLOTS2: the custom slot's bone-9 effect of types 0x73/0x75 */
+        assert(sub == 0 && owner >= 0);
+        ++guardian_effects;
+        return;
+    }
     assert(type >= 0x1ab && type <= 0x1ad && sub == 1 && owner == -1 && p[2] == 525.0f);
     ++effects;
 }
@@ -132,6 +138,7 @@ int main(int argc, char **argv)
             visual_pass(o);
         }
         assert(mu_obj_i32(img(o, 0), 0x60) == 0);   /* type 10 counted down, one per step */
+        assert(guardian_effects > 0);   /* type 0x73's latch (RENDER-WORLDS-SLOTS2) */
         /* per frame: 157 forty-two particles, 158 one, 50 twelve */
         assert(particles >= 55 * STEPS && o->rt.move_unsupported == 0);
         finish(o);

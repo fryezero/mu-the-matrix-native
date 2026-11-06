@@ -122,12 +122,12 @@ int main(int argc, char **argv)
         release(o, 0x83);
     }
     /* Vulcanus statue 0x44 without bone 6: the draws stay, the flares and spark are refused and counted, and the
-     * slot's two rand draws for the spark offset still happen */
+     * slot's two rand draws for the spark offset still happen (then RenderObjectVisual's outer draw, SLOTS2) */
     {
         mu_objects *o = population(63, 0x44);
         first_pass(o, map, &draws, tex);
         assert(draws == 3 && o->rt.draw_unsupported == 1 && o->rt.sprite_events == 0 &&
-               o->rt.particle_events == 0 && o->rt.seed == msvc_next(msvc_next(1)));
+               o->rt.particle_events == 0 && o->rt.seed == msvc_next(msvc_next(msvc_next(1))));
         release(o, 0x44);
     }
     /* with seven posed bones: two flares on bone 6 and, at frame 36, the eyes shut and a spark from bone 4 */
@@ -139,7 +139,7 @@ int main(int argc, char **argv)
         mu_obj_set_f32(o->rt.images, MU_OBJF_FRAME, 36.0f);
         first_pass(o, map, &draws, tex);
         assert(draws == 3 && o->rt.draw_unsupported == 0 && o->rt.sprite_events == 2 && o->rt.sprite_count == 2 &&
-               o->rt.particle_events == 1 && mu_obj_u16(o->rt.images, 0x54) == 0xffff && o->rt.seed == 1);
+               o->rt.particle_events == 1 && mu_obj_u16(o->rt.images, 0x54) == 0xffff && o->rt.seed == msvc_next(1));
         release(o, 0x43);
     }
     /* a world without these slots keeps RenderBody in the first pass */
