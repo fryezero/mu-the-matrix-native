@@ -157,6 +157,12 @@ export set (incl. `mapanim.tsv`). Proofs on the installed app: cast, kill/drop/S
 stale plates, audio peak -0.300 dBFS (0 full-scale), Swamp 144 velocity differences 1,563 -> 0, bow 0x1329 0
 unsupported (glows) and 0x12f9 15 sparks. [Install, rollback, proofs and follow-ups](handoffs/APP-REFRESH-004.md).
 
+APP-REFRESH-005: Preview reinstalled from 7d7d694b (main with #290-#302); APP-REFRESH-004's Native Data kept (no
+export input changed). Proofs on the installed app: arrival HUD 1100/1100, one Hound hit -> 1077 and steady, demo
+Hound 26 tiles from the arrival, cast/kill/Space pickup, travel 0->3->2 with 0 stale plates, audio peak -0.300 dBFS,
+formerly white items textured (0x0b1d, 0x151a, 0x2537), bows 0x12fc/0x130a/0x131e 4 joints and 0 unsupported,
+arrivals at 145/95/110 without a crash. [Install, rollback, proofs and follow-ups](handoffs/APP-REFRESH-005.md).
+
 PLAY-FIX-001: two Preview bugs from APP-REFRESH-003 fixed.
 - A world change now runs the client's ClearCharacters(HeroKey) `0x0137c276` (with ClearItems `0x017ea38b`; Unicorn,
   0 mismatches, 6/6 mutants), so no old-world name floats after travel; the hero's plate stays.

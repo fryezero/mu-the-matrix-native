@@ -146,6 +146,7 @@ APP-REFRESH-001: [app refresh, smoke and installation](handoffs/APP-REFRESH-001.
 APP-REFRESH-002: [app refresh 2, Native Data inputs and installation](handoffs/APP-REFRESH-002.md).
 APP-REFRESH-003: [journey proofs, windowed report, stale-client fix, installation](handoffs/APP-REFRESH-003.md).
 APP-REFRESH-004: [reinstall from 32b7f34d, new Native Data with mapanim, proofs, rollback](handoffs/APP-REFRESH-004.md).
+APP-REFRESH-005: [reinstall from 7d7d694b, Native Data kept, HUD/Hound/item/bow/world proofs, rollback](handoffs/APP-REFRESH-005.md).
 PLAY-FIX-001: [world-change clear, audio output limiter, map-name check](handoffs/PLAY-FIX-001.md).
 
 README-REFRESH-003: [handoff](handoffs/README-REFRESH-003.md), [claim sources](research/readme-refresh.md). Public progress refreshed through PR #207; existing images/pins unchanged, no runtime code or live game used.
