@@ -1,6 +1,6 @@
 # Current status
 
-TEST-SPEED-001: resumed on main `90e11d71`; affected-suite/validator selection, opt-in original-side cache and `--no-mutants`. Cache measurements and conservative-selection limits: [commands and evidence](testing/TEST-BUDGET.md), [handoff](handoffs/TEST-SPEED-001.md). Validation in progress.
+TEST-SPEED-001 PR-ready on main `9e93e6c9`: original-side caching and no-mutant/affected runners; 13 item rows pass. Suite-selection median remains near 97%, with no identified recorded-failure miss. [Commands and evidence](testing/TEST-BUDGET.md), [checks and limits](handoffs/TEST-SPEED-001.md).
 
 RENDER-ITEMS-002O PR-ready: the `validate_renderchar` regression from INTEGRATION-GREEN-002 (row 4) was the oracle, not `renderchar.c`: the item world never recorded the client's glColor calls (0x23ec at `0x016e1805`, 0x2381 at `0x0175c4db`), and rank-5 bodies faulted at `0x012b51a7` without pose tracks. The comparison now records glColor, poses rank-5 bodies and redraws refused states, so its counts no longer drift with item merges (1,706 comparisons, 0 mismatches, 4/4 COLOR mutants; was 2/390 failing). RENDER-ITEMS-002 part 15: 1,219/1,674 bounded bodies (+6 random×light bodies through kind-5 product programs; 2,874 instruction cases, 0 mismatches, 7/7 mutants). [Checks and limits](handoffs/RENDER-ITEMS-002O.md).
 

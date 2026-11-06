@@ -1,6 +1,6 @@
 # Roadmap and work queue
 
-TEST-SPEED-001: resumed on main `90e11d71`; affected-suite/validator selection, opt-in original-side cache and `--no-mutants`. Cache measurements and conservative-selection limits: [commands and evidence](testing/TEST-BUDGET.md), [handoff](handoffs/TEST-SPEED-001.md). Validation in progress.
+TEST-SPEED-001 PR-ready on main `9e93e6c9`: original-side caching and no-mutant/affected runners; 13 item rows pass. Suite-selection median remains near 97%, with no identified recorded-failure miss. [Commands and evidence](testing/TEST-BUDGET.md), [checks and limits](handoffs/TEST-SPEED-001.md).
 
 RENDER-WORLDS-R2: Twisted Karutan (142), Kardamahal (143) and Swamp of Destruction (144) primary create/move/visual methods; nine more verified methods, three more classes: 85/144 and 29/48. 9,000 instruction cases, zero mismatches, 56/56 mutants. At the three DATA-ACQ-002 arrival tiles 8,476 range/after-character differences go to zero; image 144 12.755 → 12.376, 142/143 unchanged; word4 CreateEffect requests refused and counted. [Evidence](research/client-worlds-r2.md), [checks and limits](handoffs/RENDER-WORLDS-R2.md).
 

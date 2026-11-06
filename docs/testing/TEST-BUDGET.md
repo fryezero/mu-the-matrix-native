@@ -58,7 +58,7 @@ explicit integration lane, not an ordinary finish.
 
 | Command | Flag | What it does |
 |---|---|---|
-| `run_validators.py` | `--no-mutants` | Removes the mutant switches from each row's arguments (`--mutations`, `--mutants`, and with them `--mutant-cases N`/`--mutation-cases N`) and drops the expectations that read mutant results (the row's `mutants_at` paths and every path naming mutants, mutations or negative controls). The merged registry has 115 rows with a removable switch. `--mutations N` with a number (effects, effect_tree, meshdraw) is a count of random input cases, not planted mistakes, and stays; 16 rows have negative controls built into every run and are unchanged. The summary says how many rows ran without mutants; `--index` refuses such a summary (the evidence index records mutant counts). |
+| `run_validators.py` | `--no-mutants` | Removes the mutant switches from each row's arguments (`--mutations`, `--mutants`, and with them `--mutant-cases N`/`--mutation-cases N`) and drops the expectations that read mutant results (the row's `mutants_at` paths and every path naming mutants, mutations or negative controls). At replay base 90e11d71, the registry has 115 rows with a removable switch. `--mutations N` with a number (effects, effect_tree, meshdraw) is a count of random input cases, not planted mistakes, and stays; 16 rows have negative controls built into every run and are unchanged. The summary says how many rows ran without mutants; `--index` refuses such a summary (the evidence index records mutant counts). |
 | `run_validators.py` | `--affected REF` / `--list-affected REF` | Rows a diff from `merge-base(REF, HEAD)` to the working tree (commits, staged, unstaged, untracked) can affect, with the reason for each. |
 | `run_validators.py` | `--cache [DIR]` / `--no-cache` | Reuse original-instruction results (below). Default DIR `~/Documents/MTM/mu-mac-tools/native/cache/validators`. |
 | `run_validators.py` | (always) | Wall times in `verify-runs/validator-times.json` (ignored); `--jobs N` starts the longest rows first, unknown rows first of all. |
@@ -116,25 +116,83 @@ capture them in the cached value and replay them, as `gen_item_bodies._original`
 
 ## Timings
 
+The first three rows are retained pre-resume measurements. That session recorded load 3–23 overall, but did not
+save per-row load samples. Do not read those numbers as a controlled comparison against the merged tree.
+
 | Check | Before | After | How |
 |---|---|---|---|
 | `validate_item_continuation` (25,772 cases, 9 mutants) | 867.7 s (mutants, no cache) | 719.9 s `--no-mutants` cold cache · **23.1 s** `--no-mutants` warm · 30.1 s mutants warm | reports byte-identical; warm mutant run catches all 9 with the same counts |
 | `validate_item_ranked` (17,736 cases, 6 mutants) | 687.5 s | 97.3 s first `--cache` run (generator cache already warm) · **27.2 s** mutants warm · 23.3 s `--no-mutants` warm | byte-identical |
 | `validate_item_expansion` (52,172 cases, 7 mutants) | 822.4 s | 228.4 s first `--cache` run · **30.0 s** mutants warm · 23.1 s `--no-mutants` warm | byte-identical |
-| Other 9 original rows sharing the generator (clusters, chains, next, gear, coverage, scalars, carry, wings_next, quality) | ~11–15 min each (same 800–960 s generator) | {{OTHER_ITEM}} | first `--cache` run, generator cache warm |
-| Validator rows a lane reruns | all nearby rows, with mutants | `--affected`: 0–94 of 170 rows on the last 12 merged PRs (median 62), without mutants | selection only, below |
-| `make test` work items a lane runs | 154 items, 321 s serial (orchestrator's measurement) | `--affected`: {{SUITES}} | estimate from recorded per-item times |
-| Full gate (`local-macos-ci.sh`) | {{GATE_BEFORE}} | {{GATE_AFTER}} | steward only |
+| Other 9 original rows | Individually uncached runs not measured; each repeats the same historical 800–960 s generator work | 133.3–555.7 s, table below | generator warm; row-specific cases cold where cached |
+| Full macOS CI | Historical 116–130 s, load peaks 11.4–19.2, GATE-PAR-001 | policy unchanged; not re-timed here | steward per batch |
 
+### Resume measurements on merged main
+
+| Item row | Cases | First cached run after merge | Load 1m |
+|---|---|---|---|
+| `validate_item_continuation` | 25,772 | 618.1 s | 4.8 → 14.6, cold generator |
+| `validate_item_carry` | 114,388 | 555.7 s | 4.9–25.2, batch range |
+| `validate_item_chains` | 35,346 | 191.0 s | 4.9–25.2, batch range |
+| `validate_item_clusters` | 74,292 | 336.8 s | 4.9–25.2, batch range |
+| `validate_item_coverage` | 31,724 | 206.6 s | 4.9–25.2, batch range |
+| `validate_item_expansion` | 52,172 | 236.0 s | 4.9–25.2, batch range |
+| `validate_item_gear` | 25,256 | 140.6 s | 4.9–25.2, batch range |
+| `validate_item_next` | 14,992 | 184.8 s | 4.9–25.2, batch range |
+| `validate_item_product` | 2,874 | 54.2 s | 4.9–25.2, batch range |
+| `validate_item_quality` | 28,080 | 152.9 s | 4.9–25.2, batch range |
+| `validate_item_ranked` | 17,736 | 137.9 s | 4.9–25.2, batch range |
+| `validate_item_scalars` | 26,154 | 133.3 s | 4.9–25.2, batch range |
+| `validate_item_wings_next` | 33,622 | 217.5 s | 4.9–25.2, batch range |
+
+All thirteen rows passed. Every row after continuation logged **115,980 generator hits, zero misses**. The cold
+continuation rebuilt 91,272 generator entries after the main merge changed the harness. Main #292 changed none
+of these rows' Python hash closure or renderchar build inputs. No row was repeated to obtain a second warm timing.
+The two-worker batch wall was 1326.40 s, including per-row startup and report work, excluding the
+resource wait before it. Other lanes were active; these are observations, not isolated performance guarantees.
+
+| Small row | With mutants, retained | Without mutants | Cases | Load |
+|---|---|---|---|---|
+| `validate_item_effects` | 5.6 s | 1.4 s | 1,500 | old session 3–23; new 4.8–4.9 |
+| `validate_render_items` | 3.3 s | 1.9 s | 5,512 | old session 3–23; new 4.8–4.9 |
+
+The small comparison reuses the two completed mutant runs from the saved WIP. Non-mutant case reports are equal
+after removing the mutant field. No all-registry mutant run was launched. The retained full continuation/ranked/
+expansion report pairs were also rechecked byte-for-byte equal. A 162.2 s warmup attempt was interrupted to finish
+a tracked-symlink selector correction before cache population; it is not counted as a passing run or a speed sample.
+
+### Delivery checks
+
+| Check | Result | Wall | Load 1m |
+|---|---|---|---|
+| Initial `make -j4` | pass | 28.59 s | 2.6 → 17.2 |
+| Build after #292 | pass | 12.49 s | 8.3–20.0 |
+| test_test_budget + test_run_test_suites + test_validators_manifest | 60 tests, pass | 14.66 s | 4.7–5.1 |
+| All suites, MU_GATE_JOBS=4 | 38 suites, 1916 tests, 1667 passed, 249 skipped, 0 failures, 0 errors; 0 failed suite(s); 196.9s wall, jobs=4 | 196.92 s process wall | 5.1–17.3 |
+| Repository audit | Audited 1865 staged files; 0 rejected. | 13.58 s | 10.4–12.2 |
+| Item validators | 13 pass, 482,408 cases, no mutants, zero mismatches | 618.24 s cold row + 1326.40 s two-worker batch | cold 4.8 → 14.6; batch 4.9–25.2 |
+
+The requested full gate here is `scripts/run_test_suites.py` with all suites, after the build, plus a separate audit.
+The broader `local-macos-ci.sh` fixture/viewer/live-reader stages remain the steward's batch responsibility.
+
+Perf004 analysis was limited to source inspection and this required gate: its module took 80.5 s at gate load
+5.1–17.3. It performs six large serial/parallel buffer comparisons, eight small/empty-count comparisons, three
+topology variants, six GL variants and lease-audit equivalence checks. No checks were removed and no extra perf004
+benchmark run was needed. Its source/target dependencies stay selected for relevant native changes.
+
+Cache retained at `~/Documents/MTM/mu-mac-tools/native/cache/validators`: **62M** total at handoff. Scratch,
+verify-runs and build outputs are removed after publication; this disposable cache is the retained input for the
+steward. Deleting it is safe and makes the next run cold.
 
 ## Selection replay and misses
 
 [Frozen weights and selection lists](test-speed-001-selection.json). Replayed the twelve PRs ending at stopped main `90e11d71`, #280 through #291, with each merge's first-parent diff.
 Both selectors used the merged tree and the same frozen main-checkout timing weights: 397.4 s across 154 recorded
 items. Two new modules lack weights, so shares exclude their time; selection still includes them. This is a weighted
-serial-time estimate, not twelve timed gate runs. The prior WIP recorded rounded 96% and 57 validator rows without
+serial-time estimate, not twelve timed gate runs. It excludes selector overhead: the twelve-diff analysis took
+44.0 s before and 61.4 s after, reusing in-process dependency discovery, at ending load 6.8 and 5.4 respectively. The prior WIP recorded rounded 96% and 57 validator rows without
 saving its weights or per-PR list. The reproducible baseline here is 96.6% and 62 rows. Manifest replay compares only
-the row edits in each historical PR, not later edits. Current registry: 174 rows; current suite work items: 156.
+the row edits in each historical PR, not later edits. Replay registry: 174 rows; replay suite work items: 156. Delivery also integrates #292; it does not change the item harness or its build inputs.
 
 | PR | Suite items before → after | Weighted time before → after | Validator rows before → after |
 |---|---|---|---|
