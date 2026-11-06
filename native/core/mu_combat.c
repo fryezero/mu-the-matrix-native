@@ -183,6 +183,7 @@ static const struct { int32_t id; const char *dir, *name; char kind; } bitmap_fi
     {0x7fd5, "Effect", "Spark01.jpg", 'j'},         /* the Twisting Slash swirl's spark joints (NATIVE-JOINT-001) */
     {0x7fd6, "Effect", "JointLaser01.jpg", 'j'},    /* RENDER-EFFECTS-009: the arrows' 0x7fd6/5 trails */
     {0x7f79, "Effect", "Flare02.jpg", 'j'},
+    {0x7f78, "Effect", "Flare.jpg", 'j'},           /* RENDER-EFFECTS-014: 0x459's Flare/b joints */
     {0x80e3, "Effect", "force_Pillar.jpg", 'j'},
     {0x80e4, "Effect", "!SwordEff.jpg", 'j'},
     {0x814c, "Skill", "sharke_arrows.jpg", 'j'},
@@ -488,6 +489,7 @@ static void effect_object(mu_combat *c, const mu_sfx_effect *e)
     o->visible = e->live;
     o->type = e->type;
     o->lifetime = e->lifetime;   /* OBJECT +0x6c, joint 0x80e3/5 */
+    memcpy(o->impact, e->impact, sizeof o->impact);   /* OBJECT +0x110, joint 0x7f78/b (RENDER-EFFECTS-014) */
     memcpy(o->position, e->position, sizeof o->position);
     memcpy(o->angle, e->angle, sizeof o->angle);
     memcpy(o->light, e->light, sizeof o->light);
@@ -684,7 +686,14 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
         return 1;
     }
     case MU_SFX_CALL_CHECK_ARROW:
-        if (e)
+        if (!e && call->owner >= MU_COMBAT_EFFECT_OBJECT(0) && call->owner < MU_COMBAT_EFFECT_OBJECT(MU_SFX_EFFECTS)) {
+            /* RENDER-EFFECTS-014: Flare/b's skill-1 joint (MoveJoint 0x0157a6cb) writes its arrow's +0x158, then
+             * runs CheckClientArrow; the other joints read the arrow's state at once */
+            mu_sfx_effect *arrow = &c->effects[call->owner - MU_COMBAT_EFFECT_OBJECT(0)];
+            memcpy(arrow->position, call->position, sizeof arrow->position);
+            check_arrow(c, arrow);
+            effect_object(c, arrow);
+        } else if (e)
             check_arrow(c, e);
         return 0;
     case MU_SFX_CALL_OWNER_FLAG: {   /* RENDER-EFFECTS-010: test and set the owner's +0x64 */
@@ -1101,6 +1110,7 @@ static void move_pools(mu_combat *c)
     for (int i = 0; i < MU_SFX_EFFECTS; ++i)
         effect_object(c, &c->effects[i]);   /* MoveJoints reads the arrows after MoveEffects (RENDER-EFFECTS-009) */
     c->jenv.serial = c->serial;
+    c->jenv.ambient_clock = c->step;   /* [0x0bdc5eb0], one count per logic step (RENDER-EFFECTS-014: Flare/b) */
     mu_joints_move_all(c->joints, MU_SFX_JOINTS, &c->jenv, c->time_step, joint_inputs, c);
     int32_t kept = 0;
     for (int32_t i = 0; i < c->particle_count; ++i) {

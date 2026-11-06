@@ -89,7 +89,7 @@ void mu_combat_default_config(mu_combat_config *config);
 const char *mu_combat_arrow_file(int32_t type);
 
 /* Bitmap slots the renderer binds by id. */
-enum { MU_COMBAT_BITMAPS = 24 };
+enum { MU_COMBAT_BITMAPS = 25 };
 
 typedef struct mu_combat_bitmap {
     int32_t id;               /* client bitmap index (0x7534 font, 0x7df3.. specials, 0x7f2b, 0x7f84) */
