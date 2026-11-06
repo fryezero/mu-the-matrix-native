@@ -187,6 +187,11 @@ $(BUILD)/mu-render: tools/mu_render.c tools/mu_render_ui.c tools/mu_render_world
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_CHARSEL_NO_GL -c charsel/charsel_tool.c -o $(BUILD)/mu_render_charsel.o
 	$(CXX) $(BUILD)/mu_render.o $(BUILD)/mu_render_ui.o $(BUILD)/mu_render_world.o $(BUILD)/mu_render_charsel.o $(BUILD)/mu_render_hud.o $(CHARSEL_RT_OBJ) $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
 
+# TEST-SPEED-002: same info entry point, batched only for the validator's input census.
+$(BUILD)/meshdraw-info-batch: tests/meshdraw_info_batch.c $(BUILD)/mu-render
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c tests/meshdraw_info_batch.c -o $(BUILD)/meshdraw_info_batch.o
+	$(CXX) $(BUILD)/meshdraw_info_batch.o $(BUILD)/mu_render_ui.o $(BUILD)/mu_render_world.o $(BUILD)/mu_render_charsel.o $(BUILD)/mu_render_hud.o $(CHARSEL_RT_OBJ) $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+
 # The 2D layer alone (reconstruction + software GL + assets), for the Python
 # validator and tests (ctypes).
 UI_LIB_SRC := core/mu_ui_raster.c core/mu_ui_assets.c core/mu_ui_font.c $(RECON)/ui/ui2d.c \

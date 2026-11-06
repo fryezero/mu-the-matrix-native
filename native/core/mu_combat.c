@@ -487,6 +487,7 @@ static void effect_object(mu_combat *c, const mu_sfx_effect *e)
     o->live = e->live;
     o->visible = e->live;
     o->type = e->type;
+    o->lifetime = e->lifetime;   /* OBJECT +0x6c, joint 0x80e3/5 */
     memcpy(o->position, e->position, sizeof o->position);
     memcpy(o->angle, e->angle, sizeof o->angle);
     memcpy(o->light, e->light, sizeof o->light);

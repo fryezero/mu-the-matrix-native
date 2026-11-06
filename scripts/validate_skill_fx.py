@@ -163,7 +163,7 @@ class Object(ctypes.Structure):   # mu_jt_object (reconstructed/joints)
                 ('action', ctypes.c_uint16), ('type', ctypes.c_int32),
                 ('eye_188', ctypes.c_float*3), ('eye_194', ctypes.c_float*3),   # NATIVE-HELPERS-002
                 ('angle', ctypes.c_float*3), ('level', ctypes.c_int8),   # RENDER-EFFECTS-004
-                ('scale', ctypes.c_float)]   # RENDER-EFFECTS-006
+                ('scale', ctypes.c_float), ('lifetime', ctypes.c_int32)]   # RENDER-EFFECTS-013
 
 
 class Call(ctypes.Structure):
