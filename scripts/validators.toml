@@ -2699,3 +2699,23 @@ args = ["--mutations", "--output", "{report}"]
 "families.*.mismatches" = 0
 "families.products.residues" = 15
 "mutants.*" = {truthy = true}
+
+[validate_app_polish1]
+test = "native/tests/test_app_polish.py::ClientComparison.test_unicorn"
+pins = ["text", "data", "section3"]
+build = ["reconstructed/particles"]
+needs = ["cc"]
+cases = 752
+cases_at = "families.*.cases"
+mutants = 8
+mutants_at = "mutants"
+note = "APP-POLISH-001; script compiles native/core/mu_particles.c policy/state slices and native/gfx/mu_gfx_layer.c host directly"
+args = ["--text", "{text}", "--data", "{data}", "--section3", "{section3}", "--cases", "300", "--mutants", "--output", "{report}"]
+[validate_app_polish1.expect]
+"families.shadow_policy.cases" = 300
+"families.shadow_projection.cases" = 300
+"families.shadow_state.cases" = 32
+"families.warps_window.cases" = 60
+"families.viewport.cases" = 60
+"families.*.mismatches" = 0
+"mutants.*" = true

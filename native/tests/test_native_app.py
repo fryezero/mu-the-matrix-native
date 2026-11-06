@@ -294,6 +294,27 @@ int main(void) {
     def plan(self, env, *args):
         return json.loads(self.launch(env, '--print-plan', *args).stdout)
 
+    def test_extra_arguments_shell_words(self):
+        import shlex
+        env, _ = self.env('quoted-args')
+        self.launch(env, '--setup')
+        samples = [
+            "--input-script '/tmp/my journey.txt' --label \"hello world\"",
+            "--label '' pre\"mid dle\"post escaped\\ space\tlast\nword",
+            r"--label '$HOME $(touch nope); *' \"a\\q\\\"b\"",
+            "--label a\\\nb",  # POSIX line continuation
+        ]
+        for sample in samples:
+            with self.subTest(sample=sample):
+                expected = shlex.split(sample.replace('\\\n', ''))
+                env['MU_NATIVE_EXTRA_ARGS'] = sample
+                self.assertEqual(self.plan(env)['args'][-len(expected):], expected)
+        for sample in ("'unfinished", '\"unfinished', 'trailing\\'):
+            env['MU_NATIVE_EXTRA_ARGS'] = sample
+            result = self.launch(env, '--print-plan', check=False)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('unfinished quote or escape', result.stderr)
+
     def test_plan_defaults_every_feature_on(self):
         env, base = self.env('plan')
         self.launch(env, '--setup')

@@ -1,5 +1,7 @@
 # Roadmap and work queue
 
+APP-POLISH-001 PR-ready: original-instruction evidence retains opaque ordinary body shadows and Warps scaling; demo Hound moved farther from the field arrival, quoted launcher arguments and root manifest tests fixed. Main HUD scaling and animated demo vitality remain open. [Checks and limits](handoffs/APP-POLISH-001.md).
+
 RENDER-WORLDS-R2: Twisted Karutan (142), Kardamahal (143) and Swamp of Destruction (144) primary create/move/visual methods; nine more verified methods, three more classes: 85/144 and 29/48. 9,000 instruction cases, zero mismatches, 56/56 mutants. At the three DATA-ACQ-002 arrival tiles 8,476 range/after-character differences go to zero; image 144 12.755 → 12.376, 142/143 unchanged; word4 CreateEffect requests refused and counted. [Evidence](research/client-worlds-r2.md), [checks and limits](handoffs/RENDER-WORLDS-R2.md).
 
 RENDER-WORLDS-R: Scorched Canyon (131), Red Smoke Icarus (132), Temple of Arnil (133) and Gray Aida (134) primary create/move/visual methods; +12 primary methods, +4 classes; with RENDER-WORLDS-P2 88/144 verified methods, 30/48 classes. 12,000 instruction cases, zero mismatches, 77/77 mutants. At the four DATA-ACQ-002 arrival tiles static-field differences 4,374/1,812/6,475/2,926 → 0/0/0/1; image error 131 worse (7.62 → 8.56, three far objects now pass the native frustum), 134 slightly better, 132/133 about unchanged. The 134 extra RenderMesh and keyed effect 0x199 are refused and counted. [Evidence](research/client-worlds-r.md), [checks and limits](handoffs/RENDER-WORLDS-R.md).
