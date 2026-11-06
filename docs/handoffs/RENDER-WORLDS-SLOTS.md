@@ -39,7 +39,7 @@ invisible move (+0x1c), the hook chain around the class slot, and Loren Market's
 Under the 2026-11-04 test budget: no lane gate. `nice -n 10`, `make -j4`, `--jobs 2`; load 1m 6–19 with
 three other lanes and the steward active. Env: `MU_RECOVERY_INTEGRATION=1`,
 `MU_GAME_ROOT=<free-runtime prefix>/drive_c/MuTheMatrix`,
-`MU_SECTION3=/Users/frye/Documents/MTM/main-exe-study/evidence/x86-linux-capture-04/main-01ced000.bin`,
+`MU_SECTION3=~/Documents/MTM/main-exe-study/evidence/x86-linux-capture-04/main-01ced000.bin`,
 `MU_OBJECTS_PLAIN_DIR=<mu-mac-tools>/native/scratch/objects/live/plain`,
 `MU_LANG_DIR=<mu-mac-tools>/native/scratch/render-worlds-after5/lang`, `MU_EVIDENCE_DIR=<main checkout>/evidence`.
 
