@@ -548,8 +548,8 @@ MUTATIONS = [
     ('Square custom world', W, "world==(cls==114?0x72:0x4f)", "world == (cls == 114 ? 0x71 : 0x4f)", 'custom_114'),
     ('Market after scroll sign', W, 'tmod(s,10000,0.001f,1)', 'tmod(s, 10000, 0.001f, 0)', 'after_79'),
     ('Market after wave u', W, 'csin(s->time*0.0007f)*0.05f', 'csin(s->time * 0.0007f) * 0.06f', 'after_79'),
-    ('Market after 0x44 blend', W, 'mesh(s,0,0x42,A(s),0,BL(s),U(s),V(s),-1);', 'mesh(s, 0, 0x42, A(s), -1, BL(s), U(s), V(s), -1);', 'after_114'),
-    ('Market after 0x1e hidden', W, 'body_std(s,H(s));', 'body_std(s, -1);', 'after_79'),
+    ('Market after 0x44 blend', W, 'case0x44:mesh(s,0,0x42,A(s),0,', 'case 0x44: mesh(s, 0, 0x42, A(s), -1,', 'after_114'),
+    ('Market after 0x1e hidden', W, 'case0x1e:body_std(s,H(s));', 'case 0x1e: body_std(s, -1);', 'after_79'),
     # Vulcanus
     ('Vulcanus 0xf scroll sign', W, 'tmod(s,10000,1e-4f,1),-1);stream(s,0xff);return1;', 'tmod(s, 10000, 1e-4f, 0), -1); stream(s, 0xff); return 1;', 'custom_63'),
     ('Vulcanus statue stream', W, 'stream(s,1);body(', 'stream(s, 2); body(', 'custom_63'),
@@ -620,8 +620,8 @@ MUTATIONS = [
     ('Kubera bitmap wrap', W, '{0x829d,"Object124\\\\sd_Amethyst04A.jpg",0x2900}', '{0x829d, "Object124\\\\sd_Amethyst04A.jpg", 0x2901}', 'loaders'),
     ('Kubera chrome listed', W, 'if(type>=0x71&&type<=0x75&&n<room)', 'if (type >= 0x71 && type <= 0x74 && n < room)', 'custom_123'),
     # invisible move
-    ('Karutan 0x1c type', R, 'returnt==0xa0||t==0xa1;', 'return t == 0xa0;', 'invisible_142'),
-    ('Kardamahal 0x1c type', R, 'returnt==0x71||t==0x80;', 'return t == 0x71 || t == 0x81;', 'invisible_143'),
+    ('Karutan 0x1c type', R, 'returnt==0xa0||t==0xa1;', 'return t == 0xa0;\n', 'invisible_142'),
+    ('Kardamahal 0x1c type', R, 'returnt==0x71||t==0x80;', 'return t == 0x71 || t == 0x81;\n', 'invisible_143'),
     ('Kardamahal null object', R, 'if(world==143&&!o)return0;', 'if (world == 143 && !o) return 1;', 'invisible_143'),
     ('Swamp 0x1c list', R, '0x93,0x36};', '0x93};', 'invisible_144'),
     ('145 visible byte', R, 'returno[MU_OBJF_VISIBLE]?1:0;', 'return o[MU_OBJF_VISIBLE] == 1;', 'invisible_145'),

@@ -2859,3 +2859,21 @@ args = ["--cases", "1000", "--mutations", "--output", "{report}"]
 "families.*.stopped" = 0
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
+
+[validate_worlds_slots]
+test = "reconstructed/objects/test_worlds_slots.py::WorldsSlotsTests.test_original_instructions"
+pins = ["text", "data"]
+families = ["custom_79", "after_79", "custom_114", "after_114", "custom_63", "after_63", "custom_112", "after_112", "custom_122", "after_122", "custom_123", "after_123", "invisible_142", "invisible_143", "invisible_144", "invisible_145", "trivial", "loaders", "chains"]
+cases = 18999
+mutants = 79
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+[validate_worlds_slots.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"families.loaders.cases" = 118
+"families.chains.cases" = 1881
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0
