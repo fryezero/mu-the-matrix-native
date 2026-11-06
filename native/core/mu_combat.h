@@ -89,7 +89,7 @@ void mu_combat_default_config(mu_combat_config *config);
 const char *mu_combat_arrow_file(int32_t type);
 
 /* Bitmap slots the renderer binds by id. */
-enum { MU_COMBAT_BITMAPS = 16 };
+enum { MU_COMBAT_BITMAPS = 24 };
 
 typedef struct mu_combat_bitmap {
     int32_t id;               /* client bitmap index (0x7534 font, 0x7df3.. specials, 0x7f2b, 0x7f84) */
@@ -113,7 +113,7 @@ enum {
     MU_COMBAT_MODEL_WEAPON, MU_COMBAT_MODEL_ICE, MU_COMBAT_MODEL_ICE_DEBRIS,
     MU_COMBAT_MODEL_WAVE,
     /* RENDER-EFFECTS-011: the bows' effects 0x477 (m_Waves), 0x60b (Darkangel_effect), 0x611 (ringofpower) */
-    MU_COMBAT_MODEL_RING, MU_COMBAT_MODEL_BURST, MU_COMBAT_MODEL_POWER_RING, MU_COMBAT_MODEL_FEATHER,
+    MU_COMBAT_MODEL_RING, MU_COMBAT_MODEL_BURST, MU_COMBAT_MODEL_POWER_RING, MU_COMBAT_MODEL_FEATHER, MU_COMBAT_MODEL_MULTISHOT,
     /* RENDER-EFFECTS-004: Rageful Blow's pieces */
     MU_COMBAT_MODEL_QUAKE1, MU_COMBAT_MODEL_QUAKE2, MU_COMBAT_MODEL_QUAKE3, MU_COMBAT_MODEL_QUAKE4,
     MU_COMBAT_MODEL_QUAKE5, MU_COMBAT_MODEL_QUAKE7, MU_COMBAT_MODEL_QUAKE8, MU_COMBAT_MODEL_FLASHING,
