@@ -3,12 +3,12 @@
 static int bow_joint_kind(int32_t type, int32_t sub)
 {
     switch (type) {
-    case 0x80e3: return sub == 4;
+    case 0x80e3: return sub == 4 || sub == 5;
     case 0x80e4: return sub == 1;
     case 0x814c: case 0x8182: case 0x8185: return sub == 10;
     case 0x85cc: return sub == 0;
     case 0x828c: return sub == 2;
-    case 0x7f79: return sub == 12 || sub == 18 || sub == 22;
+    case 0x7f79: return sub == 12 || sub == 15 || sub == 18 || sub == 22;
     default: return 0;
     }
 }
@@ -22,8 +22,11 @@ static void create_bow_joint(mu_jt_joint *j, float scale, const float target_pos
     switch (j->type) {
     case 0x80e3: /* 0x015508d2 */
         j->velocity = 40.0f;
+        if (j->subtype == 5) j->velocity = 70.0f;
         j->field_a25 = 2;
-        j->light[0] = 0.4f; j->light[1] = 0.9f; j->light[2] = 1.0f;
+        if (j->subtype == 4) {
+            j->light[0] = 0.4f; j->light[1] = 0.9f; j->light[2] = 1.0f;
+        } /* 0x01550963: subtype 5 preserves caller colour, or common white */
         break;
     case 0x80e4: /* 0x01550adc */
         j->faces = 2;
@@ -48,6 +51,7 @@ static void create_bow_joint(mu_jt_joint *j, float scale, const float target_pos
         j->lifetime = (int16_t)j->key;
         j->key = 0;
         j->max_tails = j->subtype == 12 ? 16 : j->subtype == 18 ? 7 : 9;
+        if (j->subtype == 15) j->max_tails = 16;
         j->render_type = j->subtype == 12 ? 4 : 1;
         if (j->subtype == 18 && !(env && env->has_creation_light)) {
             if (j->skill == 0) j->light[0] = j->light[1] = j->light[2] = 0.5f;
@@ -58,7 +62,9 @@ static void create_bow_joint(mu_jt_joint *j, float scale, const float target_pos
                 if (t) copy3(j->light, t->light);
             }
         }
-        if (j->subtype == 12) {
+        if (j->subtype == 15) { /* 0x0154ceaa */
+            j->light[0] = 0.4f; j->light[1] = 0.9f; j->light[2] = 0.5f;
+        } else if (j->subtype == 12) {
             j->light[0] = 0.6f; j->light[1] = 0.2f; j->light[2] = 0.8f;
         } else if (j->subtype == 22) {
             j->light[0] = 1.0f; j->light[1] = 0.2f; j->light[2] = 0.0f;
@@ -73,7 +79,12 @@ static int move_bow_joint(mu_jt_joint *j, const mu_jt_env *env)
 {
     const mu_jt_object *t = jobject(env, j->target);
     if (j->type == 0x80e3) { /* 0x01583f63 */
-        if (!t || !t->live) j->lifetime = 0;
+        if (j->subtype == 4) {
+            if (!t || !t->live) j->lifetime = 0;
+        } else if (!t || !t->live || t->lifetime <= 0) {
+            j->lifetime = 0;
+            if (j->subtype == 5) j->live = 0; /* 0x01583f8d; closing tail still runs */
+        }
     } else if (j->type == 0x80e4) { /* 0x01584164 */
         if (!t || !t->live) { j->live = 0; return 1; }
     } else if (j->type == 0x828c) { /* 0x01585972 */
@@ -94,6 +105,13 @@ static int move_bow_joint(mu_jt_joint *j, const mu_jt_env *env)
     } else if (j->type == 0x7f79) { /* 0x0157d2f5 */
         if (!t) { j->live = 0; return 0; }
         if (!t->live) j->live = 0;
+        if (j->subtype == 15 && j->live == 1) { /* 0x0157d54d: two particles, before fade */
+            mu_jt_call c = {0};
+            c.routine = MU_JT_CALL_PARTICLE; c.type = 0x7f66;
+            c.subtype = 3; c.owner = -1; c.scale = 0.5f;
+            copy3(c.position, j->position); copy3(c.angle, j->angle); copy3(c.light, j->light);
+            for (int n = 0; n < 2; ++n) jcall(env, &c);
+        }
         if (j->lifetime < 15)
             for (int k = 0; k < 3; ++k) j->light[k] = j->light[k] / 1.2f;
         if (j->subtype != 18) {

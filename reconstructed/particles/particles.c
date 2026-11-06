@@ -69,7 +69,7 @@ int mu_pt_kind_supported(int32_t type, int32_t subtype)
     case MU_PT_BITMAP_WATERFALL1:
         return subtype == 2;
     case MU_PT_BITMAP_SHINY1:
-        return subtype == 0 || subtype == 1 || subtype == 7;   /* 7: RENDER-EFFECTS-007, Rudolph's twinkle */
+        return subtype == 0 || subtype == 1 || subtype == 3 || subtype == 7;   /* 7: RENDER-EFFECTS-007, Rudolph's twinkle */
     case MU_PT_BITMAP_WATERFALL2:
         return subtype == 2;
     case MU_PT_BITMAP_WATERFALL3:
@@ -424,6 +424,14 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
         /* 0x015e5c73: subtypes 0 and 1 */
         p->lifetime = 18;
         p->angle[0] = 45.0f;
+        if (p->subtype == 3) { /* RENDER-EFFECTS-013, 0x015e5d83 */
+            p->alpha = 1.0f; /* Shiny01/3 */
+            p->velocity[0] = (float)(mu_pt_rand(h) % 8) - 4.0f;
+            p->velocity[1] = (float)(mu_pt_rand(h) % 4);
+            p->velocity[2] = (float)(mu_pt_rand(h) % 4);
+            p->lifetime = 30; /* Shiny01/3 */
+            p->scale = (float)(mu_pt_rand(h) % 10) / 20.0f + 0.5f;
+        }
         if (p->subtype == 7) {   /* RENDER-EFFECTS-007, 0x015e64d3: a scattered, drifting twinkle */
             p->scale = 0.1f;
             p->start[0] = p->scale;
@@ -855,6 +863,13 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
             break;
         case MU_PT_BITMAP_SHINY1:
             /* 0x016599cd: the size follows a sine of the lifetime; subtype 1 smaller and spinning */
+            if (p->subtype == 3) { /* RENDER-EFFECTS-013, 0x016587b9 */
+                for (int k = 0; k < 3; ++k) p->light[k] /= 1.05f; /* Shiny01/3 */
+                p->scale -= 0.04f; /* Shiny01/3 */
+                p->alpha -= 0.001f; /* Shiny01/3 */
+                if (0.0f >= p->alpha) p->live = 0; /* Shiny01/3 */
+                break;
+            }
             if (p->subtype == 7) {   /* RENDER-EFFECTS-007, 0x01658fef */
                 p->scale = (float)sin((double)((float)p->lifetime * 2.0f * 0.017453292f));
                 break;

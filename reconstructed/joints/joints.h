@@ -126,6 +126,7 @@ typedef struct mu_jt_object {
     float angle[3];            /* +0x164 (RENDER-EFFECTS-004: Rageful Blow aims along its owner's angle) */
     int8_t level;              /* +0x41 the item level byte the area-skill caller stores (RenderPartObject glow) */
     float scale;               /* +0xa0 (RENDER-EFFECTS-006: the owned effects 0x195/0x59a scale their drift by it) */
+    int32_t lifetime;           /* +0x6c, RENDER-EFFECTS-013: owning arrow lifetime */
 } mu_jt_object;
 
 /* One call into another subsystem, in client order; vectors are the values at
