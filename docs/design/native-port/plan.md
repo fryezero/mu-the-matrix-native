@@ -1,5 +1,7 @@
 # Plan: the rest of the native macOS port
 
+APP-POLISH-002 PR-ready: the world HUD displays session HP/MP/SD/AG and stops its demo animation; missing offline maxima use the existing progression view. Original setHPMP body and base viewport: 1,028 cases, 0 mismatches, 10/10 mutants. Main HUD 1:1 at 1504×936 is supported by base noScale and Main.onResize. [Checks and limits](../../handoffs/APP-POLISH-002.md).
+
 Status classes: **EA** evidence-available (restored text, installed data or the fixture are enough),
 **BP** blocked-by-protection (needs launcher/IGC/WinLicense material that is out of scope), **OP**
 needs-owner-or-operator (a decision, an account, a contract or hardware). A milestone can be EA in its
