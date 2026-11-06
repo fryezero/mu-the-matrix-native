@@ -2,6 +2,8 @@
 
 TEST-SPEED-001 PR-ready on main `2531746f`: original-side caching and no-mutant/affected runners; 13 item rows pass. Suite-selection median remains near 97%, with no identified recorded-failure miss. [Commands and evidence](testing/TEST-BUDGET.md), [checks and limits](handoffs/TEST-SPEED-001.md).
 
+RENDER-EFFECTS-012 PR-ready: ten bow joint kinds, multishot02/1 and the gunbow's white model colour. The 33 bows' unsupported requests fall 77 → 27, with 119 arrows retained. Four joint kinds remain refused; ground-skill children/route, the decal, Uruk weather and Muun owners remain. [Finding](research/client-render-effects-012.md), [handoff](handoffs/RENDER-EFFECTS-012.md).
+
 APP-POLISH-002 PR-ready: the world HUD displays session HP/MP/SD/AG and stops its demo animation; missing offline maxima use the existing progression view. Original setHPMP body and base viewport: 1,028 cases, 0 mismatches, 10/10 mutants. Main HUD 1:1 at 1504×936 is supported by base noScale and Main.onResize. [Checks and limits](handoffs/APP-POLISH-002.md).
 
 APP-POLISH-001 PR-ready: original-instruction evidence retains opaque ordinary body shadows and Warps scaling; demo Hound moved farther from the field arrival, quoted launcher arguments and root manifest tests fixed. Main HUD scaling and animated demo vitality remain open. [Checks and limits](handoffs/APP-POLISH-001.md).

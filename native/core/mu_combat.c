@@ -182,7 +182,17 @@ static const struct { int32_t id; const char *dir, *name; char kind; } bitmap_fi
     {0x7fd3, "Effect", "JointSpirit01.jpg", 'j'},
     {0x7fd5, "Effect", "Spark01.jpg", 'j'},         /* the Twisting Slash swirl's spark joints (NATIVE-JOINT-001) */
     {0x7fd6, "Effect", "JointLaser01.jpg", 'j'},    /* RENDER-EFFECTS-009: the arrows' 0x7fd6/5 trails */
+    {0x7f79, "Effect", "Flare02.jpg", 'j'},
+    {0x80e3, "Effect", "force_Pillar.jpg", 'j'},
+    {0x80e4, "Effect", "!SwordEff.jpg", 'j'},
+    {0x814c, "Skill", "sharke_arrows.jpg", 'j'},
+    {0x8182, "Effect", "devil_arrow.jpg", 'j'},
+    {0x8185, "Effect", "arrows_angelic.jpg", 'j'},
+    {0x828c, "Effect", "Swordeff_mono2.jpg", 'j'},
+    {0x85cc, "Effect", "Swordeff_mono3.jpg", 'j'},
 };
+
+_Static_assert(sizeof bitmap_files / sizeof bitmap_files[0] == MU_COMBAT_BITMAPS, "combat bitmap capacity");
 
 static void arrow_tick(mu_combat *c, mu_sfx_effect *e);   /* RENDER-EFFECTS-010 */
 
@@ -225,6 +235,7 @@ static void load_models(mu_combat *c, const char *root)
         {0x477, "Data/Skill/m_Waves.bmd"}, {0x60b, "Data/Effect/Darkangel_effect.bmd"},
         {0x611, "Data/Effect/ringofpower.bmd"},
         {0x45f, "Data/Skill/darkwing_hetachi.bmd"},   /* AccessModel 0x01833729, textures Skill\\ REPEAT/NEAREST */
+        {0x38b5, "Data/Effect/multishot02.bmd"},
         /* RENDER-EFFECTS-004: Rageful Blow, loader 0x0183451b..0x018345cf */
         {0x462, "Data/Skill/EarthQuake01.bmd"}, {0x463, "Data/Skill/EarthQuake02.bmd"},
         {0x464, "Data/Skill/EarthQuake03.bmd"}, {0x465, "Data/Skill/EarthQuake04.bmd"},
@@ -243,11 +254,12 @@ static void load_models(mu_combat *c, const char *root)
             m->type = c->weapon_item[0] >= 0 ? mu_sfx_arrow_type(c->weapon_item[0]) : -1;
             file = mu_combat_arrow_file(m->type);
         }
-        if (i >= MU_COMBAT_MODEL_RING && i <= MU_COMBAT_MODEL_FEATHER) {
+        if (i >= MU_COMBAT_MODEL_RING && i <= MU_COMBAT_MODEL_MULTISHOT) {
             /* RENDER-EFFECTS-011: only for the equipped bow whose arrows request it (arrow_fx.inc: 0x45b, 0x47f
              * and 0x60d create 0x477, 0x60a 0x60b, 0x610 0x611) */
             const int32_t arrow = c->weapon_item[0] >= 0 ? mu_sfx_arrow_type(c->weapon_item[0]) : -1;
             const int needed = m->type == 0x477   ? arrow == 0x45b || arrow == 0x47f || arrow == 0x60d
+                               : m->type == 0x38b5 ? arrow == 0x60f
                                : m->type == 0x45f ? arrow == 0x45c   /* 0x45c's 0x45f/0, 0x45f/1 */
                                                   : arrow == (m->type == 0x60b ? 0x60a : 0x610);
             if (!needed)
@@ -509,21 +521,27 @@ static mu_sfx_effect *effect_slot(mu_combat *c)
     return NULL;
 }
 
-static void create_effect(mu_combat *c, int32_t type, int32_t subtype, const float position[3], const float angle[3],
-                          const float light[3], int32_t owner, const mu_sfx_info *info)
+static void create_effect_scaled(mu_combat *c, int32_t type, int32_t subtype, const float position[3], const float angle[3],
+                          const float light[3], int32_t owner, const mu_sfx_info *info, float scale)
 {
     mu_sfx_effect *e = effect_slot(c);   /* the first free record of the 200 (0x013c0f46) */
     if (!e)
         return;
     float creation_light[3];
     memcpy(creation_light, light, sizeof creation_light);
-    if (mu_sfx_effect_create(e, type, subtype, position, angle, creation_light, owner, 0.0f, info, &c->env)) {
+    if (mu_sfx_effect_create(e, type, subtype, position, angle, creation_light, owner, scale, info, &c->env)) {
         ++c->stats.fx_created;
         if (mu_sfx_is_arrow(type))
             ++c->stats.arrows;   /* RENDER-EFFECTS-007: the other bows' arrows too */
     } else {
         unsupported(c, 'e', type, subtype);
     }
+}
+
+static void create_effect(mu_combat *c, int32_t type, int32_t subtype, const float position[3], const float angle[3],
+                          const float light[3], int32_t owner, const mu_sfx_info *info)
+{
+    create_effect_scaled(c, type, subtype, position, angle, light, owner, info, 0.0f);
 }
 
 static void create_particle(mu_combat *c, const mu_sfx_call *call, const mu_sfx_effect *e)
@@ -618,8 +636,18 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
             c->objects[MU_COMBAT_EFFECT_OBJECT(e - c->effects)].live = 1;   /* created, SetLive at the end */
             target = MU_COMBAT_EFFECT_OBJECT((int32_t)(e - c->effects));
         }
+        /* Arrow CreateJoint arguments, not the hero key: Flare02 uses arg7 as lifetime.
+         * call_joint_args uses a zero vector for a NULL colour; these supported arrow callers
+         * supply nonzero colours whenever argument 12 is present. */
+        const int arrow = e && mu_sfx_is_arrow(e->type);
+        if (arrow) {
+            memcpy(c->jenv.creation_light, call->light, sizeof call->light);
+            c->jenv.has_creation_light = call->light[0] != 0 || call->light[1] != 0 || call->light[2] != 0;
+        }
         create_joint(c, call->type, call->position, call->target, call->angle, call->subtype, target,
-                     call->scale, c->hero_key & 0xffff, 0);
+                     call->scale, (uint16_t)(arrow ? call->arg7 : c->hero_key & 0xffff),
+                     (uint16_t)(arrow ? call->arg8 : 0));
+        c->jenv.has_creation_light = 0;
         return 0;
     }
     case MU_SFX_CALL_EFFECT: {
@@ -634,7 +662,12 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
             if (call->owner == -2)
                 owner = e->owner;
         }
-        create_effect(c, call->type, call->subtype, call->position, call->angle, call->light, owner, &info);
+        if (call->type == 0x38b5) {
+            info.key = (uint16_t)call->range;
+            create_effect_scaled(c, call->type, call->subtype, call->position, call->angle, call->light,
+                                 owner, &info, call->scale);
+        } else
+            create_effect(c, call->type, call->subtype, call->position, call->angle, call->light, owner, &info);
         return 0;
     }
     case MU_SFX_CALL_ANIMATION: {
@@ -1805,7 +1838,7 @@ int32_t mu_combat_draw_models(mu_combat *c, mu_combat_model_fn draw, void *conte
             draw(context, &m->model, &m->textures, MU_COMBAT_MODEL_WEAPON, &options);
             ++drawn;
             continue;
-        } else if (e->type >= 0x7a4 || slot < 0) {
+        } else if ((e->type >= 0x7a4 && e->type != 0x38b5) || slot < 0) {
             continue;   /* bitmap effects draw nothing themselves; missing models */
         }
         if (slot < 0)
@@ -1815,7 +1848,7 @@ int32_t mu_combat_draw_models(mu_combat *c, mu_combat_model_fn draw, void *conte
         for (int k = 0; k < 3; ++k) {
             p.origin[k] = origin[k];
             p.angles[k] = angles[k];
-            p.color[k] = e->type == MU_SFX_TWISTING_SWIRL ? 1.0f : e->light[k];
+            p.color[k] = e->type == MU_SFX_TWISTING_SWIRL || e->type == 0x45e ? 1.0f : e->light[k];
         }
         p.body_scale = e->type == MU_SFX_TWISTING_SWIRL ? 1.0f : e->scale;
         mu_model_apply_params(&m->model, &p);
