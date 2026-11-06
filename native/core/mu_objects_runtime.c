@@ -1088,6 +1088,9 @@ static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_obje
         const int needs_bones = type == 30 || type == 35;
         const int bones_ready = posed && m->bmd.bone_count > (type == 30 ? 3 : 2);
         if (needs_bones && !bones_ready) ++o->rt.draw_unsupported;
+        /* RENDER-WORLDS-SLOTS: 0x017f9758 draws rand % 30 (0x017f9797) for every object whose model it finds,
+         * before the world switch reaches the class slot 0x34; Event square (114) already drew it. */
+        (void)visual_rand(&c); /* Outer RenderObjectVisual flicker draw. */
         mu_market_visual(img, i, o->world, world_time, visual_rand, bones_ready ? visual_bone : NULL, &c, &log);
     }
     else if (o->world == 100 && m && m->loaded)

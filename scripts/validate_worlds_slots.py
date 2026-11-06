@@ -392,6 +392,74 @@ def trivial_family(machine, lib, g, cases):
     return t
 
 
+# RenderObjectVisual 0x017f9758 (0x017fcb5c..), the custom render 0x017f76ec (0x017f8f15..) and the after chain
+# 0x016d67c7 (0x016d68ac..): every hook the client calls around the world manager's class slot.
+# (chain, hook, argument order: 'om' (object, model) / 'mo' (model, object), '0': a trailing flag 0, getter)
+CHAIN_HOOKS = [('visual', h, 'om', None) for h in (0x9db8b1, 0xdef747, 0xd8e640, 0xdfc095, 0xd622dd, 0xdac0a2,
+                                                   0xe75089, 0xe7df87, 0xe84941, 0xe3116a, 0xe5f94b)] + \
+    [('visual', 0xd5404b, 'om', 0xd53c8f), ('visual', 0xdb7656, 'om', 0xdb747f)] + \
+    [('custom', h, 'mo0', None) for h in (0xdeff29, 0xd8ea2c, 0xdfc3cf, 0xd63d6c, 0xdac3c1, 0xe760aa, 0xe7ed6f,
+                                          0xe855f1, 0xe31985, 0xe6021d)] + \
+    [('custom', 0xd54e48, 'mo0', 0xd53c8f), ('custom', 0xdba13d, 'mo0', 0xdb747f)] + \
+    [('after', h, 'om', None) for h in (0xe765eb, 0xe7f718)] + \
+    [('after', h, 'om0', None) for h in (0xe86aac, 0xe321bb, 0xe60ab0, 0xd63f5f)] + \
+    [('after', 0xd550ea, 'om', 0xd53c8f), ('after', 0xdbc1b1, 'om0', 0xdb747f)]
+# thread-safe statics the getters return: (instance, constructor); the singleton 0x00db747f's constructor needs the
+# heap, so its slots run on the fake handler as RENDER-WORLDS-AFTER's chain_noop runs its slots 0x2c/0x30
+STATICS = {0xd53c8f: (0x1ec8eb8, 0xd53c61)}
+CLASS_WORLDS = [57, 58, 62, 63, 64, 69, 70, 71, 72, 79, 80, 81, 82, 91, 92, 93, 94, 95, 96, 100, 101, 110, 111, 112,
+                113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132,
+                133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145]
+
+
+def ret_cleanup(text, address):
+    from capstone import Cs, CS_ARCH_X86, CS_MODE_32
+    for ins in Cs(CS_ARCH_X86, CS_MODE_32).disasm(text[address - am.TEXT_BASE:address - am.TEXT_BASE + 0x8000],
+                                                   address):
+        if ins.mnemonic == 'ret':
+            return int(ins.op_str, 16) if ins.op_str else 0
+    raise ValueError(hex(address))
+
+
+def chains_family(machine, lib, g, cases):
+    """Every hook around the class slot in all 57 class-world registrations: answer 0, object and model unchanged
+    (no C counterpart: the native dispatch calls the class slot directly, which this family justifies)."""
+    t = v.Tally('chains')
+    for chain, hook, order, getter in CHAIN_HOOKS:
+        for world in CLASS_WORLDS:
+            o = bytearray(v.poison_object(g))
+            v.put_i(o, 0x5c, g.randrange(0, 301))
+            b = a2.slot_model(g, 3)
+            regions = v.global_regions(world, 6, [am.defined_region('object', v.OBJECTS, bytes(o)),
+                                                  am.defined_region('model', v.MODEL, bytes(b)),
+                                                  am.defined_region('fake', v.FAKE, v.fake_object(),
+                                                                    writable=False)])
+            this = v.FAKE
+            if getter in STATICS:
+                inst, ctor = STATICS[getter]
+                built = v.run(machine, ctor, [], v.global_regions(world, 6, [
+                    am.defined_region('inst', inst, bytes(0x60))]), {}, ecx=inst, cleanup=0)
+                stop = v.stopped_reason(built)
+                if stop:
+                    t.add(False, {'world': world, 'hook': hex(hook), 'constructor': hex(ctor)}, stop)
+                    continue
+                regions.append(am.defined_region('inst', inst, built['regions']['inst'], writable=False))
+                this = inst
+            args = [v.OBJECTS, v.MODEL] if order.startswith('om') else [v.MODEL, v.OBJECTS]
+            if order.endswith('0'):
+                args.append(0)
+            result = v.run(machine, hook, args, regions, {}, ecx=this, cleanup=ret_cleanup(_TEXT, hook))
+            stop = v.stopped_reason(result)
+            if stop:
+                t.add(False, {'world': world, 'hook': hex(hook)}, stop)
+                continue
+            t.count(chain)
+            t.add((result['eax'] & 0xff) == 0 and result['regions']['object'] == bytes(o) and
+                  result['regions']['model'] == bytes(b), {'world': world, 'hook': hex(hook),
+                                                           'answer': result['eax'] & 0xff})
+    return t
+
+
 FAMILIES = {}
 for _w in CLASSES:
     FAMILIES[f'custom_{_w}'] = (lambda w: lambda m, l, g, n: slot_family(m, l, g, n, w, False))(_w)
@@ -400,6 +468,7 @@ for _w in INVISIBLE:
     FAMILIES[f'invisible_{_w}'] = (lambda w: lambda m, l, g, n: invisible_family(m, l, g, n, w))(_w)
 FAMILIES['trivial'] = trivial_family
 FAMILIES['loaders'] = loaders_family
+FAMILIES['chains'] = chains_family
 W, R = 'world_slots_more_visual.c', 'object_render.c'
 MUTATIONS = [
     # Loren Market / Event square
