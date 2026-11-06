@@ -178,6 +178,67 @@ static void ferea_after(const slot *s)
     }
 }
 
+/* ---- Swamp of Darkness 122 (custom 0x00e54752, after 0x00e555d2, world test 0x00e543a1: 0x7a) ---- */
+static void dark_glow(const slot *s, int32_t m, float light, int32_t texture, int n)
+{
+    for (int k = 0; k < n; ++k)
+        mesh(s, m, 0x42, A(s), m, light, U(s), V(s), texture);
+}
+static int dark_custom(const slot *s)
+{
+    const int32_t t = mu_obj_i32(s->o, MU_OBJF_TYPE);
+    switch (t) {
+    case 0x27: case 0x29: case 0x70:
+        return 1;
+    case 0x3b:
+        mesh_std(s, 1, 2, -1);
+        mesh(s, 0, 0x42, A(s), 0, BL(s), U(s), V(s), -1);
+        return 1;
+    case 0x58: case 0x6b: case 0x6c: case 0x6d:
+        mesh_std(s, 0, 2, -1);
+        mesh_std(s, 1, 2, -1);
+        dark_glow(s, 2, t == 0x6d ? 0.8f : wave(s, -2.0f) * 0.7f + 0.3f, -1, t == 0x58 ? 1 : t == 0x6d ? 2 : 3);
+        return 1;
+    case 0x7b: case 0x7c: case 0x7d: case 0x7f: case 0x80:
+        mesh_std(s, 0, 2, -1);
+        dark_glow(s, 1, wave(s, -2.0f) * 0.5f + 0.5f, -1, 3);
+        return 1;
+    case 0x7e:   /* with the Chrome09 reflection 0x8245 (flags 6) */
+        mesh_std(s, 0, 2, -1);
+        mesh_std(s, 1, 2, -1);
+        mesh_std(s, 1, 6, 0x8245);
+        dark_glow(s, 1, BL(s), -1, 1);
+        dark_glow(s, 2, BL(s), -1, 1);
+        return 1;
+    case 0x83: case 0x84: case 0x85:   /* the crocodiles: body, then three glows of hsCrocodileA_R 0x8273 */
+        body(s, 2, BM(s), BL(s), U(s), V(s), -1);
+        dark_glow(s, 1, wave(s, -1.0f) * 0.9f + 0.1f, 0x8273, 3);
+        return 1;
+    default:
+        return 0;
+    }
+}
+static void dark_after(const slot *s)
+{
+    switch (mu_obj_i32(s->o, MU_OBJF_TYPE)) {
+    case 0x27: case 0x29:
+        dark_glow(s, 0, BL(s), -1, 1);
+        break;
+    case 0x58: case 0x6b:
+        dark_glow(s, 3, BL(s), -1, 1);
+        break;
+    case 0x6c:
+        dark_glow(s, 3, wave(s, -2.0f) * 0.5f + 0.5f, -1, 2);
+        dark_glow(s, 4, BL(s), -1, 1);
+        break;
+    case 0x70:
+        body(s, 2, BM(s), wave(s, -0.6f) * 0.5f + 0.5f, U(s), V(s), H(s));
+        break;
+    default:
+        break;
+    }
+}
+
 /* ---- Kubera 123..127 (custom 0x00e1a5df, after 0x00e1b6f5, world test 0x00e1e4b6: 0x7b..0x7f) ----
  * The handler's bitmap fields +0x1c..+0x48 (twelve words), written per world by the class loader (slot 0x24,
  * 0x00e18efb) after its LoadBitmap calls; the constructor 0x00e18da5 clears +0x1c..+0x24 and +0x38..+0x48. */
@@ -397,7 +458,7 @@ static int32_t kubera_uses(int32_t world, int32_t type, int32_t *out, int32_t ro
 static int more_class(int32_t world)
 {
     switch (world) {
-    case 79: case 112: case 114:
+    case 79: case 112: case 114: case 122:
         return world;
     case 123: case 124: case 125: case 126: case 127:
         return 123;
@@ -413,6 +474,8 @@ int mu_slots_more_custom(int32_t cls, const slot *s, int32_t world)
         return s->b && market_world(cls, world) ? market_custom(s) : 0;
     case 112:
         return s->o && s->b ? ferea_custom(s) : 0;
+    case 122:
+        return world == 0x7a && s->o && s->b ? dark_custom(s) : 0;
     case 123:
         return kubera_world(world) && s->o && s->b ? kubera_custom(s, world) : 0;
     default:
@@ -429,6 +492,10 @@ void mu_slots_more_after(int32_t cls, const slot *s, int32_t world)
     case 112:
         if (s->o && s->b)
             ferea_after(s);
+        break;
+    case 122:
+        if (world == 0x7a && s->o && s->b)
+            dark_after(s);
         break;
     case 123:
         if (kubera_world(world) && s->o && s->b)
@@ -447,6 +514,12 @@ int mu_slots_more_bitmap(int32_t world, int32_t index, const char **path, uint32
         *wrap = 0x2900;
         return 1;
     }
+    if (world == 122 && index == 0x8273) {   /* the shared object-bitmap site 0x0184187c */
+        *path = "Object123\\hsCrocodileA_R.jpg";
+        *filter = 0x2601;
+        *wrap = 0x2900;
+        return 1;
+    }
     for (size_t k = 0; kubera_world(world) && k < sizeof kubera_bitmaps / sizeof kubera_bitmaps[0]; ++k)
         if (kubera_bitmaps[k].index == index) {
             *path = kubera_bitmaps[k].path;
@@ -460,6 +533,10 @@ int32_t mu_slots_more_bitmaps(int32_t world, int32_t type, int32_t *out, int32_t
 {
     if (world == 112 && type == 0x7b && room > 0) {
         out[0] = 0x8225;
+        return 1;
+    }
+    if (world == 122 && (type == 0x7e || (type >= 0x83 && type <= 0x85)) && room > 0) {
+        out[0] = type == 0x7e ? 0x8245 : 0x8273;   /* 0x8245: Effect\Chrome09 (every world) */
         return 1;
     }
     return kubera_uses(world, type, out, room);

@@ -31,6 +31,9 @@ CLASSES = {
     114: (0xe1f6ca, 0xe1f8ff, [114, 114, 79, 113, 115], [8, 0x1e, 0x32, 0x44]),
     112: (0xde8a10, 0xde9eab, [112, 112, 111, 113, 0],
           [0x27, 0x2b, 0x33, 0x4b, 0x51, 0x57, 0x5f, 0x72, 0x73, 0x7b, 0x8a, 0x99, 0x9a, 0x9b]),
+    122: (0xe54752, 0xe555d2, [122, 122, 121, 123, 0],
+          [0x27, 0x29, 0x3b, 0x58, 0x6b, 0x6c, 0x6d, 0x70, 0x7b, 0x7c, 0x7d, 0x7e, 0x7f, 0x80, 0x81, 0x82, 0x83,
+           0x84, 0x85]),
     123: (0xe1a5df, 0xe1b6f5, [123, 124, 125, 126, 127, 122, 128],
           [0x1d, 0x1e, 0x2f, 0x34, 0x48, 0x4c, 0x5e, 0x6d, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7e,
            0x83, 0x86, 0x8b, 0x8c, 0x92, 0x93, 0x9f, 0xa0]),
@@ -63,10 +66,16 @@ BODY, MESH = a2.BODY, a2.MESH
 RAND = 0x1989721
 
 
+# bodies the ret-then-padding scan over-runs (a jump table follows the ret): the real end
+ENDS = {0xe54752: 0xe553e4}
+
+
 def body_range(text, start):
     from capstone import Cs, CS_ARCH_X86, CS_MODE_32
     md = Cs(CS_ARCH_X86, CS_MODE_32)
     md.skipdata = True
+    if start in ENDS:
+        return start, ENDS[start]
     end = start
     for ins in md.disasm(text[start - am.TEXT_BASE:start - am.TEXT_BASE + 0x2800], start):
         end = ins.address + ins.size
@@ -229,6 +238,11 @@ def slot_family(machine, lib, g, cases, world_cls, after):
     return t
 
 
+# worlds whose slot bitmaps come from shared LoadBitmap sites (no class loader): world -> types to scan
+SHARED_SITES = {122: range(301)}
+_TEXT, _DATA = None, None
+
+
 def loaders_family(machine, lib, g, cases):
     """Each class loader as client code: the handler bitmap words it writes per world against
     mu_slots_more_handler, and every bitmap the slots name per (world, type) against its LoadBitmap call."""
@@ -268,6 +282,19 @@ def loaders_family(machine, lib, g, cases):
                 t.count('registered by the loader' if expect else 'not registered')
                 t.add(expect is not None and mine == (expect[0].removeprefix('Data\\'), expect[1], expect[2]),
                       {'world': world, 'index': hex(index), 'c': mine, 'client': expect})
+    for world, types in SHARED_SITES.items():   # the one LoadBitmap site of each bitmap these slots name
+        named = set()
+        for typ in types:
+            out = (C.c_int32 * 36)()
+            named.update(out[:lib.dll.mu_world_slot_bitmaps(world, typ, out)])
+        for index in sorted(named):
+            sites = a2.load_sites(_TEXT, _DATA, index)
+            path, filt, wrap = C.c_char_p(), C.c_uint32(), C.c_uint32()
+            have = lib.dll.mu_world_slot_bitmap(world, index, C.byref(path), C.byref(filt), C.byref(wrap))
+            mine = (path.value.decode(), filt.value, wrap.value) if have else None
+            t.count('shared site')
+            t.add(len(sites) == 1 and mine == sites[0][1:], {'world': world, 'index': hex(index), 'c': mine,
+                                                               'sites': sites})
     return t
 
 
@@ -403,6 +430,20 @@ MUTATIONS = [
     ('Ferea after 0x99 v', W, 'BL(s),U(s),U(s),-1);', 'BL(s), U(s), V(s), -1);', 'after_112'),
     ('Ferea after 0x33 light', W, 'body(s,2,-1,1.0f,0.0f,0.0f,-1);', 'body(s, 2, -1, BL(s), 0.0f, 0.0f, -1);', 'after_112'),
     ('Ferea after 0x9b sign', W, 'mesh(s,2,2,A(s),2,BL(s),x,-x,-1);', 'mesh(s, 2, 2, A(s), 2, BL(s), x, x, -1);', 'after_112'),
+    # Swamp of Darkness
+    ('Dark 0x70 drawn first', W, 'case0x27:case0x29:case0x70:return1;', 'case 0x27: case 0x29: return 1;', 'custom_122'),
+    ('Dark 0x3b glow blend', W, 'mesh(s,0,0x42,A(s),0,BL(s),U(s),V(s),-1);return1;case0x58', 'mesh(s, 0, 0x42, A(s), 1, BL(s), U(s), V(s), -1); return 1; case 0x58', 'custom_122'),
+    ('Dark 0x6d light', W, 't==0x6d?0.8f:', 't == 0x6d ? 0.7f :', 'custom_122'),
+    ('Dark glow counts', W, 't==0x58?1:t==0x6d?2:3', 't == 0x58 ? 1 : t == 0x6d ? 3 : 3', 'custom_122'),
+    ('Dark 0x7b glow base', W, 'wave(s,-2.0f)*0.5f+0.5f,-1,3);', 'wave(s, -2.0f) * 0.5f + 0.4f, -1, 3);', 'custom_122'),
+    ('Dark 0x7e reflection flags', W, 'mesh_std(s,1,6,0x8245);', 'mesh_std(s, 1, 2, 0x8245);', 'custom_122'),
+    ('Dark crocodile glow', W, 'wave(s,-1.0f)*0.9f+0.1f', 'wave(s, -1.0f) * 0.8f + 0.1f', 'custom_122'),
+    ('Dark crocodile body', W, 'body(s,2,BM(s),BL(s),U(s),V(s),-1);dark_glow', 'body(s, 2, BM(s), BL(s), U(s), V(s), H(s)); dark_glow', 'custom_122'),
+    ('Dark custom world', W, 'returnworld==0x7a&&', 'return world == 0x7b &&', 'custom_122'),
+    ('Dark after 0x6c second glow', W, 'wave(s,-2.0f)*0.5f+0.5f,-1,2);', 'wave(s, -2.0f) * 0.5f + 0.5f, -1, 1);', 'after_122'),
+    ('Dark after 0x70 period', W, 'wave(s,-0.6f)', 'wave(s, -0.5f)', 'after_122'),
+    ('Dark after 0x6b mesh', W, 'case0x58:case0x6b:dark_glow(s,3,', 'case 0x58: case 0x6b: dark_glow(s, 4,', 'after_122'),
+    ('Dark crocodile bitmap wrap', W, '"Object123\\\\hsCrocodileA_R.jpg";*filter=0x2601;*wrap=0x2900;', '"Object123\\\\hsCrocodileA_R.jpg"; *filter = 0x2601; *wrap = 0x2901;', 'loaders'),
     # Kubera
     ('Kubera 0x83 drawn in the first pass', W, 'case0x79:case0x83:', 'case 0x79:', 'custom_123'),
     ('Kubera gem backwards scroll', W, '-r*0.002f', 'r * 0.002f', 'custom_123'),
@@ -454,6 +495,8 @@ def main():
     text = am.load_pinned(a.text, am.TEXT_BYTES, am.TEXT_SHA256, 'text')
     data = am.load_pinned(a.data, am.DATA_BYTES, am.DATA_SHA256, 'data')
     machine = vp.PtMachine(text, data)
+    global _TEXT, _DATA
+    _TEXT, _DATA = text, data
     names = a.only.split(',') if a.only else list(FAMILIES)
     report = {'text_sha256': am.TEXT_SHA256, 'data_sha256': am.DATA_SHA256, 'families': {}, 'mutants': [],
               'bodies': {k: {'start': hex(b), 'end': hex(e),
