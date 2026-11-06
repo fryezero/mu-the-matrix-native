@@ -374,7 +374,7 @@ def slot2_family(machine, lib, g, cases, cls, after):
         o, b = a2.slot_object(g, typ), a2.slot_model(g, count)
         o[0] = g.choice([0, 1, 1, 1])
         if typ in (0x73, 0x75):   # the bone-9 effect latch: frame windows (0, 0.4) and (7, 7.5), state +0x60
-            v.put_f(o, 0xd0, v.f32(g.choice([1e-6, 0.2, 0.39999, 7.0001, 7.2, 7.4999]) if g.random() < 0.5 else
+            v.put_f(o, 0xd0, v.f32(g.choice([1e-6, 0.2, 0.39999, 0.0, 0.4, 7.0, 7.0001, 7.2, 7.4999, 7.5]) if g.random() < 0.6 else
                                    g.choice([0.0, 0.4, 0.41, 6.99, 7.0, 7.5, 7.6, -0.1, float('nan'), g.uniform(-1, 10)])))
             v.put_i(o, 0x60, g.choice([0x64, 0x65]) if g.random() < 0.7 else
                     g.choice([0x63, 0x66, 0, g.randrange(-5, 300)]))
@@ -503,8 +503,8 @@ MUTATIONS = [
     ('Flicker misses Santa 62', S, '(world>=62&&world<=64)', '(world >= 63 && world <= 64)', 'rng_62'),
     ('Flicker misses Duel 64', S, '(world>=62&&world<=64)', '(world >= 62 && world <= 63)', 'rng_64'),
     ('Flicker misses 82', S, '(world>=79&&world<=82)', '(world >= 79 && world <= 81)', 'rng_82'),
-    ('Flicker misses Uruk 100', S, 'world==100||world==101', 'world == 101', 'rng_100'),
-    ('Flicker misses Arca 101', S, 'world==100||world==101', 'world == 100', 'rng_101'),
+    ('Flicker misses Uruk 100', S, 'world==100||world==101||(world>=110', 'world == 101 || (world >= 110', 'rng_100'),
+    ('Flicker misses Arca 101', S, 'world==100||world==101||(world>=110', 'world == 100 || (world >= 110', 'rng_101'),
     ('Flicker misses character scene 93', S, '(world>=91&&world<=96)', '(world >= 94 && world <= 96) || world == 91 || world == 92', 'rng_93'),
     ('Flicker misses login 94', S, '(world>=91&&world<=96)', '(world >= 95 && world <= 96) || (world >= 91 && world <= 93)', 'rng_94'),
     ('Flicker misses Abyss 128', S, '(world>=110&&world<=140)', '(world >= 110 && world <= 127) || (world >= 129 && world <= 140)', 'rng_128'),
@@ -513,6 +513,59 @@ MUTATIONS = [
     ('Flicker misses Ignis 138', S, '(world>=110&&world<=140)', '(world >= 110 && world <= 137) || (world >= 139 && world <= 140)', 'rng_empty'),
     ('Flicker draws for Tormenta 141', S, '(world>=142&&world<=145)', '(world >= 141 && world <= 145)', 'rng_drawn'),
     ('Flicker misses 145', S, '(world>=142&&world<=145)', '(world >= 142 && world <= 144)', 'rng_drawn'),
+    # Santa Village 62
+    ('Santa colour', S, 'color(s,0.0f,0.5f,0.5f);', 'color(s, 0.0f, 0.5f, 0.4f);', 'custom2_62'),
+    ('Santa glow flags', S, 'color(s,0.0f,0.5f,0.5f);mesh_std(s,2,0x44,-1);', 'color(s, 0.0f, 0.5f, 0.5f); mesh_std(s, 2, 0x42, -1);', 'custom2_62'),
+    ('Santa world', S, 'world==62?santa_custom', 'world == 61 ? santa_custom', 'custom2_62'),
+    # Imperial Guardian 69..72
+    ('IG after-flag types', S, 'case0:case1:case3:case0x2c:case0x51:set_after', 'case 0: case 1: case 0x2c: case 0x51: set_after', 'custom2_69'),
+    ('IG 0x29 pulse', S, 'csin(s->time*0.002f)*0.5f+0.6f', 'csin(s->time * 0.002f) * 0.5f + 0.5f', 'custom2_69'),
+    ('IG 0x2f grey', S, 'grey(s,1.2f);', 'grey(s, 1.1f);', 'custom2_69'),
+    ('IG 0x30 grey', S, 'grey(s,1.1f);', 'grey(s, 1.2f);', 'custom2_70'),
+    ('IG 0x40 mesh order', S, 'case0x40:mesh_std(s,0,2,-1);mesh_std(s,3,2,-1);', 'case 0x40: mesh_std(s, 0, 2, -1); mesh_std(s, 2, 2, -1);', 'custom2_71'),
+    ('IG effect window', S, 'if(f>0.0f&&0.4f>f){', 'if (f > 0.0f && 0.5f > f) {', 'custom2_69'),
+    ('IG effect state', S, 'mu_obj_set_i32(s->o,0x60,0x65);', 'mu_obj_set_i32(s->o, 0x60, 0x66);', 'custom2_72'),
+    ('IG latch reset window', S, 'f>7.0f&&7.5f>f', 'f >= 7.0f && 7.5f > f', 'custom2_69'),
+    ('IG effect bone', S, '->bone_context,9,zero,p', '->bone_context, 8, zero, p', 'custom2_70'),
+    ('IG 0x75 stream', S, 'stream(s,big?4:3);', 'stream(s, big ? 3 : 3);', 'custom2_71'),
+    ('IG 0x73 scroll sign', S, '%25000)*-0.0004f', '% 25000) * 0.0004f', 'custom2_69'),
+    ('IG 72 grey', S, 'f32b(0x3e2e789eu)', 'f32b(0x3e2e789fu)', 'custom2_72'),
+    ('IG 72 types', S, 't!=0x60&&t!=0x61&&t!=0x64', 't != 0x60 && t != 0x61 && t != 0x63', 'custom2_72'),
+    ('IG 70 world test', S, 'returnworld==cls&&ig69_custom', 'return ig69_custom', 'custom2_70'),
+    ('IG after pulse', S, '(csin(s->time*0.0015f)+1.0f)*0.4f+0.2f', '(csin(s->time * 0.0015f) + 1.0f) * 0.4f + 0.3f', 'after2_69'),
+    ('IG after 72 worlds', S, 'cls==72?!(world>=72&&world<=74):world!=cls', 'cls == 72 ? !(world >= 72 && world <= 73) : world != cls', 'after2_72'),
+    # World 82
+    ('82 0xf scroll sign', S, 'tmod(s,10000,0.0001f,1),-1);', 'tmod(s, 10000, 0.0001f, 0), -1);', 'custom2_82'),
+    ('82 0x10 pulse', S, 'case0x10:body(s,2,0,(csin(s->time*0.002f)+1.0f)*0.3f+0.4f,U(s),V(s),H(s));return1;', 'case 0x10: body(s, 2, 0, (csin(s->time * 0.002f) + 1.0f) * 0.3f + 0.5f, U(s), V(s), H(s)); return 1;', 'custom2_82'),
+    ('82 0x48 alpha', S, 'A(s)*0.1f,0,w', 'A(s) * 0.2f, 0, w', 'custom2_82'),
+    ('82 world range', S, 'returnworld>=82&&world<=90;', 'return world >= 82 && world <= 89;', 'custom2_82'),
+    ('82 bitmap listed', S, 'if(w82_world(world)&&type==0x48){', 'if (w82_world(world) && type == 0x47) {', 'custom2_82'),
+    ('82 after 0x21 stream', S, 'stream(s,0);mesh(s,0,0x42,A(s),BM(s),BL(s),U(s),tmod', 'stream(s, 1); mesh(s, 0, 0x42, A(s), BM(s), BL(s), U(s), tmod', 'after2_82'),
+    ('82 after body types', S, 'case0xa:case0x13:case0x14:case0x1f:body_std', 'case 0xa: case 0x13: case 0x14: body_std', 'after2_82'),
+    # Debenter 95
+    ('Debenter 0xb hidden', S, 'body(s,2,BM(s),BL(s),U(s),V(s),2);stream(s,2);', 'body(s, 2, BM(s), BL(s), U(s), V(s), 1); stream(s, 2);', 'custom2_95'),
+    ('Debenter scroll at INT_MIN', S, 'mesh(s,2,2,A(s),-1,BL(s),U(s),tmod_neg_rem(s,10000,0.0001f),-1);', 'mesh(s, 2, 2, A(s), -1, BL(s), U(s), tmod(s, 10000, 0.0001f, 1), -1);', 'custom2_95'),
+    ('Debenter 0x25 period', S, '%25000)*4e-05f', '% 20000) * 4e-05f', 'custom2_95'),
+    ('Debenter 0x32 light', S, '*0.4f+0.3f;mesh(s,0,2,A(s),BM(s),A(s)', '* 0.4f + 0.3f; mesh(s, 0, 2, A(s), BM(s), BL(s)', 'custom2_95'),
+    ('Debenter answer-only range', S, 'if(t>=0x38&&t<=0x43)', 'if (t >= 0x38 && t <= 0x42)', 'custom2_95'),
+    # Uruk Mountain 100
+    ('Uruk 0x10 v nudge', S, 'V(s)-0.005f', 'V(s) - 0.004f', 'custom2_100'),
+    ('Uruk clamp value', S, 'returnx>1.0f?1.0f:x;', 'return x > 1.0f ? 0.99f : x;', 'custom2_100'),
+    ('Uruk 0x2c hidden', S, 'set_hidden(s,2);mesh(s,0,2', 'set_hidden(s, 3); mesh(s, 0, 2', 'custom2_100'),
+    ('Uruk 0x46 blend', S, 'body(s,2,4,w,U(s),V(s),H(s));', 'body(s, 2, 3, w, U(s), V(s), H(s));', 'custom2_100'),
+    ('Uruk 0x49 glows', S, 'for(intk=0;k<3;++k)', 'for (int k = 0; k < 2; ++k)', 'custom2_100'),
+    ('Uruk world', S, 'world==100||world==101?uruk_custom', 'world == 100 ? uruk_custom', 'custom2_100'),
+    # Nars 110
+    ('Nars 0x17 hidden', S, 'body_std(s,2);', 'body_std(s, 1);', 'custom2_110'),
+    ('Nars 0x4d', S, 'case0:case0x4d:', 'case 0:', 'custom2_110'),
+    ('Nars after chrome twice', S, 'mesh(s,3,0x20080,1.0f,3,BL(s),U(s),V(s),0x7f1f);mesh(s,3,0x20080,1.0f,3,BL(s),U(s),V(s),0x7f1f);break;', 'mesh(s, 3, 0x20080, 1.0f, 3, BL(s), U(s), V(s), 0x7f1f); break;', 'after2_110'),
+    ('Nars after 0x8e pulse', S, '*0.15f+0.7f', '* 0.15f + 0.8f', 'after2_110'),
+    ('Nars after 0x22 scroll sign', S, 'tmod(s,2000,0.0005f,1),-1);stream(s,0xff);mesh_std(s,3', 'tmod(s, 2000, 0.0005f, 0), -1); stream(s, 0xff); mesh_std(s, 3', 'after2_110'),
+    ('Nars after 0x96', S, 'case0x1b:case0x96:', 'case 0x1b:', 'after2_110'),
+    # Arca War 92/96/101/111
+    ('Arca custom base', S, 'mu_class_custom(mu_arca_base_world(cls),', 'mu_class_custom(mu_arca_base_world(cls) - 1,', 'custom2_92'),
+    ('Arca after forward', S, 'if(mu_arca_world(world))mu_class_after(', 'if (0) mu_class_after(', 'after2_92'),
+    ('Arca bitmaps', S, 'constint32_tn=mu_world_slot_bitmaps(mu_arca_base_world(world),type,base);', 'const int32_t n = 0 * mu_world_slot_bitmaps(mu_arca_base_world(world), type, base);', 'custom2_92'),
 ]
 
 
