@@ -2798,6 +2798,24 @@ mismatches = 0
 equivalent = 0
 "mutants_caught" = {len = 14}
 
+[validate_app_polish4]
+test = "native/tests/test_app_polish4.py::AppPolish4.test_original_instructions"
+pins = ["text", "data", "lang3"]
+needs = ["cc"]
+cases = 10485
+cases_at = "families.*.cases"
+mutants = 8
+mutants_at = "mutants"
+note = "APP-POLISH-004; compiles native/core/mu_lang.c, mu_hud.c's mu_hud_item_trs, reconstructed/hud/item_slots.c and the converter's read_itemtrs from their source text; MU_SNAPSHOT_DIR for lang3"
+args = ["--text", "{text}", "--data", "{data}", "--snapshot", "{lang3}", "--mutants", "--output", "{report}"]
+[validate_app_polish4.expect]
+"families.trs_lookup.cases" = 5276
+"families.render_item3d.cases" = 5207
+"families.window_name.cases" = 2
+"families.*.mismatches" = 0
+"mutants.*" = true
+"ok" = true
+
 [validate_render_effects13]
 test = "native/tests/test_render_effects13.py::ClientComparison.test_original_instructions_and_compiled_mutants"
 pins = ["text", "data"]
@@ -2871,6 +2889,24 @@ args = ["--cases", "1000", "--mutations", "--output", "{report}"]
 [validate_worlds_s3.expect]
 "families.*.mismatch_count" = 0
 "families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0
+
+[validate_worlds_slots]
+test = "reconstructed/objects/test_worlds_slots.py::WorldsSlotsTests.test_original_instructions"
+pins = ["text", "data"]
+families = ["custom_79", "after_79", "custom_114", "after_114", "custom_63", "after_63", "custom_112", "after_112", "custom_122", "after_122", "custom_123", "after_123", "invisible_142", "invisible_143", "invisible_144", "invisible_145", "trivial", "loaders", "chains"]
+cases = 18999
+mutants = 79
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+[validate_worlds_slots.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"families.loaders.cases" = 118
+"families.chains.cases" = 1881
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
 

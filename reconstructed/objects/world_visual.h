@@ -46,6 +46,10 @@ typedef struct mu_slot_model {
     int16_t action_frames;     /* model action table (+0x30) record of the object's action (+0x2a), +8 */
     mu_obj_rand_fn rand_fn;    /* rand() of Kardamahal's after slot (type 0x71); NULL: no light request */
     void *rand_context;
+    int32_t handler_state;     /* RENDER-WORLDS-SLOTS: Ferea's handler state (+0x48 field 0, 0x00dee9ee) */
+    mu_world_bone_fn bone;     /* RENDER-WORLDS-SLOTS: TransformPosition 0x012b6ef1 on the posed bone (Vulcanus);
+                                * NULL: no posed bones, the sprite/particle requests are left out */
+    void *bone_context;
 } mu_slot_model;
 int mu_class_slots(int32_t world);
 int mu_class_custom(int32_t cls, uint8_t *object, uint8_t *b, int32_t index, int32_t world, float time,
@@ -61,6 +65,8 @@ int mu_class_premove(int32_t cls, const uint8_t *object, int32_t index, int32_t 
 int mu_world_slot_bitmap(int32_t world, int32_t index, const char **path, uint32_t *filter, uint32_t *wrap);
 #define MU_WORLD_SLOT_BITMAPS 36   /* most bitmaps one (world, type) names (a 32-bitmap water range + 4) */
 int32_t mu_world_slot_bitmaps(int32_t world, int32_t type, int32_t out[MU_WORLD_SLOT_BITMAPS]);
+/* RENDER-WORLDS-SLOTS: the handler's bitmap words +0x1c..+0x48 the class loader writes in `world` (Kubera). */
+int mu_slots_more_handler(int32_t world, int32_t out[12]);
 int mu_world_chain_predicate(uint32_t address, int32_t world);
 int mu_world_after_render(uint8_t *, int32_t, int32_t, float, mu_obj_log *, mu_world_bone_fn, void *);
 typedef void (*mu_world_named_bone_fn)(void *, const char *, const float[3], float[3]);

@@ -19,12 +19,15 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 
-from native_fixtures import write_textured_model
-from test_native_data import item_record, xor3
-from test_native_hud import counted
+# Support both package invocation from the repository root and suite discovery (APP-POLISH-004).
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from native_fixtures import write_textured_model  # noqa: E402
+from test_native_data import item_record, xor3  # noqa: E402
+from test_native_hud import counted  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 NATIVE = HERE.parent
