@@ -6,7 +6,8 @@ ground-skill fixture. [Instruction evidence and remaining inputs](../research/cl
 Branch `claude/render-effects-014`, worktree `~/Documents/MTM/worktrees/render-effects-014`. PR #300 was still
 open when the code started, so the branch began at `origin/codex/render-effects-013` (`506a46a1`). Main
 `742ef666` was merged first (`ec8ccacd`), and the baseline was taken there once. After #299/#300/#301 merged, main
-`83a21893` was merged in `354e03c8` (docs and `validators.toml` conflicts: both sides kept). No live client
+`83a21893` was merged in `354e03c8`, then main `7d7d694b` (#295, RENDER-WORLDS-S2) in `7b7c260e` (docs and
+`validators.toml` conflicts: both sides kept). No live client
 session, network work, memory write or installed-app change. The `tools/python`, `evidence` and `input` links
 are ignored and never committed.
 
@@ -64,6 +65,9 @@ No lane full gate; the steward runs it. Heavy work used `nice -n 10`, make at mo
 | After default-draw tour sweep at `b1df5ee7` | 32 tours: 128 PNG + 64 object/light dumps byte-identical to before | 52.49 s |
 | Final build `make -j4` at `354e03c8` | Passed | 20.48 s |
 | Affected validators, no mutants, cached, two workers, at `354e03c8` | 61/61 pass, 1,388,810 cases (below) | 3,126.58 s |
+| Main `7d7d694b` merged (`7b7c260e`; #295, RENDER-WORLDS-S2); final `make -j4` | Passed | 13.90 s |
+| Rerun of the 57 rows the merge affected, at `7b7c260e` | 57/57 pass, 1,385,747 cases | 2,229.20 s |
+| Focused unit modules again at `7b7c260e` | 227 tests, 198 passed, 29 skipped, 0 failures | 75.09 s |
 | `scripts/audit_repository.py` | 1,907 staged files, 0 rejected | 16.66 s |
 | Docs-reading modules (`test_world_captures_2`, `test_repository_policy`, `test_native_item_textures` run from `native/tests`, `test_native_data_manifest`) | 32 tests, 0 failures | 10.03 + 1.59 s |
 
@@ -82,75 +86,75 @@ Focused modules (`MU_RECOVERY_INTEGRATION=0`, installed-data env set): `native.t
 `MU_COMBAT_BITMAPS`/`bitmaps_loaded` and the ctypes `Object`. Users: `test_native_combat`, `test_native_terrain`,
 `test_native_worlds_o` and the two hosts. No world-particle table size changed.
 
-| Validator (no mutants, cached) | Cases | Wall time |
-|---|---:|---:|
-| `validate_item_ranked` † | 17,736 | 617.3 s |
-| `validate_item_continuation` † | 25,772 | 651.3 s |
-| `validate_item_expansion` † | 52,172 | 293.1 s |
-| `validate_item_effects` | 1,500 | 1.1 s |
-| `validate_item_clusters` † | 74,292 | 375.1 s |
-| `validate_item_types` | 135,176 | 41.5 s |
-| `validate_charsel_world` † | 1,200 | 5.4 s |
-| `validate_combat` | 496 | 1.1 s |
-| `validate_fidelity` † | 991 | 64.7 s |
-| `validate_joints` | 180 | 2.2 s |
-| `validate_login_world` † | 1,200 | 2.3 s |
-| `validate_meshdraw` † | 14,619 | 57.3 s |
-| `validate_model_edge` † | 954 | 113.1 s |
-| `validate_model_light` † | 1,433 | 4.9 s |
-| `validate_particles` | 407 | 0.8 s |
-| `validate_renderchar` † | 1,706 | 42.7 s |
-| `validate_skill_fx` | 660 | 1.3 s |
-| `validate_terrain` † | 583,500 | 371.7 s |
-| `validate_viewport_monsters` † | 1,963 | 11.5 s |
-| `validate_render_worlds_a` | 9,000 | 14.4 s |
-| `validate_icarus` | 5,240 | 30.8 s |
-| `validate_icarus_c2` | 8,400 | 20.8 s |
-| `validate_worlds_d` | 2,400 | 4.3 s |
-| `validate_worlds_e` | 4,840 | 15.9 s |
-| `validate_audio_callers` † | 5,528 | 5.0 s |
-| `validate_item_gear` | 25,256 | 160.4 s |
-| `validate_audio_combat` | 19,548 | 37.9 s |
-| `validate_item_next` † | 14,992 | 768.7 s |
-| `validate_render_effects` | 660 | 1.1 s |
-| `validate_render_effects3` | 720 | 1.3 s |
-| `validate_render_effects4` | 1,920 | 9.6 s |
-| `validate_render_effects5` | 1,190 | 6.1 s |
-| `validate_render_effects6` | 1,000 | 1.6 s |
-| `validate_render_effects7` | 596 | 2.4 s |
-| `validate_render_effects9` | 304 | 1.4 s |
-| `validate_render_effects10` | 154 | 0.6 s |
-| `validate_render_effects11` | 176 | 0.7 s |
-| `validate_render_effects12` | 64 | 0.6 s |
-| `validate_world_particle_consumers` | 900 | 1.8 s |
-| `validate_audio_domains` † | 2,544 | 26.7 s |
-| `validate_audio_items` † | 3,000 | 3.8 s |
-| `validate_worlds_l` | 1,260 | 1.3 s |
-| `validate_audio_charsel` † | 5,968 | 3.3 s |
-| `validate_item_coverage` † | 31,724 | 732.5 s |
-| `validate_item_wings_next` | 33,622 | 188.0 s |
-| `validate_item_scalars` † | 26,154 | 151.8 s |
-| `validate_item_chains` † | 35,346 | 196.2 s |
-| `validate_worlds_m` | 1,080 | 0.8 s |
-| `validate_worlds_after` † | 13,424 | 9.0 s |
-| `validate_worlds_g3` | 4,000 | 2.9 s |
-| `validate_worlds_after2` † | 32,216 | 22.7 s |
-| `validate_worlds_after3` † | 10,212 | 5.1 s |
-| `validate_worlds_after4` † | 9,181 | 13.7 s |
-| `validate_worlds_after5` † | 6,000 | 12.1 s |
-| `validate_worlds_after6` | 7,300 | 65.4 s |
-| `validate_item_carry` † | 114,388 | 541.8 s |
-| `validate_item_quality` † | 28,080 | 164.0 s |
-| `validate_item_product` † | 2,874 | 37.0 s |
-| `validate_app_polish1` | 752 | 19.1 s |
-| `validate_render_effects13` | 180 | 0.5 s |
-| `validate_render_effects14` | 660 | 1.3 s |
+| Validator (no mutants, cached) | Cases | Wall time | Tested commit |
+|---|---:|---:|---|
+| `validate_item_ranked` † | 17,736 | 112.4 s | `7b7c260e` |
+| `validate_item_continuation` † | 25,772 | 161.6 s | `7b7c260e` |
+| `validate_item_expansion` † | 52,172 | 241.0 s | `7b7c260e` |
+| `validate_item_effects` | 1,500 | 1.1 s | `354e03c8` |
+| `validate_item_clusters` † | 74,292 | 318.3 s | `7b7c260e` |
+| `validate_item_types` | 135,176 | 26.9 s | `7b7c260e` |
+| `validate_charsel_world` † | 1,200 | 1.7 s | `7b7c260e` |
+| `validate_combat` | 496 | 1.1 s | `354e03c8` |
+| `validate_fidelity` † | 991 | 51.4 s | `7b7c260e` |
+| `validate_joints` | 180 | 1.8 s | `7b7c260e` |
+| `validate_login_world` † | 1,200 | 2.4 s | `7b7c260e` |
+| `validate_meshdraw` † | 14,619 | 47.8 s | `7b7c260e` |
+| `validate_model_edge` † | 954 | 96.0 s | `7b7c260e` |
+| `validate_model_light` † | 1,433 | 7.2 s | `7b7c260e` |
+| `validate_particles` | 407 | 0.8 s | `354e03c8` |
+| `validate_renderchar` † | 1,706 | 36.4 s | `7b7c260e` |
+| `validate_skill_fx` | 660 | 1.3 s | `354e03c8` |
+| `validate_terrain` † | 583,500 | 359.1 s | `7b7c260e` |
+| `validate_viewport_monsters` † | 1,963 | 8.4 s | `7b7c260e` |
+| `validate_render_worlds_a` | 9,000 | 9.3 s | `7b7c260e` |
+| `validate_icarus` | 5,240 | 25.3 s | `7b7c260e` |
+| `validate_icarus_c2` | 8,400 | 13.4 s | `7b7c260e` |
+| `validate_worlds_d` | 2,400 | 9.5 s | `7b7c260e` |
+| `validate_worlds_e` | 4,840 | 13.4 s | `7b7c260e` |
+| `validate_audio_callers` † | 5,528 | 4.3 s | `7b7c260e` |
+| `validate_item_gear` | 25,256 | 41.8 s | `7b7c260e` |
+| `validate_audio_combat` | 19,548 | 16.8 s | `7b7c260e` |
+| `validate_item_next` † | 14,992 | 735.1 s | `7b7c260e` |
+| `validate_render_effects` | 660 | 0.8 s | `7b7c260e` |
+| `validate_render_effects3` | 720 | 0.7 s | `7b7c260e` |
+| `validate_render_effects4` | 1,920 | 6.5 s | `7b7c260e` |
+| `validate_render_effects5` | 1,190 | 3.2 s | `7b7c260e` |
+| `validate_render_effects6` | 1,000 | 1.0 s | `7b7c260e` |
+| `validate_render_effects7` | 596 | 2.2 s | `7b7c260e` |
+| `validate_render_effects9` | 304 | 0.7 s | `7b7c260e` |
+| `validate_render_effects10` | 154 | 0.4 s | `7b7c260e` |
+| `validate_render_effects11` | 176 | 0.3 s | `7b7c260e` |
+| `validate_render_effects12` | 64 | 0.3 s | `7b7c260e` |
+| `validate_world_particle_consumers` | 900 | 0.6 s | `7b7c260e` |
+| `validate_audio_domains` † | 2,544 | 19.3 s | `7b7c260e` |
+| `validate_audio_items` † | 3,000 | 8.1 s | `7b7c260e` |
+| `validate_worlds_l` | 1,260 | 0.9 s | `7b7c260e` |
+| `validate_audio_charsel` † | 5,968 | 4.6 s | `7b7c260e` |
+| `validate_item_coverage` † | 31,724 | 725.7 s | `7b7c260e` |
+| `validate_item_wings_next` | 33,622 | 170.6 s | `7b7c260e` |
+| `validate_item_scalars` † | 26,154 | 129.2 s | `7b7c260e` |
+| `validate_item_chains` † | 35,346 | 187.9 s | `7b7c260e` |
+| `validate_worlds_m` | 1,080 | 1.1 s | `7b7c260e` |
+| `validate_worlds_after` † | 13,424 | 9.1 s | `7b7c260e` |
+| `validate_worlds_g3` | 4,000 | 5.4 s | `7b7c260e` |
+| `validate_worlds_after2` † | 32,216 | 18.2 s | `7b7c260e` |
+| `validate_worlds_after3` † | 10,212 | 5.6 s | `7b7c260e` |
+| `validate_worlds_after4` † | 9,181 | 10.0 s | `7b7c260e` |
+| `validate_worlds_after5` † | 6,000 | 7.5 s | `7b7c260e` |
+| `validate_worlds_after6` | 7,300 | 47.3 s | `7b7c260e` |
+| `validate_item_carry` † | 114,388 | 562.2 s | `7b7c260e` |
+| `validate_item_quality` † | 28,080 | 133.3 s | `7b7c260e` |
+| `validate_item_product` † | 2,874 | 35.0 s | `7b7c260e` |
+| `validate_app_polish1` | 752 | 17.2 s | `7b7c260e` |
+| `validate_render_effects13` | 180 | 0.4 s | `7b7c260e` |
+| `validate_render_effects14` | 660 | 1.0 s | `7b7c260e` |
 
-61/61 pass, 1,388,810 cases, 0 mismatches. † selected through a broad `native` build or a script naming a changed directory, not a `reconstructed/joints|particles|combat` build declaration.
+All 61 pass; 61/61 at `354e03c8` (1,388,810 cases, 3,126.58 s), and the 57 whose build inputs the second main merge changed again at `7b7c260e` (1,385,747 cases, 2,229.20 s). The four rows the merge did not affect (`validate_combat`, `validate_item_effects`, `validate_particles`, `validate_skill_fx`) keep their `354e03c8` results. Counts in the table are the latest run; 1,388,810 cases, 0 mismatches. † selected through a broad `native` build or a script naming a changed directory, not a `reconstructed/joints|particles|combat` build declaration.
 
 ## Steward
 
-Steward validators (all without mutants; ran at `354e03c8`): `validate_item_ranked`, `validate_item_continuation`, `validate_item_expansion`, `validate_item_effects`, `validate_item_clusters`, `validate_item_types`, `validate_charsel_world`, `validate_combat`, `validate_fidelity`, `validate_joints`, `validate_login_world`, `validate_meshdraw`, `validate_model_edge`, `validate_model_light`, `validate_particles`, `validate_renderchar`, `validate_skill_fx`, `validate_terrain`, `validate_viewport_monsters`, `validate_render_worlds_a`, `validate_icarus`, `validate_icarus_c2`, `validate_worlds_d`, `validate_worlds_e`, `validate_audio_callers`, `validate_item_gear`, `validate_audio_combat`, `validate_item_next`, `validate_render_effects`, `validate_render_effects3`, `validate_render_effects4`, `validate_render_effects5`, `validate_render_effects6`, `validate_render_effects7`, `validate_render_effects9`, `validate_render_effects10`, `validate_render_effects11`, `validate_render_effects12`, `validate_world_particle_consumers`, `validate_audio_domains`, `validate_audio_items`, `validate_worlds_l`, `validate_audio_charsel`, `validate_item_coverage`, `validate_item_wings_next`, `validate_item_scalars`, `validate_item_chains`, `validate_worlds_m`, `validate_worlds_after`, `validate_worlds_g3`, `validate_worlds_after2`, `validate_worlds_after3`, `validate_worlds_after4`, `validate_worlds_after5`, `validate_worlds_after6`, `validate_item_carry`, `validate_item_quality`, `validate_item_product`, `validate_app_polish1`, `validate_render_effects13`, `validate_render_effects14`.
+Steward validators (all without mutants; ran at `7b7c260e`, except `validate_combat`, `validate_item_effects`, `validate_particles` and `validate_skill_fx` at `354e03c8`, whose inputs did not change since): `validate_item_ranked`, `validate_item_continuation`, `validate_item_expansion`, `validate_item_effects`, `validate_item_clusters`, `validate_item_types`, `validate_charsel_world`, `validate_combat`, `validate_fidelity`, `validate_joints`, `validate_login_world`, `validate_meshdraw`, `validate_model_edge`, `validate_model_light`, `validate_particles`, `validate_renderchar`, `validate_skill_fx`, `validate_terrain`, `validate_viewport_monsters`, `validate_render_worlds_a`, `validate_icarus`, `validate_icarus_c2`, `validate_worlds_d`, `validate_worlds_e`, `validate_audio_callers`, `validate_item_gear`, `validate_audio_combat`, `validate_item_next`, `validate_render_effects`, `validate_render_effects3`, `validate_render_effects4`, `validate_render_effects5`, `validate_render_effects6`, `validate_render_effects7`, `validate_render_effects9`, `validate_render_effects10`, `validate_render_effects11`, `validate_render_effects12`, `validate_world_particle_consumers`, `validate_audio_domains`, `validate_audio_items`, `validate_worlds_l`, `validate_audio_charsel`, `validate_item_coverage`, `validate_item_wings_next`, `validate_item_scalars`, `validate_item_chains`, `validate_worlds_m`, `validate_worlds_after`, `validate_worlds_g3`, `validate_worlds_after2`, `validate_worlds_after3`, `validate_worlds_after4`, `validate_worlds_after5`, `validate_worlds_after6`, `validate_item_carry`, `validate_item_quality`, `validate_item_product`, `validate_app_polish1`, `validate_render_effects13`, `validate_render_effects14`.
 
 `validate_render_effects14` is the only row that needs mutants (its own, already run once above).
 Rows selected only through a broad `native` build declaration or a script that names a directory: the 29 rows marked † in the table above.
