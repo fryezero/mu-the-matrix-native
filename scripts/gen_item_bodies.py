@@ -1010,7 +1010,7 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=Fals
         _RAND['seq'][:] = [draw.randrange(32768) for _ in range(64)]
     case = v.random_case_any(random.Random(seed), t)
     case.update(item_level=lv << 3, quality=quality, option1=opt, ext=ext, record=record, a10=0xffffffff, a11=0xffffffff, render_type=(2, 0x102, 0x40042)[seed % 3])
-    case['object_hidden'] = (-1, 0, 2)[(seed // 3) % 3] if t in WING_TYPES else 0
+    case['object_hidden'] = (-1, 0, 2)[(seed // 3) % 3]
     (r, st, other, m) = v.client_stream(wa, case, factory)
     generic_case = dict(case)
     if t in (0x0eee, 0x18fe, 0x1cfe):
