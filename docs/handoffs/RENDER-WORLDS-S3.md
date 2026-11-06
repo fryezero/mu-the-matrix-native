@@ -4,7 +4,8 @@ Imperial Guardian (worlds 69, 70, 71, 72), Event square (114) and Test Area (121
 methods. [Addresses, shared code, provenance and limits](../research/client-worlds-s3.md).
 
 - Claude Opus 5.5 lane. Worktree `~/Documents/MTM/worktrees/render-worlds-s3`, branch `claude/render-worlds-s3`, from
-  origin/main `83a21893` (#301 RENDER-WORLDS-S); merged `7403244e` (#302 RENDER-WORLDS-S2) as `317156ff`. Input links
+  origin/main `83a21893` (#301 RENDER-WORLDS-S); merged `7403244e` (#302 RENDER-WORLDS-S2) as `317156ff` and `7d7d694b` (#295 RENDER-ITEMS-HIDDENMESH, item rendering
+  only) as `25ecc012`. Input links
   `tools/python`, `evidence`, `input` from the main checkout, never committed.
 - The four Imperial Guardian classes are one source compiled four times (create 69 = 70 = 71, 72 adds type 10; move
   differs by the class static, class 70's missing `break`, class 71's 0.44 and class 72's countdown; visual 69 = 70 =
@@ -52,7 +53,7 @@ lanes and the steward active; heavy steps waited for load ≤ 14 where noted).
 
 | Check | Result | Wall |
 |---|---|---|
-| `nice -n 10 make -j4` after the main merge | pass | 14.0 s |
+| `nice -n 10 make -j4` after the main merges | pass | 14.0 s (`317156ff`), 11.6 s (`25ecc012`) |
 | `run_test_suites.py --affected origin/main` (lane code, before the merge) | 7 suites, 1,370 tests, 1,161 passed, 209 skipped, 0 failures | 286.5 s |
 | Same after the merge (`317156ff`) | 7 suites, 1,376 tests, 1,166 passed, 210 skipped, 0 failures | 247.5 s |
 | Edited host modules after the merge (`test_native_worlds_{i,n,q,o,s2,s3}`) | 10 tests OK (2 skipped) | 2.4 s |
@@ -64,7 +65,7 @@ lanes and the steward active; heavy steps waited for load ≤ 14 where noted).
 | `scripts/audit_repository.py` | 1,920 files, 0 rejected (final, with docs) | 16.7 s |
 | `world_handler_coverage.py` | 48 classes, 57 registrations, 288 addresses; 138/144 and 46/48 before the merge, 144/144 and 48/48 after | < 1 s |
 | Byte identity "before" (base `83a21893` binary, once) | Oct 22 tour 27.9 s; DATA-ACQ-002 57.8 s | 85.7 s |
-| Byte identity "after" (final `317156ff` binary) | Oct 22 **28/28 PNG, 14/14 OBJECT, 14/14 light**; DATA-ACQ-002 **64/64 frame PNG, 64/64 comparison PNG, 32/32 OBJECT, 32/32 light** identical (also identical at `4db7a4a6`, 81.7 s) | 76.9 s |
+| Byte identity "after" (`317156ff` binary; again at the final `25ecc012`: identical, 80.1 s) | Oct 22 **28/28 PNG, 14/14 OBJECT, 14/14 light**; DATA-ACQ-002 **64/64 frame PNG, 64/64 comparison PNG, 32/32 OBJECT, 32/32 light** identical (also identical at `4db7a4a6`, 81.7 s) | 76.9 s |
 | Smoke arrivals 69 (150,30), 70 (30,70), 71 (110,190), 72 (30,70), 114 (30,30), 121 (110,30) | rc 0, 2 frames each, terrain and hero, 0 objects | 0.8–1.1 s each |
 
 Validator rows were chosen per brief 6b, not by the selector (`--list-affected` selects most rows because they build
@@ -76,8 +77,9 @@ the shared `reconstructed/objects` or `native` library). These rows cover code p
 - `validate_worlds_o`, whose owning test file changed.
 
 Steward validators: validate_worlds_s3, validate_worlds_i, validate_worlds_o, validate_object_render,
-validate_charsel_world, validate_login_world, validate_audio_callers, validate_worlds_after4 (ran at `317156ff`; no
-mutants needed: validate_worlds_s3's 75/75 ran once at `4db7a4a6` and the merge changed none of its targets). Env:
+validate_charsel_world, validate_login_world, validate_audio_callers, validate_worlds_after4 (ran at `317156ff`; the
+last merge `25ecc012` (#295) changed none of their compiled inputs. No mutants needed: validate_worlds_s3's 75/75
+ran once at `4db7a4a6` and no merge changed its targets). Env:
 `MU_RECOVERY_INTEGRATION=1`, `MU_SECTION3=~/Documents/MTM/main-exe-study/evidence/x86-linux-capture-04/main-01ced000.bin`,
 `MU_EVIDENCE_DIR=~/Documents/MTM/mu-the-matrix-native/evidence`,
 `MU_GAME_ROOT="$HOME/Library/Application Support/MuTheMatrix/prefix/drive_c/MuTheMatrix"`.
