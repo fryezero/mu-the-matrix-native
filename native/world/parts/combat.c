@@ -171,22 +171,28 @@ static void combat_draw(mu_world_rt *a, combat_part *p)
     mu_combat_draw_models(c, combat_model_gl, p);
     mu_combat_quad quads[1024];
     int32_t n = mu_combat_quads(c, quads, 1024);
+    /* RENDER-EFFECTS-015: RenderEffects' terrain decals first (0x70a, 0x70c, 0x45e), then the frame's quads */
+    static mu_combat_quad decals[MU_COMBAT_DECAL_QUADS];
+    const int32_t decal_count = mu_combat_decal_quads(c, decals, MU_COMBAT_DECAL_QUADS);
     glDepthMask(GL_FALSE);
     glDisable(GL_ALPHA_TEST);
     glDisable(GL_CULL_FACE);
     glEnable(GL_BLEND);
-    for (int32_t i = 0; i < n; ++i) {
-        const mu_combat_quad *q = &quads[i];
+    for (int32_t i = 0; i < decal_count + n; ++i) {
+        const mu_combat_quad *q = i < decal_count ? &decals[i] : &quads[i - decal_count];
         if (q->bitmap >= 0) {
             const mu_combat_bitmap *b = &c->bitmaps[q->bitmap];
             if (!p->combat_tex[q->bitmap]) {
                 glGenTextures(1, &p->combat_tex[q->bitmap]);
                 glBindTexture(GL_TEXTURE_2D, p->combat_tex[q->bitmap]);
                 glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+                /* RENDER-EFFECTS-016: filter and wrap of each bitmap's LoadBitmap call (GL_CLAMP as clamp to edge) */
+                const GLint filter = b->filter == 0x2600u ? GL_NEAREST : GL_LINEAR;
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
+                const GLint wrap = b->wrap == 0x2900u ? GL_CLAMP_TO_EDGE : GL_REPEAT;
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrap);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap);
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, b->image.width, b->image.height, 0, GL_RGBA,
                              GL_UNSIGNED_BYTE, b->image.rgba);
             }
@@ -206,6 +212,11 @@ static void combat_draw(mu_world_rt *a, combat_part *p)
             glEnable(GL_DEPTH_TEST);
         else
             glDisable(GL_DEPTH_TEST);
+        if (q->alpha_test)   /* RENDER-EFFECTS-016: 0x70c's crater under EnableAlphaTest(1) (GREATER 0.25) */
+            glEnable(GL_ALPHA_TEST);
+        else
+            glDisable(GL_ALPHA_TEST);
+        glDepthMask(q->depth_mask ? GL_TRUE : GL_FALSE);
         if (q->eye_space) {   /* RenderSpriteUV draws eye-space corners with an identity modelview */
             glMatrixMode(GL_MODELVIEW);
             glPushMatrix();

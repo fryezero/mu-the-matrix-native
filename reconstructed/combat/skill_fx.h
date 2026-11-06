@@ -103,7 +103,8 @@ enum {
     MU_SFX_CALL_SERIAL = 0x01d1df18,          /* ++[[0x01d1df18] + 0x2dec], the hero's skill serial */
     MU_SFX_CALL_QUAKE = 0x0bdb588c,           /* the earthquake offset global (Hellfire), value in scale */
     MU_SFX_CALL_AREA = 0x013bc25e,            /* the hero's area attack request(skill, range, pos, serial, key, 0, 5, 0) */
-    MU_SFX_CALL_SOUND = 0x00a6ac96,           /* PlayBuffer(sound, object, 0): type = sound, owner -2 */
+    MU_SFX_CALL_SOUND = 0x00a6ac96,           /* PlayBuffer(sound, object, 0): type = sound, owner -2; arg8 = the
+                                                 call site where known (RENDER-EFFECTS-015), else 0 */
     MU_SFX_CALL_ATTRIBUTE = 0x016d34db,       /* TerrainWall[TERRAIN_INDEX(subtype, range)]: returns the attribute word */
     MU_SFX_CALL_POSE = 0x012b5064,            /* model Animation(bones 0x06fce398, frame, prior frame, prior action, angle,
                                                  head angle, 0, 0): poses the effect's model (type) */
@@ -112,6 +113,12 @@ enum {
     MU_SFX_CALL_ITEM_LINKS = 0x01295f18,      /* RENDER-EFFECTS-004: the item initialiser's +0x358 list reset (o = -2) */
     MU_SFX_CALL_WALL = 0x016d34cd,            /* RENDER-EFFECTS-004: TerrainWall[(y << 8) + x], unmasked index:
                                                  subtype = x, range = y; returns the attribute word */
+    MU_SFX_CALL_CASTER = 0x0137c724,          /* RENDER-EFFECTS-015: the character with the effect's key (0x0137c724,
+                                                 0x0095f6db, 0x009a13f4), range = the key (sign-extended word):
+                                                 returns 1 when there is one and its +0x23 byte is 0 */
+    MU_SFX_CALL_CREATE_ARROW = 0x0158cf57,    /* RENDER-EFFECTS-015: CreateArrow(that character, this effect (-2), 0,
+                                                 skill = type, flag = subtype, index = range, last 0) with the
+                                                 effect's position, angle and light at the call */
     MU_SFX_CALL_OWNER_FLAG = 0x014eca8b       /* RENDER-EFFECTS-010: the owner OBJECT's +0x64 (owner = the effect's
                                                  owner): returns it, and sets it to 1 when it was 0 */
 };
@@ -507,5 +514,49 @@ float mu_sfx_arrow_tick_speed(const mu_sfx_effect *e);
  * and its two particles (0x7f5a/0x6d, 0x8108/3, owner this effect) through env->call; *decal for subtypes 3..7
  * (the terrain decal 0x8002); *draws: RenderObject once or twice. Returns 0 for other types. */
 int mu_sfx_arrow_render_extras(mu_sfx_effect *e, const mu_sfx_env *env, float *tick_speed, int *decal, int *draws);
+
+/* RENDER-EFFECTS-015: RenderEffects' terrain decals, in client order: the blend wrappers and
+ * RenderTerrainAlphaBitmap 0x016cdd5f(texture, x, y, size x, size y, light, rotation, alpha, height, follow,
+ * flip). Cases 0x70a (0x0152dc88), 0x70c (0x0152e296) and 0x45e subtypes 3..7 (0x0151919b); world_time is
+ * WorldTime 0x06fce370. Returns the number of ops (0: no decal for this record). */
+enum {
+    MU_SFX_RENDER_DECAL = 0x016cdd5f,         /* RenderTerrainAlphaBitmap */
+    MU_SFX_RENDER_BLEND_ADD = 0x0184aa2b,     /* EnableAlphaBlend: (ONE, ONE) */
+    MU_SFX_RENDER_BLEND_ALPHA = 0x0184a990,   /* EnableAlphaTest(argument): (SRC_ALPHA, ONE_MINUS_SRC_ALPHA) */
+    MU_SFX_RENDER_BLEND_OFF = 0x0184a7f3      /* DisableAlphaBlend */
+};
+enum { MU_SFX_RENDER_OPS = 12 };
+typedef struct mu_sfx_render_op {
+    int32_t routine;          /* MU_SFX_RENDER_* */
+    int32_t argument;         /* EnableAlphaTest's argument */
+    int32_t texture;
+    float x, y, size_x, size_y, light[3], rotation, alpha, height;
+    int32_t follow, flip;
+} mu_sfx_render_op;
+int mu_sfx_effect_render_ops(const mu_sfx_effect *e, float world_time, mu_sfx_render_op out[MU_SFX_RENDER_OPS]);
+
+/* RENDER-EFFECTS-016: the GL state the three wrappers above leave. Each tests its cache byte before it calls
+ * glEnable/glDisable/glBlendFunc/glDepthMask, so the GL fields change only where the cache disagrees:
+ *   EnableAlphaBlend 0x0184aa2b: blend 3 (ONE, ONE), cull off, depth mask off, alpha test off, texture on, and
+ *     glDisable(GL_FOG) when the fog flag is set;
+ *   EnableAlphaTest 0x0184a990(argument): blend 2 (SRC_ALPHA, ONE_MINUS_SRC_ALPHA), cull off, depth mask on when
+ *     the argument is non-zero (else kept), alpha test on (glAlphaFunc(GL_GREATER, 0.25), 0x0184b056), texture on,
+ *     glEnable(GL_FOG) when the flag is set;
+ *   DisableAlphaBlend 0x0184a7f3: blend 0 (glDisable(GL_BLEND)), cull on, depth mask on, alpha test off, texture
+ *     on, glEnable(GL_FOG) when the flag is set.
+ * Caches: blend 0x0bdc58c4, cull 0x0bdc597f, depth mask 0x0bdc5980, alpha test 0x0bdc58b5, texture 0x0bdc597d;
+ * the fog flag 0x0bdc597c is only read. Other routines leave the state unchanged and return 0. */
+typedef struct mu_sfx_gl_state {
+    int32_t blend;                  /* cache 0x0bdc58c4 */
+    uint8_t cull, depth_mask, alpha_test, texture, fog_flag;   /* caches; fog_flag 0x0bdc597c */
+    uint8_t gl_blend, gl_cull, gl_depth_mask, gl_alpha_test, gl_texture, gl_fog;   /* the GL enables */
+    uint32_t gl_src, gl_dst;        /* the last glBlendFunc */
+} mu_sfx_gl_state;
+int mu_sfx_render_state(mu_sfx_gl_state *state, int32_t routine, int32_t argument);
+
+/* RENDER-EFFECTS-015: the PlayBuffer call site of an effect sound the reconstructed effect and joint routines play
+ * (0x582, 0x55d, 0x97, 0x96, 0x55e, 0x42; one site each), *routine its routine (CreateEffect 0x013c0f19,
+ * MoveEffect 0x0142fd09, MoveJoint 0x01556c26); 0 for another sound. */
+uint32_t mu_sfx_sound_site(int32_t sound, uint32_t *routine);
 
 #endif

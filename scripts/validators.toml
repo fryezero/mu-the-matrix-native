@@ -2743,6 +2743,21 @@ args = ["--mutations", "--output", "{report}"]
 "families.products.residues" = 15
 "mutants.*" = {truthy = true}
 
+[validate_item_derived]
+test = "reconstructed/renderchar/test_item_derived.py::ItemDerived.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "derived", "records"]
+cases = 36252
+mutants = 7
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar"]
+args = ["--mutations", "--output", "{report}"]
+[validate_item_derived.expect]
+"families.*.mismatches" = 0
+"families.derived.programs" = 118
+"mutants.*" = {truthy = true}
+
 [validate_item_hiddenmesh]
 test = "reconstructed/renderchar/test_item_hiddenmesh.py::ItemHiddenMesh.test_private_original_instructions"
 pins = ["text", "data", "flag", "feature"]
@@ -2908,4 +2923,50 @@ args = ["--cases", "1000", "--mutations", "--output", "{report}"]
 "families.loaders.cases" = 118
 "families.chains.cases" = 1881
 "mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0
+
+[validate_worlds_slots2]
+test = "reconstructed/objects/test_worlds_slots2.py::WorldsSlots2Tests.test_original_instructions"
+pins = ["text", "data"]
+families = ["rng_57", "rng_58", "rng_62", "rng_63", "rng_64", "rng_82", "rng_100", "rng_101", "rng_128", "rng_129", "rng_130", "rng_137", "rng_93", "rng_94", "rng_empty", "rng_drawn", "custom2_62", "custom2_69", "after2_69", "custom2_70", "after2_70", "custom2_71", "after2_71", "custom2_72", "after2_72", "custom2_82", "after2_82", "custom2_95", "custom2_100", "custom2_110", "after2_110", "custom2_92", "after2_92"]
+cases = 33000
+mutants = 62
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+[validate_worlds_slots2.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0
+
+[validate_render_effects15]
+test = "native/tests/test_render_effects15.py::ClientComparison.test_original_instructions_and_compiled_mutants"
+pins = ["text", "data"]
+families = ["fx_create", "fx_move", "render_decals", "render_45e_decal", "sound_sites"]
+cases = 509
+mutants = 34
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/combat"]
+args = ["--cases", "20", "--mutations", "--output", "{report}"]
+[validate_render_effects15.expect]
+all_equal = true
+all_mutants_caught = true
+
+[validate_render_effects16]
+test = "native/tests/test_render_effects16.py::ClientComparison.test_original_instructions_and_compiled_mutants"
+pins = ["text", "data"]
+families = ["fire06_create", "fire06_move", "fire06_render", "render_state", "decal_states", "bitmap_sites"]
+cases = 424
+mutants = 23
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/combat", "reconstructed/particles", "native"]
+build_targets = { native = ["build/libmunative.a", "build/libmusession_world.a"] }
+args = ["--cases", "20", "--mutations", "--output", "{report}"]
+[validate_render_effects16.expect]
+all_equal = true
+all_mutants_caught = true
 "mutants.*.stopped" = 0

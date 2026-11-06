@@ -1,4 +1,5 @@
 #include "../../reconstructed/objects/world_visual.h"
+#include "../../reconstructed/objects/world_visual_slots2.h"
 #include "mu_frame_time.h"
 /* The client's world-object lifecycle in the native session (NATIVE-OBJECTS-002,
  * docs/research/client-objects-render.md): CreateObject, MoveObjects/MoveObject per logic step,
@@ -914,9 +915,12 @@ static int class_custom_call(mu_objects *o, uint8_t *img, int32_t index, float t
 {
     const int32_t t = mu_obj_i32(img, MU_OBJF_TYPE);
     visual_context vc = {o, NULL};
-    if (o->world == 63 && (t == 0x43 || t == 0x44)) {
+    /* Vulcanus' statues read bones 4 and 6; RENDER-WORLDS-SLOTS2: Imperial Guardian's 0x73/0x75 bone 9 */
+    const int32_t last_bone = o->world == 63 && (t == 0x43 || t == 0x44) ? 6 :
+                              o->world >= 69 && o->world <= 72 && (t == 0x73 || t == 0x75) ? 9 : -1;
+    if (last_bone >= 0) {
         mu_object_model *m = o->models[t];
-        if (m && m->loaded && m->bmd.bone_count > 6 && pose_object(o, img, m, NULL)) {
+        if (m && m->loaded && m->bmd.bone_count > last_bone && pose_object(o, img, m, NULL)) {
             vc.m = m;
             model->bone = visual_bone;
             model->bone_context = &vc;
@@ -929,7 +933,8 @@ static int class_custom_call(mu_objects *o, uint8_t *img, int32_t index, float t
     mu_obj_event requests[8];
     mu_obj_log req = {0, 8, 0, requests};
     for (int32_t k = first; k < log->count; ++k)
-        if (log->events[k].call == MU_OBJ_CALL_SPRITE || log->events[k].call == MU_OBJ_CALL_PARTICLE) {
+        if (log->events[k].call == MU_OBJ_CALL_SPRITE || log->events[k].call == MU_OBJ_CALL_PARTICLE ||
+            log->events[k].call == MU_OBJ_CALL_EFFECT) {   /* RENDER-WORLDS-SLOTS2: Imperial Guardian 0x52d */
             if (req.count < req.capacity)
                 requests[req.count++] = log->events[k];
             else
@@ -1109,11 +1114,17 @@ static int uruk_arca_visual(void *context, int32_t slot, int32_t base)
     return mu_uruk_visual(a->img, a->i, a->o->world, a->o->rt.uruk_weather, a->time, visual_rand, a->c, a->log);
 }
 
-static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_object_model *m, float world_time, int posed)
+static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_object_model *m, int has_model,
+                           float world_time, int posed)
 {
     visual_context c = {o, m};
     mu_obj_event events[64];
     mu_obj_log log = {0, 64, 0, events};
+    /* RENDER-WORLDS-SLOTS2: 0x017f9758 draws rand % 30 (0x017f9797) for every object whose model it finds, before
+     * the world switch reaches the class slot 0x34 through its default branch (every class world, login and
+     * character scene included). */
+    if (mu_obj_visual_flicker(o->world, has_model))
+        (void)visual_rand(&c);
     if (o->world == 4 || o->world == 7 || o->world == 8)
         mu_builtin_visual(img, i, o->world, m && m->loaded, world_time, visual_rand,
                           posed ? builtin_bone : NULL, &c, &log);
@@ -1122,16 +1133,15 @@ static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_obje
         if (o->rt.visual) o->rt.visual(o->rt.hook_context, o, i, m && m->loaded, posed ? (mu_object_model *)m : NULL);
         if (posed) mu_icarus_bone_flare(img, i, builtin_bone, &c, &log);
     }
-    else if (o->world == MU_CSW_WORLD)
-        mu_csw_visual(img, i, world_time, visual_rand, m && m->loaded ? visual_bone : NULL, NULL, &c, &log);
+    else if (o->world == MU_CSW_WORLD) {   /* RENDER-WORLDS-SLOTS2: without a model 0x017f9758 returns first */
+        if (has_model)
+            mu_csw_visual(img, i, world_time, visual_rand, m && m->loaded ? visual_bone : NULL, NULL, &c, &log);
+    }
     else if (o->world == 79 && m && m->loaded) {
         const int32_t type = mu_obj_i32(img, MU_OBJF_TYPE);
         const int needs_bones = type == 30 || type == 35;
         const int bones_ready = posed && m->bmd.bone_count > (type == 30 ? 3 : 2);
         if (needs_bones && !bones_ready) ++o->rt.draw_unsupported;
-        /* RENDER-WORLDS-SLOTS: 0x017f9758 draws rand % 30 (0x017f9797) for every object whose model it finds,
-         * before the world switch reaches the class slot 0x34; Event square (114) already drew it. */
-        (void)visual_rand(&c); /* Outer RenderObjectVisual flicker draw. */
         mu_market_visual(img, i, o->world, world_time, visual_rand, bones_ready ? visual_bone : NULL, &c, &log);
     }
     else if (o->world == 100 && m && m->loaded)
@@ -1150,7 +1160,6 @@ static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_obje
         const int needs_bones = type == 66 || type == 72;
         const int bones_ready = posed && m->bmd.bone_count > (type == 66 ? 14 : 11);
         if (needs_bones && !bones_ready) ++o->rt.draw_unsupported;
-        (void)visual_rand(&c); /* Existing outer RenderObjectVisual flicker draw. */
         mu_karutan_visual(img, i, o->world, world_time, visual_rand,
                           bones_ready ? visual_bone : NULL, &c, &log);
     }
@@ -1173,7 +1182,6 @@ static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_obje
         const int32_t type = mu_obj_i32(img, MU_OBJF_TYPE);
         const int bones_ready = posed && m->bmd.bone_count > 11;
         if (o->world == 142 && type == 72 && !bones_ready) ++o->rt.draw_unsupported;
-        (void)visual_rand(&c); /* Outer RenderObjectVisual flicker draw. */
         if (o->world == 142)
             mu_twisted_karutan_visual(img, i, 1, world_time, visual_rand, bones_ready ? visual_bone : NULL, &c, &log);
         else if (o->world == 143)
@@ -1203,13 +1211,11 @@ static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_obje
             bone6[15] = 1.0f;
         }
         if (mu_aquila_bone_type(mu_obj_i32(img, MU_OBJF_TYPE)) && !bones_ready) ++o->rt.draw_unsupported;
-        (void)visual_rand(&c); /* Outer RenderObjectVisual flicker draw. */
         mu_aquila_visual(img, 1, bones_ready ? bone6 : NULL);
     }
     else if (o->world == 145)
         return;
     else if (o->world >= 69 && o->world <= 72 && m && m->loaded) {   /* RENDER-WORLDS-S3 Imperial Guardian slot 0x34 */
-        (void)visual_rand(&c); /* Outer RenderObjectVisual flicker draw. */
         mu_q_inputs q = q_inputs(o, NULL, world_time);
         q.actions = NULL;
         const int32_t last_bone = mu_imperial_visual_bones(o->world, mu_obj_i32(img, MU_OBJF_TYPE));
@@ -1228,11 +1234,9 @@ static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_obje
         const int32_t type = mu_obj_i32(img, MU_OBJF_TYPE);
         const int bones_ready = posed && m->bmd.bone_count > (type == 30 ? 3 : 2);
         if ((type == 30 || type == 35) && !bones_ready) ++o->rt.draw_unsupported;
-        (void)visual_rand(&c); /* Outer RenderObjectVisual flicker draw. */
         mu_event_square_visual(img, i, o->world, world_time, visual_rand, bones_ready ? visual_bone : NULL, &c, &log);
     }
     else if (o->world == 121 && m && m->loaded) {   /* RENDER-WORLDS-S3 Test Area */
-        (void)visual_rand(&c); /* Outer RenderObjectVisual flicker draw. */
         mu_test_area_visual(img, i, 1, visual_rand, &c, &log);
     }
     else if ((o->world >= 69 && o->world <= 72) || o->world == 114 || o->world == 121)
@@ -1242,7 +1246,6 @@ static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_obje
         const int needs_bones = o->world == 0x87 && (type == 15 || type == 16);
         const int bones_ready = posed && m->bmd.bone_count > (type == 15 ? 4 : 15);
         if (needs_bones && !bones_ready) ++o->rt.draw_unsupported;
-        (void)visual_rand(&c); /* Outer RenderObjectVisual flicker draw. */
         if (o->world == 0x87)
             mu_old_kethotum_visual(img, i, 1, world_time, visual_rand, bones_ready ? visual_bone : NULL, &c, &log);
         else if (o->world == 0x88)
@@ -1257,7 +1260,6 @@ static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_obje
         const int needs_bones = (o->world == 0x84 && type == 0xa) || (o->world == 0x86 && (type == 0x1e || type == 0x47));
         const int bones_ready = posed && m->bmd.bone_count > (o->world == 0x84 ? 3 : 17);
         if (needs_bones && !bones_ready) ++o->rt.draw_unsupported;
-        (void)visual_rand(&c); /* Outer RenderObjectVisual flicker draw. */
         if (o->world == 0x84)
             mu_red_smoke_icarus_visual(img, i, 1, bones_ready ? visual_bone : NULL, &c, &log);
         else if (o->world == 0x86)
@@ -1269,8 +1271,7 @@ static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_obje
         return;
     else if (o->world >= 128 && o->world <= 130)   /* RENDER-WORLDS-O */
         mu_abyss_visual(o->world, img, o->world, m && m->loaded);
-    else if (mu_worlds_q_owns(o->world)) {   /* RENDER-WORLDS-Q; the outer RenderObjectVisual draws one rand first */
-        if (m && m->loaded) (void)visual_rand(&c);
+    else if (mu_worlds_q_owns(o->world)) {   /* RENDER-WORLDS-Q */
         mu_q_inputs q = q_inputs(o, NULL, world_time);
         q.actions = NULL;   /* the visual slots read no action table */
         /* RENDER-WORLDS-S/S2: Acheron, Debenter, Nars and the Arca War worlds on them */
@@ -1291,7 +1292,7 @@ static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_obje
         mu_santa_visual(img, i, m && m->loaded, world_time, &log);
     else if (o->world == 63)
         mu_vulcanus_visual(img, i, o->world, m && m->loaded, world_time, visual_rand, &c, &log);
-    else
+    else if (has_model)   /* the login world; RENDER-WORLDS-SLOTS2: without a model 0x017f9758 returns first */
         mu_login_visual(img, i, visual_rand, m && m->loaded ? visual_bone : NULL, &c, &log);
     consume_visual(o, &log);
 }
@@ -1402,10 +1403,16 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
         if (m && m->loaded && (status != MU_OBJ_SKIPPED || (o->world == 79 && log.count > 0) ||
                                o->world == 80 || o->world == 81 || o->world == 0x87 || (o->world == 8 && t == 63)))
             posed = pose_object(o, img, m, &log);
-        handler_visual(o, i, img, primary_visual ? m : posed ? m : NULL, in.light.time, posed);
+        handler_visual(o, i, img, primary_visual ? m : posed ? m : NULL, m && m->loaded, in.light.time, posed);
         update_effects(o, i, img, m, posed, &log);   /* 0x016d51d8..0x016d51f5 */
-    } else if (!rt->visual) {
-        mu_obj_visual(img, o->world, in.light.time);   /* RenderObjectVisual follows RenderObject */
+    } else {
+        if (!rt->visual)
+            mu_obj_visual(img, o->world, in.light.time);   /* RenderObjectVisual follows RenderObject */
+        /* RENDER-WORLDS-SLOTS2: the class worlds whose slot 0x34 answers no (113, 115..120 0x00d5cc9b, 138, 139)
+         * still take 0x017f9758's outer draw */
+        visual_context flicker = {o, m};
+        if (mu_obj_visual_flicker(o->world, m && m->loaded))
+            (void)visual_rand(&flicker);
     }
     /* NATIVE-PARTICLE-001: RenderObjectVisual through the particle module, after RenderObject */
     int flame = 0;
