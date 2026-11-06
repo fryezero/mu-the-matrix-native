@@ -1838,8 +1838,8 @@ def terrain2_checks(client, authored, report, g, scale=1):
     cases = matches = fans = 0
     for case in range(60 * scale):
         world = g.choice([0, 142, 0x8d])
-        scene = synthetic_scene(800 + case % 3, world, extended=True)
         if case % 3 == 0:
+            scene = synthetic_scene(800, world, extended=True)
             client.load_scene(scene)
             built_scene = authored.scene(scene)
         x, y = f32(g.uniform(-200, 25800)), f32(g.uniform(-200, 25800))

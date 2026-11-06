@@ -306,6 +306,8 @@ def target_deps(directory: str, target: str | None, root: Path = ROOT) -> Deps:
     label = f'make -C {directory} {target or "(default goal)"}'
     deps = Deps()
     deps.files[f'{directory}/Makefile'] = f'{label} uses {directory}/Makefile'
+    # Included make fragments can change flags/rules without appearing in recipe output.
+    deps.files.update(makefile_deps(directory, root).files)
     if done.returncode:
         return makefile_deps(directory, root)  # an incomplete dry run cannot prove independence
     outputs, sources, include_dirs = [], [], []

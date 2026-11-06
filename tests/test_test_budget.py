@@ -465,6 +465,51 @@ class AffectedRun(unittest.TestCase):
             self.assertTrue(logs[0].endswith('test_two.py.log'), logs)
 
 
+class ValidatorTargets(unittest.TestCase):
+    def test_target_sources_headers_make_fragments_and_fallback(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / 'native').mkdir()
+            (root / 'flags.mk').write_text('CFLAGS = -O2\n')
+            (root / 'native/Makefile').write_text(
+                'include ../flags.mk\nall: wanted other\nwanted: a.c a.h\n\tcc $(CFLAGS) -c a.c -o a.o\n'
+                'other: b.c\n\tcc -c b.c -o b.o\n')
+            (root / 'native/a.c').write_text('#include "a.h"\n')
+            (root / 'native/a.h').write_text('#include "nested.h"\n')
+            (root / 'native/nested.h').write_text('')
+            (root / 'native/b.c').write_text('')
+            row = dict(build=['native'], build_targets={'native': ['wanted']}, args=[], prepare=[])
+            dep = rv.row_deps('validate_example', row, root)
+            for path in ('native/a.c', 'native/a.h', 'native/nested.h', 'native/Makefile', 'flags.mk'):
+                self.assertTrue(dep.why(path), path)
+            self.assertIsNone(dep.why('native/b.c'))
+            row['build_targets']['native'] = ['missing']
+            self.assertTrue(rv.row_deps('validate_example', row, root).why('native/b.c'))
+
+    def test_build_cache_distinguishes_targets(self):
+        with mock.patch.object(rv.subprocess, 'run', return_value=mock.Mock(returncode=0, stdout='', stderr='')) as run, \
+                mock.patch.object(rv, '_built', {}):
+            rv.build('native', ('one',))
+            rv.build('native', ('two',))
+            rv.build('native', ('one',))
+            self.assertEqual(run.call_count, 2)
+            self.assertEqual(run.call_args.args[0][-1], 'two')
+            self.assertIn('-j4', run.call_args.args[0])
+
+    def test_native_rows_have_target_provenance(self):
+        rows = rv.load_manifest()
+        for name, row in rows.items():
+            if 'native' in row['build']:
+                self.assertTrue(rv.build_targets(row, 'native'), name)
+        for name, source in [('validate_crypto', 'native/net/crypto.cpp'),
+                             ('validate_protocol', 'native/core/mu_protocol.c'),
+                             ('validate_item_models', 'native/tools/mu_data.c'),
+                             ('validate_worlds_after4', 'native/core/mu_bmd.h')]:
+            dep = rv.row_deps(name, rows[name])
+            self.assertTrue(dep.why(source), (name, source))
+            self.assertIsNone(dep.why('native/app/Launcher.swift'), name)
+
+
 class OriginalCache(unittest.TestCase):
     """scripts/original_cache.py: off by default, keyed by the code that drives the original side, and the C side
     (here a plain function standing for the compiled library) is compared fresh on every run."""

@@ -80,7 +80,7 @@ PLACEHOLDER = re.compile(r'\{([a-z0-9_]+)\}')
 SPECIAL = {'game_root', 'evidence', 'math_data', 'report', 'work', 'repo', 'python', 'so'}
 KINDS = {'validator', 'helper'}
 FIELDS = {'kind', 'parent', 'pins', 'families', 'cases', 'mutants', 'cases_at', 'mutants_at', 'test', 'args',
-          'build', 'needs', 'timeout', 'expect', 'env', 'note', 'report', 'prepare'}
+          'build', 'build_targets', 'needs', 'timeout', 'expect', 'env', 'note', 'report', 'prepare'}
 NEEDS = {'game_root', 'cc', 'clang'}
 
 
@@ -103,6 +103,13 @@ def load_manifest(path=MANIFEST) -> dict[str, dict]:
             row.setdefault(key, [])
             if not isinstance(row[key], list):
                 raise ManifestError(f'{name}: {key} must be a list')
+        targets = row.setdefault('build_targets', {})
+        if not isinstance(targets, dict) or any(
+                directory not in row['build'] or not isinstance(names, list) or not names or
+                any(not isinstance(t, str) or not t or t.startswith('-') or
+                    ('{' in t.replace('{so}', '')) for t in names)
+                for directory, names in targets.items()):
+            raise ManifestError(f'{name}: build_targets must map build directories to nonempty target lists')
         row.setdefault('expect', {})
         row.setdefault('env', {})
         row.setdefault('timeout', 3600)
@@ -200,7 +207,12 @@ def row_deps(name: str, row: dict, root: Path = REPO) -> affected.Deps:
     if row.get('parent'):
         deps.files.setdefault(f"scripts/{row['parent']}.py", f"parent {row['parent']}")
     for directory in row['build']:
-        deps.update(affected.makefile_deps(directory, root))
+        targets = build_targets(row, directory)
+        if targets:
+            for target in targets:
+                deps.update(affected.target_deps(directory, target, root))
+        else:
+            deps.update(affected.makefile_deps(directory, root))
     for arg in row['args'] + [a for command in row['prepare'] for a in command]:
         text = arg.replace('{repo}/', '')
         target = affected._string_path(text, root / 'scripts', root)
@@ -209,6 +221,15 @@ def row_deps(name: str, row: dict, root: Path = REPO) -> affected.Deps:
             (deps.dirs if target.is_dir() else deps.files).setdefault(where, f'argument names {where}')
             if target.suffix == '.py':
                 deps.update(affected.python_deps(target, root))
+    # Some validators compile C directly into temporary adapters, outside make.
+    # Follow the quoted source files' includes too (e.g. worlds_after4's mu_bmd.c).
+    sources = tuple(root / path for path in deps.files
+                    if Path(path).suffix in affected.SOURCES | affected.HEADERS and (root / path).is_file())
+    headers = affected._includes(sources, tuple(root / path for path in deps.dirs))
+    for header in headers:
+        path = affected.rel(header, root)
+        if path:
+            deps.files.setdefault(path, f'validator source includes {path}')
     return deps
 
 
@@ -230,7 +251,11 @@ def affected_rows(rows: dict, ref: str, root: Path = REPO, manifest: Path = MANI
     units = {name: row_deps(name, row, root) for name, row in rows.items()}
     # Manifest rows are compared below. Unreferenced test files cannot change validator execution.
     mapped = tuple(p for p in changed if p == 'scripts/validators.toml' or
-                   (p.endswith('.py') and Path(p).name.startswith('test_')))
+                   (p.endswith('.py') and Path(p).name.startswith('test_')) or
+                   # Swift app sources and test-only hosts are built by the gate, not standalone
+                   # validators. Explicit references still select rows through units above.
+                   (p.startswith('native/app/Sources/') and p.endswith('.swift')) or
+                   (p.startswith('native/tests/') and Path(p).suffix in {'.c', '.h'}))
     selected = affected.select(units, changed, VALIDATOR_INFRA, mapped=mapped)
     manifest_rel = manifest.relative_to(root).as_posix() if manifest.is_relative_to(root) else None
     if manifest_rel in changed:
@@ -471,16 +496,22 @@ def counts(row, report_data) -> dict:
 # ---------------------------------------------------------------------------------------------
 # running
 
-_built: dict[str, tuple[int, str]] = {}
+_built: dict[tuple, tuple[int, str]] = {}
 _build_lock = threading.Lock()
 
 
-def build(directory: str) -> tuple[int, str]:
+def build_targets(row: dict, directory: str) -> tuple[str, ...]:
+    return tuple(t.replace('{so}', 'dylib' if sys.platform == 'darwin' else 'so')
+                 for t in row.get('build_targets', {}).get(directory, []))
+
+
+def build(directory: str, targets: tuple[str, ...] = ()) -> tuple[int, str]:
+    key = (directory, targets)
     with _build_lock:
-        if directory not in _built:
-            done = subprocess.run(['make', '-C', str(REPO / directory)], capture_output=True, text=True)
-            _built[directory] = (done.returncode, done.stdout[-2000:] + done.stderr[-2000:])
-        return _built[directory]
+        if key not in _built:
+            done = subprocess.run(['make', '-j4', '-C', str(REPO / directory), *targets], capture_output=True, text=True)
+            _built[key] = (done.returncode, done.stdout[-2000:] + done.stderr[-2000:])
+        return _built[key]
 
 
 def run_row(name: str, row: dict, out_dir: Path | None = None, keep_work: bool = False) -> dict:
@@ -508,7 +539,7 @@ def run_row(name: str, row: dict, out_dir: Path | None = None, keep_work: bool =
         entry.update(status='skip', reason='; '.join(missing))
         return entry
     for directory in row['build']:
-        code, output = build(directory)
+        code, output = build(directory, build_targets(row, directory))
         if code:
             entry.update(status='error', reason=f'make -C {directory} failed', output=output)
             return entry
