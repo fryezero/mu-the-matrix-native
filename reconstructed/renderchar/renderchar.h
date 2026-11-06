@@ -115,6 +115,7 @@ enum { MU_RC_OWNER_PARTICLE = 1,   /* CreateParticle 0x0168fafd(bitmap, position
 typedef struct mu_rc_owner_fx {
     int32_t kind, bitmap, subtype;
     float position[3], light[3], scale;
+    float angle[3];          /* CreateParticle angle argument (RENDER-ITEMS-002Q); zero in the rank-5 block */
 } mu_rc_owner_fx;
 typedef struct mu_rc_owner_host {
     int32_t bones;           /* OBJECT model bone count; <= 35 stops before the effects */
@@ -123,7 +124,17 @@ typedef struct mu_rc_owner_host {
     int32_t (*random)(void *context);
     void (*emit)(void *context, const mu_rc_owner_fx *fx);
     void *context;
+    /* RENDER-ITEMS-002Q owner-effect programs (item_owner_fx.h). Their transform is 0x012b678d: the OBJECT
+     * owner bone (0x0129f12c), VectorTransform of the local point, times the item model scale (+0x74), plus
+     * the OBJECT position (+0x158). */
+    int32_t item_bones;      /* the drawn item model's bone count (+0x22) */
+    float angle[3];          /* OBJECT +0x164 */
 } mu_rc_owner_host;
+/* RENDER-ITEMS-002Q: 1 + the highest owner bone of the type's owner-effect program, 0 without one. A program
+ * runs (after the type's base body draws, through host->emit) only when this is at most host->bones and
+ * host->item_bones; otherwise the client reads other bones (BoneTransform 0x06fce398) or leaves the position
+ * unchanged, and the library creates none of the program's effects. */
+int mu_rc_item_owner_fx(int32_t type);
 /* mu_rc_item_draws_context plus the owner block: its effects go to host->emit and its
  * level-9 overlay meshes follow the rank-5 body meshes in out. */
 int mu_rc_item_draws_owner(const mu_rc_item *item, mu_rc_model *model, mu_rc_draw *out, int32_t capacity,

@@ -14,6 +14,7 @@
 #include "skin_bodies.h"
 #include "item_links.h"
 #include "item_pulse_links.h"
+#include "item_owner_fx.h"
 
 /* sin wrapper 0x009681bd: the CRT sin of a binary32 argument rounded to
  * binary32 (same rule as the mesh-draw port, client-meshdraw-exec.md). */
@@ -286,6 +287,9 @@ static float body_scalar(const mu_rc_body_scalar *p, float time)
 }
 
 static int32_t rank5_random(const sink *s);
+/* RENDER-ITEMS-002Q (owner_fx.inc): the owner host and the type's owner-effect program. */
+static _Thread_local const mu_rc_owner_host *owner_host;
+static void owner_fx(const sink *s, const mu_rc_owner_host *h);
 
 /* Kind 4 (part 14): (float)(rand() % n), then binary32 mul/add/sub/div constants
  * (gen_item_bodies.parse_random). */
@@ -460,6 +464,9 @@ static void emit_parameter_body(sink *s, int phase, uint32_t flags, float alpha,
     if (apply_recipe(s, &mu_rc_body_recipes[mu_rc_body_types[type].recipe[phase]], input, &base, &last) &&
         mu_rc_body_types[type].carry)
         write_back(s->model, &last);
+    /* Part 17: the owner-effect block follows the type's base body draws. */
+    if (owner_host && (phase == 0 || phase == 5 || phase == 6 || phase == 7))
+        owner_fx(s, owner_host);
 }
 
 /* Item-table predicates 0x00cd6017 (kind B, +0x251), 0x00cd5fac (kind A,
@@ -531,8 +538,6 @@ static int32_t rank5_random(const sink *s)
     return s->context && s->context->random ? s->context->random(s->context->context) : 0;
 }
 
-/* RENDER-EFFECTS-005: owner host of mu_rc_item_draws_owner (rank5_owner.inc). */
-static _Thread_local const mu_rc_owner_host *owner_host;
 static void rank5_owner(sink *s, const mu_rc_owner_host *h);
 
 static void rank5_body(sink *s)
@@ -1596,3 +1601,4 @@ int mu_rc_character_light(const mu_rc_light_in *in, float out[3])
 }
 
 #include "rank5_owner.inc"
+#include "owner_fx.inc"

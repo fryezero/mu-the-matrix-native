@@ -44,7 +44,8 @@ LEVELS = (-1, 0, 8 << 3, 9 << 3, (9 << 3) | 5, 13 << 3, 15 << 3, 0x7f, -8)
 
 class Fx(C.Structure):
     _fields_ = [('kind', C.c_int32), ('bitmap', C.c_int32), ('subtype', C.c_int32),
-                ('position', C.c_float * 3), ('light', C.c_float * 3), ('scale', C.c_float)]
+                ('position', C.c_float * 3), ('light', C.c_float * 3), ('scale', C.c_float),
+                ('angle', C.c_float * 3)]   # RENDER-ITEMS-002Q; zero in the rank-5 block
 
 
 TRANSFORM = C.CFUNCTYPE(None, C.c_void_p, C.c_int32, C.POINTER(C.c_float), C.POINTER(C.c_float))
@@ -53,7 +54,8 @@ EMIT = C.CFUNCTYPE(None, C.c_void_p, C.POINTER(Fx))
 
 class Host(C.Structure):
     _fields_ = [('bones', C.c_int32), ('black_mesh', C.c_int32), ('transform', TRANSFORM),
-                ('random', nxt.clusters.RANDOM), ('emit', EMIT), ('context', C.c_void_p)]
+                ('random', nxt.clusters.RANDOM), ('emit', EMIT), ('context', C.c_void_p),
+                ('item_bones', C.c_int32), ('angle', C.c_float * 3)]   # RENDER-ITEMS-002Q owner-effect programs
 
 
 def u(x):

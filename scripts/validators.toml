@@ -2758,6 +2758,23 @@ args = ["--mutations", "--output", "{report}"]
 "families.derived.programs" = 118
 "mutants.*" = {truthy = true}
 
+[validate_item_ownerfx]
+test = "reconstructed/renderchar/test_item_ownerfx.py::ItemOwnerFx.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "owner", "refusal"]
+cases = 14964
+mutants = 14
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar", "reconstructed/particles"]
+args = ["--mutations", "--output", "{report}"]
+[validate_item_ownerfx.expect]
+"families.*.mismatches" = 0
+"families.bodies.cases" = 12556
+"families.owner.cases" = 2064
+"families.refusal.cases" = 344
+"mutants.*" = {truthy = true}
+
 [validate_item_hiddenmesh]
 test = "reconstructed/renderchar/test_item_hiddenmesh.py::ItemHiddenMesh.test_private_original_instructions"
 pins = ["text", "data", "flag", "feature"]

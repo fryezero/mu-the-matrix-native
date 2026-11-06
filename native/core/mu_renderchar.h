@@ -57,6 +57,9 @@ typedef struct mu_renderchar_owner {
     const float *bones;
     int32_t bone_count;
     long effects;            /* out: owner particles/sprites created (RENDER-EFFECTS-005) */
+    /* RENDER-ITEMS-002Q owner-effect programs (armour 0x1bc3..0x1c78, five helms): */
+    long refused;            /* out: requests no native kind creates, plus programs outside the bone domain */
+    float angle[3];          /* OBJECT +0x164 (the CreateParticle angle of the armour particles) */
 } mu_renderchar_owner;
 
 void mu_renderchar_default_env(mu_renderchar_env *env);
