@@ -164,8 +164,8 @@ static int self_checks(mu_combat *c)
                          quads[k].dst == 0x0303u && !quads[k].additive)
                       : (!quads[k].alpha_test && !quads[k].depth_mask && quads[k].additive));
     }
-    puts("Fire06 0x7f40/1..3, LoadBitmap filter and wrap of the combat bitmaps, the wrappers' GL state and the crater's "
-         "alpha test through native routes: OK");
+    puts("Fire06 0x7f40/1..3, LoadBitmap filter and wrap of the combat bitmaps, the wrappers' GL state and the "
+         "crater's alpha test through native routes: OK");
     return 0;
 }
 

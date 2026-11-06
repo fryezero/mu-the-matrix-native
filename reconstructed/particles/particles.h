@@ -45,7 +45,7 @@ enum {
     MU_PT_BITMAP_SHINY2 = 0x7f67,       /* Effect\Shiny02.jpg (sprites) */
     MU_PT_BITMAP_THUNDER = 0x7f2b,      /* Effect\Thunder01.jpg */
     MU_PT_BITMAP_FIRE = 0x7f3c,         /* Effect\Fire01.jpg (a strip of four cells) */
-    MU_PT_BITMAP_FIRE06 = 0x7f40,       /* Effect\Fire06.jpg: Fire01's case in all three routines (RENDER-EFFECTS-016) */
+    MU_PT_BITMAP_FIRE06 = 0x7f40,       /* Effect\Fire06.jpg: Fire01's case in all three routines (016) */
     MU_PT_BITMAP_SMOKE = 0x7f5a,        /* Effect\smoke01.jpg */
     MU_PT_BITMAP_CLOUDS = 0x7f89,       /* Effect\clouds.jpg (the login scene's mist, NATIVE-JOINT-001) */
     MU_PT_BITMAP_SHINY1 = 0x7f66,       /* Effect\Shiny01.jpg (Noria's lamp sparkles) */

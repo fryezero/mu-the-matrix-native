@@ -168,7 +168,13 @@ static int startup_bitmap_name(const char *root, const char *name, char *path, s
 /* RENDER-EFFECTS-016: filter and wrap as the client's LoadBitmap 0x0185baac call of each index (site in the comment;
  * the generated startup table mu_item_bitmaps.inc lists every call, one per index here): GL_LINEAR 0x2601 or
  * GL_NEAREST 0x2600, GL_CLAMP 0x2900 or GL_REPEAT 0x2901. Before, all but the decals loaded LINEAR and REPEAT. */
-static const struct { int32_t id; const char *dir, *name; char kind; uint32_t filter, wrap; char decal; } bitmap_files[] = {
+static const struct {
+    int32_t id;
+    const char *dir, *name;
+    char kind;
+    uint32_t filter, wrap;
+    char decal;
+} bitmap_files[] = {
     {MU_BITMAP_FONT_DAMAGE, "Interface", "Font_Damage.tga", 't', 0x2601, 0x2900, 0},   /* 0x01820a39 */
     {0x7dfe, "Interface", "FontSC.tga", 't', 0x2601, 0x2900, 0},                     /* 0x01820bb9 */
     {0x7df3, "Interface", "Hit.tga", 't', 0x2601, 0x2900, 0},                        /* 0x01820a79 */
@@ -183,10 +189,10 @@ static const struct { int32_t id; const char *dir, *name; char kind; uint32_t fi
     {0x7f26, "Effect", "Spark03.jpg", 'j', 0x2601, 0x2900, 0},                       /* 0x01821639 */
     {0x7fd8, "Effect", "JointEnergy01.jpg", 'j', 0x2601, 0x2900, 0},                 /* 0x01822425 */
     {0x7fd3, "Effect", "JointSpirit01.jpg", 'j', 0x2601, 0x2900, 0},                 /* 0x018223c5 */
-    {0x7fd5, "Effect", "Spark01.jpg", 'j', 0x2601, 0x2900, 0},         /* 0x01822385; the Twisting Slash swirl's spark joints */
-    {0x7fd6, "Effect", "JointLaser01.jpg", 'j', 0x2601, 0x2900, 0},    /* 0x018223e5; RENDER-EFFECTS-009: the arrows' trails */
+    {0x7fd5, "Effect", "Spark01.jpg", 'j', 0x2601, 0x2900, 0},         /* 0x01822385; Twisting Slash's sparks */
+    {0x7fd6, "Effect", "JointLaser01.jpg", 'j', 0x2601, 0x2900, 0},    /* 0x018223e5; RENDER-EFFECTS-009 trails */
     {0x7f79, "Effect", "Flare02.jpg", 'j', 0x2601, 0x2901, 0},                       /* 0x018228e5 */
-    {0x7f78, "Effect", "Flare.jpg", 'j', 0x2601, 0x2900, 0},           /* 0x01822545; RENDER-EFFECTS-014: 0x459's joints */
+    {0x7f78, "Effect", "Flare.jpg", 'j', 0x2601, 0x2900, 0},           /* 0x01822545; 0x459's joints (014) */
     {0x80e3, "Effect", "force_Pillar.jpg", 'j', 0x2601, 0x2901, 0},                  /* 0x01835b52 (startup opener) */
     {0x80e4, "Effect", "!SwordEff.jpg", 'j', 0x2601, 0x2901, 0},                     /* 0x01835b72 (startup opener) */
     {0x814c, "Skill", "sharke_arrows.jpg", 'j', 0x2601, 0x2900, 0},                  /* 0x01821dd9 */
@@ -2329,8 +2335,8 @@ void mu_combat_draw_raster(mu_combat *c, mu_raster *raster)
         const mu_combat_quad *q = &quads[i];
         if (q->eye_space)
             memcpy(raster->view, identity, sizeof identity);
-        raster_quad(raster, q, q->bitmap >= 0 ? &c->bitmaps[q->bitmap].image : NULL,
-                    q->bitmap >= 0 ? c->bitmaps[q->bitmap].wrap : 0, q->bitmap >= 0 ? c->bitmaps[q->bitmap].filter : 0x2601u);
+        const mu_combat_bitmap *b = q->bitmap >= 0 ? &c->bitmaps[q->bitmap] : NULL;
+        raster_quad(raster, q, b ? &b->image : NULL, b ? b->wrap : 0, b ? b->filter : 0x2601u);
         memcpy(raster->view, saved, sizeof saved);
     }
 }
