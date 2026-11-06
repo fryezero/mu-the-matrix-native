@@ -646,21 +646,21 @@
       "handlers": {
         "create": {
           "entry": "0xd7bd7d",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method; 1000 original-instruction cases, compiled mutants. Class-list predicate 0x00d806b0 and own-type lookup 0x00d7b373 executed; the base world (+0x1c, 0x00d7b225: world - 1, 1000 cases) forwards to the Acheron/Debenter/Uruk/Nars class slot 0x2c. See client-worlds-s2.md.",
+          "source": "reconstructed/objects/arca.c"
         },
         "move": {
           "entry": "0xd7be29",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method; 1000 original-instruction cases, compiled mutants. Forwards to the base world's class slot 0x30 (no -1 test). See client-worlds-s2.md.",
+          "source": "reconstructed/objects/arca.c"
         },
         "visual": {
           "entry": "0xd7be80",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method; 1000 original-instruction cases, compiled mutants. Type 0x59b: CreateEffect 0x413 at bone 3 with the light of the server stage +0x30 (an input, initial 0); 0x88a..0x88e draw nothing; others forward to slot 0x34. See client-worlds-s2.md.",
+          "source": "reconstructed/objects/arca.c"
         },
         "custom_render": {
           "entry": "0xd7c02e",
@@ -906,21 +906,21 @@
       "handlers": {
         "create": {
           "entry": "0xe260f0",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method with its type table 0x00e26640; 1000 original-instruction cases, compiled mutants. Predicate 0x00e2602d (worlds 110/111) executed. Type 134 (model pose, bone 4 into +0x110) is refused natively (no pose at creation). See client-worlds-s2.md.",
+          "source": "reconstructed/objects/nars.c"
         },
         "move": {
           "entry": "0xe26668",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method; 1000 original-instruction cases, compiled mutants. Types 1/2 test their action record; flame lights of 4/116/146 (range 1) and 134 (+0x110, range 2); 77 scrolls. See client-worlds-s2.md.",
+          "source": "reconstructed/objects/nars.c"
         },
         "visual": {
           "entry": "0xe26ae7",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method in four type families (fire, glow, emit, orbit); 4000 original-instruction cases, compiled mutants. Bone types without posed bones are refused and counted. See client-worlds-s2.md.",
+          "source": "reconstructed/objects/nars.c"
         },
         "custom_render": {
           "entry": "0xe28bb2",

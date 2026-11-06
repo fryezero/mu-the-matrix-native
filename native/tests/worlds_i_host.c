@@ -102,7 +102,7 @@ int main(int argc,char **argv)
     assert(!mu_objects_prepare_index(o,0,NULL,6,&options));
     assert(sprites==old_sprites);
     m->bmd.bone_count=4;
-    o->world=101;uint32_t seed=o->rt.seed;
+    o->world=73;uint32_t seed=o->rt.seed;   /* no class (101 is Arca War since S2, 114 Event square since S3) */
     assert(!mu_objects_prepare_index(o,0,NULL,6,&options));
     assert(generic==1 && o->rt.seed==seed);
     free(o->rt.events);free(o->rt.images);mu_model_free(&m->model);mu_bmd_free(&m->bmd);free(m);free(o);
