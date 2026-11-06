@@ -15,6 +15,7 @@ Part 9 reaches **769/1,674 bodies** and **fifteen link targets/twenty types**.
 Part 10 reaches **880/1,674 bodies** and **seventeen link targets/twenty-two types**.
 Part 11 reaches **967/1,674 bodies** with per-type wave/sine scalar programs; links are unchanged.
 [Part 14 below](#part-14-recordquality-probes-exit-model-fields-and-body-random-render-items-002n) reaches **1,213/1,674 bodies**.
+[Part 16 below](#part-16-census-of-the-455-remaining-bodies-and-derived-body-programs-render-items-002p) reaches **1,276/1,674 bodies** and groups the rest by blocker.
 Muun/map-object effect placement remains deferred. All parts run offline.
 
 ## Identity and evidence
@@ -1265,3 +1266,110 @@ types in 77,888 random cases** (32 states each, with and without a rand context)
 1,691 survey types, admission changes for exactly the 6 new types. Portable `test_item_product.py`: 3 tests,
 one private skip; it checks admission, refusal outside the domain and the product light of one draw for rand
 results 0, 14 and 108.
+
+## Part 16, census of the 455 remaining bodies and derived body programs, RENDER-ITEMS-002P
+
+Bounded bodies increase **1,219 to 1,276 of 1,674**, adding **57 types** (`gen_item_bodies.DERIVED_TYPES`; 13 of
+them in `DERIVED_CARRY`). Skins stay **17/17**, links stay **eighteen targets/twenty-four types**. **398 bodies
+remain.** The survey keeps 798 shapes; complete shapes go 500 to 543.
+
+### Census (static + verified probes)
+
+All 455 refusals were run under Unicorn: the eleven survey states with the plain item world (services recorded),
+then the generator probes with rand scripted and the parsed per-type programs. The first blocker of each type:
+
+| Blocker | Types | Weapon | Armour | Wing | Pet/item | Draws fit with the effect calls set aside |
+|---|---:|---:|---:|---:|---:|---:|
+| Draw word one binary32 operation from an input (**implemented here**) | 57 | 40 | 10 | 3 | 4 | - |
+| Helper-group count (client helper calls differ from the generic path) | 54 | 2 | 0 | 13 | 39 | - |
+| Effects: bone sprite `0x0150e746` + CreateParticle `0x0168fafd` | 51 | 22 | 0 | 29 | 0 | 34 |
+| Effects: bone sprite `0x0150e746` only | 50 | 30 | 0 | 20 | 0 | 33 |
+| No recipe: other unexplained draw words | 50 | 39 | 4 | 3 | 4 | - |
+| Effects: CreateParticle + CreateSprite `0x01692eb7` at owner bones (`0x012b678d`) | 42 | 0 | 38 | 4 | 0 | 40 |
+| Random helper `0x011ff622` (rand at `0x011ff68d`) | 39 | 39 | 0 | 0 | 0 | - |
+| Fault in CRT strlen `0x0195a4e0` (helm/pants/gloves/boots of the rank-5 sets) | 31 | 3 | 28 | 0 | 0 | - |
+| No recipe: draw count varies within a phase | 18 | 7 | 0 | 11 | 0 | - |
+| Effects: CreateSprite only | 16 | 2 | 5 | 6 | 3 | 16 |
+| GL matrix services (`glPushMatrix`/`glPopMatrix`) | 13 | 10 | 0 | 0 | 3 | - |
+| Effects: all three services | 9 | 0 | 0 | 9 | 0 | 0 |
+| Faults at `0x016ddc73`/`0x016df9a0` (5) and `0x016eef60` (2) | 7 | 5 | 0 | 0 | 2 | - |
+| Fit the probes, fail the full comparison at quality 0 (`0x2003`, `0x2007`, `0x2009`, `0x200f`, `0x2010`) | 5 | 0 | 5 | 0 | 0 | - |
+| Other rand sites (`0x01707a5e`, `0x016ec26d`, `0x017125a6`, `0x01710a09`) | 4 | 4 | 0 | 0 | 0 | - |
+| Effects with a fault | 4 | 0 | 0 | 4 | 0 | 0 |
+| Model transform `0x00966ea5` (`0x239e`, `0x23a1`, `0x23a5`) | 3 | 0 | 0 | 3 | 0 | - |
+| Effects: CreateParticle only | 2 | 2 | 0 | 0 | 0 | 0 |
+| **Total** | **455** | 205 | 90 | 105 | 55 | 123 |
+
+Weapons, armour and wings are the equippable, most-seen groups (400 of 455). The effect services are the largest
+group (174 types, 190 with the GL matrix and model transform calls). Their draws alone fit for 123 of them.
+
+### What the effect bodies need (verified on samples, static reading)
+
+- **`0x0150e746(model, bitmap, bone, scale, light, OBJECT, rotation, a7, axes)`** is CreateSprite `0x01692eb7` at
+  TransformPosition(BoneTransform `0x06fce398` + 0x30·bone, 0, translate 1): the item's **own** posed bones. The bone
+  is often a named lookup (`0x012bd35a(name, -1)`, e.g. `0x0f1f`), so the item world gives -1. Light is frequently a
+  random or clock-scaled vector (`0x0b4b`: (0.7, 0.5, 0.3) × a per-frame scalar). The existing owner host
+  (`mu_rc_owner_host.transform`) answers OBJECT owner bones, not the item's own bones, so these requests have no
+  consumer behind the item executor. RENDER-ITEMS' link-effect consumer (`mu_renderchar_link_effects`) has the item
+  bones but is RenderLinkItem's own switch.
+- **The armour group `0x1bc3..0x1c78` (38 types)** transforms with `0x012b678d(out, OBJECT, bone, local)`:
+  VectorTransform(local, owner bone `0x0129f12c` or BoneTransform) × model scale `+0x74` + OBJECT position `+0x158`.
+  That is the owner-host transform. Four code templates cover the 38 types: two sprites per owner bone (26, 27, 36,
+  18, 35 ...), then one to four `rand() % 2 == 0` gates (`0x0173e869` → `0x0173e86e`, `0x0174290e`), each followed by
+  CreateParticle (`0x810a`, subtype 7) whose scale or position jitter comes from `0x011ff622(lo, hi, step)` and
+  vec3 arithmetic (`0x00cfca74` add, `0x00cfcad8` subtract, `0x00cfd0cc` normalize). The particle angle is OBJECT
+  `+0x164`; `mu_rc_owner_fx` has no angle field and the native consumer passes zero. Modelling needs a small
+  per-type effect program (owner transform, sprite/particle requests, rand gates, step randoms and the vec3 sums)
+  inferred from the client's call arguments with authored owner bones. It is not attempted here.
+- **The random-helper weapons (39)** draw `0x011ff622` for effects that only appear for some rand results; with
+  rand 0 the survey sees no effect call.
+
+### Derived body programs (kind 6; verified)
+
+Of the 125 no-recipe types, many draw a word that is one binary32 operation away from an input the recipes already
+know: a light channel times a constant (`0x0b6d`: red and green s × 0.7 and s × 0.4 for its parsed program s), a clock
+program plus a constant (`0x0afd`: light (s, s, s + 0.1), the `addss` at `0x016f1d0f`), the generic body light times a
+constant (`0x1afa`: (0.85, 0.85, 1.2)), the object alpha times a constant (`0x1be6`), or a negated program (× -1, `0x1554`).
+
+- **Generator.** For `DERIVED_TYPES`, when the parsed programs leave words unexplained, `derive` solves
+  `word = f32(input op k)` for one constant over every probe of the phase (inputs: the float generic words, object
+  alpha, pulsed light, clock scalars and earlier programs; ops mul/add/sub/div). A candidate is kept only if the
+  text holds that `mulss/addss/subss/divss xmm, [abs]` on that constant (`sse_operands`). Each solution becomes a
+  **kind-6 program** `(6, input a, ((op, k),))`; the recipe then copies it like any program input. Up to three
+  rounds allow a program read by another. Earlier rows are generated unchanged (checked by rendering all 1,200
+  earlier rows with the edited generator: only the header comment differs).
+- **Executor.** `renderchar.c`'s scalar loop evaluates kind 6 from `input[a]` (an earlier input or program) with
+  the binary32 chain (`derived_program`). No rand is drawn.
+- **Selection.** 66 of the 125 candidates fit the probes; 57 pass the independent 292-state comparison, 13 of
+  them with the part-13 carry rule (their last draw's light reaches the ancient pass at qualities 1-2). Rejected:
+  `0x0b36`, `0x1103`, `0x1524` (an extra draw at quality 2 the level split does not predict) and the wings
+  `0x239c`, `0x239f`, `0x23a2`, `0x23a3`, `0x23a4`, `0x23a6` (their extra draws start below level 9 at quality 2).
+  Words in integer fields (`0x231b`, `0x231c`: flags | 0x40; `0x24e3`) are not derived.
+
+### Checks
+
+`scripts/validate_item_derived.py --mutations` (manifest row, private test `ItemDerived.test_original_instructions`):
+**36,252 comparisons, zero mismatches**. Client and C get the same scripted rand sequence and must consume the same
+number of results (zero here).
+
+| Family | Cases | Mismatches |
+|---|---:|---:|
+| Full body streams, 57 types times 292 states, rand scripted, glColor recorded | 16,644 | 0 |
+| Derived: 11 survey states × 8 clocks (0 to 1,999,999, period edges), records none/0x26/0x5b, random model light and alpha; 118 kind-6 programs | 5,016 | 0 |
+| Kind-B 0x26/0x5b records, qualities 0/1/2/9, levels 0-15, with and without the tails | 14,592 | 0 |
+
+All **7/7 separately compiled mutants** are caught: derived off 35,910; source index 35,713; kind 35,789;
+multiply 30,778; add→subtract 5,088; one operation short 35,910; carry off 907. The body table reproduces from the
+pinned instructions.
+
+Compiled C-to-C, main `6ef9059e` library against this one, every one of the 1,691 survey types, 32 random states,
+with and without a rand context: **108,224 cases**; 104,576 identical, and the 3,648 different ones are exactly
+the 57 new types (refused before). Portable `test_item_derived.py`: 4 tests, one private skip (admission and
+refusal, kind-6 sources, and `0x1afa`'s light as the generic light times (0.85, 0.85, 1.2)).
+
+### Limits
+
+398 bodies remain (table above minus the 57). The effect bodies need a consumer of the item's own bone
+transform (bone sprites) or a per-type effect program over the owner host (armour group). The remaining no-recipe
+words need two-operation or integer derivations. The quality-0 armour types and the level-split wings need
+per-quality probes. Muun, nested map-object tables and the earlier limits are unchanged.
