@@ -24,6 +24,7 @@
 #include "../../reconstructed/objects/worlds_n.h"
 #include "../../reconstructed/objects/worlds_p2.h"
 #include "../../reconstructed/objects/worlds_r2.h"
+#include "../../reconstructed/objects/worlds_s.h"
 #include "../../reconstructed/joints/joints.h"
 #include "../../reconstructed/objects/icarus.h"
 
@@ -213,8 +214,8 @@ int mu_objects_start(mu_objects *o, const char *game_root)
         int status = mu_obj_create(&o->records[i], o->world, img, &sector, i, &create_log);
         if (status == MU_OBJ_UNSUPPORTED && mu_worlds_q_owns(o->world)) {   /* RENDER-WORLDS-Q slot 0x2c */
             const mu_q_inputs q = q_inputs(o, NULL, 0.0f);
-            mu_worlds_q_create(img, i, &q, &create_log);
-            status = MU_OBJ_OK;
+            /* RENDER-WORLDS-S: Debenter's +0x60 == 9 needs its model posed at creation: refused (unsupported) */
+            status = mu_worlds_q_create(img, i, &q, &create_log) < 0 ? MU_OBJ_UNSUPPORTED : MU_OBJ_OK;
         }
         for (int32_t k = 0; k < create_log.count; ++k)   /* a handler's PlaySpeed write (login world type 5) */
             if (created[k].call == MU_OBJ_CALL_PLAY_SPEED &&
@@ -571,7 +572,8 @@ void mu_objects_step(mu_objects *o, const mu_objects_step_inputs *in)
             if (pass) {
                 const mu_q_inputs q = q_inputs(o, in->hero, in->time);
                 log.count = 0;
-                mu_worlds_q_move(image(o, i), i, &q, &log);
+                if (mu_worlds_q_move(image(o, i), i, &q, &log) < 0)   /* Debenter 9/11 without an action record */
+                    ++rt->move_unsupported;
             }
             for (int32_t j = 0; j < log.count; ++j) {
                 const mu_obj_event *m = &local[j];
@@ -1103,6 +1105,25 @@ static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_obje
     }
     else if (o->world >= 142 && o->world <= 144)
         return;
+    else if (o->world == 145 && m && m->loaded) {   /* RENDER-WORLDS-S slot 0x34 */
+        /* 0x0129fd4f(6): bone 6 of the shared pose transposed to a column-major 4x4. Map objects in a sector skip
+         * the object position/scale product (+0x350/+0x354 set), and the native pose already holds both. */
+        const int bones_ready = posed && m->bmd.bone_count > 6;
+        float bone6[16];
+        if (bones_ready) {
+            const float *b = mu_model_bone_matrices(&m->model) + 12 * 6;
+            for (int r = 0; r < 3; ++r)
+                for (int col = 0; col < 4; ++col)
+                    bone6[4 * col + r] = b[4 * r + col];
+            bone6[3] = bone6[7] = bone6[11] = 0.0f;
+            bone6[15] = 1.0f;
+        }
+        if (mu_aquila_bone_type(mu_obj_i32(img, MU_OBJF_TYPE)) && !bones_ready) ++o->rt.draw_unsupported;
+        (void)visual_rand(&c); /* Outer RenderObjectVisual flicker draw. */
+        mu_aquila_visual(img, 1, bones_ready ? bone6 : NULL);
+    }
+    else if (o->world == 145)
+        return;
     else if ((o->world == 0x87 || o->world == 0x88 || o->world == 0x8c) && m && m->loaded) {   /* RENDER-WORLDS-P */
         const int32_t type = mu_obj_i32(img, MU_OBJF_TYPE);
         const int needs_bones = o->world == 0x87 && (type == 15 || type == 16);
@@ -1139,7 +1160,9 @@ static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_obje
         if (m && m->loaded) (void)visual_rand(&c);
         mu_q_inputs q = q_inputs(o, NULL, world_time);
         q.actions = NULL;   /* the visual slots read no action table */
-        const int32_t last_bone = o->world == 91 ? mu_acheron_visual_bones(mu_obj_i32(img, MU_OBJF_TYPE)) : -1;
+        const int32_t type = mu_obj_i32(img, MU_OBJF_TYPE);
+        const int32_t last_bone = o->world == 91 ? mu_acheron_visual_bones(type) :
+                                  o->world == 95 ? mu_debenter_visual_bones(type) : -1;   /* RENDER-WORLDS-S */
         q.bone = posed && m->bmd.bone_count > last_bone ? visual_bone : NULL;
         q.bone_index = q.bone ? visual_bone_index : NULL;   /* Ferea's named bones (RENDER-WORLDS-Q2) */
         q.context = &c;
@@ -1226,7 +1249,7 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
                                o->world == 79 || o->world == 100 || o->world == 57 || o->world == 58 ||
                                o->world == 80 || o->world == 81 || (o->world >= 128 && o->world <= 130) ||
                                o->world == 0x87 || o->world == 0x88 || o->world == 0x8c || o->world == 137 ||
-                               (o->world >= 142 && o->world <= 144) ||
+                               (o->world >= 142 && o->world <= 144) || o->world == 145 ||
                                (o->world >= 0x83 && o->world <= 0x86) ||
                                mu_worlds_q_owns(o->world);   /* RENDER-WORLDS-Q; 112 since RENDER-WORLDS-Q2 */
     mu_obj_draw_inputs in;
