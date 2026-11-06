@@ -45,6 +45,7 @@ GROUPS = {'bones': [12, 37, 50, 157], 'frames': [20, 51, 64],
 IG_TYPES = sorted(set(sum(GROUPS.values(), [])) | {10, 0x14, 0x24, 0x40, 0x4f, 0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56,
                                                    0x73, 0x75, 0x7a, 0x7b, 0x7c, 0x80, 0x81, 0x82, 0x83, 0x84})
 EXTREMES = [-2147483648, -1, 0, 2147483647, 1000]
+DIRECTED_MOVE = [20, 20, 20, 10, 0x40, 0x24, 0x51, 0x52, 0x84, 122, 128]   # move cases, type 20's class static first
 SIBLINGS = [0, 68, 69, 70, 71, 72, 73, 74, 79, 114, 121]
 LOCK = 0x1ec9164   # the classes' statics, 4 bytes each from 69
 TICK, ANGLE_EFFECT = 0x12b4dd3, 0x13c0eaa
@@ -81,8 +82,9 @@ def bind(lib):
 
 
 def time_sample(g):
-    return v.f32(g.choice([0.0, -0.0, 1.0, 199.5, 200.0, 201.0, 1000.0, -1000.0, 1963.4954, 40000.0, 2147483520.0,
-                           3e9, -1e12, math.nan, g.uniform(-1e6, 1e6), g.uniform(0, 1e5)]))
+    return v.f32(g.choice([0.0, -0.0, 1.0, 2.0, 2.5, 199.5, 200.0, 201.0, 202.0, 401.5, -199.0, 1000.0, -1000.0,
+                           1963.4954, 40000.0, 2147483520.0, 3e9, -1e12, math.nan, g.uniform(-1e6, 1e6),
+                           g.uniform(0, 1e5)]))
 
 
 def seed_open(g, typ):
@@ -161,8 +163,9 @@ def ig_object(g, world, typ, family):
         v.put_f(raw, 0xd0, v.f32(g.choice(FRAMES)), v.f32(g.uniform(0, 30)))
     else:
         v.put_f(raw, 0xd0, v.f32(g.uniform(-1, 30)), v.f32(g.uniform(0, 30)))
-    if g.random() < 0.3:   # alpha around the 0.01 gate, NaN included
-        v.put_f(raw, 0xdc, v.f32(g.choice([0.01, 0.0099999998, 0.010000001, 0.0, -0.0, math.nan, 1.0])))
+    if g.random() < 0.3:   # alpha around the 0.01 gate, NaN included; target equal, so the step keeps it
+        alpha = v.f32(g.choice([0.01, 0.01, 0.0099999998, 0.010000001, 0.0, -0.0, math.nan, 1.0]))
+        v.put_f(raw, 0xd8, alpha, alpha)
     if g.random() < 0.3:   # angle z around the modulus, extremes and NaN
         v.put_f(raw, 0x164 + 8, v.f32(g.choice([359.9, 360.0, -360.0, 720.5, -0.0, 3e9, -3e9, math.nan, 1e-30,
                                                 g.uniform(-1e5, 1e5)])))
@@ -182,18 +185,27 @@ def ig_family(machine, lib, name, cases):
     for n in range(cases):
         if group and n % 4:
             typ = g.choice(GROUPS[group])
+        elif method == 'move' and n % 4 == 1:
+            typ = g.choice(DIRECTED_MOVE)
         elif n % 3 == 0:
             typ = g.choice(IG_TYPES)
         else:
             typ = g.choice(IG_TYPES + EXTREMES + [g.randrange(-20, 300)])
         world = cls if n % 5 else SIBLINGS[(n // 5) % len(SIBLINGS)]
+        if cls == 72 and n % 5 == 2 and g.random() < 0.5:   # class 72's predicate also accepts 73 and 74
+            world = g.choice([73, 74])
         present = n % 11 != 0
         raw = ig_object(g, world, typ, name)
         time = time_sample(g)
         seed = seed_open(g, typ) if method == 'visual' and g.random() < 0.6 else g.getrandbits(32)
         rnd, crnd = v.MsvcRand(seed), v.MsvcRand(seed)
-        lock_value = v.f32(g.choice([0.0, 0.0, -0.0, 5.0, 10.0, 20.0, math.nan, g.uniform(-5, 40),
-                                     struct.unpack_from('<f', raw, 0xd0)[0] + g.choice([-10.0, 10.0, 10.5, -0.5])]))
+        near = struct.unpack_from('<f', raw, 0xd0)[0] + g.choice([-10.0, 10.0, 10.5, 10.9, 11.0, -0.5, 0.0, 0.0])
+        lock_value = v.f32(near if typ == 20 and g.random() < 0.7 else
+                           g.choice([0.0, 0.0, -0.0, 5.0, 10.0, 20.0, math.nan, g.uniform(-5, 40), near]))
+        if typ == 20 and g.random() < 0.1:   # frame and lock opposite zeros: only the bits tell who copies whom
+            zero = g.choice([0.0, -0.0])
+            v.put_f(raw, 0xd0, zero)
+            lock_value = -zero
         lock = bytearray(16)
         for k in range(4):
             struct.pack_into('<f', lock, 4 * k, v.f32(g.uniform(-5, 40)))
@@ -411,7 +423,7 @@ MUTANTS = [
     ('imperial_guardian.c', 'mu_obj_set_i32(o, 0x60, 100);', 'mu_obj_set_i32(o, 0x60, 101);', 'ig70_create'),
     ('imperial_guardian.c', 'rnd(context) % 50);', 'rnd(context) % 49);', 'ig72_create'),
     ('imperial_guardian.c', 'if (cls == 72 && t == 10) {   /* class 72 only */',
-     'if (t == 10) {   /* class 72 only */', 'ig71_create'),
+     'if (cls >= 71 && t == 10) {   /* class 72 only */', 'ig71_create'),
     ('imperial_guardian.c', 'if (t < 0x81 || t > 0x84)', 'if (t < 0x81 || t > 0x83)', 'ig69_create'),
     ('imperial_guardian.c', ') % 360));', ') % 359));', 'ig71_create'),
     ('imperial_guardian.c', 'memcpy(o + MU_OBJF_POSITION_COPY, o + MU_OBJF_POSITION, 12);',
