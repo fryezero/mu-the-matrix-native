@@ -183,6 +183,7 @@ static const struct { int32_t id; const char *dir, *name; char kind; } bitmap_fi
     {0x7fd5, "Effect", "Spark01.jpg", 'j'},         /* the Twisting Slash swirl's spark joints (NATIVE-JOINT-001) */
     {0x7fd6, "Effect", "JointLaser01.jpg", 'j'},    /* RENDER-EFFECTS-009: the arrows' 0x7fd6/5 trails */
     {0x7f79, "Effect", "Flare02.jpg", 'j'},
+    {0x7f78, "Effect", "Flare.jpg", 'j'},           /* RENDER-EFFECTS-014: 0x459's Flare/b joints */
     {0x80e3, "Effect", "force_Pillar.jpg", 'j'},
     {0x80e4, "Effect", "!SwordEff.jpg", 'j'},
     {0x814c, "Skill", "sharke_arrows.jpg", 'j'},
@@ -488,6 +489,7 @@ static void effect_object(mu_combat *c, const mu_sfx_effect *e)
     o->visible = e->live;
     o->type = e->type;
     o->lifetime = e->lifetime;   /* OBJECT +0x6c, joint 0x80e3/5 */
+    memcpy(o->impact, e->impact, sizeof o->impact);   /* OBJECT +0x110, joint 0x7f78/b (RENDER-EFFECTS-014) */
     memcpy(o->position, e->position, sizeof o->position);
     memcpy(o->angle, e->angle, sizeof o->angle);
     memcpy(o->light, e->light, sizeof o->light);
@@ -684,7 +686,14 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
         return 1;
     }
     case MU_SFX_CALL_CHECK_ARROW:
-        if (e)
+        if (!e && call->owner >= MU_COMBAT_EFFECT_OBJECT(0) && call->owner < MU_COMBAT_EFFECT_OBJECT(MU_SFX_EFFECTS)) {
+            /* RENDER-EFFECTS-014: Flare/b's skill-1 joint (MoveJoint 0x0157a6cb) writes its arrow's +0x158, then
+             * runs CheckClientArrow; the other joints read the arrow's state at once */
+            mu_sfx_effect *arrow = &c->effects[call->owner - MU_COMBAT_EFFECT_OBJECT(0)];
+            memcpy(arrow->position, call->position, sizeof arrow->position);
+            check_arrow(c, arrow);
+            effect_object(c, arrow);
+        } else if (e)
             check_arrow(c, e);
         return 0;
     case MU_SFX_CALL_OWNER_FLAG: {   /* RENDER-EFFECTS-010: test and set the owner's +0x64 */
@@ -1101,6 +1110,7 @@ static void move_pools(mu_combat *c)
     for (int i = 0; i < MU_SFX_EFFECTS; ++i)
         effect_object(c, &c->effects[i]);   /* MoveJoints reads the arrows after MoveEffects (RENDER-EFFECTS-009) */
     c->jenv.serial = c->serial;
+    c->jenv.ambient_clock = c->step;   /* [0x0bdc5eb0], one count per logic step (RENDER-EFFECTS-014: Flare/b) */
     mu_joints_move_all(c->joints, MU_SFX_JOINTS, &c->jenv, c->time_step, joint_inputs, c);
     int32_t kept = 0;
     for (int32_t i = 0; i < c->particle_count; ++i) {
@@ -1254,10 +1264,35 @@ void mu_combat_attack(mu_combat *c, int32_t actor)
     c->intent_skill = 0;
 }
 
+/* RENDER-EFFECTS-014 (offline fixture): the ground skill 0x7fc / 0x7fd as the client's receive handler
+ * 0x0125f53d..0x0125f5d9 runs it for a caster, here the hero: CreateEffect(0x70a, subtype 1 / 0, the hero, its key,
+ * scale 1) and for 0x7fc CreateArrows(c, o, 0, 0x7fc, 1, 0) (0x0125f5d1). SetAction 0x012b001a(c, skill, 0x107, -1)
+ * is not modelled and no request is sent. 0x70a (create 0x01418f78, move 0x014d1a18) is not reconstructed: it is
+ * counted unsupported, and the skill-0x7e7 arrows its move fires (whose landings make 0x70c) do not occur. */
+static void ground_volley(mu_combat *c, int32_t skill)
+{
+    float pos[3], angle[3], light[3];
+    hero_frame(c, pos, angle, light);
+    mu_sfx_info info;
+    memset(&info, 0, sizeof info);
+    info.key = (uint16_t)c->hero_key;   /* the caster's +0x3e */
+    ++c->stats.skills;
+    create_effect_scaled(c, 0x70a, skill == 0x7fc ? 1 : 0, pos, angle, light, MU_COMBAT_HERO_OBJECT, &info, 1.0f);
+    if (skill == 0x7fc)
+        create_arrows(c, 0x7fc, 1, 0);
+}
+
 void mu_combat_cast(mu_combat *c, int32_t skill, int32_t actor)
 {
     if (actor < 0)
         actor = c->target;
+    if ((skill == 0x7fc || skill == 0x7fd) && alive(c, actor)) {   /* RENDER-EFFECTS-014 fixture */
+        mu_hero *h = &c->walk->hero;
+        const mu_world_actor *a = &c->actors->list[actor];
+        h->angle[2] = mu_create_angle(h->position[0], h->position[1], a->position[0], a->position[1]);
+        ground_volley(c, skill);
+        return;
+    }
     if (!alive(c, actor) || !mu_skill_visual_find(skill))
         return;
     c->target = actor;

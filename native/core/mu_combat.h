@@ -89,7 +89,7 @@ void mu_combat_default_config(mu_combat_config *config);
 const char *mu_combat_arrow_file(int32_t type);
 
 /* Bitmap slots the renderer binds by id. */
-enum { MU_COMBAT_BITMAPS = 24 };
+enum { MU_COMBAT_BITMAPS = 25 };
 
 typedef struct mu_combat_bitmap {
     int32_t id;               /* client bitmap index (0x7534 font, 0x7df3.. specials, 0x7f2b, 0x7f84) */
@@ -266,6 +266,8 @@ void mu_combat_step(mu_combat *combat);
 /* Script and keyboard entry points: attack an actor, cast a skill at an
  * actor (actor -1: the current target), stop. */
 void mu_combat_attack(mu_combat *combat, int32_t actor);
+/* RENDER-EFFECTS-014: the ground skills 0x7fc / 0x7fd (2044 / 2045) are an offline fixture: they fire at once as the
+ * client's receive handler 0x0125f53d.. runs them (see mu_combat.c, ground_volley), without a request. */
 void mu_combat_cast(mu_combat *combat, int32_t skill, int32_t actor);
 void mu_combat_cast_checked(mu_combat *combat, int32_t skill, int32_t actor);
 void mu_combat_stop(mu_combat *combat);

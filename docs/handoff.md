@@ -1,12 +1,12 @@
 # Continue from here
 
+RENDER-EFFECTS-014 PR-ready: bow joints 0x7f78/b (arrow 0x459's guided flares, owner write-back and arrow check) and 0x7f79/e with smoke01 0x22/0x23 and Spark03 0xa; the 33 bows' unsupported requests fall 15 → 0, with 119 arrows retained. 0x70c's rings 0x703..0x706 and stones /0x13 are reconstructed. The ground skills' +0x64 flag is verified: CreateEffect 0x40a clears it. 0x70a (the rain that lands 0x70c natively) is still open. [Finding](research/client-render-effects-014.md), [handoff](handoffs/RENDER-EFFECTS-014.md).
+
 TEST-SPEED-003 PR-ready: the original-side validator cache keeps 4 keys per name (LRU, 250 MB cap, concurrent-safe merge), so a lane branch and main stay warm side by side: item_product main/branch alternation 586/605 s cold → 34–37 s warm on every switch, byte-identical reports. `test_joints` builds libcombat itself, so fresh-worktree `--affected` passes. Full suites 1,973 tests, 0 failures, 198 s. [Handoff](handoffs/TEST-SPEED-003.md).
 
-<<<<<<< HEAD
 RENDER-WORLDS-S3 PR-ready: Imperial Guardian (69, 70, 71, 72), Event square (114) and Test Area (121) primary create/move/visual methods; +18 verified methods, +6 classes: 120 → 138/144 and 40 → 46/48 on its base, 144/144 and 48/48 with S2 merged. The four Imperial Guardian classes are one body with class deltas; Event square is Loren Market's bodies behind world 114. 22,000 instruction cases, zero mismatches, 75/75 mutants. The 0x7fd5 subtype-5 joints, bone types without a pose and the 0x7f42 word4 effect are refused and counted when unsupported. No live capture exists for these worlds: the October 22 tour and all 32 DATA-ACQ-002 captures are byte-identical. Left: custom/after/invisible-move slots and the default hook chain. [Handoff](handoffs/RENDER-WORLDS-S3.md)
-=======
+
 RENDER-ITEMS-HIDDENMESH: the body executor copies OBJECT +0x68 and native item callers use ItemObjectAttribute values. All 182 reader recipes are updated, including the 23 formerly white types; the survey is 36 to 13 white types, and 23 to 0 with a wearer. The additional visibility changes are intentional; non-reading types and all 4,758 mesh texture slots stay identical. Body coverage stays 1,219/1,674. [Changed types, checks and limits](handoffs/RENDER-ITEMS-HIDDENMESH.md).
->>>>>>> origin/main
 
 RENDER-WORLDS-S2 PR-ready: Nars (110) and the Arca War class (92, 96, 101, 111) primary create/move/visual methods; +6 verified methods, +2 classes: 120 → 126/144 and 40 → 42/48 (18 missing). 10,000 instruction cases, zero mismatches, 72/72 mutants. Nars runs on the Q inputs; the Arca class forwards to its base world's class (world − 1: Acheron, Debenter, Uruk Mountain, Nars), and its server-set stage stays an input (default 0). Nars's posed-at-creation type 134, bone types without bones and Arca's 0x59b without a model are refused and counted. No live capture exists for these worlds: the October 22 tour and all 32 DATA-ACQ-002 captures are byte-identical. Next: Imperial Guardian 69–72, class 114, Test Area 121. [Handoff](handoffs/RENDER-WORLDS-S2.md)
 
