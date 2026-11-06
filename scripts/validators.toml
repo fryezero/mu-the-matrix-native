@@ -2808,3 +2808,19 @@ args = ["--cases", "1000", "--mutations", "--output", "{report}"]
 "families.*.stopped" = 0
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
+
+[validate_worlds_s2]
+test = "reconstructed/objects/test_worlds_s2.py::WorldsS2Tests.test_original_instructions"
+pins = ["text", "data"]
+families = ["nars_create", "nars_move", "nars_visual_fire", "nars_visual_glow", "nars_visual_emit", "nars_visual_orbit", "arca_base", "arca_create", "arca_move", "arca_visual"]
+cases = 10000
+mutants = 72
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+[validate_worlds_s2.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0
