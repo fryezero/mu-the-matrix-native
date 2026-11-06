@@ -97,4 +97,6 @@ static inline float csin(float x) { return (float)sin((double)x); }   /* 0x00968
 int mu_slots_more_class(int32_t world);
 int mu_slots_more_custom(int32_t cls, const slot *s, int32_t world);
 void mu_slots_more_after(int32_t cls, const slot *s, int32_t world);
+int mu_slots_more_bitmap(int32_t world, int32_t index, const char **path, uint32_t *filter, uint32_t *wrap);
+int32_t mu_slots_more_bitmaps(int32_t world, int32_t type, int32_t *out, int32_t room);
 #endif

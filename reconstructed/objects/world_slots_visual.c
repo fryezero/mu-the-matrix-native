@@ -1804,7 +1804,7 @@ int mu_world_slot_bitmap(int32_t world, int32_t index, const char **path, uint32
             *wrap = bitmaps[k].wrap;
             return 1;
         }
-    return 0;
+    return mu_slots_more_bitmap(world, index, path, filter, wrap);   /* RENDER-WORLDS-SLOTS */
 }
 /* The bitmaps the custom and after slots of `world` name for objects of `type` (Chrome01 0x7f1f included). */
 int32_t mu_world_slot_bitmaps(int32_t world, int32_t type, int32_t out[MU_WORLD_SLOT_BITMAPS])
@@ -1853,7 +1853,7 @@ int32_t mu_world_slot_bitmaps(int32_t world, int32_t type, int32_t out[MU_WORLD_
         if (uses[k].world == world && uses[k].type == type)
             for (int j = 0; j < 4 && uses[k].list[j]; ++j)
                 out[n++] = uses[k].list[j];
-    return n;
+    return n + mu_slots_more_bitmaps(world, type, out + n, MU_WORLD_SLOT_BITMAPS - n);   /* RENDER-WORLDS-SLOTS */
 }
 
 /* ---- dispatch ---- */

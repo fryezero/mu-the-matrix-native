@@ -62,6 +62,8 @@ int mu_class_premove(int32_t cls, const uint8_t *object, int32_t index, int32_t 
 int mu_world_slot_bitmap(int32_t world, int32_t index, const char **path, uint32_t *filter, uint32_t *wrap);
 #define MU_WORLD_SLOT_BITMAPS 36   /* most bitmaps one (world, type) names (a 32-bitmap water range + 4) */
 int32_t mu_world_slot_bitmaps(int32_t world, int32_t type, int32_t out[MU_WORLD_SLOT_BITMAPS]);
+/* RENDER-WORLDS-SLOTS: the handler's bitmap words +0x1c..+0x48 the class loader writes in `world` (Kubera). */
+int mu_slots_more_handler(int32_t world, int32_t out[12]);
 int mu_world_chain_predicate(uint32_t address, int32_t world);
 int mu_world_after_render(uint8_t *, int32_t, int32_t, float, mu_obj_log *, mu_world_bone_fn, void *);
 typedef void (*mu_world_named_bone_fn)(void *, const char *, const float[3], float[3]);
