@@ -8,6 +8,32 @@ spec.loader.exec_module(audit)
 
 
 class PublicationBoundary(unittest.TestCase):
+    def test_merge_conflict_markers_are_rejected(self):
+        """APP-POLISH-004: a planted marker of each kind is caught; text that only resembles one is not."""
+        lt, eq, gt = '<' * 7, '=' * 7, '>' * 7
+        for planted in (f'{lt} HEAD\n', f'{eq}\n', f'{eq}\r\n', f'{gt} origin/main\n'):
+            with self.subTest(planted=planted):
+                content = ('# Status\n\nline one\n' + planted + 'line two\n').encode()
+                self.assertIn('merge conflict marker (line 4)', audit.violations('docs/handoff.md', content))
+        for clean in (f'x {lt} y\n', f'{eq}=\n', f' {eq}\n', f'{gt}>\n', f'{eq} heading\n', f'{lt}HEAD\n'):
+            with self.subTest(clean=clean):
+                self.assertEqual(audit.violations('docs/notes.md', clean.encode()), [])
+        self.assertEqual(audit.CONFLICT_MARKER_EXEMPT, frozenset())
+
+    def test_tracked_text_files_have_no_merge_conflict_markers(self):
+        import subprocess
+        root = Path(__file__).resolve().parents[1]
+        names = [n for n in subprocess.check_output(['git', 'ls-files', '-z'], cwd=root).decode().split('\0') if n]
+        found = []
+        for name in names:
+            path = root / name
+            if name in audit.CONFLICT_MARKER_EXEMPT or not path.is_file() or path.is_symlink():
+                continue
+            content = path.read_bytes()
+            if b'\0' not in content and audit.CONFLICT_MARKER.search(content.decode('utf-8', errors='replace')):
+                found.append(name)
+        self.assertEqual(found, [])
+
     def test_hotpatch_game_tables_cannot_be_published_as_source(self):
         for name in ('hotpatches.h','inlinesites.h','peepsites.h','orig.h','xform-prologue.h','meshdraw-orig.h'):
             with self.subTest(name=name):

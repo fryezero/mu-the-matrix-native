@@ -53,6 +53,11 @@ NATIVE-QUEST-002 adds (a snapshot with `deep:0x06fbb3d0=0x44,3 deep:0x06fbb414=0
   guidestrings.tsv  GuideQuestString 0x06fbb414 (loader 0x0111b737): kind 1 = the chapter names (vector +0x44),
                     kind 2 = the step names (map +0x50): kind, position or key, index, type, key, text.
 
+APP-POLISH-004 adds (written when the snapshot holds the table):
+
+  itemtrs.tsv       ItemTRSData 0x06fbb624, map +0x38 (find 0x011204db; RenderItem3D 0x016c154e copies the record
+                    at node +0x14): code, offset x, offset y, rotation x, y, z, scale as signed binary32 words.
+
 Text fields escape TAB, LF, CR and backslash as \\t \\n \\r \\\\ and bytes
 outside printable ASCII as \\xHH, so the files hold the client's bytes
 exactly (its strings are ANSI; a few are CP949).
@@ -73,6 +78,7 @@ NPCNAME, DIALOG, ENCHANT = MANAGER + 0xc04, MANAGER + 0xc70, MANAGER + 0xcf4
 PENTAGRAM, INVENANIM, LEGENDARY, CASHSET = MANAGER + 0x3ec, MANAGER + 0x1dd0, MANAGER + 0x2148, MANAGER + 0x21a8
 BUFF, CHARINFO, SKILLREQ, SOULCONV = MANAGER + 0x844, MANAGER + 0x2b8, MANAGER + 0x7e8, MANAGER + 0x13bc
 QUESTTEXT = MANAGER + 0x133c
+ITEMTRS = MANAGER + 0xbc4          # 0x06fbb624
 MUQUEST, LEVELTIP = MANAGER + 0x137c, MANAGER + 0xf50
 MUQUEST_RECORD = 0x104
 GUIDEQUEST, GUIDESTRING = MANAGER + 0x970, MANAGER + 0x9b4
@@ -386,6 +392,12 @@ def read_invenanim(snap):
     return out
 
 
+def read_itemtrs(snap):
+    """ItemTRSData: 0x011204db finds the code in the map at +0x38 and returns node +0x14, or the default record
+    0x06fbaa40. RenderItem3D reads +0/+4 (slot offset factors), +8..+0x10 (rotation) and +0x14 (scale)."""
+    return [(key, *struct.unpack('<6i', snap.read(record(node), 24))) for key, node in snap.tree(ITEMTRS + 0x38)]
+
+
 def read_legendary(snap):
     """LegendaryItemSetType: 0x011288c7 finds the set type in the map at +0x38 (record = node +0x14) or returns the
     default record +0x48; 0x011289d6 compares the code with the four ints at record +4."""
@@ -636,6 +648,15 @@ def convert(snap, out_dir, header=''):
             for key, tier in rows:
                 f.write(f'{key}\t{tier}\n')
         counts['pentagram'] = len(rows)
+    except SnapshotError:
+        pass
+    try:
+        rows = read_itemtrs(snap)
+        with open(out_dir/'itemtrs.tsv', 'w', encoding='ascii', newline='\n') as f:
+            f.write(note + '#code\tx\ty\trx\try\trz\tscale  (ItemTRSData; signed binary32 words)\n')
+            for row in rows:
+                f.write('\t'.join(map(str, row)) + '\n')
+        counts['itemtrs'] = len(rows)
     except SnapshotError:
         pass
     try:

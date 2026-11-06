@@ -48,9 +48,9 @@
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -94,15 +94,15 @@
         },
         "after_render": {
           "entry": "0xe428af",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: trivial (draws nothing, answers no); compared under Unicorn (validate_worlds_slots trivial). Native needs no slot: the first pass keeps RenderBody and the world has no after pass.",
           "source": null
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -140,21 +140,21 @@
         },
         "custom_render": {
           "entry": "0xe8f515",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS complete slot (types 0..300, the world manager range); compiled C against original instructions with mutants (validate_worlds_slots). See client-worlds-slots.md.",
+          "source": "reconstructed/objects/world_slots_more_visual.c"
         },
         "after_render": {
           "entry": "0xe8ff20",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS complete slot (types 0..300, the world manager range); compiled C against original instructions with mutants (validate_worlds_slots). See client-worlds-slots.md.",
+          "source": "reconstructed/objects/world_slots_more_visual.c"
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -192,21 +192,21 @@
         },
         "custom_render": {
           "entry": "0xdc6a2e",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: trivial (draws nothing, answers no); compared under Unicorn (validate_worlds_slots trivial). Native needs no slot: the first pass keeps RenderBody and the world has no after pass.",
           "source": null
         },
         "after_render": {
           "entry": "0xdc6a5b",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: trivial (draws nothing, answers no); compared under Unicorn (validate_worlds_slots trivial). Native needs no slot: the first pass keeps RenderBody and the world has no after pass.",
           "source": null
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -256,9 +256,9 @@
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -308,9 +308,9 @@
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -360,9 +360,9 @@
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -412,9 +412,9 @@
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -464,9 +464,9 @@
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -504,21 +504,21 @@
         },
         "custom_render": {
           "entry": "0xe6ce2d",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS complete slot (types 0..300, the world manager range); compiled C against original instructions with mutants (validate_worlds_slots). See client-worlds-slots.md.",
+          "source": "reconstructed/objects/world_slots_more_visual.c"
         },
         "after_render": {
           "entry": "0xe6d062",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS complete slot (types 0..300, the world manager range); compiled C against original instructions with mutants (validate_worlds_slots). See client-worlds-slots.md.",
+          "source": "reconstructed/objects/world_slots_more_visual.c"
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -569,9 +569,9 @@
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -609,21 +609,21 @@
         },
         "custom_render": {
           "entry": "0xd6c427",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER2 complete slot; compiled C against original instructions with mutants (validate_worlds_after2). See client-worlds-after2.md.",
+          "source": "reconstructed/objects/world_slots_visual.c"
         },
         "after_render": {
           "entry": "0xd6d3d7",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER2 complete slot; compiled C against original instructions with mutants (validate_worlds_after2). See client-worlds-after2.md.",
+          "source": "reconstructed/objects/world_slots_visual.c"
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -676,9 +676,9 @@
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -728,9 +728,9 @@
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -780,9 +780,9 @@
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -826,15 +826,15 @@
         },
         "after_render": {
           "entry": "0xd5cc60",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: trivial (draws nothing, answers no); compared under Unicorn (validate_worlds_slots trivial). Native needs no slot: the first pass keeps RenderBody and the world has no after pass.",
           "source": null
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -878,15 +878,15 @@
         },
         "after_render": {
           "entry": "0xd5cc60",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: trivial (draws nothing, answers no); compared under Unicorn (validate_worlds_slots trivial). Native needs no slot: the first pass keeps RenderBody and the world has no after pass.",
           "source": null
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -936,9 +936,9 @@
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -976,21 +976,21 @@
         },
         "custom_render": {
           "entry": "0xde8a10",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS complete slot (types 0..300, the world manager range); compiled C against original instructions with mutants (validate_worlds_slots). See client-worlds-slots.md.",
+          "source": "reconstructed/objects/world_slots_more_visual.c"
         },
         "after_render": {
           "entry": "0xde9eab",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS complete slot (types 0..300, the world manager range); compiled C against original instructions with mutants (validate_worlds_slots). See client-worlds-slots.md.",
+          "source": "reconstructed/objects/world_slots_more_visual.c"
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -1028,21 +1028,21 @@
         },
         "custom_render": {
           "entry": "0xe347a8",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER2 complete slot; compiled C against original instructions with mutants (validate_worlds_after2). See client-worlds-after2.md.",
+          "source": "reconstructed/objects/world_slots_visual.c"
         },
         "after_render": {
           "entry": "0xe3628c",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER2 complete slot; compiled C against original instructions with mutants (validate_worlds_after2). See client-worlds-after2.md.",
+          "source": "reconstructed/objects/world_slots_visual.c"
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -1080,21 +1080,21 @@
         },
         "custom_render": {
           "entry": "0xe1f6ca",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS complete slot (types 0..300, the world manager range); compiled C against original instructions with mutants (validate_worlds_slots). See client-worlds-slots.md.",
+          "source": "reconstructed/objects/world_slots_more_visual.c"
         },
         "after_render": {
           "entry": "0xe1f8ff",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS complete slot (types 0..300, the world manager range); compiled C against original instructions with mutants (validate_worlds_slots). See client-worlds-slots.md.",
+          "source": "reconstructed/objects/world_slots_more_visual.c"
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -1132,21 +1132,21 @@
         },
         "custom_render": {
           "entry": "0xd5cc8e",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: trivial (draws nothing, answers no); compared under Unicorn (validate_worlds_slots trivial). Native needs no slot: the first pass keeps RenderBody and the world has no after pass.",
           "source": null
         },
         "after_render": {
           "entry": "0xd5cc60",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: trivial (draws nothing, answers no); compared under Unicorn (validate_worlds_slots trivial). Native needs no slot: the first pass keeps RenderBody and the world has no after pass.",
           "source": null
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -1184,21 +1184,21 @@
         },
         "custom_render": {
           "entry": "0xd5cc8e",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: trivial (draws nothing, answers no); compared under Unicorn (validate_worlds_slots trivial). Native needs no slot: the first pass keeps RenderBody and the world has no after pass.",
           "source": null
         },
         "after_render": {
           "entry": "0xd5cc60",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: trivial (draws nothing, answers no); compared under Unicorn (validate_worlds_slots trivial). Native needs no slot: the first pass keeps RenderBody and the world has no after pass.",
           "source": null
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -1236,21 +1236,21 @@
         },
         "custom_render": {
           "entry": "0xd5cc8e",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: trivial (draws nothing, answers no); compared under Unicorn (validate_worlds_slots trivial). Native needs no slot: the first pass keeps RenderBody and the world has no after pass.",
           "source": null
         },
         "after_render": {
           "entry": "0xd5cc60",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: trivial (draws nothing, answers no); compared under Unicorn (validate_worlds_slots trivial). Native needs no slot: the first pass keeps RenderBody and the world has no after pass.",
           "source": null
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -1288,21 +1288,21 @@
         },
         "custom_render": {
           "entry": "0xd5cc8e",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: trivial (draws nothing, answers no); compared under Unicorn (validate_worlds_slots trivial). Native needs no slot: the first pass keeps RenderBody and the world has no after pass.",
           "source": null
         },
         "after_render": {
           "entry": "0xd5cc60",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: trivial (draws nothing, answers no); compared under Unicorn (validate_worlds_slots trivial). Native needs no slot: the first pass keeps RenderBody and the world has no after pass.",
           "source": null
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -1340,21 +1340,21 @@
         },
         "custom_render": {
           "entry": "0xd5cc8e",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: trivial (draws nothing, answers no); compared under Unicorn (validate_worlds_slots trivial). Native needs no slot: the first pass keeps RenderBody and the world has no after pass.",
           "source": null
         },
         "after_render": {
           "entry": "0xd5cc60",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: trivial (draws nothing, answers no); compared under Unicorn (validate_worlds_slots trivial). Native needs no slot: the first pass keeps RenderBody and the world has no after pass.",
           "source": null
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -1392,21 +1392,21 @@
         },
         "custom_render": {
           "entry": "0xd5cc8e",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: trivial (draws nothing, answers no); compared under Unicorn (validate_worlds_slots trivial). Native needs no slot: the first pass keeps RenderBody and the world has no after pass.",
           "source": null
         },
         "after_render": {
           "entry": "0xd5cc60",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: trivial (draws nothing, answers no); compared under Unicorn (validate_worlds_slots trivial). Native needs no slot: the first pass keeps RenderBody and the world has no after pass.",
           "source": null
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -1456,9 +1456,9 @@
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -1496,21 +1496,21 @@
         },
         "custom_render": {
           "entry": "0xe54752",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS complete slot (types 0..300, the world manager range); compiled C against original instructions with mutants (validate_worlds_slots). See client-worlds-slots.md.",
+          "source": "reconstructed/objects/world_slots_more_visual.c"
         },
         "after_render": {
           "entry": "0xe555d2",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS complete slot (types 0..300, the world manager range); compiled C against original instructions with mutants (validate_worlds_slots). See client-worlds-slots.md.",
+          "source": "reconstructed/objects/world_slots_more_visual.c"
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -1552,21 +1552,21 @@
         },
         "custom_render": {
           "entry": "0xe1a5df",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS complete slot (types 0..300, the world manager range); compiled C against original instructions with mutants (validate_worlds_slots). See client-worlds-slots.md.",
+          "source": "reconstructed/objects/world_slots_more_visual.c"
         },
         "after_render": {
           "entry": "0xe1b6f5",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS complete slot (types 0..300, the world manager range); compiled C against original instructions with mutants (validate_worlds_slots). See client-worlds-slots.md.",
+          "source": "reconstructed/objects/world_slots_more_visual.c"
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -1604,21 +1604,21 @@
         },
         "custom_render": {
           "entry": "0xd5d2f6",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER complete slot; compiled C against original instructions with mutants (validate_worlds_after). See client-worlds-after.md.",
+          "source": "reconstructed/objects/world_abyss_visual.c"
         },
         "after_render": {
           "entry": "0xd5d5ad",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER complete slot; compiled C against original instructions with mutants (validate_worlds_after). See client-worlds-after.md.",
+          "source": "reconstructed/objects/world_abyss_visual.c"
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -1656,21 +1656,21 @@
         },
         "custom_render": {
           "entry": "0xd5ef96",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER complete slot; compiled C against original instructions with mutants (validate_worlds_after). See client-worlds-after.md.",
+          "source": "reconstructed/objects/world_abyss_visual.c"
         },
         "after_render": {
           "entry": "0xd5f23a",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER complete slot; compiled C against original instructions with mutants (validate_worlds_after). See client-worlds-after.md.",
+          "source": "reconstructed/objects/world_abyss_visual.c"
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -1708,21 +1708,21 @@
         },
         "custom_render": {
           "entry": "0xd606da",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER complete slot; compiled C against original instructions with mutants (validate_worlds_after). See client-worlds-after.md.",
+          "source": "reconstructed/objects/world_abyss_visual.c"
         },
         "after_render": {
           "entry": "0xd60991",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER complete slot; compiled C against original instructions with mutants (validate_worlds_after). See client-worlds-after.md.",
+          "source": "reconstructed/objects/world_abyss_visual.c"
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -1760,21 +1760,21 @@
         },
         "custom_render": {
           "entry": "0xe43842",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER2 complete slot; compiled C against original instructions with mutants (validate_worlds_after2). See client-worlds-after2.md.",
+          "source": "reconstructed/objects/world_slots_visual.c"
         },
         "after_render": {
           "entry": "0xe43fab",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER2 complete slot; compiled C against original instructions with mutants (validate_worlds_after2). See client-worlds-after2.md.",
+          "source": "reconstructed/objects/world_slots_visual.c"
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -1812,21 +1812,21 @@
         },
         "custom_render": {
           "entry": "0xe00d4c",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER2 complete slot; compiled C against original instructions with mutants (validate_worlds_after2). See client-worlds-after2.md.",
+          "source": "reconstructed/objects/world_slots_visual.c"
         },
         "after_render": {
           "entry": "0xe010b6",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER2 complete slot; compiled C against original instructions with mutants (validate_worlds_after2). See client-worlds-after2.md.",
+          "source": "reconstructed/objects/world_slots_visual.c"
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -1864,21 +1864,21 @@
         },
         "custom_render": {
           "entry": "0xd80cea",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER3 complete slot (types 0..300, the world manager range); compiled C against original instructions with mutants (validate_worlds_after3). See client-worlds-after3.md.",
+          "source": "reconstructed/objects/world_slots_visual.c"
         },
         "after_render": {
           "entry": "0xd81c49",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER3 complete slot (types 0..300, the world manager range); compiled C against original instructions with mutants (validate_worlds_after3). See client-worlds-after3.md.",
+          "source": "reconstructed/objects/world_slots_visual.c"
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -1916,21 +1916,21 @@
         },
         "custom_render": {
           "entry": "0xd84d0e",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER2 complete slot; compiled C against original instructions with mutants (validate_worlds_after2). See client-worlds-after2.md.",
+          "source": "reconstructed/objects/world_slots_visual.c"
         },
         "after_render": {
           "entry": "0xd868f7",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER2 complete slot; compiled C against original instructions with mutants (validate_worlds_after2). See client-worlds-after2.md.",
+          "source": "reconstructed/objects/world_slots_visual.c"
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -1968,21 +1968,21 @@
         },
         "custom_render": {
           "entry": "0xe3ae5e",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER2 complete slot; compiled C against original instructions with mutants (validate_worlds_after2). See client-worlds-after2.md.",
+          "source": "reconstructed/objects/world_slots_visual.c"
         },
         "after_render": {
           "entry": "0xe3c739",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER2 complete slot; compiled C against original instructions with mutants (validate_worlds_after2). See client-worlds-after2.md.",
+          "source": "reconstructed/objects/world_slots_visual.c"
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -2020,21 +2020,21 @@
         },
         "custom_render": {
           "entry": "0xd94eef",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER2 complete slot; compiled C against original instructions with mutants (validate_worlds_after2). See client-worlds-after2.md.",
+          "source": "reconstructed/objects/world_slots_visual.c"
         },
         "after_render": {
           "entry": "0xd97384",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER2 complete slot; compiled C against original instructions with mutants (validate_worlds_after2). See client-worlds-after2.md.",
+          "source": "reconstructed/objects/world_slots_visual.c"
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -2072,21 +2072,21 @@
         },
         "custom_render": {
           "entry": "0xe092f4",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER2 complete slot; compiled C against original instructions with mutants (validate_worlds_after2). See client-worlds-after2.md.",
+          "source": "reconstructed/objects/world_slots_visual.c"
         },
         "after_render": {
           "entry": "0xe0ab2a",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER2 complete slot; compiled C against original instructions with mutants (validate_worlds_after2). See client-worlds-after2.md.",
+          "source": "reconstructed/objects/world_slots_visual.c"
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -2124,21 +2124,21 @@
         },
         "custom_render": {
           "entry": "0xe05f25",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER2 complete slot; compiled C against original instructions with mutants (validate_worlds_after2). See client-worlds-after2.md.",
+          "source": "reconstructed/objects/world_slots_visual.c"
         },
         "after_render": {
           "entry": "0xe0709e",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER2 complete slot; compiled C against original instructions with mutants (validate_worlds_after2). See client-worlds-after2.md.",
+          "source": "reconstructed/objects/world_slots_visual.c"
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -2176,21 +2176,21 @@
         },
         "custom_render": {
           "entry": "0xd9c19a",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER2 complete slot; compiled C against original instructions with mutants (validate_worlds_after2). See client-worlds-after2.md.",
+          "source": "reconstructed/objects/world_slots_visual.c"
         },
         "after_render": {
           "entry": "0xd9c1b4",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER2 complete slot; compiled C against original instructions with mutants (validate_worlds_after2). See client-worlds-after2.md.",
+          "source": "reconstructed/objects/world_slots_visual.c"
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -2228,21 +2228,21 @@
         },
         "custom_render": {
           "entry": "0xd9a2ed",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER2 complete slot; compiled C against original instructions with mutants (validate_worlds_after2). See client-worlds-after2.md.",
+          "source": "reconstructed/objects/world_slots_visual.c"
         },
         "after_render": {
           "entry": "0xd9ac50",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER2 complete slot; compiled C against original instructions with mutants (validate_worlds_after2). See client-worlds-after2.md.",
+          "source": "reconstructed/objects/world_slots_visual.c"
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS: the base 0x00d5cbbc answers no; compared under Unicorn (validate_worlds_slots trivial); mu_obj_handler_moves answers 0 for the world.",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -2280,15 +2280,15 @@
         },
         "custom_render": {
           "entry": "0xe4cbd7",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER3 complete slot (types 0..300, the world manager range); compiled C against original instructions with mutants (validate_worlds_after3). See client-worlds-after3.md.",
+          "source": "reconstructed/objects/world_slots_visual.c"
         },
         "after_render": {
           "entry": "0xe4f952",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER3 complete slot (types 0..300, the world manager range); compiled C against original instructions with mutants (validate_worlds_after3). See client-worlds-after3.md.",
+          "source": "reconstructed/objects/world_slots_visual.c"
         },
         "invisible_move": {
           "entry": "0xe4bfff",
@@ -2332,21 +2332,21 @@
         },
         "custom_render": {
           "entry": "0xe677a9",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER2 complete slot; compiled C against original instructions with mutants (validate_worlds_after2). See client-worlds-after2.md.",
+          "source": "reconstructed/objects/world_slots_visual.c"
         },
         "after_render": {
           "entry": "0xe68c6a",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER2 complete slot; compiled C against original instructions with mutants (validate_worlds_after2). See client-worlds-after2.md.",
+          "source": "reconstructed/objects/world_slots_visual.c"
         },
         "invisible_move": {
           "entry": "0xe673b4",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS complete slot 0x1c; compiled C against original instructions with mutants (validate_worlds_slots invisible_<world>).",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -2384,21 +2384,21 @@
         },
         "custom_render": {
           "entry": "0xe0f4bc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER3 complete slot (types 0..300, the world manager range); compiled C against original instructions with mutants (validate_worlds_after3). See client-worlds-after3.md.",
+          "source": "reconstructed/objects/world_slots_visual.c"
         },
         "after_render": {
           "entry": "0xe118fd",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER3 complete slot (types 0..300, the world manager range); compiled C against original instructions with mutants (validate_worlds_after3). See client-worlds-after3.md.",
+          "source": "reconstructed/objects/world_slots_visual.c"
         },
         "invisible_move": {
           "entry": "0xe0e539",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS complete slot 0x1c; compiled C against original instructions with mutants (validate_worlds_slots invisible_<world>).",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -2436,21 +2436,21 @@
         },
         "custom_render": {
           "entry": "0xe46e94",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER3 complete slot (types 0..300, the world manager range); compiled C against original instructions with mutants (validate_worlds_after3). See client-worlds-after3.md.",
+          "source": "reconstructed/objects/world_slots_visual.c"
         },
         "after_render": {
           "entry": "0xe48f1c",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER3 complete slot (types 0..300, the world manager range); compiled C against original instructions with mutants (validate_worlds_after3). See client-worlds-after3.md.",
+          "source": "reconstructed/objects/world_slots_visual.c"
         },
         "invisible_move": {
           "entry": "0xe46a9f",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS complete slot 0x1c; compiled C against original instructions with mutants (validate_worlds_slots invisible_<world>).",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {
@@ -2488,21 +2488,21 @@
         },
         "custom_render": {
           "entry": "0xd76059",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER3 complete slot (types 0..300, the world manager range); compiled C against original instructions with mutants (validate_worlds_after3). See client-worlds-after3.md.",
+          "source": "reconstructed/objects/world_slots_visual.c"
         },
         "after_render": {
           "entry": "0xd77d18",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-AFTER3 complete slot (types 0..300, the world manager range); compiled C against original instructions with mutants (validate_worlds_after3). See client-worlds-after3.md.",
+          "source": "reconstructed/objects/world_slots_visual.c"
         },
         "invisible_move": {
           "entry": "0xd7565d",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-SLOTS complete slot 0x1c; compiled C against original instructions with mutants (validate_worlds_slots invisible_<world>).",
+          "source": "reconstructed/objects/object_render.c"
         }
       },
       "capture": {

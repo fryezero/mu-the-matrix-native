@@ -17,7 +17,8 @@
  *   - wg_skills_load: a skill table for the data movie's skill icons.
  *
  * Inputs from outside the restored code, labelled in docs/research/native-gfx3.md:
- * item render info from itemtrsdata.bmd with the authored scale factor of
+ * item render info from Lang's ItemTRSData (itemtrs.tsv, APP-POLISH-004), or
+ * without it from itemtrsdata.bmd with the authored scale factor of
  * NATIVE-HUD-001; the picked-up item's 1.4x enlargement and the hovered
  * item's spin are RenderObjectScreen static readings; the skill table is the
  * installed Data/Local/skill.bmd, which the restored code never loads (the
