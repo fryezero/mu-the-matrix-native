@@ -10,18 +10,18 @@ SPEC (docs/testing/test-speed-004-selection.json has the one used for TEST-SPEED
      {"pr": 306, "mode": "lane", "tree": "<lane head>", "base": "<main the lane diffed against>", "suites": true},
      {"pr": 306, "mode": "since", "tree": "<merged commit>",
       "tested": [["7b7c260e", "*"], ["354e03c8", ["validate_combat", "validate_particles"]]],
-      "steward_ran": ["validate_fidelity", "..."]},
+      "lane_rows": ["validate_fidelity", "..."], "steward_ran": ["validate_fidelity", "..."]},
      {"pr": 287, "mode": "lane", "tree": "724ad10a", "base": "...", "suites": true,
       "must_suites": ["native/tests/test_native_worlds_l.py"], "must_rows": []}]}
 
 lane:  what `--affected <base>` selects at the lane head (diff merge-base(base, tree)..tree).
-since: what the steward's question selects at the merged tree: per tested group, the rows (all rows for "*",
-       else only those named) whose inputs differ between the tested commit and the tree. The previous selector
+since: the steward's question at the merged tree: which of the PR's tested rows (lane_rows; all rows if absent)
+       have inputs that differ between their tested commit ("*": the rows no other group names) and the tree. The previous selector
        is asked the same question (`--list-affected <tested>` with the tested commit an ancestor of the tree).
 
 Each tree is a temporary detached worktree; both selectors run in fresh processes with it as their repository
-(their files are copied into <tree>/.replay-old and .replay-new next to the tree's own pins.py and
-original_cache.py). Nothing is built; the worktrees are removed afterwards.
+(their files, original_cache.py included, are copied into <tree>/.replay-old and .replay-new next to the
+tree's own pins.py). Nothing is built; the worktrees are removed afterwards.
 """
 from __future__ import annotations
 
@@ -35,7 +35,7 @@ import sys
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
-SELECTOR = ('affected.py', 'run_validators.py', 'run_test_suites.py')
+SELECTOR = ('affected.py', 'run_validators.py', 'run_test_suites.py', 'original_cache.py')
 CHILD = r'''
 import json, sys
 from pathlib import Path
@@ -78,7 +78,7 @@ def selector_dir(tree_dir: Path, name: str, source: dict[str, str]) -> Path:
     folder = tree_dir / f'.replay-{name}'
     folder.mkdir()
     (folder / '.gitignore').write_text('*\n')
-    for file in ('pins.py', 'original_cache.py'):
+    for file in ('pins.py',):
         if (tree_dir / 'scripts' / file).is_file():
             shutil.copy(tree_dir / 'scripts' / file, folder / file)
     for file, text in source.items():
@@ -96,11 +96,14 @@ def run(folder: Path, job: dict) -> tuple[dict, float]:
 
 
 def combine(case: dict, result: dict, key: str) -> dict[str, list[str]]:
-    """Per tested group: all rows for '*', else only the named ones (the others belong to '*')."""
+    """Per tested group: the rest of the rows (of lane_rows, if given) for '*', else only the named ones."""
     named = {row for _, members in case['_groups'] for row in (members if members != '*' else [])}
+    scope = set(case['lane_rows']) if key == 'rows' and 'lane_rows' in case else None
     out: dict[str, list[str]] = {}
     for ref, members in case['_groups']:
         for name, reasons in result[key].get(ref, {}).items():
+            if scope is not None and name not in scope:
+                continue
             if (members == '*' and name not in named) or (members != '*' and name in members):
                 out.setdefault(name, reasons)
     return out

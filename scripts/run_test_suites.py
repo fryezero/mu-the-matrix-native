@@ -241,10 +241,10 @@ def _unit_deps(unit: tuple[str, str], root: Path = ROOT):
         deps.built_dirs.discard(suite)
         deps.dirs[suite] = f'in suite {suite}'
         for module in sorted((root / suite).glob('test_*.py')):
-            deps.update(affected.python_deps(module, root))
+            deps.update(affected.python_deps(module, root, tooling='direct'))
         return deps
     module = root / suite / pattern
-    deps = affected.python_deps(module, root)
+    deps = affected.python_deps(module, root, tooling='direct')
     make_dir = 'native' if suite.startswith('native/') else suite
     words = make_words(deps, root)
     targets = [t for t in affected.make_targets(make_dir, root) if _names_target(t, words)]
@@ -334,7 +334,7 @@ def affected_units(suites: list[str], ref: str, changed: list[str] | None = None
         return {}
     native = [u for u in work if u[1] != 'test_*.py']
     if native:   # warm the make dry-run cache in parallel (one `make -nB` per target, ~0.3 s each)
-        words = {u: make_words(affected.python_deps(root / u[0] / u[1], root), root) for u in native}
+        words = {u: make_words(affected.python_deps(root / u[0] / u[1], root, tooling='direct'), root) for u in native}
         names = {t for u in native for t in affected.make_targets('native', root) if _names_target(t, words[u])}
         with concurrent.futures.ThreadPoolExecutor(2) as pool:
             list(pool.map(lambda t: affected.target_deps('native', t, root), sorted(names) + [None]))

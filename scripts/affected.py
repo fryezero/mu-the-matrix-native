@@ -225,6 +225,7 @@ NO_CONTENT = {'exists', 'is_dir', 'is_file', 'isdir', 'isfile', 'mkdir', 'makedi
               'samefile'}
 INCLUDE_FLAGS = {'-I', '-isystem', '-iquote', '-idirafter'}
 MAX_VALUES = 256
+MAX_PATTERN_TARGETS = 8   # a computed path naming more targets than this stands for its whole make directory
 SEP = '\x1f'
 SCOPES = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)
 
@@ -776,9 +777,11 @@ class _Module:
         sink.deps.globs.setdefault(pattern, f'{line} builds {pattern}')
         if (self.root / directory / 'Makefile').is_file():
             rest = pattern[len(directory) + 1:]
-            for target in make_targets(directory, self.root):
-                if fnmatch.fnmatchcase(target, rest):
-                    sink.make_uses.add((directory, target))
+            targets = [t for t in make_targets(directory, self.root) if fnmatch.fnmatchcase(t, rest)]
+            if len(targets) > MAX_PATTERN_TARGETS:   # 'build/*': any target there, i.e. the whole directory
+                sink.deps.update(makefile_deps(directory, self.root))
+            else:
+                sink.make_uses.update((directory, t) for t in targets)
 
     def _target(self, sink: _Sink, path: str):
         """A path inside a make directory that is one of its targets (built or not): that target's inputs."""
@@ -992,7 +995,8 @@ def _closure(path: Path, root: Path, tooling: bool) -> Deps:
 
     def enqueue(module: Path, via: str):
         name = rel(module, root)
-        if module in seen or name is None or (name in TOOLING and not tooling):
+        if module in seen or name is None or (name in TOOLING and (
+                not tooling or (tooling == 'direct' and via != me))):
             return
         seen.add(module)
         queue.append((module, via))
@@ -1052,7 +1056,10 @@ def _closure(path: Path, root: Path, tooling: bool) -> Deps:
         include_dirs |= sink.include_dirs
     for facts in modules.values():
         c_includes |= facts.c_includes
-    for directory, target in sorted(make_uses, key=lambda u: (u[0], u[1] or '')):
+    uses = sorted(make_uses, key=lambda u: (u[0], u[1] or ''))
+    with concurrent.futures.ThreadPoolExecutor(4) as pool:   # the dry runs are independent subprocesses
+        list(pool.map(lambda u: dry_run(u[0], u[1], root), uses))
+    for directory, target in uses:
         out.update(target_deps(directory, target, root))
     # Sources the code compiles itself (cc ... -I D) and C text it writes ('#include "x.h"' in a string):
     # the headers they include through those directories.
@@ -1161,10 +1168,12 @@ def _resolve_params(modules: dict[Path, _Module], root: Path, sink: _Sink) -> No
                         owner.apply(sink, result, context, line)
 
 
-def python_deps(path: Path, root: Path = ROOT, tooling: bool = True) -> Deps:
+def python_deps(path: Path, root: Path = ROOT, tooling: bool | str = True) -> Deps:
     """A Python file's inputs: itself, the repository modules it imports or loads, the repository paths its
     code builds (classified by use) and what those reach. TOOLING=False leaves the selection tooling out
-    (validator rows). A fresh copy: callers may add to it."""
+    (validator rows); 'direct' keeps it only where PATH itself imports or names it (test modules: the tests of
+    a tool, not every test that reaches it through a validator); True keeps it all (cache keys). A fresh copy:
+    callers may add to it."""
     return _closure(Path(os.path.normpath(path)), root, tooling).copy()
 
 

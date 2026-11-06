@@ -1,4 +1,4 @@
-# Test budget: what runs when (TEST-SPEED-001 / 002 / 003)
+# Test budget: what runs when (TEST-SPEED-001 / 002 / 003 / 004)
 
 The owner asked for agents' finish phase to run only the checks a change needs. The policy is the brief's
 "TEST BUDGET" section (2026-11-04); this page is the tooling that applies it and the measured effect.
@@ -33,21 +33,32 @@ if [ -n "${MUTANT_ROWS:-}" ]; then
 fi
 ```
 
-The audit is required when files were added or renamed. Inspect selection first with `--list-affected origin/main`
-on either runner. Review its reasons; list the affected compiled sources and validators in the PR. Brief 6b also
-requires checking consumers of changed constants, struct fields and table sizes. A computed dependency can evade
-static discovery. Select those consumers explicitly if they are absent. Include any required installed-data test
-separately with its private environment; portable unit selection alone does not execute private tests.
+The audit is required when files were added or renamed. Since TEST-SPEED-004 the selection is each row's derived
+inputs (below), so **run what `--affected origin/main` selects and trust it**: no hand-picking with `make -n -W`,
+no adding "nearby" rows, no dropping rows by reading scripts. `Steward validators:` in the PR is exactly the
+selected list (`--list-affected origin/main` prints it with a reason per row), with the commit you ran it at.
+The list ends with the rows that use the conservative fallback, if any; they are selected for every code change.
+Brief 6b (consumers of a changed constant, struct field or table size) is covered for validator rows by the
+compiled inputs (the header is an input of every target that includes it); for unit tests keep 6b. Include any
+required installed-data test separately with its private environment; portable unit selection alone does not
+execute private tests.
 
-Steward per batch. Set `STEWARD_ROWS` to the union of the PRs' listed validators. No mutant reruns unless a PR
-explicitly delegates them. The full gate's portable suite environment keeps validators separate:
+Steward per batch. For each PR, the steward's question is which of its tested rows have inputs that changed
+between the commit the lane ran them at and the merged tree:
 
 ```sh
+# per PR: TESTED = the commit its "Steward validators:" line names, after merging the batch's chain locally
+tools/python/bin/python scripts/run_validators.py --only "$PR_ROWS" --list-affected-since "$TESTED"
+# STEWARD_ROWS = the union of what those print (often nothing: the lane's results stand)
 MU_RECOVERY_INTEGRATION=0 MU_GATE_JOBS=4 nice -n 10 bash scripts/local-macos-ci.sh
 if [ -n "${STEWARD_ROWS:-}" ]; then
   nice -n 10 tools/python/bin/python scripts/run_validators.py --private --no-mutants --cache --only "$STEWARD_ROWS" --jobs 2 --report verify-runs/steward-validators
 fi
 ```
+
+`--affected-since` diffs the tested commit itself (not a merge base) against the working tree, so everything the
+chain merge brought in counts. Tooling-only PRs (`scripts/affected.py`, the runners, `original_cache.py`,
+`guarded_run.py`, `tests/`, `docs/`) select no validator row: "Steward validators: none (tooling)".
 
 For a docs-only batch, brief 6c replaces the full gate with the audit and `test_world_captures_2`,
 `test_repository_policy`, `test_native_item_textures`, `test_native_data_manifest`. The affected selector includes
@@ -59,14 +70,17 @@ explicit integration lane, not an ordinary finish.
 | Command | Flag | What it does |
 |---|---|---|
 | `run_validators.py` | `--no-mutants` | Removes the mutant switches from each row's arguments (`--mutations`, `--mutants`, and with them `--mutant-cases N`/`--mutation-cases N`) and drops the expectations that read mutant results (the row's `mutants_at` paths and every path naming mutants, mutations or negative controls). At replay base 90e11d71, the registry has 115 rows with a removable switch. `--mutations N` with a number (effects, effect_tree, meshdraw) is a count of random input cases, not planted mistakes, and stays; 16 rows have negative controls built into every run and are unchanged. The summary says how many rows ran without mutants; `--index` refuses such a summary (the evidence index records mutant counts). |
-| `run_validators.py` | `--affected REF` / `--list-affected REF` | Rows a diff from `merge-base(REF, HEAD)` to the working tree (commits, staged, unstaged, untracked) can affect, with the reason for each. |
+| `run_validators.py` | `--affected REF` / `--list-affected REF` | Rows whose derived inputs a diff from `merge-base(REF, HEAD)` to the working tree (commits, staged, unstaged, untracked) touches, with the reason for each, then the rows on the conservative fallback. |
+| `run_validators.py` | `--affected-since REF` / `--list-affected-since REF` | The same from REF itself (the steward: a lane-tested commit) to the working tree. Combine with `--only` to ask about one PR's rows. |
 | `run_validators.py` | `--cache [DIR]` / `--no-cache` | Reuse original-instruction results (below). Default DIR `~/Documents/MTM/mu-mac-tools/native/cache/validators`. |
 | `run_validators.py` | (always) | Wall times in `verify-runs/validator-times.json` (ignored); `--jobs N` starts the longest rows first, unknown rows first of all. |
-| `run_test_suites.py` | `--affected REF` / `--list-affected REF` | Work items (suites; `native/tests` per module) a diff can affect, with the reason for each. Lanes only: the steward keeps the full gate. |
+| `run_test_suites.py` | `--affected REF` / `--list-affected REF`, `--affected-since REF` | Work items (suites; `native/tests` per module) a diff can affect, with the reason for each. Lanes only: the steward keeps the full gate. |
 
 ### How `--affected` maps a diff (scripts/affected.py)
 
-It may select too much, never knowingly too little:
+TEST-SPEED-004 replaced the validator side of this mapping; see
+[below](#test-speed-004-each-rows-exact-inputs). The text in this subsection is the TEST-SPEED-001/002 design
+it started from; the suite side keeps most of it. It may select too much, never knowingly too little:
 
 - **A validator row** reads its script and every repository Python file it imports or names (closure, resolved
   next to the file and in `scripts/`); every path its string literals name (a file, or everything under a directory);
@@ -457,3 +471,144 @@ fix, and after it passed (15 tests, 1 skipped, 1.5 s).
 | Full suites, `MU_GATE_JOBS=4`, `nice -n 10`, at the merge | 38 suites, 1,973 tests: 1,716 pass, 257 skip, 0 fail | 198.0 s | 12.54 → 26.87 |
 | Item row cold / warm (above) | identical reports | 586.16 s / 33.67 s | above |
 | Repository audit, docs staged | 1,925 staged files, 0 rejected | 16.7 s | 16.27 → 13.13 |
+
+## TEST-SPEED-004: each row's exact inputs
+
+[Handoff](../handoffs/TEST-SPEED-004.md), [replay spec](test-speed-004-spec.json),
+[replay result: every case's lists, first reason per row, removed rows' old reasons, row weights](test-speed-004-selection.json).
+
+`--list-affected` used to select far too much (APP-POLISH-004: all 184 rows for one test-only helper; batch 38:
+all 179 because the diff contained the selector; batch 45: 42 flagged, 26 needed), so lanes and the steward
+picked rows by hand with `make -n -W`, include checks and script reading. That hand work is now the tool.
+
+**A validator row is affected iff the diff touches one of its derived inputs** (`run_validators.row_deps`):
+
+- **Python**: its script and every repository module it imports. That includes modules found through the
+  `sys.path` directories the code adds, modules loaded with `importlib` whose names come from constants or from
+  every call site of a local wrapper, and Python scripts it runs. The repository paths the code builds count
+  too. Paths are folded from the code: `ROOT / 'reconstructed' / d` with `d` from a constant loop or
+  assignment, and function parameters from every call site in the closure, including another module's
+  `v.build_library(ROOT / 'reconstructed')`. Each directory is classified by its use:
+  `make -C D [targets]` → those targets' compiled inputs; `-I D` → the headers the compiled sources (and C text
+  written from Python strings) include; `D.glob('quest_*.c')` → the matches; `sys.path` → imports only;
+  `.exists()`/`mkdir` → nothing; anything else → every file under D except `test_*.py`/`*.md`. A bare word is no
+  longer a path: the Unicorn region name `'objects'` in validate_joints/skill_fx/render_effects* used to
+  select them for every reconstructed/objects change. Quoted file names (`'renderchar.c'`) still match by
+  base name.
+- **Compiled**: per make target (the row's `build_targets`, its build directories' default goals, and every
+  `make -C` its code runs), every file the full dry run `make -nB` compiles or reads. Headers come from the
+  target's `.d` file when it is newer than everything it lists, else from the compiler itself: one
+  `cc -MM -MG` per flag set, on the dry run's own command line. A header under `#if 0` is not an input. A
+  changed Makefile counts for a target only if that target's dry run with the base Makefile differs from the
+  current one. A deleted source counts for every target that compiled files in its directory.
+- **The row itself**: its script, its manifest row (compared with the base `validators.toml`), `pins.py` for
+  a row with pins, the paths its `args`/`prepare` name. The owning unit test is **not** an input. It runs in
+  the gate, not in the row.
+- **Tooling** (`affected.TOOLING`: `affected.py`, `run_validators.py`, `run_test_suites.py`,
+  `original_cache.py`, `guarded_run.py`, `replay_affected.py`) and `tests/`, `docs/` select **no row**. Their tests are
+  the always-run `tests` suite (`test_test_budget`, `test_affected_inputs`, `test_validator_original_cache`,
+  `test_validators_manifest`, `test_run_test_suites`) plus every module that imports or names the file.
+- **No global fallback.** A path no row's inputs contain selects nothing. A row whose inputs cannot be derived
+  (a module loaded from a computed name, a path built from an unknown value at the repository root, a file that
+  does not parse) carries the reason. It is selected for every code change and listed at the end of
+  `--list-affected` under "use the conservative fallback". **Current fallback rows: none.**
+  `tests/test_affected_inputs.py` pins that set; it may only shrink.
+
+`--affected-since REF` diffs REF itself (the lane-tested commit) against the working tree, which is the
+steward's question; `--affected REF` diffs `merge-base(REF, HEAD)`, the lane's. Both runners take both.
+Suites keep their TEST-SPEED-001 rules plus: the tooling no longer selects every suite (only `tests` and the
+modules naming it), make targets are named only by modules that run `make`, and the Makefile dry-run
+comparison. The steward keeps the full gate.
+
+### Replay of #292–#308
+
+`scripts/replay_affected.py docs/testing/test-speed-004-spec.json` checks out each tree into a temporary worktree.
+It runs the previous selector (main `eb2a8e76`, TEST-SPEED-001/002/003) and this one in fresh processes on the
+same tree and the same diff. Lane cases: the PR head against `merge-base(main before the merge, head)`, all
+rows. Steward cases: the merged commit against each lane-tested commit named in the PR body or the steward log
+(rows tested at a different commit are their own group). They are limited to the PR's `Steward validators:`
+rows, because the steward's question is which of those must run again. "Measured s" is the serial sum of the
+rows' recorded no-mutant walls (steward log batches 32–46, the tables above). A few rows have no recorded wall
+and add nothing, so it is a lower bound.
+
+| PR | Lane `--affected`: rows before → after (measured s) | Steward `--affected-since`: rows before → after | Steward ran | Misses |
+|---|---|---|---|---|
+| #292 | 95 → **66** (5,184 → 5,180) | 0 → **0** of 40 | 40 | 0 |
+| #293 | 59 → **4** (875 → 53) | 1 → **1** of 1 | 1 | 0 |
+| #294 | 59 → **4** (855 → 34) | 0 → **0** of 1 | 2 | 0 |
+| #296 | 36 → **51** (829 → 914) | 28 → **26** of 31 | 1 | 0 |
+| #297 | 178 → **22** (5,205 → 4,278) | 0 → **0** of 13 | 0 | 0 |
+| #298 | 67 → **24** (882 → 687) | 3 → **0** of 3 | 3 | 0 |
+| #299 | 178 → **16** (5,205 → 736) | 1 → **1** of 1 | 2 | 0 |
+| #300 | 60 → **65** (5,166 → 5,162) | 45 → **27** of 45 | 11 | 0 |
+| #301 | 68 → **52** (984 → 908); lane ran 11, all selected | 0 → **0** of 11 | 0 | 0 |
+| #302 | 69 → **54** (984 → 927); lane ran 10, all selected | 0 → **0** of 10 | 0 | 0 |
+| #295 | 36 → **42** (4,916 → 4,935) | 23 → **15** of 27 | 2 | 0 |
+| #303 | 70 → **55** (984 → 927); lane ran 8, all selected | 1 → **1** of 8 | 1 | 0 |
+| #304 | 0 → **0** (0 → 0) | 0 → **0** of 0 | 0 | 0 |
+| #305 | 36 → **1** (4,439 → 19) | 0 → **0** of 0 | 0 | 0 |
+| #306 | 62 → **67** (5,166 → 5,162) | 57 → **26** of 61 | 26 | 0 |
+| #307 | 185 → **38** (5,238 → 704); lane ran 4, all selected | 4 → **2** of 4 | 1 | 0 |
+| #308 | 73 → **58** (1,016 → 960); lane ran 6, all selected | 6 → **0** of 6 | 0 | 0 |
+| **Sum** | 1331 → **619** (47,927 → 31,586) | 169 → **99** (11,340 s → 6,862 s) | 90 | 0 |
+
+| Recorded failure | Case | Must select | Rows before → after | Suites before → after | Caught |
+|---|---|---|---|---|---|
+| #287: steward batch 27: worlds_l_host.c:69 / worlds_m_host.c:75 asserts after MU_WORLD_PT_BITMAPS grew | lane `724ad10a` | test_native_worlds_l.py, test_native_worlds_m.py | 55 → 61 | 156 → 156 | yes |
+| #282: INTEGRATION-GREEN-002: renderchar continuation/gear/scalars stale assertions, item-texture survey, validate_renderchar | lane `852261fe` | renderchar, test_native_item_textures.py, validate_renderchar | 169 → 38 | 153 → 153 | yes |
+| #283: TEST-SPEED-001 audit: test_native_particles | lane `e4fefcf2` | test_native_particles.py | 54 → 59 | 154 → 154 | yes |
+| #280: TEST-SPEED-001 audit: test_native_audio | lane `39561c9f` | test_native_audio.py | 68 → 31 | 152 → 152 | yes |
+| #260: steward batch 2: Q swamp_darkness.c and R2 swamp_destruction.c both define mu_swamp_* (link failure of reconstructed/objects) | since `72077f1a` | validate_worlds_q, validate_worlds_r2 | 155 → 72 | — | yes |
+
+**Misses: zero.** Every recorded failure's unit is selected. Every row the steward actually ran is selected,
+except where the replay shows its inputs did not change:
+
+- #292: the 40 rows were run because the handoff named no tested rows. `03bec39b → 9e93e6c9` changes only docs
+  and `test_native_particles.py`.
+- #294: the 2 rows were run "per batch instruction". `7c6bd1ba → 2531746f` changes only docs.
+- #298: polish1/polish2/gfx3. The chain merge brought #297's item harness and tooling, which they do not import.
+- #296: render_effects12, a new row run as a cheap confirmation; nothing it reads changed after `c76a168f`.
+- #299: worlds_after6's registry row was edited by #299 itself; the lane case selects it ("its row changed").
+
+**New selects more in 13 lane cases**, all real compiled inputs the previous selector missed.
+validate_path, terrain_remaining, worlds_f, movement and session_party run `make -C native build/mu-path |
+mu-terrain | mu-session` from their scripts, and those link libmunative.a, which compiles `mu_combat.c`,
+`mu_objects_runtime.c` and `mu_item_textures.c`. validate_items/worlds_k/icarus/joints build libcombat,
+which includes `arrow_fx.inc`/`bow_fx.inc`/`bow_joints.inc`. validate_model_light loads validate_skinning
+(and through it pose_builder, bone_tracks) with `importlib` and an f-string path; the old closure missed all
+three.
+
+**Where it still selects more than the steward did by hand: symbol-level judgment, kept out on purpose.**
+#295 (15 vs 2), #296 (26 vs 1), #300 (27 vs 11): the item rows load `libclient_particles` (every particles
+source), and libcombat compiles `../joints`. The steward skipped them by reading which functions the
+validators call (batch 41: only `mu_pt_transform_position`, in the unchanged `shadow.c`). The tool stays at the
+target level, because a change to any linked source can break the link for every consumer whatever it calls.
+#260's duplicate `mu_swamp_*` symbols (Q and R2) were exactly that, and symbol pruning would have missed it.
+For #306 the tool's 26 rows are the steward's 26.
+
+Symbol-level pruning would save the most in lanes: the 11 item rows (~3,600 s measured) for every particles
+change, terrain/model_edge/meshdraw for every libmunative change. It needs a per-target check that no
+duplicate or undefined symbol appears, and a sound map from Python attribute names to the exports. That is
+the next step, not this one.
+
+### Costs, compatibility and limits
+
+- **Selection time.** The validator selection takes 15–30 s on a cold tree (dry runs, `-MM`, AST analysis)
+  against 2–7 s before. Lane suite selection takes 40–110 s, about 40 s more than before, because every
+  `native/tests` module's closure now follows real make uses. That is small next to one avoided row.
+- **The `tests` suite** (always run) grew: test_test_budget + test_affected_inputs take 31 s in one process,
+  against 11.7 s for test_test_budget on main.
+- **Cache keys.** `original_cache.code_hash` hashes the closure that `python_deps` returns. The old closure
+  contained `affected.py`, so this PR changes every cached row's key either way: **each cached row is cold once
+  after the merge.** The new closure no longer contains the selector (tooling is recorded, never followed). It
+  does contain the modules the old one missed (model-recovery readers for the item harness), so later selector
+  changes no longer cool the cache.
+- **`original_cache` read race fixed.** `Cache.__init__` read the file, then stat-ed it. A save by the other
+  `--jobs` worker in between made `seen` describe entries it never loaded, and its next save dropped that
+  worker's round (`test_concurrent_writers…`: 600 ≠ 640 under load, once in 4 runs here). The reader now
+  `fstat`s the file object it read. No key, format or check changed.
+- **Static analysis is not a proof.** A path read from a JSON file or an environment variable, or a module named
+  by data, is invisible. Such code shows up as a fallback only when the analysis sees the computation, not when
+  it sees nothing. Imports no search path resolves fall back to every repository module of that name.
+- A name rebound in the same function with an unknown value (icarus_c2's `folder = file.split('/')[0]`) makes
+  its paths patterns (`reconstructed/*`). That is conservative, not exact.
