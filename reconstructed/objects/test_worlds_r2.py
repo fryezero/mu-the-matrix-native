@@ -57,7 +57,7 @@ class WorldsR2Tests(unittest.TestCase):
         self.assertEqual((obj.raw[0xa], self.f(obj, 0xc0)), (1, -300))
         self.assertEqual([self.f(self.create(144, t)[0], 0xc0) for t in (127, 128, 145, 200, 201)],
                          [-300, -30, -300, -300, -30])
-        self.assertEqual(self.f(self.create(145, 6, status=2)[0], 0xc0), -30)   # sibling world untouched
+        self.assertEqual(self.f(self.create(145, 6)[0], 0xc0), -30)   # sibling world untouched (RENDER-WORLDS-S class)
 
     def move(self, world, typ, rand=0, action=0):
         obj, _ = self.create(world, typ)

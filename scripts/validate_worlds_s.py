@@ -33,7 +33,7 @@ BODIES = {'aquila_create': (0xd75a6c, 0xd75ac6), 'aquila_move': (0xd75ac6, 0xd76
           'boss_visual': (0xd9c1a7, 0xd9c1b4),
           'w115_create': (0xd5cb99, 0xd5cba6), 'w115_move': (0xd5cc16, 0xd5cc23),
           'debenter_create': (0xdbd210, 0xdbd4e6), 'debenter_move': (0xdbd4e6, 0xdbd735),
-          'debenter_visual': (0xdbd735, 0xdbedf9)}
+          'debenter_visual': (0xdbd735, 0xdbee19)}   # through its jump table to the custom-render slot
 WORLD = {'aquila': 145, 'boss': 139, 'w115': 115, 'debenter': 95}
 SIBLINGS = {'aquila': [0, 95, 96, 139, 144, 145], 'boss': [0, 138, 139, 140, 145],
             'w115': [0, 113, 115, 116, 145], 'debenter': [0, 94, 95, 96, 97, 145]}
@@ -362,7 +362,7 @@ MUTANTS = [
     ('aquila.c', 'wb_float(e, mu_obj_f32(o, MU_OBJF_POINT_A + 4));', 'wb_float(e, mu_obj_f32(o, MU_OBJF_POSITION + 4));',
      'aquila_move'),
     ('aquila.c', 'type <= 140) || type == 142', 'type <= 140) || type == 141', 'aquila_visual'),
-    ('aquila.c', 'if (!o || !has_model) return 0;', 'if (!o) return 0;', 'aquila_visual'),
+    ('aquila.c', 'if (!o || !has_model) return 0;', 'if (!o || has_model < 0) return 0;', 'aquila_visual'),
     ('aquila.c', 'bone6[13]);', 'bone6[14]);', 'aquila_visual'),
     ('worlds_s_stubs.c', 'mu_boss_battle_create(const uint8_t *o, int32_t world) { (void)o; (void)world; return 0; }',
      'mu_boss_battle_create(const uint8_t *o, int32_t world) { (void)o; return world == 139; }', 'boss_create'),
