@@ -125,6 +125,10 @@ The process timer reports 158.52 s excluding that pause. The merged effects chan
 renderchar/model-codec/record-math sources nor this lane's generator/validator, so the full new row is not
 repeated. The affected effects rows are rerun without mutants after the merge.
 
+The app merges through main `2531746f` preserve these compiled renderchar inputs. The build passes in 0.45 s,
+and the conflict-resolved registry passes 17 manifest tests in 0.66 s. Both sides of the status and registry
+conflicts are retained. The inventory/ground skin module will be rerun for the merged `world_gfx.c` change.
+
 Existing item validator rows and the final publication audit are pending.
 
 ## Changed types and reasons
