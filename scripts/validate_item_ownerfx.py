@@ -247,7 +247,9 @@ MUTANTS = {
     'gate-modulus': ('owner_random(h) % (int32_t)o->a != 0', 'owner_random(h) % ((int32_t)o->a + 1) != 0'),
     'gate-target': ('pc = (int)o->k;', 'pc = (int)o->k + 1;'),
     'range-low': ('fx_trunc(s * lo), b', 'fx_trunc(s * lo) + 1, b'),
-    'range-clamp': ('    if (v > hi)\n        v = hi;', '    if (v > hi)\n        v = lo;'),
+    # The two clamps cannot change a result for the programs' constant bounds (truncation keeps a/steps >= lo
+    # and b/steps <= hi), so they have no mutant here; the span is the reachable part.
+    'range-span': ('(uint32_t)b - (uint32_t)a + 1u', '(uint32_t)b - (uint32_t)a + 2u'),
     'normalize-zero': ('out[0] = out[1] = out[2] = 0.0f;', 'out[0] = out[1] = out[2] = 1.0f;'),
     'normalize-scale': ('out[k] = in[k] * inverse;', 'out[k] = in[k] / length;'),
     'transform-bone': ('h->transform(h->context, (int32_t)o->k,', 'h->transform(h->context, (int32_t)o->k + 1,'),
