@@ -25,6 +25,7 @@
 #include "../../reconstructed/objects/worlds_p2.h"
 #include "../../reconstructed/objects/worlds_r2.h"
 #include "../../reconstructed/objects/worlds_s.h"
+#include "../../reconstructed/objects/worlds_s2.h"
 #include "../../reconstructed/joints/joints.h"
 #include "../../reconstructed/objects/icarus.h"
 
@@ -1035,6 +1036,22 @@ static void visual_and_effects(mu_objects *o, int32_t i, uint8_t *img, int hook,
 /* RenderObjectVisual's handler slot 0x34 of the login world (CGMLogInScene_Ex) and, NATIVE-CHARSEL-002, of
  * the character-select world (CGMCharacterScene_Ex): its CreateSprite / CreateParticle / CreateEffect calls.
  */
+/* RENDER-WORLDS-S2: Arca War's visual on world 101 forwards to Uruk Mountain's (base 100) with world 101. */
+typedef struct uruk_arca {
+    mu_objects *o;
+    int32_t i;
+    uint8_t *img;
+    float time;
+    visual_context *c;
+    mu_obj_log *log;
+} uruk_arca;
+static int uruk_arca_visual(void *context, int32_t slot, int32_t base)
+{
+    const uruk_arca *a = context;
+    if (slot != MU_ARCA_VISUAL_SLOT || base != 100) return 0;
+    return mu_uruk_visual(a->img, a->i, a->o->world, a->o->rt.uruk_weather, a->time, visual_rand, a->c, a->log);
+}
+
 static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_object_model *m, float world_time, int posed)
 {
     visual_context c = {o, m};
@@ -1059,7 +1076,14 @@ static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_obje
     }
     else if (o->world == 100 && m && m->loaded)
         mu_uruk_visual(img, i, o->world, o->rt.uruk_weather, world_time, visual_rand, &c, &log);
-    else if (o->world == 79 || o->world == 100)
+    else if (o->world == 101 && m && m->loaded) {   /* RENDER-WORLDS-S2: Arca War forwards to Uruk's visual */
+        const int bones_ready = posed && m->bmd.bone_count > mu_arca_visual_bones(mu_obj_i32(img, MU_OBJF_TYPE));
+        uruk_arca a = {o, i, img, world_time, &c, &log};
+        if (mu_arca_visual(img, i, o->world, mu_arca_base_world(o->world), o->rt.q_handler.arca_stage,
+                           bones_ready ? visual_bone : NULL, &c, uruk_arca_visual, &a, &log) < 0)
+            ++o->rt.draw_unsupported;   /* type 0x59b without bone 3 */
+    }
+    else if (o->world == 79 || o->world == 100 || o->world == 101)
         return;
     else if ((o->world == 80 || o->world == 81) && m && m->loaded) {
         const int32_t type = mu_obj_i32(img, MU_OBJF_TYPE);
@@ -1160,9 +1184,8 @@ static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_obje
         if (m && m->loaded) (void)visual_rand(&c);
         mu_q_inputs q = q_inputs(o, NULL, world_time);
         q.actions = NULL;   /* the visual slots read no action table */
-        const int32_t type = mu_obj_i32(img, MU_OBJF_TYPE);
-        const int32_t last_bone = o->world == 91 ? mu_acheron_visual_bones(type) :
-                                  o->world == 95 ? mu_debenter_visual_bones(type) : -1;   /* RENDER-WORLDS-S */
+        /* RENDER-WORLDS-S/S2: Acheron, Debenter, Nars and the Arca War worlds on them */
+        const int32_t last_bone = mu_worlds_q_visual_bones(o->world, mu_obj_i32(img, MU_OBJF_TYPE));
         q.bone = posed && m->bmd.bone_count > last_bone ? visual_bone : NULL;
         q.bone_index = q.bone ? visual_bone_index : NULL;   /* Ferea's named bones (RENDER-WORLDS-Q2) */
         q.context = &c;
@@ -1246,7 +1269,7 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
     const int login = o->world == MU_LOGIN_WORLD, charsel = o->world == MU_CSW_WORLD;
     const int primary_visual = o->world == 4 || o->world == 7 || o->world == 8 || (o->world == 10 && t == 10) ||
                                o->world == 62 || o->world == 63 || o->world == 64 || o->world == 82 ||
-                               o->world == 79 || o->world == 100 || o->world == 57 || o->world == 58 ||
+                               o->world == 79 || o->world == 100 || o->world == 101 || o->world == 57 || o->world == 58 ||
                                o->world == 80 || o->world == 81 || (o->world >= 128 && o->world <= 130) ||
                                o->world == 0x87 || o->world == 0x88 || o->world == 0x8c || o->world == 137 ||
                                (o->world >= 142 && o->world <= 144) || o->world == 145 ||
