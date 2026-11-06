@@ -215,6 +215,7 @@ static int32_t bitmap_slot(const mu_combat *c, int32_t id)
 
 static void load_bitmaps(mu_combat *c, const char *root)
 {
+    int32_t decals_missing = 0;
     for (size_t i = 0; i < sizeof bitmap_files / sizeof bitmap_files[0] && c->bitmap_count < MU_COMBAT_BITMAPS; ++i) {
         mu_combat_bitmap *b = &c->bitmaps[c->bitmap_count++];
         b->id = bitmap_files[i].id;
@@ -224,11 +225,20 @@ static void load_bitmaps(mu_combat *c, const char *root)
         if (!mu_image_resolve(directory, bitmap_files[i].name, path, sizeof path) ||
             mu_texture_upload_file(path, bitmap_files[i].kind, &b->image, &b->components, error, sizeof error) !=
                 MU_IMAGE_OK) {
+            if (bitmap_files[i].wrap) {   /* RENDER-EFFECTS-015: one summary line for the decal bitmaps */
+                ++decals_missing;
+                continue;
+            }
             snprintf(text, sizeof text, "bitmap 0x%x (%s) missing", b->id, bitmap_files[i].name);
             log_line(c, text);
             continue;
         }
         b->loaded = 1;
+    }
+    if (decals_missing) {
+        char text[96];
+        snprintf(text, sizeof text, "ground-skill decal bitmaps: %d of 11 missing", decals_missing);
+        log_line(c, text);
     }
 }
 
