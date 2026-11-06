@@ -306,6 +306,25 @@ static float random_program(const mu_rc_body_scalar *p, int32_t value)
     return x;
 }
 
+/* Kind 6 (part 16): binary32 mul/add/sub/div constants applied to an input word. */
+static float derived_program(const mu_rc_body_scalar *p, float x)
+{
+    for (int i = 0; i < p->count; ++i) {
+        float c;
+        uint32_t word = (uint32_t)p->k[i];
+        memcpy(&c, &word, 4);
+        if (p->op[i] == 1)
+            x = x * c;
+        else if (p->op[i] == 2)
+            x = x + c;
+        else if (p->op[i] == 3)
+            x = x - c;
+        else
+            x = x / c;
+    }
+    return x;
+}
+
 /* Apply a shared mesh/body recipe to one generic helper call. Selectors refer
  * to the actual draw arguments and current model fields, never saved pixels.
  * Phases: base, colour2, colour, excellent, ancient, base with flag 0x40000. */
@@ -427,6 +446,11 @@ static void emit_parameter_body(sink *s, int phase, uint32_t flags, float alpha,
             memcpy(&k, &bits, 4);
             memcpy(&r, &input[35 + p->a], 4);
             value = k * r;
+        } else if (p->kind == 6) {
+            /* Part 16: a word one binary32 operation chain away from input a (an earlier
+             * input or program; gen_item_bodies.derive). */
+            memcpy(&value, &input[p->a], 4);
+            value = derived_program(p, value);
         } else {
             value = body_scalar(p, s->item->time);
         }
