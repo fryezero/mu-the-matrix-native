@@ -20,6 +20,18 @@ int mu_world_rt_skill_demo_change(mu_world_rt *a,int32_t skill,int forget)
     skills_part *p=a->part[MU_PART_skills];
     return p && p->fixture ? mu_skills_demo_change(mu_fixture_behavior_state(p->fixture,"skills"),skill,forget) : 0;
 }
+/* The skills and progress fixture lines of every world fixture scenario: the hero's class and place, and
+ * APP-POLISH-005's offline-session join data (the skills file, the join stats at the character's level). */
+void world_rt_skills_fixture_lines(const mu_world_rt *a, FILE *out)
+{
+    mu_skills_demo_join join = {a->skill_demo, a->has_hero_stats, a->hero_level,
+                                {a->hero_stats[0], a->hero_stats[1], a->hero_stats[2], a->hero_stats[3],
+                                 a->hero_stats[4]}, a->hero_points};
+    mu_skills_demo_login(out, a->root, a->walk.hero.class_byte, &join);
+    mu_skills_demo_hero(out, a->walk.hero.class_byte, a->map->world, a->walk.hero.tile[0], a->walk.hero.tile[1],
+                        a->walk.hero.angle[2], &join);
+}
+
 static int open_skills(mu_world_rt *a, void *self)
 {
     skills_part *p = self;
@@ -28,9 +40,8 @@ static int open_skills(mu_world_rt *a, void *self)
     char path[] = "/tmp/mu-skills-XXXXXX", error[512];
     int fd = mkstemp(path); if (fd < 0) return 1;
     FILE *f = fdopen(fd, "w"); if (!f) {close(fd);unlink(path);return 1;}
-    fprintf(f, "endpoint game 127.0.0.1:55905\nuse skills\nat 1 skills root %s\nat 1 skills login %d 30\n", a->root, a->walk.hero.class_byte);
-    mu_skills_demo_hero(f, a->walk.hero.class_byte, a->map->world,
-                        a->walk.hero.tile[0], a->walk.hero.tile[1], a->walk.hero.angle[2]);
+    fprintf(f, "endpoint game 127.0.0.1:55905\n");
+    world_rt_skills_fixture_lines(a, f);
     fclose(f);
     mu_fixture_options options = {path, NULL, 20261028};
     p->fixture = mu_fixture_open(&options, error, sizeof error); unlink(path);

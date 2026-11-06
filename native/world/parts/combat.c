@@ -103,8 +103,10 @@ static void combat_frame(struct mu_world_rt *a, void *self, uint32_t now)
 {
     (void)self;
     (void)now;
-    if (a->combat)
+    if (a->combat) {
         mu_combat_terrain_lights(a->combat, a->map);
+        world_rt_effects_sample(a);   /* APP-POLISH-005 */
+    }
 }
 
 static void combat_draw_soft(struct mu_world_rt *a, void *self, mu_world_draw *d)

@@ -865,6 +865,7 @@ static int headless(front *f)
     const mu_scenemgr_globals *g = mu_shell_globals(f->shell);
     const mu_offline_session *session = mu_shell_session(f->shell);
     if (f->input_actions) mu_world_rt_input_report(mu_shell_world(f->shell), stdout);
+    mu_world_rt_effects_report(mu_shell_world(f->shell), stdout);   /* APP-POLISH-005 */
     printf("{\"summary\": true, \"renderer\": \"%s\", \"frames\": %d, \"scene\": %d, \"captures\": %d, "
            "\"presents\": %d, \"scene_frames\": {\"2\": %d, \"3\": %d, \"4\": %d, \"5\": %d, \"6\": %d}, "
            "\"visits\": {\"3\": %d, \"5\": %d, \"6\": %d}, \"protocol\": %d, \"world\": %d, \"selected_hero\": %d, "
@@ -1219,6 +1220,7 @@ static int windowed(front *f)
             break;
     }
     if (f->input_actions) mu_world_rt_input_report(mu_shell_world(f->shell), stdout);   /* as headless */
+    mu_world_rt_effects_report(mu_shell_world(f->shell), stdout);   /* APP-POLISH-005 */
     printf("{\"frames\": %u, \"seconds\": %.2f, \"scene\": %d, \"drawable\": [%d, %d], \"gpu_overlay\": %s}\n",
            frames, (SDL_GetTicks() - start) / 1000.0, mu_shell_scene(f->shell), f->dw, f->dh,
            mu_shell_gpu_overlay(f->shell) ? "true" : "false");
