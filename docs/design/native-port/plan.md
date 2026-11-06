@@ -1,5 +1,7 @@
 # Plan: the rest of the native macOS port
 
+TEST-SPEED-003 PR-ready: the original-side validator cache keeps 4 keys per name (LRU, 250 MB cap, concurrent-safe merge), so a lane branch and main stay warm side by side: item_product main/branch alternation 586/605 s cold → 34–37 s warm on every switch, byte-identical reports. `test_joints` builds libcombat itself, so fresh-worktree `--affected` passes. Full suites 1,973 tests, 0 failures, 198 s. [Handoff](../../handoffs/TEST-SPEED-003.md).
+
 TEST-SPEED-002 PR-ready: meshdraw 367.99 → 57.21 s warm with byte-identical reports, 4/4 controls and a caught compiled C mutation; fifteen native build rows use target dependencies. Six-PR selection replay has zero identified misses. [Checks, commands and limits](../../handoffs/TEST-SPEED-002.md).
 
 APP-POLISH-003 PR-ready: the level-1 Dark Knight fixture joins with recorded full vitals 1100/200/52/25; session HUD maxima need no progression fallback. Toxic states 0x37/0x136 select the original green HP bitmap through the display fixture. Buff replication remains open. [Evidence and limits](../../research/client-app-polish3.md), [checks](../../handoffs/APP-POLISH-003.md).
