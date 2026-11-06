@@ -228,7 +228,10 @@ def affected_rows(rows: dict, ref: str, root: Path = REPO, manifest: Path = MANI
     """{row: [why]} for the rows a diff from merge-base(REF, HEAD) to the working tree can affect."""
     changed = affected.changed_files(ref, root) if changed is None else changed
     units = {name: row_deps(name, row, root) for name, row in rows.items()}
-    selected = affected.select(units, changed, VALIDATOR_INFRA)
+    # Manifest rows are compared below. Unreferenced test files cannot change validator execution.
+    mapped = tuple(p for p in changed if p == 'scripts/validators.toml' or
+                   (p.endswith('.py') and Path(p).name.startswith('test_')))
+    selected = affected.select(units, changed, VALIDATOR_INFRA, mapped=mapped)
     manifest_rel = manifest.relative_to(root).as_posix() if manifest.is_relative_to(root) else None
     if manifest_rel in changed:
         for name in manifest_changes(rows, affected.merge_base(ref, root), root, manifest):

@@ -27,6 +27,7 @@ native/build or reconstructed/* at the same time. Logs: verify-runs/test-suites-
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import os
 from pathlib import Path
@@ -238,11 +239,52 @@ def unit_deps(unit: tuple[str, str], root: Path = ROOT):
     deps = affected.python_deps(module, root)
     make_dir = 'native' if suite.startswith('native/') else suite
     targets = [t for t in affected.make_targets(make_dir, root) if _names_target(t, deps.names)]
-    if 'make' in deps.names or re.search(r'\bmake\b', module.read_text(errors='replace')):
-        targets.append(None)   # the default goal: `make -C native` with no target
+    if needs_default_goal(deps, make_dir, root):
+        targets.append(None)
     for target in targets:
         deps.update(affected.target_deps(make_dir, target, root))
     return deps
+
+
+def needs_default_goal(deps, directory: str, root: Path) -> bool:
+    """Omit the default only for statically explicit make commands. Computed commands and helpers
+    remain conservative. Inspect imported helpers too; a mere comment mentioning make is not a call."""
+    import affected
+    known = set(affected.make_targets(directory, root))
+    for name in deps.files:
+        path = root / name
+        if path.suffix != '.py' or not path.is_file():
+            continue
+        try:
+            tree = ast.parse(path.read_text())
+        except (SyntaxError, OSError):
+            return True
+        if any(isinstance(node, ast.Constant) and isinstance(node.value, str) and
+               re.match(r'^make\s', node.value) for node in ast.walk(tree)):
+            return True
+        commands = [node for node in ast.walk(tree) if isinstance(node, (ast.List, ast.Tuple)) and node.elts
+                    and isinstance(node.elts[0], ast.Constant) and node.elts[0].value == 'make']
+        make_literals = [node for node in ast.walk(tree) if isinstance(node, ast.Constant) and node.value == 'make']
+        if len(make_literals) != len(commands):
+            return True  # e.g. a shell command or a wrapper constructing the argv
+        for command in commands:
+            args = command.elts[1:]
+            explicit = False
+            i = 0
+            while i < len(args):
+                arg = args[i]
+                text = arg.value if isinstance(arg, ast.Constant) and isinstance(arg.value, str) else None
+                if text in ('-C', '-f', '-j', '-I', '-W', '-o'):
+                    i += 2
+                    continue
+                if text in known:
+                    explicit = True
+                elif text is None or (not text.startswith('-') and '=' not in text):
+                    return True
+                i += 1
+            if not explicit:
+                return True
+    return False
 
 
 def _names_target(target: str, names: dict) -> bool:
@@ -263,9 +305,15 @@ def affected_units(suites: list[str], ref: str, changed: list[str] | None = None
     if native:   # warm the make dry-run cache in parallel (one `make -nB` per target, ~0.3 s each)
         names = {t for u in native for t in affected.make_targets('native', root)
                  if _names_target(t, affected.python_deps(root / u[0] / u[1], root).names)}
-        with concurrent.futures.ThreadPoolExecutor(4) as pool:
+        with concurrent.futures.ThreadPoolExecutor(2) as pool:
             list(pool.map(lambda t: affected.target_deps('native', t, root), sorted(names) + [None]))
     deps = {unit_id(u): unit_deps(u, root) for u in work}
+    # Brief 6c: these modules read documentation, sometimes through computed paths.
+    for name in ('test_world_captures_2.py', 'test_repository_policy.py',
+                 'test_native_item_textures.py', 'test_native_data_manifest.py'):
+        for unit, dep in deps.items():
+            if unit.endswith('/' + name) or (root / unit / name).is_file():
+                dep.dirs['docs'] = 'reads documentation (brief 6c)'
     selected = affected.select(deps, changed, INFRA)
     for suite in ALWAYS:
         if suite in deps:

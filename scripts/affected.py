@@ -62,7 +62,8 @@ def changed_files(ref: str, root: Path = ROOT) -> list[str]:
     """Repository-relative paths that differ between merge-base(REF, HEAD) and the working tree."""
     base = merge_base(ref, root)
     paths = set(git('diff', '--no-renames', '--name-only', base, root=root).split('\n'))
-    paths |= set(git('ls-files', '--others', '--exclude-standard', root=root).split('\n'))
+    untracked = set(git('ls-files', '--others', '--exclude-standard', root=root).split('\n'))
+    paths |= {p for p in untracked if not ((root / p).is_symlink() and (root / p).is_dir())}
     return sorted(p for p in paths if p)
 
 
@@ -173,6 +174,9 @@ def _direct(path: Path, root: Path) -> tuple[Deps, tuple[Path, ...]]:
         if module is not None:
             nxt.append(module)
     for text in strings:
+        # Keep target names even when an ignored build output already exists.
+        if 2 < len(text) < 80 and not text.isspace() and '\n' not in text:
+            deps.names.setdefault(text, f'{me} quotes {text!r}')
         target = _string_path(text, path.parent, root)
         if target is not None:
             where = rel(target, root)
@@ -302,6 +306,8 @@ def target_deps(directory: str, target: str | None, root: Path = ROOT) -> Deps:
     label = f'make -C {directory} {target or "(default goal)"}'
     deps = Deps()
     deps.files[f'{directory}/Makefile'] = f'{label} uses {directory}/Makefile'
+    if done.returncode:
+        return makefile_deps(directory, root)  # an incomplete dry run cannot prove independence
     outputs, sources, include_dirs = [], [], []
     for line in done.stdout.splitlines():
         try:
@@ -334,7 +340,7 @@ def target_deps(directory: str, target: str | None, root: Path = ROOT) -> Deps:
                 continue
             if path.is_dir():
                 if flag == '-I' or path == base:
-                    deps.flat.setdefault(where, f'{label} includes {where}/')
+                    pass  # search path; the include closure below identifies actual headers
                 else:
                     deps.dirs.setdefault(where, f'{label} reads {where}/')
             else:
@@ -345,7 +351,14 @@ def target_deps(directory: str, target: str | None, root: Path = ROOT) -> Deps:
                     deps.update(python_deps(path, root))
             if flag == '-I' and path.is_dir():
                 include_dirs.append(path)
-    for header in _includes(tuple(sources), tuple(dict.fromkeys(include_dirs))):   # #include "..." (closure)
+    headers = _includes(tuple(sources), tuple(dict.fromkeys(include_dirs)))
+    if any(re.search(r'^\s*#\s*(?:include|import)\s+[^<\"\s]', p.read_text(errors='replace'), re.M)
+           for p in [*sources, *headers]):
+        for directory_path in include_dirs:
+            where = rel(directory_path, root)
+            if where:
+                deps.flat[where] = f'{label} has computed includes in {where}/'
+    for header in headers:   # #include "..." (closure)
         where = rel(header, root)
         if where:
             deps.files.setdefault(where, f'{label} includes {where}')
@@ -367,12 +380,16 @@ def target_deps(directory: str, target: str | None, root: Path = ROOT) -> Deps:
 # ---------------------------------------------------------------------------------------------
 # selection
 
-def select(units: dict[str, Deps], changed: list[str], infra: dict[str, str] | None = None) -> dict[str, list[str]]:
+def select(units: dict[str, Deps], changed: list[str], infra: dict[str, str] | None = None, mapped: tuple[str, ...] = ()) -> dict[str, list[str]]:
     """{unit: [reasons]} for every unit some changed path can affect. INFRA paths (and the caller's ``infra``,
     path -> description) select every unit."""
     shared = {path: 'shared infrastructure' for path in INFRA}
     shared.update(infra or {})
     hit_all = [f'{path}: {shared[path]} (selects everything)' for path in changed if path in shared]
+    for path in changed:
+        if path not in mapped and path not in shared and not any(deps.why(path) for deps in units.values()) and \
+                not path.endswith('.md') and not path.startswith('docs/'):
+            hit_all.append(f'{path}: unmapped input (selects everything)')
     out: dict[str, list[str]] = {}
     for name, deps in units.items():
         reasons = list(hit_all)

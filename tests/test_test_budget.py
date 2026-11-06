@@ -284,7 +284,7 @@ class AffectedValidators(unittest.TestCase):
         self.assertEqual(list(self.select('reconstructed/alpha/test_alpha.py')), ['validate_alpha'])
         self.assertEqual(list(self.select('scripts/helper_beta.py')), ['validate_beta'])
         self.assertEqual(list(self.select('reconstructed/beta/beta.c')), ['validate_beta'])
-        self.assertEqual(self.select('reconstructed/beta/other.c'), {})
+        self.assertEqual(len(self.select('reconstructed/beta/other.c')), 3)  # unmapped code fails open
         self.assertEqual(list(self.select('reconstructed/other/gamma_table.h')), ['validate_gamma'])
         self.assertEqual(list(self.select('tests/test_gamma.py')), ['validate_gamma'])
 
@@ -400,6 +400,46 @@ class AffectedSuites(unittest.TestCase):
         self.assertFalse([u for u in why if u.startswith('native/')])
 
 
+class TightenedSelection(unittest.TestCase):
+    def test_explicit_target_does_not_inherit_default(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / 'native').mkdir()
+            (root / 'native/Makefile').write_text('all: full\nfull:\n\t@true\nhost:\n\t@true\n')
+            path = root / 'test.py'
+            dep = affected.Deps(files={'test.py': 'test'})
+            path.write_text("run(['make', '-s', '-C', str(NATIVE), 'host'])")
+            self.assertFalse(rts.needs_default_goal(dep, 'native', root))
+            for code in ("run(['make', '-C', str(NATIVE)])", "run(['make', '-C', str(NATIVE), target])"):
+                path.write_text(code)
+                self.assertTrue(rts.needs_default_goal(dep, 'native', root))
+
+    def test_new_rows_and_renderchar_fix_are_reached(self):
+        rows = rv.load_manifest()
+        for name in ('validate_worlds_after5', 'validate_worlds_after6', 'validate_render_effects10',
+                     'validate_item_product', 'validate_renderchar'):
+            dep = rv.row_deps(name, rows[name])
+            self.assertTrue(dep.why('scripts/' + name + '.py'))
+            source = ('reconstructed/renderchar/renderchar.c' if name in
+                      ('validate_item_product', 'validate_renderchar') else
+                      'reconstructed/objects/action_registry.c' if 'worlds_after' in name else
+                      'reconstructed/combat/skill_fx.c')
+            self.assertTrue(dep.why(source), (name, source))
+
+    def test_shared_bitmap_header_still_selects_both_failed_hosts(self):
+        for name in ('test_native_worlds_l.py', 'test_native_worlds_m.py'):
+            dep = rts.unit_deps(('native/tests', name))
+            self.assertTrue(dep.why('native/core/mu_particles.h'), name)
+
+    def test_build_output_existence_does_not_change_target_names(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / 'build').mkdir()
+            (root / 'build/host').write_text('binary')
+            (root / 'test.py').write_text("TOOL = 'build/host'")
+            self.assertIn('build/host', affected.python_deps(root / 'test.py', root).names)
+
+
 class AffectedRun(unittest.TestCase):
     def test_only_the_selected_modules_run(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -480,6 +520,20 @@ class OriginalCache(unittest.TestCase):
         second.save()
         self.assertEqual(sorted(p.name for p in (self.base / 'cache' / 'validate_fake').iterdir()),
                          [second.path.name], 'the older key is deleted')
+
+    def test_pin_changes_invalidate_warm_entries(self):
+        import dataclasses
+        import pins
+        first = self.cache()
+        first.get('family', 1, lambda: 'old original')
+        first.save()
+        name = next(n for n in pins.PINS if 'section3' in n)
+        replacement = dataclasses.replace(pins.PINS[name], sha256='0' * 64)
+        with mock.patch.dict(pins.PINS, {name: replacement}):
+            fresh = self.cache()
+            self.assertNotEqual(fresh.key, first.key)
+            self.assertEqual(fresh.get('family', 1, lambda: 'new original'), 'new original')
+            self.assertEqual(fresh.hits, 0)
 
     def test_canonical_case_keys(self):
         self.assertEqual(self.oc.canonical({'b': 1, 'a': (1.5, None)}), self.oc.canonical({'a': (1.5, None), 'b': 1}))
