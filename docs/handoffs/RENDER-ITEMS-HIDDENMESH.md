@@ -39,7 +39,7 @@ implemented `0x10f0` is compared at 0, -1 and its caller value 1. No whitelist o
 
 ## Survey and byte identity
 
-Installed client, 1,691 types, 48 renderer states per type, `MU_LANG_DIR=mu-mac-tools/native/scratch/lang`:
+Installed client, 1,691 types, 48 renderer states per type, `MU_LANG_DIR="$HOME/Documents/MTM/mu-mac-tools/native/scratch/lang"`:
 
 | Measurement | Before | After |
 |---|---:|---:|
@@ -48,6 +48,7 @@ Installed client, 1,691 types, 48 renderer states per type, `MU_LANG_DIR=mu-mac-
 | White passes | 3,696 | 912 |
 | Total passes | 615,986 | 625,182 |
 | Missing override bitmaps | 23 | 0 |
+| Types without an installed model | 47 | 47 |
 | White types with a wearer | 23 | 0 |
 | White passes with a wearer | 2,784 | 0 |
 
@@ -93,8 +94,8 @@ client screenshot. Type 0x0ef2 has an identical +0 inventory image; its stream c
 
 ## Checks
 
-`MU_RECOVERY_INTEGRATION=1`, `MU_GAME_ROOT=~/Library/Application Support/MuTheMatrix/prefix/drive_c/MuTheMatrix`,
-`MU_SECTION3=~/Documents/MTM/main-exe-study/evidence/x86-linux-capture-04/main-01ced000.bin`.
+`MU_RECOVERY_INTEGRATION=1`, `MU_GAME_ROOT="$HOME/Library/Application Support/MuTheMatrix/prefix/drive_c/MuTheMatrix"`,
+`MU_SECTION3="$HOME/Documents/MTM/main-exe-study/evidence/x86-linux-capture-04/main-01ced000.bin"`.
 Pinned text SHA-256 `2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724`; data
 `c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f`.
 
@@ -133,9 +134,38 @@ repeated. The affected effects rows are rerun without mutants after the merge.
 
 The app merges through main `2531746f` preserve these compiled renderchar inputs. The build passes in 0.45 s,
 and the conflict-resolved registry passes 17 manifest tests in 0.66 s. Both sides of the status and registry
-conflicts are retained. The inventory/ground skin module will be rerun for the merged `world_gfx.c` change.
+conflicts are retained. The inventory/ground skin module is rerun below for the merged `world_gfx.c` change.
 
-Existing item validator rows and the final publication audit are pending.
+After main `5a91b98d` (bow effects), the build passes in 17.81 s. The affected `test_native_combat` and
+`test_inventory_skin` modules pass 19/19 tests in 23.47 s, after a 120 s resource wait. The two effects
+validators are also rerun without mutants. The HiddenMesh module and manifest check pass 19 tests with one
+private-wrapper skip in 0.81 s; its full original comparison is the 116,281-case row above.
+
+Remaining item rows and the final publication audit are pending.
+
+### Existing affected rows, without mutants
+
+Repeated times are the precise merge-dependent reruns described above.
+
+| Validator | Cases per run | Wall seconds | Result |
+|---|---:|---|---|
+| `validate_item_ranked` | 17,736 | 802.16 | 0 mismatches |
+| `validate_item_continuation` | 25,772 | 832.61 | 0 mismatches |
+| `validate_item_expansion` | 52,172 | pending | pending |
+| `validate_item_clusters` | 74,292 | pending | pending |
+| `validate_item_types` | 135,176 | 32.82 | 0 mismatches |
+| `validate_renderchar` | 1,706 | 48.38 | 0 mismatches |
+| `validate_item_gear` | 25,256 | pending | pending |
+| `validate_item_next` | 14,992 | pending | pending |
+| `validate_render_effects5` | 1,190 | 4.16; 3.35; 3.80 | 0 mismatches |
+| `validate_render_effects7` | 596 | 1.69; 1.15; 1.84 | 0 mismatches |
+| `validate_item_coverage` | 31,724 | pending | pending |
+| `validate_item_wings_next` | 33,622 | pending | pending |
+| `validate_item_scalars` | 26,154 | pending | pending |
+| `validate_item_chains` | 35,346 | pending | pending |
+| `validate_item_carry` | 114,388 | 1122.18 | 0 mismatches |
+| `validate_item_quality` | 28,080 | pending | pending |
+| `validate_item_product` | 2,874 | pending | pending |
 
 ## Changed types and reasons
 
