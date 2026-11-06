@@ -1,5 +1,7 @@
 # Current status
 
+RENDER-EFFECTS-014 PR-ready: bow joints 0x7f78/b (arrow 0x459's guided flares, owner write-back and arrow check) and 0x7f79/e with smoke01 0x22/0x23 and Spark03 0xa; the 33 bows' unsupported requests fall 15 → 0, with 119 arrows retained. 0x70c's rings 0x703..0x706 and stones /0x13 are reconstructed. The ground skills' +0x64 flag is verified: CreateEffect 0x40a clears it. 0x70a (the rain that lands 0x70c natively) is still open. [Finding](research/client-render-effects-014.md), [handoff](handoffs/RENDER-EFFECTS-014.md).
+
 RENDER-WORLDS-S PR-ready: Aquila's Temple (145) and Debenter (95) primary create/move/visual methods, plus the return-false slots of Boss Battle (139) and world 115's create/move; +11 verified methods, +3 classes: 109 → 120/144 and 37 → 40/48 (24 missing). 11,000 instruction cases, zero mismatches, 61/61 mutants. Debenter runs on the Q inputs; its key-9 create, recordless swing, bone types and 0x199 word4 effect are refused and counted when unsupported. No live capture exists for these worlds: the October 22 tour and all 32 DATA-ACQ-002 captures are byte-identical. Next (S2): Nars (110), then the Arca War class. [Handoff](handoffs/RENDER-WORLDS-S.md)
 
 TEST-SPEED-002 PR-ready: meshdraw 367.99 → 57.21 s warm with byte-identical reports, 4/4 controls and a caught compiled C mutation; fifteen native build rows use target dependencies. Six-PR selection replay has zero identified misses. [Checks, commands and limits](handoffs/TEST-SPEED-002.md).
