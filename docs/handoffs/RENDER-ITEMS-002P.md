@@ -1,6 +1,6 @@
 # RENDER-ITEMS-002P
 
-Base main `7d7d694b`, merged up to `72728f3f` (#305-#307). Branch/worktree `claude/render-items-002p` (Claude Opus 5.5).
+Base main `7d7d694b`, merged up to `0122f192` (#305-#308). Branch/worktree `claude/render-items-002p` (Claude Opus 5.5).
 Only this lane is edited and built. No live client, launcher, network or hosted workflow is used. No full gate in
 the lane (2026-11-04 test budget).
 
@@ -177,7 +177,9 @@ validate_item_expansion, validate_item_clusters, validate_item_next, validate_it
 validate_item_scalars, validate_item_chains, validate_item_carry, validate_item_quality, validate_item_product,
 validate_item_hiddenmesh, validate_renderchar, validate_render_effects5, validate_render_effects7,
 validate_render_effects9, validate_render_effects10, validate_render_effects11, validate_render_effects12,
-validate_render_effects13, validate_fidelity (ran at `48e39c02`, no mutants). Mutants: none needed
+validate_render_effects13 (ran at `48e39c02`, no mutants), validate_fidelity (rerun at `4917577a` after main
+`0122f192` changed `native/core/mu_objects_runtime.c`: 991 cases, pass, 51 s). The `0122f192` merge changed no
+renderchar, model-codec, record-math or item-harness file, so the item rows keep their `48e39c02` results. Mutants: none needed
 (validate_item_derived's ran once). Env as under Checks.
 
 Cleanup removes `mu-mac-tools/native/scratch/render-items-002p/` and the build directories. The two crops in
