@@ -67,8 +67,8 @@ class WorldsQTests(unittest.TestCase):
         return struct.unpack_from('<i', o.raw, offset)[0]
 
     def test_ownership_and_light_name(self):
-        self.assertEqual([w for w in range(85, 135) if self.lib.mu_worlds_q_owns(w)], [91, 112, 122, 123, 124, 125,
-                                                                                         126, 127])
+        self.assertEqual([w for w in range(85, 135) if self.lib.mu_worlds_q_owns(w)], [91, 95, 112, 122, 123, 124,
+                                                                                         125, 126, 127])
         self.assertEqual([self.terrain.mu_terrain_light_name(w).decode() for w in (0, 122, 123, 124, 125, 126, 127,
                                                                                    128)],
                          ['TerrainLight', 'TerrainLight', 'TerrainLight_Fire', 'TerrainLight_Water',

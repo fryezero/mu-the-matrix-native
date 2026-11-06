@@ -352,6 +352,7 @@ mutants_at = "mutants_caught"
 args = ["--text", "{text}", "--data", "{data}", "--cases", "40", "--mutants", "--output", "{report}"]
 
 [validate_crypto]
+build_targets = { native = ["build/libmucrypto.{so}"] }
 test = "tests/test_crypto_private.py::CryptoPrivateTests.test_module_matches_client_instructions"
 pins = ["text", "data", "feature"]
 families = ["ctor", "open", "set_key", "factory", "encrypt", "decrypt"]
@@ -529,6 +530,7 @@ args = ["--text", "{text}", "--data", "{data}", "--feature", "{feature}", "--gam
 "codes" = {min = 4001}
 
 [validate_item_models]
+build_targets = { native = ["build/mu-data"] }
 test = "tests/test_data_tables_private.py::DataTablesPrivateTests.test_item_model_mapping_matches_client"
 pins = ["text", "data", "feature"]
 cases = 4881
@@ -701,6 +703,7 @@ note = "PLAY-FIX-001: ReceiveTeleport's ClearItems/ClearCharacters order, 0x009d
 "mutations.*" = {truthy = true}
 
 [validate_meshdraw]
+build_targets = { native = ["build/meshdraw-info-batch", "build/libmumeshdraw.{so}"] }
 test = "native/tests/test_native_viewer.py::PrivateInstalledTests.test_private_client_mesh_draw_execution"
 pins = ["text", "data", "flag", "feature09"]
 families = ["installed", "names_installed", "names_synthetic", "pinned", "synthetic"]
@@ -774,13 +777,14 @@ args = ["--text", "{text}", "--game-root", "{game_root}", "--manifest", "{v14_ma
 "synthetic_instruction_cases" = {min = 1001}
 
 [validate_model_edge]
+build_targets = { native = ["build/mu-render"] }
 test = "reconstructed/model-codec/test_model_reader.py::ModelReaderTests.test_private_client_reader_pose_transform_and_draw"
 pins = ["text", "data", "flag", "feature09"]
 families = ["summary"]
 cases = 954
 cases_at = ["summary.pose_calls", "summary.transform_calls", "summary.draw_calls"]
 needs = ["game_root"]
-build = ["reconstructed/model-codec", "native"]
+build = ["model-recovery", "reconstructed/model-codec", "native"]
 args = ["--text", "{text}", "--data", "{data}", "--flag", "{flag}", "--feature", "{feature09}", "--game-root", "{game_root}", "--native", "{repo}/native/build/mu-render", "--output", "{report}"]
 [validate_model_edge.expect]
 "failures" = []
@@ -796,6 +800,7 @@ args = ["--text", "{text}", "--data", "{data}", "--flag", "{flag}", "--feature",
 "summary.native_corner_streams.files" = {min = 15}
 
 [validate_model_light]
+build_targets = { native = ["build/mu-terrain"] }
 test = "tests/test_model_light_private.py::ModelLightPrivateTests.test_native_object_light_equals_the_client_transform"
 pins = ["text", "data", "flag", "feature09", "objects_login", "light_login"]
 cases = 1433
@@ -872,6 +877,7 @@ build = ["reconstructed/npc"]
 args = ["--text", "{text}", "--data", "{data}", "--cases", "200", "--talk-cases", "2", "--pick-cases", "120", "--mutations", "--json", "{report}"]
 
 [validate_npc_dialogue]
+build_targets = { native = ["build/mu-data"] }
 test = "native/tests/test_native_lang2.py::Installed.test_dialogue_validator"
 pins = ["text", "data", "feature"]
 families = ["text", "state_text", "option_text", "option_next", "select"]
@@ -1046,6 +1052,7 @@ note = "10,503 = 12 x 600 + table (1503 + 3 x 600); this reproduces the document
 "mutations.*.detected" = true
 
 [validate_protocol]
+build_targets = { native = ["build/libmuprotocol.{so}"] }
 test = "tests/test_orphan_validators_private.py::OrphanValidators.test_protocol"
 pins = ["text08", "data"]
 families = ["add_data_cases", "recv_framing_cases"]
@@ -1461,6 +1468,7 @@ parent = "validate_social2"
 note = "imported by validate_social2_receive"
 
 [validate_terrain]
+build_targets = { native = ["build/mu-terrain"] }
 test = "tests/test_orphan_validators_private.py::OrphanValidators.test_terrain"
 pins = ["text", "data", "flag"]
 families = ["add_light", "attributes", "decal", "face_normal", "frame_update", "frustum_2d", "frustum_3d", "height_bytes", "height_choice", "height_rgb", "installed", "light_bmp", "map", "normals", "primary_light", "render_frustum", "render_terrain", "test_frustum_2d", "tile_corners", "tile_streams", "tile_uv", "world_tile_streams", "xor3"]
@@ -1468,7 +1476,7 @@ cases = 583500
 mutants = 7
 cases_at = ["xor3.cases", "face_normal.cases", "normals.cases", "primary_light.cases", "tile_uv.cases", "tile_corners.cases", "tile_streams.cases", "render_terrain.cases", "height_bytes.cases", "height_rgb.cases", "light_bmp.cases", "attributes.cases", "map.cases", "frame_update.cases", "height_choice.cases", "add_light.cases", "world_tile_streams.cases", "frustum_3d.cases", "frustum_2d.cases", "test_frustum_2d.cases", "render_frustum.cases", "decal.cases", "installed.compared.*.tile_streams.cases"]
 needs = ["game_root"]
-build = ["reconstructed/terrain", "native"]
+build = ["model-recovery", "reconstructed/terrain", "native"]
 timeout = 2400
 args = ["--text", "{text}", "--data", "{data}", "--flag", "{flag}", "--game-root", "{game_root}", "--scale-002", "5", "--installed-worlds", "1,143,64,8", "--installed-tiles", "0", "--output", "{report}"]
 note = "the documented numbers come from TWO local runs (final.json: --scale-002 5 synthetic, no game root; inst-full.json: --skip-002 + installed); this row combines them in one process, which is unverified (installed() sets its own world/extra state, so interaction is unlikely). If it fails only in installed.*, split it: drop --game-root/--installed-* to reproduce final.json exactly. If it runs far over"
@@ -1604,6 +1612,7 @@ args = ["--text", "{text}", "--data", "{data}", "--cases", "200", "--mutations",
 "families.*.equal" = {same_as = "families.*.cases"}
 
 [validate_viewport_monsters]
+build_targets = { native = ["build/libmunative.a"] }
 test = "native/tests/test_session_monsters.py::PrivateMonsters.test_original_handler_and_creation"
 pins = ["text", "data"]
 families = ["handler", "creation"]
@@ -1872,6 +1881,7 @@ args = ["--cases", "1000", "--mutations", "--output", "{report}"]
 "mutants.*.stopped" = 0
 
 [validate_audio_callers]
+build_targets = { native = ["build/libmunative.a"] }
 test = "native/tests/test_audio_cues.py::AudioCues.test_original_domain_audio_callers"
 pins = ["text", "data"]
 families = ["voice", "talk", "walk", "ambient", "objects"]
@@ -1927,6 +1937,7 @@ args = ["--mutations", "--output", "{report}"]
 "mutants.*" = {truthy = true}
 
 [validate_audio_combat]
+build_targets = { native = ["build/libmunative.a"] }
 test = "native/tests/test_audio_combat.py::CombatAudio.test_original_combat_audio"
 pins = ["text", "data"]
 families = ["player", "monster", "skills", "monster_attack", "effects"]
@@ -2140,6 +2151,7 @@ all_equal = true
 all_mutants_caught = true
 
 [validate_audio_domains]
+build_targets = { native = ["build/libmunative.a"] }
 test = "native/tests/test_audio_domains.py::DomainAudio.test_original_domain_audio"
 pins = ["text", "data", "skill_lang5"]
 families = ["npc", "master"]
@@ -2216,6 +2228,7 @@ args = ["--text", "{text}", "--data", "{data}", "--cases", "40", "--mutants", "-
 "mutants_caught" = {len = 4}
 
 [validate_audio_items]
+build_targets = { native = ["build/libmunative.a"] }
 test = "native/tests/test_audio_items.py::ItemAudio.test_original_ground_audio"
 pins = ["text", "data"]
 families = ["create"]
@@ -2261,6 +2274,7 @@ args = ["--text", "{text}", "--data", "{data}", "--cases", "40", "--mutants", "-
 "mutants_caught" = {len = 5}
 
 [validate_audio_charsel]
+build_targets = { native = ["build/libmunative.a"] }
 test = "native/tests/test_audio_charsel.py::CharselAudio.test_original_charsel_audio"
 pins = ["text", "data"]
 families = ["enter", "escape", "common"]
@@ -2630,6 +2644,7 @@ args = ["--cases", "1000", "--mutations", "--output", "{report}"]
 "mutants.*.stopped" = 0
 
 [validate_worlds_after4]
+build_targets = { native = ["build/modulus.o"] }
 test = "reconstructed/objects/test_worlds_after4.py::WorldsAfter4Tests.test_original_instructions"
 pins = ["text", "data", "flag", "feature09"]
 families = ["draw_first", "action_keys"]
@@ -2670,7 +2685,7 @@ args = ["--cases", "3000", "--mutations", "--output", "{report}"]
 test = "reconstructed/objects/test_worlds_after6.py::WorldsAfter6Tests.test_original_instructions"
 pins = ["text", "data", "feature09"]
 families = ["hover", "camera", "sprite_visible"]
-cases = 6300
+cases = 7300
 mutants = 30
 cases_at = "families.*.cases"
 mutants_at = "mutants"
@@ -2777,6 +2792,22 @@ args = ["--cases", "20", "--mutations", "--output", "{report}"]
 [validate_render_effects13.expect]
 all_equal = true
 all_mutants_caught = true
+
+[validate_worlds_s]
+test = "reconstructed/objects/test_worlds_s.py::WorldsSTests.test_original_instructions"
+pins = ["text", "data"]
+families = ["aquila_create", "aquila_move", "aquila_visual", "boss_create", "boss_move", "boss_visual", "w115_create", "w115_move", "debenter_create", "debenter_move", "debenter_visual"]
+cases = 11000
+mutants = 61
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+[validate_worlds_s.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0
 
 [validate_render_effects14]
 test = "native/tests/test_render_effects14.py::ClientComparison.test_original_instructions_and_compiled_mutants"

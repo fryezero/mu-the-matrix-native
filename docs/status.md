@@ -1,10 +1,14 @@
 # Current status
 
-RENDER-EFFECTS-013 PR-ready: bow joints 0x80e3/5 (owning arrow's signed lifetime +0x6c) and 0x7f79/f with its two Shiny01/3 particles per move. The 33 bows' unsupported requests fall 27 → 15, with 119 arrows retained; joints 0x7f78/b and 0x7f79/e remain refused. [Finding](research/client-render-effects-013.md), [handoff](handoffs/RENDER-EFFECTS-013.md).
+RENDER-WORLDS-S PR-ready: Aquila's Temple (145) and Debenter (95) primary create/move/visual methods, plus the return-false slots of Boss Battle (139) and world 115's create/move; +11 verified methods, +3 classes: 109 → 120/144 and 37 → 40/48 (24 missing). 11,000 instruction cases, zero mismatches, 61/61 mutants. Debenter runs on the Q inputs; its key-9 create, recordless swing, bone types and 0x199 word4 effect are refused and counted when unsupported. No live capture exists for these worlds: the October 22 tour and all 32 DATA-ACQ-002 captures are byte-identical. Next (S2): Nars (110), then the Arca War class. [Handoff](handoffs/RENDER-WORLDS-S.md)
+
+TEST-SPEED-002 PR-ready: meshdraw 367.99 → 57.21 s warm with byte-identical reports, 4/4 controls and a caught compiled C mutation; fifteen native build rows use target dependencies. Six-PR selection replay has zero identified misses. [Checks, commands and limits](handoffs/TEST-SPEED-002.md).
 
 APP-POLISH-003 PR-ready: the level-1 Dark Knight fixture joins with recorded full vitals 1100/200/52/25; session HUD maxima need no progression fallback. Toxic states 0x37/0x136 select the original green HP bitmap through the display fixture. Buff replication remains open. [Evidence and limits](research/client-app-polish3.md), [checks](handoffs/APP-POLISH-003.md).
 
 TEST-SPEED-001 PR-ready on main `2531746f`: original-side caching and no-mutant/affected runners; 13 item rows pass. Suite-selection median remains near 97%, with no identified recorded-failure miss. [Commands and evidence](testing/TEST-BUDGET.md), [checks and limits](handoffs/TEST-SPEED-001.md).
+
+RENDER-EFFECTS-013 PR-ready: bow joints 0x80e3/5 (owning arrow's signed lifetime +0x6c) and 0x7f79/f with its two Shiny01/3 particles per move. The 33 bows' unsupported requests fall 27 → 15, with 119 arrows retained; joints 0x7f78/b and 0x7f79/e remain refused. [Finding](research/client-render-effects-013.md), [handoff](handoffs/RENDER-EFFECTS-013.md).
 
 RENDER-EFFECTS-012 PR-ready: ten bow joint kinds, multishot02/1 and the gunbow's white model colour. The 33 bows' unsupported requests fall 77 → 27, with 119 arrows retained. Four joint kinds remain refused; ground-skill children/route, the decal, Uruk weather and Muun owners remain. [Finding](research/client-render-effects-012.md), [handoff](handoffs/RENDER-EFFECTS-012.md).
 
