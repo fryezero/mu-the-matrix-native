@@ -33,7 +33,7 @@ decide.
 | RenderEffects case 0x45e | `0x01518f49..0x0151930a` | 240 | 0 |
 
 **Totals:** see the handoff (recorded run with 75 compiled mutants, all caught). The registry run (`--cases 2`)
-gives 176 cases and 75/75.
+completed on resumption with 176 cases, zero mismatches and 75/75 mutants in 51.86 s.
 
 ## The bows' particle kinds (verified)
 
@@ -123,7 +123,7 @@ belongs to another CharactersClient slot, so a crowded scene could hold data the
 ## Measurements
 
 Installed data, Lorencia 182,128, Triple Shot at a spider placed at 186,128, 30 frames, every fifth drawn; base =
-this branch before the change (RENDER-EFFECTS-010's code, equal to main `26b9ef07` for these files).
+main `90e11d71`, as rerun before the owner stopped the lane on 2026-11-04.
 
 | Scene | Unsupported requests | Notes |
 |---|---|---|

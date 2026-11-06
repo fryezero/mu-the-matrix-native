@@ -4,11 +4,12 @@ The combat/effect leftovers of RENDER-EFFECTS-010: the bows' remaining particle 
 0x45e case, the functor tick per drawn frame, effect 0x70c, and a live read of the spark bone.
 [Finding, addresses, measurements and limits](../research/client-render-effects-011.md).
 
-Claude Opus 5.5 lane.
+Resumed to PR-ready by Codex GPT-6-Astra, xhigh. The earlier implementation and live read are retained.
 
 - Branch `claude/render-effects-011`, worktree `~/Documents/MTM/worktrees/render-effects-011`, started on
   RENDER-EFFECTS-010's head `724ad10a` while #287 was in the steward's batch, then merged with origin/main
-  `26b9ef07` (#287 merged, #288); MERGED_MAIN_NOTE.
+  `26b9ef07` (#287 merged, #288), then `90e11d71` (#291) in merge `3c9573f9`.
+  `git fetch origin` on 2026-11-05 confirmed main still at `90e11d71`; no new merge or source rerun was needed.
 - Input links `tools/python`, `evidence` and `input` come from the main checkout and are never staged.
 - One live session (below); no network, item, stat or inventory operation.
 
@@ -53,7 +54,39 @@ Claude Opus 5.5 lane.
 
 ## Checks (wall times)
 
-CHECKS_PLACEHOLDER
+Resumption on 2026-11-05, with no production-source changes:
+
+| Check | Result | Wall time |
+|---|---|---:|
+| `nice -n 10 make -j4` | Build passed | 9.22 s |
+| `run_validators.py --private --only validate_render_effects11 --jobs 2` | 1 pass, 0 fail/error/skip; 176 cases, zero mismatches; 75/75 compiled mutants caught | 51.86 s |
+| Affected unit modules, below | 110 tests, 95 passed, 15 private checks skipped | 35.96 s |
+| `test_native_particles` and `test_native_combat.InstalledTests`, integration enabled | 6/6 passed, no skips | 4.32 s |
+| `scripts/audit_repository.py` | 1,858 tracked/staged files, 0 rejected | 15.21 s |
+
+The registry row intentionally uses `--cases 2`. The retained larger `--cases 20 --mutations` run has
+1,760 instruction cases, zero mismatches and 75/75 mutants caught in 54 s. This completes the interrupted
+registry invocation; it does not claim a larger registry case count.
+
+The unit modules were `test_render_effects11`, `test_render_effects10`, `test_render_effects9`,
+`test_render_effects`, `test_native_render_effects6`, `test_native_fidelity2`, `test_native_particles`,
+`test_native_combat`, `test_native_worlds_m`, `reconstructed.combat.test_skill_fx`, and
+`reconstructed.particles.test_particles`. The native modules are under `native/tests`. Private validator
+wrappers were disabled in this unit run to avoid repeating their mutants. The requested private registry
+check ran separately above.
+
+The brief's shared-symbol check found `InstalledLorenciaFires` still expecting 72 bitmap slots. It failed
+with exactly two extra loaded entries in 1.52 s. Its expectation now includes 0x810c and 0x83b8, retaining
+the missing Elbeland-only slot at index 50. The installed run above verifies the correction. No validator
+source or runtime source changed during resumption.
+
+Retained from the earlier run, as authorized by the owner: 29 affected validator rows passed without mutants;
+33 bows had 598 → 77 unsupported requests, with 119 arrows on both sides; the 10 other combat/pet scenes and
+all 32 DATA-ACQ-002 tour images were byte-identical against main `90e11d71`. Frame reports differ only in
+paths and the two added bitmap entries. Those checks were not repeated. Their wall times were not retained
+in the handoff or available report fields, so no durations are inferred.
+
+No lane full gate. The steward owns the only combined full gate.
 
 ## Hash and behaviour changes (intended)
 
@@ -80,9 +113,27 @@ CHECKS_PLACEHOLDER
 
 ## Steward
 
-STEWARD_PLACEHOLDER
+Steward validators: validate_item_effects, validate_item_types, validate_combat, validate_crypto, validate_item_models, validate_meshdraw, validate_model_edge, validate_model_light, validate_npc_dialogue, validate_particles, validate_protocol, validate_skill_fx, validate_terrain, validate_viewport_monsters, validate_render_worlds_a, validate_icarus_c2, validate_worlds_d, validate_worlds_e, validate_audio_callers, validate_item_gear, validate_audio_combat, validate_render_effects, validate_render_effects3, validate_render_effects4, validate_render_effects5, validate_render_effects6, validate_render_effects7, validate_render_effects9, validate_render_effects10, validate_render_effects11, validate_world_particle_consumers, validate_audio_domains, validate_audio_items, validate_worlds_l, validate_audio_charsel, validate_item_wings_next, validate_worlds_m, validate_worlds_g3, validate_worlds_after4, validate_worlds_after6
 
-## Remaining
+All listed rows run **without mutants**; none needs another mutant pass. This list is the 40 non-helper
+registry rows whose `build` directories/files intersect the branch diff against `90e11d71`, per the brief.
+The registry uses broad `native` build declarations for some rows. The retained 29-row run above is historical
+validation evidence, not the steward-selection algorithm. Drop each row's `--mutations`/`--mutants` switch
+for direct runs, or use the runner's `--no-mutants` option after TEST-SPEED-001 lands.
+
+Environment, with paths expanded from the owner's home:
+
+```sh
+export MU_RECOVERY_INTEGRATION=1
+export MU_GAME_ROOT="$HOME/Library/Application Support/MuTheMatrix/prefix/drive_c/MuTheMatrix"
+export MU_SECTION3="$HOME/Documents/MTM/main-exe-study/evidence/x86-linux-capture-04/main-01ced000.bin"
+export MU_OBJECTS_PLAIN_DIR="$HOME/Documents/MTM/mu-mac-tools/native/scratch/objects/live/plain"
+```
+
+Push and open the PR before appending the one `ready-prs.txt` line. No pushes after that entry.
+The merge steward merges this lane and runs the full gate.
+
+## What's left
 
 - **The bows' joints** (66 requests, 14 kinds; traced, bodies listed in the finding's limits) and room in the combat
   bitmap table for their bitmaps.
@@ -93,14 +144,16 @@ STEWARD_PLACEHOLDER
 
 ## Cleanup
 
-CLEANUP_PLACEHOLDER
+After publishing the final head and appending the ready entry, remove the base worktree
+`~/Documents/MTM/worktrees/re011-base` with `git worktree remove`, and delete this lane's
+`~/Documents/MTM/mu-mac-tools/native/renders/render-effects-011` and
+`~/Documents/MTM/mu-mac-tools/native/scratch/render-effects-011`, including the old live-read scratch.
+Remove lane-local build outputs and caches. No lane scratch is needed as a later input; the reviewed spark
+value and its state limitation are recorded above. Keep `render-effects-011` and its local branch until the
+steward merges, as the owner explicitly requested. Keep the shared-input symlinks; never stage `input`.
 
-## WIP (stopped by owner, 2026-11-04 ~15:00)
+## Final state, 2026-11-05
 
-- Done and verified: 16 particle kinds, 7 effect kinds, RenderEffects 0x45e, effect 0x70c; validate_render_effects11
-  `--cases 20 --mutations`: 1,760 cases, 0 mismatches, 75/75 mutants (54 s). 29 affected rows rerun without mutants:
-  all pass. Bows 598 → 77 vs main 90e11d71; 10 other combat/pet scenes and the 32 DATA-ACQ-002 tours byte-identical
-  (frame reports differ only in paths and the bitmaps list). Spark bone read live: 0. Merged main 90e11d71.
-- Next: rerun `run_validators.py --private --only validate_render_effects11` (interrupted), unit tests
-  (test_render_effects11 passed earlier), audit; fill CHECKS/STEWARD/CLEANUP placeholders and MERGED_MAIN_NOTE; PR;
-  ready-prs line; clean up (base worktree ~/Documents/MTM/worktrees/re011-base, renders/ and scratch/render-effects-011).
+PR-ready. The interrupted registry check is complete, affected tests and the audit pass, and the stale
+Lorencia bitmap expectation is corrected. The retained implementation and fidelity evidence stand.
+The remaining rendering work is listed in "What's left" above. Integration and merge belong to the steward.
