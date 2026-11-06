@@ -237,9 +237,6 @@ static void load_models(mu_combat *c, const char *root)
         {0x611, "Data/Effect/ringofpower.bmd"},
         {0x45f, "Data/Skill/darkwing_hetachi.bmd"},   /* AccessModel 0x01833729, textures Skill\\ REPEAT/NEAREST */
         {0x38b5, "Data/Effect/multishot02.bmd"},
-        /* RENDER-EFFECTS-014: AccessModel 0x01827299..0x01827354 (Data\Effect\, textures Effect\ REPEAT/NEAREST) */
-        {0x703, "Data/Effect/min_elf_skill_ring04.bmd"}, {0x704, "Data/Effect/min_elf_skill_ring05.bmd"},
-        {0x705, "Data/Effect/min_elf_skill_ring06.bmd"}, {0x706, "Data/Effect/min_elf_skill_ring07.bmd"},
         /* RENDER-EFFECTS-004: Rageful Blow, loader 0x0183451b..0x018345cf */
         {0x462, "Data/Skill/EarthQuake01.bmd"}, {0x463, "Data/Skill/EarthQuake02.bmd"},
         {0x464, "Data/Skill/EarthQuake03.bmd"}, {0x465, "Data/Skill/EarthQuake04.bmd"},
@@ -269,8 +266,6 @@ static void load_models(mu_combat *c, const char *root)
             if (!needed)
                 continue;
         }
-        if (i >= MU_COMBAT_MODEL_GROUND_RING4 && i <= MU_COMBAT_MODEL_GROUND_RING7 && !c->config.ground_skills)
-            continue;   /* RENDER-EFFECTS-014: only a session that fires the ground skills */
         if (!file)
             continue;
         char path[4096], message[512], text[96];
@@ -1269,13 +1264,13 @@ void mu_combat_attack(mu_combat *c, int32_t actor)
     c->intent_skill = 0;
 }
 
-void mu_combat_volley(mu_combat *c, int32_t skill, int32_t actor)
+/* RENDER-EFFECTS-014 (offline fixture): the ground skill 0x7fc / 0x7fd as the client's receive handler
+ * 0x0125f53d..0x0125f5d9 runs it for a caster, here the hero: CreateEffect(0x70a, subtype 1 / 0, the hero, its key,
+ * scale 1) and for 0x7fc CreateArrows(c, o, 0, 0x7fc, 1, 0) (0x0125f5d1). SetAction 0x012b001a(c, skill, 0x107, -1)
+ * is not modelled and no request is sent. 0x70a (create 0x01418f78, move 0x014d1a18) is not reconstructed: it is
+ * counted unsupported, and the skill-0x7e7 arrows its move fires (whose landings make 0x70c) do not occur. */
+static void ground_volley(mu_combat *c, int32_t skill)
 {
-    if ((skill != 0x7fc && skill != 0x7fd) || !alive(c, actor))
-        return;
-    mu_hero *h = &c->walk->hero;
-    const mu_world_actor *a = &c->actors->list[actor];
-    h->angle[2] = mu_create_angle(h->position[0], h->position[1], a->position[0], a->position[1]);
     float pos[3], angle[3], light[3];
     hero_frame(c, pos, angle, light);
     mu_sfx_info info;
@@ -1291,6 +1286,13 @@ void mu_combat_cast(mu_combat *c, int32_t skill, int32_t actor)
 {
     if (actor < 0)
         actor = c->target;
+    if ((skill == 0x7fc || skill == 0x7fd) && alive(c, actor)) {   /* RENDER-EFFECTS-014 fixture */
+        mu_hero *h = &c->walk->hero;
+        const mu_world_actor *a = &c->actors->list[actor];
+        h->angle[2] = mu_create_angle(h->position[0], h->position[1], a->position[0], a->position[1]);
+        ground_volley(c, skill);
+        return;
+    }
     if (!alive(c, actor) || !mu_skill_visual_find(skill))
         return;
     c->target = actor;
@@ -2170,13 +2172,6 @@ int mu_combat_script_parse(mu_combat_script *script, const char *text)
                 return 1;
             *c2++ = 0;
             it->skill = atoi(b);
-            snprintf(it->actor, sizeof it->actor, "%s", c2);
-        } else if (!strcmp(it->verb, "volley")) {   /* RENDER-EFFECTS-014: F:volley:SKILL:ACTOR */
-            char *c2 = strchr(b, ':');
-            if (!c2)
-                return 1;
-            *c2++ = 0;
-            it->skill = (int32_t)strtol(b, NULL, 0);
             snprintf(it->actor, sizeof it->actor, "%s", c2);
         } else if (!strcmp(it->verb, "attack") || !strcmp(it->verb, "click")) {
             snprintf(it->actor, sizeof it->actor, "%s", b);

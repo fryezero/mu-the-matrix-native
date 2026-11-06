@@ -209,8 +209,6 @@ static void combat_script(tool *t, int32_t frame)
             mu_combat_attack(a->combat, actor);
         } else if (!strcmp(it->verb, "skill")) {
             mu_combat_cast(a->combat, it->skill, actor);
-        } else if (!strcmp(it->verb, "volley")) {
-            mu_combat_volley(a->combat, it->skill, actor);   /* RENDER-EFFECTS-014 fixture */
         } else if (!strcmp(it->verb, "click") && actor >= 0) {
             const mu_world_actor *x = &a->actors.list[actor];
             float point[3] = {x->position[0], x->position[1], x->position[2] + 90.0f * x->actor.spec.scale};
@@ -1117,7 +1115,7 @@ static int usage(void)
                     "                [--time-series-every N] [--time-series-start-ms MS]   headless full draw, compact post-draw samples, max 10001 frames\n"
                     "                [--fidelity-dump PREFIX]   PREFIX-obj.bin / PREFIX-light.bin at the end (fidelity tour)\n"
                     "                [--combat] [--combat-weapon none|sword|twohand|spear|bow|crossbow|staff] [--combat-bow 0xITEM]\n"
-                    "                [--attack-speed N] [--combat-seed N] [--hero-hp N] [--combat-script \"F:attack:ACTOR F:skill:N:ACTOR F:volley:0x7fc:ACTOR ...\"]\n"
+                    "                [--attack-speed N] [--combat-seed N] [--hero-hp N] [--combat-script \"F:attack:ACTOR F:skill:N:ACTOR ...\"]\n"
                     "                [--progress] [--progress-class N] [--progress-level N] [--progress-points N] [--progress-rate N]\n"
                     "                [--progress-script \"F:kill:CLASS F:button:ROW F:add:STAT\"]   experience, levels, stat points (demo server)\n"
                     "                [--items] [--no-items] [--item-script \"F:drop:CODE[:LEVEL[:X,Y[:SET]]] F:alt F:space F:hover:N F:pick:N\"]\n"
@@ -1251,9 +1249,6 @@ int main(int argc, char **argv)
             if (mu_combat_script_parse(&t.combat_script, v))
                 return usage();
             o->combat = 1;
-            for (int32_t i = 0; i < t.combat_script.count; ++i)
-                if (!strcmp(t.combat_script.items[i].verb, "volley"))
-                    o->combat_config.ground_skills = 1;   /* RENDER-EFFECTS-014: 0x70c's ring models */
         }
         else if (!strcmp(k, "--env-seed")) o->env_seed = (uint32_t)strtoul(v, NULL, 0);
         else if (!strcmp(k, "--item-script")) {

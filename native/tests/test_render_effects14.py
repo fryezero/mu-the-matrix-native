@@ -9,7 +9,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 
 class Native(unittest.TestCase):
-    def test_flare_writeback_particles_rings_and_volley(self):
+    def test_flare_writeback_particles_rings_and_ground_fixture(self):
         native = ROOT/'native'
         subprocess.run(['make','-s','-C',str(native),'build/libmunative.a','build/libmusession_world.a'],check=True,capture_output=True)
         with tempfile.TemporaryDirectory() as tmp:
@@ -30,7 +30,7 @@ class Native(unittest.TestCase):
             self.assertEqual(p.returncode,0,p.stderr)
             p=subprocess.run([str(host),str(tmp)],capture_output=True,text=True)
             self.assertEqual(p.returncode,0,p.stdout+p.stderr)
-            self.assertIn('Flare/b write-back, Flare02/e particles, 0x70c rings and volley verb through native routes: OK',p.stdout)
+            self.assertIn('Flare/b write-back, Flare02/e particles, 0x70c rings and the ground-skill fixture through native routes: OK',p.stdout)
 
 
 @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'requires pinned private instructions')
