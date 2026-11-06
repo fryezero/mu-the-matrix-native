@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 TYPES = [0x0b1d, 0x0b1e, 0x0b1f, 0x0eee, 0x0f00, 0x0f01, 0x0f0e, 0x1305,
          0x151a, 0x151b, 0x151c, 0x230a, 0x2495, 0x252b, 0x252c, 0x2537,
          0x2538, 0x280b, 0x280e, 0x2837, 0x2838, 0x2839, 0x283a]
-VISIBILITY_TYPES = [
+ADDITIONAL_TYPES = [
     0x0afa, 0x0afb, 0x0b06, 0x0b07, 0x0b08, 0x0b0e, 0x0b18, 0x0eef, 0x0ef1, 0x0ef2,
     0x0ef3, 0x0efb, 0x0efe, 0x10f0, 0x10f6, 0x10f7, 0x10f8, 0x190d, 0x190e, 0x190f,
     0x1910, 0x1911, 0x1912, 0x1917, 0x1918, 0x191b, 0x1921, 0x1922, 0x1923, 0x1938,
@@ -81,7 +81,7 @@ def bodies(wa, lib, types, cases):
     for t in types:
         rng = random.Random(0x68 + t)
         for k, state in itertools.islice(quality.state_cases(t), cases):
-            seq = [0]*48 if t in TYPES + VISIBILITY_TYPES else quality.sequence_for(rng)
+            seq = [0]*48 if t in TYPES + ADDITIONAL_TYPES else quality.sequence_for(rng)
             for hidden in ((0, -1, EXCEPTIONS[t]) if t in EXCEPTIONS else (0, -1)):
                 case = dict(state, object_hidden=hidden)
                 def factory(*args):
@@ -155,11 +155,11 @@ def main():
     report = {'text_sha256': pins.TEXT.sha256, 'data_sha256': pins.DATA.sha256, 'families': {}}
     report['families']['attributes'], pairs = attributes(wa, lib)
     report['families']['affected'], affected = bodies(wa, lib, TYPES, args.cases)
-    report['families']['visibility'], visibility = bodies(wa, lib, VISIBILITY_TYPES, args.cases)
+    report['families']['additional'], additional = bodies(wa, lib, ADDITIONAL_TYPES, args.cases)
     report['families']['controls'], controls = bodies(wa, lib, CONTROLS, args.cases)
     report['families']['rank5'] = rank5_controls(wa, lib)
     if args.mutations:
-        report['mutants'] = mutations(affected + visibility + controls, pairs)
+        report['mutants'] = mutations(affected + additional + controls, pairs)
     args.output.write_text(json.dumps(report, indent=2)+'\n')
     print(json.dumps(report))
 

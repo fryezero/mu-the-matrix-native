@@ -18,7 +18,7 @@ class ItemHiddenMesh(unittest.TestCase):
     draws = base.RenderCharLibrary.draws
 
     def test_attributes_and_domain(self):
-        for t in hidden.TYPES + hidden.VISIBILITY_TYPES + hidden.CONTROLS:
+        for t in hidden.TYPES + hidden.ADDITIONAL_TYPES + hidden.CONTROLS:
             self.assertEqual(self.lib.mu_rc_item_hidden_mesh(t), hidden.EXCEPTIONS.get(t, -1))
             for h in (0, -1):
                 self.assertEqual(self.draws(self.item(type=t, object_hidden=h))[0], 0, (hex(t), h))
