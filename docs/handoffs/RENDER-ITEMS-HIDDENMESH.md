@@ -1,6 +1,7 @@
 # RENDER-ITEMS-HIDDENMESH
 
-Base main `90e11d71`, branch `codex/render-items-hiddenmesh`. Codex GPT-6-Astra, xhigh.
+Base main `90e11d71`, branch `codex/render-items-hiddenmesh`. Codex GPT-6-Astra, xhigh; finished after a
+provider stop by Claude Opus 5.5 (merge of main `742ef666`, remaining rows, audit, publication).
 No live client, network/login work or protected-module work. No full gate in this lane.
 
 ## Cause and scope
@@ -141,31 +142,76 @@ After main `5a91b98d` (bow effects), the build passes in 17.81 s. The affected `
 validators are also rerun without mutants. The HiddenMesh module and manifest check pass 19 tests with one
 private-wrapper skip in 0.81 s; its full original comparison is the 116,281-case row above.
 
-Remaining item rows and the final publication audit are pending.
+After main `742ef666` (TEST-SPEED-001 #297, APP-POLISH-003 #298), merge `f57e2b46`. The only code conflict
+was `gen_item_bodies.sample`: this lane's `object_hidden` line is kept with #297's cached `_original` call; the
+cache key covers the whole case, including `object_hidden`. Both sides of the status/handoff lines are kept.
+The merge changes no `reconstructed/` source. It changes the item harness (`gen_item_bodies.py`,
+`original_cache.py`, the continuation/ranked/clusters scripts), so all 13 rows that import it are rerun with
+`run_validators.py --private --no-mutants --cache --jobs 2` at `f57e2b46`. `validate_item_hiddenmesh`,
+`validate_item_types`, `validate_renderchar` and `validate_render_effects5/7` import none of those files, and their
+build directories (`reconstructed/renderchar`, `model-codec`, `particles`, `combat`) are unchanged, so they are not
+repeated (brief 6). Checks at `f57e2b46` (the PR head adds only this handoff text):
+
+| Check | Result | Wall time | Load 1m |
+|---|---|---:|---|
+| `nice -n 10 make -j4` | pass | 9.90 s | 4.7 |
+| `validate_item_continuation`, alone first (cold generator cache) | 25,772 cases, 0 mismatches | 631.2 s | 9.9 → 6.2 |
+| Other 12 item rows, `--jobs 2` | 12 pass, 456,636 cases, 0 mismatches | 1,765.84 s | 6.0–12.2 |
+| `run_test_suites.py --affected origin/main`, portable, `MU_GATE_JOBS=2` | 3 suites, 115 work items, 1,077 tests: 913 pass, 164 skip, 0 failures/errors | 231.8 s (263.5 s with selection) | 3.1 → 19.4 |
+| Private `test_inventory_skin` + `test_native_item_textures` (merged `world_gfx.c`; 13-white survey pins) | 11/11 pass, no skips | 77.20 s | 7.4 |
+| `audit_repository.py` | 1,885 staged files, 0 rejected | 24.23 s | 6.6 |
+| Brief-6c doc modules after the final handoff edit (`test_world_captures_2`, `test_repository_policy`; private `test_native_data_manifest`, `test_native_item_textures`) | 11/11 + 22/22 pass | 0.14 s + 61.67 s | 6–7 |
+
+Generator cache: ten rows hit all 115,980 generator samples. Continuation (cold), clusters and gear rebuilt
+91,272. Inference: the steward's batch 37 ran these rows on main at the same time, under a different harness key,
+and the cache keeps one file per name, so the two versions evicted each other. The row results do not depend on
+this; only the original side is cached. Reported for TEST-SPEED-002.
 
 ### Existing affected rows, without mutants
 
-Repeated times are the precise merge-dependent reruns described above.
+The first column of times is uncached, before the #297 merge; the second is the cached rerun at `f57e2b46` above.
 
-| Validator | Cases per run | Wall seconds | Result |
-|---|---:|---|---|
-| `validate_item_ranked` | 17,736 | 802.16 | 0 mismatches |
-| `validate_item_continuation` | 25,772 | 832.61 | 0 mismatches |
-| `validate_item_expansion` | 52,172 | pending | pending |
-| `validate_item_clusters` | 74,292 | pending | pending |
-| `validate_item_types` | 135,176 | 32.82 | 0 mismatches |
-| `validate_renderchar` | 1,706 | 48.38 | 0 mismatches |
-| `validate_item_gear` | 25,256 | pending | pending |
-| `validate_item_next` | 14,992 | pending | pending |
-| `validate_render_effects5` | 1,190 | 4.16; 3.35; 3.80 | 0 mismatches |
-| `validate_render_effects7` | 596 | 1.69; 1.15; 1.84 | 0 mismatches |
-| `validate_item_coverage` | 31,724 | pending | pending |
-| `validate_item_wings_next` | 33,622 | pending | pending |
-| `validate_item_scalars` | 26,154 | pending | pending |
-| `validate_item_chains` | 35,346 | pending | pending |
-| `validate_item_carry` | 114,388 | 1122.18 | 0 mismatches |
-| `validate_item_quality` | 28,080 | pending | pending |
-| `validate_item_product` | 2,874 | pending | pending |
+| Validator | Cases per run | Before #297, s | `--cache` at `f57e2b46`, s | Result |
+|---|---:|---|---:|---|
+| `validate_item_ranked` | 17,736 | 802.16 | 99.1 | 0 mismatches |
+| `validate_item_continuation` | 25,772 | 832.61 | 631.2 (cold) | 0 mismatches |
+| `validate_item_expansion` | 52,172 | not run | 272.9 | 0 mismatches |
+| `validate_item_clusters` | 74,292 | not run | 856.1 | 0 mismatches |
+| `validate_item_types` | 135,176 | 32.82 | not affected | 0 mismatches |
+| `validate_renderchar` | 1,706 | 48.38 | not affected | 0 mismatches |
+| `validate_item_gear` | 25,256 | not run | 653.4 | 0 mismatches |
+| `validate_item_next` | 14,992 | not run | 172.4 | 0 mismatches |
+| `validate_render_effects5` | 1,190 | 4.16; 3.35; 3.80 | not affected | 0 mismatches |
+| `validate_render_effects7` | 596 | 1.69; 1.15; 1.84 | not affected | 0 mismatches |
+| `validate_item_coverage` | 31,724 | not run | 177.8 | 0 mismatches |
+| `validate_item_wings_next` | 33,622 | not run | 199.4 | 0 mismatches |
+| `validate_item_scalars` | 26,154 | not run | 155.1 | 0 mismatches |
+| `validate_item_chains` | 35,346 | not run | 176.2 | 0 mismatches |
+| `validate_item_carry` | 114,388 | 1122.18 | 467.6 | 0 mismatches |
+| `validate_item_quality` | 28,080 | not run | 137.3 | 0 mismatches |
+| `validate_item_product` | 2,874 | not run | 41.9 | 0 mismatches |
+
+`run_validators.py --list-affected origin/main` selects 43 rows: the 17 above, `validate_item_hiddenmesh` and 25
+more. Nine of those 25 reach `item_bodies.h` through `validate_renderchar.py` or `validate_item_clusters.py`; they are
+cheap, so they were run at `f57e2b46` without mutants, `--cache --jobs 2`:
+
+| Validator | Cases | Wall seconds | Result |
+|---|---:|---:|---|
+| `validate_item_effects` | 1,500 | 1.6 | pass |
+| `validate_render_effects` | 660 | 1.3 | pass |
+| `validate_render_effects3` | 720 | 1.1 | pass |
+| `validate_render_effects4` | 1,920 | 6.3 | pass |
+| `validate_render_effects9` | 304 | 0.9 | pass |
+| `validate_render_effects10` | 154 | 0.5 | pass |
+| `validate_render_effects11` | 176 | 0.4 | pass |
+| `validate_render_effects12` | 64 | 0.4 | pass |
+| `validate_fidelity` (`MU_LANG3_SNAPSHOT=$HOME/Documents/MTM/mu-mac-tools/native/scratch/lang/live/lang3.bin`) | 991 | 51.7 | pass |
+
+The other 16 (`validate_crypto`, `item_models`, `meshdraw`, `model_edge`, `model_light`, `npc_dialogue`, `protocol`,
+`terrain`, `viewport_monsters`, `audio_callers`, `audio_combat`, `audio_domains`, `audio_items`, `audio_charsel`,
+`worlds_after4`, `app_polish1`) reach this diff only through the shared native archive (`builds native`) or by naming
+the `native/core/` directory. They do not call the item body executor or the item-texture override probe, so they
+are not run in the lane.
 
 ## Changed types and reasons
 
@@ -376,5 +422,6 @@ remain distinct. MESH rows replace unregistered bitmap 0 with each listed mesh's
 
 ## Release
 
-Pending final validators, latest-main integration, publication audit and ready-prs line.
-Cleanup removes this lane's renders, scratch, build products, worktree and local branch. Only the six small requested review PNGs are retained outside the render/scratch folders. The remote branch remains for the merge steward.
+PR-ready at the head that carries this handoff, after main `742ef666`. Steward validators are listed in the PR
+body; none needs mutants (the new row's six ran once, above). Cleanup removes this lane's scratch and build
+products; the worktree stays until the steward merges, then the worktree and local branch are removed. Only the six small requested review PNGs are retained outside the render/scratch folders. The remote branch remains for the merge steward.
