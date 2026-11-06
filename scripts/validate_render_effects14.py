@@ -87,6 +87,27 @@ PT_MUTANTS = [
 
 _base_object = jt.random_object
 
+FX_MUTANTS = [
+    ('ring_life', 'bow_fx.inc', 'e->lifetime = 20; /* ring life */', 'e->lifetime = 21; /* ring life */', 'create'),
+    ('ring_growth', 'bow_fx.inc', 'e->scale_arg = scale; /* ring growth */', 'e->scale_arg = scale * 2.0f; /* ring growth */',
+     'create'),
+    ('ring_704_turn', 'bow_fx.inc', 'e->angle[1] = arrow_rand_range(env, 0.0f, 360.0f);',
+     'e->angle[1] = arrow_rand_range(env, 0.0f, 180.0f);', 'create'),
+    ('ring_706_alpha', 'bow_fx.inc', 'e->alpha = 0.0f; /* 0x706 alpha */', 'e->alpha = 1.0f; /* 0x706 alpha */', 'create'),
+    ('ring_fade', 'bow_fx.inc', 'e->alpha = e->alpha - 1.0f / (float)e->field_70; /* ring fade */',
+     'e->alpha = e->alpha - 0.5f / (float)e->field_70; /* ring fade */', 'move'),
+    ('ring_705_3_pulse', 'bow_fx.inc', 'e->alpha = ring_pulse(e); /* 0x705/3 pulse */',
+     'e->alpha = 1.0f - ring_pulse(e); /* 0x705/3 pulse */', 'move'),
+    ('ring_706_scroll', 'bow_fx.inc', '(float)(e->lifetime % 4) * 0.25f; /* 0x706 scroll */',
+     '(float)(e->lifetime % 4) * 0.5f; /* 0x706 scroll */', 'move'),
+    ('ring_pulse_rate', 'bow_fx.inc', 'float t = (float)e->field_70 - (float)e->lifetime * 2.0f;',
+     'float t = (float)e->field_70 - (float)e->lifetime * 3.0f;', 'move'),
+    ('stone_13_body', 'skill_fx.c', 'if (subtype == 0 || subtype == 0x13)', 'if (subtype == 0)', 'create'),
+    ('stone_13_particle', 'skill_fx.c', 'call_particle(env, e, 0x7f40,', 'call_particle(env, e, 0x7f3c,', 'move'),
+    ('stone_13_grey', 'skill_fx.c', 'const float grey[3] = {0.3f, 0.3f, 0.3f};', 'const float grey[3] = {0.3f, 0.3f, 0.5f};',
+     'move'),
+]
+
 
 def random_object(rng):
     o = _base_object(rng)
@@ -381,6 +402,13 @@ def main():
                 getattr(pt, 'family_' + family)(pm, ml, random.Random(name), 90, rr, jt.collections_default())
                 f = rr.families[family]
                 mutants.append(dict(name=name, family=family, cases=f['cases'], detected=f['cases']-f['equal'],
+                                    stopped=sum(bool(x.get('stopped')) for x in f['first_failures'])))
+                print('mutant', json.dumps(mutants[-1]), flush=True)
+            for name, file, old, new, family in FX_MUTANTS:
+                ml = compile_skill_mutant(Path(tmp), name, file, old, new)
+                res = fx_compare(text, data, ml, family, 120, seed='effects14-fx-mutant-')
+                f = res['families']['fx_' + family]
+                mutants.append(dict(name=name, family='fx_' + family, cases=f['cases'], detected=f['cases']-f['equal'],
                                     stopped=sum(bool(x.get('stopped')) for x in f['first_failures'])))
                 print('mutant', json.dumps(mutants[-1]), flush=True)
     result = dict(families=r.families, coverage=r.coverage, negatives=dict(negatives),

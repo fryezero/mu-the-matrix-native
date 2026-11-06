@@ -82,6 +82,7 @@ typedef struct mu_combat_config {
     int32_t hero_hp;          /* demo hit points of the hero (0: the hero cannot die) */
     int32_t hero_respawn_steps; /* demo: steps from the death action to the respawn */
     int16_t bow_item;         /* RENDER-EFFECTS-007: the bow's item model type for MU_COMBAT_WEAPON_BOW (0: Bow01) */
+    int32_t ground_skills;    /* RENDER-EFFECTS-014: 1 loads 0x70c's ring models (a script fires mu_combat_volley) */
 } mu_combat_config;
 
 void mu_combat_default_config(mu_combat_config *config);
@@ -114,6 +115,8 @@ enum {
     MU_COMBAT_MODEL_WAVE,
     /* RENDER-EFFECTS-011: the bows' effects 0x477 (m_Waves), 0x60b (Darkangel_effect), 0x611 (ringofpower) */
     MU_COMBAT_MODEL_RING, MU_COMBAT_MODEL_BURST, MU_COMBAT_MODEL_POWER_RING, MU_COMBAT_MODEL_FEATHER, MU_COMBAT_MODEL_MULTISHOT,
+    /* RENDER-EFFECTS-014: 0x70c's rings 0x703..0x706 (min_elf_skill_ring04..07), only with config.ground_skills */
+    MU_COMBAT_MODEL_GROUND_RING4, MU_COMBAT_MODEL_GROUND_RING5, MU_COMBAT_MODEL_GROUND_RING6, MU_COMBAT_MODEL_GROUND_RING7,
     /* RENDER-EFFECTS-004: Rageful Blow's pieces */
     MU_COMBAT_MODEL_QUAKE1, MU_COMBAT_MODEL_QUAKE2, MU_COMBAT_MODEL_QUAKE3, MU_COMBAT_MODEL_QUAKE4,
     MU_COMBAT_MODEL_QUAKE5, MU_COMBAT_MODEL_QUAKE7, MU_COMBAT_MODEL_QUAKE8, MU_COMBAT_MODEL_FLASHING,
@@ -267,6 +270,11 @@ void mu_combat_step(mu_combat *combat);
  * actor (actor -1: the current target), stop. */
 void mu_combat_attack(mu_combat *combat, int32_t actor);
 void mu_combat_cast(mu_combat *combat, int32_t skill, int32_t actor);
+/* RENDER-EFFECTS-014 (offline fixture): the ground skill 0x7fc / 0x7fd as the client's receive handler
+ * 0x0125f53d..0x0125f6xx runs it for a caster, here the hero facing actor: CreateEffect(0x70a, subtype 1 / 0, the
+ * hero, key) and for 0x7fc CreateArrows(c, o, 0, 0x7fc, 1, 0) (0x0125f5d1). No request is sent; SetAction
+ * 0x012b001a(c, skill, 0x107, -1) is not modelled. Other skills are ignored. */
+void mu_combat_volley(mu_combat *combat, int32_t skill, int32_t actor);
 void mu_combat_cast_checked(mu_combat *combat, int32_t skill, int32_t actor);
 void mu_combat_stop(mu_combat *combat);
 /* NATIVE-ITEMS-001: the monster under the mouse ray (the demo picking of
