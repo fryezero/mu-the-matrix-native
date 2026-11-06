@@ -812,3 +812,27 @@ skill routes exercised, zero unbound/undecodable frames, 11 expectations, three 
 and one encrypted cast journaled unsent. Separate tests verify successful fixture Master learn,
 detached answers, rebinding without replacing learned state, lease audit rejection, incomplete
 frames and headless ownership. [Final validation and limits](../handoffs/SESSION-SKILL-001.md).
+
+## 14. The offline Elf's ground skill (APP-POLISH-005, 2026-11-06)
+
+What the client's own tables ask before the use controller lets skill 2044 (0x7fc, "Raining Arrow of
+Saturation") go, read from the installed Native Data's `skills.tsv`, `skills_class.tsv`, `skills_ext.tsv`
+(live Lang read) and `Data/Local/item.bmd` (verified data; the routines are the verified ones of sections 8-9):
+
+| Check | Routine | 2044's value | Consequence |
+|---|---|---|---|
+| class map +0x6c | stamp manager `0x01098644` | class index 2 only (Elf) | only an Elf learns and shows it |
+| level (`skills.tsv` column 3) | not checked by the use controller (server side) | 160 | the demo Elf is level 320 |
+| stat check | `0x0109228f` | agility (+0x40) 1302, every other 0 | a level-1 Elf (agility 25) is refused ("requirements") |
+| weapon +0xb4 | `0x010918c7` case 5 | 5: bow (kind B 8) or crossbow (9) in slot 0, arrows `0x0169da9c` | bows are Item.bmd codes 0x800.., kind B 8, slot 0 (Bow 0x801 = model 0x12e7) |
+| mana / AG | `0x01091692` | 19 / 8 | the demo maxima cover it |
+
+Skill 2045 (0x7fd) has no Skill(Kor) record in this client, so the stat check refuses it (an absent record answers 0);
+only 2044 is reachable through the bar. Before APP-POLISH-005 the bar's usability env carried an OFFLINE DEMO sword
+(kind 1) for every hero, and the world fixture's hero had the class start stats at level 1: 2044 was unusable for
+every demo character. Now the offline session's `skills` file supplies the learned list and hotkeys, its `hero` line
+the join stats (0x55 0x57) at the list entry's level, and the bar's env reads the chosen character's weapons through
+Item.bmd (model path → model index → record: code and kind B in the record's equipment slot). Those are fixture DATA
+choices: the stats follow the fixture's own DEMO rules (Elf start 22/25/20/15, five points per level), with 1,277 of
+Windleaf's 1,595 points on agility. No check, formula or combat rule changed; the cast runs RENDER-EFFECTS-014/015's
+local ground volley and sends nothing. [Proofs and checks](../handoffs/APP-POLISH-005.md).

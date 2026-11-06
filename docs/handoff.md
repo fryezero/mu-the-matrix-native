@@ -24,6 +24,8 @@ RENDER-WORLDS-S PR-ready: Aquila's Temple (145) and Debenter (95) primary create
 
 TEST-SPEED-002 PR-ready: meshdraw 367.99 → 57.21 s warm with byte-identical reports, 4/4 controls and a caught compiled C mutation; fifteen native build rows use target dependencies. Six-PR selection replay has zero identified misses. [Checks, commands and limits](handoffs/TEST-SPEED-002.md).
 
+APP-POLISH-005 PR-ready: the offline Elf Windleaf (Lorencia field) casts ground skill 2044 through the bar: session 'skills'/'hero' lines feed the fixture's skill list, hotkeys and join stats; the usability check reads the character's Item.bmd weapons; mu-client prints an effects line (sound cues, 0x70a/0x70c/rings maxima, decals). Proof: cast ok, 121 effects, 11 live 0x70c, 66 rings, 2 cues. [Handoff](handoffs/APP-POLISH-005.md).
+
 APP-POLISH-004 PR-ready: the window title drops the scene/fps suffix (diagnostic behind --title-stats; the original's name is MU, CreateWindowExW 0x01211646/86). Inventory icons use the original's ItemTRSData 0x06fbb624 (Lang.mpr, find 0x011204db) instead of itemtrsdata.bmd x 200: wing 0x19ab 0.55 -> 0.44; the original neither clips nor bounds-fits, so its left-edge overlap stays. validate_app_polish4 10,485 cases, 0 mismatches. scripts/guarded_run.py keeps the network guard under nice. Needs itemtrs.tsv in the next refresh. [Handoff](handoffs/APP-POLISH-004.md)
 
 APP-POLISH-003 PR-ready: the level-1 Dark Knight fixture joins with recorded full vitals 1100/200/52/25; session HUD maxima need no progression fallback. Toxic states 0x37/0x136 select the original green HP bitmap through the display fixture. Buff replication remains open. [Evidence and limits](research/client-app-polish3.md), [checks](handoffs/APP-POLISH-003.md).
@@ -161,6 +163,7 @@ APP-REFRESH-002: [app refresh 2, Native Data inputs and installation](handoffs/A
 APP-REFRESH-003: [journey proofs, windowed report, stale-client fix, installation](handoffs/APP-REFRESH-003.md).
 APP-REFRESH-004: [reinstall from 32b7f34d, new Native Data with mapanim, proofs, rollback](handoffs/APP-REFRESH-004.md).
 APP-REFRESH-005: [reinstall from 7d7d694b, Native Data kept, HUD/Hound/item/bow/world proofs, rollback](handoffs/APP-REFRESH-005.md).
+APP-POLISH-005: [Elf ground skill 2044 in the offline demo, effects report](handoffs/APP-POLISH-005.md).
 APP-REFRESH-006: [reinstall from 7e6a9292, Native Data with itemtrs.tsv, title/icon/ground-skill/Kubera/body proofs, rollback](handoffs/APP-REFRESH-006.md).
 PLAY-FIX-001: [world-change clear, audio output limiter, map-name check](handoffs/PLAY-FIX-001.md).
 
