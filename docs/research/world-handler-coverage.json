@@ -278,21 +278,21 @@
       "handlers": {
         "create": {
           "entry": "0xdc6fab",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases, compiled mutants. No predicate; types 0x73/0x75, 0x81..0x84 (and 72: type 10). Same body for 69..72 apart from the predicate and the class deltas. See client-worlds-s3.md.",
+          "source": "reconstructed/objects/imperial_guardian.c"
         },
         "move": {
           "entry": "0xdc7136",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases, compiled mutants. Second alpha step, the class tick (type speeds) and the post-tick cases with the class static of type 20 (an explicit input, zero at load). Same body for 69..72 apart from the predicate and the class deltas. See client-worlds-s3.md.",
+          "source": "reconstructed/objects/imperial_guardian.c"
         },
         "visual": {
           "entry": "0xdc73d0",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases, compiled mutants. Split into bone/frame/emitter families for 69 and 72. Joint 0x7fd5 subtype 5 and the 0x7f42 word4 effect are recorded; native: refused or owned_effect. Same body for 69..72 apart from the predicate and the class deltas. See client-worlds-s3.md.",
+          "source": "reconstructed/objects/imperial_guardian.c"
         },
         "custom_render": {
           "entry": "0xdc8b33",
@@ -330,21 +330,21 @@
       "handlers": {
         "create": {
           "entry": "0xdd3c76",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases, compiled mutants. No predicate; types 0x73/0x75, 0x81..0x84 (and 72: type 10). Same body for 69..72 apart from the predicate and the class deltas. See client-worlds-s3.md.",
+          "source": "reconstructed/objects/imperial_guardian.c"
         },
         "move": {
           "entry": "0xdd3e01",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases, compiled mutants. Second alpha step, the class tick (type speeds) and the post-tick cases with the class static of type 20 (an explicit input, zero at load). Same body for 69..72 apart from the predicate and the class deltas. See client-worlds-s3.md.",
+          "source": "reconstructed/objects/imperial_guardian.c"
         },
         "visual": {
           "entry": "0xdd4097",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases, compiled mutants. Split into bone/frame/emitter families for 69 and 72. Joint 0x7fd5 subtype 5 and the 0x7f42 word4 effect are recorded; native: refused or owned_effect. Same body for 69..72 apart from the predicate and the class deltas. See client-worlds-s3.md.",
+          "source": "reconstructed/objects/imperial_guardian.c"
         },
         "custom_render": {
           "entry": "0xdd57fa",
@@ -382,21 +382,21 @@
       "handlers": {
         "create": {
           "entry": "0xdd8d6d",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases, compiled mutants. No predicate; types 0x73/0x75, 0x81..0x84 (and 72: type 10). Same body for 69..72 apart from the predicate and the class deltas. See client-worlds-s3.md.",
+          "source": "reconstructed/objects/imperial_guardian.c"
         },
         "move": {
           "entry": "0xdd8ef8",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases, compiled mutants. Second alpha step, the class tick (type speeds) and the post-tick cases with the class static of type 20 (an explicit input, zero at load). Same body for 69..72 apart from the predicate and the class deltas. See client-worlds-s3.md.",
+          "source": "reconstructed/objects/imperial_guardian.c"
         },
         "visual": {
           "entry": "0xdd9192",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases, compiled mutants. Split into bone/frame/emitter families for 69 and 72. Joint 0x7fd5 subtype 5 and the 0x7f42 word4 effect are recorded; native: refused or owned_effect. Same body for 69..72 apart from the predicate and the class deltas. See client-worlds-s3.md.",
+          "source": "reconstructed/objects/imperial_guardian.c"
         },
         "custom_render": {
           "entry": "0xdda8f5",
@@ -434,21 +434,21 @@
       "handlers": {
         "create": {
           "entry": "0xdde9e0",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases, compiled mutants. No predicate; types 0x73/0x75, 0x81..0x84 (and 72: type 10). Same body for 69..72 apart from the predicate and the class deltas. See client-worlds-s3.md.",
+          "source": "reconstructed/objects/imperial_guardian.c"
         },
         "move": {
           "entry": "0xddeb8a",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases, compiled mutants. Second alpha step, the class tick (type speeds) and the post-tick cases with the class static of type 20 (an explicit input, zero at load). Same body for 69..72 apart from the predicate and the class deltas. See client-worlds-s3.md.",
+          "source": "reconstructed/objects/imperial_guardian.c"
         },
         "visual": {
           "entry": "0xddee5e",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases, compiled mutants. Split into bone/frame/emitter families for 69 and 72. Joint 0x7fd5 subtype 5 and the 0x7f42 word4 effect are recorded; native: refused or owned_effect. Same body for 69..72 apart from the predicate and the class deltas. See client-worlds-s3.md.",
+          "source": "reconstructed/objects/imperial_guardian.c"
         },
         "custom_render": {
           "entry": "0xde08df",
@@ -1062,21 +1062,21 @@
       "handlers": {
         "create": {
           "entry": "0xe1e989",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method; 1000 original-instruction cases, compiled mutants. Byte-identical to Loren Market's slot except the predicate world == 114 (create: no predicate, the same body). See client-worlds-s3.md.",
+          "source": "reconstructed/objects/loren_market.c"
         },
         "move": {
           "entry": "0xe1ea5c",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method; 1000 original-instruction cases, compiled mutants. Byte-identical to Loren Market's slot except the predicate world == 114 (create: no predicate, the same body). See client-worlds-s3.md.",
+          "source": "reconstructed/objects/loren_market.c"
         },
         "visual": {
           "entry": "0xe1ef15",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method; 1000 original-instruction cases, compiled mutants. Byte-identical to Loren Market's slot except the predicate world == 114 (create: no predicate, the same body). See client-worlds-s3.md.",
+          "source": "reconstructed/objects/loren_market.c"
         },
         "custom_render": {
           "entry": "0xe1f6ca",
@@ -1426,21 +1426,21 @@
       "handlers": {
         "create": {
           "entry": "0xd585b0",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method; 1000 original-instruction cases, compiled mutants. No predicate; create effects 0x1ab..0x1ad, move blend light/HiddenMesh, visual particles. See client-worlds-s3.md.",
+          "source": "reconstructed/objects/test_area.c"
         },
         "move": {
           "entry": "0xd58809",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method; 1000 original-instruction cases, compiled mutants. No predicate; create effects 0x1ab..0x1ad, move blend light/HiddenMesh, visual particles. See client-worlds-s3.md.",
+          "source": "reconstructed/objects/test_area.c"
         },
         "visual": {
           "entry": "0xd58888",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method; 1000 original-instruction cases, compiled mutants. No predicate; create effects 0x1ab..0x1ad, move blend light/HiddenMesh, visual particles. See client-worlds-s3.md.",
+          "source": "reconstructed/objects/test_area.c"
         },
         "custom_render": {
           "entry": "0xd58bd8",
