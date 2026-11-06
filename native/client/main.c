@@ -18,7 +18,10 @@
  *   NATIVE-APP-001: --combat --items --npc [--npc-demo FILE] --no-names --no-env
  *             --no-particles pass mu-world's features to the world scene;
  *             --label TEXT replaces the offline label's first line and
- *             --title TEXT the window title's prefix (the preview app)
+ *             --title TEXT the window title (the preview app)
+ *   APP-POLISH-004: the window title is --title, else the original's "MU"; the
+ *             scene and frame-rate suffix only with --title-stats or
+ *             MU_TITLE_STATS=1 (a diagnostic)
  *
  * Headless actions (frame numbers count dispatcher passes): enter, esc, left,
  * right, tab, back, text:STRING, click:group:N, click:server:N, click:X,Y,
@@ -86,6 +89,24 @@
 #define MAX_ACTIONS MU_INPUT_SCRIPT_MAX
 typedef mu_input_action action;
 
+/* APP-POLISH-004: the original creates its window with the name L"MU" (wstring 0x01ac7a88 built at
+ * 0x012114e0; CreateWindowExW 0x01211646 / 0x01211686 pass it as class and window name; "_BATTLE_CORE"
+ * 0x01ac7a90 is appended at 0x01211504 for that server mode). Its only SetWindowTextW, 0x010aef4b, rewrites the
+ * same name (+ " onStreaming") when streaming mode toggles. The scene/frame-rate suffix is a native diagnostic. */
+#define MU_WINDOW_TITLE "MU"
+
+#ifndef MU_CLIENT_NO_GL
+static void window_title(char *out, size_t size, const char *title, int stats, int scene, double fps)
+{
+    static const char *names[8] = {"", "", "title", "login", "loading", "character select", "world", ""};
+    const char *base = title ? title : MU_WINDOW_TITLE;
+    if (stats)
+        snprintf(out, size, "%s  scene %d %s  %.1f fps", base, scene, names[scene & 7], fps);
+    else
+        snprintf(out, size, "%s", base);
+}
+#endif
+
 typedef struct front {
     mu_perf perf;
     const char *root, *session, *out_dir, *backend, *wav_path, *font;
@@ -102,6 +123,7 @@ typedef struct front {
     int input_actions;
     int double_click;                 /* the scripted click is a double click */
     const char *label, *title;                                 /* NATIVE-APP-001 */
+    int title_stats;                                           /* APP-POLISH-004 */
     int32_t width, height, frames, every, headless, audio, quiet, autoplay;
     int32_t hold_scene;               /* NATIVE-PERF-001: --hold SCENE stops the autoplay there (0: never) */
     const char *perf_path;            /* NATIVE-PERF-001: --perf FILE, --perf-sync */
@@ -999,7 +1021,7 @@ static int windowed(front *f)
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     /* NATIVE-PERF-001: resizable, with macOS full screen (the green button; Ctrl-Cmd-F) in its own Space */
     SDL_SetHint(SDL_HINT_VIDEO_MAC_FULLSCREEN_SPACES, "1");
-    f->window = SDL_CreateWindow(f->title ? f->title : "Mu The Matrix (native, offline demo)", SDL_WINDOWPOS_CENTERED,
+    f->window = SDL_CreateWindow(f->title ? f->title : MU_WINDOW_TITLE, SDL_WINDOWPOS_CENTERED,
                                  SDL_WINDOWPOS_CENTERED, f->width, f->height,
                                  SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
     if (f->window) {
@@ -1183,15 +1205,12 @@ static int windowed(front *f)
         if (mu_perf_enabled(&f->perf))
             mu_perf_add(&f->perf, MU_PERF_SLEEP, mu_perf_now() - perf);
         mu_perf_frame(&f->perf, mu_shell_scene(f->shell));
-        if (frames % 25 == 0) {
-            static const char *names[8] = {"", "", "title", "login", "loading", "character select", "world", ""};
+        if (f->title_stats && frames % 25 == 0) {
             char title[400];
-            int scene = mu_shell_scene(f->shell);
             /* NATIVE-PERF-001: the rate of the last 25 frames (the run's average counted the loading) */
             uint32_t t = SDL_GetTicks();
-            snprintf(title, sizeof title, "%s  scene %d %s  %.1f fps",
-                     f->title ? f->title : "Mu The Matrix (native, OFFLINE DEMO)", scene, names[scene & 7],
-                     (double)(frames - fps_frames) * 1000.0 / (double)(t - fps_start + 1));
+            window_title(title, sizeof title, f->title, 1, mu_shell_scene(f->shell),
+                         (double)(frames - fps_frames) * 1000.0 / (double)(t - fps_start + 1));
             fps_start = t;
             fps_frames = frames;
             SDL_SetWindowTitle(f->window, title);
@@ -1233,7 +1252,7 @@ static int usage(void)
             "                 [--gfx DIR [--gfx-open inventory,character] [--gfx-log FILE]]\n"
             "                 [--combat] [--items] [--npc] [--npc-demo FILE] [--no-names] [--no-env] [--no-particles]\n"
             "                 [--progress]   experience, levels and stat points (demo server)\n"
-            "                 [--label TEXT] [--title TEXT] [--store FILE | --no-store]\n"
+            "                 [--label TEXT] [--title TEXT] [--title-stats] [--store FILE | --no-store]\n"
             "                 [--fullscreen] [--perf FILE [--perf-sync]] [--hold SCENE] [--cpu-overlay | --gpu-overlay]\n");
     return 2;
 }
@@ -1256,10 +1275,13 @@ int main(int argc, char **argv)
 #else
     f.backend = "gl";
 #endif
+    const char *title_stats = getenv("MU_TITLE_STATS");   /* APP-POLISH-004: diagnostic title suffix */
+    f.title_stats = title_stats && !strcmp(title_stats, "1");
     for (int i = 1; i < argc; ++i) {
         const char *k = argv[i], *v = i + 1 < argc ? argv[i + 1] : NULL;
         if (!strcmp(k, "--headless")) { f.headless = 1; continue; }
         if (!strcmp(k, "--quiet")) { f.quiet = 1; continue; }
+        if (!strcmp(k, "--title-stats")) { f.title_stats = 1; continue; }   /* APP-POLISH-004 */
         if (!strcmp(k, "--no-audio")) { f.audio = 0; continue; }
         if (!strcmp(k, "--auto")) { f.autoplay = 1; continue; }
         if (!strcmp(k, "--combat")) { f.world.combat = 1; continue; }   /* NATIVE-APP-001 */
