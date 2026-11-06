@@ -111,8 +111,11 @@ static void normalize3(float v[3])
     v[2] = v[2] * k;
 }
 
+#include "bow_joints.inc"
+
 int mu_jt_kind_supported(int32_t type, int32_t subtype)
 {
+    if (bow_joint_kind(type, subtype)) return 1;
     switch (type) {
     case 0x472: return subtype == 1;
     case MU_JT_BITMAP_ENERGY:
@@ -275,6 +278,10 @@ int mu_jt_create(mu_jt_joint *j, int32_t type, const float position[3], const fl
         joint_cross(j, m, 0);
     }
     int supported = mu_jt_kind_supported(type, subtype);
+    if (bow_joint_kind(type, subtype)) {
+        create_bow_joint(j, scale, target_position, env);
+        return 1;
+    }
     switch (type) {
     case 0x472: {
         if (!supported) break;
@@ -711,6 +718,7 @@ int mu_jt_move(mu_jt_joint *j, const mu_jt_env *env, const mu_jt_move_inputs *in
         }
     }
     const mu_jt_object *t = jobject(env, j->target);
+    if (bow_joint_kind(j->type, j->subtype) && move_bow_joint(j, env)) return 1;
     switch (j->type) {
     case 0x472:
         if (j->target < 0) break;
@@ -1089,6 +1097,13 @@ int mu_jt_render(const mu_jt_joint *j, uint8_t mode, float world_time, const mu_
             default:
                 break;
             }
+            gl_color(gl, j->light[0] * f, j->light[1] * f, j->light[2] * f);
+        }
+        if (j->type != MU_JT_TYPE_THUNDER_BOLT &&
+            ((j->type == 0x7fde && j->subtype >= 0 && j->subtype <= 4) ||
+             (j->subtype >= 0xb && j->subtype <= 0xd))) {
+            /* 0x0158b39f: includes Flare02/12, after the thunder-bolt colour branch. */
+            const float f = (float)(j->num_tails - 1 - i) / (float)j->max_tails * 2.0f;
             gl_color(gl, j->light[0] * f, j->light[1] * f, j->light[2] * f);
         }
         float v0 = 0.0f, v1 = 1.0f;

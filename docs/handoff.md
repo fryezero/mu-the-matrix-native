@@ -2,6 +2,8 @@
 
 RENDER-ITEMS-HIDDENMESH: the body executor copies OBJECT +0x68 and native item callers use ItemObjectAttribute values. All 182 reader recipes are updated, including the 23 formerly white types; the survey is 36 to 13 white types, and 23 to 0 with a wearer. The additional visibility changes are intentional; non-reading types and all 4,758 mesh texture slots stay identical. Body coverage stays 1,219/1,674. [Changed types, checks and limits](handoffs/RENDER-ITEMS-HIDDENMESH.md).
 
+RENDER-EFFECTS-012 PR-ready: ten bow joint kinds, multishot02/1 and the gunbow's white model colour. The 33 bows' unsupported requests fall 77 → 27, with 119 arrows retained. Four joint kinds remain refused; ground-skill children/route, the decal, Uruk weather and Muun owners remain. [Finding](research/client-render-effects-012.md), [handoff](handoffs/RENDER-EFFECTS-012.md).
+
 APP-POLISH-002 PR-ready: the world HUD displays session HP/MP/SD/AG and stops its demo animation; missing offline maxima use the existing progression view. Original setHPMP body and base viewport: 1,028 cases, 0 mismatches, 10/10 mutants. Main HUD 1:1 at 1504×936 is supported by base noScale and Main.onResize. [Checks and limits](handoffs/APP-POLISH-002.md).
 
 APP-POLISH-001 PR-ready: original-instruction evidence retains opaque ordinary body shadows and Warps scaling; demo Hound moved farther from the field arrival, quoted launcher arguments and root manifest tests fixed. Main HUD scaling and animated demo vitality remain open. [Checks and limits](handoffs/APP-POLISH-001.md).

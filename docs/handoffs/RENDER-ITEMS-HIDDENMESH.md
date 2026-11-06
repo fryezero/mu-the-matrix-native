@@ -113,6 +113,12 @@ Pinned text SHA-256 `2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc
 | Portable renderchar suite | 78 tests, 59 pass, 19 private skips | 0.31 s |
 | Native item textures/renderchar/items/HUD/inventory skin/character modules | 43/43 tests pass, private installed checks enabled | 101.26 s |
 
+The shared-symbol scan covered `object_hidden`, `mu_rc_item_draws_context`, `mu_rc_item_draws`,
+`mu_renderchar_draw_item` and `mu_item_textures_overrides`. Besides the renderchar suite, it selected native
+modules `test_native_item_textures`, `test_native_renderchar`, `test_native_items`, `test_native_hud`,
+`test_inventory_skin`, `test_native_character`, `test_native_actor`, `test_native_players`,
+`test_native_helpers` and `test_native_combat`.
+
 The full new row comprises 1,691 initializer cases, 13,432 affected-texture cases, 93,148 additional-reader
 cases, 7,592 non-reading controls and 418 posed rank-5 controls. Every reader gets 292 states at 0 and -1;
 0x10f0 also gets all 292 at 1. Legacy random services are held at zero as described under limits.
