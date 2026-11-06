@@ -7,8 +7,10 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from test_native_hud import synthetic_root, run, TOOL
-from native_fixtures import write_textured_model, synthetic_layout, tga
+# Support both package invocation from the repository root and suite discovery (APP-POLISH-004).
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from test_native_hud import synthetic_root, run, TOOL  # noqa: E402
+from native_fixtures import write_textured_model, synthetic_layout, tga  # noqa: E402
 
 NATIVE = Path(__file__).resolve().parents[1]
 
