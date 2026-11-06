@@ -47,7 +47,7 @@ MUTANTS = [
     ('bow_joints.inc', '(fcos((float)w * 0.01f) * 25.0f + t->impact[k])', '(fcos((float)w * 0.01f) * 25.0f + t->position[k])',
      'joint_move'),
     ('bow_joints.inc', '(uint32_t)((int32_t)c / 10)', '(uint32_t)((int32_t)c / 100)', 'joint_move'),
-    ('bow_joints.inc', 'if (j->skill == 1) {', 'if (j->skill != 0) {', 'joint_move'),
+    ('bow_joints.inc', 'if (j->skill == 1) {   /* 0x0157a6cb', 'if (j->skill != 0) {   /* 0x0157a6cb', 'joint_move'),
     ('bow_joints.inc', 'const float light[3] = {0.3f, 0.3f, 0.5f}; /* Flare/b sprites */',
      'const float light[3] = {0.5f, 0.5f, 1.0f}; /* Flare/b sprites */', 'joint_move'),
     ('bow_joints.inc', '(n == 0 ? F_0_1 : f32bits(0x3e3851ecu))', '(n == 0 ? F_0_1 : F_0_1)', 'joint_move'),
@@ -303,12 +303,12 @@ def family_owner_flag(m, lib, rng, cases, report, negatives):
 def fx_compare(text, data, lib, name, cases, seed='effects14-fx-'):
     """re11's CreateEffect / MoveEffect comparison on 0x70c's rings and stones; 0x706 writes +0xb0 too."""
     import validate_render_effects7 as re7
-    saved = re7.MOVE_DEFINED
-    re7.MOVE_DEFINED = saved | {'blend_v'}
+    saved = re7.MOVE_DEFINED, jt.am.STACK_BYTES, jt.am.ENTRY_ESP   # re9.machine enlarges the shared stack
+    re7.MOVE_DEFINED = saved[0] | {'blend_v'}
     try:
         return re11.fx_compare(text, data, lib, name, FX_KINDS, cases, seed)
     finally:
-        re7.MOVE_DEFINED = saved
+        re7.MOVE_DEFINED, jt.am.STACK_BYTES, jt.am.ENTRY_ESP = saved
 
 
 def compile_skill_mutant(directory, name, file, old, new):
@@ -394,7 +394,7 @@ def main():
     mutants = []
     if a.mutations and equal:
         jt.MUTANTS = MUTANTS
-        mutants = jt.run_mutants(m, 120, 20261114)
+        mutants = jt.run_mutants(jt.sf.FxMachine(text, data), 120, 20261114)   # a fresh machine after re9's
         with tempfile.TemporaryDirectory(prefix='effects14-mutants-') as tmp:
             for name, old, new, family in PT_MUTANTS:
                 ml = re11.compile_pt_mutant(Path(tmp), name, 'particles.c', old, new)
