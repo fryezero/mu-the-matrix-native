@@ -2747,3 +2747,19 @@ args = ["--text", "{text}", "--data", "{data}", "--section3", "{section3}", "--c
 "families.viewport.cases" = 60
 "families.*.mismatches" = 0
 "mutants.*" = true
+
+[validate_app_polish2]
+test = "native/tests/test_app_polish2.py::AppPolish2.test_original_body"
+pins = ["text", "data", "section3"]
+needs = ["cc"]
+cases = 1028
+cases_at = "cases"
+mutants = 10
+mutants_at = "mutants_caught"
+note = "Compiles production hero getter, world_gfx vitality adapter and GFx layer; generates portable layout headers in its temporary directory"
+args = ["--text", "{text}", "--data", "{data}", "--section3", "{section3}", "--cases", "1024", "--mutants", "--out", "{report}"]
+[validate_app_polish2.expect]
+cases = 1028
+mismatches = 0
+equivalent = 0
+"mutants_caught" = {len = 10}
