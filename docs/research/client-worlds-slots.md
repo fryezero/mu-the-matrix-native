@@ -103,20 +103,20 @@ and Vulcanus' 0x842..0x848. `glColor3fv(model +0x54)` changes no value. C:
 
 | Class | Slot | Range | Body SHA-256 (16) | What it does |
 |---|---|---|---|---|
-| Loren Market 79 / Event square 114 | custom | `0x00e6ce2d..0x00e6d062` / `0x00e1f6ca..0x00e1f8ff` | see the report | 8, 0x1e: `+0xa = 1`, answer yes, no draw; 0x32: meshes 0/1/3, mesh 2 blend −2 at `BL·min(wave(−1.2)+0.4, 1)` |
-| | after | `0x00e6d062..0x00e6d343` / `0x00e1f8ff..` | | 8: meshes 2..4 (u, v 0), mesh 1 flags 0x42 v-scroll `(−T % 10000)·0.001`, mesh 0 flags 0x42 `sin` waves; 0x1e: RenderBody; 0x44: mesh 0 flags 0x42 |
-| Vulcanus 63 | custom | `0x00e8f515..0x00e8ff20` | | 0xf: StreamMesh 0, body v-scroll; 0x43/0x44: StreamMesh 1 body, mesh 0, red 0x44 glow (alpha 0.2), two sprites 0x7ef7 on bone 6 (origin and −350 z), scale·5; 0x43: frame 35..37 sets `+0x54 = −1`; at frames 1..2 with `+0x54 ≠ 1` the frame resets to 1 and `rand%1000 < 2` opens (1); spark 0x7f5a from bone 4 (−150, 0, 0) at frames 35..50, sub 0x3f; 0x44: two `rand%20 − 30` offsets, spark sub 0x12 at frames 7..13; 0x46: answer yes |
-| | after | `0x00e8ff20..0x00e90041` | | 0x10: RenderBody blend 0, light `(sin(T·0.002)+1)·0.5`; 0x46: RenderBody |
-| Ferea 112 | custom | `0x00de8a10..0x00de9ea9` | | 0x27 door: meshes at alpha 1, v ± 0.1 for actions 1/2 written to the object, StreamMesh 3; 0x2b/0x33/0x72 answer yes; 0x7b statue: `hs_statueB` 0x8225 while the handler's door state (+0x48) is 2 or 3; 0x4b/0x51, 0x57/0x5f, 0x73, 0x8a, 0x99..0x9b glows and scrolls (one double-precision blend in 0x9a) |
-| | after | `0x00de9eab..0x00dea4d2` | | 0x2b/0x33 bodies; 0x4b/0x51, 0x57, 0x72, 0x99 (the client passes U as v for mesh 2), 0x9b scrolls `(T % n)·1e-4·k·2 − 1` |
-| Swamp of Darkness 122 | custom | `0x00e54752..0x00e553e4` | | 0x27/0x29/0x70 answer yes; 0x3b, 0x58, 0x6b..0x6d glows (1/3/3/2), 0x7b..0x80 glows, 0x7e Chrome09 0x8245 reflection (flags 6), 0x83..0x85 crocodiles: body and three `hsCrocodileA_R` 0x8273 glows |
-| | after | `0x00e555d2..0x00e55911` | | 0x27/0x29, 0x58/0x6b, 0x6c glows; 0x70: RenderBody at `wave(−0.6)·0.5+0.5` |
-| Kubera 123..127 | custom | `0x00e1a5df..0x00e1b5f9` | | 15 types answer yes; 0x2f/0x34 gem mesh 5/7 scrolls while action 1 (backwards) or 3 plays from frame 3 to the last key; 0x4c, 0x8c glows; 0x71..0x75 the world's crystal bitmaps (handler +0x1c..+0x34), then chrome 0x829a with flags 0x20000; 0x8b handler +0x24 |
-| | after | `0x00e1b6f5..0x00e1beef` | | bodies; gates 0x6d/0x76..0x79 (per-type colour bitmaps on meshes 8/9, glow on 0xd); 0xa0 with the handler's +0x38..+0x48; 0x86 glows |
-| Twisted Karutan 142 / Kardamahal 143 / Swamp of Destruction 144 | invisible | `0x00e673b4` / `0x00e0e539` / `0x00e46a9f` | | TestFrustrum2D(x·0.01, y·0.01, range) for their own types (0xa0/0xa1; 0x71/0x80 after a null-object test; 68 types, 0x8d listed twice) |
-| 145 | invisible | `0x00d7565d` | | answers the object's last render visibility (+0xb) |
+| Loren Market 79 / Event square 114 | custom | `0x00e6ce2d..0x00e6d062` / `0x00e1f6ca..0x00e1f8ff` | `aa98d5c680ad790a` / `54cfd6fadc327b77` | 8, 0x1e: `+0xa = 1`, answer yes, no draw; 0x32: meshes 0/1/3, mesh 2 blend −2 at `BL·min(wave(−1.2)+0.4, 1)` |
+| | after | `0x00e6d062..0x00e6d345` / `0x00e1f8ff..0x00e1fbe2` | `24de4a06fc59ab78` / `e18fe2afff65875a` | 8: meshes 2..4 (u, v 0), mesh 1 flags 0x42 v-scroll `(−T % 10000)·0.001`, mesh 0 flags 0x42 `sin` waves; 0x1e: RenderBody; 0x44: mesh 0 flags 0x42 |
+| Vulcanus 63 | custom | `0x00e8f515..0x00e8ff20` | `77d616ffc22bdbf5` | 0xf: StreamMesh 0, body v-scroll; 0x43/0x44: StreamMesh 1 body, mesh 0, red 0x44 glow (alpha 0.2), two sprites 0x7ef7 on bone 6 (origin and −350 z), scale·5; 0x43: frame 35..37 sets `+0x54 = −1`; at frames 1..2 with `+0x54 ≠ 1` the frame resets to 1 and `rand%1000 < 2` opens (1); spark 0x7f5a from bone 4 (−150, 0, 0) at frames 35..50, sub 0x3f; 0x44: two `rand%20 − 30` offsets, spark sub 0x12 at frames 7..13; 0x46: answer yes |
+| | after | `0x00e8ff20..0x00e90043` | `3b7ed0e85550740a` | 0x10: RenderBody blend 0, light `(sin(T·0.002)+1)·0.5`; 0x46: RenderBody |
+| Ferea 112 | custom | `0x00de8a10..0x00de9eab` | `bb8a4ef7bee0c831` | 0x27 door: meshes at alpha 1, v ± 0.1 for actions 1/2 written to the object, StreamMesh 3; 0x2b/0x33/0x72 answer yes; 0x7b statue: `hs_statueB` 0x8225 while the handler's door state (+0x48) is 2 or 3; 0x4b/0x51, 0x57/0x5f, 0x73, 0x8a, 0x99..0x9b glows and scrolls (one double-precision blend in 0x9a) |
+| | after | `0x00de9eab..0x00dea4d4` | `a056ef94e063a7fc` | 0x2b/0x33 bodies; 0x4b/0x51, 0x57, 0x72, 0x99 (the client passes U as v for mesh 2), 0x9b scrolls `(T % n)·1e-4·k·2 − 1` |
+| Swamp of Darkness 122 | custom | `0x00e54752..0x00e553e4` | `28a5637fa04ad931` | 0x27/0x29/0x70 answer yes; 0x3b, 0x58, 0x6b..0x6d glows (1/3/3/2), 0x7b..0x80 glows, 0x7e Chrome09 0x8245 reflection (flags 6), 0x83..0x85 crocodiles: body and three `hsCrocodileA_R` 0x8273 glows |
+| | after | `0x00e555d2..0x00e55913` | `0a095ebf9725fa6e` | 0x27/0x29, 0x58/0x6b, 0x6c glows; 0x70: RenderBody at `wave(−0.6)·0.5+0.5` |
+| Kubera 123..127 | custom | `0x00e1a5df..0x00e1b5fb` | `9110a246bbbd63f5` | 15 types answer yes; 0x2f/0x34 gem mesh 5/7 scrolls while action 1 (backwards) or 3 plays from frame 3 to the last key; 0x4c, 0x8c glows; 0x71..0x75 the world's crystal bitmaps (handler +0x1c..+0x34), then chrome 0x829a with flags 0x20000; 0x8b handler +0x24 |
+| | after | `0x00e1b6f5..0x00e1bef1` | `fb8afd251e261f9c` | bodies; gates 0x6d/0x76..0x79 (per-type colour bitmaps on meshes 8/9, glow on 0xd); 0xa0 with the handler's +0x38..+0x48; 0x86 glows |
+| Twisted Karutan 142 / Kardamahal 143 / Swamp of Destruction 144 | invisible | `0x00e673b4..0x00e67447` / `0x00e0e539..0x00e0e5d6` / `0x00e46a9f..0x00e46e94` | `3bee1d43aabaea50` / `2b33635e3352636b` / `2040a4ed9135dcf6` | TestFrustrum2D(x·0.01, y·0.01, range) for their own types (0xa0/0xa1; 0x71/0x80 after a null-object test; 68 types, 0x8d listed twice) |
+| 145 | invisible | `0x00d7565d..0x00d75679` | `7e0687d9479c4efb` | answers the object's last render visibility (+0xb) |
 
-The body hashes are in the validator report (`bodies`, every slot range and SHA-256); they are pinned by the text pin.
+Body hashes are the first 16 hex digits of the SHA-256 of the range in the pinned text. The validator report's `bodies` also hashes the trivial bodies (62/64 after `d2d92841c8cbf889`, the base after the same, 64 custom `5f5cfddef3393279`, base custom `6c2b4d37b00242c4`, base invisible move `8fe906e7160a7e38`).
 
 **Handler state (verified).**
 - Kubera's slots read the handler words +0x1c..+0x48. The class loader `0x00e18efb` (slot 0x24) writes them per world
@@ -194,7 +194,30 @@ A later lane should check each branch against `0x017f9758`'s model gate.
 
 ## 6. Fidelity
 
-FIDELITY-PLACEHOLDER
+Base = origin/main `b8645181` (its `mu-world`, taken once), lane = `b2ac02f0` (the lane code; the later main merge
+brought only combat code). Inputs: the DATA-ACQ-002 arrival tiles (32 captures, 25 steps, 1722 × 1048, default draw,
+`MU_LANG_DIR` as AFTER5) and the October 22 fourteen-view tour. Comparison: PNG frames, comparison images, OBJECT dumps
+and light dumps per map. The live clock ran for the worlds this lane can change.
+
+| Capture | Image mean \|Δ\| (default / live clock) | Share > 24 | Static field differences vs live | First-pass draws | Why it changed |
+|---|---|---|---|---|---|
+| 123 Kubera | **4.321 → 2.037** / 4.321 → 1.967 | 0.0474 → 0.0105 | 0 → 0 | 108 → 101 | 7 flagged objects leave the first pass; the crystals, gates and gems draw with their slot bitmaps |
+| 122 Swamp of Darkness | **1.709 → 1.543** / 1.704 → 1.528 | 0.0113 → 0.0086 | 0 → 0 | 103 → 100 | the custom glows and after-pass bodies |
+| 79b Event square (world 79) | **3.604 → 3.545** / 3.637 → 3.568 | 0.0171 → 0.0165 | after-character **3 → 0** | 122 → 119 | types 8/0x1e flagged (+0xa) and drawn by the after slot |
+| 79 Loren Market | 4.361 = (frame identical) / 4.382 = | 0.0389 = | after-character **1 → 0** | 99 → 98 | one type-0x1e object gets +0xa (as live); the outer rand draw changes no dumped field and no pixel at this tile |
+| 142 Twisted Karutan | 7.145 → 7.143 / 6.394 → 6.393 | 0.0473 = | 0 → 0 | 803 = | slot 0x1c: 66 objects of invisible sectors (types 0xa0/0xa1 and their neighbours' lights) now move; their light copy +0x1e8 changes |
+| 143 Kardamahal | 10.299 = / 10.236 = | 0.0857 = | 0 → 0 | 280 = | slot 0x1c: 11 objects move (frame +0xd0, light copy) |
+| 144 Swamp of Destruction | 12.391 → 12.388 / 12.391 → 12.388 | 0.0229 → 0.0230 | 0 → 0 | 201 = | slot 0x1c: 2,631 objects of 68 types animate off screen (frame +0xd0) |
+
+Static field differences against the live capture stay 0 everywhere, except the after-character fields above, which
+go to 0. Near-hero frame-light means change by < 0.004 in 142..144, from the lights of the objects that now move.
+
+**Byte identity (default draw):**
+- The other 25 DATA-ACQ-002 captures are identical in PNG, OBJECT and light: 6, 38, 40, 56, 63, 91, 112, 113,
+  116..120, 128..138, 140.
+- 63 Vulcanus and 112 Ferea have slot types in their populations, but none is visible at the arrival tile (OBJECT
+  +0xb, verified on the lane's dump). Their frames and dumps are identical.
+- The October 22 tour is **14/14 identical** in PNG, OBJECT and light.
 
 ## 7. Checks
 
