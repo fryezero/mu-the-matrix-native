@@ -40,17 +40,17 @@ FAMILIES = {
 K, S2 = 'world_karutan_visual.c', 'world_slots2_visual.c'
 MUTATIONS = [
     # the custom slot 0x00e14596
-    ('No world test', K, 'if(!karutan_world(world)&&world!=102&&(world<103||world>106))return0;', '', 'custom_karutan'),
+    ('No world test', K, 'if(!karutan_world(world)&&world!=102&&(world<103||world>106))return0;', '(void)world;', 'custom_karutan'),
     ('World 102 not tested', K, 'world!=102&&', '', 'custom_karutan'),
     ('Worlds 103..107', K, 'world>106', 'world > 107', 'custom_karutan'),
     ('0x77 not flagged', K, 'case0x3f:case0x77:set_after(s);', 'case 0x3f: set_after(s);', 'custom_karutan'),
     ('0x42 from frame 18', K, '>=19.0f)', '>= 18.0f)', 'actions_karutan'),
     ('0x42 roll % 9', K, '%10==0?1:0', '% 9 == 0 ? 1 : 0', 'actions_karutan'),
-    ('0x42 not flagged', K, 'rand_context)%10==0?1:0);set_after(s);', 'rand_context) % 10 == 0 ? 1 : 0);',
+    ('0x42 not flagged', K, 'rand_context)%10==0?1:0);set_after(s);', 'rand_context) % 10 == 0 ? 1 : 0);\n        ',
      'custom_karutan'),
     ('0x81 pulse bias 0.6', K, '*0.3f+0.7f);', '* 0.3f + 0.6f);', 'custom_karutan'),
     ('0x81 wave period -2', K, 'wave(s,-2.5f)', 'wave(s, -2.0f)', 'custom_karutan'),
-    ('0x81 colour not restored', K, 'color(s,r,g,bl);', '', 'custom_karutan'),
+    ('0x81 colour not restored', K, 'color(s,r,g,bl);', '(void)r; (void)g; (void)bl;', 'custom_karutan'),
     ('0x81 without 0x85bb', K, 'BL(s),U(s),V(s),0x85bb);', 'BL(s), U(s), V(s), -1);', 'custom_karutan'),
     ('0x81 second pass flags 0x42', K, 'mesh(s,1,0x44,', 'mesh(s, 1, 0x42,', 'custom_karutan'),
     ('0x81 body hidden mesh', K, 'body(s,2,BM(s),BL(s),U(s),V(s),-1);', 'body(s, 2, BM(s), BL(s), U(s), V(s), H(s));',

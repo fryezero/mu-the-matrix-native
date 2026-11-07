@@ -377,7 +377,7 @@ MAP_MUTANTS = [
     ('aquila_bone_5', 'pose_bones, 6, 1);', 'pose_bones, 5, 1);'),
     ('aquila_unfollowed', 'pose_bones, 6, 1);', 'pose_bones, 6, 0);'),
     ('aquila_in_sector_kept', 'return mu_map_effect_matrix(out, object, in_sector, pose, pose_bones, 6, 1);',
-     'return mu_map_effect_matrix(out, object, 1, pose, pose_bones, 6, 1);'),
+     '(void)in_sector; return mu_map_effect_matrix(out, object, 1, pose, pose_bones, 6, 1);'),
 ]
 AQUILA_MUTANTS = {'aquila_bone_5', 'aquila_unfollowed', 'aquila_in_sector_kept'}
 PT_MUTANTS = [

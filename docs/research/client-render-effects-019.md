@@ -121,6 +121,8 @@ table loaded, so the change can show). Before = the main binary; after = this br
 
 - World 145 (three unfollowed records) has no capture; its Aquila slot bone (`0x0129fd4f(6)`, RENDER-WORLDS-S) still
   assumes a sector list, so an Aquila object alone in its sector would differ (static; not seen in any capture).
+  Since closed by [RENDER-WORLDS-KARUTAN](client-worlds-karutan.md) §4 (Unicorn only: the bone-6 placement and the
+  three records, compared alone and in a list).
 - A record on a bone beyond the posed model, and a follower below −1, are refused and counted (the client reads a
   stale pose or an uninitialised matrix).
 - Raklion's custom slot types 0x13..0x15 are not ported (§3). Since ported by [RENDER-WORLDS-RAKLION](client-worlds-raklion.md).
