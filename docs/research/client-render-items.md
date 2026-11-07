@@ -17,6 +17,7 @@ Part 11 reaches **967/1,674 bodies** with per-type wave/sine scalar programs; li
 [Part 14 below](#part-14-recordquality-probes-exit-model-fields-and-body-random-render-items-002n) reaches **1,213/1,674 bodies**.
 [Part 16 below](#part-16-census-of-the-455-remaining-bodies-and-derived-body-programs-render-items-002p) reaches **1,276/1,674 bodies** and groups the rest by blocker.
 [Part 17 below](#part-17-owner-effect-programs-of-the-armour-bodies-render-items-002q) reaches **1,319/1,674 bodies** with owner-effect programs.
+[Part 18 below](#part-18-pre-draw-effect-programs-on-the-items-own-bones-render-items-002r) reaches **1,345/1,674 bodies** with pre-draw programs on the item's own bones.
 Muun/map-object effect placement remains deferred. All parts run offline.
 
 ## Identity and evidence

@@ -2775,6 +2775,22 @@ args = ["--mutations", "--output", "{report}"]
 "families.refusal.cases" = 344
 "mutants.*" = {truthy = true}
 
+[validate_item_predraw]
+test = "reconstructed/renderchar/test_item_predraw.py::ItemPreDraw.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "predraw"]
+cases = 9256
+mutants = 14
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar", "reconstructed/particles"]
+args = ["--mutations", "--output", "{report}"]
+[validate_item_predraw.expect]
+"families.*.mismatches" = 0
+"families.bodies.cases" = 7592
+"families.predraw.cases" = 1664
+"mutants.*" = {truthy = true}
+
 [validate_item_hiddenmesh]
 test = "reconstructed/renderchar/test_item_hiddenmesh.py::ItemHiddenMesh.test_private_original_instructions"
 pins = ["text", "data", "flag", "feature"]
