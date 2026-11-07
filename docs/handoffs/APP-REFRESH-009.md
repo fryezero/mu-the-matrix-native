@@ -21,7 +21,10 @@ since APP-REFRESH-008 (`f2370871`):
 - #343 INVENTORY-FX: the hero's equipment in the inventory window, the icons' level/option/ext (excellent pass).
 
 **Not included:** RENDER-ITEMS-002U and RENDER-ITEMS-CLOAK. Neither had a PR or a ready line when the build started
-(09:06 CST; open PRs: none; `ready-prs.txt` ended with #343). #342 merged at about 08:53 and #343 (steward batch 77)
+(09:06 CST; open PRs: none; `ready-prs.txt` ended with #343). RENDER-ITEMS-CLOAK (#344) was opened at 09:13 and
+merged at 09:30 (main `02e4d94d`), about 25 minutes after the build, while the docs were being written. That is
+outside the ~20-minute window, so it was not rebuilt. No shipped demo character wears a cloak type (APP-POLISH-008
+left `0x2382`/`0x2394` out), so it changes no shipped demo scene. The next refresh picks it up. #342 merged at about 08:53 and #343 (steward batch 77)
 at about 09:05, while this lane waited on its private run, so both are in the build. Nothing that had merged is
 missing.
 
@@ -254,7 +257,7 @@ lanes' validators), 5–10 through the build and proofs. Memory 58–70% free. D
    then error with `KeyError` when run in the same unittest process. The runner's one-process-per-module hides it.
 6. **The cast journey's frames:** the world now starts at frame 84; scripts should move at 90 or later (above).
 7. **Retina windowed proof** (008 follow-up 1): still a 1x display here.
-8. **Not in this build:** RENDER-ITEMS-002U and RENDER-ITEMS-CLOAK (no PR at build time).
+8. **Not in this build:** RENDER-ITEMS-002U (no PR) and RENDER-ITEMS-CLOAK (#344, merged 25 minutes after the build).
 9. Still open from APP-REFRESH-006..008: the libmugfx 22 Oct build (not stale), Test Area 121 has no objects in Native
    Data, Muun/Uruk not in the demo, Arca War worlds not installed, worlds 145/95/110 draw no objects, the old export
    set and the APP-REFRESH-001/legacy Native Data folders (the owner's call).
