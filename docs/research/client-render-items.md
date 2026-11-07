@@ -2003,3 +2003,77 @@ programs could not create):
 - Player-model actors are wired like players, but no installed actor wears `0x2384`/`0x2385`.
 - Ground items now pass their angle to every pre-draw program that reads op 12 (`0x1316`, `0x22ec`, `0x230c`,
   `0x23ef`, `0x2400`, `0x2405`, `0x248f`, `0x2496` and the two cloaks); none of them is dropped in the scenes above.
+
+## Part 23, the wings' physics capes, RENDER-ITEMS-CLOAK
+
+HERO-ITEMS-001 found that the RenderObjDraw body of the cloak wings `0x2382`..`0x2385`, `0x2394` and `0x2395` (part 18)
+never draws their cape mesh, and APP-POLISH-007 showed the inventory draws only the upper meshes. The world does not
+draw that mesh either: **the cape is a physics cloth** that RenderCharacter owns per character. The installed
+models agree: `InnocenceCape.bmd`'s mesh 0 (25 vertices, `kundun_innocence2.tga`) and `SparkleCape.bmd`'s mesh 1
+(`kundun_sparkle3.tga`) are the meshes RenderObjDraw leaves out, and their textures are the cloth bitmaps below.
+
+### Call path (verified unless marked)
+
+| Step | Address | What it does |
+|---|---|---|
+| RenderCharacter `0x01363260` cloth flag | `0x01366edf..0x01367530` | `[ebp-0x4d]` = 1 for an OBJECT of type `0xa91` whose class skin (`0x0139cab9`) is 3, 0x33 or 0x43 or whose base class is 0, 4, 6, 7, 8, 9, 0xb, 0xc, 0xd or 0xf, when CHARACTER `+0x0e` is 0 (or 1 with `+0x32b0` = `0xa91`); else for wings `0x23f1`, `0x2401`, `0x24c6`; also for class indices (`+0x146`) `0x37`, `0x169`, `0x3a9`, `0x3ab..0x3ad`; cleared for the glow classes `0x0139bcdc` (`0x211..0x21b`, `0x349..0x34c`, `0x371..0x373`, `0x3c1`, `0x3d5`) and the worlds of `0x009dacb8` (`0x12..0x17`, `0x35`, `0x61`). Light `[ebp-0xc8]` = (1, 1, 1), (1, 0.1, 0.1) when CHARACTER `+0x1f` = 6. The guild-war flags `0x06fca13d`/`0x06fca13f`, the duel manager `0x01d1e028` and the hiding buff `0x009c104e(c, 2, 1)` also write it (not ported) |
+| MoveCloth `0x01362f24` | call `0x0136ab80`, every frame | for each cloth of OBJECT `+0x4c` (count `+0x3f`) with an owner: `Move2(0.005, 5)` (`0x00fd821e`); speed 0 under buffs `0x3d`, `0x48`, `0xb2`, `0x118`; a failed step deletes the cloths (`0x0137aafe`) |
+| RenderCloth `0x01363098` | call `0x0136aba2`, behind the flag; after the body parts (`0x0136a374`), before the linked items (`0x0136c33f`..) | CreateCloth `0x01357ccc` while OBJECT `+0x4c` is 0, the armour cloths `0x0135ea29` / `0x01362755`, MoveCloth again when one was made, then the draw tests `0x01362e1d` (buff `0x12`, sub-type `0x431`/`0x432`, actions `+0x2a`/`+0x2c` both `0xe4`) and `0x01362e87` (class / sub-type `0x009a0989`, class index `0x271`/`0x272`) and virtual slot 8 (Render) of each cloth with `(light, 0)` |
+| CreateCloth `0x01357ccc` | switch on CHARACTER `+0x21a4` (arg 4 = 0) | `0x2382`/`0x2383` (`0x0135b558`): one cloth, bone 19, origin (0, 16, −10), 10×10, 140×130, bitmap `0x83f6`, type `0x1005`, spheres (∓10, −2, 18, r 25) and (∓10, 0, 0, r 28) on bone 17. `0x2384`/`0x2385` (`0x0135b79f`): two cloths, origins (∓3, 20, −5), 160×150, bitmaps `0x83f7` / `0x83f8`, uv scale (0.5, 1), uv offset (0, 0) / (1, 0), push (∓0.1, ∓0.1), two spheres each. `0x2394`/`0x2395` (`0x0135c419`): as `0x2382` with origin (0, 20, −10) and bitmap `0x846b` |
+| Bitmaps | `0x018252db`, `0x018252fb`, `0x0182531b`, `0x01827699` | `0x83f6` `Item\texture\kundun_innocence2.tga` (GL_REPEAT), `0x83f7` `kundun_sparkle3.tga`, `0x83f8` `kundun_sparkle3_1.tga` (GL_CLAMP), `0x846b` `BlackCloak_3.tga` (GL_REPEAT), all GL_LINEAR |
+| Wind | frame driver `0x01851d39` (`0x01851eee..0x01851f07`) | five calls of the physics manager's step `0x00fdad7b` per logic step: wind `0x01ec981c` += (rand() % 200 − 100) × 0.001, clamped to [−0.2, 1] |
+
+### The cloth (CPhysicsCloth, vtable `0x01ab2780`, 0xe8 bytes; vertices 0x3c bytes, vtable `0x01ab2758`)
+
+- **Create** (slot 2, `0x00fd6e60`): a rows × columns grid; row y is tapered to (0.6 + 0.4y/(rows−1)) of the width for
+  type `& 0xc` = 4 and dropped by 10·(2|x/(cols−1) − 0.5|)² for type `& 3` = 1, placed with AngleMatrix(OBJECT angles)
+  and the owner bone's translation through TransformPosition `0x012b6ef1`. Springs: vertical (flags 2|4), horizontal
+  (3), both diagonals (1; the second only from row 2), rest length = the distance, minimum 0.8 of it. The top row is
+  fixed by SetFixed (slot 4, `0x00fd79bb`): the origin plus a 0.6-wide row, swizzled (z, −y, x) and transformed by the
+  bone matrix every step.
+- **Step** (`0x00fd825f`): the wind (the global, or rand() for types `0x200`/`0x8`/world `0x37`), the wind vector
+  `0x01ec9820` = (sin a·w, −w·cos a) with a = (180 + OBJECT angle z)·π/180; forces (slot 7, `0x00fd8463`): per vertex
+  w·windvector − 0.01·velocity with w = 0, 3..6 by the grid distance from a point that moves with the logic-step
+  counter `0x0bdc5eb0` (5 − d is compared unsigned with 4, so vertices farther than 5 take 6), a rotated sideways push, gravity
+  9.8·0.0025·100 (`0x01cf0eb0`, `0x01cf0eb4`); force springs beyond rest + 0.01; the top row; velocity +=
+  force·400·t (`0x01cf0eb8`), position += velocity·t. Constraints (`0x00fd88ec`): sphere centres on their bones,
+  sphere pushes, the constrain springs (half the error each end), the averaged displacements, and the stretch limits
+  (vertical springs below the top row: back into [0.8, 1]·rest; beyond 20× rest the pass stops unless `0x00aae6f9`
+  holds). The step's result is always 1 with an owner.
+- **Render** (slot 8, `0x00fd8bc2`): EnableAlphaTest(1) for type `0x1000`, `glColor4f(light, OBJECT alpha)`, then
+  GL_QUADS of the grid with the front bitmap and again, wound the other way, with the back bitmap; u = x/(cols−1)/uv
+  scale − uv offset, v the same clamped to 0.99.
+
+### Port
+
+`reconstructed/cloth` (`mu_cloth_wing_create`, `mu_cloth_move2`, `mu_cloth_render`, `mu_cloth_wind_step`,
+`mu_cloth_gate`) and `native/world/world_cloak.c`: per wearer (hero, players by index) the cloths live with the
+OBJECT (dropped when the wing or the viewport generation changes and at travel). Every rendered frame
+`world_cloak_frame` (after the logic steps) runs the wind walk and MoveCloth for every wearer drawn since its OBJECT
+was made; the hero and player parts call `world_cloak_draw` between the body parts and the linked items (first-frame
+MoveCloth, the flag, CreateCloth + MoveCloth, Render through the backend: quads as two triangles, the four bitmaps in
+the cloak's own texture set). The cloths step every frame whether or not the frame is drawn, so a headless capture
+cadence does not change them.
+
+### Checks
+
+`scripts/validate_item_cloak.py` (row `validate_item_cloak`): **2,090 comparisons, 0 mismatches** — create 66
+(CreateCloth on the six types ×3 and four wings without a case; failure states without bones, with too few bones or
+without the model), step 528 and render 528 (8 frames each of MoveCloth then RenderCloth as RenderCharacter calls
+them: every cloth field, the wind vector, rand(); the GL stream bit for bit), wind 200, gate 768 (RenderCharacter
+run to `0x0136ab87`). **38/38 compiled mutants caught**, none equivalent, every anchor once. The gravity constants
+come from the pinned third section (`effects_init`).
+
+### Limits
+
+- The flag follows the client: a Dark Knight, Elf, Magic Gladiator (tiers 2/3), Summoner or classes 0xa/0xe
+  wearing these wings gets no cape (only the upper meshes), as in the original.
+- Not ported: the guild-war / duel / hiding-buff writes of the flag, the other CreateCloth cases (other wings, arg 4),
+  the armour cloths, the glow and mesh passes, sub-types `0x5bc`/`0x5bd`. Native players have no buffs and sub-type 0.
+- The wind starts at 0 when the first cloth wing is drawn and walks with its own MSVC rand() state; the client's
+  shares the process rand() and has walked since start-up.
+- (inference) The Player model's BodyScale/BodyOrigin at MoveCloth are the OBJECT's scale and position (RenderCharacter
+  poses the Player before it); the native host passes the character's position and scale.
+- The 0.01 floor of the sphere collision (a vertex within 0.01 of a centre) is in the port but no random state
+  reaches it.
+- GL_QUADS are drawn as triangles (0, 1, 2), (0, 2, 3).
