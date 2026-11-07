@@ -222,6 +222,14 @@ asks for the NPC's quest list (request 901), but `90:option:0` now reaches dialo
 says `"accepted":0`, and the private `test_native_quest.LorenciaDemo`, which expects 1, fails on that main
 for this reason. That is open for a quest lane; the scenario, not the UI, supplies the accepted quest.
 
+REGRESS-001 (2026-11-06) closed it; see the [handoff](../handoffs/REGRESS-001.md). The regression came from
+SESSION-QUEST-001's `2a916b52`: offline, the session kept the F6 71 list `body_undecoded` and the wrapped F6 72/74
+requests unsent. The world tools now turn on the session's offline local quest lane (seed builds, in-process
+fixture on loopback only). Without `MU_QUEST_SCENARIO` the command above plays the whole quest again: list at 60,
+accept at 150, three kills, complete at 390, `"accepted":1,"completed":1,"progress":3`. With the scenario, quest 7
+is already accepted at fixture step 3, so the scripted choice opens its progress page and the run still ends at
+3/3 for the tracker views.
+
 ## NATIVE-QUEST-001 gaps at handoff
 
 - Not played: the guide quest tab (GuideQuest is not in the snapshot), the class-upgrade (classic Quest.bmd) quests
