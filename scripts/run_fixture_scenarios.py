@@ -146,7 +146,8 @@ def run_scenario(scenario: Path, folder: Path, script: str, seed: int, timeout: 
                    '--journal', str(folder / 'session.mujnl')]
         (folder / 'command.json').write_text(json.dumps(command, indent=2) + '\n')
         try:
-            process = subprocess.run(command, capture_output=True, text=True, timeout=timeout)
+            # cwd=ROOT: scenario data paths are repository-relative, so the result must not depend on the caller's cwd
+            process = subprocess.run(command, capture_output=True, text=True, timeout=timeout, cwd=ROOT)
         except subprocess.TimeoutExpired as error:
             (folder / 'stdout.jsonl').write_bytes(error.stdout or b'')
             (folder / 'stderr.log').write_bytes(error.stderr or b'')
