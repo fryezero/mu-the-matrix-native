@@ -405,10 +405,11 @@ static void draw_model(wg_items *w, item_model *m, const mu_gfx_item_draw *d, co
      * (INVENTORY-FX: the excellent pass and the set bits reach the icon like a worn item's). */
     mu_renderchar_glow glow;
     memset(&glow, 0, sizeof glow);
+    const mu_icon_glow fields = mu_icon_glow_of(&ros);
     glow.type = ros.render_type;
-    glow.level = (ros.level_word >> 3) & 15;
-    glow.option1 = ros.excellent;
-    glow.ext = ros.set_bits;
+    glow.level = fields.level;
+    glow.option1 = fields.option;
+    glow.ext = fields.ext;
     if (m->info.has_record) {
         glow.has_record = 1;
         glow.kind_a = m->info.record.attributes.kind_a;
@@ -439,7 +440,7 @@ static void draw_model(wg_items *w, item_model *m, const mu_gfx_item_draw *d, co
     else {
         mu_renderchar_draw_item(&m->model, &glow, &env, ros.light, d->alpha > 0 ? d->alpha : 1.0f, &draw, &backend,
                                 &stats, &rstats);
-        if (pool && (ros.render_type == 0x389c || ros.render_type == 0x389d))   /* RenderPartObjectBody's sprite */
+        if (pool && (ros.render_type == 0x389c || ros.render_type == 0x389d))   /* RenderObjDraw's skin case 0x0176ffe3 */
             mu_renderchar_skin_effects(&m->model, bones, ros.render_type, pool);
     }
     w->drawn++;

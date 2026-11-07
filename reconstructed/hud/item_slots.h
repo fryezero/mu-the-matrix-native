@@ -291,6 +291,15 @@ typedef struct mu_hud_ros_out {
 
 void mu_hud_object_screen(const mu_hud_ros_in *in, mu_hud_ros_out *out);
 
+/* INVENTORY-FX: what the icon's RenderObjDraw gets. RenderPartObject passes RenderObjectScreen's level word,
+ * excellent flag and set bits through unchanged as RenderObjDraw's arguments 5..7 (0x017e7932..0x017e7960 and
+ * 0x017e796a..0x017e7997); the item render takes the level (word >> 3) & 15 (renderchar's item level), the option
+ * and the ext byte from them, as for a worn item. */
+typedef struct mu_icon_glow {
+    int32_t level, option, ext;
+} mu_icon_glow;
+mu_icon_glow mu_icon_glow_of(const mu_hud_ros_out *ros);
+
 #ifdef __cplusplus
 }
 #endif

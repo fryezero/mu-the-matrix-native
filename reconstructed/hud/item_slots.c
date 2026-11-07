@@ -370,3 +370,9 @@ void mu_hud_object_screen(const mu_hud_ros_in *in, mu_hud_ros_out *out)
     out->a2c = in->a2c;
     out->a30 = in->a30;
 }
+
+mu_icon_glow mu_icon_glow_of(const mu_hud_ros_out *ros)   /* INVENTORY-FX, see item_slots.h */
+{
+    mu_icon_glow g = {(ros->level_word >> 3) & 15, ros->excellent, ros->set_bits};
+    return g;
+}

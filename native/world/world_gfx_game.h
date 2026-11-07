@@ -49,7 +49,7 @@ void wg_items_set_time(wg_items *w, double time_ms);
 void wg_items_counts(const wg_items *w, long *drawn, long *missing, long *icons);
 
 /* INVENTORY-FX: the world the icons' effects go to. RenderObjectScreen draws an icon through RenderPartObject and
- * RenderObjDraw like a ground item: the type's pre-draw program (and RenderPartObjectBody's 0x389c/0x389d skin
+ * RenderObjDraw like a ground item: the type's pre-draw program (and RenderObjDraw's 0x389c/0x389d skin
  * sprite) runs on the icon's own pose and calls CreateSprite/CreateParticle, whose lists only the world scene's
  * RenderSprites/RenderParticles draw (with the world camera, the next frame); the item pass draws none. Its
  * TestFrustrum2D flag is taken at the icon's OBJECT +0x158 (its screen position) with the world frame's polygon.
