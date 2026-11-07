@@ -44,10 +44,10 @@ void mu_raster_clear(mu_raster *r, const uint8_t rgba[4])
 }
 
 typedef struct clip_vertex {
-    float c[4], t[2], col[4];
+    float c[4], t[2], col[4], ez;   /* ez: eye-space z (the fog stage's distance) */
 } clip_vertex;
 
-static void transform(const mu_raster *r, const float p[3], float out[4])
+static void transform(const mu_raster *r, const float p[3], float out[4], float *ez)
 {
     float eye[4];
     for (int row = 0; row < 4; ++row) {
@@ -64,6 +64,7 @@ static void transform(const mu_raster *r, const float p[3], float out[4])
         s = s + r->projection[12 + row] * eye[3];
         out[row] = s;
     }
+    *ez = eye[2];
 }
 
 static clip_vertex lerp_vertex(const clip_vertex *a, const clip_vertex *b, float t)
@@ -75,6 +76,7 @@ static clip_vertex lerp_vertex(const clip_vertex *a, const clip_vertex *b, float
         v.t[k] = a->t[k] + (b->t[k] - a->t[k]) * t;
     for (int k = 0; k < 4; ++k)
         v.col[k] = a->col[k] + (b->col[k] - a->col[k]) * t;
+    v.ez = a->ez + (b->ez - a->ez) * t;
     return v;
 }
 
@@ -129,10 +131,21 @@ static void sample(const mu_raster *r, float s, float t, float out[4])
     float u = s * (float)w - 0.5f, v = t * (float)h - 0.5f;
     double fu = floor((double)u), fv = floor((double)v);
     float ax = (float)((double)u - fu), ay = (float)((double)v - fv);
-    long long x0 = (long long)fmod(fu, (double)w), y0 = (long long)fmod(fv, (double)h);
-    if (x0 < 0) x0 += w;
-    if (y0 < 0) y0 += h;
-    long long x1 = (x0 + 1) % w, y1 = (y0 + 1) % h;
+    long long x0, y0, x1, y1;
+    if (clamp) {
+        /* RENDER-EFFECTS-017: clamp to edge, as the GL parts draw GL_CLAMP bitmaps (GL_CLAMP_TO_EDGE): both taps
+         * stay inside [0, size - 1], so the outer half texel is the edge texel. The raster wrapped the second tap to
+         * the opposite edge there before. */
+        x0 = fu < 0.0 ? 0 : (fu >= w - 1 ? w - 1 : (long long)fu);
+        y0 = fv < 0.0 ? 0 : (fv >= h - 1 ? h - 1 : (long long)fv);
+        x1 = fu + 1.0 < 0.0 ? 0 : (fu + 1.0 >= w - 1 ? w - 1 : (long long)fu + 1);
+        y1 = fv + 1.0 < 0.0 ? 0 : (fv + 1.0 >= h - 1 ? h - 1 : (long long)fv + 1);
+    } else {
+        x0 = (long long)fmod(fu, (double)w), y0 = (long long)fmod(fv, (double)h);
+        if (x0 < 0) x0 += w;
+        if (y0 < 0) y0 += h;
+        x1 = (x0 + 1) % w, y1 = (y0 + 1) % h;
+    }
     const uint8_t *p00 = image->rgba + 4 * ((size_t)y0 * (size_t)w + (size_t)x0);
     const uint8_t *p10 = image->rgba + 4 * ((size_t)y0 * (size_t)w + (size_t)x1);
     const uint8_t *p01 = image->rgba + 4 * ((size_t)y1 * (size_t)w + (size_t)x0);
@@ -252,6 +265,16 @@ static void raster_triangle(mu_raster *r, const clip_vertex *in[3])
             sample(r, tex[0], tex[1], texel);
             for (int k = 0; k < 4; ++k)
                 src[k] = texel[k] * col[k];
+            if (r->fog) {   /* GL_LINEAR fog, RGB only */
+                float ez = q0 * va->ez;
+                ez = ez + q1 * vb->ez;
+                ez = ez + q2 * vc->ez;
+                ez = ez / inv;
+                float distance = ez < 0.0f ? -ez : ez;
+                float f = clamp01((r->fog_end - distance) / (r->fog_end - r->fog_start));
+                for (int k = 0; k < 3; ++k)
+                    src[k] = f * src[k] + (1.0f - f) * r->fog_color[k];
+            }
             if (r->state.alpha_test && !(src[3] > r->alpha_reference))
                 continue;
             uint8_t *out = r->color + 4 * index;
@@ -282,7 +305,7 @@ static void emit_triangle(mu_raster *r, const mu_raster_vertex *v)
 {
     clip_vertex polygon[8], scratch[8];
     for (int k = 0; k < 3; ++k) {
-        transform(r, v[k].position, polygon[k].c);
+        transform(r, v[k].position, polygon[k].c, &polygon[k].ez);
         memcpy(polygon[k].t, v[k].texcoord, sizeof polygon[k].t);
         memcpy(polygon[k].col, v[k].color, sizeof polygon[k].col);
     }

@@ -27,6 +27,7 @@ static void quest_step_tick(struct mu_world_rt *a, void *self)
         if (mu_quest_session_open(&p->q, NULL, a->npc_demo ? a->npc_demo->quests : NULL, NULL, error,
                                   sizeof error))
             return;
+        mu_quest_session_offline_local(&p->q, 1); /* REGRESS-001: the world's local quest lane */
         mu_quest_session_load_classic(&p->q, a->root);
     }
     mu_intent in = {.kind = MU_INTENT_QUEST_CONTEXT};

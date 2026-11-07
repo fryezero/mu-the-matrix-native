@@ -426,6 +426,23 @@ note = "the documented run (docs/handoff.md, NATIVE-ENV-001: 400 cases, 94/94 pr
 "stopped" = []
 "mutations.*.detected" = true
 
+[validate_scene_clear]
+test = "reconstructed/environment/test_environment.py::PrivateUnicorn.test_scene_clear"
+pins = ["text", "data", "section3"]
+families = ["scene_clear RenderMainScene glClearColor 0x01859419..0x0185967b (with 0x009dacb8, 0x00e0558b)"]
+cases = 4000
+mutants = 6
+cases_at = "cases"
+mutants_at = "mutations"
+build = ["reconstructed/environment"]
+args = ["--text", "{text}", "--data", "{data}", "--section3", "{section3}", "--cases", "4000", "--mutations", "--output", "{report}"]
+note = "REGRESS-001: the colour the client shows where RenderTerrain's culls leave no terrain (env_world.c clear_color)"
+[validate_scene_clear.expect]
+"ok" = true
+"mismatches" = 0
+"call_sites.*" = true
+"mutations.*.detected" = true
+
 [validate_fidelity]
 test = "native/tests/test_native_fidelity.py::PrivateValidators.test_fidelity_sections"
 pins = ["text", "data", "flag", "feature09", "lang3"]
@@ -2775,6 +2792,22 @@ args = ["--mutations", "--output", "{report}"]
 "families.refusal.cases" = 344
 "mutants.*" = {truthy = true}
 
+[validate_item_predraw]
+test = "reconstructed/renderchar/test_item_predraw.py::ItemPreDraw.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "predraw"]
+cases = 9256
+mutants = 14
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar", "reconstructed/particles"]
+args = ["--mutations", "--output", "{report}"]
+[validate_item_predraw.expect]
+"families.*.mismatches" = 0
+"families.bodies.cases" = 7592
+"families.predraw.cases" = 1664
+"mutants.*" = {truthy = true}
+
 [validate_item_hiddenmesh]
 test = "reconstructed/renderchar/test_item_hiddenmesh.py::ItemHiddenMesh.test_private_original_instructions"
 pins = ["text", "data", "flag", "feature"]
@@ -3000,6 +3033,38 @@ build = ["reconstructed/combat", "reconstructed/particles", "native"]
 build_targets = { native = ["build/libmunative.a", "build/libmusession_world.a"] }
 args = ["--cases", "20", "--mutations", "--output", "{report}"]
 [validate_render_effects16.expect]
+all_equal = true
+all_mutants_caught = true
+"mutants.*.stopped" = 0
+
+[validate_worlds_fog]
+test = "reconstructed/environment/test_env_fog.py::EnvFogTests.test_original_instructions"
+pins = ["text", "data"]
+families = ["begin", "end", "placement", "sites"]
+cases = 4044
+mutants = 23
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = []
+args = ["--cases", "2000", "--mutations", "--output", "{report}"]
+[validate_worlds_fog.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0
+
+[validate_render_effects17]
+test = "native/tests/test_render_effects17.py::ClientComparison.test_original_instructions_and_compiled_mutants"
+pins = ["text", "data", "section3"]
+families = ["armour_create", "armour_move", "armour_render", "raster_sample", "fog_sites"]
+cases = 618
+mutants = 20
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/particles", "native"]
+build_targets = { native = ["build/libmunative.a", "build/libmusession_world.a"] }
+args = ["--cases", "20", "--mutations", "--output", "{report}"]
+[validate_render_effects17.expect]
 all_equal = true
 all_mutants_caught = true
 "mutants.*.stopped" = 0

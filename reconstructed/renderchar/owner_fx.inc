@@ -3,7 +3,14 @@
  * bodies end their RenderPartObjectBody case with an effect block: owner-bone positions 0x012b678d, CreateSprite
  * 0x01692eb7 and CreateParticle 0x0168fafd requests, rand() % m gates, quantised randoms 0x011ff622 and the vec3
  * helpers 0x00cfcad8 (subtract), 0x00cfca74 (add), 0x00cfd0cc (normalize). Included at the end of renderchar.c;
- * emit_parameter_body runs a program after the type's base body draws, only through mu_rc_item_draws_owner. */
+ * emit_parameter_body runs a program after the type's base body draws, only through mu_rc_item_draws_owner.
+ *
+ * RENDER-ITEMS-002R: pre-draw programs. RenderObjDraw's own type case creates bone sprites 0x0150e746 and
+ * TransformPosition 0x012b6ef1 positions on the item's own posed bones (BoneTransform 0x06fce398, often by name
+ * through 0x012bd35a), with clock, alpha, sine and rand() values, before the body draws. mu_rc_item_draws_owner
+ * runs them first when the host has item_transform. A request whose item bone is outside 0..item_bones-1 (the
+ * client reads another matrix) is passed to host->refuse instead of host->emit, as is every request computed
+ * from such a position. */
 
 static int owner_fx_index(int32_t type)
 {
@@ -24,6 +31,13 @@ int mu_rc_item_owner_fx(int32_t type)
 {
     int i = owner_fx_index(type);
     return i < 0 ? 0 : mu_rc_fx_types[i].max_bone + 1;
+}
+
+static float fx_float(uint32_t bits)
+{
+    float x;
+    memcpy(&x, &bits, 4);
+    return x;
 }
 
 /* cvttss2si: the integer indefinite for NaN and out-of-range values. */
@@ -64,45 +78,76 @@ static void fx_normalize(const float in[3], float out[3])
         out[k] = in[k] * inverse;
 }
 
-static void owner_fx(const sink *s, const mu_rc_owner_host *h)
+static int pre_fx_index(int32_t type)
 {
-    const int index = owner_fx_index(s->item->type);
-    if (index < 0)
-        return;
-    const int32_t need = mu_rc_fx_types[index].max_bone + 1;
-    if (need > h->bones || need > h->item_bones)
-        return;
-    const mu_rc_fx_op *ops = &mu_rc_fx_ops[mu_rc_fx_types[index].first];
-    const int count = mu_rc_fx_types[index].count;
-    float r[256];
+    size_t low = 0, high = sizeof mu_rc_fx_pre_types / sizeof mu_rc_fx_pre_types[0];
+    while (low < high) {
+        size_t mid = low + (high - low) / 2;
+        if (mu_rc_fx_pre_types[mid].type < type)
+            low = mid + 1;
+        else if (mu_rc_fx_pre_types[mid].type > type)
+            high = mid;
+        else
+            return type < 0 ? -1 : (int)mid;
+    }
+    return -1;
+}
+
+int mu_rc_item_pre_fx(int32_t type)
+{
+    return pre_fx_index(type) >= 0;
+}
+
+static int32_t fx_int(const float *r)
+{
+    int32_t v;
+    memcpy(&v, r, 4);
+    return v;
+}
+
+/* One program. bad[] marks registers computed from an item position outside the bone domain. */
+static void run_fx(const mu_rc_fx_op *ops, int count, const mu_rc_item *it, const mu_rc_owner_host *h)
+{
+    static const float zero[3] = {0.0f, 0.0f, 0.0f};
+    float r[1024];
+    uint8_t bad[1024];
     memset(r, 0, sizeof r);
+    memset(bad, 0, sizeof bad);
     for (int pc = 0; pc < count;) {
         const mu_rc_fx_op *o = &ops[pc++];
         mu_rc_owner_fx fx;
+        int32_t bone;
         switch (o->op) {
         case 1:
             memcpy(&r[o->a], &o->k, 4);
+            bad[o->a] = 0;
             break;
         case 2:
             r[o->a] = r[o->b];
+            bad[o->a] = bad[o->b];
             break;
         case 3:
             r[o->a] = r[o->b] * r[o->c];
+            bad[o->a] = bad[o->b] | bad[o->c];
             break;
         case 4:
             r[o->a] = r[o->b] + r[o->c];
+            bad[o->a] = bad[o->b] | bad[o->c];
             break;
         case 5:
             r[o->a] = r[o->b] - r[o->c];
+            bad[o->a] = bad[o->b] | bad[o->c];
             break;
         case 6:
             r[o->a] = r[o->b] / r[o->c];
+            bad[o->a] = bad[o->b] | bad[o->c];
             break;
         case 7: {
             uint32_t w;
             memcpy(&w, &r[o->b], 4);
             w ^= 0x80000000u;
             memcpy(&r[o->a], &w, 4);
+            bad[o->a] = bad[o->b];
             break;
         }
         case 8:
@@ -111,35 +156,130 @@ static void owner_fx(const sink *s, const mu_rc_owner_host *h)
             break;
         case 9:
             r[o->a] = fx_range(h, r[o->b], r[o->c], o->k);
+            bad[o->a] = bad[o->b] | bad[o->c];
             break;
         case 10:
             h->transform(h->context, (int32_t)o->k, &r[o->b], &r[o->a]);
+            bad[o->a] = bad[o->a + 1] = bad[o->a + 2] = bad[o->b] | bad[o->b + 1] | bad[o->b + 2];
             break;
         case 11:
             fx_normalize(&r[o->b], &r[o->a]);
+            bad[o->a] = bad[o->a + 1] = bad[o->a + 2] = bad[o->b] | bad[o->b + 1] | bad[o->b + 2];
             break;
         case 12:
             memcpy(&r[o->a], h->angle, sizeof h->angle);
+            bad[o->a] = bad[o->a + 1] = bad[o->a + 2] = 0;
+            break;
+        case 15:   /* 0x0185bdc4(k, 0) */
+            r[o->a] = client_wave(fx_float(o->k), it->time);
+            bad[o->a] = 0;
+            break;
+        case 16:   /* 0x012bd35a(name, -1) on the item model */
+            bone = h->bone_named ? h->bone_named(h->context, mu_rc_fx_names[o->k]) : -1;
+            memcpy(&r[o->a], &bone, 4);
+            bad[o->a] = 0;
+            break;
+        case 18:   /* TestFrustrum2D flag clear: the case is skipped */
+            if (!h->visible)
+                pc = count;   /* k: the program end */
+            break;
+        case 19:
+            r[o->a] = it->alpha;
+            bad[o->a] = 0;
+            break;
+        case 20:
+            r[o->a] = it->time;
+            bad[o->a] = 0;
+            break;
+        case 21:
+            r[o->a] = client_sin(r[o->b]);
+            bad[o->a] = bad[o->b];
+            break;
+        case 22: { /* 0x0184f8ff: 0 > x ? -x (xorps sign) : x */
+            uint32_t w;
+            memcpy(&w, &r[o->b], 4);
+            if (0.0f > r[o->b])
+                w ^= 0x80000000u;
+            memcpy(&r[o->a], &w, 4);
+            bad[o->a] = bad[o->b];
+            break;
+        }
+        case 23:   /* cdq/idiv then cvtsi2ss */
+            r[o->a] = (float)(owner_random(h) % (int32_t)o->k);
+            bad[o->a] = 0;
+            break;
+        case 24:   /* TransformPosition 0x012b6ef1 on the item's own bone */
+            bone = fx_int(&r[o->b]);
+            if (bad[o->b] || bone < 0 || bone >= h->item_bones || !h->item_transform) {
+                r[o->a] = r[o->a + 1] = r[o->a + 2] = 0.0f;
+                bad[o->a] = bad[o->a + 1] = bad[o->a + 2] = 1;
+                break;
+            }
+            h->item_transform(h->context, bone, &r[o->c], (int32_t)o->k, &r[o->a]);
+            bad[o->a] = bad[o->a + 1] = bad[o->a + 2] = bad[o->c] | bad[o->c + 1] | bad[o->c + 2];
             break;
         case 13:
         case 14:
+        case 17:
+        case 25: {
+            int refused = 0;
             memset(&fx, 0, sizeof fx);
-            fx.kind = o->op == 13 ? MU_RC_OWNER_SPRITE : MU_RC_OWNER_PARTICLE;
+            fx.kind = o->op == 13 || o->op == 17 ? MU_RC_OWNER_SPRITE : MU_RC_OWNER_PARTICLE;
             fx.bitmap = (int32_t)o->k;
-            memcpy(fx.position, &r[o->a], sizeof fx.position);
+            if (o->op == 17) {
+                /* 0x0150e746: TransformPosition(BoneTransform + 0x30 * bone, (0, 0, 0), translate 1), then
+                 * CreateSprite(bitmap, position, scale, light, OBJECT, rotation, blend, 4, axes). */
+                bone = fx_int(&r[o->a]);
+                refused = bad[o->a] || bone < 0 || bone >= h->item_bones || !h->item_transform;
+                if (!refused)
+                    h->item_transform(h->context, bone, zero, 1, fx.position);
+                fx.rotation = r[o->d];
+                fx.blend = o->e;
+                refused |= bad[o->d];
+            } else {
+                memcpy(fx.position, &r[o->a], sizeof fx.position);
+                refused = bad[o->a] | bad[o->a + 1] | bad[o->a + 2];
+            }
             memcpy(fx.light, &r[o->c], sizeof fx.light);
-            if (o->op == 13) {
+            refused |= bad[o->c] | bad[o->c + 1] | bad[o->c + 2];
+            if (o->op == 13 || o->op == 17) {
                 fx.scale = r[o->b];
+                refused |= bad[o->b];
             } else {
                 memcpy(fx.angle, &r[o->b], sizeof fx.angle);
                 fx.scale = r[o->d];
                 fx.subtype = o->e;
+                fx.owner = o->op == 25;
+                refused |= bad[o->b] | bad[o->b + 1] | bad[o->b + 2] | bad[o->d];
             }
-            if (h->emit)
+            if (refused) {
+                if (h->refuse)
+                    h->refuse(h->context, &fx);
+            } else if (h->emit) {
                 h->emit(h->context, &fx);
+            }
             break;
+        }
         default:
             return;
         }
     }
+}
+
+static void owner_fx(const sink *s, const mu_rc_owner_host *h)
+{
+    const int index = owner_fx_index(s->item->type);
+    if (index < 0)
+        return;
+    const int32_t need = mu_rc_fx_types[index].max_bone + 1;
+    if (need > h->bones || need > h->item_bones)
+        return;
+    run_fx(&mu_rc_fx_ops[mu_rc_fx_types[index].first], mu_rc_fx_types[index].count, s->item, h);
+}
+
+static void pre_fx(const mu_rc_item *it, const mu_rc_owner_host *h)
+{
+    const int index = pre_fx_index(it->type);
+    if (index >= 0)
+        run_fx(&mu_rc_fx_ops[mu_rc_fx_pre_types[index].first], mu_rc_fx_pre_types[index].count, it, h);
 }

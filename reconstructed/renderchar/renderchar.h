@@ -116,6 +116,10 @@ typedef struct mu_rc_owner_fx {
     int32_t kind, bitmap, subtype;
     float position[3], light[3], scale;
     float angle[3];          /* CreateParticle angle argument (RENDER-ITEMS-002Q); zero in the rank-5 block */
+    /* RENDER-ITEMS-002R pre-draw programs: CreateSprite's rotation and blend words (0x0150e746 passes its
+     * arguments 7 and 8; 0 elsewhere) and owner = 1 for a CreateParticle whose owner is the OBJECT. */
+    float rotation;
+    int32_t blend, owner;
 } mu_rc_owner_fx;
 typedef struct mu_rc_owner_host {
     int32_t bones;           /* OBJECT model bone count; <= 35 stops before the effects */
@@ -129,7 +133,19 @@ typedef struct mu_rc_owner_host {
      * the OBJECT position (+0x158). */
     int32_t item_bones;      /* the drawn item model's bone count (+0x22) */
     float angle[3];          /* OBJECT +0x164 */
+    /* RENDER-ITEMS-002R pre-draw programs (RenderObjDraw's own type case, before the body draws). They run
+     * through mu_rc_item_draws_owner when item_transform is set; transform may then be NULL. */
+    int32_t (*bone_named)(void *context, const char *name);   /* 0x012bd35a(name, -1) on the item model */
+    /* TransformPosition 0x012b6ef1(BoneTransform 0x06fce398 + 0x30 * bone, local, out, translate) with the item
+     * model's scale/origin: BoneTransform holds the item's own pose (its Animation precedes RenderObjDraw). */
+    void (*item_transform)(void *context, int32_t bone, const float local[3], int32_t translate, float out[3]);
+    /* A request whose item bone is outside 0..item_bones-1 (the client reads another matrix): not created. */
+    void (*refuse)(void *context, const mu_rc_owner_fx *fx);
+    int32_t visible;         /* [ebp-0xd]: TestFrustrum2D 0x016ccce7(OBJECT x * 0.01, y * 0.01, -20) */
 } mu_rc_owner_host;
+/* RENDER-ITEMS-002R: 1 when the type's RenderObjDraw case creates effects before the body draws (a pre-draw
+ * program of item_owner_fx.h), else 0. */
+int mu_rc_item_pre_fx(int32_t type);
 /* RENDER-ITEMS-002Q: 1 + the highest owner bone of the type's owner-effect program, 0 without one. A program
  * runs (after the type's base body draws, through host->emit) only when this is at most host->bones and
  * host->item_bones; otherwise the client reads other bones (BoneTransform 0x06fce398) or leaves the position

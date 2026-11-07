@@ -224,6 +224,17 @@ DERIVED_CARRY = [
 # Part 17 (RENDER-ITEMS-002Q): bodies whose type case ends in an owner-effect block (gen_item_owner_fx). Their
 # draws are generated here with the effect requests set aside; renderchar.c runs the effect program.
 from gen_item_owner_fx import OWNER_FX_TYPES
+# Part 18 (RENDER-ITEMS-002R): bodies whose RenderObjDraw case creates effects before the body draws (pre-draw
+# programs, gen_item_owner_fx.PRE_FX_TYPES); their draws fit with the effect requests set aside.
+from gen_item_owner_fx import PRE_FX_TYPES, OBJDRAW as PRE_DRAW_RAND
+_SAMPLE_TYPE = [None]
+# Their probes, chosen by the 292-state comparison: the part-14 supplementary probes (records 0x26/0x5b,
+# qualities 0-2) and the part-13 carry rule. The rand sites of the pre-draw block itself belong to the effect
+# program and are left out of the body probes.
+PRE_EXTENDED = [0x0b4b, 0x0b4c, 0x0b59, 0x0f1c, 0x0f1d, 0x0f2e, 0x1312, 0x1316, 0x1748, 0x1749, 0x1758, 0x230b,
+                0x2311, 0x2382, 0x2383, 0x2384, 0x2385, 0x2394, 0x2395, 0x2494, 0x2499]
+PRE_CARRY = [0x0b4b, 0x0b4c, 0x0b59, 0x0f1c, 0x0f1d, 0x0f2e, 0x1748, 0x1749, 0x1758, 0x2311, 0x2382, 0x2383,
+             0x2384, 0x2385, 0x2394, 0x2395, 0x2499]
 
 EXIT_TYPES = [
     0x0b10, 0x0b12, 0x0b22, 0x1569, 0x156a, 0x156b, 0x156c, 0x156d, 0x156e, 0x156f,
@@ -1111,6 +1122,8 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=Fals
                     return 0
                 value = _RAND['seq'].pop(0) if _RAND['seq'] else 0
                 site = hex(m.r32(m.uc.reg_read(m.x86.UC_X86_REG_ESP)))
+                if _SAMPLE_TYPE[0] in PRE_FX_TYPES and PRE_DRAW_RAND[0] <= int(site, 16) < PRE_DRAW_RAND[1]:
+                    return value   # part 18: RenderObjDraw's own case draws it for the pre-draw program
                 _RAND['calls'].append((m.backtrace()[1], site, value))
                 if site not in _RAND['order']:
                     _RAND['order'].append(site)
@@ -1120,6 +1133,7 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=Fals
             self.m.stub(RAND, rand, 0)
     global _site_sink
     _site_sink = sites
+    _SAMPLE_TYPE[0] = t
     if _sample_state is None or _sample_state[0] is not wa:
         from item_body_machine import ResetWorld
         _sample_state = (wa, ResetWorld(wa, W), tags)
@@ -1158,7 +1172,7 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=Fals
         groups.append(('omitted-ancient', []))
     if t == 0x0eee and other == [('gl', 'glPushMatrix', []), ('gl', 'glPopMatrix', [])]:
         other = []
-    if t in OWNER_FX_TYPES:
+    if t in OWNER_FX_TYPES or t in PRE_FX_TYPES:
         other = [c for c in other if c[0] != 'effect']
     if not r['ok'] or other or len(groups) != len(generic):
         return None
@@ -1261,7 +1275,7 @@ def infer(samples):
 ALL_TYPES = (REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES + RANKED_TYPES + EXPANDED_TYPES +
              NEXT_TYPES + CLOCK_TYPES + CLUSTER_TYPES + WING_TYPES + VISIBLE_TYPES + SCALAR_TYPES +
              CHAIN_TYPES + LEVEL_TYPES + COLOUR_TYPES + CARRY_TYPES + QUALITY_TYPES + PRODUCT_TYPES + DERIVED_TYPES +
-             OWNER_FX_TYPES)
+             OWNER_FX_TYPES + PRE_FX_TYPES)
 
 
 def fit(wa, lib, t, scalars=False, carry=False, extended=False):
@@ -1441,8 +1455,9 @@ def extract():
     lib = C.CDLL(str(v.LIBRARY))
     types = {}
     for t in ALL_TYPES:
-        fitted = fit(wa, lib, t, scalars=True, carry='exit' if t in EXIT_TYPES else t in CARRY_TYPES or t in DERIVED_CARRY,
-                     extended=t in QUALITY_TYPES or t in PRODUCT_TYPES)
+        fitted = fit(wa, lib, t, scalars=True,
+                     carry='exit' if t in EXIT_TYPES else t in CARRY_TYPES or t in DERIVED_CARRY or t in PRE_CARRY,
+                     extended=t in QUALITY_TYPES or t in PRODUCT_TYPES or t in PRE_EXTENDED)
         if fitted is not None:
             types[t] = fitted
     if set(types) != set(ALL_TYPES):
@@ -1501,7 +1516,7 @@ def render(types):
                      (t, ', '.join(map(str, indices)), t in LEVEL_SPLIT, t in ATLAS_TYPES, t in DIM_TYPES, t in PLAIN_TYPES, t in PULSE_TYPES,
                       any(op == 'in' and value == 20 for rule in rules for _, cells in rule for op, value in cells),
                       sum(1 << k for k in range(13) if any(op == 'in' and value == 21+k for rule in rules for _, cells in rule for op,value in cells)),
-                      t in CARRY_TYPES or t in DERIVED_CARRY, first, count))
+                      t in CARRY_TYPES or t in DERIVED_CARRY or t in PRE_CARRY, first, count))
     return '\n'.join(lines + ['};', ''])
 
 

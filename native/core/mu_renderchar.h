@@ -46,6 +46,11 @@ typedef struct mu_renderchar_env {
     const struct mu_lang *lang;   /* EnchantEffect table (borrowed from the runtime) */
     int glow_override;       /* 1: glow_color for every item even with the table */
     uint32_t render_type;    /* 2: body parts and RenderLinkItem items */
+    /* RENDER-ITEMS-002R pre-draw programs: the drawn item's own pose (BoneTransform after its Animation, keep-root
+     * matrices as mu_renderchar_link_effects takes them), bone_count matrices. NULL: the programs still run with
+     * env->particles (rand order kept) but every request on an item bone is refused and counted. */
+    const float *item_bones;
+    long *pre_counts;        /* optional out: [0] pre-draw requests created, [1] refused (no native kind, no pose) */
 } mu_renderchar_env;
 
 typedef struct mu_renderchar_stats {

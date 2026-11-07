@@ -16,6 +16,7 @@
 #include "world_gfx_options.h"
 #endif
 #include "world_rt_internal.h"
+#include "../../reconstructed/environment/env_fog.h"
 
 const int mu_world_draw_order[MU_CHARACTER_ITEMS] = {5, 4, 3, 2, 1, 0, 6, 7, 8};
 static const uint8_t sky[4] = {0, 0, 0, 255};
@@ -608,6 +609,17 @@ void world_rt_effect_camera(const mu_world_rt *a, float eye[3], float target[3])
     }
 }
 
+/* RENDER-WORLDS-FOG: the render scene's fog (env_fog.h, world 0x1e's box). StartFog 0x01859783 precedes the first
+ * part; EndFog 0x01859cad follows the combat effects and precedes the screen haze 0x00def268, so the end test runs
+ * before the first part drawn at or after the haze's order (haze, item labels, names) or after the last part. */
+static int fog_end_here(const mu_world_rt *a, int col, int i, int *ended)
+{
+    if (*ended || (i >= 0 && ROWS[i].order[col] < ROWS[MU_PART_haze].order[col]))
+        return 0;
+    *ended = 1;
+    return mu_env_scene_fog_end(a->world, a->walk.hero.position);
+}
+
 /* ---- software ---- */
 
 long mu_world_rt_draw_soft(mu_world_rt *a, mu_raster *raster)
@@ -620,9 +632,21 @@ long mu_world_rt_draw_soft(mu_world_rt *a, mu_raster *raster)
         mu_world_env_clear(&a->env, clear);
     mu_raster_clear(raster, clear);
     mu_world_draw d = {raster->width, raster->height, 0.0, 0, raster};
-    int i;
-    EACH(COL_DRAW_SOFT, i)
+    mu_env_fog fog;
+    int fog_state = mu_env_scene_fog_begin(a->world, a->walk.hero.position, &fog), ended = 0, i;
+    if (fog_state != MU_ENV_FOG_KEEP) {
+        raster->fog = fog_state == MU_ENV_FOG_ON;
+        raster->fog_start = fog.start;
+        raster->fog_end = fog.end;
+        memcpy(raster->fog_color, fog.color, sizeof raster->fog_color);
+    }
+    EACH(COL_DRAW_SOFT, i) {
+        if (fog_end_here(a, COL_DRAW_SOFT, i, &ended))
+            raster->fog = 0;
         ROWS[i].ops->draw_soft(a, a->part[i], &d);
+    }
+    if (fog_end_here(a, COL_DRAW_SOFT, -1, &ended))
+        raster->fog = 0;
     return d.faces;
 }
 
@@ -733,9 +757,24 @@ long mu_world_rt_draw_gl(mu_world_rt *a, int32_t width, int32_t height)
     glEnable(GL_DEPTH_TEST);
     glFrontFace(GL_CCW);
     mu_world_draw d = {width, height, 0.0, 0, NULL};
-    int i;
-    EACH(COL_DRAW_GL, i)
+    mu_env_fog fog;
+    int fog_state = mu_env_scene_fog_begin(a->world, a->walk.hero.position, &fog), ended = 0, i;
+    if (fog_state == MU_ENV_FOG_ON) {   /* StartFog 0x00d8cca8 */
+        glEnable(GL_FOG);
+        glFogfv(GL_FOG_COLOR, fog.color);
+        glFogf(GL_FOG_MODE, fog.mode);
+        glFogf(GL_FOG_START, fog.start);
+        glFogf(GL_FOG_END, fog.end);
+    } else if (fog_state == MU_ENV_FOG_OFF) {
+        glDisable(GL_FOG);
+    }
+    EACH(COL_DRAW_GL, i) {
+        if (fog_end_here(a, COL_DRAW_GL, i, &ended))
+            glDisable(GL_FOG);   /* EndFog 0x00d8cd12 */
         ROWS[i].ops->draw_gl(a, a->part[i], &d);
+    }
+    if (fog_end_here(a, COL_DRAW_GL, -1, &ended))
+        glDisable(GL_FOG);
     mu_gl_perf_end(a->perf);
     return d.faces;
 }

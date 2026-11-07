@@ -211,19 +211,34 @@ class WorldRender(unittest.TestCase):
     def test_armour_owner_effect_program(self):
         """RENDER-ITEMS-002Q: the worn chest piece 0x1bc3 runs its owner-effect program (eight 0x7f7a sprites at
         owner bones 26/27/36/18, 0x8109 at bone 35, then rand() % 2 gates particle 0x810a/7). Requests no native
-        kind creates count as owner_refused; a 35-bone part model is outside the program's bone domain."""
+        kind creates count as owner_refused; a 35-bone part model is outside the program's bone domain.
+        RENDER-EFFECTS-017: 0x810a/7 is a native kind, so its request is created, not refused."""
         path=self.tmp/'owner-fx.bmd'
         path.write_bytes(nf.character_layout(114,bones=50,meshes=6,dummies=(9,21)))
         options=('--part','2',path,'--item-type','armor=0x1bc3','--world-time','0')
         one,_=self.render(*options)
         frames,_=self.render(*options,'--frames','3','--frame-steps','2')
         self.assertEqual((one['special'],one['owner_effects'],one['owner_refused']),(0,9,0))
-        # Over three frames one rand() % 2 gate opens: its CreateParticle 0x810a/7 has no native kind.
-        self.assertEqual((frames['owner_effects'],frames['owner_refused']),(27,1))
+        # Over three frames one rand() % 2 gate opens: its CreateParticle 0x810a/7 is created (RENDER-EFFECTS-017).
+        self.assertEqual((frames['owner_effects'],frames['owner_refused']),(28,0))
         short=self.tmp/'owner-fx-short.bmd'
         short.write_bytes(nf.character_layout(114,bones=35,meshes=6,dummies=(9,21)))
         outside,_=self.render('--part','2',short,'--item-type','armor=0x1bc3','--world-time','0')
         self.assertEqual((outside['special'],outside['owner_effects'],outside['owner_refused']),(0,0,1))
+
+    def test_weapon_pre_draw_program(self):
+        """RENDER-ITEMS-002R: RenderObjDraw's own case of sword 0x0b27 creates bone sprites on the weapon's own
+        posed bones (constant indices) before the body draws; bow 0x1311 looks its bone up by name ("a02"), which
+        the synthetic skeleton (cbone0..) lacks, so its one request is refused and counted."""
+        path=self.tmp/'pre-fx.bmd'
+        path.write_bytes(nf.character_layout(115,bones=12,meshes=2))
+        sword,_=self.render('--weapon','0',path,'--item-type','weapon0=0xb27','--world-time','0')
+        again,_=self.render('--weapon','0',path,'--item-type','weapon0=0xb27','--world-time','0')
+        self.assertEqual((sword['special'],sword['pre_refused']),(0,0))
+        self.assertGreater(sword['pre_effects'],0)
+        self.assertEqual(sword['sha256'],again['sha256'])
+        bow,_=self.render('--weapon','0',path,'--item-type','weapon0=0x1311','--world-time','0')
+        self.assertEqual((bow['special'],bow['pre_effects'],bow['pre_refused']),(0,0,1))
 
     def test_ranked_body_and_nine_bone_shield_use_shared_draws(self):
         path = self.tmp/'ranked-armour.bmd'
