@@ -103,6 +103,7 @@ instructions). 121 has no capture and no warp.
 
 ## 6. Limits
 
-- The action pick `0x012affa4` is not ported (Devias 0x67, Test Area 121 0x10/0x11).
+- The action pick `0x012affa4` is not ported (Devias 0x67, Test Area 121 0x10/0x11). Since RENDER-WORLDS-121 it is:
+  [client-worlds-121.md](client-worlds-121.md).
 - The inner draws listed in §3 have no native visual; their worlds compare only up to the switch.
 - No live RNG reference for the phase changes in §4.

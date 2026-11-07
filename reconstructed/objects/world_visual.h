@@ -50,6 +50,8 @@ typedef struct mu_slot_model {
     mu_world_bone_fn bone;     /* RENDER-WORLDS-SLOTS: TransformPosition 0x012b6ef1 on the posed bone (Vulcanus);
                                 * NULL: no posed bones, the sprite/particle requests are left out */
     void *bone_context;
+    int32_t bone_count;        /* RENDER-WORLDS-121: model +0x22 (Test Area 121's per-bone particles) */
+    int32_t action_count;      /* RENDER-WORLDS-121: model +0x26 (SetAction 0x012affa4's bound) */
 } mu_slot_model;
 int mu_class_slots(int32_t world);
 int mu_class_custom(int32_t cls, uint8_t *object, uint8_t *b, int32_t index, int32_t world, float time,
