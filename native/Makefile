@@ -111,6 +111,7 @@ RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.
              $(RECON)/mix/mix_rules.c $(RECON)/mix/mix_source.c $(RECON)/mix/mix_manager.c $(RECON)/mix/item_actions.c $(RECON)/mix/item_services.c \
              $(RECON)/progress/progress_calc.c $(RECON)/progress/progress_bar.c $(RECON)/progress/progress_recv.c \
              $(RECON)/progress/progress_window.c $(RECON)/progress/progress_options.c \
+             $(RECON)/cloth/cloth.c \
              $(RECON)/help/help.c $(RECON)/help/help_controller.c \
              $(RECON)/social/item_options.c $(RECON)/social/item_formula.c $(RECON)/social/item_display.c $(RECON)/social/item_present.c $(RECON)/social/social_packets.c
 # RENDER-EFFECTS-008: the map-object effect table and its attach 0x0183067e
@@ -234,6 +235,8 @@ WORLD_RT_SRC := world/world_rt.c world/input.c world/parts/terrain.c world/parts
                 world/parts/haze.c world/parts/map.c world/parts/gfx.c world/parts/skills.c world/parts/marker.c
 WORLD_RT_HDR := world/mu_world_rt.h world/world_rt_internal.h world/world_part.h world/parts.def viewer/gl_batch.h
 WORLD_RT_SRC += world/input_keys.c
+WORLD_RT_SRC += world/world_cloak.c
+WORLD_RT_HDR += world/world_cloak.h $(RECON)/cloth/cloth.h
 WORLD_RT_HDR += world/input_keys.h world/input_sdl.h world/time_series.h world/world_item_pre.h
 WORLD_RT_HDR += fixture/skills_demo.h
 WORLD_RT_OBJ := $(patsubst world/%.c,$(BUILD)/world-rt/%.o,$(WORLD_RT_SRC))

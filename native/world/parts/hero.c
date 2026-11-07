@@ -10,6 +10,7 @@
 #include "../../viewer/gl_backend.h"
 #endif
 #include "../world_rt_internal.h"
+#include "../world_cloak.h"
 
 static void hero_item_draw(mu_world_rt *a, int index, const mu_draw_options *options,
                            const mu_render_backend *backend)
@@ -49,6 +50,20 @@ static void hero_item_draw(mu_world_rt *a, int index, const mu_draw_options *opt
             index < MU_CHARACTER_PART_SLOTS ? a->ch.player_bones : item->bones, glow.type, &a->particles);
 }
 
+/* RENDER-ITEMS-CLOAK: RenderCharacter's cloth calls (0x0136ab80, 0x0136aba2) come after the body parts and before
+ * the linked items: the hero's wing cloth. */
+static void hero_cloak(mu_world_rt *a, mu_raster *raster, void *batch)
+{
+    const mu_character_item *wing = &a->ch.items[MU_CHARACTER_WING_ITEM];
+    int16_t type = -1;
+    if (wing->loaded)
+        type = (int16_t)(a->hero_glow_set[MU_CHARACTER_WING_ITEM] ? a->hero_glow[MU_CHARACTER_WING_ITEM].type
+                                                                 : mu_renderchar_type_from_path(wing->path));
+    const mu_cloth_gate_in gate = {a->walk.hero.class_byte, 0, 0, type, -1, 0xa91, 0xa91, a->world};
+    world_cloak_draw(a, WORLD_CLOAK_HERO, 0, &a->ch, &gate, a->walk.hero.action, a->walk.hero.prior_action, 1.0f,
+                     raster, batch);
+}
+
 static void hero_draw_soft(struct mu_world_rt *a, void *self, mu_world_draw *d)
 {
     (void)self;
@@ -61,6 +76,8 @@ static void hero_draw_soft(struct mu_world_rt *a, void *self, mu_world_draw *d)
     raster->front_ccw = 1;
     if (a->has_character)
         for (int n = 0; n < MU_CHARACTER_ITEMS; ++n) {
+            if (n == MU_CHARACTER_PART_SLOTS)
+                hero_cloak(a, raster, NULL);
             const mu_character_item *item = &a->ch.items[mu_world_draw_order[n]];
             if (!item->loaded)
                 continue;
@@ -111,6 +128,8 @@ static void hero_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *d)
         mu_gl_batch_session_begin(a->batch);
     if (a->has_character)
         for (int n = 0; n < MU_CHARACTER_ITEMS; ++n) {
+            if (n == MU_CHARACTER_PART_SLOTS)
+                hero_cloak(a, NULL, a->batch);
             const mu_character_item *item = &a->ch.items[mu_world_draw_order[n]];
             if (!item->loaded)
                 continue;

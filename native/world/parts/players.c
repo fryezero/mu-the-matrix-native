@@ -11,6 +11,7 @@
 #include "../../viewer/gl_backend.h"
 #endif
 #include "../world_rt_internal.h"
+#include "../world_cloak.h"
 
 static int players_open(struct mu_world_rt *a, void *self)
 {
@@ -93,6 +94,17 @@ static void player_item_draw(mu_world_rt *a, int32_t i, int item, const mu_rende
             item < MU_CHARACTER_PART_SLOTS ? q->model.player_bones : it->bones, glow.type, &a->particles);
 }
 
+/* RENDER-ITEMS-CLOAK: RenderCharacter's cloth calls (0x0136ab80, 0x0136aba2), after the body parts and before the
+ * linked items: the player's wing cloth (key 1 + index, made again with the OBJECT at a viewport create). */
+static void player_cloak(mu_world_rt *a, int32_t i, float alpha, mu_raster *raster, void *batch)
+{
+    const mu_world_player *q = &a->players->list[i];
+    const mu_cloth_gate_in gate = {q->c.class_byte, q->c.byte_0e, q->c.pk, q->c.slots[MU_RP_SLOT_WING].type,
+                                   q->c.class_word, q->c.model, q->c.model, a->world};
+    world_cloak_draw(a, WORLD_CLOAK_PLAYER(i), q->creates, &q->model, &gate, q->c.action, q->c.prior_action, alpha,
+                     raster, batch);
+}
+
 static void players_draw_soft(struct mu_world_rt *a, void *self, mu_world_draw *d)
 {
     (void)self;
@@ -105,6 +117,8 @@ static void players_draw_soft(struct mu_world_rt *a, void *self, mu_world_draw *
             continue;
         const mu_world_player *q = &a->players->list[i];
         for (int n = 0; n < MU_CHARACTER_ITEMS; ++n) {
+            if (n == MU_CHARACTER_PART_SLOTS)
+                player_cloak(a, i, alpha, raster, NULL);
             const mu_character_item *item = &q->model.items[mu_world_draw_order[n]];
             if (!item->loaded)
                 continue;
@@ -186,6 +200,8 @@ static void players_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *d)
         if (alpha <= 0.0f) continue;
         const mu_world_player *q = &a->players->list[i];
         for (int n = 0; n < MU_CHARACTER_ITEMS; ++n) {
+            if (n == MU_CHARACTER_PART_SLOTS)
+                player_cloak(a, i, alpha, NULL, batch ? a->batch : NULL);
             const mu_character_item *item = &q->model.items[mu_world_draw_order[n]];
             if (!item->loaded) continue;
             mu_gl_backend *gl = &p->player_gl[i][mu_world_draw_order[n]];
