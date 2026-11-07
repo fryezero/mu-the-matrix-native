@@ -10,6 +10,8 @@ void mu_objects_raklion_set_event(mu_objects *o, uint8_t event)
 {
     if (o->world != 57 && o->world != 58) return;
     o->rt.raklion_state[0x20] = event;
+    if (event != 11)   /* 0x00ea174a after every state write (0x00ea1725); 11 writes only +0x21 (0x00ea1675) */
+        o->rt.raklion_state[0x22] = event <= 6;
     mu_raklion_event_arm(o->rt.raklion_state);
 }
 

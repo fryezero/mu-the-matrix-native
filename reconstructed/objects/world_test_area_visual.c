@@ -2,8 +2,13 @@
  * 0x00d5a6cc), class world-121 (vtable 0x01aa51fc), and Devias 0x67's action choice in RenderObjectVisual
  * (0x017f9d79), which shares SetAction 0x012affa4. Addresses in docs/research/client-worlds-121.md.
  *
- * Neither slot tests the world. The world manager passes types 0..300 only, so the custom slot's cases 0x1a8..0x1ad
- * and 0x836..0x83e/0x872..0x875 (the base 0x00d5c79c) are left out. */
+ * RENDER-WORLDS-RAKLION: Raklion's slots (class world-57, vtable 0x01aad9d0: custom 0x00e949f8, after 0x00e96536)
+ * are the same code (docs/research/client-worlds-raklion.md). The after slots are instruction for instruction the
+ * same; the custom slots differ only where the row of ta_class below says, so both classes run this one routine.
+ *
+ * Neither 121 slot tests the world. The world manager passes types 0..300 only, so the custom slot's cases
+ * 0x1a8..0x1ad and the base's 0x836..0x83e/0x872..0x875 (121: 0x00d5c79c, which answers 0; Raklion: 0x00e9ef04,
+ * which draws only those types) are left out. */
 #include "world_visual_slots.h"
 #include "world_visual_slots2.h"
 
@@ -20,6 +25,15 @@ int mu_devias_action_pick(uint8_t *o, int16_t frame_whole, int16_t keys, int32_t
     mu_obj_set_action(o, action_count, rnd(context) % 32 == 0 ? 1 : 0);
     return 1;
 }
+
+/* What separates the two custom slots (every other instruction, constant and data address is the same) */
+typedef struct ta_class {
+    int32_t world_first, world_last;   /* 0x00ea233c at Raklion's entry 0x00e94a04: 57 <= world <= 58, else 0;
+                                        * 121 has no test (0, -1) */
+    int frame_gate;                    /* Raklion 0x00e96242: type 0x52 restarts its frame (+0xd0, +0xd4 = 0) while
+                                        * the handler byte +0x22 (mu_slot_model.handler_state) is 0 */
+} ta_class;
+static const ta_class TEST_AREA = {0, -1, 0}, RAKLION = {57, 58, 1};
 
 static uint16_t action_of(const slot *s) { return mu_obj_u16(s->o, MU_OBJF_ACTION); }   /* o + 0x2a */
 static int32_t ta_rand(const slot *s) { return s->model->rand_fn(s->model->rand_context); }
@@ -168,8 +182,20 @@ static void ta_0x11(const slot *s)
     ta_body(s);
 }
 
-static int ta_custom(const slot *s)
+/* 0x52: RenderBody with the hidden mesh; in Raklion first the frame restart while its event is past state 6 */
+static void ta_0x52(const slot *s, const ta_class *c)
 {
+    if (c->frame_gate && s->model->handler_state == 0) {
+        mu_obj_set_f32(s->o, MU_OBJF_FRAME, 0.0f);
+        mu_obj_set_f32(s->o, MU_OBJF_PRIOR_FRAME, 0.0f);
+    }
+    body_std(s, H(s));
+}
+
+static int ta_custom(const slot *s, const ta_class *c, int32_t world)
+{
+    if (c->world_first <= c->world_last && (world < c->world_first || world > c->world_last))
+        return 0;
     const int32_t t = mu_obj_i32(s->o, MU_OBJF_TYPE);
     if (t >= 6 && t <= 12) {   /* 0x00d58c01..: the per-vertex light 0.5 of every mesh, the object light 1 */
         const uint32_t half[1] = {wv_bits(0.5f)};
@@ -209,7 +235,7 @@ static int ta_custom(const slot *s)
         body(s, 2, 0, (csin(s->time * 0.001f) + 1.0f) * 0.5f + 0.3f, U(s), V(s), -1);
         return 1;
     case 0x52:
-        body_std(s, H(s));
+        ta_0x52(s, c);
         return 1;
     case 0x53:
         mesh_std(s, 0, 2, -1);
@@ -227,9 +253,10 @@ static int ta_custom(const slot *s)
     }
 }
 
-/* The after slot 0x00d5a6cc (198 instructions). The client's after pass 0x016d6949 never runs in world 121 (0x79 is
- * outside its world list and the class leaves the handler byte +5 at 0), so it draws only through a direct call. */
-static void ta_after(const slot *s)
+/* The after slot 0x00d5a6cc (198 instructions; Raklion's 0x00e96536 is the same). The client's after pass 0x016d6949
+ * never runs in world 121 (0x79 is outside its world list and the class leaves the handler byte +5 at 0), so there
+ * it draws only through a direct call; it runs in 57/58. Answers 1 for the types it draws. */
+static int ta_after(const slot *s)
 {
     switch (mu_obj_i32(s->o, MU_OBJF_TYPE)) {
     case 0x2e: case 0x35:
@@ -253,16 +280,21 @@ static void ta_after(const slot *s)
         mesh_self(s, 1, 0x42, BL(s), U(s), V(s));
         break;
     default:
-        break;
+        return 0;
     }
+    return 1;
 }
 
-int mu_slots121_custom(const slot *s) { return ta_custom(s); }
+int mu_slots121_custom(const slot *s) { return ta_custom(s, &TEST_AREA, 121); }
 void mu_slots121_after(const slot *s) { ta_after(s); }
-/* LoadBitmap("Effect\\Chrome08.jpg", 0x800a, 0x2601, 0x2900) in world 121's case of the object loader (0x018417cd) */
+int mu_slots_raklion_custom(const slot *s, int32_t world) { return ta_custom(s, &RAKLION, world); }
+int mu_slots_raklion_after(const slot *s) { return ta_after(s); }
+static int ta_world(int32_t world) { return world == 121 || world == 57 || world == 58; }
+/* LoadBitmap("Effect\\Chrome08.jpg", 0x800a, 0x2601, 0x2900) in the object loader's cases of world 121 (0x018417cd)
+ * and of Raklion 57/58 (0x0183f4e2) */
 int mu_slots121_bitmap(int32_t world, int32_t index, const char **path, uint32_t *filter, uint32_t *wrap)
 {
-    if (world != 121 || index != 0x800a)
+    if (!ta_world(world) || index != 0x800a)
         return 0;
     *path = "Effect\\Chrome08.jpg";
     *filter = 0x2601;
@@ -271,7 +303,7 @@ int mu_slots121_bitmap(int32_t world, int32_t index, const char **path, uint32_t
 }
 int32_t mu_slots121_bitmaps(int32_t world, int32_t type, int32_t *out, int32_t room)
 {
-    if (world != 121 || type != 0x14 || room <= 0)
+    if (!ta_world(world) || type != 0x14 || room <= 0)
         return 0;
     out[0] = 0x800a;
     return 1;

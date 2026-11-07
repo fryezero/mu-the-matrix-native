@@ -2,6 +2,9 @@
 """RENDER-WORLDS-A instruction comparisons. See client-world-fidelity.md section 5.
 C is compiled and called via ctypes; leaves (particle/sprite, bone transform, draw) are recorded.
 All other instructions in the bounded routines execute under the strict pinned Unicorn machine.
+Raklion (0x39) runs its custom 0x00e949f8 and after 0x00e96536 slots as class slots since RENDER-WORLDS-RAKLION
+(Test Area 121's code, world_test_area_visual.c): its cases of after_draw, first_draw and flags call
+mu_class_after / mu_class_custom(0x39, ...) (validate_worlds_raklion compares the whole slots).
 """
 import ctypes
 import re
@@ -19,13 +22,22 @@ BODIES={'kanturu':(0xe75089,0xe760aa),'karutan':(0xe13be4,0xe14596),
         'elbeland_after':(0xe321bb,0xe326cd),'raklion_after':(0xe96536,0xe9683d),
         'karutan_after':(0xe1543e,0xe15b69),'particle_create':(0x15ae7b0,0x1615f39),
         'particle_move':(0x1616c80,0x168eeb2),'particle_render':(0x159123f,0x15ae373)}
+class RaklionModel(C.Structure):   # mu_slot_model; Raklion's after flags and first meshes read none of it
+    _fields_=[('mesh_count',C.c_int32),('sub_flag',C.c_void_p),('action_frames',C.c_int16),('rand_fn',C.c_void_p),
+              ('rand_context',C.c_void_p),('handler_state',C.c_int32),('bone',C.c_void_p),('bone_context',C.c_void_p),
+              ('bone_count',C.c_int32),('action_count',C.c_int32)]
+def raklion_slot(lib,after,co,time,log):
+    model=RaklionModel();cb=C.create_string_buffer(0x100)
+    fn=lib.dll.mu_class_after if after else lib.dll.mu_class_custom
+    fn(0x39,co,cb,0,0x39,time,C.byref(model),C.byref(log))
 class Library(v.Library):
     def __init__(self,p):
         super().__init__(p);d=self.dll;P=C.c_void_p;I=C.c_int32;F=C.c_float;L=C.POINTER(v.Log)
         d.mu_kanturu_flames.argtypes=[P,I,I,F,v.RAND_FN,BONE,P,L]
         d.mu_karutan_flames.argtypes=[P,I,v.RAND_FN,P,L]
         d.mu_world_defer.argtypes=[P,I]
-        d.mu_raklion_before.argtypes=[P,I,L]
+        d.mu_class_custom.argtypes=d.mu_class_after.argtypes=[I,P,P,I,I,F,C.POINTER(RaklionModel),L]
+        d.mu_class_after.restype=None
         d.mu_world_after_render.argtypes=[P,I,I,F,L,BONE,P]
         d.mu_world_after_pass.argtypes=[C.POINTER(v.World),C.POINTER(v.RenderInputs),C.POINTER(I),L]
 
@@ -176,7 +188,9 @@ def family_after_draw(machine,lib,g,cases):
         def bone(c,k,local,out):
             for q in range(3):out[q]=float(k)
         bonefn=BONE(bone)
-        lib.dll.mu_world_after_render(co,0,world,time,C.byref(log),bonefn,None);native=v.log_events(log)
+        if world==0x39:raklion_slot(lib,True,co,time,log)
+        else:lib.dll.mu_world_after_render(co,0,world,time,C.byref(log),bonefn,None)
+        native=v.log_events(log)
         t.count(f'world {world:#x} type {typ:#x}')
         t.add(calls==native and result['regions']['object']==co.raw,
               {'case':n,'world':world,'type':typ,'client':calls,'native':native,
@@ -209,7 +223,7 @@ def family_first_draw(machine,lib,g,cases):
         def bone(c,k,local,out):
             for q in range(3):out[q]=float(k)
         bonefn=BONE(bone)
-        lib.dll.mu_raklion_before(co,0,C.byref(log));lib.dll.mu_world_defer(co,world);native=v.log_events(log)
+        raklion_slot(lib,False,co,time,log);native=v.log_events(log)
         t.count(f'world {world:#x} type {typ:#x}')
         t.add(calls==native and result['regions']['object']==co.raw,
               {'case':n,'world':world,'type':typ,'client':calls,'native':native,
@@ -229,7 +243,9 @@ def family_flags(machine,lib,g,cases):
         result=v.run(machine,start,[v.OBJECTS,v.MODEL,0],regions,stubs,ecx=v.FAKE,cleanup=12 if world in (0x39,0x50) else 0)
         stop=v.stopped_reason(result)
         if stop:t.add(False,{'case':n,'world':world,'type':typ},stop);continue
-        co=C.create_string_buffer(bytes(o),v.OBJ_SIZE);lib.dll.mu_world_defer(co,world)
+        co=C.create_string_buffer(bytes(o),v.OBJ_SIZE)
+        if world==0x39:raklion_slot(lib,False,co,1234.0,v.new_log())
+        else:lib.dll.mu_world_defer(co,world)
         t.count(f'world {world:#x} type {typ:#x}')
         t.add(result['regions']['object'][0xa]==co.raw[0xa],{'case':n,'world':world,'type':typ})
     return t
@@ -258,9 +274,9 @@ MUTATIONS=[('Kanturu fire bitmap','world_kanturu_visual.c','0x8016,0','0x8017,0'
  ('After byte equals one','world_after.c','o[MU_OBJF_AFTER_CHARACTER]!=1','!o[MU_OBJF_AFTER_CHARACTER]','after_pass'),
  ('After special draw','world_after.c','if(mu_world_after_select(o,in)){','if(0&&mu_world_after_select(o,in)){','after_pass'),
  ('Elbeland after flag','world_elbeland_visual.c','o[MU_OBJF_AFTER_CHARACTER]=1','o[MU_OBJF_AFTER_CHARACTER]=0','flags'),
- ('Raklion glow mesh','world_raklion_visual.c','wv_mesh(o,i,1,0x42,1','wv_mesh(o,i,0,0x42,1','after_draw'),
+ ('Raklion glow mesh','world_test_area_visual.c','mesh_self(s,1,0x42','mesh_self(s,0,0x42','after_draw'),
  ('Karutan scrolling period','world_karutan_visual.c','%10000','%1000','after_draw'),
- ('Raklion first blend','world_raklion_visual.c','wv_mesh(o,i,2,0x42,2','wv_mesh(o,i,2,2,2','first_draw'),
+ ('Raklion first blend','world_test_area_visual.c','mesh_self(s,2,0x42,BL(s),U(s),V(s));','mesh(s,2,2,A(s),2,BL(s),U(s),V(s),-1);','first_draw'),
  ('Karutan flame lifetime','../particles/world_flames.c','?27:', '?26:','particle_create'),
  ('Karutan flame rise','../particles/world_flames.c','p->position[2]+=p->gravity','p->position[2]-=p->gravity','particle_move'),
  ('Kanturu smoke blend','../particles/particles.c','p->subtype == 2 || p->subtype == 21','p->subtype == 2','particle_render')]
