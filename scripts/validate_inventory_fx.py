@@ -67,6 +67,9 @@ RENDER_OBJ_DRAW, CREATE_SPRITE, RENDER_SPRITES = 0x0176ce74, 0x01692eb7, 0x01692
 SCENE_RENDERS = (0x018576b3, 0x01857ed9, 0x0185916b)
 UI_SITES, UI_CALLBACK, UI_REGISTER = (0x00a497c6, 0x00a49bc9), 0x00a49266, 0x00a13f54
 HUD = ROOT / 'reconstructed/hud'
+# validate_item_callers' flag library sources (literal here so the affected-input analysis can read them)
+TERRAIN = ['reconstructed/terrain/terrain.c', 'reconstructed/terrain/world_haze.c',
+           'reconstructed/record-math/record_math.c']
 HUD_SOURCES = ['inv_grid.c', 'item_slots.c', 'item_pass.c', 'tooltip_html.c', 'tooltip_format.c', '../ui/ui2d.c']
 SUFFIX = 'dylib' if sys.platform == 'darwin' else 'so'
 SCREENS = [(640, 480), (800, 600), (1024, 768), (1280, 800), (1366, 768), (1600, 1000), (1722, 1048), (1920, 1080),
@@ -501,7 +504,7 @@ def main(argv=None):
     work = Path(tempfile.mkdtemp(prefix='inventory-fx-'))
     try:
         objects = []
-        for src in ic.TERRAIN:
+        for src in TERRAIN:
             obj = work / (Path(src).stem + '.o')
             result = subprocess.run(['clang', '-std=c11', '-O2', '-fPIC', '-ffp-contract=off', '-c', str(ROOT / src),
                                      '-o', str(obj)], capture_output=True, text=True)
