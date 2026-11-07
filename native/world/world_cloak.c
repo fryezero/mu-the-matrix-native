@@ -1,4 +1,4 @@
-/* RENDER-ITEMS-CLOAK: the wings' physics capes in the world. See world_cloak.h. */
+/* RENDER-ITEMS-CLOAK / CLOAK-002: the wings' physics capes in the world. See world_cloak.h. */
 #include "world_cloak.h"
 
 #include <stdio.h>
@@ -16,15 +16,73 @@
 
 #define CLOAK_SLOTS (1 + MU_WORLD_PLAYERS_MAX)
 
-/* The cloth bitmaps of CreateCloth's wing cases, as LoadBitmap loads them (0x018252db.., 0x01827699): GL_LINEAR,
- * kundun_innocence2 and BlackCloak_3 with GL_REPEAT, the two sparkle halves with GL_CLAMP. */
-static const struct { int32_t bitmap; const char *name; uint32_t wrap; } cloth_bitmaps[] = {
-    {0x83f6, "kundun_innocence2.tga", 0x2901},
-    {0x846b, "BlackCloak_3.tga", 0x2901},
-    {0x83f7, "kundun_sparkle3.tga", 0x2900},
-    {0x83f8, "kundun_sparkle3_1.tga", 0x2900},
+/* The cloth and glow bitmaps of CreateCloth's cases as the client's LoadBitmap calls (0x0185baac) load them: the
+ * directory under Data, the file, the filter and the wrap. They are loaded the first time a cloth binds them. */
+static const struct {
+    int32_t bitmap;
+    const char *directory, *name;
+    uint32_t filter, wrap;
+} cloth_bitmaps[] = {
+    {0x790b, "Player", "Robe01.jpg", 0x2600, 0x2900},
+    {0x790c, "Player", "Robe02.jpg", 0x2600, 0x2900},
+    {0x7912, "Player", "DarklordRobe.tga", 0x2600, 0x2900},
+    {0x7914, "Item/Texture", "dl_redwings02.tga", 0x2600, 0x2900},
+    {0x7915, "Item/Texture", "dl_redwings03.tga", 0x2600, 0x2900},
+    {0x7916, "Item/Texture", "deathha.tga", 0x2600, 0x2900},
+    {0x7917, "Item/Texture", "deathjung.tga", 0x2600, 0x2900},
+    {0x7918, "Item/Texture", "admangto.tga", 0x2600, 0x2900},
+    {0x794c, "Item/Texture", "darklordwing4de.TGA", 0x2601, 0x2901},
+    {0x794d, "Item/Texture", "darklordwing4dd.tga", 0x2601, 0x2901},
+    {0x794e, "Item/Texture", "darklordwing4de_render.jpg", 0x2601, 0x2901},
+    {0x794f, "Item/Texture", "darklordwing4dd_render.JPG", 0x2601, 0x2901},
+    {0x7950, "Item/Texture", "ragefighterwing4db.TGA", 0x2601, 0x2901},
+    {0x7952, "Item/Texture", "ragefighterwing4db_render.JPG", 0x2601, 0x2901},
+    {0x7953, "Item/Texture", "growlancerwing4dc.tga", 0x2601, 0x2901},
+    {0x7954, "Item/Texture", "growlancerwing4dc_render.JPG", 0x2601, 0x2901},
+    {0x80ed, "Item/Texture", "NCcape.tga", 0x2601, 0x2901},
+    {0x80ee, "Item/Texture", "monk_manto01.TGA", 0x2601, 0x2901},
+    {0x80ef, "Item/Texture", "monke_manto.TGA", 0x2601, 0x2901},
+    {0x81e8, "Item/Texture", "Item801_2_wing.tga", 0x2601, 0x2900},
+    {0x81e9, "Item/Texture", "Item802_2_wing.tga", 0x2601, 0x2900},
+    {0x830c, "Item/Texture", "season_wing_periodc.tga", 0x2601, 0x2901},
+    {0x830d, "Item/Texture", "season_wing_periodc2.tga", 0x2601, 0x2901},
+    {0x83f3, "Item/Texture", "kundun_purewhite2.tga", 0x2601, 0x2901},
+    {0x83f5, "Item/Texture", "kundun_purewhite2_render.jpg", 0x2601, 0x2901},
+    {0x83f6, "Item/Texture", "kundun_innocence2.tga", 0x2601, 0x2901},
+    {0x83f7, "Item/Texture", "kundun_sparkle3.tga", 0x2601, 0x2900},
+    {0x83f8, "Item/Texture", "kundun_sparkle3_1.tga", 0x2601, 0x2900},
+    {0x83fa, "Item/Texture", "kundun_resplendent_6.tga", 0x2601, 0x2900},
+    {0x83fb, "Item/Texture", "kundun_resplendent_5.tga", 0x2601, 0x2900},
+    {0x842d, "Item/Texture", "kundun_resplendent_6_render.jpg", 0x2601, 0x2900},
+    {0x842e, "Item/Texture", "kundun_resplendent_5_render.jpg", 0x2601, 0x2900},
+    {0x8469, "Item/Texture", "Ironcloak2.tga", 0x2601, 0x2901},
+    {0x846b, "Item/Texture", "BlackCloak_3.tga", 0x2601, 0x2901},
+    {0x846c, "Item/Texture", "Desperatecloak3.tga", 0x2601, 0x2900},
+    {0x846d, "Item/Texture", "Desperatecloak3_glow.jpg", 0x2601, 0x2900},
+    {0x846e, "Item/Texture", "Hatredcloak_3.tga", 0x2601, 0x2900},
+    {0x846f, "Item/Texture", "Hatredcloak3_glow.jpg", 0x2601, 0x2900},
+    {0x84ec, "Item/Texture", "Fifth_Kundun_cape_03.tga", 0x2601, 0x2900},
+    {0x84ed, "Item/Texture", "Fifth_Kundun_cape_04.tga", 0x2601, 0x2900},
+    {0x84ee, "Item/Texture", "Fifth_Kundun_cape_04_r.jpg", 0x2601, 0x2900},
+    {0x84ef, "Item/Texture", "Fifth_Kundun_cape_05_r.jpg", 0x2601, 0x2900},
+    {0x84f1, "Item/Texture", "Fifth_DarkLord_cape_05.tga", 0x2601, 0x2900},
+    {0x84f2, "Item/Texture", "Fifth_DarkLord_cape_04.tga", 0x2601, 0x2900},
+    {0x84f3, "Item/Texture", "Fifth_DarkLord_cape_03.tga", 0x2601, 0x2900},
+    {0x84f4, "Item/Texture", "Fifth_Illusion_cape_03.tga", 0x2601, 0x2900},
+    {0x84f5, "Item/Texture", "Fifth_Grow_cape_04.tga", 0x2601, 0x2900},
+    {0x84f6, "Item/Texture", "Fifth_Grow_cape_04_r.jpg", 0x2601, 0x2900},
+    {0x84f9, "Item/Texture", "Fifth_Rage_Cape_02.tga", 0x2601, 0x2900},
+    {0x84fa, "Item/Texture", "Fifth_Rage_Cape_02_Render.JPG", 0x2601, 0x2900},
+    {0x8502, "Item/Texture", "Fifth_Darklord_cape_Glow1.jpg", 0x2601, 0x2900},
+    {0x8503, "Item/Texture", "Fifth_Darklord_cape_04_r.jpg", 0x2601, 0x2900},
+    {0x8504, "Item/Texture", "Fifth_Darklord_cape_05_r.jpg", 0x2601, 0x2900},
+    {0x8505, "Item/Texture", "Fifth_Illusion_cape_03_r.jpg", 0x2601, 0x2900},
+    {0x8605, "Item/Texture", "blessing_cape_02.tga", 0x2601, 0x2901},
+    {0x8607, "Item/Texture", "hope_cape_02.tga", 0x2601, 0x2901},
+    {0x8609, "Item/Texture", "sanctuary_cape_02.tga", 0x2601, 0x2901},
+    {0x860b, "Item/Texture", "light_cape_02.tga", 0x2601, 0x2901},
 };
-enum { CLOTH_BITMAPS = 4 };
+enum { CLOTH_BITMAPS = (int)(sizeof cloth_bitmaps / sizeof cloth_bitmaps[0]) };
 
 typedef struct cloak_slot {
     int16_t wing;
@@ -42,11 +100,11 @@ typedef struct world_cloak {
     int wind_started;
     cloak_slot *slots[CLOAK_SLOTS];
     mu_textures textures;
-    int textures_state;            /* 0 not tried, 1 loaded, -1 failed */
-    int32_t slot_of[CLOTH_BITMAPS];
+    int textures_state;            /* 0 not tried, 1 the specials loaded, -1 failed */
+    int32_t slot_of[CLOTH_BITMAPS];   /* -1 not loaded yet, -2 failed */
 #ifndef MU_WORLD_NO_GL
     mu_gl_backend gl;
-    int gl_ready;
+    int gl_ready;                  /* 0 = (re)upload before the next GL draw */
 #endif
     world_cloak_stats stats;
 } world_cloak;
@@ -63,25 +121,54 @@ static world_cloak *cloak_state(mu_world_rt *a)
     return a->cloak;
 }
 
-static int load_textures(mu_world_rt *a, world_cloak *w)
+static int load_bitmap(mu_world_rt *a, world_cloak *w, int32_t bitmap)
 {
-    if (w->textures_state)
-        return w->textures_state > 0;
-    w->textures_state = -1;
-    mu_bmd none;
-    memset(&none, 0, sizeof none);
-    if (mu_textures_load_specials(&w->textures, &none, NULL))
-        return 0;
-    char directory[4096];
-    snprintf(directory, sizeof directory, "%s/Data/Item/texture", a->root ? a->root : ".");
     for (int i = 0; i < CLOTH_BITMAPS; ++i) {
-        const int32_t index = cloth_bitmaps[i].bitmap;
+        if (cloth_bitmaps[i].bitmap != bitmap)
+            continue;
+        if (w->slot_of[i] != -1)
+            return w->slot_of[i] >= 0;
+        w->slot_of[i] = -2;
+        char directory[4096];
+        snprintf(directory, sizeof directory, "%s/Data/%s", a->root ? a->root : ".", cloth_bitmaps[i].directory);
         const char *dirs[1] = {directory}, *names[1] = {cloth_bitmaps[i].name};
-        w->slot_of[i] = w->textures.count;
-        if (mu_textures_add_extras(&w->textures, &index, dirs, names, 1, 0x2601, cloth_bitmaps[i].wrap))
+        const int32_t slot = w->textures.count;
+        if (mu_textures_add_extras(&w->textures, &bitmap, dirs, names, 1, cloth_bitmaps[i].filter,
+                                   cloth_bitmaps[i].wrap))
             return 0;
+        w->slot_of[i] = slot;
+#ifndef MU_WORLD_NO_GL
+        if (w->gl_ready) {   /* a new bitmap: the GL set is uploaded again before the next GL draw */
+            mu_gl_release(&w->gl);
+            w->gl_ready = 0;
+        }
+#endif
+        return 1;
     }
-    w->textures_state = 1;
+    return 0;
+}
+
+/* The bitmaps a wearer's cloths bind (front, back, glow). 0 when one cannot be loaded. */
+static int load_textures(mu_world_rt *a, world_cloak *w, const mu_cloth *cloths, int count)
+{
+    if (!w->textures_state) {
+        w->textures_state = -1;
+        for (int i = 0; i < CLOTH_BITMAPS; ++i)
+            w->slot_of[i] = -1;
+        mu_bmd none;
+        memset(&none, 0, sizeof none);
+        if (mu_textures_load_specials(&w->textures, &none, NULL))
+            return 0;
+        w->textures_state = 1;
+    }
+    if (w->textures_state < 0)
+        return 0;
+    for (int i = 0; i < count; ++i) {
+        const int32_t bitmaps[3] = {cloths[i].texture_front, cloths[i].texture_back, cloths[i].glow_texture};
+        for (int k = 0; k < 3; ++k)
+            if ((k < 2 || bitmaps[k] != -1) && !load_bitmap(a, w, bitmaps[k]))
+                return 0;
+    }
     return 1;
 }
 
@@ -89,7 +176,7 @@ static int32_t texture_slot(const world_cloak *w, int32_t bitmap)
 {
     for (int i = 0; i < CLOTH_BITMAPS; ++i)
         if (cloth_bitmaps[i].bitmap == bitmap)
-            return w->slot_of[i];
+            return w->slot_of[i] >= 0 ? w->slot_of[i] : -1;
     return -1;
 }
 
@@ -225,16 +312,23 @@ static void set_globals(const mu_world_rt *a, world_cloak *w)
     w->g.world = a->world;
 }
 
+/* The client's frame driver walks the wind five times in every logic step of every scene from start-up, on the
+ * process rand() that WinMain seeds with srand(time) and 18 other srand sites re-seed; no native stream can match it.
+ * The stand-in walks from the frame driver's logic step 0 (the runtime's start), so the wind at a frame depends on the
+ * steps since start and not on when the first cloth wing came into view. A first catch-up beyond 2^20 logic steps
+ * (about 11.6 hours) walks only the last 2^20; later gaps (a stalled frame) walk at most 1000. */
 static void wind_catch_up(mu_world_rt *a, world_cloak *w)
 {
     const uint32_t steps = a->walk.frame.clock.logic_steps;
+    uint32_t cap = 1000;
     if (!w->wind_started) {
-        w->wind_at = steps;
+        w->wind_at = 0;
         w->wind_started = 1;
+        cap = 1u << 20;
     }
     uint32_t n = steps - w->wind_at;
-    if (n > 1000)
-        n = 1000;
+    if (n > cap)
+        n = cap;
     for (uint32_t k = 0; k < n; ++k)
         for (int j = 0; j < 5; ++j)   /* the frame driver's five manager steps 0x01851eee..0x01851f07 */
             mu_cloth_wind_step(&w->g);
@@ -243,20 +337,22 @@ static void wind_catch_up(mu_world_rt *a, world_cloak *w)
 }
 
 void world_cloak_draw(mu_world_rt *a, int32_t key, uint32_t generation, const mu_character *ch,
-                      const mu_cloth_gate_in *gate, uint16_t action, uint16_t prior_action, float alpha,
-                      mu_raster *raster, void *batch)
+                      const mu_cloth_gate_in *gate, int8_t wing_level, uint16_t action, uint16_t prior_action,
+                      float alpha, mu_raster *raster, void *batch)
 {
     const int16_t wing_type = gate->wing_type;
     if (key < 0 || key >= CLOAK_SLOTS || !ch || !ch->player_loaded)
         return;
-    if (!a->cloak && !mu_cloth_wing_cloths(wing_type))   /* no state (and no report line) before a cloth wing */
+    /* CreateCloth's inputs: native characters have no arg 4 (guild war / duel), play in scene 6 and keep sub-type 0. */
+    const mu_cloth_wing_in wing_in = {wing_type, wing_level, 0, 6, ch->params.scale};
+    if (!a->cloak && !mu_cloth_wing_cloths(&wing_in))   /* no state (and no report line) before a cloth wing */
         return;
     world_cloak *w = cloak_state(a);
     if (!w)
         return;
     cloak_slot *s = w->slots[key];
     if (!s) {
-        if (!mu_cloth_wing_cloths(wing_type))   /* nothing to keep for a wing without a cloth case */
+        if (!mu_cloth_wing_cloths(&wing_in))   /* nothing to keep for a wing without a cloth case */
             return;
         s = w->slots[key] = calloc(1, sizeof *s);
         if (!s)
@@ -291,12 +387,13 @@ void world_cloak_draw(mu_world_rt *a, int32_t key, uint32_t generation, const mu
         return;
     }
     if (s->count == 0) {   /* RenderCloth: CreateCloth while the OBJECT has none, then its MoveCloth */
-        s->count = mu_cloth_wing_create(s->cloths, wing_type, &h);
+        s->count = mu_cloth_wing_create(s->cloths, &wing_in, &h);
         w->stats.created += (uint32_t)s->count;
         if (s->count > 0)
             move_cloth(w, s, &h);
     }
-    if (s->count == 0 || !mu_cloth_draw_allowed(action, prior_action, gate->class_index) || !load_textures(a, w))
+    if (s->count == 0 || !mu_cloth_draw_allowed(gate->class_byte, h.subtype, action, prior_action, gate->class_index) ||
+        !load_textures(a, w, s->cloths, s->count))
         return;
     mu_render_backend backend;
     const mu_image *const *saved = NULL;
@@ -334,7 +431,7 @@ void world_cloak_draw(mu_world_rt *a, int32_t key, uint32_t generation, const mu
     mu_meshdraw_state_defaults(&sink.state);
     mu_cloth_sink cs = {&sink, s_state, s_bind, s_color4, s_begin, s_texcoord, s_vertex, s_end};
     for (int i = 0; i < s->count; ++i)
-        if (s->cloths[i].owner && mu_cloth_render(&s->cloths[i], &h, out.light, &cs) == MU_CLOTH_OK)
+        if (s->cloths[i].owner && mu_cloth_render(&s->cloths[i], &h, &w->g, out.light, &cs) == MU_CLOTH_OK)
             w->stats.drawn++;
     if (raster) {
         raster->textures = saved;
