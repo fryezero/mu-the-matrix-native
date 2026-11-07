@@ -211,15 +211,16 @@ class WorldRender(unittest.TestCase):
     def test_armour_owner_effect_program(self):
         """RENDER-ITEMS-002Q: the worn chest piece 0x1bc3 runs its owner-effect program (eight 0x7f7a sprites at
         owner bones 26/27/36/18, 0x8109 at bone 35, then rand() % 2 gates particle 0x810a/7). Requests no native
-        kind creates count as owner_refused; a 35-bone part model is outside the program's bone domain."""
+        kind creates count as owner_refused; a 35-bone part model is outside the program's bone domain.
+        RENDER-EFFECTS-017: 0x810a/7 is a native kind, so its request is created, not refused."""
         path=self.tmp/'owner-fx.bmd'
         path.write_bytes(nf.character_layout(114,bones=50,meshes=6,dummies=(9,21)))
         options=('--part','2',path,'--item-type','armor=0x1bc3','--world-time','0')
         one,_=self.render(*options)
         frames,_=self.render(*options,'--frames','3','--frame-steps','2')
         self.assertEqual((one['special'],one['owner_effects'],one['owner_refused']),(0,9,0))
-        # Over three frames one rand() % 2 gate opens: its CreateParticle 0x810a/7 has no native kind.
-        self.assertEqual((frames['owner_effects'],frames['owner_refused']),(27,1))
+        # Over three frames one rand() % 2 gate opens: its CreateParticle 0x810a/7 is created (RENDER-EFFECTS-017).
+        self.assertEqual((frames['owner_effects'],frames['owner_refused']),(28,0))
         short=self.tmp/'owner-fx-short.bmd'
         short.write_bytes(nf.character_layout(114,bones=35,meshes=6,dummies=(9,21)))
         outside,_=self.render('--part','2',short,'--item-type','armor=0x1bc3','--world-time','0')

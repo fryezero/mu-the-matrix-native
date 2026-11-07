@@ -64,13 +64,17 @@ def command(a, world, tile, directory, pf, af):
     """The hero is the world's default offline join: the recorded level-1 Dark Knight (class 1) whose HP/MP/SD/AG
     1100/200/52/25 native/fixture/hero_join.h seeds as current and maximum, and whose combat HP is the world's
     default 1100. No class or HP override: the old --class 0 had no recorded maxima (HUD x/0) and --hero-hp
-    1000000 did not fit A0/30's 16-bit HP field (16960)."""
+    1000000 did not fit A0/30's 16-bit HP field (16960).
+    The camera keeps the world FOV unless --fov is given: the client's zoom 0x0185a9bf picks from {20, 30, world
+    FOV}, so it never sees wider. The old native-only FOV 65 looked past the terrain cull (CreateFrustrum2D
+    0x016d20d9) onto the clear colour, REGRESS-001 (#321)."""
+    fov = ['--perf-fov', str(a.fov)] if getattr(a, 'fov', None) else []
     return [str(REPO/'native/build/mu-world'), '--game-root', str(a.game_root.resolve()),
             '--objects-dir', str(a.objects.resolve()), '--world', str(world),
             '--tile', ','.join(map(str, tile)), '--hero-name', 'Preview',
             '--players', str(pf), '--player-range', '40', '--placement', str(af),
             '--width', '1600', '--height', '1000', '--no-audio', '--headless', '--backend', 'gl',
-            '--frames', '101', '--every', '100', '--out-dir', str(directory), '--perf-fov', '65',
+            '--frames', '101', '--every', '100', '--out-dir', str(directory), *fov,
             '--gfx', str(a.gfx.resolve()), '--gfx-open', '', '--combat', '--combat-weapon', 'staff',
             '--combat-seed', '1', '--combat-script',
             '30:skill:9:mob00 50:skill:10:mob01 70:skill:14:mob02 90:skill:24:mob03',
@@ -98,6 +102,8 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     for name in ('game-root', 'objects', 'gfx', 'lang', 'out'):
         ap.add_argument('--'+name, type=Path, required=True)
+    ap.add_argument('--fov', type=float, help='native-only camera override (20..45 keeps both frames filled); '
+                                              'default: the world FOV the client uses')
     a = ap.parse_args()
     a.out = a.out.resolve()
     if a.out == REPO or REPO in a.out.parents:

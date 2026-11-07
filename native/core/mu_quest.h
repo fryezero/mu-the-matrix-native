@@ -32,6 +32,10 @@ int mu_quest_session_open(mu_quest_session *s, const char *lang_dir, const char 
 void mu_quest_session_close(mu_quest_session *s);
 /* The demo offers of a demo text (quest lines); returns the count. */
 int32_t mu_quest_session_offers(mu_quest_session *s, const char *demo_text);
+/* REGRESS-001: the offline world's local quest lane (session/domains/quest.h). The world tools turn it on, so
+ * the dialogue's NPC list (F6 71) and the accept/give-up/complete requests are answered by the local fixture
+ * as before the session migration; off (the default) keeps the wire rules. Returns 1 when active. */
+int mu_quest_session_offline_local(mu_quest_session *s, int on);
 /* Logic step: delivers the due answers. */
 void mu_quest_session_step(mu_quest_session *s);
 /* The dialogue's server request 901 (0x00be906d case 0: C1 F6 71 with the dialogue NPC). */

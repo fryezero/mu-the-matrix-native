@@ -157,7 +157,8 @@ the client draws. A live capture would confirm this reading.
   (3, 25, 44)/256, Illusion Temple (9, 8, 33)/256, world 0x84 (0.149, 0, 0), black elsewhere.
 - **Fog (static)**: the render scene clears FogEnable, so BeginOpengl's fog block (`GL_LINEAR`, density
   `0x01cf160c`, colour `0x01cf1610`) never runs in game; the only fog is world 0x1e's black linear fog
-  2000..2700 inside one box (`0x00d8cca8`).
+  2000..2700 inside one box (`0x00d8cca8`; drawn natively since RENDER-WORLDS-FOG,
+  [client-worlds-fog.md](client-worlds-fog.md)).
 - **Water surfaces**: the per-world water/lava scrolls and Atlans' animated caustic layer (bitmaps `0x76f8 + n`,
   the `wt%02d` files of the model pass) are the terrain's, covered by NATIVE-TERRAIN-002.
 - **Lightning and day/night**: none in these routines. Thunder and lightning textures belong to skills and event

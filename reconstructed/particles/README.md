@@ -15,7 +15,8 @@ helpers and the object visuals that use them, compared with the client's instruc
 | `layout.c` | client layouts of the particle (0xb4) and sprite (0x3d8) records, for the validator and tests |
 
 Kinds: Fire01 `0x7f3c` 0..6, 17; smoke01 `0x7f5a` 0, 2, 3; rain02/rain03 `0x771c`/`0x771d` 0; Spark02 `0x7f25` 0;
-Thunder01 `0x7f2b` 0; Spark03 `0x7f26` 0, 1; Fire06 `0x7f40` 1..3 through Fire01's case (RENDER-EFFECTS-016)
+Thunder01 `0x7f2b` 0; Spark03 `0x7f26` 0, 1; Fire06 `0x7f40` 1..3 through Fire01's case (RENDER-EFFECTS-016);
+the armour owner effects' 0x810a 7, 0xf and Spark03 0x26 (`armour_kinds.inc`, RENDER-EFFECTS-017)
 (`mu_pt_kind_supported`; later milestones add more, see `particles.h`). Other kinds are reported unsupported.
 
 Callers that create particles or sprites from other reconstructed routines (objects, environment, skills) pass

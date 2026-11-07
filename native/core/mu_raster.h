@@ -14,7 +14,7 @@
  * back-face culling (counter-clockwise front), LEQUAL depth test, GL_MODULATE
  * with GL_REPEAT (or clamp to edge for GL_CLAMP textures) and nearest or
  * bilinear sampling per texture, alpha test (GREATER ref), blending with the
- * six factors used by the client, round-to-nearest unorm8
+ * six factors used by the client, GL_LINEAR fog (off unless `fog` is set), round-to-nearest unorm8
  * output. It exists for headless renders with stable hashes: all arithmetic
  * is binary32/64 basic operations, so with -ffp-contract=off the output is
  * bit-identical across IEEE hosts. It is a viewer reference, not a model of
@@ -45,6 +45,12 @@ typedef struct mu_raster {
     long triangles, fragments;
     int primitive;             /* mode of the open primitive (4, 6 or 7) */
     uint8_t clamp;             /* 1: GL_CLAMP-like wrap (coordinates clamped to the edge texels), 0: GL_REPEAT */
+    /* GL_FOG with GL_FOG_MODE GL_LINEAR (RENDER-WORLDS-FOG; mu_raster_init leaves it off). Per fragment, after
+     * texturing and before the alpha test and blending: f = clamp((fog_end - c) / (fog_end - fog_start), 0, 1)
+     * with c = |z_eye| (the perspective-correct eye-space depth, the usual approximation GL allows for the
+     * fragment's eye distance), RGB = f * RGB + (1 - f) * fog_color, alpha unchanged. */
+    uint8_t fog;
+    float fog_start, fog_end, fog_color[3];
 } mu_raster;
 
 int mu_raster_init(mu_raster *raster, int32_t width, int32_t height);
