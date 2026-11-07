@@ -3,7 +3,7 @@
 Branch/worktree `claude/render-items-cloak` (Claude Opus 5.5), from `origin/claude/render-items-002t` (`53b9f7e7`,
 #341); merged main `138b756e` (#338..#341) as `dd805a35` (clean) and `65748528` (#342 RENDER-EFFECTS-021) as
 `a1642147` (finding conflict: both added a part 23; RENDER-EFFECTS-021 keeps 23, this lane is part 24; both
-`validators.toml` rows kept). No live client, launcher, network or hosted workflow.
+`validators.toml` rows kept), then `a7f7b247` (#343 INVENTORY-FX) as `1a1ea49a` (clean). No live client, launcher, network or hosted workflow.
 No full gate in the lane (2026-11-04 test budget).
 
 Scope: the capes of wings `0x2382`..`0x2385`, `0x2394`, `0x2395` in the world, for players and the hero.
@@ -156,7 +156,8 @@ validate_render_worlds_a, validate_world_particle_consumers, validate_worlds_121
 validate_worlds_after2, validate_worlds_after3, validate_worlds_after4, validate_worlds_after5, validate_worlds_after6,
 validate_worlds_e, validate_worlds_fog, validate_worlds_g3, validate_worlds_karutan, validate_worlds_l,
 validate_worlds_m, validate_worlds_raklion, validate_worlds_slots, validate_worlds_slots2, validate_worlds_slots3.
-After the merge, the private modules `test_native_item_cloak`, `test_render_effects21`, `test_native_world_predraw`,
+After the `a7f7b247` merge (#343: the GFx inventory pass, `reconstructed/hud`, the world runtime), the 20 rows `--affected-since d581d88a` selects all pass at `1a1ea49a` without mutants (215 s wall): validate_app_polish1, validate_app_polish2, validate_app_polish4, validate_app_polish7, validate_audio_callers, validate_audio_domains, validate_audio_items, validate_gfx3, validate_hud, validate_icarus_c2, validate_inventory_fx, validate_item_callers, validate_map_polish, validate_movement, validate_render_effects16, validate_render_effects17, validate_render_effects18, validate_render_effects19, validate_render_items, validate_worlds_fog. The inventory render against main `a7f7b247` is still byte-identical (`e2d51ead…`).
+After the `65748528` merge, the private modules `test_native_item_cloak`, `test_render_effects21`, `test_native_world_predraw`,
 `test_native_hero_items`, `test_native_players` and `test_world_parts` ran again: 56 tests OK, 194 s. `cloth.c` changed
 after the mutant run only in its first comment line (part 23 → 24). No other row needs mutants. Env: private-env.sh
 (`MU_SECTION3` above, `MU_PATH_DIRECTIONS`).
