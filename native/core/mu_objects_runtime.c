@@ -188,6 +188,7 @@ int mu_objects_start(mu_objects *o, const char *game_root)
     rt->velocity_types = velocity_types;
     memset(rt->stream, 0xff, sizeof rt->stream);   /* BMD StreamMesh -1 until a slot writes it */
     rt->slot_index = -1;
+    rt->uruk_weather = -1;   /* RENDER-EFFECTS-018: 0x01cf15ec's static -1 (reset 0x017ebfd2) until a server set */
     const int32_t n = o->count > 0 ? o->count : 0;
     rt->q_handler.swamp_variant = 1;   /* Swamp of Darkness constructor (0x00e54359: +0x78 = 1) */
     mu_objects_anim_load(o, getenv("MU_LANG_DIR"));   /* RENDER-WORLDS-AFTER5: absent file = no rows */
@@ -1041,8 +1042,10 @@ static void consume_visual(mu_objects *o, const mu_obj_log *log)
             }
             rt->joint_light(rt->hook_context, (int32_t)e->args[0], position, target, angle, (int32_t)e->args[10],
                             e->args[11] ? e->object : -1, fbits(e->args[12]), light);
-        } else if (e->call == MU_URUK_KEYED_EFFECT || e->call == MU_URUK_COLORED_JOINT) {
-            ++rt->draw_unsupported; /* No native key consumer (or no colour-joint hook); preserve the refusal. */
+        } else if (e->call == MU_URUK_KEYED_EFFECT) {
+            owned_effect(rt, e, 12);   /* RENDER-EFFECTS-018: 0x806e/12, owner flag args[11], word4 args[12] */
+        } else if (e->call == MU_URUK_COLORED_JOINT) {
+            ++rt->draw_unsupported; /* No colour-joint hook; preserve the refusal. */
         } else if (e->call == MU_OBJ_CALL_SOUND) {
             ++rt->sound_events;
             if (o->sound) o->sound(o->sound_context, (int32_t)e->args[0]);
