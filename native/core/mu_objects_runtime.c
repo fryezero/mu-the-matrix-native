@@ -783,6 +783,8 @@ static void slot_model(mu_objects *o, int32_t t, int16_t *flags, int32_t capacit
     out->handler_state = o->rt.q_handler.ferea_state;   /* RENDER-WORLDS-SLOTS: Ferea's custom slot */
     out->bone = NULL;                                    /* set by class_custom_call where a slot reads bones */
     out->bone_context = NULL;
+    out->bone_count = m && m->loaded ? m->bmd.bone_count : 0;       /* RENDER-WORLDS-121 */
+    out->action_count = m && m->loaded ? m->bmd.action_count : 0;
     for (int32_t k = 0; m && m->loaded && k < m->bmd.mesh_count && k < capacity; ++k) {
         uint8_t name[32] = {0}, sub[5];
         memcpy(name, m->bmd.meshes[k].texture, strnlen(m->bmd.meshes[k].texture, sizeof name));
@@ -910,6 +912,9 @@ static void visual_bone(void *context, int32_t bone, const float local[3], float
  * creates them there) and leave the slot log, which keeps only the draws. Without a pose they are left out
  * and counted; the draws, rand draws and object writes stay. */
 static void consume_visual(mu_objects *o, const mu_obj_log *log);
+static int test_area_custom_call(mu_objects *o, uint8_t *img, int32_t index, float time, mu_slot_model *model,
+                                 mu_obj_log *log);
+static void slot_vertex_light(const mu_objects_runtime *rt, mu_object_model *m);
 static int class_custom_call(mu_objects *o, uint8_t *img, int32_t index, float time, mu_slot_model *model,
                              mu_obj_log *log)
 {
@@ -928,6 +933,8 @@ static int class_custom_call(mu_objects *o, uint8_t *img, int32_t index, float t
             ++o->rt.draw_unsupported;
         }
     }
+    if (o->world == 121)   /* RENDER-WORLDS-121 */
+        return test_area_custom_call(o, img, index, time, model, log);
     const int32_t first = log->count;
     const int handled = mu_class_custom(o->world, img, o->rt.model_fields, index, o->world, time, model, log);
     mu_obj_event requests[8];
@@ -943,6 +950,86 @@ static int class_custom_call(mu_objects *o, uint8_t *img, int32_t index, float t
         }
     consume_visual(o, &req);
     return handled;
+}
+
+/* RENDER-WORLDS-121: Test Area's custom slot. Its 0x13..0x15 create one bone-placed particle per bone (two in
+ * 0x13's first window) around their body draw, more than the slot log holds, so the slot runs into a scratch log
+ * sized from the model: its CreateParticle requests go to the visual pass's consumer at once (refused and counted
+ * when the bone is not in the model: test_area_bone answers NaN), the rest to the slot log. Posed bones for
+ * 0x13..0x15 (0x39's TransformPosition result is unused, so it needs none). */
+static void test_area_bone(void *context, int32_t bone, const float local[3], float out[3])
+{
+    visual_context *c = context;
+    if (bone < 0 || bone >= c->m->bmd.bone_count) {
+        out[0] = out[1] = out[2] = NAN;
+        return;
+    }
+    visual_bone(context, bone, local, out);
+}
+static int test_area_custom_call(mu_objects *o, uint8_t *img, int32_t index, float time, mu_slot_model *model,
+                                 mu_obj_log *log)
+{
+    const int32_t t = mu_obj_i32(img, MU_OBJF_TYPE);
+    visual_context vc = {o, NULL};
+    if (t >= 0x13 && t <= 0x15) {
+        mu_object_model *m = o->models[t];
+        if (m && m->loaded && m->bmd.bone_count > 0 && pose_object(o, img, m, NULL)) {
+            vc.m = m;
+            model->bone = test_area_bone;
+            model->bone_context = &vc;
+        } else {
+            ++o->rt.draw_unsupported;   /* no posed bones: the particles are left out */
+        }
+    }
+    mu_obj_log wide = {0, MU_OBJECT_SLOT_EVENTS + 2 * (model->bone_count > 0 ? model->bone_count : 0) + 32, 0, NULL};
+    wide.events = calloc((size_t)wide.capacity, sizeof *wide.events);
+    if (!wide.events) {
+        ++o->rt.draw_unsupported;
+        return 0;
+    }
+    const int handled = mu_class_custom(o->world, img, o->rt.model_fields, index, o->world, time, model, &wide);
+    int32_t requests = 0;
+    for (int32_t k = 0; k < wide.count; ++k) {
+        const mu_obj_event e = wide.events[k];
+        if (e.call == MU_OBJ_CALL_PARTICLE) {
+            if (isnan(fbits(e.args[1])))
+                ++o->rt.draw_unsupported;
+            else
+                wide.events[requests++] = e;   /* k >= requests: compacted in place */
+        } else if (log->count < log->capacity) {
+            log->events[log->count++] = e;
+        } else {
+            log->overflow = 1;
+        }
+    }
+    if (wide.overflow)
+        ++o->rt.draw_unsupported;
+    const mu_obj_log req = {requests, requests, 0, wide.events};
+    consume_visual(o, &req);
+    free(wide.events);
+    return handled;
+}
+
+/* RENDER-WORLDS-121: a class custom render's per-vertex light write (Test Area 121 types 6..12: 0x06fd0918 +
+ * mesh * 0xea60 + 4k = 0.5 for every normal k of every mesh, 0x00d58c01..0x00d58c65) lies between Transform and
+ * its RenderBody. The native transforms after the slot, so the write is replayed here, after the pose and before
+ * the draw. No other slot emits it. */
+static void slot_vertex_light(const mu_objects_runtime *rt, mu_object_model *m)
+{
+    for (int32_t j = 0; j < rt->slot_count; ++j) {
+        const mu_obj_event *e = &rt->slot_events[j];
+        if (e->call == MU_OBJ_CALL_BODY || e->call == MU_OBJ_CALL_MESH)
+            return;
+        if (e->call != MU_OBJ_CALL_VERTEX_LIGHT)
+            continue;
+        const float v = fbits(e->args[0]);
+        for (int32_t mesh = 0; mesh < m->bmd.mesh_count; ++mesh) {
+            const uint32_t n = (uint32_t)m->bmd.meshes[mesh].normal_count;
+            uint8_t *at = mu_model_host(&m->model, MU_MODEL_LIGHTS + MU_MODEL_LIGHT_STRIDE * (uint32_t)mesh, 4 * n);
+            for (uint32_t k = 0; at && k < n; ++k)
+                memcpy(at + 4 * k, &v, 4);
+        }
+    }
 }
 
 /* RENDER-WORLDS-Q2: 0x0129f18a's search, the first bone of the object's model with this name (-1: none). */
@@ -1412,6 +1499,16 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
         visual_context flicker = {o, m};
         if (mu_obj_visual_flicker(o->world, m && m->loaded))
             rt->visual_outer_rand = visual_rand(&flicker);
+        /* RENDER-WORLDS-121: the Devias case's draw after it (type 0x67, 0x017f9d79): the next action at the
+         * action's last key, from the model's action table and Animation's whole frame (+0xb4) */
+        if (o->world == 2 && t == 0x67 && m && m->loaded) {
+            const uint16_t a = mu_obj_u16(img, MU_OBJF_ACTION);
+            if (a < m->bmd.action_count)
+                mu_devias_action_pick(img, mu_obj_frame_whole(mu_obj_f32(img, MU_OBJF_FRAME)),
+                                      (int16_t)m->bmd.actions[a].keys, m->bmd.action_count, visual_rand, &flicker);
+            else
+                ++rt->draw_unsupported;   /* the client reads past the action table */
+        }
     }
     /* NATIVE-PARTICLE-001: RenderObjectVisual through the particle module, after RenderObject */
     int flame = 0;
@@ -1490,6 +1587,8 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
         visual_and_effects(o, i, img, hook, 1, NULL, m, 0, &log, effects);
         return NULL;
     }
+    if (slot_draws)
+        slot_vertex_light(rt, m);   /* RENDER-WORLDS-121 */
     mu_draw_default_options(options);
     options->textures = &m->textures;
     if (mesh) {

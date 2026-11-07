@@ -59,7 +59,7 @@ class WorldsSlots2Tests(unittest.TestCase):
     def test_dispatch(self):
         for world in (62, 69, 70, 71, 72, 82, 92, 95, 96, 100, 101, 110, 111):
             self.assertTrue(self.dll.mu_class_slots(world), world)
-        for world in (73, 74, 90, 102, 121):
+        for world in (73, 74, 90, 102):   # 121: RENDER-WORLDS-121
             self.assertFalse(self.dll.mu_class_slots(world), world)
 
     def test_santa(self):

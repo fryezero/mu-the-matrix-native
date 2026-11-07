@@ -412,6 +412,8 @@ int mu_slots2_class(int32_t world)
         return world;
     case 92: case 96: case 101: case 111:
         return 92;
+    case 121:   /* RENDER-WORLDS-121 */
+        return 121;
     default:
         return -1;
     }
@@ -434,6 +436,8 @@ int mu_slots2_custom(int32_t cls, const slot *s, int32_t world)
     case 92:
         return mu_arca_world(world) ? mu_class_custom(mu_arca_base_world(cls), s->o, s->b, s->i, world, s->time,
                                                       s->model, s->l) : 0;
+    case 121:
+        return mu_slots121_custom(s);
     default:
         return 0;
     }
@@ -455,6 +459,9 @@ void mu_slots2_after(int32_t cls, const slot *s, int32_t world)
     case 92:
         if (mu_arca_world(world))
             mu_class_after(mu_arca_base_world(cls), s->o, s->b, s->i, world, s->time, s->model, s->l);
+        break;
+    case 121:
+        mu_slots121_after(s);
         break;
     default:   /* 62's after 0x00e428af is empty; 95 and 100 have the base after */
         break;
@@ -478,6 +485,8 @@ int mu_slots2_bitmap(int32_t world, int32_t index, const char **path, uint32_t *
             *wrap = shared[k].wrap;
             return 1;
         }
+    if (mu_slots121_bitmap(world, index, path, filter, wrap))
+        return 1;
     return mu_arca_world(world) && mu_world_slot_bitmap(mu_arca_base_world(world), index, path, filter, wrap);
 }
 int32_t mu_slots2_bitmaps(int32_t world, int32_t type, int32_t *out, int32_t room)
@@ -496,6 +505,8 @@ int32_t mu_slots2_bitmaps(int32_t world, int32_t type, int32_t *out, int32_t roo
         out[0] = 0x7f1f;
         return 1;
     }
+    if (world == 121)
+        return mu_slots121_bitmaps(world, type, out, room);
     if (mu_arca_world(world)) {   /* the base world's slot names them */
         int32_t base[MU_WORLD_SLOT_BITMAPS];
         const int32_t n = mu_world_slot_bitmaps(mu_arca_base_world(world), type, base);
