@@ -37,14 +37,14 @@
         "custom_render": {
           "entry": "0xe949f8",
           "status": "verified_family",
-          "scope": "RENDER-WORLDS-A bounded deferred-flag and first-mesh branches; compiled C against original instructions with mutants. See client-world-fidelity.md and handoffs/RENDER-WORLDS-A.md; remaining branches and image-phase limits stay open.",
-          "source": "reconstructed/objects/world_raklion_visual.c"
+          "scope": "RENDER-WORLDS-RAKLION: whole slot, Test Area 121's routine with Raklion's row (world test 0x00ea233c, type 0x52's frame restart behind the handler byte +0x22); validate_worlds_raklion custom/actions families with mutants. Before, RENDER-WORLDS-A compared only the deferred-flag and 0x53/0x5c first-mesh branches. See client-worlds-raklion.md.",
+          "source": "reconstructed/objects/world_test_area_visual.c"
         },
         "after_render": {
           "entry": "0xe96536",
           "status": "verified_family",
-          "scope": "RENDER-WORLDS-A bounded selected deferred object draws; compiled C against original instructions with mutants. See client-world-fidelity.md and handoffs/RENDER-WORLDS-A.md; remaining branches and image-phase limits stay open.",
-          "source": "reconstructed/objects/world_raklion_visual.c"
+          "scope": "RENDER-WORLDS-RAKLION: 121's after slot instruction for instruction (the shared routine); runs in 57/58; validate_worlds_raklion after_raklion with mutants. See client-worlds-raklion.md.",
+          "source": "reconstructed/objects/world_test_area_visual.c"
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
