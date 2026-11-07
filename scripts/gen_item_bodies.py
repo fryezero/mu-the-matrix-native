@@ -1602,11 +1602,13 @@ def render(types):
               'static const mu_rc_body_scalar mu_rc_body_scalars[] = {']
     for program in programs:
         kind, a, ops = program[:3]
-        ops = list(ops) + [(0, 0)] * (CLOCK_OPS - len(ops))
-        # Kind 4 (body random) also carries the phases whose helper call draws it.
+        # Kind 4 (body random) also carries the phases whose helper call draws it. RENDER-ITEMS-002U: only the used
+        # op/k slots are written (C zero-fills the rest of the CLOCK_OPS arrays), which keeps the table under the
+        # audit's size limit.
+        used = list(ops) or [(0, 0)]
         lines.append('    {%d, %d, 0x%08xu, {%s}, {%s}, 0x%02x},' % (
-            kind, sum(1 for op, _ in ops if op), a, ', '.join(str(op) for op, _ in ops),
-            ', '.join('0x%xull' % k for _, k in ops), program[4] if kind == 4 else 0))
+            kind, sum(1 for op, _ in ops if op), a, ', '.join(str(op) for op, _ in used),
+            ', '.join('0x%xull' % k for _, k in used), program[4] if kind == 4 else 0))
     if not programs:
         lines.append('    {0, 0, 0, {0}, {0}, 0},')
     lines += ['};', 'static const struct { int32_t type; uint16_t recipe[8]; uint8_t level_split, retain_ancient; uint8_t dim, plain, pulse, blend_pulse; uint16_t scalar_mask; uint8_t carry; uint16_t scalar_first; uint8_t scalar_count; } mu_rc_body_types[] = {']
