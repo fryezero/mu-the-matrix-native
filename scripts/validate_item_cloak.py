@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """RENDER-ITEMS-CLOAK: the capes of wings 0x2382..0x2385, 0x2394, 0x2395 (a physics cloth) against the pinned client.
 
-reconstructed/cloth reproduces the client's cloth (docs/research/client-render-items.md part 24). The client routines
+reconstructed/cloth reproduces the client's cloth (docs/research/client-render-items.md part 25). The client routines
 run as client code on the restored text and the second section (renderchar_machine, with validate_renderchar's
 services); the C runs the same states through ctypes. Families:
 

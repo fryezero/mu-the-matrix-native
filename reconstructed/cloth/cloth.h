@@ -1,7 +1,7 @@
 #ifndef MU_CLOTH_H
 #define MU_CLOTH_H
 /* RENDER-ITEMS-CLOAK: the client's physics cloth (the capes of wings 0x2382..0x2385, 0x2394, 0x2395).
- * docs/research/client-render-items.md part 24.
+ * docs/research/client-render-items.md part 25.
  *
  * The client draws these capes as a CPhysicsCloth-style mass-spring grid, not as a mesh of the item model:
  *  - RenderCharacter 0x01363260 steps every cloth of its object (MoveCloth 0x01362f24, at 0x0136ab80) and, when its

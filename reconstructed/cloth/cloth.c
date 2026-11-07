@@ -1,4 +1,4 @@
-/* RENDER-ITEMS-CLOAK: the client's physics cloth. See cloth.h and docs/research/client-render-items.md part 24.
+/* RENDER-ITEMS-CLOAK: the client's physics cloth. See cloth.h and docs/research/client-render-items.md part 25.
  * Each function names the routine it follows; the statement order is the client's (binary32, SSE scalar). */
 #include "cloth.h"
 
