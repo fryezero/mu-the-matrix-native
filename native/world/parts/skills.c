@@ -22,11 +22,28 @@ int mu_world_rt_skill_demo_change(mu_world_rt *a,int32_t skill,int forget)
 }
 /* The skills and progress fixture lines of every world fixture scenario: the hero's class and place, and
  * APP-POLISH-005's offline-session join data (the skills file, the join stats at the character's level). */
-void world_rt_skills_fixture_lines(const mu_world_rt *a, FILE *out)
+static mu_skills_demo_join hero_join_data(const mu_world_rt *a)
 {
     mu_skills_demo_join join = {a->skill_demo, a->has_hero_stats, a->hero_level,
                                 {a->hero_stats[0], a->hero_stats[1], a->hero_stats[2], a->hero_stats[3],
                                  a->hero_stats[4]}, a->hero_points};
+    return join;
+}
+void world_rt_hero_join(const mu_world_rt *a, mu_session_seed *seed)
+{
+    mu_skills_demo_join join = hero_join_data(a);
+    mu_fixture_hero_join(seed, &join);
+}
+int32_t world_rt_hero_join_hp(const mu_world_rt *a)
+{
+    mu_session_seed seed = {0};
+    seed.class_byte = a->class_byte;
+    world_rt_hero_join(a, &seed);
+    return seed.vitals[0];
+}
+void world_rt_skills_fixture_lines(const mu_world_rt *a, FILE *out)
+{
+    mu_skills_demo_join join = hero_join_data(a);
     mu_skills_demo_login(out, a->root, a->walk.hero.class_byte, &join);
     mu_skills_demo_hero(out, a->walk.hero.class_byte, a->map->world, a->walk.hero.tile[0], a->walk.hero.tile[1],
                         a->walk.hero.angle[2], &join);
@@ -51,7 +68,7 @@ static int open_skills(mu_world_rt *a, void *self)
     mu_fixture_endpoint(p->fixture, "game", &cfg.connect_server);
     mu_session_seed seed = {0}; seed.class_byte = a->walk.hero.class_byte;
     seed.place.world = a->walk.world;
-    mu_fixture_hero_join(&seed);
+    world_rt_hero_join(a, &seed);
     p->session = mu_session_open_seeded(&cfg, &seed, error, sizeof error);
     if (!p->session) return 1;
     return mu_session_skills_bind(p->session, a->lang, getenv("MU_LANG_DIR"), a->root) != 0;

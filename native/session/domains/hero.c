@@ -414,6 +414,22 @@ void mu_dom_hero_step(mu_session *s, const mu_sim *sim)
 }
 
 #ifdef MU_SESSION_SEED
+/* APP-POLISH-007: the join answer's vitals block, 0x0124cc64 at 0x0124d1bf..0x0124d365 (verified,
+ * scripts/validate_app_polish7.py): eight u16 words of the answer into CharacterAttribute, HP +0x24, HP max
+ * +0x26, MP +0x28, MP max +0x2a, AG +0x30, AG max +0x32, SD +0x2c, SD max +0x2e (the client's order); a
+ * maximum below 1 becomes 1 (the "< 0" tests of the current values never fire on a zero-extended word). */
+static void hero_join_vitals(uint8_t *attr, const uint8_t *answer)
+{
+    static const struct { size_t field; int32_t floor; uint8_t word; } COPY[8] = {
+        {MU_PRG_A_LIFE, 0, 0x24},   {MU_PRG_A_LIFE_MAX, 1, 0x26}, {MU_PRG_A_MANA, 0, 0x28},
+        {MU_PRG_A_MANA_MAX, 1, 0x2a}, {MU_PRG_A_AG, 0, 0x30},       {MU_PRG_A_AG_MAX, 1, 0x32},
+        {MU_PRG_A_SHIELD, 0, 0x2c}, {MU_PRG_A_SHIELD_MAX, 1, 0x2e}};
+    for (int i = 0; i < 8; ++i) {
+        int32_t v = answer[COPY[i].word] | answer[COPY[i].word + 1] << 8;
+        mu_prg_set32(attr, COPY[i].field, (uint32_t)(v < COPY[i].floor ? COPY[i].floor : v));
+    }
+}
+
 void mu_dom_hero_seed(mu_session *s, const struct mu_session_seed *seed)
 {
     mu_dom_hero *h = &s->hero;
@@ -421,13 +437,20 @@ void mu_dom_hero_seed(mu_session *s, const struct mu_session_seed *seed)
     h->attr[MU_PRG_A_CLASS] = seed->class_byte;
     mu_prg_set32(h->attr, MU_PRG_A_LEVEL, (uint32_t)(seed->level > 0 ? seed->level : 1));
     snprintf(h->name, sizeof h->name, "%s", seed->name);
-    /* Offline join data only. No formula, packet handler or recurring refill. */
-    static const size_t current[4] = {MU_PRG_A_LIFE, MU_PRG_A_MANA, MU_PRG_A_SHIELD, MU_PRG_A_AG};
-    static const size_t maximum[4] = {MU_PRG_A_LIFE_MAX, MU_PRG_A_MANA_MAX, MU_PRG_A_SHIELD_MAX, MU_PRG_A_AG_MAX};
-    for (int i = 0; i < 4; ++i) {
-        mu_prg_set32(h->attr, current[i], (uint32_t)seed->vitals[i]);
-        mu_prg_set32(h->attr, maximum[i], (uint32_t)seed->vitals[i]);
-        mu_prg_set32(h->attr, MU_PRG_A_MLIFE_MAX + 4 * (size_t)i, (uint32_t)seed->vitals[i]);
+    /* Offline join data only, current = maximum, through the join answer's own copy rule. No formula, other
+     * packet handler or recurring refill. A seed without vitals leaves them zero. */
+    if (seed->vitals[0] | seed->vitals[1] | seed->vitals[2] | seed->vitals[3]) {
+        static const uint8_t WORD[4] = {0x24, 0x28, 0x2c, 0x30};   /* HP, MP, SD, AG; each maximum follows */
+        uint8_t answer[0x34] = {0};
+        for (int i = 0; i < 4; ++i)
+            for (int k = 0; k < 4; k += 2) {
+                answer[WORD[i] + k] = (uint8_t)seed->vitals[i];
+                answer[WORD[i] + k + 1] = (uint8_t)(seed->vitals[i] >> 8);
+            }
+        hero_join_vitals(h->attr, answer);
+        static const size_t maximum[4] = {MU_PRG_A_LIFE_MAX, MU_PRG_A_MANA_MAX, MU_PRG_A_SHIELD_MAX, MU_PRG_A_AG_MAX};
+        for (int i = 0; i < 4; ++i)   /* third class: setHPMP reads these (as core/mu_progress.c's join) */
+            mu_prg_set32(h->attr, MU_PRG_A_MLIFE_MAX + 4 * (size_t)i, (uint32_t)mu_prg_i32(h->attr, maximum[i]));
     }
     mu_session_touch(s, MU_DOMAIN_HERO);
 }

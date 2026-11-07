@@ -25,7 +25,9 @@
  *
  * Headless actions (frame numbers count dispatcher passes): enter, esc, left,
  * right, tab, back, text:STRING, click:group:N, click:server:N, click:X,Y,
- * click:row:N and dblclick:row:N (the GFx character list), dblclick:X,Y,
+ * click:row:N and dblclick:row:N (the GFx character list), dblclick:X,Y (X,Y and the
+ * world's move/ldown/... positions are window points: x2 in a Retina window, as real mouse
+ * events; APP-POLISH-007), event:VERB:X,Y (windowed: an SDL mouse event at window points),
  * wheel:+1/-1, quit. NATIVE-CHARCREATE-001 (with --gfx): click:create,
  * click:menu, click:connect, click:delete (CCharSelMainWin's buttons),
  * click:class:N, click:createname, click:createok, click:createcancel (the
@@ -591,6 +593,51 @@ static void click(front *f, int32_t x, int32_t y)
 static void toggle_fullscreen(front *f);
 #endif
 
+/* APP-POLISH-007: script mouse positions are window points, as real mouse events (SDL reports points; the event
+ * loop multiplies by drawable pixels per point). 1 headless and on a 1x display, 2 in a Retina window. */
+static double script_scale(const front *f)
+{
+#ifndef MU_CLIENT_NO_GL
+    return f->window && f->scale > 0.0 ? f->scale : 1.0;
+#else
+    (void)f;
+    return 1.0;
+#endif
+}
+
+#ifndef MU_CLIENT_NO_GL
+/* APP-POLISH-007: event:VERB:X,Y queues an SDL mouse event at window point X,Y (VERB move, ldown, lup, rdown, rup).
+ * The next pass's event loop handles it exactly like the operating system's mouse event, so a windowed run can
+ * check the real input mapping without the desktop's pointer. */
+static int push_mouse_event(front *f, const char *what)
+{
+    char verb[8];
+    int x, y, used = 0;
+    if (!f->window || sscanf(what, "event:%7[a-z]:%d,%d%n", verb, &x, &y, &used) != 3 || what[used])
+        return 0;
+    SDL_Event e;
+    memset(&e, 0, sizeof e);
+    if (!strcmp(verb, "move")) {
+        e.type = SDL_MOUSEMOTION;
+        e.motion.windowID = SDL_GetWindowID(f->window);
+        e.motion.x = x;
+        e.motion.y = y;
+    } else if (!strcmp(verb, "ldown") || !strcmp(verb, "lup") || !strcmp(verb, "rdown") || !strcmp(verb, "rup")) {
+        int down = verb[1] == 'd';
+        e.type = down ? SDL_MOUSEBUTTONDOWN : SDL_MOUSEBUTTONUP;
+        e.button.windowID = SDL_GetWindowID(f->window);
+        e.button.button = verb[0] == 'l' ? SDL_BUTTON_LEFT : SDL_BUTTON_RIGHT;
+        e.button.state = down ? SDL_PRESSED : SDL_RELEASED;
+        e.button.clicks = 1;
+        e.button.x = x;
+        e.button.y = y;
+    } else {
+        return 0;
+    }
+    return SDL_PushEvent(&e) == 1;
+}
+#endif
+
 static void do_action(front *f, const char *what)
 {
     mu_shell *s = f->shell;
@@ -604,7 +651,7 @@ static void do_action(front *f, const char *what)
                 !strncmp(what, "rdown:", 6) || !strncmp(what, "rup:", 4) ||
                 !strncmp(what, "focus:", 6) || !strncmp(what, "compose:", 8) || !strncmp(what, "text:", 5))) {
         ++f->input_actions;
-        int result = mu_world_rt_action(rt, what);
+        int result = mu_world_rt_action_scaled(rt, what, script_scale(f));
         if (!f->quiet) fprintf(stderr, "input result %d: %s\n", result, what);
         return;
     }
@@ -642,11 +689,11 @@ static void do_action(front *f, const char *what)
         click(f, x, y);   /* NATIVE-CHARCREATE-001: create, delete, menu, class:N, createok, msgok, menu:exit ... */
         if (!f->quiet)
             fprintf(stderr, "  %s at %d,%d\n", what + 6, x, y);
-    } else if (sscanf(what, "dblclick:%d,%d", &x, &y) == 2) {
-        click(f, x, y);
+    } else if (sscanf(what, "dblclick:%d,%d", &x, &y) == 2) {   /* window points (APP-POLISH-007) */
+        click(f, (int32_t)(x * script_scale(f)), (int32_t)(y * script_scale(f)));
         f->double_click = 1;
     } else if (sscanf(what, "click:%d,%d", &x, &y) == 2) {
-        click(f, x, y);
+        click(f, (int32_t)(x * script_scale(f)), (int32_t)(y * script_scale(f)));
     } else if (sscanf(what, "wheel:%d", &n) == 1) {
         mu_shell_wheel(s, n);
     } else if (!strcmp(what, "quit")) {
@@ -656,6 +703,9 @@ static void do_action(front *f, const char *what)
         SDL_SetWindowSize(f->window, x, y);
     } else if (!strcmp(what, "fullscreen") && f->window) {
         toggle_fullscreen(f);
+    } else if (!strncmp(what, "event:", 6) && f->window) {
+        if (!push_mouse_event(f, what))
+            fprintf(stderr, "unknown action %s\n", what);
     } else if (!strncmp(what, "shot:", 5) && f->window) {   /* a window capture into --out-dir */
         snprintf(f->shot, sizeof f->shot, "%s/%s.png", f->out_dir ? f->out_dir : ".", what + 5);
 #endif

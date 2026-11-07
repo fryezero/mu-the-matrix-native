@@ -54,6 +54,7 @@ typedef struct {mu_session *session; mu_gfx_layer *layer; mu_progress *progress;
 static mu_progress_view fallback;
 void mu_progress_get_view(const mu_progress *p,mu_progress_view *v){(void)p;*v=fallback;}
 '''
+    source += function('native/session/domains/hero.c','static void hero_join_vitals(')+'\n'
     source += function('native/session/domains/hero.c','void mu_dom_hero_seed(')+'\n'
     source += function('native/world/world_gfx.c','static int toxic_state(')+'\n'
     source += function('reconstructed/progress/progress_calc.c','int32_t mu_prg_master_level(')+'\n'
@@ -77,7 +78,7 @@ int32_t *probe(int cls,const int32_t *words) {
 }
 int32_t *join(int cls,int level) {
  static int32_t out[8]; mu_session_seed seed={0};seed.class_byte=cls;seed.level=level;
- mu_fixture_hero_join(&seed);memset(&s,0,sizeof s);mu_dom_hero_seed(&s,&seed);
+ mu_fixture_hero_join(&seed,NULL);memset(&s,0,sizeof s);mu_dom_hero_seed(&s,&seed);
  mu_hero_stats v;mu_session_hero(&s,&v);
  out[0]=v.hp;out[1]=v.max_hp;out[2]=v.mp;out[3]=v.max_mp;
  out[4]=v.sd;out[5]=v.max_sd;out[6]=v.ag;out[7]=v.max_ag;return out;

@@ -25,8 +25,9 @@ LIBS = ['-framework', 'CoreText', '-framework', 'CoreGraphics', '-framework', 'C
 
 
 def start_stats():
-    """START[16][5] of the progress fixture (its DEMO class start stats)."""
-    text = (NATIVE / 'fixture/behaviors/progress.c').read_text()
+    """START[16][5] of the progress fixture (its DEMO class start stats; fixture/progress_demo.h since
+    APP-POLISH-007)."""
+    text = (NATIVE / 'fixture/progress_demo.h').read_text()
     body = text[text.index('START[16][5] = {'):]
     body = body[:body.index('};')]
     return [tuple(int(v) for v in row.split(',')) for row in re.findall(r'\{([-\d, ]+)\}', body)]
