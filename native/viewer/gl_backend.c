@@ -68,7 +68,9 @@ static void prepare(void *context, const mu_meshdraw_state *s, int32_t slot)
     set(GL_CULL_FACE, s->cull);
     glFrontFace(gl->front_cw ? GL_CW : GL_CCW);
     set(GL_ALPHA_TEST, s->alpha_test);
-    set(GL_FOG, s->fog);  /* the client's fog flag is only ever written 0 */
+    /* GL_FOG is left as the render scene set it (RENDER-WORLDS-FOG: world 0x1e's box fog): the client's blend
+     * wrappers switch it only behind the flag 0x0bdc597c, which is only ever written 0, so mesh draws never
+     * change it (s->fog stays 0). */
     GLuint name = (gl->textures && slot >= 0 && slot < gl->count) ? gl->textures[slot] : 0;
     set(GL_TEXTURE_2D, s->texture && name != 0);
     glBindTexture(GL_TEXTURE_2D, name);
@@ -94,7 +96,7 @@ static void b_prepare(void *context, const mu_meshdraw_state *s, int32_t slot)
     mu_gl_batch_enable(b, GL_CULL_FACE, s->cull);
     mu_gl_batch_front_face(b, gl->front_cw ? GL_CW : GL_CCW);
     mu_gl_batch_enable(b, GL_ALPHA_TEST, s->alpha_test);
-    mu_gl_batch_enable(b, GL_FOG, s->fog);
+    /* GL_FOG: left to the render scene, as in prepare */
     GLuint name = (gl->textures && slot >= 0 && slot < gl->count) ? gl->textures[slot] : 0;
     mu_gl_batch_enable(b, GL_TEXTURE_2D, s->texture && name != 0);
     mu_gl_batch_bind_texture(b, name);
