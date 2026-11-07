@@ -1,6 +1,6 @@
 # RENDER-ITEMS-002R
 
-Branched from main `18ab0134`. Branch/worktree `claude/render-items-002r` (Claude Opus 5.5). No live client,
+Branched from main `18ab0134`; merged main `3ecc205c` (#317-#320) and `ce0ebd71` (#323, #324; RENDER-EFFECTS-017's armour particle kinds reached `reconstructed/particles`, where the item rows use only the unchanged `mu_pt_transform_position`; after it: build, `test_native_renderchar` 16/16, the portable renderchar modules 19 tests, 3 private skips). Branch/worktree `claude/render-items-002r` (Claude Opus 5.5). No live client,
 launcher, network or hosted workflow. No full gate in the lane (2026-11-04 test budget).
 
 Scope: RENDER-ITEMS-002 part 18, the first group of part 17's "Next groups": effects that RenderObjDraw creates in
