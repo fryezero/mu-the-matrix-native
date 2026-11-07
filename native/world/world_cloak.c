@@ -312,16 +312,23 @@ static void set_globals(const mu_world_rt *a, world_cloak *w)
     w->g.world = a->world;
 }
 
+/* The client's frame driver walks the wind five times in every logic step of every scene from start-up, on the
+ * process rand() that WinMain seeds with srand(time) and 18 other srand sites re-seed; no native stream can match it.
+ * The stand-in walks from the frame driver's logic step 0 (the runtime's start), so the wind at a frame depends on the
+ * steps since start and not on when the first cloth wing came into view. A first catch-up beyond 2^20 logic steps
+ * (about 11.6 hours) walks only the last 2^20; later gaps (a stalled frame) walk at most 1000. */
 static void wind_catch_up(mu_world_rt *a, world_cloak *w)
 {
     const uint32_t steps = a->walk.frame.clock.logic_steps;
+    uint32_t cap = 1000;
     if (!w->wind_started) {
-        w->wind_at = steps;
+        w->wind_at = 0;
         w->wind_started = 1;
+        cap = 1u << 20;
     }
     uint32_t n = steps - w->wind_at;
-    if (n > 1000)
-        n = 1000;
+    if (n > cap)
+        n = cap;
     for (uint32_t k = 0; k < n; ++k)
         for (int j = 0; j < 5; ++j)   /* the frame driver's five manager steps 0x01851eee..0x01851f07 */
             mu_cloth_wind_step(&w->g);
