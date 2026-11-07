@@ -46,7 +46,8 @@ class Fx(C.Structure):
     _fields_ = [('kind', C.c_int32), ('bitmap', C.c_int32), ('subtype', C.c_int32),
                 ('position', C.c_float * 3), ('light', C.c_float * 3), ('scale', C.c_float),
                 ('angle', C.c_float * 3),   # RENDER-ITEMS-002Q; zero in the rank-5 block
-                ('rotation', C.c_float), ('blend', C.c_int32), ('owner', C.c_int32)]   # RENDER-ITEMS-002R
+                ('rotation', C.c_float), ('blend', C.c_int32), ('owner', C.c_int32),   # RENDER-ITEMS-002R
+                ('target', C.c_float * 3)]   # RENDER-ITEMS-002S: CreateJoint's target position
 
 
 TRANSFORM = C.CFUNCTYPE(None, C.c_void_p, C.c_int32, C.POINTER(C.c_float), C.POINTER(C.c_float))
@@ -61,7 +62,8 @@ class Host(C.Structure):
                 ('bone_named', C.CFUNCTYPE(C.c_int32, C.c_void_p, C.c_char_p)),
                 ('item_transform', C.CFUNCTYPE(None, C.c_void_p, C.c_int32, C.POINTER(C.c_float), C.c_int32,
                                                C.POINTER(C.c_float))),
-                ('refuse', EMIT), ('visible', C.c_int32)]
+                ('refuse', EMIT), ('visible', C.c_int32),
+                ('position', C.c_float * 3)]   # RENDER-ITEMS-002S: OBJECT +0x158 (pre-draw programs only)
 
 
 def u(x):

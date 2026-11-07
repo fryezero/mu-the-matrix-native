@@ -112,8 +112,11 @@ typedef struct mu_input_msg {
     const char *text;
 } mu_input_msg;
 int mu_world_rt_input(mu_world_rt *rt, const mu_input_msg *msg);
-/* One ACTION of the documented FRAME:ACTION script. -2 = invalid action. */
-int mu_world_rt_action(mu_world_rt *rt, const char *action);
+/* One ACTION of the documented FRAME:ACTION script. -2 = invalid action. Mouse positions are window points
+ * (docs/research/client-input.md); `scale` is the window's drawable pixels per point, applied as to a real mouse
+ * event (mu_world_rt_sdl_event): 1 headless and on a 1x display, 2 in a Retina window (APP-POLISH-007). */
+int mu_world_rt_action_scaled(mu_world_rt *rt, const char *action, double scale);
+int mu_world_rt_action(mu_world_rt *rt, const char *action);   /* scale 1 */
 /* Read a <=64 KiB script, strip whole-line or trailing # comments. Caller frees it. */
 char *mu_input_script_read(const char *path);
 #define MU_INPUT_SCRIPT_MAX 128

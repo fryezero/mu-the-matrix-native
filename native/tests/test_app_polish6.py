@@ -27,16 +27,18 @@ RECORDED = {'hp': [1100, 1100], 'mp': [200, 200], 'sd': [52, 52], 'ag': [25, 25]
 def recorded_join():
     """fixture/hero_join.h: the class it applies to and its four vitals."""
     text = (NATIVE / 'fixture/hero_join.h').read_text()
-    gate = int(re.search(r'seed->class_byte != (\d+) \|\| seed->level > 1', text).group(1))
+    gate = int(re.search(r'seed->class_byte == (\d+) && level == 1', text).group(1))
     vitals = [int(v) for v in re.findall(r'seed->vitals\[\d\] = (\d+);', text)]
     return gate, vitals
 
 
 def world_defaults():
-    """world_rt.c's offline defaults: the hero's class byte and the combat fixture's hero HP."""
+    """world_rt.c's offline defaults: the hero's class byte and the combat fixture's hero HP, which since
+    APP-POLISH-007 is the hero's join HP (the recorded 1100 for this class byte)."""
     text = (NATIVE / 'world/world_rt.c').read_text()
     cls = int(re.search(r'o->class_byte = (0x[0-9a-fA-F]+|\d+);', text).group(1), 0)
-    hp = int(re.search(r'o->combat_config\.hero_hp = (\d+);', text).group(1))
+    assert re.search(r'o->combat_config\.hero_hp = MU_WORLD_HERO_HP_JOIN;', text)
+    hp = recorded_join()[1][0] if cls == recorded_join()[0] else None
     return cls, hp
 
 

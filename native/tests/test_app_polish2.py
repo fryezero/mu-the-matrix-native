@@ -18,8 +18,9 @@ class AppPolish2(unittest.TestCase):
                 p=v.native(work)
                 self.assertEqual(p.join(1,1),[1100,1100,200,200,52,52,25,25])
                 self.assertEqual(p.join(1,0),[1100,1100,200,200,52,52,25,25])
-                self.assertEqual(p.join(1,2),[0]*8) # no extrapolation of one recorded profile
-                self.assertEqual(p.join(0,1),[0]*8)
+                # APP-POLISH-007: other profiles take the progress fixture's demo join maxima, current = maximum
+                self.assertEqual(p.join(1,2),[1102,1102,200,200,55,55,25,25])
+                self.assertEqual(p.join(0,1),[600,600,600,600,51,51,39,39])
                 words=[390,180,1100,200,40,52,20,25,9000,8000,7000,6000]
                 expected=dict(zip(v.FIELDS,[390,1100,180,200,40,52,20,25,False]))
                 self.assertEqual(p(1,words),expected)

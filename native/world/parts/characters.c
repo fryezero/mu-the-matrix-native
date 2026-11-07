@@ -7,7 +7,6 @@
 #include "../../core/mu_session_audio.h"
 #include "../../core/mu_lang.h"
 #include "../../session/mu_session_seed.h"
-#include "../../fixture/hero_join.h"
 #include "../../fixture/mu_fixture.h"
 #include "../../fixture/characters_demo.h"
 #include "../../fixture/monsters_demo.h"
@@ -93,7 +92,7 @@ static int characters_open(mu_world_rt *a, void *self)
     seed.class_byte=a->walk.hero.class_byte;
     seed.place.world=a->map->world;
     seed.place.tile[0]=a->walk.hero.tile[0];seed.place.tile[1]=a->walk.hero.tile[1];
-    mu_fixture_hero_join(&seed);
+    world_rt_hero_join(a,&seed);
     p->session=mu_session_open_seeded(&cfg,&seed,error,sizeof error);
     if(!p->session) {fprintf(stderr,"characters: %s\n",error);return 1;}
     mu_session_skills_bind(p->session,a->lang,getenv("MU_LANG_DIR"),a->root);

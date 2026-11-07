@@ -121,6 +121,7 @@ typedef struct tool {
     int wheel_ui_hit;   /* RENDER-TIME-003 --wheel-ui-hit */
     mu_input_action input_script[MU_INPUT_SCRIPT_MAX];
     int input_count;
+    double input_scale;   /* APP-POLISH-007: drawable pixels per window point (windowed), else 1 */
     /* script state */
     int32_t next_waypoint, idle_frames, click_stage, click_x, click_y;
     /* NATIVE-WORLD-002: the headless WAV and the window's audio clock */
@@ -581,7 +582,8 @@ static void script(tool *t, int32_t frame)
 {
     for (int i = 0; i < t->input_count; ++i) {
         if (t->input_script[i].frame == frame) {
-            int result = mu_world_rt_action(t->rt, t->input_script[i].what);
+            int result = mu_world_rt_action_scaled(t->rt, t->input_script[i].what,
+                                                   t->input_scale > 0.0 ? t->input_scale : 1.0);
             if (!t->rt->quiet) fprintf(stderr, "frame %d: input result %d: %s\n", frame, result,
                                       t->input_script[i].what);
         }
@@ -918,6 +920,7 @@ static int windowed(tool *t)
     int dw, dh;
     SDL_GL_GetDrawableSize(window, &dw, &dh);
     double scale = (double)dw / (double)a->width;
+    t->input_scale = scale;   /* script mouse positions are window points, as real mouse events */
     /* the session works in drawable pixels */
     mu_world_rt_resize(a, dw, dh);
     mu_world_rt_gl_setup(a);
