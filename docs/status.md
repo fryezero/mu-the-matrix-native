@@ -1,5 +1,17 @@
 # Current status
 
+APP-REFRESH-009 PR-ready: Preview reinstalled from a7f7b247 (main with #335-#343); APP-REFRESH-006's Native Data
+kept (no export input changed since f2370871; #338's demo files are app resources and ship in the bundle). Private
+native/tests (brief 8d, from the root): full run at 138b756e 969 tests, 941 passed, 27 skipped, 1 test-order failure
+(rerun OK); all 147 modules again at a7f7b247: 983 tests, 962 passed, 20 skipped, 1 concurrency flake (alone OK).
+Proofs on the installed app: the shipped Lorencia demo's item effects (players 98/0, hero 8/0, Ironclad's sword +9
+excellent with 8 passes) in the window; Ironclad's equipment in the inventory (#343); Karutan's 0x81 crystal pulse
+(1,533 px vs 008); cloak 0x2384 sparks (94/0, ground 19/0) and armour owner effects (44/0) in test fixtures; Raklion's
+statue particles in mu-world (12) but not distinguishable in the client's camera; Windleaf 1119/778 and 2044 with 121
+effects; quest accepted 1; cast/kill/Space pickup, travel 0->3->2 with 0 stale plates, HUD 1100/1100 and one Hound
+hit -> 1077, audio peak -0.300 dBFS, ~19.1 fps at 1504x936. Not included: RENDER-ITEMS-002U, RENDER-ITEMS-CLOAK.
+[Install, rollback, proofs and follow-ups](handoffs/APP-REFRESH-009.md).
+
 INVENTORY-FX PR-ready: the inventory window now draws the hero's equipment and its icons' level, option and ext as the client does. The client's inventory item render `0x00b913a2` draws, after the grid, the ITEMs CharacterMachine `+0x1b58 + s·0x12c` in the rectangles of the movie's `EQUIPrequestSlotInfo` (`0x00b958e1`). Native ignored that callback, so the equipment slots were empty; Ironclad now shows his Cookery Short Sword +9 excellent, shield +7 and wings there. RenderPartObject passes RenderObjectScreen's level word, excellent flag and set bits to RenderObjDraw unchanged, so the excellent pass and ext reach every icon. Icons' pre-draw programs run with the TestFrustrum2D flag at their screen position, and their sprites (and the `0x389c` skin sprites) join the world's list, which only the scene renders' RenderSprites draws: the client draws no sprite over an icon. `0x00a497c6`/`0x00a49bc9` are the render callback of object type `0x67a`, not the inventory. validate_inventory_fx 8,017 cases, 0 mismatches, 14/14 mutants. Character select levels: not done (character-list packet data). [Handoff](handoffs/INVENTORY-FX.md).
 
 RENDER-EFFECTS-021 PR-ready: the item programs' last particle requests without a native kind, and the armour owner programs in the world. Client: Clud64 `0x7ffd`/0x1b (bow `0x1316`; create `0x015c304a`, move `0x0163274d`, render `0x0159504f`), Shiny01 `0x7f66`/5 (`0x230c`, `0x2496`; `0x015e60e5`, `0x01658bd3`, default sprite) and shiny06 `0x8180`/5 (`0x23ef`, `0x2400`, `0x2405`; jump-table index 5 goes to each switch's end: a two-step record with no sprite). Native: `reconstructed/particles/item_predraw_kinds.inc`. The 43 owner-program types (`0x1bc3..0x1c78` and five helms) now run for players, the hero and player-model actors with the wearer's OBJECT (`world_rt_part_owner`: the posed Player.bmd `player_bones` as `+0x318`, the character angle; `0x012b678d`/`0x0129f12c`). Refusals: crowd GL 5 -> 0, Archer-only 17 -> 0, wing wearers 10 -> 0; armour wearers 0 -> 144 owner effects with 0 refused, hero 68 / 0. New `validate_render_effects21`: 13,007 cases, 0 mismatches, 19/19 mutants. Tours byte-identical (no wearer in view). [Handoff](handoffs/RENDER-EFFECTS-021.md).
