@@ -160,7 +160,7 @@ FX_MUTANTS = [
     ('mark_turn', 'e->angle[2] = arrow_rand_range(env, 0.0f, 360.0f);\n        return 1;',
      'e->angle[2] = arrow_rand_range(env, 0.0f, 180.0f);\n        return 1;', 'create', (0x70c, 0)),
     ('mark_pulse', '(float)(e->lifetime - 30) * 2.0f;', '(float)(e->lifetime - 29) * 2.0f;', 'move', (0x70c, 0)),
-    ('mark_abs', 't = 0.0f > t ? -t : t;', 't = t;', 'move', (0x70c, 0)),
+    ('mark_abs', 't = 0.0f > t ? -t : t;                     /* 0x0184f8ff */', 't = t;', 'move', (0x70c, 0)),
     ('mark_dim', 'if (e->lifetime < 25)\n            for', 'if (e->lifetime <= 25)\n            for', 'move', (0x70c, 0)),
     ('wave_fade', 'e->alpha = (float)e->lifetime / (float)e->field_70;', 'e->alpha = (float)(e->lifetime - 1) / (float)e->field_70;',
      'move', (0x611, 0)),
