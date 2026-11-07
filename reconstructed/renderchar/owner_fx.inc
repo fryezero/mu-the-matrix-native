@@ -107,7 +107,8 @@ static float fx_random_vector(const mu_rc_owner_host *h, const float a[6], float
         rmin = 0.0f;
     const float r = rmin >= rmax ? rmin : fx_range(h, rmin, rmax, 50);
     if (floor_radius > r) {
-        out[0] = out[1] = out[2] = 0.0f;
+        for (int k = 0; k < 3; ++k)
+            out[k] = 0.0f;
         return 0.0f;
     }
     if (tmin > tmax)

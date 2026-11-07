@@ -395,7 +395,7 @@ MUTANTS = {
                          'h->item_transform(h->context, bone, zero, 0, fx.position);'),
     # No program computes arithmetic on a transformed position; a request reads it directly or through movs.
     'position-refusal': ('refused |= bad[o->a] | bad[o->a + 1] | bad[o->a + 2];', 'refused |= 0;'),
-    'particle-owner': ('fx.owner = o->op == 25;', 'fx.owner = 0;'),
+    'particle-owner': ('fx.owner = o->op == 25 || o->op == 47;', 'fx.owner = 0;'),
     'pre-hook': ('if (host && host->item_transform && it->select == 0', 'if (host && host->item_transform && it->select == 1'),
     # RENDER-ITEMS-002S (part 19)
     'irand': ('fx_set_int(&r[o->a], owner_random(h));', 'fx_set_int(&r[o->a], owner_random(h) + 1);'),
