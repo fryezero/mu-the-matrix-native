@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Replay the affected selection of merged PRs with a previous selector and the current one (TEST-SPEED-004).
+"""Replay the affected selection of merged PRs with a previous selector and the current one (TEST-SPEED-004/005).
 
   replay_affected.py SPEC.json --out RESULT.json [--work DIR] [--only PR,PR]
 
@@ -21,7 +21,8 @@ since: the steward's question at the merged tree: which of the PR's tested rows 
 
 Each tree is a temporary detached worktree; both selectors run in fresh processes with it as their repository
 (their files, original_cache.py included, are copied into <tree>/.replay-old and .replay-new next to the
-tree's own pins.py). Nothing is built; the worktrees are removed afterwards.
+tree's own pins.py). Nothing is built (only native/build/gen is generated, as after a lane's `make`; the
+symbol analysis compiles units to IR in memory); the worktrees are removed afterwards.
 """
 from __future__ import annotations
 
@@ -35,9 +36,9 @@ import sys
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
-SELECTOR = ('affected.py', 'run_validators.py', 'run_test_suites.py', 'original_cache.py')
+SELECTOR = ('affected.py', 'affected_symbols.py', 'run_validators.py', 'run_test_suites.py', 'original_cache.py')
 CHILD = r'''
-import json, sys
+import inspect, json, sys
 from pathlib import Path
 here = Path(sys.argv[1]); root = here.parent
 sys.path.insert(0, str(here))
@@ -46,11 +47,17 @@ job = json.loads(sys.stdin.read())
 new = hasattr(affected, 'TOOLING')
 rows = rv.load_manifest(root / 'scripts' / 'validators.toml')
 units = rv.row_units(rows, root) if new else None
-out = {'rows': {}, 'suites': {}, 'fallback': {}, 'total_rows': len(rows)}
+out = {'rows': {}, 'suites': {}, 'fallback': {}, 'pruned': {}, 'total_rows': len(rows)}
 if new:
     out['fallback'] = affected.fallback_units(units)
+symbols = 'pruned' in inspect.signature(rv.affected_rows).parameters
 for ref, changed in job['groups']:
-    if new:
+    if symbols:
+        pruned = {}
+        why = rv.affected_rows(rows, ref, root=root, changed=changed, since=job['since'], units=units,
+                               pruned=pruned)
+        out['pruned'][ref] = pruned
+    elif new:
         why = rv.affected_rows(rows, ref, root=root, changed=changed, since=job['since'], units=units)
     else:
         why = rv.affected_rows(rows, ref, root=root, changed=changed)
@@ -68,6 +75,11 @@ print(json.dumps(out))
 
 def git(*args, cwd=ROOT) -> str:
     return subprocess.run(['git', *args], cwd=cwd, check=True, capture_output=True, text=True).stdout
+
+
+def _show(commit: str, name: str) -> str | None:
+    done = subprocess.run(['git', 'show', f'{commit}:scripts/{name}'], cwd=ROOT, capture_output=True, text=True)
+    return done.stdout if not done.returncode else None
 
 
 def changed(base: str, tree: str) -> list[str]:
@@ -95,6 +107,17 @@ def run(folder: Path, job: dict) -> tuple[dict, float]:
     return json.loads(done.stdout.strip().splitlines()[-1]), time.time() - started
 
 
+def prepare(tree_dir: Path) -> None:
+    """Generate the native headers a built lane tree has (build/gen: Python generators, no compiling), so the
+    symbol analysis can compile native units to IR as it does after a lane's `make`. Best effort: without
+    them those units fall back."""
+    native = tree_dir / 'native'
+    stamps = [s for s in ('build/gen/.stamp', 'build/gen/.layout-stamp')
+              if (native / 'Makefile').is_file() and s.split('/')[-1] in (native / 'Makefile').read_text()]
+    if stamps:
+        subprocess.run(['make', '-s', '-C', str(native), *stamps], capture_output=True)
+
+
 def combine(case: dict, result: dict, key: str) -> dict[str, list[str]]:
     """Per tested group: the rest of the rows (of lane_rows, if given) for '*', else only the named ones."""
     named = {row for _, members in case['_groups'] for row in (members if members != '*' else [])}
@@ -110,7 +133,7 @@ def combine(case: dict, result: dict, key: str) -> dict[str, list[str]]:
 
 
 def replay(spec: dict, work: Path, only: set[int] | None) -> list[dict]:
-    old = {f: git('show', f"{spec['old']}:scripts/{f}") for f in SELECTOR}
+    old = {f: text for f in SELECTOR for text in [_show(spec['old'], f)] if text is not None}
     new = {f: (ROOT / 'scripts' / f).read_text() for f in SELECTOR}
     results = []
     for case in spec['cases']:
@@ -126,6 +149,7 @@ def replay(spec: dict, work: Path, only: set[int] | None) -> list[dict]:
         job = {'groups': groups, 'since': case['mode'] == 'since', 'suites': bool(case.get('suites'))}
         tree_dir = work / f"{case['pr']}-{case['mode']}-{tree[:8]}"
         git('worktree', 'add', '--detach', '-f', str(tree_dir), tree)
+        prepare(tree_dir)
         try:
             before, before_s = run(selector_dir(tree_dir, 'old', old), job)
             after, after_s = run(selector_dir(tree_dir, 'new', new), job)
@@ -139,7 +163,10 @@ def replay(spec: dict, work: Path, only: set[int] | None) -> list[dict]:
             rows_total=after['total_rows'], rows_before=sorted(rows_before), rows_after=sorted(rows_after),
             reasons_after={n: r[:3] for n, r in sorted(rows_after.items())},
             removed_reasons_before={n: rows_before[n][:3] for n in sorted(set(rows_before) - set(rows_after))},
-            fallback_after=after['fallback'], seconds_before=round(before_s, 2), seconds_after=round(after_s, 2))
+            fallback_after=after['fallback'], seconds_before=round(before_s, 2), seconds_after=round(after_s, 2),
+            symbol_fallback_after={n: [r for r in rs if 'symbol fallback' in r][0] for n, rs in sorted(rows_after.items())
+                                   if any('symbol fallback' in r for r in rs)},
+            pruned_after=sorted(combine(case, {'rows': after.get('pruned', {})}, 'rows').keys() - set(rows_after)))
         if job['suites']:
             suites_before, suites_after = combine(case, before, 'suites'), combine(case, after, 'suites')
             entry.update(suites_total=after.get('total_suites'), suites_before=sorted(suites_before),

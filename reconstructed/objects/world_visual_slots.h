@@ -106,4 +106,10 @@ int mu_slots2_custom(int32_t cls, const slot *s, int32_t world);
 void mu_slots2_after(int32_t cls, const slot *s, int32_t world);
 int mu_slots2_bitmap(int32_t world, int32_t index, const char **path, uint32_t *filter, uint32_t *wrap);
 int32_t mu_slots2_bitmaps(int32_t world, int32_t type, int32_t *out, int32_t room);
+/* RENDER-WORLDS-121 (world_test_area_visual.c): Test Area 121's custom and after slots (no world test), and the
+ * bitmap its type 0x14 names, behind RENDER-WORLDS-SLOTS2's in the same chain. */
+int mu_slots121_custom(const slot *s);
+void mu_slots121_after(const slot *s);
+int mu_slots121_bitmap(int32_t world, int32_t index, const char **path, uint32_t *filter, uint32_t *wrap);
+int32_t mu_slots121_bitmaps(int32_t world, int32_t type, int32_t *out, int32_t room);
 #endif

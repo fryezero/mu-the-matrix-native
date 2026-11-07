@@ -10,7 +10,10 @@ Families (compiled C via ctypes against the pinned original under the strict Uni
                 on one generator: mu_obj_visual_flicker's draw, then the world's native visual with the same stream
                 (the particle visual with the drawn value as outer_rand: 0..3, 141; mu_builtin_visual, whose first
                 draw is the outer one: 4, 7, 8; mu_kanturu_flames, with a model: 37, 40; Icarus 10 and every other
-                world: nothing that draws).
+                world: nothing that draws). RENDER-WORLDS-121: Devias 2 runs with a model whose action table
+                (+0x30), action count (+0x26) and whole frame (+0xb4) reach type 0x67's action choice 0x017f9d79
+                (SetAction 0x012affa4 as client code); the native composition adds mu_devias_action_pick after
+                the outer draw, and the object after the call is compared too.
                 A branch the native ports: the whole labelled sequence and the generator after it. A branch the
                 native does not port (the world has no native visual, or NOT_PORTED): the sequence up to the world
                 switch, i.e. the outer draw and the generator after it; the client's further draws are counted
@@ -42,8 +45,7 @@ FULL = [0, 1, 2, 3, 4, 7, 8, 10, 37, 40, 141]
 OUTER = [6, 9, 11, 18, 24, 30, 31, 33, 34, 38, 39, 41, 42, 46, 51, 56, 65, 66, 67, 68, 73, 74, 98, 102]
 OTHER = [w for w in range(146) if w not in CLASS_WORLDS and w not in FULL and w not in OUTER]
 # branches of a FULL world that the native visual does not port (their draws after the outer one are counted)
-NOT_PORTED = {2: {0x67},                                          # Devias' action pick 0x012affa4
-              37: {0x25, 0x3e, 0x51, 0x53, 0x5c, 0x62, 0x69},     # the Kanturu hook 0x00e75089 past its flames
+NOT_PORTED = {37: {0x25, 0x3e, 0x51, 0x53, 0x5c, 0x62, 0x69},     # the Kanturu hook 0x00e75089 past its flames
               40: {0x25, 0x3e, 0x51, 0x53, 0x5c, 0x62, 0x69}}
 # types the world's branches name (drawn more often than the sweep)
 TYPES = {0: [0x38, 0x69], 1: [0x3d], 2: [0x64, 0x67], 3: [1, 9, 0x11, 0x23, 0x27], 4: [19, 20, 23, 40, 41],
@@ -60,11 +62,34 @@ class Library(w2.Library):
         d.mu_builtin_visual.restype = C.c_int
         d.mu_kanturu_flames.argtypes = [P, I, I, F, v.RAND_FN, w2.BONE_FN, P, C.POINTER(v.Log)]
         d.mu_kanturu_flames.restype = C.c_int
+        d.mu_devias_action_pick.argtypes = [P, C.c_int16, C.c_int16, I, v.RAND_FN, P]   # RENDER-WORLDS-121
+        d.mu_devias_action_pick.restype = C.c_int
         self.particles = vp.load_library(particles)
 
 
-def run_original(machine, world, raw, present, time, seed):
-    """RenderObjectVisual for one object: the labelled rand calls, the generator after each, the stop if any."""
+DEVIAS_ACTIONS = 8   # RENDER-WORLDS-121: Devias 2's model action table (16-byte records, keys at +8)
+
+
+def devias_case(g, raw):
+    """Devias 2: the object's action inside the table, and a model (+0x26 action count, +0x30 the table, +0xb4 the
+    whole frame) whose frame is the action's last key in most cases. Returns (raw, model, table)."""
+    raw = bytearray(raw)
+    action = g.choice([0, 0, 1, 1, 2, g.randrange(DEVIAS_ACTIONS)])
+    struct.pack_into('<H', raw, 0x2a, action)
+    table = bytearray(16 * DEVIAS_ACTIONS)
+    for k in range(DEVIAS_ACTIONS):
+        struct.pack_into('<h', table, 16 * k + 8, g.choice([1, 2, 10, 30, g.randrange(-3, 60)]))
+    keys = struct.unpack_from('<h', table, 16 * action + 8)[0]
+    model = bytearray(0x100)
+    struct.pack_into('<h', model, 0x26, g.choice([DEVIAS_ACTIONS, 2, 1, 0, g.randrange(-2, 10)]))
+    struct.pack_into('<I', model, 0x30, v.ACTIONS)
+    struct.pack_into('<h', model, 0xb4, keys - 1 if g.random() < 0.6 else g.choice([keys, keys - 2, 0, -1]))
+    return raw, bytes(model), bytes(table)
+
+
+def run_original(machine, world, raw, present, time, seed, model=None, table=None):
+    """RenderObjectVisual for one object: the labelled rand calls, the generator after each, the stop if any, the
+    object after the call."""
     rnd = v.MsvcRand(seed)
     labels, states = [], []
     brk = [HEAP]
@@ -89,13 +114,14 @@ def run_original(machine, world, raw, present, time, seed):
         return at
     regions = v.global_regions(world, 6, [
         am.defined_region('object', v.OBJECTS, bytes(raw)),
-        am.defined_region('model', v.MODEL, bytes(0x100)),
+        am.defined_region('model', v.MODEL, model or bytes(0x100)),
         am.defined_region('time', v.TIME, v.pack_f(time), writable=False),
         am.defined_region('weather', w2.WEATHER, struct.pack('<i', 0)),
         am.defined_region('static', w2.STATIC, w2.static_region(machine)),
         am.defined_region('singleton', w2.SING, w2.singleton(), writable=False),
         am.defined_region('handler', w2.HANDLER, v.fake_object(), writable=False),
-        am.defined_region('heap', HEAP, bytes(0x10000))])
+        am.defined_region('heap', HEAP, bytes(0x10000))] +
+        ([am.defined_region('actions', v.ACTIONS, table, writable=False)] if table else []))
     manager = w2.enter(TORMENTA_SLOT, w2.HANDLER, lambda: None) if world == 141 else (lambda m: (0, 8))
     stubs = {vp.MODEL_CONTAINER: lambda m: v.FAKE, vp.MODEL_GET: lambda m: (v.MODEL if present else 0, 4),
              w2.RAND: rand, w2.STATIC_GET: lambda m: w2.STATIC, w2.SINGLETON: lambda m: w2.SING,
@@ -108,10 +134,10 @@ def run_original(machine, world, raw, present, time, seed):
              vp.COSINE: lambda m: m.x87_return(v.f32(math.cos(v.from_bits(m.argument(0))))),
              0x961a07: lambda m: m.x87_return(v.f32(math.sqrt(abs(v.from_bits(m.argument(0))))))}
     result = machine.execute(VISUAL, [v.OBJECTS], regions, stubs)
-    return labels, states, v.stopped_reason(result)
+    return labels, states, v.stopped_reason(result), result.get('regions', {}).get('object')
 
 
-def run_native(lib, world, raw, present, time, seed):
+def run_native(lib, world, raw, present, time, seed, model=None, table=None):
     """The object runtime's composition: the outer draw, then the world's native visual, on one generator."""
     rnd = v.MsvcRand(seed)
     labels, phase = [], ['outer']
@@ -143,12 +169,17 @@ def run_native(lib, world, raw, present, time, seed):
                vp.VSPRITE_FN(lambda *a: None), vp.VJOINT_FN(lambda *a: None), vp.VEFFECT_FN(lambda *a: None))
         host = vp.VisualHost(None, *fns, world, time, vp.BONE_INDEX_FN(lambda *a: None), outer)
         lib.particles.mu_pt_object_visual(C.byref(vo), C.byref(host))
+        if world == 2 and present:   # RENDER-WORLDS-121: the object runtime's Devias 0x67 choice after the outer draw
+            action = struct.unpack_from('<H', raw, 0x2a)[0]
+            keys = struct.unpack_from('<h', table, 16 * action + 8)[0]
+            d.mu_devias_action_pick(o, struct.unpack_from('<h', model, 0xb4)[0], keys,
+                                    struct.unpack_from('<h', model, 0x26)[0], fn, None)
     elif world in (4, 7, 8):   # the runtime's handler_visual; mu_builtin_visual draws the outer rand itself
         phase[0] = 'outer'
         d.mu_builtin_visual(o, 0, world, present, time, fn, NAMED_FN(named_cb), None, C.byref(log))
     elif world in (37, 40) and present:   # world_flames: with a model only
         d.mu_kanturu_flames(o, 0, world, time, fn, w2.BONE_FN(bone_cb), None, C.byref(log))
-    return labels, rnd.seed
+    return labels, rnd.seed, o.raw[:v.OBJ_SIZE]
 
 
 def ported(world, typ):
@@ -163,9 +194,12 @@ def rng_family(machine, lib, g, cases, worlds, name):
             g.choice(TYPES[world]) if world in TYPES and g.random() < 0.6 else g.randrange(0, 301)
         present = g.random() >= 0.125
         raw = w2.case_object(g, world, typ)
+        model = table = None
+        if world == 2:
+            raw, model, table = devias_case(g, raw)
         time, seed = w2.case_time(g), g.randrange(2**32)
-        labels, states, stop = run_original(machine, world, raw, present, time, seed)
-        native, state = run_native(lib, world, raw, present, time, seed)
+        labels, states, stop, client_object = run_original(machine, world, raw, present, time, seed, model, table)
+        native, state, native_object = run_native(lib, world, raw, present, time, seed, model, table)
         detail = {'case': n, 'world': world, 'type': typ, 'present': present, 'client': labels[:8],
                   'native': native[:8]}
         whole = ported(world, typ)
@@ -178,6 +212,10 @@ def rng_family(machine, lib, g, cases, worlds, name):
             t.count('client stopped after the switch (not ported)')
         if whole:
             ok = labels == native and state == (states[-1] if states else seed)
+            if world == 2:   # RENDER-WORLDS-121: SetAction's writes (action, prior action, frames)
+                ok = ok and client_object == native_object
+                if typ == 0x67 and present:
+                    t.count('0x67 action choice drawn' if len(labels) > 1 else '0x67 not at its last key')
             t.count('compared whole')
             if len(labels) > 1:
                 t.count('inner draws compared')

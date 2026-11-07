@@ -163,7 +163,8 @@ class RegistryInputs(unittest.TestCase):
 
     def test_test_only_helper_and_tooling_select_no_row(self):
         for path in ('scripts/guarded_run.py', 'scripts/run_validators.py', 'scripts/run_test_suites.py',
-                     'scripts/affected.py', 'scripts/original_cache.py', 'tests/test_test_budget.py',
+                     'scripts/affected.py', 'scripts/affected_symbols.py', 'scripts/original_cache.py',
+                     'tests/test_test_budget.py', 'tests/test_affected_symbols.py',
                      'tests/test_affected_inputs.py', 'docs/testing/TEST-BUDGET.md'):
             with self.subTest(path=path):
                 self.assertEqual(self.select(path), {})
