@@ -209,6 +209,7 @@ README-IMAGES-C: [README 26/27 re-shot at the client's world FOV 39](handoffs/RE
 REGRESS-001: [quest-accept regression (offline local quest lane), README 26/27 dark corners (clear colour at FOV 65)](handoffs/REGRESS-001.md).
 APP-REFRESH-006: [reinstall from 7e6a9292, Native Data with itemtrs.tsv, title/icon/ground-skill/Kubera/body proofs, rollback](handoffs/APP-REFRESH-006.md).
 APP-REFRESH-007: [reinstall from 53cffd00, Native Data kept, Windleaf 2044/quest/box fog/item bodies/121 proofs, rollback](handoffs/APP-REFRESH-007.md).
+APP-REFRESH-008: [reinstall from f2370871, Native Data kept, Windleaf vitals/window-point travel/wings/world pre-draw/world 136 bone-glow proofs, rollback](handoffs/APP-REFRESH-008.md).
 PLAY-FIX-001: [world-change clear, audio output limiter, map-name check](handoffs/PLAY-FIX-001.md).
 
 README-REFRESH-003: [handoff](handoffs/README-REFRESH-003.md), [claim sources](research/readme-refresh.md). Public progress refreshed through PR #207; existing images/pins unchanged, no runtime code or live game used.
