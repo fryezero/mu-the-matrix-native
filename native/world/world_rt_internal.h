@@ -131,6 +131,9 @@ struct mu_world_rt {
      * created, [1] refused; hidden = draws of a program type whose TestFrustrum2D flag was clear. */
     long item_pre[MU_WORLD_PRE_CALLERS][2];
     long item_pre_hidden[MU_WORLD_PRE_CALLERS];
+    /* RENDER-EFFECTS-021: the armour owner-effect programs (RENDER-ITEMS-002Q) of worn body parts per caller:
+     * [0] requests created, [1] refused (plus programs outside the bone domain). */
+    long item_owner_fx[MU_WORLD_PRE_CALLERS][2];
     /* NATIVE-HELPERS-001 */
     const char *helper_arg;
     int32_t helper_state;
@@ -226,6 +229,12 @@ struct mu_renderchar_env;
 void world_rt_hero_items_gfx(mu_world_rt *a);
 void world_rt_item_pre(mu_world_rt *a, struct mu_renderchar_env *env, int caller, int32_t type, const mu_model *model,
                        const float *bones, uint32_t object);
+/* RENDER-EFFECTS-021: RenderPartObjectBody's OBJECT owner for a worn body part of character c: its posed skeleton
+ * (OBJECT +0x318), bone count and angle (+0x164). Returns NULL (draw without an owner, as before) unless the part
+ * type has an owner-effect program and the world has a particle pool. world_rt_part_owner_done adds the counts. */
+struct mu_renderchar_owner *world_rt_part_owner(const mu_world_rt *a, struct mu_renderchar_owner *owner, int32_t type,
+                                                const mu_character *c);
+void world_rt_part_owner_done(mu_world_rt *a, int caller, const struct mu_renderchar_owner *owner);
 #ifndef MU_WORLD_NO_GL
 void world_rt_names_gfx_attach(mu_world_rt *a, double scale);
 void world_rt_gl_effect(void *context, const mu_fx_vertex *vertices, uint32_t count, const mu_fx_draw_state *state,

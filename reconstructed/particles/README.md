@@ -18,7 +18,8 @@ Kinds: Fire01 `0x7f3c` 0..6, 17; smoke01 `0x7f5a` 0, 2, 3; rain02/rain03 `0x771c
 Thunder01 `0x7f2b` 0; Spark03 `0x7f26` 0, 1; Fire06 `0x7f40` 1..3 through Fire01's case (RENDER-EFFECTS-016);
 the armour owner effects' 0x810a 7, 0xf and Spark03 0x26 (`armour_kinds.inc`, RENDER-EFFECTS-017);
 the wings 0x2384/0x2385's OBJECT-owned 0x810a 0x11 and magic_ground12 0x81cf 0 (`item_owned_kinds.inc`,
-RENDER-EFFECTS-020)
+RENDER-EFFECTS-020); the pre-draw programs' Clud64 0x7ffd 0x1b, Shiny01 0x7f66 5 and shiny06 0x8180 5
+(`item_predraw_kinds.inc`, RENDER-EFFECTS-021)
 (`mu_pt_kind_supported`; later milestones add more, see `particles.h`). Other kinds are reported unsupported.
 
 Callers that create particles or sprites from other reconstructed routines (objects, environment, skills) pass
