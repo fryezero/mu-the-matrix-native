@@ -58,6 +58,13 @@ class ItemServices(unittest.TestCase):
         self.assertEqual((s[1]['durability'][0],s[0]['zen']-s[1]['zen']),(100,200))
         self.assertEqual(s[1],s[2]);self.assertEqual((s[3]['durability'][0],s[3]['zen']),(4,s[1]['zen']))
 
+    def test_host_set_durability_changes_only_a_valid_instance(self):
+        """APP-POLISH-006: added items start at 1; a host with Item.bmd sets the instance's wire byte 2."""
+        s=self.run_host('servicestate','setdur',0,53,'setdur',1,256,'setdur',2,-1,'setdur',3,9,'servicestate')
+        self.assertEqual(s[0]['durability'],[1,1,1])
+        self.assertEqual([r['set_durability'] for r in s[1:5]],[1,0,0,0])
+        self.assertEqual(s[5]['durability'],[53,1,1])
+
     def test_repair_all_skips_reserved_products(self):
         s=self.run_host(*self.listing(),*act('repairall'),'advance',160,'servicestate')
         self.assertNotEqual(s[0]['durability'][0],100)
