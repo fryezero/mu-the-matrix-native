@@ -112,4 +112,9 @@ int mu_slots121_custom(const slot *s);
 void mu_slots121_after(const slot *s);
 int mu_slots121_bitmap(int32_t world, int32_t index, const char **path, uint32_t *filter, uint32_t *wrap);
 int32_t mu_slots121_bitmaps(int32_t world, int32_t type, int32_t *out, int32_t room);
+/* RENDER-WORLDS-RAKLION (world_test_area_visual.c): Raklion 57/58's custom slot 0x00e949f8 (121's with the world test
+ * 0x00ea233c and type 0x52's frame restart behind the handler byte +0x22, given as model->handler_state) and after
+ * slot 0x00e96536 (121's, answering 1 for the types it draws). The bitmap 0x800a is 121's (both loaders). */
+int mu_slots_raklion_custom(const slot *s, int32_t world);
+int mu_slots_raklion_after(const slot *s);
 #endif

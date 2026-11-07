@@ -45,6 +45,17 @@ class FixtureScenarios(unittest.TestCase):
         self.assertTrue({'hero_stats', 'hero_speed', 'hero_levelup', 'hero_point', 'hero_respawn',
                          'hero_kill_exp', 'hero_master_exp', 'hero_master_levelup'} <= applies)
 
+    def test_repository_relative_scenarios_pass_from_any_cwd(self):
+        # REGRESS-002: these scenarios name native/fixture/scenarios/{skills,quest}-tables relative to the
+        # repository; the runner must not depend on the caller's cwd (they failed when run from native/).
+        for stem in ('skills-state', 'combat-fight', 'quest-progress', 'quest-routes'):
+            process = subprocess.run([sys.executable, str(ROOT / 'scripts/run_fixture_scenarios.py'),
+                                      '--report', str(self.directory / stem), '--fixture',
+                                      str(runner.SCENARIOS / f'{stem}.scn')],
+                                     capture_output=True, text=True, timeout=120, cwd=ROOT / 'native')
+            self.assertEqual(process.returncode, 0, stem + process.stdout[-2000:] + process.stderr)
+            self.assertEqual(runner.read_rows(process.stdout)[-1]['failed'], 0, stem)
+
     def test_skill_fixture_script_journal_summary_and_cleanup(self):
         run = self.directory / 'verify-runs' / 'skill'
         run.mkdir(parents=True)

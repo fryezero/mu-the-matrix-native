@@ -148,12 +148,24 @@ def native_lights(initial, events, count, normals):
     return bytes(out)
 
 
-def slot_family(machine, lib, g, cases, after, focus=False):
-    t = v.Tally('after_121' if after else 'actions_121' if focus else 'custom_121')
+class Spec:
+    """One class that runs this slot code: its class id, slot entries, own worlds and other worlds, and whether the
+    handler byte +0x22 matters (RENDER-WORLDS-RAKLION's validate_worlds_raklion passes Raklion's)."""
+
+    def __init__(self, name, cls, custom, after, worlds, others, focus, gate=False):
+        self.name, self.cls, self.custom, self.after = name, cls, custom, after
+        self.worlds, self.others, self.focus, self.gate = worlds, others, focus, gate
+
+
+TEST_AREA = Spec('121', 121, CUSTOM, AFTER, [121], [0, 2, 57, 120, 122, 140], FOCUS)
+
+
+def slot_family(machine, lib, g, cases, after, focus=False, spec=TEST_AREA):
+    t = v.Tally(('after_' if after else 'actions_' if focus else 'custom_') + spec.name)
     types = AFTER_TYPES if after else CUSTOM_TYPES
     for n in range(cases):
-        world = 121 if g.random() < 0.8 else g.choice([0, 2, 57, 120, 122, 140])
-        typ = g.choice(list(FOCUS)) if focus else n if n <= 300 else \
+        world = g.choice(spec.worlds) if g.random() < 0.8 else g.choice(spec.others)
+        typ = g.choice(list(spec.focus)) if focus else n if n <= 300 else \
             g.choice(types + ACTION_TYPES * (0 if after else 4)) if g.random() < 0.9 else g.randrange(0, 301)
         count, subs, array, records = a2.slot_meshes(g)
         normals = case_counts(g)
@@ -174,8 +186,11 @@ def slot_family(machine, lib, g, cases, after, focus=False):
                                g.uniform(-3e9, 0)]))
         actions = bytearray(g.getrandbits(8) for _ in range(16 * a2.ACTION_COUNT))
         seed = g.randrange(2**32)
+        handler = bytearray(v.fake_object())
+        if spec.gate:   # the handler byte +0x22 (Raklion: its event state <= 6)
+            handler[0x22] = g.choice([0, 1, 1, 2, 0xff])
         if focus:
-            frames, acts, modulus, residues = FOCUS[typ]
+            frames, acts, modulus, residues = spec.focus[typ]
             struct.pack_into('<H', o, 0x2a, g.choice(acts))
             v.put_f(o, 0xd0, v.f32(g.choice(frames)))
             actions_count = g.choice([4, 4, 4, 3, 2, 1])
@@ -224,9 +239,9 @@ def slot_family(machine, lib, g, cases, after, focus=False):
                                               am.defined_region('meshes', a2.MESHES, bytes(array), writable=False),
                                               am.defined_region('subs', a2.SUBS, bytes(records), writable=False),
                                               am.defined_region('time', v.TIME, v.pack_f(time), writable=False),
-                                              am.defined_region('fake', v.FAKE, v.fake_object(), writable=False),
+                                              am.defined_region('fake', v.FAKE, bytes(handler), writable=False),
                                               am.defined_region('lights', LIGHTS, watch.initial)])
-        result = v.run(machine, AFTER if after else CUSTOM, [v.OBJECTS, v.MODEL, 0], regions, stubs, ecx=v.FAKE,
+        result = v.run(machine, spec.after if after else spec.custom, [v.OBJECTS, v.MODEL, 0], regions, stubs, ecx=v.FAKE,
                        cleanup=12)
         stop = v.stopped_reason(result)
         if stop:
@@ -245,12 +260,14 @@ def slot_family(machine, lib, g, cases, after, focus=False):
             for q, d in enumerate(ws.bone_offset(k)):
                 out[q] = v.f32(local[q] + d)
         bone_fn = ws.BONE(c_bone)
-        model = SlotModel(count, flags, 0, rand_fn, None, 0, bone_fn, None, bones, actions_count)
+        model = SlotModel(count, flags, 0, rand_fn, None, handler[0x22] if spec.gate else 0, bone_fn, None, bones,
+                          actions_count)
         if after:
-            lib.dll.mu_class_after(121, co, cb, 0, world, time, C.byref(model), C.byref(log))
+            lib.dll.mu_class_after(spec.cls, co, cb, 0, world, time, C.byref(model), C.byref(log))
             answer, client = 0, 0
         else:
-            answer = 1 if lib.dll.mu_class_custom(121, co, cb, 0, world, time, C.byref(model), C.byref(log)) else 0
+            answer = 1 if lib.dll.mu_class_custom(spec.cls, co, cb, 0, world, time, C.byref(model),
+                                                  C.byref(log)) else 0
             client = result['eax'] & 0xff
         events = v.log_events(log)
         mine = native_events(events, b, count, normals)
@@ -258,7 +275,7 @@ def slot_family(machine, lib, g, cases, after, focus=False):
         if client_lights != watch.initial and not any(c[0] in ('VLIGHT', 'VLIGHT?') for c in calls):
             calls.append(('VLIGHT-after-draws',))
         named = (C.c_int32 * 36)()
-        listed = set(named[:lib.dll.mu_world_slot_bitmaps(121, typ, named)])
+        listed = set(named[:lib.dll.mu_world_slot_bitmaps(spec.worlds[0], typ, named)])
         textures = {c[8] for c in calls if c[0] in (BODY, MESH) and c[8] != 0xffffffff}
         bitmaps_ok = all(x in listed for x in textures if 0x7000 <= x < 0x9000)
         lights_ok = client_lights == native_lights(watch.initial, events, count, normals)
@@ -277,8 +294,10 @@ def slot_family(machine, lib, g, cases, after, focus=False):
             t.count('rand drawn')
         if struct.unpack_from('<H', result['regions']['object'], 0x2c) != struct.unpack_from('<H', o, 0x2c):
             t.count('SetAction changed the action')
-        if world != 121:
+        if world not in spec.worlds:
             t.count('other world')
+        if spec.gate and typ == 0x52 and result['regions']['object'][0xd0:0xd8] != bytes(o[0xd0:0xd8]):
+            t.count('0x52 frame restarted')
         t.add(ok, {'case': n, 'world': world, 'type': hex(typ), 'client': [tuple(hex(x) if isinstance(x, int) else x
                                                                                   for x in c) for c in calls[:6]],
                    'native': [tuple(hex(x) if isinstance(x, int) else x for x in c) for c in mine[:6]],
@@ -330,9 +349,9 @@ MUTATIONS = [
     ('0x44 pulse +0.4', T, '*0.5f+0.3f,U(s)', '* 0.5f + 0.4f, U(s)', 'custom_121'),
     ('0x53 without mesh 3', T, 'mesh_self(s,3,0x42,BL(s),U(s),V(s));set_after(s);', 'set_after(s);', 'custom_121'),
     ('0x59 not flagged', T, 'case0x2e:case0x35:case0x4c:case0x59:', 'case 0x2e: case 0x35: case 0x4c:', 'custom_121'),
-    ('0x52 hidden -1', T, 'case0x52:body_std(s,H(s));', 'case 0x52: body_std(s, -1);', 'custom_121'),
-    ('Chrome08 listed for 0x15', T, 'if(world!=121||type!=0x14||room<=0)', 'if (world != 121 || type != 0x15 || room <= 0)',
-     'custom_121'),
+    ('0x52 hidden -1', T, '}body_std(s,H(s));}', '} body_std(s, -1); }', 'custom_121'),
+    ('Chrome08 listed for 0x15', T, 'if(!ta_world(world)||type!=0x14||room<=0)',
+     'if (!ta_world(world) || type != 0x15 || room <= 0)', 'custom_121'),
     ('Shared SetAction bound off by one', K, 'mu_move_set_action(&a,&prior,&frame,&prior_frame,count,action);',
      'mu_move_set_action(&a, &prior, &frame, &prior_frame, count + 1, action);', 'actions_121'),
     # the after slot 0x00d5a6cc

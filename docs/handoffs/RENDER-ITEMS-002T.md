@@ -5,8 +5,8 @@ Branched from `claude/render-items-002s` (`e34e3c78`, PR #331); merged main `ae5
 `claude/render-items-002t` (Claude Opus 5.5). No live client, launcher, network or hosted workflow. No full gate in the
 lane (2026-11-04 test budget). Paused by the owner at 02:3x and resumed at 05:1x (no state lost).
 
-Scope: RENDER-ITEMS-002 part 21, groups 1 and 2 of part 20's "Next groups", plus APP-POLISH-007's hidden-mesh finding.
-[Finding](../research/client-render-items.md#part-21-frame-counter-object-bone-positions-random-vectors-and-post-programs-render-items-002t).
+Scope: RENDER-ITEMS-002 part 22, groups 1 and 2 of part 20's "Next groups", plus APP-POLISH-007's hidden-mesh finding.
+[Finding](../research/client-render-items.md#part-22-frame-counter-object-bone-positions-random-vectors-and-post-programs-render-items-002t).
 
 ## Result
 

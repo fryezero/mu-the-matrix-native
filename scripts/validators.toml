@@ -3041,6 +3041,22 @@ args = ["--cases", "1000", "--mutations", "--output", "{report}"]
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
 
+[validate_worlds_raklion]
+test = "reconstructed/objects/test_worlds_raklion.py::WorldsRaklionTests.test_original_instructions"
+pins = ["text", "data"]
+families = ["custom_raklion", "actions_raklion", "after_raklion"]
+cases = 3000
+mutants = 15
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects", "reconstructed/particles", "reconstructed/movement"]
+args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+[validate_worlds_raklion.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0
+
 [validate_render_effects15]
 test = "native/tests/test_render_effects15.py::ClientComparison.test_original_instructions_and_compiled_mutants"
 pins = ["text", "data"]
@@ -3117,6 +3133,24 @@ args = ["--mutations", "--output", "{report}"]
 "families.*.mismatches" = 0
 "families.link_flag.cases" = 3000
 "families.part_flag.cases" = 3000
+"mutants.*" = {truthy = true}
+
+[validate_hero_items]
+test = "native/tests/test_native_hero_items.py::ClientComparison.test_original_instructions"
+pins = ["text", "data"]
+families = ["set_class", "defaults", "head", "item_flag"]
+cases = 7088
+mutants = 14
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/hero-equipment", "reconstructed/players"]
+args = ["--mutations", "--output", "{report}"]
+[validate_hero_items.expect]
+"families.*.mismatches" = 0
+"families.set_class.cases" = 3000
+"families.defaults.cases" = 256
+"families.head.cases" = 832
+"families.item_flag.cases" = 3000
 "mutants.*" = {truthy = true}
 
 [validate_render_effects18]

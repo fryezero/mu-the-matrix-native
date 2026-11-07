@@ -19,7 +19,7 @@ Part 11 reaches **967/1,674 bodies** with per-type wave/sine scalar programs; li
 [Part 17 below](#part-17-owner-effect-programs-of-the-armour-bodies-render-items-002q) reaches **1,319/1,674 bodies** with owner-effect programs.
 [Part 18 below](#part-18-pre-draw-effect-programs-on-the-items-own-bones-render-items-002r) reaches **1,345/1,674 bodies** with pre-draw programs on the item's own bones.
 [Part 20 below](#part-20-integer-registers-runtime-branches-and-joints-in-pre-draw-programs-render-items-002s) reaches **1,359/1,674 bodies** with integer registers, runtime branches and joints.
-[Part 21 below](#part-21-frame-counter-object-bone-positions-random-vectors-and-post-programs-render-items-002t) reaches **1,363/1,674 bodies** with the frame counter, OBJECT-bone positions, random vectors and post programs.
+[Part 22 below](#part-22-frame-counter-object-bone-positions-random-vectors-and-post-programs-render-items-002t) reaches **1,363/1,674 bodies** with the frame counter, OBJECT-bone positions, random vectors and post programs.
 Muun/map-object effect placement remains deferred. All parts run offline.
 
 ## Identity and evidence
@@ -1766,7 +1766,67 @@ integer clock's period and truncation, the `rand() % 15 >= 8` branch, the OBJECT
 - The world callers of part 19 (hero, players, player-model actors, ground items) run these programs too; the OBJECT
   position is the model origin (for ground items, the OBJECT position).
 
-## Part 21, frame counter, OBJECT-bone positions, random vectors and post programs, RENDER-ITEMS-002T
+## Part 21, the hero's part slots from its equipment, HERO-ITEMS-001
+
+Part 19 ran the pre-draw programs for the hero as for the players, but the hero's item types were inferred from
+standard file names (`mu_renderchar_type_from_path`, `SwordNN.bmd`). The client types the hero from its
+equipment. [Handoff](../handoffs/HERO-ITEMS-001.md).
+
+### SetCharacterClass `0x01394870` (verified, `validate_hero_items`)
+
+The hero's equipped ITEM records live in CharacterMachine `[0x01d1df18]` at `+0x1b58 + s · 0x12c` (s: 0 right
+hand, 1 left hand, 2..6 helm, armour, pants, gloves, boots, 7 wing, 8 helper). The players' ChangeCharacterExt
+`0x0137b68c` decodes 18 viewport bytes into the CHARACTER part slots `c + 0x1c4 + k · 0x3fc` (`+0` type word,
+`+2` level, `+3` option, `+4` ext). `0x01394870(c)` fills the same slots from those ITEMs:
+
+- Only for a Player-model character (`c + 0x32b0 == 0xa91`).
+- Weapons: slot 6/7 ← s 0/1. Type = code + `0xae6` (only code −1 is empty: −2 gives `0xae4`), level =
+  `(level word >> 3) & 15` (arithmetic shift), option = `0x00cd0995(item, 1)`, ext = ITEM `+0x3b`.
+- Wing slot 8 ← s 7 and helper slot 10 ← s 8: type and level only. Their option and ext bytes keep their values.
+  Slot 9 (muun) is not written.
+- Parts: slots 1..5 ← s 2..6. An empty slot takes the class part `0x3700 + 0x50 · (k − 1) + skin` (`0x0139d6a2`),
+  which is the part the native character loads (`mu_character_part_type`, all 256 class bytes). A worn part is
+  typed like the weapons, with level, option and ext.
+- Head (`0x01394f6f`, unless `c + 0xe`): the class head `0x3700 + skin` for 17 helm types (`0x18e6`, `0x18e8`,
+  `0x18f0`..`0x18f3`, `0x1925`, `0x1927`, `0x192a`, `0x192c`, `0x193d`..`0x193f`, `0x19a0`, `0x19a1`, `0x1a35`,
+  `0x1a5f`) that leave it visible; otherwise −1. The rest of `0x01394f6f` writes scales (`+0x32f4`, `+0x288`).
+- `0x00cd0995(item, mode)`: 0 for a code outside `0..0x2c00`. Mode 0: `+0x3b & 0x33`; mode 1: `+0x98 == 1`;
+  mode 2: `+0x92 == 1`; other modes 0.
+- Not reproduced (stubbed in the comparison): `0x009dadf1` (the weapon override of the worlds `0x009dacb8`
+  lists), the hero-only `0x0137ad93` and the stat machine's `0x00a00fb7`. A flag `[ebp-1]` from `0x009dacb8` and
+  `c + 0x327e` is computed and never read.
+
+| Family (seed `0x4e20`) | Cases | Mismatches |
+|---|---:|---:|
+| set_class: random equipment (codes −1, in range, out of range, negative), random level words, random `+0x3b`/`+0x92`/`+0x98` and other ITEM bytes, random class bytes, prior slot bytes, `c + 0xe`, models (10 % not `0xa91`) and worlds; all 11 slots' five bytes | 3,000 | 0 |
+| defaults: every class byte, empty equipment | 256 | 0 |
+| head: every helm type `0x18d0..0x1a6f`, `c + 0xe` 0 and 1 | 832 | 0 |
+| item_flag: `0x00cd0995` directly, modes −1..3 and random, codes around the bounds | 3,000 | 0 |
+
+14/14 mutants caught (level shift and mask, model base, the empty test, the flag bound/mode/`+0x98` test, wing
+ext, part stride, the head list and flag, the model gate, the helper slot, swapped hands).
+
+### Native
+
+`world_rt_hero_item_textures` (every hero `set_item` passes through it) keeps each worn file's Item.bmd record
+and `world_rt_hero_slots` runs `mu_he_set_character_class` on them. The hero part draws a slot that has a record
+with the slot's type, level, option and ext and Item.bmd's kind bytes, as the players do, and the players' glow
+colour. A slot without a record (class parts, files outside Item.bmd, no Item.bmd) keeps the file-name inference.
+The offline session's records are the front end's files (the demo characters list `item=FILE`, no codes, levels
+or options), so the record is the file's first Item.bmd record and level/option/ext are 0.
+
+Record vs file-name guess over Item.bmd: 774 distinct standard-named files. For 424 of them the file's first
+record differs from the guess (Item.bmd maps models many-to-one). The 26 pre-draw types all use non-standard
+names. The five demo characters' seven items all equal the guess.
+
+| Hero | Before (file name) | After (record) | Seen |
+|---|---|---|---|
+| Demo characters (Staff02, Sword04, Shield01, Wing02, Bow02, Sword05, Mace01) | same type | same type, kinds from the record | `mu-shell` 85/85 frames identical |
+| Combat stand-ins (Sword01, Sword10, Spear01, Bow01, Staff01) | same type | same | 7 scenes identical |
+| Combat crossbow `CrossBow01.bmd` | −1 | `0x12ee` Crossbow | identical at level 0 |
+| `--hero-item` blade01, CR_shield01, InnocenceCape (test only) | −1 | `0x0b4b`, `0x1748`, `0x2382` | 0 → 30 pre-draw sprites; the cloak's own mesh is no longer drawn, as for a player wearing `0x2382` |
+
+## Part 22, frame counter, OBJECT-bone positions, random vectors and post programs, RENDER-ITEMS-002T
 
 Bounded bodies increase **1,359 to 1,363 of 1,674** (+4): two maces with pre-draw programs (`0x0f1f`, `0x0f20`,
 `gen_item_owner_fx.PRE_FX_TYPES`, draws with the part-13 carry rule) and two owner blocks after the draws (bow
