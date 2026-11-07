@@ -14,7 +14,9 @@ KEY = bytes([0xab, 0x11, 0xcd, 0xfe, 0x18, 0x23, 0xc5, 0xa3, 0xca, 0x33, 0xc1, 0
 
 
 def run_tool(*args, env=None, timeout=120):
-    r = subprocess.run([str(TOOL), *[str(a) for a in args]], capture_output=True, text=True, env=env, timeout=timeout)
+    # cwd=ROOT: scenario data paths (skill-data, quest-data, skills data/file) are repository-relative (REGRESS-002)
+    r = subprocess.run([str(TOOL), *[str(a) for a in args]], capture_output=True, text=True, env=env, timeout=timeout,
+                       cwd=NATIVE.parent)
     rows = [json.loads(line) for line in r.stdout.splitlines() if line.startswith('{')]
     return r, rows
 
