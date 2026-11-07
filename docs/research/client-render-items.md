@@ -20,6 +20,9 @@ Part 11 reaches **967/1,674 bodies** with per-type wave/sine scalar programs; li
 [Part 18 below](#part-18-pre-draw-effect-programs-on-the-items-own-bones-render-items-002r) reaches **1,345/1,674 bodies** with pre-draw programs on the item's own bones.
 [Part 20 below](#part-20-integer-registers-runtime-branches-and-joints-in-pre-draw-programs-render-items-002s) reaches **1,359/1,674 bodies** with integer registers, runtime branches and joints.
 [Part 22 below](#part-22-frame-counter-object-bone-positions-random-vectors-and-post-programs-render-items-002t) reaches **1,363/1,674 bodies** with the frame counter, OBJECT-bone positions, random vectors and post programs.
+[Part 23 below](#part-23-pre-draw-particles-without-an-owner-and-armour-owner-programs-in-the-world-render-effects-021) serves the pre-draw particles without an owner and runs the armour owner programs in the world.
+[Part 24 below](#part-24-the-inventorys-equipment-and-its-icons-effects-inventory-fx) draws the inventory's equipment and its icons' effects.
+[Part 25 below](#part-25-the-wings-physics-capes-render-items-cloak) draws the wings' capes as the client's physics cloth.
 Muun/map-object effect placement remains deferred. All parts run offline.
 
 ## Identity and evidence
@@ -1616,7 +1619,7 @@ the item's own pose, and RenderObjDraw's flag is computed as the client computes
 - **Callers.** The text calls RenderObjDraw `0x0176ce74` from five sites: RenderLinkItem `0x012bd910` at
   `0x012c6a83` (worn weapons, shields, wings); RenderPartObject `0x017e63f4` at `0x017e7960` and `0x017e7997`
   (ground items and body parts); and two sites at `0x00a497c6`/`0x00a49bc9` (labelled the inventory/UI item path here;
-  part 23 corrects it: they are the render callback of object type `0x67a`, and the inventory goes through RenderPartObject).
+  [part 24](#part-24-the-inventorys-equipment-and-its-icons-effects-inventory-fx) corrects it: they are the render callback of object type `0x67a`, and the inventory goes through RenderPartObject).
 - **Pose, then pre-draw, then body.** In RenderLinkItem every path from the origin copy to the call passes the
   item's Animation `0x012b5064` at `0x012c6478`, which writes BoneTransform `0x06fce398` (static control-flow
   check). RenderObjDraw then runs the type's case before the body helper (part 18).
@@ -2005,7 +2008,92 @@ programs could not create):
 - Ground items now pass their angle to every pre-draw program that reads op 12 (`0x1316`, `0x22ec`, `0x230c`,
   `0x23ef`, `0x2400`, `0x2405`, `0x248f`, `0x2496` and the two cloaks); none of them is dropped in the scenes above.
 
-## Part 23, the inventory's equipment and its icons' effects, INVENTORY-FX
+## Part 23, pre-draw particles without an owner and armour owner programs in the world, RENDER-EFFECTS-021
+
+RenderObjDraw's pre-draw programs (part 18/19) still had three particle requests without an owner that no native
+pool reconstructed. The armour owner programs (part 17) ran only in `mu-render character`. Both are now served in
+the world. Evidence: verified (Unicorn against the pinned text/data), unless said.
+
+### Census of item-program requests (static, every op of the 83 programs)
+
+| Request (op) | Programs | Native consumer before | After |
+|---|---|---|---|
+| CreateParticle `0x7ffd`/0x1b, no owner (14) | bow `0x1316` | none: refused, counted | `item_predraw_kinds.inc` |
+| CreateParticle `0x7f66`/5, no owner (14) | `0x230c`, `0x2496` | none: refused | `item_predraw_kinds.inc` |
+| CreateParticle `0x8180`/5, no owner (14) | `0x23ef`, `0x2400`, `0x2405` | none: refused | `item_predraw_kinds.inc` |
+| CreateParticle `0x810a`/0x11, `0x81cf`/0, OBJECT owner (25) | `0x2384`, `0x2385` | part 22 | unchanged |
+| CreateSprite / bone sprites (13, 17, 40) | 275 sites | sprite pool | unchanged |
+| CreateJoint, OBJECT target (39): `0x7f7c`/0xe, `0x7fd3`/4 | `0x22ec`, `0x248f` | joint pool: refused | unchanged (RENDER-ITEMS-002T's joint kinds) |
+| Owner programs' `0x7f26`/0x26, `0x810a`/7, `0x810a`/0xf and sprites (10, 13, 14) | 43 armour/helm types | kinds exist (RENDER-EFFECTS-017); programs not run in the world | run in the world with the wearer's OBJECT |
+| Since #341 (part 22 of 002T): `0x810a`/0x25 OBJECT-owned with argument 8 (47); `0x855d`/1, `0x84d1`/1 (14) | maces `0x0f1f`, `0x0f20` | none; refused first by the missing frame counter `[0x0bdc5ebc]` | unchanged (next step) |
+
+### The three kinds (CreateParticle `0x015ae7b0`, MoveParticles `0x01616c80`, RenderParticles `0x0159123f`)
+
+| Kind | Create | Move | Render |
+|---|---|---|---|
+| Clud64 `0x7ffd`/0x1b | `0x015c304a` (the subtype chain from `0x015c07c8`): initial LifeTime (+0x4c) 15, LifeTime 15; rotation `rand() % 360`; light = the argument again; alpha 1; velocity `0x011ff622(-0.5, 0.5, 1)` per axis: one rand each, always 0 | `0x0163274d`: alpha = LifeTime / initial LifeTime (binary32 division); Scale += 0.04 | `0x0159504f`: the sprite with light × alpha (`0x00cfcb3c`) |
+| Shiny01 `0x7f66`/5 | the Shiny01 case `0x015e5c73` (LifeTime 18, angle x 45), then `0x015e60e5`: LifeTime `rand() % 10 + 10`; Scale = `(rand() % 10) · 0.02 + scale`; x and y += `rand() % 10 - 5`; gravity = `-(rand() % 10) · 0.3` | the case `0x016584c2` has no head; `0x01658bd3`: rotation += 10; z += gravity; light /= 1.02 per channel; Scale -= 0.01 | Shiny01 is not in the render switch: the default sprite `0x015ae2bf` |
+| shiny06 `0x8180`/5 | the case's table `0x016167a0`[5] = `0x015e93ab`, the switch end: the common block only (LifeTime 2) | table `0x0168f700`[5] = `0x0165c194`, the end: nothing | table `0x015ae50f`[5] = `0x0159a5a6`, the end: the common bind and blend state, no sprite |
+
+Index 5 is the only entry of each table that goes straight to the end; the other subtypes of `0x8180` have blocks.
+`0x8180`/5 lives two MoveParticles steps and draws nothing. Native skips even its bind, because shiny06 has no
+world bitmap slot. In the client the bind and blend state are reset by the next record's render.
+
+### Owner programs in the world
+
+RenderPartObjectBody `0x0173d2d8` runs the effect block of a worn chest/helm with the character OBJECT. The block
+transforms through `0x012b678d(out, OBJECT, bone, local)`, a thiscall on the part model. If the bone is negative
+or not below the part model's bone count (`+0x22`), `out` is not written. Otherwise the matrix is OBJECT
+`+0x318 + 0x30·bone` (`0x0129f12c`, provided the OBJECT's model, found through `+0x5c`, `0x00966cc4` and
+`0x00eaa8cf`, has the bone and `+0x318` is set), else BoneTransform `0x06fce398 + 0x30·bone`. The result is
+VectorTransform `0x00d002b2` of the local point, × the part model's `+0x74`, + OBJECT `+0x158`. The particles take
+OBJECT `+0x164`.
+
+The native characters (players, the hero, player-model actors) hold the same values:
+- `player_bones` is the posed Player.bmd skeleton (`mu_character_update`);
+- the part model's body scale and origin are the character's scale and position (`mu_character` `slot_params`);
+- `params.angles` is the OBJECT angle.
+
+`world_rt_part_owner` builds the `mu_renderchar_owner` from them, for body-part types with an owner program
+(`mu_rc_item_owner_fx`), and the three world callers draw those parts with `mu_renderchar_draw_item_owner`. The
+existing owner host (RENDER-ITEMS-002Q) runs a program only when its highest bone is below both bone counts; it
+refuses where the client would fall back to BoneTransform or skip the write. Counts:
+`{"item_owner_fx": true, "hero"|"players"|"actors": {owner_effects, owner_refused}}`, printed only when a part
+ran a program.
+
+None of the 43 types is a rank-5 type, so RENDER-EFFECTS-005's rank-5 owner block (bones 35/26 and the level-9
+overlay passes) stays as before: it runs in `mu-render character` only.
+
+### Scenes (offline native renders, Lorencia 128,124)
+
+Refused = requests the programs could not create.
+
+| Scene | Before (`ca941c4b`, #339 head) | After |
+|---|---|---|
+| CALLERS-001 crowd, `mu-walk` soft, 60 frames: players / ground | 93 / 0, 18 / 0 | identical |
+| Same, a frame every 10 | 325 / 0, 113 / 0 | identical |
+| GL `mu-world` 640×400 crowd, 41 frames, every 5 | players 417 / **5** (bow `0x1316`), ground 146 / 0 | 423 / **0**, 148 / 0 (created 5 → 13, rand 167 → 239) |
+| Archer alone (bow `0x1316`), GL, every frame, 61 frames | 854 / **17** | 876 / **0** |
+| Five wearers of `0x230c`, `0x2496`, `0x23ef`, `0x2400`, `0x2405`, soft every 10 / GL every 5 | 483 / **10**, 621 / **12** | 487 / **0**, 634 / **0** |
+| Shipped Lorencia demo players (after #338), soft every 10 / GL every 5 | 343 / 0 (23 hidden), 441 / 0 (28 hidden) | identical (no such type, no owner-program armour) |
+| Five armour wearers (`0x1bc3`, `0x1bc4`, `0x1bde`, `0x1c41`, `0x1c78`), soft every 10 | no program ran, 0 sprites | players 144 owner effects (119 sprites, 25 particles) / **0** refused |
+| Same, GL every 5 | no program ran | 190 (153 sprites, 37 particles) / **0** |
+| Hero `--hero-item armor=Item/ArmorMale135.bmd` (`0x1bc3`), soft every 10 | no program ran | hero 68 / **0** |
+
+The created counts shift slightly because each new record draws rand() (Clud64 4, Shiny01 5), which moves later
+gates.
+
+### Limits
+
+- The native pose is assumed to equal the client's `+0x318`, as RENDER-EFFECTS-005 already assumed for the
+  rank-5 bones and the world's link effects for `0x389c`/`0x389d`. This lane verifies the transform and the
+  bone-domain rule, not the pose.
+- The five helm types run through the same hook, but no scene wears them. Player-model actors are wired, but no
+  installed actor wears these armours.
+- The rank-5 owner block in the world is left for a later lane (it also adds draw passes).
+- The joint kinds `0x7f7c`/0xe and `0x7fd3`/4 stay refused (RENDER-ITEMS-002T).
+
+## Part 24, the inventory's equipment and its icons' effects, INVENTORY-FX
 
 The inventory window draws the hero's equipment and every icon's level, option and ext the way it draws them for
 a worn item. The icons' pre-draw programs and skin sprites go to the world's sprite list, never over the icon.
@@ -2093,87 +2181,76 @@ option/ext swap. Each anchor matches once.
 - No original-client capture of an inventory with equipment: the placement is matched up to the wrapper's
   arguments, and the pixels are the native renderer's.
 
-## Part 23, pre-draw particles without an owner and armour owner programs in the world, RENDER-EFFECTS-021
+## Part 25, the wings' physics capes, RENDER-ITEMS-CLOAK
 
-RenderObjDraw's pre-draw programs (part 18/19) still had three particle requests without an owner that no native
-pool reconstructed. The armour owner programs (part 17) ran only in `mu-render character`. Both are now served in
-the world. Evidence: verified (Unicorn against the pinned text/data), unless said.
+HERO-ITEMS-001 found that the RenderObjDraw body of the cloak wings `0x2382`..`0x2385`, `0x2394` and `0x2395` (part 18)
+never draws their cape mesh, and APP-POLISH-007 showed the inventory draws only the upper meshes. The world does not
+draw that mesh either: **the cape is a physics cloth** that RenderCharacter owns per character. The installed
+models agree: `InnocenceCape.bmd`'s mesh 0 (25 vertices, `kundun_innocence2.tga`) and `SparkleCape.bmd`'s mesh 1
+(`kundun_sparkle3.tga`) are the meshes RenderObjDraw leaves out, and their textures are the cloth bitmaps below.
 
-### Census of item-program requests (static, every op of the 83 programs)
+### Call path (verified unless marked)
 
-| Request (op) | Programs | Native consumer before | After |
-|---|---|---|---|
-| CreateParticle `0x7ffd`/0x1b, no owner (14) | bow `0x1316` | none: refused, counted | `item_predraw_kinds.inc` |
-| CreateParticle `0x7f66`/5, no owner (14) | `0x230c`, `0x2496` | none: refused | `item_predraw_kinds.inc` |
-| CreateParticle `0x8180`/5, no owner (14) | `0x23ef`, `0x2400`, `0x2405` | none: refused | `item_predraw_kinds.inc` |
-| CreateParticle `0x810a`/0x11, `0x81cf`/0, OBJECT owner (25) | `0x2384`, `0x2385` | part 22 | unchanged |
-| CreateSprite / bone sprites (13, 17, 40) | 275 sites | sprite pool | unchanged |
-| CreateJoint, OBJECT target (39): `0x7f7c`/0xe, `0x7fd3`/4 | `0x22ec`, `0x248f` | joint pool: refused | unchanged (RENDER-ITEMS-002T's joint kinds) |
-| Owner programs' `0x7f26`/0x26, `0x810a`/7, `0x810a`/0xf and sprites (10, 13, 14) | 43 armour/helm types | kinds exist (RENDER-EFFECTS-017); programs not run in the world | run in the world with the wearer's OBJECT |
-| Since #341 (part 22 of 002T): `0x810a`/0x25 OBJECT-owned with argument 8 (47); `0x855d`/1, `0x84d1`/1 (14) | maces `0x0f1f`, `0x0f20` | none; refused first by the missing frame counter `[0x0bdc5ebc]` | unchanged (next step) |
-
-### The three kinds (CreateParticle `0x015ae7b0`, MoveParticles `0x01616c80`, RenderParticles `0x0159123f`)
-
-| Kind | Create | Move | Render |
-|---|---|---|---|
-| Clud64 `0x7ffd`/0x1b | `0x015c304a` (the subtype chain from `0x015c07c8`): initial LifeTime (+0x4c) 15, LifeTime 15; rotation `rand() % 360`; light = the argument again; alpha 1; velocity `0x011ff622(-0.5, 0.5, 1)` per axis: one rand each, always 0 | `0x0163274d`: alpha = LifeTime / initial LifeTime (binary32 division); Scale += 0.04 | `0x0159504f`: the sprite with light × alpha (`0x00cfcb3c`) |
-| Shiny01 `0x7f66`/5 | the Shiny01 case `0x015e5c73` (LifeTime 18, angle x 45), then `0x015e60e5`: LifeTime `rand() % 10 + 10`; Scale = `(rand() % 10) · 0.02 + scale`; x and y += `rand() % 10 - 5`; gravity = `-(rand() % 10) · 0.3` | the case `0x016584c2` has no head; `0x01658bd3`: rotation += 10; z += gravity; light /= 1.02 per channel; Scale -= 0.01 | Shiny01 is not in the render switch: the default sprite `0x015ae2bf` |
-| shiny06 `0x8180`/5 | the case's table `0x016167a0`[5] = `0x015e93ab`, the switch end: the common block only (LifeTime 2) | table `0x0168f700`[5] = `0x0165c194`, the end: nothing | table `0x015ae50f`[5] = `0x0159a5a6`, the end: the common bind and blend state, no sprite |
-
-Index 5 is the only entry of each table that goes straight to the end; the other subtypes of `0x8180` have blocks.
-`0x8180`/5 lives two MoveParticles steps and draws nothing. Native skips even its bind, because shiny06 has no
-world bitmap slot. In the client the bind and blend state are reset by the next record's render.
-
-### Owner programs in the world
-
-RenderPartObjectBody `0x0173d2d8` runs the effect block of a worn chest/helm with the character OBJECT. The block
-transforms through `0x012b678d(out, OBJECT, bone, local)`, a thiscall on the part model. If the bone is negative
-or not below the part model's bone count (`+0x22`), `out` is not written. Otherwise the matrix is OBJECT
-`+0x318 + 0x30·bone` (`0x0129f12c`, provided the OBJECT's model, found through `+0x5c`, `0x00966cc4` and
-`0x00eaa8cf`, has the bone and `+0x318` is set), else BoneTransform `0x06fce398 + 0x30·bone`. The result is
-VectorTransform `0x00d002b2` of the local point, × the part model's `+0x74`, + OBJECT `+0x158`. The particles take
-OBJECT `+0x164`.
-
-The native characters (players, the hero, player-model actors) hold the same values:
-- `player_bones` is the posed Player.bmd skeleton (`mu_character_update`);
-- the part model's body scale and origin are the character's scale and position (`mu_character` `slot_params`);
-- `params.angles` is the OBJECT angle.
-
-`world_rt_part_owner` builds the `mu_renderchar_owner` from them, for body-part types with an owner program
-(`mu_rc_item_owner_fx`), and the three world callers draw those parts with `mu_renderchar_draw_item_owner`. The
-existing owner host (RENDER-ITEMS-002Q) runs a program only when its highest bone is below both bone counts; it
-refuses where the client would fall back to BoneTransform or skip the write. Counts:
-`{"item_owner_fx": true, "hero"|"players"|"actors": {owner_effects, owner_refused}}`, printed only when a part
-ran a program.
-
-None of the 43 types is a rank-5 type, so RENDER-EFFECTS-005's rank-5 owner block (bones 35/26 and the level-9
-overlay passes) stays as before: it runs in `mu-render character` only.
-
-### Scenes (offline native renders, Lorencia 128,124)
-
-Refused = requests the programs could not create.
-
-| Scene | Before (`ca941c4b`, #339 head) | After |
+| Step | Address | What it does |
 |---|---|---|
-| CALLERS-001 crowd, `mu-walk` soft, 60 frames: players / ground | 93 / 0, 18 / 0 | identical |
-| Same, a frame every 10 | 325 / 0, 113 / 0 | identical |
-| GL `mu-world` 640×400 crowd, 41 frames, every 5 | players 417 / **5** (bow `0x1316`), ground 146 / 0 | 423 / **0**, 148 / 0 (created 5 → 13, rand 167 → 239) |
-| Archer alone (bow `0x1316`), GL, every frame, 61 frames | 854 / **17** | 876 / **0** |
-| Five wearers of `0x230c`, `0x2496`, `0x23ef`, `0x2400`, `0x2405`, soft every 10 / GL every 5 | 483 / **10**, 621 / **12** | 487 / **0**, 634 / **0** |
-| Shipped Lorencia demo players (after #338), soft every 10 / GL every 5 | 343 / 0 (23 hidden), 441 / 0 (28 hidden) | identical (no such type, no owner-program armour) |
-| Five armour wearers (`0x1bc3`, `0x1bc4`, `0x1bde`, `0x1c41`, `0x1c78`), soft every 10 | no program ran, 0 sprites | players 144 owner effects (119 sprites, 25 particles) / **0** refused |
-| Same, GL every 5 | no program ran | 190 (153 sprites, 37 particles) / **0** |
-| Hero `--hero-item armor=Item/ArmorMale135.bmd` (`0x1bc3`), soft every 10 | no program ran | hero 68 / **0** |
+| RenderCharacter `0x01363260` cloth flag | `0x01366edf..0x01367530` | `[ebp-0x4d]` = 1 for an OBJECT of type `0xa91` whose class skin (`0x0139cab9`) is 3, 0x33 or 0x43 or whose base class is 0, 4, 6, 7, 8, 9, 0xb, 0xc, 0xd or 0xf, when CHARACTER `+0x0e` is 0 (or 1 with `+0x32b0` = `0xa91`); else for wings `0x23f1`, `0x2401`, `0x24c6`; also for class indices (`+0x146`) `0x37`, `0x169`, `0x3a9`, `0x3ab..0x3ad`; cleared for the glow classes `0x0139bcdc` (`0x211..0x21b`, `0x349..0x34c`, `0x371..0x373`, `0x3c1`, `0x3d5`) and the worlds of `0x009dacb8` (`0x12..0x17`, `0x35`, `0x61`). Light `[ebp-0xc8]` = (1, 1, 1), (1, 0.1, 0.1) when CHARACTER `+0x1f` = 6. The guild-war flags `0x06fca13d`/`0x06fca13f`, the duel manager `0x01d1e028` and the hiding buff `0x009c104e(c, 2, 1)` also write it (not ported) |
+| MoveCloth `0x01362f24` | call `0x0136ab80`, every frame | for each cloth of OBJECT `+0x4c` (count `+0x3f`) with an owner: `Move2(0.005, 5)` (`0x00fd821e`); speed 0 under buffs `0x3d`, `0x48`, `0xb2`, `0x118`; a failed step deletes the cloths (`0x0137aafe`) |
+| RenderCloth `0x01363098` | call `0x0136aba2`, behind the flag; after the body parts (`0x0136a374`), before the linked items (`0x0136c33f`..) | CreateCloth `0x01357ccc` while OBJECT `+0x4c` is 0, the armour cloths `0x0135ea29` / `0x01362755`, MoveCloth again when one was made, then the draw tests `0x01362e1d` (buff `0x12`, sub-type `0x431`/`0x432`, actions `+0x2a`/`+0x2c` both `0xe4`) and `0x01362e87` (class / sub-type `0x009a0989`, class index `0x271`/`0x272`) and virtual slot 8 (Render) of each cloth with `(light, 0)` |
+| CreateCloth `0x01357ccc` | switch on CHARACTER `+0x21a4` (arg 4 = 0) | `0x2382`/`0x2383` (`0x0135b558`): one cloth, bone 19, origin (0, 16, −10), 10×10, 140×130, bitmap `0x83f6`, type `0x1005`, spheres (∓10, −2, 18, r 25) and (∓10, 0, 0, r 28) on bone 17. `0x2384`/`0x2385` (`0x0135b79f`): two cloths, origins (∓3, 20, −5), 160×150, bitmaps `0x83f7` / `0x83f8`, uv scale (0.5, 1), uv offset (0, 0) / (1, 0), push (∓0.1, ∓0.1), two spheres each. `0x2394`/`0x2395` (`0x0135c419`): as `0x2382` with origin (0, 20, −10) and bitmap `0x846b` |
+| Bitmaps | `0x018252db`, `0x018252fb`, `0x0182531b`, `0x01827699` | `0x83f6` `Item\texture\kundun_innocence2.tga` (GL_REPEAT), `0x83f7` `kundun_sparkle3.tga`, `0x83f8` `kundun_sparkle3_1.tga` (GL_CLAMP), `0x846b` `BlackCloak_3.tga` (GL_REPEAT), all GL_LINEAR |
+| Wind | frame driver `0x01851d39` (`0x01851eee..0x01851f07`) | five calls of the physics manager's step `0x00fdad7b` per logic step: wind `0x01ec981c` += (rand() % 200 − 100) × 0.001, clamped to [−0.2, 1] |
 
-The created counts shift slightly because each new record draws rand() (Clud64 4, Shiny01 5), which moves later
-gates.
+### The cloth (CPhysicsCloth, vtable `0x01ab2780`, 0xe8 bytes; vertices 0x3c bytes, vtable `0x01ab2758`)
+
+- **Create** (slot 2, `0x00fd6e60`): a rows × columns grid; row y is tapered to (0.6 + 0.4y/(rows−1)) of the width for
+  type `& 0xc` = 4 and dropped by 10·(2|x/(cols−1) − 0.5|)² for type `& 3` = 1, placed with AngleMatrix(OBJECT angles)
+  and the owner bone's translation through TransformPosition `0x012b6ef1`. Springs: vertical (flags 2|4), horizontal
+  (3), both diagonals (1; the second only from row 2), rest length = the distance, minimum 0.8 of it. The top row is
+  fixed by SetFixed (slot 4, `0x00fd79bb`): the origin plus a 0.6-wide row, swizzled (z, −y, x) and transformed by the
+  bone matrix every step.
+- **Step** (`0x00fd825f`): the wind (the global, or rand() for types `0x200`/`0x8`/world `0x37`), the wind vector
+  `0x01ec9820` = (sin a·w, −w·cos a) with a = (180 + OBJECT angle z)·π/180; forces (slot 7, `0x00fd8463`): per vertex
+  w·windvector − 0.01·velocity with w = 0, 3..6 by the grid distance from a point that moves with the logic-step
+  counter `0x0bdc5eb0` (5 − d is compared unsigned with 4, so vertices farther than 5 take 6), a rotated sideways push, gravity
+  9.8·0.0025·100 (`0x01cf0eb0`, `0x01cf0eb4`); force springs beyond rest + 0.01; the top row; velocity +=
+  force·400·t (`0x01cf0eb8`), position += velocity·t. Constraints (`0x00fd88ec`): sphere centres on their bones,
+  sphere pushes, the constrain springs (half the error each end), the averaged displacements, and the stretch limits
+  (vertical springs below the top row: back into [0.8, 1]·rest; beyond 20× rest the pass stops unless `0x00aae6f9`
+  holds). The step's result is always 1 with an owner.
+- **Render** (slot 8, `0x00fd8bc2`): EnableAlphaTest(1) for type `0x1000`, `glColor4f(light, OBJECT alpha)`, then
+  GL_QUADS of the grid with the front bitmap and again, wound the other way, with the back bitmap; u = x/(cols−1)/uv
+  scale − uv offset, v the same clamped to 0.99.
+
+### Port
+
+`reconstructed/cloth` (`mu_cloth_wing_create`, `mu_cloth_move2`, `mu_cloth_render`, `mu_cloth_wind_step`,
+`mu_cloth_gate`) and `native/world/world_cloak.c`: per wearer (hero, players by index) the cloths live with the
+OBJECT (dropped when the wing or the viewport generation changes and at travel). Every rendered frame
+`world_cloak_frame` (after the logic steps) runs the wind walk and MoveCloth for every wearer drawn since its OBJECT
+was made; the hero and player parts call `world_cloak_draw` between the body parts and the linked items (first-frame
+MoveCloth, the flag, CreateCloth + MoveCloth, Render through the backend: quads as two triangles, the four bitmaps in
+the cloak's own texture set). The cloths step every frame whether or not the frame is drawn, so a headless capture
+cadence does not change them.
+
+### Checks
+
+`scripts/validate_item_cloak.py` (row `validate_item_cloak`): **2,090 comparisons, 0 mismatches** — create 66
+(CreateCloth on the six types ×3 and four wings without a case; failure states without bones, with too few bones or
+without the model), step 528 and render 528 (8 frames each of MoveCloth then RenderCloth as RenderCharacter calls
+them: every cloth field, the wind vector, rand(); the GL stream bit for bit), wind 200, gate 768 (RenderCharacter
+run to `0x0136ab87`). **38/38 compiled mutants caught**, none equivalent, every anchor once. The gravity constants
+come from the pinned third section (`effects_init`).
 
 ### Limits
 
-- The native pose is assumed to equal the client's `+0x318`, as RENDER-EFFECTS-005 already assumed for the
-  rank-5 bones and the world's link effects for `0x389c`/`0x389d`. This lane verifies the transform and the
-  bone-domain rule, not the pose.
-- The five helm types run through the same hook, but no scene wears them. Player-model actors are wired, but no
-  installed actor wears these armours.
-- The rank-5 owner block in the world is left for a later lane (it also adds draw passes).
-- The joint kinds `0x7f7c`/0xe and `0x7fd3`/4 stay refused (RENDER-ITEMS-002T).
+- The flag follows the client: a Dark Knight, Elf, Magic Gladiator (tiers 2/3), Summoner or classes 0xa/0xe
+  wearing these wings gets no cape (only the upper meshes), as in the original.
+- Not ported: the guild-war / duel / hiding-buff writes of the flag, the other CreateCloth cases (other wings, arg 4),
+  the armour cloths, the glow and mesh passes, sub-types `0x5bc`/`0x5bd`. Native players have no buffs and sub-type 0.
+- The wind starts at 0 when the first cloth wing is drawn and walks with its own MSVC rand() state; the client's
+  shares the process rand() and has walked since start-up.
+- (inference) The Player model's BodyScale/BodyOrigin at MoveCloth are the OBJECT's scale and position (RenderCharacter
+  poses the Player before it); the native host passes the character's position and scale.
+- The 0.01 floor of the sphere collision (a vertex within 0.01 of a centre) is in the port but no random state
+  reaches it.
+- GL_QUADS are drawn as triangles (0, 1, 2), (0, 2, 3).

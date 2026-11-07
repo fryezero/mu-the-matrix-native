@@ -6,7 +6,7 @@ before any change, then main `138b756e` (#339, #340, #341) as the merge after `4
 full gate in the lane (2026-11-04 test budget).
 
 Scope: inventory and equipment icons drawn the way the client draws them in its inventory window.
-[Finding](../research/client-render-items.md#part-23-the-inventorys-equipment-and-its-icons-effects-inventory-fx).
+[Finding](../research/client-render-items.md#part-24-the-inventorys-equipment-and-its-icons-effects-inventory-fx).
 
 ## Result
 
