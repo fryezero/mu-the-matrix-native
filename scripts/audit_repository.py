@@ -15,59 +15,65 @@ GENERATED = {'.exe','.dll','.bin','.obj','.bmd','.smd','.png','.jpg','.zip','.dm
 # documentation media; all other binary/generated inputs remain rejected.
 REVIEWED_MEDIA = {
     'docs/images/01-hero-lorencia-players-hud.jpg':
-        'd589cd1764c8c9091f58566b4328700747e67de4aba69865708847525bbe380e',
+        'be1c3d696b16764ec192d4e508fbb3fba5be284061add1b75328adda5c19bf6d',
     'docs/images/02-login-server-select.jpg':
         '776da4029a6a28b9035aac4c4e94f68252f93d964bcfb3aa3764b4518a89e52d',
     'docs/images/03-character-select.jpg':
         'baa322ab81fe62e3cf9c88cab013cb1ae4a1eacfeab302352bf8e02c4e6adb62',
     'docs/images/04a-character-creation.png':
-        'fa926cbb24648bb01dca67407e7fdf956a72dd657dd355617738903f0bfade5f',
+        '9e4e83770afdfc01142add43ab4d6b9c7a315065ca45abeaa8200e9340d95fba',
     'docs/images/04b-character-creation-all-classes.jpg':
-        '2bd8ab20a3e1e61176b9cc158489002980613c53a7d63334e3c86cad5b90964a',
+        '66a847ea9966a0c42a680ed15f26a853ff554ef1f51d6849c0060c00cb5bbe9b',
     'docs/images/05-world-atlans-devias-noria-lorencia.jpg':
-        '841301b782b624ec660d3cff057f874b7575846070faa56b5529b87b3a626bfe',
+        '683c5f41ef31380f23baad028346485456ede5cbdb77f63f52be8b97bee59007',
     'docs/images/06-effects-skills-particles.jpg':
-        '37676aefe584725848b1f83dbcdf8302ac68725f2403ddddc49e621e5415a281',
+        'ef05b5b07c27a2445e8dd8bd12dd27cf78c8eb2b73e940efbcf20b8cbb411b34',
     'docs/images/07-gfx-character-window-buffs.png':
-        '30dbbd94ab0177632cc587fb95e586e932e68ca46eb86544977c2c6588cb46f6',
+        '33fc8cbbf900f283ab8320331ef1faac9a795c93f6a59b621b3a07fe6b4a1c52',
     'docs/images/08-inventory-item-tooltip.png':
-        'c2327e22b2baa9b99b5909b3e956f71a49cc5256d0f45743b8ca52bde28495ec',
+        '46c0bf6613ae14ea108fcc5682cb6da3e237123e0b138c83c29898c33a85d44a',
     'docs/images/09-npc-dialogue-and-shop.jpg':
-        'bd64fa6dd222b632553718032632a2e87a6c04d324b4a385d7af0f076a4bf306',
+        '626446e668f7257a012088ff39f98d07330628734ff04b097964e46dce97fac6',
     'docs/images/10-combat-damage-numbers.jpg':
-        '1b052daafbaf9187f7fc5f71ee8b65d925603ec25d34f20b0d2ae61a7031e074',
+        '5d6faaff7cd4157287f5366461b82da74ce06c6aaea0b0b5549c0a536043b080',
     'docs/images/12-pets-and-mounts.jpg':
-        '4b81b6b5655b46652b203b706b94aa902cb6d2dc50d9acc876fa2df20c2acdc8',
+        'b73721697bf83c0b66d333d986308b3ac6be4827982855c57fc943a65177e5e4',
     'docs/images/13-quests-my-quests.png':
-        '8a01e27970b23388c99ec4b0ff0bb8a83292c33299033449e3b06cc2dadb921d',
+        '990c81b9088ea7c84acbe9335d71bea5880ff4ab931316dcd709628fee524450',
     'docs/images/14-skill-imprint-window.png':
-        'dce99e7f9123e6c27352d22e72f6336946e423d206c371c5751898789b5bbc8c',
+        'de38484f80c6e13e375ff6f0de11d9e97ca8bd8745e0a9dfb19c122b9f0988ca',
     'docs/images/15-lorencia-lighting-live-before-after.jpg':
-        'b45eab14a3a9e7ce8c527e8dacef46a25319fdca2d6f8a6e87ea848a4fb9a0ab',
+        '279935ce032fe7f880bf40be37f81dc4e0fb931a9fd864ce0f517bc48ab246b3',
     'docs/images/16-login-live-wine-vs-native.jpg':
         '97da9a148c44aa6213bc981d185c8ff6371c89dcee6967693f179910e75292b8',
     'docs/images/17-model-viewer-models.jpg':
         'fd2f3742172a9f1879b7970f7b2222acbc1953d77381a4cd539634d9e4997d3c',
     'docs/images/18-world-fidelity-live-before-after.jpg':
-        '16a49ba3228884d4d0d8f9ead32f4e518cc186a3249289d32413f9752efa14cc',
+        'b3a5198ed7bc65ed61ca1c219e46c7ab7afd3a4923580987022382eed69d72e9',
     'docs/images/19-maps-tab-overlay-move-window.jpg':
-        'c6ee4c9d87b1330cfebc751dd64c3f34a496b85e2f0997b3d180365d9a5a2c80',
+        '31d407dcb6f93b8d88528bc4d8741229bb1410678aa2e2221355726001a7a125',
     'docs/images/20-skills-master-tree.jpg':
-        '9e40314a7cf9a185138e55a8fb10ceaaea26cf459216834708e13252df8d0eb1',
+        '6a52d112ebb78bc54ab4e493e775094f26487415879cdd6ee2e79d362a8cd6ad',
     'docs/images/21-quests-guide-tracker.jpg':
-        '1dd861789a4b2692fdca8a6be1da4fac886258e29d3e1a72bdbc2f3b3bccea9d',
+        '6ee10241893ea63cb888d45464acf0b4b22fe55cfc993ac1c7a5608f6d1882f4',
     'docs/images/22-mounts-pets-effects.jpg':
-        'd86aefa13b21112f04879073cd55bb3582b5eba042db99c457a48a5ad230caa8',
+        '2980529b0e2053b956f76153d79757dfd0434b78515ae3189cc4e48a0ca2e7c0',
     'docs/images/23-chaos-goblin-mix-personal-store.jpg':
-        'ae4cad0d54c97e3af15b9b5514a7fac91ae4e570822c5dbf61d1378e170b6ec3',
+        'aee92f7af7fa2216d11b4a62a47484d674e47f5e771a8a8d72b16bffeef30376',
     'docs/images/24-social-party-trade-mail-whisper.jpg':
-        '556cc31af55fc527713aec258651ddeed12f4aef0d619f61606a99ea2c244be3',
+        'a8eefe1eb0a26f29ff661f3d1a72283339e53be16347dca2bd8dd7d0fc0f0df4',
     'docs/images/25-progression-character-options-menu.jpg':
-        'ce1ddc4822f24d33c6678160a83ff089d3905170d9ac99b71c42d16aa19b0435',
+        '139e45e8998d5a593b5b77bbdfc4332ebb9066aec4585ee184894d47713bf193',
     'docs/images/26-80-players-lorencia.jpg':
         'cad4e3993c3d72313f58e21230a7b9ec4b8085ef016f5b860ce7a1a4542e85d1',
     'docs/images/27-80-players-tormenta-combat.jpg':
         'a8386983e35fb5de8bb8315eb1e6d4057373729d373c2a33c9f94b02ec4b06b8',
+    'docs/images/28-bow-arrows-trails-sparks.jpg':
+        'f100951b86afbb4014512a272c37f80cb4b092daf93c0262e69af46b6ecb48bf',
+    'docs/images/29-ground-skill-rain-rings-craters.jpg':
+        'd64c5586e38627995e659dd72f4eaddecf385de5cdd4094f7d1957b260d119a9',
+    'docs/images/30-worlds-live-vs-native.jpg':
+        '8e5c85f9a5fb2091855cc52d2de5f598bc5171aaf784b02cb4436bdded491e5d',
 }
 
 

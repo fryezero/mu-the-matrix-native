@@ -1,5 +1,7 @@
 # Plan: the rest of the native macOS port
 
+README-REFRESH-005-B PR-ready: README images 04a, 04b, 07, 08, 09, 13, 14, 19, 20, 21, 23, 24 and 25 re-shot from main 18ab0134 (offline, public demo, real Ruffle, APP-REFRESH-006 Native Data); 02 and 03 kept (same pixels). The owner's character name and vitals are gone from all of them; textured inventory items and NPC 257, ItemTRSData icon sizes, town scenery and demo players. [Handoff](../../handoffs/README-REFRESH-005-B.md).
+
 TEST-SPEED-004 PR-ready: `--affected` selects a validator row only when the diff touches its derived inputs (imports and importlib loads, paths its code builds classified by use, per-target `make -nB` + `cc -MM` compiled inputs, its own script and manifest row); tooling/tests/docs select no row; per-row fallback (none today) instead of "unmapped → everything"; new `--affected-since <tested>` for the steward. Replay #292–#308: lane rows 1,331 → 619, steward rows 169 → 99 (#306: the steward's own 26), zero misses incl. #287 worlds_l/m and #260's link failure. Lanes: run what `--affected origin/main` selects and trust it. Each cached validator row is cold once after the merge. [Handoff](../../handoffs/TEST-SPEED-004.md), [TEST-BUDGET](../../testing/TEST-BUDGET.md#test-speed-004-each-rows-exact-inputs).
 
 TEST-SPEED-003 PR-ready: the original-side validator cache keeps 4 keys per name (LRU, 250 MB cap, concurrent-safe merge), so a lane branch and main stay warm side by side: item_product main/branch alternation 586/605 s cold → 34–37 s warm on every switch, byte-identical reports. `test_joints` builds libcombat itself, so fresh-worktree `--affected` passes. Full suites 1,973 tests, 0 failures, 198 s. [Handoff](../../handoffs/TEST-SPEED-003.md).
@@ -185,6 +187,7 @@ content (cash-shop catalogues, event schedules) is observable only live (OP).
 | README-STRESS-001 | Eighty-player README images, remote-armour glow texture lookup fix and public demo HUD | Synthetic regression, controlled GL hashes and local gate ([finding](../../research/readme-stress.md)) | NATIVE-PERF-003 | Implemented; historical timings only, 25 fps crowd target open |
 | README-REFRESH-003 | Public README coverage through PR #207; existing reviewed images reused | Documentation/source cross-check, local Mac gate and publication audit ([handoff](../../handoffs/README-REFRESH-003.md)) | Merged PRs #168–#207 | Implemented; runtime and media unchanged |
 | README-REFRESH-004 | Public README coverage through PR #241; existing reviewed images reused | Documentation/source cross-check, local Mac gate and publication audit ([handoff](../../handoffs/README-REFRESH-004.md)) | Merged PRs #215–#241 | Implemented; runtime and media unchanged |
+| README-REFRESH-005-B | README interface/menu images (02-25 share) re-shot from main; 02/03 kept | Visual and privacy review of each encoded file, audit pins, docs-only checks ([handoff](../../handoffs/README-REFRESH-005-B.md)) | #316 | PR-ready |
 
 ## H. Audio
 

@@ -67,3 +67,36 @@ instruction, live-game or timing evidence was acquired.
 [VERIFY-HARNESS-002](../handoffs/VERIFY-HARNESS-002.md) #239 is internal validator plumbing and is not
 summarised in the README. No images were added, generated or edited; all README media and audit pins are
 unchanged. Network, login, live play and owner-blocked lanes remain listed as open.
+
+## README-REFRESH-005 claim sources
+
+Images and text refresh on 2026-11-06 from main `18ab0134` (the merge of PR #316). Lane A covers the world, effect,
+combat, mount, crowd, comparison and model images and the "What works today" numbers outside the login,
+character and interface-window sections; README-IMAGES-B covers those. Every new native panel is a window-only
+headless render of `mu-world` built from that main. No live game was started; the original-client panels are
+crops of existing captures (October 18/22, DATA-ACQ-002 October 28).
+
+| Public claim | Merged source and evidence boundary |
+|---|---|
+| World inventory 144/144 methods, 48/48 classes | [S3](../handoffs/RENDER-WORLDS-S3.md) #303 with [S](../handoffs/RENDER-WORLDS-S.md) #301 and [S2](../handoffs/RENDER-WORLDS-S2.md) #302; earlier N–R2 #248–#260. Class methods, not complete maps |
+| Class render slots 142/144 | [SLOTS](../handoffs/RENDER-WORLDS-SLOTS.md) #308 (census 49 → 125), [SLOTS2](../handoffs/RENDER-WORLDS-SLOTS2.md) #311 (→ 142); Test Area 121's two slots remain |
+| World table rows | [AFTER](../handoffs/RENDER-WORLDS-AFTER.md) #262, AFTER2–6 #270/#278/#281/#285/#291, [G3](../handoffs/RENDER-WORLDS-G3.md) #269, [Q](../handoffs/RENDER-WORLDS-Q.md) #259, [Q2](../handoffs/RENDER-WORLDS-Q2.md) #272, [EFFECTS-008](../handoffs/RENDER-EFFECTS-008.md) #271 |
+| Kubera 4.321 → 2.037, 1.591 | SLOTS #308 (main `b8645181` before/after); 1.591 is [APP-REFRESH-006](../handoffs/APP-REFRESH-006.md)'s tour with the installed Native Data, not a like-for-like delta |
+| 27/48 classes captured, 32 views in 31 worlds | [DATA-ACQ-002](../handoffs/DATA-ACQ-002.md) #244 |
+| Live temporal half | [RENDER-TIME-002](../handoffs/RENDER-TIME-002.md) #249 and [003](../handoffs/RENDER-TIME-003.md) #258; `compare --mode live` still fails (phase unaligned) |
+| Skill visuals 20/23 (65/77), rank-5 19/19 | [RENDER-EFFECTS-004](../handoffs/RENDER-EFFECTS-004.md) #247, [005](../handoffs/RENDER-EFFECTS-005.md) #257 |
+| Bows: 0 unsupported in 40 bow scenes; 1,561 before | [007](../handoffs/RENDER-EFFECTS-007.md) #274, [009](../handoffs/RENDER-EFFECTS-009.md) #283, [010](../handoffs/RENDER-EFFECTS-010.md) #287 (1,561 → 553), 011–014 #292/#296/#300/#306 (→ 0), [015](../handoffs/RENDER-EFFECTS-015.md)/[016](../handoffs/RENDER-EFFECTS-016.md) #309/#313 (40 bows, 10 staff, 0). This lane's six bow renders also report 0 |
+| Ground skill 2044: rain, rings, stones, craters, 2 cues, offline cast | 015 #309, 016 #313, [APP-POLISH-005](../handoffs/APP-POLISH-005.md) #314; this lane's scene: 14 arrows, 121 effects, 0 unsupported |
+| Item bodies 1,319/1,674, links 18 / 24, 355 left | [RENDER-ITEMS-002Q](../handoffs/RENDER-ITEMS-002Q.md) #316, census [002P](../handoffs/RENDER-ITEMS-002P.md) #310 |
+| White item types 1,431 → 13/1,691 | [TEX-001](../handoffs/RENDER-ITEMS-TEX-001.md) #263 (1,431 → 94), [TEX-003](../handoffs/RENDER-ITEMS-TEX-003.md) #286 (125 → 36), [HIDDENMESH](../handoffs/RENDER-ITEMS-HIDDENMESH.md) #295 (36 → 13 hair meshes) |
+| HUD vitals, ItemTRSData icons, window title | [APP-POLISH-002](../handoffs/APP-POLISH-002.md) #294 (1,028 cases), [APP-POLISH-004](../handoffs/APP-POLISH-004.md) #307 |
+| Preview reinstalled November 6 | [APP-REFRESH-006](../handoffs/APP-REFRESH-006.md) #312 |
+| Music entries 43/44, effect sound sites | [AUDIO-002F](../handoffs/AUDIO-002F.md) #243, RENDER-EFFECTS-015 #309 |
+| crowd80 23.18/20.21, tormenta80 24.78/20.83 fps | [NATIVE-PERF-004](../handoffs/NATIVE-PERF-004.md) #246; shared host, two repeats, strict 25 Hz only crowd40 |
+| Test tooling timings | [TEST-SPEED-001](../handoffs/TEST-SPEED-001.md) #297 (item_ranked 665.9 → 22.1 s), [002](../handoffs/TEST-SPEED-002.md) #299 (meshdraw 367.99 → 57.21 s), 003 #305, 004 #315 |
+
+Kept images and why: 16 (login: the native panel from today's main differs from the October one by a mean
+of about 10/255 per channel, mostly ship/sea animation phase, with no visible improvement), 17 (mu-viewer
+and the model decoders are unchanged since the image), 26/27 (rerunning README-STRESS-001's script on this main
+gives the same crowd frames; the only visible change is the HUD orbs, which since APP-POLISH-002 read the
+session's vitals and show `16960/0` because the stress fixture feeds no maxima, so the October frames stay).
