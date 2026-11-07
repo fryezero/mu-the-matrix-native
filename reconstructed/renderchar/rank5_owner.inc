@@ -39,6 +39,7 @@ static void owner_emit(const mu_rc_owner_host *h, int32_t kind, int32_t bitmap, 
                        const float position[3], const float light[3], float scale)
 {
     mu_rc_owner_fx fx;
+    memset(&fx, 0, sizeof fx);   /* RENDER-ITEMS-002T: target and extra (argument 8) stay 0 here */
     fx.kind = kind;
     fx.bitmap = bitmap;
     fx.subtype = subtype;

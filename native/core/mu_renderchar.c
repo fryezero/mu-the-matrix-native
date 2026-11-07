@@ -310,7 +310,7 @@ static int draw_item(const mu_model *model, const mu_renderchar_glow *glow, cons
     owner_services services = {model, owner, env->particles, 0, 0, env->item_bones};
     mu_rc_owner_host host = {owner && owner->bones ? owner->bone_count : 0, -1, owner_transform, owner_random,
                              owner_emit, &services, model->bmd->bone_count, {0.0f, 0.0f, 0.0f},
-                             NULL, NULL, NULL, 0, {0.0f, 0.0f, 0.0f}, NULL, 0, 0};
+                             NULL, NULL, NULL, 0, {0.0f, 0.0f, 0.0f}, NULL, 0, 0, NULL};
     /* RENDER-ITEMS-002R: RenderObjDraw's own case creates effects before the body draws. They need the
      * particle pools; without the item's pose every item-bone request is refused (rand order is kept). The
      * TestFrustrum2D flag comes from the caller (RENDER-ITEMS-CALLERS-001; default in view). */

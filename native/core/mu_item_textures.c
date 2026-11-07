@@ -108,7 +108,7 @@ int32_t mu_item_textures_overrides(int32_t type, const mu_data_table *items, int
                             /* item_bones 0: the RENDER-ITEMS-002Q owner-effect programs stay off (draws only) */
                             mu_rc_owner_host host = {36, 0, probe_transform, probe_random, probe_emit, NULL, 0,
                                                      {0.0f, 0.0f, 0.0f}, NULL, NULL, NULL, 0, {0.0f, 0.0f, 0.0f},
-                                                     NULL, 0, 0};
+                                                     NULL, 0, 0, NULL};
                             mu_rc_draw draws[48];
                             int32_t n = 0;
                             const int status = owner ? mu_rc_item_draws_owner(&it, &m, draws, 48, &n, &context, &host)
