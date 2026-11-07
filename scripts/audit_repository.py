@@ -65,9 +65,9 @@ REVIEWED_MEDIA = {
     'docs/images/25-progression-character-options-menu.jpg':
         '139e45e8998d5a593b5b77bbdfc4332ebb9066aec4585ee184894d47713bf193',
     'docs/images/26-80-players-lorencia.jpg':
-        '7d4f91626d705d029a53c1e6f19bfbea706156ba6bd2b0113e7a6a34235bf4ae',
+        'd4643c392b118c6bf708a30405c7763602c07496cb61225c8bc0aaf6982aa4dd',
     'docs/images/27-80-players-tormenta-combat.jpg':
-        '4100c2c9cc1861b0fccefd50cd3c2ef25e80bbde473ea3e18fcceddea127d0aa',
+        '1e73af69c8ba9ffddce9dadc0f31038d8f568aa5839a09451bd879b88a02e94f',
     'docs/images/28-bow-arrows-trails-sparks.jpg':
         'f100951b86afbb4014512a272c37f80cb4b092daf93c0262e69af46b6ecb48bf',
     'docs/images/29-ground-skill-rain-rings-craters.jpg':

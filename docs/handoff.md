@@ -1,5 +1,7 @@
 # Continue from here
 
+README-IMAGES-C PR-ready: README images 26/27 (80 demo players in Lorencia and in a Tormenta fight) re-shot at the client's world FOV 39 instead of the native-only `--perf-fov 65`, which REGRESS-001 (#321) showed looks past the terrain cull (CreateFrustrum2D `0x016d20d9`) onto the clear colour (14.1% / 9.2% of the frame); now 0 clear-colour pixels in Lorencia and only crowd shadows in Tormenta. The capture script defaults to the world FOV (`--fov` optional); same tiles, crowd, HUD and 1600×1000. NATIVE-PERF rates unchanged (measured at FOV 65, as the README now says). [Handoff](handoffs/README-IMAGES-C.md).
+
 APP-POLISH-006 PR-ready: the 80-player crowd HUD shows the recorded level-1 Dark Knight join (HP 1100/1100, MP 200/200, SD 52/52, AG 25/25) instead of `16960/0`: the README stress command no longer overrides the hero's class (no recorded maxima for class 0) and HP (A0/30's 16-bit field truncated 1,000,000 to 16,960). The world's demo inventory items now start at the item constructor's full durability: the Blade +9 tooltip read `[1/53]` and now reads `[53/53]`. The cause was ed9ed6be's add-item default of 1, shown since ffbed220's instance tooltips. The quest-capture command now documents `MU_QUEST_SCENARIO`, and README images 26/27 are re-shot (window-only, demo names). [Handoff](handoffs/APP-POLISH-006.md).
 
 RENDER-WORLDS-SLOTS3 PR-ready: RenderObjectVisual's outer `rand() % 30` (`0x017f9797`) now drawn once per object with a model in every world, by the object runtime at the client's point (verified under Unicorn, 36 families × 1,000 cases, 22 mutants). Lorencia/Dungeon/Devias/Noria and Tormenta (particle visual) and Icarus (`icarus_cover`) drew it from the particle generator; 37/40 drew it inside the flames; every other world without a class drew none. Captures: DATA-ACQ-002 32/32 byte-identical; 7 of the October 22 views change by RNG phase only (control build). Test Area 121's two slots and Devias 0x67's action pick `0x012affa4` remain. [Finding](research/client-worlds-slots3.md), [handoff](handoffs/RENDER-WORLDS-SLOTS3.md).
@@ -177,6 +179,7 @@ APP-REFRESH-004: [reinstall from 32b7f34d, new Native Data with mapanim, proofs,
 APP-REFRESH-005: [reinstall from 7d7d694b, Native Data kept, HUD/Hound/item/bow/world proofs, rollback](handoffs/APP-REFRESH-005.md).
 APP-POLISH-005: [Elf ground skill 2044 in the offline demo, effects report](handoffs/APP-POLISH-005.md).
 APP-POLISH-006: [crowd HUD vitals, demo durability, quest-capture command, README 26/27](handoffs/APP-POLISH-006.md).
+README-IMAGES-C: [README 26/27 re-shot at the client's world FOV 39](handoffs/README-IMAGES-C.md).
 APP-REFRESH-006: [reinstall from 7e6a9292, Native Data with itemtrs.tsv, title/icon/ground-skill/Kubera/body proofs, rollback](handoffs/APP-REFRESH-006.md).
 PLAY-FIX-001: [world-change clear, audio output limiter, map-name check](handoffs/PLAY-FIX-001.md).
 

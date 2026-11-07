@@ -57,6 +57,13 @@ class CrowdFixture(unittest.TestCase):
         self.assertEqual(hp, vitals[0])
         self.assertLessEqual(hp, 0xffff)   # A0/30 carries HP in 16 bits
 
+    def test_crowd_keeps_the_world_fov(self):
+        """README-IMAGES-C: no native-only FOV override by default; FOV 65 saw past the terrain cull."""
+        self.assertNotIn('--perf-fov', self.command())
+        a = argparse.Namespace(game_root=Path('/g'), objects=Path('/o'), gfx=Path('/m'), lang=Path('/l'), fov=45.0)
+        cmd = crowd.command(a, 0, (182, 128), Path('/out'), Path('/p.txt'), Path('/a.txt'))
+        self.assertEqual(cmd[cmd.index('--perf-fov') + 1], '45.0')
+
     def test_hud_check_rejects_missing_or_exceeded_maxima(self):
         good = 'hud_vitals t=4012 session=1077,200,52,25 hud=1077,200,52,25 max=1100,200,52,25'
         self.assertEqual(crowd.hud_vitals('noise\n' + good)[-1],
