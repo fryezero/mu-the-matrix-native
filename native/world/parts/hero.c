@@ -16,14 +16,22 @@ static void hero_item_draw(mu_world_rt *a, int index, const mu_draw_options *opt
 {
     const mu_character_item *item = &a->ch.items[index];
     mu_renderchar_glow glow = {0};
-    /* Hero item instances are not session-backed yet. Preserve the viewer's
-     * explicit level-zero input and infer standard model names only. */
-    glow.type = mu_renderchar_type_from_path(item->path);
+    if (a->hero_glow_set[index])   /* HERO-ITEMS-001: the slot SetCharacterClass 0x01394870 wrote from the record */
+        glow = a->hero_glow[index];
+    else   /* no equipment record (class parts, files outside Item.bmd): infer standard model names */
+        glow.type = mu_renderchar_type_from_path(item->path);
     mu_renderchar_env env;
     mu_renderchar_default_env(&env);
     env.lang = a->lang;
     env.time = a->map->time;
     env.particles = a->has_particles ? &a->particles : NULL;
+    if (a->ground)   /* the players' glow colour (parts/players.c) when the EnchantEffect table is absent */
+        memcpy(env.glow_color, a->ground->config.glow_color, sizeof env.glow_color);
+    else {
+        env.glow_color[0] = 0.4f;
+        env.glow_color[1] = 0.6f;
+        env.glow_color[2] = 1.0f;
+    }
     if (index >= MU_CHARACTER_PART_SLOTS)   /* RenderLinkItem: the weapon's / wing's own pose (RENDER-ITEMS-CALLERS-001) */
         world_rt_item_pre(a, &env, MU_WORLD_PRE_HERO, glow.type, &item->model, item->bones);
     mu_draw_stats ds = {0};

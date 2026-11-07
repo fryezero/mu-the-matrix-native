@@ -27,6 +27,7 @@
 #include "../core/mu_objects.h"
 #include "../core/mu_particles.h"
 #include "../core/mu_progress.h"
+#include "../core/mu_renderchar.h"
 #include "../core/mu_social.h"
 #include "../core/mu_terrain.h"
 #include "../core/mu_walk.h"
@@ -77,6 +78,11 @@ struct mu_world_rt {
     mu_camera_info info;
     mu_character ch;
     int has_character;
+    /* HERO-ITEMS-001: the hero's part slots from its equipment records (SetCharacterClass 0x01394870,
+     * reconstructed/hero-equipment), by item index; hero_glow_set 0: no record, the file name is inferred */
+    int32_t hero_record[MU_CHARACTER_ITEMS];       /* the item's Item.bmd record (model index), -1 none */
+    mu_renderchar_glow hero_glow[MU_CHARACTER_ITEMS];
+    uint8_t hero_glow_set[MU_CHARACTER_ITEMS];
     mu_walk walk;
     /* stats */
     double walked;
@@ -200,6 +206,7 @@ void world_rt_effects_sample(mu_world_rt *a);
 /* RENDER-ITEMS-TEX-002: the hero's loaded items [first, last) take the client's item texture rule (type from the
  * ItemModelFile record that names the file, or the class part file) and the parts the hero's skin index. */
 void world_rt_hero_item_textures(mu_world_rt *a, int first, int last);
+void world_rt_hero_slots(mu_world_rt *a, const mu_data_table *items);
 void world_rt_effect_camera(const mu_world_rt *a, float eye[3], float target[3]);
 void world_rt_report_frame(const mu_world_rt *a, int32_t frame, uint32_t now, const char *hash, const char *png);
 void world_rt_report_summary(const mu_world_rt *a, const char *renderer);

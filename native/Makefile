@@ -98,7 +98,7 @@ RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.
              $(RECON)/particles/particles.c $(RECON)/particles/world_flames.c $(RECON)/particles/elbeland.c $(RECON)/particles/sprites.c $(RECON)/particles/shadow.c \
              $(RECON)/particles/visual.c $(RECON)/particles/layout.c \
              $(RECON)/items/ground_items.c $(RECON)/items/item_sets.c \
-             $(RECON)/names/overhead_names.c $(RECON)/players/remote_players.c \
+             $(RECON)/names/overhead_names.c $(RECON)/players/remote_players.c $(RECON)/hero-equipment/hero_equipment.c \
              $(RECON)/npc/npc_talk.c $(RECON)/npc/npc_pick.c $(RECON)/npc/npc_dialogue.c \
              $(RECON)/price/item_price.c $(RECON)/helpers/helpers.c $(RECON)/helpers/mount_render.c $(RECON)/helpers/mount_class.c $(RECON)/raven/raven.c $(RECON)/pets/pets.c \
              $(RECON)/quest/quest_data.c $(RECON)/quest/quest_system.c $(RECON)/quest/quest_text.c \
@@ -138,7 +138,7 @@ HEADERS := $(wildcard core/*.h) $(wildcard $(RECON)/model-codec/*.h) $(RECON)/re
            $(RECON)/environment/env.h $(RECON)/environment/env_internal.h $(RECON)/environment/env_fog.h \
            $(RECON)/particles/particles.h $(RECON)/particles/world_flames.h $(RECON)/particles/particles_internal.h \
            $(wildcard $(RECON)/items/*.h) \
-           $(RECON)/names/overhead_names.h $(RECON)/players/remote_players.h \
+           $(RECON)/names/overhead_names.h $(RECON)/players/remote_players.h $(RECON)/hero-equipment/hero_equipment.h \
            $(wildcard $(RECON)/npc/*.h) $(RECON)/price/item_price.h \
            $(RECON)/helpers/helpers.h $(RECON)/helpers/mount_classes.h $(RECON)/helpers/mount_render.h $(RECON)/helpers/mount_class.h $(RECON)/raven/raven.h $(RECON)/pets/pets.h $(wildcard $(RECON)/quest/*.h) \
            $(wildcard $(RECON)/skill/*.h) $(RECON)/map/map.h $(wildcard $(RECON)/social/*.h) $(wildcard $(RECON)/mix/*.h) \
