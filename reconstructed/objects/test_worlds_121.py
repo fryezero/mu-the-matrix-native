@@ -151,7 +151,7 @@ class Worlds121Tests(unittest.TestCase):
             import json
             report = json.loads(out.read_text())
             self.assertTrue(report['ok'])
-            self.assertEqual(sorted(report['families']), ['after_121', 'custom_121', 'devias_67'])
+            self.assertEqual(sorted(report['families']), ['actions_121', 'after_121', 'custom_121', 'devias_67'])
 
 
 if __name__ == '__main__':

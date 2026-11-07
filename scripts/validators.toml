@@ -2994,8 +2994,8 @@ args = ["--cases", "1000", "--mutations", "--output", "{report}"]
 [validate_worlds_121]
 test = "reconstructed/objects/test_worlds_121.py::Worlds121Tests.test_original_instructions"
 pins = ["text", "data"]
-families = ["custom_121", "after_121", "devias_67"]
-cases = 3000
+families = ["custom_121", "actions_121", "after_121", "devias_67"]
+cases = 4000
 mutants = 31
 cases_at = "families.*.cases"
 mutants_at = "mutants"

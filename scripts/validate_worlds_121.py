@@ -10,6 +10,10 @@ Families (compiled C via ctypes against the pinned original under the strict Uni
               pseudo call MU_OBJ_CALL_VERTEX_LIGHT stands for "every normal k < mesh +6 of every mesh m < model +0x24
               set to the value" at its place in the sequence. SetAction 0x012affa4 runs as client code (the model
               lookup 0x00966cc4/0x00eaa8cf stubbed to the case's model, whose +0x26 is the action count).
+  actions_121 the custom render for types 0x10, 0x11, 0x13, 0x14, 0x15 only: frames at the edges of their windows,
+              actions 0..3, and generator seeds whose first rand() lands on the residues the branches compare
+              (0x11: % 100 near 90 and 0; 0x13/0x14/0x15: % 40 at 30/25/19 and their neighbours), compared as
+              custom_121.
   after_121   the after render 0x00d5a6cc (slot 0x3c) against mu_class_after(121, ...), compared the same way.
   devias_67   RenderObjectVisual 0x017f9758 in Devias 2 with type 0x67's action choice (0x017f9d79), as
               validate_worlds_slots3's rng_2 (its composition and object comparison) under this validator's seed,
@@ -38,6 +42,24 @@ CUSTOM_TYPES = list(range(6, 13)) + [0x10, 0x11, 0x13, 0x14, 0x15, 0x2e, 0x35, 0
                                      0x53, 0x59, 0x5c]
 ACTION_TYPES = [0x10, 0x11, 0x13, 0x14, 0x15]
 AFTER_TYPES = [0x2e, 0x35, 0x4c, 0x53, 0x59, 0x5c]
+# actions_121: (frames at the window edges, actions, rand modulus, residues the branch compares and neighbours)
+FOCUS = {
+    0x10: ([18.0, 18.99, 19.0, 19.5, 30.0], [0, 1, 2], 2, [0, 1]),
+    0x11: ([18.99, 19.0, 20.0, 96.99, 97.0, 97.5, 97.99, 98.0, 99.0], [0, 1, 2, 3], 100, [0, 1, 88, 89, 90, 91]),
+    0x13: ([1.99, 2.0, 5.0, 5.01, 10.99, 11.0, 12.0, 12.25, 12.5, 12.51, 13.0, 14.0, 15.0, 17.0, 17.01, 19.49,
+            19.5, 20.0], [0, 0, 1, 1, 2], 40, [29, 30, 31]),
+    0x14: ([7.99, 8.0, 8.01, 11.99, 12.0, 15.0, 15.01, 18.99, 19.0], [0, 0, 1, 1, 2], 40, [24, 25, 26]),
+    0x15: ([3.99, 4.0, 8.0, 8.01, 8.5, 9.0, 9.01, 18.99, 19.0], [0, 0, 1, 1, 2], 40, [18, 19, 20]),
+}
+
+
+def targeted_seed(g, modulus, residues):
+    """A generator seed whose first MSVC rand() % modulus is one of the residues (a random seed after 4,000 tries)."""
+    for _ in range(4000):
+        seed = g.randrange(2**32)
+        if (((seed * 214013 + 2531011) & 0xffffffff) >> 16 & 0x7fff) % modulus in residues:
+            return seed
+    return g.randrange(2**32)
 
 
 class SlotModel(C.Structure):   # mu_slot_model with RENDER-WORLDS-121's bone and action counts
@@ -126,13 +148,13 @@ def native_lights(initial, events, count, normals):
     return bytes(out)
 
 
-def slot_family(machine, lib, g, cases, after):
-    t = v.Tally('after_121' if after else 'custom_121')
+def slot_family(machine, lib, g, cases, after, focus=False):
+    t = v.Tally('after_121' if after else 'actions_121' if focus else 'custom_121')
     types = AFTER_TYPES if after else CUSTOM_TYPES
     for n in range(cases):
         world = 121 if g.random() < 0.8 else g.choice([0, 2, 57, 120, 122, 140])
-        typ = n if n <= 300 else g.choice(types + ACTION_TYPES * (0 if after else 4)) if g.random() < 0.9 else \
-            g.randrange(0, 301)
+        typ = g.choice(list(FOCUS)) if focus else n if n <= 300 else \
+            g.choice(types + ACTION_TYPES * (0 if after else 4)) if g.random() < 0.9 else g.randrange(0, 301)
         count, subs, array, records = a2.slot_meshes(g)
         normals = case_counts(g)
         for k in range(16):
@@ -152,6 +174,13 @@ def slot_family(machine, lib, g, cases, after):
                                g.uniform(-3e9, 0)]))
         actions = bytearray(g.getrandbits(8) for _ in range(16 * a2.ACTION_COUNT))
         seed = g.randrange(2**32)
+        if focus:
+            frames, acts, modulus, residues = FOCUS[typ]
+            struct.pack_into('<H', o, 0x2a, g.choice(acts))
+            v.put_f(o, 0xd0, v.f32(g.choice(frames)))
+            actions_count = g.choice([4, 4, 4, 3, 2, 1])
+            struct.pack_into('<h', b, 0x26, actions_count)
+            seed = targeted_seed(g, modulus, residues) if g.random() < 0.8 else seed
         ra, rb = v.MsvcRand(seed), v.MsvcRand(seed)
         watch = LightWatch(count, normals)
         calls, cbones_client = [], []
@@ -267,6 +296,7 @@ def devias_family(machine, lib, g, cases):
 
 FAMILIES = {
     'custom_121': lambda m, l, g, n: slot_family(m, l, g, n, False),
+    'actions_121': lambda m, l, g, n: slot_family(m, l, g, n, False, True),
     'after_121': lambda m, l, g, n: slot_family(m, l, g, n, True),
     'devias_67': devias_family,
 }
@@ -280,22 +310,22 @@ MUTATIONS = [
     ('Object light blue 0.9', T, 'ta_object_light(s,1.0f,1.0f,1.0f);', 'ta_object_light(s, 1.0f, 1.0f, 0.9f);',
      'custom_121'),
     ('0x10 from frame 18', T, 'case0x10:if(mu_obj_f32(s->o,MU_OBJF_FRAME)>=19.0f)',
-     'case 0x10: if (mu_obj_f32(s->o, MU_OBJF_FRAME) >= 18.0f)', 'custom_121'),
-    ('0x11 split at 89', T, 'if(r<90)', 'if (r < 89)', 'custom_121'),
-    ('0x11 action 3 from frame 97', T, 'a==3&&f>=98.0f', 'a == 3 && f >= 97.0f', 'custom_121'),
-    ('0x13 window [11, 12.5]', T, 'f>=11.0f&&12.0f>=f', 'f >= 11.0f && 12.5f >= f', 'custom_121'),
-    ('0x13 bones 12..18', T, 'k<20;', 'k < 19;', 'custom_121'),
+     'case 0x10: if (mu_obj_f32(s->o, MU_OBJF_FRAME) >= 18.0f)', 'actions_121'),
+    ('0x11 split at 89', T, 'if(r<90)', 'if (r < 89)', 'actions_121'),
+    ('0x11 action 3 from frame 97', T, 'a==3&&f>=98.0f', 'a == 3 && f >= 97.0f', 'actions_121'),
+    ('0x13 window [11, 12.5]', T, 'f>=11.0f&&12.0f>=f', 'f >= 11.0f && 12.5f >= f', 'actions_121'),
+    ('0x13 bones 12..18', T, 'k<20;', 'k < 19;', 'actions_121'),
     ('0x13 per-bone scale 1.4', T, 'ta_bone_particle(s,k,0x801c,8,1.5f);', 'ta_bone_particle(s, k, 0x801c, 8, 1.4f);',
      'custom_121'),
-    ('0x13 return roll 29', T, '%40==30', '% 40 == 29', 'custom_121'),
+    ('0x13 return roll 29', T, '%40==30', '% 40 == 29', 'actions_121'),
     ('0x13 action 1 through SetAction', T, 'mu_obj_set_u16(s->o,MU_OBJF_ACTION,1);/*adirectwrite,notSetAction*/',
-     'ta_set_action(s, 1);', 'custom_121'),
+     'ta_set_action(s, 1);', 'actions_121'),
     ('0x14 glow without Chrome08', T, 'mesh_std(s,1,0x280,0x800a);', 'mesh_std(s, 1, 0x280, -1);', 'custom_121'),
-    ('0x14 bones 8 and 10', T, '{8,11}', '{8, 10}', 'custom_121'),
-    ('0x14 return roll 24', T, '%40==25', '% 40 == 24', 'custom_121'),
-    ('0x15 window [4, 9]', T, 'f>=4.0f&&8.0f>=f', 'f >= 4.0f && 9.0f >= f', 'custom_121'),
-    ('0x15 spark 17 scale 0.6', T, '{17,0.7f}', '{17, 0.6f}', 'custom_121'),
-    ('0x15 return roll 18', T, '%40==19', '% 40 == 18', 'custom_121'),
+    ('0x14 bones 8 and 10', T, '{8,11}', '{8, 10}', 'actions_121'),
+    ('0x14 return roll 24', T, '%40==25', '% 40 == 24', 'actions_121'),
+    ('0x15 window [4, 9]', T, 'f>=4.0f&&8.0f>=f', 'f >= 4.0f && 9.0f >= f', 'actions_121'),
+    ('0x15 spark 17 scale 0.6', T, '{17,0.7f}', '{17, 0.6f}', 'actions_121'),
+    ('0x15 return roll 18', T, '%40==19', '% 40 == 18', 'actions_121'),
     ('0x39 bone 2', T, 'ta_bone(s,1,p);', 'ta_bone(s, 2, p);', 'custom_121'),
     ('0x44 pulse +0.4', T, '*0.5f+0.3f,U(s)', '* 0.5f + 0.4f, U(s)', 'custom_121'),
     ('0x53 without mesh 3', T, 'mesh_self(s,3,0x42,BL(s),U(s),V(s));set_after(s);', 'set_after(s);', 'custom_121'),
@@ -304,7 +334,7 @@ MUTATIONS = [
     ('Chrome08 listed for 0x15', T, 'if(world!=121||type!=0x14||room<=0)', 'if (world != 121 || type != 0x15 || room <= 0)',
      'custom_121'),
     ('Shared SetAction bound off by one', K, 'mu_move_set_action(&a,&prior,&frame,&prior_frame,count,action);',
-     'mu_move_set_action(&a, &prior, &frame, &prior_frame, count + 1, action);', 'custom_121'),
+     'mu_move_set_action(&a, &prior, &frame, &prior_frame, count + 1, action);', 'actions_121'),
     # the after slot 0x00d5a6cc
     ('After 0x4c green period 0.0016', T, 'csin(s->time*0.0015f)*0.2f+0.5f', 'csin(s->time * 0.0016f) * 0.2f + 0.5f',
      'after_121'),
