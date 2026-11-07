@@ -37,6 +37,12 @@ Skins 17/17, links eighteen targets/twenty-four types. **329 bodies remain.** Su
   `mu_world_particles_create`; OBJECT-owned particles and requests without a pose are refused and counted
   (`env->pre_counts`). `mu-render character --world-render` passes the weapons'/wing's saved poses and prints
   `pre_effects`/`pre_refused`. `mu_item_textures.c`'s probe host gets the four NULL fields.
+- **Oracle** (`validate_renderchar.World`): CreateEffect `0x013c0f19` (thiscall on the effect manager `0x0a4ca430`,
+  eight arguments) is now a recording stub like CreateSprite/CreateParticle. The new COLOR-carrying rows shift
+  `validate_renderchar`'s colour sample onto a level-gated state of wing `0x23ac` (an earlier body) whose
+  RenderObjDraw case calls it through `0x013c0e0a` (`0x017c630e`); unstubbed, the client faulted at `0x0095d4f1`.
+  Recorded, its draws equal the C's (colours 480/480). A state that reached the unstubbed call always stopped the
+  client, so no earlier passing comparison changes; the affected rows were rerun on it anyway.
 
 ## Effects routed vs refused
 

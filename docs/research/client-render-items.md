@@ -1592,6 +1592,9 @@ and its refusals, `0xb27`'s flag gate with its rand, no host). Native `test_weap
 
 ### Limits
 
+- The item world (`validate_renderchar.World`) now records CreateEffect `0x013c0f19` like the other effect
+  services: wing `0x23ac`'s level-gated case (`0x017c630e`, through `0x013c0e0a`) reached it in a shifted colour
+  sample and faulted unstubbed; recorded, its draws equal the C's. The effect itself is not reproduced.
 - 329 bodies remain; 51 pre-draw types are not read (joints, integer clock chains with branches, owner transforms
   on a named item bone, light-pointer reads, register budget, services on both sides of the draws) and 14 read types'
   draws do not fit.
