@@ -10,6 +10,8 @@ Raklion's (worlds 57/58) custom slot `0x00e949f8` and after slot `0x00e96536`, p
     0x801b/5 and WATERFALL4).
   - Merged origin/main `ae5e6f36` (#331, #332 and #333 merged) as `2a5c3f8a`, before any checks ran. Every check
     below ran on the merged code.
+  - Merged origin/main `f2370871` (#334 HERO-ITEMS-001: native/world, native/Makefile, reconstructed/hero-equipment;
+    no conflicts) as `aacd4a92`. The 23 rows whose compiled inputs it changed passed again there (Checks).
 - Input links `tools/python`, `evidence` and `input` point at the main checkout and are never committed.
 - Finding: [client-worlds-raklion.md](../research/client-worlds-raklion.md), with the instruction diff, the addresses,
   the live comparison and the limits.
@@ -96,6 +98,7 @@ active. Code at `740283cf` (main `ae5e6f36` merged in `2a5c3f8a`); the later com
 | `native/tests/test_native_worlds_121.py` (host with the Raklion section) | 1 test OK | 1 s |
 | `run_test_suites.py --affected origin/main` (`MU_RECOVERY_INTEGRATION=0`, `MU_GATE_JOBS=2`) | 8 suites, 1,497 tests, 1,270 passed, 227 skipped, 0 failures | 329 s |
 | `scripts/audit_repository.py` | 2,054 staged files, 0 rejected | 19 s |
+| After merging main (`aacd4a92`): `make -j4`, then `--affected-since 162cf16e` (23 rows: meshdraw, model_edge, model_light, movement, path, terrain, viewport_monsters, terrain_remaining, icarus_c2, worlds_f, audio_callers/combat/domains/items/charsel, session_party, render_effects16/17/18/19, worlds_fog, item_callers, hero_items), no mutants; test_native_worlds_121 and test_worlds_raklion again | **23 pass**, 681,942 cases, 0 mismatches; 6 tests OK | 10 s + 400 s + 2 s |
 | `world_handler_coverage.py` | 48 classes, 57 registrations, 288 addresses; markdown unchanged | < 1 s |
 | Tours (default draw; `live_time` for Raklion too): before = main `ae5e6f36` binary, once | Raklion 3 + 3, October 22 13, DATA-ACQ-002 32 | 5 + 9 + 23 + 72 s |
 | Tours after (at `740283cf`) | Raklion changed (below); **October 22 13/13 and DATA-ACQ-002 32/32 byte-identical** (PNG frames, OBJECT and light dumps, frame reports with the output path normalised) | 4 + 7 + 16 + 54 s |
@@ -113,7 +116,10 @@ validate_worlds_q2, validate_worlds_after, validate_worlds_g3, validate_worlds_a
 validate_worlds_after4, validate_worlds_after5, validate_worlds_after6, validate_app_polish1, validate_app_polish4,
 validate_worlds_s, validate_worlds_s2, validate_worlds_s3, validate_worlds_slots, validate_worlds_slots2,
 validate_worlds_slots3, validate_worlds_121, validate_worlds_raklion, validate_render_effects16, validate_worlds_fog,
-validate_render_effects17, validate_item_callers, validate_render_effects18, validate_render_effects19.
+validate_render_effects17, validate_item_callers, validate_render_effects18, validate_render_effects19. After merging
+main, 23 rows again at `aacd4a92` (`--affected-since 162cf16e`, listed above, including validate_hero_items,
+validate_path, validate_session_party, validate_viewport_monsters, validate_audio_combat and validate_audio_charsel,
+which the merge brought in).
 
 Env:
 - `MU_RECOVERY_INTEGRATION=1`;
