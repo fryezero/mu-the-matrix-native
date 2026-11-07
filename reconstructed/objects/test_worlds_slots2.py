@@ -16,8 +16,6 @@ import validate_object_render as v  # noqa: E402
 import validate_worlds_slots as ws  # noqa: E402
 PRIVATE = os.environ.get('MU_RECOVERY_INTEGRATION') == '1'
 BODY, MESH, EFFECT = 0x966def, 0x966e4a, 0x13c0eaa
-CLASS_WORLDS = [57, 58, 62, 63, 64, 69, 70, 71, 72, 79, 80, 81, 82, 91, 92, 93, 94, 95, 96, 100, 101] + \
-    list(range(110, 141)) + [142, 143, 144, 145]
 
 
 class WorldsSlots2Tests(unittest.TestCase):
@@ -54,7 +52,8 @@ class WorldsSlots2Tests(unittest.TestCase):
 
     def test_flicker_worlds(self):
         drawn = [w for w in range(-1, 300) if self.dll.mu_obj_visual_flicker(w, 1)]
-        self.assertEqual(drawn, CLASS_WORLDS)   # every class registration but Tormenta 141 (its particle visual)
+        # RENDER-WORLDS-SLOTS3: every world, class or not (Tormenta 141 included); 4/7/8 draw it in mu_builtin_visual
+        self.assertEqual(drawn, [w for w in range(-1, 300) if w not in (4, 7, 8)])
         self.assertFalse(any(self.dll.mu_obj_visual_flicker(w, 0) for w in range(-1, 300)))
 
     def test_dispatch(self):

@@ -254,7 +254,8 @@ BONE_INDEX_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, P(VisualObject), ctypes.
 class VisualHost(ctypes.Structure):
     _fields_ = [('context', ctypes.c_void_p), ('rand', RAND_FN), ('has_model', HAS_MODEL_FN), ('bone_position', BONE_FN),
                 ('particle', VPARTICLE_FN), ('sprite', VSPRITE_FN), ('joint', VJOINT_FN), ('effect', VEFFECT_FN),
-                ('world', ctypes.c_int32), ('world_time', ctypes.c_float), ('bone_index_position', BONE_INDEX_FN)]
+                ('world', ctypes.c_int32), ('world_time', ctypes.c_float), ('bone_index_position', BONE_INDEX_FN),
+                ('outer_rand', ctypes.c_int32)]
 
 
 BITMAP_FN = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_int32, P(Bitmap))
@@ -1486,7 +1487,10 @@ def family_visual(m, lib, rng, cases, report, negatives):
                          object_address(owner), [0xffffffff, 0, int(scale) & 0xffff, 0, 0, 0xffffffff, 0, 0]))
         fns = (RAND_FN(c_rand), HAS_MODEL_FN(c_has), BONE_FN(c_bone), VPARTICLE_FN(c_particle), VSPRITE_FN(c_sprite),
                VJOINT_FN(c_joint), VEFFECT_FN(c_effect))
-        vh = VisualHost(None, *fns, world, world_time, BONE_INDEX_FN(c_bone_index))
+        # RENDER-WORLDS-SLOTS3: the caller (the object runtime, mu_obj_visual_flicker) draws 0x017f9797's rand()
+        # for every object with a model before the visual; the visual reads its value
+        outer = c_rand(None) if has_model else 0
+        vh = VisualHost(None, *fns, world, world_time, BONE_INDEX_FN(c_bone_index), outer)
         lib.mu_pt_object_visual(ctypes.byref(vo), ctypes.byref(vh))
         mismatch = None
         uninitialised = 0

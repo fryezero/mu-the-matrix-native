@@ -2947,12 +2947,28 @@ test = "reconstructed/objects/test_worlds_slots2.py::WorldsSlots2Tests.test_orig
 pins = ["text", "data"]
 families = ["rng_57", "rng_58", "rng_62", "rng_63", "rng_64", "rng_82", "rng_100", "rng_101", "rng_128", "rng_129", "rng_130", "rng_137", "rng_93", "rng_94", "rng_empty", "rng_drawn", "custom2_62", "custom2_69", "after2_69", "custom2_70", "after2_70", "custom2_71", "after2_71", "custom2_72", "after2_72", "custom2_82", "after2_82", "custom2_95", "custom2_100", "custom2_110", "after2_110", "custom2_92", "after2_92"]
 cases = 33000
-mutants = 62
+mutants = 63
 cases_at = "families.*.cases"
 mutants_at = "mutants"
 build = ["reconstructed/objects"]
 args = ["--cases", "1000", "--mutations", "--output", "{report}"]
 [validate_worlds_slots2.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0
+
+[validate_worlds_slots3]
+test = "reconstructed/objects/test_worlds_slots3.py::WorldsSlots3Tests.test_original_instructions"
+pins = ["text", "data"]
+families = ["rng_0", "rng_1", "rng_2", "rng_3", "rng_4", "rng_7", "rng_8", "rng_10", "rng_37", "rng_40", "rng_141", "rng_6", "rng_9", "rng_11", "rng_18", "rng_24", "rng_30", "rng_31", "rng_33", "rng_34", "rng_38", "rng_39", "rng_41", "rng_42", "rng_46", "rng_51", "rng_56", "rng_65", "rng_66", "rng_67", "rng_68", "rng_73", "rng_74", "rng_98", "rng_102", "rng_other"]
+cases = 36000
+mutants = 22
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects", "reconstructed/particles"]
+args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+[validate_worlds_slots3.expect]
 "families.*.mismatch_count" = 0
 "families.*.stopped" = 0
 "mutants.*.detected" = {all_min = 1}
