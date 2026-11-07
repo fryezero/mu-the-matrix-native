@@ -1830,8 +1830,33 @@ they are equal; the exemption now includes them (as `0x2322`..`0x2327`).
 
 ### Checks
 
-CHECKS
+`scripts/validate_item_predraw.py --mutations` (the part-18 row; the four types join, `0x130d`/`0x2713` as post
+programs): **16,832 comparisons, zero mismatches** (173 s):
+
+| Family | Cases | Mismatches |
+|---|---:|---:|
+| Body streams, 44 types × 292 states, no host | 12,848 | 0 |
+| Hidden: wings `0x2382`..`0x2385` × 292 states, OBJECT +0x68 = 1, 2, 3, 7 | 1,168 | 0 |
+| Pre-draw/post: as part 20, plus a random rendered-frame counter in every state and the OBJECT's own bone array in some (always for `0x130d`, with more than four bones). Requests bit for bit (20,240 sprites, 370 particles, 2,222 joints), refusals by kind/bitmap in order (11,539), rand count (1,488), 308 flag-clear states | 2,816 | 0 |
+
+All **39/39 separately compiled mutants** are caught (anchors once); the fourteen new ones: frame counter 76, object
+transform domain 25 and bone 33, random-vector radius steps 25, floor 48, cosine 24 and θ 28, select 1, register
+bitmap 23, argument 8 13, bitmap op 64, OBJECT-bone translate 64, post-host arming 128, hidden-mesh wings 292. Not
+mutated: the unknown-counter refusal (a C refusal with the client's kind/bitmap passes by design; the portable
+`test_frame_counter_gate` covers it), op 49's bone guard (unreachable behind the owner gate), the post gate's
+item-bone exemption (equal counts in this world) and the random vector's clamps (constant arguments inside them).
+`validate_item_ownerfx --mutations`: 14,964 comparisons, 0 mismatches, 14/14 (129 s). Both tables reproduce.
+
+Compiled C-to-C, main `ae5e6f36` library against this one, all 1,691 survey types × 32 random states (OBJECT hidden
+-1/0/1/2) with and without a rand context: **108,224 cases**; 107,898 identical; the 326 different ones are the four
+new types and the four wings' hidden-1/2 states.
 
 ### Limits
 
-LIMITS
+- 311 bodies remain. `0x0f2a` (frame-counter atlas) is not admitted; the body recipes have no frame-counter input and
+  the other item validators hold the counter at 0 (only this row's 44 types are checked with a moving counter).
+- Natively no frame counter is known by default (`mu_renderchar_env.frame_counter` NULL): requests behind a counter
+  test are refused and counted. `0x012b678d` uses the item's own pose and the model origin.
+- `0x130d` runs only with an OBJECT owner. The world callers pass the item pose only for pre-draw types, so `0x2713`'s
+  post program runs pose-less there (requests refused); the viewer tool opens its pool for post types.
+- Joints unchanged (`0x7f7c`/0xe, `0x7fd3`/4 refused, 0/40 drawn).

@@ -51,7 +51,19 @@ Env: `MU_RECOVERY_INTEGRATION=1`, `MU_GAME_ROOT="$HOME/Library/Application Suppo
 `MU_LANG3_SNAPSHOT="$MU_LANG_DIR/live/lang3.bin"`, `MU_SNAPSHOT_DIR="$HOME/Documents/MTM/mu-mac-tools/native/scratch"`,
 `MU_VALIDATOR_CACHE` = the shared cache. All heavy steps `nice -n 10`.
 
-CHECKS
+| Check | Cases / result | Wall time |
+|---|---|---:|
+| Reader over the candidates (scratch) | `0x0f1f`, `0x0f20`, `0x0f2a` read (132/245/234 ops), `0x130d`, `0x2713` read as post programs (15/47 ops); `--check` reproduces the 83 earlier programs at every step | 10 s |
+| Draw screen (one-type library, 292 states) | maces: carry fits, 0 differing states (the supplementary probes do not fit); `0x130d`, `0x2713`: default fits, 0 differing | ~3 s per option (cached) |
+| Body-table generation (`gen_item_bodies`) | 1,340 → 1,344 rows (exactly the four types); earlier rows unchanged (C-to-C below) | 767 s |
+| `validate_item_predraw --mutations` (at `33e6b4c4`) | 16,832 comparisons, 0 mismatches: bodies 12,848 (44 types × 292), hidden 1,168 (4 wings × 292, +0x68 = 1/2/3/7), pre-draw 2,816 (44 × 64: 20,240 sprites, 370 particles, 2,222 joints bit for bit, 11,539 refusals, 1,488 rand draws, 308 flag-clear states, random frame counter, OBJECT bone arrays in some states); **39/39 mutants caught**, none equivalent, all compiled, anchors once; both tables reproduce | 173 s |
+| `validate_item_ownerfx --mutations` (gate anchor changed; at `33e6b4c4`) | 14,964 comparisons, 0 mismatches; 14/14 mutants | 129 s |
+| Hidden-mesh check (scratch, before the family existed) | wings `0x2382`..`0x2385` × +0x68 ∈ {1, 2, 3, 7, 0x7fffffff} × 60 states: 1,200 equal to the client (before: all 480 at 1/2 refused) | 30 s |
+| C-to-C, main `ae5e6f36` library vs this one: 1,691 survey types × 32 states (OBJECT hidden random in -1/0/1/2) × with/without rand | 108,224 cases; 107,898 identical; the 326 different ones are the four new types (256) and the four wings' hidden-1/2 states (70) | 3 s |
+| Portable renderchar suite (`test_item_predraw` with the new post-program and frame-counter tests, `test_item_ownerfx`, `test_item_types`, …) | 98 tests, 22 private skips | 0.3 s |
+| Native `test_native_renderchar` (new `test_post_program_and_frame_counter_gate`), `test_native_item_textures`, `test_native_fidelity`, `test_native_world_predraw` | 44 tests, 1 skip | 102 s |
+| Build `nice -n 10 make -j4` | pass | 15 s |
+ROWS
 
 ## Release
 
@@ -63,8 +75,39 @@ RENDERS
 
 ## Limits
 
-LIMITS
+- 311 bodies remain. `0x0f2a` reads, but its body draws an atlas from the rendered-frame counter
+  (`0x0176b676`: f = ([0x0bdc5ebc] % 32) / 2), an input the body recipes do not have; not admitted.
+- The body probes and the other item validators hold `[0x0bdc5ebc]` at 0. `validate_item_predraw` now randomises it
+  for its 44 types (no other body there reads it); the other ~1,300 admitted bodies were never compared with a
+  moving counter (the client reads it at 225 sites, mostly in RenderPartObjectBody and RenderObjDraw).
+- No native rendered-frame counter: `mu_renderchar_env.frame_counter` is NULL unless a caller sets it, so the requests
+  behind `0x0f1f`'s/`0x0f20`'s counter tests are refused and counted. A C refusal that matches the client's kind and
+  bitmap passes the comparison by design (part 18), so the "unknown counter" refusal is covered by the portable
+  `test_frame_counter_gate`, not by a mutant.
+- `0x012b678d` natively uses the item's own pose (the native item has no OBJECT bone array +0x318) and the model origin
+  for the OBJECT position. `0x0f1f`'s three positions written into OBJECT +0x1f4..+0x218 and `0x2713`'s OBJECT light
+  (+0xec) are interpreter memory only; nothing native reads them.
+- `0x130d`'s sprite needs the OBJECT's own bones: it runs only with an OBJECT owner (worn parts through
+  `mu_renderchar_draw_item_owner`); weapons drawn without an owner skip it, as the client would crash on a NULL matrix
+  without one. The owner gate's item-bone exemption for post programs is static (the validator's OBJECT model is the
+  item model, so both counts are equal there).
+- The world callers (`world_rt_item_pre`, RENDER-ITEMS-CALLERS-001) pass the item pose only for pre-draw types; post
+  programs on item bones (`0x2713`) therefore run without a pose in the world, and their requests are refused (not
+  counted there). Caller code was out of scope here; the fix is one condition (`|| mu_rc_item_post_fx(type)`).
+  `mu-render character` (the viewer tool) now opens its particle pool for post types.
+- Joints unchanged: the 40 CreateJoint requests of `0x22ec`/`0x248f` (`0x7f7c`/0xe, `0x7fd3`/4) stay refused, 0/40
+  drawn.
 
 ## Next groups
 
-NEXT
+1. **The joint kinds `0x7f7c`/0xe and `0x7fd3`/4** (group 4, not attempted): CreateJoint cases at `0x01544f3d`
+   (`0x7f7c` jump table `0x015538e8`, subtype 0xe: LifeTime 0, width = scale, 10 tails, angle 0, light (0.3, 0.3, 1),
+   +0x24 = (target − position) / max tails per axis, then a tail loop; static reading) and
+   `0x01540b34` (`0x7fd3` jump table `0x01553814`, subtype 4; render type 3); MoveJoint and RenderJoints cases still to
+   locate; `validate_joints` drives new kinds by listing them in `KINDS`. The target object is the item's OBJECT.
+2. **A frame-counter body input** (and a native counter): unlocks `0x0f2a` and lets the item validators vary
+   `[0x0bdc5ebc]`.
+3. **Draw fits for read programs** (part 20's group 3, not attempted): `0x23a8`/`0x23a9`, `0x0f1e`, `0x174a`,
+   `0x2301`/`0x2302`, `0x23f0`/`0x23f2`, `0x0b51`/`0x0b52`, the bows `0x1313`/`0x1317`/`0x1319`, part 18's eleven.
+4. **The 31 rank-5 parts faulting in strlen `0x0195a4e0`** (rank-5 pose world) and the 54 helper-group-count types.
+5. **World callers for post programs**: pass the item pose for `mu_rc_item_post_fx` types in `world_rt_item_pre`.
