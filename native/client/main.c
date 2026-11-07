@@ -178,7 +178,7 @@ static int write_png(front *f, const uint8_t *rgba, const char *tag)
         return 0;
     char path[4096], hash[65];
     snprintf(path, sizeof path, "%s/frame-%04d-s%d-%s.png", f->out_dir, f->frame, mu_shell_scene(f->shell), tag);
-    if (mu_png_write(path, rgba, f->width, f->height)) {
+    if (mu_png_write_opaque(path, rgba, f->width, f->height)) {   /* REGRESS-003: the window is opaque */
         fprintf(stderr, "cannot write %s\n", path);
         return 1;
     }
@@ -1239,7 +1239,7 @@ static int windowed(front *f)
         if (f->shot[0]) {   /* the finished frame, still in the back buffer */
             glFinish();
             mu_gl_read(f->width, f->height, f->pixels);
-            if (mu_png_write(f->shot, f->pixels, f->width, f->height))
+            if (mu_png_write_opaque(f->shot, f->pixels, f->width, f->height))   /* REGRESS-003 */
                 fprintf(stderr, "cannot write %s\n", f->shot);
             else if (!f->quiet)
                 fprintf(stderr, "capture %s (%d x %d)\n", f->shot, f->width, f->height);
