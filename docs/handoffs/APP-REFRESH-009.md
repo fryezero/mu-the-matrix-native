@@ -240,6 +240,8 @@ lanes' validators), 5–10 through the build and proofs. Memory 58–70% free. D
 | Rule 6c doc modules: `tests.test_world_captures_2`, `tests.test_repository_policy` | 13/13 OK | 0.6 s |
 | Rule 6c doc modules: `native.tests.test_native_item_textures`, `native.tests.test_native_data_manifest` (from the repo root, private-env.sh) | 23/23 OK | 56 s |
 
+| After merging main `02e4d94d` (#344) into the branch: audit; the four rule 6c modules again | 2,094 staged files, 0 rejected; 13/13 and 23/23 OK | 20 s; 0.6 s + 72 s |
+
 - Steward validators: none (docs only, rule 6c). No code or tool changed.
 
 ## Follow-ups
