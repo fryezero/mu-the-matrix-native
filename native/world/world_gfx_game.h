@@ -48,6 +48,24 @@ void wg_items_set_time(wg_items *w, double time_ms);
 /* Models drawn / failed so far (reports, tests). */
 void wg_items_counts(const wg_items *w, long *drawn, long *missing, long *icons);
 
+/* INVENTORY-FX: the world the icons' effects go to. RenderObjectScreen draws an icon through RenderPartObject and
+ * RenderObjDraw like a ground item: the type's pre-draw program (and RenderPartObjectBody's 0x389c/0x389d skin
+ * sprite) runs on the icon's own pose and calls CreateSprite/CreateParticle, whose lists only the world scene's
+ * RenderSprites/RenderParticles draw (with the world camera, the next frame); the item pass draws none. Its
+ * TestFrustrum2D flag is taken at the icon's OBJECT +0x158 (its screen position) with the world frame's polygon.
+ * particles: the world's lists (NULL: no world, nothing is created); item_pre: sets env->item_bones, the flag and
+ * the counters as world_rt_item_pre does for the other callers. NULL world: no effects (the default). */
+struct mu_renderchar_env;
+struct mu_world_particles;
+struct mu_model;
+typedef struct wg_items_world {
+    void *user;
+    struct mu_world_particles *(*particles)(void *user);
+    void (*item_pre)(void *user, struct mu_renderchar_env *env, int32_t type, const struct mu_model *model,
+                     const float *bones);
+} wg_items_world;
+void wg_items_set_world(wg_items *w, const wg_items_world *world);
+
 /* Skills from Data/Local/skill.bmd: 120-byte records, each XORed with the
  * repeating key FC CF AB; record i is skill index i; Magic_Icon at +74 (u16),
  * MasteryType at +54, SkillUseType at +55.  Names are left as "Skill N"

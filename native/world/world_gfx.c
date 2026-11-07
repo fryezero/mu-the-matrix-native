@@ -1557,6 +1557,12 @@ void world_gfx_set_equipment(world_gfx *g, const int32_t code[2], const uint8_t 
     wg_skill_set_equipment(g->skill, code, kind);
 }
 
+void world_gfx_set_item_world(world_gfx *g, const struct wg_items_world *world)
+{
+    if (g)
+        wg_items_set_world(g->items, world);
+}
+
 void world_gfx_set_location(world_gfx *g, int world, float x, float y)
 {
     if (!g)

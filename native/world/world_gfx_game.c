@@ -67,8 +67,7 @@ struct wg_items {
     long drawn, missing, icons;
     GLuint fbo, color, depth;
     int fbo_w, fbo_h, fbo_failed;
-    mu_world_particles *skin_particles;
-    mu_gl_backend skin_gl;
+    wg_items_world world;       /* INVENTORY-FX: where the icons' sprites go (none by default) */
     int32_t wearer;             /* RENDER-ITEMS-TEX-002: class byte, -1 none */
 };
 
@@ -114,11 +113,6 @@ void wg_items_close(wg_items *w)
         return;
     for (int i = 0; i < MAX_MODELS; i++)
         model_free(&w->models[i]);
-    if (w->skin_particles) {
-        mu_gl_release(&w->skin_gl);
-        mu_world_particles_close(w->skin_particles);
-        free(w->skin_particles);
-    }
     if (w->mannequin) {
         mu_character_free(w->mannequin);
         free(w->mannequin);
@@ -140,6 +134,16 @@ void wg_items_set_time(wg_items *w, double time_ms)
 {
     if (w)
         w->time_ms = time_ms;
+}
+
+void wg_items_set_world(wg_items *w, const wg_items_world *world)
+{
+    if (w) {
+        if (world)
+            w->world = *world;
+        else
+            memset(&w->world, 0, sizeof w->world);
+    }
 }
 
 void wg_items_counts(const wg_items *w, long *drawn, long *missing, long *icons)
@@ -324,40 +328,6 @@ static void ros_inputs(wg_items *w, const item_model *m, const mu_gfx_item_draw 
     in->object_alpha = 1.0f;                 /* ItemObjectAttribute's alpha (1 for these items) */
 }
 
-static int skin_backend(void *context, const mu_world_particles *p, mu_render_backend *out)
-{
-    wg_items *w = context;
-    if (!w->skin_gl.textures)
-        mu_gl_upload(&w->skin_gl, &p->bitmaps, 0);
-    mu_gl_backend_bind(&w->skin_gl, out);
-    return 0;
-}
-
-static void draw_skin(wg_items *w, const mu_model *model, int32_t type)
-{
-    if (type != 0x389c && type != 0x389d)
-        return;
-    if (!w->skin_particles) {
-        char error[256];
-        mu_world_particles *p = calloc(1, sizeof *p);
-        if (!p)
-            return;
-        if (mu_world_particles_open(p, w->have_root ? w->root : NULL, NULL, 0, 1,
-                                    !w->have_root, error, sizeof error)) {
-            free(p);
-            return;
-        }
-        w->skin_particles = p;
-    }
-    w->skin_particles->world_time = (float)w->time_ms;
-    mu_renderchar_skin_effects(model, mu_model_bone_matrices(model), type, w->skin_particles);
-    /* Consume only this icon's one-frame sprites, in its current projection/FBO. */
-    float view[16];
-    glGetFloatv(GL_MODELVIEW_MATRIX, view);
-    const mu_world_particles_target target = {w, skin_backend};
-    mu_world_particles_draw(w->skin_particles, view, &target);
-}
-
 static void draw_model(wg_items *w, item_model *m, const mu_gfx_item_draw *d, const mu_item3d_out *out,
                        int32_t stage_h)
 {
@@ -430,11 +400,15 @@ static void draw_model(wg_items *w, item_model *m, const mu_gfx_item_draw *d, co
             return;
         }
     }
+    /* RenderPartObject(o, type, NULL, light, alpha, level word, excellent, set bits, ...) from RenderObjectScreen:
+     * the level is the word's (word >> 3) & 15 (kind A 0xc passes the word 0), option and ext as passed
+     * (INVENTORY-FX: the excellent pass and the set bits reach the icon like a worn item's). */
     mu_renderchar_glow glow;
     memset(&glow, 0, sizeof glow);
     glow.type = ros.render_type;
-    glow.level = d->level;
-    glow.option1 = d->excellent;
+    glow.level = (ros.level_word >> 3) & 15;
+    glow.option1 = ros.excellent;
+    glow.ext = ros.set_bits;
     if (m->info.has_record) {
         glow.has_record = 1;
         glow.kind_a = m->info.record.attributes.kind_a;
@@ -445,7 +419,14 @@ static void draw_model(wg_items *w, item_model *m, const mu_gfx_item_draw *d, co
     mu_renderchar_default_env(&env);
     env.lang = w->lang;
     env.time = (float)w->time_ms;
-    env.particles = w->skin_particles;
+    /* INVENTORY-FX: RenderObjDraw's own case on the icon's pose (BoneTransform after RenderObjectScreen's
+     * Animation), its flag at OBJECT +0x158 = the icon position (RenderPartObject copies it to the model origin);
+     * the sprites go to the world's lists (drawn by the world's sprite pass, never over the icon). */
+    struct mu_world_particles *pool = w->world.particles ? w->world.particles(w->world.user) : NULL;
+    const float *bones = mu_model_bone_matrices(&m->model);
+    env.particles = pool;
+    if (pool && w->world.item_pre)
+        w->world.item_pre(w->world.user, &env, ros.render_type, &m->model, bones);
     mu_draw_options draw;
     mu_draw_default_options(&draw);
     draw.textures = &m->textures;
@@ -458,7 +439,8 @@ static void draw_model(wg_items *w, item_model *m, const mu_gfx_item_draw *d, co
     else {
         mu_renderchar_draw_item(&m->model, &glow, &env, ros.light, d->alpha > 0 ? d->alpha : 1.0f, &draw, &backend,
                                 &stats, &rstats);
-        draw_skin(w, &m->model, ros.render_type);
+        if (pool && (ros.render_type == 0x389c || ros.render_type == 0x389d))   /* RenderPartObjectBody's sprite */
+            mu_renderchar_skin_effects(&m->model, bones, ros.render_type, pool);
     }
     w->drawn++;
 }

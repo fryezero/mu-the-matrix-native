@@ -54,7 +54,8 @@ enum {
 };
 
 /* RENDER-ITEMS-CALLERS-001: the world callers that draw items through RenderObjDraw's pre-draw programs. */
-enum { MU_WORLD_PRE_HERO, MU_WORLD_PRE_PLAYERS, MU_WORLD_PRE_ACTORS, MU_WORLD_PRE_GROUND, MU_WORLD_PRE_CALLERS };
+enum { MU_WORLD_PRE_HERO, MU_WORLD_PRE_PLAYERS, MU_WORLD_PRE_ACTORS, MU_WORLD_PRE_GROUND, MU_WORLD_PRE_INVENTORY,
+       MU_WORLD_PRE_CALLERS };
 
 struct mu_world_rt {
     int8_t seq[6][MU_PART_COUNT + 1];
@@ -83,6 +84,10 @@ struct mu_world_rt {
     int32_t hero_record[MU_CHARACTER_ITEMS];       /* the item's Item.bmd record (model index), -1 none */
     mu_renderchar_glow hero_glow[MU_CHARACTER_ITEMS];
     uint8_t hero_glow_set[MU_CHARACTER_ITEMS];
+    /* INVENTORY-FX: the hero's equipment ITEMs 0..8 as SetCharacterClass read them ({code, level word, excellent
+     * 0x00cd0995(item, 1), +0x3b}, code -1 empty), for the inventory window's equipment slots */
+    int32_t hero_items[9][4];
+    int hero_items_set;
     mu_walk walk;
     /* stats */
     double walked;
@@ -215,6 +220,8 @@ void world_rt_report_summary(const mu_world_rt *a, const char *renderer);
 /* RENDER-ITEMS-CALLERS-001: the item pose, the caller's pre-draw counters and the TestFrustrum2D flag for one item
  * draw (no-op without a particle pool or a pre-draw program for the type). */
 struct mu_renderchar_env;
+/* INVENTORY-FX: hand the hero's equipment ITEMs to the GFx layer's inventory (no-op without a layer). */
+void world_rt_hero_items_gfx(mu_world_rt *a);
 void world_rt_item_pre(mu_world_rt *a, struct mu_renderchar_env *env, int caller, int32_t type, const mu_model *model,
                        const float *bones);
 #ifndef MU_WORLD_NO_GL

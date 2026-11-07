@@ -15,6 +15,7 @@
 #ifndef MU_WORLD_NO_GL
 #include "../gfx/mu_gfx_layer.h"
 #include "../viewer/gl_backend.h"
+#include "world_gfx_game.h"
 #include "world_gfx_options.h"
 #endif
 #include "world_rt_internal.h"
@@ -287,6 +288,41 @@ void world_rt_hero_item_textures(mu_world_rt *a, int first, int last)
     mu_data_free(&items);
 }
 
+/* INVENTORY-FX: the inventory window draws the hero's equipment ITEMs in its equipment slots (0x00b913a2); slots
+ * 9..14 (pendant, rings, ...) have no offline record and stay empty. */
+#ifndef MU_WORLD_NO_GL
+static struct mu_world_particles *icon_particles(void *user)
+{
+    mu_world_rt *a = user;
+    return a->has_particles ? &a->particles : NULL;
+}
+
+static void icon_pre(void *user, struct mu_renderchar_env *env, int32_t type, const mu_model *model, const float *bones)
+{
+    world_rt_item_pre(user, env, MU_WORLD_PRE_INVENTORY, type, model, bones);
+}
+#endif
+
+void world_rt_hero_items_gfx(mu_world_rt *a)
+{
+#ifndef MU_WORLD_NO_GL
+    if (!a->gfx)
+        return;
+    const wg_items_world world = {a, icon_particles, icon_pre};   /* the icons' sprites go to the world's lists */
+    world_gfx_set_item_world(a->gfx, &world);
+    if (!a->hero_items_set)
+        return;
+    mu_gfx_equip_item items[MU_GFX_EQUIP_SLOTS];
+    for (int s = 0; s < MU_GFX_EQUIP_SLOTS; ++s)
+        items[s] = s < MU_HE_EQUIPMENT ? (mu_gfx_equip_item){a->hero_items[s][0], a->hero_items[s][1],
+                                                            a->hero_items[s][2], a->hero_items[s][3]}
+                                       : (mu_gfx_equip_item){-1, 0, 0, 0};
+    mu_gfx_layer_set_equipment(world_gfx_layer(a->gfx), items, (uint8_t)a->class_byte);
+#else
+    (void)a;
+#endif
+}
+
 /* HERO-ITEMS-001: the hero's equipment records -> its part slots, as the client's SetCharacterClass 0x01394870
  * writes them from CharacterMachine's ITEMs. The offline session's records are the front end's items. APP-POLISH-008:
  * an item with a session record (FILE@GROUP:INDEX:LEVEL:OPTION:EXT) fills the ITEM's code, level word, +0x98 and
@@ -315,6 +351,14 @@ void world_rt_hero_slots(mu_world_rt *a, const mu_data_table *items)
     for (int k = 0; k < MU_RP_SLOTS; ++k)
         c.slots[k].type = -1;
     mu_he_set_character_class(&c, equipment);
+    for (int s = 0; s < MU_HE_EQUIPMENT; ++s) {
+        a->hero_items[s][0] = equipment[s].type;
+        a->hero_items[s][1] = equipment[s].level;
+        a->hero_items[s][2] = mu_he_item_flag(&equipment[s], 1);
+        a->hero_items[s][3] = equipment[s].ancient;
+    }
+    a->hero_items_set = 1;
+    world_rt_hero_items_gfx(a);
     for (int i = 0; i < MU_CHARACTER_ITEMS; ++i) {
         mu_renderchar_glow *g = &a->hero_glow[i];
         memset(g, 0, sizeof *g);
@@ -938,6 +982,7 @@ void mu_world_rt_set_gfx(mu_world_rt *a, struct world_gfx *gfx, double scale)
         world_gfx_quest_setup(gfx, a->npc_demo ? a->npc_demo->quests : NULL);   /* NATIVE-QUEST-001 */
         if (a->equip_set)   /* APP-POLISH-005: the character's weapons for the skill checks */
             world_gfx_set_equipment(gfx, a->equip_code, a->equip_kind);
+        world_rt_hero_items_gfx(a);   /* INVENTORY-FX */
     } else if (a->names)
         mu_names_set_sink(&a->names->names, NULL);
 }
@@ -1074,10 +1119,12 @@ static void report_item_pre(const mu_world_rt *a)
         any |= a->item_pre[c][0] | a->item_pre[c][1] | a->item_pre_hidden[c];
     if (!any)
         return;   /* no pre-draw program ran: the report is unchanged */
-    static const char *names[MU_WORLD_PRE_CALLERS] = {"hero", "players", "actors", "ground"};
+    static const char *names[MU_WORLD_PRE_CALLERS] = {"hero", "players", "actors", "ground", "inventory"};
     printf("{\"item_pre_draw\": true");
     for (int c = 0; c < MU_WORLD_PRE_CALLERS; ++c)
-        printf(", \"%s\": {\"pre_effects\": %ld, \"pre_refused\": %ld, \"hidden\": %ld}", names[c],
+        if (c != MU_WORLD_PRE_INVENTORY ||   /* INVENTORY-FX: the icons' entry only when one ran */
+            (a->item_pre[c][0] | a->item_pre[c][1] | a->item_pre_hidden[c]))
+            printf(", \"%s\": {\"pre_effects\": %ld, \"pre_refused\": %ld, \"hidden\": %ld}", names[c],
                a->item_pre[c][0], a->item_pre[c][1], a->item_pre_hidden[c]);
     printf("}\n");
 }
