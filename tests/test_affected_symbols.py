@@ -11,6 +11,7 @@ Python names some of the library's exports; the working tree changes the C sourc
 * a new duplicate definition (steward batch 2's ``mu_swamp_*``) or a new unresolved reference is a fallback;
 * a name built at run time (``'mu_' + name``) can only be filled with the program's own word pieces;
 * mutant copies of the sources do not stop the pruning, unless the link structure changed;
+* a repository C host the row compiles itself uses what its IR references (like `nm -u`);
 * an argparse default inside an imported module's ``main()`` is not an input unless that main is called.
 """
 from pathlib import Path
@@ -184,6 +185,17 @@ class SymbolSelection(unittest.TestCase):
         why = self.select()
         self.assertIn('validate_used', why)
         self.assertIn('mutant builds copy these sources', why['validate_used'][0])
+
+    def test_c_host_calls_count_as_uses(self):
+        # a repository C host the row compiles and links against the library: its undefined symbols are uses
+        self.write({'hosts/host.c': '#include "x.h"\nint unused(int);\nint main(void) { return unused(1); }\n',
+                    'scripts/validate_host.py': row('', "HOST = ROOT / 'hosts' / 'host.c'\n"
+                                                        "subprocess.run(['cc', '-I', str(ROOT / 'lib'), str(HOST)])\n")})
+        self.commit()
+        self.edit('lib/a.c', 'return v * 2;', 'return v * 3;')
+        why = self.select()
+        self.assertIn('validate_host', why)
+        self.assertIn('uses unused changed', why['validate_host'][0])
 
     def test_main_only_default_of_an_imported_module_is_not_an_input(self):
         helper = ("import argparse\nfrom pathlib import Path\nROOT = Path(__file__).resolve().parents[1]\n"

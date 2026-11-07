@@ -460,7 +460,7 @@ class _Module:
         for node in self.nodes:
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 self.functions.setdefault(node.name, []).append(node)
-        self._main_region()
+        self._regions()
         self._imports()
         self._bind()
         self._loaders()
@@ -1039,7 +1039,9 @@ class _Module:
         return (self.main_mutant_sink if mutant else self.main_sink) if main else \
             (self.mutant_sink if mutant else self.sink)
 
-    def _main_region(self):
+    def _regions(self):
+        """Mark mutant-only code (functions named *mutant*/*mutation*, `if args.mutations:` bodies) and
+        main()-only code (a module-level `def main`, the `if __name__ == '__main__':` body)."""
         for node in self.nodes:
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and MUTANT_WORD.search(node.name) or \
                     isinstance(node, ast.If) and _mutant_test(node.test):
@@ -1055,8 +1057,9 @@ class _Module:
 
     def _symbols(self):
         """The names this file can use from a loaded C library: every identifier and attribute, every word
-        of a string constant, the names its string-building expressions can produce (regex patterns), and
-        the places where a name given to getattr/hasattr/in_dll cannot be bounded."""
+        of a string constant, the names its string-building expressions can produce (templates with '*'),
+        and the places where a name given to getattr/hasattr/in_dll cannot be bounded. Also which main()
+        functions it uses (see _closure)."""
         for local, (module, attribute) in self.from_names.items():
             if attribute == 'main':
                 self.main_refs.add(module)
@@ -1827,6 +1830,8 @@ def clear_caches(root: Path | None = None) -> None:
         function.cache_clear(root)
     for key in [k for k in _MM if root is None or k[0].startswith(str(root))]:
         del _MM[key]
+    for key in [k for k in _HOSTS if root is None or k[0].startswith(str(root))]:
+        del _HOSTS[key]
     affected_symbols.clear_cache(root)
     suites = sys.modules.get('run_test_suites')
     if root is None and suites is not None and hasattr(suites, '_unit_deps'):
@@ -1870,6 +1875,41 @@ def used_symbols(deps: Deps, exports: set[str]) -> tuple[set[str], str | None]:
     return used, None
 
 
+_HOSTS: dict[tuple, affected_symbols.Unit] = {}
+SYSTEM_INCLUDES = tuple(sorted(str(p) for p in Path('/opt/homebrew/opt').glob('*/include') if p.is_dir())) \
+    if Path('/opt/homebrew/opt').is_dir() else ()   # Homebrew libraries the native hosts use (cryptopp)
+
+
+def host_symbols(deps: Deps, target_files: set[str], root: Path) -> tuple[set[str], str | None]:
+    """The symbols the C sources a unit compiles itself (hosts: a repository .c it names or copies, outside
+    the target) reference, from their IR (the host's undefined symbols, like `nm -u`); or the reason a host
+    does not compile. Include directories: the host's own, every directory holding a header of the unit's
+    inputs, -I directories it uses, and native/build/gen."""
+    deps_all = [deps] + ([deps.mutant] if deps.mutant is not None else [])
+    hosts = sorted({p for d in deps_all for p in d.files if _suffix(p) in SOURCES and p not in target_files
+                    and (root / p).is_file()})
+    if not hosts:
+        return set(), None
+    dirs = {str(Path(p).parent) for d in deps_all for p in d.files if _suffix(p) in HEADERS}
+    dirs |= {p for d in deps_all for p in d.flat}
+    if (root / 'native/build/gen').is_dir():
+        dirs.add('native/build/gen')
+    used: set[str] = set()
+    for host in hosts:
+        cxx = _suffix(host) in ('.cc', '.cpp', '.mm')
+        flags = ['clang++' if cxx else 'clang', '-std=c++17' if cxx else '-std=c11', '-fPIC', '-ffp-contract=off',
+                 *[f'-I{root / d}' for d in sorted(dirs | {str(Path(host).parent)})],
+                 *[f'-isystem{d}' for d in SYSTEM_INCLUDES]]
+        key = (str(root), host, tuple(flags))
+        if key not in _HOSTS:
+            _HOSTS[key] = affected_symbols.compile_ir(str(root), tuple(flags), host)
+        unit = _HOSTS[key]
+        if unit.error:
+            return set(), f'the C host {unit.error}'
+        used |= unit.declared | {r for n in unit.nodes.values() for r in n.refs}
+    return used, None
+
+
 def symbol_verdict(deps: Deps, path: str, targets: set, base: str, changed: list[str], root: Path,
                    same_make: frozenset = frozenset()) -> str | None:
     """Why PATH, compiled only into TARGETS (and mutant copies of them), still affects the unit (a changed
@@ -1884,6 +1924,11 @@ def symbol_verdict(deps: Deps, path: str, targets: set, base: str, changed: list
         if change.roots_always:
             return f'{change.label}: {sorted(change.roots_always)[0]} reaches a change'
         used, dynamic = used_symbols(deps, change.exports)
+        target_files = {p for p in target_deps(directory, target, root).files if _suffix(p) in SOURCES}
+        hosted, broken = host_symbols(deps, target_files, root)
+        if broken:
+            return f'{SYMBOL_FALLBACK}: {broken}'
+        used |= hosted & change.exports
         hit = sorted(used & set(change.changed))
         if hit:
             if dynamic:
