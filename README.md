@@ -107,8 +107,8 @@ Account-backed character lists and create/delete requests remain separate work
 
 | | |
 |---|---|
-| ![Character creation panel](docs/images/04a-character-creation.png) | ![All 16 class previews](docs/images/04b-character-creation-all-classes.jpg) |
-| Character creation: class list, stats and description | All 16 classes |
+| ![Character creation panel over the character-select scene](docs/images/04a-character-creation.png) | ![All 16 class previews in the creation panel](docs/images/04b-character-creation-all-classes.jpg) |
+| Character creation: class list, stats and description, over the character-select scene | All 16 classes |
 
 ### The world: terrain, lighting, objects, water, weather
 
@@ -200,7 +200,7 @@ with its level and cost list. Choosing a destination, or walking into a gate, lo
 original. The demo server answers the warp. The map's NPC/portal markers and detector dots now come from session
 records; travel, warp requests and respawn keep their earlier offline path.
 
-<p align="center"><img src="docs/images/19-maps-tab-overlay-move-window.jpg" alt="Left: the Tab map overlay with NPC markers in Lorencia. Right: the Move window" width="900"></p>
+<p align="center"><img src="docs/images/19-maps-tab-overlay-move-window.jpg" alt="Left: the Tab map overlay with NPC markers in Lorencia. Right: the Move window next to demo players" width="900"></p>
 
 ### Effects and particles
 
@@ -221,8 +221,8 @@ not yet established ([help window](docs/handoffs/SYS-MISC-001b.md)).
 
 | | |
 |---|---|
-| ![Character window, buff list and popup](docs/images/07-gfx-character-window-buffs.png) | ![Inventory with item models and tooltip](docs/images/08-inventory-item-tooltip.png) |
-| Character window and buffs | Inventory, item models, tooltip and price |
+| ![Character window, buff icons and a buff popup](docs/images/07-gfx-character-window-buffs.png) | ![Inventory with textured item icons and a tooltip](docs/images/08-inventory-item-tooltip.png) |
+| Character window and buffs | Inventory icons sized from the client's ItemTRSData, tooltip and price |
 
 ### NPCs, shops and quests
 
@@ -231,13 +231,13 @@ requirements and rewards. The loopback fixture now feeds quest state through the
 replies still need decoding, so that browsing path is unavailable
 ([session limits](docs/handoffs/SESSION-QUEST-001.md)).
 
-<p align="center"><img src="docs/images/09-npc-dialogue-and-shop.jpg" alt="NPC dialogue and the blacksmith's shop" width="900"></p>
+<p align="center"><img src="docs/images/09-npc-dialogue-and-shop.jpg" alt="Sir Lesnar's dialogue, and Hanzo the Blacksmith's shop with an item tooltip and the inventory" width="900"></p>
 
 The guide quests, class-upgrade quests and the quest tracker work as well: an NPC tells the story, My Quests lists
 the steps with their requirements and rewards, and **Go Now** walks or travels to the next target, across worlds if
 needed. The Shadow Phantom Soldier (NPC 257) stands in Lorencia in its +13 armour and wings, with its orbiting glow.
 
-<p align="center"><img src="docs/images/21-quests-guide-tracker.jpg" alt="Left: a guide quest's dialogue and My Quests with Go Now. Right: a completed quest, the tracker and NPC 257" width="900"></p>
+<p align="center"><img src="docs/images/21-quests-guide-tracker.jpg" alt="Left: an NPC quest page and My Quests with the guide quests. Right: the quest-completed banner, the tracker and the textured NPC 257" width="900"></p>
 
 ### Skills, the Master tree and the fourth tree
 
@@ -249,12 +249,12 @@ and some updates remain open. The fifth-tree windows can open, but their card/it
 
 | | |
 |---|---|
-| ![Master skill tree with a tooltip](docs/images/20-skills-master-tree.jpg) | ![Skill Imprint window and skill bar](docs/images/14-skill-imprint-window.png) |
+| ![Master skill tree of an Ignition Knight with a tooltip](docs/images/20-skills-master-tree.jpg) | ![Skill Imprint window and skill bar](docs/images/14-skill-imprint-window.png) |
 | The Master skill tree | The skill bar, tooltips and the Skill Imprint window |
 
 <details>
 <summary>The first quest window</summary>
-<p align="center"><img src="docs/images/13-quests-my-quests.png" alt="My Quests window" width="820"></p>
+<p align="center"><img src="docs/images/13-quests-my-quests.png" alt="My Quests with a hunt quest at 3/3 and the quest tracker" width="820"></p>
 </details>
 
 ### Combat, other players, pets and mounts
@@ -287,7 +287,7 @@ The Chaos Goblin's mix window ranks the recipes, shows the success rate and cost
 Life). The personal store registers and buys items, and NPCs repair. The outcome comes from the demo server, which
 does not predict the real server's results.
 
-<p align="center"><img src="docs/images/23-chaos-goblin-mix-personal-store.jpg" alt="Left: the Chaos Machine mix window with inventory. Right: registering an item in the personal store" width="900"></p>
+<p align="center"><img src="docs/images/23-chaos-goblin-mix-personal-store.jpg" alt="Left: the Chaos Machine mix window with the textured inventory. Right: registering a bundle in the personal store" width="900"></p>
 
 ### Party, trade, friends and mail
 
@@ -296,7 +296,7 @@ the messenger with whispers, and mail with read, reply, compose and delete. All 
 handlers, with demo players standing in for real ones. Party membership and invitations now arrive through the
 session; trade, friends and mail have not moved yet.
 
-<p align="center"><img src="docs/images/24-social-party-trade-mail-whisper.jpg" alt="Trade with an item tooltip and the party list; the friends list with mail; a whisper conversation" width="900"></p>
+<p align="center"><img src="docs/images/24-social-party-trade-mail-whisper.jpg" alt="Trade with an item tooltip and the party list; the mailbox with a letter; a whisper conversation" width="900"></p>
 
 ### Experience, levels and options
 
