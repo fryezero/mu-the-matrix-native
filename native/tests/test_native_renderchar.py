@@ -260,6 +260,23 @@ class WorldRender(unittest.TestCase):
         cut,_=self.render('--wing',short,'--item-type','wing=0x23ef','--world-time','0')
         self.assertEqual((cut['special'],cut['pre_refused'],cut['pre_effects']),(0,2,spread['pre_effects']-2))
 
+    def test_post_program_and_frame_counter_gate(self):
+        """RENDER-ITEMS-002T: 0x2713's block after its RenderPartObjectBody draws places three sprites at its own bones
+        8, 10 and 11: on 12 bones all are created, on 10 the last two are refused. Mace 0x0f20's particles follow
+        tests of the rendered-frame counter, which the native env does not supply by default, so they are refused
+        and counted; the mace's named bones are absent from the synthetic skeleton too."""
+        path=self.tmp/'post-fx.bmd'
+        path.write_bytes(nf.character_layout(115,bones=12,meshes=2))
+        post,_=self.render('--weapon','0',path,'--item-type','weapon0=0x2713','--world-time','0')
+        self.assertEqual((post['special'],post['pre_effects'],post['pre_refused']),(0,3,0))
+        short=self.tmp/'post-fx-10.bmd'
+        short.write_bytes(nf.character_layout(115,bones=10,meshes=2))
+        cut,_=self.render('--weapon','0',short,'--item-type','weapon0=0x2713','--world-time','0')
+        self.assertEqual((cut['special'],cut['pre_effects'],cut['pre_refused']),(0,1,2))
+        mace,_=self.render('--weapon','0',path,'--item-type','weapon0=0xf20','--world-time','0')
+        self.assertEqual((mace['special'],mace['pre_effects']),(0,0))
+        self.assertGreater(mace['pre_refused'],0)
+
     def test_ranked_body_and_nine_bone_shield_use_shared_draws(self):
         path = self.tmp/'ranked-armour.bmd'
         path.write_bytes(nf.character_layout(113,bones=50,meshes=6,dummies=(9,21)))

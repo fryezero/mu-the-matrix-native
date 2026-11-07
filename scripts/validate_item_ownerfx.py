@@ -43,7 +43,8 @@ class Fx(C.Structure):
                 ('position', C.c_float * 3), ('light', C.c_float * 3), ('scale', C.c_float),
                 ('angle', C.c_float * 3),
                 ('rotation', C.c_float), ('blend', C.c_int32), ('owner', C.c_int32),   # RENDER-ITEMS-002R
-                ('target', C.c_float * 3)]   # RENDER-ITEMS-002S: CreateJoint's target position
+                ('target', C.c_float * 3),   # RENDER-ITEMS-002S: CreateJoint's target position
+                ('extra', C.c_int32)]   # RENDER-ITEMS-002T: CreateParticle argument 8
 
 
 TRANSFORM = C.CFUNCTYPE(None, C.c_void_p, C.c_int32, C.POINTER(C.c_float), C.POINTER(C.c_float))
@@ -51,6 +52,7 @@ EMIT = C.CFUNCTYPE(None, C.c_void_p, C.POINTER(Fx))
 RANDOM = C.CFUNCTYPE(C.c_int32, C.c_void_p)
 NAMED = C.CFUNCTYPE(C.c_int32, C.c_void_p, C.c_char_p)
 ITEM_TRANSFORM = C.CFUNCTYPE(None, C.c_void_p, C.c_int32, C.POINTER(C.c_float), C.c_int32, C.POINTER(C.c_float))
+OBJECT_TRANSFORM = C.CFUNCTYPE(None, C.c_void_p, C.c_int32, C.POINTER(C.c_float))
 
 
 class Host(C.Structure):
@@ -59,7 +61,10 @@ class Host(C.Structure):
                 ('item_bones', C.c_int32), ('angle', C.c_float * 3),
                 # RENDER-ITEMS-002R pre-draw programs (NULL here: no item host)
                 ('bone_named', NAMED), ('item_transform', ITEM_TRANSFORM), ('refuse', EMIT), ('visible', C.c_int32),
-                ('position', C.c_float * 3)]   # RENDER-ITEMS-002S: OBJECT +0x158
+                ('position', C.c_float * 3),   # RENDER-ITEMS-002S: OBJECT +0x158
+                # RENDER-ITEMS-002T: 0x012b678d on an item bone, the rendered-frame counter
+                ('object_transform', OBJECT_TRANSFORM), ('frame', C.c_uint32), ('frame_known', C.c_int32),
+                ('owner_item_transform', ITEM_TRANSFORM)]   # post programs: 0x012b6ef1 on the OBJECT's bone
 
 
 def u(x):
@@ -266,7 +271,9 @@ MUTANTS = {
     'angle': ('memcpy(&r[o->a], h->angle, sizeof h->angle);', 'memset(&r[o->a], 0, sizeof h->angle);'),
     'sprite-scale': ('fx.scale = r[o->b];', 'fx.scale = r[o->b + 1];'),
     'particle-subtype': ('fx.subtype = o->e;', 'fx.subtype = o->e + 1;'),
-    'bone-domain': ('if (need > h->bones || need > h->item_bones)', 'if (need > h->bones + 1 || need > h->item_bones + 1)'),
+    # RENDER-ITEMS-002T: the gate exempts post programs from the item-bone check (0x0129f12c checks only the OBJECT's)
+    'bone-domain': ('if (need > h->bones || (need > h->item_bones && !mu_rc_item_post_fx(s->item->type)))',
+                    'if (need > h->bones + 1 || (need > h->item_bones + 1 && !mu_rc_item_post_fx(s->item->type)))'),
     'phase': ('(phase == 0 || phase == 5 || phase == 6 || phase == 7)', '(phase == 0 || phase == 6 || phase == 7)'),
 }
 

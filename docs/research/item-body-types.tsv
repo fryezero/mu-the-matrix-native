@@ -155,8 +155,8 @@ type	visibility	shape	body_implemented	stopped_states
 0x0f1c	weapon	7c64987dd3b35877	1	0
 0x0f1d	weapon	41cec08ed8082775	1	0
 0x0f1e	weapon	58d4d3b7a0ae09d5	0	0
-0x0f1f	weapon	4e5ce7346b034d4c	0	0
-0x0f20	weapon	4d8daa5cdc10c83e	0	0
+0x0f1f	weapon	4e5ce7346b034d4c	1	0
+0x0f20	weapon	4d8daa5cdc10c83e	1	0
 0x0f22	weapon	d9be789c746c769a	0	0
 0x0f23	weapon	5638e2d0bcc79a2d	0	0
 0x0f24	weapon	2dc6547853a22948	0	0
@@ -215,7 +215,7 @@ type	visibility	shape	body_implemented	stopped_states
 0x130a	weapon	bc852f60b44a2444	1	0
 0x130b	weapon	6a84a5de5ff9067c	0	0
 0x130c	weapon	77b6e1c06a16e52a	1	0
-0x130d	weapon	ec631077b909287b	0	0
+0x130d	weapon	ec631077b909287b	1	0
 0x130e	weapon	9779828660406a93	0	0
 0x130f	weapon	29dbf4e915717b93	1	0
 0x1310	weapon	d1207d2e915753fd	1	0
@@ -1538,7 +1538,7 @@ type	visibility	shape	body_implemented	stopped_states
 0x2710	pet/item	deeb2f9c7e093c40	0	0
 0x2711	pet/item	8fa3dfdab0cc7d85	1	0
 0x2712	pet/item	8fa3dfdab0cc7d85	1	0
-0x2713	pet/item	5674e1fc5facb410	0	0
+0x2713	pet/item	5674e1fc5facb410	1	0
 0x2719	pet/item	599d83b3017cf851	1	0
 0x271a	pet/item	e7d7215d78ceb4da	0	0
 0x271b	pet/item	634ef20f397dc7f9	1	0

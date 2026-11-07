@@ -339,6 +339,7 @@ int mu_render_world_character(const mu_options *o)
     long link_sprites = 0, owner_effects = 0, owner_refused = 0;
     for (int k = 0; k < MU_CHARACTER_ITEMS; ++k) {
         if ((mu_rc_item_rank5(W.glow[k].type) || mu_rc_item_owner_fx(W.glow[k].type) || mu_rc_item_pre_fx(W.glow[k].type) ||
+             mu_rc_item_post_fx(W.glow[k].type) ||   /* RENDER-ITEMS-002T post programs */
              mu_rc_link_supported(W.glow[k].type) ||
              W.glow[k].type == 0x389c || W.glow[k].type == 0x389d) &&
             c.items[k].loaded && !particles) {

@@ -227,6 +227,9 @@ from gen_item_owner_fx import OWNER_FX_TYPES
 # Part 18 (RENDER-ITEMS-002R): bodies whose RenderObjDraw case creates effects before the body draws (pre-draw
 # programs, gen_item_owner_fx.PRE_FX_TYPES); their draws fit with the effect requests set aside.
 from gen_item_owner_fx import PRE_FX_TYPES, OBJDRAW as PRE_DRAW_RAND
+# Part 21 (RENDER-ITEMS-002T): owner blocks after the draws with the pre-draw idioms (gen_item_owner_fx.POST_FX_TYPES);
+# their draws fit the default probes with the effect requests set aside.
+from gen_item_owner_fx import POST_FX_TYPES
 _SAMPLE_TYPE = [None]
 # Their probes, chosen by the 292-state comparison: the part-14 supplementary probes (records 0x26/0x5b,
 # qualities 0-2) and the part-13 carry rule. The rand sites of the pre-draw block itself belong to the effect
@@ -237,7 +240,9 @@ PRE_EXTENDED = [0x0b4b, 0x0b4c, 0x0b59, 0x0f1c, 0x0f1d, 0x0f2e, 0x1312, 0x1316, 
                 0x0b50, 0x22ec, 0x230c, 0x23ef, 0x2400, 0x2405, 0x248f, 0x2496, 0x24cf, 0x24d6]
 PRE_CARRY = [0x0b4b, 0x0b4c, 0x0b59, 0x0f1c, 0x0f1d, 0x0f2e, 0x1748, 0x1749, 0x1758, 0x2311, 0x2382, 0x2383,
              0x2384, 0x2385, 0x2394, 0x2395, 0x2499,
-             0x0b53, 0x22ec, 0x23ef, 0x2400, 0x2405, 0x248f, 0x24cf, 0x24d6]
+             0x0b53, 0x22ec, 0x23ef, 0x2400, 0x2405, 0x248f, 0x24cf, 0x24d6,
+             # RENDER-ITEMS-002T (part 21)
+             0x0f1f, 0x0f20]
 
 EXIT_TYPES = [
     0x0b10, 0x0b12, 0x0b22, 0x1569, 0x156a, 0x156b, 0x156c, 0x156d, 0x156e, 0x156f,
@@ -1175,7 +1180,7 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=Fals
         groups.append(('omitted-ancient', []))
     if t == 0x0eee and other == [('gl', 'glPushMatrix', []), ('gl', 'glPopMatrix', [])]:
         other = []
-    if t in OWNER_FX_TYPES or t in PRE_FX_TYPES:
+    if t in OWNER_FX_TYPES or t in PRE_FX_TYPES or t in POST_FX_TYPES:
         other = [c for c in other if c[0] != 'effect']
     if not r['ok'] or other or len(groups) != len(generic):
         return None
@@ -1278,7 +1283,7 @@ def infer(samples):
 ALL_TYPES = (REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES + RANKED_TYPES + EXPANDED_TYPES +
              NEXT_TYPES + CLOCK_TYPES + CLUSTER_TYPES + WING_TYPES + VISIBLE_TYPES + SCALAR_TYPES +
              CHAIN_TYPES + LEVEL_TYPES + COLOUR_TYPES + CARRY_TYPES + QUALITY_TYPES + PRODUCT_TYPES + DERIVED_TYPES +
-             OWNER_FX_TYPES + PRE_FX_TYPES)
+             OWNER_FX_TYPES + PRE_FX_TYPES + POST_FX_TYPES)
 
 
 def fit(wa, lib, t, scalars=False, carry=False, extended=False):
