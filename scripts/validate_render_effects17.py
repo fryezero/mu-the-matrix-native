@@ -82,8 +82,8 @@ RASTER_MUTANTS = [
     ('raster_low_edge', 'y0 = fv < 0.0 ? 0 : (fv >= h - 1 ? h - 1 : (long long)fv);',
      'y0 = fv < 0.0 ? h - 1 : (fv >= h - 1 ? h - 1 : (long long)fv);'),
     ('raster_no_clamp', '    if (clamp) {\n        /* RENDER-EFFECTS-017', '    if (0) {\n        /* RENDER-EFFECTS-017'),
-    ('raster_high_edge', 'x0 = fu < 0.0 ? 0 : (fu >= w - 1 ? w - 1 : (long long)fu);',
-     'x0 = fu < 0.0 ? 0 : (fu >= w ? w - 1 : (long long)fu);'),
+    ('raster_far_tap', 'y1 = fv + 1.0 < 0.0 ? 0 : (fv + 1.0 >= h - 1 ? h - 1 : (long long)fv + 1);',
+     'y1 = fv + 1.0 < 0.0 ? 0 : (fv + 1.0 >= h - 1 ? 0 : (long long)fv + 1);'),
 ]
 
 
