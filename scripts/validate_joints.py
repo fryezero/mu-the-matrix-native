@@ -386,6 +386,11 @@ def heal_sprite_tail(calls):
     return out
 
 
+def wing_rand_values(rng, n=600):
+    """RENDER-ITEMS-002U: rand() answers for the wing streaks' move: multiples of 8 often (the 0x7f5a branch)."""
+    return [rng.choice([0, 8, 512, 1024, 4096, 0x7ff8, rng.randrange(0, 0x8000)]) for _ in range(n)]
+
+
 def rand_values(rng, n=600):
     return [rng.choice([0, 1, 2, 3, 5, 89, 90, 359, 360, 0x7fff, rng.randrange(0, 0x8000)]) for _ in range(n)]
 
@@ -506,13 +511,13 @@ def random_joint(rng, kind):
     j.target = rng.choice([-1, 0, 1, 1])
     j.field_64 = rng.choice([0, 1, 2])
     if kind in WING_KINDS:   # RENDER-ITEMS-002U
-        j.scale = wing_width(rng)
+        j.scale = f32(50.0) if rng.random() < 0.5 else wing_width(rng)
         j.max_tails = rng.choice([10, 10, 10, rng.randrange(2, 51)])
         j.lifetime = rng.choice([0, 0, 0, 1, rng.randrange(-1, 21)])
         j.velocity = f32(rng.choice([50.0, 50.0, 0.0, vc.rfloat(rng, 0.2, 100.0)]))
         j.render_type = 1
         j.jitter[1] = f32(rng.choice([0.0, 0.0, vc.rfloat(rng, 0.1, 20.0)]))
-        if rng.random() < 0.6:   # the head at (or near) +0x58, as CreateJoint leaves it: the stop and the particles
+        if rng.random() < 0.8:   # the head at (or near) +0x58, as CreateJoint leaves it: the stop and the particles
             for k in range(3):
                 j.target_position[k] = f32(j.position[k] + rng.choice([0.0, 0.0, vc.rfloat(rng, 0.05, 200.0)]))
             if rng.random() < 0.5:
@@ -569,7 +574,8 @@ def family_joint_move(m, lib, rng, cases, report, negatives):
         wall = rng.choice([0, 0x100, 0x104, 4])
         hero_obj = rng.choice([-1, 0, 1])
         world_time = world_time_value(rng)
-        case = Case(rng, objects, rand_values(rng), vc.rfloat(rng, 0.1, 400.0), world_time)
+        case = Case(rng, objects, wing_rand_values(rng) if kind in WING_KINDS else rand_values(rng),
+                    vc.rfloat(rng, 0.1, 400.0), world_time)
         raw, mask = joint_to_bytes(j, ALL_NAMES | {'target'})
         record = am.Region('joint', JOINT_POOL, raw, mask)
         hero_char = (object_address(hero_obj) - 0x3254) & 0xffffffff if hero_obj >= 0 else 0x5000000
