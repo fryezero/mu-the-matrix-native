@@ -666,14 +666,14 @@ MUTANTS = {
                           '        v->delta[0] = 0.0f;\n        v->count = 0;\n        return;\n    }\n    if (v->count <= 0)'),
     'stretch_factor': ('d > s->length * 20.0f', 'd > s->length * 10.0f'),
     'stretch_min': ('} else if (s->min_length > d) {', '} else if (0) {'),
-    'sphere_tiny': ('if (0.01f > length) {', 'if (0.001f > length) {'),
+    'sphere_push': ('float f = s->radius - length;', 'float f = s->radius - length * 1.01f;'),
     'sphere_swizzle': ('{s->offset[2], -s->offset[1], s->offset[0]}', '{s->offset[0], -s->offset[1], s->offset[2]}'),
     'fixed_swizzle': ('p[1] = -q[1];', 'p[1] = q[1];'),
     'fixed_taper': ('width = width * 0.6f;', 'width = width * 0.7f;'),
     'create_taper': ('t = t + 0.6f;', 't = t + 0.5f;'),
     'create_y': ('p[1] = 20.0f;', 'p[1] = 10.0f;'),
-    'parabola': ('float drop = 10.0f * f;\n            drop = drop * f;\n            p[1] = p[1] - drop;\n            break;',
-                 'float drop = 12.0f * f;\n            drop = drop * f;\n            p[1] = p[1] - drop;\n            break;'),
+    'parabola': ('float drop = 10.0f * f;\n                drop = drop * f;\n                p[1] = p[1] - drop;\n                break;',
+                 'float drop = 12.0f * f;\n                drop = drop * f;\n                p[1] = p[1] - drop;\n                break;'),
     'spring_diag_row': ('if (yy > 1) {', 'if (yy > 0) {'),
     'spring_min': ('set_spring(c, n++, i, i + 1, d * 0.8f, d, 3);', 'set_spring(c, n++, i, i + 1, d * 0.75f, d, 3);'),
     'spring_flags': ('vertical |= 4;', 'vertical |= 0;'),
@@ -681,7 +681,7 @@ MUTANTS = {
     'phase_step': ('g->logic_steps / 10;', 'g->logic_steps / 12;'),
     'phase_wrap': ('(int32_t)((uint32_t)q * 101u)', '(int32_t)((uint32_t)q * 100u)'),
     'wind_angle': ('float a = 180.0f + h->angles[2];', 'float a = h->angles[2];'),
-    'wind_y': ('g->wind_vector[1] = nw * co;', 'g->wind_vector[1] = c->wind * co;'),
+    'wind_y': ('const float nw = -c->wind;', 'const float nw = c->wind;'),
     'world_wind': ('g->world == 0x37', 'g->world == 0x38'),
     'uv_clamp': ('t > 0.99f ? 0.99f : t', 't > 0.999f ? 0.999f : t'),
     'back_winding': ('render_vertex(c, sink, x, y + 1);\n                render_vertex(c, sink, x + 1, y + 1);\n                render_vertex(c, sink, x + 1, y);',
@@ -692,9 +692,9 @@ MUTANTS = {
     'sparkle_offset': ('out[1].uv_offset[0] = 1.0f;', 'out[1].uv_offset[0] = 0.5f;'),
     'black_spheres': ('case 0x2394: case 0x2395:   /* 0x0135c419: Item\\texture\\BlackCloak_3.tga (0x846b) */\n        mu_cloth_create(&out[0], h, 19, 0.0f, 20.0f, -10.0f, 10, 10, 140.0f, 130.0f, 0x846b, 0x846b, 0x1005);\n        mu_cloth_add_sphere(&out[0], -10.0f, -2.0f, 18.0f, 25.0f, 17);',
                       'case 0x2394: case 0x2395:   /* 0x0135c419: Item\\texture\\BlackCloak_3.tga (0x846b) */\n        mu_cloth_create(&out[0], h, 19, 0.0f, 20.0f, -10.0f, 10, 10, 140.0f, 130.0f, 0x846b, 0x846b, 0x1005);\n        mu_cloth_add_sphere(&out[0], -10.0f, -2.0f, 18.0f, 26.0f, 17);'),
-    'wind_clamp': ('-0.2f > g->wind ? -0.2f : g->wind;\n    g->wind = 1.0f > low', '-0.3f > g->wind ? -0.3f : g->wind;\n    g->wind = 1.0f > low'),
+    'wind_clamp': ('(-0.2f > g->wind ? -0.2f : g->wind) : 1.0f', '(-0.3f > g->wind ? -0.3f : g->wind) : 1.0f'),
     'gate_class': ('base == 0xd ||', 'base == 0xe ||'),
-    'gate_c0e': ('if (in->c_0e == 0 || (in->c_0e == 1 && in->own_type == 0xa91))', 'if (in->c_0e <= 1)'),
+    'gate_c0e': ('if (in->c_0e == 0 || (in->c_0e == 1 && in->own_type == 0xa91))', 'if (in->c_0e == 0 || in->c_0e == 2)'),
     'gate_world': ("in->world == 0x35 || in->world == 0x61", "in->world == 0x35"),
     'gate_pk': ('out->light[1] = 0.1f;', 'out->light[1] = 0.2f;'),
     'gate_glow': ('if (index >= 0x211 && index <= 0x21b)', 'if (index >= 0x211 && index <= 0x215)'),
@@ -754,13 +754,16 @@ def main(argv=None):
     parser.add_argument('--mutations', action='store_true')
     parser.add_argument('--text')
     parser.add_argument('--data')
+    parser.add_argument('--flag', help='captured trig dispatch flag 0x0bdd1cc8')
+    parser.add_argument('--feature', help='captured math feature word 0x01cf6618')
+    parser.add_argument('--section3', help='initialized section-3 bytes (the gravity constants at 0x01cf0eb0)')
     args = parser.parse_args(argv)
     text = pins.TEXT.read(args.text, exit=True)
     data = pins.DATA.read(args.data, exit=True)
-    flag = pins.FLAG.read(exit=True)
-    feature = pins.FEATURE.read(exit=True)
+    flag = pins.FLAG.read(args.flag, exit=True)
+    feature = pins.FEATURE.read(args.feature, exit=True)
     world_args = (text, data, flag, feature)
-    SECTION3_INIT['bytes'] = pins.EFFECTS_INIT.read(exit=True)
+    SECTION3_INIT['bytes'] = pins.EFFECTS_INIT.read(args.section3, exit=True)
     import hashlib
     work = Path(tempfile.mkdtemp(prefix='item-cloak-'))
     started = clock.time()
