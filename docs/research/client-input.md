@@ -121,12 +121,22 @@ join/tick journal specified by LIVE-PLAY-001. Windowed slow frames do not become
 | Action | Meaning |
 |---|---|
 | `key:VK`, `down:VK`, `up:VK` | Tap, press, release. VK is decimal/0x hex, 1..255, or one alphabetic key. Digits use numeric VK, e.g. 49 for the 1 key |
-| `move:X,Y` | Drawable-pixel mouse position, signed 16-bit coordinates |
+| `move:X,Y` | Window-point mouse position, signed 16-bit coordinates (APP-POLISH-007; see below) |
 | `ldown:X,Y`, `lup:X,Y`, `rdown:X,Y`, `rup:X,Y` | Explicit button edge and position |
 | `wheel:N` | Signed wheel detents, -100..100 |
 | `text:UTF8` | Committed text; percent-encode spaces, semicolons, #, percent signs and non-ASCII bytes |
 | `compose:CURSOR:UTF8` | Preedit; cursor is a code-point index, -1 to cancel, percent encoding as above |
 | `focus:0`, `focus:1` | Lost/gained focus; loss clears held input and preedit |
+
+**Coordinate space (APP-POLISH-007).** Mouse positions (`move`, `ldown`, `lup`, `rdown`, `rup`, and mu-client's
+`click:X,Y`/`dblclick:X,Y`) are **window points**, the space of a real mouse event. A window front end multiplies
+them by its drawable pixels per point, exactly as it does a real event (`input_sdl.h`: `(int)(x * scale)`).
+Headless runs and 1x displays use scale 1, so a script means the same pixels there as before. In a Retina window
+(scale 2) one script hits the same target as on a 1x display. Before APP-POLISH-007 the positions were drawable
+pixels, so a Retina window needed doubled numbers (APP-REFRESH-007). Positions mu-client computes itself
+(`click:row:N`, `click:server:N`, the character-select controls) are already drawable pixels and are not scaled.
+mu-client's windowed `event:VERB:X,Y` (VERB `move`, `ldown`, `lup`, `rdown`, `rup`) instead queues an SDL mouse
+event at window point X,Y, which the event loop handles like the operating system's event.
 
 For example:
 

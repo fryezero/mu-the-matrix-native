@@ -188,7 +188,10 @@ static void owner_transform(void *context, int32_t bone, const float local[3], f
 /* The rank-5 block passes a zero angle; the RENDER-ITEMS-002Q programs pass theirs (OBJECT +0x164 or a
  * normalized bone difference). A request no native kind creates counts as refused. RENDER-ITEMS-002R: the
  * pre-draw bone sprites pass 0x0150e746's rotation and blend words; a particle owned by the item's OBJECT has
- * no native owner record (mu_world_particles_create_owned takes attached-object indices) and is refused. */
+ * no native owner record (mu_world_particles_create_owned takes attached-object indices) and is refused.
+ * RENDER-ITEMS-002S: CreateJoint requests go to the joint pool. The client's target object is the item's OBJECT,
+ * which has no native object index, so the joint gets none (-1: it takes the target position argument); kinds
+ * the pool does not reconstruct return < 0 and count as refused. */
 static void owner_emit(void *context, const mu_rc_owner_fx *fx)
 {
     owner_services *o = context;
@@ -197,7 +200,10 @@ static void owner_emit(void *context, const mu_rc_owner_fx *fx)
         o->refused++;
         return;
     }
-    if (fx->kind == MU_RC_OWNER_PARTICLE) {
+    if (fx->kind == MU_RC_OWNER_JOINT) {
+        created = mu_world_particles_joint(o->particles, fx->bitmap, fx->position, fx->target, fx->angle,
+                                           fx->subtype, -1, fx->scale, 0xffff, 0, 0, 0xffff, 0, NULL) >= 0;
+    } else if (fx->kind == MU_RC_OWNER_PARTICLE) {
         created = mu_world_particles_create(o->particles, fx->bitmap, fx->position, fx->angle, fx->light,
                                             fx->subtype, fx->scale);
     } else if (o->particles->sprites) {
@@ -281,7 +287,7 @@ static int draw_item(const mu_model *model, const mu_renderchar_glow *glow, cons
     owner_services services = {model, owner, env->particles, 0, 0, env->item_bones};
     mu_rc_owner_host host = {owner && owner->bones ? owner->bone_count : 0, -1, owner_transform, owner_random,
                              owner_emit, &services, model->bmd->bone_count, {0.0f, 0.0f, 0.0f},
-                             NULL, NULL, NULL, 0};
+                             NULL, NULL, NULL, 0, {0.0f, 0.0f, 0.0f}};
     /* RENDER-ITEMS-002R: RenderObjDraw's own case creates effects before the body draws. They need the
      * particle pools; without the item's pose every item-bone request is refused (rand order is kept). The
      * TestFrustrum2D flag comes from the caller (RENDER-ITEMS-CALLERS-001; default in view). */
@@ -291,6 +297,8 @@ static int draw_item(const mu_model *model, const mu_renderchar_glow *glow, cons
         host.item_transform = item_transform;
         host.refuse = item_refuse;
         host.visible = !env->item_out_of_view;
+        /* RENDER-ITEMS-002S: OBJECT +0x158. The native item has no OBJECT of its own; its model origin stands in. */
+        memcpy(host.position, model->params.origin, sizeof host.position);
         if (!owner)
             host.transform = NULL;   /* no OBJECT owner bones: the owner programs stay off */
         if (!env->item_bones)

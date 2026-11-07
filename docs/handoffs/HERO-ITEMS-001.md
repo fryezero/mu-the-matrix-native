@@ -6,7 +6,7 @@ workflow. No full gate in the lane (2026-11-04 test budget).
 
 Scope: the hero's worn items get their real item types, so item effects (part 18's pre-draw programs, level glows,
 link effects) reach the hero as they reach other players.
-[Finding](../research/client-render-items.md#part-20-the-heros-part-slots-from-its-equipment-hero-items-001).
+[Finding](../research/client-render-items.md#part-21-the-heros-part-slots-from-its-equipment-hero-items-001).
 
 ## Result
 

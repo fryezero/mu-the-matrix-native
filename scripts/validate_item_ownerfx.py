@@ -42,7 +42,8 @@ class Fx(C.Structure):
     _fields_ = [('kind', C.c_int32), ('bitmap', C.c_int32), ('subtype', C.c_int32),
                 ('position', C.c_float * 3), ('light', C.c_float * 3), ('scale', C.c_float),
                 ('angle', C.c_float * 3),
-                ('rotation', C.c_float), ('blend', C.c_int32), ('owner', C.c_int32)]   # RENDER-ITEMS-002R
+                ('rotation', C.c_float), ('blend', C.c_int32), ('owner', C.c_int32),   # RENDER-ITEMS-002R
+                ('target', C.c_float * 3)]   # RENDER-ITEMS-002S: CreateJoint's target position
 
 
 TRANSFORM = C.CFUNCTYPE(None, C.c_void_p, C.c_int32, C.POINTER(C.c_float), C.POINTER(C.c_float))
@@ -57,7 +58,8 @@ class Host(C.Structure):
                 ('random', RANDOM), ('emit', EMIT), ('context', C.c_void_p),
                 ('item_bones', C.c_int32), ('angle', C.c_float * 3),
                 # RENDER-ITEMS-002R pre-draw programs (NULL here: no item host)
-                ('bone_named', NAMED), ('item_transform', ITEM_TRANSFORM), ('refuse', EMIT), ('visible', C.c_int32)]
+                ('bone_named', NAMED), ('item_transform', ITEM_TRANSFORM), ('refuse', EMIT), ('visible', C.c_int32),
+                ('position', C.c_float * 3)]   # RENDER-ITEMS-002S: OBJECT +0x158
 
 
 def u(x):
@@ -250,7 +252,7 @@ def owner_cases(wa, lib, plib, per_type, refuse=False):
 
 MUTANTS = {
     'gate-modulus': ('owner_random(h) % (int32_t)o->a != 0', 'owner_random(h) % ((int32_t)o->a + 1) != 0'),
-    'gate-target': ('pc = (int)o->k;', 'pc = (int)o->k + 1;'),
+    'gate-target': ('o->a != 0)\n                pc = (int)o->k;', 'o->a != 0)\n                pc = (int)o->k + 1;'),
     'range-low': ('fx_trunc(s * lo), b', 'fx_trunc(s * lo) + 1, b'),
     # The two clamps cannot change a result for the programs' constant bounds (truncation keeps a/steps >= lo
     # and b/steps <= hi), so they have no mutant here; the span is the reachable part.

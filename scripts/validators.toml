@@ -2863,6 +2863,23 @@ mismatches = 0
 equivalent = 0
 "mutants_caught" = {len = 14}
 
+[validate_app_polish7]
+test = "native/tests/test_app_polish7.py::AppPolish7.test_original_instructions"
+pins = ["text", "data"]
+needs = ["cc"]
+families = ["join", "seed"]
+cases = 5120
+cases_at = "families.*.cases"
+mutants = 10
+mutants_at = "mutants_caught"
+note = "APP-POLISH-007; the join answer's vitals block 0x0124d1bf..0x0124d365 against native/session/domains/hero.c's hero_join_vitals and mu_dom_hero_seed with fixture/hero_join.h, compiled from their source text"
+args = ["--text", "{text}", "--data", "{data}", "--cases", "4096", "--mutants", "--out", "{report}"]
+[validate_app_polish7.expect]
+"families.*.mismatches" = 0
+mismatches = 0
+equivalent = 0
+"mutants_caught" = {len = 10}
+
 [validate_app_polish4]
 test = "native/tests/test_app_polish4.py::AppPolish4.test_original_instructions"
 pins = ["text", "data", "lang3"]
@@ -3130,5 +3147,19 @@ mutants_at = "mutants"
 build = ["reconstructed/objects", "reconstructed/combat", "reconstructed/particles"]
 args = ["--cases", "20", "--mutations", "--output", "{report}"]
 [validate_render_effects18.expect]
+all_equal = true
+all_mutants_caught = true
+
+[validate_render_effects19]
+test = "native/tests/test_render_effects19.py::ClientComparison.test_original_instructions_and_compiled_mutants"
+pins = ["text", "data"]
+families = ["map_update", "ta_pt_create", "ta_pt_move", "ta_pt_render"]
+cases = 260
+mutants = 25
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects", "reconstructed/particles"]
+args = ["--cases", "20", "--mutations", "--output", "{report}"]
+[validate_render_effects19.expect]
 all_equal = true
 all_mutants_caught = true

@@ -194,6 +194,13 @@ int world_rt_travel(mu_world_rt *a, const mu_teleport *t);
 int world_rt_apply_equipment(mu_world_rt *a, char *error, size_t error_size);
 /* APP-POLISH-005 (parts/skills.c): the skills/progress fixture lines of a world fixture scenario. */
 void world_rt_skills_fixture_lines(const mu_world_rt *a, FILE *out);
+/* APP-POLISH-007 (parts/skills.c): the seed's offline join vitals for the hero of class class_byte, from the same
+ * join data the fixture lines give the progress server (fixture/hero_join.h). */
+struct mu_session_seed;
+void world_rt_hero_join(const mu_world_rt *a, struct mu_session_seed *seed);
+/* APP-POLISH-007: the combat fixture's hero HP when no --hero-hp is given: the hero's join HP maximum. */
+#define MU_WORLD_HERO_HP_JOIN (-1)
+int32_t world_rt_hero_join_hp(const mu_world_rt *a);
 /* APP-POLISH-005 (input.c): one frame's live ground-skill effects into the report maxima. */
 void world_rt_effects_sample(mu_world_rt *a);
 /* RENDER-ITEMS-TEX-002: the hero's loaded items [first, last) take the client's item texture rule (type from the

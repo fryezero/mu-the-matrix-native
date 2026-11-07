@@ -111,7 +111,10 @@ int mu_rc_item_draws_context(const mu_rc_item *item, mu_rc_model *model,
  * Effects are emitted in client order, so a caller that creates them at once
  * keeps the original random stream. */
 enum { MU_RC_OWNER_PARTICLE = 1,   /* CreateParticle 0x0168fafd(bitmap, position, zero angle, light, subtype, scale, 0, 0) */
-       MU_RC_OWNER_SPRITE = 2 };   /* CreateSprite 0x01692eb7(bitmap, position, scale, light, OBJECT, 0, 0, 4, {1,1,1}) */
+       MU_RC_OWNER_SPRITE = 2,     /* CreateSprite 0x01692eb7(bitmap, position, scale, light, OBJECT, 0, 0, 4, {1,1,1}) */
+       /* RENDER-ITEMS-002S: CreateJoint 0x0153b02c(bitmap, position, target, angle, subtype, OBJECT, scale, -1, 0, 0,
+        * -1, 0, -1, 0); owner = 1 (the OBJECT is the joint's target object). */
+       MU_RC_OWNER_JOINT = 3 };
 typedef struct mu_rc_owner_fx {
     int32_t kind, bitmap, subtype;
     float position[3], light[3], scale;
@@ -120,6 +123,7 @@ typedef struct mu_rc_owner_fx {
      * arguments 7 and 8; 0 elsewhere) and owner = 1 for a CreateParticle whose owner is the OBJECT. */
     float rotation;
     int32_t blend, owner;
+    float target[3];         /* RENDER-ITEMS-002S: CreateJoint's target position (argument 3) */
 } mu_rc_owner_fx;
 typedef struct mu_rc_owner_host {
     int32_t bones;           /* OBJECT model bone count; <= 35 stops before the effects */
@@ -142,6 +146,7 @@ typedef struct mu_rc_owner_host {
     /* A request whose item bone is outside 0..item_bones-1 (the client reads another matrix): not created. */
     void (*refuse)(void *context, const mu_rc_owner_fx *fx);
     int32_t visible;         /* [ebp-0xd]: TestFrustrum2D 0x016ccce7(OBJECT x * 0.01, y * 0.01, -20) */
+    float position[3];       /* RENDER-ITEMS-002S: OBJECT +0x158 (pre-draw programs read it) */
 } mu_rc_owner_host;
 /* RENDER-ITEMS-002R: 1 when the type's RenderObjDraw case creates effects before the body draws (a pre-draw
  * program of item_owner_fx.h), else 0. */

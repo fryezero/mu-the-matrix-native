@@ -86,13 +86,15 @@ class Ops(ctypes.Structure):
 
 def build_library(folder, source_text=None):
     folder = Path(folder)
-    for name in ('map_effects.c', 'map_effects.h', 'object_render.h', 'objects.h'):
+    # RENDER-EFFECTS-019: map_effects.c builds its per-frame matrix on muun_effects.c (0x0129f671)
+    for name in ('map_effects.c', 'map_effects.h', 'object_render.h', 'objects.h', 'muun_effects.c', 'muun_effects.h'):
         (folder/name).write_text((SOURCE/name).read_text())
     if source_text is not None:
         (folder/'map_effects.c').write_text(source_text)
     out = folder/('libmapeffects.' + SUFFIX)
     subprocess.run(['clang', '-std=c11', '-O2', '-fPIC', '-shared', '-Wall', '-Wextra', '-Werror', '-Wconversion',
-                    '-ffp-contract=off', '-I', str(folder), str(folder/'map_effects.c'), '-o', str(out)],
+                    '-ffp-contract=off', '-I', str(folder), str(folder/'map_effects.c'), str(folder/'muun_effects.c'), '-lm',
+                    '-o', str(out)],
                    check=True, capture_output=True)
     lib = ctypes.CDLL(str(out))
     lib.mu_map_effects_attach.argtypes = [ctypes.POINTER(Table), ctypes.c_int32, ctypes.POINTER(ObjWorld),

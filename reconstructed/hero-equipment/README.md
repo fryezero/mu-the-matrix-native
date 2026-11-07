@@ -3,7 +3,7 @@
 Platform-neutral C for the routine that writes the hero's CHARACTER part slots (the type, level, option and ext
 bytes RenderCharacter and RenderLinkItem read) from the hero's own equipped items, the counterpart of the
 players' ChangeCharacterExt in [../players](../players/README.md). Finding:
-[docs/research/client-render-items.md part 20](../../docs/research/client-render-items.md#part-20-the-heros-part-slots-from-its-equipment-hero-items-001).
+[docs/research/client-render-items.md part 21](../../docs/research/client-render-items.md#part-21-the-heros-part-slots-from-its-equipment-hero-items-001).
 
 | Routine | Address | Function | Status |
 |---|---|---|---|

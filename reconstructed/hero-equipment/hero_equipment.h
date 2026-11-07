@@ -1,6 +1,6 @@
 #ifndef MU_HERO_EQUIPMENT_H
 #define MU_HERO_EQUIPMENT_H
-/* HERO-ITEMS-001: the hero's part slots from the hero's equipment (docs/research/client-render-items.md part 20).
+/* HERO-ITEMS-001: the hero's part slots from the hero's equipment (docs/research/client-render-items.md part 21).
  *
  * Other players' CHARACTER part slots come from the viewport's 18 equipment bytes (ChangeCharacterExt 0x0137b68c,
  * reconstructed/players). The hero's come from its own inventory: CharacterMachine [0x01d1df18] keeps the equipped

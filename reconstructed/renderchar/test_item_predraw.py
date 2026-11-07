@@ -1,4 +1,5 @@
-"""Part 18 bodies (RENDER-ITEMS-002R): pre-draw effect programs (RenderObjDraw's own type case, item bones)."""
+"""Part 18 bodies (RENDER-ITEMS-002R): pre-draw effect programs (RenderObjDraw's own type case, item bones).
+Part 19 (RENDER-ITEMS-002S): integer registers, runtime branches, CreateJoint and the OBJECT position."""
 import ctypes
 import json
 import os
@@ -26,7 +27,7 @@ class ItemPreDraw(unittest.TestCase):
     item = base.RenderCharLibrary.item
     draws = base.RenderCharLibrary.draws
 
-    def run_item(self, t, names, count, values=(5,), visible=1, time=0.0, host=True):
+    def run_item(self, t, names, count, values=(5,), visible=1, time=0.0, host=True, position=(0.0, 0.0, 0.0)):
         """Draws, requests and refusals of one item with identity item bones (bone k translated by
         (k, 2k, 3k)), model scale 1 and origin (100, 200, 300)."""
         effects, drawn = [], []
@@ -46,16 +47,21 @@ class ItemPreDraw(unittest.TestCase):
                 moved = F32(local[k] + F32(bone * (k + 1)))
                 out[k] = F32(moved + F32((100.0, 200.0, 300.0)[k])) if translate else moved
 
+        self.joints = []
+
         @ownerfx.EMIT
         def emit(_, fx):
             f = fx.contents
             effects.append((f.kind, f.bitmap, tuple(f.position), tuple(f.light), f.scale, f.rotation, f.blend))
+            if f.kind == 3:
+                self.joints.append((f.bitmap, f.subtype, f.owner, tuple(f.target), tuple(f.angle), f.scale))
 
         @ownerfx.EMIT
         def refuse(_, fx):
             effects.append(('refused', fx.contents.kind, fx.contents.bitmap))
         hosted = ownerfx.Host(0, -1, ownerfx.TRANSFORM(), rand, emit, None, count, (ctypes.c_float * 3)(),
-                              named, item_transform if host else predraw.ITEM_TRANSFORM(), refuse, visible)
+                              named, item_transform if host else predraw.ITEM_TRANSFORM(), refuse, visible,
+                              (ctypes.c_float * 3)(*position))
         context = self.v.CContext(0, -1, self.v.RANDOM_FN(lambda _: rand(None)), None)
         it, model = self.item(type=t, time=time), self.v.CModel()
         out, n = (self.v.CDraw * 32)(), ctypes.c_int32()
@@ -64,7 +70,7 @@ class ItemPreDraw(unittest.TestCase):
         return status, list(out[:n.value]), effects, len(drawn)
 
     def test_admissions_and_existing_domain(self):
-        self.assertEqual(len(fxgen.PRE_FX_TYPES), 26)
+        self.assertEqual(len(fxgen.PRE_FX_TYPES), 40)
         earlier = set(gen.ALL_TYPES) - set(fxgen.PRE_FX_TYPES)
         self.assertFalse(set(fxgen.PRE_FX_TYPES) & earlier)
         for t in fxgen.PRE_FX_TYPES:
@@ -103,6 +109,63 @@ class ItemPreDraw(unittest.TestCase):
         self.assertEqual((status, effects, used), (0, [], 0))
         status, plain = self.draws(self.item(type=0x1311))
         self.assertEqual([bytes(d) for d in draws], [bytes(d) for d in plain])
+
+    def test_random_bone_count(self):
+        """0x23ef: behind rand() % 15 == 0, one particle 0x8180 at bone rand() % bone count (idiv on the model's
+        +0x22), never outside the skeleton."""
+        a = self.run_item(0x23ef, [], 64, values=(0, 13))
+        b = self.run_item(0x23ef, [], 64, values=(0, 14))
+        c = self.run_item(0x23ef, [], 64, values=(0, 13 + 64))
+        self.assertEqual((a[0], a[3]), (0, 2))
+        self.assertEqual(self.run_item(0x23ef, [], 64, values=(1,))[3], 1)   # the gate skips the particle
+        self.assertFalse([e for e in a[2] if e[0] == 'refused'])
+        self.assertEqual(a[2], c[2])
+        moved = [(x, y) for x, y in zip(a[2], b[2]) if x != y]
+        self.assertEqual(len(moved), 1)
+        self.assertEqual(tuple(F32(q - p) for p, q in zip(moved[0][0][2], moved[0][1][2])), (1.0, 2.0, 3.0))
+
+    def test_joint_loop(self):
+        """0x22ec: CreateJoint 0x7f7c/0xe then 0x7fd3/4 in each of ten loop steps, the OBJECT as target object;
+        a joint's target position is the other joint's start (the two TransformPosition results swap)."""
+        status, _, effects, used = self.run_item(0x22ec, [], 64)
+        self.assertEqual((status, used), (0, 0))
+        self.assertEqual([j[:3] for j in self.joints], [(0x7f7c, 14, 1), (0x7fd3, 4, 1)] * 10)
+        starts = [e[2] for e in effects if e[0] == 3]
+        for k in range(0, 20, 2):
+            self.assertEqual(self.joints[k][3], starts[k + 1])
+            self.assertEqual(self.joints[k + 1][3], starts[k])
+        self.run_item(0x22ec, [], 20)
+        self.assertLess(len(self.joints), 20)   # bones 20..30 are outside a 20-bone skeleton: refused
+
+    def test_integer_clock(self):
+        """0x0b4f: the bone sprites' rotation is (float)((int)time % 4000) / 4000 * 360 (cvttss2si, idiv)."""
+        turns = {}
+        for time in (0.0, 1.0, 1000.0, 1000.75, 4000.0, 4001.0):
+            status, _, effects, _ = self.run_item(0x0b4f, ['a1', 'b1'], 8, time=time)
+            self.assertEqual(status, 0)
+            turns[time] = {e[5] for e in effects}
+        self.assertEqual(turns[0.0], {0.0, 45.0})           # two sprites add 45
+        self.assertEqual(turns[1000.0], {90.0, 135.0})
+        self.assertEqual(turns[1000.75], turns[1000.0])     # truncated
+        self.assertEqual(turns[4001.0], turns[1.0])
+        self.assertIn(F32(F32(F32(1.0) / F32(4000.0)) * F32(360.0)), turns[1.0])
+
+    def test_rotated_sprite_branch(self):
+        """0x230c: a CreateSprite with rotation 0.5, then rand() % 15 >= 8 adds two particles 0x7f66/5
+        (cmp edx, 8; jl skips them)."""
+        taken = self.run_item(0x230c, [], 64, values=(8,))
+        skipped = self.run_item(0x230c, [], 64, values=(7,))
+        for r in (taken, skipped):
+            self.assertEqual(len([e for e in r[2] if e[0] == 2 and e[5] == 0.5]), 1)
+        self.assertEqual([e[1] for e in taken[2] if e[0] == 1], [0x7f66, 0x7f66])
+        self.assertEqual([e for e in skipped[2] if e[0] == 1], [])
+
+    def test_object_position(self):
+        """0x26f8: its sprites sit at the OBJECT position (+0x158) plus item-bone offsets."""
+        a = self.run_item(0x26f8, [], 8)[2]
+        b = self.run_item(0x26f8, [], 8, position=(10.0, 20.0, 30.0))[2]
+        self.assertTrue(a and len(a) == len(b))
+        self.assertNotEqual([e[2] for e in a], [e[2] for e in b])
 
     @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'original captures are opt-in')
     def test_original_instructions(self):

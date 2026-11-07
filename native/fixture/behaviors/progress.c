@@ -28,6 +28,7 @@
 #include <string.h>
 
 #include "../../../reconstructed/progress/progress.h"
+#include "../progress_demo.h"
 
 #define PENDING 64
 
@@ -48,44 +49,16 @@ typedef struct fx_progress {
     int npending;
 } fx_progress;
 
-/* ---- DEMO tables (core/mu_progress.c) ------------------------------------------------------- */
-
-static const int16_t START[16][5] = {
-    {18, 18, 15, 30, 0}, {28, 20, 25, 10, 0}, {22, 25, 20, 15, 0}, {26, 26, 26, 26, 0},
-    {26, 20, 20, 15, 25}, {21, 21, 18, 23, 0}, {32, 27, 25, 20, 0}, {30, 30, 25, 24, 0},
-    {13, 18, 14, 40, 0}, {28, 30, 15, 10, 0}, {20, 18, 20, 30, 0}, {15, 20, 15, 40, 0},
-    {15, 20, 15, 40, 0}, {25, 28, 15, 10, 0}, {15, 25, 15, 30, 0}, {28, 22, 20, 12, 0}};
-
-static const int16_t MAXIMA[16][6] = {
-    {600, 10, 20, 600, 20, 20}, {1100, 20, 30, 200, 5, 10}, {800, 10, 20, 300, 15, 15}, {1100, 10, 20, 600, 10, 20},
-    {900, 15, 20, 400, 10, 15}, {700, 10, 20, 400, 15, 15}, {1000, 13, 20, 400, 10, 15}, {1100, 20, 30, 200, 5, 10},
-    {600, 10, 20, 600, 20, 20}, {1100, 20, 30, 200, 5, 10}, {800, 10, 20, 400, 15, 15}, {600, 10, 20, 600, 20, 20},
-    {600, 10, 20, 600, 20, 20}, {1100, 20, 30, 200, 5, 10}, {700, 10, 20, 500, 15, 20}, {1100, 20, 30, 200, 5, 10}};
+/* ---- DEMO tables (core/mu_progress.c; START and the maxima in progress_demo.h) ---------------- */
 
 static const uint8_t SPEED_DIV[16][2] = {{20, 10}, {15, 20}, {50, 50}, {15, 20}, {10, 10}, {20, 20}, {9, 9}, {15, 15},
                                          {20, 10}, {15, 20}, {15, 15}, {20, 10}, {20, 10}, {15, 20}, {20, 10}, {15, 20}};
-
-static void demo_maxima(int32_t cls, int32_t level, const int32_t s[5], int32_t out[4])
-{
-    const int16_t *m = MAXIMA[cls & 15];
-    const int16_t *st = START[cls & 15];
-    int32_t lv = level > 1 ? level - 1 : 0;
-    out[0] = m[0] + lv * m[1] / 10 + (s[2] - st[2]) * m[2] / 10;
-    out[1] = m[3] + lv * m[4] / 10 + (s[3] - st[3]) * m[5] / 10;
-    out[2] = (s[0] + s[1] + s[2] + s[3] + s[4]) * 6 / 10 + level * 3;
-    out[3] = s[0] * 15 / 100 + s[1] * 2 / 10 + s[2] * 3 / 10 + s[3];
-    for (int i = 0; i < 4; i++)
-        if (out[i] < 1)
-            out[i] = 1;
-        else if (out[i] > 0xffff)
-            out[i] = 0xffff;
-}
 
 int mu_fx_progress_resources(void *state, int32_t resources[4])
 {
     fx_progress *p = state;
     if (!p) return 0;
-    demo_maxima(p->class_byte & 15, p->level, p->stats, resources);
+    mu_fx_progress_demo_maxima(p->class_byte & 15, p->level, p->stats, resources);
     return 1;
 }
 
@@ -150,7 +123,7 @@ static void level_up(fx_progress *p, mu_fixture_ctx *ctx)
     p->exp = 0;   /* DEMO: the rest of the experience is dropped at the level up */
     p->next = mu_prg_exp_table(p->level + 1) - mu_prg_exp_table(p->level);
     int32_t mx[4];
-    demo_maxima(cls, p->level, p->stats, mx);
+    mu_fx_progress_demo_maxima(cls, p->level, p->stats, mx);
     uint8_t b[0x18] = {0xc1, 0x18, 0xa0, 0x06};
     put16(b, 4, p->level);
     put16(b, 6, p->points);
@@ -203,7 +176,7 @@ static int kill(fx_progress *p, mu_fixture_ctx *ctx, int32_t server_class, int32
 static void respawn(fx_progress *p, mu_fixture_ctx *ctx, const char *args)
 {
     int32_t cls = p->class_byte & 15, mx[4];
-    demo_maxima(cls, p->level, p->stats, mx);
+    mu_fx_progress_demo_maxima(cls, p->level, p->stats, mx);
     uint8_t b[0x20];
     memset(b, 0, sizeof b);
     b[0] = 0xc1;
@@ -252,11 +225,12 @@ static void *progress_open(mu_fixture_ctx *ctx, const char *args, char *error, s
     p->level = mu_fx_arg_int(args, "level", 1);
     p->points = mu_fx_arg_int(args, "points", 0);
     p->master_level = mu_fx_arg_int(args, "master_level", 0);
-    int32_t cls = p->class_byte & 15;
+    int32_t cls = p->class_byte & 15, start[5];
+    mu_fx_progress_start_stats(cls, start);
     /* APP-POLISH-005: the offline session's join stats (str..cmd), else the class start stats */
     static const char *const names[5] = {"str", "agi", "vit", "ene", "cmd"};
     for (int i = 0; i < 5; i++) {
-        p->stats[i] = mu_fx_arg_int(args, names[i], (i == 4 && cls != 4) ? 0 : START[cls][i]);
+        p->stats[i] = mu_fx_arg_int(args, names[i], (i == 4 && cls != 4) ? 0 : start[i]);
         if (p->stats[i] < 0 || p->stats[i] > 0xffff) {
             snprintf(error, error_size, "%s=%d: outside 0..65535", names[i], (int)p->stats[i]);
             free(p);
@@ -320,7 +294,7 @@ static int progress_on_request(void *self, mu_fixture_ctx *ctx, const mu_fixture
         p->stats[stat]++;
         p->points--;
         int32_t mx[4];
-        demo_maxima(p->class_byte & 15, p->level, p->stats, mx);
+        mu_fx_progress_demo_maxima(p->class_byte & 15, p->level, p->stats, mx);
         b[4] = (uint8_t)(0x10 | stat);
         put16(b, 6, stat == 3 ? mx[1] : mx[0]);
         put16(b, 8, mx[2]);

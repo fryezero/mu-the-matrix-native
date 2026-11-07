@@ -285,6 +285,11 @@ static int unquote(char *out, size_t cap, const char *s)
 }
 int mu_world_rt_action(mu_world_rt *a, const char *action)
 {
+    return mu_world_rt_action_scaled(a, action, 1.0);
+}
+
+int mu_world_rt_action_scaled(mu_world_rt *a, const char *action, double scale)
+{
     mu_input_msg m = {0};
     char verb[24], arg[1024], decoded[1024];
     int n = 0;
@@ -331,6 +336,10 @@ int mu_world_rt_action(mu_world_rt *a, const char *action)
         m.message = !strcmp(verb, "move") ? 0x200u : !strcmp(verb, "ldown") ? 0x201u :
                     !strcmp(verb, "lup") ? 0x202u : !strcmp(verb, "rdown") ? 0x204u : 0x205u;
         m.wparam = m.message == 0x201u ? 1u : 0u;
+        if (scale > 0.0 && scale != 1.0) {   /* window points -> drawable pixels, as input_sdl.h does */
+            x = (int)(x * scale);
+            y = (int)(y * scale);
+        }
         m.lparam = ((uint32_t)(uint16_t)y << 16) | (uint16_t)x;
         return mu_world_rt_input(a, &m);
     }
