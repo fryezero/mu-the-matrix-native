@@ -242,16 +242,17 @@ class WorldRender(unittest.TestCase):
 
     def test_wing_joint_and_random_bone_programs(self):
         """RENDER-ITEMS-002S: wing 0x22ec's case creates twenty CreateJoint requests (0x7f7c/0xe, 0x7fd3/4) along
-        its own bones; the native joint pool does not reconstruct those kinds, so they are routed and counted as
-        refused, while its sprites are created. Wing 0x23ef places sprites at bones rand() % bone count (always
-        inside the skeleton) and at constant bones up to 50: on 64 bones nothing is refused, on 40 the two
-        requests at bones 44 and 50 are."""
+        its own bones; RENDER-ITEMS-002U: the joint pool reconstructs both kinds, so all twenty are created and drawn
+        in the same frame (ten-tail streaks: up to 9 segments x 2 faces each), as are 0x248f's. Wing 0x23ef places
+        sprites at bones rand() % bone count (always inside the skeleton) and at constant bones up to 50: on 64
+        bones nothing is refused, on 40 the two requests at bones 44 and 50 are."""
         path=self.tmp/'pre-fx-wing.bmd'
         path.write_bytes(nf.character_layout(114,bones=64,meshes=2))
-        joint,_=self.render('--wing',path,'--item-type','wing=0x22ec','--world-time','0')
-        self.assertEqual(joint['special'],0)
-        self.assertEqual(joint['pre_refused'],20)
-        self.assertGreater(joint['pre_effects'],0)
+        for wing in ('0x22ec','0x248f'):
+            joint,_=self.render('--wing',path,'--item-type','wing='+wing,'--world-time','0')
+            self.assertEqual((joint['special'],joint['pre_refused']),(0,0))
+            self.assertGreater(joint['pre_effects'],20)
+            self.assertEqual(joint['joint_quads'],20*18)
         spread,_=self.render('--wing',path,'--item-type','wing=0x23ef','--world-time','0')
         self.assertEqual((spread['special'],spread['pre_refused']),(0,0))
         self.assertGreater(spread['pre_effects'],0)

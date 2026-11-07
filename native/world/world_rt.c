@@ -1033,7 +1033,7 @@ static void write_fidelity_dump(const mu_world_rt *a)
 void world_rt_item_pre(mu_world_rt *a, struct mu_renderchar_env *env, int caller, int32_t type, const mu_model *model,
                        const float *bones)
 {
-    if (!env->particles || !mu_rc_item_pre_fx(type))
+    if (!env->particles || !(mu_rc_item_pre_fx(type) || mu_rc_item_post_fx(type)))   /* RENDER-ITEMS-002U: post too */
         return;
     env->item_bones = bones;
     env->pre_counts = a->item_pre[caller];

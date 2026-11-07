@@ -434,9 +434,11 @@ int mu_render_world_character(const mu_options *o)
     int status = frames ? write_frames(o, frames) : 1;
     printf("{\"sha256\": \"%s\", \"width\": %d, \"height\": %d, \"meshes\": %ld, \"triangles\": %ld, \"passes\": %ld,"
            " \"special\": %ld, \"carried\": %d, \"attachments\": %d, \"quality\": %d, \"link_sprites\": %ld,"
-           " \"owner_effects\": %ld, \"owner_refused\": %ld, \"pre_effects\": %ld, \"pre_refused\": %ld}\n",
+           " \"owner_effects\": %ld, \"owner_refused\": %ld, \"pre_effects\": %ld, \"pre_refused\": %ld,"
+           " \"joint_quads\": %u}\n",
            hash, o->width, o->height, stats.meshes, raster.triangles, rstats.passes, rstats.special, carried, attached,
-           W.env.quality, link_sprites, owner_effects, owner_refused, pre_counts[0], pre_counts[1]);
+           W.env.quality, link_sprites, owner_effects, owner_refused, pre_counts[0], pre_counts[1],
+           particles ? particles->stats.drawn_joint_quads : 0u);   /* RENDER-ITEMS-002U: the last RenderJoints */
     if (particles) {
         mu_world_particles_close(particles);
         free(particles);
