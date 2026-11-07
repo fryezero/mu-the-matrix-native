@@ -93,4 +93,11 @@ enum { MU_MAP_EFFECT_UNDEFINED = -1, MU_MAP_EFFECT_UNPOSED = 0, MU_MAP_EFFECT_OK
 int mu_map_effect_matrix(float out[16], const uint8_t *object, int in_sector, const float *pose, int32_t pose_bones,
                          int32_t bone, int follow);
 
+/* RENDER-WORLDS-KARUTAN (docs/research/client-worlds-karutan.md §4): Aquila's Temple visual slot 0x00d77b3e asks
+ * 0x0129fd4f(6) twice (0x00d77c16, 0x00d77c69) on the map OBJECT for types 136..140 and 142, and keeps [12], [13]
+ * (+0x188, +0x18c). That is the following-bone matrix above for bone 6: bone 6 of the shared pose, placed by the
+ * position/scale product only when the object is alone in its sector (0x012a0d29). MU_MAP_EFFECT_UNPOSED without
+ * a pose holding bone 6. */
+int mu_aquila_bone_matrix(float out[16], const uint8_t *object, int in_sector, const float *pose, int32_t pose_bones);
+
 #endif

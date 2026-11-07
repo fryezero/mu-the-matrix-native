@@ -153,7 +153,7 @@ generic RenderBody.
   ("bounded … remaining branches stay open"); the census line did not.
 - The row now reads "V RAKLION", whole. The number stays 144/144.
 - Karutan's custom slot `0x00e14596` ("V A") is in the same bounded state. Its JSON scope says so, and it is not
-  this lane's.
+  this lane's. Since ported whole by [RENDER-WORLDS-KARUTAN](client-worlds-karutan.md) (its own code, not 121's).
 
 ## 7. Limits
 
