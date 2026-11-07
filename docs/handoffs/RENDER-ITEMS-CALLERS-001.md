@@ -1,6 +1,7 @@
 # RENDER-ITEMS-CALLERS-001
 
-Branched from main `6eaf3f2b` (#325); merged main `53cffd00` (#326, #327) before any check ran. Branch/worktree
+Branched from main `6eaf3f2b` (#325); merged main `53cffd00` (#326, #327) before any check ran, then `5c0f7e9e`
+(#328 RENDER-EFFECTS-018, Muun/Uruk effects in native/core and reconstructed/particles) as `9d43b56b`. Branch/worktree
 `claude/render-items-callers-001` (Claude Opus 5.5). No live client, launcher, network or hosted workflow. No full
 gate in the lane (2026-11-04 test budget).
 
@@ -111,7 +112,10 @@ validate_model_edge, validate_movement, validate_render_effects17, validate_audi
 validate_audio_items, validate_app_polish1, validate_app_polish2, validate_app_polish4, validate_render_effects16,
 validate_worlds_fog (ran at `e5205817`, no mutants). That is exactly the 13 rows of `--list-affected origin/main`;
 meshdraw, model_edge, movement and render_effects17 are its symbol-level fallback rows. `ca90c5e3` changed only
-validate_item_callers' `build` entry. Env as under Checks.
+validate_item_callers' `build` entry. After the `5c0f7e9e` merge, `--list-affected-since e5205817` over these rows
+selected 12, all except app_polish2: the merge changed native/core, the native Makefile and reconstructed/particles.
+All 12 reran at `9d43b56b` without mutants: 12 pass, the same case counts, 167.9 s. `test_native_world_predraw`
+and `test_native_renderchar` also reran there: 23 tests OK, 14.4 s. Env as under Checks.
 
 Cleanup removes `mu-mac-tools/native/scratch/render-items-callers-001/`, the base worktree and the build directories.
 The crops in `renders/render-items-callers-001/` are the only kept artifacts. The worktree stays until the steward
