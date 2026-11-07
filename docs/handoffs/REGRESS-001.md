@@ -38,8 +38,9 @@ step 3. Even with 1 and 2 fixed, the scripted choice would then open quest 7's p
 
 - The new call is `mu_session_quest_offline_local(s, on)`. It exists only in seed builds; the product library has
   no lane and no fixture symbol.
-- The lane is active only while the session's transport is the in-process fixture on a loopback endpoint (the
-  same gate as combat's plain offline lane).
+- The lane is active only while the session's transport is the in-process fixture on a loopback endpoint. The
+  session domain never includes the fixture: the caller passes the in-process test (`mu_fixture_is_transport`) as
+  a function pointer, and NULL turns the lane off.
 - While it is active, wrapped quest requests go to the local fixture as plain frames, and the fixture's F6 70/71
   bodies apply as the plaintext the fixture wrote. The fixture never applies the `0x06fca280` XOR. Each use is
   journaled ("offline local: ...").
@@ -115,7 +116,8 @@ FOV 39. This lane did not re-shoot them.
   validator needs `MU_QUEST_SNAPSHOT`).
 - Touched modules and 6b users: 13 modules, 115 tests, 3 private skips. `test_app_polish6` was run again with
   `MU_NATIVE_DATA_DIR`: 5/5.
-- New `validate_scene_clear`: 4,000 cases, 0 mismatches, 8/8 call sites; the only third-section read is
+- New `validate_scene_clear` (body digests of the block and both predicates in its `BODIES` table; inputs from
+  pins.py): 4,000 cases, 0 mismatches, 8/8 call sites; the only third-section read is
   `0x01cf15fc`. Mutants: 6/6 detected (run once).
 - The terrain cull routines: `validate_terrain`'s families frustum_2d 300, test_frustum_2d 15,000, frustum_3d 200,
   render_frustum 20 and render_terrain 2, all matching. `validate_wheel_route`: GetScreenWidth 61 and route 120

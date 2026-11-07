@@ -6,6 +6,7 @@ typedef struct mu_dom_quest
     mu_quest_data data;
     mu_quest_client client;
     int ready, sent, send_failed;
-    int offline_local; /* REGRESS-001: seed builds only, see mu_session_quest_offline_local */
+    /* REGRESS-001: seed builds only, see mu_session_quest_offline_local; NULL: the lane is off */
+    int (*in_process)(const struct mu_transport *t);
 } mu_dom_quest;
 #endif

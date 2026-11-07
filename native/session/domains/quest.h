@@ -3,6 +3,7 @@
 #define MU_SESSION_QUEST_H
 #include "../../../reconstructed/quest/quest.h"
 struct mu_session;
+struct mu_transport;
 const mu_quest_client *mu_session_quest(const struct mu_session *s);
 /* Bind static tables/host services before applying frames. Rebinding preserves all quest state. */
 int mu_session_quest_bind(struct mu_session *s, const char *dir, const mu_quest_host *host);
@@ -48,8 +49,10 @@ int mu_session_quest_window(struct mu_session *s, mu_quest_action action, const 
  * quest requests that Send would wrap (accept F6 72, give up F6 73, complete F6 74) go to the local fixture as
  * plain frames instead of waiting unsent for the C3 wrap, and F6 70/71 frames are applied as the plaintext the
  * fixture writes (it never applies the 0x06fca280 XOR). Off by default: scenarios, raw `send` frames and every
- * other transport keep the wire rules (unsent, body_undecoded). Returns 1 when the lane is active. */
-int mu_session_quest_offline_local(struct mu_session *s, int on);
+ * other transport keep the wire rules (unsent, body_undecoded). `in_process` is the caller's test that a
+ * transport is the in-process fixture (the fixture's mu_fixture_is_transport; the session never includes the
+ * fixture); NULL turns the lane off. Returns 1 when the lane is active. */
+int mu_session_quest_offline_local(struct mu_session *s, int (*in_process)(const struct mu_transport *t));
 #endif
 void mu_session_quest_services(struct mu_session *, void (*)(void *, uint8_t), const char *(*)(void *, int32_t));
 #endif

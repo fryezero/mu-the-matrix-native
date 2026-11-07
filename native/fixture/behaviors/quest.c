@@ -791,7 +791,7 @@ void mu_quest_session_step(mu_quest_session *s)
 }
 int mu_quest_session_offline_local(mu_quest_session *s, int on)
 {
-    return s && s->ready ? mu_session_quest_offline_local(s->session, on) : 0;
+    return s && s->ready ? mu_session_quest_offline_local(s->session, on ? mu_fixture_is_transport : NULL) : 0;
 }
 void mu_quest_session_npc_list(mu_quest_session *s, int32_t npc)
 {

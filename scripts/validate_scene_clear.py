@@ -33,7 +33,12 @@ import pins  # noqa: E402
 ENV_DIR = ROOT / 'reconstructed/environment'
 SUFFIX = 'dylib' if sys.platform == 'darwin' else 'so'
 BLOCK, JOIN = 0x01859419, 0x0185967c
-BODY_SHA256 = 'f06d5daf3f5c48562d0c4d2c27a278f32eeef05d7f0bf24a4de0ecb10bffe738'
+# The compared client routines (start, exclusive end, SHA-256 of the captured bytes); inputs come from pins.py.
+BODIES = {
+    'clear_block': (0x01859419, 0x0185967c, 'f06d5daf3f5c48562d0c4d2c27a278f32eeef05d7f0bf24a4de0ecb10bffe738'),
+    'chaos_castle_world': (0x009dacb8, 0x009dacdb, 'd2129e6fa8fc0b28ee3e75a44d60cdfbe7a75793a3189ea35f3e36675bdbbccb'),
+    'red_smoke_world': (0x00e0558b, 0x00e0559f, '87a23b1352584a2e22cf3c9f7b5c5fb2f889746c9dc2a4716a8ccd96afdac537'),
+}
 PREDICATES = {0x009dacb8: 0x23, 0x00e0558b: 0x14}   # start: length (to the ret) of the two world predicates
 WORLD = 0x01cf15fc
 GL_CLEAR_SLOT = 0x01a7c6cc
@@ -172,10 +177,11 @@ def main(argv=None):
     text = pins.TEXT.read(a.text, exit=True)
     data = pins.DATA.read(a.data, exit=True)
     section3 = pins.SECTION3.read(a.section3, exit=True)
-    body = text[BLOCK - pins.TEXT.base:JOIN - pins.TEXT.base]
-    body_sha = hashlib.sha256(body).hexdigest()
-    if body_sha != BODY_SHA256:
-        raise SystemExit(f'clear-colour block {BLOCK:#x}..{JOIN:#x}: SHA-256 {body_sha}, expected {BODY_SHA256}')
+    bodies = {}
+    for name, (start, end, digest) in BODIES.items():
+        bodies[name] = hashlib.sha256(text[start - pins.TEXT.base:end - pins.TEXT.base]).hexdigest()
+        if bodies[name] != digest:
+            raise SystemExit(f'{name} {start:#x}..{end:#x}: SHA-256 {bodies[name]}, expected {digest}')
     subprocess.run(['make', '-s', '-C', str(ENV_DIR)], check=True, capture_output=True)
     guest = Guest(text, data, section3)
     cases = worlds(a.cases, a.seed)
@@ -184,7 +190,7 @@ def main(argv=None):
     report = {
         'family': 'scene_clear RenderMainScene 0x01859419..0x0185967b (glClearColor by world)',
         'pins': {p.name: p.sha256 for p in (pins.TEXT, pins.DATA, pins.SECTION3)},
-        'body_sha256': body_sha, 'cases': len(cases), 'mismatches': len(mismatches),
+        'body_sha256': bodies, 'cases': len(cases), 'mismatches': len(mismatches),
         'first_mismatches': mismatches[:5],
         'call_sites': {hex(s): s in guest.sites for s in CALL_SITES},
         'third_section_reads': world_reads,

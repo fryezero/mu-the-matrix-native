@@ -3,7 +3,6 @@
 #include "audio_cue.h"
 #ifdef MU_SESSION_SEED
 #include "../mu_session_seed.h"
-#include "../../fixture/mu_fixture.h"
 #endif
 #include <stdio.h>
 #include <math.h>
@@ -12,11 +11,12 @@
 #include <string.h>
 
 /* REGRESS-001: the offline world's local quest lane (quest.h). The in-process fixture is the only server it
- * talks to: no socket, no wrap, no decode of a real server's bytes. Product builds have no lane. */
+ * talks to: no socket, no wrap, no decode of a real server's bytes. The caller that turns it on supplies the
+ * in-process transport test (this domain never names the fixture). Product builds have no lane. */
 static int offline_local(const mu_session *s)
 {
 #ifdef MU_SESSION_SEED
-    return s->quest.offline_local && mu_fixture_is_transport(s->cfg.transport) &&
+    return s->quest.in_process && s->quest.in_process(s->cfg.transport) &&
            mu_endpoint_is_loopback(&s->cfg.connect_server);
 #else
     (void)s;
@@ -24,11 +24,11 @@ static int offline_local(const mu_session *s)
 #endif
 }
 #ifdef MU_SESSION_SEED
-int mu_session_quest_offline_local(mu_session *s, int on)
+int mu_session_quest_offline_local(mu_session *s, int (*in_process)(const struct mu_transport *t))
 {
     if (!s)
         return 0;
-    s->quest.offline_local = on != 0;
+    s->quest.in_process = in_process;
     return offline_local(s);
 }
 #endif
