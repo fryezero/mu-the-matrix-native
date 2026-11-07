@@ -2021,6 +2021,7 @@ the world. Evidence: verified (Unicorn against the pinned text/data), unless sai
 | CreateSprite / bone sprites (13, 17, 40) | 275 sites | sprite pool | unchanged |
 | CreateJoint, OBJECT target (39): `0x7f7c`/0xe, `0x7fd3`/4 | `0x22ec`, `0x248f` | joint pool: refused | unchanged (RENDER-ITEMS-002T's joint kinds) |
 | Owner programs' `0x7f26`/0x26, `0x810a`/7, `0x810a`/0xf and sprites (10, 13, 14) | 43 armour/helm types | kinds exist (RENDER-EFFECTS-017); programs not run in the world | run in the world with the wearer's OBJECT |
+| Since #341 (part 22 of 002T): `0x810a`/0x25 OBJECT-owned with argument 8 (47); `0x855d`/1, `0x84d1`/1 (14) | maces `0x0f1f`, `0x0f20` | none; refused first by the missing frame counter `[0x0bdc5ebc]` | unchanged (next step) |
 
 ### The three kinds (CreateParticle `0x015ae7b0`, MoveParticles `0x01616c80`, RenderParticles `0x0159123f`)
 

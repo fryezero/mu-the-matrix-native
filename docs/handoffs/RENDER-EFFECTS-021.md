@@ -4,8 +4,8 @@ The item programs' last particle requests without a native kind, and the armour 
 [Finding: client-render-items.md part 23](../research/client-render-items.md#part-23-pre-draw-particles-without-an-owner-and-armour-owner-programs-in-the-world-render-effects-021).
 
 Branch/worktree `claude/render-effects-021` (Claude Opus 5.5), from `claude/render-effects-020` `ca941c4b` (#339).
-Merged main `035c1964` (#338 APP-POLISH-008) as `85452359` and `9b2807fd` (#339, #340 RENDER-WORLDS-KARUTAN) as
-`42f2860e`. "Before" numbers come once from a detached base worktree at `ca941c4b`. Validator selections use a
+Merged main `035c1964` (#338 APP-POLISH-008) as `85452359`, `9b2807fd` (#339, #340 RENDER-WORLDS-KARUTAN) as
+`42f2860e` and `138b756e` (#341 RENDER-ITEMS-002T) as `39fde175`. "Before" numbers come once from a detached base worktree at `ca941c4b`. Validator selections use a
 local base `ad99fbae` (= `ca941c4b` merged with `035c1964`, not pushed): `git diff ad99fbae..85452359` is exactly
 this lane's 10 files. No live client, launcher, network or hosted workflow. No full gate in the lane (2026-11-04
 test budget). The `tools/python`, `evidence` and `input` links come from the main checkout and are never staged.
@@ -16,6 +16,16 @@ Census of the 83 programs (static, every op): the only particle requests left wi
 `0x7ffd`/0x1b (bow `0x1316`), `0x7f66`/5 (`0x230c`, `0x2496`) and `0x8180`/5 (`0x23ef`, `0x2400`, `0x2405`), all
 without an owner. Sprites go to the sprite pool, OBJECT-owned particles to part 22's slots; the joint kinds
 `0x7f7c`/0xe and `0x7fd3`/4 stay refused (RENDER-ITEMS-002T).
+
+#341 (merged while this lane finished) added 2 pre-draw and 2 post programs (83 → 87 program types). Census again over them:
+they bring three more particle requests with no native kind, all behind the frame counter `[0x0bdc5ebc]`, which
+the world callers do not supply (`mu_renderchar_env.frame_counter` NULL), so they are refused before a kind is
+needed. They are left as next steps:
+- mace `0x0f1f`: `0x810a`/0x25, OBJECT-owned, argument 8 = `rand() % 3` (op 47);
+- mace `0x0f20`: `0x855d`/1 ×2 and `0x84d1`/1 (op 14).
+
+The post programs `0x130d` and `0x2713` are weapon/link types, outside this lane's body-part hook; RENDER-ITEMS-002T
+notes that the world callers do not yet pass their item pose. No scene here wears them.
 
 | Kind | Create (`0x015ae7b0`) | Move (`0x01616c80`) | Render (`0x0159123f`) |
 |---|---|---|---|
@@ -81,6 +91,8 @@ Env: `. ~/Documents/MTM/mu-mac-tools/native/private-env.sh`, plus `MU_LANG_DIR=$
 | `run_test_suites.py --affected-since ad99fbae` (`MU_RECOVERY_INTEGRATION=0`, 2 jobs) | 9 suites, 1,549 tests, 1,307 passed, 242 skipped, 0 failures | 272.9 s (+45 s selection) |
 | Private modules from the root: `test_render_effects21` (new), `test_native_world_predraw`, `test_native_particles`, `test_native_players`, `test_native_hero_items`, `test_app_polish8`, `test_render_effects20`, `test_render_effects17`, `test_native_renderchar`, `test_world_parts` | 84 tests OK, 0 skipped | 256 s |
 | After the merge: `test_render_effects21`, `test_native_world_predraw`, `test_app_polish8` | 21 tests OK | 29 s |
+| After the `138b756e` merge (#341: renderchar library, `mu_renderchar.c`): `--affected-since 42f2860e`, no mutants, at `39fde175` | **47/47 pass**, 874,821 cases (item_types 135,176 / 31.8 s, item_hiddenmesh 116,281 / 376.9, item_carry 114,388 / 423.1, item_clusters 74,292 / 49.9, item_expansion 52,172 / 48.2, item_derived 36,252 / 176.7, item_chains 35,346 / 105.3, item_wings_next 33,622 / 50.2, item_coverage 31,724 / 41.7, item_quality 28,080 / 183.3, item_scalars 26,154 / 44.4, item_continuation 25,772 / 40.3, item_gear 25,256 / 54.8, item_ranked 17,736 / 39.2, item_predraw 16,832 / 121.4, item_next 14,992 / 173.7, item_ownerfx 14,964 / 109.2, renderchar 1,706 / 40.3, fidelity 991 / 52.9, item_product 2,874 / 44.7, and the render/world rows above) | 1,336 s |
+| After the `138b756e` merge: `test_render_effects21`, `test_native_world_predraw`, `test_app_polish8`, `test_native_renderchar`, `test_native_players`, `test_native_hero_items` | 62 tests OK (scene counts unchanged) | 195 s |
 | `tests.test_validators_manifest` | 17 tests OK (before and after the merge) | 0.7 s |
 | `scripts/audit_repository.py` (with the docs staged) | 2,080 staged files, 0 rejected | 23 s |
 | `tests.test_repository_policy` | 9 tests OK | 0.5 s |
@@ -148,6 +160,8 @@ October 22 21 / 15 s, DATA-ACQ-002 38 / 41 s.
 
 ## Next
 
+- #341's frame-counter requests (`0x0f1f`, `0x0f20` above): the world's `[0x0bdc5ebc]` in the callers' env, then
+  kinds `0x810a`/0x25 (with argument 8), `0x855d`/1 and `0x84d1`/1.
 - The rank-5 owner block (`0x84e2` particles, `0x7fdd` sprite, `0x83de`/4, level-9 overlay passes) in the world,
   through the same hook.
 - A demo outfit wearing an owner-program armour, if the offline demo should show it.
@@ -157,7 +171,8 @@ October 22 21 / 15 s, DATA-ACQ-002 38 / 41 s.
 
 Steward validators: the 48 rows of `--affected-since ad99fbae` (ran at `85452359`, no mutants;
 `validate_render_effects21` with mutants once there) and the 59 rows of `--affected-since 85452359` after the
-`9b2807fd` merge (ran at `42f2860e`, no mutants): 80 distinct rows, listed in the PR body. Mutants needed again:
+`9b2807fd` merge (ran at `42f2860e`, no mutants) and the 47 rows of `--affected-since 42f2860e` after the `138b756e` merge (ran at
+`39fde175`, no mutants): 102 distinct rows, listed in the PR body. Mutants needed again:
 none. Env as above. Cleanup removes `mu-mac-tools/native/scratch/render-effects-021/`, the base worktree
 `worktrees/rfx21-before` and the build directories. The three crops are the only kept artifacts; no new input
 needs to be kept. The worktree stays until the steward merges.
