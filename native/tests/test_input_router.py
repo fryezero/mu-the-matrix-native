@@ -74,6 +74,17 @@ class InputRouter(unittest.TestCase):
         self.assertGreater(rows[-1]['messages'],4)
         self.assertEqual(rows[-1]['casts'],0)
 
+    def test_script_positions_are_window_points(self):
+        """APP-POLISH-007: a script position is a window point; a Retina window (2 drawable pixels per point)
+        scales it as input_sdl.h scales a real mouse event, so one script hits the same target on 1x and 2x."""
+        def lp(x, y): return (y << 16) | x
+        rows=self.drive('move:122,257','scaled:1:move:122,257','scaled:2:move:122,257','scaled:2:ldown:122,324',
+                        'scaled:1.5:rdown:3,5','scaled:2:move:-1,0')
+        self.assertEqual([r['lparam'] for r in rows[:5]],
+                         [lp(122,257),lp(122,257),lp(244,514),lp(244,648),lp(4,7)])
+        self.assertEqual(rows[5]['lparam'],lp(0xfffe,0))
+        self.assertEqual(self.drive('scaled:2:move:32768,0')[0]['result'],-2)
+
     def test_invalid_actions_have_no_effects(self):
         for action in ['key:256','key:0','key:49junk','key:1:2','move:1,2junk','move:32768,0',
                        'compose:one:a','text:%','text:%00','wat:1']:
