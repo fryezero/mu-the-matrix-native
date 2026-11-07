@@ -1,7 +1,12 @@
-# Demo characters (format of `mu-charsel --list`): slot class level name [item=PATH ...],
+# Demo characters (format of `mu-charsel --list`): slot class level name [item=PATH[@G:I[:L[:O[:E]]]] ...],
 # item paths under Data/. Invented names and levels.
-0 0x00 350 Nightfall weapon0=Item/Staff02.bmd
-1 0x01 400 Ironclad weapon0=Item/Sword04.bmd weapon1=Item/Shield01.bmd wing=Item/Wing02.bmd
-2 0x02 320 Windleaf weapon1=Item/Bow02.bmd
-3 0x03 280 Spellblade weapon0=Item/Sword05.bmd
-4 0x04 250 Crownlord weapon0=Item/Mace01.bmd
+# APP-POLISH-008: each item also carries its equipment record (@GROUP:INDEX:LEVEL:OPTION:EXT, the code, level,
+# excellent option and ext byte the hero's ITEM holds), so the hero's slots take the item's own type and level
+# instead of the file's first Item.bmd record at level 0. Appearance only (OFFLINE DEMO data). Ironclad's sword is
+# the Cookery Short Sword 0:68 (0x0b2a; the file's first record is the [Bound] 0:65), +9 excellent; its kind byte
+# 0x51 passes every demo Dark Knight skill's weapon rule as the Katana's did.
+0 0x00 350 Nightfall weapon0=Item/Staff02.bmd@5:1:7
+1 0x01 400 Ironclad weapon0=Item/CookriShortSword.bmd@0:68:9:1 weapon1=Item/Shield01.bmd@6:0:7 wing=Item/Wing02.bmd@12:1
+2 0x02 320 Windleaf weapon1=Item/Bow02.bmd@4:1:7
+3 0x03 280 Spellblade weapon0=Item/Sword05.bmd@0:4:7
+4 0x04 250 Crownlord weapon0=Item/Mace01.bmd@2:0:7

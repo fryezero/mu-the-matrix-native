@@ -163,6 +163,8 @@ struct mu_world_rt {
     int start_set;
     const char *equip[MU_CHARACTER_ITEMS];   /* the embedding front end's equipment, applied again after a travel */
     int equip_combat, equip_set;
+    const struct mu_charsel_item_record *equip_record;   /* APP-POLISH-008: the equipment's session records, NULL none */
+    long hero_passes[MU_CHARACTER_ITEMS];   /* APP-POLISH-008: render passes drawn per hero item (reported with records) */
     int32_t equip_code[2];         /* APP-POLISH-005: the weapons' Item.bmd codes by equipment slot (-1 empty) */
     uint8_t equip_kind[2];         /* and their kind bytes (+0x251), for the skill usability check */
     /* NATIVE-PROGRESS-001 */
