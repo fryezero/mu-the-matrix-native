@@ -1,5 +1,6 @@
 """Part 18 bodies (RENDER-ITEMS-002R): pre-draw effect programs (RenderObjDraw's own type case, item bones).
-Part 19 (RENDER-ITEMS-002S): integer registers, runtime branches, CreateJoint and the OBJECT position."""
+Part 19 (RENDER-ITEMS-002S): integer registers, runtime branches, CreateJoint and the OBJECT position.
+Part 21 (RENDER-ITEMS-002T): the frame counter, 0x012b678d on item bones, post programs."""
 import ctypes
 import json
 import os
@@ -23,11 +24,13 @@ class ItemPreDraw(unittest.TestCase):
         cls.lib = base.lib()
         cls.lib.mu_rc_item_pre_fx.restype = ctypes.c_int
         cls.lib.mu_rc_item_owner_fx.restype = ctypes.c_int
+        cls.lib.mu_rc_item_post_fx.restype = ctypes.c_int
         cls.v = ownerfx.v
     item = base.RenderCharLibrary.item
     draws = base.RenderCharLibrary.draws
 
-    def run_item(self, t, names, count, values=(5,), visible=1, time=0.0, host=True, position=(0.0, 0.0, 0.0)):
+    def run_item(self, t, names, count, values=(5,), visible=1, time=0.0, host=True, position=(0.0, 0.0, 0.0),
+                 frame=None):
         """Draws, requests and refusals of one item with identity item bones (bone k translated by
         (k, 2k, 3k)), model scale 1 and origin (100, 200, 300)."""
         effects, drawn = [], []
@@ -59,9 +62,14 @@ class ItemPreDraw(unittest.TestCase):
         @ownerfx.EMIT
         def refuse(_, fx):
             effects.append(('refused', fx.contents.kind, fx.contents.bitmap))
+
+        @ownerfx.OBJECT_TRANSFORM
+        def object_transform(_, bone, out):
+            for k in range(3):
+                out[k] = F32(F32(bone * (k + 1)) + F32(position[k]))
         hosted = ownerfx.Host(0, -1, ownerfx.TRANSFORM(), rand, emit, None, count, (ctypes.c_float * 3)(),
                               named, item_transform if host else predraw.ITEM_TRANSFORM(), refuse, visible,
-                              (ctypes.c_float * 3)(*position))
+                              (ctypes.c_float * 3)(*position), object_transform, frame or 0, frame is not None)
         context = self.v.CContext(0, -1, self.v.RANDOM_FN(lambda _: rand(None)), None)
         it, model = self.item(type=t, time=time), self.v.CModel()
         out, n = (self.v.CDraw * 32)(), ctypes.c_int32()
@@ -70,7 +78,12 @@ class ItemPreDraw(unittest.TestCase):
         return status, list(out[:n.value]), effects, len(drawn)
 
     def test_admissions_and_existing_domain(self):
-        self.assertEqual(len(fxgen.PRE_FX_TYPES), 40)
+        self.assertEqual(len(fxgen.PRE_FX_TYPES), 43)
+        for t in fxgen.POST_FX_TYPES:
+            self.assertEqual(self.draws(self.item(type=t))[0], 0, hex(t))
+            self.assertEqual((self.lib.mu_rc_item_post_fx(t), self.lib.mu_rc_item_pre_fx(t)), (1, 0), hex(t))
+        for t in (0x0f1f, 0x0b27, 0x1bc3, -1):
+            self.assertEqual(self.lib.mu_rc_item_post_fx(t), 0, hex(t))
         earlier = set(gen.ALL_TYPES) - set(fxgen.PRE_FX_TYPES)
         self.assertFalse(set(fxgen.PRE_FX_TYPES) & earlier)
         for t in fxgen.PRE_FX_TYPES:
@@ -109,6 +122,30 @@ class ItemPreDraw(unittest.TestCase):
         self.assertEqual((status, effects, used), (0, [], 0))
         status, plain = self.draws(self.item(type=0x1311))
         self.assertEqual([bytes(d) for d in draws], [bytes(d) for d in plain])
+
+    def test_post_program_on_item_bones(self):
+        """0x2713 (RENDER-ITEMS-002T): after its RenderPartObjectBody draws, three CreateSprite 0x7ef7 requests at
+        TransformPosition of item bones 8, 10 and 11 (translated); on ten bones the last two are refused."""
+        status, draws, effects, used = self.run_item(0x2713, [], 12)
+        self.assertEqual((status, used), (0, 0))
+        self.assertEqual([e[:3] for e in effects],
+                         [(2, 0x7ef7, (100.0 + b, 200.0 + 2 * b, 300.0 + 3 * b)) for b in (8, 10, 11)])
+        status, _, effects, _ = self.run_item(0x2713, [], 10)
+        self.assertEqual([e[0] for e in effects], [2, 'refused', 'refused'])
+
+    def test_frame_counter_gate(self):
+        """0x0f20 (RENDER-ITEMS-002T): particles behind [0x0bdc5ebc] % 3 and % 5 tests (unsigned). Without a
+        known counter every request after the first test is refused; with counter 15 (both tests pass) none of
+        the particles placed by 0x012b678d at named bones present in the skeleton is."""
+        names = ['center001', 'center002', 'center003', 'red001', 'red002', 'red003']
+        status, _, unknown, _ = self.run_item(0x0f20, names, 8)
+        status2, _, known, _ = self.run_item(0x0f20, names, 8, frame=15)
+        self.assertEqual((status, status2), (0, 0))
+        particles = lambda effects: [e for e in effects if e[0] == 1]
+        self.assertTrue(particles(known))
+        self.assertFalse(particles(unknown))
+        self.assertTrue(any(e[:2] == ('refused', 1) for e in unknown))
+        self.assertEqual(len(known), len(unknown))
 
     def test_random_bone_count(self):
         """0x23ef: behind rand() % 15 == 0, one particle 0x8180 at bone rand() % bone count (idiv on the model's

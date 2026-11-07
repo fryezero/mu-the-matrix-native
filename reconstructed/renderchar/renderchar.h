@@ -155,6 +155,9 @@ typedef struct mu_rc_owner_host {
     void (*object_transform)(void *context, int32_t bone, float out[3]);
     uint32_t frame;          /* the rendered-frame counter [0x0bdc5ebc] */
     int32_t frame_known;     /* 0: requests behind a test of the counter are refused (no native counter) */
+    /* RENDER-ITEMS-002T post programs: TransformPosition 0x012b6ef1 on the OBJECT's own bone matrix (0x0129f12c:
+     * +0x318 + 0x30 * bone, bone < bones) with the item model's scale and origin. NULL: those positions are refused. */
+    void (*owner_item_transform)(void *context, int32_t bone, const float local[3], int32_t translate, float out[3]);
 } mu_rc_owner_host;
 /* RENDER-ITEMS-002R: 1 when the type's RenderObjDraw case creates effects before the body draws (a pre-draw
  * program of item_owner_fx.h), else 0. */
@@ -164,6 +167,10 @@ int mu_rc_item_pre_fx(int32_t type);
  * host->item_bones; otherwise the client reads other bones (BoneTransform 0x06fce398) or leaves the position
  * unchanged, and the library creates none of the program's effects. */
 int mu_rc_item_owner_fx(int32_t type);
+/* RENDER-ITEMS-002T: 1 when the type's owner-table program (a RenderPartObjectBody block after the draws) reads item
+ * bones (item_transform) or the OBJECT's own bones (owner_item_transform), else 0. Such a program also runs without
+ * an OBJECT owner when the host has item_transform. */
+int mu_rc_item_post_fx(int32_t type);
 /* mu_rc_item_draws_context plus the owner block: its effects go to host->emit and its
  * level-9 overlay meshes follow the rank-5 body meshes in out. */
 int mu_rc_item_draws_owner(const mu_rc_item *item, mu_rc_model *model, mu_rc_draw *out, int32_t capacity,

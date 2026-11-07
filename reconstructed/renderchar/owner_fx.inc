@@ -20,7 +20,8 @@
  * RENDER-ITEMS-002T: the rendered-frame counter [0x0bdc5ebc] (op 42), 0x012b678d on an item bone with a NULL
  * local point (op 43), the random spherical vector 0x00d01fc6 (op 44), array elements at a bounded runtime index
  * (op 45: rand() % 3 selects a bone or a value) and CreateParticle with a register bitmap and argument 8 (ops 46,
- * 47). */
+ * 47). Post programs (owner-table rows in mu_rc_fx_post_types): a register bitmap for the next request (op 48)
+ * and TransformPosition 0x012b6ef1 on the OBJECT's own bone k (op 49). */
 
 static int owner_fx_index(int32_t type)
 {
@@ -35,6 +36,14 @@ static int owner_fx_index(int32_t type)
             return (int)mid;
     }
     return -1;
+}
+
+int mu_rc_item_post_fx(int32_t type)
+{
+    for (size_t i = 0; i < sizeof mu_rc_fx_post_types / sizeof mu_rc_fx_post_types[0]; ++i)
+        if (type >= 0 && mu_rc_fx_post_types[i] == type)
+            return 1;
+    return 0;
 }
 
 int mu_rc_item_owner_fx(int32_t type)
@@ -200,6 +209,9 @@ static void run_fx(const mu_rc_fx_op *ops, int count, int regs, const mu_rc_item
     float r[MU_RC_FX_REGISTERS];
     uint8_t bad[MU_RC_FX_REGISTERS];
     int lost = 0;
+    int32_t next_bitmap = 0;
+    int has_bitmap = 0;
+    uint8_t bitmap_bad = 0;
     if (regs > MU_RC_FX_REGISTERS)
         return;
     memset(r, 0, (size_t)regs * sizeof r[0]);
@@ -396,6 +408,20 @@ static void run_fx(const mu_rc_fx_op *ops, int count, int regs, const mu_rc_item
             bad[o->a] = bad[o->c + off / 4];
             break;
         }
+        case 48:   /* the next request's bitmap is r[a] */
+            next_bitmap = fx_int(&r[o->a]);
+            bitmap_bad = bad[o->a];
+            has_bitmap = 1;
+            break;
+        case 49:   /* 0x012b6ef1(OBJECT bone k matrix via 0x0129f12c, local r[c..c+2], out r[a..a+2], translate e) */
+            if (!h->owner_item_transform || (int32_t)o->k >= h->bones) {
+                r[o->a] = r[o->a + 1] = r[o->a + 2] = 0.0f;
+                bad[o->a] = bad[o->a + 1] = bad[o->a + 2] = 1;
+                break;
+            }
+            h->owner_item_transform(h->context, (int32_t)o->k, &r[o->c], (int32_t)o->e, &r[o->a]);
+            bad[o->a] = bad[o->a + 1] = bad[o->a + 2] = bad[o->c] | bad[o->c + 1] | bad[o->c + 2];
+            break;
         case 39: { /* CreateJoint 0x0153b02c(bitmap k, pos r[a], target r[b], angle r[c], subtype e, OBJECT, scale r[d],
                     * -1, 0, 0, -1, 0, -1, 0) */
             memset(&fx, 0, sizeof fx);
@@ -428,6 +454,11 @@ static void run_fx(const mu_rc_fx_op *ops, int count, int regs, const mu_rc_item
             memset(&fx, 0, sizeof fx);
             fx.kind = o->op == 13 || o->op == 17 || o->op == 40 ? MU_RC_OWNER_SPRITE : MU_RC_OWNER_PARTICLE;
             fx.bitmap = (int32_t)o->k;
+            if (has_bitmap) {
+                fx.bitmap = next_bitmap;
+                refused |= bitmap_bad;
+                has_bitmap = 0;
+            }
             if (o->op >= 46) {   /* CreateParticle(bitmap r[k], ..., argument 8 r[k + 1]) */
                 fx.bitmap = fx_int(&r[o->k]);
                 fx.extra = fx_int(&r[o->k + 1]);
@@ -484,7 +515,9 @@ static void owner_fx(const sink *s, const mu_rc_owner_host *h)
     if (index < 0)
         return;
     const int32_t need = mu_rc_fx_types[index].max_bone + 1;
-    if (need > h->bones || need > h->item_bones)
+    /* Post programs reach the OBJECT's bones through 0x0129f12c only (its model's bone count, h->bones); the part-17
+     * programs' 0x012b678d also checks the item model's (+0x22). */
+    if (need > h->bones || (need > h->item_bones && !mu_rc_item_post_fx(s->item->type)))
         return;
     run_fx(&mu_rc_fx_ops[mu_rc_fx_types[index].first], mu_rc_fx_types[index].count, mu_rc_fx_types[index].regs,
            s->item, h);

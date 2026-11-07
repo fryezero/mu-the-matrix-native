@@ -67,7 +67,9 @@ class Host(C.Structure):
                 ('position', C.c_float * 3),   # RENDER-ITEMS-002S: OBJECT +0x158 (pre-draw programs only)
                 # RENDER-ITEMS-002T: no OBJECT-bone transform, no frame counter
                 ('object_transform', C.CFUNCTYPE(None, C.c_void_p, C.c_int32, C.POINTER(C.c_float))),
-                ('frame', C.c_uint32), ('frame_known', C.c_int32)]
+                ('frame', C.c_uint32), ('frame_known', C.c_int32),
+                ('owner_item_transform', C.CFUNCTYPE(None, C.c_void_p, C.c_int32, C.POINTER(C.c_float), C.c_int32,
+                                                     C.POINTER(C.c_float)))]
 
 
 def u(x):

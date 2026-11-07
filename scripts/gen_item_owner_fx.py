@@ -65,7 +65,16 @@ PRE_FX_TYPES = [
     # (0x22ec, 0x248f), a rotated sprite behind rand() % 15 >= 8 (0x230c, 0x2496), bones at rand() % bone count
     # (0x23ef, 0x2400, 0x2405), names built with _itoa (0x24cf, 0x24d6) and the OBJECT position (0x26f8, 0x26f9).
     0x0b4f, 0x0b50, 0x0b53, 0x22ec, 0x248f, 0x230c, 0x2496, 0x23ef, 0x2400, 0x2405, 0x24cf, 0x24d6, 0x26f8, 0x26f9,
+    # RENDER-ITEMS-002T (part 21): three maces with the random spherical vector 0x00d01fc6, rand() % 3 selects,
+    # 0x012b678d on item bones and the rendered-frame counter gate (0x0f1f, 0x0f20, 0x0f2a).
+    0x0f1f, 0x0f20, 0x0f2a,
 ]
+
+# RENDER-ITEMS-002T: owner blocks after the draws in RenderPartObjectBody's case that use the pre-draw idioms
+# (post programs, run where the owner programs run): bow 0x130d (TransformPosition 0x012b6ef1 on the OBJECT's own
+# bone 4 through 0x0129f12c, a sprite of bitmap 0x8081 + rand() % 3) and 0x2713 (item bones 8, 10, 11, a clock sine
+# written to the OBJECT light +0xec and read back as the sprites' light).
+POST_FX_TYPES = [0x130d, 0x2713]
 
 DRAWS = (0x00966def, 0x00966e4a)
 TRANSFORM, SPRITE, PARTICLE, RANGE, RAND = 0x012b678d, 0x01692eb7, 0x0168fafd, 0x011ff622, 0x01989721
@@ -100,7 +109,9 @@ OP = dict(const=1, mov=2, mul=3, add=4, sub=5, div=6, neg=7, gate=8, range=9, tr
           light=37, position=38, joint=39, sprite_rot=40, umod=41,
           # RENDER-ITEMS-002T: the frame counter, OBJECT-bone positions, the random vector, bounded array selects and
           # CreateParticle with a register bitmap and argument 8
-          frame=42, object_transform=43, random_vector=44, select=45, particle_reg=46, particle_reg_owner=47)
+          frame=42, object_transform=43, random_vector=44, select=45, particle_reg=46, particle_reg_owner=47,
+          bitmap=48, owner_item_transform=49)
+OBJECT_BONE = 0x0129f12c    # OBJECT->bone matrix: +0x318 + 0x30 * bone, 0 without one (RENDER-ITEMS-002T)
 # Runtime branch conditions (op 34 e): the jcc index; +0x10 = float flags (comiss/ucomiss), else integer flags.
 CONDITIONS = ['je', 'jne', 'jl', 'jge', 'jg', 'jle', 'jb', 'jae', 'ja', 'jbe', 'jne_u', 'je_o']
 REGISTERS = 4096    # owner_fx.inc run_fx register file (RENDER-ITEMS-002S; part 18 used 1024)
@@ -141,7 +152,7 @@ def fold(op, a, b=None):
 
 # ---------------------------------------------------------------- dynamic part: block bounds and frames
 
-def survey(wa, t):
+def survey(wa, t, EFFECTS=EFFECTS):
     """Run the survey states; return (block start, last effect site, frames at the block start)."""
     import validate_renderchar as v
     from unicorn import UC_HOOK_CODE
@@ -445,10 +456,12 @@ JCC = {'je': lambda a, b: a == b, 'jne': lambda a, b: a != b,
 
 
 class Interpreter:
-    def __init__(self, wa, frames, start, last, pre=False, need=()):
+    def __init__(self, wa, frames, start, last, pre=False, need=(), post=False):
         import capstone
+        self.post = post        # RENDER-ITEMS-002T: RenderPartObjectBody's frame with the pre-draw idioms
+        self.owner_bones = []
         self.need = set(need)   # (branch target, slot) pairs joined into registers (RENDER-ITEMS-002S)
-        self.pre, self.low = pre, PRE_FRAME_LOW if pre else FRAME_LOW
+        self.pre, self.low = pre, PRE_FRAME_LOW if pre and not post else FRAME_LOW
         self.names = []
         self.text, self.data = wa[0], wa[1]
         self.md = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_32)
@@ -590,7 +603,7 @@ class Interpreter:
             return ('c', opnd[1])
         if kind == 'mem':
             base, off = opnd[1], opnd[2]
-            if base == 'ebp' and self.pre:
+            if base == 'ebp' and self.pre and not self.post:
                 # RenderObjDraw(OBJECT, type, light, alpha, ...); the item model is the local at ebp-0xb0.
                 if off == 8:
                     return ('object',)
@@ -635,6 +648,9 @@ class Interpreter:
         elif opnd[0] == 'mem' and opnd[1] in ('eax', 'ecx') and self.pre and \
                 (self.reg.get(opnd[1]) or ('',))[0] == 'frame':
             self.store(('frame', self.reg[opnd[1]][1] + opnd[2]), 0, w)
+        elif opnd[0] == 'mem' and opnd[1] in ('eax', 'ecx') and self.pre and \
+                (self.reg.get(opnd[1]) or ('',))[0] == 'objptr':
+            self.store(('objptr', self.reg[opnd[1]][1] + opnd[2]), 0, w)    # RENDER-ITEMS-002T: OBJECT fields
         elif opnd[0] == 'mem' and opnd[1] == 'ebp' and opnd[2] < 0:
             if opnd[2] == -4:
                 return          # the EH state word
@@ -789,11 +805,14 @@ class Interpreter:
             axes = self.vec(a[8])
             fixed = (a[4], a[5], a[6], a[7], tuple(axes))
             if fixed != (('object',), ('c', 0), ('c', 0), ('c', 4),
-                         (('c', 1), ('c', 1), self.absolute(0x01a7dd48))) or a[0][0] != 'c':
+                         (('c', 1), ('c', 1), self.absolute(0x01a7dd48))) or a[0][0] not in ('c', 'i') or \
+                    a[0][0] == 'i' and not self.pre:
                 raise Refused(f'sprite arguments {a[0]} {fixed}')
             pos = p.vector(self.vec(a[1]))
             light = p.vector(self.vec(a[3]))
-            p.emit('sprite', pos, p.scalar(a[2]), light, k=a[0][1])
+            if a[0][0] == 'i':
+                p.emit('bitmap', a[0][1])      # RENDER-ITEMS-002T: the next request's bitmap from a register
+            p.emit('sprite', pos, p.scalar(a[2]), light, k=a[0][1] if a[0][0] == 'c' else 0)
             self.reg['eax'] = ('junk',)
         elif target == PARTICLE and self.pre and (self.arg(7) != ('c', 0) or self.arg(0)[0] == 'i'):
             # RENDER-ITEMS-002T: a bitmap computed at run time (rand() % 3 + base) or a register argument 8.
@@ -912,6 +931,25 @@ class Interpreter:
                 self.store(ecx, k, result[k])
             self.pop(1)
             self.reg['eax'] = ecx
+        elif target == OBJECT_BONE and self.post:     # RENDER-ITEMS-002T: OBJECT->0x0129f12c(bone), ret 4
+            bone = self.arg(0)
+            if ecx != ('object',) or bone[0] != 'c' or bone[1] >= 0x100:
+                raise Refused(f'object bone operands {ecx} {bone}')
+            self.pop(1)
+            self.reg['eax'] = ('ownerptr', bone[1])
+        elif target == ITEM_TRANSFORM and self.post and (self.arg(0) or ('',))[0] == 'ownerptr':
+            # TransformPosition 0x012b6ef1 on the OBJECT's own bone matrix (item model scale and origin)
+            matrix, local, out, translate = (self.arg(k) for k in range(4))
+            if ecx != ('model',) or translate not in (('c', 0), ('c', 1)) or out[0] != 'frame':
+                raise Refused(f'owner item transform operands {ecx} {matrix} {translate}')
+            self.owner_bones.append(matrix[1])
+            src = p.vector(self.vec(local))
+            base = p.reg(3)
+            p.emit('owner_item_transform', base, 0, src, 0, translate[1], k=matrix[1])
+            for k in range(3):
+                self.store(out, k, ('r', base + k))
+            self.pop(4)
+            self.reg['eax'] = ('junk',)
         elif target == ITEM_TRANSFORM and self.pre:  # model->TransformPosition(BoneTransform + 0x30 bone, local, out, t), ret 0x10
             matrix, local, out, translate = (self.arg(k) for k in range(4))
             if ecx != ('model',) or matrix[0] != 'boneptr' or translate not in (('c', 0), ('c', 1)) or \
@@ -1426,12 +1464,35 @@ def extract_pre(wa, t):
     return {'start': start, 'end': end, 'ops': it.p.ops, 'regs': it.p.regs, 'bones': it.bones, 'names': it.names}
 
 
-def extract(types=OWNER_FX_TYPES):
+def extract_post(wa, t):
+    """RENDER-ITEMS-002T: an owner block after the draws read with the pre-draw idioms (RenderPartObjectBody's frame)."""
+    start, last, frames = survey(wa, t, EFFECTS + (ITEM_TRANSFORM, BONE_SPRITE, NAMED))
+    need = set()
+    while True:
+        it = Interpreter(wa, frames, start, last, pre=True, need=need, post=True)
+        try:
+            end = it.run()
+            break
+        except NeedPhi as e:
+            if len(need) >= 256:
+                raise Refused('more than 256 joined slots')
+            need.add(e.args[0])
+    if it.skips or any(op[0] == OP['named'] for op in it.p.ops):
+        raise Refused('visibility test or named bone in an owner block')
+    effects = sum(op[0] in (OP['sprite'], OP['particle'], OP['particle_reg'], OP['sprite_rot'], OP['bone_sprite'])
+                  for op in it.p.ops)
+    if not effects:
+        raise Refused('no effect request')
+    return {'start': start, 'end': end, 'ops': it.p.ops, 'regs': it.p.regs, 'bones': it.owner_bones,
+            'item_bones': it.bones, 'post': True}
+
+
+def extract(types=OWNER_FX_TYPES + POST_FX_TYPES):
     wa = tuple(pin.read() for pin in (pins.TEXT, pins.DATA, pins.FLAG, pins.FEATURE))
     out, refused = {}, {}
     for t in types:
         try:
-            out[t] = extract_type(wa, t)
+            out[t] = extract_post(wa, t) if t in POST_FX_TYPES else extract_type(wa, t)
         except Refused as e:
             refused[t] = str(e)
     return out, refused
@@ -1442,7 +1503,7 @@ def render(programs, pre=None):
     pre = pre or {}
     blocks, rows, pre_rows, ops, names = [], [], [], [], []
     lines = ['/* Generated by scripts/gen_item_owner_fx.py (RENDER-ITEMS-002Q, 002R). Effect programs of item bodies,',
-             ' * read from the pinned instructions; see client-render-items.md parts 17 and 18. One op =',
+             ' * read from the pinned instructions; see client-render-items.md parts 17, 18, 20 and 21. One op =',
              ' * {op, a, b, c, d, e, k}. Registers are binary32 words (named bones: int32); a vec3 is three registers.',
              ' *  1 const  r[a] = bits k            2 mov  r[a] = r[b]',
              ' *  3..6     r[a] = r[b] mul/add/sub/div r[c] (binary32)      7 neg  r[a] = -r[b] (sign flip)',
@@ -1468,6 +1529,11 @@ def render(programs, pre=None):
              ' * 37 light  r[a..a+2] = RenderObjDraw light (arg 3)   38 position  r[a..a+2] = OBJECT +0x158',
              ' * 39 joint  CreateJoint 0x0153b02c(bitmap k, pos r[a], target r[b], angle r[c], subtype e, OBJECT, scale r[d],',
              ' *           -1, 0, 0, -1, 0, -1, 0)   40 sprite  as 13 with rotation r[d] and blend e   41 umod  r[a] = r[b] div r[c]',
+             ' * RENDER-ITEMS-002T (part 21): 42 frame  r[a] = [0x0bdc5ebc]   43 object transform  r[a..a+2] = 0x012b678d(item bone',
+             ' *           r[b], NULL)   44 random vector  r[a..a+2] = 0x00d01fc6(r[b..b+5]), r[a+3] its result',
+             ' * 45 select r[a] = r[c + r[b] / 4] (r[b] a byte offset below 4d)   46/47 particle  as 14/25 with bitmap r[k], argument 8',
+             ' *           r[k+1]   48 bitmap  the next request\'s bitmap is r[a]   49 owner item transform  r[a..a+2] =',
+             ' *           0x012b6ef1(OBJECT bone k matrix (0x0129f12c), local r[c..c+2], translate e)',
              ' */',
              'typedef struct { uint8_t op; uint16_t a, b, c, d; uint8_t e; uint32_t k; } mu_rc_fx_op;',
              'static const mu_rc_fx_op mu_rc_fx_ops[] = {']
@@ -1504,6 +1570,9 @@ def render(programs, pre=None):
         lines.append('    {0x%04x, %d, %d, %d},' % row)
     if not pre_rows:
         lines.append('    {-1, 0, 0, 0},')
+    lines += ['};', '/* Owner-table programs that read item bones or OBJECT fields (RENDER-ITEMS-002T post programs). */',
+              'static const int32_t mu_rc_fx_post_types[] = {']
+    lines += ['    0x%04x,' % t for t, prog in sorted(programs.items()) if prog.get('post')] or ['    -1,']
     lines += ['};', 'static const char *const mu_rc_fx_names[] = {']
     lines += ['    "%s",' % name for name in names] or ['    "",']
     lines += ['};', '']
@@ -1536,7 +1605,7 @@ def main():
     p.add_argument('--check', action='store_true')
     p.add_argument('--types', help='comma-separated hex types (report only)')
     a = p.parse_args()
-    types = [int(x, 16) for x in a.types.split(',')] if a.types else OWNER_FX_TYPES
+    types = [int(x, 16) for x in a.types.split(',')] if a.types else OWNER_FX_TYPES + POST_FX_TYPES
     programs, refused = extract(types)
     for t, why in sorted(refused.items()):
         print(f'refused {t:#06x}: {why}', file=sys.stderr)

@@ -63,7 +63,8 @@ class Host(C.Structure):
                 ('bone_named', NAMED), ('item_transform', ITEM_TRANSFORM), ('refuse', EMIT), ('visible', C.c_int32),
                 ('position', C.c_float * 3),   # RENDER-ITEMS-002S: OBJECT +0x158
                 # RENDER-ITEMS-002T: 0x012b678d on an item bone, the rendered-frame counter
-                ('object_transform', OBJECT_TRANSFORM), ('frame', C.c_uint32), ('frame_known', C.c_int32)]
+                ('object_transform', OBJECT_TRANSFORM), ('frame', C.c_uint32), ('frame_known', C.c_int32),
+                ('owner_item_transform', ITEM_TRANSFORM)]   # post programs: 0x012b6ef1 on the OBJECT's bone
 
 
 def u(x):
@@ -270,7 +271,9 @@ MUTANTS = {
     'angle': ('memcpy(&r[o->a], h->angle, sizeof h->angle);', 'memset(&r[o->a], 0, sizeof h->angle);'),
     'sprite-scale': ('fx.scale = r[o->b];', 'fx.scale = r[o->b + 1];'),
     'particle-subtype': ('fx.subtype = o->e;', 'fx.subtype = o->e + 1;'),
-    'bone-domain': ('if (need > h->bones || need > h->item_bones)', 'if (need > h->bones + 1 || need > h->item_bones + 1)'),
+    # RENDER-ITEMS-002T: the gate exempts post programs from the item-bone check (0x0129f12c checks only the OBJECT's)
+    'bone-domain': ('if (need > h->bones || (need > h->item_bones && !mu_rc_item_post_fx(s->item->type)))',
+                    'if (need > h->bones + 1 || (need > h->item_bones + 1 && !mu_rc_item_post_fx(s->item->type)))'),
     'phase': ('(phase == 0 || phase == 5 || phase == 6 || phase == 7)', '(phase == 0 || phase == 6 || phase == 7)'),
 }
 

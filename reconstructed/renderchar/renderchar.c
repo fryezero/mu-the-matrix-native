@@ -772,8 +772,11 @@ int mu_rc_item_draws_context(const mu_rc_item *it, mu_rc_model *model, mu_rc_dra
     if ((mu_rc_item_rank5(it->type) || body_type(it->type) >= 0 || (it->type >= 0x3890 && it->type <= 0x38a2)) &&
         (it->a10 != -1 || it->a11 != -1))
         return MU_RC_UNSUPPORTED;
+    /* RENDER-ITEMS-002T: the wings 0x2382..0x2385 draw only explicit meshes (RenderMesh 0x00966e4a), so OBJECT +0x68
+     * changes nothing in their streams (validate_item_predraw's hidden states). */
     if (it->object_hidden != 0 && it->object_hidden != -1 &&
-        it->object_hidden != mu_rc_item_hidden_mesh(it->type) && !(it->type >= 0x2322 && it->type <= 0x2327))
+        it->object_hidden != mu_rc_item_hidden_mesh(it->type) && !(it->type >= 0x2322 && it->type <= 0x2327) &&
+        !(it->type >= 0x2382 && it->type <= 0x2385))
         return MU_RC_UNSUPPORTED;
     /* 0x016ed6e8 and the shared armour fallback: OBJECT blend writes survive the tails. */
     if (it->type == 0x0eee || it->type == 0x18fe || it->type == 0x1cfe) {
