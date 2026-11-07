@@ -13,6 +13,11 @@ reconstructed/hero-equipment reproduces it; the native world runtime feeds the h
 * defaults   every class byte with an empty equipment: the class parts 0x3700 + 0x50 (k - 1) + skin and the head.
 * head       every helm type 0x18d0..0x1a6f (and c + 0xe 0/1): 0x01394f6f's head slot.
 * item_flag  0x00cd0995(item, mode) directly: modes -1..3, codes around the 0..0x2c00 bounds.
+* record     APP-POLISH-008: the offline session's equipment records (code group*512+index, level 0..15, option
+             0/1, ext 0..255; some slots empty) written as ITEMs by mu_he_item_of_record, then 0x01394870 on them:
+             the client's slots equal the C's, and they hold the session's fields (hands and parts: code + 0xae6,
+             level, option, ext; wing and helper: code + 0xae6 and level). The round trip is client-checked; the
+             helper itself is not client code.
 
 Stubbed (not slot writes, not reproduced): 0x009dadf1 (the castle worlds' weapon override), 0x0137ad93 (hero only),
 0x00a00fb7 (the stat machine), and 0x01394f6f after its head store (0x013950ba: scale floats). 0x009dacb8 runs.
@@ -67,6 +72,11 @@ MUTANTS = {
                     'c->slots[MU_RP_SLOT_MUUN].type = item_type(&e[MU_HE_HELPER]);'),
     'swap_hands': ('c->slots[MU_RP_SLOT_WEAPON0].type = item_type(&e[MU_HE_RIGHT]);',
                    'c->slots[MU_RP_SLOT_WEAPON0].type = item_type(&e[MU_HE_LEFT]);'),
+    # APP-POLISH-008: the session record -> ITEM fields
+    'record_level': ('((level & 0xfu) << 3)', '((level & 0xfu) << 4)'),
+    'record_option': ('.flag_98 = (uint8_t)(option != 0)', '.flag_98 = (uint8_t)(option + 1)'),
+    'record_ext': ('.ancient = ext,', '.ancient = (uint8_t)(ext & 0x33),'),
+    'record_code': ('.type = code,', '.type = code + 1,'),
 }
 
 
@@ -87,6 +97,8 @@ def build(source_dir: Path, work: Path, name: str):
     lib.mu_he_set_character_class.argtypes = [ctypes.POINTER(Character), ctypes.POINTER(Item)]
     lib.mu_he_item_flag.argtypes = [ctypes.POINTER(Item), ctypes.c_int32]
     lib.mu_he_item_flag.restype = ctypes.c_uint8
+    lib.mu_he_item_of_record.argtypes = [ctypes.c_int32, ctypes.c_uint8, ctypes.c_uint8, ctypes.c_uint8]
+    lib.mu_he_item_of_record.restype = Item
     return lib, None
 
 
@@ -207,9 +219,48 @@ def compare(family, client, lib, state, rng):
             family['examples'].append({'error': error, 'client': got, 'c': want, 'class': state['class_byte']})
 
 
+def record_expected(state, records):
+    """The slots the session's fields must reach: hands and parts all four, wing and helper type and level."""
+    want = {}
+    for k, s in ((6, 0), (7, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (8, 7), (10, 8)):
+        r = records[s]
+        if r is None:
+            continue
+        code, level, option, ext = r
+        prior = state['slots'][k]
+        want[k] = (code + 0xae6, level, option, ext) if k not in (8, 10) else (code + 0xae6, level, prior[2], prior[3])
+    return want
+
+
+def record_case(family, client, lib, rng):
+    state = random_state(rng)
+    state.update(model=0xa91, byte_0e=0)
+    records = []
+    for s in range(EQUIP):
+        if rng.random() < 0.2:
+            records.append(None)
+            state['equipment'][s] = empty_item()
+            continue
+        r = (rng.randrange(16) * 512 + rng.randrange(512), rng.randrange(16), rng.randrange(2), rng.randrange(256))
+        records.append(r)
+        item = lib.mu_he_item_of_record(*r)
+        state['equipment'][s] = {'type': item.type, 'level': item.level, 'ancient': item.ancient,
+                                 'flag_92': item.flag_92, 'flag_98': item.flag_98}
+    got, error = client.set_class(state, rng)
+    want = c_set_class(lib, state)
+    expected = record_expected(state, records)
+    family['cases'] += 1
+    bad = error or got != want or any(got[k] != v for k, v in expected.items())
+    if bad:
+        family['mismatches'] += 1
+        if len(family['examples']) < 3:
+            family['examples'].append({'error': error, 'client': got, 'c': want, 'records': records})
+
+
 def families(client, lib, cases, seed):
     rng = random.Random(seed)
-    out = {name: {'cases': 0, 'mismatches': 0, 'examples': []} for name in ('set_class', 'defaults', 'head', 'item_flag')}
+    out = {name: {'cases': 0, 'mismatches': 0, 'examples': []}
+           for name in ('set_class', 'defaults', 'head', 'item_flag', 'record')}
     for _ in range(cases):
         compare(out['set_class'], client, lib, random_state(rng), rng)
     for class_byte in range(256):
@@ -236,6 +287,8 @@ def families(client, lib, cases, seed):
             fam['mismatches'] += 1
             if len(fam['examples']) < 3:
                 fam['examples'].append({'error': error, 'client': got, 'c': want, 'mode': mode, 'item': item})
+    for _ in range(cases):
+        record_case(out['record'], client, lib, rng)
     return out
 
 
@@ -264,7 +317,7 @@ def mutations(client, cases, seed, work):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--cases', type=int, default=3000, help='set_class and item_flag cases')
+    parser.add_argument('--cases', type=int, default=3000, help='set_class, item_flag and record cases')
     parser.add_argument('--seed', type=int, default=0x4e20)
     parser.add_argument('--mutations', action='store_true')
     parser.add_argument('--text')

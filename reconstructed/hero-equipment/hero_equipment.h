@@ -42,6 +42,12 @@ typedef struct mu_he_item {
     uint8_t flag_98;   /* +0x98 */
 } mu_he_item;
 
+/* APP-POLISH-008: the ITEM fields an equipment record of the offline session carries (the hero's own items; the
+ * server writes them in the client): code -> +0x10, level 0..15 -> the level word +0x14 = level << 3 (the bits
+ * SetCharacterClass reads back as (word >> 3) & 15; the word's other bits 0), option 0/1 -> +0x98 (the flag
+ * 0x00cd0995(item, 1) tests == 1), ext -> +0x3b; +0x92 0. Not client code: the inverse of the reads below,
+ * checked against the client's own reads by scripts/validate_hero_items.py (family record). */
+mu_he_item mu_he_item_of_record(int32_t code, uint8_t level, uint8_t option, uint8_t ext);
 /* 0x00cd0995 (thiscall on the ITEM, one argument): 0 for a code outside 0..0x2c00; mode 0: +0x3b & 0x33 != 0,
  * mode 1: +0x98 == 1, mode 2: +0x92 == 1, other modes 0. */
 uint8_t mu_he_item_flag(const mu_he_item *item, int32_t mode);

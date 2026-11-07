@@ -139,8 +139,10 @@ static void items_model_raster(void *context, const mu_world_item_draw *d)
     env.particles = a->has_particles ? &a->particles : NULL;
     env.quality = a->ground->config.quality;
     memcpy(env.glow_color, a->ground->config.glow_color, sizeof env.glow_color);
-    /* RenderPartObject: the ground item's own pose (RENDER-ITEMS-CALLERS-001) */
-    world_rt_item_pre(a, &env, MU_WORLD_PRE_GROUND, d->type, d->model, mu_model_bone_matrices(d->model));
+    /* RenderPartObject: the ground item's own pose (RENDER-ITEMS-CALLERS-001), its OBJECT (RENDER-EFFECTS-020) */
+    memcpy(env.item_angle, d->angle, sizeof env.item_angle);
+    world_rt_item_pre(a, &env, MU_WORLD_PRE_GROUND, d->type, d->model, mu_model_bone_matrices(d->model),
+                      (uint32_t)d->index);
     mu_draw_options options;
     mu_draw_default_options(&options);
     options.textures = d->textures;
@@ -222,8 +224,10 @@ static void items_model_gl(void *context, const mu_world_item_draw *d)
     env.particles = a->has_particles ? &a->particles : NULL;
     env.quality = a->ground->config.quality;
     memcpy(env.glow_color, a->ground->config.glow_color, sizeof env.glow_color);
-    /* RenderPartObject: the ground item's own pose (RENDER-ITEMS-CALLERS-001) */
-    world_rt_item_pre(a, &env, MU_WORLD_PRE_GROUND, d->type, d->model, mu_model_bone_matrices(d->model));
+    /* RenderPartObject: the ground item's own pose (RENDER-ITEMS-CALLERS-001), its OBJECT (RENDER-EFFECTS-020) */
+    memcpy(env.item_angle, d->angle, sizeof env.item_angle);
+    world_rt_item_pre(a, &env, MU_WORLD_PRE_GROUND, d->type, d->model, mu_model_bone_matrices(d->model),
+                      (uint32_t)d->index);
     mu_draw_options options;
     mu_draw_default_options(&options);
     options.textures = d->textures;

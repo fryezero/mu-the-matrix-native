@@ -149,12 +149,19 @@ def native_lights(initial, events, count, normals):
 
 
 class Spec:
-    """One class that runs this slot code: its class id, slot entries, own worlds and other worlds, and whether the
-    handler byte +0x22 matters (RENDER-WORLDS-RAKLION's validate_worlds_raklion passes Raklion's)."""
+    """One class that runs this slot comparison: its class id, slot entries, own worlds and other worlds, and whether
+    the handler byte +0x22 matters (RENDER-WORLDS-RAKLION's validate_worlds_raklion passes Raklion's). A class with its
+    own slot code (RENDER-WORLDS-KARUTAN's validate_worlds_karutan) also gives its case types, action types and stubs
+    (client leaves its world test calls)."""
 
-    def __init__(self, name, cls, custom, after, worlds, others, focus, gate=False):
+    def __init__(self, name, cls, custom, after, worlds, others, focus, gate=False, types=None, after_types=None,
+                 action_types=None, stubs=None):
         self.name, self.cls, self.custom, self.after = name, cls, custom, after
         self.worlds, self.others, self.focus, self.gate = worlds, others, focus, gate
+        self.types = types or CUSTOM_TYPES
+        self.after_types = after_types or AFTER_TYPES
+        self.action_types = ACTION_TYPES if action_types is None else action_types
+        self.stubs = stubs or {}
 
 
 TEST_AREA = Spec('121', 121, CUSTOM, AFTER, [121], [0, 2, 57, 120, 122, 140], FOCUS)
@@ -162,11 +169,11 @@ TEST_AREA = Spec('121', 121, CUSTOM, AFTER, [121], [0, 2, 57, 120, 122, 140], FO
 
 def slot_family(machine, lib, g, cases, after, focus=False, spec=TEST_AREA):
     t = v.Tally(('after_' if after else 'actions_' if focus else 'custom_') + spec.name)
-    types = AFTER_TYPES if after else CUSTOM_TYPES
+    types, action_types = (spec.after_types, []) if after else (spec.types, spec.action_types)
     for n in range(cases):
         world = g.choice(spec.worlds) if g.random() < 0.8 else g.choice(spec.others)
         typ = g.choice(list(spec.focus)) if focus else n if n <= 300 else \
-            g.choice(types + ACTION_TYPES * (0 if after else 4)) if g.random() < 0.9 else g.randrange(0, 301)
+            g.choice(types + action_types * 4) if g.random() < 0.9 else g.randrange(0, 301)
         count, subs, array, records = a2.slot_meshes(g)
         normals = case_counts(g)
         for k in range(16):
@@ -177,7 +184,7 @@ def slot_family(machine, lib, g, cases, after, focus=False, spec=TEST_AREA):
         actions_count = g.choice([4, 4, 2, 1, 0, 64, g.randrange(-2, 70)])
         struct.pack_into('<h', b, 0x22, bones)
         struct.pack_into('<h', b, 0x26, actions_count)
-        if typ in ACTION_TYPES:   # actions 0..3 and the frame windows of 0x10..0x15
+        if typ in spec.action_types:   # actions 0..3 and the frame windows (121: 0x10..0x15)
             struct.pack_into('<H', o, 0x2a, g.choice([0, 0, 1, 1, 2, 3, g.randrange(0, 70)]))
             v.put_f(o, 0xd0, v.f32(g.choice([0.0, 1.99, 2.0, 3.5, 5.0, 5.01, 8.0, 8.01, 10.99, 11.0, 12.0, 12.5, 13.0,
                                              14.0, 15.0, 16.0, 17.0, 17.01, 18.99, 19.0, 19.49, 19.5, 20.0, 96.99,
@@ -231,7 +238,8 @@ def slot_family(machine, lib, g, cases, after, focus=False, spec=TEST_AREA):
                          (a[4], a[5], 0))
             return 0
         stubs = {BODY: recorder(BODY), MESH: recorder(MESH), w2.RAND: lambda m: ra(), TRANSFORM: transform,
-                 PARTICLE: particle, vp.MODEL_CONTAINER: lambda m: v.FAKE, vp.MODEL_GET: lambda m: (v.MODEL, 4)}
+                 PARTICLE: particle, vp.MODEL_CONTAINER: lambda m: v.FAKE, vp.MODEL_GET: lambda m: (v.MODEL, 4),
+                 **spec.stubs}
         regions = v.global_regions(world, 6, [am.defined_region('object', v.OBJECTS, bytes(o)),
                                               am.defined_region('model', v.MODEL, bytes(b)),
                                               am.defined_region('actions', v.ACTIONS, bytes(actions),

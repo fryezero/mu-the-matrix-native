@@ -4,13 +4,11 @@
 #include "world_visual_internal.h"
 int mu_noria_defer(uint8_t *);
 int mu_elbeland_defer(uint8_t *);
-int mu_karutan_defer(uint8_t *);
 int mu_elbeland_after(uint8_t *, int32_t, float, mu_obj_log *);
 void mu_elbeland_after_sprites(const uint8_t *, int32_t, mu_world_bone_fn, void *, mu_obj_log *);
-int mu_karutan_after(uint8_t *, int32_t, float, mu_obj_log *);
-/* The A worlds (RENDER-WORLDS-A). Raklion 0x39/0x3a stays listed for the pose's light-skip mesh; its custom and after
- * slots are class slots since RENDER-WORLDS-RAKLION (mu_class_slots), so mu_world_defer and mu_world_after_render
- * no longer take it. */
+/* The A worlds (RENDER-WORLDS-A). Raklion 0x39/0x3a and Karutan 0x50/0x51 stay listed for the pose's light-skip mesh;
+ * their custom and after slots are class slots since RENDER-WORLDS-RAKLION / RENDER-WORLDS-KARUTAN (mu_class_slots),
+ * so mu_world_defer and mu_world_after_render no longer take them. */
 int mu_world_after_enabled(int32_t w)
 {
     return w == 3 || w == 0x33 || w == 0x39 || w == 0x3a || w == 0x50 || w == 0x51;
@@ -21,8 +19,6 @@ int mu_world_defer(uint8_t *o, int32_t w)
         return mu_noria_defer(o);
     if (w == 0x33)
         return mu_elbeland_defer(o);
-    if (w == 0x50 || w == 0x51)
-        return mu_karutan_defer(o);
     return 0;
 }
 /* The four A worlds' types of 0x017fe909 (kept for callers that only need the type set). */
@@ -186,8 +182,6 @@ int mu_world_after_render(uint8_t *o, int32_t i, int32_t w, float time, mu_obj_l
         mu_elbeland_after_sprites(o, i, bone, c, l);
         return status;
     }
-    if (w == 0x50 || w == 0x51)
-        return mu_karutan_after(o, i, time, l);
     if (w >= 0x80 && w <= 0x82)
         return mu_abyss_after(w, o, i, w, l) ? MU_OBJ_OK : MU_OBJ_UNSUPPORTED;
     return MU_OBJ_UNSUPPORTED;
