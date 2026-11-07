@@ -1,5 +1,7 @@
 # Continue from here
 
+APP-POLISH-006 PR-ready: the 80-player crowd HUD shows the recorded level-1 Dark Knight join (HP 1100/1100, MP 200/200, SD 52/52, AG 25/25) instead of `16960/0`: the README stress command no longer overrides the hero's class (no recorded maxima for class 0) and HP (A0/30's 16-bit field truncated 1,000,000 to 16,960). The world's demo inventory items now start at the item constructor's full durability: the Blade +9 tooltip read `[1/53]` and now reads `[53/53]`. The cause was ed9ed6be's add-item default of 1, shown since ffbed220's instance tooltips. The quest-capture command now documents `MU_QUEST_SCENARIO`, and README images 26/27 are re-shot (window-only, demo names). [Handoff](handoffs/APP-POLISH-006.md).
+
 README-REFRESH-005 (lane A) PR-ready: README world/effect/combat/mount/comparison images re-shot from main `18ab0134` (01, 05, 06, 10, 12, 15, 18, 22; new 28 bows, 29 ground skill, 30 worlds live vs native; 16, 17, 26, 27 kept with reasons) and the public numbers refreshed (worlds 144/144 and slots 142/144, items 1,319/1,674 and 13 white types, bows 0 unsupported, NATIVE-PERF-004). [Handoff](handoffs/README-REFRESH-005.md), [claim sources](research/readme-refresh.md#readme-refresh-005-claim-sources).
 
 README-REFRESH-005-B PR-ready: README images 04a, 04b, 07, 08, 09, 13, 14, 19, 20, 21, 23, 24 and 25 re-shot from main 18ab0134 (offline, public demo, real Ruffle, APP-REFRESH-006 Native Data); 02 and 03 kept (same pixels). The owner's character name and vitals are gone from all of them; textured inventory items and NPC 257, ItemTRSData icon sizes, town scenery and demo players. [Handoff](handoffs/README-REFRESH-005-B.md).
@@ -172,6 +174,7 @@ APP-REFRESH-003: [journey proofs, windowed report, stale-client fix, installatio
 APP-REFRESH-004: [reinstall from 32b7f34d, new Native Data with mapanim, proofs, rollback](handoffs/APP-REFRESH-004.md).
 APP-REFRESH-005: [reinstall from 7d7d694b, Native Data kept, HUD/Hound/item/bow/world proofs, rollback](handoffs/APP-REFRESH-005.md).
 APP-POLISH-005: [Elf ground skill 2044 in the offline demo, effects report](handoffs/APP-POLISH-005.md).
+APP-POLISH-006: [crowd HUD vitals, demo durability, quest-capture command, README 26/27](handoffs/APP-POLISH-006.md).
 APP-REFRESH-006: [reinstall from 7e6a9292, Native Data with itemtrs.tsv, title/icon/ground-skill/Kubera/body proofs, rollback](handoffs/APP-REFRESH-006.md).
 PLAY-FIX-001: [world-change clear, audio output limiter, map-name check](handoffs/PLAY-FIX-001.md).
 

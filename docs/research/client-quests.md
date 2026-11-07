@@ -202,6 +202,7 @@ counting), `validate-quest.json`.
 
 ```sh
 export MU_GFX_LIB=…/libmugfx.dylib MU_LANG_DIR=…/lang MU_GFX_SINGLE_BUFFER=1
+export MU_QUEST_SCENARIO=native/fixture/scenarios/quest-progress.scn   # since SESSION-QUEST-001, see below
 native/build/mu-world --game-root "$MU_GAME_ROOT" --headless --backend gl --no-audio \
     --placement native/world/lorencia-demo-placement.txt --npc-demo native/world/lorencia-demo-npc.txt \
     --gfx MOVIES --tile 133,127 --npc-script "5:click:soldier 60:option:1 90:option:0 120:qnext 130:qnext \
@@ -210,6 +211,16 @@ native/build/mu-world --game-root "$MU_GAME_ROOT" --headless --backend gl --no-a
 ```
 
 Movies: convert `NpcQuestProgress MyQuestInfo` with the NATIVE-GFX-002 options next to the NPC set.
+
+APP-POLISH-006 (2026-11-06, main `71692108`, APP-REFRESH-006 Native Data movies and lang): since
+SESSION-QUEST-001 quests reach the window through the session, so the command needs `MU_QUEST_SCENARIO`.
+Without it the run ends with no active quest (`"progress":0,"active":[]`). With
+`quest-progress.scn` (the scenario `test_native_quest` uses) its synthetic replies put quest 7 at 3/3:
+`"progress":2,"active":[{"quest":7,"state":2,"count":3}]`, enough for the My Quests and tracker views
+(README image 13). The scripted dialogue no longer sends the accept request (F6 72): `60:option:1` still
+asks for the NPC's quest list (request 901), but `90:option:0` now reaches dialogue request 902. The report
+says `"accepted":0`, and the private `test_native_quest.LorenciaDemo`, which expects 1, fails on that main
+for this reason. That is open for a quest lane; the scenario, not the UI, supplies the accepted quest.
 
 ## NATIVE-QUEST-001 gaps at handoff
 
