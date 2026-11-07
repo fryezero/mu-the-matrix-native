@@ -1029,9 +1029,11 @@ static void write_fidelity_dump(const mu_world_rt *a)
  *  - BoneTransform 0x06fce398 holds the item's own pose: RenderLinkItem's Animation 0x012b5064 (0x012c6478) runs
  *    before the call at 0x012c6a83; the callers pass the matrices they saved right after that pose;
  *  - the flag [ebp-0xd] (world_item_pre.h) at the item model's origin with the frame's polygon, as the other
- *    world parts (--legacy-box: every item in view). */
+ *    world parts (--legacy-box: every item in view);
+ *  - RENDER-EFFECTS-020: the OBJECT itself, owner of the wings' 0x810a/0x11 and 0x81cf/0 particles. Its +0x158 is
+ *    the model origin in both callers; the key refreshes the owner slot every draw (MoveParticles copies +0x158). */
 void world_rt_item_pre(mu_world_rt *a, struct mu_renderchar_env *env, int caller, int32_t type, const mu_model *model,
-                       const float *bones)
+                       const float *bones, uint32_t object)
 {
     if (!env->particles || !mu_rc_item_pre_fx(type))
         return;
@@ -1040,6 +1042,8 @@ void world_rt_item_pre(mu_world_rt *a, struct mu_renderchar_env *env, int caller
     env->item_out_of_view = !a->legacy_box && mu_world_item_out_of_view(a->frustum.x2d, a->frustum.y2d,
                                                                          model->params.origin);
     a->item_pre_hidden[caller] += env->item_out_of_view;
+    env->item_owner = ((uint32_t)(caller + 1) << 24) | (object & 0xffffffu);
+    mu_world_particles_item_owner_refresh(env->particles, env->item_owner, model->params.origin);
 }
 
 static void report_item_pre(const mu_world_rt *a)
