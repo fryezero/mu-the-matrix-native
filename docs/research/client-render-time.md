@@ -402,6 +402,25 @@ These limits are unchanged. One new failure is a plan-design consequence: the Lo
 native zoom, and the faithful twin no longer zooms. A later live plan must not rely on the wheel at a spot
 where base.swf takes it.
 
+## The clear colour beyond the terrain cull, REGRESS-001 (2026-11-06)
+
+README 26/27 show dark corners (the left of the Lorencia bridge, Tormenta's far right) since #258. They come from
+the README's native-only `--perf-fov 65` override, not from the 640-unit frustum alone.
+
+- RenderTerrain `0x016cd468` draws only inside CreateFrustrum2D `0x016d20d9`'s polygon (TestFrustrum2D
+  `0x016ccce7`). The polygon is sized from the camera record and GetScreenWidth / 640, and does not depend on the
+  FOV.
+- The client's FOV never exceeds the world FOV (the zoom `0x0185a9bf` picks from {20, 30, world FOV}). Live
+  Lorencia reads 39.0 at `0x01cf1634`.
+- Beyond the polygon the client shows RenderMainScene's glClearColor (`0x01859419..0x0185967b`): (10, 20, 14)/256
+  in Lorencia, black in Tormenta.
+- Native matches this. `validate_scene_clear` compares the block with `env_world.c` (4,000 cases, 0 mismatches,
+  8/8 call sites, 6/6 mutants).
+- At 1,600×1,000 both scenes fill the frame up to FOV 45. At FOV 65, 14.1% / 9.2% of the frame shows the clear
+  colour.
+
+Numbers and the README recommendation are in the [REGRESS-001 handoff](../handoffs/REGRESS-001.md).
+
 ## LIVE half procedure, as planned by RENDER-TIME-001
 
 1. In a future authorized live session, read `mu-mac-tools/GAME-LOCK.md` and the
