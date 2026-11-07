@@ -61,14 +61,21 @@ OWNER_FX_TYPES = [
 PRE_FX_TYPES = [
     0x0b27, 0x0b2a, 0x0b4b, 0x0b4c, 0x0b57, 0x0b59, 0x0f1c, 0x0f1d, 0x0f2e, 0x1311, 0x1312, 0x1316, 0x131d, 0x1748,
     0x1749, 0x1758, 0x230b, 0x2311, 0x2382, 0x2383, 0x2384, 0x2385, 0x2394, 0x2395, 0x2494, 0x2499,
+    # RENDER-ITEMS-002S (part 19): integer clock chains (0x0b4f, 0x0b50, 0x0b53 with a float branch), joint loops
+    # (0x22ec, 0x248f), a rotated sprite behind rand() % 15 >= 8 (0x230c, 0x2496), bones at rand() % bone count
+    # (0x23ef, 0x2400, 0x2405), names built with _itoa (0x24cf, 0x24d6) and the OBJECT position (0x26f8, 0x26f9).
+    0x0b4f, 0x0b50, 0x0b53, 0x22ec, 0x248f, 0x230c, 0x2496, 0x23ef, 0x2400, 0x2405, 0x24cf, 0x24d6, 0x26f8, 0x26f9,
 ]
 
 DRAWS = (0x00966def, 0x00966e4a)
 TRANSFORM, SPRITE, PARTICLE, RANGE, RAND = 0x012b678d, 0x01692eb7, 0x0168fafd, 0x011ff622, 0x01989721
+JOINT = 0x0153b02c          # CreateJoint (RENDER-ITEMS-002S)
 BONE_SPRITE, NAMED, STRING, STRING_FREE, WAVE = 0x0150e746, 0x012bd35a, 0x0094997e, 0x008e83a0, 0x0185bdc4
 ITEM_TRANSFORM, BONE_TRANSFORM = 0x012b6ef1, 0x06fce398
+ITOA, STRING_APPEND, STRING_CSTR = 0x0198c1d7, 0x0094b9f7, 0x008e7940
+VECTOR_CTOR, VECTOR_DTOR = 0x0191b8be, 0x0191b937
 EFFECTS = (TRANSFORM, SPRITE, PARTICLE, RANGE, RAND)
-PRE_EFFECTS = EFFECTS + (BONE_SPRITE, NAMED, ITEM_TRANSFORM)
+PRE_EFFECTS = EFFECTS + (BONE_SPRITE, NAMED, ITEM_TRANSFORM, JOINT)
 BODY_HELPER = 0x016e036c
 CLOCK, SINE = 0x06fce370, 0x009681bd
 OBJDRAW = (0x0176ce74, 0x017e6312)
@@ -76,15 +83,27 @@ SIGN_MASK = 0x01a7df40
 DATA_BASE = 0x01a7c000
 FRAME_LOW = 0x6000          # frame bytes kept below EBP at the block start
 PRE_FRAME_LOW = 0x12800     # RenderObjDraw's frame (0x127d4 bytes)
+OBJECT_WORDS = 1 << 24      # interpreter memory keys of OBJECT fields written by a case (RENDER-ITEMS-002S)
 
 # Op codes of item_owner_fx.h (see the header comment written by render()).
 OP = dict(const=1, mov=2, mul=3, add=4, sub=5, div=6, neg=7, gate=8, range=9, transform=10, norm=11, angle=12,
-          sprite=13, particle=14, wave=15, named=16, bone_sprite=17, visible=18, alpha=19, time=20, sin=21, abs=22, randmod=23, item_transform=24, particle_owner=25)
+          sprite=13, particle=14, wave=15, named=16, bone_sprite=17, visible=18, alpha=19, time=20, sin=21, abs=22, randmod=23, item_transform=24, particle_owner=25,
+          # RENDER-ITEMS-002S: integer registers, runtime branches and further services
+          ftoi=26, itof=27, imod=28, iquot=29, iadd=30, isub=31, imul=32, irand=33, cond=34, jump=35, bones=36,
+          light=37, position=38, joint=39, sprite_rot=40, umod=41)
+# Runtime branch conditions (op 34 e): the jcc index; +0x10 = float flags (comiss/ucomiss), else integer flags.
+CONDITIONS = ['je', 'jne', 'jl', 'jge', 'jg', 'jle', 'jb', 'jae', 'ja', 'jbe', 'jne_u', 'je_o']
+REGISTERS = 4096    # owner_fx.inc run_fx register file (RENDER-ITEMS-002S; part 18 used 1024)
 BINARY = {'mulss': 'mul', 'addss': 'add', 'subss': 'sub', 'divss': 'div'}
 
 
 class Refused(Exception):
     pass
+
+
+class NeedPhi(Exception):
+    """A read of a slot whose value differs between the two paths joining at a branch target: the reading is
+    restarted with that (target, slot) joined into a register (RENDER-ITEMS-002S)."""
 
 
 def f32(x):
@@ -273,8 +292,8 @@ class Program:
     def reg(self, count=1):
         r = self.regs
         self.regs += count
-        if self.regs > 1024:
-            raise Refused('more than 1024 registers')
+        if self.regs > REGISTERS:
+            raise Refused(f'more than {REGISTERS} registers')
         return r
 
     def emit(self, op, *args, k=0):
@@ -312,14 +331,49 @@ class Program:
         self.emit(op, r, self.scalar(a), self.scalar(b))
         return ('r', r)
 
+    # RENDER-ITEMS-002S: integer words (int32 in a register's bits).
+    def integer(self, word):
+        if word[0] == 'i':
+            return word[1]
+        if word[0] == 'c':
+            r = self.reg()
+            self.emit('const', r, k=word[1])
+            return r
+        raise Refused(f'not an integer value: {word}')
 
-MEM = re.compile(r'^dword ptr \[(ebp|esp|eax|ecx)(?: ([+-]) (0x[0-9a-f]+|\d+))?\]$')
+    def ibinary(self, op, a, b):
+        if a[0] == 'c' and b[0] == 'c':
+            return ('c', ifold(op, a[1], b[1]))
+        if op in ('imod', 'iquot', 'umod') and b[0] == 'c' and b[1] == 0:
+            raise Refused('constant integer division by zero')
+        r = self.reg()
+        self.emit(op, r, self.integer(a), self.integer(b))
+        return ('i', r)
+
+    def move(self, r, word):
+        """r = word (a constant or a register of either kind)."""
+        if word[0] == 'c':
+            self.emit('const', r, k=word[1])
+        elif word[0] in ('r', 'i'):
+            self.emit('mov', r, word[1])
+        else:
+            raise Refused(f'join of a non-value {word}')
+
+    def patch(self, index, target):
+        self.ops[index] = self.ops[index][:-1] + (target,)
+
+
+MEM = re.compile(r'^dword ptr \[(ebp|esp|eax|ecx|edx|esi|edi)(?: ([+-]) (0x[0-9a-f]+|\d+))?\]$')
+INDEX = re.compile(r'^dword ptr \[(eax|ecx|edx|esi|edi) \+ (eax|ecx|edx|esi|edi)\]$')
 ABS = re.compile(r'^(?:dword|xmmword) ptr \[(0x[0-9a-f]+)\]$')
 
 
 def operand(text):
     if text == 'dword ptr [eax + ecx]':
         return ('index',)       # a float array element: ecx = lea of the array, eax = 4 * constant index
+    m = INDEX.match(text)
+    if m:
+        return ('index', m.group(1), m.group(2))   # RENDER-ITEMS-002S: any two registers, either order
     m = MEM.match(text)
     if m:
         off = int(m.group(3), 0) if m.group(3) else 0
@@ -336,6 +390,19 @@ def _signed(x):
     return x - (1 << 32) if x & 0x80000000 else x
 
 
+def ifold(op, a, b):
+    """x86 result of one 32-bit integer operation on two constant words."""
+    x, y = _signed(a), _signed(b)
+    if op in ('imod', 'iquot') and (y == 0 or (x == -2**31 and y == -1)):
+        raise Refused('constant idiv fault')
+    if op == 'umod' and b == 0:
+        raise Refused('constant div fault')
+    q = abs(x) // abs(y) * (1 if (x < 0) == (y < 0) else -1) if op in ('imod', 'iquot') else 0
+    r = {'iadd': lambda: x + y, 'isub': lambda: x - y, 'imul': lambda: x * y, 'iquot': lambda: q,
+         'imod': lambda: x - q * y, 'umod': lambda: a % b}[op]()
+    return r & 0xffffffff
+
+
 # Conditional jumps on two constant 32-bit words (cmp a, b), decided statically in pre-draw blocks.
 JCC = {'je': lambda a, b: a == b, 'jne': lambda a, b: a != b,
        'jl': lambda a, b: _signed(a) < _signed(b), 'jge': lambda a, b: _signed(a) >= _signed(b),
@@ -344,8 +411,9 @@ JCC = {'je': lambda a, b: a == b, 'jne': lambda a, b: a != b,
 
 
 class Interpreter:
-    def __init__(self, wa, frames, start, last, pre=False):
+    def __init__(self, wa, frames, start, last, pre=False, need=()):
         import capstone
+        self.need = set(need)   # (branch target, slot) pairs joined into registers (RENDER-ITEMS-002S)
         self.pre, self.low = pre, PRE_FRAME_LOW if pre else FRAME_LOW
         self.names = []
         self.text, self.data = wa[0], wa[1]
@@ -376,14 +444,34 @@ class Interpreter:
             w = self.mem.get(off)
             if w is None:
                 w = self.frame_word(off)
-            if w[0] == 'phi':
-                raise Refused(f'read of ebp{off:+#x} after a gated write')
-            return w
+            return self.use(w)
+        if ptr[0] == 'objptr' and OBJECT_WORDS + ptr[1] + 4 * k in self.mem:
+            return self.use(self.mem[OBJECT_WORDS + ptr[1] + 4 * k])
         if ptr[0] == 'objptr' and ptr[1] == 0x164:
             return ('angle', k)
+        if self.pre and ptr[0] in ('objptr', 'lightptr'):
+            # RENDER-ITEMS-002S: OBJECT position (+0x158) and light argument components, read where used.
+            lo = 0x158 if ptr[0] == 'objptr' else 0
+            i = ptr[1] + 4 * k - lo
+            if i % 4 or not 0 <= i < 12:
+                raise Refused(f'load through {ptr}')
+            base = self.p.reg(3)
+            self.p.emit('position' if ptr[0] == 'objptr' else 'light', base)
+            return ('r', base + i // 4)
         raise Refused(f'load through {ptr}')
 
+    def use(self, w):
+        """A word being read: a value that differs between joined paths restarts the reading with a join."""
+        if w is not None and w[0] == 'phi':
+            if len(w) == 3 and (w[1], w[2]) not in self.need:
+                raise NeedPhi((w[1], w[2]))
+            raise Refused('read of a word after a gated write')
+        return w
+
     def store(self, ptr, k, w):
+        if self.pre and ptr[0] == 'objptr' and not 0x158 <= ptr[1] + 4 * k < 0x170:
+            self.mem[OBJECT_WORDS + ptr[1] + 4 * k] = w    # RENDER-ITEMS-002S: OBJECT fields the case writes
+            return
         if ptr[0] != 'frame':
             raise Refused(f'store through {ptr}')
         self.mem[ptr[1] + 4 * k] = w
@@ -392,6 +480,10 @@ class Interpreter:
         if ptr[0] == 'objptr' and ptr[1] == 0x164:
             base = self.p.reg(3)
             self.p.emit('angle', base)
+            return [('r', base + k) for k in range(3)]
+        if self.pre and ptr in (('objptr', 0x158), ('lightptr', 0)):
+            base = self.p.reg(3)
+            self.p.emit('position' if ptr[0] == 'objptr' else 'light', base)
             return [('r', base + k) for k in range(3)]
         return [self.load(ptr, k) for k in range(3)]
 
@@ -411,8 +503,10 @@ class Interpreter:
             raise Refused(f'bone name {raw!r}')
         return raw.decode()
 
-    def element(self):
-        index, base = self.reg.get('eax'), self.reg.get('ecx')
+    def element(self, regs=('eax', 'ecx')):
+        index, base = self.reg.get(regs[0]), self.reg.get(regs[1])
+        if base and base[0] != 'frame' and index and index[0] == 'frame':
+            index, base = base, index
         if not self.pre or not index or index[0] != 'c' or not base or base[0] != 'frame' or index[1] % 4 or \
                 index[1] > 0xfc:
             raise Refused(f'array element {index} {base}')
@@ -421,7 +515,7 @@ class Interpreter:
     def read(self, opnd):
         kind = opnd[0]
         if kind == 'index':
-            return self.load(self.element())
+            return self.load(self.element(opnd[1:] or ('eax', 'ecx')))
         if kind == 'abs' and self.pre and opnd[1] == CLOCK:
             r = self.p.reg()
             self.p.emit('time', r)
@@ -442,6 +536,8 @@ class Interpreter:
                     r = self.p.reg()
                     self.p.emit('alpha', r)
                     return ('r', r)
+                if off == 0x10:
+                    return ('lightptr', 0)      # RENDER-ITEMS-002S: the light argument (float[3])
                 if off < 0:
                     return self.load(('frame', off))
             elif base == 'ebp':
@@ -454,20 +550,24 @@ class Interpreter:
             if base == 'esp':
                 if off % 4 or off // 4 >= len(self.stack):
                     raise Refused('stack read outside the pushed arguments')
-                return self.stack[-1 - off // 4]
-            if base in ('eax', 'ecx') and self.pre and (self.reg.get(base) or ('',))[0] == 'frame':
-                return self.load(('frame', self.reg[base][1] + off))
+                return self.use(self.stack[-1 - off // 4])
+            if base in ('eax', 'ecx', 'edx', 'esi', 'edi') and self.pre and \
+                    (self.reg.get(base) or ('',))[0] in ('frame', 'objptr', 'lightptr'):
+                ptr = self.reg[base]
+                return self.load((ptr[0], ptr[1] + off))
             raise Refused(f'read {opnd}')
         if kind == 'reg':
             w = self.reg.get(opnd[1])
             if w is None:
                 raise Refused(f'read of unset {opnd[1]}')
-            return w
+            if w[0] == 'lazy':      # idiv/div results, emitted when read
+                w = self.reg[opnd[1]] = self.p.ibinary(w[1], w[2], w[3])
+            return self.use(w)
         raise Refused(f'read {opnd}')
 
     def write(self, opnd, w):
         if opnd[0] == 'index':
-            self.store(self.element(), 0, w)
+            self.store(self.element(opnd[1:] or ('eax', 'ecx')), 0, w)
         elif opnd[0] == 'mem' and opnd[1] in ('eax', 'ecx') and self.pre and \
                 (self.reg.get(opnd[1]) or ('',))[0] == 'frame':
             self.store(('frame', self.reg[opnd[1]][1] + opnd[2]), 0, w)
@@ -488,7 +588,7 @@ class Interpreter:
     def arg(self, k):
         if k >= len(self.stack):
             raise Refused('missing call argument')
-        return self.stack[-1 - k]
+        return self.use(self.stack[-1 - k])
 
     def pop(self, n):
         if n > len(self.stack):
@@ -566,6 +666,28 @@ class Interpreter:
             p.emit('range', r, p.scalar(lo), p.scalar(hi), k=steps[1])
             self.st0 = ('r', r)
             self.reg['eax'] = ('junk',)
+        elif target == SPRITE and self.pre and (self.arg(5) != ('c', 0) or self.arg(6) != ('c', 0)):
+            # RENDER-ITEMS-002S: CreateSprite with a rotation (argument 6) and blend word (argument 7).
+            a = [self.arg(k) for k in range(9)]
+            axes = self.vec(a[8])
+            if a[4] != ('object',) or a[6][0] != 'c' or a[6][1] > 0xff or a[7] != ('c', 4) or a[0][0] != 'c' or \
+                    tuple(axes) != (('c', 1), ('c', 1), self.absolute(0x01a7dd48)):
+                raise Refused(f'sprite arguments {a}')
+            pos = p.vector(self.vec(a[1]))
+            light = p.vector(self.vec(a[3]))
+            p.emit('sprite_rot', pos, p.scalar(a[2]), light, p.scalar(a[5]), a[6][1], k=a[0][1])
+            self.reg['eax'] = ('junk',)
+        elif target == JOINT and self.pre:            # cdecl, 14 arguments
+            a = [self.arg(k) for k in range(14)]
+            fixed = tuple(a[7:])
+            if a[0][0] != 'c' or a[0][1] > 0xffff or a[4][0] != 'c' or a[4][1] > 0xff or a[5] != ('object',) or \
+                    fixed != (('c', 0xffffffff), ('c', 0), ('c', 0), ('c', 0xffffffff), ('c', 0), ('c', 0xffffffff), ('c', 0)):
+                raise Refused(f'joint arguments {a}')
+            pos = p.vector(self.vec(a[1]))
+            aim = p.vector(self.vec(a[2]))
+            angle = p.vector(self.vec(a[3]))
+            p.emit('joint', pos, aim, angle, p.scalar(a[6]), a[4][1], k=a[0][1])
+            self.reg['eax'] = ('junk',)
         elif target == SPRITE:                         # cdecl, 9 arguments
             a = [self.arg(k) for k in range(9)]
             axes = self.vec(a[8])
@@ -590,13 +712,43 @@ class Interpreter:
             self.reg['eax'] = ('junk',)
         elif target == STRING and self.pre:          # std::string(const char *) on a frame object, ret 4
             name = self.arg(0)
-            if ecx is None or ecx[0] != 'frame' or name[0] != 'c':
+            if ecx is None or ecx[0] != 'frame' or name[0] not in ('c', 'text'):
                 raise Refused(f'string operands {ecx} {name}')
-            self.store(ecx, 0, ('string', self.cstring(name[1])))
+            self.store(ecx, 0, ('string', self.cstring(name[1]) if name[0] == 'c' else name[1]))
             self.pop(1)
             self.reg['eax'] = ecx
         elif target == STRING_FREE and self.pre:     # ~std::string
             self.reg['eax'] = ('junk',)
+        # RENDER-ITEMS-002S: names built as literal + _itoa(n), and MSVC's EH vector iterators.
+        elif target == ITOA and self.pre:            # cdecl _itoa(value, buffer, radix)
+            n, buf, radix = self.arg(0), self.arg(1), self.arg(2)
+            if n[0] != 'c' or buf[0] != 'frame' or radix != ('c', 10):
+                raise Refused(f'itoa operands {n} {buf} {radix}')
+            self.store(buf, 0, ('text', str(_signed(n[1]))))
+            self.reg['eax'] = buf
+        elif target == STRING_APPEND and self.pre:   # std::string::append(const char *), ret 4
+            text = self.arg(0)
+            text = self.load(text) if text[0] == 'frame' else text
+            old = self.load(ecx) if ecx and ecx[0] == 'frame' else None
+            if not old or old[0] != 'string' or text[0] != 'text':
+                raise Refused(f'string append operands {old} {text}')
+            self.store(ecx, 0, ('string', old[1] + text[1]))
+            self.pop(1)
+            self.reg['eax'] = ecx
+        elif target == STRING_CSTR and self.pre:     # std::string::c_str()
+            w = self.load(ecx) if ecx and ecx[0] == 'frame' else None
+            if not w or w[0] != 'string':
+                raise Refused(f'c_str of {w}')
+            self.reg['eax'] = ('text', w[1])
+        elif target == VECTOR_CTOR and self.pre:     # eh vector constructor iterator(p, size, n, ctor, dtor), ret 0x14
+            ptr, size, n, ctor = (self.arg(k) for k in range(4))
+            if ptr[0] != 'frame' or size != ('c', 0xc) or n[0] != 'c' or ctor != ('c', 0x0095ea8e) or n[1] > 0x100:
+                raise Refused(f'vector constructor {ptr} {size} {n} {ctor}')
+            for k in range(3 * n[1]):
+                self.store(ptr, k, ('c', 0))
+            self.pop(5)
+        elif target == VECTOR_DTOR and self.pre:     # eh vector destructor iterator(p, size, n, dtor), ret 0x10
+            self.pop(4)
         elif target == NAMED and self.pre:           # model->0x012bd35a(name, fallback), ret 8
             name, fallback = self.load(self.arg(0)), self.arg(1)
             if ecx != ('model',) or name[0] != 'string' or fallback != ('c', 0xffffffff):
@@ -622,10 +774,10 @@ class Interpreter:
             self.reg['eax'] = ecx
         elif target == 0x00cfc922 and self.pre:      # &this[i], ret 4
             i, base = self.arg(0), ecx
-            if i[0] != 'c' or i[1] > 2 or not base or base[0] != 'frame':
+            if i[0] != 'c' or i[1] > 2 or not base or base[0] not in ('frame', 'objptr', 'lightptr'):
                 raise Refused(f'element operands {base} {i}')
             self.pop(1)
-            self.reg['eax'] = ('frame', base[1] + 4 * i[1])
+            self.reg['eax'] = (base[0], base[1] + 4 * i[1])
         elif target in (0x0095ea8e, 0x00cfcf7b) and self.pre:   # vec3() / zero(): all three 0
             for k in range(3):
                 self.store(ecx, k, ('c', 0))
@@ -698,20 +850,89 @@ class Interpreter:
 
     GATE_IDIV = [('cdq', ''), ('push', None), ('pop', 'ecx'), ('idiv', 'ecx'), ('test', 'edx, edx'), ('jne', None)]
 
+    def integer_op(self, mn, ops):
+        """imul/add/sub/shl/inc/dec of a general register holding an integer word; False when not one."""
+        parts = [x.strip() for x in ops.split(',')]
+        dst = parts[0]
+        if dst not in ('eax', 'ecx', 'edx', 'esi', 'edi'):
+            return False
+        cur = self.reg.get(dst)
+        if mn in ('inc', 'dec'):
+            if not cur or cur[0] not in ('c', 'i'):
+                return False
+            self.reg[dst] = self.p.ibinary('iadd', self.read(('reg', dst)), ('c', 1 if mn == 'inc' else 0xffffffff))
+            return True
+        if mn == 'imul' and len(parts) == 3:
+            src = self.read(operand(parts[1]))
+            k = int(parts[2], 0) & 0xffffffff
+            if src[0] == 'i' and k == 0x30:
+                self.reg[dst] = ('scaled', src)        # a bone's matrix offset
+            elif src[0] in ('c', 'i'):
+                self.reg[dst] = self.p.ibinary('imul', src, ('c', k))
+            else:
+                return False
+            return True
+        if mn == 'add' and cur in (('object',),) and re.match(r'^(0x[0-9a-f]+|\d+)$', parts[1]):
+            self.reg[dst] = ('objptr', int(parts[1], 0))
+            return True
+        src = self.read(operand(parts[1]))
+        if mn == 'add' and cur and cur[0] == 'c' and src[0] in ('objptr', 'lightptr', 'frame'):
+            self.reg[dst] = (src[0], src[1] + cur[1])    # constant index plus a pointer
+            return True
+        if mn == 'add' and cur and cur[0] in ('objptr', 'lightptr') and src[0] == 'c':
+            self.reg[dst] = (cur[0], cur[1] + src[1])
+            return True
+        if not cur or cur[0] not in ('c', 'i') and not (cur[0] == 'lazy'):
+            return False
+        a = self.read(('reg', dst))
+        if mn == 'shl':
+            if src[0] != 'c' or src[1] > 31:
+                return False
+            self.reg[dst] = self.p.ibinary('imul', a, ('c', 1 << src[1]))
+        elif src[0] in ('c', 'i'):
+            self.reg[dst] = self.p.ibinary('iadd' if mn == 'add' else 'isub' if mn == 'sub' else 'imul', a, src)
+        else:
+            return False
+        return True
+
     def merge(self, address):
         while self.pending and self.pending[-1][0] == address:
             _, index, (mem, stack) = self.pending.pop()
             if len(stack) != len(self.stack):
                 raise Refused('stack depth differs at a gate target')
-            for off in set(mem) | set(self.mem):
-                if mem.get(off) != self.mem.get(off):
-                    self.mem[off] = ('phi',)
-            for k, w in enumerate(stack):
-                if w != self.stack[k]:
-                    self.stack[k] = ('phi',)
+            slots = [('mem', off) for off in sorted(set(mem) | set(self.mem)) if mem.get(off) != self.mem.get(off)]
+            slots += [('stack', k) for k, w in enumerate(stack) if w != self.stack[k]]
+            joined = {}
+            # RENDER-ITEMS-002S: a slot read after the join becomes one register written on both paths:
+            # fall-through path, jump over the taken path's moves, taken path (the branch op continues there).
+            need = [slot for slot in slots if (address, slot) in self.need]
+            if need:
+                def word(m, st, slot):
+                    if slot[0] == 'stack':
+                        return st[slot[1]]
+                    return m[slot[1]] if slot[1] in m else self.frame_word(slot[1])
+                for slot in need:
+                    a, b = word(self.mem, self.stack, slot), word(mem, stack, slot)
+                    kinds = {a[0], b[0]} - {'c'}
+                    if len(kinds) > 1 or not {a[0], b[0]} <= {'c', 'r', 'i'}:
+                        raise Refused(f'join of {a} and {b}')
+                    joined[slot] = (kinds.pop() if kinds else 'r', self.p.reg())
+                    self.p.move(joined[slot][1], a)
+                jump = self.p.emit('jump')
+                self.p.patch(index, len(self.p.ops))
+                for slot in need:
+                    self.p.move(joined[slot][1], word(mem, stack, slot))
+                self.p.patch(jump, len(self.p.ops))
+            else:
+                self.p.patch(index, len(self.p.ops))
+            for slot in slots:
+                w = joined.get(slot, ('phi', address, slot))
+                if slot[0] == 'mem':
+                    self.mem[slot[1]] = w
+                else:
+                    self.stack[slot[1]] = w
             self.reg = {}
             self.xmm0 = self.st0 = None
-            self.p.ops[index] = self.p.ops[index][:-1] + (len(self.p.ops),)
         if any(target < address for target, _, _ in self.pending):
             raise Refused('gate target skipped')
 
@@ -745,6 +966,14 @@ class Interpreter:
                         a += j.size
                     if seq is not None:
                         break
+                if seq is None and self.pre:
+                    # RENDER-ITEMS-002S: rand() as an integer value (then cdq/idiv, compares, indices ...).
+                    r = self.p.reg()
+                    self.p.emit('irand', r)
+                    self.reg = {k: w for k, w in self.reg.items() if k not in ('eax', 'ecx', 'edx')}
+                    self.reg['eax'] = ('i', r)
+                    address = nxt
+                    continue
                 if seq is None:
                     raise Refused(f'rand outside the gate idiom at {address:#x}')
                 if idiom is self.RAND_VALUE:
@@ -789,6 +1018,40 @@ class Interpreter:
             if self.pre and mn == 'jmp' and not self.pending and self.start <= int(ops, 16) <= self.last:
                 address = int(ops, 16)   # a loop's back edge or its jump to the condition (constant counters)
                 continue
+            if self.pre and mn in CONDITIONS and self.flags is not None and self.flags[0] == 'rt':
+                # RENDER-ITEMS-002S: a forward branch on a runtime value becomes a cond op; both paths are read
+                # and joined at the target (merge).
+                _, kind, a, b = self.flags
+                self.flags = None
+                target = int(ops, 16)
+                if target <= address or (kind and mn in ('jl', 'jge', 'jg', 'jle')):
+                    raise Refused(f'runtime branch {mn} at {address:#x}')
+                ra, rb = (self.p.scalar(a), self.p.scalar(b)) if kind else (self.p.integer(a), self.p.integer(b))
+                index = self.p.emit('cond', ra, rb, 0, 0, kind | CONDITIONS.index(mn))
+                self.pending.append((target, index, (dict(self.mem), list(self.stack))))
+                self.pending.sort(key=lambda x: -x[0])
+                address = nxt
+                continue
+            if self.pre and mn == 'jmp' and self.pending and self.pending[-1][0] == nxt and int(ops, 16) > nxt:
+                # if/else: the then-path jumps over the else-path, which starts at the branch target.
+                _, index, (mem, stack) = self.pending.pop()
+                if self.pending and self.pending[-1][0] == nxt:
+                    raise Refused(f'two branches to the else-path at {nxt:#x}')
+                jump = self.p.emit('jump')
+                self.pending.append((int(ops, 16), jump, (dict(self.mem), list(self.stack))))
+                self.pending.sort(key=lambda x: -x[0])
+                self.p.patch(index, len(self.p.ops))
+                self.mem, self.stack, self.reg = dict(mem), list(stack), {}
+                self.xmm0 = self.st0 = None
+                address = nxt
+                continue
+            if self.pre and mn == 'jmp' and self.pending and all(t == int(ops, 16) for t, _, _ in self.pending) and \
+                    address >= self.last:
+                for _, index, _ in self.pending:     # paths that leave the case at the join: the program end
+                    self.p.patch(index, len(self.p.ops))
+                self.pending = []
+                end = address
+                break
             if self.pre and mn in JCC and self.flags is not None:
                 a, b = self.flags
                 taken = JCC[mn](a, b)
@@ -802,17 +1065,96 @@ class Interpreter:
                 break
             if mn == 'nop':
                 pass
-            elif self.pre and mn == 'cmp':
+            elif self.pre and mn in ('cmp', 'test'):
                 a, b = (self.read(operand(x.strip())) for x in ops.split(',', 1))
-                if a[0] != 'c' or b[0] != 'c':
-                    raise Refused(f'cmp of a runtime value at {address:#x}')
-                self.flags = (a[1], b[1])
-            elif self.pre and mn == 'and' and re.match(r'^dword ptr \[ebp - 0x[0-9a-f]+\], 0$', ops):
+                if mn == 'test':
+                    nj = insns.get(nxt)
+                    if a != b or not nj or nj.mnemonic not in ('je', 'jne'):
+                        raise Refused(f'test {ops} at {address:#x}')
+                    b = ('c', 0)
+                if a[0] == 'c' and b[0] == 'c':
+                    self.flags = (a[1], b[1])
+                elif {a[0], b[0]} <= {'c', 'i'}:
+                    self.flags = ('rt', 0, a, b)
+                else:
+                    raise Refused(f'cmp of {a} and {b} at {address:#x}')
+            elif self.pre and mn in ('comiss', 'ucomiss'):
+                dst, src = (operand(x.strip()) for x in ops.split(',', 1))
+                if dst != ('reg', 'xmm0') or self.xmm0 is None:
+                    raise Refused(f'{mn} {ops}')
+                a, b = self.xmm0, self.read(src)
+                i1 = insns.get(nxt)
+                i2 = insns.get(nxt + i1.size) if i1 else None
+                i3 = insns.get(i2.address + i2.size) if i2 else None
+                if i1 and i1.mnemonic == 'lahf':
+                    # lahf; test ah, 0x44; jp: taken unless ordered equal (jnp: ordered equal).
+                    if not i2 or (i2.mnemonic, i2.op_str) != ('test', 'ah, 0x44') or not i3 or \
+                            i3.mnemonic not in ('jp', 'jnp') or int(i3.op_str, 16) <= i3.address:
+                        raise Refused(f'float compare idiom at {address:#x}')
+                    cc = 'jne_u' if i3.mnemonic == 'jp' else 'je_o'
+                    index = self.p.emit('cond', self.p.scalar(a), self.p.scalar(b), 0, 0, 0x10 | CONDITIONS.index(cc))
+                    self.pending.append((int(i3.op_str, 16), index, (dict(self.mem), list(self.stack))))
+                    self.pending.sort(key=lambda x: -x[0])
+                    self.reg.pop('eax', None)
+                    address = i3.address + i3.size
+                    continue
+                self.flags = ('rt', 0x10, a, b)
+            elif self.pre and mn == 'xor' and len(set(x.strip() for x in ops.split(','))) == 1 and \
+                    ops.split(',')[0] in ('eax', 'ecx', 'edx', 'esi', 'edi'):
+                self.reg[ops.split(',')[0]] = ('c', 0)
+            elif self.pre and mn == 'cdq':
+                self.reg['edx'] = ('cdq',)
+            elif self.pre and mn in ('idiv', 'div'):
+                dividend, divisor = self.read(('reg', 'eax')), self.read(operand(ops))
+                if mn == 'idiv' and self.reg.get('edx') != ('cdq',) or mn == 'div' and self.reg.get('edx') != ('c', 0):
+                    raise Refused(f'{mn} without its extension at {address:#x}')
+                if mn == 'idiv':
+                    self.reg['eax'] = ('lazy', 'iquot', dividend, divisor)
+                    self.reg['edx'] = ('lazy', 'imod', dividend, divisor)
+                else:
+                    self.reg['eax'] = ('junk',)
+                    self.reg['edx'] = ('lazy', 'umod', dividend, divisor)
+            elif self.pre and mn == 'cvttss2si':
+                dst, src = (x.strip() for x in ops.split(',', 1))
+                x = self.xmm0 if src == 'xmm0' else self.read(operand(src))
+                if x is None or x[0] not in ('c', 'r'):
+                    raise Refused(f'cvttss2si of {x}')
+                if x[0] == 'c':
+                    f = value(x[1])
+                    self.reg[dst] = ('c', int(f) & 0xffffffff if -2**31 <= f < 2**31 else 0x80000000)
+                else:
+                    r = self.p.reg()
+                    self.p.emit('ftoi', r, x[1])
+                    self.reg[dst] = ('i', r)
+            elif self.pre and mn == 'cvtsi2ss':
+                dst, src = (x.strip() for x in ops.split(',', 1))
+                x = self.read(operand(src))
+                if x[0] == 'c':
+                    w = ('c', bits(f32(float(_signed(x[1])))))
+                elif x[0] == 'i':
+                    r = self.p.reg()
+                    self.p.emit('itof', r, x[1])
+                    w = ('r', r)
+                else:
+                    raise Refused(f'cvtsi2ss of {x}')
+                if dst == 'xmm0':
+                    self.xmm0 = w
+                else:
+                    self.reg[dst] = w
+            elif self.pre and mn == 'movsx' and re.match(r'^(eax|ecx|edx), word ptr \[(eax|ecx|edx) \+ 0x22\]$', ops) and \
+                    self.reg.get(ops[ops.index('[') + 1:ops.index('[') + 4]) == ('model',):
+                r = self.p.reg()
+                self.p.emit('bones', r)
+                self.reg[ops[:3]] = ('i', r)
+            elif self.pre and mn == 'and' and re.match(r'^dword ptr \[ebp - (0x[0-9a-f]+|\d+)\], 0$', ops):
                 self.write(operand(ops.split(',')[0]), ('c', 0))    # a loop counter's start
             elif self.pre and mn in ('inc', 'dec') and ops == 'eax' and (self.reg.get('eax') or ('',))[0] == 'c':
                 self.reg['eax'] = ('c', (self.reg['eax'][1] + (1 if mn == 'inc' else -1)) & 0xffffffff)
             elif mn == 'mov' and ops.startswith('byte ptr [ebp - 4], '):
                 pass            # the EH state byte
+            elif self.pre and mn == 'mov' and re.match(r'^(word|byte) ptr \[ebp - 0x[0-9a-f]+\], (ax|al)$', ops) and \
+                    self.reg.get('eax') == ('c', 0):
+                pass            # zeroes an _itoa buffer (its text is the call's result)
             elif self.pre and mn == 'movzx' and ops == 'eax, byte ptr [ebp - 0xd]':
                 # TestFrustrum2D 0x016ccce7(OBJECT x * 0.01, y * 0.01, -20) at 0x0176ceea: not visible skips the
                 # case (to the next type test, after the block; checked at the end).
@@ -846,6 +1188,8 @@ class Interpreter:
             elif self.pre and mn == 'shl' and re.match(r'^eax, \d+$', ops) and self.reg.get('eax', ('',))[0] == 'c':
                 self.reg['eax'] = ('c', (self.reg['eax'][1] << int(ops[5:])) & 0xffffffff)
 
+            elif self.pre and mn in ('imul', 'add', 'sub', 'shl', 'inc', 'dec') and self.integer_op(mn, ops):
+                pass        # RENDER-ITEMS-002S: integer arithmetic on registers
             elif mn == 'push':
                 o = operand(ops)
                 self.stack.append(('junk',) if o == ('reg', 'ecx') and self.reg.get('ecx') is None else self.read(o))
@@ -859,8 +1203,18 @@ class Interpreter:
                     if self.xmm0 is None:
                         raise Refused('store of an unset xmm0')
                     self.write(dst, self.xmm0)
+                elif self.pre and dst == ('reg', 'xmm1'):
+                    self.reg['xmm1'] = self.read(src)
+                elif self.pre and src == ('reg', 'xmm1'):
+                    self.write(dst, self.read(src))
+                elif self.pre and dst == ('reg', 'xmm0') or src == ('reg', 'xmm0'):
+                    pass
                 else:
                     raise Refused(f'movss {ops}')
+            elif self.pre and mn in BINARY and ops.startswith('xmm1, '):
+                src = operand(ops[6:])
+                self.reg['xmm1'] = self.p.binary(BINARY[mn], self.read(('reg', 'xmm1')),
+                                                 self.xmm0 if src == ('reg', 'xmm0') else self.read(src))
             elif mn in BINARY:
                 dst, src = (operand(x.strip()) for x in ops.split(',', 1))
                 if dst != ('reg', 'xmm0') or self.xmm0 is None:
@@ -882,7 +1236,7 @@ class Interpreter:
             elif mn == 'lea':
                 dst, src = (x.strip() for x in ops.split(',', 1))
                 m = re.match(r'^\[ebp - (0x[0-9a-f]+)\]$', src)
-                if dst not in ('eax', 'ecx', 'edx') or not m:
+                if dst not in ('eax', 'ecx', 'edx') + (('esi', 'edi') if self.pre else ()) or not m:
                     raise Refused(f'lea {ops}')
                 self.reg[dst] = ('frame', -int(m.group(1), 16))
             elif mn == 'mov':
@@ -935,13 +1289,22 @@ def extract_type(wa, t):
 
 def extract_pre(wa, t):
     start, last, frames = survey_pre(wa, t)
-    it = Interpreter(wa, frames, start, last, pre=True)
-    end = it.run()
+    need = set()
+    while True:
+        it = Interpreter(wa, frames, start, last, pre=True, need=need)
+        try:
+            end = it.run()
+            break
+        except NeedPhi as e:
+            if len(need) >= 256:
+                raise Refused('more than 256 joined slots')
+            need.add(e.args[0])
     for target, index in it.skips:
         if target <= end:
             raise Refused(f'visibility test target {target:#x} inside the case')
         it.p.ops[index] = it.p.ops[index][:-1] + (len(it.p.ops),)
-    effects = sum(op[0] in (OP['sprite'], OP['particle'], OP['bone_sprite'], OP['particle_owner']) for op in it.p.ops)
+    effects = sum(op[0] in (OP['sprite'], OP['particle'], OP['bone_sprite'], OP['particle_owner'], OP['joint'],
+                            OP['sprite_rot']) for op in it.p.ops)
     if not effects:
         raise Refused('no effect request')
     return {'start': start, 'end': end, 'ops': it.p.ops, 'regs': it.p.regs, 'bones': it.bones, 'names': it.names}
@@ -981,6 +1344,14 @@ def render(programs, pre=None):
              ' * 22 abs    r[a] = 0 > r[b] ? -r[b] : r[b] (0x0184f8ff)   23 randmod  r[a] = (float)(rand() % k)',
              ' * 24 item transform  r[a..a+2] = TransformPosition 0x012b6ef1(item bone r[b], local r[c..c+2], translate k)',
              ' * 25 particle  as 14 with the OBJECT as owner (argument 7)',
+             ' * RENDER-ITEMS-002S (part 19): integer registers hold int32 bits.',
+             ' * 26 ftoi  r[a] = cvttss2si r[b]   27 itof  r[a] = cvtsi2ss r[b]   28/29  r[a] = r[b] idiv r[c] remainder/quotient',
+             ' * 30..32   r[a] = r[b] add/sub/imul r[c] (int32)   33 irand  r[a] = rand()   36 bones  r[a] = item bone count',
+             ' * 34 cond   jcc e & 15 (je jne jl jge jg jle jb jae ja jbe, 10 = lahf/jp, 11 = lahf/jnp) on r[a], r[b]',
+             ' *           (e & 0x10: comiss flags, else cmp): continue at op k     35 jump  continue at op k',
+             ' * 37 light  r[a..a+2] = RenderObjDraw light (arg 3)   38 position  r[a..a+2] = OBJECT +0x158',
+             ' * 39 joint  CreateJoint 0x0153b02c(bitmap k, pos r[a], target r[b], angle r[c], subtype e, OBJECT, scale r[d],',
+             ' *           -1, 0, 0, -1, 0, -1, 0)   40 sprite  as 13 with rotation r[d] and blend e   41 umod  r[a] = r[b] div r[c]',
              ' */',
              'typedef struct { uint8_t op; uint16_t a, b, c, d; uint8_t e; uint32_t k; } mu_rc_fx_op;',
              'static const mu_rc_fx_op mu_rc_fx_ops[] = {']

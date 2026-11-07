@@ -18,6 +18,7 @@ Part 11 reaches **967/1,674 bodies** with per-type wave/sine scalar programs; li
 [Part 16 below](#part-16-census-of-the-455-remaining-bodies-and-derived-body-programs-render-items-002p) reaches **1,276/1,674 bodies** and groups the rest by blocker.
 [Part 17 below](#part-17-owner-effect-programs-of-the-armour-bodies-render-items-002q) reaches **1,319/1,674 bodies** with owner-effect programs.
 [Part 18 below](#part-18-pre-draw-effect-programs-on-the-items-own-bones-render-items-002r) reaches **1,345/1,674 bodies** with pre-draw programs on the item's own bones.
+[Part 20 below](#part-20-integer-registers-runtime-branches-and-joints-in-pre-draw-programs-render-items-002s) reaches **1,359/1,674 bodies** with integer registers, runtime branches and joints.
 Muun/map-object effect placement remains deferred. All parts run offline.
 
 ## Identity and evidence
@@ -1659,3 +1660,107 @@ unchanged (133). A player outside the polygon has the flag clear and creates not
 - Owner binding is not needed for sprites: CreateSprite records live one frame (RenderSprites `0x0169270e` modes
   0/2), and the draw `0x01692931` never reads `+0x34c`. OBJECT-owned particles stay refused, with no native
   owner record or kind.
+
+## Part 20, integer registers, runtime branches and joints in pre-draw programs, RENDER-ITEMS-002S
+
+Bounded bodies increase **1,345 to 1,359 of 1,674** (part 19 changed no body), adding **14 types** to `gen_item_owner_fx.PRE_FX_TYPES`: three
+swords with integer clock chains (`0x0b4f`, `0x0b50`, `0x0b53`), nine wings (`0x22ec`, `0x230c`, `0x23ef`, `0x2400`,
+`0x2405`, `0x248f`, `0x2496`, `0x24cf`, `0x24d6`) and two pet/item bodies (`0x26f8`, `0x26f9`). Skins stay **17/17**,
+links stay **eighteen targets/twenty-four types**. **315 bodies remain.** The survey keeps 798 shapes; complete
+shapes go 572 to 581, and both TSVs flip exactly the 14 types.
+
+### Screening first (verified)
+
+The part-18 census reproduces on the 329 remaining types: 53 pre-draw types refuse in the interpreter (51 plus
+`0x2489`/`0x24a1`, whose case bounds the reader cannot place), 14 read but their draws fit no recipe, 16 call effect
+services only after a draw, 31 fault in strlen `0x0195a4e0` and 2 at `0x0095d4f1` (unstubbed CreateEffect in the plain
+world). Before extending the reader, each of these 85 types' draws was fitted under the four probe options (default,
+part-14 extended, part-13 carry, both) with a one-type scratch library and the 292-state comparison. Only 19 fit.
+The reader was then extended for those; 14 of them now read and are admitted. Their probe options
+(`gen_item_bodies.PRE_EXTENDED`/`PRE_CARRY`) are the screen's.
+
+### New idioms (static, with concrete frames)
+
+- **Integer words.** `cvttss2si` (the clock and SSE values; integer indefinite outside the range), `cvtsi2ss`
+  into `xmm0`/`xmm1`, `cdq; idiv` (remainder and quotient, emitted when read), `xor r, r`, integer
+  `add`/`sub`/`imul`/`shl`/`inc`/`dec`, `rand()` as an integer when no gate or value idiom matches it, and
+  `movsx r, word [model + 0x22]` (the item model's bone count). `0x0b4f`..`0x0b53`: `(float)((int)time % n) / n`
+  times a constant becomes the bone sprites' rotation (period 4000 ms in `0x0b4f`).
+- **Runtime branches.** `cmp`/`test` on integer registers and `comiss`/`ucomiss` on floats followed by a forward
+  `jcc` become a `cond` op (x86 flag semantics, unordered sets ZF, PF and CF; `lahf; test ah, 0x44; jp/jnp` is its
+  own condition). Both paths are read; an if/else's `jmp` over the else-path becomes a `jump` op. A word that differs
+  between the joined paths is unreadable until a read needs it; the reading then restarts with that slot joined into
+  one register (moves on both paths, the taken path's after a jump). Gates keep their part-17 behaviour, so the 69
+  earlier programs read to the same op rows (the header's `--check` reproduced at every step).
+- **Services.** CreateJoint `0x0153b02c(bitmap, position, target position, OBJECT +0x164, subtype, OBJECT, scale, -1,
+  0, 0, -1, 0, -1, 0)`; CreateSprite with a rotation (argument 6) and blend word; the light argument `[ebp+0x10]`; the
+  OBJECT position (+0x158, through `0x00cfc922`); names built as literal + `_itoa(n)` (`0x0198c1d7`, std::string
+  append `0x0094b9f7`, `c_str` `0x008e7940`); MSVC's EH vector constructor/destructor iterators (`0x0191b8be`,
+  `0x0191b937`); `xmm1` arithmetic; any two-register array index; writes to OBJECT fields (kept as interpreter memory).
+- **Registers.** The file grows to 4,096 (`REGISTERS`, `MU_RC_FX_REGISTERS`); `run_fx` clears only the row's
+  `regs`. The 14 programs use at most 309 registers. (Part 18 named five types that refused for exceeding 1,024; with
+  integer `rand()` and the bone count read, `0x23ef`/`0x2400`/`0x2405` need 273.)
+
+The 14 programs: 2,827 ops. What they use: joints (40 sites), the OBJECT position (12), `idiv` remainders (8),
+integer `rand()` (5), `cvttss2si`/`cvtsi2ss` (3 each), integer conditions (2, `rand() % 15 >= 8` in `0x230c`/`0x2496`),
+one float condition with its `jump` (`0x0b53`), the bone count (3) and the rotated sprite (2).
+
+### Executor and native consumers
+
+- `owner_fx.inc` ops 26..41 (ftoi, itof, idiv remainder/quotient, integer add/sub/imul, integer rand, cond, jump, bone
+  count, light, position, joint, rotated sprite, unsigned remainder). An `idiv` fault (zero divisor, `INT32_MIN / -1`)
+  marks its result refused; a branch on a refused value marks every later request refused.
+- Appended ABI: `MU_RC_OWNER_JOINT = 3`, `mu_rc_owner_fx.target[3]` (CreateJoint's target position),
+  `mu_rc_owner_host.position[3]` (OBJECT +0x158). `validate_item_ownerfx`/`validate_render_effects5`'s ctypes follow;
+  the two positional C initializers (`mu_renderchar.c`, `mu_item_textures.c`) gain the zero position.
+- Native (`mu_renderchar.c`): joints go to `mu_world_particles_joint` with no target object (-1: the client's target is
+  the item's OBJECT, which has no native object index), so the joint takes the target position argument. The pool
+  reconstructs `0x7f7c` only for subtype 0x12 and `0x7fd3` only for subtype 0; these programs create `0x7f7c`/0xe and
+  `0x7fd3`/4, so natively the requests are routed and counted as refused (`pre_refused`). The OBJECT position is the
+  item model's origin (the native item has no OBJECT of its own).
+
+Effects routed vs refused (static request sites over the 14 programs, loops unrolled):
+
+| Request | Sites | Native consumer | Result |
+|---|---:|---|---|
+| Bone sprite `0x0150e746`: `0x7ef7` 82, `0x8098` 44, `0x81ec` 32, `0x8180` 6, `0x8078` 5, `0x8149` 1 | 170 | sprite pool | routed (refused outside the item skeleton) |
+| CreateSprite: `0x7f78` 24, `0x7fdd` 20, `0x7ef7` 16 (+2 rotated), `0x7f26` 4 | 66 | sprite pool | routed (same bone rule) |
+| CreateParticle, no owner: `0x7f66`/5 4, `0x8180`/5 3 | 7 | particle pool | routed; refused when the pool creates none |
+| CreateJoint `0x7f7c`/0xe 20, `0x7fd3`/4 20 (wings `0x22ec`, `0x248f`), the OBJECT as target object | 40 | joint pool, no target index | routed; the pool does not reconstruct these kinds, counted as refused |
+
+### Checks
+
+`scripts/validate_item_predraw.py --mutations` (the part-18 row; the 14 types join both families):
+**14,240 comparisons, zero mismatches** (758 s):
+
+| Family | Cases | Mismatches |
+|---|---:|---:|
+| Body streams, 40 types × 292 states, no host | 11,680 | 0 |
+| Pre-draw: as part 18, plus CreateJoint recorded with all fourteen arguments and a random OBJECT position. Requests bit for bit (19,241 sprites, 269 particles, 2,196 joints), refusals by kind/bitmap in order (10,725), rand count (1,011), 280 flag-clear states | 2,560 | 0 |
+
+All **25/25 separately compiled mutants** are caught (anchors match once); the eleven new ones: integer rand 76, idiv
+remainder 172, cvttss2si (rounding instead of truncation) 53, cvtsi2ss 110, integer condition 6, bone count 30, OBJECT
+position 117, joint target 115, joint subtype 115, joint scale 115, sprite rotation 109. Not mutated, because no
+program can tell: the float condition and the join `jump` (their only use, `0x0b53`'s triangle wave, computes a value
+no request reads: the body draws read it), and the `idiv` fault path (divisors are constants or a bone count >= 1 in
+every state). `validate_item_ownerfx --mutations` reruns on the shared executor (below). Both tables reproduce.
+
+Compiled C-to-C, main `53cffd00` library against this one, all 1,691 survey types × 32 random states, with and
+without a rand context: **108,224 cases**; 107,328 identical, and the 896 different ones are exactly the 14 new types.
+Portable `test_item_predraw.py`: 10 tests, one private skip (rand() % bone count, the joint loop's paired targets, the
+integer clock's period and truncation, the `rand() % 15 >= 8` branch, the OBJECT position). Native
+`test_wing_joint_and_random_bone_programs`.
+
+### Limits
+
+- 315 bodies remain. Not admitted: `0x0f1f`, `0x0f20`, `0x0f2a` fit the draws but call the random colour helper
+  `0x00d01fc6` (about 160 instructions, three `0x011ff622` ranges and sines) and index arrays by `rand() % 3`; the
+  frame-counter gate (`[0x0bdc5ebc] % 3`, unsigned) also needs a host field. `0x130d` and `0x2713` fit but create their
+  effects after the draws. `0x23a8`/`0x23a9`, `0x0f1e`, `0x174a`, `0x2301`/`0x2302`, `0x23f0`/`0x23f2`, `0x0b51`/`0x0b52`
+  read or nearly read but their draws fit no probe option.
+- Joints: the target object (the item's OBJECT) has no native index, and the joint pool does not reconstruct
+  `0x7f7c`/0xe or `0x7fd3`/4 yet (RENDER-JOINTS lanes). The OBJECT position natively is the model origin.
+- OBJECT fields that a case writes (`0x0f1f`'s owner transforms into +0x1f4) are interpreter memory only; no admitted
+  program writes one.
+- The world callers of part 19 (hero, players, player-model actors, ground items) run these programs too; the OBJECT
+  position is the model origin (for ground items, the OBJECT position).

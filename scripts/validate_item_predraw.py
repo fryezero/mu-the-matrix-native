@@ -18,6 +18,10 @@ predraw: the complete RenderObjDraw with an item skeleton: the model's bone coun
   same names; the flag the client computed). The draw stream, every request (all arguments bit for bit) and the
   rand() count must agree. A request on a bone outside 0..count-1 (the client reads another matrix) must reach
   the host's refuse callback with the client's kind and bitmap, in order.
+RENDER-ITEMS-002S (part 19) adds fourteen programs to both families: integer clock chains with a float branch,
+CreateJoint 0x0153b02c loops (a recording stub with all fourteen arguments; the C's joint requests carry the same
+words), a rotated CreateSprite behind rand() % 15, bones at rand() % bone count, names built with _itoa and the
+OBJECT position (+0x158, random in every state).
 The body table (gen_item_bodies) and the effect table (gen_item_owner_fx) must reproduce from the pins.
 """
 import argparse
@@ -92,6 +96,7 @@ def item_setup(rng, t, k, names, consts):
     return dict(count=count, names=table, matrices=matrices, records=k % 17 != 3,
                 scale=rng.choice((1.0, 0.75, 1.3, rng.uniform(0.5, 2))),
                 origin=[rng.uniform(-3000, 3000) for _ in range(3)],
+                position=[rng.uniform(-3000, 3000) for _ in range(3)],
                 angle=[rng.choice((0.0, 90.0, rng.uniform(-360, 360))) for _ in range(3)],
                 hidden=hidden, stream=quality.sequence_for(rng) + [rng.randrange(32768) for _ in range(64)])
 
@@ -124,6 +129,13 @@ class ItemWorld(ownerfx.OwnerWorld):
             self.flag = m.read(ebp - 0xd, 1)[0]
         m.uc.hook_add(UC_HOOK_CODE, flag, begin=FLAG_SITE, end=FLAG_SITE)
 
+        def joint(mm):
+            a = [mm.arg(i) for i in range(14)]
+            self.effects.append(('joint', a[0]) + tuple(list(struct.unpack('<3I', mm.read(a[i], 12))) for i in (1, 2, 3)) +
+                                tuple(a[4:]))
+            return 0
+        m.stub(fxgen.JOINT, joint, 0)   # RENDER-ITEMS-002S: CreateJoint 0x0153b02c, recorded
+
     def add_model(self, model_type, address, *args, **kwargs):
         super().add_model(model_type, address, *args, **kwargs)
         o, m = self.item, self.m
@@ -140,6 +152,7 @@ class ItemWorld(ownerfx.OwnerWorld):
         m.write(BONE_TRANSFORM, struct.pack('<%df' % len(o['matrices']), *o['matrices']))
         m.write(BONE_TRANSFORM + 0x30 * o['count'], struct.pack('<12f', *([-3.0] * 12)) * 8)
         m.write(v.OBJ + 0x164, struct.pack('<3f', *o['angle']))
+        m.write(v.OBJ + 0x158, struct.pack('<3f', *o['position']))
         m.ensure(SCENE, 4)
         m.w32(SCENE, 0)
         m.ensure(FRUSTUM[0], 0x20)
@@ -196,6 +209,9 @@ def run_c(lib, plib, case, o, flag):
         if f.kind == 1:
             return ('particle', f.bitmap, [u(x) for x in f.position], [u(x) for x in f.angle], light,
                     f.subtype, u(f.scale), v.OBJ if f.owner else 0, 0)
+        if f.kind == 3:
+            return ('joint', f.bitmap, [u(x) for x in f.position], [u(x) for x in f.target], [u(x) for x in f.angle],
+                    f.subtype, v.OBJ, u(f.scale), 0xffffffff, 0, 0, 0xffffffff, 0, 0xffffffff, 0)
         return ('sprite', f.bitmap, [u(x) for x in f.position], u(f.scale), light, v.OBJ, u(f.rotation), f.blend,
                 4, [1, 1, u(1.0)])
 
@@ -206,11 +222,11 @@ def run_c(lib, plib, case, o, flag):
     @EMIT
     def refuse(_, fx):
         f = fx.contents
-        effects.append(('refused', 'particle' if f.kind == 1 else 'sprite', f.bitmap))
+        effects.append(('refused', {1: 'particle', 2: 'sprite', 3: 'joint'}[f.kind], f.bitmap))
 
     context = v.CContext(0, -1, v.RANDOM_FN(lambda _: draw()), None)
     host = Host(0, -1, TRANSFORM(), rand, emit, None, o['count'], (C.c_float * 3)(*o['angle']),
-                named, item_transform, refuse, flag)
+                named, item_transform, refuse, flag, (C.c_float * 3)(*o['position']))
 
     class Adapter:
         def mu_rc_item_draws(self, *args):
@@ -239,7 +255,7 @@ def same(expected, actual):
 def predraw_cases(wa, lib, plib, per_type, names, consts):
     from item_body_machine import ResetWorld
     reset, vectors = ResetWorld(wa, ItemWorld), []
-    coverage = {'sprites': 0, 'particles': 0, 'refused': 0, 'rand': 0, 'hidden': 0}
+    coverage = {'sprites': 0, 'particles': 0, 'joints': 0, 'refused': 0, 'rand': 0, 'hidden': 0}
     for t in TYPES:
         rng = random.Random(0x20060 + t)
         cases = [case for _, case in quality.state_cases(t)]
@@ -257,6 +273,8 @@ def predraw_cases(wa, lib, plib, per_type, names, consts):
             coverage['sprites'] += sum(e[0] == 'sprite' for e in expected[1]) - sum(
                 e[0] == 'refused' and e[1] == 'sprite' for e in actual[2])
             coverage['particles'] += sum(e[0] == 'particle' for e in expected[1])
+            coverage['joints'] += sum(e[0] == 'joint' for e in expected[1]) - sum(
+                e[0] == 'refused' and e[1] == 'joint' for e in actual[2])
             coverage['refused'] += refused
             coverage['rand'] += expected[2]
             coverage['hidden'] += not expected[3]
@@ -302,9 +320,24 @@ MUTANTS = {
     'sprite-translate': ('h->item_transform(h->context, bone, zero, 1, fx.position);',
                          'h->item_transform(h->context, bone, zero, 0, fx.position);'),
     # No program computes arithmetic on a transformed position; a request reads it directly or through movs.
-    'position-refusal': ('refused = bad[o->a] | bad[o->a + 1] | bad[o->a + 2];', 'refused = 0;'),
+    'position-refusal': ('refused |= bad[o->a] | bad[o->a + 1] | bad[o->a + 2];', 'refused |= 0;'),
     'particle-owner': ('fx.owner = o->op == 25;', 'fx.owner = 0;'),
     'pre-hook': ('if (host && host->item_transform && it->select == 0', 'if (host && host->item_transform && it->select == 1'),
+    # RENDER-ITEMS-002S (part 19)
+    'irand': ('fx_set_int(&r[o->a], owner_random(h));', 'fx_set_int(&r[o->a], owner_random(h) + 1);'),
+    'imod': ('o->op == 28 ? x % y : x / y', 'o->op == 28 ? x / y : x % y'),
+    'ftoi': ('fx_set_int(&r[o->a], fx_trunc(r[o->b]));', 'fx_set_int(&r[o->a], (int32_t)lrintf(r[o->b]));'),
+    'itof': ('r[o->a] = (float)fx_int(&r[o->b]);', 'r[o->a] = (float)(fx_int(&r[o->b]) + 1);'),
+    'cond-int': ('sf_of_lt = a < b;', 'sf_of_lt = a <= b;'),
+    # No float branch is mutated: the only one (0x0b53's jb) computes a value no request reads (the body draws do).
+    # Nor the join jump (op 35): its one use is in that branch; no admitted program joins a value across a branch.
+    'bones': ('fx_set_int(&r[o->a], h->item_bones);', 'fx_set_int(&r[o->a], h->item_bones - 1);'),
+    'position': ('memcpy(&r[o->a], h->position, sizeof h->position);', 'memcpy(&r[o->a], h->angle, sizeof h->angle);'),
+    'joint-target': ('memcpy(fx.target, &r[o->b], sizeof fx.target);', 'memcpy(fx.target, &r[o->a], sizeof fx.target);'),
+    'joint-subtype': ('fx.subtype = (int32_t)o->e;', 'fx.subtype = 0;'),
+    'joint-scale': ('fx.scale = r[o->d];\n            const int refused', 'fx.scale = r[o->c];\n            const int refused'),
+    'sprite-rotation': ('rotation r[d], blend e, 4, axes) */\n                fx.rotation = r[o->d];',
+                        'rotation r[d], blend e, 4, axes) */\n                fx.rotation = 0.0f;'),
 }
 
 
@@ -345,8 +378,12 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--predraw-cases', type=int, default=64, help='item states per type')
     parser.add_argument('--skip-bodies', action='store_true', help='iteration only: no body family or table check')
+    parser.add_argument('--types', help='iteration only: comma-separated hex types (no table check)')
     parser.add_argument('--mutations', action='store_true')
     args = parser.parse_args()
+    global TYPES
+    if args.types:
+        TYPES = [int(x, 16) for x in args.types.split(',')]
     subprocess.run(['make', '-s', '-C', str(ROOT/'reconstructed/renderchar')], check=True)
     wa = tuple(p.read() for p in (pins.TEXT, pins.DATA, pins.FLAG, pins.FEATURE))
     lib = C.CDLL(str(v.LIBRARY))
@@ -364,9 +401,10 @@ def main():
     vectors += predraw
     if args.mutations:
         report['mutants'] = mutations(vectors, plib)
-    if fxgen.generate() != (ROOT/'reconstructed/renderchar/item_owner_fx.h').read_text():
+    if not args.types and fxgen.generate() != (ROOT/'reconstructed/renderchar/item_owner_fx.h').read_text():
         raise AssertionError(('table drift', 'item_owner_fx.h'))
-    if not args.skip_bodies and gen.generate() != (ROOT/'reconstructed/renderchar/item_bodies.h').read_text():
+    if not args.skip_bodies and not args.types and \
+            gen.generate() != (ROOT/'reconstructed/renderchar/item_bodies.h').read_text():
         raise AssertionError(('table drift', 'item_bodies.h'))
     args.output.write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps(report))
