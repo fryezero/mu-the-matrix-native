@@ -15,6 +15,7 @@
 #ifndef MU_WORLD_NO_GL
 #include "../gfx/mu_gfx_layer.h"
 #include "../viewer/gl_backend.h"
+#include "world_gfx_game.h"
 #include "world_gfx_options.h"
 #endif
 #include "world_rt_internal.h"
@@ -287,6 +288,42 @@ void world_rt_hero_item_textures(mu_world_rt *a, int first, int last)
     mu_data_free(&items);
 }
 
+/* INVENTORY-FX: the inventory window draws the hero's equipment ITEMs in its equipment slots (0x00b913a2); slots
+ * 9..14 (pendant, rings, ...) have no offline record and stay empty. */
+#ifndef MU_WORLD_NO_GL
+static struct mu_world_particles *icon_particles(void *user)
+{
+    mu_world_rt *a = user;
+    return a->has_particles ? &a->particles : NULL;
+}
+
+static void icon_pre(void *user, struct mu_renderchar_env *env, int32_t type, const mu_model *model, const float *bones,
+                     uint32_t object)
+{
+    world_rt_item_pre(user, env, MU_WORLD_PRE_INVENTORY, type, model, bones, object);
+}
+#endif
+
+void world_rt_hero_items_gfx(mu_world_rt *a)
+{
+#ifndef MU_WORLD_NO_GL
+    if (!a->gfx)
+        return;
+    const wg_items_world world = {a, icon_particles, icon_pre};   /* the icons' sprites go to the world's lists */
+    world_gfx_set_item_world(a->gfx, &world);
+    if (!a->hero_items_set)
+        return;
+    mu_gfx_equip_item items[MU_GFX_EQUIP_SLOTS];
+    for (int s = 0; s < MU_GFX_EQUIP_SLOTS; ++s)
+        items[s] = s < MU_HE_EQUIPMENT ? (mu_gfx_equip_item){a->hero_items[s][0], a->hero_items[s][1],
+                                                            a->hero_items[s][2], a->hero_items[s][3]}
+                                       : (mu_gfx_equip_item){-1, 0, 0, 0};
+    mu_gfx_layer_set_equipment(world_gfx_layer(a->gfx), items, (uint8_t)a->class_byte);
+#else
+    (void)a;
+#endif
+}
+
 /* HERO-ITEMS-001: the hero's equipment records -> its part slots, as the client's SetCharacterClass 0x01394870
  * writes them from CharacterMachine's ITEMs. The offline session's records are the front end's items. APP-POLISH-008:
  * an item with a session record (FILE@GROUP:INDEX:LEVEL:OPTION:EXT) fills the ITEM's code, level word, +0x98 and
@@ -315,6 +352,14 @@ void world_rt_hero_slots(mu_world_rt *a, const mu_data_table *items)
     for (int k = 0; k < MU_RP_SLOTS; ++k)
         c.slots[k].type = -1;
     mu_he_set_character_class(&c, equipment);
+    for (int s = 0; s < MU_HE_EQUIPMENT; ++s) {
+        a->hero_items[s][0] = equipment[s].type;
+        a->hero_items[s][1] = equipment[s].level;
+        a->hero_items[s][2] = mu_he_item_flag(&equipment[s], 1);
+        a->hero_items[s][3] = equipment[s].ancient;
+    }
+    a->hero_items_set = 1;
+    world_rt_hero_items_gfx(a);
     for (int i = 0; i < MU_CHARACTER_ITEMS; ++i) {
         mu_renderchar_glow *g = &a->hero_glow[i];
         memset(g, 0, sizeof *g);
@@ -939,6 +984,7 @@ void mu_world_rt_set_gfx(mu_world_rt *a, struct world_gfx *gfx, double scale)
         world_gfx_quest_setup(gfx, a->npc_demo ? a->npc_demo->quests : NULL);   /* NATIVE-QUEST-001 */
         if (a->equip_set)   /* APP-POLISH-005: the character's weapons for the skill checks */
             world_gfx_set_equipment(gfx, a->equip_code, a->equip_kind);
+        world_rt_hero_items_gfx(a);   /* INVENTORY-FX */
     } else if (a->names)
         mu_names_set_sink(&a->names->names, NULL);
 }
@@ -1073,6 +1119,45 @@ void world_rt_item_pre(mu_world_rt *a, struct mu_renderchar_env *env, int caller
     mu_world_particles_item_owner_refresh(env->particles, env->item_owner, model->params.origin);
 }
 
+/* RENDER-EFFECTS-021: RenderPartObjectBody 0x0173d2d8's armour effect blocks (RENDER-ITEMS-002Q) read the
+ * character OBJECT passed with the worn part: 0x012b678d transforms a local point by the owner bone 0x0129f12c
+ * (OBJECT +0x318 + 0x30 * bone, when the OBJECT's model has the bone), times the part model's scale +0x74, plus
+ * the OBJECT position +0x158; the particles take the OBJECT angle +0x164. The native character holds the same
+ * values: player_bones is the posed Player.bmd skeleton (mu_character_update), the part model's body scale and
+ * origin are the character's scale and position (mu_character slot_params), params.angles its OBJECT angle. */
+mu_renderchar_owner *world_rt_part_owner(const mu_world_rt *a, mu_renderchar_owner *owner, int32_t type,
+                                         const mu_character *c)
+{
+    if (!a->has_particles || !mu_rc_item_owner_fx(type) || !c || !c->player_bones || !c->player.bmd)
+        return NULL;
+    memset(owner, 0, sizeof *owner);
+    owner->bones = c->player_bones;
+    owner->bone_count = c->player.bmd->bone_count;
+    memcpy(owner->angle, c->params.angles, sizeof owner->angle);
+    return owner;
+}
+
+void world_rt_part_owner_done(mu_world_rt *a, int caller, const mu_renderchar_owner *owner)
+{
+    a->item_owner_fx[caller][0] += owner->effects;
+    a->item_owner_fx[caller][1] += owner->refused;
+}
+
+static void report_item_owner_fx(const mu_world_rt *a)
+{
+    long any = 0;
+    for (int c = 0; c < MU_WORLD_PRE_CALLERS; ++c)
+        any |= a->item_owner_fx[c][0] | a->item_owner_fx[c][1];
+    if (!any)
+        return;   /* no worn owner-effect part: the report is unchanged */
+    static const char *names[MU_WORLD_PRE_CALLERS] = {"hero", "players", "actors", "ground"};
+    printf("{\"item_owner_fx\": true");
+    for (int c = 0; c < MU_WORLD_PRE_CALLERS - 1; ++c)
+        printf(", \"%s\": {\"owner_effects\": %ld, \"owner_refused\": %ld}", names[c], a->item_owner_fx[c][0],
+               a->item_owner_fx[c][1]);
+    printf("}\n");
+}
+
 static void report_item_pre(const mu_world_rt *a)
 {
     long any = 0;
@@ -1080,10 +1165,12 @@ static void report_item_pre(const mu_world_rt *a)
         any |= a->item_pre[c][0] | a->item_pre[c][1] | a->item_pre_hidden[c];
     if (!any)
         return;   /* no pre-draw program ran: the report is unchanged */
-    static const char *names[MU_WORLD_PRE_CALLERS] = {"hero", "players", "actors", "ground"};
+    static const char *names[MU_WORLD_PRE_CALLERS] = {"hero", "players", "actors", "ground", "inventory"};
     printf("{\"item_pre_draw\": true");
     for (int c = 0; c < MU_WORLD_PRE_CALLERS; ++c)
-        printf(", \"%s\": {\"pre_effects\": %ld, \"pre_refused\": %ld, \"hidden\": %ld}", names[c],
+        if (c != MU_WORLD_PRE_INVENTORY ||   /* INVENTORY-FX: the icons' entry only when one ran */
+            (a->item_pre[c][0] | a->item_pre[c][1] | a->item_pre_hidden[c]))
+            printf(", \"%s\": {\"pre_effects\": %ld, \"pre_refused\": %ld, \"hidden\": %ld}", names[c],
                a->item_pre[c][0], a->item_pre[c][1], a->item_pre_hidden[c]);
     printf("}\n");
 }
@@ -1136,6 +1223,7 @@ void world_rt_report_summary(const mu_world_rt *a, const char *renderer)
         if (ROWS[i].ops->report_summary)
             ROWS[i].ops->report_summary(a, a->part[i]);
     report_item_pre(a);
+    report_item_owner_fx(a);
     report_hero_records(a);
     if (!a->quiet)
         for (int32_t k = 0; k < w->log_count; ++k)

@@ -20,8 +20,9 @@ native/world/world_item_pre.h at the item model's origin. Families:
               program reads the item's own bones, then the body draws); in RenderPartObject the origin copy
               dominates both calls (0x017e7960, 0x017e7997) and every switch jump on the way.
 * callers     the text's call sites of RenderObjDraw: RenderLinkItem (worn weapons/wings: the native hero, players
-              and player-model actors), RenderPartObject (ground items, body parts) and two in 0x00a49xxx (the
-              inventory/UI item path, not a world caller).
+              and player-model actors), RenderPartObject (ground items, body parts) and two in 0x00a49266, the
+              render callback 0x00a16273 registers for object type 0x67a (INVENTORY-FX; the inventory's icons reach
+              RenderObjDraw through RenderObjectScreen -> RenderPartObject).
 
 --mutations plants mistakes in the C header (separately compiled) and requires each to be caught.
 """
@@ -49,7 +50,7 @@ RENDER_OBJ_DRAW, FLAG_STORED = 0x0176ce74, 0x0176cef5
 LINK_COPY, LINK_COPY_END, LINK_POSE, LINK_CALL = 0x012c6302, 0x012c637d, 0x012c6478, 0x012c6a83
 PART_FN, PART_COPY, PART_COPY_END, PART_CALLS = 0x017e63f4, 0x017e64dc, 0x017e6545, (0x017e7960, 0x017e7997)
 SCENE_STATE, X2D, Y2D = 0x01d1df70, 0x0b6b5400, 0x0b6b5410
-EXPECTED_CALLERS = {0x00a497c6: 'ui', 0x00a49bc9: 'ui', LINK_CALL: 'RenderLinkItem',
+EXPECTED_CALLERS = {0x00a497c6: 'object 0x67a', 0x00a49bc9: 'object 0x67a', LINK_CALL: 'RenderLinkItem',
                     PART_CALLS[0]: 'RenderPartObject', PART_CALLS[1]: 'RenderPartObject'}
 HEADER = ROOT / 'native/world/world_item_pre.h'
 TERRAIN = ['reconstructed/terrain/terrain.c', 'reconstructed/terrain/world_haze.c',

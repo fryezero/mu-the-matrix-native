@@ -7,7 +7,7 @@ lane (2026-11-04 test budget).
 
 Scope: 002T's "Next groups" 1, 2 and 5 (joint kinds, the rendered-frame counter, world callers). Group 3 (draw fits of
 read programs) and group 4 (rank-5 strlen parts) were not attempted.
-Findings: [client-render-items.md part 23](../research/client-render-items.md#part-23-the-rendered-frame-counter-in-body-draws-the-wing-joints-and-the-world-callers-render-items-002u),
+Findings: [client-render-items.md part 26](../research/client-render-items.md#part-26-the-rendered-frame-counter-in-body-draws-the-wing-joints-and-the-world-callers-render-items-002u),
 [client-joints.md section 12](../research/client-joints.md#12-the-wing-streaks-0x7f7c0xe-and-0x7fd34-render-items-002u).
 
 ## Result
@@ -68,8 +68,8 @@ RENDERS
 - 310 bodies remain; the six counter types not admitted (`0x0f24`, `0x0f28`, `0x0f29`, `0x0f2b`, `0x0f2c`, `0x1588`)
   fit no probe option yet.
 - The native counter starts with the world runtime; the client's counts from process start (login and character
-  select included), so only the periods are faithful. Inventory, the texture survey and `mu-render character` without
-  `--frame-counter` keep 0.
+  select included), so only the periods are faithful. The world's inventory window (INVENTORY-FX's caller) reads it;
+  `mu-render ui inventory`, the texture survey and `mu-render character` without `--frame-counter` keep 0.
 - The streaks' +0x58: with the item's OBJECT the client ends the head at a former joint's +0x58 (record memory);
   natively it is the target argument. It only feeds the releasing MoveJoint (and, at width 50, its particles'
   positions), never a drawn quad.

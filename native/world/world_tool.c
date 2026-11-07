@@ -720,6 +720,7 @@ static int headless(tool *t)
             fprintf(stderr, "gfx: %s (continuing without the interface)\n", error);
         else
             world_rt_names_gfx_attach(a, 1.0);
+        world_rt_hero_items_gfx(a);   /* INVENTORY-FX: the equipment slots of the inventory */
         if (a->gfx && a->npc_demo)
             world_gfx_npc_storage(a->gfx, a->npc_demo->storage, a->npc_demo->storage_count);
         if (a->gfx)   /* NATIVE-QUEST-001 */

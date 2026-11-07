@@ -342,6 +342,22 @@ int mu_gfx_layer_item_snapshot(const mu_gfx_layer *layer, int index, mu_mix_item
 /* The item draws the inventory's item pass would hand to the items
  * callback now (slot pass outputs); returns the count. */
 int mu_gfx_layer_item_draws(mu_gfx_layer *layer, mu_gfx_item_draw *out, int max);
+
+/* INVENTORY-FX: the hero's equipment in the inventory window, as the frame's item render 0x00b913a2 draws it after
+ * the grid: the ITEMs CharacterMachine + 0x1b58 + s * 0x12c (s = 0..14) in the rectangles the movie reports
+ * through EQUIPrequestSlotInfo (reconstructed/hud mu_inventory_item_pass). code -1: empty slot. level_word is
+ * ITEM +0x14, excellent 0x00cd0995(item, 1) (+0x98 == 1, code 0..0x2c00), set_bits +0x3b. class_byte: the hero's
+ * (the armour slot's 0.75 height rule). Offline appearance data only: equipping is not modelled here. */
+typedef struct mu_gfx_equip_item {
+    int32_t code, level_word, excellent, set_bits;
+} mu_gfx_equip_item;
+enum { MU_GFX_EQUIP_SLOTS = 15 };
+void mu_gfx_layer_set_equipment(mu_gfx_layer *layer, const mu_gfx_equip_item items[MU_GFX_EQUIP_SLOTS],
+                                uint8_t class_byte);
+/* The equipment draws of the item pass now (after the grid's), and the rectangles reported so far (1 when slot s
+ * was reported). */
+int mu_gfx_layer_equip_draws(mu_gfx_layer *layer, mu_gfx_item_draw *out, int max);
+int mu_gfx_layer_equip_slot(const mu_gfx_layer *layer, int slot, float rect[4]);
 /* Last chat line sent by the player ("" when none). */
 const char *mu_gfx_layer_last_sent(const mu_gfx_layer *layer);
 

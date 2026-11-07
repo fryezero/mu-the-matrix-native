@@ -1557,6 +1557,12 @@ void world_gfx_set_equipment(world_gfx *g, const int32_t code[2], const uint8_t 
     wg_skill_set_equipment(g->skill, code, kind);
 }
 
+void world_gfx_set_item_world(world_gfx *g, const struct wg_items_world *world)
+{
+    if (g)
+        wg_items_set_world(g->items, world);
+}
+
 void world_gfx_set_location(world_gfx *g, int world, float x, float y)
 {
     if (!g)
@@ -1598,6 +1604,21 @@ void world_gfx_report(world_gfx *g, char *out, size_t cap)
              book ? mu_skill_book_hero(book)->count : 0, (int)mu_skill_book_selected(book), casts, refused, skill_icons,
              skill_tips, mu_gfx_layer_is_open(g ? g->layer : NULL, MU_GFX_SKILL_STAMP),
              mu_gfx_layer_skill_last(g ? g->layer : NULL));
+    /* INVENTORY-FX: the hero's equipment icons the inventory's item pass draws now (only when there are any, so
+     * every other report is unchanged): count and codes with level/excellent/set bits. */
+    mu_gfx_item_draw equip[MU_GFX_EQUIP_SLOTS];
+    int n = mu_gfx_layer_equip_draws(g ? g->layer : NULL, equip, MU_GFX_EQUIP_SLOTS);
+    size_t used = strlen(out);
+    if (n > 0 && used > 0 && out[used - 1] == '}') {
+        used--;
+        used += (size_t)snprintf(out + used, cap > used ? cap - used : 0, ", \"inventory_equipment\": [");
+        for (int i = 0; i < n && used < cap; i++)
+            used += (size_t)snprintf(out + used, cap - used, "%s{\"slot\": %d, \"code\": %d, \"level\": %d, "
+                                     "\"excellent\": %d, \"set_bits\": %d}", i ? ", " : "", -1 - equip[i].item,
+                                     equip[i].code, equip[i].level, equip[i].excellent, equip[i].set_bits);
+        if (used < cap)
+            snprintf(out + used, cap - used, "]}");
+    }
 }
 
 /* NATIVE-NAMES-001: the layer, for the hudPlayerName game side (world_names_gfx.c). */

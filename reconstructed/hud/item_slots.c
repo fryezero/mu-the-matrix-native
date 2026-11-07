@@ -93,6 +93,56 @@ int mu_slot_pass(const mu_slot_frame *frame, int32_t screen_w, int32_t screen_h,
     return 1;
 }
 
+int mu_equip_short_armour(uint8_t class_byte)          /* 0x00b99205 */
+{
+    switch (class_byte & 0xf) {                         /* 0x0095f5cc */
+    case 2: case 5: case 7: case 8: case 9: case 12: case 14:
+        return 1;
+    default:
+        return 0;
+    }
+}
+
+int mu_equip_slot_info(mu_equip_slot slots[MU_EQUIP_SLOTS], int32_t slot, float x, float y, float w, float h)
+{                                                       /* 0x00b958e1 */
+    if (slot >= MU_EQUIP_SLOTS || slot < 0)
+        return 0;
+    slots[slot].x = x;
+    slots[slot].y = y;
+    slots[slot].w = w;
+    slots[slot].h = h;
+    return 1;
+}
+
+int mu_inventory_item_pass(const mu_slot_frame *frame, const mu_equip_slot slots[MU_EQUIP_SLOTS],
+                           const int32_t *codes, uint8_t hero_class, int32_t frame_cc, int32_t screen_w,
+                           int32_t screen_h, float rate_x, float rate_y, mu_slot_color color, mu_slot_emit emit,
+                           mu_equip_emit equip, void *user)   /* 0x00b913a2 */
+{
+    if (!mu_slot_pass(frame, screen_w, screen_h, rate_x, rate_y, color, emit, user))
+        return 0;
+    const uint8_t a20 = frame_cc == 1;
+    if (!codes)
+        return 1;
+    for (int32_t s = 0; s < MU_EQUIP_SLOTS; s++) {
+        if (codes[s] < 0)
+            continue;
+        float fx = mu_frame_x(frame->align, frame->movie_x, screen_w);
+        float x = (fx + frame->scale * slots[s].x) * rate_x;
+        float fy = mu_frame_y(frame->align, frame->movie_y, screen_h);
+        float y = (fy + frame->scale * slots[s].y) * rate_y;
+        float w = rate_x * slots[s].w * frame->scale;
+        float h = slots[s].h;
+        if (s == 3 && mu_equip_short_armour(hero_class))
+            h = h * 0.75f;
+        h = rate_y * h * frame->scale;
+        mu_equip_call call = {s, x, y, w, h, a20, frame->frame_id};
+        if (equip)
+            equip(user, &call);
+    }
+    return 1;
+}
+
 static const int32_t SPECIAL_CODES[] = {
     0x103b, 0x103c, 0x103d, 0x1049, 0x1053, 0x1088, 0x1a0b, 0x1a0e, 0x1a13, 0x1a14, 0x1a47, 0x1a48, 0x1a49,
     0x1a4a, 0x1a4b, 0x1c09, 0x1c0b, 0x1c0c, 0x1c15, 0x1c17, 0x1c18, 0x1c20, 0x1c21, 0x1c22, 0x1c2e, 0x1c30,
@@ -319,4 +369,10 @@ void mu_hud_object_screen(const mu_hud_ros_in *in, mu_hud_ros_out *out)
     out->set_bits = in->set_bits;
     out->a2c = in->a2c;
     out->a30 = in->a30;
+}
+
+mu_icon_glow mu_icon_glow_of(const mu_hud_ros_out *ros)   /* INVENTORY-FX, see item_slots.h */
+{
+    mu_icon_glow g = {(ros->level_word >> 3) & 15, ros->excellent, ros->set_bits};
+    return g;
 }

@@ -54,7 +54,8 @@ enum {
 };
 
 /* RENDER-ITEMS-CALLERS-001: the world callers that draw items through RenderObjDraw's pre-draw programs. */
-enum { MU_WORLD_PRE_HERO, MU_WORLD_PRE_PLAYERS, MU_WORLD_PRE_ACTORS, MU_WORLD_PRE_GROUND, MU_WORLD_PRE_CALLERS };
+enum { MU_WORLD_PRE_HERO, MU_WORLD_PRE_PLAYERS, MU_WORLD_PRE_ACTORS, MU_WORLD_PRE_GROUND, MU_WORLD_PRE_INVENTORY,
+       MU_WORLD_PRE_CALLERS };
 
 struct mu_world_rt {
     int8_t seq[6][MU_PART_COUNT + 1];
@@ -83,6 +84,10 @@ struct mu_world_rt {
     int32_t hero_record[MU_CHARACTER_ITEMS];       /* the item's Item.bmd record (model index), -1 none */
     mu_renderchar_glow hero_glow[MU_CHARACTER_ITEMS];
     uint8_t hero_glow_set[MU_CHARACTER_ITEMS];
+    /* INVENTORY-FX: the hero's equipment ITEMs 0..8 as SetCharacterClass read them ({code, level word, excellent
+     * 0x00cd0995(item, 1), +0x3b}, code -1 empty), for the inventory window's equipment slots */
+    int32_t hero_items[9][4];
+    int hero_items_set;
     mu_walk walk;
     /* stats */
     double walked;
@@ -127,6 +132,9 @@ struct mu_world_rt {
     long item_pre[MU_WORLD_PRE_CALLERS][2];
     long item_pre_hidden[MU_WORLD_PRE_CALLERS];
     uint32_t rendered_frames;   /* RENDER-ITEMS-002U: [0x0bdc5ebc], ++ once per rendered frame after the logic steps */
+    /* RENDER-EFFECTS-021: the armour owner-effect programs (RENDER-ITEMS-002Q) of worn body parts per caller:
+     * [0] requests created, [1] refused (plus programs outside the bone domain). */
+    long item_owner_fx[MU_WORLD_PRE_CALLERS][2];
     /* NATIVE-HELPERS-001 */
     const char *helper_arg;
     int32_t helper_state;
@@ -218,8 +226,16 @@ void world_rt_report_summary(const mu_world_rt *a, const char *renderer);
  * the item's OBJECT within the caller (hero slot, player/actor index * 16 + slot, ground pool index); it becomes the
  * item-owner key of the OBJECT-owned particles. */
 struct mu_renderchar_env;
+/* INVENTORY-FX: hand the hero's equipment ITEMs to the GFx layer's inventory (no-op without a layer). */
+void world_rt_hero_items_gfx(mu_world_rt *a);
 void world_rt_item_pre(mu_world_rt *a, struct mu_renderchar_env *env, int caller, int32_t type, const mu_model *model,
                        const float *bones, uint32_t object);
+/* RENDER-EFFECTS-021: RenderPartObjectBody's OBJECT owner for a worn body part of character c: its posed skeleton
+ * (OBJECT +0x318), bone count and angle (+0x164). Returns NULL (draw without an owner, as before) unless the part
+ * type has an owner-effect program and the world has a particle pool. world_rt_part_owner_done adds the counts. */
+struct mu_renderchar_owner *world_rt_part_owner(const mu_world_rt *a, struct mu_renderchar_owner *owner, int32_t type,
+                                                const mu_character *c);
+void world_rt_part_owner_done(mu_world_rt *a, int caller, const struct mu_renderchar_owner *owner);
 #ifndef MU_WORLD_NO_GL
 void world_rt_names_gfx_attach(mu_world_rt *a, double scale);
 void world_rt_gl_effect(void *context, const mu_fx_vertex *vertices, uint32_t count, const mu_fx_draw_state *state,

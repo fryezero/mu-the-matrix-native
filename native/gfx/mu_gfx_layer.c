@@ -318,6 +318,12 @@ struct mu_gfx_layer {
     uint8_t trade_reserved[MAX_ITEMS];
     float win_x, win_y, slot_x, slot_y, slot_w, slot_h, gap_x, gap_y;
     int have_slot;
+    /* INVENTORY-FX: the equipment slots (EQUIPrequestSlotInfo) and the hero's ITEMs drawn in them */
+    mu_equip_slot equip_slot[MU_EQUIP_SLOTS];
+    uint8_t equip_reported[MU_EQUIP_SLOTS];
+    mu_gfx_equip_item equip[MU_GFX_EQUIP_SLOTS];
+    int have_equip;
+    uint8_t equip_class;
     /* chat */
     int chat_edit, chat_ready;
     char last_sent[256];
@@ -1566,6 +1572,11 @@ static const char *on_call_(movie *mv, const char *name, const char *args)
             L->slot_w = (float)v[2];
             L->slot_h = (float)v[3];
             L->have_slot = 1;
+        } else if (!strcmp(name, "EQUIPrequestSlotInfo") && n == 5) {
+            /* 0x00b97834: five numbers; slot = _ftol(fifth); 0x00b958e1 keeps slots 0..14 */
+            if (v[4] > -2147483648.0 && v[4] < 2147483648.0 &&
+                mu_equip_slot_info(L->equip_slot, (int32_t)v[4], (float)v[0], (float)v[1], (float)v[2], (float)v[3]))
+                L->equip_reported[(int32_t)v[4]] = 1;
         } else if (!strcmp(name, "requestItemSlotClick") && n >= 1) {
             inventory_click(L, (int)v[0]);
         } else if (!strcmp(name, "requestItemSlotClickR") && n >= 1) {
@@ -2827,7 +2838,16 @@ typedef struct rect_list {
     int n;
     mu_gfx_layer *L;
     const item *base;           /* the window's item array (inventory or slot window) */
+    mu_equip_call equip[MU_EQUIP_SLOTS];   /* INVENTORY-FX: the inventory's equipment calls after the grid */
+    int nequip;
 } rect_list;
+
+static void emit_equip(void *user, const mu_equip_call *call)
+{
+    rect_list *R = user;
+    if (R->nequip < MU_EQUIP_SLOTS)
+        R->equip[R->nequip++] = *call;
+}
 
 static void emit_rect(void *user, const mu_slot_call *call)
 {
@@ -2854,11 +2874,18 @@ static void item_rects(mu_gfx_layer *L, rect_list *R)
     R->n = 0;
     R->L = L;
     R->base = L->items;
+    R->nequip = 0;
     if (!L->have_slot || !L->mv[MU_GFX_INVENTORY].open)
         return;
     mu_slot_page page = {&L->grid, L->slot_x, L->slot_y, L->slot_w, L->slot_h, L->gap_x, L->gap_y};
     mu_slot_frame frame = {1, MU_ALIGN_TOP_LEFT, L->win_x, L->win_y, 1.0f, L->inv_scale, &page, 1, 1};
-    mu_slot_pass(&frame, L->w, L->h, mu_gfx_rate_x(L->w), mu_gfx_rate_y(L->h), NULL, emit_rect, R);
+    /* INVENTORY-FX: the frame's item render 0x00b913a2, the grid then the hero's equipment. Slots the movie did not
+     * report are left out (the client would draw them at the frame origin with a zero size). */
+    int32_t codes[MU_EQUIP_SLOTS];
+    for (int s = 0; s < MU_EQUIP_SLOTS; s++)
+        codes[s] = L->have_equip && L->equip_reported[s] ? L->equip[s].code : -1;
+    mu_inventory_item_pass(&frame, L->equip_slot, L->have_equip ? codes : NULL, L->equip_class, 0, L->w, L->h,
+                           mu_gfx_rate_x(L->w), mu_gfx_rate_y(L->h), NULL, emit_rect, emit_equip, R);
 }
 
 static int held_rect(const mu_gfx_layer *L, float r[4])
@@ -2917,14 +2944,52 @@ static int build_item_draws(mu_gfx_layer *L, const rect_list *R, mu_gfx_item_dra
     return n;
 }
 
+/* INVENTORY-FX: the equipment calls of 0x00b913a2 as item draws (wrapper arguments 6..16: 0, frame +0xcc == 1,
+ * 0, 0, frame, 0, 0.0f, -1, 0, 1, 0). The cursor test 0x00ec4bf2 uses the slot rectangle in stage points. */
+static int build_equip_draws(const mu_gfx_layer *L, const rect_list *R, mu_gfx_item_draw *draws, int max)
+{
+    int n = 0;
+    for (int i = 0; i < R->nequip && n < max; i++) {
+        const mu_equip_call *c = &R->equip[i];
+        const mu_gfx_equip_item *it = &L->equip[c->slot];
+        mu_gfx_item_draw *d = &draws[n++];
+        memset(d, 0, sizeof *d);
+        d->item = -1 - c->slot;
+        d->code = it->code;
+        d->level = (it->level_word >> 3) & 15;
+        d->excellent = it->excellent;
+        d->has_options = 1;
+        d->level_word = it->level_word;
+        d->set_bits = it->set_bits;
+        d->element = -1;
+        d->slot[0] = c->x;
+        d->slot[1] = c->y;
+        d->slot[2] = c->w;
+        d->slot[3] = c->h;
+        d->rect[0] = c->x / mu_gfx_rate_x(L->w);
+        d->rect[1] = c->y / mu_gfx_rate_y(L->h);
+        d->rect[2] = c->w / mu_gfx_rate_x(L->w);
+        d->rect[3] = c->h / mu_gfx_rate_y(L->h);
+        d->page_type = 0;
+        d->page_flag = c->a20;
+        d->frame_id = (int32_t)c->frame_id;
+        d->frame_scale = L->inv_scale;
+        d->alpha = 1.0f;
+        d->select = L->mouse_x >= d->rect[0] && L->mouse_x < d->rect[0] + d->rect[2] && L->mouse_y >= d->rect[1] &&
+                    L->mouse_y < d->rect[1] + d->rect[3];
+    }
+    return n;
+}
+
 #ifndef MU_GFX_NO_GL
 /* The per-window item pass of the inventory (0x00abfcca) through the host. */
 static int host_items(mu_gfx_layer *L, const rect_list *R)
 {
     if (!L->cfg.items)
         return 0;
-    mu_gfx_item_draw draws[MAX_ITEMS + 1];
+    mu_gfx_item_draw draws[MAX_ITEMS + 1 + MU_EQUIP_SLOTS];
     int n = build_item_draws(L, R, draws, MAX_ITEMS + 1);
+    n += build_equip_draws(L, R, draws + n, MU_EQUIP_SLOTS);
     L->cfg.items(L->cfg.items_user, draws, n, L->w, L->h);
     return 1;
 }
@@ -2937,6 +3002,37 @@ int mu_gfx_layer_item_draws(mu_gfx_layer *L, mu_gfx_item_draw *out, int max)
     rect_list R;
     item_rects(L, &R);
     return build_item_draws(L, &R, out, max);
+}
+
+int mu_gfx_layer_equip_draws(mu_gfx_layer *L, mu_gfx_item_draw *out, int max)
+{
+    if (!L || !out)
+        return 0;
+    rect_list R;
+    item_rects(L, &R);
+    return build_equip_draws(L, &R, out, max);
+}
+
+int mu_gfx_layer_equip_slot(const mu_gfx_layer *L, int slot, float rect[4])
+{
+    if (!L || slot < 0 || slot >= MU_EQUIP_SLOTS || !L->equip_reported[slot])
+        return 0;
+    rect[0] = L->equip_slot[slot].x;
+    rect[1] = L->equip_slot[slot].y;
+    rect[2] = L->equip_slot[slot].w;
+    rect[3] = L->equip_slot[slot].h;
+    return 1;
+}
+
+void mu_gfx_layer_set_equipment(mu_gfx_layer *L, const mu_gfx_equip_item items[MU_GFX_EQUIP_SLOTS],
+                                uint8_t class_byte)
+{
+    if (!L)
+        return;
+    L->have_equip = items != NULL;
+    L->equip_class = class_byte;
+    for (int s = 0; s < MU_GFX_EQUIP_SLOTS; s++)
+        L->equip[s] = items ? items[s] : (mu_gfx_equip_item){-1, 0, 0, 0};
 }
 
 #ifndef MU_GFX_NO_GL

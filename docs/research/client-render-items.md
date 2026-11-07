@@ -20,7 +20,7 @@ Part 11 reaches **967/1,674 bodies** with per-type wave/sine scalar programs; li
 [Part 18 below](#part-18-pre-draw-effect-programs-on-the-items-own-bones-render-items-002r) reaches **1,345/1,674 bodies** with pre-draw programs on the item's own bones.
 [Part 20 below](#part-20-integer-registers-runtime-branches-and-joints-in-pre-draw-programs-render-items-002s) reaches **1,359/1,674 bodies** with integer registers, runtime branches and joints.
 [Part 22 below](#part-22-frame-counter-object-bone-positions-random-vectors-and-post-programs-render-items-002t) reaches **1,363/1,674 bodies** with the frame counter, OBJECT-bone positions, random vectors and post programs.
-[Part 23 below](#part-23-the-rendered-frame-counter-in-body-draws-the-wing-joints-and-the-world-callers-render-items-002u) reaches **1,364/1,674 bodies**: the rendered-frame counter is a body input (51 earlier bodies regenerated, `0x0f2a`), the wing joints draw.
+[Part 26 below](#part-26-the-rendered-frame-counter-in-body-draws-the-wing-joints-and-the-world-callers-render-items-002u) reaches **1,364/1,674 bodies**: the rendered-frame counter is a body input (51 earlier bodies regenerated, `0x0f2a`), the wing joints draw.
 Muun/map-object effect placement remains deferred. All parts run offline.
 
 ## Identity and evidence
@@ -1616,7 +1616,8 @@ the item's own pose, and RenderObjDraw's flag is computed as the client computes
 
 - **Callers.** The text calls RenderObjDraw `0x0176ce74` from five sites: RenderLinkItem `0x012bd910` at
   `0x012c6a83` (worn weapons, shields, wings); RenderPartObject `0x017e63f4` at `0x017e7960` and `0x017e7997`
-  (ground items and body parts); and two sites at `0x00a497c6`/`0x00a49bc9` (the inventory/UI item path).
+  (ground items and body parts); and two sites at `0x00a497c6`/`0x00a49bc9` (labelled the inventory/UI item path here;
+  part 23 corrects it: they are the render callback of object type `0x67a`, and the inventory goes through RenderPartObject).
 - **Pose, then pre-draw, then body.** In RenderLinkItem every path from the origin copy to the call passes the
   item's Animation `0x012b5064` at `0x012c6478`, which writes BoneTransform `0x06fce398` (static control-flow
   check). RenderObjDraw then runs the type's case before the body helper (part 18).
@@ -2005,7 +2006,180 @@ programs could not create):
 - Ground items now pass their angle to every pre-draw program that reads op 12 (`0x1316`, `0x22ec`, `0x230c`,
   `0x23ef`, `0x2400`, `0x2405`, `0x248f`, `0x2496` and the two cloaks); none of them is dropped in the scenes above.
 
-## Part 23, the rendered-frame counter in body draws, the wing joints and the world callers, RENDER-ITEMS-002U
+## Part 23, the inventory's equipment and its icons' effects, INVENTORY-FX
+
+The inventory window draws the hero's equipment and every icon's level, option and ext the way it draws them for
+a worn item. The icons' pre-draw programs and skin sprites go to the world's sprite list, never over the icon.
+[Handoff](../handoffs/INVENTORY-FX.md).
+
+### The inventory frame's item render (verified, `validate_inventory_fx`)
+
+- **Equipment slots.** The movie reports each slot through `EQUIPrequestSlotInfo(x, y, w, h, slot)`. The handler
+  `0x00b97834` needs five arguments, the first a number; it truncates the fifth to the slot (`_ftol` `0x0191c5e0`).
+  `0x00b958e1` stores slots 0..14 at controller `+0x110 + s·8` (x, y) and `+0x188 + s·8` (w, h) and ignores others.
+- **The render** `0x00b913a2` (the frame's vtable `+0x20` item render) runs the grid's slot pass `0x00ab6130`.
+  When that returns 1 and a CharacterMachine `[0x01d1df18]` exists, it walks s = 0..14 over the ITEMs
+  `+0x1b58 + s·0x12c` with code `+0x10` ≥ 0 and calls the slot wrapper `0x016c23d5`(item, x, y, w, h, 0,
+  frame `+0xcc` == 1 (`0x00abed32`), 0, 0, frame, 0, 0.0f, -1, 0, 1, 0):
+  - x = (frame x `0x00aae509` + scale `0x00abedc3` · slot x) · rate x `0x00966d99`, and y the same way;
+  - w = rate x · slot w · scale, h = rate y · slot h' · scale;
+  - slot h' = slot h · 0.75 (`0x01a800cc`) for the armour slot 3 when the hero's class nibble
+    (`[0x0a39d754] + 0x12`, `0x0095f5cc`) is 2, 5, 7, 8, 9, 12 or 14 (`0x00b99205`).
+  - The loop sets no colour.
+- **What the icon's RenderObjDraw gets.** RenderItem3D → RenderObjectScreen (part of NATIVE-FIDELITY-001) →
+  RenderPartObject, which passes RenderObjectScreen's level word, excellent flag and set bits through unchanged
+  as RenderObjDraw's arguments 5..7 (`0x017e7932..0x017e7960`, `0x017e796a..0x017e7997`). The item render
+  then uses the level `(word >> 3) & 15`, the option and the ext byte, as for a worn item.
+- **The flag.** RenderObjDraw's TestFrustrum2D flag is taken at OBJECT `+0x158`, which for an icon is its screen
+  position (window pixels, z −100/−130/−140). RenderPartObject copies it to the model origin (part 19).
+  - Screen position / 100 is the map's corner tiles (0..25, 0..14). The world polygon almost never reaches them,
+    so the flag is clear.
+  - Gated programs then skip their case: Cookery Short Sword `0x0b2a`, Floor Hammer `0x0f1c`, Floor Shield
+    `0x1748`, the cloaks.
+  - Ungated ones still create: Xeno Blade `0x0b4c`, the wings `0x230b`/`0x2311`.
+- **Where the sprites go (static).** RenderObjDraw's programs and its `0x389c`/`0x389d` skin case (`0x0176ffe3`,
+  CreateSprite at `0x017701f9`) append to the global sprite list. RenderSprites `0x0169270e`, the only routine
+  that draws it, has four call sites, all in the scene renders `0x018576b3`, `0x01857ed9` and `0x0185916b`. Only
+  the frame driver `0x01851d39` calls those (and `0x010b3963` for the main game). So the icon's sprites are drawn by
+  the world's sprite pass with the world camera, at the icon's screen coordinates read as world units. That spot
+  lies under the map's corner and out of the hero's view.
+- **Not the inventory.** The other two RenderObjDraw call sites, `0x00a497c6`/`0x00a49bc9`, lie in `0x00a49266`.
+  `0x00a16273` registers that function at `0x00a13f54` as the render callback of object type `0x67a`. It draws a
+  character's parts and weapons (CHARACTER `+0x1c4 + k·0x3fc`) on another object's pose. Parts 19 and 21 had
+  called it the inventory/UI path.
+
+| Family | Cases | Mismatches |
+|---|---:|---:|
+| equip_pass: `0x00b913a2` with its slot pass (no grid pages), frame/scale/rate getters, the class rule and `0x0095f5cc` executed, against `mu_inventory_item_pass`: return value and every wrapper call (16 words, floats bit for bit). Screens 640×480..2560×1440, alignments 0..9, scales, slot rectangles (also zero), codes (−1, 0, random, `0x7fffffff`), all class bytes, frame `+0xcc` −1/0/1/2/`0x101`, no CharacterMachine, invisible frames | 3,000 | 0 |
+| equip_info: `0x00b958e1` after 1..5 random calls (slots −3..18, int32 extremes) against `mu_equip_slot_info`: the 60 stored words and which calls stored | 1,000 | 0 |
+| part_args: RenderPartObject's two call sequences: arguments 5..7 against `mu_icon_glow_of` (level, option, ext) | 1,000 | 0 |
+| inv_flag: RenderPartObject's copy and RenderObjDraw's flag at icon positions against `world_item_pre.h`, world polygons around the map and near its origin, scene states 6/5 | 3,000 | 0 |
+| sinks: the call chain, RenderSprites' four sites and their callers, the `0x67a` callback | 17 | 0 |
+
+14/14 mutants of `reconstructed/hud/item_slots.c` are caught: rate swap, multiply order, armour slot, factor,
+class set, class nibble, a20, empty test, null CharacterMachine, slot bound, size swap, glow shift, glow mask and
+option/ext swap. Each anchor matches once.
+
+### Native
+
+- `reconstructed/hud`: `mu_equip_slot_info`, `mu_inventory_item_pass`, `mu_equip_short_armour` and
+  `mu_icon_glow_of`.
+- `native/gfx/mu_gfx_layer`:
+  - keeps the reported rectangles and the hero's 15 ITEMs (`mu_gfx_layer_set_equipment`: code, level word,
+    excellent, set bits, class byte);
+  - runs `mu_inventory_item_pass` for the inventory and appends the equipment draws after the grid's.
+  - Slots the movie never reported are left out (the client would draw them at the frame origin, size 0).
+  - The equipment's cursor test uses the slot rectangle in stage points.
+- `native/world/world_rt.c`: SetCharacterClass's ITEMs 0..8 (the session records of APP-POLISH-008, or a file's
+  first record at level 0) go to the layer. Slots 9..14 have no offline record.
+- `native/world/world_gfx_game.c`:
+  - The glow comes from `mu_icon_glow_of(ros)`, so the excellent pass and the set bits now reach grid and
+    equipment icons. Kind A `0xc` passes level 0.
+  - With a world (`wg_items_set_world`), the pre-draw programs run on the icon's pose with the flag of
+    `world_rt_item_pre` (new caller `inventory`, owner key per icon), and the skin sprites are created in the
+    world's list.
+  - The per-icon skin pool of RENDER-ITEMS-002D (an inference) is gone: no sprite is drawn over an icon.
+- The world summary's `item_pre_draw` line gains `inventory` only when an icon ran a program. The GFx summary gains
+  `inventory_equipment` only when equipment is drawn.
+
+### Limits
+
+- Character select is unchanged. Its slot levels would come from the character list handler's equipment
+  decoding (packet data, not traced), and the native charsel draws plain meshes without the item render.
+- RenderObjDraw's level word reaches the native item render as `(word >> 3) & 15`. Its option and luck bits
+  (`& 0x87`) are dropped, as for the world's players.
+- `mu-render ui inventory` (the software tool) still draws `0x389c`/`0x389d` sprites over its icons.
+- Sprites created during the item pass are drawn by the next world draw. The client's order of the GFx pass and
+  RenderSprites within one main-game frame was not traced (the GFx manager is reached through a virtual call).
+- No original-client capture of an inventory with equipment: the placement is matched up to the wrapper's
+  arguments, and the pixels are the native renderer's.
+
+## Part 23, pre-draw particles without an owner and armour owner programs in the world, RENDER-EFFECTS-021
+
+RenderObjDraw's pre-draw programs (part 18/19) still had three particle requests without an owner that no native
+pool reconstructed. The armour owner programs (part 17) ran only in `mu-render character`. Both are now served in
+the world. Evidence: verified (Unicorn against the pinned text/data), unless said.
+
+### Census of item-program requests (static, every op of the 83 programs)
+
+| Request (op) | Programs | Native consumer before | After |
+|---|---|---|---|
+| CreateParticle `0x7ffd`/0x1b, no owner (14) | bow `0x1316` | none: refused, counted | `item_predraw_kinds.inc` |
+| CreateParticle `0x7f66`/5, no owner (14) | `0x230c`, `0x2496` | none: refused | `item_predraw_kinds.inc` |
+| CreateParticle `0x8180`/5, no owner (14) | `0x23ef`, `0x2400`, `0x2405` | none: refused | `item_predraw_kinds.inc` |
+| CreateParticle `0x810a`/0x11, `0x81cf`/0, OBJECT owner (25) | `0x2384`, `0x2385` | part 22 | unchanged |
+| CreateSprite / bone sprites (13, 17, 40) | 275 sites | sprite pool | unchanged |
+| CreateJoint, OBJECT target (39): `0x7f7c`/0xe, `0x7fd3`/4 | `0x22ec`, `0x248f` | joint pool: refused | unchanged (RENDER-ITEMS-002T's joint kinds) |
+| Owner programs' `0x7f26`/0x26, `0x810a`/7, `0x810a`/0xf and sprites (10, 13, 14) | 43 armour/helm types | kinds exist (RENDER-EFFECTS-017); programs not run in the world | run in the world with the wearer's OBJECT |
+| Since #341 (part 22 of 002T): `0x810a`/0x25 OBJECT-owned with argument 8 (47); `0x855d`/1, `0x84d1`/1 (14) | maces `0x0f1f`, `0x0f20` | none; refused first by the missing frame counter `[0x0bdc5ebc]` | unchanged (next step) |
+
+### The three kinds (CreateParticle `0x015ae7b0`, MoveParticles `0x01616c80`, RenderParticles `0x0159123f`)
+
+| Kind | Create | Move | Render |
+|---|---|---|---|
+| Clud64 `0x7ffd`/0x1b | `0x015c304a` (the subtype chain from `0x015c07c8`): initial LifeTime (+0x4c) 15, LifeTime 15; rotation `rand() % 360`; light = the argument again; alpha 1; velocity `0x011ff622(-0.5, 0.5, 1)` per axis: one rand each, always 0 | `0x0163274d`: alpha = LifeTime / initial LifeTime (binary32 division); Scale += 0.04 | `0x0159504f`: the sprite with light × alpha (`0x00cfcb3c`) |
+| Shiny01 `0x7f66`/5 | the Shiny01 case `0x015e5c73` (LifeTime 18, angle x 45), then `0x015e60e5`: LifeTime `rand() % 10 + 10`; Scale = `(rand() % 10) · 0.02 + scale`; x and y += `rand() % 10 - 5`; gravity = `-(rand() % 10) · 0.3` | the case `0x016584c2` has no head; `0x01658bd3`: rotation += 10; z += gravity; light /= 1.02 per channel; Scale -= 0.01 | Shiny01 is not in the render switch: the default sprite `0x015ae2bf` |
+| shiny06 `0x8180`/5 | the case's table `0x016167a0`[5] = `0x015e93ab`, the switch end: the common block only (LifeTime 2) | table `0x0168f700`[5] = `0x0165c194`, the end: nothing | table `0x015ae50f`[5] = `0x0159a5a6`, the end: the common bind and blend state, no sprite |
+
+Index 5 is the only entry of each table that goes straight to the end; the other subtypes of `0x8180` have blocks.
+`0x8180`/5 lives two MoveParticles steps and draws nothing. Native skips even its bind, because shiny06 has no
+world bitmap slot. In the client the bind and blend state are reset by the next record's render.
+
+### Owner programs in the world
+
+RenderPartObjectBody `0x0173d2d8` runs the effect block of a worn chest/helm with the character OBJECT. The block
+transforms through `0x012b678d(out, OBJECT, bone, local)`, a thiscall on the part model. If the bone is negative
+or not below the part model's bone count (`+0x22`), `out` is not written. Otherwise the matrix is OBJECT
+`+0x318 + 0x30·bone` (`0x0129f12c`, provided the OBJECT's model, found through `+0x5c`, `0x00966cc4` and
+`0x00eaa8cf`, has the bone and `+0x318` is set), else BoneTransform `0x06fce398 + 0x30·bone`. The result is
+VectorTransform `0x00d002b2` of the local point, × the part model's `+0x74`, + OBJECT `+0x158`. The particles take
+OBJECT `+0x164`.
+
+The native characters (players, the hero, player-model actors) hold the same values:
+- `player_bones` is the posed Player.bmd skeleton (`mu_character_update`);
+- the part model's body scale and origin are the character's scale and position (`mu_character` `slot_params`);
+- `params.angles` is the OBJECT angle.
+
+`world_rt_part_owner` builds the `mu_renderchar_owner` from them, for body-part types with an owner program
+(`mu_rc_item_owner_fx`), and the three world callers draw those parts with `mu_renderchar_draw_item_owner`. The
+existing owner host (RENDER-ITEMS-002Q) runs a program only when its highest bone is below both bone counts; it
+refuses where the client would fall back to BoneTransform or skip the write. Counts:
+`{"item_owner_fx": true, "hero"|"players"|"actors": {owner_effects, owner_refused}}`, printed only when a part
+ran a program.
+
+None of the 43 types is a rank-5 type, so RENDER-EFFECTS-005's rank-5 owner block (bones 35/26 and the level-9
+overlay passes) stays as before: it runs in `mu-render character` only.
+
+### Scenes (offline native renders, Lorencia 128,124)
+
+Refused = requests the programs could not create.
+
+| Scene | Before (`ca941c4b`, #339 head) | After |
+|---|---|---|
+| CALLERS-001 crowd, `mu-walk` soft, 60 frames: players / ground | 93 / 0, 18 / 0 | identical |
+| Same, a frame every 10 | 325 / 0, 113 / 0 | identical |
+| GL `mu-world` 640×400 crowd, 41 frames, every 5 | players 417 / **5** (bow `0x1316`), ground 146 / 0 | 423 / **0**, 148 / 0 (created 5 → 13, rand 167 → 239) |
+| Archer alone (bow `0x1316`), GL, every frame, 61 frames | 854 / **17** | 876 / **0** |
+| Five wearers of `0x230c`, `0x2496`, `0x23ef`, `0x2400`, `0x2405`, soft every 10 / GL every 5 | 483 / **10**, 621 / **12** | 487 / **0**, 634 / **0** |
+| Shipped Lorencia demo players (after #338), soft every 10 / GL every 5 | 343 / 0 (23 hidden), 441 / 0 (28 hidden) | identical (no such type, no owner-program armour) |
+| Five armour wearers (`0x1bc3`, `0x1bc4`, `0x1bde`, `0x1c41`, `0x1c78`), soft every 10 | no program ran, 0 sprites | players 144 owner effects (119 sprites, 25 particles) / **0** refused |
+| Same, GL every 5 | no program ran | 190 (153 sprites, 37 particles) / **0** |
+| Hero `--hero-item armor=Item/ArmorMale135.bmd` (`0x1bc3`), soft every 10 | no program ran | hero 68 / **0** |
+
+The created counts shift slightly because each new record draws rand() (Clud64 4, Shiny01 5), which moves later
+gates.
+
+### Limits
+
+- The native pose is assumed to equal the client's `+0x318`, as RENDER-EFFECTS-005 already assumed for the
+  rank-5 bones and the world's link effects for `0x389c`/`0x389d`. This lane verifies the transform and the
+  bone-domain rule, not the pose.
+- The five helm types run through the same hook, but no scene wears them. Player-model actors are wired, but no
+  installed actor wears these armours.
+- The rank-5 owner block in the world is left for a later lane (it also adds draw passes).
+- The joint kinds `0x7f7c`/0xe and `0x7fd3`/4 stay refused (RENDER-ITEMS-002T).
+
+## Part 26, the rendered-frame counter in body draws, the wing joints and the world callers, RENDER-ITEMS-002U
 
 Bodies **1,363 → 1,364 of 1,674**. The rendered-frame counter `[0x0bdc5ebc]` is now a body input, and a
 comparison of the client's streams at different counter values found that **51 admitted bodies** draw texture
@@ -2065,7 +2239,9 @@ counter types (`0x0f24`, `0x0f28`, `0x0f29`, `0x0f2b`, `0x0f2c` with effect prog
 - `world_rt_item_pre` sets `env->frame_counter` for every item it is called for (worn weapons, shields and wings of
   the hero, players and player-model actors, ground items), before its pre/post test; its condition now also
   accepts the post-draw types (`|| mu_rc_item_post_fx(type)`), so `0x2713`'s post program gets the item pose in the
-  world. Inventory and the texture survey keep the counter unknown (0): their frames are unchanged.
+  world, and since INVENTORY-FX (#343) also the world's inventory window, whose items go through the same function
+  (the client draws them with the live counter too). `mu-render ui inventory` and the texture survey keep it unknown
+  (0): their frames are unchanged.
 - With the counter present, the requests behind `0x0f1f`'s/`0x0f20`'s counter tests run on the client's frames
   (`counter % 3 == 0`, `% 5 == 0`) instead of all being refused; the particle kinds they create (`0x855d`/1,
   `0x84d1`/1, `0x810a`/0x25 with argument 8) are not in the native pool, so what runs is still refused, now for the
@@ -2106,8 +2282,8 @@ Counter scan (client against client, scratch): 1,691 types × 4 states × counte
 
 - 310 bodies remain. The six counter types not admitted (`0x0f24`, `0x0f28`, `0x0f29`, `0x0f2b`, `0x0f2c`, `0x1588`)
   fit no probe option yet; the maces also create effects in RenderObjDraw that are not read.
-- The native counter's phase is not the client's (it starts with the world runtime). Inventory, the texture survey
-  and `mu-render character` without `--frame-counter` keep 0, so their counter bodies show frame 0.
+- The native counter's phase is not the client's (it starts with the world runtime). `mu-render ui inventory`, the
+  texture survey and `mu-render character` without `--frame-counter` keep 0, so their counter bodies show frame 0.
 - The counter scan covers the survey's unselected/no-buff domain with 16 states per type; a counter read only in
   another branch would not be found.
 - `0x0f1f`/`0x0f20`'s counter-gated particles are now refused for their kinds (not in the native pool), not for the

@@ -39,6 +39,9 @@ void world_gfx_rebind_skills(world_gfx *g, struct mu_session *session);
 /* APP-POLISH-005: the hero's equipped weapons for the skill usability check (wg_skill_set_equipment), kept over
  * skill rebinds; NULL: the demo sword. */
 void world_gfx_set_equipment(world_gfx *g, const int32_t code[2], const uint8_t kind[2]);
+/* INVENTORY-FX: the world the item icons' sprites go to (world_gfx_game.h wg_items_world); NULL: none. */
+struct wg_items_world;
+void world_gfx_set_item_world(world_gfx *g, const struct wg_items_world *world);
 /* NATIVE-PERF-001: the window changed size (drawable pixels): every movie's stage and the client's window
  * placement (SetWindowSize, SetScale(83) below 700 points of height) follow. */
 void world_gfx_resize(world_gfx *g, int width, int height);
