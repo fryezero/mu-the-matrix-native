@@ -158,6 +158,9 @@ typedef struct tool {
     /* NATIVE-PROGRESS-001: --progress-script "F:kill:CLASS F:button:ROW F:add:STAT" */
     mu_progress_script progress_script;
     int32_t progress_next;
+    /* HERO-ITEMS-001: --hero-item SLOT=FILE, the front end's equipment as mu-client passes it */
+    const char *hero_item[MU_CHARACTER_ITEMS];
+    char hero_item_path[MU_CHARACTER_ITEMS][1024];
 #ifndef MU_WORLD_NO_GL
     /* NATIVE-GFX-002: the GFx interface over the world (--gfx DIR) */
     const char *gfx_dir, *gfx_open;
@@ -1135,6 +1138,8 @@ static int usage(void)
                     "                [--social-script \"F:party:NAME;F:accept;F:trade:NAME;F:offer:CELL;F:zen:N;F:ok\"]   offline social demo\n"
                     "                [--helper angel|imp|uniria|dinorant|darkhorse|fenrir[-black|-blue|-gold]|CODE]\n"
                     "                [--helper-state N] [--no-helpers]\n"
+                    "                [--hero-item helm|armor|pants|gloves|boots|weapon0|weapon1|wing=FILE ...]   the hero's\n"
+                    "                equipment (FILE under ROOT/Data unless absolute; its Item.bmd record types the slot)\n"
                     "                [--no-map] [--travel-script \"F:move:KEY F:to:WORLD:X:Y F:respawn F:rows F:sort:N F:click:ROW F:tab F:mwin F:mclick:ROW\"]\n");
     return 2;
 }
@@ -1277,6 +1282,17 @@ int main(int argc, char **argv)
         else if (!strcmp(k, "--particle-seed")) o->particle_seed = (uint32_t)strtoul(v, NULL, 0);
         else if (!strcmp(k, "--joint-demo")) o->joint_demo = (int32_t)strtol(v, NULL, 0);
         else if (!strcmp(k, "--hero-name")) o->hero_name = v;
+        else if (!strcmp(k, "--hero-item")) {   /* HERO-ITEMS-001 */
+            static const char *slots[] = {"helm", "armor", "pants", "gloves", "boots", "weapon0", "weapon1", "wing"};
+            const char *eq = strchr(v, '=');
+            int found = -1;
+            for (int n = 0; eq && n < 8; ++n)
+                if (strlen(slots[n]) == (size_t)(eq - v) && !strncmp(v, slots[n], (size_t)(eq - v)))
+                    found = n + 1;
+            if (found < 0 || !eq[1])
+                return usage();
+            t.hero_item[found] = eq + 1;
+        }
         else if (!strcmp(k, "--monster-info")) o->no_monster_info = !atoi(v);
         else if (!strcmp(k, "--script")) {
             t.input_count = mu_input_script_parse(v, t.input_script);
@@ -1301,6 +1317,15 @@ int main(int argc, char **argv)
         o->tile[0] < 0 || o->tile[1] < 0 || o->tile[0] > 255 || o->tile[1] > 255)
         return usage();
     if (t.time_series_every && (!t.headless || t.frames > 10001)) return usage();
+    for (int n = 1; n < MU_CHARACTER_ITEMS; ++n)
+        if (t.hero_item[n]) {
+            if (t.hero_item[n][0] == '/')
+                snprintf(t.hero_item_path[n], sizeof t.hero_item_path[n], "%s", t.hero_item[n]);
+            else
+                snprintf(t.hero_item_path[n], sizeof t.hero_item_path[n], "%s/Data/%s", o->root, t.hero_item[n]);
+            o->items[n] = t.hero_item_path[n];
+            o->has_items = 1;
+        }
     char error[1024];
     o->perf = &t.perf;
     t.rt = mu_world_rt_open(o, error, sizeof error);   /* the loaders said why on stderr */

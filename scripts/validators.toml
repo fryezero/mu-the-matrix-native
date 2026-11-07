@@ -3118,6 +3118,24 @@ args = ["--mutations", "--output", "{report}"]
 "families.part_flag.cases" = 3000
 "mutants.*" = {truthy = true}
 
+[validate_hero_items]
+test = "native/tests/test_native_hero_items.py::ClientComparison.test_original_instructions"
+pins = ["text", "data"]
+families = ["set_class", "defaults", "head", "item_flag"]
+cases = 7088
+mutants = 14
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/hero-equipment", "reconstructed/players"]
+args = ["--mutations", "--output", "{report}"]
+[validate_hero_items.expect]
+"families.*.mismatches" = 0
+"families.set_class.cases" = 3000
+"families.defaults.cases" = 256
+"families.head.cases" = 832
+"families.item_flag.cases" = 3000
+"mutants.*" = {truthy = true}
+
 [validate_render_effects18]
 test = "native/tests/test_render_effects18.py::ClientComparison.test_original_instructions_and_compiled_mutants"
 pins = ["text", "data"]
