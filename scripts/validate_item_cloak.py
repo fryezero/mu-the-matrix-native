@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
-"""RENDER-ITEMS-CLOAK: the capes of wings 0x2382..0x2385, 0x2394, 0x2395 (a physics cloth) against the pinned client.
+"""RENDER-ITEMS-CLOAK / CLOAK-002: the wings' physics capes (every CreateCloth case) against the pinned client.
 
-reconstructed/cloth reproduces the client's cloth (docs/research/client-render-items.md part 25). The client routines
+reconstructed/cloth reproduces the client's cloth (docs/research/client-render-items.md parts 25 and 27). The client routines
 run as client code on the restored text and the second section (renderchar_machine, with validate_renderchar's
 services); the C runs the same states through ctypes. Families:
 
-* create  CreateCloth 0x01357ccc(c, o, light, 0) on a fresh CHARACTER for each wing type (and wings without a cloth):
-          the cloth count (+0x3f) and every field of every cloth object (header, vertices, springs, the sphere list).
-          States: random OBJECT angles, Player model scale / origin, 60 random bone matrices; some cases without a
+* create  CreateCloth 0x01357ccc(c, o, light, arg4) on a fresh CHARACTER for every wing type of its switch (aliases
+          included), arg 4 = 1 and wings without a cloth: the cloth count (+0x3f) and every field of every cloth object
+          (header, vertices, springs, the sphere list; the glow fields and the +0x48 matrix where set). States: random
+          OBJECT angles and scale (+0xa0), wing level (+0x21a6), SceneFlag 0x01d1df70 (5 or 6), sub-type +0x60 (0 or
+          0x5bc / 0x5bd with its own model), Player model scale / origin, 60 random bone matrices; some cases without a
           bone array, with too few bones or without the Player model (the client's failure returns).
 * step    RenderCharacter's per-frame calls as it makes them: MoveCloth 0x01362f24(c, o) then RenderCloth
           0x01363098(c, o, light, 0) (the creation frame steps once more inside it). Between frames the bones, the
@@ -15,7 +17,7 @@ services); the C runs the same states through ctypes. Families:
           0x01cf15fc (0x37 = the random wind), the wind 0x01ec981c, rand() and the stretch test 0x00aae6f9 change.
           After every frame: every cloth field, the wind vector 0x01ec9820 and the rand() state.
 * render  the same frames' GL streams: the state wrapper, BindTexture, glColor4f, glBegin(GL_QUADS), glTexCoord2f /
-          glVertex3f per corner and glEnd of virtual slot 8 (0x00fd8bc2), bit for bit.
+          glVertex3f per corner and glEnd of virtual slot 8 (0x00fd8bc2) with its glow pass 0x00fd9663, bit for bit.
 * wind    the physics manager's step 0x00fdad7b(0.005) on an empty list: the wind walk (rand()) from random winds.
 * gate    RenderCharacter 0x01363260 up to its cloth call: the cloth flag [ebp-0x4d], arg 4 [ebp-0x128] and the light
           [ebp-0xc8] at 0x0136ab87 over class bytes, CHARACTER +0x0e / +0x1f / +0x146 / +0x21a4 / +0x32b0, the OBJECT
@@ -56,7 +58,17 @@ CREATE_CLOTH, MOVE_CLOTH, RENDER_CLOTH, MOVE_WIND = 0x01357ccc, 0x01362f24, 0x01
 RENDER_CHARACTER, GATE_AT = 0x01363260, 0x0136ab87
 WIND, WIND_VECTOR, TIME, STEPS, WORLD = 0x01ec981c, 0x01ec9820, 0x06fce370, 0x0bdc5eb0, 0x01cf15fc
 CLOTH_TYPES = (0x2382, 0x2383, 0x2384, 0x2385, 0x2394, 0x2395)
-PLAIN_WINGS = (-1, 0x1000, 0x22ee, 0x0b27)        # no CreateCloth case (a sword type, Wing02, an unused type)
+# CLOAK-002: every other case of the switch 0x01357e5c (first type of each case, then its aliases)
+MORE_TYPES = (0x230e, 0x2317, 0x2318, 0x2368, 0x236d, 0x2380, 0x2381, 0x2386, 0x2392, 0x2393, 0x2396, 0x2398,
+              0x239e, 0x23a0, 0x23a1, 0x23a5, 0x23a7, 0x23ec, 0x23f1, 0x23f3, 0x23f4, 0x23fc, 0x2488, 0x248a,
+              0x248b, 0x2490, 0x24c6, 0x34e6, 0x34e7, 0x34e9, 0x34eb)
+ALIAS_TYPES = (0x2498, 0x2492, 0x249a, 0x2387, 0x2397, 0x2399, 0x23fd, 0x2402, 0x2401, 0x2493, 0x249b, 0x24a0,
+               0x24a2, 0x24a3, 0x2504, 0x34e8, 0x34ea)
+ARG4 = 'arg4'                                     # a case of CreateCloth's arg 4 = 1 (the wing is random)
+PLAIN_WINGS = (-1, 0x1000, 0x22ee, 0x0b27, 0x239a, 0x239f, 0x23a2)   # no case (sword, Wing02, unused, table holes)
+SCENE = 0x01d1df70
+ROTATE_SCRATCH = 0x078965ac                       # RotatePosition 0x012b7019 copies the bone matrix here
+SUB_MODEL = vr.PLAYER_MODEL + 0x400
 CASE_BONES = vr.BONES                             # the OBJECT +0x318 array (validate_renderchar layout)
 LIGHT_VEC = 0x2d000000
 MANAGER = 0x2d001000
@@ -88,10 +100,12 @@ class CCloth(ctypes.Structure):
                 ('texture_back', ctypes.c_int32), ('type', ctypes.c_uint32), ('origin', ctypes.c_float * 3),
                 ('width', ctypes.c_float), ('height', ctypes.c_float), ('columns', ctypes.c_int32),
                 ('rows', ctypes.c_int32), ('vertex_count', ctypes.c_int32), ('spring_count', ctypes.c_int32),
-                ('custom', ctypes.c_uint8), ('alpha', ctypes.c_float), ('alpha_from_object', ctypes.c_uint8),
+                ('custom', ctypes.c_uint8), ('matrix', ctypes.c_float * 12), ('alpha', ctypes.c_float),
+                ('alpha_from_object', ctypes.c_uint8),
                 ('uv_scale', ctypes.c_float * 2), ('uv_offset', ctypes.c_float * 2), ('wind', ctypes.c_float),
                 ('wind_range', ctypes.c_uint8), ('wind_base', ctypes.c_uint8), ('push', ctypes.c_float * 2),
-                ('glow_texture', ctypes.c_int32), ('mesh', ctypes.c_int32), ('step', ctypes.c_float * 2),
+                ('glow_texture', ctypes.c_int32), ('glow', ctypes.c_float * 3), ('mesh', ctypes.c_int32),
+                ('step', ctypes.c_float * 2),
                 ('sphere_count', ctypes.c_int32), ('spheres', CSphere * 8), ('vertices', CVertex * 256),
                 ('springs', CSpring * 1024)]
 
@@ -99,7 +113,14 @@ class CCloth(ctypes.Structure):
 class CHost(ctypes.Structure):
     _fields_ = [('bones', ctypes.POINTER(ctypes.c_float)), ('bone_count', ctypes.c_int32),
                 ('has_model', ctypes.c_int32), ('body_scale', ctypes.c_float), ('body_origin', ctypes.c_float * 3),
-                ('angles', ctypes.c_float * 3), ('alpha', ctypes.c_float)]
+                ('angles', ctypes.c_float * 3), ('alpha', ctypes.c_float), ('subtype', ctypes.c_int32),
+                ('sub_has_model', ctypes.c_int32), ('sub_body_scale', ctypes.c_float),
+                ('sub_body_origin', ctypes.c_float * 3)]
+
+
+class CWingIn(ctypes.Structure):
+    _fields_ = [('wing_type', ctypes.c_int16), ('wing_level', ctypes.c_int8), ('arg4', ctypes.c_uint8),
+                ('scene', ctypes.c_int32), ('object_scale', ctypes.c_float)]
 
 
 class CGlobals(ctypes.Structure):
@@ -149,13 +170,14 @@ def build(source_dir: Path, work: Path, name: str):
     lib.mu_cloth_create.argtypes = [P(CCloth), P(CHost), ctypes.c_int32, ctypes.c_float, ctypes.c_float,
                                     ctypes.c_float, ctypes.c_int32, ctypes.c_int32, ctypes.c_float, ctypes.c_float,
                                     ctypes.c_int32, ctypes.c_int32, ctypes.c_uint32]
-    lib.mu_cloth_wing_create.argtypes = [P(CCloth), ctypes.c_int32, P(CHost)]
+    lib.mu_cloth_wing_create.argtypes = [P(CCloth), P(CWingIn), P(CHost)]
     lib.mu_cloth_move2.argtypes = [P(CCloth), P(CHost), P(CGlobals), ctypes.c_float, ctypes.c_int32]
-    lib.mu_cloth_render.argtypes = [P(CCloth), P(CHost), P(ctypes.c_float), P(CSink)]
+    lib.mu_cloth_render.argtypes = [P(CCloth), P(CHost), P(CGlobals), P(ctypes.c_float), P(CSink)]
     lib.mu_cloth_wind_step.argtypes = [P(CGlobals)]
     lib.mu_cloth_default_globals.argtypes = [P(CGlobals)]
     lib.mu_cloth_gate.argtypes = [P(CGateIn), P(CGateOut)]
-    lib.mu_cloth_draw_allowed.argtypes = [ctypes.c_uint16, ctypes.c_uint16, ctypes.c_int16]
+    lib.mu_cloth_draw_allowed.argtypes = [ctypes.c_uint8, ctypes.c_int32, ctypes.c_uint16, ctypes.c_uint16,
+                                          ctypes.c_int16]
     return lib, None
 
 
@@ -216,6 +238,9 @@ def frame_state(rng, frame, base):
     s['origin'] = [u2f(f2u(v + rng.uniform(-30.0, 30.0))) for v in base['origin0']]
     s['scale'] = u2f(f2u(rng.choice((0.9, 1.0, rng.uniform(0.6, 1.4)))))
     s['hold'] = 1 if rng.random() < 0.2 else 0
+    s['object_scale'] = u2f(f2u(rng.choice((0.9, 1.0, rng.uniform(0.5, 1.6)))))
+    s['sub_scale'] = u2f(f2u(rng.uniform(0.6, 1.4)))
+    s['sub_origin'] = [u2f(f2u(v + rng.uniform(-40.0, 40.0))) for v in base['origin0']]
     return s
 
 
@@ -230,15 +255,21 @@ class ClientCloth:
         self.case = case
         if case['has_model']:
             w.add_model(0xa91, vr.PLAYER_MODEL, bones=case['bone_count'], meshes=0, actions=390)
+        if case['subtype'] and case['sub_model']:
+            w.add_model(case['subtype'], SUB_MODEL, bones=60, meshes=0, actions=1)
         record = vr.character_record(cls=case['class'], action=1)
         struct.pack_into('<h', record, 0x21a4, case['wing'])
+        struct.pack_into('<b', record, 0x21a6, case['level'])
         o = 0x3254
         record[o + 0x3b] = 0                                 # no armour cloth (CreateClothArmour 0x0135ea29)
         struct.pack_into('<I', record, o + 0x318, CASE_BONES if case['bones'] else 0)
+        struct.pack_into('<i', record, o + 0x60, case['subtype'])
         m.write(vr.CHAR, record)
         m.map(LIGHT_VEC, 0x2000)
-        for address in (WIND, WIND_VECTOR, TIME, STEPS, WORLD):
+        for address in (WIND, WIND_VECTOR, TIME, STEPS, WORLD, SCENE):
             m.ensure(address, 16)
+        m.ensure(ROTATE_SCRATCH, 0x40)
+        m.w32(SCENE, case['scene'])
         self.o = vr.CHAR + o
 
     def apply(self, s):
@@ -249,6 +280,9 @@ class ClientCloth:
         m.write(o + 0x158, struct.pack('<3f', *s['origin']))
         if self.case['has_model']:
             m.write(vr.PLAYER_MODEL + 0x74, struct.pack('<4f', s['scale'], *s['origin']))
+        if self.case['subtype'] and self.case['sub_model']:
+            m.write(SUB_MODEL + 0x74, struct.pack('<4f', s['sub_scale'], *s['sub_origin']))
+        m.write(o + 0xa0, struct.pack('<f', s['object_scale']))
         m.wf(TIME, s['time'])
         m.w32(STEPS, s['steps'])
         m.w32(WORLD, s['world'])
@@ -261,7 +295,7 @@ class ClientCloth:
         self.apply(s)
         self.w.calls.clear()
         r1 = self.m.run(MOVE_CLOTH, [vr.CHAR, self.o])
-        r2 = self.m.run(RENDER_CLOTH, [vr.CHAR, self.o, LIGHT_VEC, 0])
+        r2 = self.m.run(RENDER_CLOTH, [vr.CHAR, self.o, LIGHT_VEC, self.case['arg4']])
         stream = []
         for c in self.w.calls:
             if c[0] == 'state':
@@ -274,7 +308,7 @@ class ClientCloth:
 
     def create(self, s):
         self.apply(s)
-        return self.m.run(CREATE_CLOTH, [vr.CHAR, self.o, LIGHT_VEC, 0])
+        return self.m.run(CREATE_CLOTH, [vr.CHAR, self.o, LIGHT_VEC, self.case['arg4']])
 
     def read(self):
         m, o = self.m, self.o
@@ -296,6 +330,10 @@ def read_cloth(m, p):
         'uv_offset': [f(0x88), f(0x8c)], 'wind': f(0x90), 'wind_range': m.read(p + 0x94, 1)[0],
         'wind_base': m.read(p + 0x95, 1)[0], 'push': [f(0x98), f(0x9c)], 'glow_texture': f(0xa0), 'mesh': f(0xc0),
         'step': [f(0xd4), f(0xd8)]}
+    if head['custom']:
+        head['matrix'] = list(struct.unpack('<12I', m.read(p + 0x48, 48)))
+    if head['glow_texture'] != 0xffffffff:
+        head['glow'] = [f(0xa4), f(0xa8), f(0xac)]
     vertices = []
     vbase = f(0x38)
     for i in range(head['vertex_count'] if vbase else 0):
@@ -337,6 +375,10 @@ def c_cloth_view(c):
         'uv_offset': [f2u(v) for v in c.uv_offset], 'wind': f2u(c.wind), 'wind_range': c.wind_range,
         'wind_base': c.wind_base, 'push': [f2u(v) for v in c.push], 'glow_texture': c.glow_texture & 0xffffffff,
         'mesh': c.mesh & 0xffffffff, 'step': [f2u(v) for v in c.step], 'sphere_count': c.sphere_count}
+    if c.custom:
+        head['matrix'] = [f2u(v) for v in c.matrix]
+    if c.glow_texture != -1:
+        head['glow'] = [f2u(v) for v in c.glow]
     vertices = [{'force': [f2u(x) for x in v.force], 'velocity': [f2u(x) for x in v.velocity],
                  'position': [f2u(x) for x in v.position], 'flags': v.flags, 'count': v.count & 0xffffffff,
                  'delta': [f2u(x) for x in v.delta]} for v in c.vertices[:c.vertex_count]]
@@ -359,7 +401,7 @@ class CSide:
     def __init__(self, lib, case):
         self.lib = lib
         self.case = case
-        self.cloths = (CCloth * 2)()
+        self.cloths = (CCloth * 3)()
         self.count = 0
         self.g = CGlobals()
         lib.mu_cloth_default_globals(ctypes.byref(self.g))
@@ -393,6 +435,12 @@ class CSide:
             h.body_origin[k] = st['origin'][k] if case['has_model'] else 0.0
             h.angles[k] = st['angles'][k]
         h.alpha = st['alpha']
+        h.subtype = case['subtype']
+        h.sub_has_model = case['sub_model']
+        h.sub_body_scale = st['sub_scale'] if case['sub_model'] else 0.0
+        for k in range(3):
+            h.sub_body_origin[k] = st['sub_origin'][k] if case['sub_model'] else 0.0
+        self.wing_in = CWingIn(case['wing'], case['level'], case['arg4'], case['scene'], st['object_scale'])
         g = self.g
         g.time = st['time']
         g.logic_steps = struct.unpack('<i', struct.pack('<I', st['steps']))[0]
@@ -402,7 +450,7 @@ class CSide:
 
     def create(self, st):
         self.apply(st)
-        self.count = self.lib.mu_cloth_wing_create(self.cloths, self.case['wing'], ctypes.byref(self.host))
+        self.count = self.lib.mu_cloth_wing_create(self.cloths, ctypes.byref(self.wing_in), ctypes.byref(self.host))
         return self.count
 
     def move_cloth(self):
@@ -424,10 +472,12 @@ class CSide:
         if created:
             self.move_cloth()
         light = (ctypes.c_float * 3)(*st['light'])
+        if not self.lib.mu_cloth_draw_allowed(self.case['class'], self.case['subtype'], 1, 1, 0):
+            return list(self.stream)   # character_record(action=1), class index 0
         for i in range(self.count):
             if self.cloths[i].owner:
-                self.lib.mu_cloth_render(ctypes.byref(self.cloths[i]), ctypes.byref(self.host), light,
-                                         ctypes.byref(self.sink))
+                self.lib.mu_cloth_render(ctypes.byref(self.cloths[i]), ctypes.byref(self.host), ctypes.byref(self.g),
+                                         light, ctypes.byref(self.sink))
         return list(self.stream)
 
 
@@ -491,8 +541,15 @@ def first_difference(a, b, path=''):
 
 def random_case(rng, wing, index):
     kind = rng.random()
-    case = {'wing': wing, 'class': rng.choice((0, 4, 0x20, 1, 0x12, 6)), 'seed': rng.randrange(1 << 32),
-            'bones': 1, 'bone_count': 60, 'has_model': 1}
+    arg4 = 0
+    if wing == ARG4:
+        arg4, wing = 1, rng.choice((-1, 0x2382, 0x24c6, 0x22ee))
+    case = {'wing': wing, 'class': rng.choice((0, 4, 0x20, 1, 0x12, 6, 3, 0x23)), 'seed': rng.randrange(1 << 32),
+            'bones': 1, 'bone_count': 60, 'has_model': 1, 'arg4': arg4,
+            'level': rng.choice((0, 7, 8, 9, 10, 11, 13, 15, -3)), 'scene': rng.choice((5, 6, 6)),
+            'subtype': rng.choice((0, 0, 0, 0, 0x5bc, 0x5bd, 0x5be, 0x431, 0x3e9)), 'sub_model': 1}
+    if case['subtype'] and rng.random() < 0.2:
+        case['sub_model'] = 0
     if kind < 0.06:
         case['bones'] = 0
     elif kind < 0.10:
@@ -507,9 +564,16 @@ def random_case(rng, wing, index):
     return case
 
 
+COVERAGE = {}
+
+
+def cover(key, n=1):
+    COVERAGE[key] = COVERAGE.get(key, 0) + n
+
+
 def run_cases(world_args, lib, cases, frames, seed, families):
     rng = random.Random(seed)
-    types = list(CLOTH_TYPES) * 3 + list(PLAIN_WINGS)
+    types = list(CLOTH_TYPES) * 3 + list(MORE_TYPES) * 3 + list(ALIAS_TYPES) + [ARG4] * 4 + list(PLAIN_WINGS)
     for index in range(cases):
         wing = types[index % len(types)]
         case = random_case(rng, wing, index)
@@ -527,6 +591,12 @@ def run_cases(world_args, lib, cases, frames, seed, families):
         tside = CSide(lib, case)
         n = tside.create(st0)
         cv = [c_cloth_view(tside.cloths[i]) for i in range(n)]
+        cover('cloths', n)
+        cover('custom', sum(1 for c in cv if c['head']['custom']))
+        cover('glow_set', sum(1 for c in cv if 'glow' in c['head']))
+        cover('arg4', case['arg4'])
+        cover('scene5_23ec', int(case['scene'] == 5 and case['wing'] in (0x23ec, 0x23fd, 0x2402)))
+        cover('sub_model', int(case['subtype'] in (0x5bc, 0x5bd) and n > 0))
         ok = r['ok'] and tcount == n and (tptr == (n > 0)) and not first_difference(tcloths, cv)
         if not r['ok']:
             families['create']['stopped'] += 1
@@ -553,6 +623,9 @@ def run_cases(world_args, lib, cases, frames, seed, families):
                                           'count': [count, cside.count], 'diff': first_difference(cloths, cview),
                                           'wind': [wind_vec, cwind], 'seed': [client.state['seed'], cside.g.rand_seed]})
             a, b = stream_bits(stream), stream_bits(cstream)
+            cover('glow_pass', sum(1 for x in a if x == ('state', 3)))
+            cover('hidden_draw', int(cside.count > 0 and not a))
+            cover('drawn_frames', int(bool(a)))
             if not okc:
                 families['render']['stopped'] += 1
             note(families['render'], okc and a == b,
@@ -776,7 +849,7 @@ def main(argv=None):
                   'gravity': list(struct.unpack('<3f', SECTION3_INIT['bytes'][GRAVITY - pins.EFFECTS_INIT.base:][:12])),
                   'routines': {k: [hex(a), hex(b), hashlib.sha256(text[a - rmach.TEXT_BASE:b - rmach.TEXT_BASE]).hexdigest()]
                                for k, (a, b) in RANGES.items()},
-                  'families': families(world_args, lib, args)}
+                  'families': families(world_args, lib, args), 'coverage': dict(COVERAGE)}
         if args.mutations:
             report['mutants'] = mutations(world_args, args, work)
     finally:
@@ -789,7 +862,8 @@ def main(argv=None):
     missed = [k for k, v in report.get('mutants', {}).items() if not v]
     summary = {k: {'cases': v['cases'], 'mismatches': v['mismatches'], 'stopped': v['stopped']}
                for k, v in report['families'].items()}
-    print(json.dumps({'families': summary, 'mutants': report.get('mutants'), 'seconds': report['seconds']}))
+    print(json.dumps({'families': summary, 'coverage': report['coverage'], 'mutants': report.get('mutants'),
+                      'seconds': report['seconds']}))
     return 1 if bad or stopped or missed else 0
 
 
