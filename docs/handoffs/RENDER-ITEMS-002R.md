@@ -87,7 +87,34 @@ follow), `mu_item_textures.c` (initializer follows) and the native modules above
 
 ### Affected existing rows, without mutants (`--no-mutants --cache --jobs 2`, at `9e234371`)
 
-ROWS_TABLE
+30 rows run 22:08-22:56 (48 min wall, load 5-9) after the `3ecc205c` merge; `validate_renderchar` again at `a4cf11bd`
+after its colour sample was fixed (below). Counts equal the earlier lanes' reports. A second run of all 31 at
+`d2a6105f` (CreateEffect recorded in the shared world) passed the same 30 and showed that the stub belongs only in
+`compare_cases`' world (the back-carry extraction then finishes link states its table never had); `a4cf11bd` keeps
+the shared world as at `9e234371`.
+
+| Validator | Cases | Seconds |
+|---|---:|---:|
+| `validate_item_types` | 135,176 | 35.2 |
+| `validate_item_hiddenmesh` | 116,281 | 380.7 |
+| `validate_item_carry` | 114,388 | 677.0 |
+| `validate_item_clusters` | 74,292 | 345.6 |
+| `validate_item_expansion` | 52,172 | 292.8 |
+| `validate_item_derived` | 36,252 | 266.5 |
+| `validate_item_chains` | 35,346 | 252.0 |
+| `validate_item_wings_next` | 33,622 | 229.5 |
+| `validate_item_coverage` | 31,724 | 222.6 |
+| `validate_item_quality` | 28,080 | 179.4 |
+| `validate_item_scalars` | 26,154 | 178.1 |
+| `validate_item_continuation` | 25,772 | 921.4 |
+| `validate_item_gear` | 25,256 | 169.5 |
+| `validate_item_ranked` | 17,736 | 870.5 |
+| `validate_item_next` | 14,992 | 225.0 |
+| `validate_item_product` | 2,874 | 53.4 |
+| `validate_renderchar` (at `a4cf11bd`: items 500/500, colours 480/480, rank-5 480/480, back 100/100) | pass | 42.6 |
+| `validate_fidelity` | pass | 59.7 |
+| `validate_render_effects5/7/9/10/11/12/13/14/15/16` | 1,190 / 596 / 304 / 154 / 176 / 64 / 180 / 660 / 509 / 424 | 5.4 / 1.8 / 1.1 / 0.5 / 0.4 / 0.5 / 0.4 / 1.0 / 0.7 / 3.1 |
+| `validate_app_polish1/2/4` | 752 / 1,028 / 10,485 | 19.1 / 3.0 / 28.9 |
 
 `--list-affected origin/main` selects 49 rows. Run: the 31 rows above (they build `reconstructed/renderchar`,
 import the generators, include `renderchar.h`/`mu_renderchar.h`, or name `native/core` for item effects) plus the
@@ -100,7 +127,21 @@ never calls the item library.
 
 ## Byte identity and renders
 
-RENDERS
+- C-to-C (above): no earlier type's stream changes, with or without a rand context.
+- `mu-render ui inventory`, installed data, `MU_LANG_DIR` set, time 123456; "before" from main `3ecc205c` (temporary
+  worktree). Control codes 0,1,2,3,7,8,4116,135 are byte-identical (`b38597f2…0a6a`, 1,676 triangles). New types
+  (codes 102, 2091, 3170, 6318, 1078, 6187 = `0x0b4c`, `0x1311`, `0x1748`, `0x2394`, `0x0f1c`, `0x2311`; one does
+  not fit the grid), before `775de48a…53ed` at every level (the plain fallback ignores it):
+  - level 0: triangles 3,916 → 3,963, 2,955 pixels change, → `50446a8b…9d9a`;
+  - level 9: triangles 3,916 → 10,755, 3,275 pixels change, → `3e8eb3b7…80f6`;
+  - level 13: triangles 3,916 → 17,547, 3,486 pixels change, → `84e13c8a…2854`.
+  - Window-only crops (before | after) in `~/Documents/MTM/mu-mac-tools/native/renders/render-items-002r/`
+    (`crop_0.png`, `crop_9.png`, `crop_13.png`, 12-14 KB): the plain fallback becomes the recipes' lit and glow
+    passes. Offline native renders, not original-client pixel comparisons. Inventory items have no particle pool,
+    so no effects appear there.
+- `mu-render character --world-render` on a synthetic 12-bone skeleton: sword `0x0b27` creates 4 bone sprites, 0
+  refused; bow `0x1311` refuses its one named-bone request (`a02` absent); wing `0x2394` refuses its eight
+  (`Point001`..`Point008` absent).
 
 ## Limits
 
@@ -127,7 +168,17 @@ RENDERS
 
 ## Release
 
-STEWARD
+Steward validators: validate_item_predraw (new; ran with mutants at `d45932fc`), validate_item_ownerfx (ran with
+mutants at `d45932fc`), validate_item_types, validate_item_gear, validate_item_ranked, validate_item_continuation,
+validate_item_expansion, validate_item_clusters, validate_item_next, validate_item_coverage, validate_item_wings_next,
+validate_item_scalars, validate_item_chains, validate_item_carry, validate_item_quality, validate_item_product,
+validate_item_derived, validate_item_hiddenmesh, validate_render_effects5, validate_render_effects7,
+validate_render_effects9, validate_render_effects10, validate_render_effects11, validate_render_effects12,
+validate_render_effects13, validate_render_effects14, validate_render_effects15, validate_render_effects16,
+validate_app_polish1, validate_app_polish2, validate_app_polish4, validate_fidelity (ran at `9e234371`, no mutants),
+validate_renderchar (ran at `a4cf11bd`, no mutants). After `d45932fc` the compiled inputs of the two mutant rows
+are unchanged (the merge brought only `validators.toml`; `validate_renderchar`'s change is a world class only
+`compare_cases` uses). Mutants: none needed beyond those two rows. Env as under Checks.
 
 Cleanup removes `mu-mac-tools/native/scratch/render-items-002r/` and the build directories. The crops in
 `renders/render-items-002r/` are the only kept artifacts (small). The worktree stays until the steward merges.
