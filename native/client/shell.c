@@ -714,6 +714,7 @@ static int open_world(mu_shell *s)
     c.has_items = 1;
     for (int i = 0; i < MU_CHARACTER_ITEMS; ++i)
         c.items[i] = entry ? entry->items[i] : NULL;
+    c.item_records = entry ? entry->records : NULL;   /* APP-POLISH-008: the session's equipment records */
     /* APP-POLISH-005: the session's skills file and the slot's join stats go to the fixture server */
     c.skill_demo = s->session.skills_path[0] ? s->session.skills_path : NULL;
     const mu_offline_hero *hero = mu_offline_session_hero(&s->session, s->hero_slot);

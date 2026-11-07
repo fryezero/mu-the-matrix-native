@@ -35,7 +35,9 @@ static void hero_item_draw(mu_world_rt *a, int index, const mu_draw_options *opt
     if (index >= MU_CHARACTER_PART_SLOTS)   /* RenderLinkItem: the weapon's / wing's own pose (RENDER-ITEMS-CALLERS-001) */
         world_rt_item_pre(a, &env, MU_WORLD_PRE_HERO, glow.type, &item->model, item->bones);
     mu_draw_stats ds = {0};
-    mu_renderchar_draw_item(&item->model, &glow, &env, a->ch.params.light, 1.0f, options, backend, &ds, NULL);
+    mu_renderchar_stats rs = {0};   /* APP-POLISH-008: the passes the slot's level / option add */
+    mu_renderchar_draw_item(&item->model, &glow, &env, a->ch.params.light, 1.0f, options, backend, &ds, &rs);
+    a->hero_passes[index] += rs.passes;
     if ((index >= MU_CHARACTER_PART_SLOTS || glow.type == 0x389c || glow.type == 0x389d) && a->has_particles)
         mu_renderchar_link_effects(&item->model,
             index < MU_CHARACTER_PART_SLOTS ? a->ch.player_bones : item->bones, glow.type, &a->particles);
