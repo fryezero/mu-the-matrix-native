@@ -6,6 +6,8 @@ choice, which shares SetAction `0x012affa4`. The slot census goes from 142/144 t
 - Claude Opus 5.5 lane. Worktree `~/Documents/MTM/worktrees/render-worlds-121`, branch `claude/render-worlds-121`,
   from origin/main `ce0ebd71` (#324 RENDER-WORLDS-FOG included).
 - Input links `tools/python`, `evidence` and `input` point at the main checkout and are never committed.
+- Merged origin/main `6eaf3f2b` (#325 RENDER-ITEMS-002R: renderchar and native/core item code; docs and toml kept both
+  sides) as `202217e4`. The 22 of my rows whose compiled inputs it changed passed again there (below).
 - Finding: [client-worlds-121.md](../research/client-worlds-121.md). Read it for the addresses, the per-type table
   and the limits.
 
@@ -66,6 +68,7 @@ lanes active. Env as below.
 | The first mutant run (at `fc631914`) | 28/31: three action/roll mutants never hit by the random cases. The focused family `actions_121` was added (window-edge frames, seeds whose first `rand()` lands on the compared residues), then the second run above | 176 s |
 | `validate_worlds_slots3` with mutants (once, at `fc631914`; its compiled inputs are unchanged since) | 36 families × 1,000 = 36,000 cases, 0 mismatches/stops; `rng_2` now compares 0x67 whole (104 cases draw the choice); 22/22 mutants (lowest 44) | 141 s |
 | `run_validators.py --private --no-mutants --cache --affected origin/main --jobs 2` (63 rows, at `fc631914`) | 63/63 pass, 1,040,924 cases, 0 mismatches. Brief 8b's native reach is included: meshdraw, model_edge/light, terrain(_remaining), viewport_monsters, movement, path, session_party, audio_*, icarus/icarus_c2, worlds_fog, render_effects16/17, app_polish1/4 | 862 s |
+| After merging main (`202217e4`), the 22 rows whose compiled inputs the merge changed (`--list-affected-since 97e47edf`: fidelity, meshdraw, model_edge, model_light, movement, path, terrain, viewport_monsters, terrain_remaining, icarus_c2, worlds_f, audio_callers/combat/domains/items/charsel, session_party, app_polish1/4, render_effects16/17, worlds_fog), no mutants | 22/22 pass, 680,269 cases, 0 mismatches; `make -j4` and the 121 tests pass again | 438 s |
 | `validate_icarus_c2`, `validate_audio_callers` again at `c7eabfbe` (flagged by `--list-affected-since fc631914` through the new unit test file only) | 2/2 pass | 23 s |
 | `run_test_suites.py --affected origin/main` (`MU_RECOVERY_INTEGRATION=0`, `MU_GATE_JOBS=2`) | 8 suites, 1,456 tests, 1,239 passed, 217 skipped, 0 failures | 422 s |
 | Private modules (`MU_RECOVERY_INTEGRATION=1`): test_worlds_121, test_worlds_slots, test_worlds_slots2, test_worlds_after2 (6b), native test_native_worlds_121, test_validators_manifest | 50 tests OK | 178 s |
@@ -89,7 +92,7 @@ lanes active. Env as below.
 Steward validators: validate_worlds_121 (mutants: yes, new; done once at `c7eabfbe`), validate_worlds_slots3 (mutants:
 done once at `fc631914`), and without mutants the 63 rows of `--affected origin/main` (ran at `fc631914`; `c7eabfbe`
 changes only `validate_worlds_121.py`, its unit test and its toml row, and the two rows that `--list-affected-since`
-flags through the test file passed again at `c7eabfbe`).
+flags through the test file passed again at `c7eabfbe`); after merging main, 22 of them again at `202217e4`.
 
 Env:
 - `MU_RECOVERY_INTEGRATION=1`;
