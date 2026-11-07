@@ -19,6 +19,7 @@
 #endif
 #include "world_rt_internal.h"
 #include "world_item_pre.h"
+#include "world_cloak.h"
 #include "../../reconstructed/environment/env_fog.h"
 #include "../../reconstructed/hero-equipment/hero_equipment.h"
 
@@ -186,6 +187,7 @@ void world_rt_unload(mu_world_rt *a)
     for (int i = MU_PART_COUNT - 1; i >= 0; --i)
         if (ROWS[i].ops->close)
             ROWS[i].ops->close(a, a->part[i]);
+    world_cloak_reset(a);   /* RENDER-ITEMS-CLOAK: the OBJECTs go with their cloths */
     mu_walk_free(&a->walk);
     if (a->has_character)
         mu_character_free(&a->ch);
@@ -505,6 +507,7 @@ static void free_runtime(mu_world_rt *a)
     for (int i = 0; i < MU_PART_COUNT; ++i)
         free(a->part[i]);
     mu_lang_free(a->lang);
+    world_cloak_free(a);
     free(a);
 }
 
@@ -668,6 +671,7 @@ mu_world_frame_info mu_world_rt_frame(mu_world_rt *a, uint32_t now)
     int i;
     EACH(COL_FRAME, i)
         ROWS[i].ops->frame(a, a->part[i], now);
+    world_cloak_frame(a);   /* RENDER-ITEMS-CLOAK: the wind walk of this frame's logic steps */
     info.steps = steps;
     info.world = a->world;
     return info;
@@ -752,6 +756,7 @@ void mu_world_rt_gl_teardown(mu_world_rt *a)
     for (int i = 0; i < MU_PART_COUNT; ++i)
         if (ROWS[i].ops->gl_teardown)
             ROWS[i].ops->gl_teardown(a, a->part[i]);
+    world_cloak_gl_teardown(a);
     for (int i = 0; i < a->fx_count; ++i)
         glDeleteTextures(1, &a->fx_names[i]);
     a->fx_count = 0;
@@ -1129,6 +1134,12 @@ void world_rt_report_summary(const mu_world_rt *a, const char *renderer)
                " \"auto_segments\": %u, \"auto_searches\": %u, \"auto_flag\": %d, \"tile\": [%d, %d]}\n", a->boots,
                w->hero.run, (double)w->top_speed, w->auto_moves, w->auto_segments, w->auto_searches,
                w->auto_path.flag, w->hero.tile[0], w->hero.tile[1]);
+    if (a->cloak) {   /* RENDER-ITEMS-CLOAK: the wing cloths (only once a cloth wing was drawn) */
+        world_cloak_stats cs;
+        world_cloak_stats_get(a, &cs);
+        printf("{\"cloak\": true, \"created\": %u, \"steps\": %u, \"drawn\": %u, \"gated\": %u, \"wind_steps\": %u,"
+               " \"wind\": %.6f}\n", cs.created, cs.steps, cs.drawn, cs.gated, cs.wind_steps, (double)cs.wind);
+    }
     int i;
     EACH(COL_REPORT, i)
         if (ROWS[i].ops->report_summary)
