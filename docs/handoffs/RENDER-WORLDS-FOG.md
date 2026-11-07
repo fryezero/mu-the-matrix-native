@@ -33,20 +33,26 @@ state.
 
 ### Checks (final code)
 
-Validators at `2190f6d1` (the head's compiled inputs are the same; later commits are docs only).
+Validators: the 36 selected rows first at `2190f6d1`; after merging origin/main `b18b6b45` (#321/#322, which changed
+`mu_raster.c` and the native build) every row `--list-affected-since 2190f6d1` named was rerun at `d27c5ee1` (final
+code; later commits are docs only), with the two rows the merge added (`validate_render_effects17` with its mutants,
+since its raster mutants anchor in the file this lane changed, and `validate_scene_clear`).
 
 | Check | Result | Wall |
 |---|---|---|
 | `validate_worlds_fog` (mutants) | 4 families: begin 2,000 (309 StartFog, 1,077 glDisable, 614 no call), end 2,000 (279 EndFog), placement 40, sites 4 = 4,044 cases, 0 mismatches/stops; 23/23 mutants detected (fewest 2: "Fog ends after the names"), none stopped, every anchor matched once | 54.5 s |
 | `run_validators.py --private --no-mutants --cache --affected origin/main --jobs 2` | 36 rows selected: 35 pass, 0 fail; `validate_path` skipped for its input `MU_PATH_DIRECTIONS`, rerun with it: pass | 553 s + 25.8 s |
+| after the merge, at `d27c5ee1`: the 32 rows `--list-affected-since 2190f6d1` names (no mutants) | 32 pass, 0 fail, 0 skip | 453 s |
+| after the merge: `validate_render_effects17` (mutants), `validate_worlds_fog` + `validate_scene_clear` (no mutants) | 618 cases, 0 mismatches, 20/20 mutants; pass; pass | 36.6 s; 4.2 s |
 | `run_test_suites.py --affected origin/main` (`MU_RECOVERY_INTEGRATION=0`, 2 jobs) | 8 suites, 1,456 tests, 1,235 passed, 221 skipped, 0 failures | 328.6 s (425 s total) |
 | `test_env_fog` + `test_world_parts`, `MU_RECOVERY_INTEGRATION=1` | 20 tests OK (the private comparison at 300 cases included) | 18.8 s |
 | `audit_repository.py` | 0 rejected | 19 s |
-| `make -j4` | pass | 40 s |
+| `make -j4` | pass (after the merge: 11 s) | 40 s |
 
-Validator selection: `run_validators.py --list-affected origin/main` selects 36 rows (`mu_raster.c/h`, `world_rt.c`,
+Validator selection: `run_validators.py --list-affected origin/main` selects 36 rows (38 after the merge, which added
+`validate_render_effects17` and `validate_scene_clear`) (`mu_raster.c/h`, `world_rt.c`,
 `gl_backend.c`, the native Makefile, `reconstructed/environment/`); all were run without mutants, as selected.
-Mutants only for the new row `validate_worlds_fog`. Unit selection `run_test_suites.py --affected origin/main`; brief
+Mutants only for the new row `validate_worlds_fog` and for `validate_render_effects17` (raster mutants). Unit selection `run_test_suites.py --affected origin/main`; brief
 6b: the changed symbols (`mu_raster` fields, `mu_env_scene_fog_*`, gl_backend's prepare) have no other consumer in
 tests beyond what that selection compiles; the private modules `test_env_fog` and `test_world_parts` ran with
 `MU_RECOVERY_INTEGRATION=1`. No slot count changed.
@@ -72,7 +78,6 @@ tests beyond what that selection compiles; the private modules `test_env_fog` an
 2. **Devias 0x67's action choice** (the same SetAction around a rand; `reconstructed/particles/visual.c`).
 3. A live capture inside world 0x1e's box would give the fogged frame a reference (and settle the original driver's
    eye distance, `|z_eye|` assumed).
-4. RENDER-EFFECTS-017's finding lists the box fog as still open; #322 was not on main when this lane branched.
 
 Env for the validators:
 - `MU_RECOVERY_INTEGRATION=1`;
