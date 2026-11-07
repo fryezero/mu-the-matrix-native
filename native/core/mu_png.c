@@ -65,7 +65,7 @@ static int chunk(FILE *file, const char *type, const uint8_t *data, uint32_t siz
            fwrite(trailer, 1, 4, file) == 4;
 }
 
-int mu_png_write(const char *path, const uint8_t *rgba, int32_t width, int32_t height)
+static int png_write(const char *path, const uint8_t *rgba, int32_t width, int32_t height, int opaque)
 {
     if (width <= 0 || height <= 0)
         return 1;
@@ -90,6 +90,8 @@ int mu_png_write(const char *path, const uint8_t *rgba, int32_t width, int32_t h
         z[o++] = (uint8_t)~n; z[o++] = (uint8_t)(~n >> 8);
         for (size_t k = 0; k < n; ++k) {
             uint8_t value = x == 0 ? 0 : rgba[y * (size_t)width * 4 + (x - 1)];
+            if (opaque && x != 0 && (x - 1) % 4 == 3)
+                value = 0xff;
             z[o++] = value;
             a = (a + value) % 65521u;
             b = (b + a) % 65521u;
@@ -176,4 +178,14 @@ void mu_sha256_hex(const uint8_t *data, uint64_t size, char out[65])
             out[8 * i + 2 * k + 1] = hex[byte & 15];
         }
     out[64] = 0;
+}
+
+int mu_png_write(const char *path, const uint8_t *rgba, int32_t width, int32_t height)
+{
+    return png_write(path, rgba, width, height, 0);
+}
+
+int mu_png_write_opaque(const char *path, const uint8_t *rgba, int32_t width, int32_t height)
+{
+    return png_write(path, rgba, width, height, 1);
 }
