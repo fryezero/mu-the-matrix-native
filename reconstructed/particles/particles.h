@@ -157,7 +157,9 @@ typedef struct mu_pt_host {
  *   RENDER-EFFECTS-003: Spark02/2, explosion 0x7f54/0, flare01 0x7ef7/0,
  *   smoke01 subtypes 4, 6, 7 and 8; RENDER-WORLDS-L: WATERFALL3/16,
  *   firehik_mono01/2, mono02/6, mono03/2, WATERFALL5/0, WATERFALL3/8, WATERFALL2/4;
- *   RENDER-EFFECTS-016: Fire06 0x7f40 1..3 (0x70c's stones). */
+ *   RENDER-EFFECTS-016: Fire06 0x7f40 1..3 (0x70c's stones);
+ *   RENDER-EFFECTS-017: 0x810a 7 and 0xf, Spark03 0x7f26 0x26 (the armour owner
+ *   effects of RENDER-ITEMS-002Q). */
 int mu_pt_kind_supported(int32_t type, int32_t subtype);
 
 /* The wrapper 0x0168fafd's drop rule (verified): in world 0x8b only, r =

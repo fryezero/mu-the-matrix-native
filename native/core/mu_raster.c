@@ -129,10 +129,21 @@ static void sample(const mu_raster *r, float s, float t, float out[4])
     float u = s * (float)w - 0.5f, v = t * (float)h - 0.5f;
     double fu = floor((double)u), fv = floor((double)v);
     float ax = (float)((double)u - fu), ay = (float)((double)v - fv);
-    long long x0 = (long long)fmod(fu, (double)w), y0 = (long long)fmod(fv, (double)h);
-    if (x0 < 0) x0 += w;
-    if (y0 < 0) y0 += h;
-    long long x1 = (x0 + 1) % w, y1 = (y0 + 1) % h;
+    long long x0, y0, x1, y1;
+    if (clamp) {
+        /* RENDER-EFFECTS-017: clamp to edge, as the GL parts draw GL_CLAMP bitmaps (GL_CLAMP_TO_EDGE): both taps
+         * stay inside [0, size - 1], so the outer half texel is the edge texel. The raster wrapped the second tap to
+         * the opposite edge there before. */
+        x0 = fu < 0.0 ? 0 : (fu >= w - 1 ? w - 1 : (long long)fu);
+        y0 = fv < 0.0 ? 0 : (fv >= h - 1 ? h - 1 : (long long)fv);
+        x1 = fu + 1.0 < 0.0 ? 0 : (fu + 1.0 >= w - 1 ? w - 1 : (long long)fu + 1);
+        y1 = fv + 1.0 < 0.0 ? 0 : (fv + 1.0 >= h - 1 ? h - 1 : (long long)fv + 1);
+    } else {
+        x0 = (long long)fmod(fu, (double)w), y0 = (long long)fmod(fv, (double)h);
+        if (x0 < 0) x0 += w;
+        if (y0 < 0) y0 += h;
+        x1 = (x0 + 1) % w, y1 = (y0 + 1) % h;
+    }
     const uint8_t *p00 = image->rgba + 4 * ((size_t)y0 * (size_t)w + (size_t)x0);
     const uint8_t *p10 = image->rgba + 4 * ((size_t)y0 * (size_t)w + (size_t)x1);
     const uint8_t *p01 = image->rgba + 4 * ((size_t)y1 * (size_t)w + (size_t)x0);
