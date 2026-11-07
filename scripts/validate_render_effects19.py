@@ -16,6 +16,17 @@ Map-object records (reconstructed/objects/map_effects.c, which the native map-ob
 * map_records (private, opt-in: --lang-dir naming a directory with mapeffects.tsv): every decoded table entry's
   bone and follow byte (758 entries, the 19 unfollowed among them), alone in its sector and in a list.
 
+World 145, Aquila's Temple (RENDER-WORLDS-KARUTAN, docs/research/client-worlds-karutan.md §4):
+
+* records_145: map_update's comparison for world 145's three unfollowed table records (types 85 and 87: bone 1;
+  type 146: bone 0; none follows), each on a pose of its model's bone count (2, 2, 1), alone in its sector and in a
+  list. The other 90 records of 145 follow posed bones (map_update's paths); none follows a bone below -1.
+* aquila_bone6: Aquila's visual slot 0x00d77b3e(object, model) with 0x0129fd4f(6) (0x00d77c16, 0x00d77c69), its bone
+  source 0x0129f12c and the sector predicate 0x012a0d29 as client code, on a map OBJECT in a synthetic sector list,
+  against the native composition: mu_map_effects_in_sector, mu_aquila_bone_matrix (map_effects.c), then aquila.c's
+  mu_aquila_visual. Compared: the answer and OBJECT +0x188..+0x194 (types 136..140 and 142 keep the matrix's [12],
+  [13]; the others write nothing). Each case also checks the refusal: no pose, or a pose without bone 6.
+
 Test Area 121's particle kinds (reconstructed/particles/test_area_kinds.inc):
 
 * ta_pt_create / ta_pt_move / ta_pt_render: 0x801e/7, 0x801c/9 and 0x801b/5 through validate_particles' families
@@ -29,6 +40,7 @@ from collections import defaultdict
 import ctypes as C
 import hashlib
 import json
+import math
 from pathlib import Path
 import random
 import struct
@@ -79,13 +91,17 @@ def build_map(folder, source_text=None):
     out = folder/('libmapeffects19.' + SUFFIX)
     subprocess.run(['clang', '-std=c11', '-O2', '-fPIC', '-shared', '-Wall', '-Wextra', '-Werror', '-Wconversion',
                     '-ffp-contract=off', '-fno-fast-math', '-I', str(source), str(unit), str(source/'muun_effects.c'),
-                    '-lm', '-o', str(out)], check=True, capture_output=True)
+                    str(source/'aquila.c'), '-lm', '-o', str(out)], check=True, capture_output=True)
     lib = C.CDLL(str(out))
     lib.mu_map_effects_in_sector.argtypes = [C.POINTER(ObjWorld), C.c_int32]
     lib.mu_map_effects_in_sector.restype = C.c_int
     lib.mu_map_effect_matrix.argtypes = [C.POINTER(C.c_uint32), C.c_char_p, C.c_int, C.c_void_p, C.c_int32,
                                          C.c_int32, C.c_int]
     lib.mu_map_effect_matrix.restype = C.c_int
+    lib.mu_aquila_bone_matrix.argtypes = [C.POINTER(C.c_uint32), C.c_char_p, C.c_int, C.c_void_p, C.c_int32]
+    lib.mu_aquila_bone_matrix.restype = C.c_int
+    lib.mu_aquila_visual.argtypes = [C.c_char_p, C.c_int, C.POINTER(C.c_uint32)]
+    lib.mu_aquila_visual.restype = C.c_int
     return lib
 
 
@@ -249,6 +265,79 @@ def family_map_records(lib, machine, rows, report):
             'unfollowed_worlds': sorted({r[0] for r in rows if not r[3]})}
 
 
+# ---------------------------------------------------------------- world 145 (RENDER-WORLDS-KARUTAN)
+RECORDS_145 = [(85, 1, 0, 2), (87, 1, 0, 2), (146, 0, 0, 1)]   # (type, bone, follow, the model's bone count)
+AQUILA_VISUAL, AQUILA_BONE_TYPES = 0x00d77b3e, (136, 137, 138, 139, 140, 142)
+
+
+def family_records_145(lib, machine, rng, cases, report):
+    for n in range(cases):
+        typ, bone, follow, bones = RECORDS_145[n % 3]
+        case = random_map_case(rng, (bone, follow), sector_state=(n // 3) % 2 == 1)
+        case['type'], case['pose_bones'] = typ, bones
+        case['records'][0]['bone'] = bone
+        compare_map(lib, machine, case, 'records_145', report, n)
+        report.cover('records_145', f'type {typ}')
+
+
+def random_aquila_case(rng):
+    case = random_map_case(rng, (6, 1), sector_state=rng.random() < 0.5)
+    case['type'] = rng.choice(list(AQUILA_BONE_TYPES) * 3 + [141, 90, 152, 0, rng.randrange(0, 300)])
+    case['point'] = [bits(f32(rng.uniform(-100.0, 100.0))) for _ in range(3)]
+    return case
+
+
+def run_client_aquila(machine, case):
+    obj = am.undefined_region('object', r18.OBJ, OBJ_SIZE + 0x10, 0x29)
+    obj.define(r18.OBJ + 0x5c, struct.pack('<i', case['type']))
+    obj.define(r18.OBJ + 0xa0, struct.pack('<I', case['scale']))
+    obj.define(r18.OBJ + 0x158, struct.pack('<6I', *case['position'], *case['angle']))
+    obj.define(r18.OBJ + 0x188, struct.pack('<3I', *case['point']))
+    obj.define(r18.OBJ + 0x318, struct.pack('<I', 0))
+    obj.define(r18.OBJ + 0x350, struct.pack('<II', *case['sector']))
+    shared = am.defined_region('shared', r18.SHARED_POSE, struct.pack(f"<{len(case['shared'])}f", *case['shared']),
+                               writable=False)
+    model = am.undefined_region('model', r18.MODEL, 0x40, 0x31)
+    handler = am.undefined_region('handler', r18.FAKE, 0x40, 0x35)
+    def trig(fn):   # the CRT sine/cosine leaves of the position/scale matrix 0x00cf2679, as validate_render_effects18
+        def leaf(m):
+            x = m.float_argument(0)
+            return m.x87_return(f32(fn(x)) if math.isfinite(x) else float('nan'))
+        return leaf
+    stubs = {r18.MODELS: lambda m: r18.FAKE, r18.GET_MODEL: lambda m: (r18.MODEL, 4),   # 0x0129f12c's model lookup
+             r18.SINE: trig(math.sin), r18.COSINE: trig(math.cos)}
+    return machine.execute(AQUILA_VISUAL, [r18.OBJ, r18.MODEL], [obj, shared, model, handler], stubs, ecx=r18.FAKE,
+                           cleanup=8)
+
+
+def family_aquila(lib, machine, rng, cases, report):
+    for n in range(cases):
+        case = random_aquila_case(rng)
+        r = run_client_aquila(machine, case)
+        w, keep = c_world(case['list'])
+        obj = case['list']['members'][case['list']['at']]
+        in_sector = lib.mu_map_effects_in_sector(C.byref(w), obj)
+        shared = (C.c_float * len(case['shared']))(*case['shared'])
+        pose = C.cast(shared, C.c_void_p).value
+        img = bytearray(image(case))
+        struct.pack_into('<3I', img, 0x188, *case['point'])
+        buf = C.create_string_buffer(bytes(img), OBJ_SIZE)
+        m16 = (C.c_uint32 * 16)()
+        status = lib.mu_aquila_bone_matrix(m16, buf.raw, in_sector, pose, case['pose_bones'])
+        answer = lib.mu_aquila_visual(buf, 1, m16 if status == OK else None)
+        refused = [lib.mu_aquila_bone_matrix(m16, buf.raw, in_sector, p, k) for p, k in ((None, case['pose_bones']),
+                                                                                       (pose, 6))]
+        ok = r['ok'] and status == OK and refused == [UNPOSED, UNPOSED] and \
+            (r.get('eax', 0) & 0xff) == answer and r['regions']['object'][0x188:0x194] == buf.raw[0x188:0x194]
+        report.add('aquila_bone6', ok, None if ok else {
+            'case': n, 'type': case['type'], 'stopped': str(r.get('stopped')), 'error': str(r.get('error')),
+            'client': r['regions']['object'][0x188:0x194].hex() if r['ok'] else None,
+            'native': buf.raw[0x188:0x194].hex(), 'status': status, 'refused': refused,
+            'answer': [r.get('eax', 0) & 0xff, answer]})
+        report.cover('aquila_bone6', ('bone type ' if case['type'] in AQUILA_BONE_TYPES else 'other type ') +
+                     ('sector' if any(case['sector']) else 'alone'))
+
+
 # ---------------------------------------------------------------- Test Area's particle kinds
 def random_ta_particle(rng, kind):
     p = r11._random_particle(rng, kind)   # validate_particles' record
@@ -284,7 +373,13 @@ MAP_MUTANTS = [
     ('follow_byte', '(uint8_t)(follow != 0)', '(uint8_t)(follow == 1)'),
     ('in_sector_forced', 'o.in_sector = in_sector;', 'o.in_sector = in_sector + 1;'),
     ('undefined_status', '? MU_MAP_EFFECT_OK : MU_MAP_EFFECT_UNDEFINED', '? MU_MAP_EFFECT_OK : MU_MAP_EFFECT_UNPOSED'),
+    # RENDER-WORLDS-KARUTAN: Aquila's 0x0129fd4f(6)
+    ('aquila_bone_5', 'pose_bones, 6, 1);', 'pose_bones, 5, 1);'),
+    ('aquila_unfollowed', 'pose_bones, 6, 1);', 'pose_bones, 6, 0);'),
+    ('aquila_in_sector_kept', 'return mu_map_effect_matrix(out, object, in_sector, pose, pose_bones, 6, 1);',
+     'return mu_map_effect_matrix(out, object, 1, pose, pose_bones, 6, 1);'),
 ]
+AQUILA_MUTANTS = {'aquila_bone_5', 'aquila_unfollowed', 'aquila_in_sector_kept'}
 PT_MUTANTS = [
     # (name, old, new, family, kind)
     ('tex_pick', '% 2 == 0 ? 0x801d : 0x801e', '% 2 == 0 ? 0x801e : 0x801d', 'create', (0x801e, 7)),
@@ -325,6 +420,8 @@ def run(cases, mutations, lang_dir=None):
     with tempfile.TemporaryDirectory(prefix='render-effects19-') as tmp:
         lib = build_map(tmp)
         family_map(lib, machine, random.Random('render-effects-019-map'), cases * 4, report)
+        family_records_145(lib, machine, random.Random('render-worlds-karutan-145'), cases * 3, report)
+        family_aquila(lib, machine, random.Random('render-worlds-karutan-aquila'), cases * 4, report)
         if lang_dir and (Path(lang_dir)/'mapeffects.tsv').is_file():
             result['records'] = family_map_records(lib, machine, load_map_records(lang_dir), report)
     result['families'].update(report.families)
@@ -345,8 +442,12 @@ def run(cases, mutations, lang_dir=None):
                 folder.mkdir()
                 mlib = build_map(folder, source.replace(old, new))
                 rep = Report()
-                family_map(mlib, machine, random.Random('render-effects-019-map'), max(40, cases * 4), rep)
-                f = rep.families['map_update']
+                if name in AQUILA_MUTANTS:
+                    family_aquila(mlib, machine, random.Random('render-worlds-karutan-aquila'), max(40, cases * 4), rep)
+                    f = rep.families['aquila_bone6']
+                else:
+                    family_map(mlib, machine, random.Random('render-effects-019-map'), max(40, cases * 4), rep)
+                    f = rep.families['map_update']
                 result['mutants'][name] = {'cases': f['cases'], 'caught': f['cases'] - f['equal']}
             for name, old, new, family, kind in PT_MUTANTS:
                 mlib = r11.compile_pt_mutant(tmp, name, 'test_area_kinds.inc', old, new)

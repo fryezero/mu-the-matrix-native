@@ -26,6 +26,7 @@
 #include "../../reconstructed/objects/worlds_p2.h"
 #include "../../reconstructed/objects/worlds_r2.h"
 #include "../../reconstructed/objects/worlds_s.h"
+#include "../../reconstructed/objects/map_effects.h"
 #include "../../reconstructed/objects/worlds_s2.h"
 #include "../../reconstructed/objects/worlds_s3.h"
 #include "../../reconstructed/joints/joints.h"
@@ -1290,18 +1291,13 @@ static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_obje
     else if (o->world >= 142 && o->world <= 144)
         return;
     else if (o->world == 145 && m && m->loaded) {   /* RENDER-WORLDS-S slot 0x34 */
-        /* 0x0129fd4f(6): bone 6 of the shared pose transposed to a column-major 4x4. Map objects in a sector skip
-         * the object position/scale product (+0x350/+0x354 set), and the native pose already holds both. */
-        const int bones_ready = posed && m->bmd.bone_count > 6;
+        /* 0x0129fd4f(6): bone 6 of the shared pose transposed to a column-major 4x4 (the native pose already holds the
+         * body origin and scale); RENDER-WORLDS-KARUTAN: placed by the position/scale product when the object is alone
+         * in its sector (0x012a0d29), as map-object records are (RENDER-EFFECTS-019) */
         float bone6[16];
-        if (bones_ready) {
-            const float *b = mu_model_bone_matrices(&m->model) + 12 * 6;
-            for (int r = 0; r < 3; ++r)
-                for (int col = 0; col < 4; ++col)
-                    bone6[4 * col + r] = b[4 * r + col];
-            bone6[3] = bone6[7] = bone6[11] = 0.0f;
-            bone6[15] = 1.0f;
-        }
+        const int bones_ready =
+            posed && mu_aquila_bone_matrix(bone6, img, mu_map_effects_in_sector(&o->rt.world, i),
+                                           mu_model_bone_matrices(&m->model), m->bmd.bone_count) == MU_MAP_EFFECT_OK;
         if (mu_aquila_bone_type(mu_obj_i32(img, MU_OBJF_TYPE)) && !bones_ready) ++o->rt.draw_unsupported;
         mu_aquila_visual(img, 1, bones_ready ? bone6 : NULL);
     }

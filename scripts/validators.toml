@@ -3185,9 +3185,9 @@ all_mutants_caught = true
 [validate_render_effects19]
 test = "native/tests/test_render_effects19.py::ClientComparison.test_original_instructions_and_compiled_mutants"
 pins = ["text", "data"]
-families = ["map_update", "ta_pt_create", "ta_pt_move", "ta_pt_render"]
-cases = 260
-mutants = 25
+families = ["map_update", "records_145", "aquila_bone6", "ta_pt_create", "ta_pt_move", "ta_pt_render"]
+cases = 400
+mutants = 28
 cases_at = "families.*.cases"
 mutants_at = "mutants"
 build = ["reconstructed/objects", "reconstructed/particles"]
