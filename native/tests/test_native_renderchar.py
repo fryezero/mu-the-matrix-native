@@ -278,6 +278,22 @@ class WorldRender(unittest.TestCase):
         self.assertEqual((mace['special'],mace['pre_effects']),(0,0))
         self.assertGreater(mace['pre_refused'],0)
 
+    def test_frame_counter_option(self):
+        """RENDER-ITEMS-002U: with the rendered-frame counter supplied (mu-render --frame-counter, as the world
+        runtime's own counter), mace 0x0f20's requests behind its counter tests run only on the frames the client
+        runs them: two particles 0x855d/1 when counter % 3 == 0, one 0x84d1/1 when counter % 5 == 0. Without a
+        counter every request after the first test is refused (20). The particle pool has neither kind and the
+        synthetic skeleton lacks the named bones, so what runs is still refused, but no longer for the counter."""
+        path=self.tmp/'counter-fx.bmd'
+        path.write_bytes(nf.character_layout(115,bones=12,meshes=2))
+        base,_=self.render('--weapon','0',path,'--item-type','weapon0=0xf20','--world-time','0')
+        self.assertEqual((base['pre_effects'],base['pre_refused']),(0,20))
+        for frame in (0,1,2,3,5,6,10,15,0xffffffff):
+            r,_=self.render('--weapon','0',path,'--item-type','weapon0=0xf20','--world-time','0',
+                            '--frame-counter',str(frame))
+            expect=17+2*(frame%3==0)+(frame%5==0)
+            self.assertEqual((r['special'],r['pre_effects'],r['pre_refused']),(0,0,expect),frame)
+
     def test_ranked_body_and_nine_bone_shield_use_shared_draws(self):
         path = self.tmp/'ranked-armour.bmd'
         path.write_bytes(nf.character_layout(113,bones=50,meshes=6,dummies=(9,21)))

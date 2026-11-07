@@ -126,6 +126,7 @@ struct mu_world_rt {
      * created, [1] refused; hidden = draws of a program type whose TestFrustrum2D flag was clear. */
     long item_pre[MU_WORLD_PRE_CALLERS][2];
     long item_pre_hidden[MU_WORLD_PRE_CALLERS];
+    uint32_t rendered_frames;   /* RENDER-ITEMS-002U: [0x0bdc5ebc], ++ once per rendered frame after the logic steps */
     /* NATIVE-HELPERS-001 */
     const char *helper_arg;
     int32_t helper_state;
