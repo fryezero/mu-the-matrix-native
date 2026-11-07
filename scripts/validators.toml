@@ -3021,6 +3021,22 @@ all_equal = true
 all_mutants_caught = true
 "mutants.*.stopped" = 0
 
+[validate_worlds_fog]
+test = "reconstructed/environment/test_env_fog.py::EnvFogTests.test_original_instructions"
+pins = ["text", "data"]
+families = ["begin", "end", "placement", "sites"]
+cases = 4044
+mutants = 23
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = []
+args = ["--cases", "2000", "--mutations", "--output", "{report}"]
+[validate_worlds_fog.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0
+
 [validate_render_effects17]
 test = "native/tests/test_render_effects17.py::ClientComparison.test_original_instructions_and_compiled_mutants"
 pins = ["text", "data", "section3"]
