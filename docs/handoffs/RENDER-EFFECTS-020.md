@@ -121,7 +121,9 @@ export MU_VALIDATOR_CACHE="$HOME/Documents/MTM/mu-mac-tools/native/cache/validat
 | `run_test_suites.py --affected origin/main` (`MU_RECOVERY_INTEGRATION=0`, 2 jobs) | 9 suites, 1,543 tests, 1,303 passed, 240 skipped, 0 failures | 314.0 s (+77 s selection) |
 | Private modules from the root: `test_render_effects20` (new), `test_native_world_predraw`, `test_native_particles`, `test_native_hero_items`, `test_native_players`, `test_native_items`, `test_native_joints`, `test_native_renderchar`, `test_render_effects17`, `test_render_effects16` | 67 tests OK, 0 skipped | 245.9 s |
 | `tests.test_validators_manifest` | 17 tests OK | 0.6 s |
-| `scripts/audit_repository.py` | see the PR | |
+| After the `0c3c2777` merge (#337 brought `native/core/mu_objects_*.c`, `reconstructed/objects`): `--affected-since 59415e20`, no mutants, at `23f9ea60` | **59/59 pass**, 1,007,750 cases (terrain 405 s, the worlds/after/slots rows, render_effects16..19, item_callers, worlds_raklion, ...) | 834.1 s |
+| After the merge: `test_render_effects20`, `test_native_world_predraw`, `test_native_particles` | 14 tests OK | 20.9 s |
+| `scripts/audit_repository.py` | 2,068 staged files, 0 rejected | 23.2 s |
 
 Rows at `59415e20` (cases / s): worlds_slots3 36,000 / 39.8, worlds_slots2 33,000 / 37.2, worlds_after2 32,216 /
 33.2, worlds_slots 18,999 / 21.3, meshdraw 14,619 / 75.8, worlds_after 13,424 / 16.8, app_polish4 10,485 / 35.3,
@@ -175,7 +177,7 @@ move17_shrink 92, move17_fade 89, render_alpha 69.
 
 ## Release
 
-See the PR body for "Steward validators" (the run commits) and the env above. Cleanup removes
+Steward validators: the 48 rows of `--affected origin/main` (ran at `59415e20`, no mutants; `validate_render_effects20` with mutants once there) plus `validate_renderchar` (6b), and the 59 rows of `--affected-since 59415e20` after the #337 merge (ran at `23f9ea60`); the PR body lists them. Mutants needed again: none. Env as above. Cleanup removes
 `mu-mac-tools/native/scratch/render-effects-020/` (scenes, tours, census tool), the base worktree and the build
 directories; the crop is the only kept artifact. The worktree stays until the steward merges. No new input needs to
 be kept.
