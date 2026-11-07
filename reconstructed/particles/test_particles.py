@@ -376,7 +376,10 @@ class ParticleTests(unittest.TestCase):
                v.VPARTICLE_FN(particle), v.VSPRITE_FN(sprite), v.VJOINT_FN(joint),
                v.VEFFECT_FN(lambda *a: calls.append(('effect',))))
         o = v.VisualObject(3, typ, v.F3(0, 0, 0), v.F3(0, 0, 0), v.F3(0.5, 0.5, 0.5), 1.5, 0.0, 0.0)
-        handled = self.lib.mu_pt_object_visual(ctypes.byref(o), ctypes.byref(v.VisualHost(None, *fns, world, 2500.0)))
+        # RENDER-WORLDS-SLOTS3: the caller draws 0x017f9797's rand() for an object with a model; the visual reads it
+        outer = rand(None) if has_model else 0
+        host = v.VisualHost(None, *fns, world, 2500.0, v.BONE_INDEX_FN(), outer)
+        handled = self.lib.mu_pt_object_visual(ctypes.byref(o), ctypes.byref(host))
         return handled, calls, o, state['n']
 
     def test_lorencia_waterspout_and_merchant(self):

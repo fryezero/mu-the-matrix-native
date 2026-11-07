@@ -1120,11 +1120,10 @@ static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_obje
     visual_context c = {o, m};
     mu_obj_event events[64];
     mu_obj_log log = {0, 64, 0, events};
-    /* RENDER-WORLDS-SLOTS2: 0x017f9758 draws rand % 30 (0x017f9797) for every object whose model it finds, before
-     * the world switch reaches the class slot 0x34 through its default branch (every class world, login and
-     * character scene included). */
+    /* RENDER-WORLDS-SLOTS2/3: 0x017f9758 draws rand % 30 (0x017f9797) for every object whose model it finds, before
+     * its world switch (every world; 4/7/8: mu_builtin_visual's first draw). The particle hook reads the value. */
     if (mu_obj_visual_flicker(o->world, has_model))
-        (void)visual_rand(&c);
+        o->rt.visual_outer_rand = visual_rand(&c);
     if (o->world == 4 || o->world == 7 || o->world == 8)
         mu_builtin_visual(img, i, o->world, m && m->loaded, world_time, visual_rand,
                           posed ? builtin_bone : NULL, &c, &log);
@@ -1297,8 +1296,8 @@ static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_obje
     consume_visual(o, &log);
 }
 
-/* Scoped per-world RenderObjectVisual hooks. The initial flicker rand in
- * 0x017f9758 is consumed before its world dispatch, even when the hook has no flame. */
+/* Scoped per-world RenderObjectVisual hooks. The initial flicker rand in 0x017f9758 is drawn before its world
+ * dispatch by the caller (mu_obj_visual_flicker, RENDER-WORLDS-SLOTS3), even when the hook has no flame. */
 static int world_flames(mu_objects *o, int32_t i, uint8_t *img, const mu_object_model *m, float time, int posed)
 {
     if (!m || !m->loaded)
@@ -1308,7 +1307,6 @@ static int world_flames(mu_objects *o, int32_t i, uint8_t *img, const mu_object_
     visual_context c = {o, m};
     mu_obj_event events[64];
     mu_obj_log log = {0, 64, 0, events};
-    (void)visual_rand(&c);
     const int status = mu_kanturu_flames(img, i, o->world, time, visual_rand,
                                          posed ? visual_bone : NULL, &c, &log);
     consume_visual(o, &log);
@@ -1408,11 +1406,12 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
     } else {
         if (!rt->visual)
             mu_obj_visual(img, o->world, in.light.time);   /* RenderObjectVisual follows RenderObject */
-        /* RENDER-WORLDS-SLOTS2: the class worlds whose slot 0x34 answers no (113, 115..120 0x00d5cc9b, 138, 139)
-         * still take 0x017f9758's outer draw */
+        /* RENDER-WORLDS-SLOTS2/3: 0x017f9758's outer draw, before the world switch, for every object with a model
+         * (the class worlds without a class visual here, and every world without a class: the Kanturu flames,
+         * the particle visual (Lorencia, Dungeon, Devias, Noria, Icarus, Tormenta) and the hooks after it) */
         visual_context flicker = {o, m};
         if (mu_obj_visual_flicker(o->world, m && m->loaded))
-            (void)visual_rand(&flicker);
+            rt->visual_outer_rand = visual_rand(&flicker);
     }
     /* NATIVE-PARTICLE-001: RenderObjectVisual through the particle module, after RenderObject */
     int flame = 0;

@@ -1500,7 +1500,7 @@ static void v_effect(void *c, int32_t type, const float position[3], const float
 }
 
 int mu_world_particles_object_visual(mu_world_particles *p, mu_pt_visual_object *object, int has_model,
-                                     const mu_model *model, const mu_bmd *bmd)
+                                     const mu_model *model, const mu_bmd *bmd, int32_t outer_rand)
 {
     visual_context v = {p, has_model, model, bmd};
     mu_pt_visual_host h;
@@ -1516,6 +1516,7 @@ int mu_world_particles_object_visual(mu_world_particles *p, mu_pt_visual_object 
     h.bone_index_position = v_bone_index;
     h.world = p->world;
     h.world_time = p->world_time;
+    h.outer_rand = outer_rand;
     const int handled = mu_pt_object_visual(object, &h);
     if (handled)
         p->stats.visuals++;
@@ -1755,7 +1756,7 @@ static void o_ein_update(void *c, int32_t object, const uint8_t *img, const floa
 static void icarus_cover(mu_world_particles *p, mu_objects *o, int32_t index)
 {
     mu_obj_event events[20]; mu_obj_log log = {0, 20, 0, events};
-    (void)mu_world_particles_rand(p); /* RenderObjectVisual's common brightness. */
+    /* RenderObjectVisual's outer draw (0x017f9797) is the object runtime's (RENDER-WORLDS-SLOTS3) */
     mu_icarus_cover(mu_objects_object_image(o, index), index, &log);
     for (int i = 0; i < log.count; ++i) {
         const mu_obj_event *e = &events[i];
@@ -1788,7 +1789,8 @@ static void o_visual(void *c, struct mu_objects *o, int32_t index, int has_model
     v.blend_v = mu_obj_f32(img, MU_OBJF_BLEND_V);
     if (p->map)
         p->world_time = p->map->time;   /* 0x06fce370 */
-    if (!mu_world_particles_object_visual(p, &v, has_model, m ? &m->model : NULL, m ? &m->bmd : NULL)) {
+    if (!mu_world_particles_object_visual(p, &v, has_model, m ? &m->model : NULL, m ? &m->bmd : NULL,
+                                          o->rt.visual_outer_rand)) {
         mu_obj_visual(img, o->world, p->world_time);   /* other worlds: the reconstructed scroll part */
         return;
     }

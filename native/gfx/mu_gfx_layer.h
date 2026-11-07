@@ -252,6 +252,9 @@ const mu_gfx_hero *mu_gfx_layer_hero(const mu_gfx_layer *layer);
  * returns its index or -1 when it does not fit. */
 int mu_gfx_layer_add_item(mu_gfx_layer *layer, int32_t code, int32_t level, int32_t width, int32_t height,
                           const char *name);
+/* APP-POLISH-006: an added item starts at durability 1 (the layer knows no Item.bmd). A host that does
+ * (world_gfx's demo inventory) sets the instance's durability, wire byte 2, here. Returns 1 when set. */
+int mu_gfx_layer_set_item_durability(mu_gfx_layer *layer, int index, int32_t durability);
 
 /* Input in window pixels.  mouse kind 0 move, 1 down, 2 up, 3 wheel (button =
  * lines); button 0 left, 1 right, 2 middle.  Returns 1 when the interface
