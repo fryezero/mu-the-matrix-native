@@ -95,6 +95,28 @@ class ItemPreDraw(unittest.TestCase):
         for t in (0x0ae6, 0x1bc3, 0x0f1e, 0x23a8, -1):
             self.assertEqual(self.lib.mu_rc_item_pre_fx(t), 0, hex(t))
 
+    def test_frame_counter_body_chains(self):
+        """RENDER-ITEMS-002U: bodies whose mesh u/v follow the rendered-frame counter (mu_rc_item.frame). Sword 0xb66:
+        v = ((counter + 1) % 60) as unsigned * 1/60 on its last mesh; 0x1109: a 4 x 4 atlas, (counter + 1) % 16;
+        mace 0x0f2a: f = (counter % 32) / 2, u = (f % 4) * 0.25, v = (f / 4) * 0.25 (unsigned divisions)."""
+        def uv(t, frame):
+            status, draws = self.draws(self.item(type=t, frame=frame))
+            self.assertEqual(status, 0, (hex(t), frame))
+            return [(d.u, d.v) for d in draws]
+        self.assertIn(0xb66, gen.FRAME_TYPES)
+        for frame in (0, 1, 58, 59, 0x7fffffff, 0x80000000, 0xffffffff):
+            n = ((frame + 1) & 0xffffffff) % 60
+            self.assertEqual(uv(0xb66, frame)[-1], (0.0, F32(float(n) * F32(1 / 60))), frame)
+            self.assertEqual(uv(0xb66, frame), uv(0xb66, frame + 60) if frame + 60 < 1 << 32 else uv(0xb66, frame))
+        for frame in (0, 1, 2, 3, 4, 14, 15, 59):
+            n = (frame + 1) % 16
+            self.assertEqual(uv(0x1109, frame)[5], (F32(n % 4 * 0.25), F32(n // 4 * 0.25)), frame)
+        for frame in (0, 1, 2, 9, 31, 32, 63, 0xffffffff):
+            f = frame % 32 // 2
+            self.assertEqual(uv(0x0f2a, frame)[-1], (F32(f % 4 * 0.25), F32(f // 4 * 0.25)), frame)
+        # an ordinary body does not read the counter
+        self.assertEqual(uv(0x0b27, 0), uv(0x0b27, 12345))
+
     def test_staff_sine_light_at_named_bone(self):
         """0x1311: s = sin(time * 0.001) * 0.5 + 0.5, l = s * 0.9 + 0.1; one bone sprite 0x7f7a at bone "a02",
         scale 0.3, light (0.35, 0.75, 1.5) * l; no rand. The draws equal the host-free stream."""

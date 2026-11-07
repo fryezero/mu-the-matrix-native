@@ -621,7 +621,7 @@ test = "reconstructed/joints/test_joints.py::ClientComparison.test_unicorn_compa
 pins = ["text", "data"]
 families = ["joint_create", "joint_move", "joint_render"]
 cases = 180
-mutants = 31
+mutants = 47
 cases_at = "families.*.cases"
 mutants_at = ["negative_controls", "mutants"]
 build = ["reconstructed/joints"]
@@ -2795,18 +2795,19 @@ args = ["--mutations", "--output", "{report}"]
 [validate_item_predraw]
 test = "reconstructed/renderchar/test_item_predraw.py::ItemPreDraw.test_original_instructions"
 pins = ["text", "data", "flag", "feature"]
-families = ["bodies", "hidden", "predraw"]
-cases = 16832
-mutants = 39
+families = ["bodies", "hidden", "frame", "predraw"]
+cases = 32372
+mutants = 44
 cases_at = "families.*.cases"
 mutants_at = "mutants"
 build = ["reconstructed/renderchar", "reconstructed/particles"]
 args = ["--mutations", "--output", "{report}"]
 [validate_item_predraw.expect]
 "families.*.mismatches" = 0
-"families.bodies.cases" = 12848
+"families.bodies.cases" = 13140
 "families.hidden.cases" = 1168
-"families.predraw.cases" = 2816
+"families.frame.cases" = 15184
+"families.predraw.cases" = 2880
 "mutants.*" = {truthy = true}
 
 [validate_item_hiddenmesh]

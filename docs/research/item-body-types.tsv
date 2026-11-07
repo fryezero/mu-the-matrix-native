@@ -165,7 +165,7 @@ type	visibility	shape	body_implemented	stopped_states
 0x0f27	weapon	3a5e108ce1ec1150	0	0
 0x0f28	weapon	15286f39c6c613fe	0	0
 0x0f29	weapon	45196c3201aea3f2	0	0
-0x0f2a	weapon	d4439a78a7b0c552	0	0
+0x0f2a	weapon	d4439a78a7b0c552	1	0
 0x0f2b	weapon	7fae167506437490	0	0
 0x0f2c	weapon	a8e6e25d8bb4fb19	0	0
 0x0f2d	weapon	26c7b781548cbf18	1	0
