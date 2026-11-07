@@ -71,4 +71,26 @@ const mu_map_effect_type *mu_map_effects_type(const mu_map_effect_world *world, 
 void mu_map_effects_attach(const mu_map_effect_table *table, int32_t world, const mu_obj_world *w,
                            const mu_map_effect_ops *ops);
 
+/* RENDER-EFFECTS-019 (docs/research/client-render-effects-019.md §1): the per-frame update 0x0129f671 of a map
+ * object's attached records (RenderObjects 0x016d51f5 / 0x016d536b, after RenderObjectVisual).
+ *
+ * 0x012a0d29: the OBJECT is "in a sector list" when +0x350 (previous) or +0x354 (next) is set. CreateObject appends
+ * every map object to its sector's list, so the predicate fails exactly for an object alone in its sector (live: the
+ * links are both 0 for 76 of 149,735 objects of the 32 DATA-ACQ-002 captures, each the only object of its sector). */
+int mu_map_effects_in_sector(const mu_obj_world *w, int32_t object);
+
+enum { MU_MAP_EFFECT_UNDEFINED = -1, MU_MAP_EFFECT_UNPOSED = 0, MU_MAP_EFFECT_OK = 1 };
+
+/* The external matrix 0x0129f671 hands a record's node update (muun_effects.h's mu_object_effect_matrix) for a map
+ * object: the OBJECT image's scale +0xa0, position +0x158 and angle +0x164; +0x318 is 0 for map objects, so every
+ * bone comes from the shared pose buffer 0x06fce398, which RenderObject has just filled with this object's pose
+ * (pose: 3x4 rows per bone, pose_bones of them). Following bone b >= 0 is 0x0129fd4f (the bone, placed by the
+ * position and scale only outside a sector list); not following, bone b >= 0 is the scale's diagonal with
+ * 0x012a0030's translation: the bone's, plus the position outside a sector list; bone -1 uses the OBJECT's world
+ * matrix (following) or position (not following); not following, a bone below -1 has no translation.
+ * MU_MAP_EFFECT_UNPOSED: a bone >= 0 without that pose (NULL or bone >= pose_bones: the client would read another
+ * object's or a stale pose); MU_MAP_EFFECT_UNDEFINED: following a bone below -1 (left uninitialised). */
+int mu_map_effect_matrix(float out[16], const uint8_t *object, int in_sector, const float *pose, int32_t pose_bones,
+                         int32_t bone, int follow);
+
 #endif

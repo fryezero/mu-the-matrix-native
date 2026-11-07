@@ -1,6 +1,8 @@
 /* The map-object effect table's attach routine 0x0183067e (RENDER-EFFECTS-008); see map_effects.h. */
 #include "map_effects.h"
 
+#include "muun_effects.h"
+
 /* std::map::find on the ascending keys (0x010fa24c contains / 0x010fa28a at; 0x01849a27 find, signed compare
  * 0x0096ba31) */
 const mu_map_effect_world *mu_map_effects_world(const mu_map_effect_table *table, int32_t world)
@@ -53,4 +55,33 @@ void mu_map_effects_attach(const mu_map_effect_table *table, int32_t world, cons
                 }
                 ops->prime(ops->context, k);
             }
+}
+
+int mu_map_effects_in_sector(const mu_obj_world *w, int32_t object)
+{
+    if (w->next[object] >= 0)
+        return 1;
+    for (int32_t s = 0; s < MU_OBJ_SECTORS; ++s)
+        if (w->head[s] == object)
+            return 0;
+    return 1;
+}
+
+int mu_map_effect_matrix(float out[16], const uint8_t *object, int in_sector, const float *pose, int32_t pose_bones,
+                         int32_t bone, int follow)
+{
+    if (bone >= 0 && (!pose || bone >= pose_bones))
+        return MU_MAP_EFFECT_UNPOSED;
+    mu_effect_object o;
+    for (int k = 0; k < 3; ++k) {
+        o.position[k] = mu_obj_f32(object, MU_OBJF_POSITION + 4u * (uint32_t)k);
+        o.angle[k] = mu_obj_f32(object, MU_OBJF_ANGLE + 4u * (uint32_t)k);
+    }
+    o.scale = mu_obj_f32(object, MU_OBJF_SCALE);
+    o.in_sector = in_sector;
+    o.bones = NULL;
+    o.model_bones = -1;
+    o.shared = pose;
+    const mu_object_effect_record record = {0, 0.0f, bone, (uint8_t)(follow != 0), 0, 0.0f};
+    return mu_object_effect_matrix(out, &record, &o) ? MU_MAP_EFFECT_OK : MU_MAP_EFFECT_UNDEFINED;
 }

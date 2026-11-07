@@ -11,6 +11,7 @@
 #include "mu_objects.h"
 #include "mu_env.h"
 #include "../../reconstructed/objects/icarus.h"
+#include "../../reconstructed/objects/map_effects.h"
 #include "mu_world_helpers.h"
 #include "mu_meshdraw.h"
 #include "mu_effect_scene.h"
@@ -21,7 +22,7 @@
  * the joints' textures (JointThunder01, Spark01, JointSpirit01, JointEnergy01; LoadBitmap 0x0182239b..) and
  * the login scene's clouds and WATERFALL1; NATIVE-CHARSEL-002 the character-select scene's WATERFALL2/3,
  * fantaB, Spark04, magic_ground1_3 and Impack03 (the selection light 0x8022 subtype 5 draws Impack03). */
-#define MU_WORLD_PT_EFFECTS 73
+#define MU_WORLD_PT_EFFECTS 74
 static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     MU_PT_BITMAP_FIRE, MU_PT_BITMAP_SMOKE, MU_PT_BITMAP_FLARE, MU_PT_BITMAP_SPARK3, MU_PT_BITMAP_THUNDER,
     MU_PT_BITMAP_SPARK2, MU_PT_BITMAP_SHINY2, MU_JT_BITMAP_THUNDER, MU_JT_BITMAP_SPARK, MU_JT_BITMAP_SPIRIT,
@@ -40,6 +41,7 @@ static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     0x7f54, 0x7f84, 0x7f38, 0x8021, 0x7f6b, 0x8087, 0x8089, 0x801e, 0x8184,
     0x7ffd, 0x8081, 0x8082, 0x8083, 0x85fb, 0x8450, 0x810a, 0x7f73, 0x7f74, 0x7f75, 0x810c, 0x83b8,
     MU_PT_BITMAP_FIRE06,
+    0x801d,   /* RENDER-EFFECTS-019: WATERFALL4, half of Test Area's 0x801e/7 particles draw it */
     MU_PT_BITMAP_RAIN_SPLASH,
     MU_PT_BITMAP_RAIN_RING};
 static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
@@ -84,7 +86,10 @@ static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     "Data/Effect/pin_star02_pupple.OZJ", "Data/Effect/Snow_Chip02_red.OZJ",
     /* RENDER-EFFECTS-016: Fire06 0x7f40, 0x70c's stone particle (LoadBitmap 0x018229e5 in 0x0182049e,
      * LINEAR/CLAMP) */
-    "Data/Effect/Fire06.OZJ"};
+    "Data/Effect/Fire06.OZJ",
+    /* RENDER-EFFECTS-019: WATERFALL4 0x801d (startup LoadBitmap 0x01822aa5 in 0x0182049e, LINEAR/CLAMP), the
+     * bitmap 0x801e/7's create picks for half of its particles */
+    "Data/Effect/WATERFALL4.OZJ"};
 
 /* The world objects' effect models (AccessModel, static readings of the loaders): the Tormenta handler's
  * hs_fieldtornado (0x00e4c4de). */
@@ -1698,16 +1703,18 @@ void mu_world_particles_ein_prime(mu_world_particles *p, int32_t object, const u
 
 /* 0x0129f671(dt) for one object: timed records lose dt and leave the list at zero or below (their effect is
  * no longer updated or drawn); each effect takes template scale x object scale (+0xa0), the owner fields
- * (+5, +6, +0x2a, +0x38, +0xd0, +0x1e8) and an external matrix, then its node update. Following bone b of a
- * map object: 0x0129fd4f transposes the shared pose buffer's bone (0x06fce398 + 0x30 b: +0x318 is 0 for map
- * objects) into a column-major 4x4; the object predicate 0x012a0d29 (+0x350 or +0x354, the sector links, set
- * for map objects in a sector) skips the extra position/scale product, so the bone matrix alone, whose pose
- * already holds the body origin and scale, places the effect. */
+ * (+5, +6, +0x2a, +0x38, +0xd0, +0x1e8) and an external matrix, then its node update. The matrix is
+ * mu_map_effect_matrix (RENDER-EFFECTS-019): +0x318 is 0 for map objects, so a bone comes from the shared pose
+ * buffer 0x06fce398 that RenderObject has just filled with this object's pose (the native pose: it already holds
+ * the body origin and scale); the position/scale placement of 0x0129fd4f and 0x012a0030 applies only to an object
+ * alone in its sector (0x012a0d29). A bone >= 0 without the pose, and following a bone below -1, are refused
+ * and counted (unposed). */
 static void o_ein_update(void *c, int32_t object, const uint8_t *img, const float *bones, int32_t bone_count, float dt)
 {
     mu_world_particles *p = c;
     if (!p->ein)
         return;
+    int in_sector = -1;
     for (int32_t k = 0; k < p->ein_link_count; ++k) {
         if (!p->ein_links[k].live || p->ein_links[k].object != object)
             continue;
@@ -1723,28 +1730,13 @@ static void o_ein_update(void *c, int32_t object, const uint8_t *img, const floa
         }
         inst->fx.scale = p->ein_links[k].template_scale * mu_obj_f32(img, MU_OBJF_SCALE);
         ein_owner(inst, img);
-        const int32_t bone = p->ein_links[k].bone;
+        if (in_sector < 0)
+            in_sector = p->objects ? mu_map_effects_in_sector(&p->objects->rt.world, object) : 1;
         float m[16];
-        if (p->ein_links[k].follow && bone >= 0) {
-            if (!bones || bone >= bone_count) {   /* the shared buffer would hold another pose: not approximated */
-                ++p->ein_unposed;
-                continue;
-            }
-            const float *b = bones + 12 * bone;
-            for (int r = 0; r < 3; ++r)
-                for (int col = 0; col < 4; ++col)
-                    m[4 * col + r] = b[4 * r + col];
-            m[3] = m[7] = m[11] = 0.0f;
-            m[15] = 1.0f;
-        } else if (p->ein_links[k].follow) {   /* RENDER-EFFECTS-007: bone -1, the object's world matrix 0x0129faee */
-            float angle[3], position[3];
-            memcpy(angle, img + MU_OBJF_ANGLE, 12);
-            memcpy(position, img + MU_OBJF_POSITION, 12);
-            mu_effect_object_world_matrix(m, angle, position, mu_obj_f32(img, MU_OBJF_SCALE));
-        } else {
-            float position[3];
-            memcpy(position, img + MU_OBJF_POSITION, 12);
-            mu_effect_object_matrix(m, position, mu_obj_f32(img, MU_OBJF_SCALE));
+        if (mu_map_effect_matrix(m, img, in_sector, bones, bones ? bone_count : 0, p->ein_links[k].bone,
+                                 p->ein_links[k].follow) != MU_MAP_EFFECT_OK) {
+            ++p->ein_unposed;
+            continue;
         }
         mu_effect_scene_attach(p->ein, (uint32_t)p->ein_links[k].instance, m);
         mu_effect_scene_update_one(p->ein, (uint32_t)p->ein_links[k].instance, dt);

@@ -32,6 +32,7 @@ static void copy3(float d[3], const float s[3])
 #include "bow_kinds2.inc"   /* RENDER-EFFECTS-011 */
 #include "armour_kinds.inc"  /* RENDER-EFFECTS-017 */
 #include "uruk_flames.inc"  /* RENDER-EFFECTS-018 */
+#include "test_area_kinds.inc"  /* RENDER-EFFECTS-019 */
 
 int mu_pt_kind_supported(int32_t type, int32_t subtype)
 {
@@ -43,6 +44,7 @@ int mu_pt_kind_supported(int32_t type, int32_t subtype)
     if (mu_pt_bow2_kind(type, subtype)) return 1;   /* RENDER-EFFECTS-011 */
     if (mu_pt_armour_kind(type, subtype)) return 1;   /* RENDER-EFFECTS-017 */
     if (mu_pt_uruk_flame_kind(type, subtype)) return 1;   /* RENDER-EFFECTS-018 */
+    if (mu_pt_test_area_kind(type, subtype)) return 1;   /* RENDER-EFFECTS-019 */
     switch (type) {
     case MU_PT_BITMAP_FIRE:
         return (subtype >= 0 && subtype <= 6) || subtype == 17;
@@ -219,6 +221,10 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
     }
     if (mu_pt_uruk_flame_kind(type, subtype)) {   /* RENDER-EFFECTS-018 */
         mu_pt_uruk_flame_create(p, h, scale);
+        return 1;
+    }
+    if (mu_pt_test_area_kind(type, subtype)) {   /* RENDER-EFFECTS-019 */
+        mu_pt_test_area_create(p, h, scale);
         return 1;
     }
     if (mu_pt_world_flame_kind(type, subtype)) {
@@ -655,6 +661,8 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
             mu_pt_armour_move(p, h);
         else if (mu_pt_uruk_flame_kind(p->type, p->subtype))   /* RENDER-EFFECTS-018 */
             mu_pt_uruk_flame_move(p, h);
+        else if (mu_pt_test_area_kind(p->type, p->subtype))   /* RENDER-EFFECTS-019 */
+            mu_pt_test_area_move(p);
         else if (mu_pt_world_flame_kind(p->type, p->subtype))
             mu_pt_world_flame_move(p, h);
         else switch (p->type) {
