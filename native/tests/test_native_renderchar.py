@@ -242,16 +242,17 @@ class WorldRender(unittest.TestCase):
 
     def test_wing_joint_and_random_bone_programs(self):
         """RENDER-ITEMS-002S: wing 0x22ec's case creates twenty CreateJoint requests (0x7f7c/0xe, 0x7fd3/4) along
-        its own bones; the native joint pool does not reconstruct those kinds, so they are routed and counted as
-        refused, while its sprites are created. Wing 0x23ef places sprites at bones rand() % bone count (always
-        inside the skeleton) and at constant bones up to 50: on 64 bones nothing is refused, on 40 the two
-        requests at bones 44 and 50 are."""
+        its own bones; RENDER-ITEMS-002U: the joint pool reconstructs both kinds, so all twenty are created and drawn
+        in the same frame (ten-tail streaks: up to 9 segments x 2 faces each), as are 0x248f's. Wing 0x23ef places
+        sprites at bones rand() % bone count (always inside the skeleton) and at constant bones up to 50: on 64
+        bones nothing is refused, on 40 the two requests at bones 44 and 50 are."""
         path=self.tmp/'pre-fx-wing.bmd'
         path.write_bytes(nf.character_layout(114,bones=64,meshes=2))
-        joint,_=self.render('--wing',path,'--item-type','wing=0x22ec','--world-time','0')
-        self.assertEqual(joint['special'],0)
-        self.assertEqual(joint['pre_refused'],20)
-        self.assertGreater(joint['pre_effects'],0)
+        for wing in ('0x22ec','0x248f'):
+            joint,_=self.render('--wing',path,'--item-type','wing='+wing,'--world-time','0')
+            self.assertEqual((joint['special'],joint['pre_refused']),(0,0))
+            self.assertGreater(joint['pre_effects'],20)
+            self.assertEqual(joint['joint_quads'],20*18)
         spread,_=self.render('--wing',path,'--item-type','wing=0x23ef','--world-time','0')
         self.assertEqual((spread['special'],spread['pre_refused']),(0,0))
         self.assertGreater(spread['pre_effects'],0)
@@ -276,6 +277,22 @@ class WorldRender(unittest.TestCase):
         mace,_=self.render('--weapon','0',path,'--item-type','weapon0=0xf20','--world-time','0')
         self.assertEqual((mace['special'],mace['pre_effects']),(0,0))
         self.assertGreater(mace['pre_refused'],0)
+
+    def test_frame_counter_option(self):
+        """RENDER-ITEMS-002U: with the rendered-frame counter supplied (mu-render --frame-counter, as the world
+        runtime's own counter), mace 0x0f20's requests behind its counter tests run only on the frames the client
+        runs them: two particles 0x855d/1 when counter % 3 == 0, one 0x84d1/1 when counter % 5 == 0. Without a
+        counter every request after the first test is refused (20). The particle pool has neither kind and the
+        synthetic skeleton lacks the named bones, so what runs is still refused, but no longer for the counter."""
+        path=self.tmp/'counter-fx.bmd'
+        path.write_bytes(nf.character_layout(115,bones=12,meshes=2))
+        base,_=self.render('--weapon','0',path,'--item-type','weapon0=0xf20','--world-time','0')
+        self.assertEqual((base['pre_effects'],base['pre_refused']),(0,20))
+        for frame in (0,1,2,3,5,6,10,15,0xffffffff):
+            r,_=self.render('--weapon','0',path,'--item-type','weapon0=0xf20','--world-time','0',
+                            '--frame-counter',str(frame))
+            expect=17+2*(frame%3==0)+(frame%5==0)
+            self.assertEqual((r['special'],r['pre_effects'],r['pre_refused']),(0,0,expect),frame)
 
     def test_ranked_body_and_nine_bone_shield_use_shared_draws(self):
         path = self.tmp/'ranked-armour.bmd'

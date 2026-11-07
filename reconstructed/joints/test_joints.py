@@ -89,7 +89,8 @@ class JointTests(unittest.TestCase):
     def test_supported_kinds(self):
         for sub in range(0x10, 0x1b):
             self.assertEqual(self.lib.mu_jt_kind_supported(0x7f7d, sub), 1)
-        for kind in ((0x7f7c, 6), (0x7f7d, 0), (0x7f7d, 0xc), (0x7f7d, 0xd), (0x7f7d, 0xe), (0x7f7d, 0xf), (0x7f7c, 0x12)):
+        for kind in ((0x7f7c, 6), (0x7f7d, 0), (0x7f7d, 0xc), (0x7f7d, 0xd), (0x7f7d, 0xe), (0x7f7d, 0xf), (0x7f7c, 0x12),
+                     (0x7f7c, 0xe), (0x7fd3, 4)):
             self.assertEqual(self.lib.mu_jt_kind_supported(*kind), 1)
         for kind in ((0x7f7d, 1), (0x7f7d, 0xb), (0x7f7d, 0x1b), (0x7f7c, 0x13), (0x7fd5, 5), (0x7fd6, 4),
                      (0x7f79, 8)):
@@ -240,6 +241,40 @@ class JointTests(unittest.TestCase):
             ok, fx = self.move(j, [11, 4])
             self.assertEqual((fx.rands, list(j.position), j.num_tails), (rands, list(j.target_position), 49))
             self.assertEqual(list(j.light), [f32(1.0 / f32(1.2))]*3)
+
+    def test_wing_streaks(self):
+        """RENDER-ITEMS-002U: 0x7f7c 0xe / 0x7fd3 4 build ten-tail streaks toward the target argument (LifeTime 0);
+        the head ends at +0x58 (the argument without a target object). MoveJoint 0xe turns toward +0x58 and stops
+        once 1.5 x velocity exceeds the distance; at width 50 it then creates particle 0x7f2b (and on rand % 8 == 0,
+        after three discarded rand() calls, 0x7f5a); 0x7fd3 4 has no case."""
+        v = self.v
+        start, goal = (1000.0, 2000.0, 300.0), (1100.0, 1950.0, 340.0)
+        for kind, render, velocity in (((0x7f7c, 0xe), 1, 50.0), ((0x7fd3, 4), 1, 0.0)):
+            j = v.Joint()
+            j.scale = f32(7.0)   # the previous width: the first tail's cross
+            fx = Fixed([0])
+            ok = self.lib.mu_jt_create(ctypes.byref(j), kind[0], F3(*start), F3(*goal), F3(10.0, 20.0, 30.0), kind[1],
+                                       -1, f32(50.0), 0xffff, 0, 0, 0xffff, 0, ctypes.byref(fx.env))
+            step = [f32(f32(goal[k] - start[k]) / 10.0) for k in range(3)]
+            self.assertEqual((ok, j.lifetime, j.max_tails, j.num_tails, j.render_type, j.velocity, j.scale),
+                             (1, 0, 10, 9, render, velocity, 50.0), kind)
+            self.assertEqual((list(j.angle), list(j.light)), ([0.0, 0.0, 0.0], [f32(0.3), f32(0.3), 1.0]), kind)
+            self.assertEqual(list(j.start), step, kind)
+            self.assertEqual(list(j.position), [f32(x) for x in goal], kind)
+            # the oldest tail is the common part's cross at the start: previous width 7, the argument angle
+            c0, c1 = j.tails[9 * 12:9 * 12 + 3], j.tails[9 * 12 + 3:9 * 12 + 6]
+            self.assertAlmostEqual(math.dist(c0, c1), 7.0, places=3)
+            for k in range(3):
+                self.assertAlmostEqual((c0[k] + c1[k]) / 2, start[k], places=3)
+            self.assertEqual(fx.rands, 0, kind)
+            if kind[0] == 0x7fd3:
+                ok, fx = self.move(j, [0])
+                self.assertEqual((ok, fx.rands, fx.calls, j.num_tails, j.live), (1, 0, [], 9, 0))
+                continue
+            ok, fx = self.move(j, [512, 512, 0, 1, 2, 3])
+            # the head moved 50 along -y; 50 < 75: one turned tail shift, the particles, then the closing shift
+            self.assertEqual((ok, fx.rands, j.num_tails, j.live, j.lifetime), (1, 6, 9, 0, -1))
+            self.assertEqual([(c[0], c[1]) for c in fx.calls], [(0x0168fafd, 0x7f2b), (0x0168fafd, 0x7f5a)])
 
     def test_render_spark_keeps_the_colour(self):
         j, ok, fx = self.create((0x7fd5, 0), [0, 0])

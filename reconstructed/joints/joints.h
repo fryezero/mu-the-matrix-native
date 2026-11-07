@@ -167,7 +167,8 @@ typedef struct mu_jt_env {
  * subtype 0 (spark streaks), 0x7f7d subtypes 0x10..0x1a (Tormenta Island's
  * lightning); NATIVE-HELPERS-002: 0x7f78 subtype 0 (the Dark Horse's ring of
  * flares around its target); RENDER-JOINTS-001: 0x7f7d 0xc..0xf and 0x7f7c
- * 0x12 (Kanturu Underground, Uruk Mountain's 0xd). */
+ * 0x12 (Kanturu Underground, Uruk Mountain's 0xd); RENDER-ITEMS-002U: 0x7f7c 0xe and
+ * 0x7fd3 4 (the wing pre-draw programs' streaks, wing_joints.inc). */
 int mu_jt_kind_supported(int32_t type, int32_t subtype);
 
 /* CreateJoint's record part 0x0153b0a6.. on a record that keeps its previous

@@ -16,7 +16,7 @@ import validate_item_scalars as scalars
 def program(entry):
     """Header entry text back to the generator's (kind, a, ops) tuple."""
     import re
-    kind, count, a = re.match(r'\{(\d), (\d), (0x[0-9a-f]{8})u', entry).groups()
+    kind, count, a = re.match(r'\{(\d+), (\d+), (0x[0-9a-f]{8})u', entry).groups()
     ops = [int(x) for x in re.search(r', \{([0-9, ]+)\}, ', entry).group(1).split(', ')]
     ks = [int(x[:-3], 16) for x in re.search(r'\{(0x[^{}]*)\}(?:, 0x[0-9a-f]{2})?\}$', entry).group(1).split(', ')]
     return int(kind), int(a, 16), tuple(zip(ops[:int(count)], ks[:int(count)]))
@@ -39,7 +39,7 @@ class ItemScalars(unittest.TestCase):
 
     def test_every_program_reaches_a_draw(self):
         entries, first = scalars.programs()
-        self.assertEqual(len(entries), 89)
+        self.assertEqual(len(entries), 110)   # RENDER-ITEMS-002U: + the counter programs of regenerated rows
         for entry, t in first.items():
             p = program(entry)
             for time in (-1570.5, -0.0, 3.0, 1047.0, 123456.75, 1999999.0):

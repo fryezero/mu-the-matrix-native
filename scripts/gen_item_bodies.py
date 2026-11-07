@@ -242,7 +242,9 @@ PRE_CARRY = [0x0b4b, 0x0b4c, 0x0b59, 0x0f1c, 0x0f1d, 0x0f2e, 0x1748, 0x1749, 0x1
              0x2384, 0x2385, 0x2394, 0x2395, 0x2499,
              0x0b53, 0x22ec, 0x23ef, 0x2400, 0x2405, 0x248f, 0x24cf, 0x24d6,
              # RENDER-ITEMS-002T (part 21)
-             0x0f1f, 0x0f20]
+             0x0f1f, 0x0f20,
+             # RENDER-ITEMS-002U (part 23)
+             0x0f2a]
 
 EXIT_TYPES = [
     0x0b10, 0x0b12, 0x0b22, 0x1569, 0x156a, 0x156b, 0x156c, 0x156d, 0x156e, 0x156f,
@@ -558,12 +560,12 @@ def wave_helper(a, time):
     return f(f(w + f(1.0)) * f(0.5))
 
 
-def scalar_value(program, time):
+def scalar_value(program, time, frame=0):
     import math
     f = lambda x: v.u2f(v.f2u(x))
     kind, a, ops = program
     if kind == 3:
-        return clock_value(ops, time)
+        return clock_value(ops, time, frame)
     if kind == 1:
         value = wave_helper(v.u2f(a), time)
     else:
@@ -592,9 +594,25 @@ CLOCK = 0x06fce370
 (C_TIME_F, C_TIME_D, C_TICK, C_F_MUL, C_F_DIV, C_F_ADD, C_F_SUB, C_F_RSUB, C_F_RDIV, C_D_MUL, C_D_DIV,
  C_D_ADD, C_D_SUB, C_D_RSUB, C_D_RDIV, C_F2D, C_D2F, C_F2I, C_D2I, C_I2F, C_I2D, C_I_MOD, C_I_DIV,
  C_I_ADD, C_I_MUL, C_F_NEG, C_I_NEG, C_D_NEG, C_I_RSUB) = range(1, 30)
-CLOCK_OPS = 9
+# RENDER-ITEMS-002U (part 23): the rendered-frame counter [0x0bdc5ebc] as a chain source (the integer register),
+# unsigned remainder/quotient (xor edx, edx; div) and the unsigned binary64 conversion (cvtsi2sd, then
+# shr r, 31; addsd [r*8 + 0x01bd3050] with the table {0.0, 2^32}).
+C_FRAME, C_U_MOD, C_U_DIV, C_U2D = range(30, 34)
+FRAME_COUNTER, U32_FIX = 0x0bdc5ebc, 0x01bd3050
+VECTOR_SETTERS = (0x00cfcead, 0x00cfcede)   # (this)[0..2] = (a, b, c) / (a, a, a); ret 0xc / ret 4
+# The bodies whose draws read the counter (found by comparing the client's streams at different counter values over
+# the 1,691 survey types; their probes vary it). Fifty-one were admitted with recipes right only at counter 0.
+FRAME_TYPES = [
+    0x0b66, 0x0b67, 0x0b69, 0x0b6a, 0x0b6b, 0x0b6c, 0x0b6d, 0x0b6e, 0x0b6f, 0x0b70, 0x0b71, 0x0b72, 0x0b73, 0x0f2f,
+    0x0f30, 0x1109, 0x110a, 0x132b, 0x132c, 0x132e, 0x1560, 0x1561, 0x1574, 0x157d, 0x157f, 0x1580, 0x1581, 0x1582,
+    0x1583, 0x1584, 0x1585, 0x1586, 0x1587, 0x1589, 0x158a, 0x158b, 0x158c, 0x158d, 0x158e, 0x1739, 0x173a, 0x173b,
+    0x173c, 0x1747, 0x1756, 0x1757, 0x1759, 0x175a, 0x175b, 0x175c, 0x175d,
+    0x0f2a,
+]
+CLOCK_OPS = 12   # RENDER-ITEMS-002U: 10 for 0x1109's counter atlas (was 9)
 _md = None
 _clock_sites = None
+_frame_sites = []   # RENDER-ITEMS-002U: text addresses of the counter's address bytes (filled with the clock sites)
 _slices = {}
 
 
@@ -620,6 +638,9 @@ def clock_sites(wa):
                 if ins and ins.address + ins.size == 0x00401000 + m.start() + 4 and '0x6fce370]' in ins.op_str:
                     found.append(ins.address)
                     break
+        # RENDER-ITEMS-002U: where the counter's address bytes lie (a block reads it when its bytes contain them)
+        _frame_sites[:] = [0x00401000 + m.start() for m in re.finditer(re.escape(FRAME_COUNTER.to_bytes(4, 'little')),
+                                                                      text)]
         _clock_sites = (wa, sorted(found))
     return _clock_sites[1]
 
@@ -652,11 +673,12 @@ def _local_stored(wa, offset, value):
     return b'\xc7\x85' + struct.pack('<i', offset) + imm in wa[0]
 
 
-def slice_block(wa, block):
+def slice_block(wa, block, frame=False):
     """Static walk from one block start. Returns (entry locals read, outputs) where
-    each output is a chain whose integer local reads are ('local', offset)."""
-    if block in _slices:
-        return _slices[block]
+    each output is a chain whose integer local reads are ('local', offset). frame (RENDER-ITEMS-002U): the block
+    reads the rendered-frame counter; only then the counter idioms apply (other blocks slice as before)."""
+    if (block, frame) in _slices:
+        return _slices[(block, frame)]
     import capstone.x86 as X
     md, text = _capstone(), wa[0]
     gpr = {'eax', 'ebx', 'ecx', 'edx', 'esi', 'edi'}
@@ -680,6 +702,8 @@ def slice_block(wa, block):
         if r[0] == 'abs':
             if r[1] == CLOCK and size == 4:
                 return 'clock'
+            if r[1] == FRAME_COUNTER and size == 4:
+                return 'frame'
             word = _word(wa, r[1])
             if word is None:
                 return None
@@ -710,6 +734,7 @@ def slice_block(wa, block):
         return ('e', x[1], x[2] * mul, x[3] * mul + add)
 
     at, steps, cdq = block, 0, None
+    pushed = None   # RENDER-ITEMS-002U: push imm; pop r
     while steps < 160:
         ins = next(md.disasm(text[at - 0x00401000:at - 0x00401000 + 16], at), None)
         if ins is None:
@@ -724,12 +749,28 @@ def slice_block(wa, block):
         if name in ('jmp',) and dst.type == X.X86_OP_IMM:
             at = dst.imm
             continue
+        if frame and name == 'call' and dst.type == X.X86_OP_IMM and dst.imm in VECTOR_SETTERS:
+            # RENDER-ITEMS-002U: a vec3 setter (writes three floats through ecx, nothing of the caller's frame)
+            regs, pushed = {}, None
+            at = nxt
+            continue
         if name.startswith('j') or name in ('call', 'ret', 'retn', 'int3', 'leave'):
             break
+        if frame and name == 'push' and dst.type == X.X86_OP_IMM:
+            pushed = ('k', _i32(dst.imm))
+            at = nxt
+            continue
+        if name == 'pop' and dname in gpr and pushed is not None:
+            regs[dname], pushed = pushed, None
+            at = nxt
+            continue
+        pushed = None
         if name == 'mov' and dname in gpr:
             result = value(ins, src, 4)
-            if result == 'clock':
+            if result == 'clock' or (result == 'frame' and not frame):
                 result = None
+            elif result == 'frame':
+                result = ('c', 'i', ((C_FRAME, 0),))
         elif name == 'mov' and dst.type == X.X86_OP_MEM:
             r = ref(dst)
             if r[0] == 'local':
@@ -756,10 +797,35 @@ def slice_block(wa, block):
             if x and x[0] == 'c' and x[1] == 'f' and name == 'movss':
                 outputs.append(x)
             if r[0] == 'local':
-                local[r[1]] = x if name == 'movss' else None
+                local[r[1]] = x if name == 'movss' else (
+                    x if frame and x and x[0] == 'c' and x[1] == 'd' and any(op == C_FRAME for op, _ in x[2]) else None)
             elif r[0] == 'abs' and r[1] == CLOCK:
                 break
             handled = 'stored'
+        elif (frame and name == 'addsd' and dname and src.type == X.X86_OP_MEM and src.mem.base == 0 and src.mem.index and
+              src.mem.scale == 8 and src.mem.disp & 0xffffffff == U32_FIX and _word(wa, U32_FIX) == 0 and
+              _word(wa, U32_FIX + 4) == 0 and _word(wa, U32_FIX + 8) == 0 and _word(wa, U32_FIX + 12) == 0x41f00000):
+            # RENDER-ITEMS-002U: cvtsi2sd x, n; shr r, 31 (r = n); addsd x, [r*8 + U32_FIX]: (double)(uint32_t)n
+            x, sign = regs.get(dname), regs.get(ins.reg_name(src.mem.index))
+            result = None
+            if (x and x[0] == 'c' and x[1] == 'd' and sign and sign[0] == 'sign' and
+                    x[2] == sign[1][2] + ((C_I2D, 0),)):
+                result = ('c', 'd', sign[1][2] + ((C_U2D, 0),))
+        elif frame and name == 'xor' and dname in gpr and src.type == X.X86_OP_REG and src.reg == dst.reg:
+            result = ('zero',)
+        elif frame and name == 'div':
+            # RENDER-ITEMS-002U: xor edx, edx; div n (unsigned)
+            x, high, n = regs.get('eax'), regs.get('edx'), as_int(value(ins, dst, 4))
+            if x and x[0] == 'c' and x[1] == 'i' and high == ('zero',) and n:
+                regs['eax'] = chain(x, 'i', (C_U_DIV, ('i', n)))
+                regs['edx'] = chain(x, 'i', (C_U_MOD, ('i', n)))
+            else:
+                regs['eax'] = regs['edx'] = None
+            at = nxt
+            continue
+        elif frame and name == 'shr' and dname in gpr and src.type == X.X86_OP_IMM and src.imm == 31:
+            x = regs.get(dname)
+            result = ('sign', x) if x and x[0] == 'c' and x[1] == 'i' else None
         elif name == 'cvtss2sd':
             x = value(ins, src, 4)
             if x == 'clock':
@@ -772,7 +838,11 @@ def slice_block(wa, block):
                 result = chain(x, 'f', (C_D2F, 0))
         elif name in ('cvttss2si', 'cvttsd2si') and dname in gpr:
             x = value(ins, src, 4 if name == 'cvttss2si' else 8)
-            if x == 'clock' and name == 'cvttss2si':
+            if frame and name == 'cvttss2si' and x and x != 'frame' and x[0] in ('kf', 'kw'):
+                # RENDER-ITEMS-002U: a binary32 constant truncated to an integer constant
+                k = v.u2f(x[1])
+                result = ('k', int(k)) if -2147483648.0 <= k < 2147483648.0 else ('k', -2147483648)
+            elif x == 'clock' and name == 'cvttss2si':
                 result = ('c', 'i', ((C_TICK, 0),))
             elif x and x[0] == 'c' and x[1] == ('f' if name == 'cvttss2si' else 'd'):
                 result = chain(x, 'i', (C_F2I if name == 'cvttss2si' else C_D2I, 0))
@@ -801,7 +871,13 @@ def slice_block(wa, block):
                 if z[0] == 'kint' and z[1] == kind:
                     return ('i', z[2])
                 return None
-            if x and x[0] == 'c' and x[1] == kind and const(y):
+            if (frame and single and x and x != 'frame' and x[0] in ('kf', 'kw') and y and y not in ('clock', 'frame')
+                    and y[0] in ('kf', 'kw')):
+                # RENDER-ITEMS-002U: two binary32 constants fold (one binary32 operation)
+                a_, b_ = v.u2f(x[1]), v.u2f(y[1])
+                folded = (a_ * b_ if base == 0 else math_div(a_, b_) if base == 1 else a_ + b_ if base == 2 else a_ - b_)
+                result = ('kf', v.f2u(_f32(folded)))
+            elif x and x[0] == 'c' and x[1] == kind and const(y):
                 result = chain(x, kind, (fops[base], const(y)))
             elif y and y != 'clock' and y[0] == 'c' and y[1] == kind and const(x):
                 result = chain(y, kind, (rops[base], const(x)))
@@ -919,8 +995,8 @@ def slice_block(wa, block):
             if name in ('call',):
                 break
         at = nxt
-    _slices[block] = (tuple(sorted(entry)), tuple(dict.fromkeys(outputs)))
-    return _slices[block]
+    _slices[(block, frame)] = (tuple(sorted(entry)), tuple(dict.fromkeys(outputs)))
+    return _slices[(block, frame)]
 
 
 def resolve_clock(wa, program, values):
@@ -944,14 +1020,16 @@ def resolve_clock(wa, program, values):
                 word = _d64(float(word))
             if op in (C_I_MOD, C_I_DIV) and word in (0, -1):
                 return None
+            if op in (C_U_MOD, C_U_DIV) and word & 0xffffffff == 0:
+                return None
             ops.append((op, word & 0xffffffffffffffff))
         else:
             ops.append((op, 0))
     return tuple(ops) if len(ops) <= CLOCK_OPS else None
 
 
-def clock_value(ops, time):
-    """Reference evaluation of a clock chain; returns the binary32 word."""
+def clock_value(ops, time, frame=0):
+    """Reference evaluation of a clock chain; returns the binary32 word. frame: [0x0bdc5ebc] (RENDER-ITEMS-002U)."""
     f = i = d = None
     def trunc(x):
         return int(x) if -2147483648 <= x < 2147483648 else -2147483648
@@ -989,6 +1067,10 @@ def clock_value(ops, time):
         elif op == C_F_NEG: f = -f
         elif op == C_I_NEG: i = _i32(-i)
         elif op == C_D_NEG: d = -d
+        elif op == C_FRAME: i = _i32(frame)
+        elif op == C_U_MOD: i = _i32((i & 0xffffffff) % (k & 0xffffffff))
+        elif op == C_U_DIV: i = _i32((i & 0xffffffff) // (k & 0xffffffff))
+        elif op == C_U2D: d = float(i & 0xffffffff)
     return v.f2u(f)
 
 
@@ -1101,13 +1183,17 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=Fals
             from unicorn import UC_HOOK_BLOCK
             import bisect
             clocks = clock_sites(wa)
+            frames = list(_frame_sites)
             def block(uc, address, size, context):
                 if _site_sink is None:
                     return
+                # RENDER-ITEMS-002U: blocks that read the rendered-frame counter, for FRAME_TYPES only
+                f = bisect.bisect_left(frames, address)
+                counter = _SAMPLE_TYPE[0] in FRAME_TYPES and f < len(frames) and frames[f] + 4 <= address + size
                 k = bisect.bisect_left(clocks, address)
-                if k == len(clocks) or clocks[k] >= address + size:
+                if not counter and (k == len(clocks) or clocks[k] >= address + size):
                     return
-                entry, outputs = slice_block(wa, address)
+                entry, outputs = slice_block(wa, address, counter)
                 if not outputs:
                     return
                 m = self.m
@@ -1117,7 +1203,7 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=Fals
                     ops = resolve_clock(wa, output[2], values)
                     if ops is not None:
                         _site_sink.add(('clock', ops))
-            self.m.uc.hook_add(UC_HOOK_BLOCK, block, begin=clocks[0], end=clocks[-1])
+            self.m.uc.hook_add(UC_HOOK_BLOCK, block, begin=min(clocks[0], frames[0]), end=max(clocks[-1], frames[-1]))
             import struct
             def returned(uc, address, size, context):
                 raw = self.m.read(v.MODEL, 0xd0)
@@ -1157,6 +1243,11 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=Fals
     case = v.random_case_any(random.Random(seed), t)
     case.update(item_level=lv << 3, quality=quality, option1=opt, ext=ext, record=record, a10=0xffffffff, a11=0xffffffff, render_type=(2, 0x102, 0x40042)[seed % 3])
     case['object_hidden'] = (-1, 0, 2)[(seed // 3) % 3]
+    if t in FRAME_TYPES:
+        # RENDER-ITEMS-002U: the rendered-frame counter varies in these types' probes (others keep the zero page).
+        draw = random.Random(seed * 7919 + lv * 104729 + quality * 31 + opt * 3 + ext * 5 + (record[1] & 0xff))
+        case['frame'] = draw.choice((0, 1, 2, 3, 15, 59, 60, 61, 0x7fffffff, 0x80000000, 0xffffffff,
+                                     draw.randrange(1000), draw.randrange(1 << 32)))
     r, st, other = _original(wa, case, factory, tags)
     generic_case = dict(case)
     if t in (0x0eee, 0x18fe, 0x1cfe):
@@ -1241,7 +1332,7 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=Fals
             value = program_input(params[program[1]], tag, row)
             return RAND_ABSENT if value == RAND_ABSENT else v.f2u(f(v.u2f(value) * v.u2f(program[2][0][1])))
         if program[0] != 4:
-            return scalar_value(program, time)
+            return scalar_value(program, time, case.get('frame', 0))
         value = calls.get((tag, program[3]))
         return RAND_ABSENT if value is None else random_value(program, value)
 
@@ -1483,20 +1574,21 @@ def render(types):
             if rule not in recipes:
                 recipes.append(rule)
             indices.append(recipes.index(rule))
-        if len(scalars) > 8:
-            raise ValueError('more than eight scalar programs')
+        if len(scalars) > 12:   # RENDER-ITEMS-002U: 12 (0x0f2f and 0x158a need 9 with their counter chains)
+            raise ValueError('more than twelve scalar programs')
         rows.append((t, indices, len(programs), len(scalars)))
         programs.extend(scalars)
     lines = ['/* Generated by scripts/gen_item_bodies.py. Rendering rules only.',
              ' * source=0 selects value; source=1..16 copies the generic draw word;',
              ' * source=17 copies OBJECT alpha. source=18..20 copies pulsed body light; source=21 copies armour blend pulse. source=22..34 selects clock scalars; source=35 copies OBJECT hidden mesh;',
              ' * source=36.. selects the type\'s own scalar program (kind 1 = wave 0x0185bdc4(a,0), 2 = sin(time*a), then mul/add/sub/div, binary32 or op|8 binary64 with one final rounding;',
-             ' * kind 3 = clock chain of op/k pairs, see gen_item_bodies.C_TIME_F..C_D_NEG; kind 4 = (float)(rand() % a) then binary32',
+             ' * kind 3 = clock chain of op/k pairs, see gen_item_bodies.C_TIME_F..C_U2D (30..33: the rendered-frame counter);',
+             ' * kind 4 = (float)(rand() % a) then binary32',
              ' * mul/add/sub/div, drawn once in each phase of its phases mask; kind 5 = the type\'s program a (kind 4)',
              ' * times the binary32 k[0], one channel of a scaled constant body light; kind 6 = input a (absolute index)',
              ' * then binary32 mul/add/sub/div). Entry 4 (EXIT) writes words 8..15 to the model',
              ' * fields and draws nothing. See client-render-items.md. */',
-             '#define MU_RC_BODY_SCALARS 8',
+             '#define MU_RC_BODY_SCALARS 12',
              'typedef struct { uint8_t count; struct { int32_t entry; uint8_t source[16]; uint32_t value[16]; } draw[16]; } mu_rc_body_recipe;',
              'static const mu_rc_body_recipe mu_rc_body_recipes[] = {']
     for rule in recipes:
@@ -1510,11 +1602,13 @@ def render(types):
               'static const mu_rc_body_scalar mu_rc_body_scalars[] = {']
     for program in programs:
         kind, a, ops = program[:3]
-        ops = list(ops) + [(0, 0)] * (CLOCK_OPS - len(ops))
-        # Kind 4 (body random) also carries the phases whose helper call draws it.
+        # Kind 4 (body random) also carries the phases whose helper call draws it. RENDER-ITEMS-002U: only the used
+        # op/k slots are written (C zero-fills the rest of the CLOCK_OPS arrays), which keeps the table under the
+        # audit's size limit.
+        used = list(ops) or [(0, 0)]
         lines.append('    {%d, %d, 0x%08xu, {%s}, {%s}, 0x%02x},' % (
-            kind, sum(1 for op, _ in ops if op), a, ', '.join(str(op) for op, _ in ops),
-            ', '.join('0x%xull' % k for _, k in ops), program[4] if kind == 4 else 0))
+            kind, sum(1 for op, _ in ops if op), a, ', '.join(str(op) for op, _ in used),
+            ', '.join('0x%xull' % k for _, k in used), program[4] if kind == 4 else 0))
     if not programs:
         lines.append('    {0, 0, 0, {0}, {0}, 0},')
     lines += ['};', 'static const struct { int32_t type; uint16_t recipe[8]; uint8_t level_split, retain_ancient; uint8_t dim, plain, pulse, blend_pulse; uint16_t scalar_mask; uint8_t carry; uint16_t scalar_first; uint8_t scalar_count; } mu_rc_body_types[] = {']

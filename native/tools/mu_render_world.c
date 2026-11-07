@@ -28,6 +28,8 @@ typedef struct world_options {
     int type_set[MU_CHARACTER_ITEMS];
     mu_renderchar_env env;
     float world_time;
+    int has_frame_counter;    /* RENDER-ITEMS-002U: --frame-counter N, [0x0bdc5ebc] at the first rendered frame */
+    uint32_t frame_counter;
     int safe_zone;
     const char *actor_weapons[2];
     int32_t actor_weapon_types[2];
@@ -141,6 +143,10 @@ int mu_render_world_args(int *argc, char **argv)
             W.active = 1;
         } else if (!strcmp(a, "--world-time")) {
             W.world_time = (float)atof(v);
+            W.active = 1;
+        } else if (!strcmp(a, "--frame-counter")) {
+            W.frame_counter = (uint32_t)strtoul(v, NULL, 0);
+            W.has_frame_counter = 1;
             W.active = 1;
         } else if (!strcmp(a, "--actor-weapon")) {
             if (slot_value(v, &first, &last, &value) == 0) {
@@ -371,6 +377,9 @@ int mu_render_world_character(const mu_options *o)
         mu_renderchar_env env = W.env;
         env.particles = particles;
         env.time = W.world_time + 40.0f * (float)(n * o->frame_steps);
+        const uint32_t frame_counter = W.frame_counter + (uint32_t)n;   /* one per rendered frame */
+        if (W.has_frame_counter)
+            env.frame_counter = &frame_counter;
         if (particles)
             particles->world_time = env.time;   /* body and link callers read the same 0x06fce370 clock */
         mu_raster_clear(&raster, o->background);
@@ -434,9 +443,11 @@ int mu_render_world_character(const mu_options *o)
     int status = frames ? write_frames(o, frames) : 1;
     printf("{\"sha256\": \"%s\", \"width\": %d, \"height\": %d, \"meshes\": %ld, \"triangles\": %ld, \"passes\": %ld,"
            " \"special\": %ld, \"carried\": %d, \"attachments\": %d, \"quality\": %d, \"link_sprites\": %ld,"
-           " \"owner_effects\": %ld, \"owner_refused\": %ld, \"pre_effects\": %ld, \"pre_refused\": %ld}\n",
+           " \"owner_effects\": %ld, \"owner_refused\": %ld, \"pre_effects\": %ld, \"pre_refused\": %ld,"
+           " \"joint_quads\": %u}\n",
            hash, o->width, o->height, stats.meshes, raster.triangles, rstats.passes, rstats.special, carried, attached,
-           W.env.quality, link_sprites, owner_effects, owner_refused, pre_counts[0], pre_counts[1]);
+           W.env.quality, link_sprites, owner_effects, owner_refused, pre_counts[0], pre_counts[1],
+           particles ? particles->stats.drawn_joint_quads : 0u);   /* RENDER-ITEMS-002U: the last RenderJoints */
     if (particles) {
         mu_world_particles_close(particles);
         free(particles);

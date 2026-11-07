@@ -33,7 +33,7 @@ class ItemChains(unittest.TestCase):
 
     def test_every_chain_reaches_a_draw(self):
         first = chains.programs()
-        self.assertEqual(len(first), 59)
+        self.assertEqual(len(first), 61)   # RENDER-ITEMS-002U: + two counter chains of regenerated rows
         for ops, t in first.items():
             for time in (-2147483648.0, -1200.5, -0.0, 3.0, 1999.0, 123456.75, 1999999.0, 2147483648.0):
                 expected = gen.clock_value(ops, time)

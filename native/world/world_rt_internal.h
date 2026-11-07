@@ -131,6 +131,7 @@ struct mu_world_rt {
      * created, [1] refused; hidden = draws of a program type whose TestFrustrum2D flag was clear. */
     long item_pre[MU_WORLD_PRE_CALLERS][2];
     long item_pre_hidden[MU_WORLD_PRE_CALLERS];
+    uint32_t rendered_frames;   /* RENDER-ITEMS-002U: [0x0bdc5ebc], ++ once per rendered frame after the logic steps */
     /* RENDER-EFFECTS-021: the armour owner-effect programs (RENDER-ITEMS-002Q) of worn body parts per caller:
      * [0] requests created, [1] refused (plus programs outside the bone domain). */
     long item_owner_fx[MU_WORLD_PRE_CALLERS][2];

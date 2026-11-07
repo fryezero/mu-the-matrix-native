@@ -31,6 +31,9 @@ draws in RenderPartObjectBody) join both families: bow 0x130d's TransformPositio
 state of it gives the OBJECT a bone array with more than four bones: without one the client dereferences a NULL
 matrix) and a register bitmap, 0x2713's item bones and OBJECT light. hidden: the wings 0x2382..0x2385 with OBJECT +0x68
 = 1, 2, 3, 7 over the 292 states (the library used to refuse them; their streams equal the client's).
+RENDER-ITEMS-002U (part 23): frame: the bodies whose draws read the rendered-frame counter (gen_item_bodies.FRAME_TYPES,
+51 earlier bodies plus 0x0f2a), each survey state with a counter value (the boundaries 0..0xffffffff, then random),
+client RenderObjDraw against the library with mu_rc_item.frame. The predraw family's C bodies read its counter too.
 The body table (gen_item_bodies) and the effect table (gen_item_owner_fx) must reproduce from the pins.
 """
 import argparse
@@ -313,6 +316,7 @@ def predraw_cases(wa, lib, plib, per_type, names, consts):
         for k in range(per_type):
             case = dict(cases[(k * 37) % len(cases)])
             o = item_setup(rng, t, k, names[t], consts[t], OWNER_NEED.get(t, 0))
+            case['frame'] = o['frame']   # RENDER-ITEMS-002U: the C body reads the same counter (0x0f2a's atlas)
             expected = original(wa, reset, case, o)
             actual = run_c(lib, plib, case, o, expected[3])
             ok, refused = same(expected, actual)
@@ -352,6 +356,39 @@ def body_cases(wa, lib):
                 raise AssertionError(('body', hex(t), k, case, expected, (result, unexpected[:3], status, actual, used)))
             vectors.append(('body', case, sequence, expected))
     return {'cases': len(vectors), 'mismatches': 0}, vectors
+
+
+FRAME_VALUES = (0, 1, 2, 3, 15, 31, 32, 59, 60, 61, 119, 0x7ffffffe, 0x7fffffff, 0x80000000, 0xfffffffe, 0xffffffff)
+
+
+def frame_cases(wa, lib, states):
+    """RENDER-ITEMS-002U: the bodies whose draws read the rendered-frame counter [0x0bdc5ebc]
+    (gen_item_bodies.FRAME_TYPES), each state with a counter value (boundaries and random), client vs C."""
+    from item_body_machine import ResetWorld
+    reset, vectors, values = ResetWorld(wa, quality.RandomWorld), [], set()
+    for t in gen.FRAME_TYPES:
+        rng = random.Random(0x20063 + t)
+        for k, case in quality.state_cases(t):
+            if k >= states:
+                break
+            frame = FRAME_VALUES[k] if k < len(FRAME_VALUES) else rng.choice(
+                (rng.randrange(1 << 32), rng.randrange(1000), rng.randrange(0x7fffff00, 0x80000100) & 0xffffffff))
+            case = dict(case, frame=frame)
+            sequence = quality.sequence_for(rng)
+
+            def factory(*args):
+                world = reset(*args)
+                world.sequence, world.drawn = sequence, 0
+                return world
+            result, expected, other, _ = v.client_stream(wa, case, factory)
+            unexpected = [c for c in other if c[0] != 'effect']
+            status, actual, used = quality.run_c(lib, case, sequence)
+            if not result['ok'] or unexpected or status or actual != expected or used:
+                raise AssertionError(('frame', hex(t), k, frame, status, len(expected), len(actual),
+                                      next((i for i, (a, b) in enumerate(zip(expected, actual)) if a != b), None)))
+            values.add(frame)
+            vectors.append(('body', case, sequence, expected))
+    return {'cases': len(vectors), 'mismatches': 0, 'types': len(gen.FRAME_TYPES), 'counter_values': len(values)}, vectors
 
 
 def hidden_cases(wa, lib):
@@ -429,6 +466,12 @@ MUTANTS = {
                              'h->owner_item_transform(h->context, (int32_t)o->k, &r[o->c], 0, &r[o->a]);'),
     'post-host': ('(host->item_transform && mu_rc_item_post_fx(it->type))', '(host->item_transform && 0)'),
     'hidden-wings': ('!(it->type >= 0x2382 && it->type <= 0x2385))', '!(it->type >= 0x2382 && it->type <= 0x2384))'),
+    # RENDER-ITEMS-002U (part 23): the counter in the body chains (frame family)
+    'frame-source': ('case 30: i = (int32_t)frame; break;', 'case 30: i = (int32_t)(frame + 1u); break;'),
+    'frame-umod': ('case 31: i = (int32_t)((uint32_t)i % word); break;', 'case 31: i = (int32_t)((uint32_t)i % (word + 1u)); break;'),
+    'frame-udiv': ('case 32: i = (int32_t)((uint32_t)i / word); break;', 'case 32: i = (int32_t)((uint32_t)i / (word + 1u)); break;'),
+    'frame-u2d': ('case 33: d = (double)(uint32_t)i; break;', 'case 33: d = (double)i; break;'),
+    'frame-item': ('value = body_scalar(p, s->item->time, s->item->frame);', 'value = body_scalar(p, s->item->time, 0u);'),
     # Not mutated: the unknown-counter refusal (frame_known; a C refusal that matches the client's kind and bitmap
     # passes the comparison by design, so only test_item_predraw's frame-counter test catches it), op 49's bone guard
     # (unreachable: the owner gate already requires bone < bones), the post gate's item-bone exemption (here the OBJECT's model is the item model, so both counts
@@ -473,6 +516,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--predraw-cases', type=int, default=64, help='item states per type')
+    parser.add_argument('--frame-cases', type=int, default=292, help='RENDER-ITEMS-002U: counter states per type')
     parser.add_argument('--skip-bodies', action='store_true', help='iteration only: no body family or table check')
     parser.add_argument('--types', help='iteration only: comma-separated hex types (no table check)')
     parser.add_argument('--mutations', action='store_true')
@@ -492,6 +536,8 @@ def main():
         vectors += bodies
         report['families']['hidden'], hidden = hidden_cases(wa, lib)
         vectors += hidden
+        report['families']['frame'], frame = frame_cases(wa, lib, args.frame_cases)
+        vectors += frame
     names, consts = program_names()
     lib.mu_rc_item_post_fx.restype = C.c_int
     if any(not lib.mu_rc_item_pre_fx(t) for t in TYPES if t in fxgen.PRE_FX_TYPES) or lib.mu_rc_item_pre_fx(0x0ae6):

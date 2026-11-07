@@ -241,7 +241,8 @@ sequences, before = main (#114 build), after = this branch, with contact sheets 
 
 ## 10. Not ported
 
-- (RENDER-JOINTS-001 added 0x7f7d 0xc..0xf and 0x7f7c 0x12, section 11.)
+- (RENDER-JOINTS-001 added 0x7f7d 0xc..0xf and 0x7f7c 0x12, section 11; RENDER-ITEMS-002U 0x7f7c 0xe and 0x7fd3 4,
+  section 12.)
 - MoveObject's particle kinds of Dungeon, Devias, Noria and Atlans (`0x1a5`, `0x8016`, `0x7f5a` 0x15, `0x7f26` 9,
   `0x7fcd`), the character-select scene's kinds, other joint kinds (`0x7f78`, `0x7f79`, `0x7fd6`, `0x7ff9`, …), the
   `0x7f78`/`0x7fdd` second move, `0x7fd6` 0x36's tail shift.
@@ -321,6 +322,41 @@ and 93,116: the lava meshes of types 79/148 now scroll (a magenta probe on the s
 - Uruk Mountain (100) has no capture; its 0xd joints are checked by the instruction comparison and the host only.
 - The client's per-type StreamMesh initial value is taken as −1 (as AFTER2); a model whose BMD sets it otherwise is
   not modelled.
+
+## 12. The wing streaks `0x7f7c`/0xe and `0x7fd3`/4 (RENDER-ITEMS-002U)
+
+The pre-draw programs of wings `0x22ec` and `0x248f` (RENDER-ITEMS-002S) call CreateJoint 40 times per draw:
+`0x7f7c`/0xe and `0x7fd3`/4, twenty each, with the item's OBJECT as the target object, key -1, skill 0 and no colour
+argument. Both kinds are now in the module (`reconstructed/joints/wing_joints.inc`, hooks in `joints.c`).
+
+### Kinds (verified)
+
+| Kind | Create | Move | Render |
+|---|---|---|---|
+| `0x7f7c`/0xe (`0x01544f3d`, after the `0x7f7c` prologue `0x01543f00`: width, 50 tails, velocity 50) | LifeTime 0, width = argument, 10 tails, angle 0, light (0.3, 0.3, 1); +0x24 = (target **argument** − position) / max tails per axis; AngleMatrix(0); max tails − 1 times: position += step, tail shift, x and y step back and forward again (`(p − s) + s`, z keeps the step); then the head = +0x58 (`0x0154536c`) | the subtype switch `0x0156d391` jumps straight to the loop `0x0156d9ef` (no restart from the start): max tails times MoveHumming(position, angle, +0x58, 25), whose return value is the length of position − +0x58 before the turn (`0x00cfd020`: float sum of squares through the double square root); jitter x/z = (rand % 1024 − 512) / width (`0x0156ed1f`); tail shift with R(angle + jitter); if 1.5 × velocity > distance the loop stops (`0x0156eeb2`), at width 50 after CreateParticle(`0x7f2b`, head, angle, light, 0, 1, 0, 0) and, on rand % 8 == 0, three rand() offsets that are never passed and CreateParticle(`0x7f5a`, head, …) (`0x0156ef16..0x0156f0b5`); otherwise the forward step; then the closing tail shift | the bolt path (u doubled minus the WorldTime phase), colour light × brightness |
+| `0x7fd3`/4 (`0x01540b34`, after the `0x7fd3` prologue: render type 3) | render type 1, then as `0x7f7c`/0xe | no case (`0x01568ebe`): the head motion (velocity 0) and the closing tail shift | additive, colour light × brightness |
+
+LifeTime 0 means a streak is drawn once with its creation tails and released by its first MoveJoint: the client
+creates twenty fresh ones per wing per frame. The oldest of its ten tails is the common part's cross at the
+position, built with the record's **previous** width and the argument angle (the case zeroes the angle after it).
+
+**The target object.** Neither case reads the target OBJECT's fields: the creates only test the pointer, and both
+branches of that test are the same code (`0x01545155`, `0x01540d53`). The common part writes +0x58 from the target
+position argument only when the target object is NULL (`0x0153b37f`), so with the item's OBJECT the head ends at
+whatever +0x58 a former joint left in the record. That value feeds only the head position that the releasing
+MoveJoint starts from (and, at width 50, its particles' positions). Natively the joint gets no target object (-1,
+`mu_renderchar.c`, unchanged): +0x58 is the argument, and every quad drawn equals the client's.
+
+### Checks
+
+`scripts/validate_joints.py` now includes both kinds in `KINDS` (`WING_KINDS`) with widths around 50 (the particle
+branch), zero steps, heads at or near +0x58 (the stop), stale records and a target object or none: 3,000 cases per
+family on the two kinds alone, 0 mismatches (create 1,000, move 1,000 with 39 particle runs, render 1,000 with 0 to 9
+quads). Sixteen compiled mutants run on them (see the RENDER-ITEMS-002U handoff for the final counts); the
+anchors of all mutants now match exactly once (three earlier anchors were lengthened).
+
+Native: `mu-render character` reports `joint_quads`; wing `0x22ec` or `0x248f` on a 64-bone skeleton creates all
+twenty requests and draws 360 quads (20 streaks × 9 segments × 2 faces) in the same frame; refused 20 → 0.
 
 ## Reproduce
 

@@ -71,6 +71,9 @@ KINDS = [(0x7f7c, 6), (0x7f7d, 0)] + [(0x7f7d, s) for s in range(0x10, 0x1b)] + 
 # RENDER-JOINTS-001: Kanturu Underground's lightning (CreateJoint 0x01546828/0x01546e03/0x015470a7/0x01545672)
 KANTURU_KINDS = [(0x7f7d, 0xc), (0x7f7d, 0xd), (0x7f7d, 0xe), (0x7f7d, 0xf), (0x7f7c, 0x12)]   # 0xd: Uruk Mountain
 KINDS += KANTURU_KINDS
+# RENDER-ITEMS-002U: the wing pre-draw programs' streaks (CreateJoint 0x01544f3d / 0x01540b34, MoveJoint 0x0156d9ef)
+WING_KINDS = [(0x7f7c, 0xe), (0x7fd3, 4)]
+KINDS += WING_KINDS
 
 # RENDER-JOINTS-001: separately compiled planted mistakes in the Kanturu kinds (file, old, new, family); each must
 # disagree with the client on at least one case of its family.
@@ -95,9 +98,9 @@ MUTANTS = [
     ('kanturu_joints.inc', 'e[k] = F_0_2 * e[k];', 'e[k] = F_0_1 * e[k];', 'joint_move'),
     ('kanturu_joints.inc', '(void)kanturu_jitter(env, s, 20.0f, 10.0f);\n            (void)kanturu_jitter(env, s, 20.0f, 10.0f);',
      '(void)kanturu_jitter(env, s, 20.0f, 10.0f);', 'joint_move'),
-    ('kanturu_joints.inc', 'if (j->lifetime < 4)', 'if (j->lifetime <= 4)', 'joint_move'),
-    ('kanturu_joints.inc', 'const float x = kanturu_jitter(env, s, 10.0f, 5.0f);\n            j->position[0]',
-     'const float x = kanturu_jitter(env, s, 10.0f, 4.0f);\n            j->position[0]', 'joint_move'),
+    ('kanturu_joints.inc', '        }\n        if (j->lifetime < 4)', '        }\n        if (j->lifetime <= 4)', 'joint_move'),
+    ('kanturu_joints.inc', 'const float x = kanturu_jitter(env, s, 10.0f, 5.0f);\n            j->position[0] = j->position[0] + x;\n            j->position[1] = j->position[1] + y;\n            j->position[2] = j->position[2] + 0.0f;\n        }\n        mu_jt_tail_shift(j, m);\n    }\n    float e[3];',
+     'const float x = kanturu_jitter(env, s, 10.0f, 4.0f);\n            j->position[0] = j->position[0] + x;\n            j->position[1] = j->position[1] + y;\n            j->position[2] = j->position[2] + 0.0f;\n        }\n        mu_jt_tail_shift(j, m);\n    }\n    float e[3];', 'joint_move'),
     ('kanturu_joints.inc', 'j->target_position, 110.0f);', 'j->target_position, 100.0f);', 'joint_move'),
     ('kanturu_joints.inc', 'j->jitter[2] = (float)(imod(jrand(env), 64) - 32);',
      'j->jitter[2] = (float)(imod(jrand(env), 64) - 31);', 'joint_move'),
@@ -105,8 +108,32 @@ MUTANTS = [
     ('kanturu_joints.inc', 'c.light[2] = f * 0.5f;', 'c.light[2] = f * F_0_1;', 'joint_move'),
     ('joints.c', 'if (j->subtype == 0x12)\n            move_thunder_arc', 'if (j->subtype == 0x13)\n            move_thunder_arc',
      'joint_move'),
-    ('joints.c', '(j->subtype >= 0xb && j->subtype <= 0xd)', '(j->subtype >= 0xb && j->subtype <= 0xb)',
+    ('joints.c', '(j->subtype >= 0xb && j->subtype <= 0xd)) {\n            int32_t half', '(j->subtype >= 0xb && j->subtype <= 0xb)) {\n            int32_t half',
      'joint_render'),
+    # RENDER-ITEMS-002U: the wing streaks (run on WING_KINDS)
+    ('wing_joints.inc', 'j->max_tails = 10;', 'j->max_tails = 9;', 'joint_create'),
+    ('wing_joints.inc', 'j->light[0] = F_0_3;', 'j->light[0] = F_0_4;', 'joint_create'),
+    ('wing_joints.inc', 'j->render_type = 1;   /* 0x01540b37 */', 'j->render_type = 3;   /* 0x01540b37 */',
+     'joint_create'),
+    ('wing_joints.inc', 'j->start[k] = (target_position[k] - j->position[k]) / n;',
+     'j->start[k] = (target_position[k] - j->position[k]) / (n - 1.0f);', 'joint_create'),
+    ('wing_joints.inc', 'for (int32_t i = 0; i < j->max_tails - 1; ++i) {',
+     'for (int32_t i = 0; i < j->max_tails; ++i) {', 'joint_create'),
+    ('wing_joints.inc', 'j->position[1] = j->position[1] - step[1];\n', '', 'joint_create'),
+    ('wing_joints.inc', 'copy3(j->position, j->target_position);   /* 0x0154536c / 0x01540f6a */',
+     'copy3(j->position, target_position);', 'joint_create'),
+    ('joints.c', 'j->velocity=50.0f;   /* 0x01543f1a */', 'j->velocity=40.0f;   /* 0x01543f1a */', 'joint_create'),
+    ('wing_joints.inc', 'j->target_position, 25.0f);', 'j->target_position, 20.0f);', 'joint_move'),
+    ('wing_joints.inc', 'j->jitter[0] = (float)(imod(jrand(env), 1024) - 512) / j->scale;',
+     'j->jitter[0] = (float)(imod(jrand(env), 1024) - 511) / j->scale;', 'joint_move'),
+    ('wing_joints.inc', 'sum = sum + d[2] * d[2];', 'sum = sum + 0.0f * d[2];', 'joint_move'),
+    ('wing_joints.inc', 'if (j->velocity * 1.5f > distance) {', 'if (j->velocity * 2.0f > distance) {', 'joint_move'),
+    ('wing_joints.inc', 'if (j->scale == 50.0f) {', 'if (j->scale >= 50.0f) {', 'joint_move'),
+    ('wing_joints.inc', 'for (int k = 0; k < 3; ++k)\n                        (void)jrand(env);',
+     'for (int k = 0; k < 2; ++k)\n                        (void)jrand(env);', 'joint_move'),
+    ('wing_joints.inc', 'c.type = 0x7f5a;', 'c.type = 0x7f2b;', 'joint_move'),
+    ('joints.c', 'if (j->subtype == 4)\n            break;   /* RENDER-ITEMS-002U: no case (0x01568ebe) */', '',
+     'joint_move'),
 ]
 
 
@@ -122,6 +149,11 @@ def kanturu_width(rng, kind, create):
     if create and kind[1] != 0xc:
         picks += [0.0, -1.0, float('nan')]   # the early return before the tail clamp; NaN goes on
     return f32(rng.choice(picks))
+
+
+def wing_width(rng):
+    """RENDER-ITEMS-002U: the streaks divide the jitter by the width; 50 selects MoveJoint's particles."""
+    return f32(rng.choice([50.0, 50.0, 49.99, 20.0, 35.0, 80.0, -10.0, vc.rfloat(rng, 0.2, 120.0)]))
 
 
 # --------------------------------------------------------------------------
@@ -354,6 +386,11 @@ def heal_sprite_tail(calls):
     return out
 
 
+def wing_rand_values(rng, n=600):
+    """RENDER-ITEMS-002U: rand() answers for the wing streaks' move: multiples of 8 often (the 0x7f5a branch)."""
+    return [rng.choice([0, 8, 512, 1024, 4096, 0x7ff8, rng.randrange(0, 0x8000)]) for _ in range(n)]
+
+
 def rand_values(rng, n=600):
     return [rng.choice([0, 1, 2, 3, 5, 89, 90, 359, 360, 0x7fff, rng.randrange(0, 0x8000)]) for _ in range(n)]
 
@@ -372,6 +409,10 @@ def random_create_args(rng, kind):
     angle = [vc.rfloat(rng, 0.1, 360.0) for _ in range(3)]
     if kind in KANTURU_KINDS:
         scale = kanturu_width(rng, kind, True)
+    elif kind in WING_KINDS:
+        scale = wing_width(rng)
+        if rng.random() < 0.15:
+            target = list(pos)   # a zero step
     elif kind[0] == 0x7f7d:
         scale = f32(rng.choice([1.0, 0.8, 1.2, 0.5, 2.0, 0.0, -1.0, rng.uniform(0.05, 3.0)]))
     else:
@@ -384,7 +425,7 @@ def family_joint_create(m, lib, rng, cases, report, negatives):
         kind = KINDS[n % len(KINDS)]
         pos, tpos, angle, scale = random_create_args(rng, kind)
         objects = [random_object(rng) for _ in range(2)]
-        target = (rng.choice([-1, 0, 1]) if kind in KANTURU_KINDS else
+        target = (rng.choice([-1, 0, 1]) if kind in KANTURU_KINDS + WING_KINDS else
                   rng.choice([0, 1]) if kind[0] in (0x472, 0x7f7d, 0x7f78, 0x7fd6) else rng.choice([-1, 0, 1]))
         key, skill, byte10, word13, arg14 = (rng.choice([rng.randrange(0, 0x10000), 2, 0xffff, 0, 3]),
                                               rng.choice([0x7f5, 9, 0x123]),
@@ -469,7 +510,19 @@ def random_joint(rng, kind):
         j.target_position[:] = j.start[:]
     j.target = rng.choice([-1, 0, 1, 1])
     j.field_64 = rng.choice([0, 1, 2])
-    if kind in KANTURU_KINDS:   # RENDER-JOINTS-001
+    if kind in WING_KINDS:   # RENDER-ITEMS-002U
+        j.scale = f32(50.0) if rng.random() < 0.5 else wing_width(rng)
+        j.max_tails = rng.choice([10, 10, 10, rng.randrange(2, 51)])
+        j.lifetime = rng.choice([0, 0, 0, 1, rng.randrange(-1, 21)])
+        j.velocity = f32(rng.choice([50.0, 50.0, 0.0, vc.rfloat(rng, 0.2, 100.0)]))
+        j.render_type = 1
+        j.jitter[1] = f32(rng.choice([0.0, 0.0, vc.rfloat(rng, 0.1, 20.0)]))
+        if rng.random() < 0.8:   # the head at (or near) +0x58, as CreateJoint leaves it: the stop and the particles
+            for k in range(3):
+                j.target_position[k] = f32(j.position[k] + rng.choice([0.0, 0.0, vc.rfloat(rng, 0.05, 200.0)]))
+            if rng.random() < 0.5:
+                j.angle[:] = [0.0, 0.0, 0.0]
+    elif kind in KANTURU_KINDS:   # RENDER-JOINTS-001
         j.scale = kanturu_width(rng, kind, False)
         j.max_tails = rng.choice([{0xc: 30, 0xd: 50, 0xe: 50, 0xf: 50, 0x12: 5}[kind[1]]] * 3 + [rng.randrange(2, 51)])
         j.lifetime = rng.choice([20, 10, 5, 4, 4, 4, 3, 1, 0, rng.randrange(-1, 21)])
@@ -521,7 +574,8 @@ def family_joint_move(m, lib, rng, cases, report, negatives):
         wall = rng.choice([0, 0x100, 0x104, 4])
         hero_obj = rng.choice([-1, 0, 1])
         world_time = world_time_value(rng)
-        case = Case(rng, objects, rand_values(rng), vc.rfloat(rng, 0.1, 400.0), world_time)
+        case = Case(rng, objects, wing_rand_values(rng) if kind in WING_KINDS else rand_values(rng),
+                    vc.rfloat(rng, 0.1, 400.0), world_time)
         raw, mask = joint_to_bytes(j, ALL_NAMES | {'target'})
         record = am.Region('joint', JOINT_POOL, raw, mask)
         hero_char = (object_address(hero_obj) - 0x3254) & 0xffffffff if hero_obj >= 0 else 0x5000000
@@ -550,7 +604,7 @@ def family_joint_move(m, lib, rng, cases, report, negatives):
         env = case.jenv()
         env.ambient_clock = clock
         is_hero = 1 if (hero_obj >= 0 and hero_obj == j.target) else 0
-        if j.type == 0x7fd3 and j.scale == 80.0 and wall_scene:
+        if j.type == 0x7fd3 and j.subtype == 0 and j.scale == 80.0 and wall_scene:
             case.c_calls.append(('wall', None, None))
         inputs = MoveInputs(step, wall_scene, wall, index, is_hero)
         supported = lib.mu_jt_move(ctypes.byref(j), ctypes.byref(env), ctypes.byref(inputs))
@@ -567,6 +621,10 @@ def family_joint_move(m, lib, rng, cases, report, negatives):
         report.add('joint_move', equal, {'case': n, 'kind': [hex(kind[0]), kind[1]], 'mismatch': mismatch,
                                          'stopped': r['stopped'], 'error': r['error'], 'checks': r['checks']})
         report.cover('joint_move', f'{kind[0]:#x}/{kind[1]:#x}')
+        if kind == (0x7f7c, 0xe) and vc.ok(r):   # RENDER-ITEMS-002U: the stop and its particles were reached
+            parts = [c[1] for c in case.client_calls if c[0] == 'particle']
+            report.cover('joint_move', '0x7f7c/0xe particles ' + ','.join(hex(t) for t in parts) if parts else
+                         '0x7f7c/0xe no particle')
         if vc.ok(r) and kind[0] == 0x7fd6 and before.target >= 0 and objects[before.target].live:
             negatives['move_eye_no_refresh'] += j.lifetime != before.lifetime - 1
         if vc.ok(r) and kind == (0x7f78, 42):
@@ -702,10 +760,12 @@ def run_mutants(m, cases, seed):
     global KINDS
     families = dict(FAMILIES)
     out = []
-    saved, KINDS = KINDS, KANTURU_KINDS   # the families read the module's KINDS (other validators rebind it too)
+    saved = KINDS   # the families read the module's KINDS (other validators rebind it too)
     try:
         with tempfile.TemporaryDirectory(prefix='joints-mutant-') as tmp:
             for n, (file, old, new, family) in enumerate(MUTANTS):
+                KINDS = WING_KINDS if file == 'wing_joints.inc' or 'RENDER-ITEMS-002U' in old or '50.0f;   /* 0x01543f1a' in old \
+                    else KANTURU_KINDS
                 dest = Path(tmp) / str(n)
                 for directory in ('joints', 'record-math', 'movement'):
                     shutil.copytree(ROOT / 'reconstructed' / directory, dest / directory,
@@ -714,7 +774,7 @@ def run_mutants(m, cases, seed):
                     shutil.copy(ROOT / 'reconstructed/deps.mk', dest / 'deps.mk')
                 p = dest / 'joints' / file
                 text = p.read_text()
-                assert text.count(old) >= 1, old
+                assert text.count(old) == 1, old   # every anchor matches exactly once
                 p.write_text(text.replace(old, new, 1))
                 subprocess.run(['make', '-s', '-C', str(dest / 'joints')], check=True, capture_output=True)
                 lib = load_library(dest / f'joints/libclient_joints.{SUFFIX}')

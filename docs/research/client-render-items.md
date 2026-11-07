@@ -23,6 +23,7 @@ Part 11 reaches **967/1,674 bodies** with per-type wave/sine scalar programs; li
 [Part 23 below](#part-23-pre-draw-particles-without-an-owner-and-armour-owner-programs-in-the-world-render-effects-021) serves the pre-draw particles without an owner and runs the armour owner programs in the world.
 [Part 24 below](#part-24-the-inventorys-equipment-and-its-icons-effects-inventory-fx) draws the inventory's equipment and its icons' effects.
 [Part 25 below](#part-25-the-wings-physics-capes-render-items-cloak) draws the wings' capes as the client's physics cloth.
+[Part 26 below](#part-26-the-rendered-frame-counter-in-body-draws-the-wing-joints-and-the-world-callers-render-items-002u) reaches **1,364/1,674 bodies**: the rendered-frame counter is a body input (51 earlier bodies regenerated, `0x0f2a`), the wing joints draw.
 Muun/map-object effect placement remains deferred. All parts run offline.
 
 ## Identity and evidence
@@ -2254,6 +2255,133 @@ come from the pinned third section (`effects_init`).
 - The 0.01 floor of the sphere collision (a vertex within 0.01 of a centre) is in the port but no random state
   reaches it.
 - GL_QUADS are drawn as triangles (0, 1, 2), (0, 2, 3).
+
+## Part 26, the rendered-frame counter in body draws, the wing joints and the world callers, RENDER-ITEMS-002U
+
+Bodies **1,363 → 1,364 of 1,674**. The rendered-frame counter `[0x0bdc5ebc]` is now a body input, and a
+comparison of the client's streams at different counter values found that **51 admitted bodies** draw texture
+coordinates from it: their recipes were right only at counter 0 (every earlier probe and validator held it there).
+They are regenerated with counter chains; `0x0f2a` (002T's unadmitted mace) joins with its atlas frame. The joint
+kinds of the wing programs are reconstructed ([client-joints.md section 12](client-joints.md#12-the-wing-streaks-0x7f7c0xe-and-0x7fd34-render-items-002u)),
+so 40/40 routed CreateJoint calls draw. A native rendered-frame counter feeds the world callers.
+
+### Where the client increments the counter (verified by the existing frame-driver check)
+
+The frame driver `0x01851d39` (client-frame-loop.md): the due 40 ms logic steps, the clear, GetTickCount
+(`0x018524f2`), then `++[0x0bdc5ebc]` (`0x01852501..0x01852507`), then the scene render. During any item draw of a
+frame the counter therefore holds that frame's number, one more than in the previous frame. Of the 225 references in
+the text only `0x01852507` writes it (static scan).
+
+### Which bodies read it (verified, client against client)
+
+Every survey type (1,691) in four states, client RenderObjDraw with the counter at 0 against 7, 13 and 22: 58 types'
+streams differ; 51 were admitted bodies. The reads sit in their RenderPartObjectBody cases (`0x0172dd0c` ..
+`0x01737116`, 36 sites) and in RenderObjDraw for the maces `0x0f24`..`0x0f2c` (`0x01769c75` .. `0x0176c12a`). All
+of them set a mesh's u or v. Six idioms:
+
+- `((counter + 1) % 60)` (`inc; xor edx, edx; push 0x3c; pop ecx; div ecx`), converted as unsigned to binary64
+  (`cvtsi2sd` of the word, `shr r, 31`, `addsd [r*8 + 0x01bd3050]` with the table {0, 2^32}), to binary32, times a
+  constant (often 1/60), sometimes negated after a vec3 setter call (`0x00cfcead`): swords `0x0b66`..`0x0b73`,
+  bows, staffs `0x1560`.., shields `0x1739`..;
+- the same with the divisor a binary32 constant truncated (`cvttss2si ecx, [local]`, `0x132b`) and the scale
+  `1.0 / that constant` folded;
+- `(counter + 1)` unsigned, `/ 1.0`, truncated, `% 16`, then `% 4` and `/ 4` (signed idioms) × 0.25: a 4 × 4 atlas
+  (`0x1109`, ten operations);
+- `0x0f2a`: f = (counter % 32) / 2 (unsigned, the divisor `2 << 4` from a local), u = (f % 4)·0.25, v = (f / 4)·0.25.
+
+### Generator and library
+
+`gen_item_bodies.py`: kind-3 chains gain `C_FRAME` (the counter into the integer register), `C_U_MOD`/`C_U_DIV`
+(`xor edx, edx; div`) and `C_U2D` (the unsigned conversion); `CLOCK_OPS` 9 → 12. Blocks are sliced in counter mode
+when their bytes contain the counter's address and the type is in `FRAME_TYPES`; only then do the new idioms apply
+(`push k; pop r`, `xor r, r` before `div`, the fix-up table, binary64 temporaries of counter chains, binary32 constant
+folding, the vec3 setters `0x00cfcead`/`0x00cfcede` walked over), so every other type's blocks slice as before. Their
+probes vary the counter (boundaries and random words per seed); other types keep the zero page, so their samples and
+cache keys are unchanged. `renderchar.c`: ops 30..33 in `clock_program`, which now takes the counter;
+`mu_rc_item.frame` (appended) carries it; `mu_renderchar.c` fills it from `mu_renderchar_env.frame_counter` (0 when
+unknown, the previous behaviour). `validate_renderchar` writes `case['frame']` to the client and the C.
+
+Fitting: with the counter varied, all 51 earlier bodies and `0x0f2a` fit (`0x0f2f` and `0x158a` need nine scalar
+programs, so `MU_RC_BODY_SCALARS` is 12; `0x1109`'s chain has ten operations, so `CLOCK_OPS` is 12). The table grows
+1,344 → 1,345 rows (`0x0f2a`); at counter 0 every earlier row draws what it drew before (C-to-C below). The other six
+counter types (`0x0f24`, `0x0f28`, `0x0f29`, `0x0f2b`, `0x0f2c` with effect programs in RenderObjDraw, and
+`0x1588`) still fit no probe option.
+
+### Native
+
+- `mu_world_rt.rendered_frames`, incremented once per rendered frame in `mu_world_rt_frame` right after the due logic
+  steps and before the frame parts and the draws (the client's position). It counts from the world runtime's start;
+  the client's counts from process start, including the login and character-select frames, so the absolute phase
+  differs and only the periods (2, 3, 5, 16, 32, 60 frames) are faithful.
+- `world_rt_item_pre` sets `env->frame_counter` for every item it is called for (worn weapons, shields and wings of
+  the hero, players and player-model actors, ground items), before its pre/post test; its condition now also
+  accepts the post-draw types (`|| mu_rc_item_post_fx(type)`), so `0x2713`'s post program gets the item pose in the
+  world, and since INVENTORY-FX (#343) also the world's inventory window, whose items go through the same function
+  (the client draws them with the live counter too). `mu-render ui inventory` and the texture survey keep it unknown
+  (0): their frames are unchanged.
+- With the counter present, the requests behind `0x0f1f`'s/`0x0f20`'s counter tests run on the client's frames
+  (`counter % 3 == 0`, `% 5 == 0`) instead of all being refused; the particle kinds they create (`0x855d`/1,
+  `0x84d1`/1, `0x810a`/0x25 with argument 8) are not in the native pool, so what runs is still refused, now for the
+  kind. `mu-render character --frame-counter N` sets the counter for the viewer (N at the first frame, +1 per frame).
+- The wing joints (`0x22ec`, `0x248f`): 40/40 routed CreateJoint calls are created and drawn (client-joints.md
+  section 12). #339's combined particle refusal rule (an OBJECT-owned particle without an owner key, any request with
+  argument 8) does not apply to joints; they keep no target object (-1), which draws the client's quads because
+  neither kind reads its target.
+
+### Checks
+
+`scripts/validate_item_predraw.py --mutations` (the part-18 row; new family `frame`): **32,372 comparisons, zero
+mismatches** (286 s, both tables reproduce):
+
+| Family | Cases | Mismatches |
+|---|---:|---:|
+| Body streams, 45 types × 292 states, counter 0 | 13,140 | 0 |
+| Hidden: wings `0x2382`..`0x2385` × 292 states | 1,168 | 0 |
+| Frame: the 52 counter types × 292 states, each with a counter (16 boundaries 0..0xffffffff, then random; 6,408 distinct values) | 15,184 | 0 |
+| Pre-draw/post: 45 programs × 64 states, random counter, the C body reading the same counter (`0x0f2a`'s atlas) | 2,880 | 0 |
+
+**44/44 separately compiled mutants** are caught (anchors once); the five new ones: counter source 14,645, unsigned
+remainder 14,259, unsigned quotient 1,010, unsigned conversion 1 (only `0x1109` converts an unreduced counter, and
+only counters ≥ 2^31 tell), the item's counter 14,690.
+
+`scripts/validate_joints.py --cases 3000 --mutations`: 9,000 cases, 0 mismatches; 38/38 compiled mutants (16 new on
+the wing kinds) and the 9 negative controls (228 s).
+
+Compiled C-to-C, main `138b756e`'s library against this one (main did not change `reconstructed/renderchar` after the
+base), all 1,691 survey types × 32 states (OBJECT hidden -1/0/1/2) × with/without a rand context × counter 0 and one
+non-zero counter: **216,448 cases**; 215,576 identical. At counter 0 only `0x0f2a` differs (admitted); with a counter
+exactly the 52 counter types differ.
+
+The table now writes only the used op/k slots of each scalar row (C zero-fills the rest): with `CLOCK_OPS` 12 the
+fully written rows exceeded the audit's 512 KiB limit; compact, `item_bodies.h` is 486,681 bytes (main: 521,715), and
+the compiled library is identical over the same 216,448 cases. `validate_item_scalars`/`validate_item_chains` parse
+two-digit op counts now; their case counts grow by the counter programs (26,154 → 26,274, 35,346 → 35,406), all
+mutants caught. The affected rows ran without mutants on the final code (handoff).
+
+Counter scan (client against client, scratch): 1,691 types × 4 states × counters 7/13/22, then × 12 states × counters
+1/0x80000000: 58 counter types in the union, none outside `FRAME_TYPES` plus the six not admitted.
+
+### Limits
+
+- 310 bodies remain. The six counter types not admitted (`0x0f24`, `0x0f28`, `0x0f29`, `0x0f2b`, `0x0f2c`, `0x1588`)
+  fit no probe option yet; the maces also create effects in RenderObjDraw that are not read.
+- The native counter's phase is not the client's (it starts with the world runtime). `mu-render ui inventory`, the
+  texture survey and `mu-render character` without `--frame-counter` keep 0, so their counter bodies show frame 0.
+- The counter scan covers the survey's unselected/no-buff domain with 16 states per type; a counter read only in
+  another branch would not be found.
+- `0x0f1f`/`0x0f20`'s counter-gated particles are now refused for their kinds (not in the native pool), not for the
+  counter.
+
+### Next groups
+
+1. The six counter types not admitted: read the maces' RenderObjDraw effect programs (`0x0f24`, `0x0f28`, `0x0f29`,
+   `0x0f2b`, `0x0f2c`; their counter tests now have an input) and find `0x1588`'s probe option.
+2. Part 20's group 3, untouched here: draw fits for programs that already read (`0x23a8`/`0x23a9`, `0x0f1e`,
+   `0x174a`, `0x2301`/`0x2302`, `0x23f0`/`0x23f2`, `0x0b51`/`0x0b52`, the bows `0x1313`/`0x1317`/`0x1319`, part 18's
+   eleven).
+3. The 31 rank-5 parts faulting in strlen `0x0195a4e0` (rank-5 pose world) and the 54 helper-group-count types.
+4. Native particle kinds behind the maces' counter tests (`0x855d`/1, `0x84d1`/1, `0x810a`/0x25 with argument 8):
+   RENDER-EFFECTS lanes.
 
 ## Part 27, every CreateCloth case and the glow pass, CLOAK-002
 

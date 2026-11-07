@@ -705,6 +705,7 @@ mu_world_frame_info mu_world_rt_frame(mu_world_rt *a, uint32_t now)
         was_moving = 0;
     }
     int32_t steps = mu_walk_update(w, now, a->has_character ? &a->ch : NULL);
+    a->rendered_frames++;   /* RENDER-ITEMS-002U: the frame driver's ++[0x0bdc5ebc] (0x01852501) before the scene render */
     if (was_moving || w->hero.movement) {
         double dx = (double)(w->hero.position[0] - before[0]), dy = (double)(w->hero.position[1] - before[1]);
         a->walked += sqrt(dx * dx + dy * dy);
@@ -1111,7 +1112,8 @@ static void write_fidelity_dump(const mu_world_rt *a)
 void world_rt_item_pre(mu_world_rt *a, struct mu_renderchar_env *env, int caller, int32_t type, const mu_model *model,
                        const float *bones, uint32_t object)
 {
-    if (!env->particles || !mu_rc_item_pre_fx(type))
+    env->frame_counter = &a->rendered_frames;   /* RENDER-ITEMS-002U: body chains and program tests read [0x0bdc5ebc] */
+    if (!env->particles || !(mu_rc_item_pre_fx(type) || mu_rc_item_post_fx(type)))   /* RENDER-ITEMS-002U: post too */
         return;
     env->item_bones = bones;
     env->pre_counts = a->item_pre[caller];
