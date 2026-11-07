@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../core/mu_charsel.h"
 #include "../core/mu_item_textures.h"
 #include "../core/mu_lang.h"
 #include "../core/mu_perf.h"
@@ -192,6 +193,23 @@ void world_rt_unload(mu_world_rt *a)
         mu_world_free(a->map);
 }
 
+/* APP-POLISH-008: the offline session's equipment record of item i (code, level, option, ext), only while item i is
+ * the front end's own file (not a class part or the combat stand-in); NULL for a file-only item. */
+static const mu_charsel_item_record *hero_session_record(const mu_world_rt *a, int i)
+{
+    if (!a->equip_set || !a->equip_record || i < 1 || i >= MU_CHARACTER_ITEMS || !a->equip[i] || !a->equip[i][0])
+        return NULL;
+    const mu_charsel_item_record *r = &a->equip_record[i];
+    return r->set && a->ch.items[i].loaded && !strcmp(a->ch.items[i].path, a->equip[i]) ? r : NULL;
+}
+
+/* The model type of hero item i: its session record's code, else the file's first Item.bmd record. */
+static int32_t hero_item_type(const mu_world_rt *a, const mu_data_table *items, int i)
+{
+    const mu_charsel_item_record *r = hero_session_record(a, i);
+    return r ? r->code + MU_ITEM_MODEL_BASE : mu_item_textures_type_of_path(items, a->root, a->ch.items[i].path);
+}
+
 /* The front end's equipment (the chosen character's items), after load() equipped the class parts: with combat
  * its weapons replace the stand-in weapon. */
 /* APP-POLISH-005: the chosen character's weapons as the skill usability check reads them: each loaded weapon
@@ -212,7 +230,7 @@ static void world_rt_equipment_codes(mu_world_rt *a)
     for (int slot = 0; have && slot < MU_CHARACTER_WEAPON_SLOTS; ++slot) {
         const mu_character_item *it = &a->ch.items[MU_CHARACTER_WEAPON_ITEM(slot)];
         mu_item record;
-        int32_t type = it->loaded ? mu_item_textures_type_of_path(&items, a->root, it->path) : -1;
+        int32_t type = it->loaded ? hero_item_type(a, &items, MU_CHARACTER_WEAPON_ITEM(slot)) : -1;
         if (type < 0 || mu_item_model(&items, type, &record) != 1 || record.attributes.slot > 1 ||
             a->equip_code[record.attributes.slot] >= 0)
             continue;
@@ -259,7 +277,7 @@ void world_rt_hero_item_textures(mu_world_rt *a, int first, int last)
         a->hero_record[i] = -1;
         if (!a->ch.items[i].loaded)
             continue;
-        const int32_t type = mu_item_textures_type_of_path(have ? &items : NULL, a->root, a->ch.items[i].path);
+        const int32_t type = hero_item_type(a, have ? &items : NULL, i);
         mu_item_textures_character(&a->ch, i, have ? &items : NULL, a->root, type, a->class_byte);
         mu_item record;
         if (have && mu_item_model(&items, type, &record) == 1)
@@ -270,10 +288,11 @@ void world_rt_hero_item_textures(mu_world_rt *a, int first, int last)
 }
 
 /* HERO-ITEMS-001: the hero's equipment records -> its part slots, as the client's SetCharacterClass 0x01394870
- * writes them from CharacterMachine's ITEMs. The offline session's records are the front end's items: each worn
- * file's Item.bmd record (its code; the demo characters list files, not codes, and carry no level or options,
- * so the level word, +0x3b and +0x98 are 0). An item without a record (a class part, a file outside Item.bmd,
- * no Item.bmd) keeps the file-name inference in parts/hero.c. Item.bmd's kind bytes as for the players. */
+ * writes them from CharacterMachine's ITEMs. The offline session's records are the front end's items. APP-POLISH-008:
+ * an item with a session record (FILE@GROUP:INDEX:LEVEL:OPTION:EXT) fills the ITEM's code, level word, +0x98 and
+ * +0x3b from it (mu_he_item_of_record); a file-only item is the file's first Item.bmd record with the level word,
+ * +0x3b and +0x98 0, as before. An item without a record (a class part, a file outside Item.bmd, no Item.bmd)
+ * keeps the file-name inference in parts/hero.c. Item.bmd's kind bytes as for the players. */
 void world_rt_hero_slots(mu_world_rt *a, const mu_data_table *items)
 {
     mu_he_item equipment[MU_HE_EQUIPMENT];
@@ -281,7 +300,12 @@ void world_rt_hero_slots(mu_world_rt *a, const mu_data_table *items)
         equipment[s] = (mu_he_item){.type = -1};
     for (int i = 0; i < MU_CHARACTER_ITEMS; ++i) {
         const int32_t s = mu_he_equipment_of_slot(i);   /* item index i is the CHARACTER slot i (0..8) */
-        if (s >= 0 && a->ch.items[i].loaded && a->hero_record[i] >= 0)
+        if (s < 0 || !a->ch.items[i].loaded || a->hero_record[i] < 0)
+            continue;
+        const mu_charsel_item_record *r = hero_session_record(a, i);
+        if (r)
+            equipment[s] = mu_he_item_of_record(r->code, r->level, r->option, r->ext);
+        else
             equipment[s].type = a->hero_record[i] - MU_ITEM_MODEL_BASE;
     }
     mu_rp_character c;
@@ -574,6 +598,7 @@ mu_world_rt *mu_world_rt_open(const mu_world_rt_options *o, char *error, size_t 
          * again. */
         for (int i = 0; i < MU_CHARACTER_ITEMS; ++i)
             a->equip[i] = o->items[i];
+        a->equip_record = o->item_records;   /* APP-POLISH-008 */
         a->equip_combat = o->combat;
         a->equip_set = 1;
         if (world_rt_apply_equipment(a, error, error_size)) {
@@ -1057,6 +1082,24 @@ static void report_item_pre(const mu_world_rt *a)
     printf("}\n");
 }
 
+/* APP-POLISH-008: the hero's slots that took an offline-session equipment record (type, level, option, ext as
+ * SetCharacterClass wrote them) and the render passes drawn for each; printed only when a record is in use, so
+ * every other report is unchanged. */
+static void report_hero_records(const mu_world_rt *a)
+{
+    int any = 0;
+    for (int i = 1; i < MU_CHARACTER_ITEMS; ++i)
+        if (hero_session_record(a, i) && a->hero_glow_set[i]) {
+            const mu_renderchar_glow *g = &a->hero_glow[i];
+            printf("%s{\"item\": %d, \"type\": %d, \"level\": %d, \"option\": %d, \"ext\": %d, \"passes\": %ld}",
+                   any ? ", " : "{\"hero_records\": true, \"slots\": [", i, g->type, g->level, g->option1, g->ext,
+                   a->hero_passes[i]);
+            any = 1;
+        }
+    if (any)
+        printf("]}\n");
+}
+
 void world_rt_report_summary(const mu_world_rt *a, const char *renderer)
 {
 #ifndef MU_WORLD_NO_GL
@@ -1087,6 +1130,7 @@ void world_rt_report_summary(const mu_world_rt *a, const char *renderer)
         if (ROWS[i].ops->report_summary)
             ROWS[i].ops->report_summary(a, a->part[i]);
     report_item_pre(a);
+    report_hero_records(a);
     if (!a->quiet)
         for (int32_t k = 0; k < w->log_count; ++k)
             printf("{\"log\": \"%s\"}\n", w->log[k]);

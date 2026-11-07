@@ -14,7 +14,9 @@
  * demo files so the native scene flow can run end to end:
  *
  *   servers FILE        server list, `mu-render ui servers --list` format
- *   characters FILE     character list, `mu-charsel --list` format
+ *   characters FILE     character list, `mu-charsel --list` format; APP-POLISH-008: an item may carry its
+ *                       equipment record, SLOT=FILE@GROUP:INDEX[:LEVEL[:OPTION[:EXT]]] (the code, level,
+ *                       excellent option and ext the hero's ITEM holds; file-only items still load)
  *   join SLOT WORLD X,Y [ANGLE]   where the character with SLOT enters
  *   skills FILE         APP-POLISH-005: the learned skills and saved hotkeys the server sends at the
  *                       join, per class ("list CLASS SKILL..." / "keys CLASS K1..K9 K0" lines, the

@@ -67,6 +67,17 @@ typedef void (*mu_charsel_sound_fn)(void *context, const mu_cue *cue, uint32_t t
 #define MU_CHARSEL_MAX_ENTRIES 10           /* NATIVE-CHARCREATE-001: all ten CharactersClient slots of the list (was 5) */
 #define MU_CHARSEL_PATH 1024
 
+/* APP-POLISH-008: an item's equipment record, written after its file: SLOT=FILE@GROUP:INDEX[:LEVEL[:OPTION[:EXT]]].
+ * The fields the client's equipment ITEM holds (CharacterMachine [0x01d1df18] + 0x1b58 + s * 0x12c; see
+ * reconstructed/hero-equipment): the code +0x10 (group * 512 + index), the item level 0..15 (the level word +0x14
+ * >> 3 & 15), the option 0/1 (+0x98, the excellent flag) and the ext byte +0x3b. OFFLINE DEMO data (appearance
+ * only). A file-only item has set 0: the hero then takes the file's first Item.bmd record at level 0. */
+typedef struct mu_charsel_item_record {
+    uint8_t set;
+    uint8_t level, option, ext;
+    int32_t code;
+} mu_charsel_item_record;
+
 typedef struct mu_charsel_entry {
     int32_t slot;                  /* CharactersClient index 0..9 (the list's slot byte) */
     uint8_t class_byte;            /* CHARACTER +0x12 */
@@ -75,6 +86,7 @@ typedef struct mu_charsel_entry {
     /* optional item files: index 1..5 replace the class body parts, 6/7 are
      * the weapon slots (link bones 33/42), 8 the wing (bone 47) */
     char items[MU_CHARACTER_ITEMS][MU_CHARSEL_PATH];
+    mu_charsel_item_record records[MU_CHARACTER_ITEMS];   /* APP-POLISH-008: per item, set 0 for file-only */
 } mu_charsel_entry;
 
 typedef struct mu_charsel_list {
@@ -85,10 +97,15 @@ typedef struct mu_charsel_list {
 /* Five synthetic characters (classes 0x00, 0x01, 0x02, 0x03, 0x04; levels and
  * names invented). */
 void mu_charsel_list_default(mu_charsel_list *list);
-/* Text list: one character per line, "slot class level name [item=PATH ...]"
+/* Text list: one character per line, "slot class level name [item=PATH[@G:I[:L[:O[:E]]]] ...]"
  * with item = helm|armor|pants|gloves|boots|weapon0|weapon1|wing; '#' comments.
  * Relative item paths are taken under ROOT/Data. Returns 0 on success. */
 int mu_charsel_list_parse(const char *text, const char *root, mu_charsel_list *list, char *error, size_t error_size);
+/* APP-POLISH-008: one item value "FILE[@GROUP:INDEX[:LEVEL[:OPTION[:EXT]]]]" (group 0..15, index 0..511, level
+ * 0..15, option 0..1, ext 0..255; decimal or 0x): the path (relative FILE under ROOT/Data) and the record (set 0
+ * without '@'). Returns 0, or 1 for a malformed value or a field out of range. */
+int mu_charsel_parse_item(const char *value, const char *root, char *path, size_t path_size,
+                          mu_charsel_item_record *record);
 
 /* Default position of marker 1 (live read, docs/research/client-objects.md). */
 extern const float mu_charsel_default_marker1[3];

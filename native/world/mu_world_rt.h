@@ -33,6 +33,7 @@ typedef struct mu_world_rt mu_world_rt;
  * defaults; a memset of zero is the bare runtime (the test hosts).  Until the session exists the join
  * (world, class, tile, angle, equipment, name, level) and the demo feature switches live here too. */
 struct mu_perf;
+struct mu_charsel_item_record;   /* APP-POLISH-008: core/mu_charsel.h */
 typedef struct mu_world_rt_options {
     struct mu_perf *perf; /* borrowed front-end profiling context, NULL disables */
     /* read-only inputs */
@@ -50,6 +51,9 @@ typedef struct mu_world_rt_options {
     int32_t level;                 /* NATIVE-PROGRESS-001: the character's level (0: progress_config's) */
     int has_items;                 /* the front end's equipment (mu-client): applied after the class parts */
     const char *items[MU_CHARACTER_ITEMS];   /* index 1..5 body parts, 6/7 weapons, 8 wing; empty skipped */
+    /* APP-POLISH-008: the items' equipment records (MU_CHARACTER_ITEMS entries, NULL none): with set, the hero's
+     * part slot takes the record's code, level, option and ext instead of the file's first Item.bmd record */
+    const struct mu_charsel_item_record *item_records;
     /* APP-POLISH-005: the offline session's join data for the fixture server (OFFLINE DEMO): the learned skills and
      * hotkeys file (list/keys lines, NULL: the fixture's built-in lists) and the hero's join stats at `level` */
     const char *skill_demo;

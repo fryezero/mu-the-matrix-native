@@ -487,6 +487,9 @@ int mu_offline_session_save(const mu_offline_session *s)
                 if (!strncmp(p, data, strlen(data)))
                     p += strlen(data);
                 fprintf(f, " %s=%s", ITEMS[k], p);
+                const mu_charsel_item_record *r = &e->records[k];   /* APP-POLISH-008 */
+                if (r->set)
+                    fprintf(f, "@%d:%d:%d:%d:%d", r->code / 512, r->code % 512, r->level, r->option, r->ext);
             }
         fputc('\n', f);
     }

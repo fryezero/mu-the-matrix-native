@@ -2,7 +2,8 @@
 
 Portable: worked examples of SetCharacterClass 0x01394870 (mu_he_set_character_class) and 0x00cd0995
 (mu_he_item_flag) through ctypes, and the class parts it writes for an empty slot equal the parts the native
-character loads (model-codec mu_character_part_type) for every class byte.
+character loads (model-codec mu_character_part_type) for every class byte. APP-POLISH-008: an offline session's
+equipment record as ITEM fields (mu_he_item_of_record) reaches the slots (family record of the validator).
 
 Private, original instructions (MU_RECOVERY_INTEGRATION=1, pinned text/data): scripts/validate_hero_items.py with
 its mutants (validator row validate_hero_items).
@@ -53,6 +54,8 @@ class Library(unittest.TestCase):
         cls.lib.mu_he_equipment_of_slot.restype = ctypes.c_int32
         cls.lib.mu_character_part_type.argtypes = [ctypes.c_int, ctypes.c_uint8]
         cls.lib.mu_character_part_type.restype = ctypes.c_uint32
+        cls.lib.mu_he_item_of_record.argtypes = [ctypes.c_int32, ctypes.c_uint8, ctypes.c_uint8, ctypes.c_uint8]
+        cls.lib.mu_he_item_of_record.restype = Item
 
     @classmethod
     def tearDownClass(cls):
@@ -108,6 +111,18 @@ class Library(unittest.TestCase):
         self.assertEqual(flag((0x2c00, 0, 0, 0, 1), 1), 1)
         self.assertEqual(flag((0x2c01, 0, 0, 0, 1), 1), 0)
 
+    def test_session_record_items(self):
+        # APP-POLISH-008: Cookery Short Sword 0:68 +9 excellent, a +7 shield and a wing as the offline session gives them
+        def item(*record):
+            i = self.lib.mu_he_item_of_record(*record)
+            return (i.type, i.level, i.ancient, i.flag_92, i.flag_98)
+        self.assertEqual(item(68, 9, 1, 0), (68, 9 << 3, 0, 0, 1))
+        self.assertEqual(item(6 * 512, 7, 0, 0x22), (6 * 512, 7 << 3, 0x22, 0, 0))
+        slots = self.run_class({0: item(68, 9, 1, 0), 1: item(6 * 512, 7, 0, 0x22), 7: item(12 * 512 + 1, 4, 1, 5)})
+        self.assertEqual(slots[6], (0x0b2a, 9, 1, 0))
+        self.assertEqual(slots[7], (0x16e6, 7, 0, 0x22))
+        self.assertEqual(slots[8], (0x22e7, 4, 0x66, 0x77))   # the wing: type and level only
+
     def test_equipment_slot_of_each_character_slot(self):
         self.assertEqual([self.lib.mu_he_equipment_of_slot(k) for k in range(11)], [-1, 2, 3, 4, 5, 6, 0, 1, 7, -1, 8])
 
@@ -124,7 +139,8 @@ class ClientComparison(unittest.TestCase):
         self.assertTrue(all(f['mismatches'] == 0 for f in report['families'].values()))
         self.assertEqual(report['families']['set_class']['cases'], 3000)
         self.assertEqual(report['families']['defaults']['cases'], 256)
-        self.assertEqual(len(report['mutants']), 14)
+        self.assertEqual(report['families']['record']['cases'], 3000)   # APP-POLISH-008
+        self.assertEqual(len(report['mutants']), 18)
         self.assertTrue(all(report['mutants'].values()))
 
 

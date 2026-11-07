@@ -13,6 +13,13 @@ uint8_t mu_he_item_flag(const mu_he_item *item, int32_t mode)
     }
 }
 
+mu_he_item mu_he_item_of_record(int32_t code, uint8_t level, uint8_t option, uint8_t ext)
+{
+    mu_he_item item = {.type = code, .level = (int32_t)((level & 0xfu) << 3), .ancient = ext, .flag_92 = 0,
+                       .flag_98 = (uint8_t)(option != 0)};
+    return item;
+}
+
 int16_t mu_he_head_type(int16_t helm_type, uint8_t class_byte)
 {
     switch (helm_type) {   /* the compare tree 0x01394fa3..0x01395075 */
