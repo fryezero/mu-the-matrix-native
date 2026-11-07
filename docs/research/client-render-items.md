@@ -19,6 +19,7 @@ Part 11 reaches **967/1,674 bodies** with per-type wave/sine scalar programs; li
 [Part 17 below](#part-17-owner-effect-programs-of-the-armour-bodies-render-items-002q) reaches **1,319/1,674 bodies** with owner-effect programs.
 [Part 18 below](#part-18-pre-draw-effect-programs-on-the-items-own-bones-render-items-002r) reaches **1,345/1,674 bodies** with pre-draw programs on the item's own bones.
 [Part 20 below](#part-20-integer-registers-runtime-branches-and-joints-in-pre-draw-programs-render-items-002s) reaches **1,359/1,674 bodies** with integer registers, runtime branches and joints.
+[Part 21 below](#part-21-frame-counter-object-bone-positions-random-vectors-and-post-programs-render-items-002t) reaches **1,363/1,674 bodies** with the frame counter, OBJECT-bone positions, random vectors and post programs.
 Muun/map-object effect placement remains deferred. All parts run offline.
 
 ## Identity and evidence
@@ -1764,3 +1765,73 @@ integer clock's period and truncation, the `rand() % 15 >= 8` branch, the OBJECT
   program writes one.
 - The world callers of part 19 (hero, players, player-model actors, ground items) run these programs too; the OBJECT
   position is the model origin (for ground items, the OBJECT position).
+
+## Part 21, frame counter, OBJECT-bone positions, random vectors and post programs, RENDER-ITEMS-002T
+
+Bounded bodies increase **1,359 to 1,363 of 1,674** (+4): two maces with pre-draw programs (`0x0f1f`, `0x0f20`,
+`gen_item_owner_fx.PRE_FX_TYPES`, draws with the part-13 carry rule) and two owner blocks after the draws (bow
+`0x130d` and `0x2713`, the new `POST_FX_TYPES`, default draws). Skins stay **17/17**, links stay **eighteen
+targets/twenty-four types**. **311 bodies remain.** SURVEY_LINE
+
+The third mace, `0x0f2a`, now reads (part of the idioms below come from it) but is not admitted: its body draws an atlas
+mesh (`0x8615`) at u = (f % 4)·0.25, v = (f / 4)·0.25 with f = ([0x0bdc5ebc] % 32) / 2 (`0x0176b676`), the rendered-frame
+counter, which the body probes always hold at 0, so its fitted recipe is right only at frame 0 (found by the pre-draw
+family, which now randomises the counter).
+
+### Screen (verified)
+
+002S named the three maces "draws fit with carry"; a one-type library over the 292 survey states confirms it (0
+differing states each, carry only; the part-14 supplementary probes do not fit). The 292 states hold the frame counter
+at 0, which hides `0x0f2a`'s atlas (above). `0x130d` and `0x2713` fit the
+default probes once their effect requests are set aside (0 differing states).
+
+### New idioms (static, with concrete frames)
+
+- **The random spherical vector `0x00d01fc6`** (out, r max, r min, θ max, θ min, φ max, φ min; not a colour helper):
+  r min is clamped at 0; r = r min when r min ≥ r max, else `0x011ff622(r min, r max, 50)`; below the radius floor
+  `[0x01a80990]` (1e-6) the vector is zero and the result 0 (`fldz`); θ and φ are clamped (min ≤ max, ≥ 0, θ ≤ 180,
+  φ ≤ 360), scaled by `[0x01a7fd6c]` (π/180) and drawn by `0x011ff622(…, 100)`; out = (sin θ·r·cos φ, sin θ·r·sin φ,
+  cos θ·r) with the CRT sine `0x009681bd` and cosine `0x009fa223`; the radius is returned on x87. All three maces pass
+  constants (r 20..25, θ 0..180, φ 0..360, or 12..15 radius in `0x0f2a`). Op 44 reconstructs the helper; the reader
+  checks its four constants in the data capture.
+- **`0x012b678d(out, OBJECT, bone, NULL)` on item bones** (op 43): the client leaves `out` unchanged when the bone is
+  outside 0..model +0x22 (the C refuses what is computed from it); the matrix is the OBJECT's own bone array (+0x318,
+  through `0x0129f12c`, when the OBJECT's model has the bone) or BoneTransform `0x06fce398`; with a NULL local point
+  the result is the matrix's translation column times the model scale (+0x74) plus the OBJECT position (+0x158).
+  `0x0f1f` writes three such positions into OBJECT +0x1f4..+0x218 and never reads them (interpreter memory only).
+- **The rendered-frame counter `[0x0bdc5ebc]`** (op 42), tested unsigned (`xor edx, edx; div`, op 41) against 3 or 5
+  before particles (`0x0f1f`, `0x0f20` inside a counted loop, `0x0f2a`).
+- **Bounded array selects** (op 45): `rand() % 3` (and loop counters) index frame arrays of named bones or values. The
+  reader tracks integer ranges (rand() 0..0x7fff, remainders by a positive constant, scaled and shifted bounds);
+  every word the index can reach is copied into consecutive registers and the op picks one at run time.
+- **CreateParticle with a computed bitmap and argument 8** (ops 46/47): `0x8315 + rand() % 3` in `0x0f2a`; `0x0f1f`'s
+  OBJECT-owned particle passes `rand() % 3` as argument 8. Appended ABI: `mu_rc_owner_fx.extra`.
+- **Post programs** (`POST_FX_TYPES`): blocks after the draws in RenderPartObjectBody's case (`0x016e036c`) read with
+  the pre-draw idioms in that function's frame (model `[ebp+8]`, OBJECT `[ebp+0xc]`), run where the part-17 owner
+  programs run. `0x130d`: `0x0129f12c(OBJECT, 4)` then TransformPosition `0x012b6ef1` on that matrix with the item
+  model's scale/origin (op 49), and CreateSprite with bitmap `0x8081 + rand() % 3` (op 48: the next request's bitmap
+  from a register). `0x2713`: TransformPosition on item bones 8, 10, 11, a clock sine written into the OBJECT light
+  (+0xec, interpreter memory) and read back as the three sprites' light. `mu_rc_item_post_fx()` names them; the owner
+  gate checks only the OBJECT's bone count for them (`0x0129f12c` compares with the OBJECT's model, not the item's).
+
+Appended host ABI: `object_transform`, `frame`, `frame_known`, `owner_item_transform`. Natively (`mu_renderchar.c`)
+`object_transform` uses the item's own pose (the native item has no OBJECT bone array), the env's new optional
+`frame_counter` (NULL by default: callers are unchanged, so requests behind a counter test are refused and counted),
+`owner_item_transform` only with an OBJECT owner (worn parts). A particle with a non-zero argument 8 is refused
+(`mu_world_particles_create` has none).
+
+### The hidden-mesh domain of wings 0x2382..0x2385 (verified)
+
+APP-POLISH-007 found that with OBJECT +0x68 = 1 or 2 the library drew nothing for wings `0x2382`..`0x2385` while the
+client draws them. The library refused any hidden value other than -1, 0 and the type's own (`MU_RC_UNSUPPORTED`).
+These wings draw only explicit meshes (RenderMesh `0x00966e4a`), so +0x68 changes nothing in their streams: compared
+with the client at +0x68 = 1, 2, 3, 7, 0x7fffffff (60 states each) and in validate_item_predraw's new hidden family,
+they are equal; the exemption now includes them (as `0x2322`..`0x2327`).
+
+### Checks
+
+CHECKS
+
+### Limits
+
+LIMITS

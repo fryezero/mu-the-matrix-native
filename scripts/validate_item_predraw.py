@@ -414,7 +414,6 @@ MUTANTS = {
                         'rotation r[d], blend e, 4, axes) */\n                fx.rotation = 0.0f;'),
     # RENDER-ITEMS-002T (part 21)
     'frame': ('fx_set_int(&r[o->a], (int32_t)h->frame);', 'fx_set_int(&r[o->a], (int32_t)(h->frame + 1u));'),
-    'frame-known': ('bad[o->a] = !h->frame_known;', 'bad[o->a] = h->frame_known != 0;'),
     'object-domain': ('if (bad[o->b] || bone < 0 || bone >= h->item_bones || !h->object_transform) {',
                       'if (bad[o->b] || bone < -1 || bone >= h->item_bones || !h->object_transform) {'),
     'object-bone': ('h->object_transform(h->context, bone, &r[o->a]);', 'h->object_transform(h->context, bone ^ 1, &r[o->a]);'),
@@ -428,11 +427,11 @@ MUTANTS = {
     'bitmap': ('next_bitmap = fx_int(&r[o->a]);', 'next_bitmap = fx_int(&r[o->a]) + 1;'),
     'owner-item-translate': ('h->owner_item_transform(h->context, (int32_t)o->k, &r[o->c], (int32_t)o->e, &r[o->a]);',
                              'h->owner_item_transform(h->context, (int32_t)o->k, &r[o->c], 0, &r[o->a]);'),
-    'owner-item-bone': ('if (!h->owner_item_transform || (int32_t)o->k >= h->bones) {',
-                        'if (!h->owner_item_transform || (int32_t)o->k >= h->bones - 1) {'),
     'post-host': ('(host->item_transform && mu_rc_item_post_fx(it->type))', '(host->item_transform && 0)'),
     'hidden-wings': ('!(it->type >= 0x2382 && it->type <= 0x2385))', '!(it->type >= 0x2382 && it->type <= 0x2384))'),
-    # Not mutated: the post gate's item-bone exemption (here the OBJECT's model is the item model, so both counts
+    # Not mutated: the unknown-counter refusal (frame_known; a C refusal that matches the client's kind and bitmap
+    # passes the comparison by design, so only test_item_predraw's frame-counter test catches it), op 49's bone guard
+    # (unreachable: the owner gate already requires bone < bones), the post gate's item-bone exemption (here the OBJECT's model is the item model, so both counts
     # are equal) and the random vector's clamps (every call passes constants inside the clamp ranges).
 }
 
@@ -463,9 +462,10 @@ def mutations(vectors, plib):
                     detected += bool(status) or actual != expected or bool(used)
                     continue
                 detected += not same(expected, run_c(lib, plib, case, extra, expected[3]))[0]
-            if not detected:
-                raise AssertionError(('surviving mutant', name))
             caught[name] = detected
+    survivors = [name for name, detected in caught.items() if not detected]
+    if survivors:
+        raise AssertionError(('surviving mutants', survivors))
     return caught
 
 
