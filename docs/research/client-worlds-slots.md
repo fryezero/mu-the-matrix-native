@@ -47,7 +47,7 @@ The table lists, per slot: the entry, the instruction count, and the status.
 | Twisted Karutan | 142 | C | `0x00e677a9` 1428, V AFTER2 | `0x00e68c6a` 796, V AFTER2 | `0x00e673b4` 43, **V SLOTS** |
 | Kardamahal | 143 | C | `0x00e0f4bc` 2333, V AFTER3 | `0x00e118fd` 304, V AFTER3 | `0x00e0e539` 47, **V SLOTS** |
 | Swamp of Destruction | 144 | C | `0x00e46e94` 906, V AFTER3 | `0x00e48f1c` 122, V AFTER3 | `0x00e46a9f` 241, **V SLOTS** |
-| Raklion | 57, 58 | E | `0x00e949f8` 1994, V A | `0x00e96536` 198, V A | base, no (T) |
+| Raklion | 57, 58 | E | `0x00e949f8` 1994, V RAKLION (was V A: flags and first meshes only) | `0x00e96536` 198, V RAKLION (121's, was V A) | base, no (T) |
 | Karutan | 80, 81 | E | `0x00e14596` 969, V A | `0x00e1543e` 502, V A | base, no (T) |
 | Character scene | 93 | E | `0x00dab4d7` 79, V A | `0x00dab5ed` 95, V A | base, no (T) |
 | Login scene | 94 | E | `0x00e254bb` 113, V A | `0x00e25639` 474, V A | base, no (T) |
