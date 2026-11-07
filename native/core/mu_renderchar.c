@@ -175,6 +175,7 @@ typedef struct owner_services {
     const mu_renderchar_owner *owner;
     mu_world_particles *particles;
     long created, refused;
+    const float *item_bones;   /* RENDER-ITEMS-002R: the item's own pose */
 } owner_services;
 
 static void owner_transform(void *context, int32_t bone, const float local[3], float out[3])
@@ -185,12 +186,14 @@ static void owner_transform(void *context, int32_t bone, const float local[3], f
 }
 
 /* The rank-5 block passes a zero angle; the RENDER-ITEMS-002Q programs pass theirs (OBJECT +0x164 or a
- * normalized bone difference). A request no native kind creates counts as refused. */
+ * normalized bone difference). A request no native kind creates counts as refused. RENDER-ITEMS-002R: the
+ * pre-draw bone sprites pass 0x0150e746's rotation and blend words; a particle owned by the item's OBJECT has
+ * no native owner record (mu_world_particles_create_owned takes attached-object indices) and is refused. */
 static void owner_emit(void *context, const mu_rc_owner_fx *fx)
 {
     owner_services *o = context;
     long created = 0;
-    if (!o->particles) {
+    if (!o->particles || (fx->kind == MU_RC_OWNER_PARTICLE && fx->owner)) {
         o->refused++;
         return;
     }
@@ -201,7 +204,7 @@ static void owner_emit(void *context, const mu_rc_owner_fx *fx)
         /* The client's owner is the OBJECT; native sprites are not owner-bound. */
         uint64_t before = o->particles->sprites->created;
         mu_world_particles_sprite(o->particles, fx->bitmap, fx->position, fx->scale, fx->light, MU_PT_NO_OWNER,
-                                  0.0f, 0, 4);
+                                  fx->rotation, fx->blend, 4);
         created = o->particles->sprites->created != before;
     }
     o->created += created;
@@ -212,6 +215,31 @@ static int32_t owner_random(void *context)
 {
     owner_services *o = context;
     return o->particles ? mu_world_particles_rand(o->particles) : 0;
+}
+
+/* RENDER-ITEMS-002R item-bone host. 0x012bd35a(name, -1): the first bone record with an equal name. */
+static int32_t item_bone_named(void *context, const char *name)
+{
+    const owner_services *o = context;
+    const mu_bmd *b = o->model->bmd;
+    for (int32_t i = 0; i < b->bone_count; ++i)
+        if (!strcmp(b->bones[i].name, name))
+            return i;
+    return -1;
+}
+
+/* TransformPosition 0x012b6ef1 on the item's own pose with its BodyScale/BodyOrigin (as the link effects). */
+static void item_transform(void *context, int32_t bone, const float local[3], int32_t translate, float out[3])
+{
+    const owner_services *o = context;
+    mu_pt_transform_position(o->item_bones + 12 * bone, local, out, translate, o->model->params.body_scale,
+                             o->model->params.origin);
+}
+
+static void item_refuse(void *context, const mu_rc_owner_fx *fx)
+{
+    (void)fx;
+    ((owner_services *)context)->refused++;
 }
 
 static int draw_item(const mu_model *model, const mu_renderchar_glow *glow, const mu_renderchar_env *env,
@@ -250,9 +278,26 @@ static int draw_item(const mu_model *model, const mu_renderchar_glow *glow, cons
             if (context.blue_mesh == -1 && !strcmp(name, "Item1161_Blue.jpg")) context.blue_mesh = i;
         }
     }
-    owner_services services = {model, owner, env->particles, 0, 0};
+    owner_services services = {model, owner, env->particles, 0, 0, env->item_bones};
     mu_rc_owner_host host = {owner && owner->bones ? owner->bone_count : 0, -1, owner_transform, owner_random,
-                             owner_emit, &services, model->bmd->bone_count, {0.0f, 0.0f, 0.0f}};
+                             owner_emit, &services, model->bmd->bone_count, {0.0f, 0.0f, 0.0f},
+                             NULL, NULL, NULL, 0};
+    /* RENDER-ITEMS-002R: RenderObjDraw's own case creates effects before the body draws. They need the
+     * particle pools; without the item's pose every item-bone request is refused (rand order is kept). The
+     * TestFrustrum2D flag is 1: a drawn item is in view (viewer choice; the client tests the 2D frustum). */
+    const int pre = env->particles && mu_rc_item_pre_fx(glow->type);
+    if (pre) {
+        host.bone_named = item_bone_named;
+        host.item_transform = item_transform;
+        host.refuse = item_refuse;
+        host.visible = 1;
+        if (!owner)
+            host.transform = NULL;   /* no OBJECT owner bones: the owner programs stay off */
+        if (!env->item_bones)
+            host.item_bones = 0;
+        else if (host.item_bones > MU_MODEL_MAX_BONES)
+            host.item_bones = MU_MODEL_MAX_BONES;
+    }
     /* RENDER-ITEMS-002Q: worn parts' transform is 0x012b678d (owner bone, body scale, OBJECT position); the
      * part model's origin is the OBJECT position (mu_character slot_params), so owner_transform serves both. */
     const int fx_bones = owner ? mu_rc_item_owner_fx(glow->type) : 0;
@@ -265,12 +310,15 @@ static int draw_item(const mu_model *model, const mu_renderchar_glow *glow, cons
         for (int i = 0; i < model->bmd->mesh_count; ++i)
             if (host.black_mesh == -1 && !strcmp(model->bmd->meshes[i].texture, "Item1161_Black.jpg"))
                 host.black_mesh = i;
-    int status = glow->type < 0 ? MU_RC_SPECIAL : owner ?
+    int status = glow->type < 0 ? MU_RC_SPECIAL : owner || pre ?
         mu_rc_item_draws_owner(&it, &m, draws, 32, &count, &context, &host) :
         mu_rc_item_draws_context(&it, &m, draws, 32, &count, &context);
     if (owner) {
         owner->effects += services.created;
         owner->refused += services.refused;
+    } else if (pre && env->pre_counts) {
+        env->pre_counts[0] += services.created;
+        env->pre_counts[1] += services.refused;
     }
     if (status != MU_RC_OK) {
         /* plain textured body (viewer fallback) */

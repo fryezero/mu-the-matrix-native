@@ -1482,3 +1482,87 @@ need, `0x19f4`'s sprite, `0x1bc3`'s gate with the OBJECT angle).
 - Effects created in RenderObjDraw before the body helper are not read: `0x0f1e`, `0x174a`, the wings
   `0x23a8`/`0x23a9`, and 76 of the 80 traced bone-sprite (`0x0150e746`) types. They need a pre-draw hook and,
   for bone sprites, an item-bone host (the item's own BoneTransform and named-bone lookups `0x012bd35a`).
+
+## Part 18, pre-draw effect programs on the item's own bones, RENDER-ITEMS-002R
+
+Bounded bodies increase **1,319 to 1,345 of 1,674**, adding **26 types** (`gen_item_owner_fx.PRE_FX_TYPES`): six
+swords (`0x0b27`, `0x0b2a`, `0x0b4b`, `0x0b4c`, `0x0b57`, `0x0b59`), three maces (`0x0f1c`, `0x0f1d`, `0x0f2e`), four
+bows (`0x1311`, `0x1312`, `0x1316`, `0x131d`), three shields (`0x1748`, `0x1749`, `0x1758`) and ten wings (`0x230b`,
+`0x2311`, `0x2382`..`0x2385`, `0x2394`, `0x2395`, `0x2494`, `0x2499`). Skins stay **17/17**, links stay **eighteen
+targets/twenty-four types**. **329 bodies remain.**
+
+### Where the effects are created (verified)
+
+A census of the 355 remaining types (four survey states, every draw and effect service with its return site)
+places the effect services of 91 types **before** the first draw: RenderObjDraw `0x0176ce74` creates them in its own
+type case (`if (OBJECT +0x5c == A || type == B)`), then jumps to the join that calls the body helper. Only 8
+types call effect services after their first draw only, 220 call none (or only rand) in these states, and 36
+fault (31 in strlen `0x0195a4e0`). The services in those cases:
+
+- **Bone sprites** `0x0150e746(model, bitmap, bone, scale, light, OBJECT, rotation, a7, axes)`:
+  TransformPosition `0x012b6ef1(model; BoneTransform 0x06fce398 + 0x30·bone, (0, 0, 0), out, 1)`, then
+  CreateSprite `0x01692eb7(bitmap, out, scale, light, OBJECT, rotation, a7, 4, axes)`. The bone is unchecked.
+- **Named bones** `0x012bd35a(std::string name, -1)` on the item model: the first bone record (0x8c bytes at
+  `+0x2c`, count `+0x22`) with an equal name, else -1. The names are short literals (`aw001`..`aw007`, `a02`,
+  `Point001`..`Point008`, `na1`, `zx0001` ...).
+- **Plain** TransformPosition `0x012b6ef1` on `BoneTransform + 0x30·bone` (named or constant, also through
+  int arrays) followed by CreateSprite/CreateParticle; some particles pass the OBJECT as owner.
+- **Values**: the clock `0x06fce370`, the CRT sine `0x009681bd`, the wave `0x0185bdc4(a, 0)`, the comparison abs
+  `0x0184f8ff` (`0 > x ? -x : x`), the alpha argument (`[ebp+0x14]`), `(float)(rand() % m)`, `rand() % 2^n` gates,
+  vec3 set/scale (`0x009f413c`, `0x00cfcede`, `0x00cfcd74`), float arrays and loops over constant counters.
+- **The flag** `[ebp-0xd]`, written at `0x0176cef2` by TestFrustrum2D `0x016ccce7(OBJECT x·0.01, y·0.01, -20)`
+  (1 at once in scene states 1..4): many cases test it first; clear, the case is skipped to the next type test.
+
+BoneTransform at that point holds the item's own pose: its Animation precedes RenderObjDraw (RenderLinkItem passes
+the weapon's own OBJECT, `CHAR + 0x19d0`, whose `+0x5c` is the item type).
+
+### Reading the cases (generator; static with concrete frames)
+
+`scripts/gen_item_owner_fx.py` gains a pre-draw mode. A Unicorn run with a basic-block trace of RenderObjDraw finds
+the case start: the executed block after the last type compare (`cmp [eax+0x5c], imm` / `cmp [ebp+0xc], imm`)
+before the first effect service. The case ends at the jump to the join. The abstract interpreter of part 17 then
+reads RenderObjDraw's frame (OBJECT `[ebp+8]`, model `[ebp-0xb0]`, alpha `[ebp+0x14]`) and the idioms above;
+integer compares and loop counters are decided statically (both operands constant) and unrolled. New ops 15..25
+(wave, named bone, bone sprite, visibility, alpha, time, sine, abs, rand value, item transform, owner particle);
+registers widen to 16 bits (unrolled wing loops use up to 356). Bone names go to `mu_rc_fx_names`.
+
+Read: 40 of the 91 pre-draw types. Refused (first reason): loops that create joints (CreateJoint `0x0153b02c`) or
+use non-constant counters, integer clock chains (`cvttss2si [0x06fce370]` with `idiv`/branches, `0x0b4f`..`0x0b53`),
+owner transforms `0x012b678d` on a named bone (`0x0f1e`, `0x174a`, the wings `0x23a8`/`0x23a9`), light-pointer reads
+(`[ebp+0x10]`), compares of runtime values, more than 1,024 registers (`0x23ef`, `0x2400`, `0x2405`, `0x24be`,
+`0x24bf`), and services both before and after the draws (`0xf23`..`0xf2b`).
+
+### Draws (generator; verified)
+
+The 40 read types' draws were fitted with the effect requests set aside. 29 fit the default probes, but only 5 of them
+pass the independent 292-state comparison. With the part-14 supplementary probes (records 0x26/0x5b, qualities 0-2;
+`gen_item_bodies.PRE_EXTENDED`, 21 types) and the part-13 carry rule (`PRE_CARRY`, 17 types), 26 pass all 292
+states. The rand sites of the pre-draw block itself belong to the effect program and are left out of the body probes.
+The bows `0x1313`, `0x1317` and `0x1319` fit no probe option (27-39 states differ).
+
+### Executor and native consumers
+
+- `owner_fx.inc` becomes one executor (`run_fx`) for both kinds of program. `mu_rc_item_draws_owner` runs the
+  type's pre-draw program **before** the body when the host has `item_transform` (and the item is in the drawn
+  domain: no select, shadow or `a13`). Its rand comes from the host, in client order, before any body random.
+- **Item-bone host** (appended `mu_rc_owner_host` fields): `bone_named` (0x012bd35a on the item model),
+  `item_transform` (TransformPosition with the item's own pose and BodyScale/BodyOrigin), `refuse`, `visible`
+  (the TestFrustrum2D flag). A bone outside `0..item_bones-1` (missing name -1, short skeleton) is not read: the
+  request goes to `refuse`, as does every request computed from such a position (a per-register flag).
+- `mu_rc_owner_fx` gains `rotation`, `blend` (0x0150e746's arguments 7/8) and `owner` (CreateParticle owned by the
+  OBJECT). `mu_rc_item_pre_fx(type)` reports a program.
+- Native (`mu_renderchar.c`): with `env->particles`, sprites go to `mu_world_particles_sprite` (with the rotation
+  and blend words) and particles to `mu_world_particles_create`. The item pose comes from the new
+  `env->item_bones` (the caller's saved pose, as `mu_renderchar_link_effects` takes it); without it every item-bone
+  request is refused, while the program still draws its rand. `mu-render character --world-render` passes the
+  weapons' and wing's poses and prints `pre_effects`/`pre_refused`. The flag is 1 (viewer choice: a drawn item is
+  in view).
+
+Effects routed vs refused (static request sites over the 26 programs, loops unrolled):
+
+| Request | Sites | Native consumer | Result |
+|---|---:|---|---|
+| Bone sprite `0x0150e746`: `0x7f7a` 74, `0x7ef7` 50, `0x80ba` 14, `0x8458` 6, `0x7fe0` 4, `0x810a` 2 | 150 | sprite pool | routed (refused when the bone is outside the item skeleton) |
+| CreateSprite after TransformPosition: `0x7ef7` 62, `0x7f78` 24 | 86 | sprite pool | routed (same bone rule) |
+| CreateParticle `0x7ffd`/27, no owner (bow `0x1316`) | 1 | particle pool | routed; counted as refused when the pool creates no record |
+| CreateParticle with the OBJECT as owner: `0x810a`/17, `0x81cf`/0 (`0x2384`, `0x2385`) | 4 | none (owner records take attached-object indices) | refused, counted |
