@@ -73,13 +73,19 @@ class MuunHost(unittest.TestCase):
         self.assertEqual((summary['expired'], summary['left'], summary['scaled']), (1, 0, 2))
 
 
-@unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1' and os.environ.get('MU_GAME_ROOT') and
-                     os.environ.get('MU_LANG_DIR') and
-                     (Path(os.environ.get('MU_LANG_DIR', '/nonexistent'))/'muuneffects.tsv').is_file(),
-                     'requires the installed game and the local muuneffects.tsv')
+# muuneffects.tsv: MU_LANG_DIR's, else the installed Native Data's lang/ (private-env.sh's MU_LANG_DIR is the older
+# langread folder, which has no muuneffects.tsv)
+MUUN_LANG = next((d for d in (os.environ.get('MU_LANG_DIR'),
+                              os.environ.get('MU_NATIVE_DATA_DIR') and str(Path(os.environ['MU_NATIVE_DATA_DIR'], 'lang')))
+                  if d and (Path(d)/'muuneffects.tsv').is_file()), None)
+
+
+@unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1' and os.environ.get('MU_GAME_ROOT') and MUUN_LANG,
+                     'needs MU_RECOVERY_INTEGRATION=1, MU_GAME_ROOT and muuneffects.tsv in MU_LANG_DIR or '
+                     'MU_NATIVE_DATA_DIR/lang')
 class InstalledMuun(unittest.TestCase):
     def test_sixteen_records_load_attach_and_follow_their_bones(self):
-        rows = run_host(os.environ['MU_GAME_ROOT'], os.environ['MU_LANG_DIR'])
+        rows = run_host(os.environ['MU_GAME_ROOT'], MUUN_LANG)
         self.assertEqual(rows[0], {'table': True, 'entries': 16, 'codes': 15})
         summary = rows[-1]
         self.assertEqual((summary['requested'], summary['invalid'], summary['attached'], summary['placed']),

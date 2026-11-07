@@ -1,7 +1,8 @@
-"""RENDER-ITEMS-CLOAK: the capes of wings 0x2382..0x2385, 0x2394, 0x2395 (reconstructed/cloth, native/world/world_cloak.c).
+"""RENDER-ITEMS-CLOAK / CLOAK-002: the wings' physics capes (reconstructed/cloth, native/world/world_cloak.c).
 
-Portable: the authored cloth alone (grid, springs, spheres, the fixed top row, a step, the GL stream of a render, the
-wind walk's clamp, the cloth flag of RenderCharacter's block).
+Portable: the authored cloth alone (CreateCloth's cases, grid, springs, spheres, the fixed top row, a step, the GL
+stream of a render with its glow pass, the angle-matrix variant, the draw test's sub-types, the wind walk's clamp,
+the cloth flag of RenderCharacter's block).
 Private, pinned client (MU_RECOVERY_INTEGRATION=1, MU_SECTION3): scripts/validate_item_cloak.py (the registry row).
 Private, installed data (MU_GAME_ROOT): Lorencia through mu-walk with a class-0 hero wearing InnocenceCape.bmd and
 players wearing 0x2382 (class 0x00: a cloth; class 0x01: none, as the client's flag), and the same frame whatever
@@ -50,11 +51,24 @@ class Cloth(unittest.TestCase):
     def tearDownClass(cls):
         cls.tmp.cleanup()
 
-    def wing(self, wing):
-        cloths = (vc.CCloth * 2)()
+    def wing(self, wing, level=0, arg4=0, scene=6, scale=0.9):
+        cloths = (vc.CCloth * 3)()
         h = host(self.bones)
-        n = self.lib.mu_cloth_wing_create(cloths, wing, ctypes.byref(h))
+        n = self.lib.mu_cloth_wing_create(cloths, ctypes.byref(vc.CWingIn(wing, level, arg4, scene, scale)),
+                                          ctypes.byref(h))
         return n, cloths, h
+
+    def stream(self, cloth, h, light=None, time=0.0):
+        side = vc.CSide.__new__(vc.CSide)
+        side.stream = []
+        side._sink()
+        g = vc.CGlobals()
+        self.lib.mu_cloth_default_globals(ctypes.byref(g))
+        g.time = time
+        light = light or (ctypes.c_float * 3)(1.0, 1.0, 1.0)
+        result = self.lib.mu_cloth_render(ctypes.byref(cloth), ctypes.byref(h), ctypes.byref(g), light,
+                                          ctypes.byref(side.sink))
+        return result, side.stream
 
     def test_wing_cases(self):
         for wing, count, textures in ((0x2382, 1, [0x83f6]), (0x2383, 1, [0x83f6]), (0x2384, 2, [0x83f7, 0x83f8]),
@@ -70,8 +84,73 @@ class Cloth(unittest.TestCase):
                 self.assertEqual([c.vertices[k].flags for k in range(10)], [1] * 10)   # the top row hangs
                 self.assertEqual(sum(c.vertices[k].flags for k in range(10, 100)), 0)
             self.assertEqual(cloths[0].sphere_count, 4 if count == 1 else 2)
-        for wing in (-1, 0x22ee, 0x2381, 0x2386):
+        for wing in (-1, 0x22ee, 0x239a, 0x239f, 0x23a2, 0x2400):
             self.assertEqual(self.wing(wing)[0], 0)
+
+    def test_every_case(self):
+        counts = {0x230e: 3, 0x2498: 3, 0x2317: 1, 0x2318: 3, 0x2368: 1, 0x236d: 1, 0x2380: 1, 0x2381: 1, 0x2386: 2,
+                  0x2387: 2, 0x2392: 1, 0x2393: 1, 0x2396: 1, 0x2398: 1, 0x239e: 3, 0x23a0: 1, 0x23a1: 1, 0x23a5: 2,
+                  0x23a7: 1, 0x23ec: 3, 0x23fd: 3, 0x2402: 3, 0x23f1: 1, 0x2401: 1, 0x23f3: 1, 0x23f4: 1, 0x23fc: 1,
+                  0x2488: 3, 0x248a: 1, 0x248b: 1, 0x2490: 1, 0x2504: 1, 0x24c6: 2, 0x34e6: 1, 0x34e7: 1, 0x34e8: 1,
+                  0x34e9: 1, 0x34eb: 1}
+        for wing, count in counts.items():
+            n, cloths, _ = self.wing(wing, level=13)
+            self.assertEqual(n, count, hex(wing))
+            for i in range(n):
+                self.assertEqual(cloths[i].owner, 1, hex(wing))
+                self.assertEqual([cloths[i].vertices[k].flags for k in range(cloths[i].columns)],
+                                 [1] * cloths[i].columns, hex(wing))
+        # arg 4 = 1: the robe whatever the wing (Robe01 front, Robe02 back)
+        for wing in (-1, 0x2382):
+            n, cloths, _ = self.wing(wing, arg4=1)
+            self.assertEqual((n, cloths[0].texture_front, cloths[0].texture_back, cloths[0].type),
+                             (1, 0x790b, 0x790c, 0x405))
+
+    def test_level_glows(self):
+        self.assertEqual(self.wing(0x2396, level=8)[1][0].glow_texture, -1)
+        self.assertEqual(self.wing(0x2396, level=9)[1][0].glow_texture, 0x846d)
+        self.assertEqual(self.wing(0x239e, level=10)[1][2].glow_texture, -1)
+        self.assertEqual([self.wing(0x239e, level=11)[1][i].glow_texture for i in range(3)], [0x8503, 0x8504, 0x8502])
+        self.assertEqual(self.wing(0x2381, level=0)[1][0].glow_texture, 0x83f5)   # always
+
+    def test_scaled_case(self):
+        _, game, _ = self.wing(0x23ec, scene=6, scale=0.9)
+        _, select, _ = self.wing(0x23ec, scene=5, scale=1.2)
+        self.assertEqual((game[0].width, game[0].height), (170.0, 160.0))   # 0.9 / 0.9
+        self.assertEqual((select[0].width, select[0].height), (170.0, 160.0))   # 1.2 / 1.2
+        _, big, _ = self.wing(0x23ec, scene=6, scale=1.8)
+        self.assertAlmostEqual(big[1].height, 340.0, places=3)
+        self.assertEqual((big[1].type, big[2].type), (0x9000, 0x11000))
+
+    def test_angle_matrix_variant(self):
+        n, cloths, _ = self.wing(0x24c6)
+        self.assertEqual((n, cloths[0].custom, cloths[0].bone, cloths[1].texture_front), (2, 1, 47, 0x830d))
+        m = list(cloths[0].matrix)   # AngleMatrix(0, 90, 0): x -> -z
+        self.assertAlmostEqual(m[2], 1.0, places=5)
+        self.assertAlmostEqual(m[8], -1.0, places=5)
+
+    def test_glow_pass(self):
+        n, cloths, h = self.wing(0x2381)
+        result, s = self.stream(cloths[0], h, time=1234.0)
+        self.assertEqual(result, 1)
+        glow = s[s.index(('state', 3)):]   # after the two faces: EnableAlphaBlend, the glow bitmap, one quad stream
+        self.assertEqual(glow[1], ('bind', 0x83f5))
+        self.assertEqual(glow[2][0], 'glColor4f')
+        self.assertEqual(sum(1 for x in glow if x[0] == 'glVertex3f'), 81 * 4)
+        self.assertEqual(sum(1 for x in s if x[0] == 'glVertex3f'), 3 * 81 * 4)
+        bright = [vc.u2f(self.stream(cloths[0], h, time=t)[1][-1 - 2 * 81 * 4 - 2][1]) for t in (0.0, 400.0, 785.0)]
+        for b in bright:
+            self.assertTrue(0.0 <= b <= 1.0)
+        self.assertNotEqual(bright[0], bright[2])   # pulsed by WorldTime (speed 4: 0x0185bdc4(-4, 0))
+
+    def test_draw_test_subtypes(self):
+        allowed = self.lib.mu_cloth_draw_allowed
+        self.assertEqual(allowed(0x00, 0, 1, 1, 0), 1)
+        self.assertEqual(allowed(0x00, 0x431, 1, 1, 0), 0)
+        self.assertEqual(allowed(0x03, 0x5bc, 1, 1, 0), 0)   # skin 3 under a sub-type of 0x009a0989
+        self.assertEqual(allowed(0x00, 0x5bc, 1, 1, 0), 1)
+        self.assertEqual(allowed(0x00, 0, 0xe4, 0xe4, 0), 0)
+        self.assertEqual(allowed(0x00, 0, 1, 1, 0x271), 0)
 
     def test_step_keeps_the_top_row_and_drops_the_rest(self):
         n, cloths, h = self.wing(0x2382)
@@ -90,13 +169,8 @@ class Cloth(unittest.TestCase):
 
     def test_render_stream(self):
         n, cloths, h = self.wing(0x2384)
-        side = vc.CSide.__new__(vc.CSide)
-        side.stream = []
-        side._sink()
-        light = (ctypes.c_float * 3)(1.0, 0.1, 0.1)
-        self.assertEqual(self.lib.mu_cloth_render(ctypes.byref(cloths[1]), ctypes.byref(h), light,
-                                                  ctypes.byref(side.sink)), 1)
-        s = side.stream
+        result, s = self.stream(cloths[1], h, (ctypes.c_float * 3)(1.0, 0.1, 0.1))
+        self.assertEqual(result, 1)
         self.assertEqual(s[0], ('state', 2))   # EnableAlphaTest(1): type 0x1000
         self.assertEqual(s[1][0], 'glColor4f')
         self.assertEqual([x for x in s if x[0] == 'bind'], [('bind', 0x83f8), ('bind', 0x83f8)])
@@ -191,6 +265,26 @@ class WorldScene(unittest.TestCase):
             self.assertEqual(sparse['wind'], dense['wind'])
             # the cloths step every rendered frame, drawn or not: the same frame 45 at either cadence
             self.assertEqual((a/'frame-0045.png').read_bytes(), (b/'frame-0045.png').read_bytes())
+
+    def test_more_cases(self):
+        # CLOAK-002: 0x239e +13 (three cloths with level glows), 0x2381 (one, always glowing), 0x24c6 on a Dark Knight
+        # (the angle-matrix variant; its wing sets the flag for any class), 0x2398 on a Dark Knight (gated)
+        players = ('player A class=0x00 at=127,126 dir=5 pk=3 level=400 armor=8:10:7 wing=12:184:13 idle=20\n'
+                   'player B class=0x00 at=125,126 dir=5 pk=3 level=400 armor=8:10:7 wing=12:155:0 idle=20\n'
+                   'player C class=0x01 at=129,126 dir=5 pk=3 level=400 armor=8:10:7 wing=12:480:0 idle=20\n'
+                   'player D class=0x01 at=127,128 dir=5 pk=3 level=400 armor=8:10:7 wing=12:178:0 idle=20\n')
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp)/'players.txt'
+            path.write_text(players)
+            result = subprocess.run([str(WALK), '--game-root', GAME, '--headless', '--backend', 'soft', '--no-audio',
+                                     '--width', '320', '--height', '240', '--every', '10', '--out-dir', tmp, '--tile',
+                                     '128,124', '--class', '1', '--players', str(path), '--player-range', '20',
+                                     '--frames', '21', '--quiet'], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr[-2000:])
+        row = next(json.loads(line) for line in result.stdout.splitlines() if '"cloak"' in line)
+        self.assertEqual(row['created'], 3 + 1 + 2)
+        self.assertEqual(row['gated'], 3)          # D on each of the three drawn frames
+        self.assertEqual(row['drawn'], 6 * 3)
 
 
 if __name__ == '__main__':

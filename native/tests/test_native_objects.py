@@ -165,8 +165,10 @@ class ObjectsTests(unittest.TestCase):
                                  '--width', 64, '--height', 48).stdout)
             self.assertEqual(out['objects']['drawn'], 3)
 
-    @unittest.skipUnless(VIEWER.exists(), 'mu-viewer not built (SDL2)')
     def test_viewer_headless_objects(self):
+        # build it (the root make does not): skipping on VIEWER.exists() made the result depend on module order
+        if subprocess.run(['make', '-C', str(NATIVE), 'build/mu-viewer'], capture_output=True).returncode:
+            self.skipTest('mu-viewer does not build here (needs SDL2: make -C native build/mu-viewer)')
         with tempfile.TemporaryDirectory() as root:
             self.world94(root, [(0, 12800.0, 12800.0, 0.0, 0.0, 30.0), (1, 12900.0, 12800.0, 0.0, 0.0, 30.0)])
             result = subprocess.run([str(VIEWER), '--terrain', root, '--world', '93', '--headless', '--backend', 'soft',

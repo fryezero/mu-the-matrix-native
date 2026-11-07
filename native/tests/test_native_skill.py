@@ -361,7 +361,14 @@ class Layer(unittest.TestCase):
         self.assertTrue(any('g_SkillTree5th.SetAlign [3]' in l for l in log))
 
 
-@unittest.skipUnless(PRIVATE and os.environ.get('MU_LANG_DIR') and BOOK.exists(), 'private data absent')
+# The validators read the langread snapshot from SNAP; private-env.sh names the same lang3 pin MU_LANG3_SNAPSHOT
+# (scripts/pins.py LANG3). Either one, if the file is there.
+LANG3 = next((p for p in (os.environ.get('SNAP'), os.environ.get('MU_LANG3_SNAPSHOT')) if p and Path(p).is_file()),
+             None)
+
+
+@unittest.skipUnless(PRIVATE and os.environ.get('MU_LANG_DIR') and BOOK.exists(),
+                     'needs MU_RECOVERY_INTEGRATION=1, MU_GAME_ROOT, MU_LANG_DIR and native/build/skill-book-host')
 class Installed(unittest.TestCase):
     def test_book_over_the_installed_tables(self):
         out = book(os.environ['MU_LANG_DIR'], os.environ['MU_GAME_ROOT'], 'demo', '0', 'tip', '9', 'icon', '9',
@@ -373,8 +380,9 @@ class Installed(unittest.TestCase):
         self.assertEqual(out[4]['bitmap'], 0x7c40)
         self.assertEqual(out[5]['cast'], 'ok')
 
-    @unittest.skipUnless((ROOT/'evidence/x86-text-capture-09/client-text.bin').exists() and os.environ.get('SNAP'),
-                         'pinned captures or the langread snapshot absent')
+    @unittest.skipUnless((ROOT/'evidence/x86-text-capture-09/client-text.bin').exists() and LANG3,
+                         'needs evidence/x86-text-capture-09/client-text.bin and the langread snapshot lang3.bin '
+                         '(SNAP or MU_LANG3_SNAPSHOT)')
     def test_validator(self):
         python = ROOT/'tools/python/bin/python'
         python = str(python) if python.exists() else sys.executable
@@ -384,7 +392,7 @@ class Installed(unittest.TestCase):
             self.skipTest('unicorn/capstone not installed')
         for script in ('validate_skill.py', 'validate_skill_server.py'):     # NATIVE-SKILL-001 / -002
             r = subprocess.run([python, str(ROOT/'scripts'/script), '--cases', '60', '--mutations'],
-                               capture_output=True, text=True, timeout=3600)
+                               capture_output=True, text=True, timeout=3600, env={**os.environ, 'SNAP': LANG3})
             self.assertEqual(r.returncode, 0, script + r.stdout[-2000:] + r.stderr[-2000:])
 
 

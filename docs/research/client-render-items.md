@@ -2382,3 +2382,145 @@ Counter scan (client against client, scratch): 1,691 types × 4 states × counte
 3. The 31 rank-5 parts faulting in strlen `0x0195a4e0` (rank-5 pose world) and the 54 helper-group-count types.
 4. Native particle kinds behind the maces' counter tests (`0x855d`/1, `0x84d1`/1, `0x810a`/0x25 with argument 8):
    RENDER-EFFECTS lanes.
+
+## Part 27, every CreateCloth case and the glow pass, CLOAK-002
+
+Part 25 ported six of CreateCloth's cases. This part ports the rest of the routine, the glow pass of Render, the
+angle-matrix Create variant, the sub-type tests, and records what the armour cloths and the wind would need. Evidence is
+verified (Unicorn against the pinned text and data) unless marked static.
+
+### CreateCloth `0x01357ccc` (verified)
+
+- **Entry.** It returns 0 without a CHARACTER or OBJECT, or when OBJECT `+0x4c` already holds cloths. With **arg 4 ≠ 0**
+  (`0x01357d1d`) it makes one cloth whatever the wing (even none): Create(bone 19, (0, 10, 0), 10×10, 75×120,
+  front `0x790b` `Player\Robe01.jpg`, back `0x790c` `Robe02.jpg`, type `0x405`), with no spheres. RenderCharacter sets
+  arg 4 only in the guild-war and duel branches (part 25), so native characters never reach it.
+- **The switch** on CHARACTER `+0x21a4` (`0x01357e5c..0x0135810d`, byte table `0x0135ea14` for `0x2393..0x23a7`) has
+  34 case bodies for 54 wing types (20 aliases). Each body writes the count to OBJECT `+0x3f`, allocates the cloths (`0xe8` bytes
+  each), calls Create (slot 2) and then the setters: uv scale `0x013bb4a2`, uv offset `0x013bb477`, push `0x013bb44c`,
+  SetGlow `0x00fd9f50` (bitmap, pulse speed, minimum, maximum → `+0xa0..+0xac`) and AddCollisionSphere `0x00fd9ded`.
+  `reconstructed/cloth` keeps 31 bodies (three of them part 25's) as a table of their immediates (`cloth_defs`). Four have their own code:
+  - `0x23ec`/`0x23fd`/`0x2402` (`0x01358112`): three cloths (`0x7916` `deathha.tga`; two 2×5 strips `0x7917`
+    `deathjung.tga` of types `0x9000`/`0x11000`). Every value is multiplied by s = OBJECT `+0xa0` / 0.9, or / 1.2
+    when SceneFlag `0x01d1df70` (read through `0x009b0bc1`) is 5 (character select).
+  - `0x23f1`/`0x2401` (`0x0135897e` → `0x013a0242`): `0x7918` `admangto.tga`, type `0x1405`, one sphere.
+  - `0x24c6` (`0x01358a40`): two cloths through the **angle-matrix variant** (slot 1, `0x00fd77dc`) on bone 47 at
+    (32, −24, ±32), angles (0, 90, 0), bitmaps `0x830c` / `0x830d` `season_wing_periodc(2).tga`.
+- **Level glows.** `0x2396`/`0x2397` call SetGlow when CHARACTER `+0x21a6` (signed byte) is ≥ 9; `0x239e`, `0x23a0`,
+  `0x23a1`, `0x23a5` and `0x23a7` when it is ≥ 11. Twelve other cases always glow.
+- **Cloth counts.** Three cloths: `0x230e`, `0x2318`, `0x23ec`, `0x2488`, `0x239e`. Two: `0x2384`, `0x2386`, `0x23a5`,
+  `0x24c6`. One for every other case. The new types used by the cases are `0x400` (gravity 180), `0x8000`/`0x10000`
+  (sideways wind forces) and `0x1` (the dropped top row). The physics core of part 25 already ported them; the step
+  family now compares them.
+- **Bitmaps.** Every cloth and glow bitmap comes from LoadBitmap `0x0185baac` calls with its filter and wrap. The
+  table is in `native/world/world_cloak.c` (59 entries; `Player\` for the robes, else `Item\Texture\`).
+- **Types beyond the item range.** `0x34e6`..`0x34eb` are model indices above `0xae6 + 16·512`. No player wing record
+  reaches them; they are compared in Unicorn only.
+
+| Case (aliases) | Body | Cloths, bitmaps, type |
+|---|---|---|
+| `0x230e` (`0x2498`) | `0x01359174` | 3: `0x7914` dl_redwings02 10×10 `0x1405`; two 2×5 `0x7915` `0x1000` |
+| `0x2317` (`0x2492`), `0x236d` | `0x01359d7b`, `0x01359b20` | 1: `0x80ed` NCcape `0x1405` |
+| `0x2318` (`0x249a`) | `0x01359fd6` | 3: `0x80ef` monke_manto; `0x80ee` monk_manto01 2×5 `0x9000` / `0x11000` |
+| `0x2368`, `0x2490` (`0x2504`) | `0x01358cbe`, `0x01358f19` | 1: `0x7912` DarklordRobe `0x1005` |
+| `0x2380`, `0x2381` | `0x0135b092`, `0x0135b2d9` | 1: `0x83f3` kundun_purewhite2; `0x2381` glows `0x83f5` |
+| `0x2386` (`0x2387`) | `0x0135bb53` | 2 halves: `0x83fa` / `0x83fb` kundun_resplendent_6/5, glows `0x842d` / `0x842e` |
+| `0x2392`, `0x2393` | `0x0135bf81`, `0x0135c1c8` | 1: `0x8469` Ironcloak2 |
+| `0x2396` (`0x2397`), `0x2398` (`0x2399`) | `0x0135c66f`, `0x0135c913` | 1: Desperatecloak3 / Hatredcloak_3, glows `0x846d` (+9) / `0x846f` |
+| `0x239e` | `0x0135cba6` | 3: Fifth_DarkLord_cape_04/05/03, glows `0x8503`/`0x8504`/`0x8502` (+11) |
+| `0x23a0`, `0x23a1`, `0x23a7` | `0x0135d220`, `0x0135d515`, `0x0135dce7` | 1: Fifth_Rage_Cape_02, Fifth_Grow_cape_04, Fifth_Illusion_cape_03 (glows +11) |
+| `0x23a5` | `0x0135d89f` | 2 halves: Fifth_Kundun_cape_03/04, glows `0x84ef`/`0x84ee` (+11) |
+| `0x23f3` (`0x2493`), `0x23fc`, `0x23f4` (`0x249b`) | `0x0135a930`, `0x0135a6d5`, `0x0135ab8b` | 1: Item801_2_wing / Item802_2_wing `0x1405` |
+| `0x2488` (`0x24a0`) | `0x013595db` | 3: darklordwing4de + two 2×5 darklordwing4dd, all glowing |
+| `0x248a` (`0x24a2`), `0x248b` (`0x24a3`) | `0x0135a43d`, `0x0135ade6` | 1: ragefighterwing4db / growlancerwing4dc, glowing |
+| `0x34e6`, `0x34e7` (`0x34e8`), `0x34e9` (`0x34ea`), `0x34eb` | `0x0135e071..0x0135e773` | 1: blessing / hope / sanctuary / light_cape_02 |
+
+### The angle-matrix variant and the sub-types (verified)
+
+- Slot 1 `0x00fd77dc` calls Create (slot 2). On success it writes AngleMatrix(angles) to `+0x48` and sets `+0x44`.
+  Create itself fixes the top row once through the normal SetFixed.
+- SetFixed (slot 4, `0x00fd79bb`) defers to slot 5 `0x00fd7d2a` when `+0x44` is set. Slot 5 builds each top-row
+  point as slot 4 does: x·step − width/2, y 10, the `0x10` offset and the parabola. It then rotates the point by the
+  cloth's own matrix and swizzles it (z, −y, x). TransformPosition places it on the bone. The origin, swizzled the
+  same way, goes through RotatePosition `0x012b7019` (the bone's rotation times BodyScale) and is added. RotatePosition
+  also copies the bone matrix to `0x078965ac`, which the cloth does not read.
+- Both SetFixed slots take the model from OBJECT `+0x60` when that sub-type is `0x5bc` or `0x5bd`, else from OBJECT
+  `+0x5c`; Create always uses `+0x5c`.
+- RenderCloth's draw tests read the same sub-type. `0x01362e1d` hides the cloths for buff `0x12`, for the sub-types
+  `0x431`/`0x432`, and when actions `+0x2a` and `+0x2c` are both `0xe4`. `0x01362e87` hides them when `0x009a0989`
+  holds (a class of skin 3 under the sub-types `0x3e9`, `0x3ed`, `0x429`, `0x541`, `0x552`, `0x5ba..0x5bf`, `0x5c4`,
+  `0x5c5`, `0xa5e`) and for the class indices `0x271`/`0x272`. Native characters keep sub-type 0 and no buffs.
+
+### Render's glow pass (verified)
+
+Render `0x00fd8bc2` order:
+
+1. the state wrapper;
+2. `glColor4f(light, alpha)`;
+3. (type `0x40000000`: the flare sprites `0x7ef7` through `0x01692eb7`; no wing case uses it);
+4. the front face and the back face;
+5. the glow pass `0x00fd9663`;
+6. the mesh passes `0x00fd9c61`/`0x00fd97de` when `+0xc0` ≠ −1. No wing case sets `+0xc0`; only the armour cloths do.
+
+The glow pass runs when `+0xa0` ≠ −1. It calls EnableAlphaBlend `0x0184aa2b` (additive) and BindTexture(glow). The
+brightness is b = 1, or with speed > 0, b = wave·(max − min) + min, where wave = `0x0185bdc4(−speed, 0)` (the cosine
+of WorldTime folded into 2000π/speed ms, mapped to [0, 1]; the same wave as `mu_hp_wave`). It calls
+`glColor4f(b, b, b, alpha)`, then one GL_QUADS stream wound as the front face through RenderVertex (same uv). So a
+glowing cloth draws three quad streams: front, back, glow. `mu_cloth_render` now draws the glow and still refuses
+`0x40000000` and a mesh.
+
+### The armour cloths (static; not ported)
+
+- RenderCloth calls CreateClothArmour `0x0135ea29` and, when that makes nothing, `0x01362755` every frame. Both fill
+  the second list, OBJECT `+0x48` (count `+0x3e`).
+- MoveCloth steps both lists. The armour list renders with white light behind `0x01362edc` (class 4 under the
+  sub-types of `0x009a088a` hides it).
+- `0x0135ea29` runs only when OBJECT `+0x3b` is 1. CreateCharacter sets that at `0x0137dbd7`, so every character has
+  it. It switches on the base class (`0x0095f5cc`: class & 0xf) 0, 3, 4, 8, 9, 0xc and 0xf. It then tests the body-part
+  type at CHARACTER `+0x9bc` (`0x3754`, `0x3760`, `0x3774`, `0x3784`, `0x3794`, `0x37a9..0x37e9`, `0x37d3`, `0x37e3`:
+  class part skins).
+- Its cloths use what this lane does not port:
+  - types `0xc0000205`/`0x80002105` (the `0x40000000` flare sprites);
+  - the mesh setter `0x00fd7986` (`+0xc0..+0xc8`, its two mesh passes);
+  - the second glow `0x00fd9f97` (`+0xb0..`);
+  - `0x013bb3fd` and `0x013bb4cd`;
+  - the angle-matrix variant on bone 3;
+  - a re-create path (`0x01360d33`) that releases (slot 3) and rebuilds the cloths when the body part changes.
+- Its bitmaps include `0x7911` `Monster\iui06.jpg`, `0x83ef..0x83f2` `Item1141_Wing1/2`, `Item1146_1/2`, the
+  `HQskin`/`SkinClass` cloak skins `0x791d..0x795d` and `0x7ef7` `Effect\flare01.jpg`.
+- `0x01362755` is bounded: the class indices (`+0x146`) `0x37` (one cloth `0x790d`, three spheres), `0x169`
+  (`0x7ff2`, 6×6 type `0x1008`, the curved grid) and `0x3a9`/`0x3ab..0x3ad` (two halves `0x84e6`/`0x84e7`). Those
+  are NPC and monster characters that native renders outside RenderCharacter's path, so a port has no native caller
+  yet.
+
+### Wind (static)
+
+- The frame driver `0x01851d39` calls the physics manager's step `0x00fdad7b` five times in every logic step
+  (`0x01851ee8..0x01851f07`), after the scene switch. So the walk runs in every scene from the first logic step.
+- `rand()` `0x01989721` keeps its state in the per-thread data (`0x019a4ba6` → `+0x18`). `srand` `0x01989742` has 19
+  call sites; WinMain's seeds it with `time` (`docs/research/client-ground-items.md`). The wind therefore depends on
+  the start-up time and on every `rand()` call of every scene since then. No native stream can reproduce it.
+- The native stand-in now walks from the frame driver's logic step 0 (`a->walk.frame.clock.logic_steps`). It no
+  longer starts from the first cloth draw: the wind at a frame depends only on the steps since the runtime started, as
+  the client's depends on the steps since start-up.
+- The rand stream stays native's own (MSVC LCG, seed 1). A first catch-up beyond 2^20 logic steps walks only the last
+  2^20.
+
+### Port and checks
+
+- `mu_cloth_wing_create(out, &wing_in, host)` takes the wing type, level, arg 4, scene and OBJECT scale.
+  `mu_cloth_host` gains the sub-type model; `mu_cloth_render` takes the globals (WorldTime for the glow);
+  `mu_cloth_draw_allowed` takes the class byte and sub-type. The world passes the wing level (hero: its record;
+  players: the wing slot's level), scene 6 and sub-type 0. It loads each bitmap the first time a cloth binds it and
+  uploads the GL set again when a new one arrives.
+- `scripts/validate_item_cloak.py`: **5,694 comparisons, 0 mismatches, 0 stopped**.
+  - create 278: every case's first type three times, 17 further aliases, arg 4 = 1 four times, seven wings without a case, twice
+    over. Random wing level, scene 5/6, OBJECT scale, and sub-types 0, `0x5bc`, `0x5bd`, `0x5be`, `0x431` and
+    `0x3e9`, with or without the sub-type model.
+  - step 2,224 and render 2,224 (8 frames each, glow passes included).
+  - wind 200, gate 768.
+  - Coverage of the full run: 376 cloths, 12 angle-matrix cloths, 89 glows set, 648 glow passes drawn, 48 sub-type
+    model cases, 216 frames hidden by the draw test, 6 character-select scalings of `0x23ec`.
+- **65/65 compiled mutants caught**, none equivalent, every anchor once. The 27 new ones cover the table, the
+  aliases, the level test, the glow pass, the scaling, arg 4, the angle-matrix variant, the sub-type model, the draw
+  test, and the `0x8000` and gravity-180 forces.

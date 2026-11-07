@@ -798,10 +798,12 @@ static int headless(tool *t)
                 memcpy(pixels, raster.color, bytes);
             }
             mu_sha256_hex(pixels, bytes, hash);
-            /* Hash/readback and temporal sampling remain active without PNG output. */
+            /* Hash/readback and temporal sampling remain active without PNG output. The hash covers the raw
+             * RGBA readback; the PNG is the opaque window (REGRESS-003: blended terrain layers and grass leave
+             * alpha below 1, which viewers showed as grey patches). */
             if (save && !getenv("MU_PERF_HASH_ONLY")) {
                 snprintf(path, sizeof path, "%s/frame-%04d.png", t->out_dir, frame);
-                if (mu_png_write(path, pixels, a->width, a->height)) {
+                if (mu_png_write_opaque(path, pixels, a->width, a->height)) {
                     fprintf(stderr, "cannot write %s\n", path);
                     return 1;
                 }

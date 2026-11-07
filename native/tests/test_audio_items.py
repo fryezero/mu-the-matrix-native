@@ -112,6 +112,8 @@ class ItemAudio(unittest.TestCase):
    self.assertEqual(hashes[0],hashes[1]);self.assertEqual(len(hashes[0]),4)
  @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION')=='1','Pinned ground audio instructions are opt-in')
  def test_original_ground_audio(self):
+  # The validator dlopens reconstructed/items/libclient_items.dylib, which the root make does not build.
+  subprocess.run(['make','-s','-C',str(NATIVE.parent/'reconstructed/items')],check=True,capture_output=True)
   report=self.folder/'original.json';p=subprocess.run([sys.executable,str(NATIVE.parent/'scripts/validate_audio_items.py'),'--cases','3000','--mutations','--report',str(report)],capture_output=True,text=True)
   self.assertEqual(p.returncode,0,p.stdout+p.stderr);r=json.loads(report.read_text());self.assertEqual((r['cases'],r['mismatches'],len(r['mutants'])),(3000,0,8))
 if __name__=='__main__':unittest.main()

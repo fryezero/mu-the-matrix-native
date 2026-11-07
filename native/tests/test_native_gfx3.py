@@ -279,7 +279,7 @@ class SkillTable(unittest.TestCase):
 
 # --------------------------------------------------------------------------- Ruffle with the patch series
 
-@unittest.skipUnless(SHOT.exists() and Image, 'native/gfx/mugfx not built')
+@unittest.skipUnless(SHOT.exists() and Image, 'native/gfx/mugfx not built (fetch-ruffle.sh, build-mugfx.sh)')
 class RuffleLoadingAndImages(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -340,7 +340,7 @@ class RuffleLoadingAndImages(unittest.TestCase):
 
 # --------------------------------------------------------------------------- private: the client's movies
 
-@unittest.skipUnless(PRIVATE and LIBMUGFX.exists() and CC and Image, 'needs MU_RECOVERY_INTEGRATION=1, MU_GAME_ROOT, mugfx')
+@unittest.skipUnless(PRIVATE and LIBMUGFX.exists() and CC and Image, 'needs MU_RECOVERY_INTEGRATION=1, MU_GAME_ROOT and a built native/gfx/mugfx')
 class InstalledBaseMovie(unittest.TestCase):
     def test_client_base_movie_runs(self):
         movies = ('base', 'ExternalBase', 'ImageData', 'Tooltip', 'Popups', 'main', 'ItemDurability', 'Chat',

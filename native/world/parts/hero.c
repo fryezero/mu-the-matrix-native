@@ -60,8 +60,10 @@ static void hero_cloak(mu_world_rt *a, mu_raster *raster, void *batch)
         type = (int16_t)(a->hero_glow_set[MU_CHARACTER_WING_ITEM] ? a->hero_glow[MU_CHARACTER_WING_ITEM].type
                                                                  : mu_renderchar_type_from_path(wing->path));
     const mu_cloth_gate_in gate = {a->walk.hero.class_byte, 0, 0, type, -1, 0xa91, 0xa91, a->world};
-    world_cloak_draw(a, WORLD_CLOAK_HERO, 0, &a->ch, &gate, a->walk.hero.action, a->walk.hero.prior_action, 1.0f,
-                     raster, batch);
+    const int8_t level = (int8_t)(a->hero_glow_set[MU_CHARACTER_WING_ITEM] ? a->hero_glow[MU_CHARACTER_WING_ITEM].level
+                                                                           : 0);
+    world_cloak_draw(a, WORLD_CLOAK_HERO, 0, &a->ch, &gate, level, a->walk.hero.action, a->walk.hero.prior_action,
+                     1.0f, raster, batch);
 }
 
 static void hero_draw_soft(struct mu_world_rt *a, void *self, mu_world_draw *d)

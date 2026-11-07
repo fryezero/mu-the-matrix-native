@@ -144,7 +144,7 @@ class BenchmarkContract(unittest.TestCase):
 
 @unittest.skipUnless(sys.platform == 'darwin' and
                      (NATIVE / 'gfx/mugfx/target/release/libmugfx.dylib').exists(),
-                     'needs the built Metal GFx library')
+                     'needs native/gfx/mugfx/target/release/libmugfx.dylib (build-mugfx.sh)')
 class MetalTiming(unittest.TestCase):
     def test_as2_clock_is_pinned_only_on_request(self):
         with tempfile.TemporaryDirectory() as tmp:

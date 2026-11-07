@@ -146,7 +146,8 @@ class Installed(unittest.TestCase):
         self.assertGreater(lib.mu_dlg_parse_records(t, out.stdout, len(out.stdout)), 50)
 
     @unittest.skipUnless((ROOT/'evidence/x86-text-capture-09/client-text.bin').exists() or
-                         os.environ.get('MU_CLIENT_TEXT'), 'pinned captures absent')
+                         os.environ.get('MU_CLIENT_TEXT'),
+                         'needs evidence/x86-text-capture-09/client-text.bin or MU_CLIENT_TEXT')
     def test_dialogue_validator(self):
         python = ROOT/'tools/python/bin/python'
         python = str(python) if python.exists() else sys.executable
