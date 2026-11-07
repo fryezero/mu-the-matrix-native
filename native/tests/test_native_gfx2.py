@@ -493,7 +493,7 @@ class RuffleExtensions(unittest.TestCase):
         self.assertLessEqual(diff, 2)                                  # IOSurface (BGRA, premultiplied) == read-back
 
 
-@unittest.skipUnless(LIBMUGFX.exists() and CC, 'native/gfx/mugfx not built')
+@unittest.skipUnless(LIBMUGFX.exists() and CC, 'native/gfx/mugfx not built (fetch-ruffle.sh, build-mugfx.sh)')
 class LayerWithRuffle(unittest.TestCase):
     def test_layer_opens_synthetic_movies(self):
         """The layer's loader steps on real Ruffle: synthetic movies that report

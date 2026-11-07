@@ -303,7 +303,7 @@ class WalkLabels(unittest.TestCase):
 
 
 @unittest.skipUnless(PRIVATE and HAVE_UNICORN and (EVIDENCE / 'x86-text-capture-09/client-text.bin').exists(),
-                     'private captures and Unicorn')
+                     'needs MU_RECOVERY_INTEGRATION=1, Unicorn and evidence/x86-text-capture-09/client-text.bin')
 class PrivateValidators(unittest.TestCase):
     def test_fidelity_sections(self):
         args = [PYTHON, str(ROOT / 'scripts/validate_fidelity.py'), '--sections', 'env_light,object_screen,special_models',
@@ -313,7 +313,7 @@ class PrivateValidators(unittest.TestCase):
         result = subprocess.run(args, capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stdout[-2000:] + result.stderr[-2000:])
 
-    @unittest.skipUnless(os.environ.get('MU_LANG_SNAPSHOT') and os.environ.get('MU_GAME_ROOT'), 'snapshot and game root')
+    @unittest.skipUnless(os.environ.get('MU_LANG_SNAPSHOT') and os.environ.get('MU_GAME_ROOT'), 'needs MU_LANG_SNAPSHOT and MU_GAME_ROOT')
     def test_lang_families(self):
         result = subprocess.run([PYTHON, str(ROOT / 'scripts/validate_fidelity.py'), '--sections',
                                  'lang_tables,set_prefix', '--snapshot', os.environ['MU_LANG_SNAPSHOT'],

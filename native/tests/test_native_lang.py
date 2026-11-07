@@ -28,6 +28,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 HERE = Path(__file__).resolve().parent
 NATIVE = HERE.parent
@@ -475,13 +476,12 @@ class ConsumerTools(Build):
         root = write_combat_world(self.dir/'combat-game')
         placement = self.dir/'placement.txt'
         placement.write_text('# demo\nactor 3 126 120 6 label spider\n')
-        os.environ.pop('MU_LANG_DIR', None)
-        demo = combat_run(root, placement, '--frames', '160', '--combat-script', '2:skill:4:spider')
-        os.environ['MU_LANG_DIR'] = str(self.lang)
-        try:
-            table = combat_run(root, placement, '--frames', '160', '--combat-script', '2:skill:4:spider')
-        finally:
+        # patch.dict restores the caller's MU_LANG_DIR (private-env.sh sets it; other modules in the process read it)
+        with mock.patch.dict(os.environ):
             os.environ.pop('MU_LANG_DIR', None)
+            demo = combat_run(root, placement, '--frames', '160', '--combat-script', '2:skill:4:spider')
+        with mock.patch.dict(os.environ, {'MU_LANG_DIR': str(self.lang)}):
+            table = combat_run(root, placement, '--frames', '160', '--combat-script', '2:skill:4:spider')
         self.assertEqual(demo['summary']['skill_table'], 0)
         self.assertEqual(table['summary']['skill_table'], len(SKILLS))
         self.assertIn('skill 4 Fire Ball: mana 3, AG 0, distance 1', table['logs'])

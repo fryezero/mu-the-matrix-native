@@ -446,7 +446,18 @@ def run_parallel(suites: list[str], jobs: int, logdir: Path, only: set[str] | No
     return 1 if any(r[1] != 0 for r in rows) else 0
 
 
+def check_cwd(cwd: Path | None = None) -> None:
+    """Brief rule 8d (REGRESS-002): run from the repository root. The suite arguments are read from the root (from
+    native/, `tests` would quietly mean the root's suite), --logs from the cwd, and the tests' fixtures and the
+    commands people copy from the docs use root-relative paths. Fail fast instead of half working."""
+    here = (cwd or Path.cwd()).resolve()
+    if here != ROOT:
+        raise SystemExit(f'run_test_suites: run it from the repository root ({ROOT}), not {here}: suite arguments, '
+                         '--logs and the test fixtures are root-relative (brief rule 8d)')
+
+
 def main(argv: list[str] | None = None) -> int:
+    check_cwd()
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument('suites', nargs='*', help='suite directories (default: the Makefile TEST_SUITES)')
     ap.add_argument('--list', action='store_true', help='print the Makefile suite list and exit')
