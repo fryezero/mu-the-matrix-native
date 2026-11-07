@@ -1,5 +1,7 @@
 # Current status
 
+REGRESS-003 PR-ready: README-IMAGES-D's grey ground patches (Lorencia 138,123 with the GFx tooltip) were not a GL state leak and not a regression: mu-world, mu-walk and mu-client wrote the framebuffer's alpha into their frame PNGs. Blended terrain layer 2, grass and sprites leave alpha below 1; the window shows only colour (inference: the GL view is opaque), but viewers composited the PNGs over white (about 210,000 px per 1280x800 Lorencia frame, GL and soft alike, since at least 024e9496 of October 22). `mu_png_write_opaque` writes alpha 0xff for the world frames and the app's captures and PrintScreen screenshot; colour and report sha256 unchanged (October 22 tour 28/28 and DATA-ACQ-002 64/64 PNG RGB, dumps and reports identical). Test: test_native_capture_alpha (fails before: 1,587/64,000 opaque). [Handoff](handoffs/REGRESS-003.md).
+
 APP-REFRESH-009 PR-ready: Preview reinstalled from a7f7b247 (main with #335-#343); APP-REFRESH-006's Native Data
 kept (no export input changed since f2370871; #338's demo files are app resources and ship in the bundle). Private
 native/tests (brief 8d, from the root): full run at 138b756e 969 tests, 941 passed, 27 skipped, 1 test-order failure
