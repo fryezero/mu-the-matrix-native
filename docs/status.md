@@ -217,6 +217,14 @@ pickup, travel 0->3->2 with 0 stale plates, HUD 1100/1100 and one Hound hit -> 1
 arrival (tour |d| 1.591); ground skills 2044/2045 with 0x70c rings, decals and 2-48 sound cues; #310 bodies drawn.
 [Install, rollback, proofs and follow-ups](handoffs/APP-REFRESH-006.md).
 
+APP-REFRESH-007 PR-ready: Preview reinstalled from 53cffd00 (main with #312-#327); APP-REFRESH-006's Native Data
+kept (no export input changed since 20b9d88b). Proofs on the installed app: Windleaf (row 2) key 2 + right-click casts
+2044 with 121 effects, 11 live 0x70c, 66 rings, 2 sound cues, 0 unsupported (headless and windowed); offline quest
+accepted 1/completed 1; world 0x1e box fog (inside |d| 18.79, outside byte-identical); wings 0x2382..0x2385 and bow
+0x1316 2,175 -> 10,775 triangles at +13; Test Area 121 arrival (no objects in Native Data); cast/kill/Space pickup,
+travel 0->3->2 with 0 stale plates, HUD 1100/1100 and one Hound hit -> 1077, audio peak -0.300 dBFS, ~22.5 fps.
+[Install, rollback, proofs and follow-ups](handoffs/APP-REFRESH-007.md).
+
 PLAY-FIX-001: two Preview bugs from APP-REFRESH-003 fixed.
 - A world change now runs the client's ClearCharacters(HeroKey) `0x0137c276` (with ClearItems `0x017ea38b`; Unicorn,
   0 mismatches, 6/6 mutants), so no old-world name floats after travel; the hero's plate stays.
