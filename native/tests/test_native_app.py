@@ -141,6 +141,7 @@ class PreviewApp(unittest.TestCase):
         for rel in ('MacOS/MuNativePreview', 'MacOS/mu-client', 'Frameworks/libmu-nonet.dylib',
                     'Frameworks/libmugfx.dylib', 'Resources/AppIcon.icns', 'Resources/session/demo-session.txt',
                     'Resources/session/demo-servers.txt', 'Resources/session/demo-characters.txt',
+                    'Resources/session/demo-skills.txt',
                     'Resources/world/lorencia-demo-placement.txt', 'Resources/world/lorencia-demo-npc.txt',
                     'Resources/world/lorencia-demo-players.txt',
                     'MacOS/gfxconvert'):

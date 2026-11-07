@@ -47,6 +47,7 @@ static void owner_emit(const mu_rc_owner_host *h, int32_t kind, int32_t bitmap, 
         fx.light[k] = light[k];
     }
     fx.scale = scale;
+    fx.angle[0] = fx.angle[1] = fx.angle[2] = 0.0f;
     if (h->emit)
         h->emit(h->context, &fx);
 }

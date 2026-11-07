@@ -152,6 +152,48 @@ static void beside(char *out, size_t size, const char *session_path, const char 
         snprintf(out, size, "%.*s/%s", (int)(slash - session_path), session_path, name);
 }
 
+/* APP-POLISH-005: "SLOT str=N agi=N vit=N ene=N cmd=N [points=N]"; every stat once, 0..65535 (the 0x55 0x57
+ * frame's 16-bit fields), one line per slot.  Returns 0, or 1 when malformed. */
+static int parse_hero(mu_offline_session *s, const char *text)
+{
+    static const char *const names[6] = {"str", "agi", "vit", "ene", "cmd", "points"};
+    mu_offline_hero h = {0, {0, 0, 0, 0, 0}, 0};
+    int used = 0, seen = 0;
+    if (sscanf(text, "%d%n", &h.slot, &used) != 1 || h.slot < 0 || h.slot > 9 || s->hero_count >= MU_OFFLINE_HEROES)
+        return 1;
+    for (int32_t i = 0; i < s->hero_count; ++i)
+        if (s->heroes[i].slot == h.slot)
+            return 1;
+    const char *p = text + used;
+    for (;;) {
+        while (*p == ' ' || *p == '\t')
+            ++p;
+        if (!*p || *p == '\r')
+            break;
+        char name[8];
+        long value;
+        int n = 0;
+        if (sscanf(p, "%7[a-z]=%ld%n", name, &value, &n) != 2 || value < 0 || value > 0xffff ||
+            (p[n] && p[n] != ' ' && p[n] != '\t' && p[n] != '\r'))
+            return 1;
+        int k = 0;
+        while (k < 6 && strcmp(name, names[k]))
+            ++k;
+        if (k == 6 || (seen & (1 << k)))
+            return 1;
+        seen |= 1 << k;
+        if (k < 5)
+            h.stats[k] = (int32_t)value;
+        else
+            h.points = (int32_t)value;
+        p += n;
+    }
+    if ((seen & 31) != 31)
+        return 1;
+    s->heroes[s->hero_count++] = h;
+    return 0;
+}
+
 int mu_offline_session_load(mu_offline_session *s, const char *path, const char *root, char *error,
                             size_t error_size)
 {
@@ -195,6 +237,17 @@ int mu_offline_session_load(mu_offline_session *s, const char *path, const char 
                     status = 1;
                 } else {
                     s->joins[s->join_count++] = j;
+                }
+            } else if (!strcmp(key, "skills")) {
+                char *trim = value + strlen(value);
+                while (trim > value && (trim[-1] == ' ' || trim[-1] == '\t'))
+                    *--trim = 0;
+                beside(s->skills_path, sizeof s->skills_path, path, value);
+            } else if (!strcmp(key, "hero")) {
+                if (parse_hero(s, value)) {
+                    snprintf(error, error_size, "%s line %d: expected hero SLOT str=N agi=N vit=N ene=N cmd=N "
+                             "[points=N]", path, line_number);
+                    status = 1;
                 }
             } else {
                 snprintf(error, error_size, "%s line %d: unknown key %s", path, line_number, key);
@@ -252,6 +305,14 @@ int32_t mu_offline_session_character_list(mu_offline_session *s)
 {
     s->protocol = 0x33;
     return s->protocol;
+}
+
+const mu_offline_hero *mu_offline_session_hero(const mu_offline_session *s, int32_t slot)
+{
+    for (int32_t i = 0; i < s->hero_count; ++i)
+        if (s->heroes[i].slot == slot)
+            return &s->heroes[i];
+    return NULL;
 }
 
 mu_offline_join mu_offline_session_join(const mu_offline_session *s, int32_t slot)
