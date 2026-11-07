@@ -63,7 +63,8 @@ The private `test_native_quest.LorenciaDemo` (expects 1) fails for that reason o
 
 ## 4. README images 26 and 27
 
-Re-shot with the fixed command, from this branch's build at `71692108`. Method and framing are README-STRESS-001's:
+Re-shot with the fixed command from this branch's build, after merging main `84a7f05d` (#319 RENDER-WORLDS-SLOTS3
+moved 2,951 Tormenta particle pixels and 18 in Lorencia, so the images were re-encoded from the merged build). Method and framing are README-STRESS-001's:
 world 0 at 182,128 frame 0, world 141 at 60,50 frame 100, FOV 65, 1600×1000, the same 80 loadouts and 8 monsters,
 `MU_GFX_PUBLIC_DEMO=1`, `MU_GFX_TEST_CLOCK=1`, headless GL, window-only. Inputs: Native Data APP-REFRESH-006
 (read-only) and the bundled eight-patch GFx library (`scratch/polish/libmugfx.dylib`, read-only). JPEG quality 85,
@@ -81,7 +82,7 @@ Differences from October that this lane did not cause: the left of the Lorencia 
 far-right corner of Tormenta now render black. A first-parent bisect from #205 to `71692108` (probe: Lorencia
 182,128, 800×500, FOV 65) found RENDER-TIME-003 (#258). That change is intended: the frustum now uses the client's
 640-unit GetScreenWidth, which at this wide FOV culls those edges. Newer item and effect work also changes armour and
-spell pixels. Two runs give a byte-identical Tormenta frame. Lorencia frame 0 differs in 49 pixels of the HUD strip
+spell pixels. Two runs on one build give a byte-identical Tormenta frame. Lorencia frame 0 differs in 49 pixels of the HUD strip
 (GFx timing at the first frame).
 
 ## Checks

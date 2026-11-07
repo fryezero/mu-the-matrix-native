@@ -117,8 +117,8 @@ post-fix frame rate is inferred. The 80-player 25 fps target remains open.
 
 | Image | JPEG SHA-256 | Native source PNG SHA-256 |
 |---|---|---|
-| 26-80-players-lorencia.jpg | `d7ebf14fc9e9e083eaca540cd351eb8b0840d26decd74e1b9024e9a7afd04feb` | `5f050a5bb2b88e0c17bda033a63a4db0706d6f2941f13657ad17df33c69cdf6e` |
-| 27-80-players-tormenta-combat.jpg | `d618eb5bd334a17bb34b00cef3869f9ad551c50fc6fc8dabcafab67a1a6cad0a` | `6d957807d08760b8ee34b7af33ca1f6eb895f84d17fddd1338aed2c5c9102efc` |
+| 26-80-players-lorencia.jpg | `7d4f91626d705d029a53c1e6f19bfbea706156ba6bd2b0113e7a6a34235bf4ae` | `eb3b1ca3533a9f0dc5ca25c8ba5f1ba6de347777c8888178254548c88a3d19d6` |
+| 27-80-players-tormenta-combat.jpg | `4100c2c9cc1861b0fccefd50cd3c2ef25e80bbde473ea3e18fcceddea127d0aa` | `6b08873220070c20a0c0504595b8fa9003f842a5795d2c8bd6964c8e53630e8d` |
 
 These are the APP-POLISH-006 re-shoots (below). The October 28 originals were
 `cad4e399…` (JPEG) / `ec3bd8ef…` (PNG) and `a8386983…` / `d26946a3…`.
@@ -146,11 +146,12 @@ and the old check refused the crowd although nothing was missing.
 
 Same framing as before: worlds/tiles, FOV 65, 1600x1000, frames 0 and 100, the
 same 80 loadouts and 8 monsters, `MU_GFX_PUBLIC_DEMO=1`. The build was this branch
-at main `71692108`, with Native Data APP-REFRESH-006 (read-only) and the bundled
+merged with main `84a7f05d` (#319 RENDER-WORLDS-SLOTS3, which moves some Tormenta
+particles), with Native Data APP-REFRESH-006 (read-only) and the bundled
 eight-patch GFx library. Each scene: 80/80 players and name records, complete
 base and glow textures, 5 skill events, 417 effects, 16 joints. JPEG quality 85,
-4:2:0, optimized, no EXIF, 450 KB and 407 KB. Two runs of the Tormenta frame are
-byte-identical. Lorencia frame 0 differs between runs in 49 pixels of the HUD
+4:2:0, optimized, no EXIF, 450 KB and 407 KB. Two runs of the Tormenta frame on one
+build are byte-identical. Lorencia frame 0 differs between runs in 49 pixels of the HUD
 strip only (GFx presentation timing at the first frame).
 
 Visible differences from October that this lane did not cause:
