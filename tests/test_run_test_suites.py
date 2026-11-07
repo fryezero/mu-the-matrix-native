@@ -66,6 +66,13 @@ class SuiteList(unittest.TestCase):
         listed = run(['--list'], 1)
         self.assertEqual(listed.stdout.split(), rts.makefile_suites())
 
+    def test_refuses_another_working_directory(self):
+        """TEST-HYGIENE-001 / rule 8d: from native/ the runner stops before it runs anything."""
+        r = run(['--list'], 1, cwd=ROOT / 'native')
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn('run it from the repository root', r.stderr)
+        self.assertEqual(r.stdout, '')
+
     def test_every_test_dir_is_discovered(self):
         files = subprocess.run(['git', 'ls-files', '*test_*.py'], cwd=ROOT, capture_output=True, text=True,
                                check=True).stdout.split()

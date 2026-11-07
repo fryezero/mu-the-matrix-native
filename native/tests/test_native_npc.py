@@ -268,7 +268,8 @@ class Installed(unittest.TestCase):
         self.assertEqual(out['opens'][0]['dialogue'], 0x248)
 
     @unittest.skipUnless((ROOT/'evidence/x86-text-capture-09/client-text.bin').exists() or
-                         os.environ.get('MU_CLIENT_TEXT'), 'pinned captures absent')
+                         os.environ.get('MU_CLIENT_TEXT'),
+                         'needs evidence/x86-text-capture-09/client-text.bin or MU_CLIENT_TEXT')
     def test_validator(self):
         python = ROOT/'tools/python/bin/python'
         python = str(python) if python.exists() else sys.executable
