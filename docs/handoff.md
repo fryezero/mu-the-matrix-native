@@ -233,6 +233,7 @@ REGRESS-002: [cwd-dependent session/fixture scenario tests (pinned to the root),
 APP-REFRESH-006: [reinstall from 7e6a9292, Native Data with itemtrs.tsv, title/icon/ground-skill/Kubera/body proofs, rollback](handoffs/APP-REFRESH-006.md).
 APP-REFRESH-007: [reinstall from 53cffd00, Native Data kept, Windleaf 2044/quest/box fog/item bodies/121 proofs, rollback](handoffs/APP-REFRESH-007.md).
 APP-REFRESH-008: [reinstall from f2370871, Native Data kept, Windleaf vitals/window-point travel/wings/world pre-draw/world 136 bone-glow proofs, rollback](handoffs/APP-REFRESH-008.md).
+APP-REFRESH-009: [reinstall from a7f7b247, Native Data kept, shipped demo item effects/inventory equipment/Karutan crystal/cloak and armour fixtures/Raklion proofs, private native/tests, rollback](handoffs/APP-REFRESH-009.md).
 PLAY-FIX-001: [world-change clear, audio output limiter, map-name check](handoffs/PLAY-FIX-001.md).
 
 README-REFRESH-003: [handoff](handoffs/README-REFRESH-003.md), [claim sources](research/readme-refresh.md). Public progress refreshed through PR #207; existing images/pins unchanged, no runtime code or live game used.
