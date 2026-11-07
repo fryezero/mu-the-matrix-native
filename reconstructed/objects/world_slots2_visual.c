@@ -10,9 +10,7 @@ int mu_obj_visual_flicker(int32_t world, int has_model)
 {
     if (!has_model)
         return 0;   /* 0x017f9790: no model, RenderObjectVisual returns before the draw */
-    return world == 57 || world == 58 || (world >= 62 && world <= 64) || (world >= 69 && world <= 72) ||
-           (world >= 79 && world <= 82) || (world >= 91 && world <= 96) || world == 100 || world == 101 ||
-           (world >= 110 && world <= 140) || (world >= 142 && world <= 145);
+    return world != 4 && world != 7 && world != 8;   /* those: mu_builtin_visual's own first draw */
 }
 
 static float f32b(uint32_t u)

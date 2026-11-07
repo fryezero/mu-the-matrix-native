@@ -651,6 +651,10 @@ $(BUILD)/worlds-slots2-host: tests/worlds_slots2_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-slots2-host.o
 	$(CXX) $(BUILD)/worlds-slots2-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
 
+$(BUILD)/worlds-slots3-host: tests/worlds_slots3_host.c $(LIB) $(HEADERS)
+	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-slots3-host.o
+	$(CXX) $(BUILD)/worlds-slots3-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+
 $(BUILD)/anim-host: tests/anim_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/anim-host.o
 	$(CXX) $(BUILD)/anim-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@

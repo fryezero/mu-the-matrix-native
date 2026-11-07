@@ -219,8 +219,9 @@ int mu_pt_object_visual(mu_pt_visual_object *o, const mu_pt_visual_host *h)
         return 0;
     if (h->has_model && !h->has_model(h->context, o))
         return 1;
-    /* 0x017f9797: one rand() for every object with a model, before the world switch */
-    const float l = (float)(vrand(h) % 30 + 70) * 0.01f;
+    /* 0x017f9797: one rand() for every object with a model, before the world switch. The caller drew it
+     * (RENDER-WORLDS-SLOTS3: the object runtime's one outer draw); only its value is used here. */
+    const float l = (float)(h->outer_rand % 30 + 70) * 0.01f;
     switch (h->world) {
     case 0: lorencia(o, h, l); break;
     case 1: dungeon(o, h, l); break;
