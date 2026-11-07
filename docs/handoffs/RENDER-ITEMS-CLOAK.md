@@ -1,7 +1,9 @@
 # RENDER-ITEMS-CLOAK
 
 Branch/worktree `claude/render-items-cloak` (Claude Opus 5.5), from `origin/claude/render-items-002t` (`53b9f7e7`,
-#341); merged main `138b756e` (#338..#341) as `dd805a35` (clean). No live client, launcher, network or hosted workflow.
+#341); merged main `138b756e` (#338..#341) as `dd805a35` (clean) and `65748528` (#342 RENDER-EFFECTS-021) as
+`a1642147` (finding conflict: both added a part 23; RENDER-EFFECTS-021 keeps 23, this lane is part 24; both
+`validators.toml` rows kept). No live client, launcher, network or hosted workflow.
 No full gate in the lane (2026-11-04 test budget).
 
 Scope: the capes of wings `0x2382`..`0x2385`, `0x2394`, `0x2395` in the world, for players and the hero.
@@ -140,7 +142,23 @@ validate_model_edge, validate_model_light, validate_movement, validate_path, val
 validate_viewport_monsters, validate_terrain_remaining, validate_icarus_c2, validate_worlds_f, validate_audio_callers,
 validate_audio_combat, validate_audio_domains, validate_audio_items, validate_session_party, validate_audio_charsel,
 validate_render_effects16, validate_worlds_fog, validate_render_effects17, validate_item_callers,
-validate_render_effects18, validate_render_effects19. All ran at `0557de1b` without mutants. Env: private-env.sh
+validate_render_effects18, validate_render_effects19 (all 23 ran at `0557de1b` without mutants); and, after the
+`65748528` merge (#342 brought `reconstructed/particles` and the world callers; this lane only renumbered comments),
+the 50 rows `--affected-since 0557de1b` selects, all passing at `a1642147` without mutants (380 s wall):
+validate_app_polish1, validate_audio_callers, validate_audio_domains, validate_audio_items, validate_icarus_c2,
+validate_item_callers, validate_item_cloak, validate_item_effects, validate_meshdraw, validate_model_edge,
+validate_movement, validate_particles, validate_render_effects, validate_render_effects3, validate_render_effects4,
+validate_render_effects5, validate_render_effects6, validate_render_effects7, validate_render_effects9,
+validate_render_effects10, validate_render_effects11, validate_render_effects12, validate_render_effects13,
+validate_render_effects14, validate_render_effects15, validate_render_effects16, validate_render_effects17,
+validate_render_effects18, validate_render_effects19, validate_render_effects20, validate_render_effects21,
+validate_render_worlds_a, validate_world_particle_consumers, validate_worlds_121, validate_worlds_after,
+validate_worlds_after2, validate_worlds_after3, validate_worlds_after4, validate_worlds_after5, validate_worlds_after6,
+validate_worlds_e, validate_worlds_fog, validate_worlds_g3, validate_worlds_karutan, validate_worlds_l,
+validate_worlds_m, validate_worlds_raklion, validate_worlds_slots, validate_worlds_slots2, validate_worlds_slots3.
+After the merge, the private modules `test_native_item_cloak`, `test_render_effects21`, `test_native_world_predraw`,
+`test_native_hero_items`, `test_native_players` and `test_world_parts` ran again: 56 tests OK, 194 s. `cloth.c` changed
+after the mutant run only in its first comment line (part 23 → 24). No other row needs mutants. Env: private-env.sh
 (`MU_SECTION3` above, `MU_PATH_DIRECTIONS`).
 
 Cleanup removes `mu-mac-tools/native/scratch/render-items-cloak/`, the base worktree `worktrees/cloak-base`, the
