@@ -11,7 +11,7 @@ Scope: RENDER-ITEMS-002 part 22, groups 1 and 2 of part 20's "Next groups", plus
 ## Result
 
 Bodies **1,359 → 1,363 of 1,674** (+4: maces `0x0f1f`, `0x0f20`; bow `0x130d`; `0x2713`). Skins 17/17, links
-eighteen targets/twenty-four types. **311 bodies remain.** SURVEY
+eighteen targets/twenty-four types. **311 bodies remain.** Survey: 798 shapes, complete shapes 581 → 585; both TSVs flip exactly the four types.
 
 - **Group 1** (random helper, `rand() % 3` indices, frame counter): `0x0f1f` and `0x0f20` admitted. The helper
   `0x00d01fc6` is a random spherical vector, not a colour (op 44). New: bounded array selects with integer range

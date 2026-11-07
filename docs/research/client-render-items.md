@@ -1831,7 +1831,7 @@ names. The five demo characters' seven items all equal the guess.
 Bounded bodies increase **1,359 to 1,363 of 1,674** (+4): two maces with pre-draw programs (`0x0f1f`, `0x0f20`,
 `gen_item_owner_fx.PRE_FX_TYPES`, draws with the part-13 carry rule) and two owner blocks after the draws (bow
 `0x130d` and `0x2713`, the new `POST_FX_TYPES`, default draws). Skins stay **17/17**, links stay **eighteen
-targets/twenty-four types**. **311 bodies remain.** SURVEY_LINE
+targets/twenty-four types**. **311 bodies remain.** The survey keeps 798 shapes; complete shapes go 581 to 585, and both TSVs flip exactly the four types.
 
 The third mace, `0x0f2a`, now reads (part of the idioms below come from it) but is not admitted: its body draws an atlas
 mesh (`0x8615`) at u = (f % 4)·0.25, v = (f / 4)·0.25 with f = ([0x0bdc5ebc] % 32) / 2 (`0x0176b676`), the rendered-frame
