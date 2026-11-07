@@ -69,6 +69,8 @@ PRE_FX_TYPES = [
     # 0x012b678d on item bones and the rendered-frame counter gate (0x0f1f, 0x0f20). 0x0f2a reads too, but its body
     # draws an atlas frame from the rendered-frame counter, which the body probes hold at 0 (not admitted).
     0x0f1f, 0x0f20,
+    # RENDER-ITEMS-002U (part 23): 0x0f2a, its atlas frame now a body chain of the counter (gen_item_bodies.FRAME_TYPES).
+    0x0f2a,
 ]
 
 # RENDER-ITEMS-002T: owner blocks after the draws in RenderPartObjectBody's case that use the pre-draw idioms

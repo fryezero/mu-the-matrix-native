@@ -1034,10 +1034,10 @@ static void write_fidelity_dump(const mu_world_rt *a)
 void world_rt_item_pre(mu_world_rt *a, struct mu_renderchar_env *env, int caller, int32_t type, const mu_model *model,
                        const float *bones)
 {
+    env->frame_counter = &a->rendered_frames;   /* RENDER-ITEMS-002U: body chains and program tests read [0x0bdc5ebc] */
     if (!env->particles || !(mu_rc_item_pre_fx(type) || mu_rc_item_post_fx(type)))   /* RENDER-ITEMS-002U: post too */
         return;
     env->item_bones = bones;
-    env->frame_counter = &a->rendered_frames;   /* RENDER-ITEMS-002U */
     env->pre_counts = a->item_pre[caller];
     env->item_out_of_view = !a->legacy_box && mu_world_item_out_of_view(a->frustum.x2d, a->frustum.y2d,
                                                                          model->params.origin);

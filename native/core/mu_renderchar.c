@@ -162,6 +162,7 @@ static void fill_item(mu_rc_item *it, const mu_renderchar_glow *g, const mu_rend
     it->blend_mesh = -1;
     it->time = env->time;
     it->quality = env->quality;
+    it->frame = env->frame_counter ? *env->frame_counter : 0;   /* RENDER-ITEMS-002U: body chains; 0 when unknown */
     it->has_record = g->has_record;
     it->kind_a = g->kind_a;
     it->kind_b = g->kind_b;

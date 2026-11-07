@@ -85,6 +85,7 @@ typedef struct mu_rc_item {
     uint8_t kind_a, kind_b, item_kind; /* record +0x250, +0x251, +0x252 */
     float enchant[3];       /* EnchantEffect colour for the type (table 0x06fbb754 lookup) */
     int32_t object_hidden;  /* OBJECT +0x68; 0/-1 and ItemObjectAttribute exceptions; seeds accept indices */
+    uint32_t frame;         /* RENDER-ITEMS-002U: the rendered-frame counter [0x0bdc5ebc] (clock-chain ops 30..33) */
 } mu_rc_item;
 
 /* Effective glow level (0x0176cf4a..0x0176dce9). */

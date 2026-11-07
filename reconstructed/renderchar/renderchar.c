@@ -201,8 +201,10 @@ static int32_t clock_trunc(double x)
 
 /* Kind 3: a clock chain sliced from the pinned bytes (gen_item_bodies.slice_block).
  * Integer, binary32 and binary64 registers; operands are data-image words,
- * immediates or entry-local stores. Divisors 0 and -1 are excluded. */
-static float clock_program(const mu_rc_body_scalar *p, float time)
+ * immediates or entry-local stores. Divisors 0 and -1 are excluded.
+ * RENDER-ITEMS-002U: ops 30..33 read the rendered-frame counter [0x0bdc5ebc] (the integer register), divide it
+ * unsigned (xor edx, edx; div) and convert it to binary64 as unsigned (cvtsi2sd plus the 0x01bd3050 fix-up). */
+static float clock_program(const mu_rc_body_scalar *p, float time, uint32_t frame)
 {
     int32_t i = 0;
     float f = 0.0f;
@@ -243,6 +245,10 @@ static float clock_program(const mu_rc_body_scalar *p, float time)
         case 26: f = -f; break;
         case 27: i = (int32_t)(0u - (uint32_t)i); break;
         case 28: d = -d; break;
+        case 30: i = (int32_t)frame; break;
+        case 31: i = (int32_t)((uint32_t)i % word); break;
+        case 32: i = (int32_t)((uint32_t)i / word); break;
+        case 33: d = (double)(uint32_t)i; break;
         default: i = (int32_t)(word - (uint32_t)i); break;
         }
     }
@@ -251,11 +257,11 @@ static float clock_program(const mu_rc_body_scalar *p, float time)
 
 /* Per-type straight-line scalar after a wave or sin call (generator parse).
  * Operation bit 8 marks the binary64 form (fstp qword .. cvtsd2ss). */
-static float body_scalar(const mu_rc_body_scalar *p, float time)
+static float body_scalar(const mu_rc_body_scalar *p, float time, uint32_t frame)
 {
     float a, value;
     if (p->kind == 3)
-        return clock_program(p, time);
+        return clock_program(p, time, frame);
     memcpy(&a, &p->a, 4);
     value = p->kind == 1 ? client_wave(a, time) : client_sin(time * a);
     if (p->count && (p->op[0] & 8)) {
@@ -457,7 +463,7 @@ static void emit_parameter_body(sink *s, int phase, uint32_t flags, float alpha,
             memcpy(&value, &input[p->a], 4);
             value = derived_program(p, value);
         } else {
-            value = body_scalar(p, s->item->time);
+            value = body_scalar(p, s->item->time, s->item->frame);
         }
         memcpy(&input[35 + k], &value, 4);
     }
