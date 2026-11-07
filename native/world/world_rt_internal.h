@@ -193,6 +193,7 @@ struct mu_world_rt {
     double gfx_scale;
 #endif
     void *part[MU_PART_COUNT];     /* each part's own state (world_part.h state_size) */
+    struct world_cloak *cloak;     /* RENDER-ITEMS-CLOAK: the characters' wing cloths (world_cloak.c) */
 };
 
 /* RenderCharacter's part order (shared by the hero, players and player-model actors). */
