@@ -237,6 +237,15 @@ accepted 1/completed 1; world 0x1e box fog (inside |d| 18.79, outside byte-ident
 travel 0->3->2 with 0 stale plates, HUD 1100/1100 and one Hound hit -> 1077, audio peak -0.300 dBFS, ~22.5 fps.
 [Install, rollback, proofs and follow-ups](handoffs/APP-REFRESH-007.md).
 
+APP-REFRESH-008 PR-ready: Preview reinstalled from f2370871 (main with #328-#334); APP-REFRESH-006's Native Data
+kept (no export input changed since 53cffd00). Proofs on the installed app: Windleaf's orbs 1119/1119 HP, 778/778 MP
+(progress_demo.h DEMO maxima) and 2044 with 121 effects; windowed Warps travel by window-point clicks (1x display,
+the Retina half not run); inventory wings byte-identical to the faithful upper-mesh draw; #330's test kits draw
+pre-draw sprites (players 138/2, ground 36/0; the shipped crowd wears no pre-draw type); world 136's type-25 glow at
+its bone; quest accepted 1; cast/kill/Space pickup, travel 0->3->2 with 0 stale plates, HUD 1100/1100 and one Hound
+hit -> 1077, audio peak -0.300 dBFS, ~20.4 fps at 1504x936.
+[Install, rollback, proofs and follow-ups](handoffs/APP-REFRESH-008.md).
+
 PLAY-FIX-001: two Preview bugs from APP-REFRESH-003 fixed.
 - A world change now runs the client's ClearCharacters(HeroKey) `0x0137c276` (with ClearItems `0x017ea38b`; Unicorn,
   0 mismatches, 6/6 mutants), so no old-world name floats after travel; the hero's plate stays.
