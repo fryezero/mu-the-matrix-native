@@ -8,6 +8,8 @@ The owner asked for agents' finish phase to run only the checks a change needs. 
 
 Check `uptime`, `memory_pressure | tail -1`, and `df -h ~` before each heavy command. Wait at load >14
 or free memory <25%; follow the brief's swap-growth rule. Run one heavy command at a time.
+Run every command from the repository root, as the gate does (fixture scenarios name repository-relative
+tables; REGRESS-002).
 
 Set the private environment once, in the lane or steward worktree:
 
