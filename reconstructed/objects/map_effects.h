@@ -76,7 +76,7 @@ void mu_map_effects_attach(const mu_map_effect_table *table, int32_t world, cons
  *
  * 0x012a0d29: the OBJECT is "in a sector list" when +0x350 (previous) or +0x354 (next) is set. CreateObject appends
  * every map object to its sector's list, so the predicate fails exactly for an object alone in its sector (live: the
- * links are both 0 for 76 of 149,735 objects of the 32 DATA-ACQ-002 captures, each the only object of its sector). */
+ * links are both 0 for 124 of 149,735 objects of the 32 DATA-ACQ-002 captures, each the only object of its sector). */
 int mu_map_effects_in_sector(const mu_obj_world *w, int32_t object);
 
 enum { MU_MAP_EFFECT_UNDEFINED = -1, MU_MAP_EFFECT_UNPOSED = 0, MU_MAP_EFFECT_OK = 1 };
