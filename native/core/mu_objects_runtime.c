@@ -1817,11 +1817,6 @@ mu_object_model *mu_objects_prepare_after(mu_objects *o, int32_t k, mu_world *ma
     } else {
         visual_context c = {o, m};
         mu_world_after_render(img, i, o->world, map ? map->time : 0.0f, &log, visual_bone, &c);
-        if ((o->world == 0x50 || o->world == 0x51) && (t == 0x37 || t == 0x39)) {
-            mu_model_params params = m->model.params;
-            params.light_skip_mesh = 0;
-            mu_model_apply_params(&m->model, &params);
-        }
         consume_visual(o, &log);
     }
     float color[3];
