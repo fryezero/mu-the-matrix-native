@@ -76,7 +76,8 @@ int main(int argc, char **argv)
     model_path = argv[1];
     mu_world *map = calloc(1, sizeof *map);
     assert(map);
-    /* every class registration (Tormenta 141's draw is the particle visual's), and two worlds without a class */
+    /* every class registration and two worlds without a class (RENDER-WORLDS-SLOTS3: 73 and Tormenta 141 now draw
+     * it too; the built-in worlds 4/7/8 draw it in mu_builtin_visual) */
     static const int32_t worlds[] = {57, 58, 62, 63, 64, 69, 70, 71, 72, 79, 80, 81, 82, 91, 92, 93, 94, 95, 96, 100,
                                      101, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124,
                                      125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140,
@@ -89,7 +90,7 @@ int main(int argc, char **argv)
             mu_objects *o = population(world, type, with_model);
             mu_draw_options options;
             (void)mu_objects_prepare_index(o, 0, map, 6, &options);
-            const uint32_t expect = with_model && world != 73 && world != 141 ? msvc_next(1) : 1;
+            const uint32_t expect = with_model ? msvc_next(1) : 1;
             if (o->rt.seed != expect) {
                 fprintf(stderr, "world %d model %d: seed %u, expected %u\n", world, with_model, o->rt.seed, expect);
                 ++failures;

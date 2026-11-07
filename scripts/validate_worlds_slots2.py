@@ -12,8 +12,9 @@ Families (compiled C via ctypes against the pinned original under the strict Uni
   rng_empty     the same for the class worlds whose slot 0x34 answers no (113, 115..120 0x00d5cc9b, 138, 139):
                 natively only the flicker draw.
   rng_drawn     every other class world (the native branches that drew the outer rand before this lane, and
-                Tormenta 141, whose particle visual draws it): RenderObjectVisual up to the world manager; the rand
-                calls before it against mu_obj_visual_flicker (141: none, the particle visual draws it).
+                Tormenta 141): RenderObjectVisual up to the world manager; the rand calls before it against
+                mu_obj_visual_flicker (RENDER-WORLDS-SLOTS3: 141 too; its particle visual reads the drawn value,
+                validate_worlds_slots3 compares its slot).
 The first 301 cases of an rng family sweep the object type 0..300; the rest draw the world's slot types. One case in
 eight has no model (the client returns before the draw).
 """
@@ -276,9 +277,6 @@ def rng_family(machine, lib, g, cases, worlds):
             for _ in native:
                 cstate()
             ok = labels == native and state == cstate.seed and phase == ('manager' if present else 'pre')
-            if world == 141:   # the particle visual draws it (validate_particles, family visual): none here
-                ok = labels == (['outer'] if present else []) and not native and \
-                    phase == ('manager' if present else 'pre')
             t.count('world %d' % world)
         else:
             native, cstate = run_native(lib, world, typ, raw, present, time, weather, stage, seed)
@@ -498,21 +496,23 @@ S = 'world_slots2_visual.c'
 MUTATIONS = [
     # the outer draw's model gate and world set
     ('Flicker without the model gate', S, 'if(!has_model)return0;', 'if (!has_model && world < 0) return 0;', 'rng_57'),
-    ('Flicker misses Raklion 57', S, 'returnworld==57||', 'return ', 'rng_57'),
-    ('Flicker misses Raklion 58', S, 'world==58||(world>=62', '(world >= 62', 'rng_58'),
-    ('Flicker misses Santa 62', S, '(world>=62&&world<=64)', '(world >= 63 && world <= 64)', 'rng_62'),
-    ('Flicker misses Duel 64', S, '(world>=62&&world<=64)', '(world >= 62 && world <= 63)', 'rng_64'),
-    ('Flicker misses 82', S, '(world>=79&&world<=82)', '(world >= 79 && world <= 81)', 'rng_82'),
-    ('Flicker misses Uruk 100', S, 'world==100||world==101||(world>=110', 'world == 101 || (world >= 110', 'rng_100'),
-    ('Flicker misses Arca 101', S, 'world==100||world==101||(world>=110', 'world == 100 || (world >= 110', 'rng_101'),
-    ('Flicker misses character scene 93', S, '(world>=91&&world<=96)', '(world >= 94 && world <= 96) || world == 91 || world == 92', 'rng_93'),
-    ('Flicker misses login 94', S, '(world>=91&&world<=96)', '(world >= 95 && world <= 96) || (world >= 91 && world <= 93)', 'rng_94'),
-    ('Flicker misses Abyss 128', S, '(world>=110&&world<=140)', '(world >= 110 && world <= 127) || (world >= 129 && world <= 140)', 'rng_128'),
-    ('Flicker misses Abyss 130', S, '(world>=110&&world<=140)', '(world >= 110 && world <= 129) || (world >= 131 && world <= 140)', 'rng_130'),
-    ('Flicker misses Kanturu 137', S, '(world>=110&&world<=140)', '(world >= 110 && world <= 136) || (world >= 138 && world <= 140)', 'rng_137'),
-    ('Flicker misses Ignis 138', S, '(world>=110&&world<=140)', '(world >= 110 && world <= 137) || (world >= 139 && world <= 140)', 'rng_empty'),
-    ('Flicker draws for Tormenta 141', S, '(world>=142&&world<=145)', '(world >= 141 && world <= 145)', 'rng_drawn'),
-    ('Flicker misses 145', S, '(world>=142&&world<=145)', '(world >= 142 && world <= 144)', 'rng_drawn'),
+    # RENDER-WORLDS-SLOTS3: the draw is every world's but 4/7/8; each mutant leaves one world out
+    ('Flicker misses Raklion 57', S, 'returnworld!=4&&', 'return world != 57 && world != 4 && ', 'rng_57'),
+    ('Flicker misses Raklion 58', S, 'returnworld!=4&&', 'return world != 58 && world != 4 && ', 'rng_58'),
+    ('Flicker misses Santa 62', S, 'returnworld!=4&&', 'return world != 62 && world != 4 && ', 'rng_62'),
+    ('Flicker misses Vulcanus 63', S, 'returnworld!=4&&', 'return world != 63 && world != 4 && ', 'rng_63'),
+    ('Flicker misses Duel 64', S, 'returnworld!=4&&', 'return world != 64 && world != 4 && ', 'rng_64'),
+    ('Flicker misses 82', S, 'returnworld!=4&&', 'return world != 82 && world != 4 && ', 'rng_82'),
+    ('Flicker misses Uruk 100', S, 'returnworld!=4&&', 'return world != 100 && world != 4 && ', 'rng_100'),
+    ('Flicker misses Arca 101', S, 'returnworld!=4&&', 'return world != 101 && world != 4 && ', 'rng_101'),
+    ('Flicker misses character scene 93', S, 'returnworld!=4&&', 'return world != 93 && world != 4 && ', 'rng_93'),
+    ('Flicker misses login 94', S, 'returnworld!=4&&', 'return world != 94 && world != 4 && ', 'rng_94'),
+    ('Flicker misses Abyss 128', S, 'returnworld!=4&&', 'return world != 128 && world != 4 && ', 'rng_128'),
+    ('Flicker misses Abyss 130', S, 'returnworld!=4&&', 'return world != 130 && world != 4 && ', 'rng_130'),
+    ('Flicker misses Kanturu 137', S, 'returnworld!=4&&', 'return world != 137 && world != 4 && ', 'rng_137'),
+    ('Flicker misses Ignis 138', S, 'returnworld!=4&&', 'return world != 138 && world != 4 && ', 'rng_empty'),
+    ('Flicker misses Tormenta 141', S, 'returnworld!=4&&', 'return world != 141 && world != 4 && ', 'rng_drawn'),
+    ('Flicker misses 145', S, 'returnworld!=4&&', 'return world != 145 && world != 4 && ', 'rng_drawn'),
     # Santa Village 62
     ('Santa colour', S, 'color(s,0.0f,0.5f,0.5f);', 'color(s, 0.0f, 0.5f, 0.4f);', 'custom2_62'),
     ('Santa glow flags', S, 'color(s,0.0f,0.5f,0.5f);mesh_std(s,2,0x44,-1);', 'color(s, 0.0f, 0.5f, 0.5f); mesh_std(s, 2, 0x42, -1);', 'custom2_62'),

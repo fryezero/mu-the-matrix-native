@@ -117,5 +117,55 @@ post-fix frame rate is inferred. The 80-player 25 fps target remains open.
 
 | Image | JPEG SHA-256 | Native source PNG SHA-256 |
 |---|---|---|
-| 26-80-players-lorencia.jpg | `cad4e3993c3d72313f58e21230a7b9ec4b8085ef016f5b860ce7a1a4542e85d1` | `ec3bd8ef4415cdccc3e4bd673b76dadb5c30fe98b2618f9af0625e9cfc3b3882` |
-| 27-80-players-tormenta-combat.jpg | `a8386983e35fb5de8bb8315eb1e6d4057373729d373c2a33c9f94b02ec4b06b8` | `d26946a31dcaf5fce0db0e1e86d64c84ccce4a92faa2b0951f62b0b0cae7f1d0` |
+| 26-80-players-lorencia.jpg | `7d4f91626d705d029a53c1e6f19bfbea706156ba6bd2b0113e7a6a34235bf4ae` | `eb3b1ca3533a9f0dc5ca25c8ba5f1ba6de347777c8888178254548c88a3d19d6` |
+| 27-80-players-tormenta-combat.jpg | `4100c2c9cc1861b0fccefd50cd3c2ef25e80bbde473ea3e18fcceddea127d0aa` | `6b08873220070c20a0c0504595b8fa9003f842a5795d2c8bd6964c8e53630e8d` |
+
+These are the APP-POLISH-006 re-shoots (below). The October 28 originals were
+`cad4e399…` (JPEG) / `ec3bd8ef…` (PNG) and `a8386983…` / `d26946a3…`.
+
+## APP-POLISH-006 re-shoot: session HUD vitals (2026-11-06)
+
+Since APP-POLISH-002/003 (#294) the HUD shows the session hero's vitals, so the
+October command's HUD read `16960/0`. The script overrode the offline join in two
+ways. `--class 0` selected a Dark Wizard, a class with no recorded join data, so
+the seed set no maxima. `--hero-hp 1000000` went to the combat fixture's A0/30
+placement answer, whose HP field is 16 bits wide: 1,000,000 mod 65,536 = 16,960.
+The script now passes neither, so the world's defaults apply: class 1, level 1,
+the recorded FryeZEN2 join that `native/fixture/hero_join.h` seeds as current and
+maximum (APP-POLISH-003 evidence), and combat HP 1100. Both scenes report HP
+1100/1100, MP 200/200, SD 52/52 and AG 25/25 at every sampled second. The hero
+(Preview, in the middle of the crowd) is therefore a Dark Knight. It casts the
+same scripted skills 9/10/14/24 with the same staff stance. No stat, damage or
+combat rule changed.
+
+The script also checks the HUD now. It sets `MU_HUD_TRACE=1` and rejects any
+sample whose HUD differs from the session or whose maximum is zero or below the
+current value. Its glow check now requires at least six effect textures per
+slot, not exactly six. Since later item lanes, some +3/+7 slots load a seventh,
+and the old check refused the crowd although nothing was missing.
+
+Same framing as before: worlds/tiles, FOV 65, 1600x1000, frames 0 and 100, the
+same 80 loadouts and 8 monsters, `MU_GFX_PUBLIC_DEMO=1`. The build was this branch
+merged with main `84a7f05d` (#319 RENDER-WORLDS-SLOTS3, which moves some Tormenta
+particles), with Native Data APP-REFRESH-006 (read-only) and the bundled
+eight-patch GFx library. Each scene: 80/80 players and name records, complete
+base and glow textures, 5 skill events, 417 effects, 16 joints. JPEG quality 85,
+4:2:0, optimized, no EXIF, 450 KB and 407 KB. Two runs of the Tormenta frame on one
+build are byte-identical. Lorencia frame 0 differs between runs in 49 pixels of the HUD
+strip only (GFx presentation timing at the first frame).
+
+Visible differences from October that this lane did not cause:
+
+- RENDER-TIME-003 (#258, bisected along main's merges from #205 to `71692108`)
+  culls with the client's 640-unit frustum (GetScreenWidth `0x016bc355`). At this
+  wide FOV, Lorencia's water and shoreline left of the bridge, and Tormenta's
+  far-right corner, now fall outside the frustum and stay black. The change is
+  intended; see that finding.
+- Newer item and effect work changes armour and spell pixels in both scenes.
+
+Privacy review of both encoded files at full size: only the synthetic names
+(W01-F80), Preview, the demo monster names and the offline welcome line, plus
+fixture HUD numbers and the public demo's 1,000/10,000 experience bar. No account
+or real character names, chat, desktop chrome or paths. Nothing was painted over.
+The NATIVE-PERF frame rates quoted next to the images were not re-measured and are
+unchanged.
