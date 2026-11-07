@@ -9,11 +9,13 @@ with its mutants (validator row validate_item_callers).
 Private, installed data (MU_RECOVERY_INTEGRATION=1, MU_GAME_ROOT): Lorencia through `mu-walk` with demo players
 wearing pre-draw types (sword 0x0b27, shield 0x1748, wing 0x2382, bow 0x1316, wing 0x2394, mace 0x0f1c, sword
 0x0b4c, wing 0x2384) and ground drops (wing 0x2384, sword 0x0b4c, bow 0x1311):
-  * the players' and ground items' requests become sprites (pre_effects > 0); the wing 0x2384's OBJECT-owned
-    particles stay refused and counted;
+  * the players' and ground items' requests become sprites (pre_effects > 0); since RENDER-EFFECTS-020 the wing
+    0x2384's OBJECT-owned particles (0x810a/0x11, 0x81cf/0) are created with the item OBJECT as owner: nothing
+    is refused;
   * a player outside the frame's polygon has the flag clear: no requests, counted as hidden;
-  * the demo players file (no pre-draw type) prints no item_pre_draw line and its particle stream is the one
-    every earlier lane pinned through the other modules.
+  * the demo players file: before APP-POLISH-008 it wore no pre-draw type and printed no item_pre_draw line; its
+    four new outfits (shield 0x1748, sword 0x0b4c, wings 0x230b / 0x2311, mace 0x0f1c) now create their sprites
+    with none refused.
 """
 import json
 import os
@@ -127,11 +129,14 @@ class WorldPreDraw(unittest.TestCase):
     def test_players_and_ground_items_create_their_pre_draw_effects(self):
         pre, particles = walk(PLAYERS, '--items', '--item-script', DROPS)
         self.assertIsNotNone(pre)
-        self.assertEqual(pre['players'], {'pre_effects': 92, 'pre_refused': 2, 'hidden': 0})
-        self.assertEqual(pre['ground'], {'pre_effects': 18, 'pre_refused': 1, 'hidden': 0})
+        # RENDER-EFFECTS-020: 92 / 2 and 18 / 1 before (the refusals were 0x2384's OBJECT-owned particles). The first
+        # created 0x810a/0x11 draws its eight rand() calls (133 -> 141), so the later gates and request counts move.
+        self.assertEqual(pre['players'], {'pre_effects': 93, 'pre_refused': 0, 'hidden': 0})
+        self.assertEqual(pre['ground'], {'pre_effects': 18, 'pre_refused': 0, 'hidden': 0})
         self.assertEqual(pre['hero'], {'pre_effects': 0, 'pre_refused': 0, 'hidden': 0})
         self.assertEqual(particles['sprites_created'], 110)
-        self.assertEqual(particles['rand_calls'], 133)   # as before: the programs drew their rand unrouted too
+        self.assertEqual(particles['rand_calls'], 141)
+        self.assertEqual((particles['created'], particles['unsupported']), (7, 0))
 
     def test_flag_clear_outside_the_polygon(self):
         pre, _ = walk('player Far class=0x01 at=138,114 dir=3 pk=3 level=400 weapon0=0:65:9 wing=12:156:0\n',
@@ -139,9 +144,10 @@ class WorldPreDraw(unittest.TestCase):
         self.assertEqual(pre['players']['pre_effects'], 0)
         self.assertGreater(pre['players']['hidden'], 0)
 
-    def test_no_pre_draw_type_keeps_the_report(self):
+    def test_demo_players_draw_their_pre_draw_effects(self):
         pre, _ = walk((NATIVE/'world/lorencia-demo-players.txt').read_text(), frames=20)
-        self.assertIsNone(pre)
+        self.assertEqual((pre['players']['pre_effects'], pre['players']['pre_refused']), (98, 0))   # APP-POLISH-008
+        self.assertEqual(pre['hero'], {'pre_effects': 0, 'pre_refused': 0, 'hidden': 0})
 
 
 if __name__ == '__main__':

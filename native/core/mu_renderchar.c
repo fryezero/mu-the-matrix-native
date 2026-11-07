@@ -176,6 +176,7 @@ typedef struct owner_services {
     mu_world_particles *particles;
     long created, refused;
     const float *item_bones;   /* RENDER-ITEMS-002R: the item's own pose */
+    uint32_t item_owner;       /* RENDER-EFFECTS-020: the item OBJECT's owner key */
 } owner_services;
 
 static void owner_transform(void *context, int32_t bone, const float local[3], float out[3])
@@ -187,8 +188,8 @@ static void owner_transform(void *context, int32_t bone, const float local[3], f
 
 /* The rank-5 block passes a zero angle; the RENDER-ITEMS-002Q programs pass theirs (OBJECT +0x164 or a
  * normalized bone difference). A request no native kind creates counts as refused. RENDER-ITEMS-002R: the
- * pre-draw bone sprites pass 0x0150e746's rotation and blend words; a particle owned by the item's OBJECT has
- * no native owner record (mu_world_particles_create_owned takes attached-object indices) and is refused.
+ * pre-draw bone sprites pass 0x0150e746's rotation and blend words. RENDER-EFFECTS-020: a particle owned by the
+ * item's OBJECT gets the OBJECT's item-owner index (refused without a key or a free slot).
  * RENDER-ITEMS-002S: CreateJoint requests go to the joint pool. The client's target object is the item's OBJECT,
  * which has no native object index, so the joint gets none (-1: it takes the target position argument); kinds
  * the pool does not reconstruct return < 0 and count as refused. */
@@ -196,7 +197,7 @@ static void owner_emit(void *context, const mu_rc_owner_fx *fx)
 {
     owner_services *o = context;
     long created = 0;
-    if (!o->particles || (fx->kind == MU_RC_OWNER_PARTICLE && fx->owner)) {
+    if (!o->particles || (fx->kind == MU_RC_OWNER_PARTICLE && fx->owner && !o->item_owner)) {
         o->refused++;
         return;
     }
@@ -204,8 +205,11 @@ static void owner_emit(void *context, const mu_rc_owner_fx *fx)
         created = mu_world_particles_joint(o->particles, fx->bitmap, fx->position, fx->target, fx->angle,
                                            fx->subtype, -1, fx->scale, 0xffff, 0, 0, 0xffff, 0, NULL) >= 0;
     } else if (fx->kind == MU_RC_OWNER_PARTICLE) {
-        created = mu_world_particles_create(o->particles, fx->bitmap, fx->position, fx->angle, fx->light,
-                                            fx->subtype, fx->scale);
+        const int32_t object = fx->owner ? mu_world_particles_item_owner(o->particles, o->item_owner,
+                                                                         o->model->params.origin) : MU_PT_NO_OWNER;
+        created = (!fx->owner || object >= 0) &&
+                  mu_world_particles_create_owned(o->particles, fx->bitmap, fx->position, fx->angle, fx->light,
+                                                  fx->subtype, fx->scale, object);
     } else if (o->particles->sprites) {
         /* The client's owner is the OBJECT; native sprites are not owner-bound. */
         uint64_t before = o->particles->sprites->created;
@@ -284,7 +288,7 @@ static int draw_item(const mu_model *model, const mu_renderchar_glow *glow, cons
             if (context.blue_mesh == -1 && !strcmp(name, "Item1161_Blue.jpg")) context.blue_mesh = i;
         }
     }
-    owner_services services = {model, owner, env->particles, 0, 0, env->item_bones};
+    owner_services services = {model, owner, env->particles, 0, 0, env->item_bones, env->item_owner};
     mu_rc_owner_host host = {owner && owner->bones ? owner->bone_count : 0, -1, owner_transform, owner_random,
                              owner_emit, &services, model->bmd->bone_count, {0.0f, 0.0f, 0.0f},
                              NULL, NULL, NULL, 0, {0.0f, 0.0f, 0.0f}};
@@ -299,6 +303,7 @@ static int draw_item(const mu_model *model, const mu_renderchar_glow *glow, cons
         host.visible = !env->item_out_of_view;
         /* RENDER-ITEMS-002S: OBJECT +0x158. The native item has no OBJECT of its own; its model origin stands in. */
         memcpy(host.position, model->params.origin, sizeof host.position);
+        memcpy(host.angle, env->item_angle, sizeof host.angle);   /* RENDER-EFFECTS-020: OBJECT +0x164 */
         if (!owner)
             host.transform = NULL;   /* no OBJECT owner bones: the owner programs stay off */
         if (!env->item_bones)

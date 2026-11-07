@@ -3153,9 +3153,9 @@ args = ["--mutations", "--output", "{report}"]
 [validate_hero_items]
 test = "native/tests/test_native_hero_items.py::ClientComparison.test_original_instructions"
 pins = ["text", "data"]
-families = ["set_class", "defaults", "head", "item_flag"]
-cases = 7088
-mutants = 14
+families = ["set_class", "defaults", "head", "item_flag", "record"]
+cases = 10088
+mutants = 18
 cases_at = "families.*.cases"
 mutants_at = "mutants"
 build = ["reconstructed/hero-equipment", "reconstructed/players"]
@@ -3166,6 +3166,7 @@ args = ["--mutations", "--output", "{report}"]
 "families.defaults.cases" = 256
 "families.head.cases" = 832
 "families.item_flag.cases" = 3000
+"families.record.cases" = 3000
 "mutants.*" = {truthy = true}
 
 [validate_render_effects18]
@@ -3195,3 +3196,18 @@ args = ["--cases", "20", "--mutations", "--output", "{report}"]
 [validate_render_effects19.expect]
 all_equal = true
 all_mutants_caught = true
+
+[validate_render_effects20]
+test = "native/tests/test_render_effects20.py::ClientComparison.test_original_instructions_and_compiled_mutants"
+pins = ["text", "data"]
+families = ["item_create", "item_move", "item_render", "owner_reads", "link_angle", "bitmap"]
+cases = 148
+mutants = 14
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/particles"]
+args = ["--cases", "20", "--mutations", "--output", "{report}"]
+[validate_render_effects20.expect]
+all_equal = true
+all_mutants_caught = true
+"mutants.*.stopped" = 0

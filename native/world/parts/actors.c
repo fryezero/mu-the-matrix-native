@@ -183,7 +183,8 @@ static void npc_item_draw(mu_world_rt *a, const mu_world_actor *npc, int item, c
     env.particles = a->has_particles ? &a->particles : NULL;
     env.quality = 5;
     if (item >= MU_CHARACTER_PART_SLOTS)   /* RenderLinkItem: the weapon's / wing's own pose (RENDER-ITEMS-CALLERS-001) */
-        world_rt_item_pre(a, &env, MU_WORLD_PRE_ACTORS, npc->player_glow[item].type, &part->model, part->bones);
+        world_rt_item_pre(a, &env, MU_WORLD_PRE_ACTORS, npc->player_glow[item].type, &part->model, part->bones,
+                          (uint32_t)(npc - a->actors.list) * 16u + (uint32_t)item);
     mu_draw_options options;
     mu_draw_default_options(&options);
     options.textures = &part->textures;
