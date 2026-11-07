@@ -64,7 +64,6 @@ All heavy steps `nice -n 10`.
 | Portable `test_item_predraw` + `test_item_ownerfx` | 14 tests, 2 private skips | 0.1 s |
 | Native `test_native_renderchar` (new `test_wing_joint_and_random_bone_programs`: `0x22ec` 20 joints refused by the pool, sprites created; `0x23ef` 0 refused on 64 bones, 2 on 40), `test_native_item_textures` (installed survey; 6b pins unchanged), `test_native_fidelity` | 36 tests, 1 skip | 101 s |
 | Build `nice -n 10 make -j4` (after the `53cffd00` merge) | pass | 19 s |
-
 | After the `c5ed13dd` merge: build, `test_native_world_predraw` (CALLERS-001) + renderchar/item_textures/fidelity, portable renderchar suite, audit | build pass; 43 tests, 1 skip; 96 tests, 22 private skips; 2,040 staged files, 0 rejected | 13 s / 88 s / 1 s / 20 s |
 | `run_test_suites.py --affected origin/main` (`MU_RECOVERY_INTEGRATION=0`, 2 jobs, at `f116e667` + the `test_item_types` pin fix) | 7 suites, 1,298 tests, 0 failures after the fix (`0x22ec` now draws; the pin moves to `0x2301`), 192 skips | 303 s |
 
