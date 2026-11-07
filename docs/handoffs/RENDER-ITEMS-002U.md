@@ -1,7 +1,9 @@
 # RENDER-ITEMS-002U
 
 Branched from `claude/render-items-002t` (`53b9f7e7`, PR #341); merged main `138b756e` (#338 APP-POLISH-008, #339
-RENDER-EFFECTS-020, #340 RENDER-WORLDS-KARUTAN, #341 RENDER-ITEMS-002T; clean, no conflict markers). Branch/worktree
+RENDER-EFFECTS-020, #340 RENDER-WORLDS-KARUTAN, #341 RENDER-ITEMS-002T; clean), `a7f7b247` (#342 RENDER-EFFECTS-021, #343
+INVENTORY-FX; both struct fields kept) and `97b282e6` (#344 RENDER-ITEMS-CLOAK, #345, #346; docs only: main's parts
+23-25 taken as they are, this lane's finding is part 26). No conflict markers. Branch/worktree
 `claude/render-items-002u` (Claude Opus 5.5). No live client, launcher, network or hosted workflow. No full gate in the
 lane (2026-11-04 test budget).
 
@@ -84,78 +86,82 @@ after it (+`validate_inventory_fx`, +`validate_render_effects21`, #343/#342 rows
 - `7aa9b04d` (after merging `a7f7b247`): the 33 rows whose inputs the merge changed plus the 2 new rows: 35/35 pass, 169 s.
 - `814ff0d2` (final code; the compact table changed `gen_item_bodies.py` and the header text): the 42 rows affected
   since `7aa9b04d`: 42/42 pass, 38 min wall.
+- `a8874f91` (after merging main `97b282e6`: #344 RENDER-ITEMS-CLOAK, #345, #346): the selection grows to 65
+  (+`validate_item_cloak`); the 20 rows whose inputs that merge changed: 20/20 pass, 6.5 min wall. Private native
+  `test_native_renderchar`, `test_native_world_predraw`, `test_native_item_cloak`, `test_native_joints`: 38 tests, 25 s.
 
-| Validator | `6dd45042` | `7aa9b04d` (merge) | `814ff0d2` (final) |
-|---|---:|---:|---:|
-| `validate_app_polish1` | 20.1s | 17.3s |  |
-| `validate_app_polish2` | 4.1s | 3.8s |  |
-| `validate_app_polish4` | 33.1s | 28.7s |  |
-| `validate_audio_callers` | 5.7s | 5.0s | 4.6s |
-| `validate_audio_combat` | 21.4s |  |  |
-| `validate_audio_domains` | 21.9s | 21.4s | 19.9s |
-| `validate_audio_items` | 3.8s | 4.2s | 3.1s |
-| `validate_fidelity` | 52.7s |  | 48.9s |
-| `validate_icarus` | 25.9s |  |  |
-| `validate_icarus_c2` | 18.3s | 15.3s | 13.1s |
-| `validate_inventory_fx` |  | 6.2s | 6.1s |
-| `validate_item_callers` | 1.2s | 1.1s | 1.1s |
-| `validate_item_carry` | 531.8s |  | 644.4s |
-| `validate_item_chains` | parser fail; fixed: 288.5 s with 17/17 mutants |  | 228.9s |
-| `validate_item_clusters` | 447.7s |  | 425.7s |
-| `validate_item_continuation` | 172.6s |  | 216.3s |
-| `validate_item_coverage` | 166.7s |  | 253.8s |
-| `validate_item_derived` | 178.4s |  | 236.2s |
-| `validate_item_expansion` | 394.4s |  | 330.1s |
-| `validate_item_gear` | 143.1s |  | 179.1s |
-| `validate_item_hiddenmesh` | 438.6s |  | 483.4s |
-| `validate_item_next` | 180.9s |  | 198.9s |
-| `validate_item_ownerfx` | 137.2s |  | 142.9s |
-| `validate_item_predraw` | 286 s (32,372 cases, 44/44 mutants) |  | 237.9s |
-| `validate_item_product` | 44.7s |  | 48.8s |
-| `validate_item_quality` | 165.2s |  | 215.2s |
-| `validate_item_ranked` | 127.2s |  | 132.3s |
-| `validate_item_scalars` | parser fail; fixed: 199.8 s with 11/11 mutants |  | 157.0s |
-| `validate_item_types` | 39.4s |  | 28.6s |
-| `validate_item_wings_next` | 180.8s |  | 223.5s |
-| `validate_joints` | 228 s (3,000/family, 38/38 mutants) |  |  |
-| `validate_meshdraw` | 67.3s | 50.2s |  |
-| `validate_model_edge` | 127.8s | 102.0s |  |
-| `validate_model_light` | 5.0s |  |  |
-| `validate_movement` | 49.8s | 47.3s | 62.2s |
-| `validate_render_effects` | 1.1s | 0.8s |  |
-| `validate_render_effects10` | 0.4s | 0.3s | 0.3s |
-| `validate_render_effects11` | 0.3s | 0.2s | 0.2s |
-| `validate_render_effects12` | 0.3s | 0.2s | 0.2s |
-| `validate_render_effects13` | 0.6s | 0.4s | 0.4s |
-| `validate_render_effects14` | 1.5s | 1.0s | 0.9s |
-| `validate_render_effects15` | 0.9s | 0.6s | 0.6s |
-| `validate_render_effects16` | 3.7s | 3.7s | 2.3s |
-| `validate_render_effects17` | 8.0s | 6.5s | 6.2s |
-| `validate_render_effects18` | 1.4s | 0.9s | 0.9s |
-| `validate_render_effects19` | 1.1s | 0.7s | 0.7s |
-| `validate_render_effects20` | 0.3s | 0.2s | 0.2s |
-| `validate_render_effects21` |  | 0.4s | 0.2s |
-| `validate_render_effects3` | 1.0s | 0.7s |  |
-| `validate_render_effects4` | 5.9s | 5.3s |  |
-| `validate_render_effects5` | 3.8s | 3.5s | 3.1s |
-| `validate_render_effects6` | 1.3s | 1.0s |  |
-| `validate_render_effects7` | 1.5s | 1.5s | 1.1s |
-| `validate_render_effects9` | 0.9s | 0.7s | 0.7s |
-| `validate_renderchar` | 43.6s |  | 38.7s |
-| `validate_skill_fx` | 1.2s |  |  |
-| `validate_terrain` | 322.2s |  |  |
-| `validate_terrain_remaining` | 3.6s |  |  |
-| `validate_world_particle_consumers` | 0.9s | 0.6s |  |
-| `validate_worlds_d` | 3.6s |  |  |
-| `validate_worlds_f` | 0.4s |  |  |
-| `validate_worlds_fog` | 6.8s | 4.4s |  |
-| `validate_worlds_l` | 1.1s | 0.9s |  |
-| `validate_worlds_m` | 0.8s | 0.8s |  |
+| Validator | `6dd45042` | `7aa9b04d` (merge a7f7b247) | `814ff0d2` (final code) | `a8874f91` (merge 97b282e6) |
+|---|---:|---:|---:|---:|
+| `validate_app_polish1` | 20.1s | 17.3s |  |  |
+| `validate_app_polish2` | 4.1s | 3.8s |  |  |
+| `validate_app_polish4` | 33.1s | 28.7s |  |  |
+| `validate_audio_callers` | 5.7s | 5.0s | 4.6s | 4.5s |
+| `validate_audio_combat` | 21.4s |  |  | 29.9s |
+| `validate_audio_domains` | 21.9s | 21.4s | 19.9s | 32.1s |
+| `validate_audio_items` | 3.8s | 4.2s | 3.1s | 2.3s |
+| `validate_fidelity` | 52.7s |  | 48.9s |  |
+| `validate_icarus` | 25.9s |  |  |  |
+| `validate_icarus_c2` | 18.3s | 15.3s | 13.1s | 19.0s |
+| `validate_inventory_fx` |  | 6.2s | 6.1s | 6.0s |
+| `validate_item_callers` | 1.2s | 1.1s | 1.1s | 1.2s |
+| `validate_item_carry` | 531.8s |  | 644.4s |  |
+| `validate_item_chains` | parser fail; fixed: 288.5 s with 17/17 mutants |  | 228.9s |  |
+| `validate_item_cloak` |  |  |  | 62.8s |
+| `validate_item_clusters` | 447.7s |  | 425.7s |  |
+| `validate_item_continuation` | 172.6s |  | 216.3s |  |
+| `validate_item_coverage` | 166.7s |  | 253.8s |  |
+| `validate_item_derived` | 178.4s |  | 236.2s |  |
+| `validate_item_expansion` | 394.4s |  | 330.1s |  |
+| `validate_item_gear` | 143.1s |  | 179.1s |  |
+| `validate_item_hiddenmesh` | 438.6s |  | 483.4s |  |
+| `validate_item_next` | 180.9s |  | 198.9s |  |
+| `validate_item_ownerfx` | 137.2s |  | 142.9s |  |
+| `validate_item_predraw` | 286 s (32,372 cases, 44/44 mutants) |  | 237.9s |  |
+| `validate_item_product` | 44.7s |  | 48.8s |  |
+| `validate_item_quality` | 165.2s |  | 215.2s |  |
+| `validate_item_ranked` | 127.2s |  | 132.3s |  |
+| `validate_item_scalars` | parser fail; fixed: 199.8 s with 11/11 mutants |  | 157.0s |  |
+| `validate_item_types` | 39.4s |  | 28.6s |  |
+| `validate_item_wings_next` | 180.8s |  | 223.5s |  |
+| `validate_joints` | 228 s (3,000/family, 38/38 mutants) |  |  |  |
+| `validate_meshdraw` | 67.3s | 50.2s |  | 64.5s |
+| `validate_model_edge` | 127.8s | 102.0s |  | 107.0s |
+| `validate_model_light` | 5.0s |  |  | 4.3s |
+| `validate_movement` | 49.8s | 47.3s | 62.2s | 56.7s |
+| `validate_render_effects` | 1.1s | 0.8s |  |  |
+| `validate_render_effects10` | 0.4s | 0.3s | 0.3s |  |
+| `validate_render_effects11` | 0.3s | 0.2s | 0.2s |  |
+| `validate_render_effects12` | 0.3s | 0.2s | 0.2s |  |
+| `validate_render_effects13` | 0.6s | 0.4s | 0.4s |  |
+| `validate_render_effects14` | 1.5s | 1.0s | 0.9s |  |
+| `validate_render_effects15` | 0.9s | 0.6s | 0.6s |  |
+| `validate_render_effects16` | 3.7s | 3.7s | 2.3s | 2.3s |
+| `validate_render_effects17` | 8.0s | 6.5s | 6.2s | 6.1s |
+| `validate_render_effects18` | 1.4s | 0.9s | 0.9s | 0.8s |
+| `validate_render_effects19` | 1.1s | 0.7s | 0.7s | 0.6s |
+| `validate_render_effects20` | 0.3s | 0.2s | 0.2s |  |
+| `validate_render_effects21` |  | 0.4s | 0.2s |  |
+| `validate_render_effects3` | 1.0s | 0.7s |  |  |
+| `validate_render_effects4` | 5.9s | 5.3s |  |  |
+| `validate_render_effects5` | 3.8s | 3.5s | 3.1s |  |
+| `validate_render_effects6` | 1.3s | 1.0s |  |  |
+| `validate_render_effects7` | 1.5s | 1.5s | 1.1s |  |
+| `validate_render_effects9` | 0.9s | 0.7s | 0.7s |  |
+| `validate_renderchar` | 43.6s |  | 38.7s |  |
+| `validate_skill_fx` | 1.2s |  |  |  |
+| `validate_terrain` | 322.2s |  |  | 375.7s |
+| `validate_terrain_remaining` | 3.6s |  |  | 3.6s |
+| `validate_world_particle_consumers` | 0.9s | 0.6s |  |  |
+| `validate_worlds_d` | 3.6s |  |  |  |
+| `validate_worlds_f` | 0.4s |  |  | 0.3s |
+| `validate_worlds_fog` | 6.8s | 4.4s |  | 4.2s |
+| `validate_worlds_l` | 1.1s | 0.9s |  |  |
+| `validate_worlds_m` | 0.8s | 0.8s |  |  |
 
 ## Release
 
-Steward validators: validate_app_polish1, validate_app_polish2, validate_app_polish4, validate_audio_callers, validate_audio_combat, validate_audio_domains, validate_audio_items, validate_fidelity, validate_icarus, validate_icarus_c2, validate_inventory_fx, validate_item_callers, validate_item_carry, validate_item_chains, validate_item_clusters, validate_item_continuation, validate_item_coverage, validate_item_derived, validate_item_expansion, validate_item_gear, validate_item_hiddenmesh, validate_item_next, validate_item_ownerfx, validate_item_predraw, validate_item_product, validate_item_quality, validate_item_ranked, validate_item_scalars, validate_item_types, validate_item_wings_next, validate_joints, validate_meshdraw, validate_model_edge, validate_model_light, validate_movement, validate_render_effects, validate_render_effects10, validate_render_effects11, validate_render_effects12, validate_render_effects13, validate_render_effects14, validate_render_effects15, validate_render_effects16, validate_render_effects17, validate_render_effects18, validate_render_effects19, validate_render_effects20, validate_render_effects21, validate_render_effects3, validate_render_effects4, validate_render_effects5, validate_render_effects6, validate_render_effects7, validate_render_effects9, validate_renderchar, validate_skill_fx, validate_terrain, validate_terrain_remaining, validate_world_particle_consumers, validate_worlds_d, validate_worlds_f, validate_worlds_fog, validate_worlds_l, validate_worlds_m (ran at `814ff0d2`: the 42 rows whose inputs changed after the merge — validate_audio_callers, validate_audio_domains, validate_audio_items, validate_fidelity, validate_icarus_c2, validate_inventory_fx, validate_item_callers, validate_item_carry, validate_item_chains, validate_item_clusters, validate_item_continuation, validate_item_coverage, validate_item_derived, validate_item_expansion, validate_item_gear, validate_item_hiddenmesh, validate_item_next, validate_item_ownerfx, validate_item_predraw, validate_item_product, validate_item_quality, validate_item_ranked, validate_item_scalars, validate_item_types, validate_item_wings_next, validate_movement, validate_render_effects10, validate_render_effects11, validate_render_effects12, validate_render_effects13, validate_render_effects14, validate_render_effects15, validate_render_effects16, validate_render_effects17, validate_render_effects18, validate_render_effects19, validate_render_effects20, validate_render_effects21, validate_render_effects5, validate_render_effects7, validate_render_effects9, validate_renderchar; at
-`7aa9b04d` after merging main `a7f7b247`: validate_meshdraw, validate_model_edge, validate_movement, validate_icarus_c2, validate_audio_callers, validate_render_effects, validate_render_effects3, validate_render_effects4, validate_render_effects5, validate_render_effects6, validate_render_effects7, validate_render_effects9, validate_render_effects10, validate_render_effects11, validate_render_effects12, validate_world_particle_consumers, validate_audio_domains, validate_audio_items, validate_worlds_l, validate_worlds_m, validate_app_polish1, validate_app_polish2, validate_app_polish4, validate_render_effects13, validate_render_effects14, validate_render_effects15, validate_render_effects16, validate_worlds_fog, validate_render_effects17, validate_item_callers, validate_render_effects18, validate_render_effects19, validate_render_effects20, validate_inventory_fx, validate_render_effects21; the others last at `6dd45042`, unchanged inputs since). No row needs
+Steward validators: validate_app_polish1, validate_app_polish2, validate_app_polish4, validate_audio_callers, validate_audio_combat, validate_audio_domains, validate_audio_items, validate_fidelity, validate_icarus, validate_icarus_c2, validate_inventory_fx, validate_item_callers, validate_item_carry, validate_item_chains, validate_item_cloak, validate_item_clusters, validate_item_continuation, validate_item_coverage, validate_item_derived, validate_item_expansion, validate_item_gear, validate_item_hiddenmesh, validate_item_next, validate_item_ownerfx, validate_item_predraw, validate_item_product, validate_item_quality, validate_item_ranked, validate_item_scalars, validate_item_types, validate_item_wings_next, validate_joints, validate_meshdraw, validate_model_edge, validate_model_light, validate_movement, validate_render_effects, validate_render_effects10, validate_render_effects11, validate_render_effects12, validate_render_effects13, validate_render_effects14, validate_render_effects15, validate_render_effects16, validate_render_effects17, validate_render_effects18, validate_render_effects19, validate_render_effects20, validate_render_effects21, validate_render_effects3, validate_render_effects4, validate_render_effects5, validate_render_effects6, validate_render_effects7, validate_render_effects9, validate_renderchar, validate_skill_fx, validate_terrain, validate_terrain_remaining, validate_world_particle_consumers, validate_worlds_d, validate_worlds_f, validate_worlds_fog, validate_worlds_l, validate_worlds_m (ran at `a8874f91`, after the last merge: validate_audio_callers, validate_audio_combat, validate_audio_domains, validate_audio_items, validate_icarus_c2, validate_inventory_fx, validate_item_callers, validate_item_cloak, validate_meshdraw, validate_model_edge, validate_model_light, validate_movement, validate_render_effects16, validate_render_effects17, validate_render_effects18, validate_render_effects19, validate_terrain, validate_terrain_remaining, validate_worlds_f, validate_worlds_fog; the others at `814ff0d2` (final code) or,
+with inputs unchanged since, at `7aa9b04d`/`6dd45042`, see the table). No row needs
 mutants from the steward: validate_joints (38/38), validate_item_predraw (44/44), validate_item_scalars (11/11) and
 validate_item_chains (17/17) ran theirs once in the lane. Env: private-env.sh plus
 `MU_SECTION3=$HOME/Documents/MTM/main-exe-study/evidence/x86-linux-capture-04/main-01ced000.bin`.
@@ -166,8 +172,9 @@ needs to be kept; the worktree stays until the steward merges.
 
 ## Byte identity and renders
 
-"Before" = main `a7f7b247` (detached worktree `rii002u-base`, removed at cleanup); "after" = this branch. Offline native
-renders, not original-client pixels.
+"Before" = main `a7f7b247` (detached worktree `rii002u-base`, removed at cleanup); "after" = this branch at `814ff0d2`
+(before the `97b282e6` merge, whose #344 capes belong to wings `0x2382`..`0x2385`/`0x2394`/`0x2395`, none in these
+views). Offline native renders, not original-client pixels.
 
 - `mu-render ui inventory`, installed data, `MU_LANG_DIR` set, time 123456, 1024×768: control codes
   0,1,2,3,7,8,4116,135 byte-identical (`7bfbb2cb…`, 1,672 triangles); six counter types (codes 128, 1571, 1093, 2117,
