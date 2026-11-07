@@ -99,11 +99,76 @@ case set and a different world test. So it is ported as its own routine (`world_
 
 ## Checks
 
-CHECKS
+Under the 2026-11-04 test budget: no lane gate. `nice -n 10`, `make -j4`, `--jobs 2`; load 1m 7–15 with other lanes
+active. Code commits: `ae453a69` (the slots, the 145 placement, the validators), `179ea2a8` (mutant tables that compile;
+scripts only), `14e7290b` (a host without sector lists counts as in a list: `worlds_slots2_host` had crashed on it).
+The later commits are docs only.
+
+| Check | Result | Wall |
+|---|---|---|
+| `nice -n 10 make -j4` | pass (fresh worktree; later incremental) | 28 s |
+| `validate_worlds_karutan --cases 400` (iterating) | 1,200 cases, 0 mismatches | 1.5 s |
+| Mutants once, `run_validators.py --private --cache --only validate_worlds_karutan` (at `179ea2a8`) | **validate_worlds_karutan** (new): 3 families × 1,000 = **3,000 cases, 0 mismatches/stops**; **25/25 mutants** caught (lowest 10, "World 102 not tested"). All compile (checked one by one), none equivalent, every anchor exactly once | 144 s |
+| Mutants once, `--only validate_render_effects19` (at `179ea2a8`) | 6 families, **400 cases, 0 mismatches** (map_update 80, **records_145 60**, **aquila_bone6 80**, ta_pt 3 × 60); **28/28 mutants** (new: aquila_bone_5 80/80, aquila_unfollowed 21/80, aquila_in_sector_kept 26/80; lowest overall 1, the existing in_sector_next) | 21 s |
+| Mutants once, `--only validate_render_worlds_a` (at `ae453a69`; its Karutan cases call the class slots) | 9 families, **9,000 cases, 0 mismatches**; **13/13 mutants** (lowest 9, the moved "Karutan scrolling period"); anchors checked by hand: each matches exactly once | 74 s |
+| `validate_render_effects19 --cases 200 --lang-dir <local lang>` (full count, no mutants) | **5,516 cases, 0 mismatches**: map_update 800, records_145 600, aquila_bone6 800, map_records 1,516 (all 758 decoded entries, 145's 93 among them, alone and in a list), ta_pt 3 × 600 | 9.6 s |
+| Affected rows, no mutants: `run_validators.py --private --no-mutants --cache --affected-since 6d4f6312 --jobs 2` after `make -j4` (symbol selection: 59 rows, 2 symbol fallbacks: movement, render_effects17; 8 pruned: audio_charsel, audio_combat, fidelity, item_textures, objects, path, session_party, viewport_monsters), at `ae453a69` | **59 pass**, 0 fail/error/skip; **996,661 cases** | 767 s (rows 1,374 s) |
+| After `14e7290b` (one runtime line): `--affected-since 179ea2a8` after `make -j4` (12 rows: model_edge, meshdraw, movement, audio_domains, render_effects17, audio_callers, model_light, audio_items, terrain_remaining, render_effects16, worlds_f, terrain), no mutants | **12 pass**, **623,199 cases** | 514 s |
+| `run_test_suites.py --affected 6d4f6312` (`MU_RECOVERY_INTEGRATION=0`, `MU_GATE_JOBS=2`) | first run: 1 failure, `test_native_worlds_slots2` (the host segfaulted in `mu_map_effects_in_sector` without sector lists; fixed in `14e7290b`); rerun: **8 suites, 1,495 tests, 1,265 passed, 230 skipped, 0 failures** | 390 s + 322 s |
+| Unit modules (`MU_RECOVERY_INTEGRATION=1`): test_worlds_karutan (new; its private test runs the validator at 200 cases), native test_render_effects19 (with its private mutant run) | 14 tests OK | 14 s |
+| Unit modules (portable, 6b): test_worlds_121, test_worlds_raklion, test_worlds_after2 (class list), test_worlds_after, test_worlds_slots, test_worlds_slots2, test_worlds_j, native test_render_worlds_a, test_native_worlds_121, test_native_worlds_slots2, test_native_fidelity2; test_worlds_s, test_native_worlds_s | 60 + 7 tests OK (8 skipped: private) | 8 s |
+| `scripts/audit_repository.py` | 2,065 staged files, 0 rejected | 17 s |
+| `world_handler_coverage.py` | 48 classes, 57 registrations, 288 addresses; 144/144 | < 1 s |
+| Tours, default draw (`live_time` too for Karutan): before = `6d4f6312`'s `mu-world` (main + #337), once | October 22 14, Karutan `live_time` 1, DATA-ACQ-002 32 | 39 + 6 + 81 s |
+| Tours after (at `ae453a69`) and again with the final binary (`14e7290b`) | **October 22 14/14 (Karutan included) and DATA-ACQ-002 32/32 byte-identical** (PNG frames, OBJECT and light dumps, frame reports with the output path normalised); Karutan `live_time` 1/1 identical | 27 + 5 + 82 s; final 17 s |
+| Two offline Karutan views (not live: tiles 205,17 and 49,169, the October 22 placements) | 0x81 crystal: 2,635 pixels change (region x 1100..1156, y 146..237); the 0x42 view: frame reports only (rand phase); final binary identical to `ae453a69` | 4 + 3 s |
+
+Steward validators: validate_worlds_karutan (mutants: yes, new; done once at `179ea2a8`), validate_render_effects19
+(mutants: done once at `179ea2a8`, its checks changed), validate_render_worlds_a (mutants: done once at `ae453a69`,
+its Karutan cases changed), and without mutants the 59 rows of `--affected-since 6d4f6312` (ran at `ae453a69`):
+validate_charsel_world, validate_login_world, validate_meshdraw, validate_model_light, validate_model_edge, validate_object_render, validate_movement, validate_world_fidelity, validate_terrain_remaining, validate_render_worlds_a, validate_icarus, validate_worlds_b, validate_icarus_c2, validate_worlds_d, validate_worlds_e, validate_worlds_f, validate_worlds_g, validate_audio_callers, validate_worlds_h, validate_worlds_i, validate_map_effects, validate_audio_domains, validate_worlds_j, validate_worlds_k, validate_audio_items, validate_worlds_o, validate_worlds_n, validate_worlds_p, validate_worlds_r, validate_world_tile_folder, validate_worlds_g2, validate_world_light_name, validate_worlds_p2, validate_worlds_r2, validate_worlds_q, validate_worlds_q2, validate_worlds_after, validate_worlds_g3, validate_worlds_after2, validate_worlds_after3, validate_worlds_after4, validate_worlds_after5, validate_terrain, validate_app_polish1, validate_worlds_s, validate_worlds_s2, validate_worlds_after6, validate_worlds_s3, validate_worlds_slots, validate_worlds_slots2, validate_worlds_121, validate_worlds_raklion, validate_worlds_karutan, validate_render_effects16, validate_worlds_slots3, validate_item_callers, validate_render_effects18, validate_render_effects17, validate_render_effects19. Then the 12 rows whose compiled inputs `14e7290b` changed, again at `14e7290b`:
+validate_model_edge, validate_meshdraw, validate_movement, validate_audio_domains, validate_render_effects17,
+validate_audio_callers, validate_model_light, validate_audio_items, validate_terrain_remaining,
+validate_render_effects16, validate_worlds_f, validate_terrain.
+
+Env:
+- `MU_RECOVERY_INTEGRATION=1`;
+- `MU_GAME_ROOT=<free-runtime prefix>/drive_c/MuTheMatrix`;
+- `MU_SECTION3=~/Documents/MTM/main-exe-study/evidence/x86-linux-capture-04/main-01ced000.bin`;
+- `MU_EVIDENCE_DIR=<main checkout>/evidence`;
+- `MU_OBJECTS_PLAIN_DIR=<mu-mac-tools>/native/scratch/objects/live/plain`;
+- `MU_SNAPSHOT_DIR=<mu-mac-tools>/native/scratch`;
+- `MU_LANG_DIR=<mu-mac-tools>/native/scratch/lang`, `MU_LANG3_SNAPSHOT=$MU_LANG_DIR/live/lang3.bin`;
+- `MU_LIGHT_SNAPSHOT=$MU_SNAPSHOT_DIR/light/live/dumps/login-a.light`, `MU_LIGHT_OBJECTS=$MU_OBJECTS_PLAIN_DIR/EncTerrain95.plain`;
+- `MU_PATH_DIRECTIONS=$MU_EVIDENCE_DIR/x86-guest-sec3-25/main-01ced000.bin`;
+- `MU_VALIDATOR_CACHE=<mu-mac-tools>/native/cache/validators`;
+- optional `--lang-dir` with RENDER-EFFECTS-008's `mapeffects.tsv` for validate_render_effects19's private `map_records`.
 
 ## Fidelity (Karutan vs live, October 22 capture)
 
-FIDELITY
+`fidelity_tour.py`, default draw and `live_time` (identical), `MU_LANG_DIR` = the canonical lang. The one Karutan
+view is `80-karutan` (tile 125,123), from the 14-view October 22 tour. The live window PNG of that session is gone,
+so the live comparison is the per-field OBJECT scoreboard and the light dumps.
+
+| Field vs live | 80-karutan before → after |
+|---|---|
+| Objects matched (live 2,143) | 2,143 → 2,143 |
+| Static OBJECT field differences (after flag, action, light, hidden/blend mesh, …) | 0 → 0 |
+| Frame light near the hero, mean abs | 0.0148 → 0.0148 |
+| Native output (PNG frames, OBJECT and light dumps) | byte-identical |
+
+- **No live delta, and why (live).**
+  - The six type 0x42 objects lie 7,137..10,428 units from the hero, and the one 0x81 lies 13,304 units away. All
+    are beyond the far plane (3,258), so RenderObject never draws them and the custom slot never runs on them.
+    In live they sit at action 0, frame 0.
+  - The flag types in view were already flagged by the A route, and live agrees.
+- **Offline views** at the 0x81 crystal (tile 205,17) and the 0x42 pair (49,169), with the same placements (not
+  live):
+  - The crystal now glows: the 0x85bb-textured, grey-pulsed mesh 1 plus its additive pass. Before, the generic
+    RenderBody drew it dark.
+  - The 0x42 view changes only in the frame reports: the action choice draws rand.
+- PNGs (local, window-only, before | after): `~/Documents/MTM/mu-mac-tools/native/renders/render-worlds-karutan/png/80-k81-before-after.png`
+  (half size) and `80-k81-zoom-before-after.png` (the crystal, ×4).
 
 ## Census
 
@@ -124,4 +189,6 @@ re-check their scope.
 - World 145 stays Unicorn-only: no decoded placements, no capture (it needs level 1650).
 - Still open from 121: the particle visual's stale comment (`reconstructed/particles/visual.c` line 131).
 
-LOCAL
+Local files kept: `~/Documents/MTM/mu-mac-tools/native/renders/render-worlds-karutan/png/80-k81-before-after.png` and
+`80-k81-zoom-before-after.png`. Everything else (tour renders, scratch, the before binary and its worktree, build
+dirs) is deleted.
