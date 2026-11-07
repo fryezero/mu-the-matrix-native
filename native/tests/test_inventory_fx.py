@@ -15,6 +15,7 @@ import ctypes
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -115,10 +116,12 @@ class ClientComparison(unittest.TestCase):
         self.assertTrue(all(report['mutants'].values()))
 
 
-def world(*args):
-    env = {**os.environ, 'MU_GFX_LIB': GFX, 'MU_LANG_DIR': str(Path(DATA, 'lang')), 'MU_GFX_SINGLE_BUFFER': '1'}
+def world(exe, *args):
     with tempfile.TemporaryDirectory() as tmp:
-        result = subprocess.run([str(NATIVE / 'build/mu-world'), '--game-root', GAME, '--objects-dir',
+        # option.ini goes to the run's own folder, not the user's Application Support (shared by parallel modules)
+        env = {**os.environ, 'MU_GFX_LIB': GFX, 'MU_LANG_DIR': str(Path(DATA, 'lang')), 'MU_GFX_SINGLE_BUFFER': '1',
+               'MU_NATIVE_SETTINGS_DIR': tmp}
+        result = subprocess.run([str(exe), '--game-root', GAME, '--objects-dir',
                                  str(Path(DATA, 'objects')), '--headless', '--backend', 'gl', '--no-audio',
                                  '--class', '1', '--tile', '140,130', '--gfx', str(Path(DATA, 'gfx')),
                                  '--gfx-open', 'inventory', '--frames', '30', '--every', '1000', '--out-dir', tmp,
@@ -126,7 +129,9 @@ def world(*args):
     if result.returncode and 'headless GL' in result.stderr:
         raise unittest.SkipTest('no offscreen GL context')
     if result.returncode:
-        raise AssertionError(result.stderr[-2000:])
+        # a signal shows as a negative code with empty stderr: name it and keep stdout's tail
+        raise AssertionError(f'mu-world exit {result.returncode}\nstderr: {result.stderr[-2000:]}\n'
+                             f'stdout: {result.stdout[-2000:]}')
     rows = [json.loads(line) for line in result.stdout.splitlines() if line.startswith('{')]
     gfx = next(r['gfx'] for r in rows if 'gfx' in r)
     pre = next((r for r in rows if r.get('item_pre_draw') is True), {})
@@ -139,10 +144,19 @@ class InventoryScene(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         subprocess.run(['make', '-C', str(NATIVE), 'world'], check=True, capture_output=True)
+        # TEST-HYGIENE-001: run a private copy. Under run_test_suites.py's pool the make shim serialises builds, not
+        # the runs of what they built, so another module's make may relink native/build/mu-world mid-run.
+        cls.tmp = tempfile.TemporaryDirectory(prefix='inventory-scene-')
+        cls.exe = Path(cls.tmp.name) / 'mu-world'
+        shutil.copy2(NATIVE / 'build/mu-world', cls.exe)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tmp.cleanup()
 
     def test_ironclad_equipment(self):
         args = [a for item in IRONCLAD for a in ('--hero-item', item)]
-        gfx, pre, _ = world(*args)
+        gfx, pre, _ = world(self.exe, *args)
         self.assertEqual(gfx['item_models_missing'], 0)
         self.assertEqual([(e['slot'], e['code'], e['level'], e['excellent']) for e in gfx['inventory_equipment']],
                          [(0, 68, 9, 1), (1, 6 * 512, 7, 0), (7, 12 * 512 + 1, 0, 0)])
@@ -152,12 +166,12 @@ class InventoryScene(unittest.TestCase):
         self.assertGreater(inv['hidden'], 0)
 
     def test_without_records_no_equipment_line(self):
-        gfx, pre, _ = world()
+        gfx, pre, _ = world(self.exe)
         self.assertNotIn('inventory_equipment', gfx)
         self.assertNotIn('inventory', pre)
 
     def test_grid_xeno_blade_sprites_join_the_world(self):
-        gfx, pre, particles = world('--npc-script', '1:mixadd:102:11')
+        gfx, pre, particles = world(self.exe, '--npc-script', '1:mixadd:102:11')
         inv = pre['inventory']
         # the flag is clear at the icon too (hidden counts it), but 0x0b4c's program has no visible gate: it creates
         self.assertGreater(inv['pre_effects'], 0)

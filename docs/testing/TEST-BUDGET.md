@@ -9,7 +9,10 @@ The owner asked for agents' finish phase to run only the checks a change needs. 
 Check `uptime`, `memory_pressure | tail -1`, and `df -h ~` before each heavy command. Wait at load >14
 or free memory <25%; follow the brief's swap-growth rule. Run one heavy command at a time.
 Run every command from the repository root, as the gate does (fixture scenarios name repository-relative
-tables; REGRESS-002).
+tables; REGRESS-002). `run_test_suites.py` refuses any other working directory (TEST-HYGIENE-001).
+Private native/tests rules (TEST-HYGIENE-001): a test builds what it loads (`make -C <dir>`), restores any
+`os.environ` change (`mock.patch.dict`), runs a private copy of a binary that other modules' builds may relink, and
+names the missing variable or build step in its skip reason.
 
 Set the private environment once, in the lane or steward worktree:
 

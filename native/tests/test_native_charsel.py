@@ -279,7 +279,7 @@ class PrivateCharselTests(unittest.TestCase):
             self.assertEqual(len(entries), 5)
             self.assertEqual(frames[-1]['decals'], 2)
 
-    @unittest.skipUnless(os.environ.get('MU_OBJECTS_PLAIN_DIR'), 'the local decoded EncTerrain94.plain')
+    @unittest.skipUnless(os.environ.get('MU_OBJECTS_PLAIN_DIR'), 'needs MU_OBJECTS_PLAIN_DIR (the local decoded EncTerrain94.plain)')
     def test_installed_scene_with_the_live_placements(self):
         subprocess.run(['make', '-C', str(NATIVE)], check=True, capture_output=True)
         with tempfile.TemporaryDirectory() as tmp:
