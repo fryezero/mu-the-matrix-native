@@ -117,6 +117,7 @@ game, original client, account or network.
 | Cloak of Brilliance sparks; armour owner effects in the world | [RENDER-EFFECTS-020](../handoffs/RENDER-EFFECTS-020.md) #339, [RENDER-EFFECTS-021](../handoffs/RENDER-EFFECTS-021.md) #342; this lane's fixture: 164 owner effects / 0 refused, 419 pre-draw / 0 refused |
 | Physics capes of `0x2382`..`0x2385`, `0x2394`, `0x2395` | [RENDER-ITEMS-CLOAK](../handoffs/RENDER-ITEMS-CLOAK.md) #344; this lane's fixture: `cloak` 5 created, 65 drawn, 0 gated |
 | Raklion's whole custom slot, Karutan's 0x81 crystal | [RENDER-WORLDS-RAKLION](../handoffs/RENDER-WORLDS-RAKLION.md) #337, [RENDER-WORLDS-KARUTAN](../handoffs/RENDER-WORLDS-KARUTAN.md) #340 (text only, no image; see the handoff) |
+| Preview reinstalled November 7 | [APP-REFRESH-009](../handoffs/APP-REFRESH-009.md) #345, built from `a7f7b247` (#343); #344's capes are not in the installed app |
 
 Common environment (from the repository root, after `. ~/Documents/MTM/mu-mac-tools/native/private-env.sh`;
 `D=$MU_NATIVE_DATA_DIR`, `MU_LANG_DIR=$D/lang`, `MU_GFX_PUBLIC_DEMO=1`):

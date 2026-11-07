@@ -439,7 +439,7 @@ removed the GL path renders 69 to 173 FPS at Retina full-screen size (3456 × 21
 | Bows and ground skills: arrows, trails, joints, sparks, rain, rings, stones, craters | 40 bow scenes and both ground skills at 0 unsupported effect requests; 2044 castable offline by the demo Elf |
 | Later skills: fourth and fifth trees | Fourth tree implemented offline, 6,510 instruction cases, 0 mismatches; fifth-tree card/item behavior remains open |
 | Audio: music, ambient, footsteps, effects | Event music, all music entries identified, 76 sound sites on session cues plus skill-effect sound sites; remaining callers/inputs and live audio parity open |
-| Packaging: `Mu The Matrix Native Preview.app`, 25 FPS frame cap, resizable window, full screen | Done; window title as the original's (no fps suffix); Preview reinstalled from main on November 6 (PR #312) |
+| Packaging: `Mu The Matrix Native Preview.app`, 25 FPS frame cap, resizable window, full screen | Done; window title as the original's (no fps suffix); Preview reinstalled from main on November 7 (PR #345: up to #343, without the capes of #344) |
 | First run and Native Data | Bundled C converter needs no Python; build-keyed manifests verify inputs/outputs and refuse incompatible sets; second-user acquisition remains open |
 | Private integration | 38/38 private-enabled test directories green at PR #200; 1,464 unique tests passed, 15 optional Ruffle/movie skips ([record](docs/handoffs/INTEGRATION-GREEN-001.md)) |
 | Crowded-scene performance | NATIVE-PERF-004: crowd80 23.2 / 20.2 fps, tormenta80 24.8 / 20.8 fps (shared host); strict 25 fps only at 40 players |

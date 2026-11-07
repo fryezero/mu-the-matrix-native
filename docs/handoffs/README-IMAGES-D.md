@@ -1,7 +1,8 @@
 # README-IMAGES-D: README images for the item, inventory and cape work (#337..#344)
 
 Claude Opus 5.5 lane, 2026-11-07. Branch `claude/readme-images-d`, worktree `~/Documents/MTM/worktrees/readme-images-d`,
-from main `a7f7b247` (#343), fast-forwarded to `02e4d94d` (#344 RENDER-ITEMS-CLOAK) before the cape image. Docs and
+from main `a7f7b247` (#343), fast-forwarded to `02e4d94d` (#344 RENDER-ITEMS-CLOAK) before the cape image, then merged
+main `f7975115` (#345 APP-REFRESH-009, docs only; status line conflict resolved by keeping both). Docs and
 media only: no runtime source, validator or capture script changed. Offline only: no original client, launcher, live
 read, account or network. The installed Native Preview, the Wine play app and the staged Wine app were not touched.
 [Claim sources, commands and hashes](../research/readme-refresh.md#readme-images-d-claim-sources-and-media).
@@ -36,8 +37,8 @@ Not made:
 
 README: world table (Raklion/Karutan row), effects paragraph (item programs in the world, cloak sparks, armour owner
 effects), item rendering (1,363/1,674, 311 left, cites 002T; demo outfits paragraph with 31; capes paragraph with 32),
-the interface table's 08 alt text and caption, Progress rows (special items, interface) and What is still missing
-(311 bodies). Audit pins: 08 changed, 31 and 32 added. Research note: [readme-refresh.md](../research/readme-refresh.md#readme-images-d-claim-sources-and-media).
+the interface table's 08 alt text and caption, Progress rows (special items, interface; packaging: the Preview
+reinstall of #345 APP-REFRESH-009, merged from main during the lane) and What is still missing (311 bodies). Audit pins: 08 changed, 31 and 32 added. Research note: [readme-refresh.md](../research/readme-refresh.md#readme-images-d-claim-sources-and-media).
 
 ## Privacy review
 
