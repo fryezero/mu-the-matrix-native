@@ -38,6 +38,8 @@ class WorldsM(unittest.TestCase):
                                capture_output=True, text=True)
             self.assertEqual(p.returncode, 0, p.stderr)
             self.assertIn('weather-off silence, absent assets: OK', p.stdout)
+            # RENDER-EFFECTS-018: Uruk's keyed 0x806e/12 requests become effects instead of refusals
+            self.assertRegex(p.stdout, r'producer preparations, [1-9][0-9]* keyed effects created')
 
     @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'requires pinned private instructions')
     def test_original_instructions(self):
