@@ -3003,3 +3003,19 @@ args = ["--cases", "20", "--mutations", "--output", "{report}"]
 all_equal = true
 all_mutants_caught = true
 "mutants.*.stopped" = 0
+
+[validate_render_effects17]
+test = "native/tests/test_render_effects17.py::ClientComparison.test_original_instructions_and_compiled_mutants"
+pins = ["text", "data", "section3"]
+families = ["armour_create", "armour_move", "armour_render", "raster_sample", "fog_sites"]
+cases = 618
+mutants = 20
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/particles", "native"]
+build_targets = { native = ["build/libmunative.a", "build/libmusession_world.a"] }
+args = ["--cases", "20", "--mutations", "--output", "{report}"]
+[validate_render_effects17.expect]
+all_equal = true
+all_mutants_caught = true
+"mutants.*.stopped" = 0
