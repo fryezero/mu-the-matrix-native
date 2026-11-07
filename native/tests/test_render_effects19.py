@@ -93,6 +93,31 @@ class MapRecords(unittest.TestCase):
         self.assertEqual((status, m[0], m[12:15]), (r19.OK, 1.0, [1000.0, 2000.0, 50.0]))
 
 
+    def test_aquila_bone6_placed_only_alone(self):
+        """RENDER-WORLDS-KARUTAN: Aquila's 0x0129fd4f(6) is the following bone-6 matrix, placed only alone in a sector,
+        and its visual keeps [12], [13] in +0x188 for types 136..140 and 142."""
+        bones = [0.0] * (12 * 7)
+        for r in range(3):
+            bones[12 * 6 + 5 * r] = 1.0
+        bones[12 * 6 + 3], bones[12 * 6 + 7], bones[12 * 6 + 11] = 1010.0, 2020.0, 80.0
+        pose = (C.c_float * len(bones))(*bones)
+        address = C.cast(pose, C.c_void_p).value
+        img = image((1000.0, 2000.0, 50.0))
+        for in_sector, want in ((1, [1010.0, 2020.0, 80.0]), (0, [2010.0, 4020.0, 130.0])):
+            out = (C.c_uint32 * 16)()
+            self.assertEqual(self.lib.mu_aquila_bone_matrix(out, img, in_sector, address, 7), r19.OK)
+            self.assertEqual(as_floats(out)[12:15], want)
+            for typ, kept in ((136, want[:2]), (141, [0.0, 0.0])):
+                obj = bytearray(img)
+                struct.pack_into('<i', obj, 0x5c, typ)
+                buf = C.create_string_buffer(bytes(obj), r19.OBJ_SIZE)
+                self.assertEqual(self.lib.mu_aquila_visual(buf, 1, out), 1)
+                self.assertEqual(list(struct.unpack_from('<2f', buf.raw, 0x188)), kept)
+        out = (C.c_uint32 * 16)()
+        self.assertEqual(self.lib.mu_aquila_bone_matrix(out, img, 1, address, 6), r19.UNPOSED)   # no bone 6
+        self.assertEqual(self.lib.mu_aquila_bone_matrix(out, img, 1, None, 7), r19.UNPOSED)
+
+
 class TestAreaKinds(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -152,7 +177,7 @@ class ClientComparison(unittest.TestCase):
         self.assertEqual(len(report['mutants']), MUTANTS)
 
 
-CASES, MUTANTS = 260, 25   # the registry row (scripts/validators.toml)
+CASES, MUTANTS = 400, 28   # the registry row (scripts/validators.toml)
 
 
 if __name__ == '__main__':

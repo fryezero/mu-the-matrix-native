@@ -74,7 +74,8 @@ static void player_item_draw(mu_world_rt *a, int32_t i, int item, const mu_rende
         env.glow_color[2] = 1.0f;
     }
     if (item >= MU_CHARACTER_PART_SLOTS)   /* RenderLinkItem: the weapon's / wing's own pose (RENDER-ITEMS-CALLERS-001) */
-        world_rt_item_pre(a, &env, MU_WORLD_PRE_PLAYERS, glow.type, &it->model, it->bones);
+        world_rt_item_pre(a, &env, MU_WORLD_PRE_PLAYERS, glow.type, &it->model, it->bones,
+                          (uint32_t)i * 16u + (uint32_t)item);
     mu_draw_options options;
     mu_draw_default_options(&options);
     options.textures = &it->textures;

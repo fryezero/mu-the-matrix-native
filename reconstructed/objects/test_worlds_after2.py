@@ -48,7 +48,9 @@ class WorldsAfter2Tests(unittest.TestCase):
     def test_classes(self):
         self.assertEqual([w for w in range(0, 200) if self.dll.mu_class_slots(w)],
                          [57, 58,   # + RENDER-WORLDS-RAKLION
-                          62, 63, 69, 70, 71, 72, 79, 82, 91, 92, 95, 96, 100, 101, 110, 111,   # + SLOTS, SLOTS2
+                          62, 63, 69, 70, 71, 72, 79,
+                          80, 81,   # + RENDER-WORLDS-KARUTAN
+                          82, 91, 92, 95, 96, 100, 101, 110, 111,   # + SLOTS, SLOTS2
                           112, 113, 114, 121, 122, 123, 124, 125, 126, 127,   # + RENDER-WORLDS-121
                           131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145])
 

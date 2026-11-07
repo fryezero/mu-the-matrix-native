@@ -416,6 +416,8 @@ int mu_slots2_class(int32_t world)
         return 121;
     case 57: case 58:   /* RENDER-WORLDS-RAKLION: class world-57 */
         return 57;
+    case 80: case 81:   /* RENDER-WORLDS-KARUTAN: class world-80 */
+        return 80;
     default:
         return -1;
     }
@@ -442,6 +444,8 @@ int mu_slots2_custom(int32_t cls, const slot *s, int32_t world)
         return mu_slots121_custom(s);
     case 57:
         return mu_slots_raklion_custom(s, world);   /* its own world test (57, 58) */
+    case 80:
+        return mu_slots_karutan_custom(s, world);   /* its own world test (80, 81, 102..106) */
     default:
         return 0;
     }
@@ -470,6 +474,9 @@ void mu_slots2_after(int32_t cls, const slot *s, int32_t world)
     case 57:   /* no world test, as 121's */
         mu_slots_raklion_after(s);
         break;
+    case 80:
+        mu_slots_karutan_after(s, world);   /* its own world test (80, 81) */
+        break;
     default:   /* 62's after 0x00e428af is empty; 95 and 100 have the base after */
         break;
     }
@@ -492,7 +499,7 @@ int mu_slots2_bitmap(int32_t world, int32_t index, const char **path, uint32_t *
             *wrap = shared[k].wrap;
             return 1;
         }
-    if (mu_slots121_bitmap(world, index, path, filter, wrap))
+    if (mu_slots121_bitmap(world, index, path, filter, wrap) || mu_slots_karutan_bitmap(world, index, path, filter, wrap))
         return 1;
     return mu_arca_world(world) && mu_world_slot_bitmap(mu_arca_base_world(world), index, path, filter, wrap);
 }
@@ -514,6 +521,8 @@ int32_t mu_slots2_bitmaps(int32_t world, int32_t type, int32_t *out, int32_t roo
     }
     if (world == 121 || world == 57 || world == 58)   /* RENDER-WORLDS-RAKLION: 57/58 too */
         return mu_slots121_bitmaps(world, type, out, room);
+    if (world == 80 || world == 81)   /* RENDER-WORLDS-KARUTAN */
+        return mu_slots_karutan_bitmaps(world, type, out, room);
     if (mu_arca_world(world)) {   /* the base world's slot names them */
         int32_t base[MU_WORLD_SLOT_BITMAPS];
         const int32_t n = mu_world_slot_bitmaps(mu_arca_base_world(world), type, base);

@@ -2,6 +2,8 @@
 #include "world_visual_internal.h"
 #include <math.h>
 #include "worlds_b_internal.h"
+#include "world_visual_slots.h"
+#include "world_visual_slots2.h"
 int mu_karutan_flames(const uint8_t *o, int32_t i, mu_obj_rand_fn rnd, void *c, mu_obj_log *l)
 {
     if (mu_obj_i32(o, MU_OBJF_TYPE) != 0x71)
@@ -20,84 +22,105 @@ int mu_karutan_flames(const uint8_t *o, int32_t i, mu_obj_rand_fn rnd, void *c, 
     return MU_OBJ_OK;
 }
 
-/* Slot 0x38 0x00e146ce; 66 also changes action above frame 35, outside this flag slice. */
-int mu_karutan_defer(uint8_t *o)
+/* RENDER-WORLDS-KARUTAN: the class slots of world-80 (worlds 80/81, vtable 0x01aa9a4c), custom 0x00e14596 (slot
+ * 0x38, 969 instructions) and after 0x00e1543e (slot 0x3c, 502), whole. Their own code, not Test Area 121's: see
+ * docs/research/client-worlds-karutan.md. The world manager passes types 0..300 only, so the custom slot's types
+ * 0x877 and 0x87a..0x87d (0x00e149ac, 0x00e14aa3, 0x00e14b9a, 0x00e14d49, 0x00e14ff2) are left out. */
+static int karutan_world(int32_t w) { return w == 80 || w == 81; }   /* 0x00e18ae9 */
+int mu_slots_karutan_custom(const slot *s, int32_t world)
 {
-    switch (mu_obj_i32(o, MU_OBJF_TYPE)) {
-    case 1:
-    case 3:
-    case 0x36:
-    case 0x37:
-    case 0x38:
-    case 0x39:
-    case 0x3a:
-    case 0x3e:
-    case 0x3f:
-    case 0x42:
-    case 0x77:
-        o[MU_OBJF_AFTER_CHARACTER] = 1;
+    /* 0x00e145b5..0x00e145ef: 0x00e18ae9 (80, 81), else 0x009dad2c (102), else the singleton 0x00c7dfcc's
+     * 0x009d3e63 (103..106); all false answers 0 */
+    if (!karutan_world(world) && world != 102 && (world < 103 || world > 106))
+        return 0;
+    switch (mu_obj_i32(s->o, MU_OBJF_TYPE)) {
+    case 1: case 3: case 0x36: case 0x37: case 0x38: case 0x39: case 0x3a: case 0x3e: case 0x3f: case 0x77:
+        set_after(s);   /* 0x00e146ce */
         return 1;
+    case 0x42:   /* 0x00e146dc: from frame 19, SetAction 0x012affa4(o, rand() % 10 == 0); then the after flag */
+        if (mu_obj_f32(s->o, MU_OBJF_FRAME) >= 19.0f)
+            mu_obj_set_action(s->o, s->model->action_count,
+                              s->model->rand_fn(s->model->rand_context) % 10 == 0 ? 1 : 0);
+        set_after(s);
+        return 1;
+    case 0x81: {   /* 0x00e14727: the body, then mesh 1 grey-pulsed with 0x85bb and again with flags 0x44 */
+        body(s, 2, BM(s), BL(s), U(s), V(s), -1);
+        const float r = mu_obj_f32(s->b, MU_MDL_COLOR), g = mu_obj_f32(s->b, MU_MDL_COLOR + 4),
+                    bl = mu_obj_f32(s->b, MU_MDL_COLOR + 8);   /* the vector 0x0095ea8e keeps the body colour */
+        grey(s, wave(s, -2.5f) * 0.3f + 0.7f);                  /* 0x0185bdc4(-2.5, 0) */
+        mesh(s, 1, 2, A(s), 1, BL(s), U(s), V(s), 0x85bb);
+        color(s, r, g, bl);
+        mesh(s, 1, 0x44, A(s), 1, BL(s), U(s), V(s), -1);
+        return 1;
+    }
     default:
         return 0;
     }
 }
-int mu_karutan_after(uint8_t *o, int32_t i, float time, mu_obj_log *l)
+/* The after slot: world test 0x00e18ae9 only. The client's after pass 0x016d6949 runs in 0x50/0x51 (its world list). */
+void mu_slots_karutan_after(const slot *s, int32_t world)
 {
-    const int32_t t = mu_obj_i32(o, MU_OBJF_TYPE);
-    const float light = mu_obj_f32(o, MU_OBJF_BLEND_LIGHT), u = mu_obj_f32(o, MU_OBJF_BLEND_U),
-                v = mu_obj_f32(o, MU_OBJF_BLEND_V);
-    const int32_t b = mu_obj_i32(o, MU_OBJF_BLEND_MESH);
+    if (!karutan_world(world))
+        return;
+    const int32_t t = mu_obj_i32(s->o, MU_OBJF_TYPE);
     switch (t) {
-    case 3:
-    case 0x38:
-    case 0x3e:
-        wv_body(o, i, l);
+    case 1:   /* 0x00e154db */
+        for (int32_t m = 1; m <= 3; ++m)
+            mesh(s, m, 2, A(s), BM(s), BL(s), 0.0f, 0.0f, -1);
+        mesh(s, 0, 0x42, A(s), BM(s), BL(s), 0.0f, 0.0f, -1);
         break;
-    case 1:
-        for (int k = 1; k <= 3; ++k)
-            wv_mesh(o, i, k, 2, b, light, 0, 0, l);
-        wv_mesh(o, i, 0, 0x42, b, light, 0, 0, l);
+    case 3: case 0x38: case 0x3e:   /* 0x00e15601 */
+        body_std(s, H(s));
         break;
-    case 0x36: {
-        const float pulse = ((float)sin((double)(time * 0.002f)) + 0.5f) * 0.5f + 1.0f;
-        wv_mesh(o, i, 0, 0x42, 0, pulse, 0, 0, l);
+    case 0x36:   /* 0x00e15663 */
+        mesh(s, 0, 0x42, A(s), 0, (csin(s->time * 0.002f) + 0.5f) * 0.5f + 1.0f, 0.0f, 0.0f, -1);
         break;
-    }
-    case 0x3a:
-    case 0x3f:
-    case 0x77: {
-        const float pulse = ((float)sin((double)(time * 0.001f)) + 1.0f) * 0.5f;
-        if (t == 0x3f)
-            wv_mesh(o, i, 0, 0x42, 0, light, 0, 0, l);
-        else
-            wv_mesh(o, i, 0, 2, b, light, 0, 0, l);
-        if (t == 0x77) {
-            wv_mesh(o, i, 1, 0x42, 1, pulse, 0, 0, l);
+    case 0x37: case 0x39:   /* 0x00e156e8: StreamMesh 0 around a v scroll of (int)WorldTime % 10000 */
+        stream(s, 0);
+        mesh(s, 0, 0x42, A(s), BM(s), BL(s), U(s), tmod(s, 10000, 0.0001f, 0), -1);
+        stream(s, 0xff);
+        break;
+    case 0x3a: case 0x3f: case 0x77: {   /* 0x00e1576a, 0x00e158bf, 0x00e15aa6 */
+        const float p = (csin(s->time * 0.001f) + 1.0f) * 0.5f;
+        if (t == 0x3f) {
+            mesh(s, 0, 0x42, A(s), 0, BL(s), 0.0f, 0.0f, -1);
+            mesh(s, 1, 2, A(s), BM(s), BL(s), 0.0f, 0.0f, -1);
+            mesh(s, 2, 0x42, A(s), 2, p, 0.0f, 0.0f, -1);
+            mesh(s, 3, 2, A(s), BM(s), BL(s), 0.0f, 0.0f, -1);
             break;
         }
-        wv_mesh(o, i, 1, t == 0x3f ? 2u : 0x42u, t == 0x3f ? b : 1, t == 0x3f ? light : pulse, 0, 0, l);
+        mesh(s, 0, 2, A(s), BM(s), BL(s), 0.0f, 0.0f, -1);
+        mesh(s, 1, 0x42, A(s), 1, p, 0.0f, 0.0f, -1);
         if (t == 0x3a) {
-            wv_mesh(o, i, 3, 2, b, light, 0, 0, l);
-            wv_mesh(o, i, 2, 0x42, b, light, 0, 0, l);
-        } else {
-            wv_mesh(o, i, 2, 0x42, 2, pulse, 0, 0, l);
-            wv_mesh(o, i, 3, 2, b, light, 0, 0, l);
+            mesh(s, 3, 2, A(s), BM(s), BL(s), 0.0f, 0.0f, -1);
+            mesh(s, 2, 0x42, A(s), BM(s), BL(s), 0.0f, 0.0f, -1);
         }
         break;
     }
-    case 0x42:
-        wv_mesh(o, i, 0, 2, b, light, 0, 0, l);
-        wv_mesh(o, i, 1, 0x42, b, light, 0, 0, l);
-        break;
-    case 0x37:
-    case 0x39:
-        wv_mesh(o, i, 0, 0x42, b, light, u, (float)((int32_t)time % 10000) * 0.0001f, l);
+    case 0x42:   /* 0x00e15a10 */
+        mesh(s, 0, 2, A(s), BM(s), BL(s), 0.0f, 0.0f, -1);
+        mesh(s, 1, 0x42, A(s), BM(s), BL(s), 0.0f, 0.0f, -1);
         break;
     default:
-        return MU_OBJ_UNSUPPORTED;
+        break;
     }
-    (void)v;
-    return MU_OBJ_OK;
+}
+/* Slot 0x24 0x00e13a5c: LoadBitmap("Object144\\sdsaferzone14B01_R.jpg", 0x85bb, 0x2601, 0x2900, 1, 0), type 0x81's */
+int mu_slots_karutan_bitmap(int32_t world, int32_t index, const char **path, uint32_t *filter, uint32_t *wrap)
+{
+    if (!karutan_world(world) || index != 0x85bb)
+        return 0;
+    *path = "Object144\\sdsaferzone14B01_R.jpg";
+    *filter = 0x2601;
+    *wrap = 0x2900;
+    return 1;
+}
+int32_t mu_slots_karutan_bitmaps(int32_t world, int32_t type, int32_t *out, int32_t room)
+{
+    if (!karutan_world(world) || type != 0x81 || room <= 0)
+        return 0;
+    out[0] = 0x85bb;
+    return 1;
 }
 
 /* Complete primary methods 0x00e13a87/0x00e13a9e/0x00e13be4.
@@ -152,9 +175,9 @@ int mu_karutan_visual(const uint8_t *o, int32_t i, int32_t world, float time,
     const int32_t t = mu_obj_i32(o, MU_OBJF_TYPE);
     if (t == 66 || t == 72) {
         if (!bone) return 1; /* Host records a missing current pose, never reuses stale bones. */
-        const float wave = (float)sin((double)(float)((double)time * 0.0004));
+        const float w = (float)sin((double)(float)((double)time * 0.0004));
         /* The original comparison preserves negative zero. */
-        const float pulse = (wave < 0.0f ? -wave : wave) * 0.4f;
+        const float pulse = (w < 0.0f ? -w : w) * 0.4f;
         if (t == 66) {
             const float light[3] = {pulse * 1.9f, pulse * 1.1f, pulse * 1.1f};
             for (int k = 0; k < 2; ++k) {

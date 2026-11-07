@@ -839,6 +839,9 @@ int32_t mu_world_items_draw(mu_world_items *it, mu_world_item_draw_fn draw, void
             d.kind_a = r ? r->kind_a : 0;
             d.kind_b = r ? r->kind_b : 0;
             d.item_kind = r ? r->type : 0;
+            d.index = i;
+            for (int q = 0; q < 3; ++q)
+                d.angle[q] = o->angle[q];
             draw(context, &d);
             ++drawn;
             ++it->stats.render_calls;

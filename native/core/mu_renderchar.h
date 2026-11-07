@@ -57,6 +57,10 @@ typedef struct mu_renderchar_env {
     /* RENDER-ITEMS-002T: the rendered-frame counter [0x0bdc5ebc] some programs test (% 3, % 5). NULL (default): not
      * known natively, so the requests behind such a test are refused and counted. */
     const uint32_t *frame_counter;
+    /* RENDER-EFFECTS-020: the item's OBJECT for the pre-draw programs: a mu_world_particles_item_owner key (0: none;
+     * OBJECT-owned particles are then refused) and its +0x164 (RenderLinkItem stores 0; a ground item's angle). */
+    uint32_t item_owner;
+    float item_angle[3];
 } mu_renderchar_env;
 
 typedef struct mu_renderchar_stats {
