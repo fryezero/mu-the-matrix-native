@@ -38,6 +38,10 @@ shadow polygons inside the crowd: none at the top of the frame and no uncovered 
 Lorencia bridge and Tormenta's far-right corner no longer show the dark field. The view is closer, so the crowd fills
 the frame.
 
+After merging main `24f437ca` (#322 RENDER-EFFECTS-017, particles and raster), the scenes were rebuilt and re-captured:
+Tormenta frame 100 is byte-identical, and Lorencia frame 0 differs in 28 pixels of the HUD bar strip (y 923–937) only.
+That is the GFx first-frame timing jitter APP-POLISH-006 also saw. So the committed images match main.
+
 ## Frame rates
 
 The NATIVE-PERF-004 rates quoted next to the images (crowd80 23.2/20.2, tormenta80 24.8/20.8 fps) come from
