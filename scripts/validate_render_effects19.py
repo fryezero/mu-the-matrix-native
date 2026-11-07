@@ -194,6 +194,11 @@ def run_c_map(lib, case):
                 s = lib.mu_map_effect_matrix(out, img, in_sector, p, n, rec['bone'], rec['follow'])
                 if s != UNPOSED:
                     refusals.append(('unposed', rec['bone'], n, s))
+    out = (C.c_uint32 * 16)()   # following a bone below -1: the client leaves the matrix uninitialised
+    for bone in (-2, -7):
+        s = lib.mu_map_effect_matrix(out, img, in_sector, pose, case['pose_bones'], bone, 1)
+        if s != UNDEFINED:
+            refusals.append(('undefined', bone, s))
     return calls, refusals, in_sector
 
 
@@ -249,7 +254,7 @@ def random_ta_particle(rng, kind):
     p = r11._random_particle(rng, kind)   # validate_particles' record
     if kind[0] == 0x801e:
         p.tex_type = rng.choice([0x801e, 0x801d])
-    p.lifetime = rng.choice([30, 40, 22, 21, 20, 19, 9, 8, 7, 2, 1, 0, -1, rng.randrange(-3, 45)])
+    p.lifetime = rng.choice([30, 40, 22, 21, 21, 20, 20, 19, 9, 8, 8, 8, 7, 7, 2, 1, 0, -1, rng.randrange(-3, 45)])
     p.gravity = f32(rng.choice([2.0, 3.0, 0.0, rf(rng)]))
     return p
 
@@ -277,7 +282,7 @@ MAP_MUTANTS = [
     ('angle_order', 'MU_OBJF_ANGLE + 4u * (uint32_t)k', 'MU_OBJF_ANGLE + 4u * (uint32_t)(2 - k)'),
     ('position_order', 'MU_OBJF_POSITION + 4u * (uint32_t)k', 'MU_OBJF_POSITION + 4u * (uint32_t)(2 - k)'),
     ('follow_byte', '(uint8_t)(follow != 0)', '(uint8_t)(follow == 1)'),
-    ('in_sector_forced', 'o.in_sector = in_sector;', 'o.in_sector = 1;'),
+    ('in_sector_forced', 'o.in_sector = in_sector;', 'o.in_sector = in_sector + 1;'),
     ('undefined_status', '? MU_MAP_EFFECT_OK : MU_MAP_EFFECT_UNDEFINED', '? MU_MAP_EFFECT_OK : MU_MAP_EFFECT_UNPOSED'),
 ]
 PT_MUTANTS = [
