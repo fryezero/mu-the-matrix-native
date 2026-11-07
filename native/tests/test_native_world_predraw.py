@@ -13,8 +13,9 @@ wearing pre-draw types (sword 0x0b27, shield 0x1748, wing 0x2382, bow 0x1316, wi
     0x2384's OBJECT-owned particles (0x810a/0x11, 0x81cf/0) are created with the item OBJECT as owner: nothing
     is refused;
   * a player outside the frame's polygon has the flag clear: no requests, counted as hidden;
-  * the demo players file (no pre-draw type) prints no item_pre_draw line and its particle stream is the one
-    every earlier lane pinned through the other modules.
+  * the demo players file: before APP-POLISH-008 it wore no pre-draw type and printed no item_pre_draw line; its
+    four new outfits (shield 0x1748, sword 0x0b4c, wings 0x230b / 0x2311, mace 0x0f1c) now create their sprites
+    with none refused.
 """
 import json
 import os
@@ -143,9 +144,10 @@ class WorldPreDraw(unittest.TestCase):
         self.assertEqual(pre['players']['pre_effects'], 0)
         self.assertGreater(pre['players']['hidden'], 0)
 
-    def test_no_pre_draw_type_keeps_the_report(self):
+    def test_demo_players_draw_their_pre_draw_effects(self):
         pre, _ = walk((NATIVE/'world/lorencia-demo-players.txt').read_text(), frames=20)
-        self.assertIsNone(pre)
+        self.assertEqual((pre['players']['pre_effects'], pre['players']['pre_refused']), (98, 0))   # APP-POLISH-008
+        self.assertEqual(pre['hero'], {'pre_effects': 0, 'pre_refused': 0, 'hidden': 0})
 
 
 if __name__ == '__main__':

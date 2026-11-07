@@ -84,6 +84,7 @@
 #include <SDL.h>
 #endif
 
+#include "../core/mu_charsel.h"
 #include "../core/mu_frame_time.h"
 #include "../core/mu_frame.h"
 #include "../core/mu_perf.h"
@@ -160,7 +161,8 @@ typedef struct tool {
     int32_t progress_next;
     /* HERO-ITEMS-001: --hero-item SLOT=FILE, the front end's equipment as mu-client passes it */
     const char *hero_item[MU_CHARACTER_ITEMS];
-    char hero_item_path[MU_CHARACTER_ITEMS][1024];
+    char hero_item_path[MU_CHARACTER_ITEMS][MU_CHARSEL_PATH];
+    mu_charsel_item_record hero_item_record[MU_CHARACTER_ITEMS];   /* APP-POLISH-008: FILE@GROUP:INDEX:... */
 #ifndef MU_WORLD_NO_GL
     /* NATIVE-GFX-002: the GFx interface over the world (--gfx DIR) */
     const char *gfx_dir, *gfx_open;
@@ -1138,8 +1140,9 @@ static int usage(void)
                     "                [--social-script \"F:party:NAME;F:accept;F:trade:NAME;F:offer:CELL;F:zen:N;F:ok\"]   offline social demo\n"
                     "                [--helper angel|imp|uniria|dinorant|darkhorse|fenrir[-black|-blue|-gold]|CODE]\n"
                     "                [--helper-state N] [--no-helpers]\n"
-                    "                [--hero-item helm|armor|pants|gloves|boots|weapon0|weapon1|wing=FILE ...]   the hero's\n"
-                    "                equipment (FILE under ROOT/Data unless absolute; its Item.bmd record types the slot)\n"
+                    "                [--hero-item helm|armor|pants|gloves|boots|weapon0|weapon1|wing=FILE[@G:I[:L[:O[:E]]]] ...]\n"
+                    "                the hero's equipment (FILE under ROOT/Data unless absolute; the record G:I:LEVEL:OPTION:EXT\n"
+                    "                types the slot, else the file's first Item.bmd record)\n"
                     "                [--no-map] [--travel-script \"F:move:KEY F:to:WORLD:X:Y F:respawn F:rows F:sort:N F:click:ROW F:tab F:mwin F:mclick:ROW\"]\n");
     return 2;
 }
@@ -1318,12 +1321,12 @@ int main(int argc, char **argv)
         return usage();
     if (t.time_series_every && (!t.headless || t.frames > 10001)) return usage();
     for (int n = 1; n < MU_CHARACTER_ITEMS; ++n)
-        if (t.hero_item[n]) {
-            if (t.hero_item[n][0] == '/')
-                snprintf(t.hero_item_path[n], sizeof t.hero_item_path[n], "%s", t.hero_item[n]);
-            else
-                snprintf(t.hero_item_path[n], sizeof t.hero_item_path[n], "%s/Data/%s", o->root, t.hero_item[n]);
+        if (t.hero_item[n]) {   /* APP-POLISH-008: the character list's item value, FILE[@G:I[:L[:O[:E]]]] */
+            if (mu_charsel_parse_item(t.hero_item[n], o->root, t.hero_item_path[n], sizeof t.hero_item_path[n],
+                                      &t.hero_item_record[n]))
+                return usage();
             o->items[n] = t.hero_item_path[n];
+            o->item_records = t.hero_item_record;
             o->has_items = 1;
         }
     char error[1024];
