@@ -3252,19 +3252,19 @@ all_mutants_caught = true
 test = "native/tests/test_native_item_cloak.py::ClientComparison.test_original_instructions"
 pins = ["text", "data", "flag", "feature", "effects_init"]
 families = ["create", "step", "render", "wind", "gate"]
-cases = 2090
-mutants = 38
+cases = 5694
+mutants = 65
 cases_at = "families.*.cases"
 mutants_at = "mutants"
 build = ["reconstructed/cloth", "reconstructed/record-math"]
 args = ["--text", "{text}", "--data", "{data}", "--flag", "{flag}", "--feature", "{feature}", "--section3", "{effects_init}", "--mutations", "--output", "{report}"]
-note = "66 characters (the six cloth wings three times each, four wings without a cloth) of 8 frames each (create once, step and render every frame), 200 wind walks, 768 RenderCharacter cloth-flag states; each mutant run stops at its first mismatch and runs the family that compares its code"
+note = "278 characters (every CreateCloth wing case three times, its 17 aliases, arg 4 = 1 four times, seven wings without a case, twice over) of 8 frames each (create once, step and render every frame, glow pass included), 200 wind walks, 768 RenderCharacter cloth-flag states; each mutant run stops at its first mismatch and runs the family that compares its code"
 [validate_item_cloak.expect]
 "families.*.mismatches" = 0
 "families.*.stopped" = 0
-"families.create.cases" = 66
-"families.step.cases" = 528
-"families.render.cases" = 528
+"families.create.cases" = 278
+"families.step.cases" = 2224
+"families.render.cases" = 2224
 "families.wind.cases" = 200
 "families.gate.cases" = 768
 "mutants.*" = {truthy = true}
