@@ -10,6 +10,9 @@ Two world-slot leftovers:
   - Branched from `origin/claude/render-worlds-raklion` `6d4f6312` (#337: the shared 121 slot routine and the
     census corrections). #337 was not on main yet when the checks ran, so "before" and `--affected-since` use
     `6d4f6312`: main plus #337.
+  - Merged origin/main `0c3c2777` (#337 merged) as `c593c2c0` after the checks. It brought docs and #335/#336's
+    session-fixture test lines only: `--list-affected e95ef561` selects 0 validator rows, and no file my checks
+    build changed, so nothing was rerun.
 - Input links `tools/python`, `evidence` and `input` point at the main checkout and are never committed.
 - Finding: [client-worlds-karutan.md](../research/client-worlds-karutan.md), with the branch table, the diff against
   121's routine, the 145 records, the live comparison and the limits.
