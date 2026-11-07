@@ -267,7 +267,7 @@ class AffectedValidators(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
-    def select(self, *changes, commit=True, edit=None, ref='base', since=False):
+    def select(self, *changes, commit=True, edit=None, ref='base', since=False, symbols=False):
         git(self.repo, 'reset', '-q', '--hard', 'base')
         git(self.repo, 'clean', '-qfd')
         if edit:
@@ -281,7 +281,16 @@ class AffectedValidators(unittest.TestCase):
             git(self.repo, 'commit', '-qm', 'change')
         affected.clear_caches(self.repo)
         return rv.affected_rows(self.rows, ref, root=self.repo, manifest=self.repo / 'scripts/validators.toml',
-                                since=since)
+                                since=since, symbols=symbols)
+
+    def test_symbol_level_answer_prunes_a_comment_only_change(self):
+        # TEST-SPEED-005: the inputs above are the input level; with symbols (the default of the runners) a
+        # change that compiles to the same IR selects nothing, and a broken unit is a reported fallback.
+        self.assertEqual(self.select('reconstructed/alpha/alpha.c', symbols=True), {})
+        why = self.select(edit=lambda: (self.repo / 'reconstructed/alpha/alpha.c').write_text('int x = ;\n'),
+                          symbols=True)
+        self.assertEqual(list(why), ['validate_alpha'])
+        self.assertIn('symbol fallback', why['validate_alpha'][0])
 
     def test_compiled_inputs_header_and_make_fragment(self):
         self.assertEqual(list(self.select('reconstructed/alpha/alpha.c')), ['validate_alpha'])
