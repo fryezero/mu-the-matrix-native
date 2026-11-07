@@ -1293,10 +1293,11 @@ static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_obje
     else if (o->world == 145 && m && m->loaded) {   /* RENDER-WORLDS-S slot 0x34 */
         /* 0x0129fd4f(6): bone 6 of the shared pose transposed to a column-major 4x4 (the native pose already holds the
          * body origin and scale); RENDER-WORLDS-KARUTAN: placed by the position/scale product when the object is alone
-         * in its sector (0x012a0d29), as map-object records are (RENDER-EFFECTS-019) */
+         * in its sector (0x012a0d29), as map-object records are (RENDER-EFFECTS-019); a host without sector lists
+         * counts as in a list */
         float bone6[16];
         const int bones_ready =
-            posed && mu_aquila_bone_matrix(bone6, img, mu_map_effects_in_sector(&o->rt.world, i),
+            posed && mu_aquila_bone_matrix(bone6, img, o->rt.world.next ? mu_map_effects_in_sector(&o->rt.world, i) : 1,
                                            mu_model_bone_matrices(&m->model), m->bmd.bone_count) == MU_MAP_EFFECT_OK;
         if (mu_aquila_bone_type(mu_obj_i32(img, MU_OBJF_TYPE)) && !bones_ready) ++o->rt.draw_unsupported;
         mu_aquila_visual(img, 1, bones_ready ? bone6 : NULL);
