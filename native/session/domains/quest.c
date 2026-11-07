@@ -3,12 +3,35 @@
 #include "audio_cue.h"
 #ifdef MU_SESSION_SEED
 #include "../mu_session_seed.h"
+#include "../../fixture/mu_fixture.h"
 #endif
 #include <stdio.h>
 #include <math.h>
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
+
+/* REGRESS-001: the offline world's local quest lane (quest.h). The in-process fixture is the only server it
+ * talks to: no socket, no wrap, no decode of a real server's bytes. Product builds have no lane. */
+static int offline_local(const mu_session *s)
+{
+#ifdef MU_SESSION_SEED
+    return s->quest.offline_local && mu_fixture_is_transport(s->cfg.transport) &&
+           mu_endpoint_is_loopback(&s->cfg.connect_server);
+#else
+    (void)s;
+    return 0;
+#endif
+}
+#ifdef MU_SESSION_SEED
+int mu_session_quest_offline_local(mu_session *s, int on)
+{
+    if (!s)
+        return 0;
+    s->quest.offline_local = on != 0;
+    return offline_local(s);
+}
+#endif
 
 static void sink(void *user, const char *line)
 {
@@ -35,6 +58,13 @@ static void sink(void *user, const char *line)
             mu_packet_add(&packet, bytes + 3, n - 3, 1);
             const char *flags = strchr(line, '|');
             int encrypted = flags ? (int)strtol(flags + 1, NULL, 10) : 0;
+            if (encrypted && offline_local(s))
+            {
+                /* Send(1, ..) would wrap it (C3, NET-DECODE). Offline the local fixture takes the plain frame. */
+                mu_journal_text(s->cfg.journal, MU_JNL_EVENT, s->tick, s->now,
+                                "offline local: quest request to the in-process fixture without the C3 wrap");
+                encrypted = 0;
+            }
             int rc = mu_session_send(s, &packet, encrypted);
             s->quest.sent++;
             s->quest.send_failed |= rc != MU_SEND_OK;
@@ -174,7 +204,10 @@ void mu_dom_quest_step(mu_session *s, const mu_sim *sim)
 }
 mu_apply mu_quest_apply(mu_session *s, const mu_frame *f)
 {
-    if (f->opcode == 0xf6 && (f->bytes[3] == 0x70 || f->bytes[3] == 0x71))
+    if (f->opcode == 0xf6 && (f->bytes[3] == 0x70 || f->bytes[3] == 0x71) && offline_local(s))
+        mu_journal_text(s->cfg.journal, MU_JNL_EVENT, s->tick, s->now,
+                        "offline local: F6 70/71 from the in-process fixture applied as its plaintext");
+    else if (f->opcode == 0xf6 && (f->bytes[3] == 0x70 || f->bytes[3] == 0x71))
     {
         ++s->undecodable;
         mu_journal_text(s->cfg.journal, MU_JNL_EVENT, s->tick, s->now,

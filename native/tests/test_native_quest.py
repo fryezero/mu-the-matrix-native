@@ -175,6 +175,39 @@ class Session(unittest.TestCase):
         self.assertEqual(self.fields(7)[:2], [0, 0])
         self.assertFalse(any('SetSelectBtnContent' in e for e in self.take()))
 
+    def window(self, action, a=0):
+        self.L.mu_quest_session_window.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_char_p,
+                                                   ctypes.c_double, ctypes.c_double]
+        self.L.mu_quest_session_window(self.s, action, None, None, a, 0)
+
+    def test_offline_local_lane_lists_accepts_and_completes(self):
+        # REGRESS-001: the world tools' local lane. The NPC list (F6 71) fills npcdialogue; the accept and the
+        # complete requests, which Send would wrap, reach the local fixture and its answers apply.
+        MU_Q_PROGRESS_SELECT, MU_Q_CONFIRM, MU_Q_DIALOG_CHOICE = 11, 13, 19
+        self.L.mu_quest_session_offline_local.argtypes = [ctypes.c_void_p, ctypes.c_int]
+        self.assertEqual(self.L.mu_quest_session_offline_local(self.s, 1), 1)
+        self.L.mu_quest_session_npc_list(self.s, 257)
+        self.steps(10)
+        # (titles: the synthetic tables, or the installed ones when MU_LANG_DIR is set)
+        self.assertTrue(any(e.startswith('invoke npcdialogue SetSelectBtnContent ["1. [Q]') and ';2. [Q]' in e
+                            for e in self.take()))
+        self.window(MU_Q_DIALOG_CHOICE, 1)
+        self.assertIn('show NpcQuestProgress', self.take())
+        for _ in range(8):                                  # the pages, then no page left: the accept request
+            self.window(MU_Q_PROGRESS_SELECT, 0)
+            self.steps(10)
+            if self.fields(7)[0]:
+                break
+        self.assertEqual(self.fields(7)[:2], [1, 0])
+        for _ in range(3):
+            self.L.mu_quest_session_kill(self.s, 2, 0)
+            self.steps(10)
+        self.assertEqual(self.fields(7)[:2], [2, 3])
+        self.window(MU_Q_CONFIRM)                           # the complete request
+        self.steps(10)
+        self.assertNotIn('active2:7,', self.L.mu_quest_maps_text(self.c).decode())
+        self.assertIn('hide NpcQuestProgress', self.take())
+
     def test_guide_state_and_reward_reply(self):
         self.L.mu_quest_client_field(self.c, b'hero.class', 1, 1)
         self.L.mu_quest_session_demo_state(self.s, b'guide 11:0:1\n')
@@ -314,12 +347,16 @@ class LorenciaDemo(unittest.TestCase):
                                 '270:qwin 280:click:soldier 330:option:1 360:option:0 390:qok',
                                 '--frames', '420', '--every', '1000', '--out-dir', tmp],
                                capture_output=True, text=True, timeout=600,
-                               env={**os.environ, 'MU_GFX_SINGLE_BUFFER': '1',
-                                    'MU_QUEST_SCENARIO': str(NATIVE/'fixture/scenarios/quest-progress.scn')})
+                               env={k: v for k, v in {**os.environ, 'MU_GFX_SINGLE_BUFFER': '1'}.items()
+                                    if k != 'MU_QUEST_SCENARIO'})
         self.assertEqual(r.returncode, 0, r.stderr[-2000:])
+        # REGRESS-001: the script plays the whole quest with the world's local fixture (no scenario: a scenario
+        # that accepts quest 7 first turns the scripted choice into its progress page, so no accept request)
         quest = next(json.loads(l)['quest'] for l in r.stdout.splitlines() if l.startswith('{"quest"'))
-        self.assertEqual((quest['accepted'], quest['completed'], quest['progress']), (1, 0, 2))
-        self.assertEqual(quest['active'], [dict(quest=7, state=2, count=3)])
+        self.assertEqual((quest['accepted'], quest['completed'], quest['progress']), (1, 1, 3))
+        self.assertEqual((quest['active'], quest['undecodable']), ([], 0))
+        self.assertIn('dialogue request 901', next(l for l in r.stdout.splitlines() if '"arg": "1", "frame": 60' in l))
+        self.assertNotIn('request 902', r.stdout)
 
 
 if __name__ == '__main__':

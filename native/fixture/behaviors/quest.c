@@ -789,6 +789,10 @@ void mu_quest_session_step(mu_quest_session *s)
     s->stats.invokes = invokes;
     replay(s);
 }
+int mu_quest_session_offline_local(mu_quest_session *s, int on)
+{
+    return s && s->ready ? mu_session_quest_offline_local(s->session, on) : 0;
+}
 void mu_quest_session_npc_list(mu_quest_session *s, int32_t npc)
 {
     mu_session_quest_window(s->session, MU_Q_NPC_LIST, NULL, NULL, npc, 0);

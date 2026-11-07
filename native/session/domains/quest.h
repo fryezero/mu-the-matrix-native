@@ -42,5 +42,14 @@ typedef enum mu_quest_action
 /* Convenience constructor for the generated QUEST_WINDOW intent. */
 int mu_session_quest_window(struct mu_session *s, mu_quest_action action, const char *event, const char *text,
                             double a, double b);
+#ifdef MU_SESSION_SEED
+/* REGRESS-001: the offline world's local quest lane (dev/offline builds with the in-process fixture only).
+ * With it on, and only while the session's transport is the in-process fixture on a loopback endpoint:
+ * quest requests that Send would wrap (accept F6 72, give up F6 73, complete F6 74) go to the local fixture as
+ * plain frames instead of waiting unsent for the C3 wrap, and F6 70/71 frames are applied as the plaintext the
+ * fixture writes (it never applies the 0x06fca280 XOR). Off by default: scenarios, raw `send` frames and every
+ * other transport keep the wire rules (unsent, body_undecoded). Returns 1 when the lane is active. */
+int mu_session_quest_offline_local(struct mu_session *s, int on);
+#endif
 void mu_session_quest_services(struct mu_session *, void (*)(void *, uint8_t), const char *(*)(void *, int32_t));
 #endif
