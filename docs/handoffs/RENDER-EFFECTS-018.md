@@ -8,7 +8,9 @@ weather-driven keyed effect 0x806e/12. [Finding, addresses and limits](../resear
   from origin/main `b18b6b45` (#321); merged with `ce0ebd71` (#324 RENDER-WORLDS-FOG, #323) in `a4aeed6b` (it
   brought only `native/core/mu_raster.{c,h}` and the native Makefile into this lane's build inputs) and with
   `6eaf3f2b` (#325 RENDER-ITEMS-002R) in `5cb92708` (renderchar and `native/core/mu_renderchar.c`,
-  `mu_item_textures.c`; none of its programs requests 0x8084 or 0x806e). Both merges without conflicts.
+  `mu_item_textures.c`; none of its programs requests 0x8084 or 0x806e) and with `53cffd00` (#326 RENDER-WORLDS-121,
+  #327 TEST-SPEED-005) in `2353e836` (`docs/status.md` conflict: both sides kept; `mu_objects_runtime.c` merged
+  automatically, the Test Area hunks are separate from this lane's). **Final code: `2353e836`.**
   Input links `tools/python`, `evidence` and `input` come from the main checkout and are never staged.
 - No live client, network, memory write or installed-app change. The validators' inputs are synthetic owner and
   weather fixtures plus the local decoded `muuneffects.tsv` (read only, never written out).
@@ -41,12 +43,13 @@ weather-driven keyed effect 0x806e/12. [Finding, addresses and limits](../resear
 | `nice -n 10 make -j4` (after the first merge) | passed | 11.6 s |
 | `validate_render_effects18` registry row (`--cases 20 --mutations`) | 540 cases, 0 mismatches; 35/35 compiled mutants caught, none equivalent, every anchor exactly once | 24.7 s |
 | `validate_render_effects18 --cases 200 --lang-dir <local lang>` (full count, no mutants) | 5,484 cases, 0 mismatches (attach 800, gate 800, update 800, records 84, reader 400, flames 3 × 600, effect 2 × 400) | 6.6 s |
-| Affected existing rows at `a4aeed6b`, no mutants, `--cache --jobs 2` (76 reviewed rows, below) | 75 pass + `validate_path` skipped for its `directions` pin, rerun with `MU_PATH_DIRECTIONS` = capture 04: pass; 1,665,939 cases | 1,710.6 s + 28.6 s |
+| Affected existing rows at `a4aeed6b`, no mutants, `--cache --jobs 2` (76 reviewed rows) | 75 pass + `validate_path` skipped for its `directions` pin, rerun with `MU_PATH_DIRECTIONS` = capture 04: pass; 1,665,939 cases | 1,710.6 s + 28.6 s |
 | `validate_worlds_fog`, `validate_app_polish4` (brief 8b, `mu_objects.h`) at `a4aeed6b` | 2 pass; 4,044 + 10,485 cases | 30.0 s |
-| Rows whose inputs the second merge changed, at `5cb92708` (52 rows, `--affected-since a4aeed6b`) | TBD | TBD |
+| **Final selection at `2353e836`** after `make -j4`: `run_validators.py --list-affected origin/main` (TEST-SPEED-005's symbol-level pruning; 80 rows incl. fallbacks; 22 item/renderchar rows pruned: they use no changed symbol), no mutants, `--cache --jobs 2` | 80 pass, 0 fail/error/skip; 1,044,815 cases (`validate_render_effects18` 540, `validate_worlds_i` 6,000, `validate_worlds_m` 1,080, `validate_worlds_121` 4,000, `validate_terrain` 583,500, `validate_meshdraw` 14,619, ...) | 543.4 s |
+| `nice -n 10 make -j4` at `2353e836` | passed | 15.5 s |
 | Affected unit suites (`run_test_suites.py --affected origin/main`, integration off) at `a4aeed6b` | 12 suites, 1,538 tests: 1,314 passed, 224 skipped, 0 failures, 0 errors | 379.2 s (474.6 s with builds) |
 | Integration modules at `a4aeed6b`: `test_render_effects18` (MuunHost, InstalledMuun), `test_native_worlds_m`, `test_native_worlds_i`, `test_native_particles`, `test_native_map_effects` | 12 tests, 11 passed, 1 skipped (`InstalledLorenciaFires`: no `MU_OBJECTS_PLAIN_DIR` in that run) | 47.3 s |
-| Same modules at `5cb92708` | TBD | TBD |
+| Same modules at `2353e836` (with `MU_OBJECTS_PLAIN_DIR`) | 12 tests, all passed, no skips | 47.6 s |
 | `scripts/audit_repository.py` | 2,019 staged files, 0 rejected | 27.8 s |
 | Before tours at main `ce0ebd71` (base worktree), default draw | DATA-ACQ-002 32 maps, October 22 14 maps | 63.0 s + 18.4 s |
 | After tours at `a4aeed6b` | 64 + 28 PNGs and 64 + 28 object/light dumps byte-identical; frame reports differ only in their output path | 48.8 s + 26.0 s |
@@ -72,7 +75,9 @@ worlds unchanged (weather off, no Muun OBJECT): every tour counter identical.
 
 ## Steward
 
-Steward validators: TBD
+Steward validators (all without mutants; ran at `2353e836`; the `--list-affected origin/main` selection incl. fallback rows): validate_app_polish1, validate_app_polish4, validate_audio_callers, validate_audio_charsel, validate_audio_combat, validate_audio_domains, validate_audio_items, validate_charsel_world, validate_icarus, validate_icarus_c2, validate_item_effects, validate_login_world, validate_meshdraw, validate_model_edge, validate_model_light, validate_movement, validate_object_render, validate_particles, validate_path, validate_render_effects, validate_render_effects10, validate_render_effects11, validate_render_effects12, validate_render_effects13, validate_render_effects14, validate_render_effects15, validate_render_effects16, validate_render_effects17, validate_render_effects18, validate_render_effects3, validate_render_effects4, validate_render_effects5, validate_render_effects6, validate_render_effects7, validate_render_effects9, validate_render_worlds_a, validate_session_party, validate_skill_fx, validate_terrain, validate_terrain_remaining, validate_viewport_monsters, validate_world_fidelity, validate_world_light_name, validate_world_particle_consumers, validate_world_tile_folder, validate_worlds_121, validate_worlds_after, validate_worlds_after2, validate_worlds_after3, validate_worlds_after4, validate_worlds_after5, validate_worlds_after6, validate_worlds_b, validate_worlds_d, validate_worlds_e, validate_worlds_f, validate_worlds_fog, validate_worlds_g, validate_worlds_g2, validate_worlds_g3, validate_worlds_h, validate_worlds_i, validate_worlds_j, validate_worlds_k, validate_worlds_l, validate_worlds_m, validate_worlds_n, validate_worlds_o, validate_worlds_p, validate_worlds_p2, validate_worlds_q, validate_worlds_q2, validate_worlds_r, validate_worlds_r2, validate_worlds_s, validate_worlds_s2, validate_worlds_s3, validate_worlds_slots, validate_worlds_slots2, validate_worlds_slots3.
+
+No row needs another mutant pass: `validate_render_effects18`'s 35 mutants ran once (above); no other row's checks or mutant targets changed. An earlier run of 76 reviewed rows at `a4aeed6b` (before TEST-SPEED-005 and the last two merges) also passed and is kept in the table for reference; a 52-row run at `5cb92708` was stopped when main moved again and is not counted.
 
 Environment:
 
