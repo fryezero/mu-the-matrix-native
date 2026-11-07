@@ -349,7 +349,8 @@ menu (exit, select server, switch character), and a character that dies respawns
 
 Eighty offline demo players in Lorencia and Tormenta Island, with varied classes, armour, weapons and wings.
 Names are synthetic. The HUD shows the offline session's vitals: the recorded level-1 Dark Knight join,
-HP 1100/1100, MP 200/200, SD 52/52 and AG 25/25.
+HP 1100/1100, MP 200/200, SD 52/52 and AG 25/25. The camera is the client's own: world FOV 39, the widest its zoom
+allows. The crowd fills the view, and its outermost corners stand past the frame edge.
 
 <p align="center"><img src="docs/images/26-80-players-lorencia.jpg" alt="Eighty demo players with textured armour, weapons and varied wings in native Lorencia" width="900"></p>
 
@@ -358,8 +359,9 @@ HP 1100/1100, MP 200/200, SD 52/52 and AG 25/25.
 [NATIVE-PERF-004](docs/handoffs/NATIVE-PERF-004.md) moved posing to worker threads and cut main-thread CPU in
 every paired run. On a shared, busy host it measured **crowd80 at 23.2 / 20.2 fps** and **tormenta80 at
 24.8 / 20.8 fps** (two repeats; NATIVE-PERF-003 had 18.4 and 18.9). Only the 40-player scene holds the strict
-25 fps cap; **the 25 fps target for 80 players remains open.** These screenshots use spaced crowds, eight
-monsters and closed panels; their throughput was not measured
+25 fps cap; **the 25 fps target for 80 players remains open.** Those rates were measured at the benchmark's
+FOV 65, not at the FOV 39 of these screenshots. The screenshots use spaced crowds, eight monsters and closed
+panels; their throughput was not measured
 ([capture details and checks](docs/research/readme-stress.md)).
 
 ### Sound

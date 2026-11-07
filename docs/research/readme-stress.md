@@ -61,7 +61,8 @@ indices are 0/3/4/6/9/10, upgrades 0/3/5/7, weapons span swords, axe, bows, staf
 and mace, and wings use indices 0-4 with some wingless characters. World-coordinate
 diagonal rows form a screen rectangle with short, distinct synthetic nameplates.
 
-The captures use FOV 65, 1600x1000, the normal game HUD, closed panels/map, fixed
+The captures use the world FOV (39; FOV 65 until the README-IMAGES-C re-shoot below),
+1600x1000, the normal game HUD, closed panels/map, fixed
 comparison movie time, synchronous GFx presentation, normal scenery and effects.
 Lorencia is world 0 at 182,128, frame 0. Tormenta is world 141 at 60,50, frame 100;
 the shifted tile avoids foreground pillars obscuring the crowd. This is a fight
@@ -98,6 +99,9 @@ world and eight-patch GFx library. The output must be outside the repository:
   --gfx "$MU_GFX_DIR" --lang "$MU_LANG_DIR" --out "$MU_README_OUT"
 ```
 
+Since README-IMAGES-C the camera keeps the world FOV. `--fov N` sets the native-only
+`--perf-fov` override; leave it out for the README images.
+
 The script writes exact private argv/environment, PNG hashes and workload checks
 to commands.json. No decoded assets or runtime inputs are published. The
 committed script retains the authored scene recipe after local cleanup.
@@ -117,11 +121,13 @@ post-fix frame rate is inferred. The 80-player 25 fps target remains open.
 
 | Image | JPEG SHA-256 | Native source PNG SHA-256 |
 |---|---|---|
-| 26-80-players-lorencia.jpg | `7d4f91626d705d029a53c1e6f19bfbea706156ba6bd2b0113e7a6a34235bf4ae` | `eb3b1ca3533a9f0dc5ca25c8ba5f1ba6de347777c8888178254548c88a3d19d6` |
-| 27-80-players-tormenta-combat.jpg | `4100c2c9cc1861b0fccefd50cd3c2ef25e80bbde473ea3e18fcceddea127d0aa` | `6b08873220070c20a0c0504595b8fa9003f842a5795d2c8bd6964c8e53630e8d` |
+| 26-80-players-lorencia.jpg | `d4643c392b118c6bf708a30405c7763602c07496cb61225c8bc0aaf6982aa4dd` | `60037c7589972bff9d75c6e9263c2704b6f8f2cfd1901efa736f1844e5088f7f` |
+| 27-80-players-tormenta-combat.jpg | `1e73af69c8ba9ffddce9dadc0f31038d8f568aa5839a09451bd879b88a02e94f` | `68215576719aae161c2f2b6fcb3e901752306b02290731244be3e4f767e0f7bd` |
 
-These are the APP-POLISH-006 re-shoots (below). The October 28 originals were
-`cad4e399…` (JPEG) / `ec3bd8ef…` (PNG) and `a8386983…` / `d26946a3…`.
+These are the README-IMAGES-C re-shoots at the world FOV (end of this note). The
+APP-POLISH-006 FOV-65 images were `7d4f9162…` (JPEG) / `eb3b1ca3…` (PNG) and
+`4100c2c9…` / `6b088732…`. The October 28 originals were `cad4e399…` / `ec3bd8ef…`
+and `a8386983…` / `d26946a3…`.
 
 ## APP-POLISH-006 re-shoot: session HUD vitals (2026-11-06)
 
@@ -177,3 +183,48 @@ The dark area left of the Lorencia bridge and in Tormenta's far-right corner is 
 client never renders at FOV 65 (its largest is the world FOV, 39 here), so these corners are not something a
 player can see. Both frames fill at FOV ≤ 45 (1,600×1,000, the same tiles). A later README lane should re-shoot
 26/27 at `--perf-fov 45` or at the world FOV. Details are in the [REGRESS-001 handoff](../handoffs/REGRESS-001.md).
+
+## README-IMAGES-C re-shoot: the client's world FOV (2026-11-06)
+
+REGRESS-001 (#321) traced the dark edges of the FOV-65 images to the FOV itself.
+`--perf-fov 65` is a native-only camera override (`world_tool.c`, 20..90). The
+client's zoom `0x0185a9bf` picks from {20, 30, world FOV}, and the live Lorencia
+globals read FOV 39.0. At 65 the view reaches past the terrain tiles that
+CreateFrustrum2D `0x016d20d9` keeps, so the clear colour shows: 14.1% of the
+Lorencia frame and 9.2% of the Tormenta frame in REGRESS-001's empty-scene
+measurements. Both frames fill up to FOV 45.
+
+The capture script no longer passes `--perf-fov`; both scenes report `fov 39.000`
+(`world_fov 39.000`). FOV 45 was also shot from the same build. It fills both
+frames too, but it still leaves the crowd's corner players out of frame. The extra
+6 degrees would cost faithfulness for little framing gain, so the images use 39.
+Everything else is unchanged: tiles, frames 0 and 100, the 80 loadouts and 8
+monsters, the recorded Dark Knight HUD (1100/1100, 200/200, 52/52, 25/25),
+`MU_GFX_PUBLIC_DEMO=1`, `MU_GFX_TEST_CLOCK=1`, headless GL, window-only. Inputs were
+Native Data APP-REFRESH-006 (read-only) and the bundled eight-patch GFx library
+(`MU_GFX_LIB`). Each scene has 80/80 players and name records, complete base and
+glow textures, 5 skill events, 417 effects and 16 joints. The build was main
+`3ecc205c` plus this lane's script change.
+
+| Source PNG, 1600x1000 | Lorencia clear colour (10,20,14) | Tormenta pure black |
+|---|---|---|
+| FOV 65, empty scene (REGRESS-001) | 225,308 (14.1%) | 146,776 (9.2%) |
+| FOV 39, README frame (this re-shoot) | 0 | 120,501 (7.5%), all crowd shadows |
+| FOV 45, same crowd (not published) | 0 | 107,261 (6.7%), all crowd shadows |
+
+Tormenta's clear colour is black, the same value as the projected player shadows.
+A mask of the black pixels shows wing- and body-shaped shadow polygons inside the
+crowd only. The top of the frame has none and no edge region is uncovered. Without
+players, REGRESS-001 counted 1,281 black model pixels at FOV 39 on this tile (frame 0).
+
+The JPEGs use quality 85, 4:2:0, optimized, no EXIF: 565 KB (26) and 532 KB (27).
+The narrower view has more detail per pixel, so the files are larger than the FOV-65
+images' 450/407 KB. Privacy review of both encoded files at full size, in quadrant
+crops: only the synthetic names W01-F80, Preview, the demo monster names (Bull
+Fighter, Hound, Budge Dragon, Spider), the offline welcome line (Tormenta), the
+fixture HUD and the public demo's 1,000/10,000 experience bar. No account or real
+character name, chat, desktop chrome or path. Nothing was painted over.
+
+The NATIVE-PERF-004 rates quoted next to the images were measured by
+`bench_stress.py`, which still uses `--perf-fov 65`. They were not re-measured and
+apply to that benchmark view, not to these FOV-39 frames.
