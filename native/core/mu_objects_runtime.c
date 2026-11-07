@@ -191,6 +191,7 @@ int mu_objects_start(mu_objects *o, const char *game_root)
     rt->uruk_weather = -1;   /* RENDER-EFFECTS-018: 0x01cf15ec's static -1 (reset 0x017ebfd2) until a server set */
     const int32_t n = o->count > 0 ? o->count : 0;
     rt->q_handler.swamp_variant = 1;   /* Swamp of Darkness constructor (0x00e54359: +0x78 = 1) */
+    rt->raklion_state[0x22] = 1;       /* RENDER-WORLDS-RAKLION: Raklion constructor (0x00e9eebd: +0x22 = 1) */
     mu_objects_anim_load(o, getenv("MU_LANG_DIR"));   /* RENDER-WORLDS-AFTER5: absent file = no rows */
     rt->images = calloc((size_t)(n ? n : 1), MU_OBJ_SIZE);
     rt->pointers = calloc((size_t)(n ? n : 1), sizeof *rt->pointers);
@@ -782,6 +783,8 @@ static void slot_model(mu_objects *o, int32_t t, int16_t *flags, int32_t capacit
     out->rand_fn = objects_rand;
     out->rand_context = o;
     out->handler_state = o->rt.q_handler.ferea_state;   /* RENDER-WORLDS-SLOTS: Ferea's custom slot */
+    if (o->world == 57 || o->world == 58)   /* RENDER-WORLDS-RAKLION: the handler byte +0x22 (type 0x52's gate) */
+        out->handler_state = o->rt.raklion_state[0x22];
     out->bone = NULL;                                    /* set by class_custom_call where a slot reads bones */
     out->bone_context = NULL;
     out->bone_count = m && m->loaded ? m->bmd.bone_count : 0;       /* RENDER-WORLDS-121 */
@@ -934,7 +937,7 @@ static int class_custom_call(mu_objects *o, uint8_t *img, int32_t index, float t
             ++o->rt.draw_unsupported;
         }
     }
-    if (o->world == 121)   /* RENDER-WORLDS-121 */
+    if (o->world == 121 || o->world == 57 || o->world == 58)   /* RENDER-WORLDS-121; Raklion: the same slot */
         return test_area_custom_call(o, img, index, time, model, log);
     const int32_t first = log->count;
     const int handled = mu_class_custom(o->world, img, o->rt.model_fields, index, o->world, time, model, log);
@@ -953,7 +956,7 @@ static int class_custom_call(mu_objects *o, uint8_t *img, int32_t index, float t
     return handled;
 }
 
-/* RENDER-WORLDS-121: Test Area's custom slot. Its 0x13..0x15 create one bone-placed particle per bone (two in
+/* RENDER-WORLDS-121: Test Area's custom slot (and Raklion's, RENDER-WORLDS-RAKLION). Its 0x13..0x15 create one bone-placed particle per bone (two in
  * 0x13's first window) around their body draw, more than the slot log holds, so the slot runs into a scratch log
  * sized from the model: its CreateParticle requests go to the visual pass's consumer at once (refused and counted
  * when the bone is not in the model: test_area_bone answers NaN), the rest to the slot log. Posed bones for
@@ -1523,7 +1526,7 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
     }
     const int hook = rt->visual && !login && !charsel && !flame && !primary_visual, has_model = m && m->loaded;
     const int effects = !login && !charsel && !primary_visual;   /* RENDER-EFFECTS-008 */
-    if (deferred && !((o->world == 0x39 || o->world == 0x3a) && (t == 0x53 || t == 0x5c))) {
+    if (deferred) {
         visual_and_effects(o, i, img, hook, has_model, posed ? m : NULL, m, posed, &log, effects);
         return NULL;
     }
@@ -1606,12 +1609,6 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
         options->v_offset = mu_obj_f32(img, MU_OBJF_BLEND_V);
         options->skip_mesh = mu_obj_i32(img, MU_OBJF_HIDDEN_MESH);
     }
-    if (deferred) { /* Raklion's opaque meshes precede its deferred glow. */
-        if (t == 0x53)
-            options->skip_mesh = 4;
-        else if (t == 0x5c)
-            options->mesh_plus_one = 1;
-    }
     options->time = map ? map->time : 0.0f;
     ++rt->drawn;
     /* after RenderObject's draw arguments, as in RenderObjects */
@@ -1673,21 +1670,7 @@ int32_t mu_objects_first_meshes(mu_objects *o, int32_t k, const mu_world *map, m
     if (k >= 0 && k < o->rt.draw_count && o->rt.slot_count && o->rt.slot_index == o->rt.draw_list[k])
         return slot_meshes(o, o->rt.slot_events, o->rt.slot_count, o->rt.slot_color, o->rt.slot_stream, map, m,
                            meshes, capacity, 0);
-    if ((o->world != 0x39 && o->world != 0x3a) || k < 0 || k >= o->rt.draw_count)
-        return 0;
-    const int32_t i = o->rt.draw_list[k];
-    mu_obj_event events[4];
-    mu_obj_log log = {0, 4, 0, events};
-    if (mu_raklion_before(image(o, i), i, &log) != MU_OBJ_OK)
-        return 0;
-    int32_t count = 0;
-    for (int32_t j = 0; j < log.count && count < capacity; ++j) {
-        mu_object_mesh *mesh = &meshes[count++];
-        mesh_options(&events[j], m, map, &mesh->options);
-        memset(&mesh->fields, 0, sizeof mesh->fields);
-        memcpy(mesh->fields.color, m->model.params.color, 12);
-    }
-    return count;
+    return 0;   /* Raklion's first meshes come from its class slot since RENDER-WORLDS-RAKLION */
 }
 
 uint8_t *mu_objects_object_image(mu_objects *o, int32_t index)

@@ -4,7 +4,9 @@
  *   the transform's lights;
  * - type 0x13: one bone-placed CreateParticle per bone and window, through the visual pass's consumer; a bone the
  *   model does not have is refused and counted;
- * - Devias 0x67: the action choice's rand() after the outer draw, at the action's last key only. */
+ * - Devias 0x67: the action choice's rand() after the outer draw, at the action's last key only;
+ * - RENDER-WORLDS-RAKLION: Raklion 57/58 run the same slot (world 56 does not): the per-vertex light, the 0x13
+ *   particles, and type 0x52's frame restart while the handler byte +0x22 is 0 (Raklion event state above 6). */
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
@@ -103,6 +105,37 @@ int main(int argc, char **argv)
     assert(o->rt.particle_count == 2 && o->rt.draw_unsupported == 3);
     reset(o, 121, 0x13, 0, 20.0f);   /* past 19.5: action 1 by a direct write */
     assert(pass(o) == &model && mu_obj_u16(o->rt.images, MU_OBJF_ACTION) == 1);
+
+    /* Raklion 57/58: the same per-vertex light and particles; world 56 keeps the transform's lights */
+    for (int32_t world = 57; world <= 58; ++world) {
+        reset(o, world, 9, 0, 0.0f);
+        assert(pass(o) == &model);
+        for (int k = 0; k < 3; ++k)
+            assert(lights[k] == 0.5f);
+        assert(mu_obj_f32(o->rt.images, MU_OBJF_LIGHT + 4) == 1.0f);
+        reset(o, world, 0x13, 0, 3.0f);
+        assert(pass(o) == &model && o->rt.particle_count == 4 && o->rt.draw_unsupported == 0);
+        assert(o->rt.particles[0].bitmap == 0x801e && o->rt.particles[3].bitmap == 0x801c);
+    }
+    reset(o, 56, 9, 0, 0.0f);
+    assert(pass(o) == &model && memcmp(base, lights, sizeof base) == 0);
+    /* 0x52: the frame stays while the event state is <= 6 (+0x22 = 1), restarts past 6; 11 leaves +0x22 alone */
+    o->world = 57;
+    mu_objects_raklion_set_event(o, 2);
+    assert(o->rt.raklion_state[0x22] == 1);
+    reset(o, 57, 0x52, 0, 7.5f);
+    mu_obj_set_f32(o->rt.images, MU_OBJF_PRIOR_FRAME, 6.5f);
+    assert(pass(o) == &model && mu_obj_f32(o->rt.images, MU_OBJF_FRAME) == 7.5f);
+    mu_objects_raklion_set_event(o, 7);
+    mu_objects_raklion_set_event(o, 11);
+    assert(o->rt.raklion_state[0x22] == 0);
+    reset(o, 57, 0x52, 0, 7.5f);
+    mu_obj_set_f32(o->rt.images, MU_OBJF_PRIOR_FRAME, 6.5f);
+    assert(pass(o) == &model && mu_obj_f32(o->rt.images, MU_OBJF_FRAME) == 0.0f &&
+           mu_obj_f32(o->rt.images, MU_OBJF_PRIOR_FRAME) == 0.0f);
+    reset(o, 121, 0x52, 0, 7.5f);   /* 121 has no gate */
+    assert(pass(o) == &model && mu_obj_f32(o->rt.images, MU_OBJF_FRAME) == 7.5f);
+    mu_objects_raklion_set_event(o, 0);   /* only in 57/58 */
 
     /* Devias 0x67 (action 0 has 2 keys): at frame 1 (the last key) a second draw picks the action */
     reset(o, 2, 0x67, 0, 1.0f);
