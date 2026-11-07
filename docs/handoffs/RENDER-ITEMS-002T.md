@@ -1,7 +1,8 @@
 # RENDER-ITEMS-002T
 
 Branched from `claude/render-items-002s` (`e34e3c78`, PR #331); merged main `ae5e6f36` (#331 RENDER-ITEMS-002S,
-#332 RENDER-EFFECTS-019, #333 APP-POLISH-007; clean, only `mu_particles.*` among this lane's inputs). Branch/worktree
+#332 RENDER-EFFECTS-019, #333 APP-POLISH-007; clean, only `mu_particles.*` among this lane's inputs) and `0c3c2777`
+(HERO-ITEMS-001, #335-#337; the finding conflict resolved by keeping both: HERO-ITEMS-001 is part 21, this lane part 22). Branch/worktree
 `claude/render-items-002t` (Claude Opus 5.5). No live client, launcher, network or hosted workflow. No full gate in the
 lane (2026-11-04 test budget). Paused by the owner at 02:3x and resumed at 05:1x (no state lost).
 
@@ -24,6 +25,10 @@ eighteen targets/twenty-four types. **311 bodies remain.** Survey: 798 shapes, c
 - **Hidden mesh** (APP-POLISH-007's finding): wings `0x2382`..`0x2385` with OBJECT +0x68 = 1 or 2 drew nothing (the
   library refused hidden values outside -1/0/own); they draw only explicit meshes and their streams equal the
   client's at any +0x68, so they join the `0x2322`..`0x2327` exemption.
+- **Native**: `mu_renderchar.c` hosts the new callbacks (the item's own pose for `0x012b678d`, owner bones for op 49
+  only with an OBJECT owner, the optional frame counter); `rank5_owner.inc` now clears its effect record (the appended
+  `extra`, and 002S's `target`, were left uninitialized there, and native refused particles with a non-zero argument 8:
+  `test_rank5_owner_effects_follow_owner_bones` caught it); `mu-render character` opens its particle pool for post types.
 - **Not done**: group 3 (draw fits of read programs), group 4 (joint kinds `0x7f7c`/0xe, `0x7fd3`/4: the 40 routed
   CreateJoint requests stay refused, 0/40 drawn), group 5 (rank-5 strlen parts). See Next groups.
 
@@ -63,15 +68,97 @@ Env: `MU_RECOVERY_INTEGRATION=1`, `MU_GAME_ROOT="$HOME/Library/Application Suppo
 | Portable renderchar suite (`test_item_predraw` with the new post-program and frame-counter tests, `test_item_ownerfx`, `test_item_types`, …) | 98 tests, 22 private skips | 0.3 s |
 | Native `test_native_renderchar` (new `test_post_program_and_frame_counter_gate`), `test_native_item_textures`, `test_native_fidelity`, `test_native_world_predraw` | 44 tests, 1 skip | 102 s |
 | Build `nice -n 10 make -j4` | pass | 15 s |
-ROWS
+| `run_test_suites.py --affected origin/main` (`MU_RECOVERY_INTEGRATION=0`, 2 jobs, after the `0c3c2777` merge) | 7 suites, 1,337 tests, 0 failures, 204 skips | 267 s |
+| Survey export (`classify_item_bodies --tables-dir`) | 1,691 types, 798 shapes; exactly 4 rows flip in each TSV; complete shapes 581 → 585 | 65 s |
+| Docs-reading modules after the export (`test_native_item_textures`, `test_repository_policy`) and `test_native_hero_items` (6b: HERO-ITEMS-001's module uses `mu_renderchar_env`) | 27 tests | 137 s |
+| Audit | 2,064 staged files, 0 rejected | 20 s |
+
+6b: the changed shared symbols (`mu_rc_owner_fx` + `extra`, `mu_rc_owner_host` + four fields, `mu_renderchar_env` +
+`frame_counter`, `mu_rc_item_post_fx`, `item_owner_fx.h`/`item_bodies.h` contents, the rank-5 record now cleared) are
+used by the item validators, `validate_render_effects5` (ctypes follow), `mu_item_textures.c`/`mu_renderchar.c`
+(initializers follow; the build would fail on a missing one), the world parts that fill `mu_renderchar_env`
+(build), `item_textures_host.c` and the native modules above; all ran. The joint pool is unchanged.
+
+### Affected rows, without mutants (`--no-mutants --cache --jobs 2`)
+
+`--list-affected origin/main` (symbol level, after `make -j4`) selects 45 rows; `validate_meshdraw`, `validate_model_edge`
+and `validate_movement` are kept by the symbol fallback; 9 rows build the library but use no changed symbol. All 45
+ran at `eba6b606` (2,615 s wall, load 7-15): 44 passed; `validate_item_predraw` compared clean but failed the
+manifest's stale expectations (main still pinned 002R's 7,592/1,664; 002S never updated them), now 12,848/1,168/2,816
+with 39 mutants. After the `0c3c2777` merge (#335 REGRESS-002, #336 APP-REFRESH-008, #337 RENDER-WORLDS-RAKLION and
+HERO-ITEMS-001: native/core objects, world, hero) `--only <the 45> --list-affected-since eba6b606` named 16; all
+passed at `66d38864` (234 s wall). After the merge `--list-affected origin/main` selects the same 45 (no new main row
+uses a changed symbol). The later commit `738fa457` changes docs only.
+
+| Validator | At `eba6b606` (s) | At `66d38864` (s) |
+|---|---:|---:|
+| `validate_item_ranked` | 138.6 |  |
+| `validate_item_continuation` | 182.8 |  |
+| `validate_item_expansion` | 322.1 |  |
+| `validate_item_types` | 40.1 |  |
+| `validate_fidelity` | 67.7 |  |
+| `validate_item_clusters` | 395.9 |  |
+| `validate_meshdraw` | 71.5 | 52.9 |
+| `validate_movement` | 72.1 | 48.6 |
+| `validate_model_edge` | 150.3 | 112.7 |
+| `validate_icarus_c2` | 24.1 | 18.7 |
+| `validate_audio_callers` | 6.4 | 4.7 |
+| `validate_renderchar` | 48.7 |  |
+| `validate_item_gear` | 168.0 |  |
+| `validate_render_effects5` | 4.0 |  |
+| `validate_render_effects7` | 1.8 |  |
+| `validate_render_effects9` | 1.6 |  |
+| `validate_render_effects10` | 0.4 |  |
+| `validate_render_effects11` | 0.6 |  |
+| `validate_render_effects12` | 0.5 |  |
+| `validate_audio_domains` | 26.1 | 24.8 |
+| `validate_audio_items` | 5.7 | 3.0 |
+| `validate_item_next` | 207.4 |  |
+| `validate_item_coverage` | 201.8 |  |
+| `validate_item_wings_next` | 220.9 |  |
+| `validate_item_scalars` | 162.2 |  |
+| `validate_item_chains` | 245.2 |  |
+| `validate_item_quality` | 193.1 |  |
+| `validate_item_product` | 53.6 |  |
+| `validate_item_derived` | 230.7 |  |
+| `validate_item_carry` | 664.4 |  |
+| `validate_item_ownerfx` | 177.2 |  |
+| `validate_item_predraw` | 199.0 (expectations stale; fixed, see right) | 136.3 |
+| `validate_app_polish1` | 17.2 | 18.3 |
+| `validate_app_polish2` | 3.0 |  |
+| `validate_app_polish4` | 26.8 | 28.0 |
+| `validate_render_effects13` | 0.4 |  |
+| `validate_render_effects14` | 1.0 |  |
+| `validate_render_effects15` | 0.7 |  |
+| `validate_render_effects16` | 2.7 | 2.8 |
+| `validate_worlds_fog` | 4.2 | 6.2 |
+| `validate_render_effects17` | 5.8 | 7.4 |
+| `validate_item_callers` | 1.3 | 1.1 |
+| `validate_render_effects18` | 1.2 | 1.0 |
+| `validate_render_effects19` | 0.6 | 0.6 |
+| `validate_item_hiddenmesh` | 437.4 |  |
+
 
 ## Release
 
-RELEASE
+Steward validators: validate_item_ranked, validate_item_continuation, validate_item_expansion, validate_item_types, validate_fidelity, validate_item_clusters, validate_meshdraw, validate_movement, validate_model_edge, validate_icarus_c2, validate_audio_callers, validate_renderchar, validate_item_gear, validate_render_effects5, validate_render_effects7, validate_render_effects9, validate_render_effects10, validate_render_effects11, validate_render_effects12, validate_audio_domains, validate_audio_items, validate_item_next, validate_item_coverage, validate_item_wings_next, validate_item_scalars, validate_item_chains, validate_item_quality, validate_item_product, validate_item_derived, validate_item_carry, validate_item_ownerfx, validate_item_predraw, validate_app_polish1, validate_app_polish2, validate_app_polish4, validate_render_effects13, validate_render_effects14, validate_render_effects15, validate_render_effects16, validate_worlds_fog, validate_render_effects17, validate_item_callers, validate_render_effects18, validate_render_effects19, validate_item_hiddenmesh (all 45 ran at `eba6b606` without mutants; the 16 whose inputs the `0c3c2777` merge changed — validate_meshdraw, validate_model_edge, validate_movement, validate_icarus_c2, validate_audio_callers, validate_audio_domains, validate_audio_items, validate_item_predraw, validate_app_polish1, validate_app_polish4, validate_render_effects16, validate_worlds_fog, validate_render_effects17, validate_item_callers, validate_render_effects18, validate_render_effects19 — again at `66d38864`). Mutants: validate_item_predraw (39/39) and validate_item_ownerfx (14/14) ran with mutants at `33e6b4c4`; afterwards only the rank-5 record clear (`rank5_owner.inc`), the native host and the viewer tool changed, and both rows passed without mutants at `eba6b606` (predraw again at `66d38864`). No other row needs mutants. Env as under Checks.
+
+Cleanup removes `mu-mac-tools/native/scratch/render-items-002t/` and the build directories. The two crops in `renders/render-items-002t/` are the only kept artifacts (small). No new input needs to be kept; the worktree stays until the steward merges.
 
 ## Byte identity and renders
 
-RENDERS
+- C-to-C (above): no earlier type's stream changes, with or without a rand context; the wings change only at hidden 1/2.
+- `mu-render ui inventory`, installed data, `MU_LANG_DIR` set, time 123456; "before" from main `0c3c2777` (temporary
+  detached worktree, removed). Control codes 0,1,2,3,7,8,4116,135 are byte-identical (PNG `97f9c25c…`, 1,676
+  triangles). New types (codes 1081, 1082, 2087, 7213 = `0x0f1f`, `0x0f20`, `0x130d`, `0x2713`), before `426628a5…`
+  (3,383 triangles at both levels: the plain fallback ignores the level):
+  - level 0: triangles 3,383 → 3,529, 69 pixels change, → `b00b171c…`;
+  - level 9: triangles 3,383 → 14,347, 829 pixels change, → `38010372…` (the recipes' glow passes: red mace, gold `0x2713`).
+  - Window-only crops (before | after) in `~/Documents/MTM/mu-mac-tools/native/renders/render-items-002t/`
+    (`crop_new0.png`, `crop_new9.png`, 1-6 KB). Offline native renders, not original-client pixels. Inventory items
+    have no particle pool, so no effects appear there. No joint is drawn by this lane, so there is no world-scene crop.
+- `mu-render character --world-render` on a synthetic skeleton: `0x2713` creates its 3 sprites on 12 bones, 1 created/2
+  refused on 10; mace `0x0f20` creates none and refuses its counter-gated particles and absent named bones.
 
 ## Limits
 
