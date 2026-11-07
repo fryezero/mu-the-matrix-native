@@ -1,5 +1,7 @@
 # Current status
 
+README-IMAGES-D PR-ready: the README shows the item work of #337..#344. Image 08 (inventory) re-shot with the equipment slots holding the hero's Cookery Short Sword +9 excellent, Small Shield +7 and Wings of Heaven (INVENTORY-FX); new 31: the shipped Lorencia demo with Ironclad's +9 level glow (inset) and Redhand's Xeno Blade and Wings of Eternal (APP-POLISH-008); new 32 (test fixture): physics capes mid-stride (RENDER-ITEMS-CLOAK), the Cloak of Brilliance's sparks and armour owner effects (RENDER-EFFECTS-020/021). All window-only `mu-world` renders at the world FOV 39, `MU_GFX_PUBLIC_DEMO=1`, demo names only; Raklion's spray and Karutan's crystal are too small at README size and are named in text. Text: item bodies 1,363/1,674 (311 left), item programs in the world, capes. Audit pins: 08 changed, 31/32 added. [Handoff](handoffs/README-IMAGES-D.md).
+
 APP-REFRESH-009 PR-ready: Preview reinstalled from a7f7b247 (main with #335-#343); APP-REFRESH-006's Native Data
 kept (no export input changed since f2370871; #338's demo files are app resources and ship in the bundle). Private
 native/tests (brief 8d, from the root): full run at 138b756e 969 tests, 941 passed, 27 skipped, 1 test-order failure

@@ -10,7 +10,7 @@ PRIVATE_DIRS = {'input','evidence','runtime','vendor','publish','dist','node_mod
 GENERATED = {'.exe','.dll','.bin','.obj','.bmd','.smd','.png','.jpg','.zip','.dmp','.mdmp','.dylib','.so','.o','.pyc','.orig','.new'}
 
 
-# Owner-requested README screenshots and renders (reviewed 2026-10-21, 2026-10-22 and 2026-10-28: window-only,
+# Owner-requested README screenshots and renders (reviewed 2026-10-21, 2026-10-22, 2026-10-28 and 2026-11-07: window-only,
 # no account names, passwords or private paths). Only these exact bytes are
 # documentation media; all other binary/generated inputs remain rejected.
 REVIEWED_MEDIA = {
@@ -31,7 +31,7 @@ REVIEWED_MEDIA = {
     'docs/images/07-gfx-character-window-buffs.png':
         '33fc8cbbf900f283ab8320331ef1faac9a795c93f6a59b621b3a07fe6b4a1c52',
     'docs/images/08-inventory-item-tooltip.png':
-        '46c0bf6613ae14ea108fcc5682cb6da3e237123e0b138c83c29898c33a85d44a',
+        'f43c3dadbee8a9abf1f1552605c792bf44c8e1d3113c3d29de883a71708cb4f9',
     'docs/images/09-npc-dialogue-and-shop.jpg':
         '626446e668f7257a012088ff39f98d07330628734ff04b097964e46dce97fac6',
     'docs/images/10-combat-damage-numbers.jpg':
@@ -74,6 +74,10 @@ REVIEWED_MEDIA = {
         'd64c5586e38627995e659dd72f4eaddecf385de5cdd4094f7d1957b260d119a9',
     'docs/images/30-worlds-live-vs-native.jpg':
         '8e5c85f9a5fb2091855cc52d2de5f598bc5171aaf784b02cb4436bdded491e5d',
+    'docs/images/31-lorencia-demo-outfits-item-glow.jpg':
+        '1a6ef1b5cc1e5e58133022bf5e880673c6c75a98b368fea286e19e73fbef9377',
+    'docs/images/32-capes-cloak-sparks-armour-fx.jpg':
+        '28b2c101a4a859662e184043d6f23e403b6895cd31b196c38bd78a33b77c1a05',
 }
 
 
