@@ -55,7 +55,7 @@ class WorldsSlotsTests(unittest.TestCase):
     def test_dispatch(self):
         for world in (79, 112, 114, 122, 123, 124, 125, 126, 127):
             self.assertTrue(self.dll.mu_class_slots(world), world)
-        for world in (73, 115, 116, 120, 121, 128 - 100):
+        for world in (73, 115, 116, 120, 128 - 100):   # 121: RENDER-WORLDS-121
             self.assertFalse(self.dll.mu_class_slots(world), world)
 
     def test_market_flags(self):

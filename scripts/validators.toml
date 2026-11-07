@@ -2991,6 +2991,22 @@ args = ["--cases", "1000", "--mutations", "--output", "{report}"]
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
 
+[validate_worlds_121]
+test = "reconstructed/objects/test_worlds_121.py::Worlds121Tests.test_original_instructions"
+pins = ["text", "data"]
+families = ["custom_121", "after_121", "devias_67"]
+cases = 3000
+mutants = 31
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects", "reconstructed/particles", "reconstructed/movement"]
+args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+[validate_worlds_121.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0
+
 [validate_render_effects15]
 test = "native/tests/test_render_effects15.py::ClientComparison.test_original_instructions_and_compiled_mutants"
 pins = ["text", "data"]

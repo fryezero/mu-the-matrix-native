@@ -1444,15 +1444,15 @@
         },
         "custom_render": {
           "entry": "0xd58bd8",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-121: types 0..300 compared under Unicorn (validate_worlds_121 custom_121): the per-vertex light 0.5 (0x06fd0918) of types 6..12, the 0x10/0x11 rand-driven SetAction 0x012affa4, the bone-placed CreateParticle of 0x13..0x15 (one per bone and window), the body/mesh branches; no world test. See client-worlds-121.md.",
+          "source": "reconstructed/objects/world_test_area_visual.c"
         },
         "after_render": {
           "entry": "0xd5a6cc",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-121: compared under Unicorn (validate_worlds_121 after_121): 0x2e/0x35/0x4c bodies (0x4c pulses the object light), 0x53/0x59/0x5c glow meshes. The after pass 0x016d6949 never runs in world 121 (0x79 is outside its world list; the class leaves handler byte +5 at 0), in the client and natively.",
+          "source": "reconstructed/objects/world_test_area_visual.c"
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
