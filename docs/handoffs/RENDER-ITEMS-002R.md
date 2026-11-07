@@ -12,7 +12,7 @@ its own type case before the body draws, with an item-bone host for the `0x0150e
 Bodies **1,319 → 1,345 of 1,674** (+26: six swords `0x0b27`, `0x0b2a`, `0x0b4b`, `0x0b4c`, `0x0b57`, `0x0b59`; three
 maces `0x0f1c`, `0x0f1d`, `0x0f2e`; four bows `0x1311`, `0x1312`, `0x1316`, `0x131d`; three shields `0x1748`,
 `0x1749`, `0x1758`; ten wings `0x230b`, `0x2311`, `0x2382`..`0x2385`, `0x2394`, `0x2395`, `0x2494`, `0x2499`).
-Skins 17/17, links eighteen targets/twenty-four types. **329 bodies remain.** Survey: SURVEY_LINE.
+Skins 17/17, links eighteen targets/twenty-four types. **329 bodies remain.** Survey: 798 shapes, complete shapes 556 → 572; both TSVs flip exactly the 26 types.
 
 - **Census** (scratch, four survey states): 91 of the 355 remaining types create effect services before their
   first draw, in RenderObjDraw's own case; 8 only after it; 220 call none (or only rand); 36 fault (31 in strlen).
@@ -59,7 +59,38 @@ Env: `MU_RECOVERY_INTEGRATION=1`, `MU_GAME_ROOT="$HOME/Library/Application Suppo
 `MU_LANG3_SNAPSHOT="$MU_LANG_DIR/live/lang3.bin"` (validate_fidelity), `MU_VALIDATOR_CACHE` = the shared cache.
 All heavy steps `nice -n 10`.
 
-CHECKS_TABLE
+| Check | Cases / result | Wall time |
+|---|---|---:|
+| Census of the 355 remaining types (scratch, four survey states, service log) | 91 pre-draw, 8 after-draw only, 220 none/rand only, 36 faults | 9 s |
+| Reader over the effect types (`extract_pre`) | 40 of 91 read; the 26 listed reproduce the header (`--check`); the 43 part-17 programs' op rows unchanged | 7 s |
+| Body-table generation (`gen_item_bodies`) with the 26 types | 1,300 → 1,326 rows; earlier rows unchanged (C-to-C below) | 882 s |
+| Probe screening (scratch library per type, 292 states) | 26 of 29 fitting candidates pass (5 default, 21 extended, 17 of them carry); `0x1313`, `0x1317`, `0x1319` fail | 7 min |
+| `validate_item_predraw --mutations` (new row, at `d45932fc`) | 9,256 comparisons, 0 mismatches (bodies 7,592; pre-draw 1,664: 9,956 requests bit for bit, 4,532 refusals, 520 rand draws, 182 flag-clear states); 14/14 mutants caught, none equivalent, all compiled, anchors once; both tables reproduce | 901 s |
+| `validate_item_ownerfx --mutations` (its executor and the `subtract` anchor changed; at `d45932fc`) | 14,964 comparisons, 0 mismatches; 14/14 mutants caught (same detection counts as part 17) | 897 s |
+| C-to-C, main `18ab0134` library vs this one: 1,691 survey types × 32 states × with/without rand | 108,224 cases; 106,560 identical, the 1,664 different ones are exactly the 26 new types | 4 s |
+| Survey export (`classify_item_bodies --tables-dir`) | 1,691 types, 798 shapes; exactly 26 rows flip; complete shapes 556 → 572 | 72 s |
+| `run_test_suites.py --affected origin/main` (`MU_RECOVERY_INTEGRATION=0`, 2 jobs, at `d45932fc`) | 6 suites, 1,259 tests, 0 failures, 185 skips | 289 s |
+| Portable `test_item_predraw` + `test_item_ownerfx` | 9 tests, 2 private skips | 0.1 s |
+| Native `test_native_renderchar` (new `test_weapon_pre_draw_program`: sword `0x0b27` 4 sprites/0 refused; bow `0x1311` 0/1; wing `0x2394` 0/8 on the synthetic skeleton) | pass | 0.3 s |
+| Native `test_native_item_textures` (installed survey; 6b: pins unchanged, 13 white types, 0 missing bitmaps, 0 with a wearer: none of the 26 bodies is white or misses a bitmap) | 7/7 | 47 s |
+| Build `nice -n 10 make -j4` (after the `3ecc205c` merge) | pass | 18 s |
+
+6b: the changed shared symbols (`mu_rc_owner_host`, `mu_rc_owner_fx`, `mu_rc_fx_op`, `item_owner_fx.h`,
+`item_bodies.h`, `mu_renderchar_env`) are used by the item validators, `validate_render_effects5` (ctypes structs
+follow), `mu_item_textures.c` (initializer follows) and the native modules above; all ran.
+
+### Affected existing rows, without mutants (`--no-mutants --cache --jobs 2`, at `9e234371`)
+
+ROWS_TABLE
+
+`--list-affected origin/main` selects 49 rows. Run: the 31 rows above (they build `reconstructed/renderchar`,
+import the generators, include `renderchar.h`/`mu_renderchar.h`, or name `native/core` for item effects) plus the
+two mutant rows. Not run, with reason: `meshdraw`, `model_edge`, `model_light`, `movement`, `path`, `terrain`,
+`terrain_remaining`, `viewport_monsters`, `worlds_f`, `session_party`, `audio_callers`, `audio_combat`,
+`audio_domains`, `audio_items`, `audio_charsel` reach `mu_renderchar.c`/`mu_item_textures.c` only through the
+native archive; the native change only acts for the 26 new types with a particle pool (`mu_rc_item_pre_fx`), and
+the texture probe's host keeps `item_transform` NULL. `icarus_c2` builds every `reconstructed/*` directory but
+never calls the item library.
 
 ## Byte identity and renders
 

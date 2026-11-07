@@ -1567,3 +1567,35 @@ Effects routed vs refused (static request sites over the 26 programs, loops unro
 | CreateSprite after TransformPosition: `0x7ef7` 62, `0x7f78` 24 | 86 | sprite pool | routed (same bone rule) |
 | CreateParticle `0x7ffd`/27, no owner (bow `0x1316`) | 1 | particle pool | routed; counted as refused when the pool creates no record |
 | CreateParticle with the OBJECT as owner: `0x810a`/17, `0x81cf`/0 (`0x2384`, `0x2385`) | 4 | none (owner records take attached-object indices) | refused, counted |
+
+### Checks
+
+`scripts/validate_item_predraw.py --mutations` (manifest row, private test `ItemPreDraw.test_original_instructions`):
+**9,256 comparisons, zero mismatches** (901 s):
+
+| Family | Cases | Mismatches |
+|---|---:|---:|
+| Body streams, 26 types × 292 states, no host (the client's effect requests set aside; the C creates none and draws no rand) | 7,592 | 0 |
+| Pre-draw: full RenderObjDraw with the real `0x0150e746`, `0x012bd35a`, `0x012b6ef1`; bone records with the program's names among decoys/duplicates (some or all missing, sometimes no records), authored BoneTransform matrices (junk before and past the count), random scale/origin/angle, scripted rand, the frustum away from the OBJECT in 182 states. Draw stream, every request bit for bit (9,956), refusals by kind/bitmap in order (4,532) and the rand count (520) | 1,664 | 0 |
+
+All **14/14 separately compiled mutants** are caught (anchors match once): wave clock 308, bone name 179, flag test
+768, alpha 602, sine 341, abs sign 237, rand modulus 117, transform domain 53, transform bone 395, sprite domain 646,
+sprite translate 1,098, position refusal 168, particle owner 84, pre-draw hook 1,580. Not mutated, because no program
+can tell: the item transforms' translate word (all 49 translate), the bone sprites' rotation and blend (all 90 pass
+0), and arithmetic on refused positions (none is computed). Both tables reproduce from the pinned instructions.
+`validate_item_ownerfx --mutations` reruns on the shared executor: 14,964 comparisons, zero mismatches, 14/14 mutants.
+
+Compiled C-to-C, main `18ab0134` library against this one, all 1,691 survey types × 32 random states, with and
+without a rand context: **108,224 cases**; 106,560 identical, and the 1,664 different ones are exactly the 26 new
+types. Portable `test_item_predraw.py`: 5 tests, one private skip (admission, `0x1311`'s sine light at the named bone
+and its refusals, `0xb27`'s flag gate with its rand, no host). Native `test_weapon_pre_draw_program`.
+
+### Limits
+
+- 329 bodies remain; 51 pre-draw types are not read (joints, integer clock chains with branches, owner transforms
+  on a named item bone, light-pointer reads, register budget, services on both sides of the draws) and 14 read types'
+  draws do not fit.
+- The programs run only with an item-bone host and particle pools. Native world callers outside `mu-render
+  character` do not pass the item pose yet: their requests are refused and counted, the rand stream kept.
+- The TestFrustrum2D flag is 1 natively. Bones outside the item skeleton are refused (the client reads the matrix
+  before BoneTransform or stale bones). OBJECT-owned particles have no native owner record.

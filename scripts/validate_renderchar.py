@@ -85,6 +85,7 @@ SERVICES = {
     0x01989721: 'rand (returns 0)',
     0x01692eb7: 'create effect (recorded)', 0x0168fafd: 'create particle (recorded)',
     0x0150e746: 'bone-linked effect (recorded)',
+    0x013c0f19: 'CreateEffect (recorded)',
     0x010ffd7a: 'EnchantEffect colour lookup (case colour)',
     0x010ffd25: 'EnchantEffect mesh list lookup (empty)',
     0x010ffddb: 'EnchantEffect colour lookup by mesh (case colour)',
@@ -193,6 +194,9 @@ class World:
         m.stub(0x01989721, lambda m: 0, 0)
         for address in (0x01692eb7, 0x0168fafd, 0x0150e746):
             m.stub(address, (lambda a: (lambda m: rec.append(('effect', a, [m.arg(i) for i in range(4)])) or 0))(address), 0)
+        # CreateEffect 0x013c0f19 (thiscall on the effect manager 0x0a4ca430, eight arguments): recorded like the
+        # other effect services. RenderObjDraw's level-gated cases (e.g. wing 0x23ac at 0x017c630e) call it.
+        m.stub(0x013c0f19, lambda m: rec.append(('effect', 0x013c0f19, [m.arg(i) for i in range(4)])) or 0, 0x20)
         m.stub(0x010ffd7a, lambda m: ENCH, 4)
         m.w32(ENCH + 0x100, 0)
         m.w32(ENCH + 0x104, 0)
