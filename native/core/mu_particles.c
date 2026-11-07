@@ -41,8 +41,8 @@ static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     0x7f54, 0x7f84, 0x7f38, 0x8021, 0x7f6b, 0x8087, 0x8089, 0x801e, 0x8184,
     0x7ffd, 0x8081, 0x8082, 0x8083, 0x85fb, 0x8450, 0x810a, 0x7f73, 0x7f74, 0x7f75, 0x810c, 0x83b8,
     0x801d,   /* RENDER-EFFECTS-019: WATERFALL4, half of Test Area's 0x801e/7 particles draw it */
+    0x81cf,   /* RENDER-EFFECTS-020: magic_ground12, wings 0x2384/0x2385's owned 0x81cf/0 (before Fire06: keeps 016's anchor) */
     MU_PT_BITMAP_FIRE06,
-    0x81cf,   /* RENDER-EFFECTS-020: magic_ground12, wings 0x2384/0x2385's owned 0x81cf/0 */
     MU_PT_BITMAP_RAIN_SPLASH,
     MU_PT_BITMAP_RAIN_RING};
 static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
@@ -88,11 +88,11 @@ static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     /* RENDER-EFFECTS-019: WATERFALL4 0x801d (startup LoadBitmap 0x01822aa5 in 0x0182049e, LINEAR/CLAMP), the
      * bitmap 0x801e/7's create picks for half of its particles */
     "Data/Effect/WATERFALL4.OZJ",
+    /* RENDER-EFFECTS-020: magic_ground12 0x81cf (startup LoadBitmap 0x018249a3 in 0x0182049e, LINEAR/CLAMP) */
+    "Data/Effect/magic_ground12.OZJ",
     /* RENDER-EFFECTS-016: Fire06 0x7f40, 0x70c's stone particle (LoadBitmap 0x018229e5 in 0x0182049e,
      * LINEAR/CLAMP) */
-    "Data/Effect/Fire06.OZJ",
-    /* RENDER-EFFECTS-020: magic_ground12 0x81cf (startup LoadBitmap 0x018249a3 in 0x0182049e, LINEAR/CLAMP) */
-    "Data/Effect/magic_ground12.OZJ"};
+    "Data/Effect/Fire06.OZJ"};
 
 /* The world objects' effect models (AccessModel, static readings of the loaders): the Tormenta handler's
  * hs_fieldtornado (0x00e4c4de). */

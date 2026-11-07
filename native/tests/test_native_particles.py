@@ -131,7 +131,7 @@ class InstalledLorenciaFires(unittest.TestCase):
         # 0x7f73..0x7f75 before the two rain textures. RENDER-EFFECTS-011 adds pin_star02_pupple 0x810c
         # and Snow_Chip02_red 0x83b8 before those rain textures.
         # RENDER-EFFECTS-016 adds Fire06 0x7f40 (0x70c's stones) before them, RENDER-EFFECTS-020 magic_ground12
-        # 0x81cf (the wings' item-owned particles) after it.
+        # 0x81cf (the wings' item-owned particles) before Fire06.
         # Every Lorencia-applicable bitmap must load, including the last two rain textures.
         self.assertEqual(p['bitmaps'], [1]*50 + [0] + [1]*26)   # RENDER-EFFECTS-019: WATERFALL4 0x801d
         self.assertGreater(p['created'], 20)
