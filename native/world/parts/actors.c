@@ -8,7 +8,6 @@
 #include "../../core/mu_frame_time.h"
 #include "../../session/mu_session.h"
 #include "../../session/mu_session_seed.h"
-#include "../../fixture/hero_join.h"
 #include "../../fixture/mu_fixture.h"
 #include "../../fixture/monsters_demo.h"
 #include "../../fixture/skills_demo.h"
@@ -133,7 +132,7 @@ static int actors_open(struct mu_world_rt *a, void *self)
     mu_fixture_endpoint(fixture, "game", &cfg.connect_server);
     cfg.build = &MU_PINNED_BUILD; cfg.proof = mu_proof_not_required();
     mu_session_seed seed = {0}; seed.class_byte = a->walk.hero.class_byte; seed.place.world = a->map->world;
-    mu_fixture_hero_join(&seed);
+    world_rt_hero_join(a, &seed);
     mu_session *session = mu_session_open_seeded(&cfg, &seed, error, sizeof error);
     if (!session) { mu_transport_free(transport); mu_fixture_close(fixture); return 1; }
     mu_session_skills_bind(session, a->lang, getenv("MU_LANG_DIR"), a->root);
