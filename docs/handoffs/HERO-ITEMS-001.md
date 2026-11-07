@@ -1,7 +1,7 @@
 # HERO-ITEMS-001
 
 Branched from `origin/claude/render-items-callers-001` (`c2c46da2`, #330); fast-forwarded to main `c5ed13dd` once #330
-merged. Branch/worktree `claude/hero-items-001` (Claude Opus 5.5). No live client, launcher, network or hosted
+merged; merged main `ae5e6f36` (batch 69) as `363cc5d1`. Branch/worktree `claude/hero-items-001` (Claude Opus 5.5). No live client, launcher, network or hosted
 workflow. No full gate in the lane (2026-11-04 test budget).
 
 Scope: the hero's worn items get their real item types, so item effects (part 18's pre-draw programs, level glows,
@@ -150,8 +150,19 @@ validate_audio_callers, validate_audio_combat, validate_audio_domains, validate_
 validate_session_party, validate_audio_charsel, validate_render_effects16, validate_worlds_fog,
 validate_render_effects17, validate_item_callers, validate_render_effects18, validate_renderchar,
 validate_item_textures, validate_hud, validate_app_polish1, validate_app_polish2, validate_app_polish4 (ran at
-`9346bb0d`, no mutants). Env as under Checks, including `MU_PATH_DIRECTIONS`. Commits after `9346bb0d` are docs
-only.
+`9346bb0d`, no mutants), validate_render_effects19 and validate_app_polish7 (from the merge). Env as under Checks,
+including `MU_PATH_DIRECTIONS`.
+
+After merging main `ae5e6f36` (#331 RENDER-ITEMS-002S, #332 RENDER-EFFECTS-019, #333 APP-POLISH-007) as
+`363cc5d1`, research parts 20 (002S) and 21 (this lane) were both kept, and the code auto-merged.
+- `--list-affected origin/main` then selected the same 22 rows plus `validate_render_effects19`, whose mutant
+  build copies `reconstructed/`.
+- All 30 rows (the 28 above, render_effects19, and app_polish7, #333's row for the same front-end hero) reran at
+  `363cc5d1` without mutants: 30 pass with the same case counts as above (render_effects19 260, app_polish7
+  5,120), 516 s. `hero_items`' inputs changed only by a header comment, so its mutants were not repeated.
+- `test_native_hero_items` (portable + scene), `test_native_world_predraw`, `test_native_renderchar`,
+  `test_native_item_textures`, `test_native_players` and `test_app_polish7`: 58 tests OK, 98.5 s. The hero scene
+  numbers are unchanged after 002S.
 
 Cleanup removes `mu-mac-tools/native/scratch/hero-items-001/`, the base worktree, the build directories and every
 render except the three crops. The worktree stays until the steward merges. No new input needs to be kept.
