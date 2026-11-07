@@ -80,7 +80,7 @@ repository root.
 | `run_test_suites.py --affected origin/main` (`MU_RECOVERY_INTEGRATION=0`, 2 jobs) at `ac5aa72b` | 7 suites, 1,350 tests, 1,138 passed, 212 skipped, 0 failures | 379.9 s (454 s with selection) |
 | Private, from the root: `test_native_item_cloak` (portable 11, Unicorn 1, scenes 2), `test_native_world_predraw`, `test_native_hero_items`, `test_native_players`, `test_world_parts`, `test_render_effects20`, `test_render_effects21` | 65 tests OK | 247.2 s |
 | `tests.test_validators_manifest` | 17 tests OK | 0.7 s |
-| `scripts/audit_repository.py` | see the PR body | |
+| `scripts/audit_repository.py` (after the main merge `90c5023b`) | 2,098 staged files, 0 rejected | 38.3 s |
 
 Rows at `fa07f862` (s): icarus_c2 23.0, audio_callers 6.9, audio_domains 26.6, audio_items 4.6, movement 61.4,
 render_effects16 3.9, worlds_fog 9.3, item_callers 1.8, render_effects17 7.9, render_effects18 1.6, render_effects19
