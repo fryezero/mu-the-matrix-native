@@ -1,4 +1,5 @@
-"""Authored textured skin sprites in software inventory and the real GFx icon FBO."""
+"""Authored textured skin sprites in software inventory, the real GFx icon FBO (INVENTORY-FX: into the world's
+sprite list, never over the icon) and on the ground."""
 import io
 import json
 from pathlib import Path
@@ -62,25 +63,30 @@ class InventorySkin(unittest.TestCase):
             self.assertNotEqual(later['framebuffer_sha256'],start['framebuffer_sha256'])
 
     @unittest.skipUnless(sys.platform=='darwin','offscreen GL host requires macOS')
-    def test_gfx_icon_sprite_pixels_clock_and_frame_isolation(self):
+    def test_gfx_icon_sprites_go_to_the_world_not_the_icon(self):
+        """INVENTORY-FX: RenderObjDraw's 0x389c skin case calls CreateSprite, whose list only the world scene's
+        RenderSprites draws (scripts/validate_inventory_fx.py, family sinks). The icon image never shows the
+        sprite; with a world pool the sprite joins it, one per icon draw."""
         subprocess.run(['make','-s','-C',str(NATIVE),'build/inventory-skin-host'],check=True,capture_output=True)
         host = NATIVE/'build/inventory-skin-host'
         with tempfile.TemporaryDirectory() as tmp:
             root = skin_root(tmp)
-            def capture():
-                result = subprocess.run([str(host),str(root)],capture_output=True,text=True)
+            def capture(*extra):
+                result = subprocess.run([str(host),str(root),*extra],capture_output=True,text=True)
                 if result.returncode==3:
                     self.skipTest(result.stderr.strip())
                 self.assertEqual(result.returncode,0,result.stderr)
                 return json.loads(result.stdout)
             plain = capture()
             add_spark(root)
-            drawn = capture()
-            self.assertEqual((drawn['drawn'],drawn['missing'],drawn['icons']),(4,0,4))
-            a,b,c,d = drawn['hashes']
-            self.assertEqual((a,b),(b,d))
-            self.assertNotEqual(a,plain['hashes'][0])
-            self.assertNotEqual(a,c)
+            alone = capture()
+            world = capture('world')
+            for run_ in (alone, world):
+                self.assertEqual((run_['drawn'],run_['missing'],run_['icons']),(4,0,4))
+            # the icons are the same with or without the spark texture, at every clock, with or without a world
+            self.assertEqual(len(set(plain['hashes'] + alone['hashes'] + world['hashes'])), 1)
+            self.assertEqual(alone['world_sprites'], 0)
+            self.assertEqual(world['world_sprites'], 4)
 
 
 class GroundSkin(unittest.TestCase):

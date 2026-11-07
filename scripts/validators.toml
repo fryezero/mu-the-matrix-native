@@ -3170,6 +3170,26 @@ args = ["--mutations", "--output", "{report}"]
 "families.record.cases" = 3000
 "mutants.*" = {truthy = true}
 
+[validate_inventory_fx]
+test = "native/tests/test_inventory_fx.py::ClientComparison.test_original_instructions"
+pins = ["text", "data"]
+families = ["equip_pass", "equip_info", "part_args", "inv_flag", "sinks"]
+cases = 8017
+mutants = 14
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/hud", "reconstructed/terrain"]
+note = "INVENTORY-FX; compiles reconstructed/hud (item_slots.c) and native/world/world_item_pre.h with reconstructed/terrain"
+args = ["--mutations", "--output", "{report}"]
+[validate_inventory_fx.expect]
+"families.*.mismatches" = 0
+"families.equip_pass.cases" = 3000
+"families.equip_info.cases" = 1000
+"families.part_args.cases" = 1000
+"families.inv_flag.cases" = 3000
+"mutants.*" = {truthy = true}
+"ok" = true
+
 [validate_render_effects18]
 test = "native/tests/test_render_effects18.py::ClientComparison.test_original_instructions_and_compiled_mutants"
 pins = ["text", "data"]

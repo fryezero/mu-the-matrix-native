@@ -81,6 +81,45 @@ typedef void (*mu_slot_emit)(void *user, const mu_slot_call *call);
 int mu_slot_pass(const mu_slot_frame *frame, int32_t screen_w, int32_t screen_h, float rate_x, float rate_y,
                  mu_slot_color color, mu_slot_emit emit, void *user);
 
+/* ---- the inventory frame's item render 0x00b913a2 (INVENTORY-FX) ---------
+ * The Inventory window's item render (vtable +0x20) is the slot pass 0x00ab6130 over its grid pages, then the
+ * hero's equipment: for s = 0..14 the ITEM CharacterMachine [0x01d1df18] + 0x1b58 + s * 0x12c with code +0x10 >= 0
+ * goes to the slot wrapper 0x016c23d5(item, x, y, w, h, 0, frame +0xcc == 1 (0x00abed32), 0, 0, frame, 0, 0.0f,
+ * -1, 0, 1, 0) at the slot's rectangle, which the movie reports through EQUIPrequestSlotInfo(x, y, w, h, slot)
+ * (0x00b97834: five arguments, the first a number; 0x00b958e1 stores slots 0..14 at controller +0x110 + s * 8
+ * (x, y) and +0x188 + s * 8 (w, h)):
+ *   x = (frame x 0x00aae509 + scale * slot x) * rate x      y = (frame y 0x00aae601 + scale * slot y) * rate y
+ *   w = rate x * slot w * scale                             h = rate y * slot h' * scale
+ * slot h' = slot h * 0.75f (0x01a800cc) for s == 3 when the hero's class nibble ([0x0a39d754] + 0x12 & 15,
+ * 0x0095f5cc) is 2, 5, 7, 8, 9, 12 or 14 (0x00b99205), else slot h. No glColor in the equipment loop. Without a
+ * CharacterMachine the loop is skipped; the return value is 1 after a visible slot pass, else 0. */
+enum { MU_EQUIP_SLOTS = 15 };
+
+typedef struct mu_equip_slot {
+    float x, y, w, h;           /* EQUIPrequestSlotInfo's rectangle (movie units) */
+} mu_equip_slot;
+
+typedef struct mu_equip_call {
+    int32_t slot;               /* 0..14: the ITEM's index */
+    float x, y, w, h;           /* wrapper arguments 2..5, 640 x 480 units */
+    uint8_t a20;                /* wrapper argument 7: frame +0xcc == 1 */
+    uint32_t frame_id;          /* wrapper argument 10: the frame */
+} mu_equip_call;
+
+typedef void (*mu_equip_emit)(void *user, const mu_equip_call *call);
+
+/* 0x00b958e1(slot, x, y, w, h): stores the rectangle for slot 0..14 (signed compare), ignores others; returns 1
+ * when stored. The callback handler truncates the fifth number to the slot (_ftol 0x0191c5e0). */
+int mu_equip_slot_info(mu_equip_slot slots[MU_EQUIP_SLOTS], int32_t slot, float x, float y, float w, float h);
+
+/* codes[s]: ITEM +0x10 (NULL: no CharacterMachine). frame_cc: frame +0xcc. */
+int mu_inventory_item_pass(const mu_slot_frame *frame, const mu_equip_slot slots[MU_EQUIP_SLOTS],
+                           const int32_t *codes, uint8_t hero_class, int32_t frame_cc, int32_t screen_w,
+                           int32_t screen_h, float rate_x, float rate_y, mu_slot_color color, mu_slot_emit emit,
+                           mu_equip_emit equip, void *user);
+/* 0x00b99205: the class nibbles whose armour slot is drawn at 0.75 height. */
+int mu_equip_short_armour(uint8_t class_byte);
+
 /* GFx manager rates (0x00acb333): 640/W and 480/H. */
 float mu_gfx_rate_x(int32_t screen_w);
 float mu_gfx_rate_y(int32_t screen_h);
@@ -251,6 +290,15 @@ typedef struct mu_hud_ros_out {
 } mu_hud_ros_out;
 
 void mu_hud_object_screen(const mu_hud_ros_in *in, mu_hud_ros_out *out);
+
+/* INVENTORY-FX: what the icon's RenderObjDraw gets. RenderPartObject passes RenderObjectScreen's level word,
+ * excellent flag and set bits through unchanged as RenderObjDraw's arguments 5..7 (0x017e7932..0x017e7960 and
+ * 0x017e796a..0x017e7997); the item render takes the level (word >> 3) & 15 (renderchar's item level), the option
+ * and the ext byte from them, as for a worn item. */
+typedef struct mu_icon_glow {
+    int32_t level, option, ext;
+} mu_icon_glow;
+mu_icon_glow mu_icon_glow_of(const mu_hud_ros_out *ros);
 
 #ifdef __cplusplus
 }
