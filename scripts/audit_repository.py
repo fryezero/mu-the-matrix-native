@@ -15,7 +15,7 @@ GENERATED = {'.exe','.dll','.bin','.obj','.bmd','.smd','.png','.jpg','.zip','.dm
 # documentation media; all other binary/generated inputs remain rejected.
 REVIEWED_MEDIA = {
     'docs/images/01-hero-lorencia-players-hud.jpg':
-        'd589cd1764c8c9091f58566b4328700747e67de4aba69865708847525bbe380e',
+        'be1c3d696b16764ec192d4e508fbb3fba5be284061add1b75328adda5c19bf6d',
     'docs/images/02-login-server-select.jpg':
         '776da4029a6a28b9035aac4c4e94f68252f93d964bcfb3aa3764b4518a89e52d',
     'docs/images/03-character-select.jpg':
@@ -25,9 +25,9 @@ REVIEWED_MEDIA = {
     'docs/images/04b-character-creation-all-classes.jpg':
         '2bd8ab20a3e1e61176b9cc158489002980613c53a7d63334e3c86cad5b90964a',
     'docs/images/05-world-atlans-devias-noria-lorencia.jpg':
-        '841301b782b624ec660d3cff057f874b7575846070faa56b5529b87b3a626bfe',
+        '683c5f41ef31380f23baad028346485456ede5cbdb77f63f52be8b97bee59007',
     'docs/images/06-effects-skills-particles.jpg':
-        '37676aefe584725848b1f83dbcdf8302ac68725f2403ddddc49e621e5415a281',
+        'ef05b5b07c27a2445e8dd8bd12dd27cf78c8eb2b73e940efbcf20b8cbb411b34',
     'docs/images/07-gfx-character-window-buffs.png':
         '30dbbd94ab0177632cc587fb95e586e932e68ca46eb86544977c2c6588cb46f6',
     'docs/images/08-inventory-item-tooltip.png':
@@ -35,21 +35,21 @@ REVIEWED_MEDIA = {
     'docs/images/09-npc-dialogue-and-shop.jpg':
         'bd64fa6dd222b632553718032632a2e87a6c04d324b4a385d7af0f076a4bf306',
     'docs/images/10-combat-damage-numbers.jpg':
-        '1b052daafbaf9187f7fc5f71ee8b65d925603ec25d34f20b0d2ae61a7031e074',
+        '5d6faaff7cd4157287f5366461b82da74ce06c6aaea0b0b5549c0a536043b080',
     'docs/images/12-pets-and-mounts.jpg':
-        '4b81b6b5655b46652b203b706b94aa902cb6d2dc50d9acc876fa2df20c2acdc8',
+        'b73721697bf83c0b66d333d986308b3ac6be4827982855c57fc943a65177e5e4',
     'docs/images/13-quests-my-quests.png':
         '8a01e27970b23388c99ec4b0ff0bb8a83292c33299033449e3b06cc2dadb921d',
     'docs/images/14-skill-imprint-window.png':
         'dce99e7f9123e6c27352d22e72f6336946e423d206c371c5751898789b5bbc8c',
     'docs/images/15-lorencia-lighting-live-before-after.jpg':
-        'b45eab14a3a9e7ce8c527e8dacef46a25319fdca2d6f8a6e87ea848a4fb9a0ab',
+        '279935ce032fe7f880bf40be37f81dc4e0fb931a9fd864ce0f517bc48ab246b3',
     'docs/images/16-login-live-wine-vs-native.jpg':
         '97da9a148c44aa6213bc981d185c8ff6371c89dcee6967693f179910e75292b8',
     'docs/images/17-model-viewer-models.jpg':
         'fd2f3742172a9f1879b7970f7b2222acbc1953d77381a4cd539634d9e4997d3c',
     'docs/images/18-world-fidelity-live-before-after.jpg':
-        '16a49ba3228884d4d0d8f9ead32f4e518cc186a3249289d32413f9752efa14cc',
+        'b3a5198ed7bc65ed61ca1c219e46c7ab7afd3a4923580987022382eed69d72e9',
     'docs/images/19-maps-tab-overlay-move-window.jpg':
         'c6ee4c9d87b1330cfebc751dd64c3f34a496b85e2f0997b3d180365d9a5a2c80',
     'docs/images/20-skills-master-tree.jpg':
@@ -57,7 +57,7 @@ REVIEWED_MEDIA = {
     'docs/images/21-quests-guide-tracker.jpg':
         '1dd861789a4b2692fdca8a6be1da4fac886258e29d3e1a72bdbc2f3b3bccea9d',
     'docs/images/22-mounts-pets-effects.jpg':
-        'd86aefa13b21112f04879073cd55bb3582b5eba042db99c457a48a5ad230caa8',
+        '2980529b0e2053b956f76153d79757dfd0434b78515ae3189cc4e48a0ca2e7c0',
     'docs/images/23-chaos-goblin-mix-personal-store.jpg':
         'ae4cad0d54c97e3af15b9b5514a7fac91ae4e570822c5dbf61d1378e170b6ec3',
     'docs/images/24-social-party-trade-mail-whisper.jpg':
@@ -68,6 +68,12 @@ REVIEWED_MEDIA = {
         'cad4e3993c3d72313f58e21230a7b9ec4b8085ef016f5b860ce7a1a4542e85d1',
     'docs/images/27-80-players-tormenta-combat.jpg':
         'a8386983e35fb5de8bb8315eb1e6d4057373729d373c2a33c9f94b02ec4b06b8',
+    'docs/images/28-bow-arrows-trails-sparks.jpg':
+        'f100951b86afbb4014512a272c37f80cb4b092daf93c0262e69af46b6ecb48bf',
+    'docs/images/29-ground-skill-rain-rings-craters.jpg':
+        'd64c5586e38627995e659dd72f4eaddecf385de5cdd4094f7d1957b260d119a9',
+    'docs/images/30-worlds-live-vs-native.jpg':
+        '8e5c85f9a5fb2091855cc52d2de5f598bc5171aaf784b02cb4436bdded491e5d',
 }
 
 
