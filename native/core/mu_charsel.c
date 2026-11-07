@@ -75,6 +75,56 @@ static int item_index(const char *key)
     return -1;
 }
 
+static int record_field(const char **p, long lo, long hi, long *out)
+{
+    char *end;
+    long v = strtol(*p, &end, 0);
+    if (end == *p || v < lo || v > hi)
+        return 1;
+    *out = v;
+    *p = end;
+    return 0;
+}
+
+int mu_charsel_parse_item(const char *value, const char *root, char *path, size_t path_size,
+                          mu_charsel_item_record *record)
+{
+    memset(record, 0, sizeof *record);
+    const char *at = strchr(value, '@');
+    size_t n = at ? (size_t)(at - value) : strlen(value);
+    if (!n || n >= MU_CHARSEL_PATH)
+        return 1;
+    char file[MU_CHARSEL_PATH];
+    memcpy(file, value, n);
+    file[n] = 0;
+    if (file[0] == '/')
+        snprintf(path, path_size, "%s", file);
+    else
+        snprintf(path, path_size, "%s/Data/%s", root, file);
+    if (!at)
+        return 0;
+    static const long LO[5] = {0, 0, 0, 0, 0}, HI[5] = {15, 511, 15, 1, 255};
+    long v[5] = {0, 0, 0, 0, 0};
+    const char *p = at + 1;
+    int count = 0;
+    while (count < 5) {
+        if (record_field(&p, LO[count], HI[count], &v[count]))
+            return 1;
+        ++count;
+        if (*p != ':')
+            break;
+        ++p;
+    }
+    if (*p || count < 2)
+        return 1;
+    record->set = 1;
+    record->code = (int32_t)(v[0] * 512 + v[1]);
+    record->level = (uint8_t)v[2];
+    record->option = (uint8_t)v[3];
+    record->ext = (uint8_t)v[4];
+    return 0;
+}
+
 int mu_charsel_list_parse(const char *text, const char *root, mu_charsel_list *list, char *error, size_t error_size)
 {
     memset(list, 0, sizeof *list);
@@ -144,10 +194,11 @@ int mu_charsel_list_parse(const char *text, const char *root, mu_charsel_list *l
                 snprintf(error, error_size, "line %d: bad item '%s'", line_number, tok[i]);
                 return 1;
             }
-            if (eq[1] == '/')
-                snprintf(e->items[k], MU_CHARSEL_PATH, "%s", eq + 1);
-            else
-                snprintf(e->items[k], MU_CHARSEL_PATH, "%s/Data/%s", root, eq + 1);
+            if (mu_charsel_parse_item(eq + 1, root, e->items[k], MU_CHARSEL_PATH, &e->records[k])) {
+                snprintf(error, error_size, "line %d: %s needs FILE[@GROUP:INDEX[:LEVEL[:OPTION[:EXT]]]]",
+                         line_number, tok[i]);
+                return 1;
+            }
         }
         ++list->count;
     }

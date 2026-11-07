@@ -22,7 +22,7 @@
  * the joints' textures (JointThunder01, Spark01, JointSpirit01, JointEnergy01; LoadBitmap 0x0182239b..) and
  * the login scene's clouds and WATERFALL1; NATIVE-CHARSEL-002 the character-select scene's WATERFALL2/3,
  * fantaB, Spark04, magic_ground1_3 and Impack03 (the selection light 0x8022 subtype 5 draws Impack03). */
-#define MU_WORLD_PT_EFFECTS 74
+#define MU_WORLD_PT_EFFECTS 75
 static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     MU_PT_BITMAP_FIRE, MU_PT_BITMAP_SMOKE, MU_PT_BITMAP_FLARE, MU_PT_BITMAP_SPARK3, MU_PT_BITMAP_THUNDER,
     MU_PT_BITMAP_SPARK2, MU_PT_BITMAP_SHINY2, MU_JT_BITMAP_THUNDER, MU_JT_BITMAP_SPARK, MU_JT_BITMAP_SPIRIT,
@@ -41,6 +41,7 @@ static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     0x7f54, 0x7f84, 0x7f38, 0x8021, 0x7f6b, 0x8087, 0x8089, 0x801e, 0x8184,
     0x7ffd, 0x8081, 0x8082, 0x8083, 0x85fb, 0x8450, 0x810a, 0x7f73, 0x7f74, 0x7f75, 0x810c, 0x83b8,
     0x801d,   /* RENDER-EFFECTS-019: WATERFALL4, half of Test Area's 0x801e/7 particles draw it */
+    0x81cf,   /* RENDER-EFFECTS-020: magic_ground12, wings 0x2384/0x2385's owned 0x81cf/0 (before Fire06: keeps 016's anchor) */
     MU_PT_BITMAP_FIRE06,
     MU_PT_BITMAP_RAIN_SPLASH,
     MU_PT_BITMAP_RAIN_RING};
@@ -87,6 +88,8 @@ static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     /* RENDER-EFFECTS-019: WATERFALL4 0x801d (startup LoadBitmap 0x01822aa5 in 0x0182049e, LINEAR/CLAMP), the
      * bitmap 0x801e/7's create picks for half of its particles */
     "Data/Effect/WATERFALL4.OZJ",
+    /* RENDER-EFFECTS-020: magic_ground12 0x81cf (startup LoadBitmap 0x018249a3 in 0x0182049e, LINEAR/CLAMP) */
+    "Data/Effect/magic_ground12.OZJ",
     /* RENDER-EFFECTS-016: Fire06 0x7f40, 0x70c's stone particle (LoadBitmap 0x018229e5 in 0x0182049e,
      * LINEAR/CLAMP) */
     "Data/Effect/Fire06.OZJ"};
@@ -382,6 +385,43 @@ int mu_world_particles_create_owned(mu_world_particles *p, int32_t type, const f
     return kept;
 }
 
+int32_t mu_world_particles_item_owner(mu_world_particles *p, uint32_t key, const float position[3])
+{
+    int32_t slot = -1;
+    for (int32_t i = 0; i < MU_WORLD_ITEM_OWNERS && key; ++i) {
+        mu_world_item_owner *it = &p->item_owners[i];
+        if (it->key == key) {
+            slot = i;
+            break;
+        }
+        if (slot < 0 && (!it->key || p->stats.steps - it->seen > MU_WORLD_ITEM_OWNER_HOLD))
+            slot = i;
+    }
+    if (slot < 0) {
+        p->item_owners_full++;
+        return -1;
+    }
+    mu_world_item_owner *it = &p->item_owners[slot];
+    if (it->key != key) {
+        if (it->key)
+            it->generation++;
+        it->key = key;
+    }
+    memcpy(it->position, position, sizeof it->position);
+    it->seen = p->stats.steps;
+    return MU_WORLD_FX_ITEM_BASE + ((int32_t)it->generation << 8) + slot;
+}
+
+void mu_world_particles_item_owner_refresh(mu_world_particles *p, uint32_t key, const float position[3])
+{
+    for (int32_t i = 0; i < MU_WORLD_ITEM_OWNERS && key; ++i)
+        if (p->item_owners[i].key == key) {
+            memcpy(p->item_owners[i].position, position, sizeof p->item_owners[i].position);
+            p->item_owners[i].seen = p->stats.steps;
+            return;
+        }
+}
+
 int32_t mu_world_particles_sprite(mu_world_particles *p, int32_t bitmap, const float position[3], float scale,
                                   const float light[3], int32_t owner, float rotation, int32_t blend, int32_t axes)
 {
@@ -434,6 +474,15 @@ static const mu_jt_object *fx_object(mu_world_particles *p, int32_t index)
         const mu_env_object *b = &p->environment->env.boids[index - MU_WORLD_FX_BOID_BASE];
         memset(o, 0, sizeof *o); o->live = b->live; o->visible = b->visible; o->type = b->type;
         memcpy(o->position, b->position, 12); memcpy(o->light, b->light, 12);
+        return o;
+    }
+    if (index >= MU_WORLD_FX_ITEM_BASE && index < MU_WORLD_FX_ITEM_BASE + (0x10000 << 8)) {   /* RENDER-EFFECTS-020 */
+        const mu_world_item_owner *it = &p->item_owners[(index - MU_WORLD_FX_ITEM_BASE) & 0xff];
+        if (!it->key || it->generation != (uint16_t)((index - MU_WORLD_FX_ITEM_BASE) >> 8))
+            return NULL;
+        memset(o, 0, sizeof *o);
+        o->live = o->visible = 1;
+        memcpy(o->position, it->position, sizeof o->position);
         return o;
     }
     if (index >= MU_WORLD_FX_COMBAT_BASE && index < MU_WORLD_FX_BOID_BASE) {   /* RENDER-EFFECTS-011 */

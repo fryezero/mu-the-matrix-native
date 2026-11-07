@@ -184,6 +184,8 @@ typedef struct mu_world_item_draw {
     float alpha;
     int32_t has_record;         /* the Item.bmd record of type - 0xae6 (glow kinds) */
     uint8_t kind_a, kind_b, item_kind;
+    int32_t index;              /* RENDER-EFFECTS-020: the item's pool slot (its OBJECT) */
+    float angle[3];             /* the OBJECT's +0x164 */
 } mu_world_item_draw;
 typedef void (*mu_world_item_draw_fn)(void *context, const mu_world_item_draw *draw);
 int32_t mu_world_items_draw(mu_world_items *items, mu_world_item_draw_fn draw, void *context);
