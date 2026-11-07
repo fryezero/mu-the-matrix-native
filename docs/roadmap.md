@@ -1,5 +1,7 @@
 # Roadmap and work queue
 
+README-REFRESH-005 (lane A) PR-ready: README world/effect/combat/mount/comparison images re-shot from main `18ab0134` (01, 05, 06, 10, 12, 15, 18, 22; new 28 bows, 29 ground skill, 30 worlds live vs native; 16, 17, 26, 27 kept with reasons) and the public numbers refreshed (worlds 144/144 and slots 142/144, items 1,319/1,674 and 13 white types, bows 0 unsupported, NATIVE-PERF-004). [Handoff](handoffs/README-REFRESH-005.md), [claim sources](research/readme-refresh.md#readme-refresh-005-claim-sources).
+
 README-REFRESH-005-B PR-ready: README images 04a, 04b, 07, 08, 09, 13, 14, 19, 20, 21, 23, 24 and 25 re-shot from main 18ab0134 (offline, public demo, real Ruffle, APP-REFRESH-006 Native Data); 02 and 03 kept (same pixels). The owner's character name and vitals are gone from all of them; textured inventory items and NPC 257, ItemTRSData icon sizes, town scenery and demo players. [Handoff](handoffs/README-REFRESH-005-B.md).
 
 RENDER-WORLDS-SLOTS2 PR-ready: RenderObjectVisual's outer `rand() % 30` now drawn in every class world (verified under Unicorn: 57/58, 62, 63, 64, 82, 100/101, 128..130, 137, the 93/94 scenes and the empty-slot worlds 113, 115..120, 138, 139 lacked it), and 17 more class slots: 125 → 142/144 (Santa 62, Imperial Guardian 69..72, 82, Arca War 92, Debenter 95, Uruk 100, Nars 110). Captures: Deep Dungeon 1..5 and Ignis change only by the RNG phase of their flicker lights; the other 26 and the October 22 tour are byte-identical. Test Area 121's two slots remain. [Handoff](handoffs/RENDER-WORLDS-SLOTS2.md)
