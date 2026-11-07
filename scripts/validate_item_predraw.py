@@ -430,6 +430,7 @@ MUTANTS = {
                              'h->owner_item_transform(h->context, (int32_t)o->k, &r[o->c], 0, &r[o->a]);'),
     'owner-item-bone': ('if (!h->owner_item_transform || (int32_t)o->k >= h->bones) {',
                         'if (!h->owner_item_transform || (int32_t)o->k >= h->bones - 1) {'),
+    'post-host': ('(host->item_transform && mu_rc_item_post_fx(it->type))', '(host->item_transform && 0)'),
     'hidden-wings': ('!(it->type >= 0x2382 && it->type <= 0x2385))', '!(it->type >= 0x2382 && it->type <= 0x2384))'),
     # Not mutated: the post gate's item-bone exemption (here the OBJECT's model is the item model, so both counts
     # are equal) and the random vector's clamps (every call passes constants inside the clamp ranges).

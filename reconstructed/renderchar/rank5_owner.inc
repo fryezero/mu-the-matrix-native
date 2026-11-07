@@ -118,7 +118,8 @@ static void rank5_owner(sink *s, const mu_rc_owner_host *h)
 int mu_rc_item_draws_owner(const mu_rc_item *it, mu_rc_model *model, mu_rc_draw *out, int32_t capacity,
                            int32_t *count, const mu_rc_item_context *context, const mu_rc_owner_host *host)
 {
-    owner_host = host && host->transform ? host : NULL;
+    /* RENDER-ITEMS-002T: post programs (owner-table rows on item/OBJECT bones) need item_transform, not transform. */
+    owner_host = host && (host->transform || (host->item_transform && mu_rc_item_post_fx(it->type))) ? host : NULL;
     /* RENDER-ITEMS-002R: RenderObjDraw's own case creates these effects before the body draws. */
     if (host && host->item_transform && it->select == 0 && it->object_shadow != 1 && it->a13 != 1)
         pre_fx(it, host);

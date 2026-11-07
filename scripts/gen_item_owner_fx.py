@@ -65,9 +65,10 @@ PRE_FX_TYPES = [
     # (0x22ec, 0x248f), a rotated sprite behind rand() % 15 >= 8 (0x230c, 0x2496), bones at rand() % bone count
     # (0x23ef, 0x2400, 0x2405), names built with _itoa (0x24cf, 0x24d6) and the OBJECT position (0x26f8, 0x26f9).
     0x0b4f, 0x0b50, 0x0b53, 0x22ec, 0x248f, 0x230c, 0x2496, 0x23ef, 0x2400, 0x2405, 0x24cf, 0x24d6, 0x26f8, 0x26f9,
-    # RENDER-ITEMS-002T (part 21): three maces with the random spherical vector 0x00d01fc6, rand() % 3 selects,
-    # 0x012b678d on item bones and the rendered-frame counter gate (0x0f1f, 0x0f20, 0x0f2a).
-    0x0f1f, 0x0f20, 0x0f2a,
+    # RENDER-ITEMS-002T (part 21): two maces with the random spherical vector 0x00d01fc6, rand() % 3 selects,
+    # 0x012b678d on item bones and the rendered-frame counter gate (0x0f1f, 0x0f20). 0x0f2a reads too, but its body
+    # draws an atlas frame from the rendered-frame counter, which the body probes hold at 0 (not admitted).
+    0x0f1f, 0x0f20,
 ]
 
 # RENDER-ITEMS-002T: owner blocks after the draws in RenderPartObjectBody's case that use the pre-draw idioms
