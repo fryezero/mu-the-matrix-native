@@ -19,6 +19,7 @@
 #include "world_rt_internal.h"
 #include "world_item_pre.h"
 #include "../../reconstructed/environment/env_fog.h"
+#include "../../reconstructed/hero-equipment/hero_equipment.h"
 
 const int mu_world_draw_order[MU_CHARACTER_ITEMS] = {5, 4, 3, 2, 1, 0, 6, 7, 8};
 static const uint8_t sky[4] = {0, 0, 0, 255};
@@ -138,6 +139,8 @@ int world_rt_load(mu_world_rt *a)
         return 1;
     }
     a->has_character = 1;
+    for (int i = 0; i < MU_CHARACTER_ITEMS; ++i)
+        a->hero_record[i] = -1;
     for (int slot = 1; slot < MU_CHARACTER_PART_SLOTS; ++slot) {
         char path[4096];
         if (mu_character_part_path(a->root, slot, a->class_byte, path, sizeof path)) {
@@ -253,12 +256,61 @@ void world_rt_hero_item_textures(mu_world_rt *a, int first, int last)
         have = mu_data_load(path, NULL, &items) == 0 && items.result.status == 0;
     }
     for (int i = first; i < last && i < MU_CHARACTER_ITEMS; ++i) {
+        a->hero_record[i] = -1;
         if (!a->ch.items[i].loaded)
             continue;
         const int32_t type = mu_item_textures_type_of_path(have ? &items : NULL, a->root, a->ch.items[i].path);
         mu_item_textures_character(&a->ch, i, have ? &items : NULL, a->root, type, a->class_byte);
+        mu_item record;
+        if (have && mu_item_model(&items, type, &record) == 1)
+            a->hero_record[i] = type;
     }
+    world_rt_hero_slots(a, have ? &items : NULL);
     mu_data_free(&items);
+}
+
+/* HERO-ITEMS-001: the hero's equipment records -> its part slots, as the client's SetCharacterClass 0x01394870
+ * writes them from CharacterMachine's ITEMs. The offline session's records are the front end's items: each worn
+ * file's Item.bmd record (its code; the demo characters list files, not codes, and carry no level or options,
+ * so the level word, +0x3b and +0x98 are 0). An item without a record (a class part, a file outside Item.bmd,
+ * no Item.bmd) keeps the file-name inference in parts/hero.c. Item.bmd's kind bytes as for the players. */
+void world_rt_hero_slots(mu_world_rt *a, const mu_data_table *items)
+{
+    mu_he_item equipment[MU_HE_EQUIPMENT];
+    for (int s = 0; s < MU_HE_EQUIPMENT; ++s)
+        equipment[s] = (mu_he_item){.type = -1};
+    for (int i = 0; i < MU_CHARACTER_ITEMS; ++i) {
+        const int32_t s = mu_he_equipment_of_slot(i);   /* item index i is the CHARACTER slot i (0..8) */
+        if (s >= 0 && a->ch.items[i].loaded && a->hero_record[i] >= 0)
+            equipment[s].type = a->hero_record[i] - MU_ITEM_MODEL_BASE;
+    }
+    mu_rp_character c;
+    memset(&c, 0, sizeof c);
+    c.model = MU_RP_PLAYER_MODEL;
+    c.class_byte = a->class_byte;
+    for (int k = 0; k < MU_RP_SLOTS; ++k)
+        c.slots[k].type = -1;
+    mu_he_set_character_class(&c, equipment);
+    for (int i = 0; i < MU_CHARACTER_ITEMS; ++i) {
+        mu_renderchar_glow *g = &a->hero_glow[i];
+        memset(g, 0, sizeof *g);
+        a->hero_glow_set[i] = a->ch.items[i].loaded && a->hero_record[i] >= 0;
+        if (!a->hero_glow_set[i])
+            continue;
+        const mu_rp_slot *slot = &c.slots[i];
+        g->type = slot->type;
+        g->level = slot->level;
+        g->option1 = slot->option;
+        g->ext = slot->ext;
+        mu_item record;
+        if (items && g->type >= MU_ITEM_MODEL_BASE &&
+            mu_item_find(items, (uint32_t)(g->type - MU_ITEM_MODEL_BASE), &record) == 0) {
+            g->has_record = 1;
+            g->kind_a = record.attributes.kind_a;
+            g->kind_b = record.attributes.kind_b;
+            g->item_kind = record.attributes.type;
+        }
+    }
 }
 
 /* ---- NATIVE-MAP-001: travel ---- */
