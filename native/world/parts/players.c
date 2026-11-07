@@ -82,7 +82,13 @@ static void player_item_draw(mu_world_rt *a, int32_t i, int item, const mu_rende
     options.textures = &it->textures;
     mu_draw_stats ds = {0, 0, 0, 0};
     mu_renderchar_stats rs = {0, 0};
-    mu_renderchar_draw_item(&it->model, &glow, &env, q->model.params.light, alpha, &options, backend, &ds, &rs);
+    /* RENDER-EFFECTS-021: worn armour with an owner-effect program draws with the player's OBJECT owner */
+    mu_renderchar_owner owner_data,
+        *owner = item < MU_CHARACTER_PART_SLOTS ? world_rt_part_owner(a, &owner_data, glow.type, &q->model) : NULL;
+    mu_renderchar_draw_item_owner(&it->model, &glow, &env, q->model.params.light, alpha, &options, backend, &ds, &rs,
+                                  owner);
+    if (owner)
+        world_rt_part_owner_done(a, MU_WORLD_PRE_PLAYERS, owner);
     if ((item >= MU_CHARACTER_PART_SLOTS || glow.type == 0x389c || glow.type == 0x389d) && a->has_particles)
         mu_renderchar_link_effects(&it->model,
             item < MU_CHARACTER_PART_SLOTS ? q->model.player_bones : it->bones, glow.type, &a->particles);

@@ -5,7 +5,7 @@ Branch/worktree `claude/render-items-cloak` (Claude Opus 5.5), from `origin/clau
 No full gate in the lane (2026-11-04 test budget).
 
 Scope: the capes of wings `0x2382`..`0x2385`, `0x2394`, `0x2395` in the world, for players and the hero.
-[Finding: client-render-items.md part 23](../research/client-render-items.md#part-23-the-wings-physics-capes-render-items-cloak).
+[Finding: client-render-items.md part 24](../research/client-render-items.md#part-24-the-wings-physics-capes-render-items-cloak).
 
 ## Result
 

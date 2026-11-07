@@ -4,7 +4,7 @@
  * OBJECT's cloths every rendered frame (MoveCloth 0x01362f24) and, behind its cloth flag, creates (CreateCloth
  * 0x01357ccc) and renders them (RenderCloth 0x01363098) after the body parts and before the weapons and the wing.
  * The world's wind is the physics manager's walk (0x00fdad7b, five times per logic step in the frame driver).
- * See docs/research/client-render-items.md part 23. The hero and player parts call world_cloak_draw between their
+ * See docs/research/client-render-items.md part 24. The hero and player parts call world_cloak_draw between their
  * body parts and their linked items. */
 #ifndef MU_WORLD_CLOAK_H
 #define MU_WORLD_CLOAK_H

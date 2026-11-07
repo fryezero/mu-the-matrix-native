@@ -1076,6 +1076,45 @@ void world_rt_item_pre(mu_world_rt *a, struct mu_renderchar_env *env, int caller
     mu_world_particles_item_owner_refresh(env->particles, env->item_owner, model->params.origin);
 }
 
+/* RENDER-EFFECTS-021: RenderPartObjectBody 0x0173d2d8's armour effect blocks (RENDER-ITEMS-002Q) read the
+ * character OBJECT passed with the worn part: 0x012b678d transforms a local point by the owner bone 0x0129f12c
+ * (OBJECT +0x318 + 0x30 * bone, when the OBJECT's model has the bone), times the part model's scale +0x74, plus
+ * the OBJECT position +0x158; the particles take the OBJECT angle +0x164. The native character holds the same
+ * values: player_bones is the posed Player.bmd skeleton (mu_character_update), the part model's body scale and
+ * origin are the character's scale and position (mu_character slot_params), params.angles its OBJECT angle. */
+mu_renderchar_owner *world_rt_part_owner(const mu_world_rt *a, mu_renderchar_owner *owner, int32_t type,
+                                         const mu_character *c)
+{
+    if (!a->has_particles || !mu_rc_item_owner_fx(type) || !c || !c->player_bones || !c->player.bmd)
+        return NULL;
+    memset(owner, 0, sizeof *owner);
+    owner->bones = c->player_bones;
+    owner->bone_count = c->player.bmd->bone_count;
+    memcpy(owner->angle, c->params.angles, sizeof owner->angle);
+    return owner;
+}
+
+void world_rt_part_owner_done(mu_world_rt *a, int caller, const mu_renderchar_owner *owner)
+{
+    a->item_owner_fx[caller][0] += owner->effects;
+    a->item_owner_fx[caller][1] += owner->refused;
+}
+
+static void report_item_owner_fx(const mu_world_rt *a)
+{
+    long any = 0;
+    for (int c = 0; c < MU_WORLD_PRE_CALLERS; ++c)
+        any |= a->item_owner_fx[c][0] | a->item_owner_fx[c][1];
+    if (!any)
+        return;   /* no worn owner-effect part: the report is unchanged */
+    static const char *names[MU_WORLD_PRE_CALLERS] = {"hero", "players", "actors", "ground"};
+    printf("{\"item_owner_fx\": true");
+    for (int c = 0; c < MU_WORLD_PRE_CALLERS - 1; ++c)
+        printf(", \"%s\": {\"owner_effects\": %ld, \"owner_refused\": %ld}", names[c], a->item_owner_fx[c][0],
+               a->item_owner_fx[c][1]);
+    printf("}\n");
+}
+
 static void report_item_pre(const mu_world_rt *a)
 {
     long any = 0;
@@ -1145,6 +1184,7 @@ void world_rt_report_summary(const mu_world_rt *a, const char *renderer)
         if (ROWS[i].ops->report_summary)
             ROWS[i].ops->report_summary(a, a->part[i]);
     report_item_pre(a);
+    report_item_owner_fx(a);
     report_hero_records(a);
     if (!a->quiet)
         for (int32_t k = 0; k < w->log_count; ++k)

@@ -3,7 +3,7 @@
 Platform-neutral C for the client's physics cloth: the capes of wings `0x2382`..`0x2385`, `0x2394` and `0x2395`
 (InnocenceCape, SparkleCape, the Black Cloak models). The client does not draw these capes from the item model; it
 builds a mass-spring grid per character and steps and renders it every frame. Finding:
-[docs/research/client-render-items.md part 23](../../docs/research/client-render-items.md#part-23-the-wings-physics-capes-render-items-cloak).
+[docs/research/client-render-items.md part 24](../../docs/research/client-render-items.md#part-24-the-wings-physics-capes-render-items-cloak).
 
 | Routine | Address | Function | Status |
 |---|---|---|---|
