@@ -45,15 +45,30 @@ static void producers(const char *model_path)
     o->world=p.world=100;
     const int types[]={89,90,91,92,93,106,108,108};
     for(unsigned i=0;i<sizeof types/sizeof *types;++i) {
-        int type=types[i], weather=i==6;  /* 108 twice: explicit weather 1, then the default 0 */
+        int type=types[i], weather=i==6?1:-1;  /* 108 twice: weather 1, then the client's default -1 */
         o->rt.uruk_weather=weather; o->models[type]=m; mu_obj_set_i32(img,MU_OBJF_TYPE,type);
         mu_pt_system_clear(&p.list); uint64_t unsupported=p.stats.unsupported;
-        long refused=o->rt.draw_unsupported;
+        long refused=o->rt.draw_unsupported; uint64_t created=p.stats.effects_created;
         for(int k=0;k<100;++k) (void)mu_objects_prepare_index(o,0,NULL,6,&options);
         assert(p.stats.unsupported==unsupported);
-        if(type==108&&!weather) assert(p.list.count==0&&o->rt.draw_unsupported==refused);
+        if(type==108&&weather!=1) assert(p.list.count==0&&o->rt.draw_unsupported==refused&&p.stats.effects_created==created);
         else assert(p.list.count>0);
-        if(type==108&&weather) { assert(o->rt.draw_unsupported>refused); refusals+=(int)(o->rt.draw_unsupported-refused); }
+        if(type==108&&weather==1) {   /* RENDER-EFFECTS-018: the keyed 0x806e/12 is consumed, not refused */
+            assert(o->rt.draw_unsupported==refused&&p.stats.effects_created>created);
+            refusals+=(int)(p.stats.effects_created-created);
+            /* their moves emit the flame kinds 0x8084/1, 0x806e/5 and 0x8085/1 (uruk_flames.inc), none refused */
+            mu_pt_system_clear(&p.list); uint64_t before=p.stats.unsupported, effect_refused=p.stats.effects_unsupported;
+            for(int s=0;s<6;++s) mu_world_particles_step(&p,123456.0f+40.0f*(float)s);
+            int flames[3]={0,0,0};
+            for(int q=0;q<p.list.count;++q) {
+                const mu_pt_particle *r=&p.list.records[q];
+                flames[0]+=r->type==0x8084&&r->subtype==1; flames[1]+=r->type==0x806e&&r->subtype==5;
+                flames[2]+=r->type==0x8085&&r->subtype==1;
+            }
+            assert(flames[0]>0&&flames[1]>0&&flames[2]>0);
+            assert(p.stats.unsupported==before&&p.stats.effects_unsupported==effect_refused);
+            mu_pt_system_clear(&p.list);
+        }
         uint32_t seed=o->rt.seed; uint64_t calls=p.rand_calls; int count=p.list.count;
         m->loaded=0; (void)mu_objects_prepare_index(o,0,NULL,6,&options);
         m->loaded=1; o->models[type]=NULL; (void)mu_objects_prepare_index(o,0,NULL,6,&options);
@@ -90,7 +105,7 @@ int main(int argc,char **argv)
     assert(mu_world_particles_open(&p,argv[1],NULL,100,1,1,error,sizeof error)==0);
     create_kinds(); assert(mu_world_particles_draw(&p,identity,&target)==0&&p.stats.unsupported==0);
     mu_world_particles_close(&p);
-    printf("6 consumers, 1 registration, 6 quads, %d producer preparations, %d keyed refusals kept, "
+    printf("6 consumers, 1 registration, 6 quads, %d producer preparations, %d keyed effects created, "
            "16 missing-model checks, 6 full-pool checks, weather-off silence, absent assets: OK\n",
            producers_checked, refusals);
     return 0;
