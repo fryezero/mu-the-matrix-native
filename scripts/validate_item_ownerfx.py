@@ -41,18 +41,23 @@ OBJ_ANGLE, OBJ_POSITION = 0x164, 0x158
 class Fx(C.Structure):
     _fields_ = [('kind', C.c_int32), ('bitmap', C.c_int32), ('subtype', C.c_int32),
                 ('position', C.c_float * 3), ('light', C.c_float * 3), ('scale', C.c_float),
-                ('angle', C.c_float * 3)]
+                ('angle', C.c_float * 3),
+                ('rotation', C.c_float), ('blend', C.c_int32), ('owner', C.c_int32)]   # RENDER-ITEMS-002R
 
 
 TRANSFORM = C.CFUNCTYPE(None, C.c_void_p, C.c_int32, C.POINTER(C.c_float), C.POINTER(C.c_float))
 EMIT = C.CFUNCTYPE(None, C.c_void_p, C.POINTER(Fx))
 RANDOM = C.CFUNCTYPE(C.c_int32, C.c_void_p)
+NAMED = C.CFUNCTYPE(C.c_int32, C.c_void_p, C.c_char_p)
+ITEM_TRANSFORM = C.CFUNCTYPE(None, C.c_void_p, C.c_int32, C.POINTER(C.c_float), C.c_int32, C.POINTER(C.c_float))
 
 
 class Host(C.Structure):
     _fields_ = [('bones', C.c_int32), ('black_mesh', C.c_int32), ('transform', TRANSFORM),
                 ('random', RANDOM), ('emit', EMIT), ('context', C.c_void_p),
-                ('item_bones', C.c_int32), ('angle', C.c_float * 3)]
+                ('item_bones', C.c_int32), ('angle', C.c_float * 3),
+                # RENDER-ITEMS-002R pre-draw programs (NULL here: no item host)
+                ('bone_named', NAMED), ('item_transform', ITEM_TRANSFORM), ('refuse', EMIT), ('visible', C.c_int32)]
 
 
 def u(x):
@@ -254,8 +259,8 @@ MUTANTS = {
     'normalize-scale': ('out[k] = in[k] * inverse;', 'out[k] = in[k] / length;'),
     'transform-bone': ('h->transform(h->context, (int32_t)o->k,', 'h->transform(h->context, (int32_t)o->k + 1,'),
     'add': ('r[o->a] = r[o->b] + r[o->c];', 'r[o->a] = r[o->b] - r[o->c];'),
-    'subtract': ('r[o->a] = r[o->b] - r[o->c];\n            break;\n        case 6',
-                 'r[o->a] = r[o->c] - r[o->b];\n            break;\n        case 6'),
+    'subtract': ('r[o->a] = r[o->b] - r[o->c];\n            bad[o->a] = bad[o->b] | bad[o->c];\n            break;\n        case 6',
+                 'r[o->a] = r[o->c] - r[o->b];\n            bad[o->a] = bad[o->b] | bad[o->c];\n            break;\n        case 6'),
     'angle': ('memcpy(&r[o->a], h->angle, sizeof h->angle);', 'memset(&r[o->a], 0, sizeof h->angle);'),
     'sprite-scale': ('fx.scale = r[o->b];', 'fx.scale = r[o->b + 1];'),
     'particle-subtype': ('fx.subtype = o->e;', 'fx.subtype = o->e + 1;'),
@@ -328,7 +333,7 @@ def main():
     vectors += owner + refusal
     if args.mutations:
         report['mutants'] = mutations(vectors, plib)
-    if fxgen.render(fxgen.extract()[0]) != (ROOT/'reconstructed/renderchar/item_owner_fx.h').read_text():
+    if fxgen.generate() != (ROOT/'reconstructed/renderchar/item_owner_fx.h').read_text():
         raise AssertionError(('table drift', 'item_owner_fx.h'))
     if not args.skip_bodies and gen.generate() != (ROOT/'reconstructed/renderchar/item_bodies.h').read_text():
         raise AssertionError(('table drift', 'item_bodies.h'))

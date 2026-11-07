@@ -290,6 +290,7 @@ static int32_t rank5_random(const sink *s);
 /* RENDER-ITEMS-002Q (owner_fx.inc): the owner host and the type's owner-effect program. */
 static _Thread_local const mu_rc_owner_host *owner_host;
 static void owner_fx(const sink *s, const mu_rc_owner_host *h);
+static void pre_fx(const mu_rc_item *it, const mu_rc_owner_host *h);
 
 /* Kind 4 (part 14): (float)(rand() % n), then binary32 mul/add/sub/div constants
  * (gen_item_bodies.parse_random). */

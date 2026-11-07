@@ -333,11 +333,13 @@ int mu_render_world_character(const mu_options *o)
         speed = o->speed;
     mu_draw_stats stats = {0, 0, 0, 0};
     mu_renderchar_stats rstats = {0, 0};
+    long pre_counts[2] = {0, 0};   /* RENDER-ITEMS-002R pre-draw requests created / refused */
     char hash[65] = "";
     mu_world_particles *particles = NULL;
     long link_sprites = 0, owner_effects = 0, owner_refused = 0;
     for (int k = 0; k < MU_CHARACTER_ITEMS; ++k) {
-        if ((mu_rc_item_rank5(W.glow[k].type) || mu_rc_item_owner_fx(W.glow[k].type) || mu_rc_link_supported(W.glow[k].type) ||
+        if ((mu_rc_item_rank5(W.glow[k].type) || mu_rc_item_owner_fx(W.glow[k].type) || mu_rc_item_pre_fx(W.glow[k].type) ||
+             mu_rc_link_supported(W.glow[k].type) ||
              W.glow[k].type == 0x389c || W.glow[k].type == 0x389d) &&
             c.items[k].loaded && !particles) {
             particles = calloc(1, sizeof *particles);
@@ -414,8 +416,12 @@ int mu_render_world_character(const mu_options *o)
             prepare_raster(&raster, &item->textures);
             mu_draw_options draw = o->draw;
             draw.textures = o->no_textures ? NULL : &item->textures;
+            env.item_bones = item->bones;   /* RENDER-ITEMS-002R pre-draw programs: the item's own pose */
+            env.pre_counts = pre_counts;
             mu_renderchar_draw_item(&item->model, &W.glow[links[k]], &env, c.params.light, 1.0f, &draw, &backend,
                                     &stats, &rstats);
+            env.item_bones = NULL;
+            env.pre_counts = NULL;
             link_sprites += mu_renderchar_link_effects(&item->model, item->bones, W.glow[links[k]].type, particles);
         }
         if (particles)
@@ -427,9 +433,9 @@ int mu_render_world_character(const mu_options *o)
     int status = frames ? write_frames(o, frames) : 1;
     printf("{\"sha256\": \"%s\", \"width\": %d, \"height\": %d, \"meshes\": %ld, \"triangles\": %ld, \"passes\": %ld,"
            " \"special\": %ld, \"carried\": %d, \"attachments\": %d, \"quality\": %d, \"link_sprites\": %ld,"
-           " \"owner_effects\": %ld, \"owner_refused\": %ld}\n",
+           " \"owner_effects\": %ld, \"owner_refused\": %ld, \"pre_effects\": %ld, \"pre_refused\": %ld}\n",
            hash, o->width, o->height, stats.meshes, raster.triangles, rstats.passes, rstats.special, carried, attached,
-           W.env.quality, link_sprites, owner_effects, owner_refused);
+           W.env.quality, link_sprites, owner_effects, owner_refused, pre_counts[0], pre_counts[1]);
     if (particles) {
         mu_world_particles_close(particles);
         free(particles);
