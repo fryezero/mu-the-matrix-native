@@ -65,7 +65,70 @@ All heavy steps `nice -n 10`.
 | Native `test_native_renderchar` (new `test_wing_joint_and_random_bone_programs`: `0x22ec` 20 joints refused by the pool, sprites created; `0x23ef` 0 refused on 64 bones, 2 on 40), `test_native_item_textures` (installed survey; 6b pins unchanged), `test_native_fidelity` | 36 tests, 1 skip | 101 s |
 | Build `nice -n 10 make -j4` (after the `53cffd00` merge) | pass | 19 s |
 
-STEWARD_PLACEHOLDER
+| After the `c5ed13dd` merge: build, `test_native_world_predraw` (CALLERS-001) + renderchar/item_textures/fidelity, portable renderchar suite, audit | build pass; 43 tests, 1 skip; 96 tests, 22 private skips; 2,040 staged files, 0 rejected | 13 s / 88 s / 1 s / 20 s |
+| `run_test_suites.py --affected origin/main` (`MU_RECOVERY_INTEGRATION=0`, 2 jobs, at `f116e667` + the `test_item_types` pin fix) | 7 suites, 1,298 tests, 0 failures after the fix (`0x22ec` now draws; the pin moves to `0x2301`), 192 skips | 303 s |
+
+6b: the changed shared symbols (`mu_rc_owner_fx` + `target`, `mu_rc_owner_host` + `position`, `MU_RC_OWNER_JOINT`,
+`item_owner_fx.h`/`item_bodies.h` sizes, `run_fx`'s signature) are used by the item validators, `validate_render_effects5`
+(ctypes follow), `mu_item_textures.c` and `mu_renderchar.c` (initializers follow) and the native modules above; all
+ran. The joint pool itself is unchanged (consumers: the rows below that build `native/core`).
+
+### Affected rows, without mutants (`--no-mutants --cache --jobs 2`)
+
+`--list-affected origin/main` (TEST-SPEED-005, symbol level, after `make -j4`) selects 44 rows; `validate_movement`
+is kept by the symbol fallback. `validate_item_predraw` and `validate_item_ownerfx` ran with mutants at `f116e667`
+(above); their compiled inputs did not change afterwards. The other 42: 40 at `88485986` (01:20-01:55, 34 min wall,
+load 10-18; `validate_audio_domains` again with `MU_SNAPSHOT_DIR`, it had skipped for its lang5 snapshot), then after
+the `c5ed13dd` merge `--only <the 44> --list-affected-since 88485986` named 24 (the merge's native/core, particles,
+combat and Muun changes, plus the two new rows `validate_item_callers`/`validate_render_effects18`), rerun at
+`6e270214` (200 s wall). All pass.
+
+| Validator | At `88485986` (s) | At `6e270214` (s) |
+|---|---:|---:|
+| `validate_item_types` | 37.0 | |
+| `validate_item_hiddenmesh` | 404.4 | |
+| `validate_item_carry` | 549.7 | |
+| `validate_item_clusters` | 329.4 | |
+| `validate_item_expansion` | 266.5 | |
+| `validate_item_derived` | 203.1 | |
+| `validate_item_chains` | 210.1 | |
+| `validate_item_wings_next` | 185.1 | |
+| `validate_item_coverage` | 181.0 | |
+| `validate_item_quality` | 164.8 | |
+| `validate_item_scalars` | 152.5 | |
+| `validate_item_continuation` | 145.4 | |
+| `validate_item_gear` | 155.7 | |
+| `validate_item_ranked` | 109.6 | |
+| `validate_item_next` | 196.2 | |
+| `validate_item_product` | 54.6 | |
+| `validate_renderchar` | 43.0 | |
+| `validate_fidelity` | 53.1 | |
+| `validate_meshdraw` / `validate_model_edge` / `validate_movement` | 60.3 / 122.4 / 50.1 | 73.2 / 128.4 / 56.6 |
+| `validate_icarus_c2` / `validate_audio_callers` / `validate_audio_domains` / `validate_audio_items` | 14.4 / 5.3 / 19.9 / 4.2 | 17.4 / 5.5 / 28.4 / 3.2 |
+| `validate_render_effects5/7/9/10/11/12` | 4.6 / 1.2 / 0.9 / 0.7 / 0.3 / 0.3 | 3.7 / 1.3 / 0.7 / 0.3 / 0.3 / 0.3 |
+| `validate_render_effects13/14/15/16/17` | 0.6 / 1.8 / 1.1 / 3.1 / 5.9 | 0.4 / 1.1 / 0.7 / 2.6 / 7.2 |
+| `validate_app_polish1/2/4`, `validate_worlds_fog` | 19.3 / 3.1 / 34.6 / 4.4 | 18.9 / 3.5 / 36.7 / 5.4 |
+| `validate_item_callers`, `validate_render_effects18` (new rows from main) | | 1.2 / 1.6 |
+
+## Release
+
+Steward validators: validate_item_predraw, validate_item_ownerfx (ran with mutants at `f116e667`),
+validate_item_types, validate_item_hiddenmesh, validate_item_carry, validate_item_clusters, validate_item_expansion,
+validate_item_derived, validate_item_chains, validate_item_wings_next, validate_item_coverage, validate_item_quality,
+validate_item_scalars, validate_item_continuation, validate_item_gear, validate_item_ranked, validate_item_next,
+validate_item_product, validate_renderchar, validate_fidelity (ran at `88485986`, no mutants), validate_meshdraw,
+validate_model_edge, validate_movement (symbol fallback), validate_icarus_c2, validate_audio_callers,
+validate_audio_domains, validate_audio_items, validate_render_effects5, validate_render_effects7,
+validate_render_effects9, validate_render_effects10, validate_render_effects11, validate_render_effects12,
+validate_render_effects13, validate_render_effects14, validate_render_effects15, validate_render_effects16,
+validate_render_effects17, validate_app_polish1, validate_app_polish2, validate_app_polish4, validate_worlds_fog,
+validate_item_callers, validate_render_effects18 (ran at `6e270214`, no mutants). Mutants: none needed beyond the
+first two rows. Env as under Checks, plus `MU_SNAPSHOT_DIR="$HOME/Documents/MTM/mu-mac-tools/native/scratch"`
+(validate_audio_domains).
+
+Cleanup removes `mu-mac-tools/native/scratch/render-items-002s/` and the build directories. The crops in
+`renders/render-items-002s/` are the only kept artifacts (small). The worktree stays until the steward merges. No new
+input needs to be kept.
 
 ## Byte identity and renders
 
