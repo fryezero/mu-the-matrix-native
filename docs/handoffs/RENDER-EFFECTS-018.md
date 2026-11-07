@@ -5,8 +5,10 @@ The two effect consumers refused since RENDER-EFFECTS-008/011 because "their inp
 weather-driven keyed effect 0x806e/12. [Finding, addresses and limits](../research/client-render-effects-018.md).
 
 - Claude Opus 5.5 lane. Branch `claude/render-effects-018`, worktree `~/Documents/MTM/worktrees/render-effects-018`,
-  from origin/main `b18b6b45` (#321); merged with `ce0ebd71` (#324 RENDER-WORLDS-FOG, #323) in `a4aeed6b` (no
-  conflict; it brought only `native/core/mu_raster.{c,h}` and the native Makefile into this lane's build inputs).
+  from origin/main `b18b6b45` (#321); merged with `ce0ebd71` (#324 RENDER-WORLDS-FOG, #323) in `a4aeed6b` (it
+  brought only `native/core/mu_raster.{c,h}` and the native Makefile into this lane's build inputs) and with
+  `6eaf3f2b` (#325 RENDER-ITEMS-002R) in `5cb92708` (renderchar and `native/core/mu_renderchar.c`,
+  `mu_item_textures.c`; none of its programs requests 0x8084 or 0x806e). Both merges without conflicts.
   Input links `tools/python`, `evidence` and `input` come from the main checkout and are never staged.
 - No live client, network, memory write or installed-app change. The validators' inputs are synthetic owner and
   weather fixtures plus the local decoded `muuneffects.tsv` (read only, never written out).
@@ -36,13 +38,16 @@ weather-driven keyed effect 0x806e/12. [Finding, addresses and limits](../resear
 
 | Check | Result | Wall time |
 |---|---|---:|
-| `nice -n 10 make -j4` (final) | passed | TBD |
+| `nice -n 10 make -j4` (after the first merge) | passed | 11.6 s |
 | `validate_render_effects18` registry row (`--cases 20 --mutations`) | 540 cases, 0 mismatches; 35/35 compiled mutants caught, none equivalent, every anchor exactly once | 24.7 s |
 | `validate_render_effects18 --cases 200 --lang-dir <local lang>` (full count, no mutants) | 5,484 cases, 0 mismatches (attach 800, gate 800, update 800, records 84, reader 400, flames 3 × 600, effect 2 × 400) | 6.6 s |
-| Affected existing rows, no mutants, `--cache --jobs 2` (76 reviewed rows) | TBD | TBD |
-| Affected unit suites (`run_test_suites.py --affected origin/main`, integration off) | TBD | TBD |
-| Integration modules: `test_render_effects18` (MuunHost, InstalledMuun), `test_native_worlds_m`, `test_native_worlds_i` | TBD | TBD |
-| `scripts/audit_repository.py` | TBD | TBD |
+| Affected existing rows at `a4aeed6b`, no mutants, `--cache --jobs 2` (76 reviewed rows, below) | 75 pass + `validate_path` skipped for its `directions` pin, rerun with `MU_PATH_DIRECTIONS` = capture 04: pass; 1,665,939 cases | 1,710.6 s + 28.6 s |
+| `validate_worlds_fog`, `validate_app_polish4` (brief 8b, `mu_objects.h`) at `a4aeed6b` | 2 pass; 4,044 + 10,485 cases | 30.0 s |
+| Rows whose inputs the second merge changed, at `5cb92708` (52 rows, `--affected-since a4aeed6b`) | TBD | TBD |
+| Affected unit suites (`run_test_suites.py --affected origin/main`, integration off) at `a4aeed6b` | 12 suites, 1,538 tests: 1,314 passed, 224 skipped, 0 failures, 0 errors | 379.2 s (474.6 s with builds) |
+| Integration modules at `a4aeed6b`: `test_render_effects18` (MuunHost, InstalledMuun), `test_native_worlds_m`, `test_native_worlds_i`, `test_native_particles`, `test_native_map_effects` | 12 tests, 11 passed, 1 skipped (`InstalledLorenciaFires`: no `MU_OBJECTS_PLAIN_DIR` in that run) | 47.3 s |
+| Same modules at `5cb92708` | TBD | TBD |
+| `scripts/audit_repository.py` | 2,019 staged files, 0 rejected | 27.8 s |
 | Before tours at main `ce0ebd71` (base worktree), default draw | DATA-ACQ-002 32 maps, October 22 14 maps | 63.0 s + 18.4 s |
 | After tours at `a4aeed6b` | 64 + 28 PNGs and 64 + 28 object/light dumps byte-identical; frame reports differ only in their output path | 48.8 s + 26.0 s |
 

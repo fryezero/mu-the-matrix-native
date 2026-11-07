@@ -43,6 +43,8 @@ import subprocess
 import sys
 import tempfile
 
+import affected_symbols
+
 ROOT = Path(__file__).resolve().parents[1]
 # Gate/selection tooling: a change selects the tooling tests (the always-run `tests` suite: test_test_budget,
 # test_validator_original_cache, test_validators_manifest, test_run_test_suites) and the modules that import
@@ -55,6 +57,7 @@ TOOLING = {
     'scripts/original_cache.py': 'the original-side cache (cache keys only)',
     'scripts/guarded_run.py': 'a test-only launcher helper',
     'scripts/replay_affected.py': 'the selection replay (TEST-SPEED-004)',
+    'scripts/affected_symbols.py': 'the symbol-level change analysis (TEST-SPEED-005)',
 }
 TOOLING_TESTS = ('tests/test_test_budget.py', 'tests/test_validator_original_cache.py',
                  'tests/test_validators_manifest.py', 'tests/test_run_test_suites.py')
@@ -73,6 +76,7 @@ SEARCH_DIRS = {'scripts', 'tests', 'native/tests'}
 # Runners and the rest of the tooling: recorded as a dependency when imported (so their own tests are selected),
 # never followed (they name every validator and suite, or hash arbitrary files).
 NOT_FOLLOWED = {'scripts/run_validators.py', 'scripts/run_test_suites.py', 'scripts/affected.py', *TOOLING}
+SYMBOL_FALLBACK = 'symbol fallback'   # marks a reason that kept a row because a change could not be attributed
 ROOT_NAMES = {'ROOT', 'REPO', 'REPO_ROOT', 'REPOSITORY'}
 COMPILERS = {'cc', 'clang', 'gcc', 'c++', 'clang++', 'g++'}
 
@@ -155,32 +159,82 @@ class Deps:
     makefiles: dict[str, set] = field(default_factory=dict)   # Makefile -> {(dir, target)} whose dry run uses it
     src_dirs: dict[str, str] = field(default_factory=dict)    # directories a target compiles files from
     fallback: dict[str, str] = field(default_factory=dict)    # why the inputs are not fully derivable
+    # TEST-SPEED-005: symbol-level use of make targets.
+    targets: dict[str, set] = field(default_factory=dict)     # file -> {(dir, target)} whose build reads it
+    other: set[str] = field(default_factory=set)              # files that are also inputs some other way
+    symbols: set[str] = field(default_factory=set)            # identifiers the Python code names (exports used)
+    sym_patterns: dict[str, str] = field(default_factory=dict)   # computed names: 'mu_*_move' -> where
+    sym_dynamic: dict[str, str] = field(default_factory=dict)    # where -> a symbol name it cannot bound
+    # Paths used only by mutant code (mutant builds compile copies of the library sources with a planted
+    # change): still inputs, but they do not stop the symbol-level pruning of a file a make target compiles.
+    mutant: 'Deps | None' = None
 
     def update(self, other: 'Deps') -> 'Deps':
-        for key in ('files', 'dirs', 'flat', 'names', 'globs', 'src_dirs', 'fallback'):
+        for k, v in other.files.items():
+            if k in self.files:
+                mine_make = k in self.targets and k not in self.other
+                their_make = k in other.targets and k not in other.other
+                if mine_make != their_make or (k in self.other) or (k in other.other):
+                    self.other.add(k)
+            elif k in other.other:
+                self.other.add(k)
+        for key in ('files', 'dirs', 'flat', 'names', 'globs', 'src_dirs', 'fallback', 'sym_patterns',
+                    'sym_dynamic'):
             mine = getattr(self, key)
             for k, v in getattr(other, key).items():
                 mine.setdefault(k, v)
         for k, v in other.makefiles.items():
             self.makefiles.setdefault(k, set()).update(v)
+        for k, v in other.targets.items():
+            self.targets.setdefault(k, set()).update(v)
         self.words |= other.words
         self.built_dirs |= other.built_dirs
+        self.symbols |= other.symbols
+        if other.mutant is not None:
+            self.mutant = (self.mutant or Deps()).update(other.mutant)
         return self
+
+    def add(self, path: str, reason: str) -> None:
+        """An input that is not one of a make target's compiled files (the code names or compiles it)."""
+        if path in self.targets:
+            self.other.add(path)
+        self.files.setdefault(path, reason)
 
     def copy(self) -> 'Deps':
         return Deps().update(self)
+
+    def make_only(self, path: str, same_make: frozenset = frozenset(), root: Path | None = None) -> set:
+        """The (dir, target) pairs that make PATH an input, if a make target's build is its only route (a
+        candidate for symbol-level pruning); else an empty set."""
+        if path not in self.targets or path in self.other or (path in self.makefiles):
+            return set()
+        if self._why(path, same_make, root, compiled=False) is not None:
+            return set()
+        return set(self.targets[path])
 
     def why(self, path: str, same_make: frozenset = frozenset(), root: Path | None = None) -> str | None:
         """The reason PATH is an input, or None. SAME_MAKE: (dir, target) pairs whose dry run a changed
         Makefile leaves identical. ROOT: when given, a path missing from it (deleted) counts for every target
         that compiles files from its directory."""
-        if path in self.makefiles:
+        found = self._why(path, same_make, root, compiled=True)
+        if found is None and self.mutant is not None:
+            found = self.mutant._why(path, same_make, root, compiled=True)
+            if found is not None:
+                found = f'mutant build: {found}'
+        return found
+
+    def mutant_route(self, path: str, same_make: frozenset = frozenset(), root: Path | None = None) -> bool:
+        return self.mutant is not None and self.mutant._why(path, same_make, root, compiled=True) is not None
+
+    def _why(self, path: str, same_make: frozenset, root: Path | None, compiled: bool) -> str | None:
+        """COMPILED=False: only the routes other than a make target's compiled files and Makefile."""
+        if compiled and path in self.makefiles:
             uses = sorted((d, t or '') for d, t in self.makefiles[path] if (d, t) not in same_make)
             if uses:
                 d, t = uses[0]
                 return f'make -C {d} {t or "(default goal)"} uses {path}' + (
                     f' (+{len(uses) - 1} targets)' if len(uses) > 1 else '')
-        if path in self.files:
+        if path in self.files and (compiled or path not in self.targets or path in self.other):
             return self.files[path]
         parts = PurePosixPath(path).parts
         for i in range(len(parts) - 1, 0, -1):
@@ -200,7 +254,10 @@ class Deps:
                 if '/' in suffix and path.endswith('/' + suffix):
                     return reason
         for pattern, reason in self.globs.items():
-            if fnmatch.fnmatchcase(path, pattern):
+            # like a directory: its unit tests and docs are never read through a computed path, unless the
+            # pattern itself names them ('tests/test_*.py')
+            if fnmatch.fnmatchcase(path, pattern) and \
+                    not (NOT_BUILT.search(path) and not NOT_BUILT.search(pattern.replace('*', 'x'))):
                 return reason
         if root is not None and parent in self.src_dirs and not (root / path).exists() and \
                 _suffix(path) in SOURCES | HEADERS:
@@ -224,6 +281,7 @@ WRAPPERS = {'str', 'Path', 'PurePath', 'PurePosixPath', 'fspath', 'abspath', 're
 NO_CONTENT = {'exists', 'is_dir', 'is_file', 'isdir', 'isfile', 'mkdir', 'makedirs', 'is_symlink', 'rmtree',
               'samefile'}
 INCLUDE_FLAGS = {'-I', '-isystem', '-iquote', '-idirafter'}
+LIBRARY_LOADERS = {'CDLL', 'PyDLL', 'LoadLibrary', 'load_library', 'dlopen'}
 MAX_VALUES = 256
 MAX_PATTERN_TARGETS = 8   # a computed path naming more targets than this stands for its whole make directory
 SEP = '\x1f'
@@ -364,10 +422,23 @@ class _Module:
         self.functions: dict[str, list] = {}       # name -> FunctionDef nodes
         self.aliases: dict[str, str] = {}          # local name -> imported module name
         self.from_names: dict[str, tuple[str, str]] = {}   # local name -> (module, attribute)
-        self.param_uses: list[tuple[str, tuple, str]] = []   # (A: value, context, line)
-        self.deferred: list[tuple[str, tuple, str]] = []     # (value, callee ref, line): an argument of a call
+        self.param_uses: list[tuple] = []   # (A: value, context, line, in mutant-only code)
+        self.deferred: list[tuple] = []     # (value, callee ref, line, in mutant-only code): a call argument
         self.calls: list[tuple[tuple, list, dict]] = []   # (callee ref, positional values, keyword values)
         self.referenced: set[str] = set()          # local functions used as values (callbacks)
+        # TEST-SPEED-005: code that runs only as a script (inside a module-level main() or under
+        # `if __name__ == '__main__':`). For an imported module whose main() the closure never calls, its path
+        # uses, call sites and symbol names are not inputs.
+        self.main_region: set[int] = set()
+        self.mutant_region: set[int] = set()       # code that runs only for mutants (see _regions)
+        self.mutant_sink = _Sink()
+        self.main_sink = _Sink()
+        self.main_mutant_sink = _Sink()
+        self.main_param_uses: list[tuple] = []
+        self.main_deferred: list[tuple] = []
+        self.main_calls: list[tuple[tuple, list, dict]] = []
+        self.main_refs: set[str] = set()           # imported module names whose .main this file uses
+        self.own_main_used = False                 # this file calls/uses its own main() outside the guard
         try:
             text = path.read_text(errors='replace')
         except OSError:
@@ -376,6 +447,7 @@ class _Module:
             self.tree = ast.parse(text)
         except SyntaxError:
             self.sink.deps.fallback[self.me] = f'{self.me} does not parse'
+            self.sink.deps.sym_dynamic[self.me] = f'{self.me} does not parse'
             self.sink.deps.words |= set(re.findall(r"""['"]([^'"\n]{1,200})['"]""", text))
             return
         self.nodes = list(ast.walk(self.tree))
@@ -388,12 +460,14 @@ class _Module:
         for node in self.nodes:
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 self.functions.setdefault(node.name, []).append(node)
+        self._regions()
         self._imports()
         self._bind()
         self._loaders()
         self._constants()
         self._visit(self.tree)
         self._call_sites()
+        self._symbols()
 
     # -- scopes and values -------------------------------------------------------------------
     def scope(self, node):
@@ -674,7 +748,7 @@ class _Module:
                     continue
                 for value in values:
                     if value.startswith('A:'):
-                        self.param_uses.append((value, ('loader',), where))
+                        self.param_uses.append((value, ('loader',), where, False))
                     else:
                         self.apply(self.sink, value, ('loader', where), where)
 
@@ -687,7 +761,7 @@ class _Module:
                     self.sink.deps.words.add(text)
                     base = text.rsplit('/', 1)[-1]
                     if FILE_NAME.fullmatch(base) and not text.startswith('/') and '{' not in text:
-                        self.sink.deps.names.setdefault(text if '/' in text else base, f'{self.me} quotes {text!r}')
+                        self.sink_for(node).deps.names.setdefault(text if '/' in text else base, f'{self.me} quotes {text!r}')
 
     def _resolve(self, value: str) -> str | None:
         """A concrete value as a repository path: 'P:' values as they are, plain strings that name an existing
@@ -721,13 +795,17 @@ class _Module:
                 if concrete or symbolic:
                     context = self._context(child)
                     line = f'{self.me}:{getattr(child, "lineno", "?")}'
+                    main = id(child) in self.main_region
+                    sink = self.sink_for(child)
                     for value in sorted(concrete | symbolic):
                         if context[0] == 'callarg':
-                            self.deferred.append((value, context[1], line))
+                            (self.main_deferred if main else self.deferred).append(
+                                (value, context[1], line, id(child) in self.mutant_region))
                         elif value.startswith('A:'):
-                            self.param_uses.append((value, context, line))
+                            (self.main_param_uses if main else self.param_uses).append(
+                                (value, context, line, id(child) in self.mutant_region))
                         else:
-                            self.apply(self.sink, value, context, line)
+                            self.apply(sink, value, context, line)
                     continue
             self._visit(child)
 
@@ -809,6 +887,12 @@ class _Module:
             for target in context[1] or [None]:
                 if target != '':
                     sink.make_uses.add((path, target))
+        elif kind == 'library' and (self.root / path / 'Makefile').is_file():
+            libraries = [t for t in make_targets(path, self.root) if t.endswith(('.dylib', '.so')) and '%' not in t]
+            if 0 < len(libraries) <= MAX_PATTERN_TARGETS:
+                sink.make_uses.update((path, t) for t in libraries)
+            else:
+                sink.deps.update(makefile_deps(path, self.root))
         elif kind == 'target':
             sink.deps.dirs.setdefault(path, f'{line} names {path}/')
             sink.deps.built_dirs.add(path)
@@ -821,6 +905,17 @@ class _Module:
         """How a path-valued expression is used: ('include',) ('search',) ('none',) ('bound',)
         ('glob', patterns) ('make', targets) or ('whole',)."""
         parent = self.parents.get(node)
+        if isinstance(parent, ast.BinOp) and isinstance(parent.op, ast.Div) and parent.left is node:
+            outer = parent   # D / <unknown> ... handed to a library loader: a library D builds
+            while True:
+                up = self.parents.get(outer)
+                if isinstance(up, ast.BinOp) and isinstance(up.op, ast.Div) and up.left is outer or \
+                        isinstance(up, ast.Call) and _call_name(up.func) in WRAPPERS and up.args and up.args[0] is outer:
+                    outer = up
+                    continue
+                break
+            if isinstance(up, ast.Call) and _call_name(up.func) in LIBRARY_LOADERS and up.args and up.args[0] is outer:
+                return ('library',)
         if isinstance(parent, ast.Attribute) and parent.value is node:
             call = self.parents.get(parent)
             if parent.attr in ('glob', 'rglob') and isinstance(call, ast.Call) and call.func is parent and call.args:
@@ -927,15 +1022,198 @@ class _Module:
                 ref = self.callee(node.func)
                 if ref is None:
                     continue
+                calls = self.main_calls if id(node) in self.main_region else self.calls
                 if any(isinstance(a, ast.Starred) for a in node.args) or any(k.arg is None for k in node.keywords):
-                    self.calls.append((ref, None, None))
+                    calls.append((ref, None, None))
                     continue
-                self.calls.append((ref, [self.fold(a) for a in node.args],
-                                   {k.arg: self.fold(k.value) for k in node.keywords}))
+                calls.append((ref, [self.fold(a) for a in node.args],
+                              {k.arg: self.fold(k.value) for k in node.keywords}))
             elif isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load) and node.id in self.functions:
                 parent = self.parents.get(node)
                 if not (isinstance(parent, ast.Call) and parent.func is node):
                     self.referenced.add(node.id)
+
+    # -- main()-only code, mutant-only code and symbol names (TEST-SPEED-005) ------------------
+    def sink_for(self, node) -> _Sink:
+        main, mutant = id(node) in self.main_region, id(node) in self.mutant_region
+        return (self.main_mutant_sink if mutant else self.main_sink) if main else \
+            (self.mutant_sink if mutant else self.sink)
+
+    def _regions(self):
+        """Mark mutant-only code (functions named *mutant*/*mutation*, `if args.mutations:` bodies) and
+        main()-only code (a module-level `def main`, the `if __name__ == '__main__':` body)."""
+        for node in self.nodes:
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and MUTANT_WORD.search(node.name) or \
+                    isinstance(node, ast.If) and _mutant_test(node.test):
+                body = [node] if not isinstance(node, ast.If) else node.body
+                for part in body:
+                    self.mutant_region |= {id(n) for n in ast.walk(part)}
+        for statement in self.tree.body:
+            if isinstance(statement, (ast.FunctionDef, ast.AsyncFunctionDef)) and statement.name == 'main':
+                self.main_region |= {id(n) for n in ast.walk(statement)}
+            elif isinstance(statement, ast.If) and _is_main_guard(statement.test):
+                for part in statement.body:
+                    self.main_region |= {id(n) for n in ast.walk(part)}
+
+    def _symbols(self):
+        """The names this file can use from a loaded C library: every identifier and attribute, every word
+        of a string constant, the names its string-building expressions can produce (templates with '*'),
+        and the places where a name given to getattr/hasattr/in_dll cannot be bounded. Also which main()
+        functions it uses (see _closure)."""
+        for local, (module, attribute) in self.from_names.items():
+            if attribute == 'main':
+                self.main_refs.add(module)
+        for node in self.nodes:
+            if id(node) not in self.main_region:
+                if isinstance(node, ast.Name) and node.id == 'main' and isinstance(node.ctx, ast.Load) and \
+                        'main' in self.functions:
+                    self.own_main_used = True
+                elif isinstance(node, ast.Attribute) and node.attr == 'main' and \
+                        isinstance(node.value, ast.Name) and node.value.id in self.aliases:
+                    self.main_refs.add(self.aliases[node.value.id])
+            deps = (self.main_sink if id(node) in self.main_region else self.sink).deps
+            if isinstance(node, ast.Attribute):
+                deps.symbols.add(node.attr)
+            elif isinstance(node, ast.Name):
+                deps.symbols.add(node.id)
+            elif isinstance(node, ast.keyword) and node.arg:
+                deps.symbols.add(node.arg)
+            elif isinstance(node, ast.Constant) and isinstance(node.value, str):
+                deps.symbols.update(IDENT.findall(node.value))
+            elif isinstance(node, ast.Constant) and isinstance(node.value, bytes):
+                deps.symbols.update(IDENT.findall(node.value.decode('latin-1')))
+            where = f'{self.me}:{getattr(node, "lineno", "?")}'
+            if _builds_string(node) and not _builds_string(self.parents.get(node)):
+                for text in self._built_names(node):
+                    if '*' not in text:
+                        deps.symbols.update(IDENT.findall(text))
+                    elif _name_pattern(text):
+                        deps.sym_patterns.setdefault(_name_pattern(text), where)
+            # A lookup by a plain variable takes a name the program holds as a string (counted above, at the
+            # constant or at the expression that built it) or reads from data (not visible, like data paths).
+            # A name built right in the lookup from parts that cannot be bounded is the fallback.
+            if isinstance(node, ast.Call) and _call_name(node.func) in SYMBOL_LOOKUPS and len(node.args) >= 2 and \
+                    isinstance(node.args[1], (ast.BinOp, ast.JoinedStr, ast.Call)):
+                texts = self._built_names(node.args[1])
+                if not texts or any('*' in t and not _name_pattern(t) for t in texts):
+                    deps.sym_dynamic.setdefault(where, f'{where} looks up a symbol name it cannot bound')
+                for text in texts:
+                    if '*' not in text:
+                        deps.symbols.update(IDENT.findall(text))
+                    elif _name_pattern(text):
+                        deps.sym_patterns.setdefault(_name_pattern(text), where)
+
+    def _built_names(self, node) -> list[str]:
+        """The strings NODE can evaluate to, '*' marking unknown parts ([] when nothing is known)."""
+        values = self.fold(node)
+        if values is not None:
+            out = []
+            for value in values:
+                if value.startswith('S:'):
+                    out.append(value[2:])
+                elif value.startswith('A:'):
+                    _, head, tail = _unsym(value)
+                    out.append((head[2:] if head.startswith('S:') else '') + '*' + tail)
+                else:
+                    out.append('*')
+            return out
+        text = _template(node)
+        return [text] if text is not None else []
+
+
+MUTANT_WORD = re.compile(r'mutant|mutation', re.I)
+
+
+def _mutant_test(test) -> bool:
+    """An `if` that runs only when mutants are requested: `if args.mutations:`, `if mutants and ...`."""
+    if isinstance(test, ast.BoolOp) and isinstance(test.op, ast.And):
+        return any(_mutant_test(v) for v in test.values)
+    if isinstance(test, (ast.Name, ast.Attribute)):
+        return bool(MUTANT_WORD.search(test.id if isinstance(test, ast.Name) else test.attr))
+    return False
+
+
+def _is_main_guard(test) -> bool:
+    """`__name__ == '__main__'` (either order)."""
+    if not (isinstance(test, ast.Compare) and len(test.ops) == 1 and isinstance(test.ops[0], ast.Eq)):
+        return False
+    sides = [test.left, test.comparators[0]]
+    return any(isinstance(x, ast.Name) and x.id == '__name__' for x in sides) and \
+        any(isinstance(x, ast.Constant) and x.value == '__main__' for x in sides)
+
+
+IDENT = re.compile(r'[A-Za-z_]\w*')
+SYMBOL_LOOKUPS = {'getattr', 'hasattr', 'in_dll', 'dlsym'}
+
+
+def _builds_string(node) -> bool:
+    """An f-string, a '+'/'%' expression or a .format call with a constant string part."""
+    if not isinstance(node, (ast.JoinedStr, ast.BinOp, ast.Call)) or \
+            (isinstance(node, ast.BinOp) and not isinstance(node.op, (ast.Add, ast.Mod))):
+        return False
+    text = _template(node)
+    return text is not None and bool(text.strip('*')) and \
+        (not isinstance(node, ast.Call) or _call_name(node.func) == 'format')
+
+
+def _template(node) -> str | None:
+    """A string expression with '*' for every part not known statically (None: not a string expression)."""
+    if isinstance(node, ast.Constant):
+        return node.value if isinstance(node.value, str) else None
+    if isinstance(node, ast.JoinedStr):
+        return ''.join(v.value if isinstance(v, ast.Constant) else '*' for v in node.values)
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+        left, right = _template(node.left), _template(node.right)
+        if left is None and right is None:
+            return None
+        return (left if left is not None else '*') + (right if right is not None else '*')
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Mod) and isinstance(node.left, ast.Constant) and \
+            isinstance(node.left.value, str):
+        return re.sub(r'%[-#0 +]*\d*(?:\.\d+)?[sdirxXfgeEc]', '*', node.left.value)
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == 'format' and \
+            isinstance(node.func.value, ast.Constant) and isinstance(node.func.value.value, str):
+        return re.sub(r'\{[^{}]*\}', '*', node.func.value.value)
+    return '*'
+
+
+def _name_pattern(text: str) -> str | None:
+    """TEXT ('*' unknown) as a template of C symbol names, or None if TEXT cannot be one or is only unknown
+    (no constant identifier part of 3+ characters)."""
+    if '*' not in text or not IDENT.fullmatch(text.replace('*', 'x')) or \
+            not re.search(r'[A-Za-z_0-9]{3}', text.replace('*', ' ')):
+        return None
+    return re.sub(r'\*+', '*', text)
+
+
+def fragments(symbols: set[str]) -> frozenset[str]:
+    """The lower-case word pieces of a unit's names and string words (split at '_' and digits)."""
+    return frozenset(piece.lower() for token in symbols for piece in re.split(r'[_\d]+', token) if piece)
+
+
+def template_matches(template: str, name: str, pieces: frozenset[str]) -> bool:
+    """Can NAME come from TEMPLATE when every '*' is filled with the program's own strings: a run of word
+    pieces (PIECES, any case), underscores and digits? (A name assembled at run time from strings the code
+    holds; a name read from a data file is not visible, like a path read from one.)"""
+    parts = re.split(r'(\*)', template)
+    lower = name.lower()
+
+    @functools.lru_cache(maxsize=None)
+    def words(i: int, j: int) -> bool:   # lower[i:j] is pieces / '_' / digits only
+        if i == j:
+            return True
+        if lower[i] == '_' or lower[i].isdigit():
+            return words(i + 1, j)
+        return any(lower[i:k] in pieces and words(k, j) for k in range(i + 1, j + 1))
+
+    @functools.lru_cache(maxsize=None)
+    def match(p: int, i: int) -> bool:
+        if p == len(parts):
+            return i == len(name)
+        part = parts[p]
+        if part == '*':
+            return any(words(i, k) and match(p + 1, k) for k in range(i, len(name) + 1))
+        return name.startswith(part, i) and match(p + 1, i + len(part))
+    return match(0, 0)
 
 
 def _call_name(func) -> str | None:
@@ -992,6 +1270,7 @@ def _closure(path: Path, root: Path, tooling: bool) -> Deps:
     seen = {path}
     sinks: list[_Sink] = []
     resolved = _Sink()
+    resolved_mutant = _Sink()
 
     def enqueue(module: Path, via: str):
         name = rel(module, root)
@@ -1019,6 +1298,15 @@ def _closure(path: Path, root: Path, tooling: bool) -> Deps:
         return True
 
     pending_imports: list[tuple[str, Path, str]] = []
+    run_files: set[Path] = {path}   # files run as programs (the entry, files named or loaded by path)
+    live: set[Path] = set()
+
+    def live_mains() -> set[Path]:
+        """Files whose main() / __main__ block runs: programs, and modules whose main the closure uses."""
+        used = {name.split('.')[-1] for facts in modules.values() for name in facts.main_refs}
+        return {p for p, facts in modules.items()
+                if p in run_files or facts.own_main_used or PurePosixPath(facts.me).stem in used}
+
     while True:
         while queue:
             current, via = queue.pop(0)
@@ -1034,14 +1322,26 @@ def _closure(path: Path, root: Path, tooling: bool) -> Deps:
                 if not resolve_import(module_name, importer, name, False):
                     pending_imports.append((module_name, importer, name))
             for py in facts.sink.py_files:
+                run_files.add(Path(os.path.normpath(root / py)))
                 enqueue(root / py, name)
+        live = live_mains()
+        for current in modules:
+            for py in modules[current].mutant_sink.py_files:
+                run_files.add(Path(os.path.normpath(root / py)))
+                enqueue(root / py, rel(current, root))
+        for current in sorted(live):
+            for py in modules[current].main_sink.py_files + modules[current].main_mutant_sink.py_files:
+                run_files.add(Path(os.path.normpath(root / py)))
+                enqueue(root / py, rel(current, root))
         # parameters: every use resolved with the values each call site in the closure passes
-        _resolve_params(modules, root, resolved)
-        for module_name, importer in resolved.imports:
+        _resolve_params(modules, root, resolved, live, resolved_mutant)
+        for module_name, importer in resolved.imports + resolved_mutant.imports:
             if not resolve_import(module_name, importer, rel(importer, root), False):
                 pending_imports.append((module_name, importer, rel(importer, root)))
         resolved.imports.clear()
-        for py in resolved.py_files:
+        resolved_mutant.imports.clear()
+        for py in resolved.py_files + resolved_mutant.py_files:
+            run_files.add(Path(os.path.normpath(root / py)))
             enqueue(root / py, me)
         # sys.path entries found later can resolve earlier imports; then any repository module of that name
         retry, pending_imports = pending_imports, []
@@ -1050,10 +1350,21 @@ def _closure(path: Path, root: Path, tooling: bool) -> Deps:
         if not queue:
             break
     make_uses, include_dirs, c_includes = set(), set(), set()
-    for sink in sinks + [resolved]:
+    for sink in sinks + [modules[p].main_sink for p in sorted(live)] + [resolved]:
         out.update(sink.deps)
         make_uses |= sink.make_uses
         include_dirs |= sink.include_dirs
+    mutant_sinks = [m.mutant_sink for m in modules.values()] + \
+        [modules[p].main_mutant_sink for p in sorted(live)] + [resolved_mutant]
+    if any(m.deps.files or m.deps.dirs or m.deps.names or m.deps.globs or m.make_uses for m in mutant_sinks):
+        mutant = Deps()
+        for sink in mutant_sinks:
+            mutant.update(sink.deps)
+            for directory, target in sorted(sink.make_uses, key=lambda u: (u[0], u[1] or '')):
+                mutant.update(target_deps(directory, target, root))
+            for directory in sorted(sink.include_dirs):
+                mutant.flat.setdefault(directory, f'mutant code compiles with -I {directory}')
+        out.mutant = (out.mutant or Deps()).update(mutant)
     for facts in modules.values():
         c_includes |= facts.c_includes
     uses = sorted(make_uses, key=lambda u: (u[0], u[1] or ''))
@@ -1064,7 +1375,7 @@ def _closure(path: Path, root: Path, tooling: bool) -> Deps:
     # Sources the code compiles itself (cc ... -I D) and C text it writes ('#include "x.h"' in a string):
     # the headers they include through those directories.
     code = SOURCES | HEADERS
-    sources = {p for p, why in out.files.items() if _suffix(p) in code and not why.startswith('make -C')}
+    sources = {p for p in out.files if _suffix(p) in code and (p not in out.targets or p in out.other)}
     search = tuple(root / d for d in sorted(include_dirs | set(out.dirs)))
     roots = [root / s for s in sorted(sources) if (root / s).is_file()]
     for name in sorted(c_includes):
@@ -1074,19 +1385,20 @@ def _closure(path: Path, root: Path, tooling: bool) -> Deps:
                 roots.append(candidate)
                 where = rel(candidate, root)
                 if where:
-                    out.files.setdefault(where, f'generated C includes {where}')
+                    out.add(where, f'generated C includes {where}')
                 break
     for header in _includes(tuple(roots), search):
         where = rel(header, root)
         if where:
-            out.files.setdefault(where, f'compiled source includes {where}')
+            out.add(where, f'compiled source includes {where}')
     if not roots:
         for directory in sorted(include_dirs):   # -I D with no source we can see: every header in D
             out.flat.setdefault(directory, f'{me} compiles with -I {directory}')
     return out
 
 
-def _resolve_params(modules: dict[Path, _Module], root: Path, sink: _Sink) -> None:
+def _resolve_params(modules: dict[Path, _Module], root: Path, plain: _Sink, live: set = frozenset(),
+                    mutant: _Sink | None = None) -> None:
     """Resolve every parameter use (A: values) with the arguments of the closure's call sites, through
     chains of parameters. An argument of a call no closure function receives (a library call) is a plain use.
     A function no call site reaches (a callback) keeps what its use names after the parameter, as a pattern."""
@@ -1102,24 +1414,28 @@ def _resolve_params(modules: dict[Path, _Module], root: Path, sink: _Sink) -> No
     calls: dict[tuple[str, str], list] = {}
     referenced: set[tuple[str, str]] = set()
     for facts in modules.values():
-        for ref, positional, keywords in facts.calls:
+        for ref, positional, keywords in facts.calls + (facts.main_calls if facts.path in live else []):
             owner = target(facts, ref)
             if owner is not None:
                 calls.setdefault((owner.me, ref[1]), []).append((facts, positional, keywords))
         for name in facts.referenced:
             referenced.add((facts.me, name))
+    mutant = mutant if mutant is not None else plain
     work = []
     for facts in modules.values():
-        work += [(facts, value, context, line, 0) for value, context, line in facts.param_uses]
-        for value, ref, line in facts.deferred:
+        main = facts.path in live
+        work += [(facts, value, context, line, 0, m)
+                 for value, context, line, m in facts.param_uses + (facts.main_param_uses if main else [])]
+        for value, ref, line, m in facts.deferred + (facts.main_deferred if main else []):
             if target(facts, ref) is None:   # not a closure function: the argument is used as it is
                 if value.startswith('A:'):
-                    work.append((facts, value, ('whole',), line, 0))
+                    work.append((facts, value, ('whole',), line, 0, m))
                 else:
-                    facts.apply(sink, value, ('whole',), line)
+                    facts.apply(mutant if m else plain, value, ('whole',), line)
     applied = set()
     while work:
-        facts, value, context, line, depth = work.pop()
+        facts, value, context, line, depth, m = work.pop()
+        sink = mutant if m else plain
         if (value, context, line) in applied or depth > 6:
             continue
         applied.add((value, context, line))
@@ -1163,7 +1479,7 @@ def _resolve_params(modules: dict[Path, _Module], root: Path, sink: _Sink) -> No
                     if result is None:
                         continue
                     if result.startswith('A:'):
-                        work.append((caller, result, context, line, depth + 1))
+                        work.append((caller, result, context, line, depth + 1, m))
                     elif context[0] != 'bound':
                         owner.apply(sink, result, context, line)
 
@@ -1460,6 +1776,8 @@ def target_deps(directory: str, target: str | None, root: Path = ROOT) -> Deps:
             where = rel(header, root)
             if where:
                 deps.files.setdefault(where, f'{label} includes {where}')
+    for where in deps.files:   # every file above is an input only through this target's build
+        deps.targets.setdefault(where, set()).add((directory, target))
     return deps
 
 
@@ -1508,24 +1826,133 @@ def clear_caches(root: Path | None = None) -> None:
     """Forget every parsed file, dry run and compiler answer about ROOT (default: all), for a caller that edits
     that tree in-process."""
     for function in (_py_index, _module, _closure, make_targets, _quoted_includes, dry_run, target_deps,
-                     makefile_unchanged):
+                     makefile_unchanged, target_change):
         function.cache_clear(root)
     for key in [k for k in _MM if root is None or k[0].startswith(str(root))]:
         del _MM[key]
+    for key in [k for k in _HOSTS if root is None or k[0].startswith(str(root))]:
+        del _HOSTS[key]
+    affected_symbols.clear_cache(root)
     suites = sys.modules.get('run_test_suites')
     if root is None and suites is not None and hasattr(suites, '_unit_deps'):
         suites._unit_deps.cache_clear()
 
 
+def _base_bytes(base: str, path: str, root: Path) -> bytes | None:
+    done = subprocess.run(['git', '-C', str(root), 'show', f'{base}:{path}'], capture_output=True)
+    return done.stdout if not done.returncode else None
+
+
+@_memo
+def target_change(directory: str, target: str | None, base: str, changed: tuple[str, ...],
+                  root: Path = ROOT) -> affected_symbols.Change:
+    """Which exported symbols of make TARGET in DIRECTORY the diff from BASE (CHANGED) changes."""
+    label = f'make -C {directory} {target or "(default goal)"}'
+    text = dry_run(directory, target, root)
+    if text is None:
+        return affected_symbols.Change(label, fallback=f'{label} has no dry run')
+    cwd = root / directory
+    real = os.path.realpath   # clang sees resolved paths (/private/var for /var on macOS)
+    base_files = {real(root / p): _base_bytes(base, p, root) for p in changed if _suffix(p) in SOURCES | HEADERS}
+
+    def unit_inputs(flags, source):
+        listed = _mm(str(cwd), tuple(flags), source)
+        if listed is None:
+            return None
+        return {real(os.path.join(str(cwd), w)) for w in listed}
+    return affected_symbols.analyze(label, cwd, root, _commands(text), _mm_command, base_files, unit_inputs)
+
+
+def used_symbols(deps: Deps, exports: set[str]) -> tuple[set[str], str | None]:
+    """The exports a unit's Python code can name, or all of them with the reason when a lookup is unbounded."""
+    if deps.sym_dynamic:
+        return set(exports), next(iter(deps.sym_dynamic.values()))
+    used = exports & deps.symbols
+    if deps.sym_patterns:
+        pieces = fragments(deps.symbols)
+        for template in deps.sym_patterns:
+            used |= {e for e in exports - used if template_matches(template, e, pieces)}
+    return used, None
+
+
+_HOSTS: dict[tuple, affected_symbols.Unit] = {}
+SYSTEM_INCLUDES = tuple(sorted(str(p) for p in Path('/opt/homebrew/opt').glob('*/include') if p.is_dir())) \
+    if Path('/opt/homebrew/opt').is_dir() else ()   # Homebrew libraries the native hosts use (cryptopp)
+
+
+def host_symbols(deps: Deps, target_files: set[str], root: Path) -> tuple[set[str], str | None]:
+    """The symbols the C sources a unit compiles itself (hosts: a repository .c it names or copies, outside
+    the target) reference, from their IR (the host's undefined symbols, like `nm -u`); or the reason a host
+    does not compile. Include directories: the host's own, every directory holding a header of the unit's
+    inputs, -I directories it uses, and native/build/gen."""
+    deps_all = [deps] + ([deps.mutant] if deps.mutant is not None else [])
+    hosts = sorted({p for d in deps_all for p in d.files if _suffix(p) in SOURCES and p not in target_files
+                    and (root / p).is_file()})
+    if not hosts:
+        return set(), None
+    dirs = {str(Path(p).parent) for d in deps_all for p in d.files if _suffix(p) in HEADERS}
+    dirs |= {p for d in deps_all for p in d.flat}
+    if (root / 'native/build/gen').is_dir():
+        dirs.add('native/build/gen')
+    used: set[str] = set()
+    for host in hosts:
+        cxx = _suffix(host) in ('.cc', '.cpp', '.mm')
+        flags = ['clang++' if cxx else 'clang', '-std=c++17' if cxx else '-std=c11', '-fPIC', '-ffp-contract=off',
+                 *[f'-I{root / d}' for d in sorted(dirs | {str(Path(host).parent)})],
+                 *[f'-isystem{d}' for d in SYSTEM_INCLUDES]]
+        key = (str(root), host, tuple(flags))
+        if key not in _HOSTS:
+            _HOSTS[key] = affected_symbols.compile_ir(str(root), tuple(flags), host)
+        unit = _HOSTS[key]
+        if unit.error:
+            return set(), f'the C host {unit.error}'
+        used |= unit.declared | {r for n in unit.nodes.values() for r in n.refs}
+    return used, None
+
+
+def symbol_verdict(deps: Deps, path: str, targets: set, base: str, changed: list[str], root: Path,
+                   same_make: frozenset = frozenset()) -> str | None:
+    """Why PATH, compiled only into TARGETS (and mutant copies of them), still affects the unit (a changed
+    symbol it uses, or a conservative fallback), or None when no symbol it uses changed."""
+    copies = deps.mutant_route(path, same_make, root)
+    for directory, target in sorted(targets, key=lambda u: (u[0], u[1] or '')):
+        change = target_change(directory, target, base, tuple(sorted(changed)), root)
+        if change.fallback:
+            return f'{SYMBOL_FALLBACK}: {change.fallback}'
+        if copies and change.link_changed:   # mutant builds list their units by hand
+            return f'{SYMBOL_FALLBACK}: mutant builds copy these sources and {change.link_changed}'
+        if change.roots_always:
+            return f'{change.label}: {sorted(change.roots_always)[0]} reaches a change'
+        used, dynamic = used_symbols(deps, change.exports)
+        target_files = {p for p in target_deps(directory, target, root).files if _suffix(p) in SOURCES}
+        hosted, broken = host_symbols(deps, target_files, root)
+        if broken:
+            return f'{SYMBOL_FALLBACK}: {broken}'
+        used |= hosted & change.exports
+        hit = sorted(used & set(change.changed))
+        if hit:
+            if dynamic:
+                return f'{SYMBOL_FALLBACK}: {dynamic}'
+            node = change.changed[hit[0]]
+            return f'uses {hit[0]}' + (f' (reaches {node})' if node != hit[0] else '') + ' changed' + (
+                f' (+{len(hit) - 1} symbols)' if len(hit) > 1 else '')
+    return None
+
+
 def select(units: dict[str, Deps], changed: list[str], infra: dict[str, str] | None = None,
            mapped: tuple[str, ...] = (), base: str | None = None, root: Path = ROOT,
-           unmapped_selects_all: bool = True) -> dict[str, list[str]]:
+           unmapped_selects_all: bool = True, symbols: bool = False,
+           pruned: dict[str, list[str]] | None = None) -> dict[str, list[str]]:
     """{unit: [reasons]} for every unit some changed path can affect.
 
     INFRA paths (the caller's, path -> description) select every unit. A unit with fallback reasons is
     selected by every changed path that is not documentation or TOOLING. UNMAPPED_SELECTS_ALL (test suites):
     a non-doc path no unit depends on selects everything; validator rows pass False, because their inputs
-    are derived per row (a row whose inputs cannot be derived carries its own fallback)."""
+    are derived per row (a row whose inputs cannot be derived carries its own fallback).
+
+    SYMBOLS (validator rows, TEST-SPEED-005): a C source or header that is an input only because a make target
+    the unit builds compiles it selects the unit only if an exported symbol the unit's code names changed
+    (affected_symbols); PRUNED collects {unit: [paths dropped that way]}."""
     shared = {path: 'shared infrastructure' for path in INFRA}
     shared.update(infra or {})
     keep = same_make(units, changed, base, root)
@@ -1539,16 +1966,39 @@ def select(units: dict[str, Deps], changed: list[str], infra: dict[str, str] | N
     for name, deps in units.items():
         reasons = list(hit_all)
         fallback = next(iter(deps.fallback.values()), None)
+        dropped, candidates = [], []
         for path in changed:
             if path in shared:
                 continue
             reason = deps.why(path, keep, root)
+            if reason and symbols and base is not None and _suffix(path) in SOURCES | HEADERS:
+                targets = deps.make_only(path, keep, root)
+                if targets:
+                    candidates.append((path, reason, targets))
+                    continue
+                if path in deps.targets:   # name the route that keeps the make target from being pruned
+                    reason = deps._why(path, keep, root, compiled=False) or reason
             if reason:
                 reasons.append(f'{path}: {reason}')
             elif fallback and not is_doc(path) and path not in TOOLING:
                 reasons.append(f'{path}: inputs not derivable ({fallback})')
+        # Paths compiled only into libraries the unit builds: ask the symbol analysis only when nothing else
+        # selects the unit (the answer cannot change the selection otherwise).
+        for path, reason, targets in candidates:
+            if reasons:
+                reasons.append(f'{path}: {reason}')
+                continue
+            verdict = symbol_verdict(deps, path, targets, base, changed, root, keep)
+            if verdict is None:
+                dropped.append(path)
+            else:
+                reasons.append(f'{path}: {reason}; {verdict}')
+        if reasons:
+            dropped = []
         if reasons:
             out[name] = reasons
+        if dropped and pruned is not None:
+            pruned[name] = dropped
     return out
 
 
@@ -1557,11 +2007,23 @@ def fallback_units(units: dict[str, Deps]) -> dict[str, list[str]]:
     return {name: list(deps.fallback.values()) for name, deps in units.items() if deps.fallback}
 
 
-def show(selected: dict[str, list[str]], total: int, noun: str, fallback: dict[str, list[str]] | None = None) -> str:
+def show(selected: dict[str, list[str]], total: int, noun: str, fallback: dict[str, list[str]] | None = None,
+         pruned: dict[str, list[str]] | None = None) -> str:
     lines = [f'affected: {len(selected)} of {total} {noun} selected']
     for name, reasons in selected.items():
         more = f' (+{len(reasons) - MAX_REASONS} more)' if len(reasons) > MAX_REASONS else ''
         lines.append(f'  {name}: ' + '; '.join(reasons[:MAX_REASONS]) + more)
+    symbol = {n: [r for r in rs if SYMBOL_FALLBACK in r] for n, rs in selected.items()}
+    symbol = {n: rs for n, rs in symbol.items() if rs}
+    if symbol:
+        lines.append(f'affected: {len(symbol)} {noun} kept by the symbol-level fallback (change not attributable):')
+        for name, reasons in symbol.items():
+            lines.append(f'  {name}: ' + reasons[0])
+    if pruned:
+        dropped = {n: p for n, p in pruned.items() if n not in selected}
+        if dropped:
+            lines.append(f'affected: {len(dropped)} {noun} not selected: they build a changed library but use no '
+                         f'changed symbol ({", ".join(sorted(dropped))})')
     if fallback:
         lines.append(f'affected: {len(fallback)} {noun} use the conservative fallback (inputs not derivable):')
         for name, reasons in fallback.items():

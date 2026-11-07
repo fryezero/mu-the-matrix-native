@@ -204,11 +204,11 @@ def row_deps(name: str, row: dict, root: Path = REPO) -> affected.Deps:
     script = root / 'scripts' / f'{name}.py'
     if script.is_file():
         deps.update(affected.python_deps(script, root, tooling=False))
-    deps.files.setdefault(f'scripts/{name}.py', f'is scripts/{name}.py')
+    deps.add(f'scripts/{name}.py', f'is scripts/{name}.py')
     if row.get('pins'):
-        deps.files.setdefault(PINS, f'{PINS} resolves the row\'s pins')
+        deps.add(PINS, f'{PINS} resolves the row\'s pins')
     if row.get('parent'):
-        deps.files.setdefault(f"scripts/{row['parent']}.py", f"parent {row['parent']}")
+        deps.add(f"scripts/{row['parent']}.py", f"parent {row['parent']}")
     for directory in row['build']:
         for target in build_targets(row, directory) or (None,):
             deps.update(affected.target_deps(directory, target, root))
@@ -217,7 +217,10 @@ def row_deps(name: str, row: dict, root: Path = REPO) -> affected.Deps:
         target = affected._string_path(text, root / 'scripts', root)
         if target is not None:
             where = affected.rel(target, root)
-            (deps.dirs if target.is_dir() else deps.files).setdefault(where, f'argument names {where}')
+            if target.is_dir():
+                deps.dirs.setdefault(where, f'argument names {where}')
+            else:
+                deps.add(where, f'argument names {where}')
             if target.suffix == '.py':
                 deps.update(affected.python_deps(target, root, tooling=False))
     return deps
@@ -236,13 +239,17 @@ def manifest_changes(rows: dict, base: str, root: Path = REPO, manifest: Path = 
 
 def affected_rows(rows: dict, ref: str, root: Path = REPO, manifest: Path = MANIFEST,
                   changed: list[str] | None = None, since: bool = False,
-                  units: dict | None = None) -> dict[str, list[str]]:
+                  units: dict | None = None, pruned: dict | None = None,
+                  symbols: bool = True) -> dict[str, list[str]]:
     """{row: [why]} for the rows whose inputs a diff touches: from merge-base(REF, HEAD), or from REF itself
-    (SINCE: the steward's "what changed since the lane-tested commit"), to the working tree."""
+    (SINCE: the steward's "what changed since the lane-tested commit"), to the working tree. A C change inside
+    a library a row only builds counts only if the row names a changed exported symbol (TEST-SPEED-005);
+    PRUNED collects the rows dropped that way; SYMBOLS=False keeps the input-level answer (TEST-SPEED-004)."""
     base = affected.base_commit(ref, root, since)
     changed = affected.changed_files(ref, root, since) if changed is None else changed
     units = units if units is not None else row_units(rows, root)
-    selected = affected.select(units, changed, base=base, root=root, unmapped_selects_all=False)
+    selected = affected.select(units, changed, base=base, root=root, unmapped_selects_all=False,
+                               symbols=symbols, pruned=pruned)
     manifest_rel = manifest.relative_to(root).as_posix() if manifest.is_relative_to(root) else None
     if manifest_rel in changed:
         for name in manifest_changes(rows, base, root, manifest):
@@ -818,10 +825,13 @@ def main(argv=None) -> int:
     if ref:
         since = bool(args.list_affected_since or args.affected_since)
         units = row_units(rows, REPO)
-        why = affected_rows(rows, ref, root=REPO, manifest=args.manifest, since=since, units=units)
+        pruned: dict[str, list[str]] = {}
+        why = affected_rows(rows, ref, root=REPO, manifest=args.manifest, since=since, units=units, pruned=pruned)
+        considered = set(names)
         names = [name for name in names if name in why]
         print(affected.show({n: why[n] for n in names}, len(rows), 'manifest rows',
-                            affected.fallback_units(units)), flush=True)
+                            affected.fallback_units(units),
+                            {n: p for n, p in pruned.items() if n in considered}), flush=True)
         if args.list_affected or args.list_affected_since:
             return 0
     if args.no_mutants:

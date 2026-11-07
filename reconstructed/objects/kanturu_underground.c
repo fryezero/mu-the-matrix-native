@@ -3,6 +3,7 @@
 #include "worlds_b_internal.h"
 #include "icarus.h"
 #include "../movement/client_movement.h"
+#include "world_visual_slots2.h"
 int mu_kanturu_ug_create(uint8_t *o, int32_t index, int32_t world, mu_obj_rand_fn random, void *ctx,
                          mu_obj_log *log)
 {
@@ -28,7 +29,7 @@ int mu_kanturu_ug_create(uint8_t *o, int32_t index, int32_t world, mu_obj_rand_f
     }
     return 1;
 }
-static void set_action(uint8_t *o, int32_t count, int32_t action)   /* SetAction 0x012affa4 */
+void mu_obj_set_action(uint8_t *o, int32_t count, int32_t action)   /* SetAction 0x012affa4 (shared) */
 {
     uint16_t a = mu_obj_u16(o, MU_OBJF_ACTION), prior = mu_obj_u16(o, MU_OBJF_PRIOR_ACTION);
     float frame = mu_obj_f32(o, MU_OBJF_FRAME), prior_frame = mu_obj_f32(o, MU_OBJF_PRIOR_FRAME);
@@ -76,7 +77,7 @@ int mu_kanturu_ug_move(uint8_t *o, int32_t index, const mu_obj_move_inputs *in, 
     int32_t counter = mu_obj_i32(o, 0x30);
     if (action > 3) return 1;
     if (counter >= mu_obj_i32(o, 0x34)) {
-        set_action(o, count, action == 3 ? 0 : k[action].next);
+        mu_obj_set_action(o, count, action == 3 ? 0 : k[action].next);
         counter = 0;
         mu_obj_set_i32(o, 0x30, 0);
         mu_obj_set_i32(o, 0x34, action == 3 ? in->rand_fn(in->context) % 30 + 20 : k[action].wait);
