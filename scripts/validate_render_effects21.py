@@ -11,7 +11,16 @@
   MoveParticles' (0x0168f700) and RenderParticles' (0x015ae50f) send index 5 straight to each switch's end
   (0x015e93ab, 0x0165c194, 0x0159a5a6), and the three type dispatches reach those cases for 0x8180. Shiny01's move
   case (0x016584c2) has no head before its subtype chain, Clud64's create reaches 0x1b's block at 0x015c304a.
-* owner_host (scope 2, if present): see family_owner_host.
+* owner_host: the armour owner-effect programs (RENDER-ITEMS-002Q) in the world. The real 0x012b678d(out, OBJECT,
+  bone, local) (thiscall on the part model) runs with an OBJECT whose +0x5c names the player model (bone count
+  through 0x00966cc4 / 0x00eaa8cf), +0x318 points at posed bone matrices (0x0129f12c), +0x158 is its position, and
+  the part model's +0x22 / +0x74 are its bone count and scale. Random rotations, translations, local points, scales
+  and positions. The native world host (world_rt_part_owner: the character's player_bones as +0x318, the Player.bmd
+  bone count, the part model's bone count, body scale and origin) transforms with mu_pt_transform_position
+  (mu_renderchar owner_transform); inside both bone domains the outputs must be equal bit for bit. Outside: a bone
+  at or above the part model's count leaves out unwritten (native: no request); a bone at or above the player
+  model's count, or +0x318 = 0, makes the client read BoneTransform 0x06fce398 (here other matrices, so the case
+  proves the source), which the native host refuses (owner_fx: the program's highest bone must be below both).
 
 No client bytes or decoded data are written by this tool.
 """
@@ -156,12 +165,85 @@ def family_tables(text, data, report):
     report.cover('tables', '0x7ffd/0x1b block')
 
 
+# ---------------------------------------------------------------- owner host
+
+def family_owner_host(cases, report, plib):
+    import ctypes as C
+    import renderchar_machine as machine
+    import validate_renderchar as v
+    plib.mu_pt_transform_position.argtypes = [C.POINTER(C.c_float)] * 3 + [C.c_int, C.c_float, C.POINTER(C.c_float)]
+    plib.mu_pt_transform_position.restype = None
+    w = v.World(*(pin.read() for pin in (pins.TEXT, pins.DATA, pins.FLAG, pins.FEATURE)))
+    m = w.m
+    F3, F12 = C.c_float * 3, C.c_float * 12
+    rng = random.Random('render-effects-021-owner-host')
+    pose_global = 0x06fce398
+    m.ensure(pose_global, 0x30 * 200)
+    out, local_at = v.LIGHT, v.LIGHT + 0x100
+
+    def matrix(r):
+        a, b, c = (r.uniform(-180, 180) for _ in range(3))
+        import math
+        ca, sa, cb, sb, cc, sc = math.cos(a), math.sin(a), math.cos(b), math.sin(b), math.cos(c), math.sin(c)
+        rot = [cb * cc, -cb * sc, sb, sa * sb * cc + ca * sc, ca * cc - sa * sb * sc, -sa * cb,
+               -ca * sb * cc + sa * sc, ca * sb * sc + sa * cc, ca * cb]
+        t = [r.uniform(-150, 150) for _ in range(3)]
+        return [f32(x) for x in rot[0:3] + [t[0]] + rot[3:6] + [t[1]] + rot[6:9] + [t[2]]]
+    for n in range(cases):
+        item_bones = rng.choice([4, 27, 36, 60, 60, 61])
+        owner_bones = rng.choice([27, 36, 60, 60, 61])
+        attached = rng.random() > 0.1
+        bone = rng.choice([rng.randrange(0, 61), 0, 19, 26, 35, item_bones - 1, item_bones, owner_bones - 1,
+                           owner_bones, -1])
+        scale = f32(rng.choice([1.0, 1.2, 0.9, rng.uniform(0.1, 3.0)]))
+        position = [f32(rng.uniform(0, 25600)), f32(rng.uniform(0, 25600)), f32(rng.uniform(-100, 800))]
+        local = [f32(rng.uniform(-60, 60)) for _ in range(3)]
+        bones = [matrix(rng) for _ in range(64)]
+        stale = [matrix(rng) for _ in range(64)]
+        w.models.clear()
+        w.add_model(0x1bc3, v.MODEL, bones=item_bones)
+        w.add_model(0xa91, v.PLAYER_MODEL, bones=owner_bones)
+        m.wf(v.MODEL + 0x74, scale)
+        obj = bytearray(0x400)
+        struct.pack_into('<i', obj, 0x5c, 0xa91)
+        struct.pack_into('<3f', obj, 0x158, *position)
+        struct.pack_into('<I', obj, 0x318, v.BONES if attached else 0)
+        m.write(v.OBJ, bytes(obj))
+        m.write(v.BONES, b''.join(struct.pack('<12f', *b) for b in bones))
+        m.write(pose_global, b''.join(struct.pack('<12f', *b) for b in stale))
+        sentinel = struct.pack('<3I', 0x7fc0dead, 0x7fc0beef, 0x7fc0f00d)
+        m.write(out, sentinel)
+        m.write(local_at, struct.pack('<3f', *local))
+        result = m.run(0x012b678d, [out, v.OBJ, bone, local_at], v.MODEL)
+        checks = dict(result['checks'])
+        checks['esp'] = m.uc.reg_read(m.x86.UC_X86_REG_ESP) == machine.ENTRY_ESP + 20
+        client = m.read(out, 12)
+        # the native world host: owner_fx runs only inside both bone domains (owner_transform otherwise unused)
+        native_runs = 0 <= bone < item_bones and bone < owner_bones and attached
+        if native_runs:
+            o = F3()
+            plib.mu_pt_transform_position(F12(*bones[bone]), F3(*local), o, 1, scale, F3(*position))
+            expected, mode = bytes(o), 'owner bones'
+        elif bone < 0 or bone >= item_bones:
+            expected, mode = sentinel, 'outside the part model: unwritten, native refuses'
+        else:
+            o = F3()
+            plib.mu_pt_transform_position(F12(*stale[bone]), F3(*local), o, 1, scale, F3(*position))
+            expected, mode = bytes(o), 'BoneTransform fallback: native refuses'
+        ok = not result['error'] and not result['stopped'] and all(checks.values()) and client == expected
+        report.add('owner_host', ok, {'case': n, 'bone': bone, 'item_bones': item_bones, 'owner_bones': owner_bones,
+                                      'attached': attached, 'mode': mode, 'client': client.hex(),
+                                      'expected': expected.hex(), 'checks': checks, 'error': result['error']})
+        report.cover('owner_host', mode)
+
+
 # ---------------------------------------------------------------- main
 
 def run_families(text, data, plib, cases, report):
     for name in ('create', 'move', 'render'):
         pt_family(text, data, plib, name, PRE_KINDS, cases, report)
     family_tables(text, data, report)
+    family_owner_host(max(20, cases * 4), report, plib)
 
 
 def main():
