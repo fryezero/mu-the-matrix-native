@@ -169,3 +169,11 @@ fixture HUD numbers and the public demo's 1,000/10,000 experience bar. No accoun
 or real character names, chat, desktop chrome or paths. Nothing was painted over.
 The NATIVE-PERF frame rates quoted next to the images were not re-measured and are
 unchanged.
+
+## Dark corners at FOV 65 (REGRESS-001, 2026-11-06)
+
+The dark area left of the Lorencia bridge and in Tormenta's far-right corner is the client's own clear colour:
+(10, 20, 14)/256 in Lorencia, black in Tormenta. It shows where the terrain's FOV-independent 2D cull ends. The
+client never renders at FOV 65 (its largest is the world FOV, 39 here), so these corners are not something a
+player can see. Both frames fill at FOV ≤ 45 (1,600×1,000, the same tiles). A later README lane should re-shoot
+26/27 at `--perf-fov 45` or at the world FOV. Details are in the [REGRESS-001 handoff](../handoffs/REGRESS-001.md).

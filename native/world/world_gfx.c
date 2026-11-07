@@ -1022,6 +1022,8 @@ int world_gfx_quest_setup(world_gfx *g, const char *demo_text)
     g->quest.user = g;
     g->quest.travel = quest_travel;
     mu_session_quest_services(g->quest.session,quest_move_answer,quest_word);
+    /* REGRESS-001: offline, the local fixture answers the NPC list and the accept/complete requests */
+    mu_quest_session_offline_local(&g->quest, 1);
     g->have_quest = 1;
     mu_quest_session_load_classic(&g->quest, g->root);
     const mu_gfx_hero *h = mu_gfx_layer_hero(g->layer);

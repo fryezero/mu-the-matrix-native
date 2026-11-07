@@ -296,6 +296,14 @@ class PrivateUnicorn(unittest.TestCase):
                                 capture_output=True, text=True)
         self.assertIn('cases 8/8 equal', result.stdout, result.stdout + result.stderr)
 
+    def test_scene_clear(self):
+        # REGRESS-001: scripts/validate_scene_clear.py, the render scene's glClearColor block against env_world.c
+        # (pins: text, image data, third section; MU_CLIENT_TEXT / MU_IMAGE_DATA / MU_SECTION3 or MU_EVIDENCE_DIR)
+        result = subprocess.run([sys.executable, str(ROOT/'scripts/validate_scene_clear.py'), '--cases', '400'],
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('cases 400/400 equal, 0 mismatches, call sites 8/8', result.stdout)
+
 
 if __name__ == '__main__':
     unittest.main()
