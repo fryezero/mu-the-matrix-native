@@ -427,7 +427,8 @@ static void draw_model(wg_items *w, item_model *m, const mu_gfx_item_draw *d, co
     const float *bones = mu_model_bone_matrices(&m->model);
     env.particles = pool;
     if (pool && w->world.item_pre)
-        w->world.item_pre(w->world.user, &env, ros.render_type, &m->model, bones);
+        w->world.item_pre(w->world.user, &env, ros.render_type, &m->model, bones,
+                          (uint32_t)(d->item + MU_GFX_EQUIP_SLOTS + 1));   /* equipment -1..-15, grid 0.. */
     mu_draw_options draw;
     mu_draw_default_options(&draw);
     draw.textures = &m->textures;

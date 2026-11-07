@@ -61,8 +61,9 @@ struct mu_model;
 typedef struct wg_items_world {
     void *user;
     struct mu_world_particles *(*particles)(void *user);
+    /* object: the icon's owner key within the pass (OBJECT-owned particles, RENDER-EFFECTS-020) */
     void (*item_pre)(void *user, struct mu_renderchar_env *env, int32_t type, const struct mu_model *model,
-                     const float *bones);
+                     const float *bones, uint32_t object);
 } wg_items_world;
 void wg_items_set_world(wg_items *w, const wg_items_world *world);
 

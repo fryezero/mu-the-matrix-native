@@ -297,9 +297,10 @@ static struct mu_world_particles *icon_particles(void *user)
     return a->has_particles ? &a->particles : NULL;
 }
 
-static void icon_pre(void *user, struct mu_renderchar_env *env, int32_t type, const mu_model *model, const float *bones)
+static void icon_pre(void *user, struct mu_renderchar_env *env, int32_t type, const mu_model *model, const float *bones,
+                     uint32_t object)
 {
-    world_rt_item_pre(user, env, MU_WORLD_PRE_INVENTORY, type, model, bones);
+    world_rt_item_pre(user, env, MU_WORLD_PRE_INVENTORY, type, model, bones, object);
 }
 #endif
 
