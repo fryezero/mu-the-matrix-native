@@ -1824,3 +1824,86 @@ names. The five demo characters' seven items all equal the guess.
 | Combat stand-ins (Sword01, Sword10, Spear01, Bow01, Staff01) | same type | same | 7 scenes identical |
 | Combat crossbow `CrossBow01.bmd` | −1 | `0x12ee` Crossbow | identical at level 0 |
 | `--hero-item` blade01, CR_shield01, InnocenceCape (test only) | −1 | `0x0b4b`, `0x1748`, `0x2382` | 0 → 30 pre-draw sprites; the cloak's own mesh is no longer drawn, as for a player wearing `0x2382` |
+
+## Part 22, OBJECT-owned item particles, RENDER-EFFECTS-020
+
+The last requests the item programs refused: the CreateParticle calls of the wings `0x2384`/`0x2385` (Cloak of
+Brilliance and its [Bound] variant, `SparkleCape.bmd`) that pass the item's OBJECT as owner (part 18's op 25).
+[Handoff](../handoffs/RENDER-EFFECTS-020.md).
+
+### Census (static, and the library over 83 types × states)
+
+Over the 83 program types (43 owner programs of part 17, 40 pre-draw programs of parts 18/20; 3,245 ops), the
+OBJECT is passed as an owner by:
+
+| Request | Sites | Native before | Native after |
+|---|---:|---|---|
+| CreateParticle `0x810a`/0x11 with the OBJECT as owner (`0x2384`, `0x2385`; `rand() % 3` gate under the frustum flag) | 1 op row shared by both types | refused, counted | created, owner = the item OBJECT's slot |
+| CreateParticle `0x81cf`/0 with the OBJECT as owner (same types; `rand() % 7` gate) | 1 op row shared | refused, counted | created, same owner |
+| CreateSprite / bone sprite with the OBJECT as sprite owner | 275 | routed | unchanged (sprites live one frame; the draw never reads `+0x34c`, part 19) |
+| CreateJoint with the OBJECT as target (`0x22ec`, `0x248f`) | 20 | routed, target −1 | unchanged (kinds `0x7f7c`/0xe, `0x7fd3`/4 belong to the joint lane) |
+
+No other op passes the OBJECT to CreateParticle, and types without a program create nothing. Running the
+library on all 83 types with random skeleton names, rand streams and the frustum flag (scratch tool, 32 states
+per type): `0x2384` makes 3 `0x81cf`/0 and 2 `0x810a`/0x11 requests, `0x2385` 5 and 1 (1,000 states: 129/291 and
+131/292). The other particle requests of the programs are not OBJECT-owned and stay refused for want of a kind:
+`0x7ffd`/0x1b (bow `0x1316`), `0x7f66`/5 (`0x230c`, `0x2496`) and `0x8180`/5 (`0x23ef`, `0x2400`, `0x2405`).
+
+### The two kinds (verified, `validate_render_effects20`)
+
+| Kind | CreateParticle `0x015ae7b0` | MoveParticles `0x01616c80` | RenderParticles `0x0159123f` |
+|---|---|---|---|
+| `0x810a`/0x11 (pin_star03) | `0x015b25a3`: initial LifeTime (+0x4c) 30, LifeTime = it; Scale = `0x011ff622(0.5, 1, 100)` × the argument, kept at +0x1c; alpha 1; rotation `0x011ff622(0, 360, 1)`; position += `0x011ff622(−10, 10, 1)` per axis; velocity = `0x011ff622(−15, 15, 1)` × 0.2 per axis | `0x0161b6ba`: Scale −= initial Scale / initial LifeTime; alpha −= 1 / initial LifeTime (after the common MovePosition along the request's angle) | `0x0159faca`: the record's light × alpha |
+| `0x81cf`/0 (Effect\magic_ground12, subtype 1 shares the case) | `0x0160baa3`: LifeTime 20, initial LifeTime = it, initial Scale = the argument, Scale 0, alpha 1 (no rand) | `0x0168418b`: owner word +0x50 NULL → live 0; else Scale += initial Scale / initial LifeTime; below half the initial LifeTime (`cdq; sub; sar`, toward zero) alpha −= 1 / half | `0x015a5eec`: light × alpha |
+
+What the particles read of their OBJECT owner: only `+0x158`, in the common blocks (create `0x015aeb5e..0x015aebd6`,
+move `0x01616fee..0x01617071`): the record's `+0x54` becomes the owner's x, y with z = RequestTerrainHeight
+`0x016cc9e2`. A Unicorn read hook over the owner OBJECT records exactly bytes `+0x158..+0x163` for both kinds'
+create and move (400 cases); the angle `+0x164`, the bones `+0x318`, the scale and the live/visible bytes are never
+read. Neither kind reads `+0x54` afterwards, and the position does not follow the owner. Both retire by LifeTime
+at MoveParticles' loop head (20 and 30 steps); `0x81cf`/0 also ends at the first step whose owner word is NULL.
+The client's owner is a pointer into the character array (RenderLinkItem's link OBJECT `PART + 0x24`) or the
+ground-item array, so it is never NULL while a wearer or drop exists.
+
+The angle argument both pass is the OBJECT's `+0x164` (op 12). For worn items, RenderLinkItem `0x012bd910` stores
+0.0 into the link OBJECT's `+0x164` at eleven sites before the RenderObjDraw call `0x012c6a83` (the only other
+store is type `0x44f`'s z = WorldTime) and reaches `+0x164` only through the accessors `0x00cfc922`/`0x00cfc94a`
+(static, `link_angle`). For ground items the OBJECT is the drop itself, whose angle is the drop's.
+`0x81cf` is registered at startup (`0x018249a3` in `0x0182049e`: `Effect\magic_ground12.JPG`, GL_LINEAR, GL_CLAMP).
+
+### Native
+
+- `reconstructed/particles/item_owned_kinds.inc` (new): the two kinds, behind one include and the
+  supported/create/move/render hooks of `particles.c`.
+- `mu_world_particles` gains 256 item-owner slots (`mu_world_particles_item_owner`, `_refresh`): an owner index is
+  `0x40000000 + (generation << 8) + slot`; `fx_object` resolves it to a live, visible object at the slot's
+  `+0x158`. The world callers (`world_rt_item_pre`) key the item OBJECT by caller and identity (hero slot,
+  player/actor index × 16 + slot, ground pool index) and refresh its position (the model origin, as part 19) every
+  draw. A slot unrefreshed for 64 steps (longer than either kind lives) may be reused with generation + 1; the old
+  index then resolves to no object. A wearer that leaves keeps its last position, as the client's slot memory does.
+- `mu_renderchar.c` routes op 25 to `mu_world_particles_create_owned` with that index; without a key (the offline
+  `mu-render character`) or with every slot held the request stays refused and counted.
+- `mu_renderchar_env.item_angle` carries the OBJECT's `+0x164` into the pre-draw host: 0 for RenderLinkItem's
+  callers, the drop's angle for ground items (`mu_world_item_draw.angle`, `.index`).
+- The world particle bitmaps gain `0x81cf` (77 slots).
+
+Scenes (native renders, `mu-walk` soft 320×240 Lorencia 128,124 unless said; refused counts are the requests the
+programs could not create):
+
+| Scene | Before (main `f2370871`) | After |
+|---|---|---|
+| CALLERS-001 crowd, 60 frames, players / ground pre_effects / refused | 92 / 2, 18 / 1 | 93 / 0, 18 / 0 (rand 133 → 141: the created `0x810a`/0x11 draws eight) |
+| Same, a frame every 10 | 322 / 5, 108 / 3 | 325 / 0, 113 / 0 |
+| Hero `--hero-item wing=Item/SparkleCape.bmd` (`0x2384`), every 10 | 70 / 3 | 74 / 0 |
+| GL `mu-world` 640×400 crowd, 41 frames, every 5 | 414 / 9, 144 / 4 | 417 / 5, 146 / 0 (the 5 left are bow `0x1316`'s `0x7ffd`/0x1b, not OBJECT-owned) |
+
+### Limits
+
+- A slot reused after its hold resolves to no object; the client would read the reused memory. No item-owned
+  particle lives long enough to see it.
+- `mu-render character` has no item OBJECT registry: its OBJECT-owned requests stay refused.
+- The link OBJECT's `+0x164` before RenderLinkItem's first store, and stores outside RenderLinkItem, were not traced;
+  all stores found write 0.
+- Player-model actors are wired like players, but no installed actor wears `0x2384`/`0x2385`.
+- Ground items now pass their angle to every pre-draw program that reads op 12 (`0x1316`, `0x22ec`, `0x230c`,
+  `0x23ef`, `0x2400`, `0x2405`, `0x248f`, `0x2496` and the two cloaks); none of them is dropped in the scenes above.
