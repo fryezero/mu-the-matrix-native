@@ -231,6 +231,8 @@ int main(int argc, char **argv)
             printf("]}\n");
         } else if (!strcmp(op, "mixact") && i+3<argc) {
             printf("mixact %s %d\n",a,mu_gfx_layer_mix_action(L,a,atoi(argv[i+2]),atoi(argv[i+3])));i+=3;
+        } else if (!strcmp(op, "setdur") && i+2<argc) {
+            printf("{\"set_durability\":%d}\n",mu_gfx_layer_set_item_durability(L,atoi(a),atoi(argv[i+2])));i+=2;
         } else if (!strcmp(op, "additem") && i+4<argc) {
             printf("added %d\n",mu_gfx_layer_add_item(L,atoi(a),atoi(argv[i+2]),atoi(argv[i+3]),atoi(argv[i+4]),"Demo item"));i+=4;
         } else if (!strcmp(op, "mixstate")) {

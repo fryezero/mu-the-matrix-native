@@ -348,7 +348,8 @@ menu (exit, select server, switch character), and a character that dies respawns
 ### 80 players on screen
 
 Eighty offline demo players in Lorencia and Tormenta Island, with varied classes, armour, weapons and wings.
-The HUD and names use synthetic demo values.
+Names are synthetic. The HUD shows the offline session's vitals: the recorded level-1 Dark Knight join,
+HP 1100/1100, MP 200/200, SD 52/52 and AG 25/25.
 
 <p align="center"><img src="docs/images/26-80-players-lorencia.jpg" alt="Eighty demo players with textured armour, weapons and varied wings in native Lorencia" width="900"></p>
 
