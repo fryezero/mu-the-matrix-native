@@ -2275,6 +2275,12 @@ base), all 1,691 survey types × 32 states (OBJECT hidden -1/0/1/2) × with/with
 non-zero counter: **216,448 cases**; 215,576 identical. At counter 0 only `0x0f2a` differs (admitted); with a counter
 exactly the 52 counter types differ.
 
+The table now writes only the used op/k slots of each scalar row (C zero-fills the rest): with `CLOCK_OPS` 12 the
+fully written rows exceeded the audit's 512 KiB limit; compact, `item_bodies.h` is 486,681 bytes (main: 521,715), and
+the compiled library is identical over the same 216,448 cases. `validate_item_scalars`/`validate_item_chains` parse
+two-digit op counts now; their case counts grow by the counter programs (26,154 → 26,274, 35,346 → 35,406), all
+mutants caught. The affected rows ran without mutants on the final code (handoff).
+
 Counter scan (client against client, scratch): 1,691 types × 4 states × counters 7/13/22, then × 12 states × counters
 1/0x80000000: 58 counter types in the union, none outside `FRAME_TYPES` plus the six not admitted.
 
