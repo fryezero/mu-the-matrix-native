@@ -240,6 +240,26 @@ class WorldRender(unittest.TestCase):
         bow,_=self.render('--weapon','0',path,'--item-type','weapon0=0x1311','--world-time','0')
         self.assertEqual((bow['special'],bow['pre_effects'],bow['pre_refused']),(0,0,1))
 
+    def test_wing_joint_and_random_bone_programs(self):
+        """RENDER-ITEMS-002S: wing 0x22ec's case creates twenty CreateJoint requests (0x7f7c/0xe, 0x7fd3/4) along
+        its own bones; the native joint pool does not reconstruct those kinds, so they are routed and counted as
+        refused, while its sprites are created. Wing 0x23ef places sprites at bones rand() % bone count (always
+        inside the skeleton) and at constant bones up to 50: on 64 bones nothing is refused, on 40 the two
+        requests at bones 44 and 50 are."""
+        path=self.tmp/'pre-fx-wing.bmd'
+        path.write_bytes(nf.character_layout(114,bones=64,meshes=2))
+        joint,_=self.render('--wing',path,'--item-type','wing=0x22ec','--world-time','0')
+        self.assertEqual(joint['special'],0)
+        self.assertEqual(joint['pre_refused'],20)
+        self.assertGreater(joint['pre_effects'],0)
+        spread,_=self.render('--wing',path,'--item-type','wing=0x23ef','--world-time','0')
+        self.assertEqual((spread['special'],spread['pre_refused']),(0,0))
+        self.assertGreater(spread['pre_effects'],0)
+        short=self.tmp/'pre-fx-wing-40.bmd'
+        short.write_bytes(nf.character_layout(114,bones=40,meshes=2))
+        cut,_=self.render('--wing',short,'--item-type','wing=0x23ef','--world-time','0')
+        self.assertEqual((cut['special'],cut['pre_refused'],cut['pre_effects']),(0,2,spread['pre_effects']-2))
+
     def test_ranked_body_and_nine_bone_shield_use_shared_draws(self):
         path = self.tmp/'ranked-armour.bmd'
         path.write_bytes(nf.character_layout(113,bones=50,meshes=6,dummies=(9,21)))
