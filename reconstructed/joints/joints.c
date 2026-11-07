@@ -30,6 +30,7 @@ static float f32bits(uint32_t bits)
 #define F_0_028 f32bits(0x3ce56042u) /* 0x01acd96c */
 #define F_1_2 f32bits(0x3f99999au)   /* 0x01a7e6e4 */
 #define F_0_04 f32bits(0x3d23d70au)  /* 0x01a7ed94 */
+#define F_0_3 f32bits(0x3e99999au)   /* 0x01a7e6e0 */
 
 static int32_t jrand(const mu_jt_env *env)
 {
@@ -113,9 +114,13 @@ static void normalize3(float v[3])
 
 #include "bow_joints.inc"
 
+/* RENDER-ITEMS-002U: wing_joints.inc (included after the MoveJoint helpers) */
+static int wing_joint_kind(int32_t type, int32_t subtype);
+static void create_wing_streak(mu_jt_joint *j, float scale, const float target_position[3]);
+
 int mu_jt_kind_supported(int32_t type, int32_t subtype)
 {
-    if (bow_joint_kind(type, subtype)) return 1;
+    if (bow_joint_kind(type, subtype) || wing_joint_kind(type, subtype)) return 1;
     switch (type) {
     case 0x472: return subtype == 1;
     case MU_JT_BITMAP_ENERGY:
@@ -325,6 +330,11 @@ int mu_jt_create(mu_jt_joint *j, int32_t type, const float position[3], const fl
         j->velocity = 0.0f;
         break;
     case MU_JT_BITMAP_SPIRIT:
+        if (subtype == 4) {   /* RENDER-ITEMS-002U: 0x01540809 (render type 3), subtype 4: 0x01540b34 */
+            j->render_type = 3;
+            create_wing_streak(j, scale, target_position);
+            break;
+        }
         if (subtype != 0)
             break;
         /* 0x01540809, subtype 0: 0x01540836 */
@@ -356,6 +366,10 @@ int mu_jt_create(mu_jt_joint *j, int32_t type, const float position[3], const fl
         if (!supported) break;
         j->scale=scale; j->max_tails=50;
         j->velocity=50.0f;   /* 0x01543f1a */
+        if (subtype == 0xe) {   /* RENDER-ITEMS-002U, 0x01544f3d */
+            create_wing_streak(j, scale, target_position);
+            break;
+        }
         if (subtype == 0x12) {   /* RENDER-JOINTS-001, 0x01545672 */
             j->velocity = 80.0f;
             j->max_tails = 5;
@@ -699,6 +713,7 @@ static void move_ring(mu_jt_joint *j, const mu_jt_env *env)
 
 #include "icarus_joints.inc"
 #include "kanturu_joints.inc"
+#include "wing_joints.inc"
 
 int mu_jt_move(mu_jt_joint *j, const mu_jt_env *env, const mu_jt_move_inputs *in)
 {
@@ -772,6 +787,8 @@ int mu_jt_move(mu_jt_joint *j, const mu_jt_env *env, const mu_jt_move_inputs *in
         break;
     }
     case MU_JT_BITMAP_SPIRIT: {
+        if (j->subtype == 4)
+            break;   /* RENDER-ITEMS-002U: no case (0x01568ebe) */
         /* 0x01561038, subtype 0: 0x0156105e */
         if (j->scale == 80.0f) {
             /* the wide spirit leaves a Laser01 (0x421) effect each step */
@@ -939,6 +956,8 @@ int mu_jt_move(mu_jt_joint *j, const mu_jt_env *env, const mu_jt_move_inputs *in
     case MU_JT_BITMAP_THUNDER:
         if (j->subtype == 0x12)
             move_thunder_arc(j, env);
+        else if (j->subtype == 0xe)
+            move_wing_streak(j, env);   /* RENDER-ITEMS-002U */
         else
             move_icarus_swirl(j, env);
         break;
