@@ -1,4 +1,4 @@
-# Test budget: what runs when (TEST-SPEED-001 / 002 / 003 / 004)
+# Test budget: what runs when (TEST-SPEED-001 / 002 / 003 / 004 / 005)
 
 The owner asked for agents' finish phase to run only the checks a change needs. The policy is the brief's
 "TEST BUDGET" section (2026-11-04); this page is the tooling that applies it and the measured effect.
@@ -34,10 +34,16 @@ fi
 ```
 
 The audit is required when files were added or renamed. Since TEST-SPEED-004 the selection is each row's derived
-inputs (below), so **run what `--affected origin/main` selects and trust it**: no hand-picking with `make -n -W`,
-no adding "nearby" rows, no dropping rows by reading scripts. `Steward validators:` in the PR is exactly the
-selected list (`--list-affected origin/main` prints it with a reason per row), with the commit you ran it at.
-The list ends with the rows that use the conservative fallback, if any; they are selected for every code change.
+inputs, and since TEST-SPEED-005 a C change inside a library a row only builds counts only if the row names a
+changed exported symbol (below). So **run what `--affected origin/main` selects and trust it**: no hand-picking
+with `make -n -W`, no adding "nearby" rows, no dropping rows by reading scripts or by grepping for the changed
+functions. Run `--list-affected` **after** `make` (the symbol analysis compiles the build's units to IR, and
+native units need the generated `native/build/gen` headers; without them they are a reported fallback).
+`Steward validators:` in the PR is exactly the selected list (`--list-affected origin/main` prints it with a
+reason per row), with the commit you ran it at. The listing ends with the rows kept by the symbol-level
+fallback (a change it cannot attribute to functions: global data, a unit that does not compile, a new
+duplicate or unresolved symbol, an unbounded symbol lookup), the rows it dropped because they use no changed
+symbol, and the rows on the input-level conservative fallback, if any. Kept rows are part of the list.
 Brief 6b (consumers of a changed constant, struct field or table size) is covered for validator rows by the
 compiled inputs (the header is an input of every target that includes it); for unit tests keep 6b. Include any
 required installed-data test separately with its private environment; portable unit selection alone does not
@@ -615,3 +621,168 @@ the next step, not this one.
   it sees nothing. Imports no search path resolves fall back to every repository module of that name.
 - A name rebound in the same function with an unknown value (icarus_c2's `folder = file.split('/')[0]`) makes
   its paths patterns (`reconstructed/*`). That is conservative, not exact.
+
+## TEST-SPEED-005: symbol-level use of shared libraries
+
+[Handoff](../handoffs/TEST-SPEED-005.md), [replay spec](test-speed-005-spec.json),
+[replay result: every case's lists, first reason per row (trimmed), symbol fallback and pruned rows](test-speed-005-selection.json).
+
+The first real uses of TEST-SPEED-004 over-selected through shared libraries. Batch 55: `--list-affected-since
+121f24f7` picked all 31 rows of #316 where the steward's make/include/symbol analysis needed 12. Every row that
+loads `libclient_particles` was flagged because `particles.c` changed, although #313 only added effect cases and
+those rows call only `mu_pt_transform_position` and `mu_pt_rand`. validate_item_hiddenmesh was flagged because an
+imported module names libcombat as an argparse default inside its `main()`. RENDER-WORLDS-SLOTS3 (#319): about
+70 rows through the shared library; the lane ran 5. The steward and the lanes dropped rows by hand, by reading
+which functions the scripts call. That reading is now the tool (`scripts/affected_symbols.py`).
+
+**A C source or header that is an input only because a make target the row builds compiles it** (no other
+route names it: not a Python-compiled copy outside mutant code, not a quoted name, directory, glob or `-I` use)
+**selects the row only if the row names an exported symbol of that target that the diff changed.**
+
+- **Changed symbols** (`affected_symbols.analyze`, per linked artifact of the target's `make -nB` dry run).
+  Every unit the artifact links is compiled to LLVM IR twice with the dry run's own flags
+  (`-S -emit-llvm -O0 -g0 -w`): on the working tree, and on the base commit through a clang VFS overlay that
+  serves the base content of each changed file. Units whose `-MM` inputs contain no changed file are compiled
+  once. Each function and global is a node with a fingerprint: its IR without metadata, attribute groups and
+  comments, with anonymous constants (`.str.N`, `__const.f.v`, function-local statics) replaced by their content,
+  plus the layout of every struct type it mentions. Edges are the symbols a node references (calls,
+  address-taken functions, tables), resolved inside the artifact. An export is changed when a changed node is
+  reachable from it: a changed static or inline callee counts for every export that calls it, a changed
+  constant table for the functions that read it, a struct layout change for every function touching the
+  struct (directly or through callees). `main` and constructors are reachable from every user: an executable
+  run by the row is selected when its `main` reaches the change.
+- **Global data counts for every user**: a changed, added or removed mutable global (a file-scope or
+  function-local static, or an exported variable) selects every row of the target, as a symbol fallback.
+- **The link**: a strong definition that appears twice in an artifact where it did not before (steward batch 2's
+  duplicate `mu_swamp_*`, #260), or a new reference that neither the artifact nor libSystem defines, selects
+  every row. So does a unit that does not compile to IR on either side, a dry run the analysis cannot map
+  (prebuilt objects or archives, repository libraries on the link line, `-undefined`/`-flat_namespace`, shell
+  globs in a link), and a target without a dry run.
+- **Symbols a row uses** (Python closure): every identifier and attribute, every word of a string or bytes
+  constant (C text written from Python, `dlsym` names, `argtypes` tables), and every name a string-building
+  expression can produce (`'mu_' + name`, f-strings, `%`, `.format`). An unknown part of a built name can only
+  be filled with the code's own word pieces (split at `_` and digits, any case): `'mu_' + name` over a dict of
+  bodies reaches `mu_acheron_create`, but not `mu_obj_visual_flicker` unless "obj", "visual" and "flicker" all
+  occur in the row's code. A `getattr`/`hasattr`/`in_dll` whose name is built right there from parts that
+  cannot be bounded (`getattr(lib, a + b)`) makes the row use every export (symbol fallback, reported per row:
+  validate_worlds_r2 today). A lookup by a plain variable takes a name the program holds as a string (counted
+  where it is written or built) or reads from data (not visible, the same limit as a path read from a file).
+- **Mutant-only code** (functions named `*mutant*`/`*mutation*`, `if args.mutations:` blocks): mutant builds
+  compile copies of the same sources with a planted change and the row calls the same symbols on them. Their
+  path uses are still inputs (reported as `mutant build: ...`), but they do not stop the pruning of a file a
+  make target of the row compiles, unless the link structure changed (a new unit, or a unit newly calling into
+  another one: hand-written mutant source lists might no longer link), which is a symbol fallback.
+- **`main()`-only code of an imported module** (inside a module-level `def main` or
+  `if __name__ == '__main__':`) is not an input of a row that never calls that `main`: its path uses, call sites
+  and names are left out. A module run as a program (the row's script, a script it runs or loads by path) and a
+  module whose `main` some closure module calls or references (`m.main`, `from m import main`) keep it.
+  validate_item_hiddenmesh no longer builds libcombat through validate_combat's `--library` default.
+- **Globs skip unit tests and docs** like directories do: `reconstructed/particles/*` (a computed path) no
+  longer matches `test_particles.py` or `README.md`; a pattern that names them (`tests/test_*.py`) still does.
+  A path joined with an unknown name and handed to a library loader (`ctypes.CDLL(str(ROOT / directory /
+  target))`) uses the libraries that directory's Makefile builds, not every file in it.
+
+`run_validators.affected_rows(..., symbols=True)` (both runners' `--affected`/`--affected-since` for validator
+rows) applies this; `symbols=False` gives the TEST-SPEED-004 input-level answer, which test_test_budget keeps
+testing. Suites (`run_test_suites.py --affected`) keep the input-level selection: the native test hosts compile
+their own C, and the steward keeps the full gate. The analysis runs only for a row nothing else selects, so a
+row already selected through Python or a non-library route costs nothing extra; analyses are cached per target
+and per unit in the process (batch 55's 31 rows: 18.9 s, against 16.1 s with TEST-SPEED-004).
+
+### Replay of #295–#320
+
+`scripts/replay_affected.py docs/testing/test-speed-005-spec.json` (82 min, nice 10, load 7–19) runs the
+TEST-SPEED-004 selector (main `3ecc205c`) and this one in fresh processes on each historical tree, as
+TEST-SPEED-004's replay did; it now also generates `native/build/gen` in each tree (Python generators only) so
+native units compile to IR as after a lane's `make`. Lane cases: the PR head against the main it merged into,
+all rows. Steward cases: the merged commit against each lane-tested commit (PR bodies, steward log batches
+32–58), limited to the PR's `Steward validators:` rows. "Measured s" is the serial sum of the rows' recorded
+no-mutant walls (TEST-SPEED-004's weights); rows without one add nothing.
+
+| PR | Lane `--affected`: rows TEST-SPEED-004 → 005 (measured s) | Steward `--affected-since`: rows 004 → 005 | Steward ran | Misses | Symbol fallback rows (005) |
+|---|---|---|---|---|---|
+| #295 | 42 → **33** (4,935 → 4,551) | 15 → **2** of 27 | 2 | 0 | 1: movement |
+| #296 | 51 → **37** (914 → 809) | 26 → **25** of 31 | 1 | 0 (steward ran, not selected: render_effects12) | 13 |
+| #297 | 22 → **22** (4,278 → 4,278) | 0 → **0** of 13 | 0 | 0 | 0 |
+| #298 | 24 → **24** (687 → 687) | 0 → **0** of 3 | 3 | 0 (steward ran, not selected: app_polish1, app_polish2, gfx3) | 0 |
+| #299 | 16 → **16** (736 → 736) | 1 → **1** of 1 | 2 | 0 (steward ran, not selected: worlds_after6) | 0 |
+| #300 | 65 → **42** (5,162 → 875) | 27 → **27** of 45 | 11 | 0 | 1: movement |
+| #301 | 52 → **52** (908 → 908); lane ran 11, all selected | 0 → **0** of 11 | 0 | 0 | 0 |
+| #302 | 54 → **54** (927 → 927); lane ran 10, all selected | 0 → **0** of 10 | 0 | 0 | 0 |
+| #303 | 55 → **55** (927 → 927); lane ran 8, all selected | 1 → **1** of 8 | 1 | 0 | 0 |
+| #304 | 0 → **0** (0 → 0) | 0 → **0** of 183 | 0 | 0 | 0 |
+| #305 | 1 → **0** (19 → 0) | 0 → **0** of 183 | 0 | 0 | 0 |
+| #306 | 67 → **43** (5,162 → 875) | 26 → **26** of 61 | 26 | 0 | 1: movement |
+| #307 | 38 → **30** (704 → 321); lane ran 4, all selected | 2 → **1** of 4 | 1 | 0 | 1: movement |
+| #308 | 58 → **50** (960 → 855); lane ran 6, all selected | 0 → **0** of 6 | 0 | 0 | 2: movement, worlds_g2 |
+| #309 | 52 → **30** (897 → 432) | 17 → **1** of 32 | 1 | 0 | 1: movement |
+| #310 | 43 → **34** (4,916 → 4,532) | 9 → **7** of 25 | 7 | 0 | 1: movement |
+| #311 | 56 → **48** (908 → 803) | 5 → **1** of 6 | 0 | 0 | 27 |
+| #312 | 0 → **0** (0 → 0) | — | — | 0 | 0 |
+| #313 | 73 → **41** (5,195 → 542) | 19 → **15** of 44 | 18 | validate_audio_charsel, validate_audio_combat, validate_viewport_monsters (steward ran, not selected: audio_charsel, audio_combat, viewport_monsters) | 4: audio_combat, movement, render_worlds_a, worlds_d |
+| #314 | 34 → **34** (669 → 669) | 0 → **0** of 2 | 0 | 0 | 0 |
+| #315 | 0 → **0** (0 → 0) | — | — | 0 | 0 |
+| #316 | 48 → **39** (4,967 → 4,583) | 31 → **12** of 31 | 12 | 0 | 1: movement |
+| #317 | 0 → **0** (0 → 0) | — | — | 0 | 0 |
+| #318 | 0 → **0** (0 → 0) | — | — | 0 | 0 |
+| #319 | 96 → **54** (5,197 → 836); lane ran 5, all selected | 0 → **0** of 5 | 0 | 0 | 2: movement, worlds_r2 |
+| #320 | 9 → **9** (85 → 85) | 6 → **6** of 9 | 6 | 0 | 0 |
+| **Sum** | 956 → **747** (49,153 → 29,231) | 185 → **125** | 91 | | |
+
+| Recorded failure | Case | Must select | Rows 004 → 005 | Suites 004 → 005 | Caught |
+|---|---|---|---|---|---|
+| #287 | lane `724ad10a` | test_native_worlds_l.py, test_native_worlds_m.py | 61 → 40 | 156 → 156 | yes |
+| #282 | lane `852261fe` | validate_renderchar, renderchar, test_native_item_textures.py | 38 → 34 | 153 → 153 | yes |
+| #283 | lane `e4fefcf2` | test_native_particles.py | 59 → 43 | 154 → 154 | yes |
+| #280 | lane `39561c9f` | test_native_audio.py | 31 → 31 | 152 → 152 | yes |
+| #260 | since `72077f1a` | validate_worlds_q, validate_worlds_r2 | 72 → 69 | — | yes |
+
+**Lane: 956 → 747 rows, measured 49,153 → 29,231 s. Steward: 185 → 125 rows.** The shared-library PRs dropped
+the most: #313 73 → 41 (5,195 → 542 s), #300 and #306 65/67 → 42/43 (5,162 → 875 s: the item rows no longer
+follow every particles change), #319 96 → 54, #309 52 → 30; steward #309 17 → 1, #316 31 → 12 (exactly the
+steward's 12), #295 15 → 2, #311 5 → 1. Every lane-ran row is still selected (#301, #302, #303, #307, #308,
+#319).
+
+**Misses against recorded failures and the steward's needed rows: zero**, with one case to read:
+
+- #287 (worlds_l/m host asserts after `MU_WORLD_PT_BITMAPS` grew), #282, #283, #280: the suites are unchanged
+  (suites keep the input-level selection) and all four are still caught. #260's duplicate `mu_swamp_*`:
+  validate_worlds_q and worlds_r2 are selected through the link check.
+- #313: the steward ran 18 rows on make-level grounds (`make -n -W core/mu_objects_runtime.c` rebuilds
+  libmunative.a). Three of them (audio_charsel, audio_combat, viewport_monsters) are not selected now. Checked
+  at the merged tree `9e1a0ce6`: none of the 6 / 43 / 16 libmunative exports they use (Python names plus the
+  hosts they compile; viewport_monsters.c is itself an archive member) reaches a changed function. #313's
+  changes are the slot classes, login/charsel object frames and `mu_obj_visual_flicker`. The other 15 are
+  selected. These are rows a make-level rule needed and a symbol-level rule does not; they are recorded in the
+  spec's `must_rows` and listed here rather than hidden.
+- Not selected by either selector, as in TEST-SPEED-004: #296 render_effects12, #298 polish1/2/gfx3, #299
+  worlds_after6 (inputs unchanged since the tested commit; see the TEST-SPEED-004 notes).
+
+**Symbol fallback rows** are listed per case in the JSON. Almost all come from one native link line,
+`build/mu-shell` (in the native default goal: validate_movement in most cases, 25 rows at #296), which links
+`build/shell/*.o` through a shell glob the analysis does not expand; then mutant copies after a new unit
+(#311's `world_slots2_visual.c`: 26 rows; #308, #313), global data (#260: librenderchar), one C host that does
+not compile without its build flags (#313 mu_image.c) and validate_worlds_r2's unbounded lookup. Expanding
+shell globs against the dry run's objects is the next cheap step.
+
+**Suites** change only through the `main()`-only rule and the glob rule: `test_render_time_live.py` no longer
+follows `render_time.main`'s `--binary` default (`native/build/mu-world`; the test runs render_time_live,
+which never calls render_time.main), and test_native_social / test_native_icarus no longer select on other
+`test_*.py` files through computed `native/*` / `reconstructed/*` paths. 17 lane cases lose one suite.
+
+### Limits
+
+- **Built headers.** Native units include generated headers (`native/build/gen`). Run the selection after
+  `make`; in an unbuilt tree those units do not compile to IR and their targets are a symbol fallback (the
+  replay generates `build/gen` with the Python generators, nothing compiled).
+- **Shell globs in link lines** (`build/shell/*.o`) are not expanded: those targets are a symbol fallback.
+- **Python imports stay whole-module.** A changed harness module (`scripts/validate_particles.py` in #319)
+  selects every row importing it; function-level Python pruning is not part of this.
+- **C that loads libraries at run time**: `dlopen`/`dlsym` from repository C reach only external libraries
+  today (libmugfx); a repository library loaded that way by another target's code would need its loader's
+  strings as roots.
+- **Names from data**: a symbol name read from a file or the environment and looked up through a plain
+  variable is not visible (as for data paths).
+- **Mutant anchors**: a mutant run asserts that its text anchor occurs once. An edit elsewhere in a source can
+  duplicate an anchor (RENDER-EFFECTS-017's `mark_abs` ×3). That breaks only mutant runs, which are chosen by
+  hand per brief item 2, never by `--affected` (which runs `--no-mutants`).
