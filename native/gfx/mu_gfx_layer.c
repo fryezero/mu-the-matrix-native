@@ -1256,6 +1256,14 @@ int mu_gfx_layer_add_item(mu_gfx_layer *L, int32_t code, int32_t level, int32_t 
     return index;
 }
 
+int mu_gfx_layer_set_item_durability(mu_gfx_layer *L, int index, int32_t durability)
+{
+    if (!L || index < 0 || index >= L->nitems || L->items[index].grid.code < 0 || durability < 0 || durability > 255)
+        return 0;
+    L->items[index].durability = durability;
+    return 1;
+}
+
 int mu_gfx_layer_add_slot_item(mu_gfx_layer *L, const mu_gfx_slot_item *src) {
     if (!src)
         return -1;

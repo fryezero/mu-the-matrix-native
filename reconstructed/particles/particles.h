@@ -454,6 +454,9 @@ typedef struct mu_pt_visual_host {
     /* NATIVE-JOINT-001: TransformPosition(BoneTransform 0x06fce398 + 0x30 * bone, in, out, 0) (Dungeon) */
     void (*bone_index_position)(void *context, const mu_pt_visual_object *o, int32_t bone, const float in[3],
                                 float out[3]);
+    /* RENDER-WORLDS-SLOTS3: the rand() 0x017f9797 drew for this object before the world switch. The caller draws
+     * it (the object runtime, in every world); the visual only reads l = (r % 30 + 70) * 0.01 from it. */
+    int32_t outer_rand;
 } mu_pt_visual_host;
 
 /* RenderObjectVisual 0x017f9758 for worlds 0 (Lorencia) and 0x8d (Tormenta
@@ -475,7 +478,8 @@ typedef struct mu_pt_visual_host {
  *     rand % 32 == 0, and at light07 on rand % 8 == 0 eight spark joints
  *     0x7fd5 with Spark02 particles (angle (rand % 60 + 60, 140, rand % 30)).
  * In Lorencia:
- *   - every object with a model draws one rand(): l = (rand % 30 + 70) * 0.01;
+ *   - every object with a model has l = (outer_rand % 30 + 70) * 0.01, from the rand() the caller drew at
+ *     0x017f9797 (host->outer_rand, RENDER-WORLDS-SLOTS3: no draw here);
  *   - Waterspout01 (0x69): BlendMeshLight 1, v scroll; on rand % 2 == 0 two
  *     smoke01 particles (subtype 0, the object's light and angle) at bone Box04
  *     + (rand%32-16, -20, rand%32-16) and Box03 + (rand%32-16, -80, rand%32-16);
@@ -484,7 +488,8 @@ typedef struct mu_pt_visual_host {
  *     transforms an uninitialised local there (a reading of stack residue);
  *     the C passes (0, 0, 0), the bone's origin.
  * Tormenta: types 2..5, 9 and 0xbf..0xc5 create a joint 0x7f7d (or, type 9,
- * the effect 0x40e) on rand % 50 == 0 (the light is set first). */
+ * the effect 0x40e) on rand % 50 == 0 (the light is set first).
+ * The routine draws only the branches' own rand() calls, after the caller's outer draw. */
 int mu_pt_object_visual(mu_pt_visual_object *o, const mu_pt_visual_host *host);
 
 /* ------------------------------------------------------------------------

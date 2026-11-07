@@ -117,6 +117,8 @@ typedef struct mu_objects_runtime {
     mu_obj_world world;               /* sector lists in creation order */
     uint8_t model_fields[MU_MDL_SIZE];
     uint32_t seed;                    /* MSVC rand state (the client's rand() is shared; seed 1 here) */
+    int32_t visual_outer_rand;        /* RENDER-WORLDS-SLOTS3: the last rand() drawn for 0x017f9797 (the particle
+                                         visual's l reads it) */
     int32_t render_counter;           /* 0x06fc9c90 */
     mu_obj_event *events;
     int32_t event_capacity;

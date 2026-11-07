@@ -148,6 +148,13 @@ static int lang_skills(const mu_lang *lang, mu_gfx_skill *out, int max)
     return n;
 }
 
+/* A new item instance's durability as the item constructor (0x00ccc5b0) sets it: the maximum, a stackable item
+ * being a stack of one. */
+static uint8_t full_durability(const mu_item *it, int32_t level)
+{
+    return it->attributes.max_stack ? 1 : mu_item_max_durability_at(it, level, 0, 0);
+}
+
 static int64_t client_price(world_gfx *g, int32_t code, int32_t level, int gold_type);
 
 static int contextual_price_line(world_gfx *g, int32_t code, int32_t level, int context, int can_sell,
@@ -260,7 +267,7 @@ static int64_t client_price(world_gfx *g, int32_t code, int32_t level, int gold_
     item.code = code;
     item.level = level < 0 ? 0 : level > 15 ? 15 : level;
     item.max_durability = mu_item_max_durability_at(&it, item.level, 0, 0);
-    item.durability = it.attributes.max_stack ? 1 : item.max_durability;   /* a stack of one */
+    item.durability = full_durability(&it, item.level);
     mu_price_state st;
     memset(&st, 0, sizeof st);
     st.world = g->world;
@@ -387,7 +394,7 @@ static int tooltip_packet(void *user, const uint8_t bytes[15], int context, char
 }
 
 /* Demo inventory (layer choice): a weapon, armour pieces, potions and a ring;
- * sizes and names from Item.bmd when the game root has it. */
+ * sizes, names and full durability (APP-POLISH-006) from Item.bmd when the game root has it. */
 static void demo_items(world_gfx *g)
 {
     static const int32_t ITEMS[][2] = {{0 * 512 + 5, 9}, {7 * 512 + 1, 7}, {8 * 512 + 1, 11}, {9 * 512 + 1, 7},
@@ -396,6 +403,7 @@ static void demo_items(world_gfx *g)
     for (size_t i = 0; i < sizeof ITEMS / sizeof ITEMS[0]; i++) {
         int32_t code = ITEMS[i][0], level = ITEMS[i][1];
         uint8_t w = 1, h = 2;
+        int32_t durability = -1;
         char name[96];
         snprintf(name, sizeof name, "Item %d", (int)code);
         if (g->scratch && g->tables.have_items) {
@@ -405,9 +413,13 @@ static void demo_items(world_gfx *g)
                 w = g->scratch->items[k].grid.width;
                 h = g->scratch->items[k].grid.height;
                 snprintf(name, sizeof name, "%s", g->scratch->items[k].name);
+                if (g->scratch->items[k].has_record)
+                    durability = full_durability(&g->scratch->items[k].record, level);
             }
         }
-        mu_gfx_layer_add_item(g->layer, code, level, w, h, name);
+        int index = mu_gfx_layer_add_item(g->layer, code, level, w, h, name);
+        if (index >= 0 && durability >= 0)
+            mu_gfx_layer_set_item_durability(g->layer, index, durability);
     }
 }
 
