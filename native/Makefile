@@ -116,6 +116,9 @@ RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.
 # RENDER-EFFECTS-008: the map-object effect table and its attach 0x0183067e
 CORE_SRC += core/mu_map_effects.c
 RECON_SRC += $(RECON)/objects/map_effects.c
+# RENDER-EFFECTS-018: the Muun effect table, its slot consumers 0x009af699/0x0114203d and the update 0x0129f671
+CORE_SRC += core/mu_muun_effects.c
+RECON_SRC += $(RECON)/objects/muun_effects.c
 # RENDER-WORLDS-AFTER5: the object action registry 0x01ec7d5c and its MapObjectAnimationInfo rows
 CORE_SRC += core/mu_objects_anim.c
 RECON_SRC += $(RECON)/objects/action_registry.c
@@ -231,7 +234,7 @@ WORLD_RT_SRC := world/world_rt.c world/input.c world/parts/terrain.c world/parts
                 world/parts/haze.c world/parts/map.c world/parts/gfx.c world/parts/skills.c world/parts/marker.c
 WORLD_RT_HDR := world/mu_world_rt.h world/world_rt_internal.h world/world_part.h world/parts.def viewer/gl_batch.h
 WORLD_RT_SRC += world/input_keys.c
-WORLD_RT_HDR += world/input_keys.h world/input_sdl.h world/time_series.h
+WORLD_RT_HDR += world/input_keys.h world/input_sdl.h world/time_series.h world/world_item_pre.h
 WORLD_RT_HDR += fixture/skills_demo.h
 WORLD_RT_OBJ := $(patsubst world/%.c,$(BUILD)/world-rt/%.o,$(WORLD_RT_SRC))
 WORLD_RT_GL_OBJ := $(patsubst world/%.c,$(BUILD)/world-rt-gl/%.o,$(WORLD_RT_SRC))
@@ -776,6 +779,10 @@ $(BUILD)/render-effects6-host: tests/render_effects6_host.c $(LIB) $(HEADERS)
 $(BUILD)/map-effects-host: tests/map_effects_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/map-effects-host.o
 	$(CXX) $(BUILD)/map-effects-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+# RENDER-EFFECTS-018: the Muun effect table host
+$(BUILD)/muun-effects-host: tests/muun_effects_host.c $(LIB) $(HEADERS)
+	$(CC) $(CFLAGS) -c $< -o $(BUILD)/muun-effects-host.o
+	$(CXX) $(BUILD)/muun-effects-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
 
 $(BUILD)/worlds-s-host: tests/worlds_s_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-s-host.o

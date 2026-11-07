@@ -290,13 +290,13 @@ static int draw_item(const mu_model *model, const mu_renderchar_glow *glow, cons
                              NULL, NULL, NULL, 0, {0.0f, 0.0f, 0.0f}};
     /* RENDER-ITEMS-002R: RenderObjDraw's own case creates effects before the body draws. They need the
      * particle pools; without the item's pose every item-bone request is refused (rand order is kept). The
-     * TestFrustrum2D flag is 1: a drawn item is in view (viewer choice; the client tests the 2D frustum). */
+     * TestFrustrum2D flag comes from the caller (RENDER-ITEMS-CALLERS-001; default in view). */
     const int pre = env->particles && mu_rc_item_pre_fx(glow->type);
     if (pre) {
         host.bone_named = item_bone_named;
         host.item_transform = item_transform;
         host.refuse = item_refuse;
-        host.visible = 1;
+        host.visible = !env->item_out_of_view;
         /* RENDER-ITEMS-002S: OBJECT +0x158. The native item has no OBJECT of its own; its model origin stands in. */
         memcpy(host.position, model->params.origin, sizeof host.position);
         if (!owner)

@@ -284,6 +284,7 @@ static void check(const mu_sfx_env *env, mu_sfx_effect *e, int32_t routine);
 #include "arrow_fx.inc"
 #include "pet_fx.inc"
 #include "bow_fx.inc"   /* RENDER-EFFECTS-011 */
+#include "uruk_fx.inc"  /* RENDER-EFFECTS-018 */
 
 static int effect_supported(int32_t type, int32_t sub)
 {
@@ -295,6 +296,8 @@ static int effect_supported(int32_t type, int32_t sub)
         return 1;   /* RENDER-EFFECTS-007: Rudolph's 0x3fa */
     if (bow_effect_kind(type, sub))
         return 1;   /* RENDER-EFFECTS-011 */
+    if (uruk_effect_kind(type, sub))
+        return 1;   /* RENDER-EFFECTS-018 */
     switch (type) {
     case MU_SFX_MODEL_FIRE: return sub == 0 || sub == 1;
     case MU_SFX_MODEL_ICE: case MU_SFX_MODEL_POISON: case MU_SFX_MODEL_ICE_DEBRIS: case MU_SFX_MODEL_WAVE: return sub == 0;
@@ -432,6 +435,8 @@ int mu_sfx_effect_create(mu_sfx_effect *e, int32_t type, int32_t subtype, const 
         return pet_effect_create(e, env);   /* RENDER-EFFECTS-007 */
     if (bow_effect_kind(type, subtype))
         return bow_effect_create(e, angle, scale, info, env);   /* RENDER-EFFECTS-011 */
+    if (uruk_effect_kind(type, subtype))
+        return uruk_effect_create(e);   /* RENDER-EFFECTS-018 */
     switch (type) {
     case MU_SFX_MODEL_ARROW: {
         /* 0x013cb34d, with the other bows' arrows (RENDER-EFFECTS-007, arrow_fx.inc) */
@@ -1068,6 +1073,8 @@ int mu_sfx_effect_move(mu_sfx_effect *e, const mu_sfx_env *env)
         pet_effect_move(e, env);   /* RENDER-EFFECTS-007 */
     if (bow_effect_kind(type, sub))
         bow_effect_move(e, env);   /* RENDER-EFFECTS-011 */
+    if (uruk_effect_kind(type, sub))
+        uruk_effect_move(e, env);   /* RENDER-EFFECTS-018 */
     switch (type) {
     case MU_SFX_MODEL_ARROW:
         /* 0x01464abf */

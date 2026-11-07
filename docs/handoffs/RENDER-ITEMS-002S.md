@@ -1,11 +1,13 @@
 # RENDER-ITEMS-002S
 
-Branched from `claude/render-items-002r` (`f5669f25`); merged main `6eaf3f2b` (#325, fast-forward) and `53cffd00`
-(#326 RENDER-WORLDS-121, #327 TEST-SPEED-005). Branch/worktree `claude/render-items-002s` (Claude Opus 5.5). No live
+Branched from `claude/render-items-002r` (`f5669f25`); merged main `6eaf3f2b` (#325, fast-forward), `53cffd00`
+(#326 RENDER-WORLDS-121, #327 TEST-SPEED-005) and `c5ed13dd` (#328 RENDER-EFFECTS-018, #329 APP-REFRESH-007, #330
+RENDER-ITEMS-CALLERS-001; `mu_renderchar.c` conflict resolved by keeping both: the caller's frustum flag and the
+OBJECT position). Branch/worktree `claude/render-items-002s` (Claude Opus 5.5). No live
 client, launcher, network or hosted workflow. No full gate in the lane (2026-11-04 test budget).
 
-Scope: RENDER-ITEMS-002 part 19, the first group of part 18's "Next groups": the unread pre-draw types.
-[Finding](../research/client-render-items.md#part-19-integer-registers-runtime-branches-and-joints-in-pre-draw-programs-render-items-002s).
+Scope: RENDER-ITEMS-002 part 20 (part 19 is RENDER-ITEMS-CALLERS-001), the first group of part 18's "Next groups": the unread pre-draw types.
+[Finding](../research/client-render-items.md#part-20-integer-registers-runtime-branches-and-joints-in-pre-draw-programs-render-items-002s).
 
 ## Result
 
@@ -88,8 +90,9 @@ STEWARD_PLACEHOLDER
   No admitted program joins a value across a branch; the join machinery is exercised by the reader only.
 - Joints: no native target object index, and the pool does not reconstruct these kinds (RENDER-JOINTS lanes). The
   OBJECT position natively is the model origin.
-- As part 18: native world callers outside `mu-render character` do not pass `env->item_bones` (later lane); their
-  requests are refused and counted, the rand stream kept. The TestFrustrum2D flag is 1 natively.
+- Since RENDER-ITEMS-CALLERS-001 (#330, merged here) the hero, players, player-model actors and ground items pass the
+  item pose and the TestFrustrum2D flag, so the 14 new programs run there too; inventory/UI 3D items are not wired
+  (its limit). The OBJECT position is the model origin, which for ground items is the OBJECT position.
 
 ## Next groups
 
@@ -101,4 +104,4 @@ STEWARD_PLACEHOLDER
    option fits their draws.
 4. **The 31 rank-5 set parts faulting in strlen `0x0195a4e0`** in the rank-5 pose world (not attempted here), and the
    54 helper-group-count types.
-5. Native callers passing `env->item_bones` (world parts lanes); joint kinds `0x7f7c`/0xe and `0x7fd3`/4 in the pool.
+5. Joint kinds `0x7f7c`/0xe and `0x7fd3`/4 in the joint pool, and a native target object index for item OBJECTs.
