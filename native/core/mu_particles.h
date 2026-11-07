@@ -15,6 +15,9 @@
 /* Owner handle for the hero OBJECT in joint/effect/sprite requests. */
 #define MU_WORLD_FX_BOID_BASE 0x7ffffe00
 #define MU_WORLD_FX_HERO_OBJECT 0x7fffff00
+/* RENDER-EFFECTS-020: item OBJECTs (RenderLinkItem's link OBJECT, RenderPartObject's ground item) as particle
+ * owners: MU_WORLD_FX_ITEM_BASE + (generation << 8) + slot of mu_world_particles.item_owners. */
+#define MU_WORLD_FX_ITEM_BASE 0x40000000
 #include "../../reconstructed/particles/particles.h"
 #include "../../reconstructed/combat/skill_fx.h"
 
@@ -51,9 +54,22 @@
  * MoveParticles in that order each step; the effect models before the joints, the joints before the sprite
  * section. Viewer choices: these pools are the module's own (the skills keep theirs in mu_combat), the effect
  * models play their first action (frame += speed, looping) and the tornado's PlayBuffer is counted, not played. */
-enum { MU_WORLD_PT_BITMAPS = 76, MU_WORLD_PT_CAPACITY = 4096, MU_WORLD_PT_SHADOW_MESHES = 64,
+enum { MU_WORLD_PT_BITMAPS = 77, MU_WORLD_PT_CAPACITY = 4096, MU_WORLD_PT_SHADOW_MESHES = 64,
        MU_WORLD_FX_EFFECTS = MU_SFX_EFFECTS, MU_WORLD_FX_MODELS = 18, MU_WORLD_EIN_LINKS = 4096, MU_WORLD_FX_QUADS = 8192,
-       MU_WORLD_FX_LIGHTS = MU_JT_JOINTS + MU_SFX_EFFECTS };
+       MU_WORLD_FX_LIGHTS = MU_JT_JOINTS + MU_SFX_EFFECTS,
+       /* RENDER-EFFECTS-020: item owner slots, and the logic steps an unrefreshed slot is kept before reuse (longer
+        * than every item-owned particle lives: 0x810a/0x11 30 steps, 0x81cf/0 20) */
+       MU_WORLD_ITEM_OWNERS = 256, MU_WORLD_ITEM_OWNER_HOLD = 64 };
+
+/* RENDER-EFFECTS-020: one item OBJECT a particle may own. The client's owner is a pointer into the character or
+ * ground-item arrays, never NULL while the particle lives; the slot keeps the OBJECT's last +0x158 until it is
+ * reused, which happens only after MU_WORLD_ITEM_OWNER_HOLD steps without a refresh (then generation + 1). */
+typedef struct mu_world_item_owner {
+    uint32_t key;            /* caller identity (0: free) */
+    uint16_t generation;
+    float position[3];       /* OBJECT +0x158 */
+    uint32_t seen;           /* stats.steps of the last refresh */
+} mu_world_item_owner;
 
 typedef struct mu_world_fx_light {
     float x, y, rgb[3];
@@ -131,6 +147,8 @@ typedef struct mu_world_particles {
      * MU_WORLD_FX_COMBAT_BASE + its object index; NULL none */
     const mu_jt_object *(*combat_object)(void *context, int32_t index);
     void *combat_context;
+    mu_world_item_owner item_owners[MU_WORLD_ITEM_OWNERS];   /* RENDER-EFFECTS-020 */
+    uint64_t item_owners_full;
 } mu_world_particles;
 
 enum { MU_WORLD_ACTOR_FX_BASE = 0x08000000, MU_WORLD_FX_COMBAT_BASE = 0x20000000 };
@@ -172,6 +190,13 @@ int mu_world_particles_create(mu_world_particles *p, int32_t type, const float p
 int mu_world_particles_create_owned(mu_world_particles *p, int32_t type, const float position[3],
                                     const float angle[3], const float light[3], int32_t subtype, float scale,
                                     int32_t owner);
+/* RENDER-EFFECTS-020: the owner argument for a particle owned by an item OBJECT. key: the caller's identity of the
+ * OBJECT (nonzero); position: its +0x158. Registers the key (a free slot, or one unrefreshed for
+ * MU_WORLD_ITEM_OWNER_HOLD steps, with generation + 1) and returns MU_WORLD_FX_ITEM_BASE + (generation << 8) + slot,
+ * -1 when every slot is held. _refresh updates a registered key's position each draw (no-op otherwise). An index
+ * whose generation no longer matches resolves to no object. */
+int32_t mu_world_particles_item_owner(mu_world_particles *p, uint32_t key, const float position[3]);
+void mu_world_particles_item_owner_refresh(mu_world_particles *p, uint32_t key, const float position[3]);
 /* CreateJoint 0x0153b02c(type, position, target position, angle, subtype, target object, scale, key, skill,
  * byte10, -1, 0, word13, arg14) on the module's joint pool. Returns the record index (< 0: none). */
 int32_t mu_world_particles_joint(mu_world_particles *p, int32_t type, const float position[3],

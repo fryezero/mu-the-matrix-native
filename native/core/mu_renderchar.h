@@ -54,6 +54,10 @@ typedef struct mu_renderchar_env {
     /* RENDER-ITEMS-CALLERS-001: 1 when TestFrustrum2D 0x016ccce7 at the item's OBJECT failed (RenderObjDraw's flag
      * [ebp-0xd] = 0; the programs' gated cases are skipped). 0 (default): in view. */
     int item_out_of_view;
+    /* RENDER-EFFECTS-020: the item's OBJECT for the pre-draw programs: a mu_world_particles_item_owner key (0: none;
+     * OBJECT-owned particles are then refused) and its +0x164 (RenderLinkItem stores 0; a ground item's angle). */
+    uint32_t item_owner;
+    float item_angle[3];
 } mu_renderchar_env;
 
 typedef struct mu_renderchar_stats {

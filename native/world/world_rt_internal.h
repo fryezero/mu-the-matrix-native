@@ -213,10 +213,12 @@ void world_rt_effect_camera(const mu_world_rt *a, float eye[3], float target[3])
 void world_rt_report_frame(const mu_world_rt *a, int32_t frame, uint32_t now, const char *hash, const char *png);
 void world_rt_report_summary(const mu_world_rt *a, const char *renderer);
 /* RENDER-ITEMS-CALLERS-001: the item pose, the caller's pre-draw counters and the TestFrustrum2D flag for one item
- * draw (no-op without a particle pool or a pre-draw program for the type). */
+ * draw (no-op without a particle pool or a pre-draw program for the type). RENDER-EFFECTS-020: object identifies
+ * the item's OBJECT within the caller (hero slot, player/actor index * 16 + slot, ground pool index); it becomes the
+ * item-owner key of the OBJECT-owned particles. */
 struct mu_renderchar_env;
 void world_rt_item_pre(mu_world_rt *a, struct mu_renderchar_env *env, int caller, int32_t type, const mu_model *model,
-                       const float *bones);
+                       const float *bones, uint32_t object);
 #ifndef MU_WORLD_NO_GL
 void world_rt_names_gfx_attach(mu_world_rt *a, double scale);
 void world_rt_gl_effect(void *context, const mu_fx_vertex *vertices, uint32_t count, const mu_fx_draw_state *state,
