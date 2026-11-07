@@ -1615,7 +1615,8 @@ the item's own pose, and RenderObjDraw's flag is computed as the client computes
 
 - **Callers.** The text calls RenderObjDraw `0x0176ce74` from five sites: RenderLinkItem `0x012bd910` at
   `0x012c6a83` (worn weapons, shields, wings); RenderPartObject `0x017e63f4` at `0x017e7960` and `0x017e7997`
-  (ground items and body parts); and two sites at `0x00a497c6`/`0x00a49bc9` (the inventory/UI item path).
+  (ground items and body parts); and two sites at `0x00a497c6`/`0x00a49bc9` (labelled the inventory/UI item path here;
+  part 23 corrects it: they are the render callback of object type `0x67a`, and the inventory goes through RenderPartObject).
 - **Pose, then pre-draw, then body.** In RenderLinkItem every path from the origin copy to the call passes the
   item's Animation `0x012b5064` at `0x012c6478`, which writes BoneTransform `0x06fce398` (static control-flow
   check). RenderObjDraw then runs the type's case before the body helper (part 18).
@@ -2003,6 +2004,94 @@ programs could not create):
 - Player-model actors are wired like players, but no installed actor wears `0x2384`/`0x2385`.
 - Ground items now pass their angle to every pre-draw program that reads op 12 (`0x1316`, `0x22ec`, `0x230c`,
   `0x23ef`, `0x2400`, `0x2405`, `0x248f`, `0x2496` and the two cloaks); none of them is dropped in the scenes above.
+
+## Part 23, the inventory's equipment and its icons' effects, INVENTORY-FX
+
+The inventory window draws the hero's equipment and every icon's level, option and ext the way it draws them for
+a worn item. The icons' pre-draw programs and skin sprites go to the world's sprite list, never over the icon.
+[Handoff](../handoffs/INVENTORY-FX.md).
+
+### The inventory frame's item render (verified, `validate_inventory_fx`)
+
+- **Equipment slots.** The movie reports each slot through `EQUIPrequestSlotInfo(x, y, w, h, slot)`. The handler
+  `0x00b97834` needs five arguments, the first a number; it truncates the fifth to the slot (`_ftol` `0x0191c5e0`).
+  `0x00b958e1` stores slots 0..14 at controller `+0x110 + s·8` (x, y) and `+0x188 + s·8` (w, h) and ignores others.
+- **The render** `0x00b913a2` (the frame's vtable `+0x20` item render) runs the grid's slot pass `0x00ab6130`.
+  When that returns 1 and a CharacterMachine `[0x01d1df18]` exists, it walks s = 0..14 over the ITEMs
+  `+0x1b58 + s·0x12c` with code `+0x10` ≥ 0 and calls the slot wrapper `0x016c23d5`(item, x, y, w, h, 0,
+  frame `+0xcc` == 1 (`0x00abed32`), 0, 0, frame, 0, 0.0f, -1, 0, 1, 0):
+  - x = (frame x `0x00aae509` + scale `0x00abedc3` · slot x) · rate x `0x00966d99`, and y the same way;
+  - w = rate x · slot w · scale, h = rate y · slot h' · scale;
+  - slot h' = slot h · 0.75 (`0x01a800cc`) for the armour slot 3 when the hero's class nibble
+    (`[0x0a39d754] + 0x12`, `0x0095f5cc`) is 2, 5, 7, 8, 9, 12 or 14 (`0x00b99205`).
+  - The loop sets no colour.
+- **What the icon's RenderObjDraw gets.** RenderItem3D → RenderObjectScreen (part of NATIVE-FIDELITY-001) →
+  RenderPartObject, which passes RenderObjectScreen's level word, excellent flag and set bits through unchanged
+  as RenderObjDraw's arguments 5..7 (`0x017e7932..0x017e7960`, `0x017e796a..0x017e7997`). The item render
+  then uses the level `(word >> 3) & 15`, the option and the ext byte, as for a worn item.
+- **The flag.** RenderObjDraw's TestFrustrum2D flag is taken at OBJECT `+0x158`, which for an icon is its screen
+  position (window pixels, z −100/−130/−140). RenderPartObject copies it to the model origin (part 19).
+  - Screen position / 100 is the map's corner tiles (0..25, 0..14). The world polygon almost never reaches them,
+    so the flag is clear.
+  - Gated programs then skip their case: Cookery Short Sword `0x0b2a`, Floor Hammer `0x0f1c`, Floor Shield
+    `0x1748`, the cloaks.
+  - Ungated ones still create: Xeno Blade `0x0b4c`, the wings `0x230b`/`0x2311`.
+- **Where the sprites go (static).** RenderObjDraw's programs and its `0x389c`/`0x389d` skin case (`0x0176ffe3`,
+  CreateSprite at `0x017701f9`) append to the global sprite list. RenderSprites `0x0169270e`, the only routine
+  that draws it, has four call sites, all in the scene renders `0x018576b3`, `0x01857ed9` and `0x0185916b`. Only
+  the frame driver `0x01851d39` calls those (and `0x010b3963` for the main game). So the icon's sprites are drawn by
+  the world's sprite pass with the world camera, at the icon's screen coordinates read as world units. That spot
+  lies under the map's corner and out of the hero's view.
+- **Not the inventory.** The other two RenderObjDraw call sites, `0x00a497c6`/`0x00a49bc9`, lie in `0x00a49266`.
+  `0x00a16273` registers that function at `0x00a13f54` as the render callback of object type `0x67a`. It draws a
+  character's parts and weapons (CHARACTER `+0x1c4 + k·0x3fc`) on another object's pose. Parts 19 and 21 had
+  called it the inventory/UI path.
+
+| Family | Cases | Mismatches |
+|---|---:|---:|
+| equip_pass: `0x00b913a2` with its slot pass (no grid pages), frame/scale/rate getters, the class rule and `0x0095f5cc` executed, against `mu_inventory_item_pass`: return value and every wrapper call (16 words, floats bit for bit). Screens 640×480..2560×1440, alignments 0..9, scales, slot rectangles (also zero), codes (−1, 0, random, `0x7fffffff`), all class bytes, frame `+0xcc` −1/0/1/2/`0x101`, no CharacterMachine, invisible frames | 3,000 | 0 |
+| equip_info: `0x00b958e1` after 1..5 random calls (slots −3..18, int32 extremes) against `mu_equip_slot_info`: the 60 stored words and which calls stored | 1,000 | 0 |
+| part_args: RenderPartObject's two call sequences: arguments 5..7 against `mu_icon_glow_of` (level, option, ext) | 1,000 | 0 |
+| inv_flag: RenderPartObject's copy and RenderObjDraw's flag at icon positions against `world_item_pre.h`, world polygons around the map and near its origin, scene states 6/5 | 3,000 | 0 |
+| sinks: the call chain, RenderSprites' four sites and their callers, the `0x67a` callback | 17 | 0 |
+
+14/14 mutants of `reconstructed/hud/item_slots.c` are caught: rate swap, multiply order, armour slot, factor,
+class set, class nibble, a20, empty test, null CharacterMachine, slot bound, size swap, glow shift, glow mask and
+option/ext swap. Each anchor matches once.
+
+### Native
+
+- `reconstructed/hud`: `mu_equip_slot_info`, `mu_inventory_item_pass`, `mu_equip_short_armour` and
+  `mu_icon_glow_of`.
+- `native/gfx/mu_gfx_layer`:
+  - keeps the reported rectangles and the hero's 15 ITEMs (`mu_gfx_layer_set_equipment`: code, level word,
+    excellent, set bits, class byte);
+  - runs `mu_inventory_item_pass` for the inventory and appends the equipment draws after the grid's.
+  - Slots the movie never reported are left out (the client would draw them at the frame origin, size 0).
+  - The equipment's cursor test uses the slot rectangle in stage points.
+- `native/world/world_rt.c`: SetCharacterClass's ITEMs 0..8 (the session records of APP-POLISH-008, or a file's
+  first record at level 0) go to the layer. Slots 9..14 have no offline record.
+- `native/world/world_gfx_game.c`:
+  - The glow comes from `mu_icon_glow_of(ros)`, so the excellent pass and the set bits now reach grid and
+    equipment icons. Kind A `0xc` passes level 0.
+  - With a world (`wg_items_set_world`), the pre-draw programs run on the icon's pose with the flag of
+    `world_rt_item_pre` (new caller `inventory`, owner key per icon), and the skin sprites are created in the
+    world's list.
+  - The per-icon skin pool of RENDER-ITEMS-002D (an inference) is gone: no sprite is drawn over an icon.
+- The world summary's `item_pre_draw` line gains `inventory` only when an icon ran a program. The GFx summary gains
+  `inventory_equipment` only when equipment is drawn.
+
+### Limits
+
+- Character select is unchanged. Its slot levels would come from the character list handler's equipment
+  decoding (packet data, not traced), and the native charsel draws plain meshes without the item render.
+- RenderObjDraw's level word reaches the native item render as `(word >> 3) & 15`. Its option and luck bits
+  (`& 0x87`) are dropped, as for the world's players.
+- `mu-render ui inventory` (the software tool) still draws `0x389c`/`0x389d` sprites over its icons.
+- Sprites created during the item pass are drawn by the next world draw. The client's order of the GFx pass and
+  RenderSprites within one main-game frame was not traced (the GFx manager is reached through a virtual call).
+- No original-client capture of an inventory with equipment: the placement is matched up to the wrapper's
+  arguments, and the pixels are the native renderer's.
 
 ## Part 23, pre-draw particles without an owner and armour owner programs in the world, RENDER-EFFECTS-021
 
