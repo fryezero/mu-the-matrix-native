@@ -100,3 +100,52 @@ of about 10/255 per channel, mostly ship/sea animation phase, with no visible im
 and the model decoders are unchanged since the image), 26/27 (rerunning README-STRESS-001's script on this main
 gives the same crowd frames; the only visible change is the HUD orbs, which since APP-POLISH-002 read the
 session's vitals and show `16960/0` because the stress fixture feeds no maxima, so the October frames stay).
+
+## README-IMAGES-D claim sources and media
+
+Images and text refresh on 2026-11-07 from main `02e4d94d` (the merge of #344 RENDER-ITEMS-CLOAK; the branch started
+at `a7f7b247`, #343). Every image is a window-only headless GL render of `mu-world` built in the lane
+(`nice -n 10 make -j4 -C native world`), with the installed APP-REFRESH-006 Native Data read-only (`objects/`,
+`gfx/`, `lang/`) and `MU_GFX_PUBLIC_DEMO=1`. Camera: the world FOV, 39 (every frame report reads `fov 39.000`). No live
+game, original client, account or network.
+
+| Public claim | Merged source and evidence boundary |
+|---|---|
+| Item bodies 1,363/1,674, 311 left, links 18 / 24 | [RENDER-ITEMS-002T](../handoffs/RENDER-ITEMS-002T.md) #341 (1,359 → 1,363; 002R/002S before it) |
+| Hero records: level, excellent option, ext; demo outfits | [APP-POLISH-008](../handoffs/APP-POLISH-008.md) #338; this lane's scene: hero slot 6 `0x0b2a` level 9 option 1, players 861 pre-draw effects / 0 refused over 91 frames |
+| Inventory equipment slots with the hero's gear | [INVENTORY-FX](../handoffs/INVENTORY-FX.md) #343 |
+| Cloak of Brilliance sparks; armour owner effects in the world | [RENDER-EFFECTS-020](../handoffs/RENDER-EFFECTS-020.md) #339, [RENDER-EFFECTS-021](../handoffs/RENDER-EFFECTS-021.md) #342; this lane's fixture: 164 owner effects / 0 refused, 419 pre-draw / 0 refused |
+| Physics capes of `0x2382`..`0x2385`, `0x2394`, `0x2395` | [RENDER-ITEMS-CLOAK](../handoffs/RENDER-ITEMS-CLOAK.md) #344; this lane's fixture: `cloak` 5 created, 65 drawn, 0 gated |
+| Raklion's whole custom slot, Karutan's 0x81 crystal | [RENDER-WORLDS-RAKLION](../handoffs/RENDER-WORLDS-RAKLION.md) #337, [RENDER-WORLDS-KARUTAN](../handoffs/RENDER-WORLDS-KARUTAN.md) #340 (text only, no image; see the handoff) |
+
+Common environment (from the repository root, after `. ~/Documents/MTM/mu-mac-tools/native/private-env.sh`;
+`D=$MU_NATIVE_DATA_DIR`, `MU_LANG_DIR=$D/lang`, `MU_GFX_PUBLIC_DEMO=1`):
+
+- **08** (replaced, 780×800 PNG, pngquant 70–95): `mu-world --game-root "$MU_GAME_ROOT" --objects-dir "$D/objects"
+  --headless --backend gl --no-audio --width 1280 --height 800 --class 1 --tile 138,123 --gfx "$D/gfx" --hero-name Preview
+  --placement native/world/lorencia-demo-placement.txt --items --players <copy of lorencia-demo-players.txt without
+  Aeris's party flag> --hero-item weapon0=Item/CookriShortSword.bmd@0:68:9:1 --hero-item
+  weapon1=Item/Shield01.bmd@6:0:7 --hero-item wing=Item/Wing02.bmd@12:1 --gfx-open inventory --npc-script 50:tipinv:0
+  --frames 61 --every 60` with `MU_GFX_LIB`, `MU_GFX_SINGLE_BUFFER=1`, `MU_GFX_TEST_CLOCK=1`; frame 60, crop x 500..1280.
+  The party flag was dropped so the party list does not cover the inventory window (both sit top right).
+- **31** (new, 1600×1000 JPEG): the app's demo arguments (`--placement`, `--npc --npc-demo
+  native/world/lorencia-demo-npc.txt`, `--combat --progress --items`, `--players native/world/lorencia-demo-players.txt`)
+  with Ironclad's three records as above, `--class 1 --angle 90 --tile 140,124 --hero-name Ironclad --frames 91 --every 5`,
+  once at 1600×1000 (the frame) and once at 3200×2000 (the inset: region 1250,480–1950,980, scaled 0.8). Frame 90.
+- **32** (new, 1600×1000 JPEG, test fixture): `--class 0 --angle 180 --tile 136,133 --hero-name Preview --hero-item
+  wing=Item/InnocenceCape.bmd --players <fixture> --player-range 20 --frames 61 --every 5 --width 3200 --height 2000`,
+  frame 30, region 200,250–2760,1850 scaled to 1600×1000. The fixture (local, not committed):
+
+```
+player Velvet   class=0x00 at=132,129 dir=3 pk=3 level=400 helm=7:10:7 armor=8:10:7 pants=9:10:7 gloves=10:10:7 boots=11:10:7 weapon0=0:102:7 wing=12:156:0 route=138,135;132,129 idle=4
+player Seraph   class=0x00 at=140,133 dir=7 pk=3 level=400 helm=7:10:7 armor=8:10:7 pants=9:10:7 gloves=10:10:7 boots=11:10:7 wing=12:158:0 route=134,127;140,133 idle=4
+player Nocturne class=0x04 at=131,132 dir=3 pk=3 level=400 helm=7:4:7 armor=8:4:7 pants=9:4:7 gloves=10:4:7 boots=11:4:7 wing=12:174:0 route=137,138;131,132 idle=4
+player Thorne   class=0x01 at=137,128 dir=3 pk=3 level=400 helm=7:221:0 armor=8:221:0 pants=9:221:0
+player Ashe     class=0x01 at=140,131 dir=3 pk=3 level=400 armor=8:402:0
+```
+
+JPEGs: quality 85, 4:2:0, optimized, progressive, no EXIF. SHA-256 (also the audit pins):
+08 `f43c3dadbee8a9abf1f1552605c792bf44c8e1d3113c3d29de883a71708cb4f9` (402,126 bytes),
+31 `1a6ef1b5cc1e5e58133022bf5e880673c6c75a98b368fea286e19e73fbef9377` (434,420 bytes),
+32 `28b2c101a4a859662e184043d6f23e403b6895cd31b196c38bd78a33b77c1a05` (329,138 bytes).
+The 31 and 08 source frames were rendered again after the #344 merge and are byte-identical (no cloth wing in them).
