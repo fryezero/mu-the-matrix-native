@@ -3093,7 +3093,7 @@ cases = 6013
 mutants = 6
 cases_at = "families.*.cases"
 mutants_at = "mutants"
-build = ["reconstructed/terrain", "native/world/world_item_pre.h"]
+build = ["reconstructed/terrain"]
 args = ["--mutations", "--output", "{report}"]
 [validate_item_callers.expect]
 "families.*.mismatches" = 0
