@@ -382,8 +382,9 @@ void mu_world_rt_default_options(mu_world_rt_options *o)
     o->audio_rate = 44100;
     o->demo_world = -1;
     mu_combat_default_config(&o->combat_config);
-    /* Offline preview join: recorded level-1 Dark Knight HP, client-progression section 7. */
-    o->combat_config.hero_hp = 1100;
+    /* APP-POLISH-007: the offline join's HP maximum of the session's hero (fixture/hero_join.h: the recorded
+     * level-1 Dark Knight's 1100, else the progress fixture's join HP), resolved in mu_world_rt_open. */
+    o->combat_config.hero_hp = MU_WORLD_HERO_HP_JOIN;
     mu_world_items_default_config(&o->items_config);
     mu_progress_default_config(&o->progress_config);
     o->progress_config.class_byte = 0xff;   /* unset: the hero's class */
@@ -484,6 +485,8 @@ mu_world_rt *mu_world_rt_open(const mu_world_rt_options *o, char *error, size_t 
     a->no_helpers = o->no_helpers;
     a->combat_on = o->combat;
     a->combat_config = o->combat_config;
+    if (a->combat_config.hero_hp == MU_WORLD_HERO_HP_JOIN)
+        a->combat_config.hero_hp = world_rt_hero_join_hp(a);
     if (o->combat && o->has_items)   /* NATIVE-APP-001: the weapon kind follows the equipped weapon */
         a->combat_config.weapon = equipment_weapon_kind(o);
     a->items_on = o->ground_items;
