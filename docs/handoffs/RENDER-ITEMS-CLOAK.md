@@ -2,12 +2,12 @@
 
 Branch/worktree `claude/render-items-cloak` (Claude Opus 5.5), from `origin/claude/render-items-002t` (`53b9f7e7`,
 #341); merged main `138b756e` (#338..#341) as `dd805a35` (clean) and `65748528` (#342 RENDER-EFFECTS-021) as
-`a1642147` (finding conflict: both added a part 23; RENDER-EFFECTS-021 keeps 23, this lane is part 24; both
+`a1642147` (finding conflict: both added a part 23; RENDER-EFFECTS-021 keeps 23, INVENTORY-FX is part 24, this lane is part 25; both
 `validators.toml` rows kept), then `a7f7b247` (#343 INVENTORY-FX) as `1a1ea49a` (clean). No live client, launcher, network or hosted workflow.
 No full gate in the lane (2026-11-04 test budget).
 
 Scope: the capes of wings `0x2382`..`0x2385`, `0x2394`, `0x2395` in the world, for players and the hero.
-[Finding: client-render-items.md part 24](../research/client-render-items.md#part-24-the-wings-physics-capes-render-items-cloak).
+[Finding: client-render-items.md part 25](../research/client-render-items.md#part-25-the-wings-physics-capes-render-items-cloak).
 
 ## Result
 
