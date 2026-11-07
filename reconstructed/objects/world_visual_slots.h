@@ -117,4 +117,10 @@ int32_t mu_slots121_bitmaps(int32_t world, int32_t type, int32_t *out, int32_t r
  * slot 0x00e96536 (121's, answering 1 for the types it draws). The bitmap 0x800a is 121's (both loaders). */
 int mu_slots_raklion_custom(const slot *s, int32_t world);
 int mu_slots_raklion_after(const slot *s);
+/* RENDER-WORLDS-KARUTAN (world_karutan_visual.c): Karutan 80/81's custom slot 0x00e14596 (world test 80, 81, 102..106)
+ * and after slot 0x00e1543e (80, 81), and the bitmap 0x85bb its slot 0x24 0x00e13a5c registers for type 0x81. */
+int mu_slots_karutan_custom(const slot *s, int32_t world);
+void mu_slots_karutan_after(const slot *s, int32_t world);
+int mu_slots_karutan_bitmap(int32_t world, int32_t index, const char **path, uint32_t *filter, uint32_t *wrap);
+int32_t mu_slots_karutan_bitmaps(int32_t world, int32_t type, int32_t *out, int32_t room);
 #endif

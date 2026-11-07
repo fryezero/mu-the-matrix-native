@@ -333,7 +333,7 @@ complete routine hashes with its report and compares compiled authored C against
 | Kanturu flames, `0x00e75089` | 1,000 | Types 59 smoke subtype 21, 61 fantaF, 70 bone-6 glow; type 60 has no visual call here; worlds 37/40 |
 | Karutan brazier, `0x00e13be4` | 1,000 | Type 113, flare sprite and firehik01/02/03 particle choice; worlds 80/81 |
 | Second pass, `0x016d6949` | 1,000 | Worlds 3/51/57/58/80/81; sectors, objects, counter, live/flag checks, special predicate and draw calls |
-| Deferred draw bodies/meshes | 1,000 | Noria `0x016d67c7`, Elbeland `0x00e321bb`, Raklion `0x00e96536`, Karutan `0x00e1543e`; object writes and calls, including Elbeland bone sprites |
+| Deferred draw bodies/meshes | 1,000 | Noria `0x016d67c7`, Elbeland `0x00e321bb`, Raklion `0x00e96536`, Karutan `0x00e1543e`; object writes and calls, including Elbeland bone sprites (Karutan's since RENDER-WORLDS-KARUTAN through the class slot, [whole slots](client-worlds-karutan.md)) |
 | Flag-writing branches | 1,000 | Elbeland/Raklion/Karutan type sets, including negative types and pre-existing flag values; only the flag byte is claimed by this family |
 | Raklion first meshes | 1,000 | Types 83/92 at `0x00e949f8`; the body meshes before their deferred glow (since RENDER-WORLDS-RAKLION through the class slot, [whole slot](client-worlds-raklion.md)) |
 | Particle creation | 1,000 | Smoke01/21, fantaF/0, firehik01/0, firehik02/4, firehik03/0 |

@@ -48,7 +48,7 @@ The table lists, per slot: the entry, the instruction count, and the status.
 | Kardamahal | 143 | C | `0x00e0f4bc` 2333, V AFTER3 | `0x00e118fd` 304, V AFTER3 | `0x00e0e539` 47, **V SLOTS** |
 | Swamp of Destruction | 144 | C | `0x00e46e94` 906, V AFTER3 | `0x00e48f1c` 122, V AFTER3 | `0x00e46a9f` 241, **V SLOTS** |
 | Raklion | 57, 58 | E | `0x00e949f8` 1994, V RAKLION (was V A: flags and first meshes only) | `0x00e96536` 198, V RAKLION (121's, was V A) | base, no (T) |
-| Karutan | 80, 81 | E | `0x00e14596` 969, V A | `0x00e1543e` 502, V A | base, no (T) |
+| Karutan | 80, 81 | E | `0x00e14596` 969, V KARUTAN (was V A: flags only; 0x42 and 0x81 missing) | `0x00e1543e` 502, V KARUTAN (was V A without the StreamMesh writes) | base, no (T) |
 | Character scene | 93 | E | `0x00dab4d7` 79, V A | `0x00dab5ed` 95, V A | base, no (T) |
 | Login scene | 94 | E | `0x00e254bb` 113, V A | `0x00e25639` 474, V A | base, no (T) |
 | Tormenta Island | 141 | E | `0x00e4cbd7` 3081, V AFTER3 | `0x00e4f952` 900, V AFTER3 | `0x00e4bfff` 43, V (object render) |

@@ -85,3 +85,8 @@ int mu_map_effect_matrix(float out[16], const uint8_t *object, int in_sector, co
     const mu_object_effect_record record = {0, 0.0f, bone, (uint8_t)(follow != 0), 0, 0.0f};
     return mu_object_effect_matrix(out, &record, &o) ? MU_MAP_EFFECT_OK : MU_MAP_EFFECT_UNDEFINED;
 }
+
+int mu_aquila_bone_matrix(float out[16], const uint8_t *object, int in_sector, const float *pose, int32_t pose_bones)
+{
+    return mu_map_effect_matrix(out, object, in_sector, pose, pose_bones, 6, 1);   /* 0x0129fd4f(6) */
+}
