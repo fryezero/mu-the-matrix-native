@@ -74,6 +74,13 @@ BONE_SPRITE, NAMED, STRING, STRING_FREE, WAVE = 0x0150e746, 0x012bd35a, 0x009499
 ITEM_TRANSFORM, BONE_TRANSFORM = 0x012b6ef1, 0x06fce398
 ITOA, STRING_APPEND, STRING_CSTR = 0x0198c1d7, 0x0094b9f7, 0x008e7940
 VECTOR_CTOR, VECTOR_DTOR = 0x0191b8be, 0x0191b937
+# RENDER-ITEMS-002T: the random spherical vector 0x00d01fc6(out, r max, r min, theta max, theta min, phi max, phi min)
+# and the rendered-frame counter [0x0bdc5ebc] (incremented once per rendered frame, client-frame-loop.md).
+RANDOM_VECTOR, FRAME_COUNTER = 0x00d01fc6, 0x0bdc5ebc
+# The helper's constants (checked against the data capture): the radius floor, the theta cap, degrees to radians
+# and the phi cap.
+RANDOM_VECTOR_WORDS = {0x01a80990: 0x358637bd, 0x01a7e4e4: 0x43340000, 0x01a7fd6c: 0x3c8efa35, 0x01a7df34: 0x43b40000}
+RAND_MAX = 0x7fff
 EFFECTS = (TRANSFORM, SPRITE, PARTICLE, RANGE, RAND)
 PRE_EFFECTS = EFFECTS + (BONE_SPRITE, NAMED, ITEM_TRANSFORM, JOINT)
 BODY_HELPER = 0x016e036c
@@ -90,7 +97,10 @@ OP = dict(const=1, mov=2, mul=3, add=4, sub=5, div=6, neg=7, gate=8, range=9, tr
           sprite=13, particle=14, wave=15, named=16, bone_sprite=17, visible=18, alpha=19, time=20, sin=21, abs=22, randmod=23, item_transform=24, particle_owner=25,
           # RENDER-ITEMS-002S: integer registers, runtime branches and further services
           ftoi=26, itof=27, imod=28, iquot=29, iadd=30, isub=31, imul=32, irand=33, cond=34, jump=35, bones=36,
-          light=37, position=38, joint=39, sprite_rot=40, umod=41)
+          light=37, position=38, joint=39, sprite_rot=40, umod=41,
+          # RENDER-ITEMS-002T: the frame counter, OBJECT-bone positions, the random vector, bounded array selects and
+          # CreateParticle with a register bitmap and argument 8
+          frame=42, object_transform=43, random_vector=44, select=45, particle_reg=46, particle_reg_owner=47)
 # Runtime branch conditions (op 34 e): the jcc index; +0x10 = float flags (comiss/ucomiss), else integer flags.
 CONDITIONS = ['je', 'jne', 'jl', 'jge', 'jg', 'jle', 'jb', 'jae', 'ja', 'jbe', 'jne_u', 'je_o']
 REGISTERS = 4096    # owner_fx.inc run_fx register file (RENDER-ITEMS-002S; part 18 used 1024)
@@ -288,6 +298,7 @@ class Program:
     def __init__(self):
         self.ops = []
         self.regs = 0
+        self.ranges = {}    # RENDER-ITEMS-002T: integer register -> (lo, hi) when bounded (array selects)
 
     def reg(self, count=1):
         r = self.regs
@@ -348,7 +359,30 @@ class Program:
             raise Refused('constant integer division by zero')
         r = self.reg()
         self.emit(op, r, self.integer(a), self.integer(b))
+        self.ranges[r] = self.bound(op, a, b)
         return ('i', r)
+
+    def range_of(self, word):
+        if word[0] == 'c':
+            return (_signed(word[1]), _signed(word[1]))
+        return self.ranges.get(word[1]) if word[0] == 'i' else None
+
+    def bound(self, op, a, b):
+        """(lo, hi) of an integer result from its operands' bounds (RENDER-ITEMS-002T), None when unbounded."""
+        x, y = self.range_of(a), self.range_of(b)
+        if x is None or y is None:
+            return None
+        if op in ('imod', 'umod') and y[0] == y[1] and y[0] > 0 and x[0] >= 0:
+            return (0, min(x[1], y[0] - 1))
+        if op == 'iadd':
+            lo, hi = x[0] + y[0], x[1] + y[1]
+        elif op == 'isub':
+            lo, hi = x[0] - y[1], x[1] - y[0]
+        elif op == 'imul' and y[0] == y[1] and y[0] >= 0:
+            lo, hi = x[0] * y[0], x[1] * y[0]
+        else:
+            return None
+        return (lo, hi) if -2**31 <= lo <= hi < 2**31 else None
 
     def move(self, r, word):
         """r = word (a constant or a register of either kind)."""
@@ -439,6 +473,8 @@ class Interpreter:
         return ('c', words.pop())
 
     def load(self, ptr, k=0):
+        if ptr[0] == 'select':
+            return self.select(ptr[1], ptr[2])
         if ptr[0] == 'frame':
             off = ptr[1] + 4 * k
             w = self.mem.get(off)
@@ -459,6 +495,28 @@ class Interpreter:
             self.p.emit('position' if ptr[0] == 'objptr' else 'light', base)
             return ('r', base + i // 4)
         raise Refused(f'load through {ptr}')
+
+    def select(self, base, index):
+        """RENDER-ITEMS-002T: frame word base + index (bytes, a bounded integer register): every word the index can
+        reach is copied into consecutive registers and the select op picks one at run time."""
+        bound = self.p.range_of(index)
+        if bound is None or bound[0] < 0 or bound[1] - bound[0] > 0x100 or bound[0] % 4:
+            raise Refused(f'array select index {index} {bound}')
+        words = [self.load(('frame', base + off)) for off in range(0, bound[1] + 4 - bound[1] % 4, 4)]
+        kinds = {w[0] for w in words} - {'c'}
+        if not kinds <= {'r'} and not kinds <= {'i'}:
+            raise Refused(f'array select of {words}')
+        kind = kinds.pop() if kinds else 'r'
+        table = self.p.reg(len(words))
+        for k, w in enumerate(words):
+            self.p.move(table + k, w)
+        r = self.p.reg()
+        self.p.emit('select', r, index[1], table, len(words))
+        if kind == 'i':
+            values = [self.p.range_of(w) for w in words]
+            if all(values):
+                self.p.ranges[r] = (min(x[0] for x in values), max(x[1] for x in values))
+        return (kind, r)
 
     def use(self, w):
         """A word being read: a value that differs between joined paths restarts the reading with a join."""
@@ -507,6 +565,8 @@ class Interpreter:
         index, base = self.reg.get(regs[0]), self.reg.get(regs[1])
         if base and base[0] != 'frame' and index and index[0] == 'frame':
             index, base = base, index
+        if self.pre and index and index[0] == 'i' and base and base[0] == 'frame':
+            return ('select', base[1], index)      # RENDER-ITEMS-002T: an array element at a bounded runtime index
         if not self.pre or not index or index[0] != 'c' or not base or base[0] != 'frame' or index[1] % 4 or \
                 index[1] > 0xfc:
             raise Refused(f'array element {index} {base}')
@@ -516,6 +576,10 @@ class Interpreter:
         kind = opnd[0]
         if kind == 'index':
             return self.load(self.element(opnd[1:] or ('eax', 'ecx')))
+        if kind == 'abs' and self.pre and opnd[1] == FRAME_COUNTER:
+            r = self.p.reg()       # RENDER-ITEMS-002T: the rendered-frame counter (unsigned)
+            self.p.emit('frame', r)
+            return ('i', r)
         if kind == 'abs' and self.pre and opnd[1] == CLOCK:
             r = self.p.reg()
             self.p.emit('time', r)
@@ -641,6 +705,38 @@ class Interpreter:
             for k in range(3):
                 self.store(ecx, k, ('r', base + k))
             self.reg['eax'] = ('junk',)
+        elif target == TRANSFORM and self.pre:        # RENDER-ITEMS-002T: model->0x012b678d(out, OBJECT, bone, NULL)
+            out, owner, bone, local = (self.arg(k) for k in range(4))
+            if ecx != ('model',) or owner != ('object',) or local != ('c', 0) or bone[0] not in ('c', 'i') or \
+                    out[0] not in ('frame', 'objptr'):
+                raise Refused(f'object transform operands {ecx} {owner} {bone} {local}')
+            if bone[0] == 'c':
+                if _signed(bone[1]) >= 0x100:
+                    raise Refused(f'object transform bone {bone}')
+                if bone[1] < 0x100:
+                    self.bones.append(bone[1])
+            base = p.reg(3)
+            p.emit('object_transform', base, p.integer(bone))
+            for k in range(3):
+                self.store(out, k, ('r', base + k))
+            self.pop(4)
+            self.reg['eax'] = ('junk',)
+        elif target == RANDOM_VECTOR and self.pre:    # cdecl (out, six floats), the radius on x87
+            for address, word in RANDOM_VECTOR_WORDS.items():
+                if self.absolute(address) != ('c', word):
+                    raise Refused(f'random vector constant {address:#x}')
+            out = self.arg(0)
+            if out[0] != 'frame':
+                raise Refused(f'random vector output {out}')
+            args = p.reg(6)
+            for k in range(6):
+                p.move(args + k, self.arg(k + 1))
+            base = p.reg(4)
+            p.emit('random_vector', base, args)
+            for k in range(3):
+                self.store(out, k, ('r', base + k))
+            self.st0 = ('r', base + 3)
+            self.reg['eax'] = ('junk',)
         elif target == TRANSFORM:                      # model->(out, OBJECT, bone, local), ret 0x10
             out, owner, bone, local = (self.arg(k) for k in range(4))
             if ecx != ('model',) or owner != ('object',) or bone[0] != 'c' or bone[1] >= 0x100:
@@ -698,6 +794,21 @@ class Interpreter:
             pos = p.vector(self.vec(a[1]))
             light = p.vector(self.vec(a[3]))
             p.emit('sprite', pos, p.scalar(a[2]), light, k=a[0][1])
+            self.reg['eax'] = ('junk',)
+        elif target == PARTICLE and self.pre and (self.arg(7) != ('c', 0) or self.arg(0)[0] == 'i'):
+            # RENDER-ITEMS-002T: a bitmap computed at run time (rand() % 3 + base) or a register argument 8.
+            a = [self.arg(k) for k in range(8)]
+            owner = a[6] == ('object',)
+            if a[0][0] not in ('c', 'i') or a[4][0] != 'c' or a[4][1] > 0xff or (a[6] != ('c', 0) and not owner) or \
+                    a[7][0] not in ('c', 'i'):
+                raise Refused(f'particle arguments {a}')
+            pos = p.vector(self.vec(a[1]))
+            angle = p.vector(self.vec(a[2]))
+            light = p.vector(self.vec(a[3]))
+            pair = p.reg(2)
+            p.move(pair, a[0])
+            p.move(pair + 1, a[7])
+            p.emit('particle_reg_owner' if owner else 'particle_reg', pos, angle, light, p.scalar(a[5]), a[4][1], k=pair)
             self.reg['eax'] = ('junk',)
         elif target == PARTICLE:                       # cdecl, 8 arguments
             a = [self.arg(k) for k in range(8)]
@@ -872,6 +983,10 @@ class Interpreter:
             else:
                 return False
             return True
+        if mn == 'add' and cur == ('object',) and parts[1] in ('eax', 'ecx', 'edx') and \
+                (self.reg.get(parts[1]) or ('',))[0] == 'c':
+            self.reg[dst] = ('objptr', self.reg[parts[1]][1])
+            return True
         if mn == 'add' and cur in (('object',),) and re.match(r'^(0x[0-9a-f]+|\d+)$', parts[1]):
             self.reg[dst] = ('objptr', int(parts[1], 0))
             return True
@@ -970,6 +1085,7 @@ class Interpreter:
                     # RENDER-ITEMS-002S: rand() as an integer value (then cdq/idiv, compares, indices ...).
                     r = self.p.reg()
                     self.p.emit('irand', r)
+                    self.p.ranges[r] = (0, RAND_MAX)
                     self.reg = {k: w for k, w in self.reg.items() if k not in ('eax', 'ecx', 'edx')}
                     self.reg['eax'] = ('i', r)
                     address = nxt
@@ -1304,7 +1420,7 @@ def extract_pre(wa, t):
             raise Refused(f'visibility test target {target:#x} inside the case')
         it.p.ops[index] = it.p.ops[index][:-1] + (len(it.p.ops),)
     effects = sum(op[0] in (OP['sprite'], OP['particle'], OP['bone_sprite'], OP['particle_owner'], OP['joint'],
-                            OP['sprite_rot']) for op in it.p.ops)
+                            OP['sprite_rot'], OP['particle_reg'], OP['particle_reg_owner']) for op in it.p.ops)
     if not effects:
         raise Refused('no effect request')
     return {'start': start, 'end': end, 'ops': it.p.ops, 'regs': it.p.regs, 'bones': it.bones, 'names': it.names}

@@ -43,7 +43,8 @@ class Fx(C.Structure):
                 ('position', C.c_float * 3), ('light', C.c_float * 3), ('scale', C.c_float),
                 ('angle', C.c_float * 3),
                 ('rotation', C.c_float), ('blend', C.c_int32), ('owner', C.c_int32),   # RENDER-ITEMS-002R
-                ('target', C.c_float * 3)]   # RENDER-ITEMS-002S: CreateJoint's target position
+                ('target', C.c_float * 3),   # RENDER-ITEMS-002S: CreateJoint's target position
+                ('extra', C.c_int32)]   # RENDER-ITEMS-002T: CreateParticle argument 8
 
 
 TRANSFORM = C.CFUNCTYPE(None, C.c_void_p, C.c_int32, C.POINTER(C.c_float), C.POINTER(C.c_float))
@@ -51,6 +52,7 @@ EMIT = C.CFUNCTYPE(None, C.c_void_p, C.POINTER(Fx))
 RANDOM = C.CFUNCTYPE(C.c_int32, C.c_void_p)
 NAMED = C.CFUNCTYPE(C.c_int32, C.c_void_p, C.c_char_p)
 ITEM_TRANSFORM = C.CFUNCTYPE(None, C.c_void_p, C.c_int32, C.POINTER(C.c_float), C.c_int32, C.POINTER(C.c_float))
+OBJECT_TRANSFORM = C.CFUNCTYPE(None, C.c_void_p, C.c_int32, C.POINTER(C.c_float))
 
 
 class Host(C.Structure):
@@ -59,7 +61,9 @@ class Host(C.Structure):
                 ('item_bones', C.c_int32), ('angle', C.c_float * 3),
                 # RENDER-ITEMS-002R pre-draw programs (NULL here: no item host)
                 ('bone_named', NAMED), ('item_transform', ITEM_TRANSFORM), ('refuse', EMIT), ('visible', C.c_int32),
-                ('position', C.c_float * 3)]   # RENDER-ITEMS-002S: OBJECT +0x158
+                ('position', C.c_float * 3),   # RENDER-ITEMS-002S: OBJECT +0x158
+                # RENDER-ITEMS-002T: 0x012b678d on an item bone, the rendered-frame counter
+                ('object_transform', OBJECT_TRANSFORM), ('frame', C.c_uint32), ('frame_known', C.c_int32)]
 
 
 def u(x):

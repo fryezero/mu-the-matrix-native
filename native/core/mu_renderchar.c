@@ -196,7 +196,8 @@ static void owner_emit(void *context, const mu_rc_owner_fx *fx)
 {
     owner_services *o = context;
     long created = 0;
-    if (!o->particles || (fx->kind == MU_RC_OWNER_PARTICLE && fx->owner)) {
+    /* RENDER-ITEMS-002T: mu_world_particles_create has no argument 8; a request with one is refused too. */
+    if (!o->particles || (fx->kind == MU_RC_OWNER_PARTICLE && (fx->owner || fx->extra))) {
         o->refused++;
         return;
     }
@@ -240,6 +241,19 @@ static void item_transform(void *context, int32_t bone, const float local[3], in
     const owner_services *o = context;
     mu_pt_transform_position(o->item_bones + 12 * bone, local, out, translate, o->model->params.body_scale,
                              o->model->params.origin);
+}
+
+/* RENDER-ITEMS-002T: 0x012b678d(out, OBJECT, bone, NULL): the bone matrix's translation times the item model scale,
+ * plus the OBJECT position. The native item has no OBJECT bone array (+0x318), so the matrix is BoneTransform (the
+ * item's own pose), and its model origin stands in for the OBJECT position (as host.position). */
+static void item_object_transform(void *context, int32_t bone, float out[3])
+{
+    const owner_services *o = context;
+    const float *m = o->item_bones + 12 * bone;
+    for (int k = 0; k < 3; ++k) {
+        volatile float scaled = o->model->params.body_scale * m[4 * k + 3];
+        out[k] = scaled + o->model->params.origin[k];
+    }
 }
 
 static void item_refuse(void *context, const mu_rc_owner_fx *fx)
@@ -287,7 +301,7 @@ static int draw_item(const mu_model *model, const mu_renderchar_glow *glow, cons
     owner_services services = {model, owner, env->particles, 0, 0, env->item_bones};
     mu_rc_owner_host host = {owner && owner->bones ? owner->bone_count : 0, -1, owner_transform, owner_random,
                              owner_emit, &services, model->bmd->bone_count, {0.0f, 0.0f, 0.0f},
-                             NULL, NULL, NULL, 0, {0.0f, 0.0f, 0.0f}};
+                             NULL, NULL, NULL, 0, {0.0f, 0.0f, 0.0f}, NULL, 0, 0};
     /* RENDER-ITEMS-002R: RenderObjDraw's own case creates effects before the body draws. They need the
      * particle pools; without the item's pose every item-bone request is refused (rand order is kept). The
      * TestFrustrum2D flag comes from the caller (RENDER-ITEMS-CALLERS-001; default in view). */
@@ -299,6 +313,9 @@ static int draw_item(const mu_model *model, const mu_renderchar_glow *glow, cons
         host.visible = !env->item_out_of_view;
         /* RENDER-ITEMS-002S: OBJECT +0x158. The native item has no OBJECT of its own; its model origin stands in. */
         memcpy(host.position, model->params.origin, sizeof host.position);
+        host.object_transform = item_object_transform;
+        host.frame = env->frame_counter ? *env->frame_counter : 0;
+        host.frame_known = env->frame_counter != NULL;
         if (!owner)
             host.transform = NULL;   /* no OBJECT owner bones: the owner programs stay off */
         if (!env->item_bones)

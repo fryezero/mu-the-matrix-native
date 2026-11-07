@@ -54,6 +54,9 @@ typedef struct mu_renderchar_env {
     /* RENDER-ITEMS-CALLERS-001: 1 when TestFrustrum2D 0x016ccce7 at the item's OBJECT failed (RenderObjDraw's flag
      * [ebp-0xd] = 0; the programs' gated cases are skipped). 0 (default): in view. */
     int item_out_of_view;
+    /* RENDER-ITEMS-002T: the rendered-frame counter [0x0bdc5ebc] some programs test (% 3, % 5). NULL (default): not
+     * known natively, so the requests behind such a test are refused and counted. */
+    const uint32_t *frame_counter;
 } mu_renderchar_env;
 
 typedef struct mu_renderchar_stats {

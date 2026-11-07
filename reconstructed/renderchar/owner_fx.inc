@@ -15,7 +15,12 @@
  * RENDER-ITEMS-002S: integer registers (int32 bits in a register: cvttss2si, cvtsi2ss, idiv, rand(), the item
  * bone count), forward branches on runtime values (op 34, x86 flag semantics) with joins (op 35 jumps over the
  * other path's moves), the light argument, the OBJECT position, CreateJoint 0x0153b02c and CreateSprite with a
- * rotation. The register file grows to 4096 (the reader's REGISTERS). */
+ * rotation. The register file grows to 4096 (the reader's REGISTERS).
+ *
+ * RENDER-ITEMS-002T: the rendered-frame counter [0x0bdc5ebc] (op 42), 0x012b678d on an item bone with a NULL
+ * local point (op 43), the random spherical vector 0x00d01fc6 (op 44), array elements at a bounded runtime index
+ * (op 45: rand() % 3 selects a bone or a value) and CreateParticle with a register bitmap and argument 8 (ops 46,
+ * 47). */
 
 static int owner_fx_index(int32_t type)
 {
@@ -81,6 +86,41 @@ static void fx_normalize(const float in[3], float out[3])
     const float inverse = 1.0f / length;
     for (int k = 0; k < 3; ++k)
         out[k] = in[k] * inverse;
+}
+
+/* 0x00d01fc6(out, r max, r min, theta max, theta min, phi max, phi min): each comparison is comiss (false when
+ * unordered), the three randoms are 0x011ff622 calls; returns the radius (fldz on the early exit). */
+static float fx_random_vector(const mu_rc_owner_host *h, const float a[6], float out[3])
+{
+    float rmax = a[0], rmin = a[1], tmax = a[2], tmin = a[3], pmax = a[4], pmin = a[5];
+    const float floor_radius = 9.9999997e-07f /* 0x01a80990 */, radians = 0.017453292f /* 0x01a7fd6c */;
+    if (0.0f > rmin)
+        rmin = 0.0f;
+    const float r = rmin >= rmax ? rmin : fx_range(h, rmin, rmax, 50);
+    if (floor_radius > r) {
+        out[0] = out[1] = out[2] = 0.0f;
+        return 0.0f;
+    }
+    if (tmin > tmax)
+        tmin = tmax;
+    if (0.0f > tmin)
+        tmin = 0.0f;
+    if (tmax > 180.0f)
+        tmax = 180.0f;
+    const float theta = fx_range(h, tmin * radians, tmax * radians, 100);
+    if (pmin > pmax)
+        pmin = pmax;
+    if (0.0f > pmin)
+        pmin = 0.0f;
+    if (pmax > 360.0f)
+        pmax = 360.0f;
+    const float phi = fx_range(h, pmin * radians, pmax * radians, 100);
+    const float x = client_sin(theta) * r;
+    out[0] = x * (float)cos((double)phi);     /* 0x009fa223: the CRT cos of a binary32, rounded to binary32 */
+    const float y = client_sin(theta) * r;
+    out[1] = y * client_sin(phi);
+    out[2] = (float)cos((double)theta) * r;
+    return r;
 }
 
 static int pre_fx_index(int32_t type)
@@ -323,6 +363,39 @@ static void run_fx(const mu_rc_fx_op *ops, int count, int regs, const mu_rc_item
             bad[o->a] = (uint8_t)(bad[o->b] | bad[o->c] | !y);
             break;
         }
+        case 42:   /* the rendered-frame counter [0x0bdc5ebc] (unsigned) */
+            fx_set_int(&r[o->a], (int32_t)h->frame);
+            bad[o->a] = !h->frame_known;
+            break;
+        case 43:   /* 0x012b678d(out, OBJECT, item bone r[b], NULL); the client leaves out unchanged outside 0..+0x22 */
+            bone = fx_int(&r[o->b]);
+            if (bad[o->b] || bone < 0 || bone >= h->item_bones || !h->object_transform) {
+                r[o->a] = r[o->a + 1] = r[o->a + 2] = 0.0f;
+                bad[o->a] = bad[o->a + 1] = bad[o->a + 2] = 1;
+                break;
+            }
+            h->object_transform(h->context, bone, &r[o->a]);
+            bad[o->a] = bad[o->a + 1] = bad[o->a + 2] = 0;
+            break;
+        case 44: { /* 0x00d01fc6(out r[a..a+2], arguments r[b..b+5]); r[a+3] = its x87 result */
+            r[o->a + 3] = fx_random_vector(h, &r[o->b], &r[o->a]);
+            uint8_t any = 0;
+            for (int k = 0; k < 6; ++k)
+                any |= bad[o->b + k];
+            bad[o->a] = bad[o->a + 1] = bad[o->a + 2] = bad[o->a + 3] = any;
+            break;
+        }
+        case 45: { /* r[a] = word r[b] / 4 of the table r[c..c+d-1] (r[b] is a byte offset) */
+            const int32_t off = fx_int(&r[o->b]);
+            if (bad[o->b] || off < 0 || off % 4 || off / 4 >= (int32_t)o->d) {
+                r[o->a] = 0.0f;
+                bad[o->a] = 1;
+                break;
+            }
+            r[o->a] = r[o->c + off / 4];
+            bad[o->a] = bad[o->c + off / 4];
+            break;
+        }
         case 39: { /* CreateJoint 0x0153b02c(bitmap k, pos r[a], target r[b], angle r[c], subtype e, OBJECT, scale r[d],
                     * -1, 0, 0, -1, 0, -1, 0) */
             memset(&fx, 0, sizeof fx);
@@ -348,11 +421,18 @@ static void run_fx(const mu_rc_fx_op *ops, int count, int regs, const mu_rc_item
         case 14:
         case 17:
         case 25:
-        case 40: {
+        case 40:
+        case 46:
+        case 47: {
             int refused = lost;
             memset(&fx, 0, sizeof fx);
             fx.kind = o->op == 13 || o->op == 17 || o->op == 40 ? MU_RC_OWNER_SPRITE : MU_RC_OWNER_PARTICLE;
             fx.bitmap = (int32_t)o->k;
+            if (o->op >= 46) {   /* CreateParticle(bitmap r[k], ..., argument 8 r[k + 1]) */
+                fx.bitmap = fx_int(&r[o->k]);
+                fx.extra = fx_int(&r[o->k + 1]);
+                refused |= bad[o->k] | bad[o->k + 1];
+            }
             if (o->op == 17) {
                 /* 0x0150e746: TransformPosition(BoneTransform + 0x30 * bone, (0, 0, 0), translate 1), then
                  * CreateSprite(bitmap, position, scale, light, OBJECT, rotation, blend, 4, axes). */
@@ -381,7 +461,7 @@ static void run_fx(const mu_rc_fx_op *ops, int count, int regs, const mu_rc_item
                 memcpy(fx.angle, &r[o->b], sizeof fx.angle);
                 fx.scale = r[o->d];
                 fx.subtype = o->e;
-                fx.owner = o->op == 25;
+                fx.owner = o->op == 25 || o->op == 47;
                 refused |= bad[o->b] | bad[o->b + 1] | bad[o->b + 2] | bad[o->d];
             }
             if (refused) {

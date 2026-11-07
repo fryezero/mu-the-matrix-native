@@ -22,6 +22,11 @@ RENDER-ITEMS-002S (part 19) adds fourteen programs to both families: integer clo
 CreateJoint 0x0153b02c loops (a recording stub with all fourteen arguments; the C's joint requests carry the same
 words), a rotated CreateSprite behind rand() % 15, bones at rand() % bone count, names built with _itoa and the
 OBJECT position (+0x158, random in every state).
+RENDER-ITEMS-002T (part 21) adds three maces: the rendered-frame counter [0x0bdc5ebc] (random in every state; the C
+host gets the same word), 0x012b678d on item bones with a NULL local point (some states give the OBJECT its own bone
+array +0x318, which the client then reads instead of BoneTransform; the C host's object_transform does the same),
+the random spherical vector 0x00d01fc6, rand() % 3 array selects, and CreateParticle with a computed bitmap and
+argument 8 (compared word for word).
 The body table (gen_item_bodies) and the effect table (gen_item_owner_fx) must reproduce from the pins.
 """
 import argparse
@@ -47,17 +52,23 @@ RECORDS = 0x2f000000         # synthetic bone records (0x8c bytes each, the name
 FRUSTUM = (0x0b6b5400, 0x0b6b5410)   # TestFrustrum2D corner x[4] and y[4]
 SCENE = 0x01d1df70
 FLAG_SITE = 0x0176cef5       # after `mov byte ptr [ebp-0xd], al`
+FRAME_COUNTER = fxgen.FRAME_COUNTER
 
 Fx = ownerfx.Fx
 RANDOM, TRANSFORM, EMIT = ownerfx.RANDOM, ownerfx.TRANSFORM, ownerfx.EMIT
 NAMED = C.CFUNCTYPE(C.c_int32, C.c_void_p, C.c_char_p)
 ITEM_TRANSFORM = C.CFUNCTYPE(None, C.c_void_p, C.c_int32, C.POINTER(C.c_float), C.c_int32, C.POINTER(C.c_float))
+OBJECT_TRANSFORM = ownerfx.OBJECT_TRANSFORM
 Host = ownerfx.Host
 DECOYS = ['Bip01', 'Bone01', 'Box01', 'aw00', 'Point', 'zx00', 'sw0', 'center', 'g001']
 
 
 def u(x):
     return struct.unpack('<I', struct.pack('<f', x))[0]
+
+
+def f32(x):
+    return struct.unpack('<f', struct.pack('<f', x))[0]
 
 
 def program_names():
@@ -93,12 +104,17 @@ def item_setup(rng, t, k, names, consts):
     if k % 11 == 5:
         matrices = [round(x) for x in matrices]
     hidden = k % 9 == 4                       # the frustum lies away from the OBJECT: [ebp-0xd] = 0
+    # RENDER-ITEMS-002T: the rendered-frame counter, and in some states an OBJECT bone array (+0x318).
+    frame = rng.choice((0, 1, 2, 3, 4, 5, 15, rng.randrange(1 << 32), 0xffffffff))
+    attached = k % 5 == 2
+    owner = [f32(rng.uniform(-1.5, 1.5)) if c % 4 != 3 else f32(rng.uniform(-200, 200))
+             for _ in range(count) for c in range(12)] if attached else []
     return dict(count=count, names=table, matrices=matrices, records=k % 17 != 3,
                 scale=rng.choice((1.0, 0.75, 1.3, rng.uniform(0.5, 2))),
                 origin=[rng.uniform(-3000, 3000) for _ in range(3)],
                 position=[rng.uniform(-3000, 3000) for _ in range(3)],
                 angle=[rng.choice((0.0, 90.0, rng.uniform(-360, 360))) for _ in range(3)],
-                hidden=hidden, stream=quality.sequence_for(rng) + [rng.randrange(32768) for _ in range(64)])
+                hidden=hidden, frame=frame, attached=attached, owner_matrices=owner, stream=quality.sequence_for(rng) + [rng.randrange(32768) for _ in range(64)])
 
 
 def names_bytes(names):
@@ -153,6 +169,11 @@ class ItemWorld(ownerfx.OwnerWorld):
         m.write(BONE_TRANSFORM + 0x30 * o['count'], struct.pack('<12f', *([-3.0] * 12)) * 8)
         m.write(v.OBJ + 0x164, struct.pack('<3f', *o['angle']))
         m.write(v.OBJ + 0x158, struct.pack('<3f', *o['position']))
+        m.ensure(FRAME_COUNTER, 4)
+        m.w32(FRAME_COUNTER, o['frame'])
+        m.w32(v.OBJ + 0x318, ownerfx.OWNER_BONES if o['attached'] else 0)
+        if o['attached']:
+            m.write(ownerfx.OWNER_BONES, struct.pack('<%df' % len(o['owner_matrices']), *o['owner_matrices']))
         m.ensure(SCENE, 4)
         m.w32(SCENE, 0)
         m.ensure(FRUSTUM[0], 0x20)
@@ -203,12 +224,20 @@ def run_c(lib, plib, case, o, flag):
         origin = (C.c_float * 3)(*o['origin'])
         plib.mu_pt_transform_position(matrix, local, out, translate, o['scale'], origin)
 
+    @OBJECT_TRANSFORM
+    def object_transform(_, bone, out):
+        # 0x012b678d(out, OBJECT, bone, NULL): the OBJECT's own bone array when it has one (its model is the item
+        # model here, so the bone is in range), else BoneTransform; translation * scale + OBJECT position.
+        source = o['owner_matrices'] if o['attached'] else o['matrices']
+        for k in range(3):
+            out[k] = f32(f32(f32(o['scale']) * f32(source[12 * bone + 4 * k + 3])) + f32(o['position'][k]))
+
     def record(fx):
         f = fx.contents
         light = [u(x) for x in f.light]
         if f.kind == 1:
             return ('particle', f.bitmap, [u(x) for x in f.position], [u(x) for x in f.angle], light,
-                    f.subtype, u(f.scale), v.OBJ if f.owner else 0, 0)
+                    f.subtype, u(f.scale), v.OBJ if f.owner else 0, f.extra & 0xffffffff)
         if f.kind == 3:
             return ('joint', f.bitmap, [u(x) for x in f.position], [u(x) for x in f.target], [u(x) for x in f.angle],
                     f.subtype, v.OBJ, u(f.scale), 0xffffffff, 0, 0, 0xffffffff, 0, 0xffffffff, 0)
@@ -226,7 +255,8 @@ def run_c(lib, plib, case, o, flag):
 
     context = v.CContext(0, -1, v.RANDOM_FN(lambda _: draw()), None)
     host = Host(0, -1, TRANSFORM(), rand, emit, None, o['count'], (C.c_float * 3)(*o['angle']),
-                named, item_transform, refuse, flag, (C.c_float * 3)(*o['position']))
+                named, item_transform, refuse, flag, (C.c_float * 3)(*o['position']),
+                object_transform, o['frame'], 1)
 
     class Adapter:
         def mu_rc_item_draws(self, *args):
