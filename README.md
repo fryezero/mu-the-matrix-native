@@ -125,7 +125,7 @@ creatures (fish, birds, leaves), weather, blob shadows and frustum culling. The 
 | Noria and warp sites | Portal placement and nested warp effects |
 | Santa Village, Vulcanus, Duel Arena and world 82 | Primary object create, move and visual methods |
 | Loren Market and Uruk Mountain | Primary object methods; Market lamps follow the current pose |
-| Raklion and Karutan | Primary methods completed; Karutan lamp/waterfall and Raklion/Market particle lifecycles |
+| Raklion and Karutan | Primary methods completed; Karutan lamp/waterfall and Raklion/Market particle lifecycles; Raklion's whole custom slot (the 0x14 statue's water spray, object light) and Karutan's glowing 0x81 crystal |
 | Lost Tower, Tarkan and Icarus | Built-in sprites and push bodies, lamps and plumes, Icarus bone flares |
 | Nixies Lake, Deep Dungeon 1–5, Abyss of Atlans 1–3, Kanturu Underground, Ignis Volcano | Primary object methods; Deep Dungeon dragon fires, Abyss swimmers |
 | Old/Burning Kethotum, Bloody Tarkan, worlds 131–134 and 142–144 | Primary object methods; Kardamahal and Swamp of Destruction water and after renders |
@@ -224,7 +224,10 @@ records; travel, warp requests and respawn keep their earlier offline path.
 Skill effects, joints (lightning), particles, sprites and the client's JSON effect system. Poison, Ice, Power
 Wave, Meteorite, Aqua Beam, Inferno, Rageful Blow, the Triple Shot fan and the Guardian wing draw their primary
 visuals: **20/23 primary visuals on the native cast routes (65/77 weighted by exposure)**. Rank-5 items draw
-their owner effects (19/19 types). Buff and later-class variants and a live comparison remain
+their owner effects (19/19 types). In the world, the item effect programs now run for the hero, other players and
+ground items: the Cloak of Brilliance's own sparks, and the armour pieces' owner effects on their wearers, with 0
+refused requests in the checked scenes ([cloak sparks](docs/handoffs/RENDER-EFFECTS-020.md),
+[armour](docs/handoffs/RENDER-EFFECTS-021.md)). Buff and later-class variants and a live comparison remain
 ([skill visual coverage](docs/research/client-skill-visual-coverage.md), [rank-5 effects](docs/handoffs/RENDER-EFFECTS-005.md)).
 
 <p align="center"><img src="docs/images/06-effects-skills-particles.jpg" alt="Aqua Beam, Inferno, Meteorite and Ice cast at demo monsters in Lorencia" width="900"></p>
@@ -255,8 +258,8 @@ not yet established ([help window](docs/handoffs/SYS-MISC-001b.md)).
 
 | | |
 |---|---|
-| ![Character window, buff icons and a buff popup](docs/images/07-gfx-character-window-buffs.png) | ![Inventory with textured item icons and a tooltip](docs/images/08-inventory-item-tooltip.png) |
-| Character window and buffs | Inventory icons sized from the client's ItemTRSData, tooltip and price |
+| ![Character window, buff icons and a buff popup](docs/images/07-gfx-character-window-buffs.png) | ![Inventory with the hero's equipment (Cookery Short Sword +9 excellent, Small Shield +7, Wings of Heaven), textured item icons and a tooltip](docs/images/08-inventory-item-tooltip.png) |
+| Character window and buffs | The inventory's equipment slots show the hero's gear with level glow; icons sized from ItemTRSData |
 
 ### NPCs, shops and quests
 
@@ -308,11 +311,27 @@ Guardian and Rudolph, and the Dark Raven.
 
 ### Item rendering
 
-The shared renderer now covers **1,319/1,674 special item bodies and 17/17 class skins**, with linked sprites for
-**18 targets / 24 item types**. The latest 43 bodies are armour pieces whose effect programs place sprites on the
-wearer's bones. These are bounded special draw branches, not a count of every item the client can display;
-**355 special bodies** remain ([coverage and checks](docs/handoffs/RENDER-ITEMS-002Q.md),
+The shared renderer now covers **1,363/1,674 special item bodies and 17/17 class skins**, with linked sprites for
+**18 targets / 24 item types**. These are bounded special draw branches, not a count of every item the client can
+display; **311 special bodies** remain ([coverage and checks](docs/handoffs/RENDER-ITEMS-002T.md),
 [remaining census](docs/handoffs/RENDER-ITEMS-002P.md)).
+
+Equipment now carries its level, excellent option and ext, as the hero's ITEM records do in the client. The offline
+demo's hero Ironclad carries a Cookery Short Sword +9 excellent with its level glow, and several demo players wear
+items whose effect programs run before the draw (Xeno Blade, Wings of Eternal, Wings of Dimension, Floor Hammer and
+Floor Shield) ([demo outfits](docs/handoffs/APP-POLISH-008.md)).
+
+<p align="center"><img src="docs/images/31-lorencia-demo-outfits-item-glow.jpg" alt="The offline demo in Lorencia: Ironclad with the Cookery Short Sword +9 excellent, a Small Shield and Wings of Heaven, shown enlarged in the inset; Redhand on a gold Fenrir with the Xeno Blade and Wings of Eternal" width="900"><br>
+<sub>Native client, offline demo session, Lorencia 140,124, world FOV 39. Inset: the same frame rendered at
+3200×2000 and enlarged.</sub></p>
+
+The wings with a cloak (InnocenceCape, the Cloak of Brilliance and the black cloaks) now hang a physics cloth from the
+wearer's back, as the client does: a 10×10 mass-spring cape that moves with the wind and streams behind a walking
+character. As in the original, only the classes with a cloth flag get one ([capes](docs/handoffs/RENDER-ITEMS-CLOAK.md)).
+
+<p align="center"><img src="docs/images/32-capes-cloak-sparks-armour-fx.jpg" alt="Test fixture in Lorencia: Velvet walks with a white InnocenceCape streaming behind, Nocturne wears a black cloak, the hero Preview stands with an InnocenceCape, Seraph wears the Cloak of Brilliance with its two blue half-capes and sparks, and Thorne and Ashe show their armour's owner effects" width="900"><br>
+<sub>Test fixture (a local players file with demo names, not the shipped demo), Lorencia 136,133, frame 30. A
+2560×1600 crop of a 3200×2000 render at world FOV 39.</sub></p>
 
 Item textures follow the client's own loader: the record's texture folder, the bitmap-name map and every
 startup bitmap registration. Item types that drew a white pass fell from 1,431 to **13 of 1,691** in the
@@ -398,12 +417,12 @@ removed the GL path renders 69 to 173 FPS at Retina full-screen size (3456 × 21
 | Model pipeline: decoder, bone tracks, pose builder, skinning, mesh draw | Done, verified in Unicorn |
 | World: terrain, lighting, water/lava, objects, culling, environment, weather | Primary handler methods 144/144 across 48/48 classes; class render slots 142/144 |
 | Characters: assembly, gear, glow, monsters and NPCs | Offline rendering; players/monsters/NPCs now consume session records |
-| Special item rendering | Partial; 1,319/1,674 bodies, 17/17 class skins, links for 18 targets / 24 types; 355 bodies remain |
+| Special item rendering | Partial; 1,363/1,674 bodies, 17/17 class skins, links for 18 targets / 24 types; 311 bodies remain; item effect programs, armour owner effects and wing capes in the world |
 | Item textures | The client's loader rule and all startup bitmap registrations; 13/1,691 survey types still draw a white pass (hair meshes) |
 | Movement: click-to-move, path finding, long-distance auto move, walk/run rules | Done, verified |
 | Input: one router and shared scripts across world/client tools | Implemented; 570 instruction cases, 0 mismatches, 7/7 planted mistakes caught; unavailable panels listed separately |
 | Scenes: title, login world, server select, character select and creation, loading | Offline; shared character-select runtime, unchanged render comparisons; account session still open |
-| Interface: 2D layer, legacy windows, GFx movies via Ruffle, HUD, inventory, tooltips, names, chat bubbles | Done; the HUD shows the session's HP/MP/SD/AG (1,028 cases, 0 mismatches), inventory icons use the client's ItemTRSData fit |
+| Interface: 2D layer, legacy windows, GFx movies via Ruffle, HUD, inventory, tooltips, names, chat bubbles | Done; the HUD shows the session's HP/MP/SD/AG (1,028 cases, 0 mismatches), inventory icons use the client's ItemTRSData fit, and the equipment slots show the hero's items |
 | Help window: help rows, controller, real movie | Implemented offline; 888 instruction cases, 0 mismatches, 18/18 planted mistakes caught; Ctrl+H is a native binding |
 | Gameplay systems: combat, items, NPC talk/shops/vault, quests, skills, players, pets and mounts | Offline implementations with domain-specific limits; session migrations continue |
 | Session: hero, quests, players, monsters/NPCs, combat, skills, ground items, minimap markers, party | Local plaintext fixture feeds; 11/11 scenarios, 86 inbound frames, 0 unbound/undecodable in those scenarios |
@@ -420,7 +439,7 @@ removed the GL path renders 69 to 173 FPS at Retina full-screen size (3456 × 21
 | Bows and ground skills: arrows, trails, joints, sparks, rain, rings, stones, craters | 40 bow scenes and both ground skills at 0 unsupported effect requests; 2044 castable offline by the demo Elf |
 | Later skills: fourth and fifth trees | Fourth tree implemented offline, 6,510 instruction cases, 0 mismatches; fifth-tree card/item behavior remains open |
 | Audio: music, ambient, footsteps, effects | Event music, all music entries identified, 76 sound sites on session cues plus skill-effect sound sites; remaining callers/inputs and live audio parity open |
-| Packaging: `Mu The Matrix Native Preview.app`, 25 FPS frame cap, resizable window, full screen | Done; window title as the original's (no fps suffix); Preview reinstalled from main on November 6 (PR #312) |
+| Packaging: `Mu The Matrix Native Preview.app`, 25 FPS frame cap, resizable window, full screen | Done; window title as the original's (no fps suffix); Preview reinstalled from main on November 7 (PR #345: up to #343, without the capes of #344) |
 | First run and Native Data | Bundled C converter needs no Python; build-keyed manifests verify inputs/outputs and refuse incompatible sets; second-user acquisition remains open |
 | Private integration | 38/38 private-enabled test directories green at PR #200; 1,464 unique tests passed, 15 optional Ruffle/movie skips ([record](docs/handoffs/INTEGRATION-GREEN-001.md)) |
 | Crowded-scene performance | NATIVE-PERF-004: crowd80 23.2 / 20.2 fps, tormenta80 24.8 / 20.8 fps (shared host); strict 25 fps only at 40 players |
@@ -441,7 +460,7 @@ not claim original-instruction or live-game parity. The full per-milestone recor
 - **Skills and quests.** Fifth-tree card/item behavior, fourth-tree side stats, FormulaData and authoritative
   equipment/buff/event inputs remain open. NPC quest-list replies still need decoding; encrypted requests stay
   unsent ([quest limits](docs/handoffs/SESSION-QUEST-001.md), [skill limits](docs/handoffs/SESSION-SKILL-001.md)).
-- **Rendering and live comparisons.** Two class render slots (Test Area) and 355 special item bodies are
+- **Rendering and live comparisons.** Two class render slots (Test Area) and 311 special item bodies are
   left, plus further links, three primary skill visuals, buff and later-class variants, and 13 hair meshes
   without a texture. The world inventory being complete does not establish complete map fidelity: 21 of the 48
   world classes have no original capture yet, and the live temporal comparison still needs aligned animation
