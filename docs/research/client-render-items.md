@@ -1602,3 +1602,60 @@ and its refusals, `0xb27`'s flag gate with its rand, no host). Native `test_weap
   character` do not pass the item pose yet: their requests are refused and counted, the rand stream kept.
 - The TestFrustrum2D flag is 1 natively. Bones outside the item skeleton are refused (the client reads the matrix
   before BoneTransform or stale bones). OBJECT-owned particles have no native owner record.
+
+## Part 19, the world callers of the pre-draw programs, RENDER-ITEMS-CALLERS-001
+
+Part 18's programs now run in the native world: the hero, other players, player-model actors and ground items pass
+the item's own pose, and RenderObjDraw's flag is computed as the client computes it.
+[Handoff](../handoffs/RENDER-ITEMS-CALLERS-001.md).
+
+### What RenderObjDraw reads from its callers (verified, `validate_item_callers`)
+
+- **Callers.** The text calls RenderObjDraw `0x0176ce74` from five sites: RenderLinkItem `0x012bd910` at
+  `0x012c6a83` (worn weapons, shields, wings); RenderPartObject `0x017e63f4` at `0x017e7960` and `0x017e7997`
+  (ground items and body parts); and two sites at `0x00a497c6`/`0x00a49bc9` (the inventory/UI item path).
+- **Pose, then pre-draw, then body.** In RenderLinkItem every path from the origin copy to the call passes the
+  item's Animation `0x012b5064` at `0x012c6478`, which writes BoneTransform `0x06fce398` (static control-flow
+  check). RenderObjDraw then runs the type's case before the body helper (part 18).
+- **The OBJECT position.** RenderLinkItem copies the item model's BodyOrigin (`+0x78`) into the link OBJECT
+  (`PART + 0x24`) `+0x158` at `0x012c6302..0x012c637b`. RenderPartObject copies the other way, OBJECT `+0x158` → model
+  `+0x78`, at `0x017e64dc..0x017e6543`. Both copies dominate their calls. So the OBJECT position RenderObjDraw
+  tests is the model origin in both callers.
+- **The flag.** `[ebp-0xd]` = TestFrustrum2D `0x016ccce7(x·0.01f, y·0.01f, -20.0f)` at `0x0176ceea`, constants
+  `0x01a7df00` and `0x01a7ee00` in single precision. It is 1 in scene states 1..4, else the polygon
+  `0x0b6b5400`/`0x0b6b5410` decides (`mu_terrain_test_frustum_2d`).
+
+Families (seed `0x1c411e5`), all compared bit for bit with `native/world/world_item_pre.h`:
+
+| Family | Cases | Mismatches |
+|---|---:|---:|
+| link_flag: RenderLinkItem's copy, then RenderObjDraw's entry to the flag store (stack probe, SEH frame, TestFrustrum2D), with random convex polygons of both windings, origins inside/around them, on the -20 margin lines (±0.001..1.5) and NaN/±inf/±0/3e38/denormal coordinates, scene states 6 and 5 | 3,000 | 0 |
+| part_flag: the same through RenderPartObject's copy | 3,000 | 0 |
+| order: the dominance checks above (pose before the call, the copies before the calls, the one switch jump `0x017e6b16` behind the copy) | 8 | 0 |
+| callers: the five call sites | 5 | 0 |
+
+6/6 separately compiled mutants of the header are caught: scale 0.02, y from z, range -21, flag negated, scene
+state 3 and polygon arrays swapped. Each anchor matches once.
+
+### Native
+
+- `world_rt_item_pre` (world_rt.c) runs for a type with a pre-draw program when the world has particle pools. It
+  passes the pose the caller saved right after the item's pose (`item->bones` for slots 6..8, the ground model's
+  bones after `pose_item`) and per-caller counters. It also sets `env->item_out_of_view` from `world_item_pre.h` on
+  the model origin, using the frame's polygon and scene state 6; with `--legacy-box`, every item is in view.
+- `mu_renderchar_env.item_out_of_view` becomes the host's `visible`. That is the only renderchar change; the
+  default (0) keeps `mu-render` as it was.
+- The world summary gains `item_pre_draw` (pre_effects, pre_refused, hidden per caller) only when a program ran.
+
+In a Lorencia scene with four demo players and three ground drops of the new types, requests go from 0 created /
+113 refused to 110 created / 3 refused. The 3 left are wing `0x2384`'s OBJECT-owned particles. The rand count is
+unchanged (133). A player outside the polygon has the flag clear and creates nothing.
+
+### Limits
+
+- The hero's item types come from standard file names, and none of the 26 types uses one. The hero path is wired
+  but shows no pre-draw effects until its items carry record types.
+- The inventory/UI caller is not wired: it has a per-icon pool only for the `0x389c`/`0x389d` skins.
+- Owner binding is not needed for sprites: CreateSprite records live one frame (RenderSprites `0x0169270e` modes
+  0/2), and the draw `0x01692931` never reads `+0x34c`. OBJECT-owned particles stay refused, with no native
+  owner record or kind.

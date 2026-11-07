@@ -51,6 +51,9 @@ typedef struct mu_renderchar_env {
      * env->particles (rand order kept) but every request on an item bone is refused and counted. */
     const float *item_bones;
     long *pre_counts;        /* optional out: [0] pre-draw requests created, [1] refused (no native kind, no pose) */
+    /* RENDER-ITEMS-CALLERS-001: 1 when TestFrustrum2D 0x016ccce7 at the item's OBJECT failed (RenderObjDraw's flag
+     * [ebp-0xd] = 0; the programs' gated cases are skipped). 0 (default): in view. */
+    int item_out_of_view;
 } mu_renderchar_env;
 
 typedef struct mu_renderchar_stats {

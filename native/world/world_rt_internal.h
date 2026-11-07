@@ -52,6 +52,9 @@ enum {
     MU_PART_COUNT
 };
 
+/* RENDER-ITEMS-CALLERS-001: the world callers that draw items through RenderObjDraw's pre-draw programs. */
+enum { MU_WORLD_PRE_HERO, MU_WORLD_PRE_PLAYERS, MU_WORLD_PRE_ACTORS, MU_WORLD_PRE_GROUND, MU_WORLD_PRE_CALLERS };
+
 struct mu_world_rt {
     int8_t seq[6][MU_PART_COUNT + 1];
     struct mu_perf *perf;
@@ -113,6 +116,10 @@ struct mu_world_rt {
     int no_players;
     int32_t player_range;
     mu_world_players *players;
+    /* RENDER-ITEMS-CALLERS-001: RenderObjDraw's pre-draw programs (RENDER-ITEMS-002R) per caller: [0] requests
+     * created, [1] refused; hidden = draws of a program type whose TestFrustrum2D flag was clear. */
+    long item_pre[MU_WORLD_PRE_CALLERS][2];
+    long item_pre_hidden[MU_WORLD_PRE_CALLERS];
     /* NATIVE-HELPERS-001 */
     const char *helper_arg;
     int32_t helper_state;
@@ -196,6 +203,11 @@ void world_rt_hero_item_textures(mu_world_rt *a, int first, int last);
 void world_rt_effect_camera(const mu_world_rt *a, float eye[3], float target[3]);
 void world_rt_report_frame(const mu_world_rt *a, int32_t frame, uint32_t now, const char *hash, const char *png);
 void world_rt_report_summary(const mu_world_rt *a, const char *renderer);
+/* RENDER-ITEMS-CALLERS-001: the item pose, the caller's pre-draw counters and the TestFrustrum2D flag for one item
+ * draw (no-op without a particle pool or a pre-draw program for the type). */
+struct mu_renderchar_env;
+void world_rt_item_pre(mu_world_rt *a, struct mu_renderchar_env *env, int caller, int32_t type, const mu_model *model,
+                       const float *bones);
 #ifndef MU_WORLD_NO_GL
 void world_rt_names_gfx_attach(mu_world_rt *a, double scale);
 void world_rt_gl_effect(void *context, const mu_fx_vertex *vertices, uint32_t count, const mu_fx_draw_state *state,

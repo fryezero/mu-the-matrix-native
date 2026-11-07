@@ -3101,3 +3101,33 @@ args = ["--cases", "20", "--mutations", "--output", "{report}"]
 all_equal = true
 all_mutants_caught = true
 "mutants.*.stopped" = 0
+
+[validate_item_callers]
+test = "native/tests/test_native_world_predraw.py::ItemCallers.test_original_instructions"
+pins = ["text", "data"]
+families = ["link_flag", "part_flag", "order", "callers"]
+cases = 6013
+mutants = 6
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/terrain"]
+args = ["--mutations", "--output", "{report}"]
+[validate_item_callers.expect]
+"families.*.mismatches" = 0
+"families.link_flag.cases" = 3000
+"families.part_flag.cases" = 3000
+"mutants.*" = {truthy = true}
+
+[validate_render_effects18]
+test = "native/tests/test_render_effects18.py::ClientComparison.test_original_instructions_and_compiled_mutants"
+pins = ["text", "data"]
+families = ["muun_attach", "muun_gate", "muun_update", "uruk_reader", "uruk_pt_create", "uruk_pt_move", "uruk_pt_render", "uruk_fx_create", "uruk_fx_move"]
+cases = 540
+mutants = 35
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects", "reconstructed/combat", "reconstructed/particles"]
+args = ["--cases", "20", "--mutations", "--output", "{report}"]
+[validate_render_effects18.expect]
+all_equal = true
+all_mutants_caught = true

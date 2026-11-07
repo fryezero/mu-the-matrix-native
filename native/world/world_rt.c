@@ -10,12 +10,14 @@
 #include "../core/mu_item_textures.h"
 #include "../core/mu_lang.h"
 #include "../core/mu_perf.h"
+#include "../core/mu_renderchar.h"
 #ifndef MU_WORLD_NO_GL
 #include "../gfx/mu_gfx_layer.h"
 #include "../viewer/gl_backend.h"
 #include "world_gfx_options.h"
 #endif
 #include "world_rt_internal.h"
+#include "world_item_pre.h"
 #include "../../reconstructed/environment/env_fog.h"
 
 const int mu_world_draw_order[MU_CHARACTER_ITEMS] = {5, 4, 3, 2, 1, 0, 6, 7, 8};
@@ -970,6 +972,39 @@ static void write_fidelity_dump(const mu_world_rt *a)
     printf("{\"fidelity_dump\": \"%s\", \"objects\": %u}\n", a->fidelity_dump, n);
 }
 
+/* RENDER-ITEMS-CALLERS-001: what RenderObjDraw 0x0176ce74 reads for its pre-draw program (RENDER-ITEMS-002R) when
+ * RenderLinkItem 0x012bd910 (worn weapons and wings) or RenderPartObject (ground items) calls it:
+ *  - BoneTransform 0x06fce398 holds the item's own pose: RenderLinkItem's Animation 0x012b5064 (0x012c6478) runs
+ *    before the call at 0x012c6a83; the callers pass the matrices they saved right after that pose;
+ *  - the flag [ebp-0xd] (world_item_pre.h) at the item model's origin with the frame's polygon, as the other
+ *    world parts (--legacy-box: every item in view). */
+void world_rt_item_pre(mu_world_rt *a, struct mu_renderchar_env *env, int caller, int32_t type, const mu_model *model,
+                       const float *bones)
+{
+    if (!env->particles || !mu_rc_item_pre_fx(type))
+        return;
+    env->item_bones = bones;
+    env->pre_counts = a->item_pre[caller];
+    env->item_out_of_view = !a->legacy_box && mu_world_item_out_of_view(a->frustum.x2d, a->frustum.y2d,
+                                                                         model->params.origin);
+    a->item_pre_hidden[caller] += env->item_out_of_view;
+}
+
+static void report_item_pre(const mu_world_rt *a)
+{
+    long any = 0;
+    for (int c = 0; c < MU_WORLD_PRE_CALLERS; ++c)
+        any |= a->item_pre[c][0] | a->item_pre[c][1] | a->item_pre_hidden[c];
+    if (!any)
+        return;   /* no pre-draw program ran: the report is unchanged */
+    static const char *names[MU_WORLD_PRE_CALLERS] = {"hero", "players", "actors", "ground"};
+    printf("{\"item_pre_draw\": true");
+    for (int c = 0; c < MU_WORLD_PRE_CALLERS; ++c)
+        printf(", \"%s\": {\"pre_effects\": %ld, \"pre_refused\": %ld, \"hidden\": %ld}", names[c],
+               a->item_pre[c][0], a->item_pre[c][1], a->item_pre_hidden[c]);
+    printf("}\n");
+}
+
 void world_rt_report_summary(const mu_world_rt *a, const char *renderer)
 {
 #ifndef MU_WORLD_NO_GL
@@ -999,6 +1034,7 @@ void world_rt_report_summary(const mu_world_rt *a, const char *renderer)
     EACH(COL_REPORT, i)
         if (ROWS[i].ops->report_summary)
             ROWS[i].ops->report_summary(a, a->part[i]);
+    report_item_pre(a);
     if (!a->quiet)
         for (int32_t k = 0; k < w->log_count; ++k)
             printf("{\"log\": \"%s\"}\n", w->log[k]);

@@ -108,7 +108,9 @@ typedef struct mu_objects_runtime {
     struct mu_env *environment; /* optional shared boid pool for Elbeland */
     uint8_t hero_safe;
     uint16_t hero_action; /* Current hero OBJECT action, Lost Tower push helper. */
-    int32_t uruk_weather; /* Original 0x01cf15ec; explicit input, defaults inactive until captured/feed. */
+    /* 0x01cf15ec: Uruk's types 108/109 act on 1 only. The client's data holds -1 and 0x017ebfd2 resets it to -1;
+     * only server handlers set it (0x0127edf3 in worlds 100/101: 0 or 1). RENDER-EFFECTS-018: -1 by default. */
+    int32_t uruk_weather;
     mu_obj_event startup_effects[12];
     int32_t startup_effect_count;
     uint8_t *images;                  /* count * MU_OBJ_SIZE: client OBJECT images */
