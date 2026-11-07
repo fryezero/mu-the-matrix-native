@@ -266,6 +266,26 @@ class WorldScene(unittest.TestCase):
             # the cloths step every rendered frame, drawn or not: the same frame 45 at either cadence
             self.assertEqual((a/'frame-0045.png').read_bytes(), (b/'frame-0045.png').read_bytes())
 
+    def test_more_cases(self):
+        # CLOAK-002: 0x239e +13 (three cloths with level glows), 0x2381 (one, always glowing), 0x24c6 on a Dark Knight
+        # (the angle-matrix variant; its wing sets the flag for any class), 0x2398 on a Dark Knight (gated)
+        players = ('player A class=0x00 at=127,126 dir=5 pk=3 level=400 armor=8:10:7 wing=12:184:13 idle=20\n'
+                   'player B class=0x00 at=125,126 dir=5 pk=3 level=400 armor=8:10:7 wing=12:155:0 idle=20\n'
+                   'player C class=0x01 at=129,126 dir=5 pk=3 level=400 armor=8:10:7 wing=12:480:0 idle=20\n'
+                   'player D class=0x01 at=127,128 dir=5 pk=3 level=400 armor=8:10:7 wing=12:178:0 idle=20\n')
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp)/'players.txt'
+            path.write_text(players)
+            result = subprocess.run([str(WALK), '--game-root', GAME, '--headless', '--backend', 'soft', '--no-audio',
+                                     '--width', '320', '--height', '240', '--every', '10', '--out-dir', tmp, '--tile',
+                                     '128,124', '--class', '1', '--players', str(path), '--player-range', '20',
+                                     '--frames', '21', '--quiet'], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr[-2000:])
+        row = next(json.loads(line) for line in result.stdout.splitlines() if '"cloak"' in line)
+        self.assertEqual(row['created'], 3 + 1 + 2)
+        self.assertEqual(row['gated'], 3)          # D on each of the three drawn frames
+        self.assertEqual(row['drawn'], 6 * 3)
+
 
 if __name__ == '__main__':
     unittest.main()
