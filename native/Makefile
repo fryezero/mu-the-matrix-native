@@ -122,6 +122,8 @@ RECON_SRC += $(RECON)/objects/muun_effects.c
 # RENDER-WORLDS-AFTER5: the object action registry 0x01ec7d5c and its MapObjectAnimationInfo rows
 CORE_SRC += core/mu_objects_anim.c
 RECON_SRC += $(RECON)/objects/action_registry.c
+# RENDER-WORLDS-FOG: the render scene's fog tests (world 0x1e's box)
+RECON_SRC += $(RECON)/environment/env_fog.c
 CORE_OBJ := $(patsubst %.c,$(BUILD)/%.o,$(CORE_SRC))
 RECON_OBJ := $(patsubst $(RECON)/%.c,$(BUILD)/recon/%.o,$(RECON_SRC))
 MODULUS_OBJ := $(BUILD)/modulus.o
@@ -133,7 +135,7 @@ HEADERS := $(wildcard core/*.h) $(wildcard $(RECON)/model-codec/*.h) $(RECON)/re
            $(wildcard $(RECON)/renderchar/*.h) $(RECON)/charsel/charsel.h $(RECON)/charsel/charsel_gfx.h $(RECON)/charsel/charcreate.h \
            $(wildcard $(RECON)/data/*.h) $(wildcard $(RECON)/hud/*.h) $(RECON)/scene/scene.h \
            $(wildcard $(RECON)/combat/*.h) $(RECON)/joints/joints.h $(RECON)/joints/icarus_joints.inc $(RECON)/joints/kanturu_joints.inc $(RECON)/particles/icarus_clouds.inc $(RECON)/particles/worlds_l.inc $(RECON)/particles/worlds_m.inc \
-           $(RECON)/environment/env.h $(RECON)/environment/env_internal.h \
+           $(RECON)/environment/env.h $(RECON)/environment/env_internal.h $(RECON)/environment/env_fog.h \
            $(RECON)/particles/particles.h $(RECON)/particles/world_flames.h $(RECON)/particles/particles_internal.h \
            $(wildcard $(RECON)/items/*.h) \
            $(RECON)/names/overhead_names.h $(RECON)/players/remote_players.h \

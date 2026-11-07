@@ -77,8 +77,8 @@ Not needed: no routine reconstructed here reads it.
 
 ## Still open
 
-- **World 0x1e's box fog** (`0x00d8cca8`): black linear fog 2000..2700 over the whole scene while the hero is in
-  the box; native draws none of it (both renderers; the software raster has no fog stage).
+- ~~**World 0x1e's box fog** (`0x00d8cca8`)~~: drawn since RENDER-WORLDS-FOG, both renderers
+  ([client-worlds-fog.md](client-worlds-fog.md)).
 - **GL_CLAMP vs clamp to edge on the original's driver:** an edge-pixel capture of one clamped sprite would settle
   whether the border colour shows.
 - From 016: Uruk's weather capture (0x806e/12) and the Muun owner fixture still need their inputs.
