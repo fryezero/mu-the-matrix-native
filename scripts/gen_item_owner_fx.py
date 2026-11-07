@@ -21,7 +21,15 @@ How a block is read (static, with concrete frame values):
 * Any other instruction, helper or operand refuses the type. The block's draws are the body tables' business
   (gen_item_bodies.OWNER_FX_TYPES); a draw inside the block refuses the type too.
 
-Only type IDs, addresses, bitmap/subtype numbers and binary32 constants are exported.
+RENDER-ITEMS-002R adds pre-draw programs (PRE_FX_TYPES): RenderObjDraw's own type case creates bone sprites
+0x0150e746 and TransformPosition 0x012b6ef1 positions on the item's own bones (BoneTransform 0x06fce398, by name
+through 0x012bd35a), before the body draws. The case starts at the executed basic block after the last type compare
+(OBJECT +0x5c or the type argument) that precedes the first effect service, and ends at the jump to the join. The
+interpreter then also reads std::string names, the wave 0x0185bdc4, the clock 0x06fce370, the CRT sine 0x009681bd,
+the comparison abs 0x0184f8ff, the alpha argument, (float)(rand() % m) values, rand() % 2^n gates, float/int array
+elements, the TestFrustrum2D flag [ebp-0xd] and loops over constant counters (decided statically, unrolled).
+
+Only type IDs, addresses, bitmap/subtype numbers, binary32 constants and bone names are exported.
 """
 import argparse
 import re
@@ -44,16 +52,34 @@ OWNER_FX_TYPES = [
     0x1bfc, 0x1bfd, 0x1bfe, 0x1bff, 0x1c00, 0x1c01, 0x1c1e, 0x1c1f, 0x1c41, 0x1c42, 0x1c77, 0x1c78,
 ]
 
+# RENDER-ITEMS-002R: bodies whose effects RenderObjDraw creates in its own type case, before the body draws
+# (pre-draw programs): bone sprites 0x0150e746 at the item's own posed bones, often by name (0x012bd35a).
+# Six swords 0x0b27..0x0b59, three maces 0x0f1c..0x0f2e, four bows 0x1311..0x131d, three shields 0x1748..0x1758
+# and ten wings 0x230b..0x2499; their draws fit the generic recipes with the effect requests set aside
+# (gen_item_bodies.PRE_EXTENDED/PRE_CARRY). The bows 0x1313, 0x1317 and 0x1319 read but their draws fit no probe
+# option over the 292 survey states.
+PRE_FX_TYPES = [
+    0x0b27, 0x0b2a, 0x0b4b, 0x0b4c, 0x0b57, 0x0b59, 0x0f1c, 0x0f1d, 0x0f2e, 0x1311, 0x1312, 0x1316, 0x131d, 0x1748,
+    0x1749, 0x1758, 0x230b, 0x2311, 0x2382, 0x2383, 0x2384, 0x2385, 0x2394, 0x2395, 0x2494, 0x2499,
+]
+
 DRAWS = (0x00966def, 0x00966e4a)
 TRANSFORM, SPRITE, PARTICLE, RANGE, RAND = 0x012b678d, 0x01692eb7, 0x0168fafd, 0x011ff622, 0x01989721
+BONE_SPRITE, NAMED, STRING, STRING_FREE, WAVE = 0x0150e746, 0x012bd35a, 0x0094997e, 0x008e83a0, 0x0185bdc4
+ITEM_TRANSFORM, BONE_TRANSFORM = 0x012b6ef1, 0x06fce398
 EFFECTS = (TRANSFORM, SPRITE, PARTICLE, RANGE, RAND)
+PRE_EFFECTS = EFFECTS + (BONE_SPRITE, NAMED, ITEM_TRANSFORM)
+BODY_HELPER = 0x016e036c
+CLOCK, SINE = 0x06fce370, 0x009681bd
+OBJDRAW = (0x0176ce74, 0x017e6312)
 SIGN_MASK = 0x01a7df40
 DATA_BASE = 0x01a7c000
 FRAME_LOW = 0x6000          # frame bytes kept below EBP at the block start
+PRE_FRAME_LOW = 0x12800     # RenderObjDraw's frame (0x127d4 bytes)
 
 # Op codes of item_owner_fx.h (see the header comment written by render()).
 OP = dict(const=1, mov=2, mul=3, add=4, sub=5, div=6, neg=7, gate=8, range=9, transform=10, norm=11, angle=12,
-          sprite=13, particle=14)
+          sprite=13, particle=14, wave=15, named=16, bone_sprite=17, visible=18, alpha=19, time=20, sin=21, abs=22, randmod=23, item_transform=24, particle_owner=25)
 BINARY = {'mulss': 'mul', 'addss': 'add', 'subss': 'sub', 'divss': 'div'}
 
 
@@ -150,6 +176,93 @@ def survey(wa, t):
     return first[0], first[1], frames
 
 
+def type_compare(md, text, block, size):
+    """True when the basic block compares OBJECT +0x5c or the type argument with an immediate."""
+    for i in md.disasm(text[block - 0x401000:block - 0x401000 + size], block):
+        if i.mnemonic == 'cmp' and re.match(r'^dword ptr \[(eax \+ 0x5c|ebp \+ 0xc)\], 0x[0-9a-f]+$', i.op_str):
+            return True
+    return False
+
+
+def survey_pre(wa, t):
+    """Pre-draw blocks: RenderObjDraw's own type case creates the effects before the body helper. Return (case
+    start, last effect site, frames at the case start). The case starts at the executed basic block after the last
+    type compare that precedes the first effect service."""
+    import capstone
+    import validate_renderchar as v
+    from unicorn import UC_HOOK_BLOCK, UC_HOOK_CODE
+
+    md = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_32)
+    log, frames, start = [], [], [None]
+    services = DRAWS + PRE_EFFECTS + (BODY_HELPER,)
+
+    class World(v.World):
+        def install(self):
+            super().install()
+            m = self.m
+
+            def site(name):
+                def hook(uc, address, size, context):
+                    log.append((name, m.r32(uc.reg_read(m.x86.UC_X86_REG_ESP))))
+                return hook
+            for address in services:
+                name = 'draw' if address in DRAWS else address
+                if address in m.stubs:
+                    old, cleanup = m.stubs[address]
+
+                    def wrapped(mm, old=old, name=name):
+                        log.append((name, mm.r32(mm.uc.reg_read(mm.x86.UC_X86_REG_ESP))))
+                        return old(mm)
+                    m.stub(address, wrapped, cleanup)
+                else:
+                    m.uc.hook_add(UC_HOOK_CODE, site(name), begin=address, end=address)
+
+            def block(uc, address, size, context):
+                log.append(('block', address, size))
+            m.uc.hook_add(UC_HOOK_BLOCK, block, begin=OBJDRAW[0], end=OBJDRAW[1])
+
+            def snapshot(uc, address, size, context):
+                ebp = uc.reg_read(m.x86.UC_X86_REG_EBP)
+                frames.append((ebp, m.read(ebp - PRE_FRAME_LOW, PRE_FRAME_LOW + 0x20)))
+            if start[0] is not None:
+                m.uc.hook_add(UC_HOOK_CODE, snapshot, begin=start[0], end=start[0])
+
+    first = None
+    configs = v.CLASSIFY[:4]
+    for config in configs:
+        log.clear()
+        result, _, _, _ = v.client_stream(wa, v.classify_case(t, config), World)
+        if not result['ok']:
+            raise Refused(f'client stops at {result["pc"]}')
+        i = next((k for k, e in enumerate(log) if e[0] in PRE_EFFECTS), None)
+        if i is None:
+            raise Refused('no effect service in the survey state')
+        if any(e[0] in ('draw', BODY_HELPER) for e in log[:i]):
+            raise Refused('a draw before the first effect service')
+        blocks = [e for e in log[:i] if e[0] == 'block']
+        k = max((j for j, e in enumerate(blocks) if type_compare(md, wa[0], e[1], e[2])), default=None)
+        if k is None or k + 1 >= len(blocks):
+            raise Refused('no type compare before the effects')
+        later = [e for e in log[i:] if e[0] in ('draw', BODY_HELPER)]
+        j = next((k for k, e in enumerate(log) if e[0] in ('draw', BODY_HELPER)), len(log))
+        effects = [e[1] for e in log[:j] if e[0] in PRE_EFFECTS and e[0] != RAND]
+        if not later:
+            raise Refused('no body draw after the effects')
+        if any(e[0] in PRE_EFFECTS and e[0] != RAND for e in log[j:]):
+            raise Refused('effect services also after the body draws')
+        here = (blocks[k + 1][1], max(effects))
+        if first is None:
+            first = here
+        elif first != here:
+            raise Refused('the case bounds differ between states')
+    start[0] = first[0]
+    for config in configs:
+        v.client_stream(wa, v.classify_case(t, config), World)
+    if len(frames) != len(configs):
+        raise Refused('case start not reached once in every state')
+    return first[0], first[1], frames
+
+
 # ---------------------------------------------------------------- static part: the abstract interpreter
 
 class Program:
@@ -160,8 +273,8 @@ class Program:
     def reg(self, count=1):
         r = self.regs
         self.regs += count
-        if self.regs > 255:
-            raise Refused('more than 255 registers')
+        if self.regs > 1024:
+            raise Refused('more than 1024 registers')
         return r
 
     def emit(self, op, *args, k=0):
@@ -205,6 +318,8 @@ ABS = re.compile(r'^(?:dword|xmmword) ptr \[(0x[0-9a-f]+)\]$')
 
 
 def operand(text):
+    if text == 'dword ptr [eax + ecx]':
+        return ('index',)       # a float array element: ecx = lea of the array, eax = 4 * constant index
     m = MEM.match(text)
     if m:
         off = int(m.group(3), 0) if m.group(3) else 0
@@ -217,9 +332,22 @@ def operand(text):
     return ('reg', text)
 
 
+def _signed(x):
+    return x - (1 << 32) if x & 0x80000000 else x
+
+
+# Conditional jumps on two constant 32-bit words (cmp a, b), decided statically in pre-draw blocks.
+JCC = {'je': lambda a, b: a == b, 'jne': lambda a, b: a != b,
+       'jl': lambda a, b: _signed(a) < _signed(b), 'jge': lambda a, b: _signed(a) >= _signed(b),
+       'jg': lambda a, b: _signed(a) > _signed(b), 'jle': lambda a, b: _signed(a) <= _signed(b),
+       'jb': lambda a, b: a < b, 'jae': lambda a, b: a >= b, 'ja': lambda a, b: a > b, 'jbe': lambda a, b: a <= b}
+
+
 class Interpreter:
-    def __init__(self, wa, frames, start, last):
+    def __init__(self, wa, frames, start, last, pre=False):
         import capstone
+        self.pre, self.low = pre, PRE_FRAME_LOW if pre else FRAME_LOW
+        self.names = []
         self.text, self.data = wa[0], wa[1]
         self.md = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_32)
         self.frames, self.start, self.last = frames, start, last
@@ -227,13 +355,14 @@ class Interpreter:
         self.xmm0 = self.st0 = None
         self.p = Program()
         self.pending = []       # (target address, op index of the gate, saved state)
+        self.skips = []         # pre-draw: (target, op index) of visibility tests that leave the case
         self.bones = []
 
     # memory -------------------------------------------------------------
     def frame_word(self, off):
         words = set()
         for ebp, raw in self.frames:
-            i = FRAME_LOW + off
+            i = self.low + off
             if not 0 <= i <= len(raw) - 4:
                 raise Refused(f'frame word {off:#x} outside the snapshot')
             words.add(struct.unpack_from('<I', raw, i)[0])
@@ -272,15 +401,50 @@ class Interpreter:
             raise Refused(f'constant {address:#x} outside the data capture')
         return ('c', struct.unpack_from('<I', self.data, i)[0])
 
+    def cstring(self, address):
+        i = address - DATA_BASE
+        if not 0 <= i < len(self.data):
+            raise Refused(f'string {address:#x} outside the data capture')
+        end = self.data.index(b'\0', i)
+        raw = self.data[i:end]
+        if not 0 < len(raw) < 32 or not all(0x20 <= c < 0x7f for c in raw):
+            raise Refused(f'bone name {raw!r}')
+        return raw.decode()
+
+    def element(self):
+        index, base = self.reg.get('eax'), self.reg.get('ecx')
+        if not self.pre or not index or index[0] != 'c' or not base or base[0] != 'frame' or index[1] % 4 or \
+                index[1] > 0xfc:
+            raise Refused(f'array element {index} {base}')
+        return ('frame', base[1] + index[1])
+
     def read(self, opnd):
         kind = opnd[0]
+        if kind == 'index':
+            return self.load(self.element())
+        if kind == 'abs' and self.pre and opnd[1] == CLOCK:
+            r = self.p.reg()
+            self.p.emit('time', r)
+            return ('r', r)
         if kind == 'abs':
             return self.absolute(opnd[1])
         if kind == 'imm':
             return ('c', opnd[1])
         if kind == 'mem':
             base, off = opnd[1], opnd[2]
-            if base == 'ebp':
+            if base == 'ebp' and self.pre:
+                # RenderObjDraw(OBJECT, type, light, alpha, ...); the item model is the local at ebp-0xb0.
+                if off == 8:
+                    return ('object',)
+                if off == -0xb0:
+                    return ('model',)
+                if off == 0x14:
+                    r = self.p.reg()
+                    self.p.emit('alpha', r)
+                    return ('r', r)
+                if off < 0:
+                    return self.load(('frame', off))
+            elif base == 'ebp':
                 if off == 8:
                     return ('model',)
                 if off == 0xc:
@@ -291,6 +455,8 @@ class Interpreter:
                 if off % 4 or off // 4 >= len(self.stack):
                     raise Refused('stack read outside the pushed arguments')
                 return self.stack[-1 - off // 4]
+            if base in ('eax', 'ecx') and self.pre and (self.reg.get(base) or ('',))[0] == 'frame':
+                return self.load(('frame', self.reg[base][1] + off))
             raise Refused(f'read {opnd}')
         if kind == 'reg':
             w = self.reg.get(opnd[1])
@@ -300,7 +466,12 @@ class Interpreter:
         raise Refused(f'read {opnd}')
 
     def write(self, opnd, w):
-        if opnd[0] == 'mem' and opnd[1] == 'ebp' and opnd[2] < 0:
+        if opnd[0] == 'index':
+            self.store(self.element(), 0, w)
+        elif opnd[0] == 'mem' and opnd[1] in ('eax', 'ecx') and self.pre and \
+                (self.reg.get(opnd[1]) or ('',))[0] == 'frame':
+            self.store(('frame', self.reg[opnd[1]][1] + opnd[2]), 0, w)
+        elif opnd[0] == 'mem' and opnd[1] == 'ebp' and opnd[2] < 0:
             if opnd[2] == -4:
                 return          # the EH state word
             self.mem[opnd[2]] = w
@@ -408,12 +579,111 @@ class Interpreter:
             self.reg['eax'] = ('junk',)
         elif target == PARTICLE:                       # cdecl, 8 arguments
             a = [self.arg(k) for k in range(8)]
-            if a[0][0] != 'c' or a[4][0] != 'c' or a[4][1] > 0xff or a[6] != ('c', 0) or a[7] != ('c', 0):
+            owner = self.pre and a[6] == ('object',)
+            if a[0][0] != 'c' or a[4][0] != 'c' or a[4][1] > 0xff or (a[6] != ('c', 0) and not owner) or \
+                    a[7] != ('c', 0):
                 raise Refused(f'particle arguments {a}')
             pos = p.vector(self.vec(a[1]))
             angle = p.vector(self.vec(a[2]))
             light = p.vector(self.vec(a[3]))
-            p.emit('particle', pos, angle, light, p.scalar(a[5]), a[4][1], k=a[0][1])
+            p.emit('particle_owner' if owner else 'particle', pos, angle, light, p.scalar(a[5]), a[4][1], k=a[0][1])
+            self.reg['eax'] = ('junk',)
+        elif target == STRING and self.pre:          # std::string(const char *) on a frame object, ret 4
+            name = self.arg(0)
+            if ecx is None or ecx[0] != 'frame' or name[0] != 'c':
+                raise Refused(f'string operands {ecx} {name}')
+            self.store(ecx, 0, ('string', self.cstring(name[1])))
+            self.pop(1)
+            self.reg['eax'] = ecx
+        elif target == STRING_FREE and self.pre:     # ~std::string
+            self.reg['eax'] = ('junk',)
+        elif target == NAMED and self.pre:           # model->0x012bd35a(name, fallback), ret 8
+            name, fallback = self.load(self.arg(0)), self.arg(1)
+            if ecx != ('model',) or name[0] != 'string' or fallback != ('c', 0xffffffff):
+                raise Refused(f'named bone operands {ecx} {name} {fallback}')
+            if name[1] not in self.names:
+                self.names.append(name[1])
+            r = p.reg()
+            p.emit('named', r, k=self.names.index(name[1]))
+            self.pop(2)
+            self.reg['eax'] = ('i', r)
+        elif target == WAVE and self.pre:            # cdecl 0x0185bdc4(a, b), result on x87
+            a, b = self.arg(0), self.arg(1)
+            if a[0] != 'c' or b != ('c', 0) or value(a[1]) == 0:
+                raise Refused(f'wave operands {a} {b}')
+            r = p.reg()
+            p.emit('wave', r, k=a[1])
+            self.st0 = ('r', r)
+            self.reg['eax'] = ('junk',)
+        elif target in (0x009f413c, 0x00cfcede) and self.pre:   # vec3(s) / set(s): all three s, ret 4
+            for k in range(3):
+                self.store(ecx, k, self.arg(0))
+            self.pop(1)
+            self.reg['eax'] = ecx
+        elif target == 0x00cfc922 and self.pre:      # &this[i], ret 4
+            i, base = self.arg(0), ecx
+            if i[0] != 'c' or i[1] > 2 or not base or base[0] != 'frame':
+                raise Refused(f'element operands {base} {i}')
+            self.pop(1)
+            self.reg['eax'] = ('frame', base[1] + 4 * i[1])
+        elif target in (0x0095ea8e, 0x00cfcf7b) and self.pre:   # vec3() / zero(): all three 0
+            for k in range(3):
+                self.store(ecx, k, ('c', 0))
+            self.reg['eax'] = ecx
+        elif target == SINE and self.pre:            # cdecl 0x009681bd(x): (float)sin((double)x) on x87
+            x = self.arg(0)
+            r = p.reg()
+            p.emit('sin', r, p.scalar(x))
+            self.st0 = ('r', r)
+            self.reg['eax'] = ('junk',)
+        elif target == 0x0184f8ff and self.pre:       # cdecl abs by comparison: 0 > x ? -x : x, on x87
+            r = p.reg()
+            p.emit('abs', r, p.scalar(self.arg(0)))
+            self.st0 = ('r', r)
+            self.reg['eax'] = ('junk',)
+        elif target == 0x00cfcd74:                     # this *= s (0x00cfcb3c, then assign), ret 4
+            s = self.arg(0)
+            a = self.vec(ecx)
+            result = [p.binary('mul', a[k], s) for k in range(3)]
+            for k in range(3):
+                self.store(ecx, k, result[k])
+            self.pop(1)
+            self.reg['eax'] = ecx
+        elif target == ITEM_TRANSFORM and self.pre:  # model->TransformPosition(BoneTransform + 0x30 bone, local, out, t), ret 0x10
+            matrix, local, out, translate = (self.arg(k) for k in range(4))
+            if ecx != ('model',) or matrix[0] != 'boneptr' or translate not in (('c', 0), ('c', 1)) or \
+                    out[0] != 'frame':
+                raise Refused(f'item transform operands {ecx} {matrix} {translate}')
+            bone = matrix[1]
+            if bone[0] == 'c':
+                self.bones.append(bone[1])
+                b = p.reg()
+                p.emit('const', b, k=bone[1])
+            else:
+                b = bone[1]
+            src = p.vector(self.vec(local))
+            base = p.reg(3)
+            p.emit('item_transform', base, b, src, k=translate[1])
+            for k in range(3):
+                self.store(out, k, ('r', base + k))
+            self.pop(4)
+            self.reg['eax'] = ('junk',)
+        elif target == BONE_SPRITE and self.pre:     # cdecl, 9 arguments
+            a = [self.arg(k) for k in range(9)]
+            axes = self.vec(a[8])
+            if a[0] != ('model',) or a[1][0] != 'c' or a[5] != ('object',) or a[7][0] != 'c' or a[7][1] > 0xff or \
+                    tuple(axes) != (('c', 1), ('c', 1), self.absolute(0x01a7dd48)):
+                raise Refused(f'bone sprite arguments {a}')
+            if a[2][0] == 'i':
+                bone = a[2][1]
+            elif a[2][0] == 'c' and a[2][1] < 0x100:
+                bone = p.reg()
+                p.emit('const', bone, k=a[2][1])
+                self.bones.append(a[2][1])
+            else:
+                raise Refused(f'bone sprite bone {a[2]}')
+            light = p.vector(self.vec(a[4]))
+            p.emit('bone_sprite', bone, p.scalar(a[3]), light, p.scalar(a[6]), a[7][1], k=a[1][1])
             self.reg['eax'] = ('junk',)
         elif target in DRAWS:
             raise Refused('draw inside the effect block')
@@ -421,8 +691,10 @@ class Interpreter:
             raise Refused(f'call {target:#x}')
 
     # control ------------------------------------------------------------
-    GATE = [('and', 'eax, 0x80000001'), ('jns', None), ('dec', 'eax'), ('or', 'eax, 0xfffffffe'),
+    GATE = [('and', None), ('jns', None), ('dec', 'eax'), ('or', None),
             ('inc', 'eax'), ('test', 'eax, eax'), ('jne', None)]
+
+    RAND_VALUE = [('cdq', ''), ('push', None), ('pop', 'ecx'), ('idiv', 'ecx'), ('cvtsi2ss', 'xmm0, edx')]
 
     GATE_IDIV = [('cdq', ''), ('push', None), ('pop', 'ecx'), ('idiv', 'ecx'), ('test', 'edx, edx'), ('jne', None)]
 
@@ -449,6 +721,8 @@ class Interpreter:
         insns = {}
         for i in self.md.disasm(self.text[self.start - 0x401000:self.last - 0x401000 + 0x400], self.start):
             insns[i.address] = i
+        steps = 0
+        self.flags = None
         while True:
             self.merge(address)
             i = insns.get(address)
@@ -460,7 +734,7 @@ class Interpreter:
                 # rand() % m != 0 skips to the target: m = 2 as and/jns/dec/or/inc (0x0173e869 .. 0x0173e87c),
                 # other m as cdq/push m/pop ecx/idiv ecx (0x01742f5c).
                 modulus, seq = None, None
-                for idiom in (self.GATE, self.GATE_IDIV):
+                for idiom in (self.GATE, self.GATE_IDIV) + ((self.RAND_VALUE,) if self.pre else ()):
                     seq, a = [], nxt
                     for want in idiom:
                         j = insns.get(a)
@@ -473,10 +747,26 @@ class Interpreter:
                         break
                 if seq is None:
                     raise Refused(f'rand outside the gate idiom at {address:#x}')
+                if idiom is self.RAND_VALUE:
+                    # (float)(rand() % m) into xmm0 (0x0179f04a): a value, not a gate.
+                    modulus = int(seq[1].op_str, 0)
+                    if not 1 < modulus < 0x10000:
+                        raise Refused('rand value modulus')
+                    r = self.p.reg()
+                    self.p.emit('randmod', r, k=modulus)
+                    self.xmm0 = ('r', r)
+                    self.reg.pop('eax', None)
+                    self.reg.pop('ecx', None)
+                    address = a
+                    continue
                 if idiom is self.GATE:
-                    if int(seq[1].op_str, 16) != seq[5].address:
-                        raise Refused('gate idiom jump')
-                    modulus = 2
+                    # rand() % 2^n: and eax, 0x80000000 | (2^n - 1); jns; dec; or eax, ~(2^n - 1); inc
+                    mask = re.match(r'^eax, 0x8000(00[0-9a-f]{2}|0[0-9a-f]{3})$', seq[0].op_str)
+                    low = int(seq[0].op_str[5:], 16) & 0x7fffffff if mask else 0
+                    if not mask or low & (low + 1) or not low or seq[3].op_str != f'eax, {0xffffffff ^ low:#x}' or \
+                            int(seq[1].op_str, 16) != seq[5].address or (low != 1 and not self.pre):
+                        raise Refused('gate idiom')
+                    modulus = low + 1
                 else:
                     modulus = int(seq[1].op_str, 0)
                     if not 1 < modulus < 0x100:
@@ -492,6 +782,19 @@ class Interpreter:
             if mn == 'jmp' and not self.p.ops and not self.pending and not self.stack and int(ops, 16) > address:
                 address = int(ops, 16)   # the draws ended in an if/else; the block starts at the join
                 continue
+            if self.pre:
+                steps += 1
+                if steps > 100000:
+                    raise Refused('more than 100000 interpreted instructions')
+            if self.pre and mn == 'jmp' and not self.pending and self.start <= int(ops, 16) <= self.last:
+                address = int(ops, 16)   # a loop's back edge or its jump to the condition (constant counters)
+                continue
+            if self.pre and mn in JCC and self.flags is not None:
+                a, b = self.flags
+                taken = JCC[mn](a, b)
+                self.flags = None
+                address = int(ops, 16) if taken else nxt
+                continue
             if mn == 'jmp':
                 if self.pending or address < self.last:
                     raise Refused(f'jump inside the block at {address:#x}')
@@ -499,6 +802,50 @@ class Interpreter:
                 break
             if mn == 'nop':
                 pass
+            elif self.pre and mn == 'cmp':
+                a, b = (self.read(operand(x.strip())) for x in ops.split(',', 1))
+                if a[0] != 'c' or b[0] != 'c':
+                    raise Refused(f'cmp of a runtime value at {address:#x}')
+                self.flags = (a[1], b[1])
+            elif self.pre and mn == 'and' and re.match(r'^dword ptr \[ebp - 0x[0-9a-f]+\], 0$', ops):
+                self.write(operand(ops.split(',')[0]), ('c', 0))    # a loop counter's start
+            elif self.pre and mn in ('inc', 'dec') and ops == 'eax' and (self.reg.get('eax') or ('',))[0] == 'c':
+                self.reg['eax'] = ('c', (self.reg['eax'][1] + (1 if mn == 'inc' else -1)) & 0xffffffff)
+            elif mn == 'mov' and ops.startswith('byte ptr [ebp - 4], '):
+                pass            # the EH state byte
+            elif self.pre and mn == 'movzx' and ops == 'eax, byte ptr [ebp - 0xd]':
+                # TestFrustrum2D 0x016ccce7(OBJECT x * 0.01, y * 0.01, -20) at 0x0176ceea: not visible skips the
+                # case (to the next type test, after the block; checked at the end).
+                t1, t2 = insns.get(nxt), None
+                t2 = insns.get(nxt + t1.size) if t1 else None
+                if not t1 or (t1.mnemonic, t1.op_str) != ('test', 'eax, eax') or not t2 or t2.mnemonic != 'je':
+                    raise Refused(f'visibility test at {address:#x}')
+                self.skips.append((int(t2.op_str, 16), self.p.emit('visible')))
+                address = t2.address + t2.size
+                continue
+            elif self.pre and mn == 'imul' and ops == 'eax, dword ptr [eax + ecx], 0x30':
+                index = self.read(('index',))           # an int array element (constant bone) times 0x30
+                if index[0] == 'c':
+                    self.reg['eax'] = ('c', (index[1] * 0x30) & 0xffffffff)
+                elif index[0] == 'i':
+                    self.reg['eax'] = ('scaled', index)
+                else:
+                    raise Refused(f'bone array element {index}')
+            elif self.pre and mn == 'imul' and ops == 'eax, eax, 0x30' and self.reg.get('eax', ('',))[0] == 'i':
+                self.reg['eax'] = ('scaled', self.reg['eax'])          # a named bone's matrix offset
+            elif self.pre and mn == 'add' and ops == f'eax, {BONE_TRANSFORM:#x}':
+                index = self.reg.get('eax', ('',))
+                if index[0] == 'scaled':
+                    self.reg['eax'] = ('boneptr', index[1])
+                elif index[0] == 'c' and index[1] % 0x30 == 0 and index[1] < 0x30 * 0x100:
+                    self.reg['eax'] = ('boneptr', ('c', index[1] // 0x30))
+                else:
+                    raise Refused(f'BoneTransform index {index}')
+            elif self.pre and mn == 'imul' and re.match(r'^eax, eax, (0x[0-9a-f]+|\d+)$', ops) and self.reg.get('eax', ('',))[0] == 'c':
+                self.reg['eax'] = ('c', (self.reg['eax'][1] * int(ops.split(', ')[2], 0)) & 0xffffffff)
+            elif self.pre and mn == 'shl' and re.match(r'^eax, \d+$', ops) and self.reg.get('eax', ('',))[0] == 'c':
+                self.reg['eax'] = ('c', (self.reg['eax'][1] << int(ops[5:])) & 0xffffffff)
+
             elif mn == 'push':
                 o = operand(ops)
                 self.stack.append(('junk',) if o == ('reg', 'ecx') and self.reg.get('ecx') is None else self.read(o))
@@ -542,7 +889,7 @@ class Interpreter:
                 dst, src = (operand(x.strip()) for x in ops.split(',', 1))
                 if dst[0] == 'mem' and dst[1] == 'ebp' and dst[2] == -4:
                     pass
-                elif src[0] == 'mem' and src[1] in ('eax', 'ecx'):
+                elif src[0] == 'mem' and src[1] in ('eax', 'ecx') and not self.pre:
                     raise Refused(f'mov {ops}')
                 else:
                     self.write(dst, self.read(src))
@@ -586,6 +933,20 @@ def extract_type(wa, t):
     return {'start': start, 'end': end, 'ops': it.p.ops, 'regs': it.p.regs, 'bones': it.bones}
 
 
+def extract_pre(wa, t):
+    start, last, frames = survey_pre(wa, t)
+    it = Interpreter(wa, frames, start, last, pre=True)
+    end = it.run()
+    for target, index in it.skips:
+        if target <= end:
+            raise Refused(f'visibility test target {target:#x} inside the case')
+        it.p.ops[index] = it.p.ops[index][:-1] + (len(it.p.ops),)
+    effects = sum(op[0] in (OP['sprite'], OP['particle'], OP['bone_sprite'], OP['particle_owner']) for op in it.p.ops)
+    if not effects:
+        raise Refused('no effect request')
+    return {'start': start, 'end': end, 'ops': it.p.ops, 'regs': it.p.regs, 'bones': it.bones, 'names': it.names}
+
+
 def extract(types=OWNER_FX_TYPES):
     wa = tuple(pin.read() for pin in (pins.TEXT, pins.DATA, pins.FLAG, pins.FEATURE))
     out, refused = {}, {}
@@ -597,11 +958,13 @@ def extract(types=OWNER_FX_TYPES):
     return out, refused
 
 
-def render(programs):
-    blocks, rows, ops = [], [], []
-    lines = ['/* Generated by scripts/gen_item_owner_fx.py (RENDER-ITEMS-002Q). Owner-effect programs of item bodies,',
-             ' * read from the pinned instructions; see client-render-items.md part 17. One op = {op, a, b, c, d, e, k}.',
-             ' * Registers are binary32; a vec3 is three consecutive registers.',
+def render(programs, pre=None):
+    """The header: owner-effect programs (after the body draws) and pre-draw programs (RENDER-ITEMS-002R)."""
+    pre = pre or {}
+    blocks, rows, pre_rows, ops, names = [], [], [], [], []
+    lines = ['/* Generated by scripts/gen_item_owner_fx.py (RENDER-ITEMS-002Q, 002R). Effect programs of item bodies,',
+             ' * read from the pinned instructions; see client-render-items.md parts 17 and 18. One op =',
+             ' * {op, a, b, c, d, e, k}. Registers are binary32 words (named bones: int32); a vec3 is three registers.',
              ' *  1 const  r[a] = bits k            2 mov  r[a] = r[b]',
              ' *  3..6     r[a] = r[b] mul/add/sub/div r[c] (binary32)      7 neg  r[a] = -r[b] (sign flip)',
              ' *  8 gate   rand() % a != 0: continue at op k (program-relative)',
@@ -610,27 +973,74 @@ def render(programs):
              ' * 11 norm   r[a..a+2] = 0x00cfd15f(r[b..b+2])   12 angle  r[a..a+2] = OBJECT +0x164',
              ' * 13 sprite CreateSprite 0x01692eb7(bitmap k, pos r[a], scale r[b], light r[c], OBJECT, 0, 0, 4, axes)',
              ' * 14 particle CreateParticle 0x0168fafd(bitmap k, pos r[a], angle r[b], light r[c], subtype e, scale r[d], 0, 0)',
+             ' * Pre-draw programs (RenderObjDraw\'s own type case, before the body draws; item bones = BoneTransform):',
+             ' * 15 wave   r[a] = 0x0185bdc4(bits k, 0) of the item time       16 named  r[a] = 0x012bd35a(name k, -1)',
+             ' * 17 bone sprite 0x0150e746(bitmap k, bone r[a], scale r[b], light r[c], OBJECT, rotation r[d], e, 4, axes)',
+             ' * 18 visible  TestFrustrum2D flag 0 (0x0176ceea): continue at op k (the case is skipped)',
+             ' * 19 alpha  r[a] = RenderObjDraw alpha (arg 4)   20 time  r[a] = 0x06fce370   21 sin  r[a] = 0x009681bd(r[b])',
+             ' * 22 abs    r[a] = 0 > r[b] ? -r[b] : r[b] (0x0184f8ff)   23 randmod  r[a] = (float)(rand() % k)',
+             ' * 24 item transform  r[a..a+2] = TransformPosition 0x012b6ef1(item bone r[b], local r[c..c+2], translate k)',
+             ' * 25 particle  as 14 with the OBJECT as owner (argument 7)',
              ' */',
-             'typedef struct { uint8_t op, a, b, c, d, e; uint32_t k; } mu_rc_fx_op;',
+             'typedef struct { uint8_t op; uint16_t a, b, c, d; uint8_t e; uint32_t k; } mu_rc_fx_op;',
              'static const mu_rc_fx_op mu_rc_fx_ops[] = {']
-    for t, prog in sorted(programs.items()):
+
+    def block(prog):
         key = tuple(prog['ops'])
         if key not in blocks:
             blocks.append(key)
-            first = len(ops)
             ops.extend(prog['ops'])
             lines.append(f'    /* block {prog["start"]:#010x}..{prog["end"]:#010x} */')
             for op in prog['ops']:
                 lines.append('    {%d, %d, %d, %d, %d, %d, 0x%08xu},' % op)
         index = blocks.index(key)
-        first = sum(len(b) for b in blocks[:index])
-        rows.append((t, first, len(prog['ops']), prog['regs'], max(prog['bones'], default=-1)))
+        return sum(len(b) for b in blocks[:index])
+    for t, prog in sorted(programs.items()):
+        rows.append((t, block(prog), len(prog['ops']), prog['regs'], max(prog['bones'], default=-1)))
+    for t, prog in sorted(pre.items()):
+        # Name indices become global (mu_rc_fx_names).
+        local = prog['names']
+        for name in local:
+            if name not in names:
+                names.append(name)
+        prog = dict(prog, ops=[op if op[0] != OP['named'] else op[:-1] + (names.index(local[op[-1]]),)
+                               for op in prog['ops']])
+        pre_rows.append((t, block(prog), len(prog['ops']), prog['regs']))
     lines += ['};',
-              'static const struct { int32_t type; uint16_t first, count; uint8_t regs, max_bone; } mu_rc_fx_types[] = {']
+              'static const struct { int32_t type; uint16_t first, count; uint16_t regs; int16_t max_bone; } mu_rc_fx_types[] = {']
     for row in rows:
         lines.append('    {0x%04x, %d, %d, %d, %d},' % row)
+    lines += ['};',
+              '/* Pre-draw programs (RENDER-ITEMS-002R). */',
+              'static const struct { int32_t type; uint16_t first, count; uint16_t regs; } mu_rc_fx_pre_types[] = {']
+    for row in pre_rows:
+        lines.append('    {0x%04x, %d, %d, %d},' % row)
+    if not pre_rows:
+        lines.append('    {-1, 0, 0, 0},')
+    lines += ['};', 'static const char *const mu_rc_fx_names[] = {']
+    lines += ['    "%s",' % name for name in names] or ['    "",']
     lines += ['};', '']
     return '\n'.join(lines)
+
+
+def extract_pre_all(types=None):
+    wa = tuple(pin.read() for pin in (pins.TEXT, pins.DATA, pins.FLAG, pins.FEATURE))
+    out, refused = {}, {}
+    for t in PRE_FX_TYPES if types is None else types:
+        try:
+            out[t] = extract_pre(wa, t)
+        except Refused as e:
+            refused[t] = str(e)
+    return out, refused
+
+
+def generate():
+    """The header from the pinned instructions; SystemExit when a listed type no longer reads."""
+    programs, refused = extract()
+    pre, pre_refused = extract_pre_all()
+    if refused or pre_refused:
+        raise SystemExit(f'effect program no longer reads from the pinned instructions: {refused} {pre_refused}')
+    return render(programs, pre)
 
 
 def main():
@@ -650,7 +1060,7 @@ def main():
         return
     if refused:
         raise SystemExit('owner-effect program no longer reads from the pinned instructions')
-    result = render(programs)
+    result = generate()
     if a.check:
         if a.output.read_text() != result:
             raise SystemExit('owner-effect table differs from the pinned instructions')

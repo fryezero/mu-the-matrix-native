@@ -226,6 +226,20 @@ class WorldRender(unittest.TestCase):
         outside,_=self.render('--part','2',short,'--item-type','armor=0x1bc3','--world-time','0')
         self.assertEqual((outside['special'],outside['owner_effects'],outside['owner_refused']),(0,0,1))
 
+    def test_weapon_pre_draw_program(self):
+        """RENDER-ITEMS-002R: RenderObjDraw's own case of sword 0x0b27 creates bone sprites on the weapon's own
+        posed bones (constant indices) before the body draws; bow 0x1311 looks its bone up by name ("a02"), which
+        the synthetic skeleton (cbone0..) lacks, so its one request is refused and counted."""
+        path=self.tmp/'pre-fx.bmd'
+        path.write_bytes(nf.character_layout(115,bones=12,meshes=2))
+        sword,_=self.render('--weapon','0',path,'--item-type','weapon0=0xb27','--world-time','0')
+        again,_=self.render('--weapon','0',path,'--item-type','weapon0=0xb27','--world-time','0')
+        self.assertEqual((sword['special'],sword['pre_refused']),(0,0))
+        self.assertGreater(sword['pre_effects'],0)
+        self.assertEqual(sword['sha256'],again['sha256'])
+        bow,_=self.render('--weapon','0',path,'--item-type','weapon0=0x1311','--world-time','0')
+        self.assertEqual((bow['special'],bow['pre_effects'],bow['pre_refused']),(0,0,1))
+
     def test_ranked_body_and_nine_bone_shield_use_shared_draws(self):
         path = self.tmp/'ranked-armour.bmd'
         path.write_bytes(nf.character_layout(113,bones=50,meshes=6,dummies=(9,21)))

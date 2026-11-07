@@ -847,6 +847,18 @@ class ColourWorld(World):
         record_colours(self)
 
 
+class CompareWorld(ColourWorld):
+    """compare_cases' world (items and colours sections). RENDER-ITEMS-002R: CreateEffect 0x013c0f19 (thiscall on
+    the effect manager 0x0a4ca430, eight arguments) is recorded like the other effect services; RenderObjDraw's
+    level-gated cases (wing 0x23ac at 0x017c630e, through 0x013c0e0a) call it and fault unstubbed. Only these
+    sections use it: the back-carry extraction's table was generated in the plain world."""
+    def install(self):
+        super().install()
+        rec = self.calls
+        self.m.stub(0x013c0f19, lambda m: rec.append(('effect', 0x013c0f19, [m.arg(i) for i in range(4)])) or 0,
+                    0x20)
+
+
 def c_stream(lib, case, generic=False, carry=None, random=None):
     item = CItem(type=case['type'], item_level=case['item_level'], option1=case['option1'], ext_option=case['ext'],
                  select=0, render_type=case['render_type'], a10=case['a10'], a11=case['a11'], a12=case['a12'], a13=0,
@@ -1162,7 +1174,7 @@ def compare_cases(world_args, lib, rank5, rng, types, vectors, controls=0):
             status, cstream, result, stream, m = rank5.compare(case)
             rank5_compared += 1
         else:
-            result, stream, _, m = client_stream(world_args, case, ColourWorld)
+            result, stream, _, m = client_stream(world_args, case, CompareWorld)
         colours += sum(1 for d in stream if d[0] == 'COLOR')
         if result['ok'] and status == 0 and stream == cstream:
             matches += 1
