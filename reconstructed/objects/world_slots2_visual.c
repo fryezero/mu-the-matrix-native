@@ -414,6 +414,8 @@ int mu_slots2_class(int32_t world)
         return 92;
     case 121:   /* RENDER-WORLDS-121 */
         return 121;
+    case 57: case 58:   /* RENDER-WORLDS-RAKLION: class world-57 */
+        return 57;
     default:
         return -1;
     }
@@ -438,6 +440,8 @@ int mu_slots2_custom(int32_t cls, const slot *s, int32_t world)
                                                       s->model, s->l) : 0;
     case 121:
         return mu_slots121_custom(s);
+    case 57:
+        return mu_slots_raklion_custom(s, world);   /* its own world test (57, 58) */
     default:
         return 0;
     }
@@ -462,6 +466,9 @@ void mu_slots2_after(int32_t cls, const slot *s, int32_t world)
         break;
     case 121:
         mu_slots121_after(s);
+        break;
+    case 57:   /* no world test, as 121's */
+        mu_slots_raklion_after(s);
         break;
     default:   /* 62's after 0x00e428af is empty; 95 and 100 have the base after */
         break;
@@ -505,7 +512,7 @@ int32_t mu_slots2_bitmaps(int32_t world, int32_t type, int32_t *out, int32_t roo
         out[0] = 0x7f1f;
         return 1;
     }
-    if (world == 121)
+    if (world == 121 || world == 57 || world == 58)   /* RENDER-WORLDS-RAKLION: 57/58 too */
         return mu_slots121_bitmaps(world, type, out, room);
     if (mu_arca_world(world)) {   /* the base world's slot names them */
         int32_t base[MU_WORLD_SLOT_BITMAPS];
