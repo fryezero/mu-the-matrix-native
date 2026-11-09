@@ -26,7 +26,7 @@ Part 11 reaches **967/1,674 bodies** with per-type wave/sine scalar programs; li
 [Part 26 below](#part-26-the-rendered-frame-counter-in-body-draws-the-wing-joints-and-the-world-callers-render-items-002u) reaches **1,364/1,674 bodies**: the rendered-frame counter is a body input (51 earlier bodies regenerated, `0x0f2a`), the wing joints draw.
 Muun/map-object effect placement remains deferred. All parts run offline.
 
-[Part 28 below](#part-28-the-six-remaining-counter-bodies-and-quantised-random-colours-render-items-002v) reaches **1,370/1,674 bodies** with the six remaining counter types and quantised random colours.
+[Part 30 below](#part-30-the-six-remaining-counter-bodies-and-quantised-random-colours-render-items-002v) reaches **1,370/1,674 bodies** with the six remaining counter types and quantised random colours.
 
 ## Identity and evidence
 
@@ -2527,7 +2527,7 @@ glowing cloth draws three quad streams: front, back, glow. `mu_cloth_render` now
   aliases, the level test, the glow pass, the scaling, arg 4, the angle-matrix variant, the sub-type model, the draw
   test, and the `0x8000` and gravity-180 forces.
 
-## Part 28, the six remaining counter bodies and quantised random colours, RENDER-ITEMS-002V
+## Part 30, the six remaining counter bodies and quantised random colours, RENDER-ITEMS-002V
 
 Bodies **1,364 -> 1,370 of 1,674**, adding `0x0f24`, `0x0f28`, `0x0f29`, `0x0f2b`, `0x0f2c` and `0x1588`.
 The five maces also gain their RenderObjDraw effect programs. There are **304 bodies left**. The later read-program

@@ -6,7 +6,11 @@ hosted workflow. No full gate in the lane, per the test budget. The installed Na
 are untouched.
 
 Scope: 002U's six remaining counter bodies. The next 24 read-program candidates were screened, with none admitted.
-The rank-5 strlen group was not attempted. [Finding, part 28](../research/client-render-items.md#part-28-the-six-remaining-counter-bodies-and-quantised-random-colours-render-items-002v).
+The rank-5 strlen group was not attempted. [Finding, part 30](../research/client-render-items.md#part-30-the-six-remaining-counter-bodies-and-quantised-random-colours-render-items-002v).
+
+Research numbering: both parallel branches had used part 28 at the checkpoint. This lane uses part 30, leaving
+room for the steward to preserve both parallel findings without sharing this section number. Main is rechecked
+before the final push.
 
 ## Result
 
@@ -23,7 +27,7 @@ The rank-5 strlen group was not attempted. [Finding, part 28](../research/client
 
 ## Causes and addresses
 
-The full address table and arithmetic are in research part 28. Mace pre-program bounds:
+The full address table and arithmetic are in research part 30. Mace pre-program bounds:
 `0x017d5675..0x017d62b7`, `0x017d8bfc..0x017d94dc`, `0x017d94f1..0x017d9dcb`,
 `0x017dab03..0x017db6cf`, `0x017db6e4..0x017dc347`.
 The staff's colour setter is `0x01736abc`, its random-wrapper returns `0x01736b46` and `0x01736c5f`, and its
