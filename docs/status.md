@@ -1,5 +1,7 @@
 # Current status
 
+RENDER-ITEMS-002W verification in progress: worn `0x0f2a` blend light recovered from the caller, with visible fixed-pose counter atlas and local Preview-path proof. Bodies target 1,370 -> 1,404/1,674: three bows plus all 31 named-mesh parts; 270 remain. The other 21 read-program candidates and 54 helper-count types remain unadmitted. [Checks and limits](handoffs/RENDER-ITEMS-002W.md).
+
 RENDER-ITEMS-002V PR-ready: bodies 1,364 -> 1,370/1,674, adding the six remaining counter types `0x0f24`/`0x0f28`/`0x0f29`/`0x0f2b`/`0x0f2c`/`0x1588`; 304 remain. The maces gain their pre-programs, and body recipes preserve quantised random colours and intermediate binary32 products. The 24 later read-program candidates remain unadmitted after screening; the rank-5 strlen group is untouched. A fixed-pose native probe confirms `0x0f2a` UV motion stays invisible with the current zero blend-light input; the original later caller remains unrecovered. [Checks and limits](handoffs/RENDER-ITEMS-002V.md).
 
 RENDER-EFFECTS-022 PR-ready: #350’s native counter now draws the maces’ `0x810a/0x25` OBJECT-owned spark (argument 8 and retained OBJECT points), `0x855d/1` red sparks and `0x84d1/1` smoke. Sixteen consecutive fixture frames go from 18 refused particles to 18 created/drawn, zero refused; the rank-5 block now runs for world players and the hero. Default tours: 92/92 PNGs and all dumps byte-identical. The maces’ other `0x7f7a` / `0x80ba` bone sprites still lack world bitmap slots. [Checks, census and limits](handoffs/RENDER-EFFECTS-022.md).

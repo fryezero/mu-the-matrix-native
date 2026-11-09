@@ -78,7 +78,7 @@ class ItemPreDraw(unittest.TestCase):
         return status, list(out[:n.value]), effects, len(drawn)
 
     def test_admissions_and_existing_domain(self):
-        self.assertEqual(len(fxgen.PRE_FX_TYPES), 48)   # RENDER-ITEMS-002V: five counter maces
+        self.assertEqual(len(fxgen.PRE_FX_TYPES), 51)   # RENDER-ITEMS-002W: three read-program bows
         for t in fxgen.POST_FX_TYPES:
             self.assertEqual(self.draws(self.item(type=t))[0], 0, hex(t))
             self.assertEqual((self.lib.mu_rc_item_post_fx(t), self.lib.mu_rc_item_pre_fx(t)), (1, 0), hex(t))

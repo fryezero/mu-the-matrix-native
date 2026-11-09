@@ -180,6 +180,27 @@ class WorldRender(unittest.TestCase):
         missing,_=self.render(*options,'--lighting','1','--world-time','0')
         self.assertEqual((missing['special'],missing['passes']),(0,10))
 
+    def test_named_part_mesh_inputs_and_missing_names(self):
+        path = self.tmp/'named-parts.bmd'
+        raw = nf.character_layout(118, bones=50, meshes=6, dummies=(9, 21))
+        labelled = raw.replace(nf.name32('part1.tga'), nf.name32('Item1161_Blue.jpg'))
+        labelled = labelled.replace(nf.name32('part2.tga'), nf.name32('Item1161_Black.jpg'))
+        labelled = labelled.replace(nf.name32('part3.tga'), nf.name32('Item1161_skirt.jpg'))
+        labelled = labelled.replace(nf.name32('part4.tga'), nf.name32('Item1161_Blue.jpg'))
+        for item, overlays in ((0x1a26, 2), (0x1e26, 2), (0x2026, 1), (0x2226, 1)):
+            options = ('--part', '2', path, '--item-type', f'armor={item}', '--world-time', '0')
+            path.write_bytes(raw)
+            missing, _ = self.render(*options)
+            path.write_bytes(labelled)
+            present, _ = self.render(*options)
+            self.assertEqual((missing['special'], present['special']), (0, 0))
+            self.assertEqual(present['passes'], missing['passes'] + overlays)
+            self.assertGreater(present['triangles'], missing['triangles'])
+            path.write_bytes(labelled.replace(nf.name32('Item1161_Blue.jpg'),
+                                              nf.name32('other-blue.jpg'), 1))
+            later_match, _ = self.render(*options)
+            self.assertEqual(later_match['passes'], present['passes'])
+
     def test_rank5_owner_effects_follow_owner_bones(self):
         """RENDER-EFFECTS-005: the lit rank-5 body reads the character's bones 35/26."""
         path=self.tmp/'rank5-owner.bmd'

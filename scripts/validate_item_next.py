@@ -20,7 +20,8 @@ LINKS = (0x10f0, 0x16f5)
 
 class Context(C.Structure):
     _fields_ = [('lighting',C.c_int32),('blue',C.c_int32),
-                ('random',clusters.RANDOM),('context',C.c_void_p)]
+                ('random',clusters.RANDOM),('context',C.c_void_p),
+                ('mesh_named',v.MESH_NAMED),('mesh_context',C.c_void_p)]
 
 
 def rank5_world(payload, k, lighting, blue, black, value, calls, base=v.World):

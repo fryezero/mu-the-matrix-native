@@ -49,6 +49,14 @@ static void add_unique(int32_t *out, int32_t capacity, int32_t *count, int32_t i
     ++*count;
 }
 
+/* Present names make every referenced bitmap reachable in the upload census. */
+static int32_t probe_mesh_named(void *context, const char *name)
+{
+    (void)context;
+    (void)name;
+    return 0;
+}
+
 static int32_t probe_random(void *context)
 {
     (void)context;
@@ -104,7 +112,7 @@ int32_t mu_item_textures_overrides(int32_t type, const mu_data_table *items, int
                                 it.item_kind = record.attributes.type;
                             }
                             mu_rc_model m = {{1.0f, 1.0f, 1.0f}, 0, {1.0f, 1.0f, 1.0f}, 0, 0};
-                            mu_rc_item_context context = {lit, rank5 ? 0 : -1, probe_random, NULL};
+                            mu_rc_item_context context = {lit, rank5 ? 0 : -1, probe_random, NULL, probe_mesh_named, NULL};
                             /* item_bones 0: the RENDER-ITEMS-002Q owner-effect programs stay off (draws only) */
                             mu_rc_owner_host host = {36, 0, probe_transform, probe_random, probe_emit, NULL, 0,
                                                      {0.0f, 0.0f, 0.0f}, NULL, NULL, NULL, 0, {0.0f, 0.0f, 0.0f},

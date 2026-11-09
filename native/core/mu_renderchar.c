@@ -253,6 +253,18 @@ static int32_t item_bone_named(void *context, const char *name)
 }
 
 /* TransformPosition 0x012b6ef1 on the item's own pose with its BodyScale/BodyOrigin (as the link effects). */
+/* 0x012bd4a6: first exact texture-name match, or -1. */
+static int32_t item_mesh_named(void *context, const char *name)
+{
+    const mu_model *model = context;
+    if (!model)
+        return -1;
+    for (int32_t i = 0; i < model->bmd->mesh_count; ++i)
+        if (!strcmp(model->bmd->meshes[i].texture, name))
+            return i;
+    return -1;
+}
+
 static void item_transform(void *context, int32_t bone, const float local[3], int32_t translate, float out[3])
 {
     const owner_services *o = context;
@@ -317,7 +329,7 @@ static int draw_item(const mu_model *model, const mu_renderchar_glow *glow, cons
     mu_rc_draw draws[32];
     int32_t count = 0;
     mu_rc_item_context context = {model->params.lighting, -1,
-                                  env->particles ? link_random : NULL, env->particles};
+                                  env->particles ? link_random : NULL, env->particles, item_mesh_named, (void *)model};
     if (mu_rc_item_rank5(glow->type)) {
         for (int i = 0; i < model->bmd->mesh_count; ++i) {
             const char *name = model->bmd->meshes[i].texture;
@@ -407,7 +419,7 @@ static int draw_item(const mu_model *model, const mu_renderchar_glow *glow, cons
             continue;
         }
         /* A failed named mesh lookup is a no-op in the original mesh callee. */
-        if (mu_rc_item_rank5(glow->type) && d->entry == MU_RC_ENTRY_MESH && d->mesh < 0)
+        if (d->entry == MU_RC_ENTRY_MESH && d->mesh < 0)
             continue;
         mu_draw_options o = *base;
         mu_draw_model_fields f;
