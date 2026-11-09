@@ -14,6 +14,7 @@ Lorencia 138,123 with --npc, the GFx inventory and the Blade +9 tooltip, frame 6
 import hashlib
 import json
 import os
+import shutil
 from pathlib import Path
 import subprocess
 import sys
@@ -155,6 +156,9 @@ class OtherWindowCaptures(unittest.TestCase):
         from native_fixtures import write_textured_model
         (cls.base/'model').mkdir()
         cls.model = write_textured_model(cls.base/'model', seed=11)
+        # Other suite modules can relink these shared build paths while this process runs.
+        cls.tools = {name: Path(shutil.copy2(NATIVE/'build'/name, cls.base/name)) for name in
+                     ('mu-charsel', 'mu-charsel-window', 'mu-frame-window', 'mu-viewer')}
 
     @classmethod
     def tearDownClass(cls):
@@ -173,7 +177,7 @@ class OtherWindowCaptures(unittest.TestCase):
         for backend, name in [('soft', 'mu-charsel'), ('gl', 'mu-charsel-window')]:
             with self.subTest(backend=backend):
                 out = self.base/f'charsel-{backend}'
-                self.invoke(NATIVE/'build'/name, '--game-root', self.charsel, '--headless', '--no-ui',
+                self.invoke(self.tools[name], '--game-root', self.charsel, '--headless', '--no-ui',
                             '--backend', backend, '--frames', '1', '--every', '1', '--width', '320',
                             '--height', '200', '--out-dir', out)
                 pngs = list(out.glob('*.png'))
@@ -182,7 +186,7 @@ class OtherWindowCaptures(unittest.TestCase):
 
     def test_frame_window(self):
         out = self.base/'frame-window'
-        self.invoke(NATIVE/'build/mu-frame-window', self.model, '--headless', '--frames', '1',
+        self.invoke(self.tools['mu-frame-window'], self.model, '--headless', '--frames', '1',
                     '--width', '320', '--height', '200', '--out-dir', out)
         self.opaque(out/'gl-frame-000.png')
 
@@ -190,7 +194,7 @@ class OtherWindowCaptures(unittest.TestCase):
         for backend in ('soft', 'gl'):
             with self.subTest(backend=backend):
                 out = self.base/f'viewer-{backend}.png'
-                r = self.invoke(NATIVE/'build/mu-viewer', self.model, '--headless', '--backend', backend,
+                r = self.invoke(self.tools['mu-viewer'], self.model, '--headless', '--backend', backend,
                                 '--width', '320', '--height', '200', '--alpha', '0.5', '--out', out)
                 self.opaque(out)
                 # The report still hashes raw blended pixels. The saved capture changes only alpha.
@@ -201,7 +205,7 @@ class OtherWindowCaptures(unittest.TestCase):
         for backend in ('soft', 'gl'):
             with self.subTest(backend=backend):
                 out = self.base/f'terrain-viewer-{backend}.png'
-                self.invoke(NATIVE/'build/mu-viewer', '--terrain', self.root, '--world', '0', '--headless',
+                self.invoke(self.tools['mu-viewer'], '--terrain', self.root, '--world', '0', '--headless',
                             '--backend', backend, '--width', '320', '--height', '200', '--target', '13000,6000',
                             '--distance', '1000', '--out', out)
                 self.opaque(out)
@@ -219,7 +223,7 @@ class LorenciaTooltipSceneTests(unittest.TestCase):
         env = {**os.environ, 'MU_GFX_LIB': GFX, 'MU_LANG_DIR': str(Path(DATA, 'lang')), 'MU_GFX_PUBLIC_DEMO': '1',
                'MU_GFX_SINGLE_BUFFER': '1', 'MU_GFX_TEST_CLOCK': '1'}
         r = subprocess.run([
-            str(WORLD), '--game-root', GAME, '--objects-dir', str(Path(DATA, 'objects')), '--headless', '--backend',
+            str(getattr(self, 'exe', WORLD)), '--game-root', GAME, '--objects-dir', str(Path(DATA, 'objects')), '--headless', '--backend',
             backend, '--no-audio', '--width', '1280', '--height', '800', '--class', '1', '--tile', '138,123',
             '--gfx', str(Path(DATA, 'gfx')), '--hero-name', 'Preview', '--placement',
             'native/world/lorencia-demo-placement.txt', '--npc', '--npc-demo', 'native/world/lorencia-demo-npc.txt',
