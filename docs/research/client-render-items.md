@@ -2815,7 +2815,76 @@ constant is installed. This lane proves counter-driven command changes, **not vi
 The installed preview is untouched. Recover the OBJECT/PART caller's blend-light value and lifetime before
 claiming visual completion; then repeat this fixed-pose native test and the app proof.
 
-## Part 32, NPC and monster cloth callers, CLOAK-004
+## Part 32, the remaining mace particle consumers and world bitmap slots, RENDER-EFFECTS-023
+
+Offline/static evidence only. CreateParticle `0x015ae7b0`, MoveParticles `0x01616c80` and RenderParticles
+`0x0159123f` run under Unicorn over the pinned text/data, with synthetic records, owners and random sequences.
+Text SHA-256 `2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724`; data SHA-256
+`c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f`.
+Native images are before/after renders, not original-client pixel comparisons.
+
+### Particle pairs
+
+`reconstructed/particles/item_mace_kinds.inc` adds the 19 remaining pairs in the mace programs. The original
+common initialization, owner-position refresh, velocity rotation and lifetime decrement remain shared.
+The new validator compares defined record bytes, random consumption and ordered sprite/GL calls.
+
+| Item | Pair | Create / move branch | Behavior |
+|---|---|---|---|
+| `0x0f2a` | `0x8315..0x8317/4` | `0x016065fd` / `0x0168076d` | 16-step fire, shrinking scale, pulse alpha; one shared random displacement on x/y |
+| `0x0f2a` | `0x85bc/5` | `0x01612d8e` / `0x0168ac20` | 30-step red line, scale step `(scale - scale*0.3)/30`, pulse alpha |
+| `0x0f2a` | `0x83b8/8` | `0x015e407f` / `0x01657e76` | 20..30-step chip; input angle becomes velocity before angle jitter; later velocity drift and fade |
+| `0x0f2a` | `0x85fc/1` | `0x01613f98` / `0x0168be7c` | 30-step owned ring, grows from zero, fades below half life, follows the selected OBJECT point |
+| `0x0f24` | `0x7ffb/0` | `0x016147ae` / `0x0168c6ab` | 30-step owned shockwave, same growth/fade and direct point following |
+| `0x0f28` | `0x807e..0x8080/0x18` | `0x015cfc7a` / `0x01642f6e` | 30-step smoke lines, expanding scale, pulse alpha, random spin and rise |
+| `0x0f28` | `0x83b3/0x13` | `0x015d19c4` / `0x0164412a` | 30-step expanding smoke, pulse alpha |
+| `0x0f29` | `0x8109/0xe` | `0x015b08fc` / `0x016196d9` | Random 0.5..1 scale, velocity from input angle, angle jitter, velocity drift, spin and late fade |
+| `0x0f2b` | `0x8081..0x8083/9` | `0x015d3821` / `0x016459fb` | Four-step glints, random rotation and alpha fade |
+| `0x0f2b` | `0x8549/1` | `0x01615d4e` / `0x0168ec04` | Four-step glow, alpha fade |
+| `0x0f2c` | `0x82f2/0x1a` | `0x01605f17` / `0x01680103` | 30-step expanding smoke, pulse alpha |
+| `0x0f2c` | `0x810b/0xa` | `0x01602036` / `0x0167bf75` | 20-step shrinking glint, input-angle velocity, angle jitter and late fade |
+| `0x0f2c` | `0x85fc/2`, arguments 8 = 0/1 | `0x0161400a` / `0x0168be7c` | 50-step owned ring, direct point following |
+
+All 19 render their light times alpha. The pulse uses `LifeTime > initial/2`; the late fades use
+`LifeTime < initial/2`. Equality differs between these branches and is sampled explicitly. Products,
+subtractions and divisions retain the client's intermediate binary32 rounding and random-call order.
+
+`0x85fc/1,/2` and `0x7ffb/0` read OBJECT `+0x1f4 + 12*arg8` directly at render time
+(`0x015ac52a`, `0x015ace36`). They do not add the record's birth vector, unlike EFFECTS-022's `0x810a/0x25`.
+Their move clears live on NULL owner; their render leaves position unchanged on NULL owner. Native slot
+bounds and generation checks reject stale native references without borrowing another item's points.
+The world adapter hosts three points; arbitrary OBJECT memory is outside the domain.
+
+### Bitmap slots and viewer owners
+
+The world bitmap pool grows 79 to 93 slots. `0x7f7a` is `Effect\flare03.jpg`, loader call `0x01823fd4`;
+`0x80ba` is `effect\flare01_red.jpg`, call `0x01823914`. Both are LINEAR/CLAMP. The other twelve slots
+supply the new particles; only `smokelines01..03` repeat. The validator reads every original call's pushes
+and path string; a synthetic native loader fixture supplies distinct greys and checks the actual file mapping,
+filter/wrap, and all 19 native draw calls. Fire06 remains after the additions, rain02/rain03 last.
+
+The character viewer assigns a stable registry key per loaded item and refreshes it per draw, through the
+same retained point callbacks as the world. It now hosts the owned spark and rings. No blend-light default,
+body recipe, item fit, atlas clock, pose or installed app changes here. RENDER-ITEMS-002W owns the blend-light
+and body-fit follow-up.
+
+### Refusal census and evidence limits
+
+The admitted tables contain 93 programs and 30 distinct particle pairs; all 30 have native consumers,
+with zero unresolved bitmap expressions in the bounded static census. Nineteen are added here. The remaining
+world sprite texture gaps are `0x81ec` (three `0x0f2a` sites) and `0x854a` (four `0x0f2b` sites), counted-only.
+Hammer14 contains `up01 ` while the program asks for exact `up01`: one sprite refusal per draw remains.
+The five-new-mace fixture improves from 2,988 accepted / 322 refused to 3,249 / 61 over 61 draws; all 321
+particle requests create, zero unsupported. The full proof has 58,014 component comparisons with zero mismatches;
+31/31 compiled mutants are caught. Default captures retain 92/92 PNG and 92/92 dump byte identity.
+
+The native counter and random stream retain their earlier phase differences from the client. Named-bone and
+out-of-domain requests remain refused. The point transform proof does not establish native/original pose
+identity. Native before/after images establish that these consumers draw in the native paths; they are not
+original-client pixel equivalence. Checks, counts, timings, render measurements and remaining work are in
+[RENDER-EFFECTS-023](../handoffs/RENDER-EFFECTS-023.md).
+
+## Part 33, NPC and monster cloth callers, CLOAK-004
 
 The remaining constructor `0x01362755..0x01362e1d`, SHA-256
 `e80e875813736e2eb79a71ac22017f69de6ebbfd1c0ce4fc38f5ea902640ab60`, fills OBJECT `+0x48`, count `+0x3e`.

@@ -3325,3 +3325,19 @@ note = "CLOAK-004: six NPC/monster cloth classes plus nine exclusions, 150 const
 "families.render.cases" = 1200
 "families.models.cases" = 9
 "mutants.*" = {truthy = true}
+
+[validate_render_effects23]
+test = "native/tests/test_render_effects23.py::ClientComparison.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["mace_create", "mace_move", "mace_render", "points", "bitmaps"]
+cases = 1174
+mutants = 31
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/particles", "reconstructed/renderchar"]
+args = ["--cases", "20", "--mutations", "--output", "{report}"]
+note = "RENDER-EFFECTS-023: 19 mace particle pairs, OBJECT point writes across four maces and 14 original bitmap loader mappings; 31 compiled production mutants"
+[validate_render_effects23.expect]
+all_equal = true
+all_mutants_caught = true
+"mutants.*.stopped" = 0

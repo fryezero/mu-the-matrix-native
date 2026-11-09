@@ -136,7 +136,7 @@ merge; its 4,044-case pass at `f0601116` still stands. Unique row totals are 903
 merge. No other row needs a mutant rerun. The row command used `--no-mutants`; scripts with built-in controls
 and no mutant switch retain those controls. Env: `. ~/Documents/MTM/mu-mac-tools/native/private-env.sh`.
 
-Main integration changed no cloth or actor caller source. Both lanes' findings are kept, this lane in Part 32.
+Main integration changed no cloth or actor caller source. Both lanes' findings are kept, this lane now in Part 33 after the final sync.
 The only earlier UV syntax repair (`fe3d7248`) produced byte-identical whole cloth libraries at validator O2
 flags before/after, SHA-256 `92a34a3f2b34fa39a9595efda9ead26e4335a81a9760a6ec06f8a1f02dc30bb8`.
 All 101 old/new mutant anchors occur once. That repair precedes the final world-121 guard and final comparisons.
