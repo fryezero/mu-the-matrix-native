@@ -70,7 +70,7 @@ class ItemOwnerFx(unittest.TestCase):
         """0x19f4: one CreateSprite 0x810a at owner bone 20, scale 0.8, light (0.2, 0.95, 0.8), no rand."""
         status, draws, effects, used = self.owner(0x19f4, 21, [5])
         self.assertEqual((status, used), (0, 0))
-        self.assertEqual([bytes(d) for d in draws], [bytes(d) for d in self.draws(self.item(type=0x19f4))[1]])
+        self.assertEqual([base.draw_bytes(d) for d in draws], [base.draw_bytes(d) for d in self.draws(self.item(type=0x19f4))[1]])
         self.assertEqual(effects, [(2, 0x810a, 0, (120.0, 240.0, 360.0), (F32(0.2), F32(0.95), F32(0.8)), F32(0.8),
                                     (0.0, 0.0, 0.0))])
         for bones, item_bones in ((20, 21), (21, 20), (0, 21)):

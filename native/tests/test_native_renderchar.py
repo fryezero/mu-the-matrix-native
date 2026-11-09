@@ -294,6 +294,20 @@ class WorldRender(unittest.TestCase):
             expect=17+2*(frame%3==0)+(frame%5==0)
             self.assertEqual((r['special'],r['pre_effects'],r['pre_refused']),(0,0,expect),frame)
 
+    def test_counter_range_bodies_reach_native_renderer(self):
+        """The six 002V types used to fall back as unsupported. Exercise their recipes through the
+        native item host, including a high-bit frame counter and the staff's intermediate colour products."""
+        path = self.tmp/'counter-range.bmd'
+        path.write_bytes(nf.character_layout(115, bones=16, meshes=8))
+        for t in (0xf24, 0xf28, 0xf29, 0xf2b, 0xf2c, 0x1588):
+            args = ('--weapon', '0', path, '--item-type', f'weapon0={t:#x}', '--world-time', '123456',
+                    '--frame-counter', '4294967295')
+            result, png = self.render(*args)
+            again, repeat = self.render(*args)
+            self.assertEqual(result['special'], 0, hex(t))
+            self.assertGreater(result['passes'], 5, hex(t))
+            self.assertEqual((result['sha256'], png), (again['sha256'], repeat), hex(t))
+
     def test_ranked_body_and_nine_bone_shield_use_shared_draws(self):
         path = self.tmp/'ranked-armour.bmd'
         path.write_bytes(nf.character_layout(113,bones=50,meshes=6,dummies=(9,21)))
