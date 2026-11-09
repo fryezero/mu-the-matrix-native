@@ -248,7 +248,9 @@ The bounded loop validator stops at its exclusive end; it does not claim startup
 RenderCharacter's final skeleton branch `0x01369f98..0x0136a00d` calls RenderPartObject on this whole model,
 using Player's shared posed bones, alpha OBJECT +0xdc, translate 1, flags 2, and level/option/ext zero.
 Its town branch `0x01367d85..0x01367e23` uses character +0x144 shifted by 3 in world 0; Golden Archer's
-constructor leaves that field zero, following CreateCharacter's static zero store at `0x0137eed1`.
+constructor overwrites CreateCharacter's zero at `0x0137eed1` with 8 at `0x01384306`.
+**WIP correction:** the current native recipe and reference fixture miss this +8 town level and its passes.
+The passing body comparisons below cover the earlier zero-level fixture, not the correct Golden Archer town state.
 These are executed comparisons, including the real RenderObjDraw body
 stream for each model. No extra glow/blend mesh pass occurs in those tested body calls. Native uses its
 existing plain textured-body fallback for these non-item indices; they do not change the item-body census.

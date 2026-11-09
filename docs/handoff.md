@@ -1,6 +1,6 @@
 # Continue from here
 
-RENDER-ACTORS-001 PR-ready: Death King 55 and five other skeleton classes use the original whole Skeleton01..03 bodies on Player bones; nine equipped classes gain loader admission. Census: 15 changed, 2 unchanged controls, 15 later subtype recipes left. [Evidence, census and checks](handoffs/RENDER-ACTORS-001.md).
+RENDER-ACTORS-001 WIP, stopped by owner 2026-11-09: skeleton bodies and nine equipment-loader admissions are implemented and bounded checks pass, but Golden Archer 236's +8 town level/passes were missed by the reference fixture. No ready-prs entry. [Verified work, known gap and exact next steps](handoffs/RENDER-ACTORS-001.md).
 
 RENDER-ITEMS-002W PR-ready: bodies 1,370 -> 1,404/1,674 (270 left), adding three bows and all 31 named-mesh parts. Worn `0x0f2a` blend light is recovered from the original caller; body-only native and current local Preview controls establish visible atlas motion. 54 current PR validators pass; late-main 57-row rerun passes. Installed apps are untouched. [Checks, row timings and limits](handoffs/RENDER-ITEMS-002W.md).
 
