@@ -452,7 +452,13 @@ static void emit_parameter_body(sink *s, int phase, uint32_t flags, float alpha,
     for (int k = 0; k < mu_rc_body_types[type].scalar_count; ++k) {
         const mu_rc_body_scalar *p = &mu_rc_body_scalars[mu_rc_body_types[type].scalar_first + k];
         float value = 0.0f;
-        if (p->kind == 4) {
+        if (p->kind == 8) {
+            /* Preserve the integer result, including -1, as a raw draw input word. */
+            const mu_rc_item_context *c = s->context;
+            int32_t mesh = c && c->mesh_named ? c->mesh_named(c->mesh_context, mu_rc_body_names[p->a]) : -1;
+            input[35 + k] = (uint32_t)mesh;
+            continue;
+        } else if (p->kind == 4) {
             /* Body random: one CRT rand per program, in client call order, only in
              * the phases whose helper call draws it. */
             if (p->phases & (1u << phase))

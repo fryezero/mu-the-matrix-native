@@ -77,8 +77,33 @@ class ItemPreDraw(unittest.TestCase):
                                                  ctypes.byref(context), ctypes.byref(hosted))
         return status, list(out[:n.value]), effects, len(drawn)
 
+    def test_predraw_callbacks_reject_invalid_bones(self):
+        class InvalidNative:
+            def mu_rc_item_draws_owner(inner, *args):
+                host = args[-1]._obj
+                local = (ctypes.c_float * 3)()
+                out = (ctypes.c_float * 3)(1, 2, 3)
+                host.item_transform(None, 1, local, 1, out)
+                self.assertEqual(tuple(out), (0, 0, 0))
+                out[:] = (1, 2, 3)
+                host.owner_item_transform(None, -1, local, 1, out)
+                self.assertEqual(tuple(out), (0, 0, 0))
+                out[:] = (1, 2, 3)
+                host.object_transform(None, 1, out)
+                self.assertEqual(tuple(out), (0, 0, 0))
+                return 0
+        o = dict(stream=[0], records=True, names=['zero'], count=1, matrices=[0.0]*12,
+                 owner_matrices=[0.0]*12, origin=[0.0]*3, scale=1.0, angle=[0.0]*3,
+                 position=[0.0]*3, attached=True, frame=0)
+        case = self.v.classify_case(0x0f1f, self.v.CLASSIFY[0])
+        status, stream, effects, used = predraw.run_c(InvalidNative(), None, case, o, 1)
+        self.assertEqual((status, stream, used), (0, [], 0))
+        self.assertEqual(effects, [('invalid-transform', 'item', 1),
+                                   ('invalid-transform', 'owner-item', -1),
+                                   ('invalid-transform', 'object', 1)])
+
     def test_admissions_and_existing_domain(self):
-        self.assertEqual(len(fxgen.PRE_FX_TYPES), 48)   # RENDER-ITEMS-002V: five counter maces
+        self.assertEqual(len(fxgen.PRE_FX_TYPES), 51)   # RENDER-ITEMS-002W: three read-program bows
         for t in fxgen.POST_FX_TYPES:
             self.assertEqual(self.draws(self.item(type=t))[0], 0, hex(t))
             self.assertEqual((self.lib.mu_rc_item_post_fx(t), self.lib.mu_rc_item_pre_fx(t)), (1, 0), hex(t))

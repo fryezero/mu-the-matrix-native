@@ -238,14 +238,27 @@ def run_c(lib, plib, case, o, flag):
         text = name.decode()
         return next((i for i, x in enumerate(o['names']) if x == text), -1)
 
+    def valid_bone(kind, matrices, bone, out):
+        if 0 <= bone < len(matrices) // 12:
+            return True
+        # Planted invalid calls must fail deterministically, not escape a ctypes callback.
+        effects.append(('invalid-transform', kind, bone))
+        for k in range(3):
+            out[k] = 0.0
+        return False
+
     @ITEM_TRANSFORM
     def item_transform(_, bone, local, translate, out):
+        if not valid_bone('item', o['matrices'], bone, out):
+            return
         matrix = (C.c_float * 12)(*o['matrices'][12 * bone:12 * bone + 12])
         origin = (C.c_float * 3)(*o['origin'])
         plib.mu_pt_transform_position(matrix, local, out, translate, o['scale'], origin)
 
     @ITEM_TRANSFORM
     def owner_item_transform(_, bone, local, translate, out):
+        if not valid_bone('owner-item', o['owner_matrices'], bone, out):
+            return
         matrix = (C.c_float * 12)(*o['owner_matrices'][12 * bone:12 * bone + 12])
         origin = (C.c_float * 3)(*o['origin'])
         plib.mu_pt_transform_position(matrix, local, out, translate, o['scale'], origin)
@@ -255,6 +268,8 @@ def run_c(lib, plib, case, o, flag):
         # 0x012b678d(out, OBJECT, bone, NULL): the OBJECT's own bone array when it has one (its model is the item
         # model here, so the bone is in range), else BoneTransform; translation * scale + OBJECT position.
         source = o['owner_matrices'] if o['attached'] else o['matrices']
+        if not valid_bone('object', source, bone, out):
+            return
         for k in range(3):
             out[k] = f32(f32(f32(o['scale']) * f32(source[12 * bone + 4 * k + 3])) + f32(o['position'][k]))
 

@@ -100,6 +100,9 @@ typedef struct mu_rc_item_context {
     int32_t lighting, blue_mesh;
     int32_t (*random)(void *context);
     void *context;
+    /* Pure texture-name lookup 0x012bd4a6 on the drawn model, -1 when absent. */
+    int32_t (*mesh_named)(void *context, const char *name);
+    void *mesh_context;
 } mu_rc_item_context;
 int mu_rc_item_rank5(int32_t type);
 int mu_rc_item_draws_context(const mu_rc_item *item, mu_rc_model *model,

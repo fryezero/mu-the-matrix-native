@@ -7,6 +7,7 @@ be enabled. Unknown recipes fail regeneration. This is finite instruction
 comparison, not symbolic proof of every input or record kind.
 """
 import argparse
+import json
 import ctypes as C
 from pathlib import Path
 import random
@@ -1051,7 +1052,7 @@ def slice_block(wa, block, frame=False):
             low = mask & 0x7fffffff
             target = nxt
             follow = next(md.disasm(text[target - 0x00401000:target - 0x00401000 + 16], target), None)
-            if (mask & 0x80000000 and low and low & (low + 1) == 0 and x and x[0] == 'c' and x[1] == 'i' and
+            if (mask & 0x80000000 and low & (low + 1) == 0 and x and x[0] == 'c' and x[1] == 'i' and
                     follow and follow.mnemonic == 'jns'):
                 # and r,0x8000000m; jns L; dec r; or r,-(m+1); inc r; L:  ==  r % (m+1)
                 fix = text[follow.address + 2 - 0x00401000:follow.operands[0].imm - 0x00401000]
@@ -1274,7 +1275,10 @@ def _original(wa, case, factory, tags):
         global _site_sink
         _site_sink = set()
         try:
-            r, st, other, _ = v.client_stream(wa, case, factory)
+            # This probing world owns the lookup recorder; keep the generic case shim out.
+            original_case = dict(case)
+            original_case.pop('named_meshes', None)
+            r, st, other, _ = v.client_stream(wa, original_case, factory)
             return r['ok'], st, other, list(tags), list(_EXITS), list(_RAND['calls']), frozenset(_site_sink)
         finally:
             _site_sink = sites
@@ -1296,6 +1300,14 @@ def exit_record(fields):
     """EXIT pseudo-draw in client-stream form: words 8..15 are the model fields."""
     return ('EXIT', [0] * 8, tuple(fields[0]), fields[1], tuple(fields[2]), fields[3])
 
+
+NAMED_TYPES = v.NAMED_BODY_TYPES
+LEVEL_SPLIT += list(NAMED_TYPES)
+FRAME_TYPES += [0x0b68]
+COUNTER_RANGE_TYPES += [0x0b5c, 0x0b62, 0x1313, 0x1317, 0x1319]
+PRE_EXTENDED += [0x1313, 0x1317, 0x1319]
+NAMED_NAMES = v.NAMED_MESH_NAMES
+_NAMED_VALUES = []
 
 def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=False, quality=9, record=(0, 0, 0)):
     import math
@@ -1373,6 +1385,14 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=Fals
                     _site_sink.add(('rand', site))
                 return value
             self.m.stub(RAND, rand, 0)
+            def named(m):
+                address = m.arg(0)
+                name = m.read(address if m.r32(address+20)<16 else m.r32(address), m.r32(address+16)).decode('ascii')
+                index = NAMED_NAMES.index(name)
+                if _site_sink is not None:
+                    _site_sink.add(('named', index))
+                return _NAMED_VALUES[index] & 0xffffffff
+            self.m.stub(0x012bd4a6, named, 4)
     global _site_sink
     _site_sink = sites
     _SAMPLE_TYPE[0] = t
@@ -1388,7 +1408,11 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=Fals
     if _RAND['on']:
         draw = random.Random(seed * 131 + lv * 7 + quality * 3 + opt + 2 * ext + 11 * (record[1] & 0xff))
         _RAND['seq'][:] = [draw.randrange(32768) for _ in range(64)]
+    draw = random.Random(seed * 17 + lv * 7 + quality * 3 + opt + ext)
+    _NAMED_VALUES[:] = [draw.choice((0, 1, 3, 5)) for _ in NAMED_NAMES]
     case = v.random_case_any(random.Random(seed), t)
+    if t in NAMED_TYPES:
+        case['named_meshes'] = tuple(_NAMED_VALUES)
     case.update(item_level=lv << 3, quality=quality, option1=opt, ext=ext, record=record, a10=0xffffffff, a11=0xffffffff, render_type=(2, 0x102, 0x40042)[seed % 3])
     case['object_hidden'] = (-1, 0, 2)[(seed // 3) % 3]
     if t in FRAME_TYPES:
@@ -1472,6 +1496,8 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=Fals
                 return None   # random outside a helper group, or one site drawn twice
             calls[(tag, site)] = value
     def program_input(program, tag, row):
+        if program[0] == 8:
+            return _NAMED_VALUES[program[1]] & 0xffffffff
         if program[0] == 7:
             a, b = row[program[1]], row[program[2][0][1]]
             return RAND_ABSENT if RAND_ABSENT in (a, b) else v.f2u(f(v.u2f(a) * v.u2f(b)))
@@ -1525,7 +1551,7 @@ def infer(samples):
 ALL_TYPES = (REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES + RANKED_TYPES + EXPANDED_TYPES +
              NEXT_TYPES + CLOCK_TYPES + CLUSTER_TYPES + WING_TYPES + VISIBLE_TYPES + SCALAR_TYPES +
              CHAIN_TYPES + LEVEL_TYPES + COLOUR_TYPES + CARRY_TYPES + QUALITY_TYPES + PRODUCT_TYPES + DERIVED_TYPES +
-             OWNER_FX_TYPES + PRE_FX_TYPES + POST_FX_TYPES + [0x1588])
+             OWNER_FX_TYPES + PRE_FX_TYPES + POST_FX_TYPES + [0x1588] + list(NAMED_TYPES))
 
 
 def fit(wa, lib, t, scalars=False, carry=False, extended=False):
@@ -1545,10 +1571,10 @@ def fit(wa, lib, t, scalars=False, carry=False, extended=False):
         programs = []
         # Helper programs keep their part-11 order; clock chains follow them; body
         # random programs come last in first-call order.
-        ordered = (sorted(site for site in sites if site[0] not in ('clock', 'rand')) +
+        ordered = (sorted(site for site in sites if site[0] not in ('clock', 'rand', 'named')) + sorted(site for site in sites if site[0] == 'named') +
                    sorted(site for site in sites if site[0] == 'clock'))
         for helper, ret in ordered:
-            program = (3, 0, ret) if helper == 'clock' else parse_scalar(wa, helper, ret)
+            program = (8, ret, ()) if helper == 'named' else (3, 0, ret) if helper == 'clock' else parse_scalar(wa, helper, ret)
             if program is not None and program not in programs:
                 programs.append(program)
         for site in drawn:
@@ -1682,7 +1708,10 @@ def supplement(wa, lib, t, params, sites, carry, ss, phases):
                         if sites is None:
                             return False
                         continue
-                    phases[5 if seed % 3 == 2 else 0].append(stream[0])
+                    phase = 5 if seed % 3 == 2 else 0
+                    if t in NAMED_TYPES and lv >= 9 and quality > 1:
+                        phase = 7 if phase == 5 else 6
+                    phases[phase].append(stream[0])
                     for pair in stream[1:]:
                         flags = pair[0][0] & ~0x100
                         if flags not in (0x44, 0x48, 0x240, 0x1040):
@@ -1713,7 +1742,7 @@ def extract():
     for t in ALL_TYPES:
         fitted = fit(wa, lib, t, scalars=True,
                      carry='exit' if t in EXIT_TYPES else t in CARRY_TYPES or t in DERIVED_CARRY or t in PRE_CARRY,
-                     extended=t in QUALITY_TYPES or t in PRODUCT_TYPES or t in PRE_EXTENDED)
+                     extended=t in QUALITY_TYPES or t in PRODUCT_TYPES or t in PRE_EXTENDED or t in NAMED_TYPES)
         if fitted is not None:
             types[t] = fitted
     if set(types) != set(ALL_TYPES):
@@ -1740,6 +1769,7 @@ def render(types):
              ' * source=17 copies OBJECT alpha. source=18..20 copies pulsed body light; source=21 copies armour blend pulse. source=22..34 selects clock scalars; source=35 copies OBJECT hidden mesh;',
              ' * source=36.. selects the type\'s own scalar program (kind 1 = wave 0x0185bdc4(a,0), 2 = sin(time*a), then mul/add/sub/div, binary32 or op|8 binary64 with one final rounding;',
              ' * kind 3 = clock chain of op/k pairs, see gen_item_bodies.C_TIME_F..C_U2D (30..33: the rendered-frame counter);',
+             ' * kind 8 = raw 0x012bd4a6 result for mu_rc_body_names[a], including -1;',
              ' * kind 4 = (float)(rand() % a) then binary32',
              ' * mul/add/sub/div, drawn once in each phase of its phases mask; kind 5 = the type\'s program a (kind 4)',
              ' * times the binary32 k[0], one channel of a scaled constant body light; kind 6 = input a (absolute index)',
@@ -1778,7 +1808,8 @@ def render(types):
                       any(op == 'in' and value == 20 for rule in rules for _, cells in rule for op, value in cells),
                       sum(1 << k for k in range(13) if any(op == 'in' and value == 21+k for rule in rules for _, cells in rule for op,value in cells)),
                       t in CARRY_TYPES or t in DERIVED_CARRY or t in PRE_CARRY, first, count))
-    return '\n'.join(lines + ['};', ''])
+    return '\n'.join(lines + ['};', 'static const char *const mu_rc_body_names[] = {'] +
+                     ['    ' + json.dumps(name) + ',' for name in NAMED_NAMES] + ['};', ''])
 
 
 def generate():

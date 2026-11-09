@@ -334,9 +334,19 @@ class CDraw(ctypes.Structure):
 RANDOM_FN = ctypes.CFUNCTYPE(ctypes.c_int32, ctypes.c_void_p)
 
 
+MESH_NAMED = ctypes.CFUNCTYPE(ctypes.c_int32, ctypes.c_void_p, ctypes.c_char_p)
+
+
 class CContext(ctypes.Structure):
     _fields_ = [('lighting', ctypes.c_int32), ('blue_mesh', ctypes.c_int32), ('random', RANDOM_FN),
-                ('context', ctypes.c_void_p)]
+                ('context', ctypes.c_void_p), ('mesh_named', MESH_NAMED), ('mesh_context', ctypes.c_void_p)]
+
+
+# These fixtures supply the texture-name lookup results explicitly; the raw classification is unchanged.
+NAMED_ARMOUR_TYPES = tuple(group + index for group in (0x1a00, 0x1e00, 0x2000, 0x2200)
+                          for index in (0x26, 0x27, 0x2c, 0x2e, 0x2f, 0x33, 0x44))
+NAMED_BODY_TYPES = NAMED_ARMOUR_TYPES + (0x0b5c, 0x0b62, 0x0b68)
+NAMED_MESH_NAMES = ('Item1161_Blue.jpg', 'Item1161_Black.jpg', 'Item1161_skirt.jpg', 'gunt_9cha_1.jpg', 'gunt_9cha_2.jpg', 'gunt_9cha_3.jpg', 'alpha_line2_red.JPG', 'flame_chrome.jpg', 'Fire_01.JPG', 'flareRed.jpg', 'pin_star02_yellow.jpg', 'lightning_claw_01.jpg', 'lightning_claw_02.jpg', 'Elec_light01_1X5.jpg', 'alpha_line2.jpg', 'Glow_26.JPG', 'light_blue.jpg', 'TempleGuard_claw_03.jpg', 'TempleGuard_claw_02.jpg', 'TempleGuard_claw_01.jpg', 'Blur_Aura002.jpg')
 
 
 class CModel(ctypes.Structure):
@@ -888,9 +898,18 @@ def c_stream(lib, case, generic=False, carry=None, random=None):
                 fields[k].flag_ca = record[5]
         status = lib.mu_rc_item_draws_carry(ctypes.byref(item), ctypes.byref(model), out, 32, ctypes.byref(count),
                                             fields, len(carry))
-    elif random is not None:
+    elif (random is not None or 'named_meshes' in case) and not generic:
         # Part 14: rand results for body-random programs come from the context.
-        context = CContext(0, -1, RANDOM_FN(lambda _: random()), None)
+        names = case.get('named_meshes', ())
+        slots = (ctypes.c_int32 * len(names))(*names)
+        @MESH_NAMED
+        def lookup(context, name):
+            index = NAMED_MESH_NAMES.index(name.decode('ascii'))
+            if not context or index >= len(names):
+                return -1
+            return ctypes.cast(context, ctypes.POINTER(ctypes.c_int32))[index]
+        context = CContext(case.get('lighting', 0), -1, RANDOM_FN(lambda _: random() if random else 0), None,
+                           lookup if names else MESH_NAMED(), ctypes.cast(slots, ctypes.c_void_p))
         status = lib.mu_rc_item_draws_context(ctypes.byref(item), ctypes.byref(model), out, 32, ctypes.byref(count),
                                               ctypes.byref(context))
     else:
@@ -940,7 +959,25 @@ def client_stream(world_args, case, world_factory=None):
     m.write(OBJ + 0x5c, struct_obj)
     args = [OBJ, case['type'], LIGHT, case['alpha'], case['item_level'], case['option1'], case['ext'], 0,
             case['render_type'], case['a10'], case['a11'], case['a12'], 0]
-    result = m.run(0x0176ce74, args)
+    prior_named = m.stubs.get(0x012bd4a6)
+    named = case.get('named_meshes')
+    if named is not None:
+        def lookup(mm):
+            address = mm.arg(0)
+            name = mm.read(address if mm.r32(address + 20) < 16 else mm.r32(address), mm.r32(address + 16))
+            index = NAMED_MESH_NAMES.index(name.decode('ascii'))
+            return (named[index] if index < len(named) else -1) & 0xffffffff
+        m.stub(0x012bd4a6, lookup, 4)
+    if 'lighting' in case:
+        m.write(MODEL + 0x50, bytes([case['lighting']]))
+    try:
+        result = m.run(0x0176ce74, args)
+    finally:
+        if named is not None:
+            if prior_named is None:
+                m.stubs.pop(0x012bd4a6, None)
+            else:
+                m.stubs[0x012bd4a6] = prior_named
     stream = []
     for call in w.calls:
         if call[0] in ('BODY', 'MESH'):
@@ -996,7 +1033,7 @@ def random_case_any(rng, item_type):
                                               rng.choice([0, 0, 0, 4, rng.randrange(256)]))
     a10 = -1 if rng.random() < 0.8 else rng.randrange(-2, 6)
     a11 = -1 if rng.random() < 0.8 else rng.randrange(-2, 0x9000)
-    return {'type': item_type, 'item_level': rng.choice([rng.randrange(16) << 3, rng.randrange(-0x80, 0x100)]),
+    case = {'type': item_type, 'item_level': rng.choice([rng.randrange(16) << 3, rng.randrange(-0x80, 0x100)]),
             'option1': rng.choice([0, 1, 1, rng.randrange(256)]), 'ext': rng.choice([0, 0, rng.randrange(0x40)]),
             'render_type': rng.choice([2, 2, 0, 0x40042, 0x102, 0x402, rng.randrange(0x10000)]),
             'a10': a10 & 0xffffffff, 'a11': a11 & 0xffffffff, 'a12': 3,
@@ -1006,6 +1043,9 @@ def random_case_any(rng, item_type):
             'record': record, 'enchant': [fbits(0, 1) for _ in range(3)],
             'model_light': [fbits(0, 1) for _ in range(3)], 'model_shade': [fbits(0, 1) for _ in range(3)],
             'model_level': rng.randrange(-1, 16), 'model_ca': rng.randrange(2)}
+    if item_type in NAMED_BODY_TYPES:
+        case['named_meshes'] = tuple(rng.choice((-1, 0, 1, 3, 5)) for _ in NAMED_MESH_NAMES)
+    return case
 
 
 CLASSIFY = [dict(item_level=lv << 3, option1=opt, ext=ext, quality=q, time=f2u(t), render_type=rt)
