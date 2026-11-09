@@ -18,6 +18,7 @@ import tempfile
 import time
 
 import actor_machine as am
+import pins
 import validate_actors as va
 import validate_renderchar as vr
 
@@ -56,8 +57,8 @@ def family():
 
 
 def originals(args):
-    text = am.load_pinned(args.text, am.TEXT_BYTES, am.TEXT_SHA256, 'text')
-    data = am.load_pinned(args.data, am.DATA_BYTES, am.DATA_SHA256, 'data')
+    text = pins.TEXT.read(args.text)
+    data = pins.DATA.read(args.data)
     machine = am.ActorMachine(text, data)
     rows = {cl: va.extract_class(machine, cl) for cl in CENSUS}
     # The extractor intentionally stubs CreateCharacter and post-create engine
@@ -68,7 +69,7 @@ def originals(args):
                               frame=(0x1dd4 + 0xc, {-0x10: 0}))
         if not run['ok']: raise RuntimeError(run)
         rows[cl]['body'] = struct.unpack_from('<I', run['regions']['character'], 0x32b4)[0]
-    return (text, data, args.flag.read_bytes()[:4], args.feature.read_bytes()[:4]), rows
+    return (text, data, pins.FLAG.read(args.flag), pins.FEATURE.read(args.feature)), rows
 
 
 def check_loader(args):
@@ -237,10 +238,10 @@ def build_library(source, target):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--text', type=Path, default=ROOT/'evidence/x86-text-capture-09/client-text.bin')
-    parser.add_argument('--data', type=Path, default=ROOT/'evidence/image-data-run10/data-capture-10/client-image-data.bin')
-    parser.add_argument('--flag', type=Path, default=ROOT/'evidence/trig-state-15/captures/late/math-dispatch-flag.bin')
-    parser.add_argument('--feature', type=Path, default=ROOT/'evidence/image-data-run10/math-capture-10/cpu-features.bin')
+    parser.add_argument('--text', type=Path)
+    parser.add_argument('--data', type=Path)
+    parser.add_argument('--flag', type=Path)
+    parser.add_argument('--feature', type=Path)
     parser.add_argument('--game-root', default=os.environ.get('MU_GAME_ROOT'))
     parser.add_argument('--cases', type=int, default=240)
     parser.add_argument('--mutations', action='store_true')

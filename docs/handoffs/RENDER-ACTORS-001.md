@@ -72,17 +72,55 @@ trig flag and feature word. The validator loads and checks their full SHA-256 va
 
 ## Checks
 
-Pending final checks. Commands run from the repository root with canonical private-env.sh, nice 10,
-make at most four jobs and validator runners two. No full lane gate.
+Commands run from the repository root with canonical private-env.sh, nice 10,
+make at most four jobs and validator runners two. No full lane gate. Resource pauses followed high load.
+
+| Check | Result | Wall |
+|---|---|---:|
+| Main baseline `make -j4` | pass | 26.1 s |
+| Final `make -j4` | pass | 13.1 s |
+| New validator, mutants once | 343 checks, 0 mismatches; 10/10 compiled mutants caught | 58.1 s |
+| Post-build validator selection | 19 selected, 3 symbol fallbacks; 12 unused consumers pruned | 53.3 s |
+| Affected private validators, no mutants, cached | 19/19 pass, 80,487 cases | 203.4 s including selection |
+| Initial audit | 2,129 files, 0 rejected | 14.9 s |
+
+The new validator totals 307 original-instruction or extracted-constructor comparisons, 17 actual native loads
+and 19 authored exclusion controls. Its families are recipes 36, body hook 240, equipment plan 11,
+RenderObjDraw body stream 36, startup loader 3 and native loads 17. This is not 343 original pixel comparisons.
+The original render pipeline for equipment is unchanged, so only the new row runs compiled mutants.
+
+**8d reduced:** the native/tests selection is 146 work items, above the 40-item cap. The private run covers the new native.tests.test_actor_recipes module only, with private-env.sh from the repository root. Portable affected suites and the private reduced run are pending. Brief 6b review found no changed existing
+constant, struct layout or table size. The two new exported functions are consumed only by the new tests
+and the actor loader; the unchanged actor/skin/cloth implementations retain their earlier coverage.
+Static census cross-check: all 1,024 generic class keys give 31 immediate Player-model cases, all present in
+this census. Class 297 is the additional recovered processor row. No protection boundary was followed.
 
 ## Renders and byte identity
 
-Pending final recorded totals. All native captures use DemoKnight and authored demo actor placements,
+All native captures use DemoKnight and authored demo actor placements,
 640x480, two frames, GL, world 0 at 128,124 with each actor at 129,125, direction 5.
 The before control admits the same class rows but omits the whole-body slot. It is an instrumented control,
 not an unmodified-main image for classes that main refuses. Death King, Marlon and Shadow Phantom Soldier
 already load on main. Six skeleton pairs gain body pixels; the eleven equipment control pairs are identical.
 The unchanged main binary is retained separately for the one default-draw capture sweep.
+
+
+| Skeleton class | Changed pixels, frame 1 | Before / after wall |
+|---|---:|---:|
+| 14 | 1,319 | 1.026 / 1.027 s |
+| 15 | 3,222 | 0.817 / 0.804 s |
+| 16 | 2,792 | 0.788 / 0.791 s |
+| 55 | 3,278 | 0.791 / 0.791 s |
+| 56 | 1,000 | 0.782 / 0.883 s |
+| 236 | 2,695 | 0.812 / 1.092 s |
+
+All 17 before/after pairs were visually inspected, including the eleven identical equipment controls. Total render wall 29.9 s. The review used native window contents and actor crops, not a desktop screenshot.
+
+One default-draw byte-identity sweep at 640x400, without draw_all or live_time:
+- October 22: 28/28 PNGs, 28/28 OBJECT/light dumps and 14/14 normalized reports identical; 14.75 / 14.13 s.
+- DATA-ACQ-002: 64/64 PNGs, 64/64 OBJECT/light dumps and 32/32 normalized reports identical; 39.03 / 44.37 s.
+
+Reports normalize only their output-directory prefix. No captured scene contains one of the newly admitted classes.
 
 Screenshots, inputs and local reports are under
 `~/Documents/MTM/mu-mac-tools/native/{scratch,renders}/render-actors-001/`. They are removed at PR-ready cleanup.
@@ -102,7 +140,32 @@ No original screenshot, pixel equivalence or live motion comparison is claimed.
 
 ## Release
 
-Steward validators: pending selection after build.
+Steward validators: validate_actor_recipes, validate_app_polish1, validate_app_polish2, validate_app_polish4, validate_audio_callers, validate_audio_combat, validate_audio_domains, validate_audio_items, validate_icarus_c2, validate_inventory_fx, validate_item_callers, validate_movement, validate_render_effects16, validate_render_effects17, validate_render_effects18, validate_render_effects19, validate_render_effects24, validate_viewport_monsters, validate_worlds_fog.
+
+All 19 rows pass at runtime source commit `55f7dcdc`; 3 retained symbol fallbacks are movement, audio_combat and render_effects17. The selector prunes 12 unchanged library consumers. Only validate_actor_recipes needs mutants, already passed 10/10. All other rows run with --no-mutants. Env: `. ~/Documents/MTM/mu-mac-tools/native/private-env.sh`.
+
+| Validator | Cases | Wall at `55f7dcdc` |
+|---|---:|---:|
+| `validate_actor_recipes` | 343 | 28.0 s |
+| `validate_app_polish1` | 752 | 18.9 s |
+| `validate_app_polish2` | 1,028 | 3.4 s |
+| `validate_app_polish4` | 10,485 | 35.0 s |
+| `validate_audio_callers` | 5,528 | 5.8 s |
+| `validate_audio_combat` | 19,548 | 26.5 s |
+| `validate_audio_domains` | 2,544 | 21.5 s |
+| `validate_audio_items` | 3,000 | 3.0 s |
+| `validate_icarus_c2` | 8,400 | 20.7 s |
+| `validate_inventory_fx` | 8,017 | 7.0 s |
+| `validate_item_callers` | 6,013 | 1.7 s |
+| `validate_movement` | 6,614 | 63.1 s |
+| `validate_render_effects16` | 424 | 3.8 s |
+| `validate_render_effects17` | 618 | 7.7 s |
+| `validate_render_effects18` | 540 | 1.2 s |
+| `validate_render_effects19` | 400 | 0.9 s |
+| `validate_render_effects24` | 226 | 2.5 s |
+| `validate_viewport_monsters` | 1,963 | 20.9 s |
+| `validate_worlds_fog` | 4,044 | 7.3 s |
+
 
 Cleanup removes lane outputs, build directories, worktree and local branch after the ready-prs line.
 No new private input needs retention. The remote branch stays for the steward.

@@ -14,6 +14,17 @@ import validate_actor_recipes as v
 
 
 class Recipes(unittest.TestCase):
+    def test_census_matches_class_table(self):
+        subprocess.run(['make', '-s', '-C', str(ROOT/'reconstructed/actors')], check=True, capture_output=True)
+        lib = v.library(v.LIBRARY)
+        lib.mu_monster_class_find.argtypes = [C.c_uint32]
+        lib.mu_monster_class_find.restype = C.POINTER(v.Row)
+        found = set()
+        for cl in range(0x400):
+            row = lib.mu_monster_class_find(cl)
+            if row and row.contents.kind == 3: found.add(cl)
+        self.assertEqual(found, set(v.CENSUS))
+
     def test_census_and_skeleton_whole_bodies(self):
         subprocess.run(['make', '-s', '-C', str(ROOT/'reconstructed/actors')], check=True, capture_output=True)
         lib = v.library(v.LIBRARY)
