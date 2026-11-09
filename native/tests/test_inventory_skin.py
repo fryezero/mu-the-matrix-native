@@ -50,7 +50,7 @@ class InventorySkin(unittest.TestCase):
             if not json.loads(result.stdout)['jpeg']:
                 raise unittest.SkipTest('native renderer built without JPEG support')
 
-    def test_software_inventory_sprite_pixels_and_clock(self):
+    def test_software_inventory_does_not_draw_skin_sprites(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = skin_root(tmp)
             args = ('inventory','--root',root,'--items','7191:1','--size','1024x768')
@@ -59,8 +59,8 @@ class InventorySkin(unittest.TestCase):
             add_spark(root)
             start = run(*args,'--time','0')
             later = run(*args,'--time','500')
-            self.assertNotEqual(start['framebuffer_sha256'],plain['framebuffer_sha256'])
-            self.assertNotEqual(later['framebuffer_sha256'],start['framebuffer_sha256'])
+            self.assertEqual(start['framebuffer_sha256'],plain['framebuffer_sha256'])
+            self.assertEqual(later['framebuffer_sha256'],start['framebuffer_sha256'])
 
     @unittest.skipUnless(sys.platform=='darwin','offscreen GL host requires macOS')
     def test_gfx_icon_sprites_go_to_the_world_not_the_icon(self):

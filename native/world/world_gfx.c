@@ -45,6 +45,7 @@ struct world_gfx {
     wg_items *items;            /* item models over the windows and in the hotkey image (NATIVE-GFX-003) */
     double time_ms;
     int skills;
+    int equipment_demo;           /* FOLLOWUPS-001: explicit appearance-only accessory fixture */
     /* NATIVE-NPC-001: the demo vault contents */
     mu_npc_item npc_storage[MU_NPC_ITEMS];
     int npc_storage_count;
@@ -1318,6 +1319,7 @@ world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int widt
     }
     g->session = session;
     g->root = game_root;
+    g->equipment_demo = open && strstr(open, "equipment-demo");
     g->mix = mu_mix_book_open(game_root);
     g->scale = scale > 0 ? scale : 1.0;
     g->lang = mu_lang_load_default();
@@ -1543,6 +1545,32 @@ void world_gfx_frame(world_gfx *g, double dt_ms, int draw)
     }
     if (draw)
         mu_gfx_layer_draw_gl(g->layer);
+}
+
+/* FOLLOWUPS-001: the movie's slots 9..14, distinct from CHARACTER mesh parts. Item.bmd uses 236/237/238
+ * for the pentagram/right/left earring. These authored records are opt-in demo appearance, never hero stats. */
+void world_gfx_set_hero_items(world_gfx *g, const mu_gfx_equip_item items[MU_GFX_EQUIP_SLOTS], uint8_t class_byte)
+{
+    if (!g)
+        return;
+    mu_gfx_equip_item equipment[MU_GFX_EQUIP_SLOTS];
+    memcpy(equipment, items, sizeof equipment);
+    if (g->equipment_demo && g->tables.have_items) {
+        static const struct { int32_t code; uint8_t item_slot; } demo[] = {
+            {13 * 512 + 12, 9}, {13 * 512 + 8, 10}, {13 * 512 + 9, 10},
+            {12 * 512 + 215, 236}, {12 * 512 + 457, 237}, {12 * 512 + 449, 238}
+        };
+        for (int i = 0; i < 6; ++i) {
+            mu_item record;
+            char path[1024];
+            if (!mu_item_find(&g->tables.items, (uint32_t)demo[i].code, &record) &&
+                record.attributes.slot == demo[i].item_slot &&
+                mu_hud_item_model_path(&g->tables.items, g->root, demo[i].code + MU_ITEM_MODEL_BASE,
+                                       path, sizeof path))
+                equipment[9 + i] = (mu_gfx_equip_item){demo[i].code, 0, 0, 0};
+        }
+    }
+    mu_gfx_layer_set_equipment(g->layer, equipment, class_byte);
 }
 
 void world_gfx_set_equipment(world_gfx *g, const int32_t code[2], const uint8_t kind[2])

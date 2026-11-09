@@ -23,6 +23,7 @@
 #include <stdint.h>
 
 #include <SDL.h>
+#include "../gfx/mu_gfx_layer.h"
 
 typedef struct world_gfx world_gfx;
 struct mu_perf;
@@ -38,6 +39,8 @@ void world_gfx_close(world_gfx *g);
 void world_gfx_rebind_skills(world_gfx *g, struct mu_session *session);
 /* APP-POLISH-005: the hero's equipped weapons for the skill usability check (wg_skill_set_equipment), kept over
  * skill rebinds; NULL: the demo sword. */
+/* Hero appearance records; "equipment-demo" in --gfx-open adds the six accessory fixture records. */
+void world_gfx_set_hero_items(world_gfx *g, const mu_gfx_equip_item items[MU_GFX_EQUIP_SLOTS], uint8_t class_byte);
 void world_gfx_set_equipment(world_gfx *g, const int32_t code[2], const uint8_t kind[2]);
 /* INVENTORY-FX: the world the item icons' sprites go to (world_gfx_game.h wg_items_world); NULL: none. */
 struct wg_items_world;

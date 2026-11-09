@@ -16,7 +16,7 @@ endif
 CFLAGS := -std=c11 -O2 -DGL_SILENCE_DEPRECATION -Wall -Wextra -Wno-unused-parameter -I . -I ../../reconstructed/hud -I ../core -I ../viewer
 LAYER_SRC := mu_gfx_layer.c ../../reconstructed/hud/inv_grid.c ../../reconstructed/hud/item_slots.c \
              ../../reconstructed/hud/tooltip_html.c
-SRC := mu_gfx_window.c $(LAYER_SRC) ../core/mu_png.c ../viewer/gl_headless.c
+SRC := mu_gfx_window.c $(LAYER_SRC) ../core/mu_png.c ../core/mu_perf.c ../viewer/gl_headless.c
 
 window: $(BUILD)/mu-gfx-window
 

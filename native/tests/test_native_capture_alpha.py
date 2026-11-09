@@ -142,6 +142,71 @@ class CaptureAlphaTests(unittest.TestCase):
         self.check_opaque(WORLD, '--backend', 'gl', tag='gl')
 
 
+class OtherWindowCaptures(unittest.TestCase):
+    """FOLLOWUPS-001: exercise the other capture front ends, including blended model pixels."""
+    @classmethod
+    def setUpClass(cls):
+        subprocess.run(['make', '-C', str(NATIVE), 'all', 'viewer'], check=True, capture_output=True)
+        cls.tmp = tempfile.TemporaryDirectory()
+        cls.base = Path(cls.tmp.name)
+        cls.root = blended_world(cls.base/'world', 128)
+        from test_native_charsel import write_world94
+        cls.charsel = write_world94(cls.base/'charsel')
+        from native_fixtures import write_textured_model
+        (cls.base/'model').mkdir()
+        cls.model = write_textured_model(cls.base/'model', seed=11)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tmp.cleanup()
+
+    def opaque(self, path):
+        w, h, rgba = png_rgba(path)
+        self.assertEqual(rgba[3::4].count(255), w*h, str(path))
+
+    def invoke(self, *args):
+        r = subprocess.run(list(map(str, args)), cwd=REPO, capture_output=True, text=True, timeout=120)
+        self.assertEqual(r.returncode, 0, r.stderr[-2000:])
+        return r
+
+    def test_charsel_frames(self):
+        for backend, name in [('soft', 'mu-charsel'), ('gl', 'mu-charsel-window')]:
+            with self.subTest(backend=backend):
+                out = self.base/f'charsel-{backend}'
+                self.invoke(NATIVE/'build'/name, '--game-root', self.charsel, '--headless', '--no-ui',
+                            '--backend', backend, '--frames', '1', '--every', '1', '--width', '320',
+                            '--height', '200', '--out-dir', out)
+                pngs = list(out.glob('*.png'))
+                self.assertEqual(len(pngs), 1)
+                self.opaque(pngs[0])
+
+    def test_frame_window(self):
+        out = self.base/'frame-window'
+        self.invoke(NATIVE/'build/mu-frame-window', self.model, '--headless', '--frames', '1',
+                    '--width', '320', '--height', '200', '--out-dir', out)
+        self.opaque(out/'gl-frame-000.png')
+
+    def test_model_viewer(self):
+        for backend in ('soft', 'gl'):
+            with self.subTest(backend=backend):
+                out = self.base/f'viewer-{backend}.png'
+                r = self.invoke(NATIVE/'build/mu-viewer', self.model, '--headless', '--backend', backend,
+                                '--width', '320', '--height', '200', '--alpha', '0.5', '--out', out)
+                self.opaque(out)
+                # The report still hashes raw blended pixels. The saved capture changes only alpha.
+                report = json.loads(r.stdout.splitlines()[-1])
+                self.assertNotEqual(report['sha256'], hashlib.sha256(png_rgba(out)[2]).hexdigest())
+
+    def test_terrain_viewer(self):
+        for backend in ('soft', 'gl'):
+            with self.subTest(backend=backend):
+                out = self.base/f'terrain-viewer-{backend}.png'
+                self.invoke(NATIVE/'build/mu-viewer', '--terrain', self.root, '--world', '0', '--headless',
+                            '--backend', backend, '--width', '320', '--height', '200', '--target', '13000,6000',
+                            '--distance', '1000', '--out', out)
+                self.opaque(out)
+
+
 @unittest.skipUnless(SCENE, 'private: MU_RECOVERY_INTEGRATION=1, MU_GAME_ROOT, MU_NATIVE_DATA_DIR, MU_GFX_LIB')
 class LorenciaTooltipSceneTests(unittest.TestCase):
     """README-IMAGES-D finding 1: the GFx inventory + tooltip scene without a party player, frame 60."""
@@ -164,6 +229,23 @@ class LorenciaTooltipSceneTests(unittest.TestCase):
             '--out-dir', str(out)], cwd=REPO, env=env, capture_output=True, text=True, timeout=600)
         self.assertEqual(r.returncode, 0, r.stderr[-2000:])
         return frames(r.stdout)
+
+    def test_gfx_window_captures_are_opaque(self):
+        subprocess.run(['make', '-C', str(NATIVE/'gfx'), 'window'], check=True, capture_output=True)
+        with tempfile.TemporaryDirectory() as tmp:
+            for mode in ('--headless', '--headless-gl'):
+                out = Path(tmp)/mode[2:]
+                out.mkdir()
+                env = {**os.environ, 'MU_GFX_LIB': GFX, 'MU_GFX_SINGLE_BUFFER': '1',
+                       'MU_NATIVE_SETTINGS_DIR': str(out)}
+                r = subprocess.run([str(NATIVE/'build/mu-gfx-window'), '--gfx', str(Path(DATA, 'gfx')),
+                                    mode, '--frames', '25', '--size', '640x400', '--out-dir', str(out)],
+                                   cwd=REPO, env=env, capture_output=True, text=True, timeout=120)
+                self.assertEqual(r.returncode, 0, r.stderr[-2000:])
+                pngs = list(out.glob('*.png'))
+                self.assertEqual(len(pngs), 1)
+                w, h, rgba = png_rgba(pngs[0])
+                self.assertEqual(rgba[3::4].count(255), w*h, mode)
 
     def test_scene_frames_are_opaque(self):
         with tempfile.TemporaryDirectory() as tmp:

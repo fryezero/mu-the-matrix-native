@@ -267,7 +267,9 @@ int main(int argc, char **argv)
         mu_gfx_layer_show(L, MU_GFX_INVENTORY, 1);
     mu_gfx_layer_set_location(L, "World 1", 135, 10);   /* map names are GlobalText: placeholder */
 
-    uint8_t *shot = (headless || headless_gl) ? malloc((size_t)w * h * 4) : NULL;
+    uint8_t *shot = out_dir ? malloc((size_t)w * h * 4) : NULL;
+    if (out_dir && !shot)
+        return 1;
     int next = 0, running = 1;
     long frame = 0;
     double dt = 1000.0 / 60.0, last = now_ms(), wall0 = now_ms(), t_game = 0, frame_total = 0;
@@ -320,17 +322,17 @@ int main(int argc, char **argv)
         } else {
             background_gl(w, h);
             mu_gfx_layer_draw_gl(L);
-            if (win)
-                SDL_GL_SwapWindow(win);
-            else if (name[0] && out_dir) {
+            if (name[0] && out_dir) {
                 glFinish();
                 read_gl(w, h, shot);
             }
+            if (win)
+                SDL_GL_SwapWindow(win);
         }
         if (name[0] && out_dir) {
             char path[1024];
             snprintf(path, sizeof path, "%s/%s.png", out_dir, name);
-            mu_png_write(path, shot, w, h);
+            mu_png_write_opaque(path, shot, w, h);
             fprintf(stderr, "mu-gfx-window: wrote %s\n", path);
         }
         frame_total += now_ms() - t0;

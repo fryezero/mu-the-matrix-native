@@ -249,7 +249,7 @@ static int headless(const char *model_path, int32_t width, int32_t height, int32
             mu_gl_read(width, height, pixels);
             char path[4096], hash[65];
             snprintf(path, sizeof path, "%s/gl-frame-%03d.png", out_dir, frame);
-            mu_png_write(path, pixels, width, height);
+            mu_png_write_opaque(path, pixels, width, height);
             mu_sha256_hex(pixels, (uint64_t)width * (uint64_t)height * 4, hash);
             printf("{\"frame\": %d, \"fov\": %.3f, \"pitch\": %.3f, \"hero\": [%.1f, %.1f], \"target_tile\": [%d, %d],"
                    " \"sha256\": \"%s\", \"png\": \"%s\"}\n", frame, (double)world.view.fov, (double)world.view.angle[0],
