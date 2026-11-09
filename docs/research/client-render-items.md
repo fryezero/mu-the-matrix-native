@@ -2579,7 +2579,9 @@ Verified static startup calls, also checked by the validator:
 | `0x84d1` | `0x0182e978` | `Item\texture\smoke01_strong_red.jpg` | LINEAR / REPEAT |
 
 The native table grows 77 to 79 slots. Fire06 stays after these additions and rain02/rain03 stay last.
-Existing bitmap slots before the insertion are unchanged. `0x810a` already had a texture.
+Existing bitmap slots before the insertion are unchanged. `0x810a` already had a texture. The mace's existing
+`0x855d` bone sprites also become visible with this slot. Its separate `0x80ba` sprite remains counted-only
+because the world pool still has no bitmap slot for it; this lane does not port that loader entry.
 
 ### Rank-5 owners in the world
 

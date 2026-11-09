@@ -78,12 +78,13 @@ class World(unittest.TestCase):
     def test_maces_create_the_counter_gated_particles(self):
         rows = self.scene('player Ember class=0x04 at=129,124 dir=3 pk=3 level=400 weapon0=2:57:9\n'
                           'player Glimmer class=0x01 at=127,125 dir=1 pk=3 level=400 weapon0=2:58:9\n',
-                          '--every', '10')
+                          '--every', '1', '--frames', '16')
         pre = next(r for r in rows if r.get('item_pre_draw'))['players']
-        self.assertGreater(pre['pre_effects'], 0)
+        self.assertEqual(pre['pre_effects'], 450)
         self.assertEqual(pre['pre_refused'], 0)
         particles = next(r for r in rows if r.get('particles') is True)
         self.assertEqual(particles['unsupported'], 0)
+        self.assertEqual((particles['created'], particles['drawn_particles']), (18, 18))
 
     def test_rank5_runs_for_players(self):
         rows = self.scene('player Azure class=0x01 at=129,124 dir=3 pk=3 level=400 armor=8:320:9\n'
