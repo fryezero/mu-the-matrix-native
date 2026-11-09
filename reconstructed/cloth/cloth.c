@@ -17,6 +17,7 @@ static float crt_sqrt(float x) { return (float)sqrt((double)x); }
 void mu_cloth_default_globals(mu_cloth_globals *g)
 {
     memset(g, 0, sizeof *g);
+    g->quality = 5;
     g->world = -1;
     g->gravity[0] = 9.8f;
     g->gravity[1] = 0.0025f;
@@ -348,7 +349,11 @@ void mu_cloth_init(mu_cloth *c)   /* 0x00fd6c22 -> 0x00fd6ca4 */
     c->uv_offset[1] = 0.0f;
     c->custom = 0;
     c->glow_texture = -1;
+    c->glow[2] = 1.0f;
     c->mesh = -1;
+    c->mesh_level = -1;
+    c->glow2_texture = -1;
+    c->glow2[2] = 1.0f;
     c->sphere_count = 0;
 }
 
@@ -886,10 +891,100 @@ static void render_glow(const mu_cloth *c, const mu_cloth_globals *g, const mu_c
     sink->end(sink->context);
 }
 
+/* CLOAK-003: RenderVertexMesh 0x00fd9223. These UVs use grid x / width and y / height, not cloth normals. */
+static void render_mesh_vertex(const mu_cloth *c, const mu_cloth_globals *g, const mu_cloth_sink *s,
+                               int32_t x, int32_t y, int mode)
+{
+    const int32_t time = !(g->time > -2147483904.0f && g->time < 2147483648.0f) ?
+                             (int32_t)0x80000000u : (int32_t)g->time;
+    const float scroll = (float)(time % 10000) * 0.0001f;
+    const float slide = (float)(time % 4000) * 0.00025f - 0.4f;
+    const float px = (float)x / c->width, py = (float)y / c->height;
+    const float sn = crt_sin(g->time * 0.002f), cs = crt_cos(g->time * 0.001f);
+    float u = 0.0f, v = 0.0f;
+    switch (mode) {
+    case 4: u = scroll; v = py * 0.5f + scroll * 2.0f; break;
+    case 8: u = scroll; v = py * 0.5f + 0.5f; break;
+    case 0x200: u = slide * 2.0f; v = px + py + slide * 3.0f; break;
+    case 0x1000: {
+        float dot = px * cs + py * sn;
+        dot = dot + 0.0f * 1.0f;
+        u = dot - scroll * 3.0f;
+        v = (1.0f - dot) + py * 0.5f;
+        v = v + sn * 3.0f;
+        break;
+    }
+    default: break;
+    }
+    s->texcoord(s->context, (float)x / (float)(c->columns - 1) + u,
+                            (float)y / (float)(c->rows - 1) + v);
+    const float *p = c->vertices[c->columns * y + x].position;
+    s->vertex(s->context, p[0], p[1], p[2]);
+}
+
+static void render_mesh_grid(const mu_cloth *c, const mu_cloth_globals *g, const mu_cloth_sink *s, int mode)
+{
+    s->begin(s->context, 7);
+    for (int32_t y = 0; y < c->rows - 1; ++y)
+        for (int32_t x = 0; x < c->columns - 1; ++x) {
+            render_mesh_vertex(c, g, s, x, y, mode);
+            render_mesh_vertex(c, g, s, x + 1, y, mode);
+            render_mesh_vertex(c, g, s, x + 1, y + 1, mode);
+            render_mesh_vertex(c, g, s, x, y + 1, mode);
+        }
+    s->end(s->context);
+}
+
+/* 0x00fd9c61: a second pulsed glow, only for a mesh cloth at level >= 9. */
+static void render_glow2(const mu_cloth *c, const mu_cloth_globals *g, const mu_cloth_sink *s)
+{
+    if (c->glow2_texture == -1 || c->mesh_level < 9)
+        return;
+    s->state(s->context, MU_CLOTH_STATE_BLEND_ONE);
+    s->bind(s->context, c->glow2_texture);
+    float b = 1.0f;
+    if (c->glow2[0] > 0.0f) {
+        const float range = c->glow2[2] - c->glow2[1];
+        const float wave = glow_wave(-c->glow2[0], g->time);
+        b = wave * range + c->glow2[1];
+    }
+    s->color4(s->context, b, b, b, c->alpha);
+    s->begin(s->context, 7);
+    for (int32_t y = 0; y < c->rows - 1; ++y)
+        for (int32_t x = 0; x < c->columns - 1; ++x) {
+            render_vertex(c, s, x, y);
+            render_vertex(c, s, x + 1, y);
+            render_vertex(c, s, x + 1, y + 1);
+            render_vertex(c, s, x, y + 1);
+        }
+    s->end(s->context);
+}
+
+/* 0x00fd97de: cumulative level passes (13, 11, 9, 7), gated by graphics quality (4, 3, 2, 1). */
+static void render_mesh(const mu_cloth *c, const mu_cloth_globals *g, const mu_cloth_sink *s)
+{
+    if (g->quality <= 0)
+        return;
+    s->state(s->context, MU_CLOTH_STATE_BLEND_ONE);
+    static const int level[4] = {13, 11, 9, 7}, quality[4] = {4, 3, 2, 1};
+    static const int bitmap[4] = {0x7fcf, 0x7fcf, 0x7f66, 0x7f1f}, mode[4] = {0x1000, 0x200, 8, 4};
+    for (int k = 0; k < 4; ++k) {
+        if (c->mesh_level < level[k] || g->quality < quality[k])
+            continue;
+        if (k < 2)
+            s->color4(s->context, 0.9f, 0.9f, 0.9f, c->alpha);
+        else
+            s->color4(s->context, c->mesh_color[0], c->mesh_color[1], c->mesh_color[2], c->alpha);
+        s->bind(s->context, bitmap[k]);
+        render_mesh_grid(c, g, s, mode[k]);
+    }
+    s->state(s->context, MU_CLOTH_STATE_BLEND_OFF);
+}
+
 int mu_cloth_render(mu_cloth *c, const mu_cloth_host *h, const mu_cloth_globals *g, const float *light,
                     const mu_cloth_sink *sink)
 {
-    if ((c->type & 0x40000000) || c->mesh != -1)
+    if ((c->type & 0x40000000) && !sink->sprite)
         return MU_CLOTH_UNSUPPORTED;
     switch (c->type & 0x3000) {
     case 0:
@@ -910,9 +1005,27 @@ int mu_cloth_render(mu_cloth *c, const mu_cloth_host *h, const mu_cloth_globals 
         sink->color4(sink->context, light[0], light[1], light[2], c->alpha);
     else
         sink->color4(sink->context, 1.0f, 1.0f, 1.0f, c->alpha);
+    if (c->type & 0x40000000) {
+        const float bright = crt_sin(g->time * 0.001f) * 0.1f + 0.4f;
+        int32_t index = 0;
+        for (int32_t x = 0; x < c->columns; ++x)
+            for (int32_t y = 0; y < c->rows; ++y) {
+                const float scale = (float)x * 0.2f + 0.4f;
+                const float b = (float)(c->columns - x) * bright / 5.0f;
+                const float rgb[3] = {b, b, b};
+                sink->sprite(sink->context, 0x7ef7, c->vertices[index++].position, scale, rgb);
+            }
+        sink->color4(sink->context, bright, bright, bright, c->alpha);
+        sink->state(sink->context, MU_CLOTH_STATE_BLEND_ONE);
+    }
     render_face(c, sink, 1, c->texture_front);
-    render_face(c, sink, 0, c->texture_back);
+    if ((c->type & 0x3000) != 0x2000 || !(c->type & 0x40000000))
+        render_face(c, sink, 0, c->texture_back);
     render_glow(c, g, sink);
+    if (c->mesh != -1) {
+        render_glow2(c, g, sink);
+        render_mesh(c, g, sink);
+    }
     return MU_CLOTH_OK;
 }
 
@@ -1359,4 +1472,187 @@ int mu_cloth_draw_allowed(uint8_t class_byte, int32_t subtype, uint16_t action, 
     if (class_index == 0x271 || class_index == 0x272)
         return 0;
     return 1;
+}
+
+/* ---- CLOAK-003: CreateClothArmour 0x0135ea29 ---- */
+
+static int armour_extra_bitmap(int16_t armour)
+{
+    switch (armour) {
+    case 0x3754: return 0x8011;
+    case 0x3774: return 0x791d;
+    case 0x3784: case 0x3794: return 0x791e;
+    default: return 0;
+    }
+}
+
+int mu_cloth_armour_color_mesh(int16_t pants)
+{
+    if (pants == 0x37a9 || pants == 0x37b9 || pants == 0x37c9 || pants == 0x37d9 || pants == 0x37e9)
+        return -1;   /* class-part skins bypass SetMesh entirely */
+    return pants == 0x1d99 ? 1 : pants == 0x1d9e ? 2 : 0;
+}
+
+int mu_cloth_armour_cloths(const mu_cloth_armour_in *in)
+{
+    if (in->enabled != 1)
+        return 0;
+    const uint8_t base = in->class_byte & 0xf, skin = skin_index(in->class_byte);
+    switch (base) {
+    case 0: return in->armour_type == 0x3760;
+    case 3: return skin == 3 || (skin == 0x33 && in->pants_type == 0x37d3) ||
+                              (skin == 0x43 && in->pants_type == 0x37e3);
+    case 4: return 2 + (armour_extra_bitmap(in->armour_type) != 0);
+    case 8: return 1;
+    case 9: return 1;
+    case 0xc: return in->pants_type == 0x1de6 || in->pants_type == 0x1de7 ? 2 : 0;
+    case 0xf: return in->wing_type == -1 && in->class_index == -1 &&
+                    (in->armour_type == 0x375f || in->armour_type == 0x376f || in->armour_type == 0x377f ||
+                     in->armour_type == 0x378f || in->armour_type == 0x379f);
+    default: return 0;
+    }
+}
+
+int mu_cloth_armour_create(mu_cloth out[MU_CLOTH_WINGS_MAX], const mu_cloth_armour_in *in,
+                           const mu_cloth_host *h)
+{
+    const int n = mu_cloth_armour_cloths(in);
+    for (int i = 0; i < n; ++i)
+        mu_cloth_init(&out[i]);
+    if (!n)
+        return 0;
+    const uint8_t base = in->class_byte & 0xf, skin = skin_index(in->class_byte);
+    if (base == 4) {
+        /* The two default energy cloths (0x0135ebfe, 0x0135ed1b). */
+        for (int i = 0; i < 2; ++i) {
+            mu_cloth_create(&out[i], h, 20, 0.0f, 10.0f, i ? 8.0f : 10.0f, i ? 5 : 6, 5,
+                            30.0f, 70.0f, 0x7911, 0x7911, i ? 0x80002205u : 0xc0000205u);
+            out[i].wind_base = (uint8_t)(i ? 8 : 10);
+            out[i].wind_range = (uint8_t)(i ? 40 : 50);
+            mu_cloth_add_sphere(&out[i], -10.0f, 20.0f, 20.0f, 27.0f, 17);
+            mu_cloth_add_sphere(&out[i], 10.0f, 20.0f, 20.0f, 27.0f, 17);
+        }
+        if (n == 3) {
+            const int bitmap = armour_extra_bitmap(in->armour_type);
+            mu_cloth_create(&out[2], h, 17, 0.0f, 12.5f, 2.0f, 5, 5, 60.0f, 70.0f, bitmap, bitmap, 0x1406);
+            mu_cloth_add_sphere(&out[2], 0.0f, 10.0f, 0.0f, 15.0f, 2);
+        }
+    } else if (base == 0 || (base == 3 && skin != 3)) {
+        const int bitmap = base == 0 ? 0x7948 : 0x794b;
+        mu_cloth_create(&out[0], h, 17, 0.0f, 12.5f, 2.0f, 5, 5, base == 0 ? 65.0f : 60.0f, 70.0f,
+                        bitmap, bitmap, 0x1406);
+        mu_cloth_add_sphere(&out[0], 0.0f, 10.0f, 0.0f, 15.0f, 2);
+    } else if (base == 3) {
+        mu_cloth_create(&out[0], h, 19, 0.0f, 12.0f, 0.0f, 10, 10, 75.0f, 120.0f, 0x7949, 0x794a, 0x405);
+        mu_cloth_add_sphere(&out[0], 0.0f, -10.0f, -8.0f, 35.0f, 19);
+    } else if (base == 8) {
+        int bitmap = skin < 0x28 ? 0x7956 : skin == 0x28 ? 0x7957 : 0x7958;
+        /* Only the five class skins (8/18/28/38/48) create a grid. Other bytes leave the allocated cloth empty. */
+        if (skin == 8 || skin == 0x18 || skin == 0x28 || skin == 0x38 || skin == 0x48) {
+            mu_cloth_create(&out[0], h, 2, 0.0f, skin < 0x38 ? 16.0f : 14.0f, skin < 0x38 ? 2.0f : -6.0f,
+                            5, 5, 50.0f, 70.0f, bitmap, bitmap, 0x1402);
+            mu_cloth_add_sphere(&out[0], 0.0f, 10.0f, -5.0f, 15.0f, 2);
+            if (skin >= 0x38)
+                mu_cloth_add_sphere(&out[0], 0.0f, 5.0f, -30.0f, 15.0f, 2);
+        }
+    } else if (base == 9) {
+        const int16_t pants = in->pants_type;
+        int bitmap = 0x791f;
+        static const int16_t types[] = {0x1d94,0x1d95,0x1d96,0x1d97,0x1d98,0x1d99,0x1d9a,0x1d9b,
+                                       0x1d9c,0x1d9d,0x1d9e,0x1d9f,0x1da0,0x1da1,0x1da2,0x1dce,0x1dff,0x1e0d,0x1e2f,0x1e54,0x1e8b};
+        static const int bitmaps[] = {0x7925,0x7926,0x7927,0x7922,0x7923,0x7924,0x7928,0x7929,
+                                     0x792a,0x792b,0x792c,0x792d,0x7926,0x7927,0x7927,0x792e,0x792f,0x7930,0x7931,0x7932,0x7933};
+        for (unsigned i = 0; i < sizeof types / sizeof types[0]; ++i)
+            if (pants == types[i])
+                bitmap = bitmaps[i];
+        if (pants == 0x37c9) bitmap = 0x7920;
+        if (pants == 0x37d9 || pants == 0x37e9) bitmap = 0x7921;
+        const float angles[3] = {0.0f, 0.0f, -60.0f};
+        mu_cloth_create_angles(&out[0], h, 3, -16.0f, -6.0f, 2.0f, angles, 5, 10, 18.0f, 80.0f,
+                               bitmap, bitmap, 0x21404);
+        mu_cloth_add_sphere(&out[0], 0.0f, 2.0f, 10.0f, 10.0f, 3);
+        mu_cloth_add_sphere(&out[0], 0.0f, 2.0f, 20.0f, 8.0f, 3);
+        if (mu_cloth_armour_color_mesh(pants) != -1) {
+            out[0].mesh = (int32_t)pants - 0xae6;
+            out[0].mesh_level = in->pants_level;
+            for (int k = 0; k < 3; ++k)
+                out[0].mesh_color[k] = pants == 0x1e8b ? 0.0f : in->mesh_color[k];
+            if (pants == 0x1d9b || pants == 0x1d9e)
+                mu_cloth_set_glow(&out[0], pants == 0x1d9b ? 0x795a : 0x7959, 3.0f, 0.0f, 1.0f);
+            if (pants == 0x1e54 || pants == 0x1e8b) {
+                out[0].glow2_texture = bitmap;
+                out[0].glow2[0] = 3.5f;
+                out[0].glow2[1] = 0.1f;
+                out[0].glow2[2] = 0.5f;
+            }
+        }
+    } else if (base == 0xc) {
+        const int second = in->pants_type == 0x1de7;
+        for (int i = 0; i < 2; ++i) {
+            const int bitmap = (second ? 0x83f1 : 0x83ef) + i;
+            mu_cloth_create(&out[i], h, 2, (i ? 1.0f : -1.0f) * (second ? 1.5f : 3.0f),
+                            second ? 12.0f : 10.0f, second ? -3.0f : -4.0f, 10, 10,
+                            second ? 78.0f : 60.0f, 85.0f, bitmap, bitmap, 0x21406);
+            if (!second) {
+                out[i].alpha = 0.3f;
+                out[i].alpha_from_object = 0;
+            }
+            out[i].uv_scale[0] = 0.5f;
+            out[i].uv_offset[0] = i ? 1.0f : 0.0f;
+            mu_cloth_add_sphere(&out[i], 0.0f, 2.0f, 20.0f, 12.0f, i ? 3 : 10);
+            mu_cloth_add_sphere(&out[i], 0.0f, 2.0f, 40.0f, 13.0f, i ? 3 : 10);
+        }
+    } else if (base == 0xf) {
+        const int a = in->armour_type;
+        const int bitmap = a <= 0x376f ? 0x795b : a == 0x377f ? 0x795c : 0x795d;
+        mu_cloth_create(&out[0], h, 18, 0.0f, 14.5f, 23.098f, 5, 5, a <= 0x377f ? 102.5f : 101.0f,
+                        a <= 0x376f ? 80.0f : 95.0f, bitmap, bitmap, 0x1406);
+        mu_cloth_add_sphere(&out[0], 0.0f, -18.0f, -5.0f, 50.0f, 18);
+        mu_cloth_add_sphere(&out[0], 0.0f, -13.0f, -13.0f, 53.0f, 17);
+        mu_cloth_add_sphere(&out[0], 0.0f, -10.0f, -30.0f, 55.0f, 17);
+    }
+    return n;
+}
+
+int mu_cloth_armour_draw_allowed(uint8_t class_byte, int32_t subtype)
+{
+    if ((class_byte & 0xf) != 4)
+        return 1;
+    switch (subtype) {
+    case 0x422: case 0x423: case 0x424: case 0x425: case 0x429: case 0x3ed: case 0x3e9:
+    case 0x431: case 0x432: case 0xa5e: case 0x541: case 0x552: case 0x5ba: case 0x5bb:
+    case 0x5bc: case 0x5bd: case 0x5be: case 0x5bf: case 0x5c4: case 0x5c5: return 0;
+    default: return 1;
+    }
+}
+
+/* The existing-list branch of CreateClothArmour. Class 8's cloth hangs from its pants skin. Its constructor
+ * creates the class default first; the next RenderCloth releases it when the pants are an equipped item.
+ * Unlike the other supported classes, class 12 has no existing-list branch (returns 0, no second MoveCloth). */
+int mu_cloth_armour_update(mu_cloth out[MU_CLOTH_WINGS_MAX], int count, const mu_cloth_armour_in *in,
+                           const mu_cloth_host *h)
+{
+    if (!count || in->enabled != 1)
+        return 0;
+    const int base = in->class_byte & 0xf;
+    if (base == 8 || (base == 3 && skin_index(in->class_byte) != 3)) {
+        const int p = in->pants_type;
+        const int keep = base == 8 ? (p == 0x37a8 || p == 0x37b8 || p == 0x37c8 || p == 0x37d8 || p == 0x37e8) :
+                         (skin_index(in->class_byte) == 0x33 ? p == 0x37d3 : p == 0x37e3);
+        if (!keep && out[0].owner) {
+            const float alpha = out[0].alpha, wind = out[0].wind;
+            const uint8_t from = out[0].alpha_from_object;
+            mu_cloth_init(&out[0]);   /* Release 0x00fd78ab -> defaults 0x00fd6ca4; +0x78/7c/90 are not reset */
+            out[0].alpha = alpha;
+            out[0].alpha_from_object = from;
+            out[0].wind = wind;
+        } else if (keep && !out[0].owner) {
+            mu_cloth_armour_in restore = *in;
+            if (base == 8)
+                restore.class_byte = (uint8_t)(p == 0x37a8 ? 8 : p == 0x37b8 ? 0x18 : p == 0x37c8 ? 0x28 :
+                                              p == 0x37d8 ? 0x48 : 0x88);
+            mu_cloth_armour_create(out, &restore, h);
+        }
+    }
+    return base != 0xc;
 }

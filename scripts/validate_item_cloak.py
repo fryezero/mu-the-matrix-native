@@ -104,7 +104,8 @@ class CCloth(ctypes.Structure):
                 ('alpha_from_object', ctypes.c_uint8),
                 ('uv_scale', ctypes.c_float * 2), ('uv_offset', ctypes.c_float * 2), ('wind', ctypes.c_float),
                 ('wind_range', ctypes.c_uint8), ('wind_base', ctypes.c_uint8), ('push', ctypes.c_float * 2),
-                ('glow_texture', ctypes.c_int32), ('glow', ctypes.c_float * 3), ('mesh', ctypes.c_int32),
+                ('glow_texture', ctypes.c_int32), ('glow', ctypes.c_float * 3), ('mesh', ctypes.c_int32), ('mesh_level', ctypes.c_int32), ('mesh_color', ctypes.c_float * 3),
+                ('glow2_texture', ctypes.c_int32), ('glow2', ctypes.c_float * 3),
                 ('step', ctypes.c_float * 2),
                 ('sphere_count', ctypes.c_int32), ('spheres', CSphere * 8), ('vertices', CVertex * 256),
                 ('springs', CSpring * 1024)]
@@ -126,7 +127,7 @@ class CWingIn(ctypes.Structure):
 class CGlobals(ctypes.Structure):
     _fields_ = [('time', ctypes.c_float), ('logic_steps', ctypes.c_int32), ('world', ctypes.c_int32),
                 ('wind', ctypes.c_float), ('wind_vector', ctypes.c_float * 3), ('gravity', ctypes.c_float * 3),
-                ('rand_seed', ctypes.c_uint32), ('stretch_hold', ctypes.c_uint8)]
+                ('rand_seed', ctypes.c_uint32), ('quality', ctypes.c_int32), ('stretch_hold', ctypes.c_uint8)]
 
 
 class CGateIn(ctypes.Structure):
@@ -148,9 +149,13 @@ VERTEX_CB = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_float, ctypes.c_flo
 END_CB = ctypes.CFUNCTYPE(None, ctypes.c_void_p)
 
 
+SPRITE_CB = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int32, ctypes.POINTER(ctypes.c_float),
+                              ctypes.c_float, ctypes.POINTER(ctypes.c_float))
+
+
 class CSink(ctypes.Structure):
     _fields_ = [('context', ctypes.c_void_p), ('state', STATE_CB), ('bind', BIND_CB), ('color4', COLOR_CB),
-                ('begin', BEGIN_CB), ('texcoord', TEX_CB), ('vertex', VERTEX_CB), ('end', END_CB)]
+                ('begin', BEGIN_CB), ('texcoord', TEX_CB), ('vertex', VERTEX_CB), ('end', END_CB), ('sprite', SPRITE_CB)]
 
 
 def bits(value):
@@ -329,7 +334,12 @@ def read_cloth(m, p):
         'alpha': f(0x78), 'alpha_from_object': m.read(p + 0x7c, 1)[0], 'uv_scale': [f(0x80), f(0x84)],
         'uv_offset': [f(0x88), f(0x8c)], 'wind': f(0x90), 'wind_range': m.read(p + 0x94, 1)[0],
         'wind_base': m.read(p + 0x95, 1)[0], 'push': [f(0x98), f(0x9c)], 'glow_texture': f(0xa0), 'mesh': f(0xc0),
-        'step': [f(0xd4), f(0xd8)]}
+        'step': [f(0xd4), f(0xd8)], 'glow2_texture': f(0xb0)}
+    if head['mesh'] != 0xffffffff:
+        head['mesh_level'] = f(0xc4)
+        head['mesh_color'] = [f(0xc8), f(0xcc), f(0xd0)]
+    if head['glow2_texture'] != 0xffffffff:
+        head['glow2'] = [f(0xb4), f(0xb8), f(0xbc)]
     if head['custom']:
         head['matrix'] = list(struct.unpack('<12I', m.read(p + 0x48, 48)))
     if head['glow_texture'] != 0xffffffff:
@@ -374,7 +384,12 @@ def c_cloth_view(c):
         'alpha_from_object': c.alpha_from_object, 'uv_scale': [f2u(v) for v in c.uv_scale],
         'uv_offset': [f2u(v) for v in c.uv_offset], 'wind': f2u(c.wind), 'wind_range': c.wind_range,
         'wind_base': c.wind_base, 'push': [f2u(v) for v in c.push], 'glow_texture': c.glow_texture & 0xffffffff,
-        'mesh': c.mesh & 0xffffffff, 'step': [f2u(v) for v in c.step], 'sphere_count': c.sphere_count}
+        'mesh': c.mesh & 0xffffffff, 'glow2_texture': c.glow2_texture & 0xffffffff, 'step': [f2u(v) for v in c.step], 'sphere_count': c.sphere_count}
+    if c.mesh != -1:
+        head['mesh_level'] = c.mesh_level & 0xffffffff
+        head['mesh_color'] = [f2u(v) for v in c.mesh_color]
+    if c.glow2_texture != -1:
+        head['glow2'] = [f2u(v) for v in c.glow2]
     if c.custom:
         head['matrix'] = [f2u(v) for v in c.matrix]
     if c.glow_texture != -1:
@@ -418,7 +433,9 @@ class CSide:
                     BEGIN_CB(lambda c, mode: s.append(('glBegin', mode))),
                     TEX_CB(lambda c, u, v: s.append(('glTexCoord2f', f2u(u), f2u(v)))),
                     VERTEX_CB(lambda c, x, y, z: s.append(('glVertex3f', f2u(x), f2u(y), f2u(z)))),
-                    END_CB(lambda c: s.append(('glEnd',)))]
+                    END_CB(lambda c: s.append(('glEnd',))),
+                    SPRITE_CB(lambda c, b, p, scale, light: s.append(('sprite', b, *[f2u(p[k]) for k in range(3)],
+                                                                    f2u(scale), *[f2u(light[k]) for k in range(3)])))]
         self.sink = CSink(None, *self.cbs)
 
     def apply(self, st):
