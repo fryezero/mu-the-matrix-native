@@ -2545,8 +2545,8 @@ OBJECT `+0x3b` must equal 1. Armour is CHARACTER slot 2 `+0x9bc`; **pants are sl
 - Base 4: two bone-20 energy grids, 6x5 / 5x5, origins (0,10,10)/(0,10,8), 30x70, bitmap `0x7911`, types
   `0xc0000205`/`0x80002205`. Wind base/range 10/50 and 8/40. Armour `0x3754`, `0x3774`, `0x3784/0x3794` adds a
   bone-17 5x5, (0,12.5,2), 60x70, bitmap `0x8011`, `0x791d`, `0x791e`, type `0x1406`.
-- Base 8: one bone-2 5x5, 50x70, type `0x1402`. Skins 8/18/28 use (0,16,2), bitmaps `0x7956/0x7956/0x7957`;
-  skins 38/48 use (0,14,-6), `0x7958`, and a second sphere. The existing-list path releases this cloth under item
+- Base 8: one bone-2 5x5, 50x70, type `0x1402`. Skins `0x08/0x18/0x28` use (0,16,2), bitmaps `0x7956/0x7956/0x7957`;
+  skins `0x38/0x48` use (0,14,-6), `0x7958`, and a second sphere. The existing-list path releases this cloth under item
   pants, restoring it only with class pants `0x37a8..0x37e8` at stride `0x10`.
 - Base 9: one bone-3 5x10, (-16,-6,2), angles (0,0,-60), 18x80, type `0x21404`. Its pants switch chooses
   `0x791f..0x7933`, with aliases. Item pants set mesh = pants - `0xae6`, pants level and EnchantEffect colour.
@@ -2584,3 +2584,7 @@ Armour draws with white light after the wing list, behind `0x01362edc`'s class-4
 wearers and hero selections. No item-body source changed. The NPC/monster armour constructor `0x01362755`, buffs,
 guild/duel inputs, live motion/pixel equivalence and server equipment transitions remain outside this lane.
 The handoff records the final counts, timings, native render differences and steward selection.
+
+CLOAK-003 checks: **4,448 comparisons, 0 mismatches, 0 stopped; 19/19 compiled mutants caught**. The 14 selected
+validators pass 56,284 cases; portable tests 1,362 with 0 failures/errors; private cloth modules 20/20 (8d reduced).
+The default tours retain all 92 PNGs, 92 dumps and 46 normalized reports byte for byte.
