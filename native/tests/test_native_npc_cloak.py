@@ -47,7 +47,8 @@ class NpcCloth(unittest.TestCase):
         self.assertEqual(scale.value, 7)
         self.assertEqual(self.lib.mu_cloth_npc_model(361, 39, C.byref(scale)), 0x81e)
         self.assertEqual(v.f2u(scale.value), v.f2u(1.6))
-        self.assertEqual(self.lib.mu_cloth_npc_model(937, 0, C.byref(scale)), 0x95a)
+        self.assertEqual(self.lib.mu_cloth_npc_model(937, 0, C.byref(scale)), -1)
+        self.assertEqual(self.lib.mu_cloth_npc_model(937, 121, C.byref(scale)), 0x95a)
 
 
 @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1' and os.environ.get('MU_SECTION3'),
@@ -96,7 +97,7 @@ class WorldScene(unittest.TestCase):
                 actors = [json.loads(x) for x in result.stdout.splitlines() if x.startswith('{"actor"')]
                 self.assertEqual({x['class'] for x in actors}, {55, 361, 937, 939, 940, 941, 251})
                 self.assertEqual(next(x for x in actors if x['class'] == 55)['player_model'], 1)
-                self.assertEqual(next(x for x in actors if x['class'] == 937)['model'], 0x95a)
+                self.assertEqual(next(x for x in actors if x['class'] == 937)['model'], 0x7a5)
             self.assertEqual(rows[0]['created'], 10)
             self.assertEqual(rows[0]['drawn'], 160)
             self.assertEqual(rows[1]['drawn'], 20)
@@ -106,9 +107,9 @@ class WorldScene(unittest.TestCase):
     def test_nightmare_world39_and_town_npcs(self):
         with tempfile.TemporaryDirectory() as tmp:
             p = Path(tmp)
-            for world in (0, 2, 3, 39):
+            for world in (0, 2, 3, 39, 121):
                 placement = p / 'actor.txt'
-                index = 361 if world == 39 else 251
+                index = 361 if world == 39 else 937 if world == 121 else 251
                 placement.write_text(f'actor {index} 129 125 5 label DemoActor\n')
                 result = subprocess.run([str(self.binary), '--game-root', os.environ['MU_GAME_ROOT'],
                     '--headless', '--backend', 'soft', '--no-audio', '--width', '320', '--height', '240',
@@ -118,11 +119,11 @@ class WorldScene(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, result.stderr[-2000:])
                 actors = [json.loads(x) for x in result.stdout.splitlines() if x.startswith('{"actor"')]
                 self.assertEqual(len(actors), 1)
-                if world == 39:
-                    self.assertEqual(actors[0]['model'], 0x81e)
-                    self.assertAlmostEqual(actors[0]['scale'], 1.6)
+                if world in (39, 121):
+                    self.assertEqual(actors[0]['model'], 0x81e if world == 39 else 0x95a)
+                    self.assertAlmostEqual(actors[0]['scale'], 1.6 if world == 39 else 0.9)
                     row = next(json.loads(x) for x in result.stdout.splitlines() if x.startswith('{"cloak"'))
-                    self.assertEqual(row['created'], 1)
+                    self.assertEqual(row['created'], 1 if world == 39 else 2)
                 else:
                     self.assertNotIn('{"cloak"', result.stdout)
 
@@ -137,4 +138,7 @@ class WorldScene(unittest.TestCase):
                 '--quiet'], capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr[-2000:])
             row = next(json.loads(x) for x in result.stdout.splitlines() if x.startswith('{"cloak"'))
-            self.assertEqual(row['created'], 4)
+            maps = next(json.loads(x) for x in result.stdout.splitlines() if x.startswith('{"map"'))
+            self.assertEqual((maps['world'], maps['travels']), (2, 1))
+            # Travel replaces the world runtime, so counters describe the five destination frames.
+            self.assertEqual((row['created'], row['steps'], row['drawn']), (2, 10, 10))

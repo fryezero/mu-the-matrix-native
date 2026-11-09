@@ -1698,14 +1698,15 @@ int mu_cloth_npc_create(mu_cloth out[MU_CLOTH_WINGS_MAX], int16_t class_index, c
 }
 
 /* CreateMonster's processors preceding the generic fallback: Nightmare only in world 39
- * (0x00e879ad); class 937's virtual create method (0x00d5a9d3). Other ids use the existing class table. */
+ * (0x00e879ad); class 937's world-121 virtual create method (0x00d5a9d3, vtable +0x48).
+ * Other ids/worlds use the existing class table. */
 int mu_cloth_npc_model(int16_t class_index, int32_t world, float *scale)
 {
     if (class_index == 0x169 && world == 39) {
         *scale = 1.6f;
         return 0x81e;
     }
-    if (class_index == 0x3a9) {
+    if (class_index == 0x3a9 && world == 121) {
         *scale = 0.9f;
         return 0x95a;
     }

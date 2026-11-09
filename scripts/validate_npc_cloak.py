@@ -121,7 +121,7 @@ def model_family(args, lib):
     from unicorn import UC_HOOK_CODE
     fam = v.new_family()
     for index, world, entry, stop_at in ((0x169, 39, 0xe879ad, 0xe87a5a),
-                                        (0x3a9, 0, 0xd5a9d3, 0xd5adab)):
+                                        (0x3a9, 121, 0xd5a9d3, 0xd5adab)):
         w = v.vr.World(*args); m = w.m
         m.ensure(v.WORLD, 4); m.w32(v.WORLD, world)
         m.stub(0x180b0f4, lambda mm: 0, 0)
@@ -146,14 +146,15 @@ def model_family(args, lib):
                {'index': index, 'model': model, 'original': found, 'reached': reached})
         v.note(fam, bool(reached) and v.f2u(scale.value) == m.r32(v.vr.CHAR + 0x32f4),
                {'index': index, 'scale': scale.value})
-    for world in (0, 2, 3, 38, 40):
+    for index, world in ((0x169, 0), (0x169, 2), (0x169, 38), (0x169, 40), (0x3a9, 0)):
         scale = C.c_float(7)
-        v.note(fam, lib.mu_cloth_npc_model(0x169, world, C.byref(scale)) == -1 and scale.value == 7,
+        v.note(fam, lib.mu_cloth_npc_model(index, world, C.byref(scale)) == -1 and scale.value == 7,
                {'world': world})
     return fam
 
 
 MUTANTS = {
+    'virtual_world': ('class_index == 0x3a9 && world == 121', 'class_index == 0x3a9 && world == 120'),
     'nightmare_world': ('class_index == 0x169 && world == 39', 'class_index == 0x169 && world == 38'),
     'nightmare_model': ('return 0x81e;', 'return 0x81f;'),
     'nightmare_scale': ('*scale = 1.6f;', '*scale = 1.5f;'),

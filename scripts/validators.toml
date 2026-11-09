@@ -3310,12 +3310,12 @@ test = "native/tests/test_native_npc_cloak.py::ClientComparison.test_original_in
 pins = ["text", "data", "flag", "feature", "effects_init"]
 families = ["create", "existing", "step", "render", "models"]
 cases = 2619
-mutants = 16
+mutants = 17
 cases_at = "families.*.cases"
 mutants_at = "mutants"
 build = ["reconstructed/cloth", "reconstructed/record-math"]
 args = ["--text", "{text}", "--data", "{data}", "--flag", "{flag}", "--feature", "{feature}", "--section3", "{effects_init}", "--mutations", "--output", "{report}"]
-note = "CLOAK-004: six NPC/monster cloth classes plus nine exclusions, 150 constructors and 60 existing-list guards, 8 frames each, model/scale creation processors; 16 compiled mutants in the added constructor and model selection"
+note = "CLOAK-004: six NPC/monster cloth classes plus nine exclusions, 150 constructors and 60 existing-list guards, 8 frames each, model/scale creation processors; 17 compiled mutants in the added constructor and model selection"
 [validate_npc_cloak.expect]
 "families.*.mismatches" = 0
 "families.*.stopped" = 0
