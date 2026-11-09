@@ -1926,13 +1926,17 @@ new types and the four wings' hidden-1/2 states.
   post program runs pose-less there (requests refused); the viewer tool opens its pool for post types.
 - Joints unchanged (`0x7f7c`/0xe, `0x7fd3`/4 refused, 0/40 drawn).
 
-## Part 22, OBJECT-owned item particles, RENDER-EFFECTS-020
+<a id="part-22-object-owned-item-particles-render-effects-020"></a>
+
+### OBJECT-owned item particles, RENDER-EFFECTS-020
+
+Part 22 continues with the OBJECT-owned particle requests.
 
 The last requests the item programs refused: the CreateParticle calls of the wings `0x2384`/`0x2385` (Cloak of
 Brilliance and its [Bound] variant, `SparkleCape.bmd`) that pass the item's OBJECT as owner (part 18's op 25).
 [Handoff](../handoffs/RENDER-EFFECTS-020.md).
 
-### Census (static, and the library over 83 types × states)
+#### Census (static, and the library over 83 types × states)
 
 Over the 83 program types (43 owner programs of part 17, 40 pre-draw programs of parts 18/20; 3,245 ops), the
 OBJECT is passed as an owner by:
@@ -1950,7 +1954,7 @@ per type): `0x2384` makes 3 `0x81cf`/0 and 2 `0x810a`/0x11 requests, `0x2385` 5 
 131/292). The other particle requests of the programs are not OBJECT-owned and stay refused for want of a kind:
 `0x7ffd`/0x1b (bow `0x1316`), `0x7f66`/5 (`0x230c`, `0x2496`) and `0x8180`/5 (`0x23ef`, `0x2400`, `0x2405`).
 
-### The two kinds (verified, `validate_render_effects20`)
+#### The two kinds (verified, `validate_render_effects20`)
 
 | Kind | CreateParticle `0x015ae7b0` | MoveParticles `0x01616c80` | RenderParticles `0x0159123f` |
 |---|---|---|---|
@@ -1972,7 +1976,7 @@ store is type `0x44f`'s z = WorldTime) and reaches `+0x164` only through the acc
 (static, `link_angle`). For ground items the OBJECT is the drop itself, whose angle is the drop's.
 `0x81cf` is registered at startup (`0x018249a3` in `0x0182049e`: `Effect\magic_ground12.JPG`, GL_LINEAR, GL_CLAMP).
 
-### Native
+#### Native
 
 - `reconstructed/particles/item_owned_kinds.inc` (new): the two kinds, behind one include and the
   supported/create/move/render hooks of `particles.c`.
@@ -1998,7 +2002,7 @@ programs could not create):
 | Hero `--hero-item wing=Item/SparkleCape.bmd` (`0x2384`), every 10 | 70 / 3 | 74 / 0 |
 | GL `mu-world` 640×400 crowd, 41 frames, every 5 | 414 / 9, 144 / 4 | 417 / 5, 146 / 0 (the 5 left are bow `0x1316`'s `0x7ffd`/0x1b, not OBJECT-owned) |
 
-### Limits
+#### Limits
 
 - A slot reused after its hold resolves to no object; the client would read the reused memory. No item-owned
   particle lives long enough to see it.
