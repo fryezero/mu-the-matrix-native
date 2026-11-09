@@ -1320,7 +1320,7 @@ class Interpreter:
                 address = nxt
                 for _ in range(5):
                     address += insns[address].size
-                self.reg.pop('eax', None)
+                self.reg['eax'] = ('c', 0)   # the nonnegative source shifted right by 31
                 continue
             elif self.pre and mn == 'cvtsi2ss':
                 dst, src = (x.strip() for x in ops.split(',', 1))

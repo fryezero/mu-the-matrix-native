@@ -467,7 +467,7 @@ static void emit_parameter_body(sink *s, int phase, uint32_t flags, float alpha,
             value = k * r;
         } else if (p->kind == 7) {
             float other;
-            memcpy(&value, &input[p->a], 4);
+            memcpy(&value, input + p->a, 4);
             memcpy(&other, &input[p->k[0]], 4);
             value = value * other;
         } else if (p->kind == 6) {

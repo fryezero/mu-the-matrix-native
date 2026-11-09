@@ -78,7 +78,7 @@ class ItemPreDraw(unittest.TestCase):
         return status, list(out[:n.value]), effects, len(drawn)
 
     def test_admissions_and_existing_domain(self):
-        self.assertEqual(len(fxgen.PRE_FX_TYPES), 43)   # RENDER-ITEMS-002U: + 0x0f2a
+        self.assertEqual(len(fxgen.PRE_FX_TYPES), 48)   # RENDER-ITEMS-002V: five counter maces
         for t in fxgen.POST_FX_TYPES:
             self.assertEqual(self.draws(self.item(type=t))[0], 0, hex(t))
             self.assertEqual((self.lib.mu_rc_item_post_fx(t), self.lib.mu_rc_item_pre_fx(t)), (1, 0), hex(t))
@@ -116,6 +116,18 @@ class ItemPreDraw(unittest.TestCase):
             self.assertEqual(uv(0x0f2a, frame)[-1], (F32(f % 4 * 0.25), F32(f // 4 * 0.25)), frame)
         # an ordinary body does not read the counter
         self.assertEqual(uv(0x0b27, 0), uv(0x0b27, 12345))
+
+    def test_counter_range_colour_rounding(self):
+        """0x0f24's mesh 1 colour is (component * range(0.25, 1, 100)) * 0.4.
+        The two multiplications round separately. A host-free draw has rand result zero."""
+        status, draws = self.draws(self.item(type=0x0f24, frame=99))
+        self.assertEqual(status, 0)
+        mesh = next(d for d in draws if d.texture == 0x8467)
+        self.assertEqual(list(mesh.body_light), [F32(F32(F32(k) * F32(0.25)) * F32(0.4))
+                                                for k in (0.2, 0.4, 0.9)])
+        self.assertEqual(fxgen.Program().bound('umod', ('i', 0), ('c', 120)), (0, 119))
+        self.assertIn(0x1588, gen.EXIT_TYPES)
+        self.assertEqual(self.draws(self.item(type=0x1588, frame=0xffffffff, ext=1))[0], 0)
 
     def test_staff_sine_light_at_named_bone(self):
         """0x1311: s = sin(time * 0.001) * 0.5 + 0.5, l = s * 0.9 + 0.1; one bone sprite 0x7f7a at bone "a02",
@@ -234,7 +246,7 @@ class ItemPreDraw(unittest.TestCase):
                             '--mutations', '--output', str(path)], check=True, capture_output=True)
             report = json.loads(path.read_text())
             types = len(predraw.TYPES)
-            self.assertEqual(report['families']['bodies']['cases'], 292*types)
+            self.assertEqual(report['families']['bodies']['cases'], 292*(types + 1))
             self.assertEqual(report['families']['predraw']['cases'], 64*types)
             self.assertTrue(all(f['mismatches'] == 0 for f in report['families'].values()))
             self.assertEqual(len(report['mutants']), len(predraw.MUTANTS))

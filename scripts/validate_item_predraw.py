@@ -356,7 +356,7 @@ def body_cases(wa, lib):
             unexpected = [c for c in other if c[0] != 'effect']
             status, actual, used = quality.run_c(lib, case, sequence)
             if not result['ok'] or unexpected or status or actual != expected or \
-                    (used != reset.world.drawn if t not in fxgen.PRE_FX_TYPES else
+                    (used != reset.world.drawn if t == 0x1588 else
                      bool(used) if t not in gen.COUNTER_RANGE_TYPES else False):
                 raise AssertionError(('body', hex(t), k, case, expected, (result, unexpected[:3], status, actual, used)))
             vectors.append(('body', case, sequence, expected))
@@ -482,6 +482,8 @@ MUTANTS = {
     'range-offset': ('integer = (int32_t)((uint32_t)integer + (uint32_t)p->k[0]);',
                      'integer = (int32_t)((uint32_t)integer + (uint32_t)p->k[0] + 1u);'),
     'range-product': ('value = value * other;', 'value = value + other;'),
+    'range-product-left': ('memcpy(&value, input + p->a, 4);', 'memcpy(&value, input + p->a + 1, 4);'),
+    'range-product-right': ('memcpy(&other, &input[p->k[0]], 4);', 'memcpy(&other, &input[p->k[0] + 1], 4);'),
     # Not mutated: the unknown-counter refusal (frame_known; a C refusal that matches the client's kind and bitmap
     # passes the comparison by design, so only test_item_predraw's frame-counter test catches it), op 49's bone guard
     # (unreachable: the owner gate already requires bone < bones), the post gate's item-bone exemption (here the OBJECT's model is the item model, so both counts
