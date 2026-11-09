@@ -2,7 +2,7 @@
 
 Offline/static port of the counter-gated mace particles and the rank-5 owner block in the world.
 Branch `codex/render-effects-022`, base main `a55200e2` (#350); merged main `1e2a927a` (#351, CLOAK-003)
-at `1968c78e` before readiness. Research [part 29](../research/client-render-items.md#part-29-counter-gated-mace-particles-and-rank-5-world-owners-render-effects-022). No live client, app install, launcher,
+at `1968c78e` before readiness. Research [part 30](../research/client-render-items.md#part-30-counter-gated-mace-particles-and-rank-5-world-owners-render-effects-022). No live client, app install, launcher,
 network, server-state, protection-module work or memory writes. No full gate in the lane.
 
 ## Scope and addresses

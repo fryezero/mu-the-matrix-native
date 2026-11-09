@@ -291,7 +291,7 @@ void world_rt_hero_item_textures(mu_world_rt *a, int first, int last)
 }
 
 /* INVENTORY-FX: the inventory window draws the hero's equipment ITEMs in its equipment slots (0x00b913a2); slots
- * 9..14 (pendant, rings, ...) have no offline record and stay empty. */
+ * 9..14 are empty unless the host explicitly selects the appearance-only equipment-demo fixture. */
 #ifndef MU_WORLD_NO_GL
 static struct mu_world_particles *icon_particles(void *user)
 {
@@ -320,7 +320,7 @@ void world_rt_hero_items_gfx(mu_world_rt *a)
         items[s] = s < MU_HE_EQUIPMENT ? (mu_gfx_equip_item){a->hero_items[s][0], a->hero_items[s][1],
                                                             a->hero_items[s][2], a->hero_items[s][3]}
                                        : (mu_gfx_equip_item){-1, 0, 0, 0};
-    mu_gfx_layer_set_equipment(world_gfx_layer(a->gfx), items, (uint8_t)a->class_byte);
+    world_gfx_set_hero_items(a->gfx, items, (uint8_t)a->class_byte);
 #else
     (void)a;
 #endif

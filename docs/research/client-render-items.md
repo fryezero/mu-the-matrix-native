@@ -1926,13 +1926,17 @@ new types and the four wings' hidden-1/2 states.
   post program runs pose-less there (requests refused); the viewer tool opens its pool for post types.
 - Joints unchanged (`0x7f7c`/0xe, `0x7fd3`/4 refused, 0/40 drawn).
 
-## Part 22, OBJECT-owned item particles, RENDER-EFFECTS-020
+<a id="part-22-object-owned-item-particles-render-effects-020"></a>
+
+### OBJECT-owned item particles, RENDER-EFFECTS-020
+
+Part 22 continues with the OBJECT-owned particle requests.
 
 The last requests the item programs refused: the CreateParticle calls of the wings `0x2384`/`0x2385` (Cloak of
 Brilliance and its [Bound] variant, `SparkleCape.bmd`) that pass the item's OBJECT as owner (part 18's op 25).
 [Handoff](../handoffs/RENDER-EFFECTS-020.md).
 
-### Census (static, and the library over 83 types × states)
+#### Census (static, and the library over 83 types × states)
 
 Over the 83 program types (43 owner programs of part 17, 40 pre-draw programs of parts 18/20; 3,245 ops), the
 OBJECT is passed as an owner by:
@@ -1950,7 +1954,7 @@ per type): `0x2384` makes 3 `0x81cf`/0 and 2 `0x810a`/0x11 requests, `0x2385` 5 
 131/292). The other particle requests of the programs are not OBJECT-owned and stay refused for want of a kind:
 `0x7ffd`/0x1b (bow `0x1316`), `0x7f66`/5 (`0x230c`, `0x2496`) and `0x8180`/5 (`0x23ef`, `0x2400`, `0x2405`).
 
-### The two kinds (verified, `validate_render_effects20`)
+#### The two kinds (verified, `validate_render_effects20`)
 
 | Kind | CreateParticle `0x015ae7b0` | MoveParticles `0x01616c80` | RenderParticles `0x0159123f` |
 |---|---|---|---|
@@ -1972,7 +1976,7 @@ store is type `0x44f`'s z = WorldTime) and reaches `+0x164` only through the acc
 (static, `link_angle`). For ground items the OBJECT is the drop itself, whose angle is the drop's.
 `0x81cf` is registered at startup (`0x018249a3` in `0x0182049e`: `Effect\magic_ground12.JPG`, GL_LINEAR, GL_CLAMP).
 
-### Native
+#### Native
 
 - `reconstructed/particles/item_owned_kinds.inc` (new): the two kinds, behind one include and the
   supported/create/move/render hooks of `particles.c`.
@@ -1998,7 +2002,7 @@ programs could not create):
 | Hero `--hero-item wing=Item/SparkleCape.bmd` (`0x2384`), every 10 | 70 / 3 | 74 / 0 |
 | GL `mu-world` 640×400 crowd, 41 frames, every 5 | 414 / 9, 144 / 4 | 417 / 5, 146 / 0 (the 5 left are bow `0x1316`'s `0x7ffd`/0x1b, not OBJECT-owned) |
 
-### Limits
+#### Limits
 
 - A slot reused after its hold resolves to no object; the client would read the reused memory. No item-owned
   particle lives long enough to see it.
@@ -2589,7 +2593,37 @@ CLOAK-003 checks: **4,448 comparisons, 0 mismatches, 0 stopped; 19/19 compiled m
 validators pass 56,284 cases; portable tests 1,362 with 0 failures/errors; private cloth modules 20/20 (8d reduced).
 The default tours retain all 92 PNGs, 92 dumps and 46 normalized reports byte for byte.
 
-## Part 29, counter-gated mace particles and rank-5 world owners, RENDER-EFFECTS-022
+## Part 29, installed Preview proofs and the counter visibility limit, APP-REFRESH-010
+
+Same client identity and pins as above. This is offline native integration evidence, not a new original-client
+capture or an extension of the reconstructed instruction domain. [Full handoff](../handoffs/APP-REFRESH-010.md).
+
+The installed Preview is detached main 1e2a927a, including the late #351 armour cloths, with all changes since a7f7b247. Export inputs are unchanged,
+so APP-REFRESH-006 Native Data is retained and its manifest verified. One full private native/tests run covered
+149 modules / 1,001 tests; two errors exposed ambiguous bow mutant anchors after #350's exact-one assertion.
+Four anchors are narrowed to their original branches. The two affected modules pass 7 tests and 38 compiled
+mutants; selected effects12/13/14 comparisons pass. No production source or reconstruction case count changed in this refresh PR. The full private run was at a55200e2; after late main, 20 private cloth tests covered the new armour module and the changed wing structs. All installed-app proof sources were repeated on 1e2a927a.
+
+Installed-app evidence, public one-player fixtures and the APP-REFRESH-009 rollback, matching frame 150:
+
+- Class-0 Velvet with wing 0x2382 draws the physics cape, 2,051 changed pixels confined to the cape. Its shape
+  changes between frames 120/150. Class/cloth equivalence beyond the merged bounded tests is not claimed.
+- Wing 0x22ec adds 4,558 pixels in its blue streaks. Those are the two joint kinds from part 26.
+- Mace 0x0f2a +9 draws its new body, 758 changed pixels. Its ordinary pose moves, but counter-driven atlas motion
+  is not visually proved. The compiled body stream changes mesh-4 u from 0 to 0.75 for counters 0/7, while the
+  native pass has blend mesh 4 and blend light 0. Fixed-pose/time images at different counters are identical.
+  Native fill_item initializes that input to 0 and does not supply the caller's blend light. Recover that input
+  before reporting visible atlas animation; do not infer a correct replacement constant from these images.
+- Raklion at 198,211, frame 60, brings object 1259's spray into view. A particle-only toggle changes 4,624 pixels
+  in the spray region below the statue's jaw. At the old 224,211 arrival the projected particle points are off
+  the top-left. Later samples do not preserve the useful early view, so persistent visibility remains open.
+- Twelve installed native captures, including windowed screenshots, have alpha 255 at every pixel. Comparisons
+  ignore the rollback PNG's older, unreliable alpha; the opaque-output claim is checked on raw new PNGs.
+
+Six small opaque window-only PNGs stay in the local app-refresh-010 rollback folder. No client data, rendered
+image, helper binary or snapshot is committed. Remaining body/cloth/protection/service boundaries are unchanged.
+
+## Part 30, counter-gated mace particles and rank-5 world owners, RENDER-EFFECTS-022
 
 Evidence is offline. The particle create/move/render comparisons execute the pinned original routines under
 Unicorn, and the item-point comparison executes the complete original RenderObjDraw. Text SHA-256:

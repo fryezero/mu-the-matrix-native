@@ -202,7 +202,7 @@ int main(int argc, char **argv)
             mu_sha256_hex(raster.color, (uint64_t)width * (uint64_t)height * 4, hash);
             char path[4096];
             snprintf(path, sizeof path, "%s/frame-%03d.png", out_dir, frame);
-            if (mu_png_write(path, raster.color, width, height)) {
+            if (mu_png_write_opaque(path, raster.color, width, height)) {
                 fprintf(stderr, "cannot write %s\n", path);
                 return 1;
             }

@@ -348,7 +348,7 @@ static int headless(terrain_view *v)
         return 1;
     int gl = v->backend && !strcmp(v->backend, "gl");
     int status = gl ? render_gl(v, pixels) : render_soft(v, pixels);
-    if (!status && v->out && mu_png_write(v->out, pixels, v->width, v->height))
+    if (!status && v->out && mu_png_write_opaque(v->out, pixels, v->width, v->height))
         status = 1;
     char hash[65];
     mu_sha256_hex(pixels, bytes, hash);
@@ -442,7 +442,7 @@ static int windowed(terrain_view *v)
                     uint8_t *pixels = malloc((size_t)w * (size_t)h * 4);
                     if (pixels) {
                         mu_gl_read(w, h, pixels);
-                        mu_png_write("mu-terrain-screenshot.png", pixels, w, h);
+                        mu_png_write_opaque("mu-terrain-screenshot.png", pixels, w, h);
                         free(pixels);
                     }
                     break;
