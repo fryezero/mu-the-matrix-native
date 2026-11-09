@@ -7,6 +7,7 @@
 
 #include "../../reconstructed/cloth/cloth.h"
 #include "../core/mu_meshdraw.h"
+#include "../core/mu_lang.h"
 #include "../core/mu_raster.h"
 #include "../core/mu_textures.h"
 #ifndef MU_WORLD_NO_GL
@@ -81,6 +82,52 @@ static const struct {
     {0x8607, "Item/Texture", "hope_cape_02.tga", 0x2601, 0x2901},
     {0x8609, "Item/Texture", "sanctuary_cape_02.tga", 0x2601, 0x2901},
     {0x860b, "Item/Texture", "light_cape_02.tga", 0x2601, 0x2901},
+
+    /* CLOAK-003: armour cloths and the mesh level passes, startup registrations. */
+    {0x7911, "Monster", "iui06.jpg", 0x2600, 0x2900},
+    {0x791d, "Player", "HQskin_Class305_2.tga", 0x2601, 0x2900},
+    {0x791e, "Player", "skin_Class405_2.tga", 0x2601, 0x2900},
+    {0x791f, "Player", "HQSkinClass110_1.tga", 0x2601, 0x2900},
+    {0x7920, "Player", "HQSkinClass310_1.tga", 0x2601, 0x2900},
+    {0x7921, "Player", "HQSkinClass410_1.tga", 0x2601, 0x2900},
+    {0x7922, "Item/texture", "cotton_Item1125.tga", 0x2601, 0x2900},
+    {0x7923, "Item/texture", "cotton_Item1126.tga", 0x2601, 0x2900},
+    {0x7924, "Item/texture", "cotton_Item1127.tga", 0x2601, 0x2900},
+    {0x7925, "Item/texture", "cotton_Item1132.tga", 0x2601, 0x2900},
+    {0x7926, "Item/texture", "cotton_Item1133.tga", 0x2601, 0x2900},
+    {0x7927, "Item/texture", "cotton_Item1134.tga", 0x2601, 0x2900},
+    {0x7928, "Item/texture", "cotton_Item3100.tga", 0x2601, 0x2900},
+    {0x7929, "Item/texture", "cotton_Item3102.tga", 0x2601, 0x2900},
+    {0x792a, "Item/texture", "cotton_Item3109.tga", 0x2601, 0x2900},
+    {0x792b, "Item/texture", "cotton_Item3113.tga", 0x2601, 0x2900},
+    {0x792c, "Item/texture", "cotton_Item1117.tga", 0x2601, 0x2900},
+    {0x792d, "Item/texture", "cotton_Item3128.tga", 0x2601, 0x2900},
+    {0x792e, "Item/texture", "cotton_Item3138.tga", 0x2601, 0x2900},
+    {0x792f, "Item/texture", "Item1151_cotton.tga", 0x2601, 0x2900},
+    {0x7930, "Item/texture", "Item1159_cotton.tga", 0x2601, 0x2900},
+    {0x7931, "Item/texture", "Item1161_cotton.tga", 0x2601, 0x2900},
+    {0x7932, "Item/texture", "Item1174_cotton.tga", 0x2601, 0x2900},
+    {0x7933, "Item/texture", "Item1181_slayer_01.tga", 0x2601, 0x2900},
+    {0x7948, "Player", "HQlevel_man022_2.tga", 0x2601, 0x2900},
+    {0x7949, "Player", "HQSkin_special_02.jpg", 0x2601, 0x2900},
+    {0x794a, "Player", "HQSkin_special_03.jpg", 0x2601, 0x2900},
+    {0x794b, "Player", "SkinClass404_1.tga", 0x2601, 0x2900},
+    {0x7956, "Player", "HQSkinClass109_1.tga", 0x2601, 0x2900},
+    {0x7957, "Player", "HQSkinClass309_1.tga", 0x2601, 0x2900},
+    {0x7958, "Player", "HQSkinClass409_1.tga", 0x2601, 0x2900},
+    {0x7959, "Effect", "cotton_Item1117_render.jpg", 0x2601, 0x2900},
+    {0x795a, "Effect", "cotton_Item3102_render.jpg", 0x2601, 0x2900},
+    {0x795b, "Player", "HQSkinClass116_1.tga", 0x2601, 0x2900},
+    {0x795c, "Player", "HQSkinClass316_1.tga", 0x2601, 0x2900},
+    {0x795d, "Player", "HQSkinClass416_1.tga", 0x2601, 0x2900},
+    {0x7f1f, "Effect", "Chrome01.jpg", 0x2601, 0x2901},
+    {0x7f66, "Effect", "Shiny01.jpg", 0x2601, 0x2900},
+    {0x7fcf, "Effect", "Chrome02.jpg", 0x2600, 0x2900},
+    {0x8011, "Player", "HQlevel_man021.tga", 0x2601, 0x2900},
+    {0x83ef, "Item/texture", "Item1141_Wing1.tga", 0x2601, 0x2900},
+    {0x83f0, "Item/texture", "Item1141_Wing2.tga", 0x2601, 0x2900},
+    {0x83f1, "Item/texture", "Item1146_1.tga", 0x2601, 0x2900},
+    {0x83f2, "Item/texture", "Item1146_2.tga", 0x2601, 0x2900},
 };
 enum { CLOTH_BITMAPS = (int)(sizeof cloth_bitmaps / sizeof cloth_bitmaps[0]) };
 
@@ -92,6 +139,9 @@ typedef struct cloak_slot {
     int count;
     const mu_character *ch;        /* the character drawn (the hero's, or player list[key - 1]'s model) */
     mu_cloth cloths[MU_CLOTH_WINGS_MAX];
+    mu_cloth_armour_in armour_in;
+    int armour_count;
+    mu_cloth armour[MU_CLOTH_WINGS_MAX];
 } cloak_slot;
 
 typedef struct world_cloak {
@@ -164,10 +214,19 @@ static int load_textures(mu_world_rt *a, world_cloak *w, const mu_cloth *cloths,
     if (w->textures_state < 0)
         return 0;
     for (int i = 0; i < count; ++i) {
-        const int32_t bitmaps[3] = {cloths[i].texture_front, cloths[i].texture_back, cloths[i].glow_texture};
-        for (int k = 0; k < 3; ++k)
+        if (!cloths[i].owner)
+            continue;
+        const int32_t bitmaps[4] = {cloths[i].texture_front, cloths[i].texture_back, cloths[i].glow_texture,
+                                     cloths[i].glow2_texture};
+        for (int k = 0; k < 4; ++k)
             if ((k < 2 || bitmaps[k] != -1) && !load_bitmap(a, w, bitmaps[k]))
                 return 0;
+        if (cloths[i].mesh != -1)
+            for (int k = 0; k < MU_TEXTURE_SPECIAL_COUNT; ++k) {
+                const int32_t b = mu_texture_specials[k].index;
+                if ((b == 0x7fcf || b == 0x7f66 || b == 0x7f1f) && !load_bitmap(a, w, b))
+                    return 0;
+            }
     }
     return 1;
 }
@@ -184,6 +243,7 @@ static int32_t texture_slot(const world_cloak *w, int32_t bitmap)
 
 typedef struct cloak_sink {
     const world_cloak *w;
+    mu_world_rt *runtime;
     const mu_render_backend *backend;
     mu_meshdraw_state state;
     int32_t texture;
@@ -278,6 +338,13 @@ static void s_end(void *context)
     s->backend->end(s->backend->context);
 }
 
+static void s_sprite(void *context, int32_t bitmap, const float position[3], float scale, const float light[3])
+{
+    cloak_sink *s = context;
+    if (s->runtime->has_particles)
+        mu_world_particles_sprite(&s->runtime->particles, bitmap, position, scale, light, MU_PT_NO_OWNER, 0.0f, 0, 4);
+}
+
 /* ---- the character's calls ---- */
 
 static void host_of(mu_cloth_host *h, const mu_character *ch, float alpha)
@@ -294,12 +361,13 @@ static void host_of(mu_cloth_host *h, const mu_character *ch, float alpha)
 
 static void move_cloth(world_cloak *w, cloak_slot *s, const mu_cloth_host *h)   /* MoveCloth 0x01362f24 */
 {
-    for (int i = 0; i < s->count; ++i) {
-        if (!s->cloths[i].owner)
+    for (int i = 0; i < s->count + s->armour_count; ++i) {
+        mu_cloth *c = i < s->count ? &s->cloths[i] : &s->armour[i - s->count];
+        if (!c->owner)
             continue;
         w->stats.steps++;
-        if (!mu_cloth_move2(&s->cloths[i], h, &w->g, 0.005f, 5)) {
-            s->count = 0;   /* DeleteCloth 0x0137aafe */
+        if (!mu_cloth_move2(c, h, &w->g, 0.005f, 5)) {
+            s->count = s->armour_count = 0;   /* DeleteCloth 0x0137aafe */
             return;
         }
     }
@@ -336,6 +404,41 @@ static void wind_catch_up(mu_world_rt *a, world_cloak *w)
     w->wind_at = steps;
 }
 
+static void armour_inputs(const mu_world_rt *a, int32_t key, const mu_character *ch,
+                          const mu_cloth_gate_in *gate, mu_cloth_armour_in *in)
+{
+    memset(in, 0, sizeof *in);
+    in->class_byte = gate->class_byte;
+    in->enabled = 1;   /* CreateCharacter 0x0137dbd7 */
+    in->class_index = gate->class_index;
+    in->wing_type = gate->wing_type;
+    in->armour_type = in->pants_type = -1;
+    for (int part = 2; part <= 3; ++part) {
+        int32_t type = -1;
+        int8_t level = 0;
+        if (key == WORLD_CLOAK_HERO) {
+            if (a->hero_glow_set[part]) {
+                type = a->hero_glow[part].type;
+                level = (int8_t)a->hero_glow[part].level;
+            } else if (ch->items[part].loaded)
+                type = mu_renderchar_type_from_path(ch->items[part].path);
+        } else if (a->players && key - 1 < a->players->count) {
+            const mu_rp_slot *slot = &a->players->list[key - 1].c.slots[part];
+            type = slot->type;
+            level = (int8_t)slot->level;
+        }
+        if (part == 2)
+            in->armour_type = (int16_t)type;
+        else {
+            in->pants_type = (int16_t)type;
+            in->pants_level = level;
+        }
+    }
+    for (int k = 0; k < 3; ++k)
+        in->mesh_color[k] = a->ground ? a->ground->config.glow_color[k] : (k == 0 ? 0.4f : k == 1 ? 0.6f : 1.0f);
+    mu_lang_enchant_mesh(a->lang, in->pants_type - 0xae6, mu_cloth_armour_color_mesh(in->pants_type), in->mesh_color);
+}
+
 void world_cloak_draw(mu_world_rt *a, int32_t key, uint32_t generation, const mu_character *ch,
                       const mu_cloth_gate_in *gate, int8_t wing_level, uint16_t action, uint16_t prior_action,
                       float alpha, mu_raster *raster, void *batch)
@@ -345,20 +448,31 @@ void world_cloak_draw(mu_world_rt *a, int32_t key, uint32_t generation, const mu
         return;
     /* CreateCloth's inputs: native characters have no arg 4 (guild war / duel), play in scene 6 and keep sub-type 0. */
     const mu_cloth_wing_in wing_in = {wing_type, wing_level, 0, 6, ch->params.scale};
-    if (!a->cloak && !mu_cloth_wing_cloths(&wing_in))   /* no state (and no report line) before a cloth wing */
+    mu_cloth_armour_in armour_in;
+    armour_inputs(a, key, ch, gate, &armour_in);
+    const int eligible = mu_cloth_wing_cloths(&wing_in) || mu_cloth_armour_cloths(&armour_in);
+    if (!a->cloak && !eligible)   /* no state (and no report line) before a cloth wing */
         return;
     world_cloak *w = cloak_state(a);
     if (!w)
         return;
     cloak_slot *s = w->slots[key];
     if (!s) {
-        if (!mu_cloth_wing_cloths(&wing_in))   /* nothing to keep for a wing without a cloth case */
+        if (!eligible)   /* nothing to keep for a wing without a cloth case */
             return;
         s = w->slots[key] = calloc(1, sizeof *s);
         if (!s)
             return;
         s->wing = wing_type;
         s->generation = generation;
+    }
+    if (s->generation != generation) {
+        s->armour_count = 0;
+        memset(&s->armour_in, 0, sizeof s->armour_in);
+    }
+    if (memcmp(&s->armour_in, &armour_in, sizeof armour_in)) {
+        s->armour_count = 0;
+        s->armour_in = armour_in;
     }
     if (s->wing != wing_type || s->generation != generation) {   /* the OBJECT changed: its cloths go */
         s->count = 0;
@@ -386,14 +500,21 @@ void world_cloak_draw(mu_world_rt *a, int32_t key, uint32_t generation, const mu
         w->stats.gated++;
         return;
     }
-    if (s->count == 0) {   /* RenderCloth: CreateCloth while the OBJECT has none, then its MoveCloth */
+    int created = 0;
+    if (s->count == 0) {
         s->count = mu_cloth_wing_create(s->cloths, &wing_in, &h);
-        w->stats.created += (uint32_t)s->count;
-        if (s->count > 0)
-            move_cloth(w, s, &h);
+        created += s->count;
     }
-    if (s->count == 0 || !mu_cloth_draw_allowed(gate->class_byte, h.subtype, action, prior_action, gate->class_index) ||
-        !load_textures(a, w, s->cloths, s->count))
+    if (s->armour_count == 0) {
+        s->armour_count = mu_cloth_armour_create(s->armour, &armour_in, &h);
+        created += s->armour_count;
+    }
+    w->stats.created += (uint32_t)created;
+    if (created)
+        move_cloth(w, s, &h);
+    if (!(s->count + s->armour_count) ||
+        !mu_cloth_draw_allowed(gate->class_byte, h.subtype, action, prior_action, gate->class_index) ||
+        !load_textures(a, w, s->cloths, s->count) || !load_textures(a, w, s->armour, s->armour_count))
         return;
     mu_render_backend backend;
     const mu_image *const *saved = NULL;
@@ -426,13 +547,18 @@ void world_cloak_draw(mu_world_rt *a, int32_t key, uint32_t generation, const mu
     cloak_sink sink;
     memset(&sink, 0, sizeof sink);
     sink.w = w;
+    sink.runtime = a;
     sink.backend = &backend;
     sink.texture = -1;
     mu_meshdraw_state_defaults(&sink.state);
-    mu_cloth_sink cs = {&sink, s_state, s_bind, s_color4, s_begin, s_texcoord, s_vertex, s_end};
+    mu_cloth_sink cs = {&sink, s_state, s_bind, s_color4, s_begin, s_texcoord, s_vertex, s_end, s_sprite};
     for (int i = 0; i < s->count; ++i)
         if (s->cloths[i].owner && mu_cloth_render(&s->cloths[i], &h, &w->g, out.light, &cs) == MU_CLOTH_OK)
             w->stats.drawn++;
+    if (mu_cloth_armour_draw_allowed(gate->class_byte, h.subtype))
+        for (int i = 0; i < s->armour_count; ++i)
+            if (s->armour[i].owner && mu_cloth_render(&s->armour[i], &h, &w->g, NULL, &cs) == MU_CLOTH_OK)
+                w->stats.drawn++;
     if (raster) {
         raster->textures = saved;
         raster->texture_count = saved_count;
@@ -469,11 +595,13 @@ void world_cloak_frame(mu_world_rt *a)
             s->active = 0;
             continue;
         }
-        if (s->count == 0 || s->stepped == frame)
+        if (s->count + s->armour_count == 0 || s->stepped == frame)
             continue;
         mu_cloth_host h;
         host_of(&h, s->ch, 1.0f);
         move_cloth(w, s, &h);
+        if (mu_cloth_armour_update(s->armour, s->armour_count, &s->armour_in, &h))
+            move_cloth(w, s, &h);
         s->stepped = frame;
     }
 }

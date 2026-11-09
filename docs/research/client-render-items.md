@@ -2524,3 +2524,67 @@ glowing cloth draws three quad streams: front, back, glow. `mu_cloth_render` now
 - **65/65 compiled mutants caught**, none equivalent, every anchor once. The 27 new ones cover the table, the
   aliases, the level test, the glow pass, the scaling, arg 4, the angle-matrix variant, the sub-type model, the draw
   test, and the `0x8000` and gravity-180 forces.
+
+## Part 28, armour cloths and their render passes, CLOAK-003
+
+The bounded question is which player armour cloths `0x0135ea29` makes, and what prevents the wing-cloth renderer
+from drawing them. Inputs are the pinned restored text (`pins.TEXT`, SHA-256
+`2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724`), second section (`pins.DATA`) and initialized
+third section (`pins.EFFECTS_INIT`, gravity). No live inputs. Static disassembly and Unicorn execute the original
+class/part switch, constructor, setters, MoveCloth and RenderCloth. Native comparisons use authored bones and
+fixture equipment. [Full mapping, parameters, checks and limits](../handoffs/CLOAK-003.md).
+
+### Constructor and equipment
+
+OBJECT `+0x3b` must equal 1. Armour is CHARACTER slot 2 `+0x9bc`; **pants are slot 3 `+0xdb8`**, read by classes
+3, 8, 9 and 12. The previous static summary's shorthand that all cases use `+0x9bc` was incomplete.
+
+- Base 0: armour `0x3760`, one bone-17 5x5 grid, origin (0,12.5,2), size 65x70, bitmap `0x7948`, type `0x1406`.
+- Base 3: skin 3 always, one bone-19 10x10 robe, (0,12,0), 75x120, `0x7949/0x794a`, type `0x405`. Skin `0x33`
+  with pants `0x37d3`, or skin `0x43` with pants `0x37e3`: bone 17, 5x5, (0,12.5,2), 60x70, `0x794b`, `0x1406`.
+- Base 4: two bone-20 energy grids, 6x5 / 5x5, origins (0,10,10)/(0,10,8), 30x70, bitmap `0x7911`, types
+  `0xc0000205`/`0x80002205`. Wind base/range 10/50 and 8/40. Armour `0x3754`, `0x3774`, `0x3784/0x3794` adds a
+  bone-17 5x5, (0,12.5,2), 60x70, bitmap `0x8011`, `0x791d`, `0x791e`, type `0x1406`.
+- Base 8: one bone-2 5x5, 50x70, type `0x1402`. Skins `0x08/0x18/0x28` use (0,16,2), bitmaps `0x7956/0x7956/0x7957`;
+  skins `0x38/0x48` use (0,14,-6), `0x7958`, and a second sphere. The existing-list path releases this cloth under item
+  pants, restoring it only with class pants `0x37a8..0x37e8` at stride `0x10`.
+- Base 9: one bone-3 5x10, (-16,-6,2), angles (0,0,-60), 18x80, type `0x21404`. Its pants switch chooses
+  `0x791f..0x7933`, with aliases. Item pants set mesh = pants - `0xae6`, pants level and EnchantEffect colour.
+  Class pants `0x37a9..0x37e9` do not set a mesh. Darkangel/Blue Eye set glow `0x795a/0x7959`, pulse (3,0,1).
+  Temple Guard/Imperial set glow 2 to their cloth bitmap, pulse (3.5,0.1,0.5). Imperial's mesh colour is zero.
+- Base 12: pants `0x1de6/0x1de7` make two bone-2 10x10 halves, size 60x85 / 78x85, types `0x21406`, bitmaps
+  `0x83ef/0x83f0` or `0x83f1/0x83f2`. Origins (+/-3,10,-4) or (+/-1.5,12,-3); U scale 0.5 and offsets 0/1.
+  The first pair has fixed alpha 0.3, with no OBJECT-alpha copy. Left/right spheres use bones 10/3.
+- Base 15: armour `0x375f/0x376f/0x377f/0x378f/0x379f`, no wing and class index -1. One bone-18 5x5,
+  (0,14.5,23.098), sizes 102.5x80 / 102.5x95 / 101x95, `0x795b/0x795c/0x795d`, type `0x1406`.
+
+All sphere parameters, UV/alpha/wind setters and failure states are compared by `validate_armour_cloak`, including
+vertices and springs after stepping. The source gives the exact per-case sphere offsets/radii/bones.
+
+### Render and timing
+
+Render's flare loop `0x00fd8da3` queues one `0x7ef7` sprite per vertex. It loops columns then rows but advances a
+flat position index, with scale x*0.2+0.4 and RGB (columns-x)*(sin(WorldTime*0.001)*0.1+0.4)/5. It then draws the
+front with that pulsed grey; only the additive-plus-flare combination skips the back. Sprite requests go to the
+world's existing RenderSprites path, preserving the deferred draw order.
+
+After the first glow, mesh cloths run `0x00fd9c61`'s second glow at level >=9, then `0x00fd97de`'s cumulative
+level passes: +13 Chrome02/UV mode `0x1000`, +11 Chrome02/`0x200`, +9 Shiny01/8, +7 Chrome01/4, needing quality
+4/3/2/1. The first two use grey 0.9; the others use the mesh colour. RenderVertexMesh `0x00fd9223` computes UVs
+from grid x/width and y/height with time-dependent offsets. It does not use geometry normals.
+
+The existing-list armour constructor returns true for classes 0/3/4/8/9/15 even when it keeps the same cloths.
+RenderCloth therefore calls MoveCloth again on those frames, stepping **both** lists a second time. Class 12 has
+no existing-list branch. Native reproduces this between saved frames, as well as the creation frame's extra step.
+Armour draws with white light after the wing list, behind `0x01362edc`'s class-4 subtype test.
+
+### Native and limits
+
+`mu_cloth_armour_create/update`, the extended cloth sink and `world_cloak.c` serve the existing offline demo's
+wearers and hero selections. No item-body source changed. The NPC/monster armour constructor `0x01362755`, buffs,
+guild/duel inputs, live motion/pixel equivalence and server equipment transitions remain outside this lane.
+The handoff records the final counts, timings, native render differences and steward selection.
+
+CLOAK-003 checks: **4,448 comparisons, 0 mismatches, 0 stopped; 19/19 compiled mutants caught**. The 14 selected
+validators pass 56,284 cases; portable tests 1,362 with 0 failures/errors; private cloth modules 20/20 (8d reduced).
+The default tours retain all 92 PNGs, 92 dumps and 46 normalized reports byte for byte.
