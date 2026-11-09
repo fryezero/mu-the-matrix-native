@@ -9,7 +9,9 @@ Scope: 002U's six remaining counter bodies. The next 24 read-program candidates 
 The rank-5 strlen group was not attempted. [Finding, part 30](../research/client-render-items.md#part-30-the-six-remaining-counter-bodies-and-quantised-random-colours-render-items-002v).
 
 Research numbering: CLOAK-003 merged with part 28; APP-REFRESH-010 reserves part 29. This lane uses part 30.
-Main was merged at `1e2a927a`, preserving the cloth documentation and implementation.
+Main was merged at `1e2a927a`, preserving the cloth documentation and implementation, then at `e517ac3a`
+for APP-REFRESH-010 evidence and its validator-anchor repairs. The latter adds no renderer changes.
+Part 30 was free on main and both checked parallel branches. This lane leaves RENDER-EFFECTS-022's particle kinds alone.
 
 ## Result
 
@@ -72,6 +74,8 @@ After merging main, all 14 compiled-input-affected rows pass separately at `7d21
 | Failed renderchar suite after those test corrections | 100 tests, 78 passed, 22 private skips, 0 failures | 0.7 s |
 | Private native renderer, canonical env from root | 20 tests, 0 failures; **8d reduced**, native selection 134 > 40, only the changed native module run | 3.9 s |
 | Portable affected checks after main merge | 143 work items; 1,364 tests, 1,150 passed, 214 skips, 0 failures/errors | 330.2 s including selection, 269.6 s test wall |
+| Private cloth modules after main merge, canonical env from root | 20 tests, 0 failures/skips; **8d reduced**, only the two changed cloth modules | 14.5 s |
+| Preview-evidence merge validator reruns at `9317f5bf` | effects12: 64 cases / 0.3 s, effects13: 180 / 0.5 s, importing effects14: 660 / 1.1 s; all pass, no mutants repeated | 1.2 s aggregate |
 | Audit before implementation / test-fix commits | 2,104 staged files, 0 rejected, both runs | 17.0 / 17.4 s |
 | `validate_item_predraw --mutations` | **36,196 comparisons, 0 mismatches, 48/48 compiled mutants**; both tables reproduce | 377.4 s |
 | `validate_item_quality --mutations` | **28,080 comparisons, 0 mismatches, 11/11 compiled mutants** | 226.6 s |
@@ -145,19 +149,39 @@ Mutants ran once for the two changed checks; they were not repeated after the cl
 | `validate_armour_cloak` | not selected / 4,448 | not selected / 37.6 s | not requested |
 | `validate_worlds_fog` | not selected / 4,044 | not selected / 4.1 s | not requested |
 
+Audit before the native-visibility documentation checkpoint: 2,107 staged files, 0 rejected, 16.0 s.
+
 ## Release
 
-Post-build selection was made at `c8fa5413`, with a second compiled-input selection after main at `7d21f165`.
-The three merge fallback rows (movement, render_effects16/17) were retained and pass. Final branch selection and
-the ready-prs entry are recorded after the remaining native render checks. No full gate is run in this lane.
+Final post-build selection at `9317f5bf`, against main `e517ac3a`: **46 rows**, including the movement
+symbol fallback. All pass: 45 at `c8fa5413`, then 14 affected merge rows at `7d21f165` (including the newly
+selected armour-cloak row), then effects12/13/14 at `9317f5bf` after the preview-evidence merge. World fog is an
+additional merge-only check. No renderer input changed in the last merge. The final selection took 44.2 s.
+
+Steward validators: validate_item_ranked, validate_item_continuation, validate_item_expansion, validate_item_clusters, validate_item_types, validate_fidelity, validate_meshdraw, validate_model_edge, validate_movement, validate_renderchar, validate_icarus_c2, validate_audio_callers, validate_item_gear, validate_item_next, validate_render_effects5, validate_render_effects7, validate_render_effects9, validate_render_effects10, validate_render_effects11, validate_render_effects12, validate_audio_domains, validate_audio_items, validate_item_coverage, validate_item_wings_next, validate_item_scalars, validate_item_chains, validate_item_carry, validate_item_quality, validate_item_product, validate_item_derived, validate_item_ownerfx, validate_item_predraw, validate_item_hiddenmesh, validate_render_effects13, validate_render_effects14, validate_render_effects15, validate_render_effects16, validate_render_effects17, validate_item_callers, validate_inventory_fx, validate_render_effects18, validate_render_effects19, validate_render_effects20, validate_render_effects21, validate_item_cloak, validate_armour_cloak.
+
+Mutants: already run once for `validate_item_predraw` (48/48) and `validate_item_quality` (11/11); none requested
+from the steward on unchanged inputs. Use the canonical private env above, including MU_SECTION3. The final staged
+audit's result and wall time are in the PR body. No full gate was run in this lane.
+
+All documentation and pushes precede the single ready-prs entry. Cleanup then removes this worktree, local branch,
+native build, temporary reports, renders and scratch; the remote branch and shared input captures/cache remain.
+No new capture or scratch input needs retention.
 
 
 ## Byte identity and renders
 
 The baseline uses main `a55200e2`'s tables and sources, with the new scalar branches still unused. Its default world
 renders were taken once before table admission. A separately compiled main renderchar library is the C-to-C base.
-The final default-draw sweep and inventory comparison are pending the remaining validators. These are offline
-native renders, not original-client pixels.
+The single final default-draw sweep passes: October 22's 14 maps retain 28 PNGs, 28 dumps and 14 normalized
+reports byte for byte; DATA-ACQ-002's 32 maps retain 64 PNGs, 64 dumps and 32 normalized reports. No draw_all.
+The final world target was already current, 0.2 s. Baselines were taken once, 23.8 / 42.3 s; final renders took
+19.5 / 41.6 s; byte/pixel comparison took 0.6 s. The later preview-evidence merge changes no rendered source.
+
+Inventory at fixed time 123456 and 1024x768: eight controls remain byte-identical, 1,672 triangles; the six
+new types at +0 change 3,756 pixels and triangles 7,708 -> 11,210; at +9 change 4,876 pixels and triangles
+7,708 -> 36,442. Both new groups report six models drawn, zero missing and zero special fallbacks. Baseline /
+final three-render batches took 2.9 / 2.3 s. These are offline native comparisons, not original-client pixels.
 
 ## `0x0f2a` native visibility follow-up
 
