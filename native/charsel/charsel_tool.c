@@ -202,7 +202,7 @@ static int headless(app *a)
                 mu_charsel_ui_render(a->rt->ui, pixels);   /* the 2D layer over the 3D frame */
             mu_sha256_hex(pixels, bytes, hash);
             snprintf(path, sizeof path, "%s/frame-%04d.png", a->out_dir, frame);
-            if (mu_png_write(path, pixels, a->options.width, a->options.height)) {
+            if (mu_png_write_opaque(path, pixels, a->options.width, a->options.height)) {
                 fprintf(stderr, "cannot write %s\n", path);
                 return 1;
             }
@@ -305,7 +305,7 @@ static int windowed(app *a)
                     uint8_t *pixels = malloc((size_t)dw * (size_t)dh * 4);
                     if (pixels) {
                         mu_gl_read(dw, dh, pixels);
-                        mu_png_write("mu-charsel-screenshot.png", pixels, dw, dh);
+                        mu_png_write_opaque("mu-charsel-screenshot.png", pixels, dw, dh);
                         free(pixels);
                     }
                 }

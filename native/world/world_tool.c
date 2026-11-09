@@ -1136,7 +1136,7 @@ static int usage(void)
                     "                [--skill-script \"F:select:SLOT F:cast:ACTOR F:open F:drag:FROM:TO F:over:SLOT F:save F:tip:SLOT\"]   skills (--gfx)\n"
                     "                [--no-env] [--env-tga-leaves] [--env-seed N] [--no-particles] [--particle-seed N]\n"
                     "                [--joint-demo SUB]   a lightning joint 0x7f7d SUB above the hero every 20 steps\n"
-                    "                [--gfx DIR [--gfx-open inventory,character]]   GFx interface (converted movies)\n"
+                    "                [--gfx DIR [--gfx-open inventory,character]]   GFx interface (converted movies); inventory,equipment-demo adds accessory fixtures\n"
                     "                [--no-names] [--hero-name NAME] [--monster-info 0|1] [--chat-script \"F:text;F:text\"]\n"
                     "                [--perf FILE] [--perf-sync] [--perf-fov 20..90]   offline diagnostics\n"
                     "                [--players DEMO.txt] [--no-players] [--player-range TILES]\n"

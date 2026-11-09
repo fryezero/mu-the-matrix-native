@@ -282,7 +282,7 @@ static int headless(viewer *v)
         return 1;
     char hash[65];
     mu_sha256_hex(pixels, size, hash);
-    if (v->options.output && mu_png_write(v->options.output, pixels, v->options.width, v->options.height)) {
+    if (v->options.output && mu_png_write_opaque(v->options.output, pixels, v->options.width, v->options.height)) {
         fprintf(stderr, "cannot write %s\n", v->options.output);
         return 1;
     }
@@ -411,7 +411,7 @@ static void screenshot(viewer *v, int32_t w, int32_t h)
         return;
     mu_gl_read(w, h, pixels);
     const char *path = v->options.output ? v->options.output : "mu-viewer-shot.png";
-    if (mu_png_write(path, pixels, w, h) == 0)
+    if (mu_png_write_opaque(path, pixels, w, h) == 0)
         fprintf(stderr, "saved %s\n", path);
     free(pixels);
 }
