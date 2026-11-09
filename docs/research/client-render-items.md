@@ -2594,11 +2594,11 @@ The default tours retain all 92 PNGs, 92 dumps and 46 normalized reports byte fo
 Same client identity and pins as above. This is offline native integration evidence, not a new original-client
 capture or an extension of the reconstructed instruction domain. [Full handoff](../handoffs/APP-REFRESH-010.md).
 
-The installed Preview is detached main a55200e2, with all changes since a7f7b247. Export inputs are unchanged,
+The installed Preview is detached main 1e2a927a, including the late #351 armour cloths, with all changes since a7f7b247. Export inputs are unchanged,
 so APP-REFRESH-006 Native Data is retained and its manifest verified. One full private native/tests run covered
 149 modules / 1,001 tests; two errors exposed ambiguous bow mutant anchors after #350's exact-one assertion.
 Four anchors are narrowed to their original branches. The two affected modules pass 7 tests and 38 compiled
-mutants; selected effects12/13/14 comparisons pass. No production source or reconstruction case count changed.
+mutants; selected effects12/13/14 comparisons pass. No production source or reconstruction case count changed in this refresh PR. The full private run was at a55200e2; after late main, 20 private cloth tests covered the new armour module and the changed wing structs. All installed-app proof sources were repeated on 1e2a927a.
 
 Installed-app evidence, public one-player fixtures and the APP-REFRESH-009 rollback, matching frame 150:
 
