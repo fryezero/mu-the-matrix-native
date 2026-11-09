@@ -17,7 +17,8 @@ ROOT = Path(__file__).resolve().parents[1]
 KINDS = [(0x80e3, 5), (0x7f79, 15)]
 MUTANTS = [
     ('bow_joints.inc', 'if (j->subtype == 5) j->velocity = 70.0f;', 'if (j->subtype == 5) j->velocity = 40.0f;', 'joint_create'),
-    ('bow_joints.inc', 'if (j->subtype == 4) {', 'if (1) {', 'joint_create'),
+    ('bow_joints.inc', 'if (j->subtype == 4) {\n            j->light[0] = 0.4f;',
+     'if (1) {\n            j->light[0] = 0.4f;', 'joint_create'),
     ('bow_joints.inc', 'if (j->subtype == 15) j->max_tails = 16;', 'if (j->subtype == 15) j->max_tails = 9;', 'joint_create'),
     ('bow_joints.inc', 't->lifetime <= 0)', 't->lifetime < 0)', 'joint_move'),
     ('bow_joints.inc', 't->lifetime <= 0)', 't->lifetime <= 1)', 'joint_move'),
