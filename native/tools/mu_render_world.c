@@ -24,6 +24,7 @@
 
 typedef struct world_options {
     int active;
+    int item_body_only;       /* isolate item meshes from sprite/particle/joint animation in proofs */
     mu_renderchar_glow glow[MU_CHARACTER_ITEMS];
     int type_set[MU_CHARACTER_ITEMS];
     mu_renderchar_env env;
@@ -103,6 +104,9 @@ int mu_render_world_args(int *argc, char **argv)
         int consumed = 1;
         if (!strcmp(a, "--world-render")) {
             W.active = 1;
+            consumed = 0;
+        } else if (!strcmp(a, "--item-body-only")) {
+            W.active = W.item_body_only = 1;
             consumed = 0;
         } else if (!strcmp(a, "--safe-zone")) {
             W.safe_zone = 1;
@@ -344,7 +348,7 @@ int mu_render_world_character(const mu_options *o)
     mu_world_particles *particles = NULL;
     long link_sprites = 0, owner_effects = 0, owner_refused = 0;
     for (int k = 0; k < MU_CHARACTER_ITEMS; ++k) {
-        if ((mu_rc_item_rank5(W.glow[k].type) || mu_rc_item_owner_fx(W.glow[k].type) || mu_rc_item_pre_fx(W.glow[k].type) ||
+        if (!W.item_body_only && (mu_rc_item_rank5(W.glow[k].type) || mu_rc_item_owner_fx(W.glow[k].type) || mu_rc_item_pre_fx(W.glow[k].type) ||
              mu_rc_item_post_fx(W.glow[k].type) ||   /* RENDER-ITEMS-002T post programs */
              mu_rc_link_supported(W.glow[k].type) ||
              W.glow[k].type == 0x389c || W.glow[k].type == 0x389d) &&

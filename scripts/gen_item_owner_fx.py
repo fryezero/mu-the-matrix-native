@@ -71,6 +71,8 @@ PRE_FX_TYPES = [
     0x0f1f, 0x0f20,
     # RENDER-ITEMS-002U (part 23): 0x0f2a, its atlas frame now a body chain of the counter (gen_item_bodies.FRAME_TYPES).
     0x0f2a,
+    # RENDER-ITEMS-002W: exact body scalars and range-aware probes.
+    0x1313, 0x1317, 0x1319,
     # RENDER-ITEMS-002V: counter-gated maces, with quantised random body-light scalars.
     0x0f24, 0x0f28, 0x0f29, 0x0f2b, 0x0f2c,
 ]
@@ -903,6 +905,12 @@ class Interpreter:
             self.reg['eax'] = ('i', r)
         elif target == WAVE and self.pre:            # cdecl 0x0185bdc4(a, b), result on x87
             a, b = self.arg(0), self.arg(1)
+            # 0x2301/0x2302 call (0, -4). Masked SSE division and CVTT produce
+            # INT_MIN for both dividend and divisor, a zero remainder and exact +0.
+            if a == ('c', 0) and b == ('c', 0xc0800000):
+                self.st0 = ('c', 0)
+                self.reg['eax'] = ('junk',)
+                return
             if a[0] != 'c' or b != ('c', 0) or value(a[1]) == 0:
                 raise Refused(f'wave operands {a} {b}')
             r = p.reg()

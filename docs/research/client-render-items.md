@@ -2998,3 +2998,73 @@ The full focused proof passes 11,006 comparisons with zero mismatches. Compiled 
 wall times, default byte identity, remaining refusals and exact steward rows are recorded in
 [RENDER-EFFECTS-024](../handoffs/RENDER-EFFECTS-024.md). No blend-light default, item fit, pose, frame counter,
 installed Preview or Wine app changes here. Clouds/28 remain a separate consumer to recover.
+
+## Part 35, worn mace light and named part meshes, RENDER-ITEMS-002W
+
+Prerequisite #355 merged before the branch was created. This lane covers the missing worn `0x0f2a` input,
+three read-program bows and the 31 strlen parts. [Handoff and verification](../handoffs/RENDER-ITEMS-002W.md).
+Particle-request recovery and new particle/sprite consumers are left to RENDER-EFFECTS-023.
+
+### Worn-item caller input and visible atlas
+
+ObjectInit's zero at `0x0129ed3c` is not the final draw input. `RenderLinkItem` reaches the linked OBJECT at
+PART+0x24, sets its type and calls `ItemObjectAttribute` at `0x012bdafb`. The callee loads 1.0 from
+`0x01a7dd48` at `0x016da0fb`, then writes OBJECT+a8 at `0x016da103`. It also supplies blend mesh -1 and zero UV.
+Guarded original execution at times 0, 1, 123456 and -8000 confirms the light and mesh values independently of
+poisoned prior fields. The native fill is corrected for this established type only.
+
+The regression first fails with one hash at counters 0/7/8, then passes with three. It holds class, model,
+action, pose frame, world time, dimensions and all other inputs fixed. The same demo equipment passes through
+a locally built Preview launch plan under its network guard, using isolated settings/session/options. Matching
+world frames differ from baseline. This closes APP-REFRESH-010 proof (c) for the native worn path; it does not
+refresh the installed app, certify absolute process phase, or substitute pose motion for texture animation.
+
+### Read-program candidates
+
+The three bows `0x1313`, `0x1317`, `0x1319` require per-type scalar recipes with exact SSE order, extended
+quality/record probes and range-wrapper random attribution in pre-program blocks. Their original 1-ULP failures
+were not relaxed or compared approximately. Both body and owned paths compare exact words and request order.
+The two wings `0x23a8`/`0x23a9` still fail fits under default/carry/exit variants and are not enabled.
+
+At `0x017b1d91..0x017b1dad`, `0x2301`/`0x2302` call the wave helper with exact `(0, -4)` operands, rather than
+the supported nonzero-frequency/zero-second-argument case. The pinned helper's masked SSE division/CVTT path
+produces INT_MIN dividend and divisor, remainder zero and +0. A directed 200-state screen includes signed zeros,
+finite boundaries, infinities and NaNs. The reader folds only exact words `0` and `0xc0800000`, with portable
+negative-operand tests. Both types now read (312 operations) but still fail draw fitting. No body is admitted for
+that reader extension. The other nineteen candidates remain rejected by the existing fit/supplementary probes.
+
+### All 31 strlen parts
+
+A name lookup at `0x012bd4a6` is a model input, not a fixed mesh number. The 28 armour parts are four groups
+`0x1a00/0x1e00/0x2000/0x2200`, each with indices `0x26/0x27/0x2c/0x2e/0x2f/0x33/0x44`.
+Their Blue/Black/skirt lookups are independent. Weapons `0x0b5c/0x0b62/0x0b68` use their own exact names, including
+case-sensitive `.JPG` suffixes. The generator's 21-name catalog is in `validate_renderchar.NAMED_MESH_NAMES`.
+
+New scalar kind 8 copies a lookup's signed mesh index as an integer word. The context appends a callback and
+user pointer; old lighting/blue/random fields keep their offsets. Missing context, missing callback or missing
+name yields -1. Native lookup searches the drawn model in order and returns the first exact texture name.
+The bitmap census supplies present indices to discover all referenced overlays; it does not supply worn indices.
+The ordinary classification fixture remains unseeded: its strlen stops and recorded shapes are not rewritten.
+Independent comparisons declare the name results and vary positive indices, all missing, each missing and mixed
+results, quality, lighting, all levels, alternate records, frame counters and nonzero random sequences.
+
+An early prototype skipped MESH(-1) in the reconstructed stream. The original emits those calls, so that
+prototype failed independent comparisons. The final stream keeps them. The native adapter skips a negative
+mesh as the original `MeshDraw` does at `0x012b8d46..0x012b8d51` (wrapper call `0x00966e9b`). This prevents a
+missing part name from becoming a whole-model draw. Synthetic native models test missing names, independent
+part overlays and duplicate names.
+
+`0x0b62` also exposed a clock-reader gap: `0x0172972d` computes `tick % 415 / 83`; the signed remainder-by-one
+idiom at `0x01729754..0x01729766` stores U=0, then `0x0172977a..0x0172978a` uses the saved cell times .2 for V.
+Allowing the zero-low-bit mask in the existing byte-verified signed remainder reader reaches that V store.
+Portable authored instructions exercise both UV chains, including negative clocks; no runtime opcode is added.
+`0x0b68` joins the frame-counter set with its `(counter + 1) % 60` scroll. High-level phase probes preserve the
+raw level/quality split instead of mixing their different draw counts.
+
+### Remaining work and bounds
+
+The 54 helper-group-count types remain, followed by the other unadmitted types. A two-seed level-zero screen
+is exploratory and does not establish full coverage for that group. Named body draws do not establish new
+rank-5 pose or owner effects. Existing bone, record, buff, selected-item, process-rand and process-counter bounds
+remain. No original client process, protected component, live server/login, packet, character-power or memory-write
+work was used. Final counts, table size, exact validator timings and default-draw comparisons are in the handoff.

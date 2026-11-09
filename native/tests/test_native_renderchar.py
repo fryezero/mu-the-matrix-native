@@ -180,6 +180,27 @@ class WorldRender(unittest.TestCase):
         missing,_=self.render(*options,'--lighting','1','--world-time','0')
         self.assertEqual((missing['special'],missing['passes']),(0,10))
 
+    def test_named_part_mesh_inputs_and_missing_names(self):
+        path = self.tmp/'named-parts.bmd'
+        raw = nf.character_layout(118, bones=50, meshes=6, dummies=(9, 21))
+        labelled = raw.replace(nf.name32('part1.tga'), nf.name32('Item1161_Blue.jpg'))
+        labelled = labelled.replace(nf.name32('part2.tga'), nf.name32('Item1161_Black.jpg'))
+        labelled = labelled.replace(nf.name32('part3.tga'), nf.name32('Item1161_skirt.jpg'))
+        labelled = labelled.replace(nf.name32('part4.tga'), nf.name32('Item1161_Blue.jpg'))
+        for item, overlays in ((0x1a26, 2), (0x1e26, 2), (0x2026, 1), (0x2226, 1)):
+            options = ('--part', '2', path, '--item-type', f'armor={item}', '--world-time', '0')
+            path.write_bytes(raw)
+            missing, _ = self.render(*options)
+            path.write_bytes(labelled)
+            present, _ = self.render(*options)
+            self.assertEqual((missing['special'], present['special']), (0, 0))
+            self.assertEqual(present['passes'], missing['passes'] + overlays)
+            self.assertGreater(present['triangles'], missing['triangles'])
+            path.write_bytes(labelled.replace(nf.name32('Item1161_Blue.jpg'),
+                                              nf.name32('other-blue.jpg'), 1))
+            later_match, _ = self.render(*options)
+            self.assertEqual(later_match['passes'], present['passes'])
+
     def test_rank5_owner_effects_follow_owner_bones(self):
         """RENDER-EFFECTS-005: the lit rank-5 body reads the character's bones 35/26."""
         path=self.tmp/'rank5-owner.bmd'
@@ -294,6 +315,12 @@ class WorldRender(unittest.TestCase):
             expect=17+2*(frame%3==0)+(frame%5==0)
             self.assertEqual((r['special'],r['pre_effects'],r['pre_refused']),(0,0,expect),frame)
 
+        isolated, _ = self.render('--weapon', '0', path, '--item-type', 'weapon0=0xf20',
+                                  '--world-time', '0', '--frame-counter', '0', '--item-body-only')
+        self.assertEqual((isolated['special'], isolated['pre_effects'], isolated['pre_refused']), (0, 0, 0))
+        self.assertEqual(isolated['particles_created'], 0)
+        self.assertGreater(isolated['passes'], 0)
+
     def test_counter_range_bodies_reach_native_renderer(self):
         """The six 002V types used to fall back as unsupported. Exercise their recipes through the
         native item host, including a high-bit frame counter and the staff's intermediate colour products."""
@@ -357,6 +384,48 @@ class WorldRender(unittest.TestCase):
                     ('--actor-weapon', 'x')):
             result = run('character', self.player, *bad, '--out', self.tmp/'x.png', check=False)
             self.assertNotEqual(result.returncode, 0, bad)
+
+    @unittest.skipUnless(PRIVATE and GAME_ROOT, 'installed client renders are opt-in')
+    def test_private_worn_mace_counter_atlas(self):
+        """The worn caller resets OBJECT+a8 to one before 0x0f2a draws its counter atlas."""
+        import random
+        import struct
+        sys.path.insert(0, str(NATIVE.parent/'scripts'))
+        import pins
+        import validate_items as vi
+        import actor_machine as am
+        machine = vi.Machine(pins.TEXT.read(), pins.DATA.read())
+        for clock in (0.0, 1.0, 123456.0, -8000.0):
+            host = vi.HostCase(random.Random(0xf2a), world_time=clock)
+            obj = am.undefined_region('object', vi.OBJ, 0x400, 0x47)
+            obj.define(vi.OBJ+0x5c, struct.pack('<i', 0xf2a))
+            poison = bytes(am.poison(0x400, 0x47))
+            for offset in (0x68, 0x74):
+                obj.define(vi.OBJ+offset, poison[offset:offset+4])
+            stubs = host.stubs()
+            stubs[0x01295f18] = lambda m: 0
+            result = machine.execute_regions(vi.OBJECT_ATTR, [vi.OBJ],
+                [obj, am.defined_region('time', vi.TIME, struct.pack('<f', clock), writable=False)], stubs)
+            self.assertIsNone(result['error'])
+            self.assertIsNone(result['stopped'])
+            data = result['regions']['object']
+            self.assertEqual(struct.unpack_from('<I', data, 0xa8)[0], 0x3f800000)
+            self.assertEqual(struct.unpack_from('<i', data, 0x74)[0], -1)
+        hashes = []
+        root = Path(GAME_ROOT)
+        for counter in (0, 7, 8):
+            output = self.tmp/f'counter-atlas-{counter}.png'
+            result = run('character', '--game-root', root, '--class', '1',
+                         '--weapon', '0', root/'Data/Item/Hammer15.bmd', '--world-render', '--item-body-only',
+                         '--item-type', 'weapon0=0x0f2a', '--item-level', 'weapon0=9',
+                         '--action', '1', '--frame', '0.5', '--world-time', '123456',
+                         '--frame-counter', str(counter), '--width', '640', '--height', '480',
+                         '--out', output)
+            report = json.loads(result.stdout.strip().splitlines()[-1])
+            self.assertEqual(report['special'], 0)
+            self.assertEqual((report['pre_effects'], report['pre_refused'], report['particles_created']), (0, 0, 0))
+            hashes.append(report['sha256'])
+        self.assertEqual(len(set(hashes)), 3, 'fixed-pose atlas must visibly follow the counter')
 
     @unittest.skipUnless(PRIVATE and GAME_ROOT, 'installed client renders are opt-in')
     def test_private_installed_world_renders(self):

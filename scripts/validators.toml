@@ -2796,7 +2796,7 @@ args = ["--mutations", "--output", "{report}"]
 test = "reconstructed/renderchar/test_item_predraw.py::ItemPreDraw.test_original_instructions"
 pins = ["text", "data", "flag", "feature"]
 families = ["bodies", "hidden", "frame", "predraw"]
-cases = 36196
+cases = 37556
 mutants = 48
 cases_at = "families.*.cases"
 mutants_at = "mutants"
@@ -2804,10 +2804,10 @@ build = ["reconstructed/renderchar", "reconstructed/particles"]
 args = ["--mutations", "--output", "{report}"]
 [validate_item_predraw.expect]
 "families.*.mismatches" = 0
-"families.bodies.cases" = 14892
+"families.bodies.cases" = 15768
 "families.hidden.cases" = 1168
-"families.frame.cases" = 16936
-"families.predraw.cases" = 3200
+"families.frame.cases" = 17228
+"families.predraw.cases" = 3392
 "mutants.*" = {truthy = true}
 
 [validate_item_hiddenmesh]
@@ -3304,6 +3304,20 @@ args = ["--cases", "20", "--mutations", "--output", "{report}"]
 all_equal = true
 all_mutants_caught = true
 "mutants.*.stopped" = 0
+
+[validate_item_named]
+test = "reconstructed/renderchar/test_item_named.py::ItemNamed.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "names", "without_context", "records"]
+cases = 20057
+mutants = 8
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar"]
+args = ["--mutations", "--output", "{report}"]
+[validate_item_named.expect]
+"families.*.mismatches" = 0
+"mutants.*" = {truthy = true}
 
 [validate_npc_cloak]
 test = "native/tests/test_native_npc_cloak.py::ClientComparison.test_original_instructions"
