@@ -8,7 +8,7 @@ are untouched.
 Scope: 002U's six remaining counter bodies. The next 24 read-program candidates were screened, with none admitted.
 The rank-5 strlen group was not attempted. [Finding, part 31](../research/client-render-items.md#part-31-the-six-remaining-counter-bodies-and-quantised-random-colours-render-items-002v).
 
-Research numbering: CLOAK-003 merged with part 28; APP-REFRESH-010 reserves part 29. This lane uses part 30.
+Research numbering: CLOAK-003 merged with part 28; APP-REFRESH-010 reserves part 29. The combined tree uses part 31.
 Main was merged at `1e2a927a`, preserving the cloth documentation and implementation, then at `e517ac3a`
 for APP-REFRESH-010 evidence and its validator-anchor repairs. The latter adds no renderer changes.
 The steward placed this work in Part 31 after main assigned Part 30 to RENDER-EFFECTS-022. Both lanes' changes are retained in the combined tree.
