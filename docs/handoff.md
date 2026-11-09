@@ -1,6 +1,6 @@
 # Continue from here
 
-RENDER-ITEMS-002W verification in progress: worn `0x0f2a` blend light recovered from the caller, with visible fixed-pose counter atlas and local Preview-path proof. Bodies target 1,370 -> 1,404/1,674: three bows plus all 31 named-mesh parts; 270 remain. The other 21 read-program candidates and 54 helper-count types remain unadmitted. [Checks and limits](handoffs/RENDER-ITEMS-002W.md).
+RENDER-ITEMS-002W PR-ready: bodies 1,370 -> 1,404/1,674 (270 left), adding three bows and all 31 named-mesh parts. Worn `0x0f2a` blend light is recovered from the original caller; body-only native and current local Preview controls establish visible atlas motion. 54 current PR validators pass; late-main 57-row rerun passes. Installed apps are untouched. [Checks, row timings and limits](handoffs/RENDER-ITEMS-002W.md).
 
 CLOAK-004 PR-ready: NPC/monster cloth constructor `0x01362755` now runs in the native actor path for Death King `55`, Nightmare `361` and Eunice `937/939/940/941`, with actor bones, two-half UVs/spheres, per-frame stepping and cache/travel cleanup. Nightmare uses model `0x81e` in world 39; Eunice Monster uses `0x95a` in world 121; ordinary town NPCs select no cloth. `validate_npc_cloak`: 2,619 comparisons, 0 mismatches, 17/17 compiled mutants. [Mapping, checks and limits](handoffs/CLOAK-004.md).
 

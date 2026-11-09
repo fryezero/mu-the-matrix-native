@@ -3,7 +3,8 @@
 
 Runs complete RenderObjDraw, with 0x012bd4a6 supplied as an independent mesh-index input.
 The ordinary classification world's absent texture table is not replaced or reclassified.
-No pose, draw, scalar, clock or geometry routine is stubbed by this comparison.
+It uses the existing recording draw/effect boundaries and compares request words and model writes.
+Pose construction, mesh geometry and pixels are outside this body comparison.
 """
 import argparse
 import ctypes as C
