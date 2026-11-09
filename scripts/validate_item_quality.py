@@ -171,7 +171,7 @@ MUTANTS = {
                    '            memcpy(s->model->shade, &words[8], 12);\n            s->model->flag_ca = (uint8_t)words[15];'),
     'exit-flag': ('            s->model->flag_ca = (uint8_t)words[15];\n            continue;',
                   '            s->model->flag_ca = (uint8_t)(words[15] ^ 1u);\n            continue;'),
-    'random-modulus': ('float x = (float)(value % (int32_t)p->a);', 'float x = (float)(value % ((int32_t)p->a + 1));'),
+    'random-modulus': ('int32_t integer = value % (int32_t)p->a;', 'int32_t integer = value % ((int32_t)p->a + 1);'),
     'random-op': ('        default: x = x / k; break;', '        default: x = x * k; break;'),
     'random-phase': ('if (p->phases & (1u << phase))', 'if (p->phases)'),
     'random-value': ('value = random_program(p, rank5_random(s));', 'value = random_program(p, rank5_random(s) + 1);'),
