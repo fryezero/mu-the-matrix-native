@@ -2524,3 +2524,78 @@ glowing cloth draws three quad streams: front, back, glow. `mu_cloth_render` now
 - **65/65 compiled mutants caught**, none equivalent, every anchor once. The 27 new ones cover the table, the
   aliases, the level test, the glow pass, the scaling, arg 4, the angle-matrix variant, the sub-type model, the draw
   test, and the `0x8000` and gravity-180 forces.
+
+## Part 28, counter-gated mace particles and rank-5 world owners, RENDER-EFFECTS-022
+
+Evidence is offline. The particle create/move/render comparisons execute the pinned original routines under
+Unicorn, and the item-point comparison executes the complete original RenderObjDraw. Text SHA-256:
+`2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724`; data SHA-256:
+`c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f`.
+No original-client pixels, live client, protection modules, server state or memory writes are used.
+
+Part 26 supplied the native frame counter. Three particle kinds of the two admitted maces still had no native
+consumer. They now run in the particle pool, with the counter periods unchanged.
+
+| Kind | CreateParticle `0x015ae7b0` | MoveParticles `0x01616c80` | RenderParticles `0x0159123f` |
+|---|---|---|---|
+| `0x810a/0x25`, mace `0x0f1f` | `0x015b51f0`: NULL owner clears live; otherwise LifeTime = rand % 11 + 20, initial LifeTime = LifeTime, Scale = 0, scale step = scale / trunc(LifeTime/2), alpha = 1, random rotation 0..360, start = position argument | `0x0161d801`: NULL owner clears live; above half of initial LifeTime grow by the scale step, else shrink; alpha -= 1 / initial LifeTime | `0x0159f880`: NULL owner clears live and draws no sprite; position = OBJECT[+0x1f4 + 12*arg8] + start; sprite light = light * alpha |
+| `0x855d/1`, twice from mace `0x0f20` | `0x01610e81`: LifeTime = initial LifeTime = 20, Scale = scale, scale step = scale / 20, alpha = 1, moving = 1, random rotation, angle = 0; spherical velocity times a random speed 1.5..3 in 0.01 steps | `0x01689aa8`: alpha -= 1 / initial LifeTime, Scale -= scale step; the common moving block rotates/adds velocity | `0x015aa71c`: light * alpha sprite |
+| `0x84d1/1`, mace `0x0f20` | `0x0160c861`: LifeTime = initial LifeTime = 50, Scale = scale, scale step = scale / 50, alpha = 0, random rotation, angle = 0, velocity = (0, 0, random 1.8..2.5 in 0.01 steps) | `0x016855a9`: above half of initial LifeTime alpha += 1 / trunc(initial LifeTime/2), else subtract; Scale -= scale step; moving remains the common block's zero | `0x015a743f`: light * alpha sprite |
+
+The spherical-vector call is `0x00d01fc6(out, 0, 1, 180, 0, 360, 0)`. The minimum radius 1 is at least the
+maximum 0, so radius is fixed at 1 and draws no rand. Theta and phi come from quantised ranges after binary32
+radian conversion. Every intermediate and random-call order is compared, including the common owner-position
+and movement blocks, reused particle bytes and NULL owners.
+
+### Retaining the OBJECT points
+
+The owned spark's argument 8 is an index, not an unused flag. It selects one of three vectors written by the
+mace's pre-draw program. Before this lane those writes existed only in the interpreter's register memory,
+and `owner_emit` refused a nonzero argument 8. Merely admitting the kind would draw at the wrong position.
+
+`gen_item_owner_fx.py` now emits op 50 at the actual stores to OBJECT `+0x1f4..+0x217`. `owner_fx.inc` emits
+`MU_RC_OWNER_POINT` with a word index and value through the existing callback. This adds no host fields or
+record fields. The world adapter stores the words in its item-owner slot, separate from the OBJECT `+0x158`
+position; state writes count as neither effects nor refusals and draw no rand. The generation-checked slot
+retains points between item draws. `mu_world_particles_create_args` passes argument 8 unchanged, and the world
+particle draw calls `mu_pt_item_counter_follow` before the ordinary render. Stale/missing owners and indices
+outside the actual domain 0..2 end the particle instead of reading unrelated memory.
+
+The general store rule also exports `0x0f2a`'s first point, with no other change to that program. Its particle
+kinds remain outside this lane. Only those two programs' op sequences change, plus later table offsets.
+
+The new validator's points family supplies the named-bone table explicitly, places the required names at
+known indices, varies shared versus OBJECT-owned matrices and includes hidden frames. It compares all nine
+retained words, the existing draw/request streams and rand counts. Its production op-50 mutant must change
+these words and be caught even when the draw/request streams still agree.
+
+### Bitmap registrations
+
+Verified static startup calls, also checked by the validator:
+
+| ID | LoadBitmap call | File | Filter / wrap |
+|---|---|---|---|
+| `0x855d` | `0x01825ca1` | `Effect\pin_star03_red.jpg` | LINEAR / CLAMP |
+| `0x84d1` | `0x0182e978` | `Item\texture\smoke01_strong_red.jpg` | LINEAR / REPEAT |
+
+The native table grows 77 to 79 slots. Fire06 stays after these additions and rain02/rain03 stay last.
+Existing bitmap slots before the insertion are unchanged. `0x810a` already had a texture.
+
+### Rank-5 owners in the world
+
+Part 23's world hook admitted the 43 armour/helm owner programs only. `world_rt_part_owner` now also admits
+`mu_rc_item_rank5`, so players, the hero and player-model actors use the already reconstructed rank-5 block.
+It reads the character's posed bones 35/26 through the existing transform adapter, emits four `0x84e2/0`
+particles, one `0x7fdd` sprite and one `0x83de/4` particle, and runs its level-9 overlay meshes before the later
+glow passes. Source blocks are `0x01747d6d`, `0x0174888d`, `0x01749294`, `0x01749cc5` in RenderPartObjectBody.
+The arithmetic and recipes are unchanged; `validate_render_effects5` covers their original-instruction behavior.
+Native tests cover rank-5 player and hero callers. The player-model actor caller uses the same hook but has no
+installed render fixture here.
+
+### Refusal census, checks and limits
+
+The final counts, wall times, before/after native render measurements, byte-identity sweep and exact steward
+rows are recorded in [RENDER-EFFECTS-022](../handoffs/RENDER-EFFECTS-022.md). These are original-instruction
+comparisons and offline native before/after renders, not original-client pixel equivalence. The native pose and
+counter's absolute phase are unchanged assumptions. The viewer still lacks an item OBJECT registry and refuses
+the owned spark. `0x0f2a`'s `0x85bc/5`, `0x83b8/8`, `0x85fc/1` and register-selected particle remain next work.

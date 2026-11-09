@@ -70,7 +70,7 @@ class World(unittest.TestCase):
             players.write_text(text)
             r = subprocess.run([str(ROOT/'native/build/mu-walk'), '--game-root', GAME, '--headless', '--backend',
                                 'soft', '--no-audio', '--width', '320', '--height', '240', '--every', '1000',
-                                '--out-dir', tmp, '--tile', '128,124', '--frames', '61', '--quiet', '--players',
+                                '--out-dir', tmp, '--hero-name', 'DemoKnight', '--tile', '128,124', '--frames', '61', '--quiet', '--players',
                                 str(players), '--player-range', '20', *extra], capture_output=True, text=True)
         self.assertEqual(r.returncode, 0, r.stderr[-2000:])
         return [json.loads(s) for s in r.stdout.splitlines() if s.startswith('{')]
