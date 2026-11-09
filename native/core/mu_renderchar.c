@@ -160,6 +160,10 @@ static void fill_item(mu_rc_item *it, const mu_renderchar_glow *g, const mu_rend
         mu_lang_enchant_first(env->lang, g->type - 0xae6, it->enchant);
     it->object_alpha = alpha;
     it->blend_mesh = -1;
+    /* RenderLinkItem 0x012bdafb calls ItemObjectAttribute on PART+0x24 every draw.
+     * 0x016da103 supplies this body's OBJECT+a8 input, overriding ObjectInit's zero. */
+    if (it->type == 0x0f2a)
+        it->blend_light = 1.0f;
     it->time = env->time;
     it->quality = env->quality;
     it->frame = env->frame_counter ? *env->frame_counter : 0;   /* RENDER-ITEMS-002U: body chains; 0 when unknown */

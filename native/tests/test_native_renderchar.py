@@ -359,6 +359,47 @@ class WorldRender(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0, bad)
 
     @unittest.skipUnless(PRIVATE and GAME_ROOT, 'installed client renders are opt-in')
+    def test_private_worn_mace_counter_atlas(self):
+        """The worn caller resets OBJECT+a8 to one before 0x0f2a draws its counter atlas."""
+        import random
+        import struct
+        sys.path.insert(0, str(NATIVE.parent/'scripts'))
+        import pins
+        import validate_items as vi
+        import actor_machine as am
+        machine = vi.Machine(pins.TEXT.read(), pins.DATA.read())
+        for clock in (0.0, 1.0, 123456.0, -8000.0):
+            host = vi.HostCase(random.Random(0xf2a), world_time=clock)
+            obj = am.undefined_region('object', vi.OBJ, 0x400, 0x47)
+            obj.define(vi.OBJ+0x5c, struct.pack('<i', 0xf2a))
+            poison = bytes(am.poison(0x400, 0x47))
+            for offset in (0x68, 0x74):
+                obj.define(vi.OBJ+offset, poison[offset:offset+4])
+            stubs = host.stubs()
+            stubs[0x01295f18] = lambda m: 0
+            result = machine.execute_regions(vi.OBJECT_ATTR, [vi.OBJ],
+                [obj, am.defined_region('time', vi.TIME, struct.pack('<f', clock), writable=False)], stubs)
+            self.assertIsNone(result['error'])
+            self.assertIsNone(result['stopped'])
+            data = result['regions']['object']
+            self.assertEqual(struct.unpack_from('<I', data, 0xa8)[0], 0x3f800000)
+            self.assertEqual(struct.unpack_from('<i', data, 0x74)[0], -1)
+        hashes = []
+        root = Path(GAME_ROOT)
+        for counter in (0, 7, 8):
+            output = self.tmp/f'counter-atlas-{counter}.png'
+            result = run('character', '--game-root', root, '--class', '1',
+                         '--weapon', '0', root/'Data/Item/Hammer15.bmd', '--world-render',
+                         '--item-type', 'weapon0=0x0f2a', '--item-level', 'weapon0=9',
+                         '--action', '1', '--frame', '0.5', '--world-time', '123456',
+                         '--frame-counter', str(counter), '--width', '640', '--height', '480',
+                         '--out', output)
+            report = json.loads(result.stdout.strip().splitlines()[-1])
+            self.assertEqual(report['special'], 0)
+            hashes.append(report['sha256'])
+        self.assertEqual(len(set(hashes)), 3, 'fixed-pose atlas must visibly follow the counter')
+
+    @unittest.skipUnless(PRIVATE and GAME_ROOT, 'installed client renders are opt-in')
     def test_private_installed_world_renders(self):
         # monster class 0 carries item 0x0cec (group 1, index 6: Axe07) in weapon slot 0
         root = Path(GAME_ROOT)
