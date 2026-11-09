@@ -22,6 +22,7 @@
 #include "../../viewer/gl_backend.h"
 #endif
 #include "../world_rt_internal.h"
+#include "../world_cloak.h"
 
 #ifndef MU_WORLD_NO_GL
 static void actors_gl_setup(mu_world_rt *a, void *self);
@@ -80,6 +81,7 @@ void world_rt_actors_sync(mu_world_rt *a)
 #ifndef MU_WORLD_NO_GL
     if (a->gl_ready) actors_gl_teardown(a, a->part[MU_PART_actors]);
 #endif
+    world_cloak_actors_reset(a);
     mu_world_actors_free(&a->actors); a->actors = next; label_actors(a);
     actors_audio_register(a);
 #ifndef MU_WORLD_NO_GL
@@ -158,6 +160,7 @@ static void actors_close(struct mu_world_rt *a, void *self)
     if (a->actors.session) mu_session_close(a->actors.session);
     if (a->actors.transport) mu_transport_free(a->actors.transport);
     if (a->actors.fixture) mu_fixture_close(a->actors.fixture);
+    world_cloak_actors_reset(a);
     if (a->has_actors) mu_world_actors_free(&a->actors);
     a->has_actors = 0;
 }
@@ -222,6 +225,8 @@ static void actors_draw_soft(struct mu_world_rt *a, void *self, mu_world_draw *d
         if (actor->player) {
             for (int n = 0; n < MU_CHARACTER_ITEMS; n++) {
                 int k = mu_world_draw_order[n];
+                if (n == MU_CHARACTER_PART_SLOTS)
+                    world_cloak_actor_draw(a, i, alpha, raster, NULL);
                 const mu_character_item *part = &actor->player->items[k];
                 if (!part->loaded)
                     continue;
@@ -245,6 +250,7 @@ static void actors_draw_soft(struct mu_world_rt *a, void *self, mu_world_draw *d
         options.textures = &actor->actor.textures;
         mu_draw_stats ds = {0, 0, 0, 0};
         mu_scene_draw_model(&actor->actor.model, &options, &backend, &ds);
+        world_cloak_actor_draw(a, i, alpha, raster, NULL);
     }
 }
 
@@ -328,6 +334,8 @@ static void actors_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *d)
                 mu_gl_batch_session_end(a->batch);
             for (int n = 0; n < MU_CHARACTER_ITEMS; n++) {
                 int k = mu_world_draw_order[n];
+                if (n == MU_CHARACTER_PART_SLOTS)
+                    world_cloak_actor_draw(a, i, alpha, NULL, a->batch);
                 const mu_character_item *part = &actor->player->items[k];
                 if (!part->loaded)
                     continue;
@@ -349,6 +357,7 @@ static void actors_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *d)
         options.alpha = alpha;
         mu_draw_stats ds = {0, 0, 0, 0};
         mu_scene_draw_model(&actor->actor.model, &options, &backend, &ds);
+        world_cloak_actor_draw(a, i, alpha, NULL, a->batch);
     }
     if (a->batch)
         mu_gl_batch_session_end(a->batch);

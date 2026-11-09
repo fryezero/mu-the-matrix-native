@@ -32,6 +32,9 @@ void world_cloak_draw(struct mu_world_rt *a, int32_t key, uint32_t generation, c
                       float alpha, struct mu_raster *raster, void *batch);
 /* Once per rendered frame after its logic steps (mu_world_rt_frame): the physics manager's wind walk (five steps per
  * logic step) and this frame's wind, time and step counter for the wearers' catch-up. Nothing before a cloth wing. */
+/* Actor cache rebuilds clear only actor slots before old models are freed. */
+void world_cloak_actor_draw(struct mu_world_rt *a, int32_t index, float alpha, struct mu_raster *raster, void *batch);
+void world_cloak_actors_reset(struct mu_world_rt *a);
 void world_cloak_frame(struct mu_world_rt *a);
 /* The travel / unload drop: the characters' OBJECTs are freed with their cloths. */
 void world_cloak_reset(struct mu_world_rt *a);

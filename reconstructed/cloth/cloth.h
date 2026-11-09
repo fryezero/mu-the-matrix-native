@@ -225,4 +225,10 @@ int mu_cloth_armour_update(mu_cloth out[MU_CLOTH_WINGS_MAX], int count, const mu
 int mu_cloth_armour_color_mesh(int16_t pants_type);
 /* RenderCloth's armour-list test 0x01362edc, no buff 0x12. */
 int mu_cloth_armour_draw_allowed(uint8_t class_byte, int32_t subtype);
+/* NPC/monster second-list constructor 0x01362755, called after armour creation declines.
+ * The caller owns the existing-list guard. Counts remain allocated even if Create lacks a model/bones. */
+/* Model/scale overrides from the creation processors, -1 means use the generic class table. */
+int mu_cloth_npc_model(int16_t class_index, int32_t world, float *scale);
+int mu_cloth_npc_cloths(int16_t class_index);
+int mu_cloth_npc_create(mu_cloth out[MU_CLOTH_WINGS_MAX], int16_t class_index, const mu_cloth_host *h);
 #endif

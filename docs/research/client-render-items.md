@@ -2702,3 +2702,52 @@ rows are recorded in [RENDER-EFFECTS-022](../handoffs/RENDER-EFFECTS-022.md). Th
 comparisons and offline native before/after renders, not original-client pixel equivalence. The native pose and
 counter's absolute phase are unchanged assumptions. The viewer still lacks an item OBJECT registry and refuses
 the owned spark. `0x0f2a`'s `0x85bc/5`, `0x83b8/8`, `0x85fc/1` and register-selected particle remain next work.
+
+## Part 31, NPC and monster cloth callers, CLOAK-004
+
+The remaining constructor `0x01362755..0x01362e1d`, SHA-256
+`e80e875813736e2eb79a71ac22017f69de6ebbfd1c0ce4fc38f5ea902640ab60`, fills OBJECT `+0x48`, count `+0x3e`.
+Evidence is the same pinned restored text, second section and initialized third section as parts 25/27/28.
+No live input. [Mapping, parameters, checks and limits](../handoffs/CLOAK-004.md).
+
+### Selection and parameters
+
+The entry rejects null CHARACTER/OBJECT and an existing CHARACTER `+0x329c` list. It tests CHARACTER `+0x146`:
+
+- `0x37`, Death King: one bone-19 10x10 robe, origin (0,10,0), size 55x140, bitmap `0x790d`, type `0x1001`.
+  Spheres: (-10,-10,-10,r35,b17), (10,-10,-10,r35,b17), (0,-10,-40,r50,b19).
+- `0x169`, Nightmare: one bone-2 6x6 grid, origin zero, size 180x100, bitmap `0x7ff2`, type `0x1008`, no spheres.
+- `0x3a9`, Eunice Monster, and `0x3ab..0x3ad`, Eunice Town/Entrance/Quest: two bone-4 10x10 halves,
+  origins (+10,8,2)/(-10,8,2), size 200x120, bitmaps `0x84e6/0x84e7`, type `0x1005`. UV scale (0.5,1),
+  U offsets 0/1. Spheres are on bone 3 with x=-10/+10, opposite the origin, y=-5, z=-10/-30, radius 30/35.
+- Every other index, including the gap `0x3aa`, gets no cloth. The constructor retains the allocated list/count
+  when the individual Create call fails for absent bones or a missing model, as the player constructors do.
+
+The bitmap startup calls resolve to `Player/Robe03.tga`, `Monster/nightmare_cloth.tga`,
+`NPC/eunice_cape_L.tga`, `NPC/eunice_cape_R.tga`. All use GL_CLAMP; Robe03/Nightmare use GL_NEAREST,
+Eunice GL_LINEAR. The names above are from the local exported Npcname table, not inferred from filenames.
+
+### Models and callers
+
+RenderCloth calls this at `0x01363102` only after player armour creation declines. When it returns true,
+MoveCloth runs again that frame. An existing NPC list returns false, so its normal frame cadence is one step,
+with two on creation. The list renders after the wing list with white light, through the existing visibility tests.
+
+Death King uses Player model `0xa91` at scale 1.4 in the existing generic class table. Eunice NPCs use `0xa8b`,
+`N_eunice.bmd`, scale 0.9. The generic world-0 table had fallback model `0x7a5` for the other two:
+
+- Nightmare's world-39 processor `0x00e879ad`, predicate `0x00e84513`, opens monster type 121 and calls
+  CreateCharacter with model `0x81e` at `0x00e87a3c`, then writes scale 1.6.
+- Eunice Monster's dedicated virtual create method `0x00d5a9d3`, branch `0x00d5ad35`, opens monster type 437,
+  passes model `0x95a` at `0x00d5ad57`, then writes scale 0.9. Virtual-manager world/event dispatch is not compared.
+
+`mu_cloth_npc_model` supplies those bounded selections to native actor loading. Nightmare keeps its world test;
+explicit fixture class 937 selects its dedicated model. The player actor loader now admits Death King. The actor
+parts draw cloth after body parts/before links for Player models, after the body for other models. The shared
+world cloth state has separate actor slots, steps them between saved frames on their own posed bones and clears
+those slots before actor-cache replacement, travel and unload. Ordinary town NPCs are not in this constructor.
+
+`validate_npc_cloak` compares the complete constructor, real MoveCloth/RenderCloth frame calls, existing-list
+rejection, every cloth field and the ordered GL stream. It also executes the two model-selection entries through
+the actual scale stores with engine open/create/name services supplied, stopping before trailing effects.
+Final counts, compiled mutants, native scenes and byte-identity results are in the handoff.

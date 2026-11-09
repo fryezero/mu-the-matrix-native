@@ -1656,3 +1656,58 @@ int mu_cloth_armour_update(mu_cloth out[MU_CLOTH_WINGS_MAX], int count, const mu
     }
     return base != 0xc;
 }
+
+/* CLOAK-004: NPC/monster constructor 0x01362755. RenderCloth calls it only when the player-armour
+ * constructor declined. Unlike that constructor, a non-null second list makes this return false. */
+int mu_cloth_npc_cloths(int16_t class_index)
+{
+    switch (class_index) {
+    case 0x37: case 0x169: return 1;
+    case 0x3a9: case 0x3ab: case 0x3ac: case 0x3ad: return 2;
+    default: return 0;
+    }
+}
+
+int mu_cloth_npc_create(mu_cloth out[MU_CLOTH_WINGS_MAX], int16_t class_index, const mu_cloth_host *h)
+{
+    const int n = mu_cloth_npc_cloths(class_index);
+    for (int i = 0; i < n; ++i)
+        mu_cloth_init(&out[i]);
+    if (class_index == 0x37) {
+        mu_cloth_create(&out[0], h, 19, 0.0f, 10.0f, 0.0f, 10, 10, 55.0f, 140.0f,
+                        0x790d, 0x790d, 0x1001);
+        mu_cloth_add_sphere(&out[0], -10.0f, -10.0f, -10.0f, 35.0f, 17);
+        mu_cloth_add_sphere(&out[0], 10.0f, -10.0f, -10.0f, 35.0f, 17);
+        mu_cloth_add_sphere(&out[0], 0.0f, -10.0f, -40.0f, 50.0f, 19);
+    } else if (class_index == 0x169) {
+        mu_cloth_create(&out[0], h, 2, 0.0f, 0.0f, 0.0f, 6, 6, 180.0f, 100.0f,
+                        0x7ff2, 0x7ff2, 0x1008);
+    } else {
+        for (int i = 0; i < n; ++i) {
+            const float x = i ? -10.0f : 10.0f;
+            mu_cloth_create(&out[i], h, 4, x, 8.0f, 2.0f, 10, 10, 200.0f, 120.0f,
+                            i ? 0x84e7 : 0x84e6, i ? 0x84e7 : 0x84e6, 0x1005);
+            out[i].uv_scale[0] = 0.5f;
+            out[i].uv_scale[1] = 1.0f;
+            out[i].uv_offset[0] = i ? 1.0f : 0.0f;
+            mu_cloth_add_sphere(&out[i], -x, -5.0f, -10.0f, 30.0f, 3);
+            mu_cloth_add_sphere(&out[i], -x, -5.0f, -30.0f, 35.0f, 3);
+        }
+    }
+    return n;
+}
+
+/* CreateMonster's processors preceding the generic fallback: Nightmare only in world 39
+ * (0x00e879ad); class 937's virtual create method (0x00d5a9d3). Other ids use the existing class table. */
+int mu_cloth_npc_model(int16_t class_index, int32_t world, float *scale)
+{
+    if (class_index == 0x169 && world == 39) {
+        *scale = 1.6f;
+        return 0x81e;
+    }
+    if (class_index == 0x3a9) {
+        *scale = 0.9f;
+        return 0x95a;
+    }
+    return -1;
+}
