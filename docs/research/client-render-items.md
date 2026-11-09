@@ -2525,7 +2525,7 @@ glowing cloth draws three quad streams: front, back, glow. `mu_cloth_render` now
   aliases, the level test, the glow pass, the scaling, arg 4, the angle-matrix variant, the sub-type model, the draw
   test, and the `0x8000` and gravity-180 forces.
 
-## Part 28, counter-gated mace particles and rank-5 world owners, RENDER-EFFECTS-022
+## Part 29, counter-gated mace particles and rank-5 world owners, RENDER-EFFECTS-022
 
 Evidence is offline. The particle create/move/render comparisons execute the pinned original routines under
 Unicorn, and the item-point comparison executes the complete original RenderObjDraw. Text SHA-256:
