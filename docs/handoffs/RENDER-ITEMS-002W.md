@@ -123,3 +123,8 @@ ctypes host callback. Reference comparisons are clean. A bounded callback diagno
 regression are prepared; after the unchanged 50-row batch finishes, only the two affected bone mutants and
 the two actual host consumers will be rechecked. Other mutants will not be repeated. This checkpoint is not
 PR-ready until that audit and the remaining validator/default-draw checks finish.
+
+The unchanged-source, no-mutant batch has passed 30/50 rows at this documentation checkpoint, including
+carry, derived, record/quality, coverage and next-wing families. No failures or skips. Latest main is
+`c26bd0e8`, RENDER-EFFECTS-023, reserving research part 32. Its merge and the bounded callback/body-only
+proof refinements follow the current batch so each report remains tied to stable source.
