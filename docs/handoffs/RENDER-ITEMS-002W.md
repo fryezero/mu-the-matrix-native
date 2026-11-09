@@ -6,6 +6,13 @@ Research is [part 35](../research/client-render-items.md#part-35-worn-mace-light
 main assigned parts 32/33 while this lane verified its changes. Offline/static only. No full gate in the lane.
 The installed Native Preview and Wine apps are untouched.
 
+Steward batch 92 integrates main `5ef84dff`, including RENDER-EFFECTS-024 after the lane
+checks below. EFFECTS-024 keeps research part 34; this lane is part 35. Its added two bitmap
+slots and intended Ferea fire change are separate from the lane's earlier 79-to-93 bitmap
+normalization and 92-image sweep. That sweep is evidence at the lane-tested source, not a
+new sweep of the combined tree. Per-row reruns and the combined gate are recorded in the
+steward log and PR comment.
+
 ## Result
 
 - Bodies **1,370 -> 1,404 of 1,674**; **270 remain**. Additions: bows `0x1313`, `0x1317`, `0x1319`, all 28 armour
