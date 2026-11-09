@@ -129,3 +129,23 @@ The unchanged-source, no-mutant batch has passed 30/50 rows at this documentatio
 carry, derived, record/quality, coverage and next-wing families. No failures or skips. Latest main is
 `c26bd0e8`, RENDER-EFFECTS-023, reserving research part 32. Its merge and the bounded callback/body-only
 proof refinements follow the current batch so each report remains tied to stable source.
+
+## Late-main checkpoint
+
+Main `6736cb57` (FX023 and CLOAK-004) is merged. Source `ad9f8c77` adds explicit callback bounds diagnostics
+and the viewer's `--item-body-only` control. The atlas regression requires zero effect requests and zero
+created particles, so merged particle motion cannot make a frozen atlas pass.
+
+| Check | Result | Wall time |
+|---|---|---:|
+| Merged root build | pass | 9.85 s |
+| Portable merge-affected run | 151 work items, 1,641 tests, 1,367 passed, 274 skipped, no failures/errors | 311.07 s (258.9 s test wall) |
+| Canonical private changed/added native modules | 38/38, no skips; **8d reduced**, 143 selected native modules >40 | 26.47 s |
+| Bounded host's portable renderchar suite | 107 tests, 84 passed, 23 private skips, no errors | 1.06 s |
+| Bounded host reference and only two affected bone mutants | 3,392 owned states unchanged; object-domain 282 / object-bone 133 detections; no callback errors | 21.72 s |
+| Current body-only zero-light control | private viewer copy with blend 0 has one hash; corrected viewer has three; counters 0/7/8, pose/time fixed, zero FX/particles throughout | 8.64 s |
+
+The other 46 pre-draw mutants and eight named mutants were not repeated. The current PR selector keeps
+54 rows, including all three symbol fallbacks. The since-tested-commit selector keeps 57 merge-affected rows,
+pruning 29 rows with unchanged used symbols. Its no-mutant rerun is in progress; both selection lists and
+per-row results will be reconciled before the ready-prs entry.
