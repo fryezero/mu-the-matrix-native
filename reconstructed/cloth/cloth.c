@@ -1689,7 +1689,7 @@ int mu_cloth_npc_create(mu_cloth out[MU_CLOTH_WINGS_MAX], int16_t class_index, c
                             i ? 0x84e7 : 0x84e6, i ? 0x84e7 : 0x84e6, 0x1005);
             out[i].uv_scale[0] = 0.5f;
             out[i].uv_scale[1] = 1.0f;
-            out[i].uv_offset[0] = i ? 1.0f : 0.0f;
+            out[i].uv_offset[0] = (i != 0) ? 1.0f : 0.0f;
             mu_cloth_add_sphere(&out[i], -x, -5.0f, -10.0f, 30.0f, 3);
             mu_cloth_add_sphere(&out[i], -x, -5.0f, -30.0f, 35.0f, 3);
         }
