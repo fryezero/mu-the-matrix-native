@@ -315,6 +315,12 @@ class WorldRender(unittest.TestCase):
             expect=17+2*(frame%3==0)+(frame%5==0)
             self.assertEqual((r['special'],r['pre_effects'],r['pre_refused']),(0,0,expect),frame)
 
+        isolated, _ = self.render('--weapon', '0', path, '--item-type', 'weapon0=0xf20',
+                                  '--world-time', '0', '--frame-counter', '0', '--item-body-only')
+        self.assertEqual((isolated['special'], isolated['pre_effects'], isolated['pre_refused']), (0, 0, 0))
+        self.assertEqual(isolated['particles_created'], 0)
+        self.assertGreater(isolated['passes'], 0)
+
     def test_counter_range_bodies_reach_native_renderer(self):
         """The six 002V types used to fall back as unsupported. Exercise their recipes through the
         native item host, including a high-bit frame counter and the staff's intermediate colour products."""
@@ -410,13 +416,14 @@ class WorldRender(unittest.TestCase):
         for counter in (0, 7, 8):
             output = self.tmp/f'counter-atlas-{counter}.png'
             result = run('character', '--game-root', root, '--class', '1',
-                         '--weapon', '0', root/'Data/Item/Hammer15.bmd', '--world-render',
+                         '--weapon', '0', root/'Data/Item/Hammer15.bmd', '--world-render', '--item-body-only',
                          '--item-type', 'weapon0=0x0f2a', '--item-level', 'weapon0=9',
                          '--action', '1', '--frame', '0.5', '--world-time', '123456',
                          '--frame-counter', str(counter), '--width', '640', '--height', '480',
                          '--out', output)
             report = json.loads(result.stdout.strip().splitlines()[-1])
             self.assertEqual(report['special'], 0)
+            self.assertEqual((report['pre_effects'], report['pre_refused'], report['particles_created']), (0, 0, 0))
             hashes.append(report['sha256'])
         self.assertEqual(len(set(hashes)), 3, 'fixed-pose atlas must visibly follow the counter')
 
