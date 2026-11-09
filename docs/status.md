@@ -1,5 +1,7 @@
 # Current status
 
+CLOAK-004 PR-ready: NPC/monster cloth constructor `0x01362755` now runs in the native actor path for Death King `55`, Nightmare `361` and Eunice `937/939/940/941`, with actor bones, two-half UVs/spheres, per-frame stepping and cache/travel cleanup. Nightmare uses model `0x81e` in world 39; Eunice Monster uses `0x95a` in world 121; ordinary town NPCs select no cloth. `validate_npc_cloak`: 2,619 comparisons, 0 mismatches, 17/17 compiled mutants. [Mapping, checks and limits](handoffs/CLOAK-004.md).
+
 RENDER-EFFECTS-022 PR-ready: #350’s native counter now draws the maces’ `0x810a/0x25` OBJECT-owned spark (argument 8 and retained OBJECT points), `0x855d/1` red sparks and `0x84d1/1` smoke. Sixteen consecutive fixture frames go from 18 refused particles to 18 created/drawn, zero refused; the rank-5 block now runs for world players and the hero. Default tours: 92/92 PNGs and all dumps byte-identical. The maces’ other `0x7f7a` / `0x80ba` bone sprites still lack world bitmap slots. [Checks, census and limits](handoffs/RENDER-EFFECTS-022.md).
 
 FOLLOWUPS-001 PR-ready: opaque captures in charsel, frame, GFx and viewer tools; the CLI inventory no longer draws skin sprites over icons; `--gfx-open inventory,equipment-demo` supplies the six appearance-only accessory records for slots 9..14. Frame 0 remains open: the supplied libmugfx ignores the host clock, confirmed by an AS2 getTimer probe. Rebuild with patch 0008, then run the four-run image regression. [Handoff](handoffs/FOLLOWUPS-001.md).

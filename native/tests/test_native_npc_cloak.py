@@ -124,6 +124,7 @@ class WorldScene(unittest.TestCase):
                     self.assertAlmostEqual(actors[0]['scale'], 1.6 if world == 39 else 0.9)
                     row = next(json.loads(x) for x in result.stdout.splitlines() if x.startswith('{"cloak"'))
                     self.assertEqual(row['created'], 1 if world == 39 else 2)
+                    self.assertEqual(row['drawn'], 2 if world == 39 else 4)
                 else:
                     self.assertNotIn('{"cloak"', result.stdout)
 

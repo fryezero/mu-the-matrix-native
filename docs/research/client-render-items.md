@@ -2703,7 +2703,7 @@ comparisons and offline native before/after renders, not original-client pixel e
 counter's absolute phase are unchanged assumptions. The viewer still lacks an item OBJECT registry and refuses
 the owned spark. `0x0f2a`'s `0x85bc/5`, `0x83b8/8`, `0x85fc/1` and register-selected particle remain next work.
 
-## Part 31, NPC and monster cloth callers, CLOAK-004
+## Part 32, NPC and monster cloth callers, CLOAK-004
 
 The remaining constructor `0x01362755..0x01362e1d`, SHA-256
 `e80e875813736e2eb79a71ac22017f69de6ebbfd1c0ce4fc38f5ea902640ab60`, fills OBJECT `+0x48`, count `+0x3e`.
@@ -2739,10 +2739,11 @@ Death King uses Player model `0xa91` at scale 1.4 in the existing generic class 
 - Nightmare's world-39 processor `0x00e879ad`, predicate `0x00e84513`, opens monster type 121 and calls
   CreateCharacter with model `0x81e` at `0x00e87a3c`, then writes scale 1.6.
 - Eunice Monster's dedicated virtual create method `0x00d5a9d3`, branch `0x00d5ad35`, opens monster type 437,
-  passes model `0x95a` at `0x00d5ad57`, then writes scale 0.9. Virtual-manager world/event dispatch is not compared.
+  passes model `0x95a` at `0x00d5ad57`, then writes scale 0.9. The pinned vtable pointer at `0x01aa5244` is slot
+  `0x48` of `0x01aa51fc`; the existing factory census binds that class only to world 121. That binding is static;
+  the bounded instruction run does not execute the virtual manager's lifecycle.
 
-`mu_cloth_npc_model` supplies those bounded selections to native actor loading. Nightmare keeps its world test;
-explicit fixture class 937 selects its dedicated model. The player actor loader now admits Death King. The actor
+`mu_cloth_npc_model` supplies those bounded selections to native actor loading. Both overrides keep their world conditions, 39 for Nightmare and 121 for Eunice Monster. The player actor loader now admits Death King. The actor
 parts draw cloth after body parts/before links for Player models, after the body for other models. The shared
 world cloth state has separate actor slots, steps them between saved frames on their own posed bones and clears
 those slots before actor-cache replacement, travel and unload. Ordinary town NPCs are not in this constructor.
