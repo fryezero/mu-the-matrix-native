@@ -22,7 +22,7 @@
  * the joints' textures (JointThunder01, Spark01, JointSpirit01, JointEnergy01; LoadBitmap 0x0182239b..) and
  * the login scene's clouds and WATERFALL1; NATIVE-CHARSEL-002 the character-select scene's WATERFALL2/3,
  * fantaB, Spark04, magic_ground1_3 and Impack03 (the selection light 0x8022 subtype 5 draws Impack03). */
-#define MU_WORLD_PT_EFFECTS 91
+#define MU_WORLD_PT_EFFECTS 93
 static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     MU_PT_BITMAP_FIRE, MU_PT_BITMAP_SMOKE, MU_PT_BITMAP_FLARE, MU_PT_BITMAP_SPARK3, MU_PT_BITMAP_THUNDER,
     MU_PT_BITMAP_SPARK2, MU_PT_BITMAP_SHINY2, MU_JT_BITMAP_THUNDER, MU_JT_BITMAP_SPARK, MU_JT_BITMAP_SPIRIT,
@@ -46,6 +46,7 @@ static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     /* RENDER-EFFECTS-023: mace sprites and the remaining mace particles, original startup mappings. */
     0x7f7a, 0x80ba, 0x85bc, 0x85fc, 0x8315, 0x8316, 0x8317, 0x7ffb,
     0x8549, 0x82f2, 0x810b, 0x807e, 0x807f, 0x8080,
+    0x81ec, 0x854a,   /* RENDER-EFFECTS-024: mace bone sprites */
     MU_PT_BITMAP_FIRE06,
     MU_PT_BITMAP_RAIN_SPLASH,
     MU_PT_BITMAP_RAIN_RING};
@@ -104,6 +105,8 @@ static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     "Data/Effect/firehik03.OZJ", "Data/Effect/Shockwave.OZJ", "Data/Effect/Glow_26.OZJ",
     "Data/Effect/smoke01_strong.OZJ", "Data/Effect/pin_star02_red.OZJ", "Data/Effect/smokelines01.OZJ",
     "Data/Effect/smokelines02.OZJ", "Data/Effect/smokelines03.OZJ",
+    /* RENDER-EFFECTS-024: LoadBitmap 0x01823365 / 0x0182ec0d, both LINEAR/CLAMP. */
+    "Data/Effect/lightmarks_red.OZJ", "Data/Effect/light_blue.OZJ",
     /* RENDER-EFFECTS-016: Fire06 0x7f40, 0x70c's stone particle (LoadBitmap 0x018229e5 in 0x0182049e,
      * LINEAR/CLAMP) */
     "Data/Effect/Fire06.OZJ"};

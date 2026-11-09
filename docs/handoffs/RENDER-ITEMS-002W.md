@@ -2,7 +2,7 @@
 
 Branch `codex/render-items-002w`, from main `127489e0` after prerequisite #355 merged. Codex, GPT-6.1 Sol;
 no subagents. Latest main `6736cb57` is merged, retaining GFX-FRAME0-001, RENDER-EFFECTS-023 and CLOAK-004.
-Research is [part 34](../research/client-render-items.md#part-34-worn-mace-light-and-named-part-meshes-render-items-002w):
+Research is [part 35](../research/client-render-items.md#part-35-worn-mace-light-and-named-part-meshes-render-items-002w):
 main assigned parts 32/33 while this lane verified its changes. Offline/static only. No full gate in the lane.
 The installed Native Preview and Wine apps are untouched.
 

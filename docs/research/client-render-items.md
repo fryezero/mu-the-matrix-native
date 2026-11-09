@@ -2934,7 +2934,72 @@ rejection, every cloth field and the ordered GL stream. It also executes the two
 the actual scale stores with engine open/create/name services supplied, stopping before trailing effects.
 Final counts, compiled mutants, native scenes and byte-identity results are in the handoff.
 
-## Part 34, worn mace light and named part meshes, RENDER-ITEMS-002W
+## Part 34, mace sprite textures and Ferea fire emitters, RENDER-EFFECTS-024
+
+Offline/static only. Original-instruction comparisons use pinned text SHA-256
+`2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724` and data SHA-256
+`c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f`.
+Native before/after images are visibility and regression evidence, not original-client pixel equivalence.
+
+### The two sprite texture gaps
+
+Verified static LoadBitmap calls, with their six pushed arguments and original path strings checked by
+`validate_render_effects24`:
+
+| Bitmap | Loader call | Original path | Native file | Filter / wrap |
+|---|---|---|---|---|
+| `0x81ec` | `0x01823365` | `Effect\lightmarks_red.jpg` | `Data/Effect/lightmarks_red.OZJ` | LINEAR / CLAMP |
+| `0x854a` | `0x0182ec0d` | `Effect\light_blue.jpg` | `Data/Effect/light_blue.OZJ` | LINEAR / CLAMP |
+
+The world table grows 93 to 95 slots. Slots 0..89 retain their indices; the additions precede Fire06, and
+rain02/rain03 remain last. Synthetic files contain distinct greys, so native checks reject swapped files as well
+as missing IDs, wrong filtering or wrapping. Both sprites must actually reach the raster draw path. The new slots
+serve the three `0x81ec` sites of `0x0f2a` and four `0x854a` sites of `0x0f2b` from part 32.
+
+### Exact Hammer14 bone names
+
+The installed `Data/Item/Hammer14.bmd` has SHA-256
+`9c294b8ea5d4db8c7ad35543e102076800d3a042fae6ce81b349cc72eab4220c`. Bone 9 is exactly `up01 `, including the
+trailing space; the program asks for `up01`. The lane checks installed authored Hammer14 variants without trimming
+or normalizing names. An unrelated model having an `up01` bone would not justify replacing Hammer14. The refusal
+remains, with the bounded variant-search result and native counts in the handoff.
+
+### The next measured refusal, Ferea fire
+
+The lane's default 46-view census at main `6736cb57` finds six refused `0x413/10` effect requests and one refused
+`0x7f89/28` particle request, all in Ferea. The 61-draw Ferea view has 183 refused fire emitters and 11 refused
+clouds/28. The fire emitter is therefore the next consumer selected. The Lorencia demo and eight admitted mace
+wearers add no unsupported particle kinds. Counts cover these scenes, not every client program.
+
+CreateEffect sets blend mesh 1 at `0x013d2f08`; subtype 10 follows `0x013d3b33..0x013d3b58`, sets lifetime 1
+and leaves the common scale, position, angle and light. MoveEffect `0x0146d6b9..0x0146d7f5` selects one child
+with rand % 3, preserving position, angle, light and scale, no owner:
+
+| Choice | Child | Native consumer |
+|---|---|---|
+| 0 | `0x8084/3` | Added in `world_flames.c` |
+| 1 | `0x806e/4` | Existing `world_flames.c` |
+| 2 | `0x8085/0` | Existing `world_flames.c` |
+
+The emitter skips the ordinary Fire Ball trail/light block, follows the common movement/animation tail, then
+retires when its one-step lifetime decrements to zero. The comparison includes arbitrary modeled records, owner
+reads, model-present/absent paths, animation boundaries, ordered child calls and rand consumption. No Fire model
+slot is added to the world; this consumer supplies the particle request.
+
+`0x8084/3` create `0x015d45a8..0x015d4748`: lifetime rand % 5 + 27; scale
+`((rand % 72 + 52) * 0.01f) * scale`; rotation rand % 360; gravity `(rand % 14 + 44) * 0.1f`; alpha 0;
+keep the input light in the three saved-light words and clear current light. Move `0x01646f7f..0x0164723a`
+shares the flame's alpha fade and saved-light products, but its positive scale shrinks by `(rand % 3 + 2) * 0.01f`.
+It rises by gravity and rotates by 3. Its existing render draws the current light. The comparator caught the
+incorrect subtype-0 shrink before the new branch was finalized. All three children are compared for create,
+move and render, although only `0x8084/3` needs new logic.
+
+The full focused proof passes 11,006 comparisons with zero mismatches. Compiled mutants, native scene counts,
+wall times, default byte identity, remaining refusals and exact steward rows are recorded in
+[RENDER-EFFECTS-024](../handoffs/RENDER-EFFECTS-024.md). No blend-light default, item fit, pose, frame counter,
+installed Preview or Wine app changes here. Clouds/28 remain a separate consumer to recover.
+
+## Part 35, worn mace light and named part meshes, RENDER-ITEMS-002W
 
 Prerequisite #355 merged before the branch was created. This lane covers the missing worn `0x0f2a` input,
 three read-program bows and the 31 strlen parts. [Handoff and verification](../handoffs/RENDER-ITEMS-002W.md).
