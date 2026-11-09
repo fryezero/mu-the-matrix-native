@@ -3351,6 +3351,7 @@ mutants = 18
 cases_at = "families.*.cases"
 mutants_at = "mutants"
 build = ["reconstructed/particles", "reconstructed/combat", "native"]
+build_targets = { native = ["build/libmunative.a", "build/libmusession_world.a"] }
 args = ["--cases", "20", "--mutations", "--output", "{report}"]
 note = "RENDER-EFFECTS-024: two original sprite loader mappings and native file/filter/wrap/draw checks, Ferea fire emitter 0x413/10 and its three particles; 18 compiled mutants"
 [validate_render_effects24.expect]
