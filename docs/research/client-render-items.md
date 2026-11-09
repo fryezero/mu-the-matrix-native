@@ -2524,3 +2524,34 @@ glowing cloth draws three quad streams: front, back, glow. `mu_cloth_render` now
 - **65/65 compiled mutants caught**, none equivalent, every anchor once. The 27 new ones cover the table, the
   aliases, the level test, the glow pass, the scaling, arg 4, the angle-matrix variant, the sub-type model, the draw
   test, and the `0x8000` and gravity-180 forces.
+
+
+## Part 28, installed Preview proofs and the counter visibility limit, APP-REFRESH-010
+
+Same client identity and pins as above. This is offline native integration evidence, not a new original-client
+capture or an extension of the reconstructed instruction domain. [Full handoff](../handoffs/APP-REFRESH-010.md).
+
+The installed Preview is detached main a55200e2, with all changes since a7f7b247. Export inputs are unchanged,
+so APP-REFRESH-006 Native Data is retained and its manifest verified. One full private native/tests run covered
+149 modules / 1,001 tests; two errors exposed ambiguous bow mutant anchors after #350's exact-one assertion.
+Four anchors are narrowed to their original branches. The two affected modules pass 7 tests and 38 compiled
+mutants; selected effects12/13/14 comparisons pass. No production source or reconstruction case count changed.
+
+Installed-app evidence, public one-player fixtures and the APP-REFRESH-009 rollback, matching frame 150:
+
+- Class-0 Velvet with wing 0x2382 draws the physics cape, 2,051 changed pixels confined to the cape. Its shape
+  changes between frames 120/150. Class/cloth equivalence beyond the merged bounded tests is not claimed.
+- Wing 0x22ec adds 4,558 pixels in its blue streaks. Those are the two joint kinds from part 26.
+- Mace 0x0f2a +9 draws its new body, 758 changed pixels. Its ordinary pose moves, but counter-driven atlas motion
+  is not visually proved. The compiled body stream changes mesh-4 u from 0 to 0.75 for counters 0/7, while the
+  native pass has blend mesh 4 and blend light 0. Fixed-pose/time images at different counters are identical.
+  Native fill_item initializes that input to 0 and does not supply the caller's blend light. Recover that input
+  before reporting visible atlas animation; do not infer a correct replacement constant from these images.
+- Raklion at 198,211, frame 60, brings object 1259's spray into view. A particle-only toggle changes 4,624 pixels
+  in the spray region below the statue's jaw. At the old 224,211 arrival the projected particle points are off
+  the top-left. Later samples do not preserve the useful early view, so persistent visibility remains open.
+- Twelve installed native captures, including windowed screenshots, have alpha 255 at every pixel. Comparisons
+  ignore the rollback PNG's older, unreliable alpha; the opaque-output claim is checked on raw new PNGs.
+
+Six small opaque window-only PNGs stay in the local app-refresh-010 rollback folder. No client data, rendered
+image, helper binary or snapshot is committed. Remaining body/cloth/protection/service boundaries are unchanged.
