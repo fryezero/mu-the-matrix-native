@@ -2815,7 +2815,7 @@ constant is installed. This lane proves counter-driven command changes, **not vi
 The installed preview is untouched. Recover the OBJECT/PART caller's blend-light value and lifetime before
 claiming visual completion; then repeat this fixed-pose native test and the app proof.
 
-## Part 32, worn mace light and named part meshes, RENDER-ITEMS-002W
+## Part 33, worn mace light and named part meshes, RENDER-ITEMS-002W
 
 Prerequisite #355 merged before the branch was created. This lane covers the missing worn `0x0f2a` input,
 three read-program bows and the 31 strlen parts. [Handoff and verification](../handoffs/RENDER-ITEMS-002W.md).

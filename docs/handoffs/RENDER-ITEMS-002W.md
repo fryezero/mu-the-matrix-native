@@ -3,6 +3,7 @@
 Branch `codex/render-items-002w`, worktree `~/Documents/MTM/worktrees/render-items-002w`, from main
 `127489e0`, after prerequisite #355 merged. Codex, GPT-6.1 Sol; no subagents. Offline/static work only.
 The installed Preview and Wine apps are untouched. No full gate in this lane.
+Research uses part 33: main assigned part 32 to RENDER-EFFECTS-023 during verification.
 
 ## Result
 
