@@ -255,7 +255,8 @@ existing plain textured-body fallback for these non-item indices; they do not ch
 The actor's class-table weapon and Death King's CLOAK-004 robe remain separate attachments.
 
 Eleven other rows have explicit helm/armour/pants/gloves/boots in the existing extracted equipment table.
-Their complete body/linked-item call plans are compared against RenderCharacter at idle, and their actual
+Their body/linked-item call plans are compared against RenderCharacter at idle with authored record kind 0
+and option/ext 0. Their actual
 native models, levels, scales and textures are checked. Nine gain loader admission; Marlon 229 and Shadow
 Phantom Soldier 257 are regression controls. The native bridge still uses its existing generic weapon pose
 and link handling, so the original call-plan comparison does not establish every native attachment transform.

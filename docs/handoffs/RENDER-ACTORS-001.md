@@ -15,6 +15,10 @@ Of the 32 player-model rows in the class table, 15 actors change, 2 are unchange
 unadmitted. This is the census of the bounded class table, not a claim that every virtual map processor,
 world variant or transformed-player appearance is reconstructed. Shipped placements are unchanged.
 
+Latest main `54a53e1a` was merged as `6c2ca37a`, preserving both lanes' status entries. The merged build passes
+in 12.0 s. The post-build delta selector retains 56 rows in 63.9 s; their no-mutant run is in progress at this
+checkpoint. The actor implementation and its compiled mutant targets are unchanged by that merge.
+
 | Class | Result | Body recipe | Scale |
 |---|---|---|---:|
 | 14 | fixed | whole `0x422`, Skill/Skeleton01 | 0.95 |
@@ -63,7 +67,7 @@ trig flag and feature word. The validator loads and checks their full SHA-256 va
 - Startup loop `0x01832c28..0x01832c5d` loads Skeleton01..03 from Data/Skill into `0x422..0x424`.
 - RenderCharacter `0x01369f98..0x0136a00d`, and Golden Archer's town branch `0x01367d85..0x01367e23`, supply the whole body.
 - The eleven equipment recipes execute the existing constructor/processor chain and RenderCharacter's idle
-  part/link plan. Model lookup, strings and engine services are the existing named stubs; no opaque chain jump runs.
+  part/link plan at action 1, with authored record kind 0 and option/ext 0. Model lookup, strings and engine services are the existing named stubs; no opaque chain jump runs.
 - `mu_actor_player_recipe` returns only the six recovered whole-body classes and rows with explicit body equipment.
   The native loader uses slot 0 for the whole mesh, preserves table levels/scales, and loads it on the same Player
   bone pose as the existing armour. Ordinary actors and the fifteen unresolved rows retain their prior route.
@@ -120,7 +124,7 @@ One default-draw byte-identity sweep at 640x400, without draw_all or live_time:
 - October 22: 28/28 PNGs, 28/28 OBJECT/light dumps and 14/14 normalized reports identical; 14.75 / 14.13 s.
 - DATA-ACQ-002: 64/64 PNGs, 64/64 OBJECT/light dumps and 32/32 normalized reports identical; 39.03 / 44.37 s.
 
-Reports normalize only their output-directory prefix. No captured scene contains one of the newly admitted classes.
+Reports normalize only their output-directory prefix. The capture-sweep commands supply no new actor placements.
 
 Screenshots, inputs and local reports are under
 `~/Documents/MTM/mu-mac-tools/native/{scratch,renders}/render-actors-001/`. They are removed at PR-ready cleanup.
