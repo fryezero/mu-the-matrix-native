@@ -10,6 +10,7 @@ import unittest
 from unittest import mock
 
 import test_renderchar as base
+import classify_item_bodies as survey
 import gen_item_bodies as gen
 import validate_item_groups as groups
 import validate_renderchar as v
@@ -19,6 +20,11 @@ class ItemGroups(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.lib = base.lib()
+
+    def test_survey_membership_matches_native_admission(self):
+        types = set(survey.special_types())
+        actual = {t for t in types if self.lib.mu_rc_item_special(t) == 0}
+        self.assertEqual(survey.covered_types() & types, actual)
 
     def test_failed_probe_clears_derived_phase_state(self):
         previous = list(gen._PHASES)
