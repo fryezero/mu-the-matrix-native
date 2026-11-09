@@ -3270,6 +3270,26 @@ note = "278 characters (every CreateCloth wing case three times, its 17 aliases,
 "families.gate.cases" = 768
 "mutants.*" = {truthy = true}
 
+[validate_armour_cloak]
+test = "native/tests/test_native_armour_cloak.py::ClientComparison.test_original_instructions"
+pins = ["text", "data", "flag", "feature", "effects_init"]
+families = ["create", "step", "render", "draw_gate"]
+cases = 4448
+mutants = 19
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/cloth", "reconstructed/record-math"]
+args = ["--text", "{text}", "--data", "{data}", "--flag", "{flag}", "--feature", "{feature}", "--section3", "{effects_init}", "--mutations", "--output", "{report}"]
+note = "CLOAK-003: 240 armour constructors, 8 frames each (cloth fields and ordered GL/sprite requests), 368 armour-list visibility states; 19 compiled mutants target the added armour and render paths"
+[validate_armour_cloak.expect]
+"families.*.mismatches" = 0
+"families.*.stopped" = 0
+"families.create.cases" = 240
+"families.step.cases" = 1920
+"families.render.cases" = 1920
+"families.draw_gate.cases" = 368
+"mutants.*" = {truthy = true}
+
 [validate_render_effects22]
 test = "native/tests/test_render_effects22.py::ClientComparison.test_original_instructions"
 pins = ["text", "data", "flag", "feature"]
