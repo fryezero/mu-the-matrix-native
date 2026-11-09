@@ -1,5 +1,7 @@
 # Current status
 
+RENDER-EFFECTS-024 in progress: original-loader sprite textures `0x81ec` and `0x854a`, Ferea's `0x413/10` fire emitter and its `0x8084/3` child. Exact Hammer14 bone names stay unchanged. Offline original comparisons and native before/after proofs are being completed. [Scope and limits](handoffs/RENDER-EFFECTS-024.md).
+
 CLOAK-004 PR-ready: NPC/monster cloth constructor `0x01362755` now runs in the native actor path for Death King `55`, Nightmare `361` and Eunice `937/939/940/941`, with actor bones, two-half UVs/spheres, per-frame stepping and cache/travel cleanup. Nightmare uses model `0x81e` in world 39; Eunice Monster uses `0x95a` in world 121; ordinary town NPCs select no cloth. `validate_npc_cloak`: 2,619 comparisons, 0 mismatches, 17/17 compiled mutants. [Mapping, checks and limits](handoffs/CLOAK-004.md).
 
 RENDER-EFFECTS-023 PR-ready: nineteen remaining mace particle pairs, fourteen world bitmap slots, direct OBJECT-point rings and character-viewer item owners. Older maces gain flare sprites; `0x0f2a` creates/draws its particles; five new maces have zero unsupported particle kinds, retaining one exact bone-name refusal per draw. 58,014 original component comparisons, 31/31 mutants; default 92 PNGs and 92 dumps byte-identical. Two sprite texture gaps and blend-light/body-fit follow-up remain. [Checks, census and limits](handoffs/RENDER-EFFECTS-023.md).

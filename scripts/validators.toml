@@ -3341,3 +3341,19 @@ note = "RENDER-EFFECTS-023: 19 mace particle pairs, OBJECT point writes across f
 all_equal = true
 all_mutants_caught = true
 "mutants.*.stopped" = 0
+
+[validate_render_effects24]
+test = "native/tests/test_render_effects24.py::ClientComparison.test_original_instructions"
+pins = ["text", "data"]
+families = ["fx_effect_create", "fx_effect_move", "pt_create", "pt_move", "pt_render", "bitmaps", "native"]
+cases = 226
+mutants = 18
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/particles", "reconstructed/combat", "native"]
+args = ["--cases", "20", "--mutations", "--output", "{report}"]
+note = "RENDER-EFFECTS-024: two original sprite loader mappings and native file/filter/wrap/draw checks, Ferea fire emitter 0x413/10 and its three particles; 18 compiled mutants"
+[validate_render_effects24.expect]
+all_equal = true
+all_mutants_caught = true
+"mutants.*.stopped" = 0

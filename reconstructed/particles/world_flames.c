@@ -4,14 +4,16 @@
 #include "particles_internal.h"
 int mu_pt_world_flame_kind(int32_t type, int32_t sub)
 {
-    return (type == 0x806e && sub == 4) || ((type == 0x8084 || type == 0x8085) && sub == 0);
+    return (type == 0x806e && sub == 4) || (type == 0x8084 && (sub == 0 || sub == 3)) || (type == 0x8085 && sub == 0);
 }
 void mu_pt_world_flame_create(mu_pt_particle *p, const mu_pt_host *h, float scale)
 {
     p->lifetime = mu_pt_rand(h) % 5 + (p->type == 0x8084 ? 27 : p->type == 0x8085 ? 17 : 12);
-    p->scale = (float)(mu_pt_rand(h) % 72 + 72) * 0.01f * scale;
+    /* RENDER-EFFECTS-024: 0x015d45a8, Ferea's firehik01/3 uses smaller scale and rise ranges. */
+    const int ferea = p->type == 0x8084 && p->subtype == 3;
+    p->scale = (float)(mu_pt_rand(h) % 72 + (ferea ? 52 : 72)) * 0.01f * scale;
     p->rotation = (float)(mu_pt_rand(h) % 360);
-    p->gravity = (float)(mu_pt_rand(h) % 24 + 64) * 0.1f;
+    p->gravity = (float)(mu_pt_rand(h) % (ferea ? 14 : 24) + (ferea ? 44 : 64)) * 0.1f;
     p->alpha = 0;
     p->field_7c = p->light[0];
     p->field_80 = p->light[1];
@@ -32,7 +34,9 @@ void mu_pt_world_flame_move(mu_pt_particle *p, const mu_pt_host *h)
     p->light[1] = p->field_80 * p->alpha;
     p->light[2] = p->field_84 * p->alpha;
     if (p->scale > 0)
-        p->scale -= (float)(mu_pt_rand(h) % 3 + (p->type == 0x8084 ? 5 : p->type == 0x8085 ? 7 : 6)) * 0.01f;
+        /* RENDER-EFFECTS-024: 0x01647187, firehik01/3 shrinks by rand % 3 + 2. */
+        p->scale -= (float)(mu_pt_rand(h) % 3 + (p->type == 0x8084 ? (p->subtype == 3 ? 2 : 5) :
+                                               p->type == 0x8085 ? 7 : 6)) * 0.01f;
     else
         p->live = 0;
     p->position[2] += p->gravity;

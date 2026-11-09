@@ -1,5 +1,7 @@
 # Plan: the rest of the native macOS port
 
+RENDER-EFFECTS-024 in progress: original-loader sprite textures `0x81ec` and `0x854a`, Ferea's `0x413/10` fire emitter and its `0x8084/3` child. Exact Hammer14 bone names stay unchanged. Offline original comparisons and native before/after proofs are being completed. [Scope and limits](../../handoffs/RENDER-EFFECTS-024.md).
+
 RENDER-EFFECTS-023 PR-ready: nineteen remaining mace particle pairs, fourteen world bitmap slots, direct OBJECT-point rings and character-viewer item owners. Older maces gain flare sprites; `0x0f2a` creates/draws its particles; five new maces have zero unsupported particle kinds, retaining one exact bone-name refusal per draw. 58,014 original component comparisons, 31/31 mutants; default 92 PNGs and 92 dumps byte-identical. Two sprite texture gaps and blend-light/body-fit follow-up remain. [Checks, census and limits](../../handoffs/RENDER-EFFECTS-023.md).
 
 GFX-FRAME0-001 PR-ready: rebuilt the pinned Ruffle bridge with all eight patches. The AS2 comparison clock returns 0/0/40 ms; original and minimal HUD scenes each produce four identical raw frame-0 hashes and PNGs, zero skips. The new local libmugfx-frame0.dylib leaves the canonical library and installed app untouched. [Build, checks, digest and switch instructions](../../handoffs/GFX-FRAME0-001.md).
