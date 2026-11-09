@@ -148,5 +148,14 @@ occur once. No existing validator or mutant target was edited.
 | `validate_render_effects19` | 400 | 0.8 s |
 | `validate_worlds_fog` | 4,044 | 4.7 s |
 
+
+Main `127489e0` was merged as `29873d13`, preserving both lanes' documentation and moving this finding to
+Part 32. It brings RENDER-ITEMS-002V's six item bodies and random-colour arithmetic. Cloth and actor caller
+sources are unchanged (`git diff f0601116..29873d13` over those paths is empty). The merged build passes in
+10.8 s. `--list-affected-since f0601116`, after that build, selects 48 rows, including the movement fallback,
+and prunes 9 unused library consumers, in 58.9 s. Those rows are checked separately without mutants.
+The default sweep and viewport pairs above remain explicitly the `f0601116` proof, not a new original-client
+comparison. The merge adds no cloth behavior or new fixture/model input to that proof.
+
 Cleanup removes the lane's scratch, renders, build outputs, worktree and local branch after its ready-prs line.
 No new input needs to be kept. The remote branch remains for the steward.
