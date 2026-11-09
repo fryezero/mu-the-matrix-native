@@ -35,6 +35,8 @@ There is no runtime library digest pin in the repository to update. These local 
 
 Inputs:
 
+- Bridge source tree Git object `e55763a4975e1c97a43cf0fcf69662e9e86b3ce1` at `native/gfx/mugfx`, unchanged
+  between the build and the final main merge.
 - Ruffle `nightly-2026-10-17`, revision `061b39b0c3ecdd88214ba1750a035a678bf73559`.
 - All eight `native/gfx/ruffle-patches/*.patch`, applied in filename order with `git am` and author dates used
   as committer dates. Patched HEAD `7c0c6611`; concatenated patch SHA-256
@@ -82,14 +84,16 @@ All checks ran from the repository root. The private commands source
 `MU_NAMES_GFX_MOVIES` and `MU_QUEST_MOVIES` point at `$MU_NATIVE_DATA_DIR/gfx`, and `MU_LANG_DIR` at
 `$MU_NATIVE_DATA_DIR/lang`. Those variables make the previously unavailable tests run.
 
-The initial affected selection was 119 work items, above the 40-item private cap. **8d reduced** covers the two
+The initial affected selection was 119 work items, including 114 native/tests items, above the 40-item private cap.
+**8d reduced** covers the two
 changed test modules plus the task's real-GFx consumers. No unchanged instruction validator's mutants are repeated.
 The private run covers `test_native_gfx`, `test_native_gfx2`, the `test_native_gfx3` classes except
 `ClientRoutines`, `test_native_stress.MetalTiming`, `test_native_names.GfxRoute/GfxTravel`,
 `test_native_quest.LorenciaDemo`, `test_inventory_fx.InventoryScene`, `test_followups.AccessoryFixture/FrameZero`,
 `test_native_capture_alpha.LorenciaTooltipSceneTests`, `test_app_polish5.PrivateGroundSkill`, and
 `test_app_polish6.PrivateDemo`. The unchanged `ClientRoutines` instruction comparison is separate from loading
-the new library. No C symbol, ABI structure or table size changed; brief 6b/8b add no compiled consumers.
+the new library. This lane changes no C symbol, ABI structure or table size. The later main merge's 6b/8b
+consumers are recorded separately below.
 
 The initial private run found one pre-existing fixture failure. `GfxRoute` expects a dead Hound's nameplate to
 be removed, but APP-POLISH-001 moved the presentation Hound to 205,131, outside the bow's range from 182,128.
@@ -125,6 +129,48 @@ Both processes exited themselves; the installed Preview was not used. These shor
 | Unmodified nameplate test with legacy library | same missing removal, confirms baseline defect | 3.70 s |
 | Corrected nameplate test, legacy / new | 1/1 each, 0 skips | 3.44 / 3.25 s |
 | Window-only before / after | inspected, same layout, opaque | 1.91 / 1.94 s |
+| Portable affected suites, MU_RECOVERY_INTEGRATION=0, jobs 2 | 119 items, 1,305 tests: 1,089 passed, 216 skipped, 0 failures/errors | 319.96 s including selection; 256.0 s execution |
+
+The portable selection includes the still-unmerged FOLLOWUPS-001 dependency, which is already in this branch.
+The initial validator / unit selection-only commands took 28.40 / 49.80 s. No lane full gate was run.
+
+Initial private validator run at `10b23ef710a2496c1ff3baa429176dc2c4884c57`, before #353/#354 merged into main:
+9/9 passed, 0 failures/errors/skips, 162.37 s including selection. Canonical private-env.sh plus the new
+`MU_GFX_LIB`, `--private --no-mutants --cache --affected origin/main --jobs 2`. These rows were selected by the
+then-unmerged FOLLOWUPS-001 dependency. None of this lane's changes needs compiled mutants.
+
+| Validator | Report cases, all passing | Pre-merge wall | Final wall |
+|---|---:|---:|---:|
+| validate_meshdraw | 14619 | 50.9 s | 50.6 s |
+| validate_model_edge | 954 | 100.5 s | 104.5 s |
+| validate_movement | 6614 | 44.4 s | 46.8 s |
+| validate_audio_callers | 5528 | 5.0 s | 5.3 s |
+| validate_audio_domains | 2544 | 19.8 s | 23.0 s |
+| validate_audio_items | 3000 | 2.5 s | 2.6 s |
+| validate_app_polish2 | 1028 | 2.9 s | 3.2 s |
+| validate_app_polish4 | 10485 | 27.1 s | 31.5 s |
+| validate_worlds_fog | 4044 | 4.3 s | 6.5 s |
+
+Meshdraw's report includes texture/input coverage; its mutated inputs and built-in negative controls are not
+new compiled C mutants. Movement was retained by the reported symbol fallback. The later main merge and its
+required reruns are recorded below.
+
+### Final main integration
+
+Merged main `825c37b7` through #353 and #354 into `2d6b8a236da011bd0dc1cf0f618eb353e2f9c14d`, retaining both
+lanes' shared documentation entries. #354 changes the particle table and owner structure, so brief 6/6b/8b
+requires rebuilding their consumers. The bridge source and all eight Ruffle patches are unchanged.
+
+The final build passes in 10.87 s. The final private run passes 18/18 tests, zero skips, in 128.83 s: the two
+four-start proofs, the world-facing GFx cases listed above, and the direct Native hosts for effects16, effects20
+and effects22 found by the 6b symbol search. Both raw frame-0 hashes above remain unchanged. The unchanged
+Rust-only extension, movie, timer and Metal checks retain their earlier results. This remains **8d reduced**.
+
+The final portable selection is 17 items, including the `native_social2` computed-path fallback. All ran:
+397 tests, 340 passed, 57 expected skips, zero failures/errors; 128.72 s including selection, 77.9 s execution.
+Final selection-only wall times were 19.13 s for validators and 48.37 s for units. Unlike the initial selection,
+the final diff contains only this lane's nine files. The final validator list is the three audio rows whose
+scripts conservatively track all of `native/`, including the changed build helper.
 
 The private coverage above is 56 distinct tests after the fixture correction, all exercised with the new library,
 zero remaining failures or skips. Only the failed test was repeated after changing its fixture.
@@ -140,6 +186,24 @@ nice -n 10 tools/python/bin/python -m unittest \
 `FrameZero` contains both four-start scene tests. The in-tree mugfx artifact is needed by `MetalTiming`; during
 this lane it is the byte-identical build copied to the retained artifact. The final cleanup removes that target
 directory, so a later lane must rebuild it to rerun tests that require the in-tree shot executable and library.
+
+Final merge-input selection (`--only` the nine previously tested rows, `--list-affected-since 10b23ef7`)
+selected all nine, including movement's symbol fallback, in 66.45 s. Running exactly that inspected list with
+`--private --no-mutants --cache --only ... --jobs 2` passes 9/9 at
+`2d6b8a236da011bd0dc1cf0f618eb353e2f9c14d` in 138.07 s, zero failures/errors/skips. Final row walls are above.
+
+Steward validators: validate_meshdraw,validate_model_edge,validate_movement,validate_audio_callers,validate_audio_domains,validate_audio_items,validate_app_polish2,validate_app_polish4,validate_worlds_fog
+
+Tested at `2d6b8a236da011bd0dc1cf0f618eb353e2f9c14d`, canonical private-env.sh plus the new `MU_GFX_LIB`.
+No row needs mutants. This is the union of the three final-diff audio rows and the nine late-main rerun rows,
+per brief 8b. Subsequent edits are documentation only. The next steward can skip any row whose compiled inputs
+are unchanged since that commit. Final main is `825c37b7`; no further source change arrived before delivery.
+
+Repository audit: 2,116 staged files, zero rejected, 16.13 s. Shell syntax check for the build helper passes,
+0.00 s. The final staged-content audit recheck's wall time is recorded in the PR body. Resource checks preceded
+heavy commands; jobs used nice 10, make/cargo at most four workers, validators and portable suites two workers.
+The lane waited four minutes when load rose above 14 before starting further checks. Disk stayed above 150 GB
+free. The library digests were rechecked after all tests: new artifact matches the pin above; canonical unchanged.
 
 ## Switching and the next app refresh
 
@@ -158,6 +222,10 @@ nice -n 10 make -C native/app -j4 \
 The bundle stores it under `Contents/Frameworks/libmugfx.dylib`. Follow the app refresh's normal dylib fixup,
 signing and verification flow; the copied file's hash may change during those steps. Run that lane's full private
 native/tests before installing. This lane does not install or replace the app.
+
+`otool -L` shows only system load dependencies. The raw Cargo library's self-ID contains its build path;
+`native/app/bundle-dylibs.sh` replaces that ID with `@rpath/libmugfx.dylib`. The digest above is for the retained,
+unmodified Cargo artifact, before bundle fixup/signing.
 
 ## Cleanup and limits
 
