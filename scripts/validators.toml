@@ -2796,18 +2796,18 @@ args = ["--mutations", "--output", "{report}"]
 test = "reconstructed/renderchar/test_item_predraw.py::ItemPreDraw.test_original_instructions"
 pins = ["text", "data", "flag", "feature"]
 families = ["bodies", "hidden", "frame", "predraw"]
-cases = 32372
-mutants = 44
+cases = 36196
+mutants = 48
 cases_at = "families.*.cases"
 mutants_at = "mutants"
 build = ["reconstructed/renderchar", "reconstructed/particles"]
 args = ["--mutations", "--output", "{report}"]
 [validate_item_predraw.expect]
 "families.*.mismatches" = 0
-"families.bodies.cases" = 13140
+"families.bodies.cases" = 14892
 "families.hidden.cases" = 1168
-"families.frame.cases" = 15184
-"families.predraw.cases" = 2880
+"families.frame.cases" = 16936
+"families.predraw.cases" = 3200
 "mutants.*" = {truthy = true}
 
 [validate_item_hiddenmesh]
