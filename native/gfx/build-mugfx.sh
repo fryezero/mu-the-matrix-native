@@ -11,5 +11,5 @@ if ! java -version >/dev/null 2>&1; then
         if [ -x "$home/bin/java" ]; then JAVA_HOME=$home; PATH="$home/bin:$PATH"; export JAVA_HOME PATH; break; fi
     done
 fi
-cargo build --release --manifest-path "$HERE/mugfx/Cargo.toml"
-make -C "$HERE" window
+cargo build --locked --release -j 4 --manifest-path "$HERE/mugfx/Cargo.toml"
+make -j4 -C "$HERE" window

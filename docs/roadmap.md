@@ -1,5 +1,7 @@
 # Roadmap and work queue
 
+GFX-FRAME0-001 PR-ready: rebuilt the pinned Ruffle bridge with all eight patches. The AS2 comparison clock returns 0/0/40 ms; original and minimal HUD scenes each produce four identical raw frame-0 hashes and PNGs, zero skips. The new local libmugfx-frame0.dylib leaves the canonical library and installed app untouched. [Build, checks, digest and switch instructions](handoffs/GFX-FRAME0-001.md).
+
 RENDER-EFFECTS-022 PR-ready: #350’s native counter now draws the maces’ `0x810a/0x25` OBJECT-owned spark (argument 8 and retained OBJECT points), `0x855d/1` red sparks and `0x84d1/1` smoke. Sixteen consecutive fixture frames go from 18 refused particles to 18 created/drawn, zero refused; the rank-5 block now runs for world players and the hero. Default tours: 92/92 PNGs and all dumps byte-identical. The maces’ other `0x7f7a` / `0x80ba` bone sprites still lack world bitmap slots. [Checks, census and limits](handoffs/RENDER-EFFECTS-022.md).
 
 FOLLOWUPS-001 PR-ready: opaque captures in charsel, frame, GFx and viewer tools; the CLI inventory no longer draws skin sprites over icons; `--gfx-open inventory,equipment-demo` supplies the six appearance-only accessory records for slots 9..14. Frame 0 remains open: the supplied libmugfx ignores the host clock, confirmed by an AS2 getTimer probe. Rebuild with patch 0008, then run the four-run image regression. [Handoff](handoffs/FOLLOWUPS-001.md).
