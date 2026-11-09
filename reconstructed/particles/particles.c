@@ -35,10 +35,12 @@ static void copy3(float d[3], const float s[3])
 #include "test_area_kinds.inc"  /* RENDER-EFFECTS-019 */
 #include "item_owned_kinds.inc"  /* RENDER-EFFECTS-020 */
 #include "item_predraw_kinds.inc"  /* RENDER-EFFECTS-021 */
-#include "item_counter_kinds.inc"  /* RENDER-EFFECTS-022 */
+#include "item_counter_kinds.inc"
+#include "item_mace_kinds.inc"   /* RENDER-EFFECTS-023 */  /* RENDER-EFFECTS-022 */
 
 int mu_pt_kind_supported(int32_t type, int32_t subtype)
 {
+    if (mu_pt_item_mace_kind(type, subtype)) return 1;
     if (mu_pt_worlds_l_kind(type, subtype) || mu_pt_worlds_m_kind(type, subtype)) return 1;
     if (mu_pt_owner_fx_kind(type, subtype)) return 1;
     if (mu_pt_world_owned_kind(type, subtype)) return 1;   /* RENDER-EFFECTS-006 */
@@ -189,6 +191,10 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
     if (!mu_pt_kind_supported(type, subtype))
         return 0;
 
+    if (mu_pt_item_mace_kind(type, subtype)) {
+        mu_pt_item_mace_create(p, h, scale);
+        return 1;
+    }
     if (mu_pt_worlds_l_kind(type, subtype)) {
         mu_pt_worlds_l_create(p, h, scale);
         return 1;
@@ -659,7 +665,9 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
         owner_position(p, h);   /* 0x01616fee..0x01617071 */
     int supported = mu_pt_kind_supported(p->type, p->subtype);
     if (supported) {
-        if (mu_pt_worlds_l_kind(p->type, p->subtype))
+        if (mu_pt_item_mace_kind(p->type, p->subtype))
+            mu_pt_item_mace_move(p, h);
+        else if (mu_pt_worlds_l_kind(p->type, p->subtype))
             mu_pt_worlds_l_move(p, h);
         else if (mu_pt_worlds_m_kind(p->type, p->subtype))
             mu_pt_worlds_m_move(p, h);
@@ -1209,6 +1217,7 @@ int mu_pt_render_record(mu_pt_particle *p, const mu_pt_bitmap *b, uint8_t mode, 
         return 1;   /* RENDER-EFFECTS-011: Flare/5 at lifetime 60 */
     if (mu_pt_item_predraw_kind(p->type, p->subtype) && !mu_pt_item_predraw_render(p, s))
         return 1;   /* RENDER-EFFECTS-021: shiny06/5 draws no sprite */
+    mu_pt_item_mace_render(p, s);
     out->sprites = 1;
     return 1;
 }
