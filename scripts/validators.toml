@@ -3269,3 +3269,18 @@ note = "278 characters (every CreateCloth wing case three times, its 17 aliases,
 "families.wind.cases" = 200
 "families.gate.cases" = 768
 "mutants.*" = {truthy = true}
+
+[validate_render_effects22]
+test = "native/tests/test_render_effects22.py::ClientComparison.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["mace_create", "mace_move", "mace_render", "points", "bitmaps"]
+cases = 202
+mutants = 19
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/particles", "reconstructed/renderchar"]
+args = ["--cases", "20", "--mutations", "--output", "{report}"]
+[validate_render_effects22.expect]
+all_equal = true
+all_mutants_caught = true
+"mutants.*.stopped" = 0

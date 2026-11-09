@@ -267,6 +267,7 @@ def load_library(path):
     I, U8, V = ctypes.c_int32, ctypes.c_uint8, ctypes.c_void_p
     for name, args, result in [
             ('mu_pt_kind_supported', [I, I], ctypes.c_int),
+            ('mu_pt_item_counter_follow', [P(Particle), FP], ctypes.c_int),
             ('mu_pt_wrapper_keeps', [P(Host), I, I], ctypes.c_int),
             ('mu_pt_create_record', [P(Particle), P(Host), I, FP, FP, FP, I, ctypes.c_float, I, I], ctypes.c_int),
             ('mu_pt_move_record', [P(Particle), P(Host)], ctypes.c_int),
@@ -789,7 +790,7 @@ def family_wind(m, lib, rng, cases, report, negatives):
             negatives['wind_unclamped'] += not same(struct.unpack('<f', r['regions']['pool'][8:12])[0], w)
 
 
-def family_render(m, lib, rng, cases, report, negatives):
+def family_render(m, lib, rng, cases, report, negatives, owned_points=False):
     for n in range(cases):
         kind = KINDS[n % len(KINDS)]
         p = random_particle(rng, kind)
@@ -801,6 +802,16 @@ def family_render(m, lib, rng, cases, report, negatives):
         if rng.random() < 0.3:
             p.position[2] = f32(rng.choice([300.0, 350.0, 299.99997, 350.00003, 1e9]))
         case = Case(rng)
+        owner_regions = []
+        point = None
+        if owned_points and kind == (0x810a, 0x25):
+            p.owner = rng.choice([-1, 0, 0, 0])
+            p.arg8 = n % 3
+            points = [rf(rng, -100, 500) for _ in range(9)]
+            case.owners = [[0.0, 0.0, 0.0]]
+            owner_regions = case.owner_regions()
+            owner_regions[0].define(OBJECTS + 0x1f4, struct.pack('<9f', *points))
+            point = F3(*points[3*p.arg8:3*p.arg8+3]) if p.owner >= 0 else None
         world_time = f32(rng.uniform(0, 1e6))
         record = particle_region(lib, p)
         bmr = am.Region('bitmap', BITMAP_RECORD, am.poison(0x220, 0x44), bytes(0x220), writable=False)
@@ -828,10 +839,18 @@ def family_render(m, lib, rng, cases, report, negatives):
                                          STATE_ADD: wrapper(STATE_ADD, 0), STATE_ALPHA: wrapper(STATE_ALPHA, 1),
                                          STATE_SUB: wrapper(STATE_SUB, 0), STATE_6B7: wrapper(STATE_6B7, 0),
                                          STATE_6DA: wrapper(STATE_6DA, 0), STATE_BLEND: wrapper(STATE_BLEND, 0)})
-        r = m.execute(0x015912e9, [0x5500 | mode], [record, bmr] + globals_region(world_time=world_time), stubs, ecx=POOL, frame=mid_frame(RENDER_FRAME, {-0x60: n}),
+        r = m.execute(0x015912e9, [0x5500 | mode], [record, bmr] + owner_regions + globals_region(world_time=world_time), stubs, ecx=POOL, frame=mid_frame(RENDER_FRAME, {-0x60: n}),
                       cleanup=4)
         rc = RenderCall()
-        drawn = lib.mu_pt_render_record(ctypes.byref(p), ctypes.byref(bm), mode, world_time, n, ctypes.byref(rc))
+        if owned_points and kind == (0x810a, 0x25) and not (
+                (mode == 1 and p.position[2] > 350.0) or (mode == 2 and 300.0 >= p.position[2])):
+            # The split-pass height test precedes RenderParticles' owner-relative position write.
+            lib.mu_pt_item_counter_follow(ctypes.byref(p), point)
+            # mu_pt_render_record repeats the filter, so draw the already selected record in mode 0.
+            mode_for_c = 0
+        else:
+            mode_for_c = mode
+        drawn = lib.mu_pt_render_record(ctypes.byref(p), ctypes.byref(bm), mode_for_c, world_time, n, ctypes.byref(rc))
         mine = []
         if drawn == 1:
             mine.append(('bitmap', p.tex_type))
@@ -849,6 +868,9 @@ def family_render(m, lib, rng, cases, report, negatives):
         mismatch = None
         if vc.ok(r) and (len(calls) != len(mine) or not all(vc._same_call(a, b) for a, b in zip(calls, mine))):
             mismatch = ('calls', calls, mine)
+        if owned_points and vc.ok(r):
+            raw, mask = particle_bytes(lib, p)
+            mismatch = mismatch or compare_masked(raw, r['regions']['particle'], record.defined, mask, PARTICLE_FLOATS)
         equal = drawn != 2 and vc.ok(r) and mismatch is None
         report.add('render', equal, {'case': n, 'kind': [hex(kind[0]), kind[1]], 'mode': mode, 'mismatch': mismatch,
                                      'stopped': r['stopped'], 'error': r['error'], 'checks': r['checks']})

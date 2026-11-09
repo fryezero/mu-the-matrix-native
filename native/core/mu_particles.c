@@ -22,7 +22,7 @@
  * the joints' textures (JointThunder01, Spark01, JointSpirit01, JointEnergy01; LoadBitmap 0x0182239b..) and
  * the login scene's clouds and WATERFALL1; NATIVE-CHARSEL-002 the character-select scene's WATERFALL2/3,
  * fantaB, Spark04, magic_ground1_3 and Impack03 (the selection light 0x8022 subtype 5 draws Impack03). */
-#define MU_WORLD_PT_EFFECTS 75
+#define MU_WORLD_PT_EFFECTS 77
 static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     MU_PT_BITMAP_FIRE, MU_PT_BITMAP_SMOKE, MU_PT_BITMAP_FLARE, MU_PT_BITMAP_SPARK3, MU_PT_BITMAP_THUNDER,
     MU_PT_BITMAP_SPARK2, MU_PT_BITMAP_SHINY2, MU_JT_BITMAP_THUNDER, MU_JT_BITMAP_SPARK, MU_JT_BITMAP_SPIRIT,
@@ -42,6 +42,7 @@ static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     0x7ffd, 0x8081, 0x8082, 0x8083, 0x85fb, 0x8450, 0x810a, 0x7f73, 0x7f74, 0x7f75, 0x810c, 0x83b8,
     0x801d,   /* RENDER-EFFECTS-019: WATERFALL4, half of Test Area's 0x801e/7 particles draw it */
     0x81cf,   /* RENDER-EFFECTS-020: magic_ground12, wings 0x2384/0x2385's owned 0x81cf/0 (before Fire06: keeps 016's anchor) */
+    0x855d, 0x84d1,   /* RENDER-EFFECTS-022: mace particles */
     MU_PT_BITMAP_FIRE06,
     MU_PT_BITMAP_RAIN_SPLASH,
     MU_PT_BITMAP_RAIN_RING};
@@ -90,6 +91,8 @@ static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     "Data/Effect/WATERFALL4.OZJ",
     /* RENDER-EFFECTS-020: magic_ground12 0x81cf (startup LoadBitmap 0x018249a3 in 0x0182049e, LINEAR/CLAMP) */
     "Data/Effect/magic_ground12.OZJ",
+    /* RENDER-EFFECTS-022: LoadBitmap 0x01825ca1 (CLAMP), 0x0182e978 (REPEAT), both LINEAR. */
+    "Data/Effect/pin_star03_red.OZJ", "Data/Item/texture/smoke01_strong_red.OZJ",
     /* RENDER-EFFECTS-016: Fire06 0x7f40, 0x70c's stone particle (LoadBitmap 0x018229e5 in 0x0182049e,
      * LINEAR/CLAMP) */
     "Data/Effect/Fire06.OZJ"};
@@ -254,7 +257,7 @@ static void load_bitmaps(mu_world_particles *p, const char *root, int no_assets)
              * Impack03 0x7b78: GL_NEAREST in OpenCharacterSceneData (0x0182a6c2, static) */
             t->filter[i] = bitmap_ids[i] == MU_PT_BITMAP_IMPACK03 ||
                                    (bitmap_ids[i] >= 0x7f73 && bitmap_ids[i] <= 0x7f75) ? 0x2600 : 0x2601;
-            t->wrap[i] = bitmap_ids[i] == 0x7f21 || bitmap_ids[i] == 0x84e2 ||
+            t->wrap[i] = bitmap_ids[i] == 0x84d1 || bitmap_ids[i] == 0x7f21 || bitmap_ids[i] == 0x84e2 ||
                          (bitmap_ids[i] >= 0x8081 && bitmap_ids[i] <= 0x8083) || bitmap_ids[i] == 0x83b8 ? 0x2901 : 0x2900;
             snprintf(relative, sizeof relative, "%s", effect_files[i]);
         } else {
@@ -373,11 +376,18 @@ int mu_world_particles_create_owned(mu_world_particles *p, int32_t type, const f
                                     const float angle[3], const float light[3], int32_t subtype, float scale,
                                     int32_t owner)
 {
+    return mu_world_particles_create_args(p, type, position, angle, light, subtype, scale, owner, 0);
+}
+
+int mu_world_particles_create_args(mu_world_particles *p, int32_t type, const float position[3],
+                                   const float angle[3], const float light[3], int32_t subtype, float scale,
+                                   int32_t owner, int32_t arg8)
+{
     mu_pt_host h;
     host(p, &h);
     if (owner >= 0 && !fx_object(p, owner))
         owner = MU_PT_NO_OWNER;
-    const int kept = mu_pt_create(&p->list, &h, type, position, angle, light, subtype, scale, owner, 0);
+    const int kept = mu_pt_create(&p->list, &h, type, position, angle, light, subtype, scale, owner, arg8);
     p->stats.created = p->list.created;
     p->stats.dropped = p->list.dropped;
     p->stats.unsupported = p->list.unsupported;
@@ -405,11 +415,29 @@ int32_t mu_world_particles_item_owner(mu_world_particles *p, uint32_t key, const
     if (it->key != key) {
         if (it->key)
             it->generation++;
+        memset(it->points, 0, sizeof it->points);
         it->key = key;
     }
     memcpy(it->position, position, sizeof it->position);
     it->seen = p->stats.steps;
     return MU_WORLD_FX_ITEM_BASE + ((int32_t)it->generation << 8) + slot;
+}
+
+/* Only item-owned particles use the three OBJECT points; validate generation before touching a slot. */
+static mu_world_item_owner *item_owner_slot(mu_world_particles *p, int32_t owner)
+{
+    if (owner < MU_WORLD_FX_ITEM_BASE || owner >= MU_WORLD_FX_ITEM_BASE + (0x10000 << 8) || !fx_object(p, owner))
+        return NULL;
+    return &p->item_owners[(owner - MU_WORLD_FX_ITEM_BASE) & 0xff];
+}
+
+int mu_world_particles_item_point(mu_world_particles *p, int32_t owner, int32_t word, float value)
+{
+    mu_world_item_owner *it = item_owner_slot(p, owner);
+    if (!it || word < 0 || word >= 9)
+        return 0;
+    it->points[word / 3][word % 3] = value;
+    return 1;
 }
 
 void mu_world_particles_item_owner_refresh(mu_world_particles *p, uint32_t key, const float position[3])
@@ -1182,6 +1210,14 @@ long mu_world_particles_draw(mu_world_particles *p, const float modelview[16], c
     mu_pt_sprites_mark_visible(p->sprites);   /* 0x01692887 */
     const int32_t sprites = mu_pt_sprites_render(p->sprites, 0, p->world_time, p->camera, bitmap_info, p, &gl,
                                                  NULL, NULL);
+    for (int32_t i = 0; i < p->list.count; ++i) {
+        mu_pt_particle *record = &p->list.records[i];
+        if (!record->live || record->type != 0x810a || record->subtype != 0x25)
+            continue;
+        mu_world_item_owner *it = item_owner_slot(p, record->owner);
+        const float *point = it && record->arg8 >= 0 && record->arg8 < 3 ? it->points[record->arg8] : NULL;
+        mu_pt_item_counter_follow(record, point);
+    }
     const int32_t particles = mu_pt_render_all(&p->list, 0, p->camera, p->world_time, bitmap_info, p, &gl);
     p->stats.drawn_sprites = (uint32_t)sprites;
     p->stats.drawn_particles = (uint32_t)particles;
