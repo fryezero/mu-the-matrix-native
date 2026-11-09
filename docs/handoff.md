@@ -1,5 +1,7 @@
 # Continue from here
 
+CLOAK-004 PR-ready: NPC/monster cloth constructor `0x01362755` now runs in the native actor path for Death King `55`, Nightmare `361` and Eunice `937/939/940/941`, with actor bones, two-half UVs/spheres, per-frame stepping and cache/travel cleanup. Nightmare uses model `0x81e` in world 39; Eunice Monster uses `0x95a` in world 121; ordinary town NPCs select no cloth. `validate_npc_cloak`: 2,619 comparisons, 0 mismatches, 17/17 compiled mutants. [Mapping, checks and limits](handoffs/CLOAK-004.md).
+
 RENDER-EFFECTS-023 PR-ready: nineteen remaining mace particle pairs, fourteen world bitmap slots, direct OBJECT-point rings and character-viewer item owners. Older maces gain flare sprites; `0x0f2a` creates/draws its particles; five new maces have zero unsupported particle kinds, retaining one exact bone-name refusal per draw. 58,014 original component comparisons, 31/31 mutants; default 92 PNGs and 92 dumps byte-identical. Two sprite texture gaps and blend-light/body-fit follow-up remain. [Checks, census and limits](handoffs/RENDER-EFFECTS-023.md).
 
 GFX-FRAME0-001 PR-ready: rebuilt the pinned Ruffle bridge with all eight patches. The AS2 comparison clock returns 0/0/40 ms; original and minimal HUD scenes each produce four identical raw frame-0 hashes and PNGs, zero skips. The new local libmugfx-frame0.dylib leaves the canonical library and installed app untouched. [Build, checks, digest and switch instructions](handoffs/GFX-FRAME0-001.md).
