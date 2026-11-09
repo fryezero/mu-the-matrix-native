@@ -30,6 +30,12 @@ def fsin(x):
     return f32(math.sin(f32(x)))
 
 
+def draw_bytes(draw):
+    """Compare every declared field bit for bit, excluding unspecified C struct padding."""
+    return b''.join(ctypes.string_at(ctypes.addressof(draw) + getattr(type(draw), name).offset,
+                                    ctypes.sizeof(kind)) for name, kind in draw._fields_)
+
+
 def lib():
     subprocess.run(['make', '-C', str(HERE)], check=True, capture_output=True)
     return ctypes.CDLL(str(HERE/f'librenderchar.{SUFFIX}'))

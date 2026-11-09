@@ -237,16 +237,18 @@ _SAMPLE_TYPE = [None]
 PRE_EXTENDED = [0x0b4b, 0x0b4c, 0x0b59, 0x0f1c, 0x0f1d, 0x0f2e, 0x1312, 0x1316, 0x1748, 0x1749, 0x1758, 0x230b,
                 0x2311, 0x2382, 0x2383, 0x2384, 0x2385, 0x2394, 0x2395, 0x2494, 0x2499,
                 # RENDER-ITEMS-002S (part 19), chosen the same way
-                0x0b50, 0x22ec, 0x230c, 0x23ef, 0x2400, 0x2405, 0x248f, 0x2496, 0x24cf, 0x24d6]
+                0x0b50, 0x22ec, 0x230c, 0x23ef, 0x2400, 0x2405, 0x248f, 0x2496, 0x24cf, 0x24d6,
+                0x0f24, 0x0f28, 0x0f29, 0x0f2b, 0x0f2c, 0x1588]
 PRE_CARRY = [0x0b4b, 0x0b4c, 0x0b59, 0x0f1c, 0x0f1d, 0x0f2e, 0x1748, 0x1749, 0x1758, 0x2311, 0x2382, 0x2383,
              0x2384, 0x2385, 0x2394, 0x2395, 0x2499,
              0x0b53, 0x22ec, 0x23ef, 0x2400, 0x2405, 0x248f, 0x24cf, 0x24d6,
              # RENDER-ITEMS-002T (part 21)
              0x0f1f, 0x0f20,
              # RENDER-ITEMS-002U (part 23)
-             0x0f2a]
+             0x0f2a, 0x0f24, 0x0f28, 0x0f29, 0x0f2b, 0x0f2c]
 
 EXIT_TYPES = [
+    0x1588,
     0x0b10, 0x0b12, 0x0b22, 0x1569, 0x156a, 0x156b, 0x156c, 0x156d, 0x156e, 0x156f,
     0x1570, 0x1571, 0x1572, 0x1573, 0x1574, 0x170f, 0x1718, 0x1728, 0x1732, 0x1752,
     0x230a, 0x230e, 0x2310, 0x2318, 0x2381, 0x2392, 0x2393, 0x23ec, 0x23fd, 0x2402,
@@ -386,6 +388,71 @@ def parse_scalar(wa, helper, ret):
 # cdq; (push n; pop ecx | mov ecx, n); idiv ecx; cvtsi2ss xmm0, edx and up to four
 # binary32 mulss/addss/subss/divss data constants: (float)(rand() % n) op k ...
 RAND = 0x01989721
+RANGE, RANDOM_SCALE = 0x011ff622, 0x0185caa4
+
+
+def parse_range(wa, ret):
+    """Constant-argument 0x011ff622 / 0x0185caa4 call. Keep the integer offset before conversion,
+    division and both clamps; the wrapper then divides and adds in binary32."""
+    import struct
+    call = ret - 5
+    code = _text(wa, call, 5)
+    if code[:1] != b'\xe8':
+        return None
+    target = ret + struct.unpack_from('<i', code, 1)[0]
+    if target not in (RANGE, RANDOM_SCALE):
+        return None
+    at, args = call, []
+    for _ in range(3 if target == RANGE else 4):
+        # Pushes are read backwards, so the last push is argument 0.
+        if _text(wa, at - 5, 5) == MOVSS_ESP:
+            word = _load(wa, at - 13)
+            if word is not None and _text(wa, at - 14, 1) == b'\x51':
+                at -= 14
+            elif _text(wa, at - 9, 9) == b'\x51\x0f\x57\xc0' + MOVSS_ESP:
+                word, at = 0, at - 9
+            else:
+                return None
+        elif _text(wa, at - 2, 1) == b'\x6a':
+            word, at = struct.unpack_from('<b', _text(wa, at - 1, 1))[0] & 0xffffffff, at - 2
+        elif _text(wa, at - 5, 1) == b'\x68':
+            word, at = struct.unpack('<I', _text(wa, at - 4, 4))[0], at - 5
+        else:
+            return None
+        args.append(word)
+    f = lambda x: v.u2f(v.f2u(x))
+    lo, hi = map(v.u2f, args[:2])
+    steps = args[2] if target == RANGE else 1
+    if not 0 < steps < 0x10000 or not -2**30 < lo <= hi < 2**30:
+        return None
+    low, high = int(f(f(float(steps)) * lo)), int(f(f(float(steps)) * hi))
+    if not 0 < high - low + 1 < 2**31:
+        return None
+    ops = [(5, low & 0xffffffff), (4, v.f2u(f(float(steps)))), (6, args[0]), (7, args[1])]
+    if target == RANDOM_SCALE:
+        if v.u2f(args[2]) == 0.0:
+            return None
+        ops += [(4, args[2]), (2, args[3])]
+    at = ret
+    if target == RANDOM_SCALE and _text(wa, at, 6) == bytes.fromhex('83c40cd91c24'):
+        return 4, high - low + 1, tuple(ops)
+    pops = bytes.fromhex('83c40c') if target == RANGE else bytes.fromhex('83c410')
+    if _text(wa, at, len(pops)) != pops:
+        return None
+    at += len(pops)
+    fstp, reload = _text(wa, at, 6), _text(wa, at + 6, 8)
+    if fstp[:2] == b'\xd9\x9d' and reload[:4] == bytes.fromhex('f30f1085') and fstp[2:] == reload[4:]:
+        at += 14
+        while len(ops) < CLOCK_OPS:
+            code = _text(wa, at, 8)
+            if code[:2] != b'\xf3\x0f' or code[2] not in SCALAR_OPS or code[3] != 0x05:
+                break
+            word = _word(wa, struct.unpack_from('<I', code, 4)[0])
+            if word is None:
+                return None
+            ops.append((SCALAR_OPS[code[2]], word))
+            at += 8
+    return 4, high - low + 1, tuple(ops)
 
 
 def parse_random(wa, ret, end=False):
@@ -393,7 +460,7 @@ def parse_random(wa, ret, end=False):
     import struct
     at = ret
     if _text(wa, at, 1) != b'\x99':
-        return None
+        return None if end else parse_range(wa, ret)
     at += 1
     code = _text(wa, at, 5)
     if code[:1] == b'\x6a' and code[2:3] == b'\x59':
@@ -463,11 +530,61 @@ def random_value(program, value):
     """Reference evaluation of a kind-4 program for one rand() result."""
     f = lambda x: v.u2f(v.f2u(x))
     _, n, ops = program[:3]
-    x = f(float(value - int(value / n) * n))
+    integer = value - int(value / n) * n
+    if ops and ops[0][0] == 5:
+        integer = _i32(integer + ops[0][1])
+        ops = ops[1:]
+    x = f(float(integer))
     for op, word in ops:
         k = v.u2f(word)
-        x = f(x * k if op == 1 else x + k if op == 2 else x - k if op == 3 else math_div(x, k))
+        x = f(max(k, x) if op == 6 else min(x, k) if op == 7 else
+              x * k if op == 1 else x + k if op == 2 else x - k if op == 3 else math_div(x, k))
     return v.f2u(x)
+
+
+def range_colour_programs(wa, ret, source):
+    """0x0f24: each component is constant * range-local * constant, rounding at both mulss sites."""
+    import re
+    md = _capstone()
+    ins = list(md.disasm(_text(wa, ret, 192), ret))
+    if len(ins) < 2 or (ins[0].mnemonic, ins[0].op_str) != ('add', 'esp, 0xc') or ins[1].mnemonic != 'fstp':
+        return []
+    local = ins[1].op_str
+    out = []
+    for i in range(2, len(ins) - 2):
+        a, b, c = ins[i:i + 3]
+        if a.mnemonic != 'movss' or b.mnemonic != 'mulss' or b.op_str != 'xmm0, ' + local or c.mnemonic != 'mulss':
+            continue
+        words = []
+        for ii in (a, c):
+            m = re.fullmatch(r'xmm0, dword ptr \[(0x[0-9a-f]+)\]', ii.op_str)
+            word = _word(wa, int(m[1], 16)) if m else None
+            if word is None:
+                break
+            words.append(word)
+        if len(words) == 2:
+            out.append((6, source, tuple((1, word) for word in words)))
+    return out
+
+
+def counter_colour_seeds(wa, t, programs):
+    """0x1588 sets (0.5, 0.35, 0.75), scales it by a wave, then by 0x0185caa4.
+    Seed the intermediate component products so the next fit can retain the rounding before the random scale."""
+    if t != 0x1588:
+        return []
+    call = 0x01736abc
+    if not _calls(wa, call, VEC_SET) or _text(wa, call - 6, 6) != MODEL_LIGHT_ECX:
+        raise ValueError('staff colour setter differs')
+    words = []
+    for k in range(3):
+        at = call - 6 - 14 * (k + 1)
+        if _text(wa, at, 1) != b'\x51' or _text(wa, at + 9, 5) != MOVSS_ESP:
+            raise ValueError('staff colour arguments differ')
+        word = _load(wa, at + 1)
+        if word is None:
+            raise ValueError('staff colour is not constant')
+        words.append(word)
+    return [(6, 35 + i, ((1, word),)) for i, p in enumerate(programs) if p[0] == 1 for word in words]
 
 
 def derived_value(program, word):
@@ -502,7 +619,7 @@ def sse_operands(wa):
     return _operands[1]
 
 
-def derive(wa, phases, width):
+def derive(wa, phases, width, products=False):
     """Kind-6 candidates (6, a, ((op, k),)) for the words no input or constant explains: the same
     binary32 operation with one constant maps input a to the word in every probe of the phase, and
     the text holds that operation on that constant (sse_operands)."""
@@ -542,6 +659,27 @@ def derive(wa, phases, width):
                         if hit not in found:
                             found.append(hit)
                         break
+                else:
+                    if products:
+                        # vec3::operator*= may scale a clock-dependent colour by a random range.
+                        # Both operands are already modelled inputs, with one binary32 multiplication.
+                        hit = None
+                        for left in order:
+                            for right in range(35, width):
+                                if right == left:
+                                    continue
+                                xs = [v.u2f(p[0][left]) for p in pairs]
+                                zs = [v.u2f(p[0][right]) for p in pairs]
+                                if len(set(xs)) < 2 or len(set(zs)) < 2 or any(
+                                        not math.isfinite(x * z) or abs(x * z) > 3e38 for x, z in zip(xs, zs)):
+                                    continue
+                                if all(v.f2u(f(x * z)) == y for x, z, y in zip(xs, zs, ys)):
+                                    hit = (7, left, ((1, right),))
+                                    break
+                            if hit:
+                                break
+                        if hit and hit not in found:
+                            found.append(hit)
     return found
 
 
@@ -599,6 +737,7 @@ CLOCK = 0x06fce370
 # shr r, 31; addsd [r*8 + 0x01bd3050] with the table {0.0, 2^32}).
 C_FRAME, C_U_MOD, C_U_DIV, C_U2D = range(30, 34)
 FRAME_COUNTER, U32_FIX = 0x0bdc5ebc, 0x01bd3050
+COUNTER_RANGE_TYPES = [0x0f24, 0x0f28, 0x0f29, 0x0f2b, 0x0f2c, 0x1588]
 VECTOR_SETTERS = (0x00cfcead, 0x00cfcede)   # (this)[0..2] = (a, b, c) / (a, a, a); ret 0xc / ret 4
 # The bodies whose draws read the counter (found by comparing the client's streams at different counter values over
 # the 1,691 survey types; their probes vary it). Fifty-one were admitted with recipes right only at counter 0.
@@ -608,6 +747,8 @@ FRAME_TYPES = [
     0x1583, 0x1584, 0x1585, 0x1586, 0x1587, 0x1589, 0x158a, 0x158b, 0x158c, 0x158d, 0x158e, 0x1739, 0x173a, 0x173b,
     0x173c, 0x1747, 0x1756, 0x1757, 0x1759, 0x175a, 0x175b, 0x175c, 0x175d,
     0x0f2a,
+    # RENDER-ITEMS-002V: counter mesh scrolls plus quantised random body-light scalars.
+    0x0f24, 0x0f28, 0x0f29, 0x0f2b, 0x0f2c, 0x1588,
 ]
 CLOCK_OPS = 12   # RENDER-ITEMS-002U: 10 for 0x1109's counter atlas (was 9)
 _md = None
@@ -1216,9 +1357,16 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=Fals
                     return 0
                 value = _RAND['seq'].pop(0) if _RAND['seq'] else 0
                 site = hex(m.r32(m.uc.reg_read(m.x86.UC_X86_REG_ESP)))
-                if _SAMPLE_TYPE[0] in PRE_FX_TYPES and PRE_DRAW_RAND[0] <= int(site, 16) < PRE_DRAW_RAND[1]:
+                tag = m.backtrace()[1]
+                if site == '0x11ff68d' and _SAMPLE_TYPE[0] in COUNTER_RANGE_TYPES:
+                    trace = m.backtrace()
+                    k = 2 if trace[1] == '0x185cae2' else 1
+                    site, tag = trace[k], trace[k + 1]
+                if _SAMPLE_TYPE[0] in PRE_FX_TYPES and (PRE_DRAW_RAND[0] <= int(site, 16) < PRE_DRAW_RAND[1] or
+                        (_SAMPLE_TYPE[0] in COUNTER_RANGE_TYPES and 0x00d01fc6 <= int(site, 16) < 0x00d02200 and
+                         PRE_DRAW_RAND[0] <= int(tag, 16) < PRE_DRAW_RAND[1])):
                     return value   # part 18: RenderObjDraw's own case draws it for the pre-draw program
-                _RAND['calls'].append((m.backtrace()[1], site, value))
+                _RAND['calls'].append((tag, site, value))
                 if site not in _RAND['order']:
                     _RAND['order'].append(site)
                 if _site_sink is not None:
@@ -1324,6 +1472,9 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=Fals
                 return None   # random outside a helper group, or one site drawn twice
             calls[(tag, site)] = value
     def program_input(program, tag, row):
+        if program[0] == 7:
+            a, b = row[program[1]], row[program[2][0][1]]
+            return RAND_ABSENT if RAND_ABSENT in (a, b) else v.f2u(f(v.u2f(a) * v.u2f(b)))
         if program[0] == 6:
             # Part 16: input a (any earlier input or program) then binary32 operations.
             value = row[program[1]]
@@ -1374,7 +1525,7 @@ def infer(samples):
 ALL_TYPES = (REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES + RANKED_TYPES + EXPANDED_TYPES +
              NEXT_TYPES + CLOCK_TYPES + CLUSTER_TYPES + WING_TYPES + VISIBLE_TYPES + SCALAR_TYPES +
              CHAIN_TYPES + LEVEL_TYPES + COLOUR_TYPES + CARRY_TYPES + QUALITY_TYPES + PRODUCT_TYPES + DERIVED_TYPES +
-             OWNER_FX_TYPES + PRE_FX_TYPES + POST_FX_TYPES)
+             OWNER_FX_TYPES + PRE_FX_TYPES + POST_FX_TYPES + [0x1588])
 
 
 def fit(wa, lib, t, scalars=False, carry=False, extended=False):
@@ -1405,20 +1556,23 @@ def fit(wa, lib, t, scalars=False, carry=False, extended=False):
             if program is None:
                 return None
             programs.append(program + (site, 0))
+            if t in COUNTER_RANGE_TYPES:
+                programs.extend(range_colour_programs(wa, int(site, 16), 35 + len(programs) - 1))
             scale = parse_scale(wa, int(site, 16)) if t in PRODUCT_TYPES else None
             ref = len(programs) - 1
             for word in scale or ():
                 # Kind 5: the value of the kind-4 program at index a times one binary32 light constant.
                 programs.append((5, ref, ((1, word),)))
+        programs.extend(counter_colour_seeds(wa, t, programs))
         if not programs and t not in DERIVED_TYPES:
             return None
         rules = _fit(wa, lib, t, tuple(programs), None, carry, extended)
         # Part 16: words one binary32 operation away from an input become kind-6 programs.
-        for _ in range(3 if t in DERIVED_TYPES else 0):
+        for _ in range(6 if t in COUNTER_RANGE_TYPES else 3 if t in DERIVED_TYPES else 0):
             if rules is not None:
                 break
             width = 35 + len(programs)
-            extra = [p for p in derive(wa, _PHASES, width) if p not in programs]
+            extra = [p for p in derive(wa, _PHASES, width, products=t in COUNTER_RANGE_TYPES) if p not in programs]
             if not extra:
                 break
             programs.extend(extra)
@@ -1436,7 +1590,9 @@ def fit(wa, lib, t, scalars=False, carry=False, extended=False):
     used = {value - 35 for rule in rules for _, cells in rule for op, value in cells if op == 'in' and value >= 35} | \
         {k for k, p in enumerate(programs) if p[0] == 4}
     while True:   # a kept kind-6 program keeps the program it reads
-        more = {programs[k][1] - 35 for k in used if programs[k][0] == 6 and programs[k][1] >= 35} - used
+        more = {a - 35 for k in used for a in
+                ([programs[k][1], programs[k][2][0][1]] if programs[k][0] == 7 else
+                 [programs[k][1]] if programs[k][0] == 6 else []) if a >= 35} - used
         if not more:
             break
         used |= more
@@ -1446,6 +1602,7 @@ def fit(wa, lib, t, scalars=False, carry=False, extended=False):
               for entry, cells in rule] for rule in rules]
     kept = [programs[k] for k in used]
     kept = [(5, remap[p[1]] - 35, p[2]) if p[0] == 5 else
+            (7, remap.get(p[1] - 35, p[1]), ((1, remap.get(p[2][0][1] - 35, p[2][0][1])),)) if p[0] == 7 else
             (6, remap[p[1] - 35] if p[1] >= 35 else p[1], p[2]) if p[0] == 6 else p for p in kept]
     return rules, tuple(kept)
 
@@ -1574,8 +1731,8 @@ def render(types):
             if rule not in recipes:
                 recipes.append(rule)
             indices.append(recipes.index(rule))
-        if len(scalars) > 12:   # RENDER-ITEMS-002U: 12 (0x0f2f and 0x158a need 9 with their counter chains)
-            raise ValueError('more than twelve scalar programs')
+        if len(scalars) > 24:   # RENDER-ITEMS-002V: 0x1588 needs 22, including its intermediate colour products.
+            raise ValueError('more than twenty-four scalar programs')
         rows.append((t, indices, len(programs), len(scalars)))
         programs.extend(scalars)
     lines = ['/* Generated by scripts/gen_item_bodies.py. Rendering rules only.',
@@ -1586,9 +1743,11 @@ def render(types):
              ' * kind 4 = (float)(rand() % a) then binary32',
              ' * mul/add/sub/div, drawn once in each phase of its phases mask; kind 5 = the type\'s program a (kind 4)',
              ' * times the binary32 k[0], one channel of a scaled constant body light; kind 6 = input a (absolute index)',
-             ' * then binary32 mul/add/sub/div). Entry 4 (EXIT) writes words 8..15 to the model',
+             ' * then binary32 mul/add/sub/div; kind 7 = input a times input k[0], one binary32 multiply).',
+             ' * Kind-4 ops 5/6/7: integer offset before conversion, lower clamp, upper clamp (0x011ff622).',
+             ' * Entry 4 (EXIT) writes words 8..15 to the model',
              ' * fields and draws nothing. See client-render-items.md. */',
-             '#define MU_RC_BODY_SCALARS 12',
+             '#define MU_RC_BODY_SCALARS 24',
              'typedef struct { uint8_t count; struct { int32_t entry; uint8_t source[16]; uint32_t value[16]; } draw[16]; } mu_rc_body_recipe;',
              'static const mu_rc_body_recipe mu_rc_body_recipes[] = {']
     for rule in recipes:

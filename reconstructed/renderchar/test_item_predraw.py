@@ -78,7 +78,7 @@ class ItemPreDraw(unittest.TestCase):
         return status, list(out[:n.value]), effects, len(drawn)
 
     def test_admissions_and_existing_domain(self):
-        self.assertEqual(len(fxgen.PRE_FX_TYPES), 43)   # RENDER-ITEMS-002U: + 0x0f2a
+        self.assertEqual(len(fxgen.PRE_FX_TYPES), 48)   # RENDER-ITEMS-002V: five counter maces
         for t in fxgen.POST_FX_TYPES:
             self.assertEqual(self.draws(self.item(type=t))[0], 0, hex(t))
             self.assertEqual((self.lib.mu_rc_item_post_fx(t), self.lib.mu_rc_item_pre_fx(t)), (1, 0), hex(t))
@@ -117,13 +117,25 @@ class ItemPreDraw(unittest.TestCase):
         # an ordinary body does not read the counter
         self.assertEqual(uv(0x0b27, 0), uv(0x0b27, 12345))
 
+    def test_counter_range_colour_rounding(self):
+        """0x0f24's mesh 1 colour is (component * range(0.25, 1, 100)) * 0.4.
+        The two multiplications round separately. A host-free draw has rand result zero."""
+        status, draws = self.draws(self.item(type=0x0f24, frame=99))
+        self.assertEqual(status, 0)
+        mesh = next(d for d in draws if d.texture == 0x8467)
+        self.assertEqual(list(mesh.body_light), [F32(F32(F32(k) * F32(0.25)) * F32(0.4))
+                                                for k in (0.2, 0.4, 0.9)])
+        self.assertEqual(fxgen.Program().bound('umod', ('i', 0), ('c', 120)), (0, 119))
+        self.assertIn(0x1588, gen.EXIT_TYPES)
+        self.assertEqual(self.draws(self.item(type=0x1588, frame=0xffffffff, ext=1))[0], 0)
+
     def test_staff_sine_light_at_named_bone(self):
         """0x1311: s = sin(time * 0.001) * 0.5 + 0.5, l = s * 0.9 + 0.1; one bone sprite 0x7f7a at bone "a02",
         scale 0.3, light (0.35, 0.75, 1.5) * l; no rand. The draws equal the host-free stream."""
         names = ['x', 'y', 'z', 'a02', 'a02']
         status, draws, effects, used = self.run_item(0x1311, names, 8)
         self.assertEqual((status, used), (0, 0))
-        self.assertEqual([bytes(d) for d in draws], [bytes(d) for d in self.draws(self.item(type=0x1311))[1]])
+        self.assertEqual([base.draw_bytes(d) for d in draws], [base.draw_bytes(d) for d in self.draws(self.item(type=0x1311))[1]])
         l = F32(F32(F32(F32(0.0 * F32(0.5)) + F32(0.5)) * F32(0.9)) + F32(0.1))
         light = tuple(F32(F32(k) * l) for k in (0.35, 0.75, 1.5))
         self.assertEqual(effects, [(2, 0x7f7a, (103.0, 206.0, 309.0), light, F32(0.3), 0.0, 0)])
@@ -143,7 +155,7 @@ class ItemPreDraw(unittest.TestCase):
         status, draws, effects, used = self.run_item(0x1311, ['a02'], 8, host=False)
         self.assertEqual((status, effects, used), (0, [], 0))
         status, plain = self.draws(self.item(type=0x1311))
-        self.assertEqual([bytes(d) for d in draws], [bytes(d) for d in plain])
+        self.assertEqual([base.draw_bytes(d) for d in draws], [base.draw_bytes(d) for d in plain])
 
     def test_post_program_on_item_bones(self):
         """0x2713 (RENDER-ITEMS-002T): after its RenderPartObjectBody draws, three CreateSprite 0x7ef7 requests at
@@ -234,7 +246,7 @@ class ItemPreDraw(unittest.TestCase):
                             '--mutations', '--output', str(path)], check=True, capture_output=True)
             report = json.loads(path.read_text())
             types = len(predraw.TYPES)
-            self.assertEqual(report['families']['bodies']['cases'], 292*types)
+            self.assertEqual(report['families']['bodies']['cases'], 292*(types + 1))
             self.assertEqual(report['families']['predraw']['cases'], 64*types)
             self.assertTrue(all(f['mismatches'] == 0 for f in report['families'].values()))
             self.assertEqual(len(report['mutants']), len(predraw.MUTANTS))

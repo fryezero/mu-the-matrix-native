@@ -26,6 +26,8 @@ Part 11 reaches **967/1,674 bodies** with per-type wave/sine scalar programs; li
 [Part 26 below](#part-26-the-rendered-frame-counter-in-body-draws-the-wing-joints-and-the-world-callers-render-items-002u) reaches **1,364/1,674 bodies**: the rendered-frame counter is a body input (51 earlier bodies regenerated, `0x0f2a`), the wing joints draw.
 Muun/map-object effect placement remains deferred. All parts run offline.
 
+[Part 31 below](#part-31-the-six-remaining-counter-bodies-and-quantised-random-colours-render-items-002v) reaches **1,370/1,674 bodies** with the six remaining counter types and quantised random colours.
+
 ## Identity and evidence
 
 The target is `main.exe` SHA-256 `3cf91f3c203d305a771b04d00b271871f7ce1c6779b22e30fbae8c4f35b5527a`.
@@ -2702,6 +2704,116 @@ rows are recorded in [RENDER-EFFECTS-022](../handoffs/RENDER-EFFECTS-022.md). Th
 comparisons and offline native before/after renders, not original-client pixel equivalence. The native pose and
 counter's absolute phase are unchanged assumptions. The viewer still lacks an item OBJECT registry and refuses
 the owned spark. `0x0f2a`'s `0x85bc/5`, `0x83b8/8`, `0x85fc/1` and register-selected particle remain next work.
+
+## Part 31, the six remaining counter bodies and quantised random colours, RENDER-ITEMS-002V
+
+Bodies **1,364 -> 1,370 of 1,674**, adding `0x0f24`, `0x0f28`, `0x0f29`, `0x0f2b`, `0x0f2c` and `0x1588`.
+The five maces also gain their RenderObjDraw effect programs. There are **304 bodies left**. The later read-program
+candidates were screened but none were admitted; the rank-5 strlen group was not attempted.
+
+Evidence is the same pinned restored text and data as part 26: `pins.TEXT` at `0x00401000`, SHA-256
+`2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724`, and `pins.DATA` at `0x01a7c000`, SHA-256
+`c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f`. Methods: static instruction reading, finite
+recipe probes, full RenderObjDraw comparisons under Unicorn, compiled C comparisons and offline native renders.
+No live client or protected component was used. These are bounded instruction comparisons, not original-client pixel
+or process-random-phase equivalence.
+
+### Why they did not fit
+
+| Type | Cause and original addresses | Reconstruction |
+|---|---|---|
+| `0x0f24` | Pre-program `0x017d5675..0x017d62b7`; body range return `0x01769b6a`; scroll reads the frame counter at `0x01769c75` | `0x011ff622(0.25, 1, 100)` supplies a random colour scale. The component writes at `0x01769b73..0x01769c1a` multiply each constant by the range, then by 0.4, with two binary32 roundings. A single folded constant does not preserve them. |
+| `0x0f28` | Pre-program `0x017d8bfc..0x017d94dc`; `0x017d8e07..0x017d8e46` computes `3 * (counter % 120)`; body range return `0x0176aa90` | The range is `0x011ff622(0.5, 1, 100)`. The pre-program's unsigned-to-double correction is zero because the converted integer is bounded to 0..357; its final binary32 value is the existing integer-to-float op. The exact conversion sequence and correction-table zero are checked before this reduction is allowed. |
+| `0x0f29` | Pre-program `0x017d94f1..0x017d9dcb`; body range return `0x0176b0e0` | Quantised range `(0.25, 1, 100)`, counter chains, carried model fields and supplementary record/quality probes. |
+| `0x0f2b` | Pre-program `0x017dab03..0x017db6cf`; body range return `0x0176bae5` | As above, with this type's own colour constants and requests. |
+| `0x0f2c` | Pre-program `0x017db6e4..0x017dc347`; counter gate `0x017dbef8..0x017dbefc`, loop `0x017dbf09..0x017dc1e7` | The constant two-iteration loop is inside `counter % 2 == 0`. Its jump to the condition and back edge stay inside the open gate, so they can be unrolled while the gate remains a runtime condition. Runtime backward conditions still refuse, and the interpreter's instruction limit remains. Its body draws need counter/derived/carry recipes but no body random. |
+| `0x1588` | Colour setter `0x01736abc`; random-wrapper returns `0x01736b46`, `0x01736c5f`; counter chain at `0x0173691a` | `0x0185caa4` calls `0x011ff622(lo, hi, 1)`, then divides and adds in binary32. The two calls here use `(0, 10, 10, 0.2)`. Colour `(0.5, 0.35, 0.75)` is scaled by the wave and then by the random result. The intermediate component products must round before the second multiplication. Exit-field probes, rather than last-draw carry, preserve the fields read by the ancient pass. The scroll is `-((counter + 1) % 25) * 0.04`. |
+
+Every row reads the same unsigned rendered-frame counter `[0x0bdc5ebc]`, not the logic clock or the item's
+animation frame. Its body coordinates and pre-program tests are:
+
+| Type | Body counter use, binary32 scales | Pre-program counter use |
+|---|---|---|
+| `0x0f24` | `(counter % 100) * 0.01` scroll | Particle blocks when `% 2 == 0` and `% 25 == 0` |
+| `0x0f28` | 4 x 4 atlas from `counter % 16`; scrolls `(counter % 25) * 0.04` and `(counter % 100) * 0.01` | Bone-sprite rotation `3 * (counter % 120)`; particle blocks when `% 2 == 0` and `% 8 == 0` |
+| `0x0f29` | `(counter % 25) * 0.04` scroll | Particle block when `% 2 == 0` |
+| `0x0f2b` | `f = (counter % 12) / 2`, then `(f % 6)` converted to float and **divided by 6**, not multiplied by a rounded reciprocal | No counter test in the pre-program |
+| `0x0f2c` | `(counter % 50) * 0.02` scroll | Particle blocks when `% 10 == 0`, `% 2 == 0` with the two-iteration loop, and `% 50 == 0` |
+| `0x1588` | `-((counter + 1) % 25) * 0.04`, with uint32 wrap before the remainder | No effect program |
+
+The pre-program survey had another false refusal: it counted range-helper calls after the body helper as effect
+services after the draws. `RANGE` and `RAND` are scalar computations there, so they no longer trigger that refusal.
+Actual effect services after the body still refuse the pre-program reader.
+
+### Recipes and native execution
+
+- Kind-4 random programs gain an integer offset before float conversion, then lower and upper clamps. The original
+  `0x011ff622` truncates `steps * lo/hi` after binary32 multiplication, draws one CRT
+  rand, takes the signed remainder in the inclusive integer span, adds the lower integer bound, converts to float,
+  divides by steps and clamps to lo then hi. The generator accepts only constant arguments and bounded valid spans.
+- The wrapper `0x0185caa4..0x0185caff` first checks its bounds and nonzero divisor. Only its valid constant-argument
+  domain is admitted. The wrapper's extra division and addition retain their binary32 rounding.
+- Kind-6 programs can retain the two constant multiplications of the mace colour writes. Kind 7 multiplies two
+  already-modelled inputs once in binary32. For the staff, the verified setter's component constants seed the
+  wave products before a recipe may use the second random multiplication. Kept programs retain and remap all
+  dependencies; probes still have to agree at every used draw word.
+- `MU_RC_BODY_SCALARS` grows 12 -> 24; the staff uses 22. Clock chains remain capped at 12 ops. Only used op/k slots
+  are written in `item_bodies.h`, as in 002U. This is internal table storage, with no exported struct/ctypes change.
+- The five mace pre-programs use the existing item host, bones, counter, random-vector and request operations.
+  No particle kind, native app, world counter or world caller is changed by this lane.
+
+### Checks
+
+Final counts and wall times are recorded in [RENDER-ITEMS-002V](../handoffs/RENDER-ITEMS-002V.md).
+The final pre-draw validator passed **36,196 comparisons, zero mismatches and 48/48 compiled mutants** in
+377.4 s. Families: bodies 14,892, hidden 1,168, frame 16,936 and owned programs 3,200. The frame family covers
+58 types and 6,971 distinct counter values. The shared random-body validator passed 28,080 comparisons and
+11/11 mutants in 226.6 s. Both generated tables reproduce. The full header is 499,004 bytes; recipe rows rise
+1,345 -> 1,351. The survey changes exactly six rows in each TSV, complete shapes 586 -> 592 of 798.
+
+The isolated six-type library passed 1,752 body states and 1,752 counter states, plus 320 owned pre-program states,
+all with zero mismatches. The counter states included high-bit values and 1,337 distinct counter values. Owned
+states compared the complete draw stream, effect requests/refusals and exact rand consumption.
+
+The body-only comparisons for the five pre-program maces use zero rand results: without an item host the native
+pre-program is absent, and the original's extra pre-program calls must not shift the body values. Their owned
+comparison supplies the same nonzero sequence to both complete programs. The pure-body staff compares nonzero
+sequences and exact consumption directly. Moving-counter checks cover all 58 admitted counter types.
+
+### Later groups and limits
+
+- The 24 next read-program candidates were screened with default, carry and exit probes, with and without
+  supplementary probes. Twenty-two programs read. `0x2301`/`0x2302` still refuse at the wave operands. Only
+  `0x23a8`/`0x23a9` and bows `0x1313`/`0x1317`/`0x1319` fit the initial probes; each fails the independent body-state
+  comparison under all three carry options. None is admitted. The first failing states are 3, 6, 4, 3 and 2,
+  respectively, in `validate_item_quality.state_cases`. These are rejection results, not passing coverage.
+- The other candidates were `0x0f1e`, `0x174a`, `0x23f0`/`0x23f2`, `0x0b51`/`0x0b52`, and part 18's eleven:
+  `0x0b29`, `0x0b4d`, `0x1314`, `0x230d`, `0x23ed`, `0x23ee`, `0x23fe`, `0x23ff`, `0x2403`, `0x2404`, `0x2497`.
+- The 31 rank-5 strlen parts and the 54 helper-group-count types remain. No new rank-5 pose input was inferred.
+- New effect requests are routed through the existing native consumers. A recorded request is not proof that its
+  particle kind or texture exists in the native pool. RENDER-EFFECTS-022 owns the parallel `0x810a`/0x25,
+  `0x855d`/1 and `0x84d1`/1 particle work; it is not included in this lane's coverage.
+- The counter's absolute process phase and the process random phase remain different from the original. The finite
+  domain remains unselected items without buffs; unavailable bones and kinds remain explicit refusals.
+
+
+### Native visibility follow-up for `0x0f2a`
+
+APP-REFRESH-010's proof (c) remains **unverified**, and an independent offline render reproduces its failure.
+At fixed action 1, frame 0.5 and world time 123456, `mu-render character --class 1 --world-render` with
+`Hammer15.bmd` as weapon0, type `0x0f2a`, level 9 and counters 0/7/8 emits three byte-identical 640x480 PNGs
+(SHA-256 `ed849c51a9a47e42e3176feb1e0dce5a2fcf5060065067d386a2f08b687d5efb`). Each draws 9,274 triangles,
+13 passes, with `special=0`. The counter reaches the body: its selected mesh 4 UVs are (0,0), (0.75,0), (0,0.25).
+But each selected pass retains blend light 0. `fill_item` zeroes that input; `draw_item` forwards it as the
+mesh colour scale. UV motion therefore supplies no visible contribution in this fixed-pose native path.
+
+A static read plus original constructor/ObjectInit execution under Unicorn both return normally, with
+OBJECT `+0xa8` still zero. ObjectInit `0x0129eb81` explicitly stores zero there at `0x0129ed3c`, after
+`xorps xmm0,xmm0` at `0x0129ed39`. This is evidence against assuming that construction supplies a constant 1.
+The later caller that supplies visible blend light for this worn item has not been recovered. No guessed
+constant is installed. This lane proves counter-driven command changes, **not visible atlas animation**.
+The installed preview is untouched. Recover the OBJECT/PART caller's blend-light value and lifetime before
+claiming visual completion; then repeat this fixed-pose native test and the app proof.
 
 ## Part 32, NPC and monster cloth callers, CLOAK-004
 

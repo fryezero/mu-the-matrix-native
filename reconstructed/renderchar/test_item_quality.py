@@ -35,8 +35,8 @@ class ItemQuality(unittest.TestCase):
 
     def test_admissions_and_existing_domain(self):
         self.assertEqual(len(gen.QUALITY_TYPES), 51)
-        self.assertEqual(len(gen.EXIT_TYPES), 34)
-        self.assertTrue(set(gen.EXIT_TYPES) <= set(gen.QUALITY_TYPES))
+        self.assertEqual(len(gen.EXIT_TYPES), 35)
+        self.assertTrue(set(gen.EXIT_TYPES) - {0x1588} <= set(gen.QUALITY_TYPES))
         self.assertFalse(set(gen.QUALITY_TYPES) & set(gen.CARRY_TYPES))
         for t in gen.QUALITY_TYPES:
             self.assertEqual(self.draws(self.item(type=t))[0], 0, hex(t))
