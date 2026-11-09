@@ -15,7 +15,8 @@ before the final push.
 ## Result
 
 - Bodies **1,364 -> 1,370 of 1,674**, adding `0x0f24`, `0x0f28`, `0x0f29`, `0x0f2b`, `0x0f2c` and `0x1588`.
-  **304 remain**; skins 17/17 and links eighteen targets/twenty-four types are unchanged.
+  **304 remain**; skins 17/17 and links eighteen targets/twenty-four types are unchanged. Survey: 798 shapes,
+  complete 586 -> 592; exactly six rows change in each TSV. The body header is 499,004 bytes, below 512 KiB.
 - The five maces gain their pre-draw effect programs. The reader distinguishes body range calculations from effect
   requests, unrolls a constant loop inside an open counter gate and reduces an exactly bounded unsigned conversion
   to the existing integer-to-float op. The full conversion sequence and its zero correction are checked.
@@ -53,8 +54,34 @@ Env, from the repository root:
 Heavy commands use `nice -n 10`, make at most `-j4`, validator runners `--jobs 2`. Steps wait at load >14 or free
 memory <25%. The original-side cache stays in the shared tools directory.
 
-Validation is in progress. Final counts, wall times, tested commit and the exact steward selection will replace
-this paragraph before the ready-prs entry.
+The implementation is `b52ad40e`; test-only corrections are `c8fa5413`. The remaining 43 selected validators
+are running at `c8fa5413`, without mutants. The two mutant rows below ran there once.
+
+| Check | Cases / result | Wall time |
+|---|---|---:|
+| Six-type isolated body screen | 1,752 body states, 0 mismatches | 10.7 s |
+| Six-type isolated counter screen | 1,752 states, 1,337 counter values, 0 mismatches | 12.3 s |
+| Five isolated owned mace programs | 320 states, draw/request/refusal/rand streams equal | 2.4 s |
+| Later read-program screen | 24 candidates, 22 read; five initial fits fail independent states under all carry choices; no admissions | 69.4 + 62.2 s |
+| Full body/owner table generation | 1,345 -> 1,351 recipe rows; both tables generated | 813.4 s |
+| Build, `nice -n 10 make -j4` | pass | 11.3 s |
+| C-to-C against main `a55200e2` | 216,448 cases; 215,680 identical; exactly six types change, 128 cases each | 6.4 s |
+| Survey export | 1,691 types, 798 shapes; six flips in each TSV | 70.1 s |
+| Portable affected suites, `MU_RECOVERY_INTEGRATION=0`, two workers | 139/186 work items; 1,328 tests, 207 skips; four test assertions corrected below | 338.0 s including selection, 286.3 s test wall |
+| Failed renderchar suite after those test corrections | 100 tests, 78 passed, 22 private skips, 0 failures | 0.7 s |
+| Private native renderer, canonical env from root | 20 tests, 0 failures; **8d reduced**, native selection 134 > 40, only the changed native module run | 3.9 s |
+| Audit before implementation / test-fix commits | 2,104 staged files, 0 rejected, both runs | 17.0 / 17.4 s |
+| `validate_item_predraw --mutations` | **36,196 comparisons, 0 mismatches, 48/48 compiled mutants**; both tables reproduce | 377.4 s |
+| `validate_item_quality --mutations` | **28,080 comparisons, 0 mismatches, 11/11 compiled mutants** | 226.6 s |
+
+Pre-draw families: bodies 14,892, hidden 1,168, frame 16,936 and owned programs 3,200. The frame family covers
+58 types and 6,971 counter values. Owned coverage: 21,821 sprites, 795 particle requests, 2,222 joints,
+13,431 refusals, 3,898 rand draws and 350 flag-clear states. These are comparison-harness counts.
+
+The portable run's four failures were test assertions, not stream differences. Three compared all 72 bytes of
+`mu_rc_draw`, including its three unspecified trailing padding bytes; they now compare all declared fields bit
+for bit. One still expected 34 exit recipes and membership solely in the older quality family; the staff makes
+35. Only the failed suite was rerun. The other 1,228 tests passed or skipped in the original affected run.
 
 6b: `MU_RC_BODY_SCALARS` is used only by `reconstructed/renderchar/renderchar.c`'s input storage. The new scalar
 kind and body tables reach the renderchar validators, the native item renderer and its hosts through the normal
@@ -69,7 +96,7 @@ Steward validators: pending final post-build selection. No ready-prs line has be
 
 The baseline uses main `a55200e2`'s tables and sources, with the new scalar branches still unused. Its default world
 renders were taken once before table admission. A separately compiled main renderchar library is the C-to-C base.
-The final default-draw sweep and inventory comparison are pending table generation and the build. These are offline
+The final default-draw sweep and inventory comparison are pending the remaining validators. These are offline
 native renders, not original-client pixels.
 
 ## Limits

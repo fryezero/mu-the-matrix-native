@@ -2551,6 +2551,18 @@ or process-random-phase equivalence.
 | `0x0f2c` | Pre-program `0x017db6e4..0x017dc347`; counter gate `0x017dbef8..0x017dbefc`, loop `0x017dbf09..0x017dc1e7` | The constant two-iteration loop is inside `counter % 2 == 0`. Its jump to the condition and back edge stay inside the open gate, so they can be unrolled while the gate remains a runtime condition. Runtime backward conditions still refuse, and the interpreter's instruction limit remains. Its body draws need counter/derived/carry recipes but no body random. |
 | `0x1588` | Colour setter `0x01736abc`; random-wrapper returns `0x01736b46`, `0x01736c5f`; counter chain at `0x0173691a` | `0x0185caa4` calls `0x011ff622(lo, hi, 1)`, then divides and adds in binary32. The two calls here use `(0, 10, 10, 0.2)`. Colour `(0.5, 0.35, 0.75)` is scaled by the wave and then by the random result. The intermediate component products must round before the second multiplication. Exit-field probes, rather than last-draw carry, preserve the fields read by the ancient pass. The scroll is `-((counter + 1) % 25) * 0.04`. |
 
+Every row reads the same unsigned rendered-frame counter `[0x0bdc5ebc]`, not the logic clock or the item's
+animation frame. Its body coordinates and pre-program tests are:
+
+| Type | Body counter use, binary32 scales | Pre-program counter use |
+|---|---|---|
+| `0x0f24` | `(counter % 100) * 0.01` scroll | Particle blocks when `% 2 == 0` and `% 25 == 0` |
+| `0x0f28` | 4 x 4 atlas from `counter % 16`; scrolls `(counter % 25) * 0.04` and `(counter % 100) * 0.01` | Bone-sprite rotation `3 * (counter % 120)`; particle blocks when `% 2 == 0` and `% 8 == 0` |
+| `0x0f29` | `(counter % 25) * 0.04` scroll | Particle block when `% 2 == 0` |
+| `0x0f2b` | `f = (counter % 12) / 2`, then `(f % 6)` converted to float and **divided by 6**, not multiplied by a rounded reciprocal | No counter test in the pre-program |
+| `0x0f2c` | `(counter % 50) * 0.02` scroll | Particle blocks when `% 10 == 0`, `% 2 == 0` with the two-iteration loop, and `% 50 == 0` |
+| `0x1588` | `-((counter + 1) % 25) * 0.04`, with uint32 wrap before the remainder | No effect program |
+
 The pre-program survey had another false refusal: it counted range-helper calls after the body helper as effect
 services after the draws. `RANGE` and `RAND` are scalar computations there, so they no longer trigger that refusal.
 Actual effect services after the body still refuse the pre-program reader.
@@ -2575,6 +2587,12 @@ Actual effect services after the body still refuse the pre-program reader.
 ### Checks
 
 Final counts and wall times are recorded in [RENDER-ITEMS-002V](../handoffs/RENDER-ITEMS-002V.md).
+The final pre-draw validator passed **36,196 comparisons, zero mismatches and 48/48 compiled mutants** in
+377.4 s. Families: bodies 14,892, hidden 1,168, frame 16,936 and owned programs 3,200. The frame family covers
+58 types and 6,971 distinct counter values. The shared random-body validator passed 28,080 comparisons and
+11/11 mutants in 226.6 s. Both generated tables reproduce. The full header is 499,004 bytes; recipe rows rise
+1,345 -> 1,351. The survey changes exactly six rows in each TSV, complete shapes 586 -> 592 of 798.
+
 The isolated six-type library passed 1,752 body states and 1,752 counter states, plus 320 owned pre-program states,
 all with zero mismatches. The counter states included high-bit values and 1,337 distinct counter values. Owned
 states compared the complete draw stream, effect requests/refusals and exact rand consumption.
