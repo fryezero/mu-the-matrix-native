@@ -49,7 +49,18 @@ Slayer class-part pants `0x37a9..0x37e9` bypass the mesh setter.
 
 ## Checks
 
-Validation is in progress. Final counts, wall times and the tested commit will replace this paragraph before PR-ready.
+Env: `. ~/Documents/MTM/mu-mac-tools/native/private-env.sh`, from the repository root. Heavy commands use
+`nice -n 10`, `make -j4`, validators `--jobs 2`. Load/memory checks and pauses follow the brief.
+
+| Check | Result | Wall |
+|---|---|---:|
+| Final `make -j4` | pass | 8.9 s |
+| `validate_armour_cloak`, including mutants, code at `6b36fa07` | 4,448 cases, 0 mismatches, 0 stopped; 19/19 compiled mutants caught | 98.2 s |
+| Checkpoint repository audit | 2,103 files, 0 rejected | final audit pending |
+
+An earlier mutant run stopped because the transpose mutant left a loop index unused under `-Werror` (68.1 s).
+The fixture was corrected and the complete run above passed. The product code did not change for that repair.
+Affected checks, final audit and the tested commit will be filled before PR-ready.
 
 ## Scenes, byte identity, renders
 

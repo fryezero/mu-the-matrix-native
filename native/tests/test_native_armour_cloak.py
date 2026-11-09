@@ -58,6 +58,21 @@ class ArmourCloth(unittest.TestCase):
             self.assertEqual([x[1] for x in side.stream if x[0] == 'bind'], bitmaps)
             self.assertEqual(sum(x[0] == 'sprite' for x in side.stream), sprites)
 
+    def test_mesh_level_and_quality_boundaries(self):
+        cloths, h, i, n = self.make(9, pants=0x1e54)
+        cloth = cloths[0]
+        for level in (6, 7, 8, 9, 10, 11, 12, 13):
+            for quality in range(6):
+                cloth.mesh_level = level
+                g = v.CGlobals(); self.lib.mu_cloth_default_globals(C.byref(g)); g.quality = quality
+                side = v.CSide.__new__(v.CSide); side.stream = []; side._sink()
+                self.lib.mu_cloth_render(C.byref(cloth), C.byref(h), C.byref(g), None, C.byref(side.sink))
+                expected = [0x7932, 0x7932] + ([0x7932] if level >= 9 else [])
+                for minimum, q, bitmap in ((13, 4, 0x7fcf), (11, 3, 0x7fcf), (9, 2, 0x7f66), (7, 1, 0x7f1f)):
+                    if level >= minimum and quality >= q:
+                        expected.append(bitmap)
+                self.assertEqual([x[1] for x in side.stream if x[0] == 'bind'], expected, (level, quality))
+
     def test_update_release_and_restore(self):
         c, h, i, n = self.make(8)
         self.assertEqual(self.lib.mu_cloth_armour_update(c, n, C.byref(i), C.byref(h)), 1)
@@ -104,6 +119,7 @@ class WorldScene(unittest.TestCase):
                 rows.append(next(json.loads(x) for x in result.stdout.splitlines() if x.startswith('{"cloak"')))
                 images.append((out / 'frame-0015.png').read_bytes())
             self.assertEqual(rows[0]['created'], 6)
+            self.assertEqual(rows[0]['steps'], 156)  # 4 cloths * 31 calls, class-12's 2 cloths * 16 calls
             self.assertEqual(rows[0]['steps'], rows[1]['steps'])
             self.assertEqual(rows[0]['wind'], rows[1]['wind'])
             self.assertEqual(images[0], images[1])
