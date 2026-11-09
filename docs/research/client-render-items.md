@@ -2681,3 +2681,22 @@ sequences and exact consumption directly. Moving-counter checks cover all 58 adm
   `0x855d`/1 and `0x84d1`/1 particle work; it is not included in this lane's coverage.
 - The counter's absolute process phase and the process random phase remain different from the original. The finite
   domain remains unselected items without buffs; unavailable bones and kinds remain explicit refusals.
+
+
+### Native visibility follow-up for `0x0f2a`
+
+APP-REFRESH-010's proof (c) remains **unverified**, and an independent offline render reproduces its failure.
+At fixed action 1, frame 0.5 and world time 123456, `mu-render character --class 1 --world-render` with
+`Hammer15.bmd` as weapon0, type `0x0f2a`, level 9 and counters 0/7/8 emits three byte-identical 640x480 PNGs
+(SHA-256 `ed849c51a9a47e42e3176feb1e0dce5a2fcf5060065067d386a2f08b687d5efb`). Each draws 9,274 triangles,
+13 passes, with `special=0`. The counter reaches the body: its selected mesh 4 UVs are (0,0), (0.75,0), (0,0.25).
+But each selected pass retains blend light 0. `fill_item` zeroes that input; `draw_item` forwards it as the
+mesh colour scale. UV motion therefore supplies no visible contribution in this fixed-pose native path.
+
+A static read plus original constructor/ObjectInit execution under Unicorn both return normally, with
+OBJECT `+0xa8` still zero. ObjectInit `0x0129eb81` explicitly stores zero there at `0x0129ed3c`, after
+`xorps xmm0,xmm0` at `0x0129ed39`. This is evidence against assuming that construction supplies a constant 1.
+The later caller that supplies visible blend light for this worn item has not been recovered. No guessed
+constant is installed. This lane proves counter-driven command changes, **not visible atlas animation**.
+The installed preview is untouched. Recover the OBJECT/PART caller's blend-light value and lifetime before
+claiming visual completion; then repeat this fixed-pose native test and the app proof.
