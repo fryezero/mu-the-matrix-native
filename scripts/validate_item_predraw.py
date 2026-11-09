@@ -340,10 +340,13 @@ def predraw_cases(wa, lib, plib, per_type, names, consts):
 def body_cases(wa, lib):
     from item_body_machine import ResetWorld
     reset, vectors = ResetWorld(wa, quality.RandomWorld), []
-    for t in TYPES:
+    for t in TYPES + [0x1588]:
         rng = random.Random(0x20061 + t)
         for k, case in quality.state_cases(t):
-            sequence = quality.sequence_for(rng)
+            # Without an item host the native pre-program is absent. Zero rand results keep the body
+            # independent of how many pre-program calls the original consumed. The owned family below
+            # checks the full shared rand stream, including its exact consumption order.
+            sequence = [0] * 64 if t in gen.COUNTER_RANGE_TYPES and t in fxgen.PRE_FX_TYPES else quality.sequence_for(rng)
 
             def factory(*args):
                 world = reset(*args)
@@ -352,7 +355,9 @@ def body_cases(wa, lib):
             result, expected, other, _ = v.client_stream(wa, case, factory)
             unexpected = [c for c in other if c[0] != 'effect']
             status, actual, used = quality.run_c(lib, case, sequence)
-            if not result['ok'] or unexpected or status or actual != expected or used:
+            if not result['ok'] or unexpected or status or actual != expected or \
+                    (used != reset.world.drawn if t not in fxgen.PRE_FX_TYPES else
+                     bool(used) if t not in gen.COUNTER_RANGE_TYPES else False):
                 raise AssertionError(('body', hex(t), k, case, expected, (result, unexpected[:3], status, actual, used)))
             vectors.append(('body', case, sequence, expected))
     return {'cases': len(vectors), 'mismatches': 0}, vectors
@@ -374,7 +379,7 @@ def frame_cases(wa, lib, states):
             frame = FRAME_VALUES[k] if k < len(FRAME_VALUES) else rng.choice(
                 (rng.randrange(1 << 32), rng.randrange(1000), rng.randrange(0x7fffff00, 0x80000100) & 0xffffffff))
             case = dict(case, frame=frame)
-            sequence = quality.sequence_for(rng)
+            sequence = [0] * 64 if t in gen.COUNTER_RANGE_TYPES and t in fxgen.PRE_FX_TYPES else quality.sequence_for(rng)
 
             def factory(*args):
                 world = reset(*args)
@@ -383,7 +388,9 @@ def frame_cases(wa, lib, states):
             result, expected, other, _ = v.client_stream(wa, case, factory)
             unexpected = [c for c in other if c[0] != 'effect']
             status, actual, used = quality.run_c(lib, case, sequence)
-            if not result['ok'] or unexpected or status or actual != expected or used:
+            if not result['ok'] or unexpected or status or actual != expected or \
+                    (used != reset.world.drawn if t not in fxgen.PRE_FX_TYPES else
+                     bool(used) if t not in gen.COUNTER_RANGE_TYPES else False):
                 raise AssertionError(('frame', hex(t), k, frame, status, len(expected), len(actual),
                                       next((i for i, (a, b) in enumerate(zip(expected, actual)) if a != b), None)))
             values.add(frame)
@@ -472,6 +479,9 @@ MUTANTS = {
     'frame-udiv': ('case 32: i = (int32_t)((uint32_t)i / word); break;', 'case 32: i = (int32_t)((uint32_t)i / (word + 1u)); break;'),
     'frame-u2d': ('case 33: d = (double)(uint32_t)i; break;', 'case 33: d = (double)i; break;'),
     'frame-item': ('value = body_scalar(p, s->item->time, s->item->frame);', 'value = body_scalar(p, s->item->time, 0u);'),
+    'range-offset': ('integer = (int32_t)((uint32_t)integer + (uint32_t)p->k[0]);',
+                     'integer = (int32_t)((uint32_t)integer + (uint32_t)p->k[0] + 1u);'),
+    'range-product': ('value = value * other;', 'value = value + other;'),
     # Not mutated: the unknown-counter refusal (frame_known; a C refusal that matches the client's kind and bitmap
     # passes the comparison by design, so only test_item_predraw's frame-counter test catches it), op 49's bone guard
     # (unreachable: the owner gate already requires bone < bones), the post gate's item-bone exemption (here the OBJECT's model is the item model, so both counts
@@ -483,6 +493,9 @@ def mutations(vectors, plib):
     sources = {name: (ROOT/'reconstructed/renderchar'/name).read_text()
                for name in ('owner_fx.inc', 'rank5_owner.inc', 'renderchar.c')}
     caught = {}
+    reference = C.CDLL(str(v.LIBRARY))
+    counts = {i: quality.run_c(reference, case, extra)[2]
+              for i, (family, case, extra, _) in enumerate(vectors) if family == 'body'}
     with tempfile.TemporaryDirectory(prefix='item-predraw-') as tmp:
         for name, (old, new) in MUTANTS.items():
             hits = [f for f, text in sources.items() if text.count(old)]
@@ -499,10 +512,10 @@ def mutations(vectors, plib):
                            check=True)
             lib = C.CDLL(str(library))
             detected = 0
-            for family, case, extra, expected in vectors:
+            for i, (family, case, extra, expected) in enumerate(vectors):
                 if family == 'body':
                     status, actual, used = quality.run_c(lib, case, extra)
-                    detected += bool(status) or actual != expected or bool(used)
+                    detected += bool(status) or actual != expected or used != counts[i]
                     continue
                 detected += not same(expected, run_c(lib, plib, case, extra, expected[3]))[0]
             caught[name] = detected

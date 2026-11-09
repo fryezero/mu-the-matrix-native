@@ -71,6 +71,8 @@ PRE_FX_TYPES = [
     0x0f1f, 0x0f20,
     # RENDER-ITEMS-002U (part 23): 0x0f2a, its atlas frame now a body chain of the counter (gen_item_bodies.FRAME_TYPES).
     0x0f2a,
+    # RENDER-ITEMS-002V: counter-gated maces, with quantised random body-light scalars.
+    0x0f24, 0x0f28, 0x0f29, 0x0f2b, 0x0f2c,
 ]
 
 # RENDER-ITEMS-002T: owner blocks after the draws in RenderPartObjectBody's case that use the pre-draw idioms
@@ -291,7 +293,8 @@ def survey_pre(wa, t):
         effects = [e[1] for e in log[:j] if e[0] in PRE_EFFECTS and e[0] != RAND]
         if not later:
             raise Refused('no body draw after the effects')
-        if any(e[0] in PRE_EFFECTS and e[0] != RAND for e in log[j:]):
+        # RANGE also computes body-draw scalars after the helper. Those calls are not effect requests.
+        if any(e[0] in PRE_EFFECTS and e[0] not in (RAND, RANGE) for e in log[j:]):
             raise Refused('effect services also after the body draws')
         here = (blocks[k + 1][1], max(effects))
         if first is None:
@@ -384,6 +387,8 @@ class Program:
     def bound(self, op, a, b):
         """(lo, hi) of an integer result from its operands' bounds (RENDER-ITEMS-002T), None when unbounded."""
         x, y = self.range_of(a), self.range_of(b)
+        if op == 'umod' and y is not None and y[0] == y[1] and y[0] > 0:
+            return (0, y[0] - 1)
         if x is None or y is None:
             return None
         if op in ('imod', 'umod') and y[0] == y[1] and y[0] > 0 and x[0] >= 0:
@@ -1172,7 +1177,8 @@ class Interpreter:
                 steps += 1
                 if steps > 100000:
                     raise Refused('more than 100000 interpreted instructions')
-            if self.pre and mn == 'jmp' and not self.pending and self.start <= int(ops, 16) <= self.last:
+            if self.pre and mn == 'jmp' and self.start <= int(ops, 16) <= self.last and \
+                    all(int(ops, 16) < target for target, _, _ in self.pending):
                 address = int(ops, 16)   # a loop's back edge or its jump to the condition (constant counters)
                 continue
             if self.pre and mn in CONDITIONS and self.flags is not None and self.flags[0] == 'rt':
@@ -1283,6 +1289,39 @@ class Interpreter:
                     r = self.p.reg()
                     self.p.emit('ftoi', r, x[1])
                     self.reg[dst] = ('i', r)
+            elif self.pre and mn == 'cvtsi2sd':
+                # Unsigned conversion of a bounded counter remainder. All int32 values are exact in binary64;
+                # a nonnegative range makes the 2^32 correction zero, then cvtsd2ss equals cvtsi2ss.
+                dst, src = (x.strip() for x in ops.split(',', 1))
+                x = self.read(operand(src))
+                bound = self.p.range_of(x)
+                seq, at = [], nxt
+                for _ in range(5):
+                    ii = insns.get(at)
+                    if ii is None:
+                        break
+                    seq.append((ii.mnemonic, ii.op_str))
+                    at += ii.size
+                if dst != 'xmm0' or bound is None or not 0 <= bound[0] <= bound[1] < 2**31 or len(seq) != 5 or \
+                        seq[:3] != [('mov', 'eax, ' + src), ('shr', 'eax, 0x1f'),
+                                    ('addsd', 'xmm0, qword ptr [eax*8 + 0x1bd3050]')] or \
+                        seq[3][0] != 'movsd' or not seq[3][1].endswith(', xmm0') or \
+                        seq[4] != ('cvtsd2ss', 'xmm0, ' + seq[3][1].split(',')[0]):
+                    raise Refused(f'unbounded unsigned double conversion at {address:#x}')
+                if struct.unpack_from('<d', self.data, 0x01bd3050 - DATA_BASE)[0] != 0.0:
+                    raise Refused('unsigned conversion correction is not zero')
+                if x[0] == 'c':
+                    self.xmm0 = ('c', bits(f32(float(_signed(x[1])))))
+                else:
+                    r = self.p.reg()
+                    self.p.emit('itof', r, x[1])
+                    self.xmm0 = ('r', r)
+                # Leave the first instruction following cvtsd2ss to the normal reader.
+                address = nxt
+                for _ in range(5):
+                    address += insns[address].size
+                self.reg.pop('eax', None)
+                continue
             elif self.pre and mn == 'cvtsi2ss':
                 dst, src = (x.strip() for x in ops.split(',', 1))
                 x = self.read(operand(src))

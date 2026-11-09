@@ -302,8 +302,14 @@ static void pre_fx(const mu_rc_item *it, const mu_rc_owner_host *h);
  * (gen_item_bodies.parse_random). */
 static float random_program(const mu_rc_body_scalar *p, int32_t value)
 {
-    float x = (float)(value % (int32_t)p->a);
-    for (int i = 0; i < p->count; ++i) {
+    int first = 0;
+    int32_t integer = value % (int32_t)p->a;
+    if (p->count && p->op[0] == 5) {
+        integer = (int32_t)((uint32_t)integer + (uint32_t)p->k[0]);
+        first = 1;
+    }
+    float x = (float)integer;
+    for (int i = first; i < p->count; ++i) {
         float k;
         uint32_t bits = (uint32_t)p->k[i];
         memcpy(&k, &bits, 4);
@@ -311,6 +317,8 @@ static float random_program(const mu_rc_body_scalar *p, int32_t value)
         case 1: x = x * k; break;
         case 2: x = x + k; break;
         case 3: x = x - k; break;
+        case 6: if (k > x) x = k; break;
+        case 7: if (x > k) x = k; break;
         default: x = x / k; break;
         }
     }
@@ -457,6 +465,11 @@ static void emit_parameter_body(sink *s, int phase, uint32_t flags, float alpha,
             memcpy(&k, &bits, 4);
             memcpy(&r, &input[35 + p->a], 4);
             value = k * r;
+        } else if (p->kind == 7) {
+            float other;
+            memcpy(&value, &input[p->a], 4);
+            memcpy(&other, &input[p->k[0]], 4);
+            value = value * other;
         } else if (p->kind == 6) {
             /* Part 16: a word one binary32 operation chain away from input a (an earlier
              * input or program; gen_item_bodies.derive). */
