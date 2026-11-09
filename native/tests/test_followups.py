@@ -1,4 +1,4 @@
-"""FOLLOWUPS-001: appearance-only accessories and the GFx frame-zero regression.
+"""FOLLOWUPS-001 / GFX-FRAME0-001: appearance-only accessories and GFx frame-zero regressions.
 
 The repeatability check needs a libmugfx built with Ruffle patch 0008. The legacy library ignores
 MU_GFX_TEST_CLOCK; report that as a precise skip, rather than claim the old runtime is deterministic.
@@ -6,6 +6,7 @@ MU_GFX_TEST_CLOCK; report that as a precise skip, rather than claim the old runt
 import ctypes
 import os
 from pathlib import Path
+import subprocess
 import sys
 import tempfile
 import time
@@ -84,11 +85,14 @@ class FrameZero(unittest.TestCase):
     def tearDownClass(cls):
         inventory_fx.InventoryScene.tearDownClass()
 
-    def test_repeated_scene_frame_zero(self):
+    def require_clock(self):
         first, second = clock_samples()
         if first != 0 or second != 0:
             self.skipTest(f'legacy libmugfx ignores MU_GFX_TEST_CLOCK ({first} -> {second} ms); '
                           'rebuild with patch 0008 before frame-zero repeatability can be verified')
+
+    def test_repeated_scene_frame_zero(self):
+        self.require_clock()
         # Test the actual reported scene, including initial loading, rather than just its isolated timer.
         case = capture_alpha.LorenciaTooltipSceneTests()
         case.exe = self.exe
@@ -100,6 +104,30 @@ class FrameZero(unittest.TestCase):
                 hashes.append(rows[0]['sha256'])
             self.assertEqual(len(set(captures)), 1)
             self.assertEqual(len(set(hashes)), 1)
+
+    def test_repeated_minimal_hud_frame_zero(self):
+        self.require_clock()
+        with tempfile.TemporaryDirectory() as tmp:
+            captures, hashes = [], []
+            for i in range(4):
+                out = Path(tmp)/str(i)
+                env = {**os.environ, 'MU_GFX_TEST_CLOCK': '1', 'MU_GFX_SINGLE_BUFFER': '1',
+                       'MU_GFX_PUBLIC_DEMO': '1', 'MU_NATIVE_SETTINGS_DIR': str(out),
+                       'MU_LANG_DIR': str(Path(inventory_fx.DATA, 'lang'))}
+                r = subprocess.run([str(self.exe), '--game-root', inventory_fx.GAME, '--objects-dir',
+                                    str(Path(inventory_fx.DATA, 'objects')), '--headless', '--backend', 'gl',
+                                    '--no-audio', '--width', '1280', '--height', '800', '--class', '1',
+                                    '--tile', '138,123', '--gfx', str(Path(inventory_fx.DATA, 'gfx')),
+                                    '--hero-name', 'Preview', '--frames', '1', '--every', '1',
+                                    '--out-dir', str(out)], cwd=inventory_fx.ROOT, env=env,
+                                   capture_output=True, text=True, timeout=120)
+                self.assertEqual(r.returncode, 0, r.stderr[-2000:])
+                rows = capture_alpha.frames(r.stdout)
+                self.assertEqual(len(rows), 1)
+                captures.append(Path(rows[0]['png']).read_bytes())
+                hashes.append(rows[0]['sha256'])
+            self.assertEqual(len(set(captures)), 1, hashes)
+            self.assertEqual(len(set(hashes)), 1, hashes)
 
 
 if __name__ == '__main__':

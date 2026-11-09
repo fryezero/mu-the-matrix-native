@@ -70,3 +70,16 @@ runtime, requires four complete scene starts to produce byte-identical frame-0 P
 frame-zero claim is made by this milestone.
 
 Movie/file SHA-256 values and measured checks are in [the handoff](../handoffs/FOLLOWUPS-001.md).
+
+## GFX-FRAME0-001 resolution
+
+Rebuilding the pinned Ruffle revision with all eight patches closes the runtime clock gap. The same AS2 probe
+returns `[0, 0, 40]` with the test clock enabled: host waiting does not advance it, and a 40 ms player advance does.
+The legacy library returns `[21, 89, 89]` in that probe despite the setting. This is a stale binary, not a missing
+clock implementation in the source.
+
+With the rebuilt library, the original scene and a minimal HUD scene each start four times with one raw frame-0
+hash and byte-identical PNGs. `test_followups.FrameZero` runs both checks without skips. No further runtime change
+was needed for those scenes. Normal wall-time playback remains covered separately by the existing clock test.
+The rebuild recipe, library identity, private checks, capture comparison and switch instructions are in
+[GFX-FRAME0-001](../handoffs/GFX-FRAME0-001.md). These are native repeatability results, not original-client pixel equivalence.
