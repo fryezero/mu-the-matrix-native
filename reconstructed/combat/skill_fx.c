@@ -299,7 +299,7 @@ static int effect_supported(int32_t type, int32_t sub)
     if (uruk_effect_kind(type, sub))
         return 1;   /* RENDER-EFFECTS-018 */
     switch (type) {
-    case MU_SFX_MODEL_FIRE: return sub == 0 || sub == 1;
+    case MU_SFX_MODEL_FIRE: return sub == 0 || sub == 1 || sub == 10;
     case MU_SFX_MODEL_ICE: case MU_SFX_MODEL_POISON: case MU_SFX_MODEL_ICE_DEBRIS: case MU_SFX_MODEL_WAVE: return sub == 0;
     case 0x7f4e: case MU_SFX_BITMAP_THUNDER: return sub == 0;
     case MU_SFX_BITMAP_MAGIC_GROUND2: return sub == 0 || sub == 1;   /* sub 0: the level-up ground (NATIVE-PROGRESS-001) */
@@ -549,6 +549,12 @@ int mu_sfx_effect_create(mu_sfx_effect *e, int32_t type, int32_t subtype, const 
         break;
     }
     case MU_SFX_MODEL_FIRE: {
+        /* RENDER-EFFECTS-024: 0x013d3b4e, the one-step Ferea fire emitter. */
+        if (subtype == 10) {
+            e->blend_mesh = 1;
+            e->lifetime = 1;
+            break;
+        }
         /* 0x013d2f05, Meteorite subtype 0; Fire Ball takes 0x013d4086. */
         if (subtype == 0) {
             e->blend_mesh = 1;
@@ -1168,6 +1174,16 @@ int mu_sfx_effect_move(mu_sfx_effect *e, const mu_sfx_env *env)
         break;
     }
     case MU_SFX_MODEL_FIRE:
+        /* RENDER-EFFECTS-024: 0x0146d6b9..0x0146d7f5. No shared fire trail or terrain light. */
+        if (sub == 10) {
+            const int32_t choice = smod(env_rand(env), 3);
+            static const int32_t bitmap[3] = {0x8084, 0x806e, 0x8085};
+            static const int32_t subtype[3] = {3, 4, 0};
+            if (choice >= 0 && choice < 3)
+                call_particle(env, e, bitmap[choice], e->position, e->angle, e->light,
+                              subtype[choice], e->scale, MU_SFX_NO_OWNER);
+            break;
+        }
         /* 0x0146c821..0x0146cd92: Meteorite terrain contact, before generic motion. */
         if (sub == 0) {
             float ground = env_height(env, e->position[0], e->position[1]) + 0.0f;
