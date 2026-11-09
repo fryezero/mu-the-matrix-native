@@ -100,8 +100,15 @@ when load exceeded 14. No full lane gate. Canonical private env: `. ~/Documents/
   the fixture now uses the real raster. Its three new native tests pass in subsequent private runs.
 
 Post-main validator rerun: **36 passed, 190,569 comparisons, zero failures/errors/skips, 326.19 s** including selection.
-Portable merge delta (`--affected-since 19d3ff5f`): **1,591 tests, 1,331 passed, 260 skipped, zero failures/errors**;
-**293.2 s** runner wall / **346.69 s** including selection, 146 work items. Final audit/documentation checks pending.
+Portable merge delta (`--affected-since 19d3ff5f`, at `556868f9`): **1,591 tests, 1,331 passed, 260 skipped,
+zero failures/errors**; **293.2 s** runner wall / **346.69 s** including selection, 146 work items.
+
+Latest main `dfe708b5` is merged at `684e187c`. It changes the GFx build wrapper, two tests and docs, but no
+compiled consumer inputs; validator proofs and byte-identity sweep are retained. Final root build **0.43 s**.
+The two changed modules (`test_followups`, `test_native_names`) plus documentation consumers
+(`test_world_captures_2`, `test_repository_policy`, `test_native_item_textures`, `test_native_data_manifest`)
+pass privately from the root: **51 tests OK, zero skipped, 106.292 s** (106.37 s command wall).
+Final audit: **2,122 staged files, zero rejected, 17.31 s**. Manual diff review and `git diff --check` are clean.
 
 
 ## Affected validator results
