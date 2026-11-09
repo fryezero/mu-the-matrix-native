@@ -62,6 +62,13 @@ Env: `. ~/Documents/MTM/mu-mac-tools/native/private-env.sh`, from the repository
 | Merge-affected validators, `--no-mutants --cache --jobs 2` | 48/48 pass, 899,036 cases | 1,392.1 s |
 | Portable `--affected-since f0601116`, merged tree | 6 suites, 1,352 tests: 1,132 passed, 220 skipped, 0 failures/errors | 375.8 s including selection; 315.8 s tests |
 | Merged private `test_native_npc_cloak` + `test_native_renderchar`, root, private-env.sh | 26 tests OK | 12.0 s |
+| Final-main build, main `c26bd0e8` integrated as `612e64b0` | pass | 10.4 s |
+| Final-main `--list-affected-since 29873d13` | 53 rows; 32 unchanged rows pruned | 62.3 s |
+| Final-main selected validators, no mutants | 53/53 pass | 269.5 s |
+| Final-main portable `--affected-since 29873d13` | 9 suites, 1,632 tests: 1,360 passed, 272 skipped, 0 failures/errors | 331.1 s including selection; 280.3 s tests |
+| Final-main reduced private modules | 56 tests OK, 0 skipped | 83.2 s |
+| Final repository audit | 2,125 files, 0 rejected | 16.8 s |
+| Final four documentation-consumer modules | 36 tests OK, 1 skipped | 7.7 s |
 | Repository audit before the final main sync | 2,119 files, 0 rejected | 15.0 s |
 | Four documentation-consumer modules, portable | 36 tests OK, 1 skipped | 6.8 s |
 | Post-build `--list-affected origin/main` | 15 rows, including 2 symbol fallbacks, 11 library consumers pruned | 64.7 s |
@@ -74,9 +81,17 @@ The original wing/armour physics and their mutant targets were not changed. The 
 only the new model-selector function changed, plus its validator and test module. The final private NPC run
 covers that module's portable and private cases on the final source.
 
-**8d reduced:** native/tests selections are 140 items initially and 138 after the main merge, above the 40-item cap.
+**8d reduced:** native/tests selections are 140 items initially, 138 after the first main merge and 143 after the final sync,
+all above the 40-item cap.
 The initial final private run uses `test_native_npc_cloak`; after the merge the changed modules are that module
-and main's `test_native_renderchar`. Both run with private-env.sh from the repository root.
+and main's `test_native_renderchar`. Both run with private-env.sh from the repository root. The final-main private run covers
+`test_native_npc_cloak`, `test_native_renderchar`, `test_native_particles`, `test_render_effects23`,
+`test_followups`, `test_native_names` and `test_render_effects22`. 6b review found `MU_WORLD_PT_BITMAPS`
+79 -> 93. The bitmap-end assertions of effects16/20/22/23 and the dynamic bitmap-ID assertions in the
+worlds_l/worlds_m hosts pass in the portable native modules. Their unchanged mutant-heavy instruction unit
+methods are excluded from the private rerun; the corresponding original-instruction rows passed via
+`run_validators.py --no-mutants`.
+
 The earlier private run also covers the unchanged wing and armour modules that exercise the shared renderer.
 An initial travel assertion expected cumulative counts, 4 instead of 2; the runtime is replaced on travel.
 The corrected test asserts destination world/travel count and the fresh runtime's creation, step and draw counts.
@@ -127,30 +142,35 @@ at cleanup. No original-client screenshot or pixel equivalence is claimed.
 
 ## Release
 
-Steward validators: validate_armour_cloak, validate_audio_callers, validate_audio_domains, validate_audio_items, validate_fidelity, validate_icarus_c2, validate_inventory_fx, validate_item_callers, validate_item_carry, validate_item_chains, validate_item_cloak, validate_item_clusters, validate_item_continuation, validate_item_coverage, validate_item_derived, validate_item_expansion, validate_item_gear, validate_item_hiddenmesh, validate_item_next, validate_item_ownerfx, validate_item_predraw, validate_item_product, validate_item_quality, validate_item_ranked, validate_item_scalars, validate_item_types, validate_item_wings_next, validate_meshdraw, validate_model_edge, validate_movement, validate_npc_cloak, validate_render_effects10, validate_render_effects11, validate_render_effects12, validate_render_effects13, validate_render_effects14, validate_render_effects15, validate_render_effects16, validate_render_effects17, validate_render_effects18, validate_render_effects19, validate_render_effects20, validate_render_effects21, validate_render_effects22, validate_render_effects5, validate_render_effects7, validate_render_effects9, validate_renderchar, validate_worlds_fog.
+Steward validators: validate_app_polish1, validate_app_polish4, validate_armour_cloak, validate_audio_callers, validate_audio_domains, validate_audio_items, validate_fidelity, validate_icarus_c2, validate_inventory_fx, validate_item_callers, validate_item_carry, validate_item_chains, validate_item_cloak, validate_item_clusters, validate_item_continuation, validate_item_coverage, validate_item_derived, validate_item_effects, validate_item_expansion, validate_item_gear, validate_item_hiddenmesh, validate_item_next, validate_item_ownerfx, validate_item_predraw, validate_item_product, validate_item_quality, validate_item_ranked, validate_item_scalars, validate_item_types, validate_item_wings_next, validate_meshdraw, validate_model_edge, validate_movement, validate_npc_cloak, validate_particles, validate_render_effects, validate_render_effects10, validate_render_effects11, validate_render_effects12, validate_render_effects13, validate_render_effects14, validate_render_effects15, validate_render_effects16, validate_render_effects17, validate_render_effects18, validate_render_effects19, validate_render_effects20, validate_render_effects21, validate_render_effects22, validate_render_effects23, validate_render_effects3, validate_render_effects4, validate_render_effects5, validate_render_effects6, validate_render_effects7, validate_render_effects9, validate_render_worlds_a, validate_renderchar, validate_world_particle_consumers, validate_worlds_121, validate_worlds_after, validate_worlds_after2, validate_worlds_after3, validate_worlds_after4, validate_worlds_after5, validate_worlds_after6, validate_worlds_e, validate_worlds_fog, validate_worlds_g3, validate_worlds_karutan, validate_worlds_l, validate_worlds_m, validate_worlds_raklion, validate_worlds_slots, validate_worlds_slots2, validate_worlds_slots3.
 
-All 49 rows passed. The primary 15 passed at `f0601116`; after main `127489e0` was merged as `29873d13`,
-48 selected rows passed again, 899,036 cases, 1,392.1 s. Only `validate_worlds_fog` was not selected by that
-merge; its 4,044-case pass at `f0601116` still stands. Unique row totals are 903,080 cases.
-`validate_npc_cloak` passed its 17/17 compiled mutants at `f0601116`; its cloth source is unchanged by the
-merge. No other row needs a mutant rerun. The row command used `--no-mutants`; scripts with built-in controls
-and no mutant switch retain those controls. Env: `. ~/Documents/MTM/mu-mac-tools/native/private-env.sh`.
+All 76 required rows passed, 1,119,110 cases across each row's last pass.
+The primary 15 passed at `f0601116`; after main `127489e0` was merged as `29873d13`, 48 selected rows passed
+899,036 cases in 1,392.1 s. Main advanced during those checks: `c26bd0e8` was merged as `612e64b0`, retaining
+both appended validator rows and moving CLOAK-004 to Part 33. The new delta selected 53 rows and pruned
+32 unchanged rows, including the long item-body and all cloth rows. All 53 passed in 269.5 s.
+The table gives each row's last tested source commit, so the steward can select only subsequent input changes.
 
-Main integration changed no cloth or actor caller source. Both lanes' findings are kept, this lane now in Part 33 after the final sync.
-The only earlier UV syntax repair (`fe3d7248`) produced byte-identical whole cloth libraries at validator O2
-flags before/after, SHA-256 `92a34a3f2b34fa39a9595efda9ead26e4335a81a9760a6ec06f8a1f02dc30bb8`.
-All 101 old/new mutant anchors occur once. That repair precedes the final world-121 guard and final comparisons.
+`validate_npc_cloak` passed 17/17 compiled mutants at `f0601116`; cloth and actor caller sources are unchanged
+by both main merges. No other row needs a mutant rerun. Row commands use `--no-mutants`; scripts with
+built-in controls and no mutant switch retain those controls. Env: `. ~/Documents/MTM/mu-mac-tools/native/private-env.sh`.
+
+The earlier UV syntax repair (`fe3d7248`) produced byte-identical whole cloth libraries at validator O2 flags,
+SHA-256 `92a34a3f2b34fa39a9595efda9ead26e4335a81a9760a6ec06f8a1f02dc30bb8`. All 101 old/new anchors occur
+once. That syntax repair precedes the final world-121 guard and final instruction comparisons.
 
 | Validator | Cases | Wall | Tested commit |
 |---|---:|---:|---|
+| `validate_app_polish1` | 752 | 18.2 s | `612e64b0` |
+| `validate_app_polish4` | 10,485 | 30.0 s | `612e64b0` |
 | `validate_armour_cloak` | 4,448 | 41.5 s | `29873d13` |
-| `validate_audio_callers` | 5,528 | 4.7 s | `29873d13` |
-| `validate_audio_domains` | 2,544 | 21.6 s | `29873d13` |
-| `validate_audio_items` | 3,000 | 2.4 s | `29873d13` |
+| `validate_audio_callers` | 5,528 | 4.7 s | `612e64b0` |
+| `validate_audio_domains` | 2,544 | 21.0 s | `612e64b0` |
+| `validate_audio_items` | 3,000 | 2.5 s | `612e64b0` |
 | `validate_fidelity` | 991 | 80.9 s | `29873d13` |
-| `validate_icarus_c2` | 8,400 | 16.4 s | `29873d13` |
-| `validate_inventory_fx` | 8,017 | 6.2 s | `29873d13` |
-| `validate_item_callers` | 6,013 | 1.7 s | `29873d13` |
+| `validate_icarus_c2` | 8,400 | 13.8 s | `612e64b0` |
+| `validate_inventory_fx` | 8,017 | 6.4 s | `612e64b0` |
+| `validate_item_callers` | 6,013 | 1.2 s | `612e64b0` |
 | `validate_item_carry` | 114,388 | 399.0 s | `29873d13` |
 | `validate_item_chains` | 35,406 | 103.5 s | `29873d13` |
 | `validate_item_cloak` | 5,694 | 110.3 s | `29873d13` |
@@ -158,6 +178,7 @@ All 101 old/new mutant anchors occur once. That repair precedes the final world-
 | `validate_item_continuation` | 25,772 | 41.4 s | `29873d13` |
 | `validate_item_coverage` | 31,724 | 40.0 s | `29873d13` |
 | `validate_item_derived` | 36,252 | 167.4 s | `29873d13` |
+| `validate_item_effects` | 1,500 | 1.3 s | `612e64b0` |
 | `validate_item_expansion` | 52,172 | 46.0 s | `29873d13` |
 | `validate_item_gear` | 25,256 | 67.2 s | `29873d13` |
 | `validate_item_hiddenmesh` | 116,281 | 361.8 s | `29873d13` |
@@ -170,28 +191,52 @@ All 101 old/new mutant anchors occur once. That repair precedes the final world-
 | `validate_item_scalars` | 26,274 | 44.0 s | `29873d13` |
 | `validate_item_types` | 135,176 | 39.5 s | `29873d13` |
 | `validate_item_wings_next` | 33,622 | 45.9 s | `29873d13` |
-| `validate_meshdraw` | 14,619 | 70.2 s | `29873d13` |
-| `validate_model_edge` | 954 | 121.9 s | `29873d13` |
-| `validate_movement` | 6,614 | 44.8 s | `29873d13` |
+| `validate_meshdraw` | 14,619 | 52.2 s | `612e64b0` |
+| `validate_model_edge` | 954 | 103.9 s | `612e64b0` |
+| `validate_movement` | 6,614 | 46.8 s | `612e64b0` |
 | `validate_npc_cloak` | 2,619 | 27.7 s | `29873d13` |
-| `validate_render_effects10` | 154 | 0.4 s | `29873d13` |
-| `validate_render_effects11` | 176 | 0.3 s | `29873d13` |
-| `validate_render_effects12` | 64 | 0.3 s | `29873d13` |
-| `validate_render_effects13` | 180 | 0.5 s | `29873d13` |
-| `validate_render_effects14` | 660 | 1.1 s | `29873d13` |
-| `validate_render_effects15` | 509 | 0.6 s | `29873d13` |
-| `validate_render_effects16` | 424 | 2.7 s | `29873d13` |
-| `validate_render_effects17` | 618 | 6.5 s | `29873d13` |
-| `validate_render_effects18` | 540 | 1.0 s | `29873d13` |
-| `validate_render_effects19` | 400 | 0.7 s | `29873d13` |
-| `validate_render_effects20` | 148 | 0.2 s | `29873d13` |
-| `validate_render_effects21` | 267 | 0.3 s | `29873d13` |
-| `validate_render_effects22` | 202 | 4.0 s | `29873d13` |
-| `validate_render_effects5` | 1,190 | 4.4 s | `29873d13` |
-| `validate_render_effects7` | 596 | 1.4 s | `29873d13` |
-| `validate_render_effects9` | 304 | 0.9 s | `29873d13` |
+| `validate_particles` | 407 | 1.2 s | `612e64b0` |
+| `validate_render_effects` | 660 | 0.8 s | `612e64b0` |
+| `validate_render_effects10` | 154 | 0.4 s | `612e64b0` |
+| `validate_render_effects11` | 176 | 0.2 s | `612e64b0` |
+| `validate_render_effects12` | 64 | 0.3 s | `612e64b0` |
+| `validate_render_effects13` | 180 | 0.4 s | `612e64b0` |
+| `validate_render_effects14` | 660 | 0.9 s | `612e64b0` |
+| `validate_render_effects15` | 509 | 0.7 s | `612e64b0` |
+| `validate_render_effects16` | 424 | 2.6 s | `612e64b0` |
+| `validate_render_effects17` | 618 | 6.5 s | `612e64b0` |
+| `validate_render_effects18` | 540 | 1.0 s | `612e64b0` |
+| `validate_render_effects19` | 400 | 0.9 s | `612e64b0` |
+| `validate_render_effects20` | 148 | 0.2 s | `612e64b0` |
+| `validate_render_effects21` | 267 | 0.3 s | `612e64b0` |
+| `validate_render_effects22` | 202 | 4.6 s | `612e64b0` |
+| `validate_render_effects23` | 1,174 | 5.0 s | `612e64b0` |
+| `validate_render_effects3` | 720 | 0.7 s | `612e64b0` |
+| `validate_render_effects4` | 1,920 | 5.0 s | `612e64b0` |
+| `validate_render_effects5` | 1,190 | 3.3 s | `612e64b0` |
+| `validate_render_effects6` | 1,000 | 1.0 s | `612e64b0` |
+| `validate_render_effects7` | 596 | 1.2 s | `612e64b0` |
+| `validate_render_effects9` | 304 | 0.7 s | `612e64b0` |
+| `validate_render_worlds_a` | 9,000 | 9.0 s | `612e64b0` |
 | `validate_renderchar` | 1,706 | 44.2 s | `29873d13` |
-| `validate_worlds_fog` | 4,044 | 4.7 s | `f0601116` |
+| `validate_world_particle_consumers` | 900 | 0.6 s | `612e64b0` |
+| `validate_worlds_121` | 4,000 | 3.4 s | `612e64b0` |
+| `validate_worlds_after` | 13,424 | 9.4 s | `612e64b0` |
+| `validate_worlds_after2` | 32,216 | 20.1 s | `612e64b0` |
+| `validate_worlds_after3` | 10,212 | 6.1 s | `612e64b0` |
+| `validate_worlds_after4` | 9,181 | 10.2 s | `612e64b0` |
+| `validate_worlds_after5` | 6,000 | 7.8 s | `612e64b0` |
+| `validate_worlds_after6` | 7,300 | 52.2 s | `612e64b0` |
+| `validate_worlds_e` | 4,840 | 13.1 s | `612e64b0` |
+| `validate_worlds_fog` | 4,044 | 4.4 s | `612e64b0` |
+| `validate_worlds_g3` | 4,000 | 3.4 s | `612e64b0` |
+| `validate_worlds_karutan` | 3,000 | 2.3 s | `612e64b0` |
+| `validate_worlds_l` | 1,260 | 0.9 s | `612e64b0` |
+| `validate_worlds_m` | 1,080 | 0.8 s | `612e64b0` |
+| `validate_worlds_raklion` | 3,000 | 2.6 s | `612e64b0` |
+| `validate_worlds_slots` | 18,999 | 11.7 s | `612e64b0` |
+| `validate_worlds_slots2` | 33,000 | 20.1 s | `612e64b0` |
+| `validate_worlds_slots3` | 36,000 | 20.5 s | `612e64b0` |
 
 Cleanup removes the lane's scratch, renders, build outputs, worktree and local branch after its ready-prs line.
 No new input needs to be kept. The remote branch remains for the steward.
