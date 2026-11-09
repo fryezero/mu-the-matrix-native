@@ -154,9 +154,14 @@ class GfxRoute(unittest.TestCase):
     def test_the_movie_gets_the_handler_calls(self):
         with tempfile.TemporaryDirectory() as tmp:
             log = Path(tmp)/'gfx.log'
+            # APP-POLISH-001 moved the presentation Hound away from the arrival. This test needs a kill,
+            # so give its own stationary target a position inside the bow's range.
+            placement = Path(tmp)/'placement.txt'
+            placement.write_text('\n'.join('actor 1 185 128 6 label hound' if line.startswith('actor 1 ')
+                                           else line for line in PLACEMENT.read_text().splitlines()) + '\n')
             env = {**os.environ, 'MU_GFX_LIB': GFX_LIB, 'MU_GFX_LOG': str(log), 'MU_GFX_SINGLE_BUFFER': '1'}
             r = subprocess.run([str(WORLD), '--game-root', os.environ['MU_GAME_ROOT'], '--headless', '--backend', 'gl',
-                                '--frames', '160', '--every', '80', '--out-dir', tmp, '--placement', str(PLACEMENT),
+                                '--frames', '160', '--every', '80', '--out-dir', tmp, '--placement', str(placement),
                                 '--tile', '182,128', '--class', '2', '--combat-weapon', 'bow', '--combat-script',
                                 '6:attack:hound', '--chat-script', '60:Hello', '--gfx', GFX_MOVIES, '--quiet'],
                                capture_output=True, text=True, timeout=600, env=env)
