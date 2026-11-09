@@ -113,7 +113,7 @@ OP = dict(const=1, mov=2, mul=3, add=4, sub=5, div=6, neg=7, gate=8, range=9, tr
           # RENDER-ITEMS-002T: the frame counter, OBJECT-bone positions, the random vector, bounded array selects and
           # CreateParticle with a register bitmap and argument 8
           frame=42, object_transform=43, random_vector=44, select=45, particle_reg=46, particle_reg_owner=47,
-          bitmap=48, owner_item_transform=49)
+          bitmap=48, owner_item_transform=49, object_point=50)
 OBJECT_BONE = 0x0129f12c    # OBJECT->bone matrix: +0x318 + 0x30 * bone, 0 without one (RENDER-ITEMS-002T)
 # Runtime branch conditions (op 34 e): the jcc index; +0x10 = float flags (comiss/ucomiss), else integer flags.
 CONDITIONS = ['je', 'jne', 'jl', 'jge', 'jg', 'jle', 'jb', 'jae', 'ja', 'jbe', 'jne_u', 'je_o']
@@ -544,7 +544,11 @@ class Interpreter:
 
     def store(self, ptr, k, w):
         if self.pre and ptr[0] == 'objptr' and not 0x158 <= ptr[1] + 4 * k < 0x170:
-            self.mem[OBJECT_WORDS + ptr[1] + 4 * k] = w    # RENDER-ITEMS-002S: OBJECT fields the case writes
+            offset = ptr[1] + 4 * k
+            if 0x1f4 <= offset < 0x218 and offset % 4 == 0:
+                # RENDER-EFFECTS-022: RenderParticles reads these nine words after the item draw.
+                self.p.emit('object_point', self.p.scalar(w), (offset - 0x1f4) // 4)
+            self.mem[OBJECT_WORDS + offset] = w    # RENDER-ITEMS-002S: OBJECT fields the case writes
             return
         if ptr[0] != 'frame':
             raise Refused(f'store through {ptr}')
@@ -1532,6 +1536,7 @@ def render(programs, pre=None):
              ' * 37 light  r[a..a+2] = RenderObjDraw light (arg 3)   38 position  r[a..a+2] = OBJECT +0x158',
              ' * 39 joint  CreateJoint 0x0153b02c(bitmap k, pos r[a], target r[b], angle r[c], subtype e, OBJECT, scale r[d],',
              ' *           -1, 0, 0, -1, 0, -1, 0)   40 sprite  as 13 with rotation r[d] and blend e   41 umod  r[a] = r[b] div r[c]',
+             ' * RENDER-EFFECTS-022: 50 object point  OBJECT[0x1f4 + 4*b] = r[a], emitted as MU_RC_OWNER_POINT.',
              ' * RENDER-ITEMS-002T (part 21): 42 frame  r[a] = [0x0bdc5ebc]   43 object transform  r[a..a+2] = 0x012b678d(item bone',
              ' *           r[b], NULL)   44 random vector  r[a..a+2] = 0x00d01fc6(r[b..b+5]), r[a+3] its result',
              ' * 45 select r[a] = r[c + r[b] / 4] (r[b] a byte offset below 4d)   46/47 particle  as 14/25 with bitmap r[k], argument 8',

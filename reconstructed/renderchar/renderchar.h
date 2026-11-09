@@ -115,7 +115,8 @@ enum { MU_RC_OWNER_PARTICLE = 1,   /* CreateParticle 0x0168fafd(bitmap, position
        MU_RC_OWNER_SPRITE = 2,     /* CreateSprite 0x01692eb7(bitmap, position, scale, light, OBJECT, 0, 0, 4, {1,1,1}) */
        /* RENDER-ITEMS-002S: CreateJoint 0x0153b02c(bitmap, position, target, angle, subtype, OBJECT, scale, -1, 0, 0,
         * -1, 0, -1, 0); owner = 1 (the OBJECT is the joint's target object). */
-       MU_RC_OWNER_JOINT = 3 };
+       MU_RC_OWNER_JOINT = 3,
+       MU_RC_OWNER_POINT = 4 }; /* OBJECT +0x1f4 word: subtype 0..8, position[0] value; not a draw request */
 typedef struct mu_rc_owner_fx {
     int32_t kind, bitmap, subtype;
     float position[3], light[3], scale;

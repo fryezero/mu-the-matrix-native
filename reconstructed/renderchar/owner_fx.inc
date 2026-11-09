@@ -222,6 +222,15 @@ static void run_fx(const mu_rc_fx_op *ops, int count, int regs, const mu_rc_item
         mu_rc_owner_fx fx;
         int32_t bone;
         switch (o->op) {
+        case 50:   /* RENDER-EFFECTS-022: a word of OBJECT +0x1f4..+0x217, in client store order */
+            if (h->emit && !lost && !bad[o->a]) {
+                memset(&fx, 0, sizeof fx);
+                fx.kind = MU_RC_OWNER_POINT;
+                fx.subtype = o->b;
+                fx.position[0] = r[o->a];
+                h->emit(h->context, &fx);
+            }
+            break;
         case 1:
             memcpy(&r[o->a], &o->k, 4);
             bad[o->a] = 0;
