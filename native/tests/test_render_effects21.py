@@ -204,7 +204,8 @@ class WorldScenes(unittest.TestCase):
 WINGS_PRE = {'pre_effects': 142, 'pre_refused': 0, 'hidden': 0}   # before: 138 / 3 refused (0x7f66/5, 0x8180/5)
 WINGS_CREATED = (4, 0)
 ARMOUR_PLAYERS = {'owner_effects': 41, 'owner_refused': 0}   # before: no owner programs ran
-ARMOUR_CREATED = (7, 34, 0)
+# CLOAK-003: ArmC's Dark Lord energy cloth adds 6*5 flare sprites on each of the two saved draws.
+ARMOUR_CREATED = (7, 34 + 2 * 6 * 5, 0)
 HERO = {'owner_effects': 20, 'owner_refused': 0}
 
 

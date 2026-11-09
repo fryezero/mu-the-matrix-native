@@ -134,7 +134,8 @@ class WorldPreDraw(unittest.TestCase):
         self.assertEqual(pre['players'], {'pre_effects': 93, 'pre_refused': 0, 'hidden': 0})
         self.assertEqual(pre['ground'], {'pre_effects': 18, 'pre_refused': 0, 'hidden': 0})
         self.assertEqual(pre['hero'], {'pre_effects': 0, 'pre_refused': 0, 'hidden': 0})
-        self.assertEqual(particles['sprites_created'], 110)
+        # CLOAK-003: Maul's Dark Lord energy cloth adds 6*5 flare sprites on each of the two saved draws.
+        self.assertEqual(particles['sprites_created'], 110 + 2 * 6 * 5)
         self.assertEqual(particles['rand_calls'], 141)
         self.assertEqual((particles['created'], particles['unsupported']), (7, 0))
 
