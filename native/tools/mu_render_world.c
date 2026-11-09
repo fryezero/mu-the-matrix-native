@@ -398,6 +398,9 @@ int mu_render_world_character(const mu_options *o)
              * RENDER-ITEMS-002Q: the armour owner-effect programs also read its angle. */
             mu_renderchar_owner owner = {c.player_bones, c.player.bmd->bone_count, 0, 0,
                                          {c.params.angles[0], c.params.angles[1], c.params.angles[2]}};
+            /* RENDER-EFFECTS-023: a stable OBJECT key per viewer item, retained across rendered frames. */
+            env.item_owner = 0x06000000u | (uint32_t)(parts[k] + 1);
+            if (particles) mu_world_particles_item_owner_refresh(particles, env.item_owner, item->model.params.origin);
             mu_renderchar_draw_item_owner(&item->model, &W.glow[parts[k]], &env, c.params.light, 1.0f, &draw,
                                           &backend, &stats, &rstats, &owner);
             owner_effects += owner.effects;
@@ -405,6 +408,7 @@ int mu_render_world_character(const mu_options *o)
             if (W.glow[parts[k]].type == 0x389c || W.glow[parts[k]].type == 0x389d)
                 link_sprites += mu_renderchar_link_effects(&item->model, c.player_bones, W.glow[parts[k]].type, particles);
         }
+        env.item_owner = 0;   /* +15 attachments have no independent item OBJECT registry entry. */
         for (size_t k = 0; k < sizeof ATTACH / sizeof ATTACH[0]; ++k) {
             if (!att[k].loaded)
                 continue;
@@ -426,6 +430,8 @@ int mu_render_world_character(const mu_options *o)
             prepare_raster(&raster, &item->textures);
             mu_draw_options draw = o->draw;
             draw.textures = o->no_textures ? NULL : &item->textures;
+            env.item_owner = 0x06000000u | (uint32_t)(links[k] + 1);
+            if (particles) mu_world_particles_item_owner_refresh(particles, env.item_owner, item->model.params.origin);
             env.item_bones = item->bones;   /* RENDER-ITEMS-002R pre-draw programs: the item's own pose */
             env.pre_counts = pre_counts;
             mu_renderchar_draw_item(&item->model, &W.glow[links[k]], &env, c.params.light, 1.0f, &draw, &backend,
@@ -444,10 +450,12 @@ int mu_render_world_character(const mu_options *o)
     printf("{\"sha256\": \"%s\", \"width\": %d, \"height\": %d, \"meshes\": %ld, \"triangles\": %ld, \"passes\": %ld,"
            " \"special\": %ld, \"carried\": %d, \"attachments\": %d, \"quality\": %d, \"link_sprites\": %ld,"
            " \"owner_effects\": %ld, \"owner_refused\": %ld, \"pre_effects\": %ld, \"pre_refused\": %ld,"
-           " \"joint_quads\": %u}\n",
+           " \"joint_quads\": %u, \"particles_created\": %llu, \"particles_drawn\": %u}\n",
            hash, o->width, o->height, stats.meshes, raster.triangles, rstats.passes, rstats.special, carried, attached,
            W.env.quality, link_sprites, owner_effects, owner_refused, pre_counts[0], pre_counts[1],
-           particles ? particles->stats.drawn_joint_quads : 0u);   /* RENDER-ITEMS-002U: the last RenderJoints */
+           particles ? particles->stats.drawn_joint_quads : 0u,
+           particles ? (unsigned long long)particles->stats.created : 0ull,
+           particles ? particles->stats.drawn_particles : 0u);   /* RENDER-ITEMS-002U: the last RenderJoints */
     if (particles) {
         mu_world_particles_close(particles);
         free(particles);

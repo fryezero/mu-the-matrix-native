@@ -22,7 +22,7 @@
  * the joints' textures (JointThunder01, Spark01, JointSpirit01, JointEnergy01; LoadBitmap 0x0182239b..) and
  * the login scene's clouds and WATERFALL1; NATIVE-CHARSEL-002 the character-select scene's WATERFALL2/3,
  * fantaB, Spark04, magic_ground1_3 and Impack03 (the selection light 0x8022 subtype 5 draws Impack03). */
-#define MU_WORLD_PT_EFFECTS 77
+#define MU_WORLD_PT_EFFECTS 91
 static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     MU_PT_BITMAP_FIRE, MU_PT_BITMAP_SMOKE, MU_PT_BITMAP_FLARE, MU_PT_BITMAP_SPARK3, MU_PT_BITMAP_THUNDER,
     MU_PT_BITMAP_SPARK2, MU_PT_BITMAP_SHINY2, MU_JT_BITMAP_THUNDER, MU_JT_BITMAP_SPARK, MU_JT_BITMAP_SPIRIT,
@@ -43,6 +43,9 @@ static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     0x801d,   /* RENDER-EFFECTS-019: WATERFALL4, half of Test Area's 0x801e/7 particles draw it */
     0x81cf,   /* RENDER-EFFECTS-020: magic_ground12, wings 0x2384/0x2385's owned 0x81cf/0 (before Fire06: keeps 016's anchor) */
     0x855d, 0x84d1,   /* RENDER-EFFECTS-022: mace particles */
+    /* RENDER-EFFECTS-023: mace sprites and the remaining mace particles, original startup mappings. */
+    0x7f7a, 0x80ba, 0x85bc, 0x85fc, 0x8315, 0x8316, 0x8317, 0x7ffb,
+    0x8549, 0x82f2, 0x810b, 0x807e, 0x807f, 0x8080,
     MU_PT_BITMAP_FIRE06,
     MU_PT_BITMAP_RAIN_SPLASH,
     MU_PT_BITMAP_RAIN_RING};
@@ -93,6 +96,14 @@ static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     "Data/Effect/magic_ground12.OZJ",
     /* RENDER-EFFECTS-022: LoadBitmap 0x01825ca1 (CLAMP), 0x0182e978 (REPEAT), both LINEAR. */
     "Data/Effect/pin_star03_red.OZJ", "Data/Item/texture/smoke01_strong_red.OZJ",
+    /* RENDER-EFFECTS-023: LoadBitmap calls 0x01823fd4, 0x01823914, 0x0182ee66, 0x01826804,
+     * 0x01824ab8/0x01824ad8/0x01824af8, 0x01822005, 0x0182ebed, 0x01824839, 0x0182e2bf,
+     * 0x01821a79/0x01821a99/0x01821ab9. All LINEAR; only the final three REPEAT, the others CLAMP. */
+    "Data/Effect/flare03.OZJ", "Data/Effect/flare01_red.OZJ", "Data/Effect/smoke_line03_red.OZJ",
+    "Data/Effect/magic_ground12_red.OZJ", "Data/Effect/firehik01.OZJ", "Data/Effect/firehik02.OZJ",
+    "Data/Effect/firehik03.OZJ", "Data/Effect/Shockwave.OZJ", "Data/Effect/Glow_26.OZJ",
+    "Data/Effect/smoke01_strong.OZJ", "Data/Effect/pin_star02_red.OZJ", "Data/Effect/smokelines01.OZJ",
+    "Data/Effect/smokelines02.OZJ", "Data/Effect/smokelines03.OZJ",
     /* RENDER-EFFECTS-016: Fire06 0x7f40, 0x70c's stone particle (LoadBitmap 0x018229e5 in 0x0182049e,
      * LINEAR/CLAMP) */
     "Data/Effect/Fire06.OZJ"};
@@ -258,7 +269,7 @@ static void load_bitmaps(mu_world_particles *p, const char *root, int no_assets)
             t->filter[i] = bitmap_ids[i] == MU_PT_BITMAP_IMPACK03 ||
                                    (bitmap_ids[i] >= 0x7f73 && bitmap_ids[i] <= 0x7f75) ? 0x2600 : 0x2601;
             t->wrap[i] = bitmap_ids[i] == 0x84d1 || bitmap_ids[i] == 0x7f21 || bitmap_ids[i] == 0x84e2 ||
-                         (bitmap_ids[i] >= 0x8081 && bitmap_ids[i] <= 0x8083) || bitmap_ids[i] == 0x83b8 ? 0x2901 : 0x2900;
+                         (bitmap_ids[i] >= 0x807e && bitmap_ids[i] <= 0x8083) || bitmap_ids[i] == 0x83b8 ? 0x2901 : 0x2900;
             snprintf(relative, sizeof relative, "%s", effect_files[i]);
         } else {
             /* the world's rain02/rain03: GL_NEAREST, GL_CLAMP (0x01829e21) */
@@ -1212,11 +1223,16 @@ long mu_world_particles_draw(mu_world_particles *p, const float modelview[16], c
                                                  NULL, NULL);
     for (int32_t i = 0; i < p->list.count; ++i) {
         mu_pt_particle *record = &p->list.records[i];
-        if (!record->live || record->type != 0x810a || record->subtype != 0x25)
+        const int spark = record->type == 0x810a && record->subtype == 0x25;
+        const int direct = (record->type == 0x7ffb && record->subtype == 0) ||
+                           (record->type == 0x85fc && (record->subtype == 1 || record->subtype == 2));
+        if (!record->live || (!spark && !direct))
             continue;
         mu_world_item_owner *it = item_owner_slot(p, record->owner);
         const float *point = it && record->arg8 >= 0 && record->arg8 < 3 ? it->points[record->arg8] : NULL;
-        mu_pt_item_counter_follow(record, point);
+        if (spark) mu_pt_item_counter_follow(record, point);
+        else if (record->owner != MU_PT_NO_OWNER && !point) record->live = 0; /* stale/unknown native owner */
+        else mu_pt_item_mace_follow(record, point);
     }
     const int32_t particles = mu_pt_render_all(&p->list, 0, p->camera, p->world_time, bitmap_info, p, &gl);
     p->stats.drawn_sprites = (uint32_t)sprites;

@@ -11,6 +11,7 @@
 #include "../../reconstructed/actors/effect_class_table.h"
 #include "../../reconstructed/objects/object_render.h"
 #include "mu_data.h"
+#include "../../reconstructed/cloth/cloth.h"
 #include "mu_item_textures.h"
 
 #define MONSTER_IDLE 0     /* docs/research/client-actors.md section 2 (inference) */
@@ -145,9 +146,18 @@ static int load_actor(mu_world_actors *s, mu_world_actor *a, const char *root, i
     char message[512];
     const mu_effect_class *fx = effect_class(server_class);
     const mu_monster_class *row = server_class >= 0 ? mu_monster_class_find((uint32_t)server_class) : NULL;
-    int player = row && row->kind == MU_CLASS_PLAYER_MODEL && (server_class == 257 || server_class == 229);
+    float cloth_scale = 0.9f;
+    const int cloth_model = mu_cloth_npc_model((int16_t)server_class, s->map->world, &cloth_scale);
+    int player = row && row->kind == MU_CLASS_PLAYER_MODEL &&
+        (server_class == 257 || server_class == 229 || server_class == 55);
     if (player) {
         memset(&spec, 0, sizeof spec);
+    } else if (cloth_model >= 0) {
+        if (mu_actor_resolve(root, MU_ACTOR_BY_MONSTER, cloth_model - (int32_t)MU_MONSTER_MODEL_BASE,
+                             &spec, message, sizeof message))
+            goto fail;
+        spec.scale = cloth_scale;
+        spec.server_class = server_class;
     } else if (fx) {
         if (mu_actor_resolve(root, MU_ACTOR_BY_NPC, fx->npc_index, &spec, message, sizeof message))
             goto fail;

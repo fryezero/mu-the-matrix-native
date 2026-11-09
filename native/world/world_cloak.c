@@ -8,6 +8,7 @@
 #include "../../reconstructed/cloth/cloth.h"
 #include "../core/mu_meshdraw.h"
 #include "../core/mu_lang.h"
+#include "../session/mu_session.h"
 #include "../core/mu_raster.h"
 #include "../core/mu_textures.h"
 #ifndef MU_WORLD_NO_GL
@@ -15,7 +16,8 @@
 #endif
 #include "world_rt_internal.h"
 
-#define CLOAK_SLOTS (1 + MU_WORLD_PLAYERS_MAX)
+#define ACTOR_SLOT (1 + MU_WORLD_PLAYERS_MAX)
+#define CLOAK_SLOTS (ACTOR_SLOT + MU_WORLD_ACTORS_MAX)
 
 /* The cloth and glow bitmaps of CreateCloth's cases as the client's LoadBitmap calls (0x0185baac) load them: the
  * directory under Data, the file, the filter and the wrap. They are loaded the first time a cloth binds them. */
@@ -24,6 +26,10 @@ static const struct {
     const char *directory, *name;
     uint32_t filter, wrap;
 } cloth_bitmaps[] = {
+    {0x790d, "Player", "Robe03.tga", 0x2600, 0x2900},
+    {0x7ff2, "Monster", "nightmare_cloth.tga", 0x2600, 0x2900},
+    {0x84e6, "Npc", "eunice_cape_L.tga", 0x2601, 0x2900},
+    {0x84e7, "Npc", "eunice_cape_R.tga", 0x2601, 0x2900},
     {0x790b, "Player", "Robe01.jpg", 0x2600, 0x2900},
     {0x790c, "Player", "Robe02.jpg", 0x2600, 0x2900},
     {0x7912, "Player", "DarklordRobe.tga", 0x2600, 0x2900},
@@ -359,6 +365,23 @@ static void host_of(mu_cloth_host *h, const mu_character *ch, float alpha)
     h->alpha = alpha;
 }
 
+/* Actor OBJECT bones come from its own posed model, including player-model NPCs. */
+static void actor_host(mu_cloth_host *h, const mu_world_actor *actor, float alpha)
+{
+    if (actor->player) {
+        host_of(h, actor->player, alpha);
+        return;
+    }
+    memset(h, 0, sizeof *h);
+    h->bones = mu_model_bone_matrices(&actor->actor.model);
+    h->bone_count = actor->actor.bmd.bone_count;
+    h->has_model = actor->actor.loaded;
+    h->body_scale = actor->actor.model.params.body_scale;
+    memcpy(h->body_origin, actor->actor.model.params.origin, sizeof h->body_origin);
+    memcpy(h->angles, actor->angle, sizeof h->angles);
+    h->alpha = alpha;
+}
+
 static void move_cloth(world_cloak *w, cloak_slot *s, const mu_cloth_host *h)   /* MoveCloth 0x01362f24 */
 {
     for (int i = 0; i < s->count + s->armour_count; ++i) {
@@ -439,18 +462,23 @@ static void armour_inputs(const mu_world_rt *a, int32_t key, const mu_character 
     mu_lang_enchant_mesh(a->lang, in->pants_type - 0xae6, mu_cloth_armour_color_mesh(in->pants_type), in->mesh_color);
 }
 
-void world_cloak_draw(mu_world_rt *a, int32_t key, uint32_t generation, const mu_character *ch,
+static void draw_cloth(mu_world_rt *a, int32_t key, uint32_t generation, const mu_character *ch,
                       const mu_cloth_gate_in *gate, int8_t wing_level, uint16_t action, uint16_t prior_action,
                       float alpha, mu_raster *raster, void *batch)
 {
     const int16_t wing_type = gate->wing_type;
-    if (key < 0 || key >= CLOAK_SLOTS || !ch || !ch->player_loaded)
+    const int npc = key >= ACTOR_SLOT;
+    if (key < 0 || key >= CLOAK_SLOTS || (!npc && (!ch || !ch->player_loaded)))
         return;
     /* CreateCloth's inputs: native characters have no arg 4 (guild war / duel), play in scene 6 and keep sub-type 0. */
-    const mu_cloth_wing_in wing_in = {wing_type, wing_level, 0, 6, ch->params.scale};
+    const float scale = ch ? ch->params.scale : a->actors.list[key - ACTOR_SLOT].actor.spec.scale;
+    const mu_cloth_wing_in wing_in = {wing_type, wing_level, 0, 6, scale};
     mu_cloth_armour_in armour_in;
-    armour_inputs(a, key, ch, gate, &armour_in);
-    const int eligible = mu_cloth_wing_cloths(&wing_in) || mu_cloth_armour_cloths(&armour_in);
+    memset(&armour_in, 0, sizeof armour_in);
+    if (!npc)
+        armour_inputs(a, key, ch, gate, &armour_in);
+    const int eligible = npc ? mu_cloth_npc_cloths(gate->class_index) :
+        (mu_cloth_wing_cloths(&wing_in) || mu_cloth_armour_cloths(&armour_in));
     if (!a->cloak && !eligible)   /* no state (and no report line) before a cloth wing */
         return;
     world_cloak *w = cloak_state(a);
@@ -484,7 +512,10 @@ void world_cloak_draw(mu_world_rt *a, int32_t key, uint32_t generation, const mu
         world_cloak_frame(a);
     set_globals(a, w);
     mu_cloth_host h;
-    host_of(&h, ch, alpha);
+    if (npc)
+        actor_host(&h, &a->actors.list[key - ACTOR_SLOT], alpha);
+    else
+        host_of(&h, ch, alpha);
     s->ch = ch;
     const uint32_t frame = a->walk.frame.clock.frames;
     if (!s->active || s->stepped != frame) {   /* first drawn frame: this frame's MoveCloth has not run */
@@ -501,12 +532,13 @@ void world_cloak_draw(mu_world_rt *a, int32_t key, uint32_t generation, const mu
         return;
     }
     int created = 0;
-    if (s->count == 0) {
+    if (!npc && s->count == 0) {
         s->count = mu_cloth_wing_create(s->cloths, &wing_in, &h);
         created += s->count;
     }
     if (s->armour_count == 0) {
-        s->armour_count = mu_cloth_armour_create(s->armour, &armour_in, &h);
+        s->armour_count = npc ? mu_cloth_npc_create(s->armour, gate->class_index, &h) :
+            mu_cloth_armour_create(s->armour, &armour_in, &h);
         created += s->armour_count;
     }
     w->stats.created += (uint32_t)created;
@@ -567,11 +599,54 @@ void world_cloak_draw(mu_world_rt *a, int32_t key, uint32_t generation, const mu
     }
 }
 
+void world_cloak_draw(mu_world_rt *a, int32_t key, uint32_t generation, const mu_character *ch,
+                      const mu_cloth_gate_in *gate, int8_t wing_level, uint16_t action, uint16_t prior_action,
+                      float alpha, mu_raster *raster, void *batch)
+{
+    draw_cloth(a, key, generation, ch, gate, wing_level, action, prior_action, alpha, raster, batch);
+}
+
+void world_cloak_actor_draw(mu_world_rt *a, int32_t index, float alpha, mu_raster *raster, void *batch)
+{
+    if (index < 0 || index >= a->actors.count)
+        return;
+    const mu_world_actor *actor = &a->actors.list[index];
+    if (!mu_cloth_npc_cloths((int16_t)actor->server_class))
+        return;
+    mu_cloth_gate_in gate = {0};
+    gate.class_index = (int16_t)actor->server_class;
+    gate.wing_type = -1;
+    gate.object_type = gate.own_type = actor->actor.spec.model_index;
+    const uint16_t action = actor->player ? mu_model_action(&actor->player->player) : mu_actor_action(&actor->actor);
+    const uint16_t prior = mu_model_prior_action(actor->player ? &actor->player->player : &actor->actor.model);
+    draw_cloth(a, ACTOR_SLOT + index, 0, actor->player, &gate, 0, action, prior, alpha, raster, batch);
+}
+
+void world_cloak_actors_reset(mu_world_rt *a)
+{
+    world_cloak *w = a->cloak;
+    if (!w)
+        return;
+    for (int key = ACTOR_SLOT; key < CLOAK_SLOTS; ++key) {
+        free(w->slots[key]);
+        w->slots[key] = NULL;
+    }
+}
+
 /* 1 while the slot's character is still drawn with the OBJECT its cloths were made for. */
 static int slot_live(const mu_world_rt *a, int key, const cloak_slot *s)
 {
     if (key == WORLD_CLOAK_HERO)
         return a->has_character && s->ch == &a->ch;
+    if (key >= ACTOR_SLOT) {
+        const int i = key - ACTOR_SLOT;
+        if (!a->has_actors || i >= a->actors.count || !a->actors.session)
+            return 0;
+        const mu_world_actor *actor = &a->actors.list[i];
+        const mu_characters_view view = mu_session_characters(a->actors.session);
+        return view.used[actor->session_slot] && view.records[actor->session_slot].key == actor->session_key &&
+            (!a->combat || mu_combat_actor_alpha(a->combat, i) > 0.0f);
+    }
     const int32_t i = key - 1;
     if (!a->players || i >= a->players->count)
         return 0;
@@ -598,9 +673,12 @@ void world_cloak_frame(mu_world_rt *a)
         if (s->count + s->armour_count == 0 || s->stepped == frame)
             continue;
         mu_cloth_host h;
-        host_of(&h, s->ch, 1.0f);
+        if (key >= ACTOR_SLOT)
+            actor_host(&h, &a->actors.list[key - ACTOR_SLOT], 1.0f);
+        else
+            host_of(&h, s->ch, 1.0f);
         move_cloth(w, s, &h);
-        if (mu_cloth_armour_update(s->armour, s->armour_count, &s->armour_in, &h))
+        if (key < ACTOR_SLOT && mu_cloth_armour_update(s->armour, s->armour_count, &s->armour_in, &h))
             move_cloth(w, s, &h);
         s->stepped = frame;
     }
