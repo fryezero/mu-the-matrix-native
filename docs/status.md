@@ -1,5 +1,7 @@
 # Current status
 
+APP-REFRESH-011 PR-ready: Native Preview installed from latest main 54a53e1a through #360 with the verified frame-zero GFx library; APP-REFRESH-006 Native Data retained after export-input diff and manifest check. Installed four-start HUD, isolated 0x0f2a counter, mace effects, Eunice 939 cloth and accessory slots 9-14 proofs pass. Full private run: 1,038 tests, 1,019 passed, 16 skipped, three stale-fixture failures; repaired affected classes pass 23/23. No production code changed. [Installation, rollback, checks and limits](handoffs/APP-REFRESH-011.md).
+
 RENDER-ITEMS-002W PR-ready: bodies 1,370 -> 1,404/1,674 (270 left), adding three bows and all 31 named-mesh parts. Worn `0x0f2a` blend light is recovered from the original caller; body-only native and current local Preview controls establish visible atlas motion. 54 current PR validators pass; late-main 57-row rerun passes. Installed apps are untouched. [Checks, row timings and limits](handoffs/RENDER-ITEMS-002W.md).
 
 RENDER-EFFECTS-024 PR-ready: original-loader sprite textures `0x81ec` and `0x854a` close the two mace gaps; Ferea's `0x413/10` emitter and `0x8084/3` child now draw native fire. The eight-mace scene gains seven sprites per frame; 205/205 closer-view fire requests are accepted. 11,006 component comparisons, 18/18 compiled mutants, 57 affected validators pass. Default sweep: 91/92 PNGs and 92/92 dumps byte-identical, with only the intended Ferea fire PNG changed. Exact `up01` and clouds/28 refusals remain. [Checks, census and limits](handoffs/RENDER-EFFECTS-024.md).
