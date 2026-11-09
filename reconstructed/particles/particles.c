@@ -35,8 +35,8 @@ static void copy3(float d[3], const float s[3])
 #include "test_area_kinds.inc"  /* RENDER-EFFECTS-019 */
 #include "item_owned_kinds.inc"  /* RENDER-EFFECTS-020 */
 #include "item_predraw_kinds.inc"  /* RENDER-EFFECTS-021 */
-#include "item_counter_kinds.inc"
-#include "item_mace_kinds.inc"   /* RENDER-EFFECTS-023 */  /* RENDER-EFFECTS-022 */
+#include "item_counter_kinds.inc"  /* RENDER-EFFECTS-022 */
+#include "item_mace_kinds.inc"     /* RENDER-EFFECTS-023 */
 
 int mu_pt_kind_supported(int32_t type, int32_t subtype)
 {

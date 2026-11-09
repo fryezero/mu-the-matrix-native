@@ -1,7 +1,7 @@
 # RENDER-EFFECTS-023
 
-Implementation checkpoint, not PR-ready. Branch `codex/render-effects-023`, base main `825c37b7`, after #354
-merged. #355 remains pending and will be incorporated before final checks. Offline/static only; no live client,
+Implementation checkpoint, not PR-ready. Branch `codex/render-effects-023`, initially based on main `825c37b7`;
+#355/main `127489e0` is now merged. The sections below retain the earlier checkpoint evidence. Offline/static only; no live client,
 launcher, installed app, server-state work, protection analysis or memory writes.
 
 Scope: world bitmap slots for `0x7f7a` and `0x80ba`; the 19 remaining mace particle pairs in
@@ -124,3 +124,25 @@ has a world bitmap slot. Particle kind coverage and missing sprite textures are 
 | `validate_worlds_slots` | 18,999 | 18.5 s |
 | `validate_worlds_slots2` | 33,000 | 31.7 s |
 | `validate_worlds_slots3` | 36,000 | 34.4 s |
+
+## Combined-main checkpoint
+
+Main #355 is incorporated. The four-mace OBJECT point-store proof passes 1,000 cases plus 14 loader checks,
+12.048 s. The new registry row passes 1,174 comparisons and catches 31/31 unique compiled mutants, zero
+stopped, 32.1 s, at `041c1805`. The full 57,000 particle proof remains valid: incoming main changes no particle
+logic. Static census: 93 programs, 30 particle pairs supported, zero unresolved bitmap expressions.
+
+The portable initial run passed 1,623 tests (1,355 passed, 268 skipped), 273.8 s runner wall / 322.52 s including
+selection. After main, the private reduced run passed 36 of 37 tests and exposed the all-mace fixture's overly
+strict zero-refusal expectation. Hammer14 has `up01 ` with a trailing space, whereas the program requests `up01`:
+that one bone-sprite refusal per draw is retained. The corrected world test passes alone, 3.095 s; no production
+bone-matching change. Five new maces, 61 draws at both clocks: 3,249 accepted / 61 refused, 321 particles created,
+zero unsupported, last draw 96 particles / 44 sprites. Before: 2,988 / 322, 60 created, 261 unsupported, 24 / 24.
+
+The final default sweep matches 92/92 PNGs and 92/92 object/light dumps. Reports match after normalizing output
+paths and removing the fourteen expected added bitmap-presence entries. October 22 after 18.915 s;
+DATA-ACQ-002 after measurement is retained locally for the final handoff. The new five-mace before/after crop
+changes 10,784 pixels, visibly adding smoke, rings and glints. No original-client pixel claim.
+
+Final selection retains 53 rows including movement fallback, 82.89 s. The 36 initial rows whose compiled inputs
+changed after main are being rerun without mutants. Final portable merge-delta checks and docs/audit remain.
