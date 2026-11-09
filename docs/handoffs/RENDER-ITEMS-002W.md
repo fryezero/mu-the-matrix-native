@@ -6,9 +6,9 @@ The installed Preview and Wine apps are untouched. No full gate in this lane.
 
 ## Result
 
-Verification in progress. Target: bodies **1,370 -> 1,404 of 1,674**, adding three read-program bows and all
-31 rank-5 strlen parts. **270 remain** if final checks pass. Raw classification, stopped states and shape identities
-are retained; only admitted membership changes. Skins and links are unchanged.
+Bodies **1,370 -> 1,404 of 1,674**, adding three read-program bows and all
+31 rank-5 strlen parts. The body header is 515,323 bytes, below 512 KiB; recipe rows 1,351 -> 1,385. **270 remain**. Raw classification, stopped states and shape identities
+are retained; 34 type rows and eight shape totals change, complete shapes 592 -> 600. Skins and links are unchanged.
 
 - Worn `0x0f2a` receives the original caller's blend-light input, `1.0`, and its counter atlas becomes visible.
 - Bows `0x1313`, `0x1317`, `0x1319` retain binary32 scalar operations and range-wrapper random attribution.
@@ -52,7 +52,7 @@ Named body parts add mesh passes, not owner-effect programs. Existing process-co
 
 ## Checks
 
-Pending final table, affected checks and timings. Commands run from the repo root after
+Final comparisons in progress; portable and reduced private native checks pass. Commands run from the repo root after
 `. ~/Documents/MTM/mu-mac-tools/native/private-env.sh`; row-specific section 3 uses
 `MU_SECTION3="$HOME/Documents/MTM/main-exe-study/evidence/x86-linux-capture-04/main-01ced000.bin"`.
 Heavy work uses `nice -n 10`, make `-j4`, runners `--jobs 2`; load/memory guards precede steps.
@@ -60,20 +60,23 @@ Heavy work uses `nice -n 10`, make `-j4`, runners `--jobs 2`; load/memory guards
 ## Native visibility and app-path proof
 
 Before correction, the regression fails: three fixed-pose images at counters 0/7/8 have one hash. The original
-caller assertions pass. After correction, all three hashes differ. Pose is action 1 / frame .5, world time
+caller assertions pass. After correction, all three hashes differ (1,701 / 1,672 changed RGB pixels vs counter 0, 2.73 s). Pose is action 1 / frame .5, world time
 123456, Hammer15.bmd / type `0x0f2a` / level 9, class 1, 640x480. No moving pose is used as counter evidence.
 
 A locally built Preview bundle supplies `--print-plan`, then its own bundled mu-client runs that plan under
 its network guard. Support, logs, session and options are isolated, `--no-store`; demo Atlas wears the same
-mace, at Lorencia 128,124. The baseline client runs the same plan and fixture. Matching world frames differ
-at the mace. The first replay reached the character-creation panel because auto selects slot 1; the fixture
-was corrected to slot 1. The next replay reached the world but opened the menu; the retained replay holds scene 6.
+mace, at Lorencia 138,123. The baseline client runs the same plan and fixture. Matching world frames differ
+at the mace: frame 150 changes 1,084 RGB pixels (16.42 s for both clients), with zero network calls denied in both reports. The first replay reached the character-creation panel because auto selects slot 1; the fixture
+was corrected to slot 1. The next replay reached the world but opened the menu; the retained replay holds scene 6 in the open plaza.
 These are offline app-path proofs, not an installed-app refresh or original live-animation comparison.
 
 ## Default-draw identity
 
 Before sets were rendered once from prerequisite main: October 22's 14 maps (20.88 s), DATA-ACQ-002's 32 maps
 (57.34 s), 25 frames each, default draw, no draw_all or live clock. Final comparison pending.
+
+C-to-C against the saved prerequisite-main library: 216,448 cases, exactly the intended 34 types change,
+4.95 s. Streams compare declared fields, not structure padding.
 
 ## Limits
 
@@ -83,6 +86,8 @@ Before sets were rendered once from prerequisite main: October 22's 14 maps (20.
   or comparison claim for that group. Full per-type recovery remains.
 - Named lookups are explicit fixture/model inputs. This does not claim new bone pose, rank-5 owner-effect,
   buff, selected-item, record, server or character-power coverage. No new private capture is retained.
+- Host-free bow bodies and absent-context named bodies use zero rand results. Owned/context-present comparisons
+  check nonzero sequences and exact consumption; those guarantees are not attributed to the host-free path.
 - Original-side caches stay in the shared tools directory. Lane scratch, proof renders and builds will be removed
   after queueing. Reproduce the fixed-pose proof using the committed regression and canonical private environment.
 
@@ -93,3 +98,27 @@ Before sets were rendered once from prerequisite main: October 22's 14 maps (20.
 2. The 54 helper-group-count types, preserving full level/record/quality and independent-state checks.
 3. The other 195 unadmitted types, within the earlier rank-5 pose/owner and record limits.
 4. RENDER-EFFECTS-023's particle requests/consumers remain separate.
+
+## Verification checkpoint
+
+At implementation/merge `94c1d5f6`:
+
+| Check | Result | Wall time |
+|---|---|---:|
+| Full body / owner table generation | 1,385 body rows; both tables generated | 883.91 / 11.18 s |
+| Root build / unchanged-input build after main merge | pass | 11.20 / 0.52 s |
+| Portable affected selection and run, two workers | 148 work items, 1,413 tests, 1,181 passed, 232 skips, no failures/errors | 335.96 s (277.1 s test wall) |
+| Canonical private renderer module from root | 22/22, no skips; **8d reduced**, selection 142 native modules >40 | 6.16 s |
+| `validate_item_named --mutations` | 20,057 cases, zero mismatches, 8/8 mutants | 114.3 s |
+| `validate_item_predraw --mutations` | 37,556 cases, zero mismatches, 48/48 detected; callback audit below | 287.8 s |
+| Staged-source audit before checkpoint | 2,119 files, zero rejected | 18.71 s |
+
+The pre-draw frame family covers 59 types / 7,068 counter values. Its owned family covers 3,392 states,
+23,059 sprites, 903 particle requests, 2,222 joints, 15,045 refusals, 4,401 rand draws and 371 flag-clear states.
+These are comparison-harness request counts, not native-pool creation counts.
+
+Reviewing the mutant stderr found suppressed Python IndexErrors when planted bad-bone calls reached a
+ctypes host callback. Reference comparisons are clean. A bounded callback diagnostic and portable boundary
+regression are prepared; after the unchanged 50-row batch finishes, only the two affected bone mutants and
+the two actual host consumers will be rechecked. Other mutants will not be repeated. This checkpoint is not
+PR-ready until that audit and the remaining validator/default-draw checks finish.
