@@ -131,6 +131,11 @@ class World(unittest.TestCase):
                        check=True, capture_output=True)
 
     def test_mace_world_requests_are_consumed(self):
+        import re
+        header = (ROOT/'reconstructed/renderchar/item_owner_fx.h').read_text()
+        table = header.split('mu_rc_fx_pre_types[] = {')[1].split('};')[0]
+        admitted = {int(t, 0) for t in re.findall(r'^    \{([^,]+),', table, re.M)}
+        self.assertTrue({0xf1f, 0xf20, 0xf24, 0xf28, 0xf29, 0xf2a, 0xf2b, 0xf2c} <= admitted)
         with tempfile.TemporaryDirectory() as tmp:
             binary = Path(tmp)/'mu-walk'
             shutil.copy2(ROOT/'native/build/mu-walk', binary)
