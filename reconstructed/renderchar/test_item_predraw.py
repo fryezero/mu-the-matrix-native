@@ -135,7 +135,7 @@ class ItemPreDraw(unittest.TestCase):
         names = ['x', 'y', 'z', 'a02', 'a02']
         status, draws, effects, used = self.run_item(0x1311, names, 8)
         self.assertEqual((status, used), (0, 0))
-        self.assertEqual([bytes(d) for d in draws], [bytes(d) for d in self.draws(self.item(type=0x1311))[1]])
+        self.assertEqual([base.draw_bytes(d) for d in draws], [base.draw_bytes(d) for d in self.draws(self.item(type=0x1311))[1]])
         l = F32(F32(F32(F32(0.0 * F32(0.5)) + F32(0.5)) * F32(0.9)) + F32(0.1))
         light = tuple(F32(F32(k) * l) for k in (0.35, 0.75, 1.5))
         self.assertEqual(effects, [(2, 0x7f7a, (103.0, 206.0, 309.0), light, F32(0.3), 0.0, 0)])
@@ -155,7 +155,7 @@ class ItemPreDraw(unittest.TestCase):
         status, draws, effects, used = self.run_item(0x1311, ['a02'], 8, host=False)
         self.assertEqual((status, effects, used), (0, [], 0))
         status, plain = self.draws(self.item(type=0x1311))
-        self.assertEqual([bytes(d) for d in draws], [bytes(d) for d in plain])
+        self.assertEqual([base.draw_bytes(d) for d in draws], [base.draw_bytes(d) for d in plain])
 
     def test_post_program_on_item_bones(self):
         """0x2713 (RENDER-ITEMS-002T): after its RenderPartObjectBody draws, three CreateSprite 0x7ef7 requests at
