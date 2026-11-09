@@ -72,7 +72,11 @@ typedef struct mu_cloth {
     float push[2];                  /* +0x98, +0x9c: sideways force (setter 0x013bb44c) */
     int32_t glow_texture;           /* +0xa0: -1 = no glow pass (SetGlow 0x00fd9f50, pass 0x00fd9663) */
     float glow[3];                  /* +0xa4 pulse speed, +0xa8 minimum, +0xac maximum brightness */
-    int32_t mesh;                   /* +0xc0: -1 (the mesh passes 0x00fd9c61 / 0x00fd97de are not ported) */
+    int32_t mesh;                   /* +0xc0: -1 = no mesh passes */
+    int32_t mesh_level;             /* +0xc4 */
+    float mesh_color[3];            /* +0xc8 */
+    int32_t glow2_texture;          /* +0xb0: the level >= 9 glow */
+    float glow2[3];                 /* +0xb4, +0xb8, +0xbc */
     float step[2];                  /* +0xd4, +0xd8: width / (columns - 1), height / (rows - 1) */
     int32_t sphere_count;           /* the +0xdc list, in insertion order */
     mu_cloth_sphere spheres[MU_CLOTH_MAX_SPHERES];
@@ -106,6 +110,7 @@ typedef struct mu_cloth_globals {
     float wind_vector[3];           /* 0x01ec9820 (x, y written by every step; z is never written) */
     float gravity[3];               /* 0x01cf0eb0 = 9.8, 0x01cf0eb4 = 0.0025, 0x01cf0eb8 = 400 (captured section) */
     uint32_t rand_seed;             /* rand() 0x01989721 (MSVC): the wind walk; types 0x200 / 0x8 / world 0x37 */
+    int32_t quality;               /* graphics options +0xc: cloth level passes, native 5 */
     uint8_t stretch_hold;           /* the singleton test 0x00aae6f9 in the stretch limit (0 = the step stops) */
 } mu_cloth_globals;
 
@@ -126,6 +131,8 @@ typedef struct mu_cloth_sink {
     void (*texcoord)(void *context, float s, float t);
     void (*vertex)(void *context, float x, float y, float z);    /* glVertex3f */
     void (*end)(void *context);
+    /* CreateSprite(0x7ef7, position, scale, light, NULL, 0, 0, 4), queued for RenderSprites. */
+    void (*sprite)(void *context, int32_t bitmap, const float position[3], float scale, const float light[3]);
 } mu_cloth_sink;
 
 enum { MU_CLOTH_OK = 1, MU_CLOTH_FAILED = 0, MU_CLOTH_UNSUPPORTED = -1 };
@@ -150,8 +157,7 @@ int mu_cloth_add_sphere(mu_cloth *c, float x, float y, float z, float radius, in
 /* Move2 0x00fd821e(time, count): count steps 0x00fd825f. 0 when a step refuses (no owner). */
 int mu_cloth_move2(mu_cloth *c, const mu_cloth_host *h, mu_cloth_globals *g, float time, int32_t count);
 /* Render (virtual slot 8, 0x00fd8bc2(light, 0)); light may be NULL (white): the front face, the back face, then the
- * glow pass 0x00fd9663 (additive, the glow bitmap, brightness pulsed by WorldTime g->time through 0x0185bdc4). -1 for
- * the passes not ported (type 0x40000000's sprites, a mesh +0xc0): nothing is emitted. */
+ * glow and mesh passes, with flare sprites queued through sink->sprite. */
 int mu_cloth_render(mu_cloth *c, const mu_cloth_host *h, const mu_cloth_globals *g, const float *light,
                     const mu_cloth_sink *sink);
 
@@ -201,4 +207,22 @@ void mu_cloth_gate(const mu_cloth_gate_in *in, mu_cloth_gate_out *out);
 int mu_cloth_draw_allowed(uint8_t class_byte, int32_t subtype, uint16_t action, uint16_t prior_action,
                           int16_t class_index);
 
+/* CreateClothArmour 0x0135ea29, the second OBJECT list (+0x48, count +0x3e).
+ * Armour is CHARACTER slot 2 (+0x9bc), pants slot 3 (+0xdb8). Fixture equipment only. */
+typedef struct mu_cloth_armour_in {
+    uint8_t class_byte, enabled;    /* OBJECT +0x3b must be 1 */
+    int16_t armour_type, pants_type, wing_type, class_index;
+    int8_t pants_level;
+    float mesh_color[3];            /* EnchantEffect lookup, host supplies table/default colour */
+} mu_cloth_armour_in;
+int mu_cloth_armour_cloths(const mu_cloth_armour_in *in);
+int mu_cloth_armour_create(mu_cloth out[MU_CLOTH_WINGS_MAX], const mu_cloth_armour_in *in,
+                           const mu_cloth_host *h);
+/* Existing-list branch, before RenderCloth's second MoveCloth. Returns that call's boolean. */
+int mu_cloth_armour_update(mu_cloth out[MU_CLOTH_WINGS_MAX], int count, const mu_cloth_armour_in *in,
+                           const mu_cloth_host *h);
+/* Mesh index for the colour lookup (-1 when none); 0x1d99 uses 1, 0x1d9e uses 2. */
+int mu_cloth_armour_color_mesh(int16_t pants_type);
+/* RenderCloth's armour-list test 0x01362edc, no buff 0x12. */
+int mu_cloth_armour_draw_allowed(uint8_t class_byte, int32_t subtype);
 #endif
