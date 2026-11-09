@@ -233,7 +233,7 @@ void world_rt_item_pre(mu_world_rt *a, struct mu_renderchar_env *env, int caller
                        const float *bones, uint32_t object);
 /* RENDER-EFFECTS-021: RenderPartObjectBody's OBJECT owner for a worn body part of character c: its posed skeleton
  * (OBJECT +0x318), bone count and angle (+0x164). Returns NULL (draw without an owner, as before) unless the part
- * type has an owner-effect program and the world has a particle pool. world_rt_part_owner_done adds the counts. */
+ * type has an owner-effect program or rank-5 block and the world has a particle pool. world_rt_part_owner_done adds the counts. */
 struct mu_renderchar_owner *world_rt_part_owner(const mu_world_rt *a, struct mu_renderchar_owner *owner, int32_t type,
                                                 const mu_character *c);
 void world_rt_part_owner_done(mu_world_rt *a, int caller, const struct mu_renderchar_owner *owner);
