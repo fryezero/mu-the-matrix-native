@@ -32,3 +32,7 @@ scripts/validate_particles.py --cases 3000 --heavy-cases 300 --output /tmp/parti
 ```
 
 Build with `-ffp-contract=off`: the float arithmetic follows the client's binary32 order.
+
+RENDER-EFFECTS-022 adds the maces' counter-gated `0x810a/0x25`, `0x855d/1` and `0x84d1/1`
+(`item_counter_kinds.inc`). Before rendering `0x810a/0x25`, callers supply the selected current OBJECT point to
+`mu_pt_item_counter_follow`. The native world retains these points from item-program stores; argument 8 selects 0..2.

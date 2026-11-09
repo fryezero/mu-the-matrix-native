@@ -291,7 +291,7 @@ void world_rt_hero_item_textures(mu_world_rt *a, int first, int last)
 }
 
 /* INVENTORY-FX: the inventory window draws the hero's equipment ITEMs in its equipment slots (0x00b913a2); slots
- * 9..14 (pendant, rings, ...) have no offline record and stay empty. */
+ * 9..14 are empty unless the host explicitly selects the appearance-only equipment-demo fixture. */
 #ifndef MU_WORLD_NO_GL
 static struct mu_world_particles *icon_particles(void *user)
 {
@@ -320,7 +320,7 @@ void world_rt_hero_items_gfx(mu_world_rt *a)
         items[s] = s < MU_HE_EQUIPMENT ? (mu_gfx_equip_item){a->hero_items[s][0], a->hero_items[s][1],
                                                             a->hero_items[s][2], a->hero_items[s][3]}
                                        : (mu_gfx_equip_item){-1, 0, 0, 0};
-    mu_gfx_layer_set_equipment(world_gfx_layer(a->gfx), items, (uint8_t)a->class_byte);
+    world_gfx_set_hero_items(a->gfx, items, (uint8_t)a->class_byte);
 #else
     (void)a;
 #endif
@@ -1124,7 +1124,8 @@ void world_rt_item_pre(mu_world_rt *a, struct mu_renderchar_env *env, int caller
     mu_world_particles_item_owner_refresh(env->particles, env->item_owner, model->params.origin);
 }
 
-/* RENDER-EFFECTS-021: RenderPartObjectBody 0x0173d2d8's armour effect blocks (RENDER-ITEMS-002Q) read the
+/* RENDER-EFFECTS-022 also admits the rank-5 owner block, including its level-9 mesh passes.
+ * RENDER-EFFECTS-021: RenderPartObjectBody 0x0173d2d8's armour effect blocks (RENDER-ITEMS-002Q) read the
  * character OBJECT passed with the worn part: 0x012b678d transforms a local point by the owner bone 0x0129f12c
  * (OBJECT +0x318 + 0x30 * bone, when the OBJECT's model has the bone), times the part model's scale +0x74, plus
  * the OBJECT position +0x158; the particles take the OBJECT angle +0x164. The native character holds the same
@@ -1133,7 +1134,8 @@ void world_rt_item_pre(mu_world_rt *a, struct mu_renderchar_env *env, int caller
 mu_renderchar_owner *world_rt_part_owner(const mu_world_rt *a, mu_renderchar_owner *owner, int32_t type,
                                          const mu_character *c)
 {
-    if (!a->has_particles || !mu_rc_item_owner_fx(type) || !c || !c->player_bones || !c->player.bmd)
+    if (!a->has_particles || !(mu_rc_item_owner_fx(type) || mu_rc_item_rank5(type)) || !c ||
+        !c->player_bones || !c->player.bmd)
         return NULL;
     memset(owner, 0, sizeof *owner);
     owner->bones = c->player_bones;

@@ -114,6 +114,10 @@ typedef struct mu_pt_particle {
     float field_80, field_84; /* +0x80 / +0x84, colour saved beside +0x7c */
 } mu_pt_particle;
 
+/* RENDER-EFFECTS-022: RenderParticles 0x0159f880, OBJECT +0x1f4 + 12*arg8. NULL clears live.
+ * Call before mu_pt_render_record for 0x810a/0x25, with the current owner point. */
+int mu_pt_item_counter_follow(mu_pt_particle *p, const float point[3]);
+
 /* The client state the routines read. */
 typedef struct mu_pt_host {
     void *context;

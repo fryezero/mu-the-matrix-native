@@ -6,12 +6,12 @@ hosted workflow. No full gate in the lane, per the test budget. The installed Na
 are untouched.
 
 Scope: 002U's six remaining counter bodies. The next 24 read-program candidates were screened, with none admitted.
-The rank-5 strlen group was not attempted. [Finding, part 30](../research/client-render-items.md#part-30-the-six-remaining-counter-bodies-and-quantised-random-colours-render-items-002v).
+The rank-5 strlen group was not attempted. [Finding, part 31](../research/client-render-items.md#part-31-the-six-remaining-counter-bodies-and-quantised-random-colours-render-items-002v).
 
 Research numbering: CLOAK-003 merged with part 28; APP-REFRESH-010 reserves part 29. This lane uses part 30.
 Main was merged at `1e2a927a`, preserving the cloth documentation and implementation, then at `e517ac3a`
 for APP-REFRESH-010 evidence and its validator-anchor repairs. The latter adds no renderer changes.
-Part 30 was free on main and both checked parallel branches. This lane leaves RENDER-EFFECTS-022's particle kinds alone.
+The steward placed this work in Part 31 after main assigned Part 30 to RENDER-EFFECTS-022. Both lanes' changes are retained in the combined tree.
 
 ## Result
 
@@ -29,7 +29,7 @@ Part 30 was free on main and both checked parallel branches. This lane leaves RE
 
 ## Causes and addresses
 
-The full address table and arithmetic are in research part 30. Mace pre-program bounds:
+The full address table and arithmetic are in research part 31. Mace pre-program bounds:
 `0x017d5675..0x017d62b7`, `0x017d8bfc..0x017d94dc`, `0x017d94f1..0x017d9dcb`,
 `0x017dab03..0x017db6cf`, `0x017db6e4..0x017dc347`.
 The staff's colour setter is `0x01736abc`, its random-wrapper returns `0x01736b46` and `0x01736c5f`, and its
@@ -191,7 +191,7 @@ light 0: native `fill_item` leaves it zero and `draw_item` passes it as the mesh
 ObjectInit also explicitly zeros OBJECT `+0xa8` at `0x0129ed3c`; constructor and initializer execute normally
 under Unicorn with that field zero. Construction does not justify setting it to one. The later caller's input
 and lifetime remain unrecovered. No guessed default is added; visible atlas animation is not claimed. The
-reproducer, hash and source pins are in research part 30. The full native-render/initializer probe took 2.4 s.
+reproducer, hash and source pins are in research part 31. The full native-render/initializer probe took 2.4 s.
 No installed app was touched.
 
 ## Limits

@@ -133,7 +133,7 @@ class InstalledLorenciaFires(unittest.TestCase):
         # RENDER-EFFECTS-016 adds Fire06 0x7f40 (0x70c's stones) before them, RENDER-EFFECTS-020 magic_ground12
         # 0x81cf (the wings' item-owned particles) before Fire06.
         # Every Lorencia-applicable bitmap must load, including the last two rain textures.
-        self.assertEqual(p['bitmaps'], [1]*50 + [0] + [1]*26)   # RENDER-EFFECTS-019: WATERFALL4 0x801d
+        self.assertEqual(p['bitmaps'], [1]*50 + [0] + [1]*28)   # RENDER-EFFECTS-019: WATERFALL4 0x801d
         self.assertGreater(p['created'], 20)
         self.assertEqual(p['unsupported'], 0)
         self.assertGreater(p['drawn_particles'], 0)

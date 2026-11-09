@@ -198,9 +198,16 @@ static void owner_emit(void *context, const mu_rc_owner_fx *fx)
 {
     owner_services *o = context;
     long created = 0;
-    /* RENDER-ITEMS-002T: mu_world_particles_create(_owned) has no argument 8; a request with one is refused too.
+    if (fx->kind == MU_RC_OWNER_POINT) {
+        if (o->particles && o->item_owner) {
+            const int32_t object = mu_world_particles_item_owner(o->particles, o->item_owner, o->model->params.origin);
+            mu_world_particles_item_point(o->particles, object, fx->subtype, fx->position[0]);
+        }
+        return;   /* a state write, not a created/refused effect */
+    }
+    /* RENDER-EFFECTS-022: preserve argument 8 through the particle pool.
      * RENDER-EFFECTS-020: an OBJECT-owned particle needs the item-owner key. */
-    if (!o->particles || (fx->kind == MU_RC_OWNER_PARTICLE && ((fx->owner && !o->item_owner) || fx->extra))) {
+    if (!o->particles || (fx->kind == MU_RC_OWNER_PARTICLE && (fx->owner && !o->item_owner))) {
         o->refused++;
         return;
     }
@@ -211,8 +218,8 @@ static void owner_emit(void *context, const mu_rc_owner_fx *fx)
         const int32_t object = fx->owner ? mu_world_particles_item_owner(o->particles, o->item_owner,
                                                                          o->model->params.origin) : MU_PT_NO_OWNER;
         created = (!fx->owner || object >= 0) &&
-                  mu_world_particles_create_owned(o->particles, fx->bitmap, fx->position, fx->angle, fx->light,
-                                                  fx->subtype, fx->scale, object);
+                  mu_world_particles_create_args(o->particles, fx->bitmap, fx->position, fx->angle, fx->light,
+                                                  fx->subtype, fx->scale, object, fx->extra);
     } else if (o->particles->sprites) {
         /* The client's owner is the OBJECT; native sprites are not owner-bound. */
         uint64_t before = o->particles->sprites->created;

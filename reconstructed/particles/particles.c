@@ -35,6 +35,7 @@ static void copy3(float d[3], const float s[3])
 #include "test_area_kinds.inc"  /* RENDER-EFFECTS-019 */
 #include "item_owned_kinds.inc"  /* RENDER-EFFECTS-020 */
 #include "item_predraw_kinds.inc"  /* RENDER-EFFECTS-021 */
+#include "item_counter_kinds.inc"  /* RENDER-EFFECTS-022 */
 
 int mu_pt_kind_supported(int32_t type, int32_t subtype)
 {
@@ -49,6 +50,7 @@ int mu_pt_kind_supported(int32_t type, int32_t subtype)
     if (mu_pt_test_area_kind(type, subtype)) return 1;   /* RENDER-EFFECTS-019 */
     if (mu_pt_item_owned_kind(type, subtype)) return 1;   /* RENDER-EFFECTS-020 */
     if (mu_pt_item_predraw_kind(type, subtype)) return 1;   /* RENDER-EFFECTS-021 */
+    if (mu_pt_item_counter_kind(type, subtype)) return 1;   /* RENDER-EFFECTS-022 */
     switch (type) {
     case MU_PT_BITMAP_FIRE:
         return (subtype >= 0 && subtype <= 6) || subtype == 17;
@@ -233,6 +235,10 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
     }
     if (mu_pt_item_owned_kind(type, subtype)) {   /* RENDER-EFFECTS-020 */
         mu_pt_item_owned_create(p, h, scale);
+        return 1;
+    }
+    if (mu_pt_item_counter_kind(type, subtype)) {
+        mu_pt_item_counter_create(p, h, scale);
         return 1;
     }
     if (mu_pt_item_predraw_kind(type, subtype)) {   /* RENDER-EFFECTS-021 */
@@ -677,6 +683,8 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
             mu_pt_test_area_move(p);
         else if (mu_pt_item_owned_kind(p->type, p->subtype))   /* RENDER-EFFECTS-020 */
             mu_pt_item_owned_move(p);
+        else if (mu_pt_item_counter_kind(p->type, p->subtype))
+            mu_pt_item_counter_move(p);
         else if (mu_pt_item_predraw_kind(p->type, p->subtype))   /* RENDER-EFFECTS-021 */
             mu_pt_item_predraw_move(p);
         else if (mu_pt_world_flame_kind(p->type, p->subtype))
@@ -1189,6 +1197,11 @@ int mu_pt_render_record(mu_pt_particle *p, const mu_pt_bitmap *b, uint8_t mode, 
     mu_pt_bow_render(p, s);
     mu_pt_worlds_m_render(p, s);
     mu_pt_owner_fx_render(p, s);
+    if (p->type == 0x810a && p->subtype == 0x25 && p->owner == MU_PT_NO_OWNER) {
+        p->live = 0;
+        return 1;
+    }
+    mu_pt_item_counter_render(p, s);
     mu_pt_item_owned_render(p, s);   /* RENDER-EFFECTS-020 */
     if (mu_pt_world_owned_kind(p->type, p->subtype) && !mu_pt_world_owned_render(p, s))
         return 1;   /* RENDER-EFFECTS-006: the blend state without a sprite */
