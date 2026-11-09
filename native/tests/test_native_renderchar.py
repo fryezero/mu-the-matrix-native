@@ -261,6 +261,22 @@ class WorldRender(unittest.TestCase):
         bow,_=self.render('--weapon','0',path,'--item-type','weapon0=0x1311','--world-time','0')
         self.assertEqual((bow['special'],bow['pre_effects'],bow['pre_refused']),(0,0,1))
 
+    def test_read_program_and_no_glow_bodies(self):
+        """002X bodies reach native drawing with deterministic fixed-pose fixture models."""
+        path = self.tmp/'items-002x.bmd'
+        path.write_bytes(nf.character_layout(115, bones=64, meshes=6))
+        for t in (0x0b29, 0x0b52, 0x0f1e, 0x174a, 0x2301, 0x2302, 0x23a8, 0x23a9,
+                  0x23ed, 0x23ee, 0x23fe, 0x23ff, 0x2403, 0x2404,
+                  0x232c, 0x232d, 0x232e, 0x232f, 0x2330, 0x26f5):
+            options = ('--weapon', '0', path, '--item-type', f'weapon0={t:#x}',
+                       '--item-level', 'weapon0=9', '--world-time', '123456',
+                       '--frame-counter', '2147483648', '--item-body-only')
+            first, _ = self.render(*options)
+            second, _ = self.render(*options)
+            self.assertEqual(first['special'], 0, hex(t))
+            self.assertEqual(first['sha256'], second['sha256'], hex(t))
+            self.assertGreater(first['passes'], 0, hex(t))
+
     def test_wing_joint_and_random_bone_programs(self):
         """RENDER-ITEMS-002S: wing 0x22ec's case creates twenty CreateJoint requests (0x7f7c/0xe, 0x7fd3/4) along
         its own bones; RENDER-ITEMS-002U: the joint pool reconstructs both kinds, so all twenty are created and drawn

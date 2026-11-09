@@ -77,6 +77,11 @@ PRE_FX_TYPES = [
     0x0f24, 0x0f28, 0x0f29, 0x0f2b, 0x0f2c,
 ]
 
+# RENDER-ITEMS-002X: independent body and owned-program comparisons admit these fourteen.
+READ_PROGRAM_TYPES = [0x0b29, 0x0b52, 0x0f1e, 0x174a, 0x2301, 0x2302, 0x23a8, 0x23a9,
+                      0x23ed, 0x23ee, 0x23fe, 0x23ff, 0x2403, 0x2404]
+PRE_FX_TYPES += READ_PROGRAM_TYPES
+
 # RENDER-ITEMS-002T: owner blocks after the draws in RenderPartObjectBody's case that use the pre-draw idioms
 # (post programs, run where the owner programs run): bow 0x130d (TransformPosition 0x012b6ef1 on the OBJECT's own
 # bone 4 through 0x0129f12c, a sprite of bitmap 0x8081 + rand() % 3) and 0x2713 (item bones 8, 10, 11, a clock sine

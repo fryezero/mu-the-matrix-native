@@ -2796,8 +2796,8 @@ args = ["--mutations", "--output", "{report}"]
 test = "reconstructed/renderchar/test_item_predraw.py::ItemPreDraw.test_original_instructions"
 pins = ["text", "data", "flag", "feature"]
 families = ["bodies", "hidden", "frame", "predraw"]
-cases = 37556
-mutants = 48
+cases = 42540
+mutants = 49
 cases_at = "families.*.cases"
 mutants_at = "mutants"
 build = ["reconstructed/renderchar", "reconstructed/particles"]
@@ -3372,3 +3372,17 @@ note = "RENDER-EFFECTS-024: two original sprite loader mappings and native file/
 all_equal = true
 all_mutants_caught = true
 "mutants.*.stopped" = 0
+
+[validate_item_groups]
+test = "reconstructed/renderchar/test_item_groups.py::ItemGroups.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "records"]
+cases = 4824
+mutants = 2
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar"]
+args = ["--mutations", "--output", "{report}"]
+[validate_item_groups.expect]
+"families.*.mismatches" = 0
+"mutants.*" = {truthy = true}
