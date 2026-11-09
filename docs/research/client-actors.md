@@ -219,3 +219,47 @@ native/build/mu-render actor --game-root "$MU_GAME_ROOT" --type 0 --action 2 --t
 ```
 
 The full validator run takes about 17 s on this Mac. The ignored report, `evidence/native-actors/report-03.json` (SHA-256 `3a1aa0c8…f19a`), was produced in the actors worktree. It is a single private run; CI covers the synthetic checks only.
+
+
+## 7. Player-model actor body recipes, RENDER-ACTORS-001
+
+Offline/static evidence from the same pinned text and data as sections 1..5. No original process,
+network, protection module, installed app or character-power input. The [handoff](../handoffs/RENDER-ACTORS-001.md)
+contains the full census, validation and limits.
+
+The earlier class extraction stubs CreateCharacter and reports only equipment that CreateMonster writes.
+An empty five-part body is not evidence that those actors wear an unrecorded armour set. Six classes use
+OBJECT +0x60 as a whole-body model instead:
+
+| Classes | Whole model | Startup file | Constructor scale |
+|---|---|---|---|
+| 14 Skeleton | `0x422` | `Data/Skill/Skeleton01.bmd` | 0.95 |
+| 55 Death King | `0x422` | same | 1.4 |
+| 56 Death Bone | `0x422` | same | 0.8 |
+| 15 Skeleton Archer | `0x423` | `Data/Skill/Skeleton02.bmd` | 1.1 |
+| 236 Golden Archer | `0x423` | same | 1.0 |
+| 16 Chief Skeleton Warrior | `0x424` | `Data/Skill/Skeleton03.bmd` | 1.2 |
+
+Verified constructor writes come from the generic switch cases at `0x0138366a`, `0x01383791`,
+`0x0138383a` and `0x013842a4`. The startup loop `0x01832c28..0x01832c5d` executes three
+AccessModel calls with directory `Data\Skill\`, name `Skeleton`, numbers 1..3 and indices `0x422..0x424`.
+The bounded loop validator stops at its exclusive end; it does not claim startup as a whole.
+
+RenderCharacter's final skeleton branch `0x01369f98..0x0136a00d` calls RenderPartObject on this whole model,
+using Player's shared posed bones, alpha OBJECT +0xdc, translate 1, flags 2, and level/option/ext zero.
+Its town branch `0x01367d85..0x01367e23` uses character +0x144 shifted by 3 in world 0; Golden Archer's
+constructor leaves that field zero. These are executed comparisons, including the real RenderObjDraw body
+stream for each model. No extra glow/blend mesh pass occurs in those tested body calls. Native uses its
+existing plain textured-body fallback for these non-item indices; they do not change the item-body census.
+The actor's class-table weapon and Death King's CLOAK-004 robe remain separate attachments.
+
+Eleven other rows have explicit helm/armour/pants/gloves/boots in the existing extracted equipment table.
+Their complete body/linked-item call plans are compared against RenderCharacter at idle, and their actual
+native models, levels, scales and textures are checked. Nine gain loader admission; Marlon 229 and Shadow
+Phantom Soldier 257 are regression controls. The native bridge still uses its existing generic weapon pose
+and link handling, so the original call-plan comparison does not establish every native attachment transform.
+
+Fifteen later rows carry subtype models but no five-part equipment. Some names describe transformation rings.
+They are listed as left in the census, rather than supplied with invented armour. The Player-kind render
+branches of those subtypes are not a proof that an NPC-kind actor should use them. Their world/action/kind
+conditions and special effects need a separate recovery before native admission.
