@@ -63,10 +63,16 @@ def family(text, data, lib, name, kinds, cases, report):
     pt.random_particle = boundary
     try:
         r = pt.Report()
-        args = (pt.PtMachine(text, data), lib, random.Random('effects22-' + name), cases * len(kinds), r, defaultdict(int))
         if name == 'render':
-            pt.family_render(*args, owned_points=True)
+            # The shared harness cycles arg8 by n % 3. Run one kind at a time so the three-kind
+            # selection cannot lock 0x810a/0x25 to index zero. Each kind still gets exactly `cases`.
+            for kind in kinds:
+                pt.KINDS = [kind]
+                pt.family_render(pt.PtMachine(text, data), lib, random.Random('effects22-' + name),
+                                 cases, r, defaultdict(int), owned_points=True)
         else:
+            args = (pt.PtMachine(text, data), lib, random.Random('effects22-' + name), cases * len(kinds),
+                    r, defaultdict(int))
             dict(pt.FAMILIES)[name](*args)
         report.families['mace_' + name] = r.families[name]
         report.coverage['mace_' + name] = r.coverage.get(name, {})

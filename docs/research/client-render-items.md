@@ -2564,7 +2564,9 @@ outside the actual domain 0..2 end the particle instead of reading unrelated mem
 The general store rule also exports `0x0f2a`'s first point, with no other change to that program. Its particle
 kinds remain outside this lane. Only those two programs' op sequences change, plus later table offsets.
 
-The new validator's points family supplies the named-bone table explicitly, places the required names at
+The render family runs each kind separately so the owned spark exercises argument 8 indices 0, 1 and 2;
+a mixed three-kind cycle would otherwise lock that index to zero. The new validator's points family supplies
+the named-bone table explicitly, places the required names at
 known indices, varies shared versus OBJECT-owned matrices and includes hidden frames. It compares all nine
 retained words, the existing draw/request streams and rand counts. Its production op-50 mutant must change
 these words and be caught even when the draw/request streams still agree.
@@ -2580,8 +2582,9 @@ Verified static startup calls, also checked by the validator:
 
 The native table grows 77 to 79 slots. Fire06 stays after these additions and rain02/rain03 stay last.
 Existing bitmap slots before the insertion are unchanged. `0x810a` already had a texture. The mace's existing
-`0x855d` bone sprites also become visible with this slot. Its separate `0x80ba` sprite remains counted-only
-because the world pool still has no bitmap slot for it; this lane does not port that loader entry.
+`0x855d` bone sprites also become visible with this slot. The world pool still lacks slots for `0x0f1f`'s
+four `0x7f7a` bone sprites and `0x0f20`'s thirteen `0x80ba` bone sprites per draw. They remain counted-only;
+this lane does not port those two loader entries.
 
 ### Rank-5 owners in the world
 

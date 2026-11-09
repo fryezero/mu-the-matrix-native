@@ -49,9 +49,11 @@ The every-10-frame sample never reaches counter % 5 == 0. The additional consecu
 its counter 1..16 requests five `0x810a/0x25`, ten `0x855d/1` and three `0x84d1/1`. All 18 are created and drawn
 at the last frame, versus none before. The pool's unsupported count falls 16 to 0; the program refusal count
 falls 18 to 0, because the old adapter refused two owned requests for argument 8 before they reached the pool.
-Sprites remain 432; rand calls 114 to 170, including the new create branches. The new `0x855d` texture
+Sprites created remain 432; rand calls 114 to 170, including the new create branches. The new `0x855d` texture
 also makes the mace's existing `0x855d` bone sprites visible, including frames before a particle gate opens.
-Its separate `0x80ba` sprite has no world bitmap slot and remains counted-only, outside the three particle pairs.
+The last frame's drawn sprite count rises 8 to 10. Two other bone-sprite textures still have no world slot:
+`0x7f7a` has four requests per draw from `0x0f1f`, and `0x80ba` has thirteen from `0x0f20`. Over these 16 frames
+those 64 + 208 requests remain counted-only. They are outside the three particle pairs.
 
 Rank-5 players create 70 particles and 14 sprites, with 22 particles drawn at the last frame. Private installed
 tests also exercise the hero with `armor=Item/ArmorMale161_elf.bmd@8:320:9`. Player-model actors are wired but
@@ -121,7 +123,7 @@ mutant targets are unchanged; the new particle and op-50 targets are covered by 
 - Argument 8 is hosted for the actual mace domain 0..2. Arbitrary original OBJECT memory is not hosted.
 - `mu-render character` still has no item OBJECT registry and refuses the OBJECT-owned spark; its unowned kinds
   now exist. Player-model actors use the shared hook but have no installed render fixture in this lane.
-- Add a world bitmap slot for the `0x0f20` program's existing `0x80ba` sprite, with its original loader mapping.
+- Add world bitmap slots for the maces' existing `0x7f7a` and `0x80ba` bone sprites, with their original loader mappings.
 - `0x0f2a`'s additional requests (`0x85bc/5`, `0x83b8/8`, `0x85fc/1`, and its register-selected particle) remain
   separate work. Do not read a zero refusal count in the two-mace fixture as a whole-client census.
 - The installed Native Preview and both Wine apps are untouched. The steward owns merging and the full gate.
