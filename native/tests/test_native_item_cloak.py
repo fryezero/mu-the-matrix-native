@@ -225,10 +225,12 @@ class ClientComparison(unittest.TestCase):
         self.assertEqual(report['families']['step']['cases'], 48)
 
 
+# Keep the cadence comparison about cloth. Item pre/owner effects consume rand only on saved draws,
+# so weapons with those programs make the whole final PNG depend on the earlier capture cadence.
 PLAYERS = ('player Velvet class=0x00 at=126,126 dir=7 pk=3 level=400 armor=8:10:7 pants=9:10:7 gloves=10:10:7 '
-           'boots=11:10:7 helm=7:10:7 weapon0=0:102:7 wing=12:156:0 route=124,123;126,126 idle=20\n'
+           'boots=11:10:7 helm=7:10:7 wing=12:156:0 route=124,123;126,126 idle=20\n'
            'player Bastion class=0x01 at=129,121 dir=7 pk=3 level=400 armor=8:9:7 pants=9:9:7 gloves=10:9:7 '
-           'boots=11:9:7 helm=7:9:7 weapon0=0:65:9 wing=12:156:0\n')
+           'boots=11:9:7 helm=7:9:7 wing=12:156:0\n')
 
 
 def walk(tmp, every, frames=46):
