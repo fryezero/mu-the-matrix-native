@@ -230,5 +230,9 @@ const mu_monster_op *mu_monster_type_ops(int32_t type, uint32_t *count);
  * in CreateMonster's extracted equipment table. Unknown recipes return 0. */
 int32_t mu_actor_player_body(int32_t server_class);
 int mu_actor_player_recipe(int32_t server_class, mu_monster_class *out);
+/* Startup file for a recovered whole body, NULL for an unadmitted subtype.
+ * Later recipes are authored kind-1, class-byte-0 actors, at level zero.
+ * This does not admit transformed-player class/action/effect variants. */
+const char *mu_actor_player_body_file(int32_t body);
 
 #endif

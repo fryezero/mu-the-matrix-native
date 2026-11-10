@@ -32,8 +32,9 @@ class Recipes(unittest.TestCase):
             with self.subTest(cl=cl):
                 row = v.Row()
                 self.assertEqual(lib.mu_actor_player_recipe(cl, C.byref(row)), int(cl in v.FIXED))
-                if cl in v.SKELETON:
-                    self.assertEqual(row.slots[0].type, 0x423 if cl in (15, 236) else 0x424 if cl == 16 else 0x422)
+                if cl in v.WHOLE:
+                    self.assertEqual(row.slots[0].type, lib.mu_actor_player_body(cl))
+                    self.assertTrue(lib.mu_actor_player_body_file(row.slots[0].type))
                     self.assertEqual(row.slots[0].level, 8 if cl == 236 else 0)
                 elif cl in v.FIXED:
                     self.assertGreater(row.slots[1].type, 0xae6)
@@ -52,4 +53,4 @@ class ClientComparison(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stdout[-4000:]+result.stderr[-2000:])
             value = json.loads(report.read_text())
             self.assertTrue(value['all_equal'])
-            self.assertEqual(value['families']['native']['cases'], 23)
+            self.assertEqual(value['families']['native']['cases'], 32)

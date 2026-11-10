@@ -3376,15 +3376,15 @@ all_mutants_caught = true
 [validate_actor_recipes]
 test = "native/tests/test_actor_recipes.py::ClientComparison.test_original_instructions"
 pins = ["text", "data", "flag", "feature"]
-families = ["recipes", "render", "equipment", "body_draw", "loader", "native"]
-cases = 361
-mutants = 12
+families = ["recipes", "render", "kind_gates", "equipment", "body_draw", "kind_default", "loader", "native", "refused"]
+cases = 1300
+mutants = 21
 cases_at = "families.*.cases"
 mutants_at = "mutants"
 build = ["reconstructed/actors", "reconstructed/renderchar", "native"]
 build_targets = { native = ["build/libmunative.a", "build/libmusession_world.a"] }
-args = ["--cases", "240", "--mutations", "--output", "{report}"]
-note = "RENDER-ACTORS-001: 32-class census, six skeleton body hooks, eleven equipment recipes, startup loader and actual native actor loads; 12 compiled mutants"
+args = ["--cases", "840", "--mutations", "--output", "{report}"]
+note = "RENDER-ACTORS-002: 32-class census, nine later subtype admissions, kind/world/action controls, startup files, native loads and six native refusals; 21 compiled mutants"
 [validate_actor_recipes.expect]
 all_equal = true
 all_mutants_caught = true
