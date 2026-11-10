@@ -570,3 +570,26 @@ the original; an owning host must honor HideWin to stop further window updates.
 This is a bounded owner audit, not a whole-client caller census. Nearby effect/NPC/item callers and
 unrecovered UI controllers are not admitted by proximity. Event audio inputs and the opaque frame gap
 remain excluded.
+
+### Delivery contract
+
+The authored `ui_sound.h` payload accompanies the existing one-word id in `MU_UI_SOUND`, without
+changing that operation's number or legacy normalised call stream. `mu_ui_audio.h` accepts the two
+explicit original owner/site pairs, null object and loop 0, then delivers a borrowed immediate cue.
+It does not match id 25 alone. Server-select and `mu_charsel_ui` bind their existing audio host;
+muted/disabled/detached decisions have no later replay. Standalone credits rendering stays silent;
+its end sound is proved through the same adapter in an offline native controller host.
+
+The new validator runs the complete CButton update and credits class bodies with the existing
+explicit UI service hosts. Sound return addresses are read independently from the original stack.
+It compares native cue provenance, full normalised call order, button/credits state and the held
+pointer. At the sound boundary it also checks that click is already set, check has not yet toggled,
+and the button remains held. The credits host records HideWin/request/music as existing markers;
+no request or answer implementation is added.
+
+A bounded literal scan found 320 syntactic `SND_Play(25, NULL, 0)` candidates in the pinned text.
+This is neither an offline-UI denominator nor an admission list: it includes already-wired sites,
+request-bound paths and owners whose context is absent. For example, `0x00b48b5a` belongs to the
+excluded character-stat request, so this lane does not trace or wire it. Remaining candidates need
+individual owning-controller recovery, not a blanket click callback. Final evidence and limits are
+recorded in [AUDIO-002G](../handoffs/AUDIO-002G.md).
