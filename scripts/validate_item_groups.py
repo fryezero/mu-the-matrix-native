@@ -41,11 +41,12 @@ def compare(wa, lib, count=292):
                     for q in (0, 1, 2, 9):
                         for level in range(16):
                             for option, ext in ((0, 0), (1, 1)):
-                                case = v.random_case_any(rng, t)
-                                case.update(item_level=level << 3, quality=q, option1=option, ext=ext,
-                                            record=(rng.choice((0, 6)), kind_b, 0),
-                                            a10=0xffffffff, a11=0xffffffff)
-                                cases.append(case)
+                                for kind_a in (0, 6):
+                                    case = v.random_case_any(rng, t)
+                                    case.update(item_level=level << 3, quality=q, option1=option, ext=ext,
+                                                record=(kind_a, kind_b, 0),
+                                                a10=0xffffffff, a11=0xffffffff)
+                                    cases.append(case)
             for index, case in enumerate(cases):
                 sequence = quality.sequence_for(rng)
                 ok, expected, detail = quality.compare(wa, lib, reset, case, sequence)

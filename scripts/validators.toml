@@ -2804,10 +2804,10 @@ build = ["reconstructed/renderchar", "reconstructed/particles"]
 args = ["--mutations", "--output", "{report}"]
 [validate_item_predraw.expect]
 "families.*.mismatches" = 0
-"families.bodies.cases" = 15768
+"families.bodies.cases" = 19856
 "families.hidden.cases" = 1168
 "families.frame.cases" = 17228
-"families.predraw.cases" = 3392
+"families.predraw.cases" = 4288
 "mutants.*" = {truthy = true}
 
 [validate_item_hiddenmesh]
