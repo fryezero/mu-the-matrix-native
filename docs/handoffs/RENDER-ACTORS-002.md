@@ -15,8 +15,13 @@ passes 565 checks in 56.0 s, including 32 native loads with zero missing body te
 The first iteration's signed loader-number, event fixture and Item/Texture failures
 are fixed. Final counts and mutants have not run.
 
-Left: final original comparisons and changed mutants, actual native loads and refusal
-controls, demos, affected checks, final identity sweep, self-review and PR-ready delivery.
+The full affected private batch passes 21/21 rows, zero skips, in 521.9 s at
+`bf75f44c`. Its actor row passes 1,300 checks in 145.3 s. Nine isolated GL demos
+pass and were visually inspected; each gains 1,098..3,299 pixels against an empty,
+names-hidden scene. Rendering takes 19.3 s. Latest main brought documentation only.
+
+Left: changed mutants, portable affected suites, private native tests under the
+8d cost cap, final identity sweep, final self-review and PR-ready delivery.
 No ready entry has been written.
 
 Next: inspect the private iteration report, then finish the bounded nine-row set.
