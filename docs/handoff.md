@@ -1,5 +1,7 @@
 # Continue from here
 
+MUUN-VISUAL-001 PR-ready: a fixture-only Muun now draws beside the demo hero in `mu-world` (`MU_MUUN_FIXTURE=<code>`): model, pose, follow motion and owner lifetime from the original's slot setup/update, with the 16 already-verified effect attachments now visible on it. 912 original instruction cases, 18/18 compiled mutants, 54 affected validators pass. No Muun packets, inventory or bonuses. [Scope, checks and limits](handoffs/MUUN-VISUAL-001.md).
+
 RENDER-WORLDS-INNER-001 PR-ready: Kanturu worlds 37/40 now run the complete inline hook `0x00e75089` (clock-windowed effect, smoke/particle requests, bone flares, lightning, Chrome and scrolling mesh passes) and Blood Castle worlds 11..17/52 run the inline switch `0x017fc023` for types 0x0b/0x0d/0x2a. 4,000 original call comparisons, 33/33 compiled mutants, 61 affected validators pass. Default sweep: only world 37 changes. [Scope, checks and limits](handoffs/RENDER-WORLDS-INNER-001.md).
 
 RENDER-EFFECTS-025 PR-ready: Hammer14's exact `up01` missing-name sprite state, Ferea clouds/28 create/move/render and the two remaining bow particle pairs (`0x8109/7`, `0x810a/9`) are ported. The 96-program scene goes from 28 refused requests to zero and unsupported particles from 12 to zero; closer Ferea creates 257 particles with zero unsupported. 10,002 component comparisons, 24/24 compiled mutants, 83 affected validators pass. Default sweep: only Ferea changes. [Census, checks and limits](handoffs/RENDER-EFFECTS-025.md).
