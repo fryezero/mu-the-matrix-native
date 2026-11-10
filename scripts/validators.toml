@@ -2796,18 +2796,18 @@ args = ["--mutations", "--output", "{report}"]
 test = "reconstructed/renderchar/test_item_predraw.py::ItemPreDraw.test_original_instructions"
 pins = ["text", "data", "flag", "feature"]
 families = ["bodies", "hidden", "frame", "predraw"]
-cases = 37556
-mutants = 48
+cases = 42540
+mutants = 49
 cases_at = "families.*.cases"
 mutants_at = "mutants"
 build = ["reconstructed/renderchar", "reconstructed/particles"]
 args = ["--mutations", "--output", "{report}"]
 [validate_item_predraw.expect]
 "families.*.mismatches" = 0
-"families.bodies.cases" = 15768
+"families.bodies.cases" = 19856
 "families.hidden.cases" = 1168
 "families.frame.cases" = 17228
-"families.predraw.cases" = 3392
+"families.predraw.cases" = 4288
 "mutants.*" = {truthy = true}
 
 [validate_item_hiddenmesh]
@@ -3373,6 +3373,7 @@ all_equal = true
 all_mutants_caught = true
 "mutants.*.stopped" = 0
 
+
 [validate_worlds_inner]
 test = "reconstructed/objects/test_worlds_inner.py::ClientComparison.test_original_instructions"
 pins = ["text", "data"]
@@ -3389,6 +3390,21 @@ note = "RENDER-WORLDS-INNER-001: complete Kanturu hook 0xe75089 and Blood Castle
 "families.*.stopped" = 0
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
+
+[validate_item_groups]
+test = "reconstructed/renderchar/test_item_groups.py::ItemGroups.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "records"]
+cases = 4824
+mutants = 2
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar"]
+args = ["--mutations", "--output", "{report}"]
+[validate_item_groups.expect]
+"families.*.mismatches" = 0
+"mutants.*" = {truthy = true}
+
 
 [validate_actor_recipes]
 test = "native/tests/test_actor_recipes.py::ClientComparison.test_original_instructions"
