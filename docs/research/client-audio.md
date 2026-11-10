@@ -543,3 +543,64 @@ RMS / full-scale samples, before → after:
   left unchanged.
 - In the native session Kardamahal's track did not start (peak 24,139 either way), so a music source that clips
   itself was measured only offline.
+
+## AUDIO-002G discovery, 2026-11-09
+
+Static reading uses the same capture09/capture10 and executable pins as this document's opening.
+The lane is offline. No client or launcher ran, and no new service/event input is admitted.
+
+| Owner | Caller and gate recovered from pinned text | Native disposition |
+|---|---|---|
+| CButton update `0x009867e3` | `0x0098689e`, sound 25, null object, loop 0. Delta is not negative, sprite shown, enabled, cursor in active button, release edge, and held pointer equals this button. Click is set before sound; check state toggles after sound; held pointer clears afterward | Wire the existing legacy server-select and character-select controllers |
+| CCreditWin next block `0x009d9eb2` | `0x009d9eed`, sound 25, null object, loop 0, when current record type equals 0. Sound precedes finish `0x009d94e1`, hide, request marker, stop music 1, play music 21 | Preserve end-record provenance for the existing offline credits controller. Interactive shell has no credits owner; do not invent its open/finish route |
+| Scene-5 tick `0x01856e6c` | `0x01857064`, `0x01857163`, `0x018571e6`, already delivered by AUDIO-002E | Preserve existing Enter/menu/panel gates |
+| Login tick tail `0x01857236` | `0x01857529`, sound 25 after CInput byte `+0x31` refusal and Esc edge, before credits/menu choice | Refuse new wiring. Shell login panel is a placeholder; exact owning tail/input/menu contexts are not migrated |
+| Character-create GFx input query `0x00b49b97` | `0x00b49be4`, sound 25 when the movie exists, window visible, `0x009a5a06` permits input and Enter is pressed | Refuse standalone hook. This query's owning caller/lifetime must be recovered; adding a generic Enter click could duplicate scene-5 audio |
+| Legacy modal/delete controllers | `0x009a336e`, `0x009a339c`, `0x009a3538`, `0x009a3642`, sound 25 on modal Enter/Esc branches | Refuse. These legacy modal owners are not the native GFx create/delete controller; no callback-name substitution |
+| GFx base dispatcher `0x00aaf5d3` | No direct sound call in the complete body. UIInit, window position and input-focus callbacks delegate to window methods | No invented sound on every GFx callback |
+| GFx character list `0x00b4c1df` and select-row path | Current reconstruction delegates selection/entry; no sound call in the list callback body | No invented double-click sound |
+
+The CButton held pointer is shared by its context. A release outside, over another button, disabled
+button or inactive button refuses the click. An inactive containing CWin can still update its buttons
+and produce their sound before declining the owning action. Sound must not be gated on the later
+server-connect or character action succeeding. Credits completion is a presentation marker here;
+its original request remains out of scope. Repeated direct end-block invocation can sound again in
+the original; an owning host must honor HideWin to stop further window updates.
+
+This is a bounded owner audit, not a whole-client caller census. Nearby effect/NPC/item callers and
+unrecovered UI controllers are not admitted by proximity. Event audio inputs and the opaque frame gap
+remain excluded.
+
+### Delivery contract
+
+The authored `ui_sound.h` payload accompanies the existing one-word id in `MU_UI_SOUND`, without
+changing that operation's number or legacy normalised call stream. `mu_ui_audio.h` accepts the two
+explicit original owner/site pairs, null object and loop 0, then delivers a borrowed immediate cue.
+It does not match id 25 alone. Server-select and `mu_charsel_ui` bind their existing audio host;
+muted/disabled/detached decisions have no later replay. Standalone credits rendering stays silent;
+its end sound is proved through the same adapter in an offline native controller host.
+
+The new validator runs the complete CButton update and credits class bodies with the existing
+explicit UI service hosts. Sound return addresses are read independently from the original stack.
+It compares native cue provenance, full normalised call order, button/credits state and the held
+pointer. At the sound boundary it also checks that click is already set, check has not yet toggled,
+and the button remains held. The credits host records HideWin/request/music as existing markers;
+no request or answer implementation is added.
+
+A bounded literal scan found 320 syntactic `SND_Play(25, NULL, 0)` candidates in the pinned text.
+This is neither an offline-UI denominator nor an admission list: it includes already-wired sites,
+request-bound paths and owners whose context is absent. For example, `0x00b48b5a` belongs to the
+excluded character-stat request, so this lane does not trace or wire it. Remaining candidates need
+individual owning-controller recovery, not a blanket click callback. Final evidence and limits are
+recorded in [AUDIO-002G](../handoffs/AUDIO-002G.md).
+
+
+### Verified result
+
+`validate_audio_ui` compares 5,763 complete button updates and 40 credits sequences, 5,803 cases,
+with zero mismatches. The sound boundary sees 66 button and 71 credits requests. Credits also compare
+3,000 update frames and 952,836 state words. All 10 compiled planted mistakes are caught. Native
+checks pass for once-per-release, refused/held input, detached/muted/disabled delivery, credits closure,
+four enabled charsel fixture controls and decoded installed sound 25. Five shell journeys retain
+identical audio-on/off PNGs. The quick Create/Esc test explicitly retains original same-id suppression.
+All 26 affected validators pass; per-row times and the tested commit are in the handoff.
