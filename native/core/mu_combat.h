@@ -89,7 +89,7 @@ void mu_combat_default_config(mu_combat_config *config);
 const char *mu_combat_arrow_file(int32_t type);
 
 /* Bitmap slots the renderer binds by id. */
-enum { MU_COMBAT_BITMAPS = 36 };   /* RENDER-EFFECTS-015: + the eleven decal bitmaps */
+enum { MU_COMBAT_BITMAPS = 37 };   /* RENDER-EFFECTS-027: + NSkill for Death Stab */
 
 typedef struct mu_combat_bitmap {
     int32_t id;               /* client bitmap index (0x7534 font, 0x7df3.. specials, 0x7f2b, 0x7f84) */
@@ -176,6 +176,7 @@ typedef struct mu_combat_stats {
     uint32_t render_decals;   /* RENDER-EFFECTS-011: 0x45e subtypes 3..7 terrain decals (RENDER-EFFECTS-015: drawn) */
     uint32_t decals, decal_quads, decal_quads_dropped;   /* RENDER-EFFECTS-015: RenderTerrainAlphaBitmap calls drawn,
                                                            their terrain tiles, and tiles past the caller's buffer */
+    uint32_t death_stab_steps, death_stab_requests, death_stab_refused, death_stab_context_refused;
 } mu_combat_stats;
 
 struct mu_world_particles;
@@ -245,6 +246,7 @@ typedef struct mu_combat {
      * 0x014eca8b); the client's clearing site was not found, so a session keeps them (inference) */
     int32_t ground_owner[8];
     int32_t ground_owner_count;
+    float death_stab_sword[3];   /* authored DK fixture's OBJECT +0x104 */
 } mu_combat;
 
 /* Binds the combat state to a session (all pointers stay owned by the

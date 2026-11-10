@@ -479,7 +479,10 @@ static void run_fx(const mu_rc_fx_op *ops, int count, int regs, const mu_rc_item
                  * CreateSprite(bitmap, position, scale, light, OBJECT, rotation, blend, 4, axes). */
                 bone = fx_int(&r[o->a]);
                 refused = bad[o->a] || bone < 0 || bone >= h->item_bones || !h->item_transform;
-                if (!refused)
+                if (!bad[o->a] && bone == -1 && h->item_before_transform) {
+                    h->item_before_transform(h->context, fx.position);
+                    refused = 0;
+                } else if (!refused)
                     h->item_transform(h->context, bone, zero, 1, fx.position);
                 fx.rotation = r[o->d];
                 fx.blend = o->e;

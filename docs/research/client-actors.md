@@ -271,3 +271,33 @@ Fifteen later rows carry subtype models but no five-part equipment. Some names d
 They are listed as left in the census, rather than supplied with invented armour. The Player-kind render
 branches of those subtypes are not a proof that an NPC-kind actor should use them. Their world/action/kind
 conditions and special effects need a separate recovery before native admission.
+
+## 8. Later subtype actors, RENDER-ACTORS-002
+
+Work in progress on the same pinned text and image data. CreateCharacter stores
+OBJECT kind 1 at `0x0137dbd7`; the later generic constructors retain that default,
+class byte 0 and level zero. The existing extraction's zero-filled CreateCharacter
+stub does not itself establish the inherited kind. A bounded original-instruction
+comparison now checks that default store before applying the constructor writes.
+
+Classes 372/373 construct subtypes `0x425`/`0x429` at
+`0x013838fb`/`0x01383978`. RenderCharacter's kind-1 direct body branches begin at
+`0x01368496`/`0x01368510`. Startup `0x01832c5d..0x01832c8f` loads
+`Data/Skill/Skeleton03.bmd` into `0x425` and `Data/Skill/Jack.bmd` into `0x429`.
+Subtype `0x425` intentionally shares Skeleton03 with `0x424`.
+
+The same direct body path covers classes 503/548/616/646/706/806/807, with startup
+files panda, trans_skeleton, panda_brown, Trans_Lilith, baseball_player and cheerleader
+under Data/Item. Their textured body draws use the generic RenderObjDraw stream.
+The original OpenTexture retry through Data/Item/Texture supplies the baseball and
+cheerleader bitmaps. No equipment or transformed-player appearance is invented.
+
+Classes 374/378 were traced first alongside 372/373 and remain refused. Subtype
+`0x3ed` draws a body then constructs a companion through CHARACTER `+0x3248` at
+`0x01368f57..0x0136903e`; subtype `0x3e9` enters the larger effect/appearance branch
+`0x01369043..0x013699f8`. Subtype `0x5be`, class 642, has another companion at
+`0x013689d4..0x01368b4b`. Robot subtypes `0x5bc`/`0x5bd`, classes 625/626,
+enter the class/action-specific block `0x01368b4b..0x01368ed6`. Class 617's
+`0x5ba` direct body branch is known, but its startup filename is not established.
+
+The [handoff](../handoffs/RENDER-ACTORS-002.md) records current verification and limits.

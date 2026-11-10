@@ -153,8 +153,8 @@ class World(unittest.TestCase):
         pre = next(r for r in rows if r.get('item_pre_draw'))['players']
         particles = next(r for r in rows if r.get('particles') is True)
         # Hammer14 has 'up01 ' (trailing space); its program requests exact 'up01'.
-        # Keep that one bone-sprite refusal per draw rather than inventing a bone match.
-        self.assertEqual(pre['pre_refused'], 61)
+        # EFFECTS-025 supplies an explicit pre-bone record for the original -1 sprite access.
+        self.assertEqual(pre['pre_refused'], 0)
         self.assertGreater(pre['pre_effects'], 0)
         self.assertEqual(particles['unsupported'], 0)
         self.assertGreater(particles['drawn_particles'], 0)

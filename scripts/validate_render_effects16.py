@@ -56,7 +56,8 @@ SITES = {0x7534: 0x01820a39, 0x7dfe: 0x01820bb9, 0x7df3: 0x01820a79, 0x7df4: 0x0
          0x814c: 0x01821dd9, 0x8182: 0x01833b47, 0x8185: 0x01833ba0, 0x828c: 0x01837b6c, 0x85cc: 0x0182f066,
          0x8070: 0x018218d9, 0x7f87: 0x018215f9, 0x8147: 0x0183611a, 0x824c: 0x01837137, 0x8078: 0x01821a19,
          0x7fe9: 0x01822c65, 0x810a: 0x0182d4bf, 0x8155: 0x01822625, 0x8179: 0x01822685, 0x8013: 0x01821819,
-         0x8002: 0x01820f79}
+         0x8002: 0x01820f79,
+         0x7fde: 0x018228a5}   # RENDER-EFFECTS-027: NSkill.jpg
 FIRE06_SITE, FIRE06_PATH = 0x018229e5, 'Effect\\Fire06.jpg'
 
 PT_MUTANTS = [
@@ -323,10 +324,11 @@ def decode_site(text, data, site):
 def family_bitmap_sites(text, data, host, report):
     table = json.loads(subprocess.run([str(host), 'table'], capture_output=True, text=True, check=True).stdout)
     rows = {row[0]: row for row in table['bitmaps']}
+    extra = sorted(set(rows) - set(SITES))
     for index, site in SITES.items():
         row, client = rows.get(index), decode_site(text, data, site)
         mine = None if row is None else (row[0], row[3], row[4], f'{row[1]}\\{row[2]}'.lower())
-        equal = client is not None and mine is not None and mine == (*client[:3], client[3].lower())
+        equal = not extra and client is not None and mine is not None and mine == (*client[:3], client[3].lower())
         report.add('bitmap_sites', equal, {'index': hex(index), 'site': hex(site), 'client': client, 'mine': mine})
         report.cover('bitmap_sites', f'filter {client[1]:#x} wrap {client[2]:#x}' if client else 'undecoded')
     client = decode_site(text, data, FIRE06_SITE)
@@ -335,8 +337,7 @@ def family_bitmap_sites(text, data, host, report):
     report.add('bitmap_sites', equal, {'index': '0x7f40', 'site': hex(FIRE06_SITE), 'client': client,
                                        'mine': table['fire06'], 'kinds': table['fire06_kinds']})
     report.cover('bitmap_sites', 'Fire06 world particle slot')
-    extra = sorted(set(rows) - set(SITES))
-    report.add('bitmap_sites', not extra, {'rows without a site': [hex(x) for x in extra]})
+    # Unknown rows fail the mapping checks above; keep the row's existing case budget.
 
 
 # ---------------------------------------------------------------- mutants
