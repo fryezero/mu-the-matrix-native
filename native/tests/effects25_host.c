@@ -41,8 +41,13 @@ int main(int argc, char **argv)
     const float view[16] = {1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1};
     mu_raster raster;
     assert(!mu_raster_init(&raster, 32, 32));
+    const uint8_t black[4] = {0,0,0,255};
+    mu_raster_clear(&raster, black);
+    memcpy(raster.view, view, sizeof view);
+    memcpy(raster.projection, view, sizeof view);
     mu_world_particles_draw_raster(p, &raster, view);
     assert(p->stats.drawn_particles == 1);
+    assert(raster.fragments > 0);
     /* Exercise the real draw adapter, not only the compatibility transform. */
     mu_bmd bmd = {0};
     mu_bmd_bone bones[15] = {0};

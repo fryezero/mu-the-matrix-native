@@ -180,7 +180,7 @@ class ItemWorld(ownerfx.OwnerWorld):
         m.wf(v.MODEL + 0x74, o['scale'])
         m.write(v.MODEL + 0x78, struct.pack('<3f', *o['origin']))
         m.ensure(BONE_TRANSFORM - 0x30, 0x30 * 260)
-        # Bones past the count and the word before BoneTransform hold junk the C must never read.
+        # Without an explicit pre-bone record, the C must refuse that slot. Bones past the count stay unavailable.
         m.write(BONE_TRANSFORM - 0x30, struct.pack('<12f', *o.get('before_matrix', [7.0] * 12)))
         m.write(BONE_TRANSFORM, struct.pack('<%df' % len(o['matrices']), *o['matrices']))
         m.write(BONE_TRANSFORM + 0x30 * o['count'], struct.pack('<12f', *([-3.0] * 12)) * 8)

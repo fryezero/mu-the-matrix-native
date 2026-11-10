@@ -54,3 +54,16 @@ The two-clock final frames change 6,623 / 6,626 pixels.
 Post-build selectors retain 80 validators, including meshdraw, model_edge and movement symbol
 fallbacks. The portable selector exceeds the private 40-module cap; 8d is reduced to changed
 native modules plus shared consumers. The affected batches and final identity sweep are next.
+
+Merged main ACTORS-001 as `ba6c5bfd`, then NEXT-GAPS-001 as `00e84869`. Both appended validator
+rows are retained. Merged root build passes in 12.93 s; render targets in 5.35 s; manifest checks
+in 1.14 s. The combined range from ff8e0543 selects 83 validators, including actor_recipes,
+audio_combat and viewport_monsters beyond the original 80. The merged portable delta selects
+155 work items; its native selection still exceeds the 8d cap.
+
+The first portable batch covers 1,652 tests: 1,371 pass, 280 skip, one new ctypes fixture fails.
+The fixture wrote through a pointer slice without an end index; explicit element stores repair it.
+That failed test passes in 0.013 s. No production behavior changed. Batch wall 282.5 s / 347.83 s
+including selection. The native host now clears its raster, supplies identity view/projection
+and asserts actual fragments in addition to the existing routing and adapter assertions; it
+passes in 1.570 s. The original arithmetic comparators and compiled mutation targets are unchanged.
