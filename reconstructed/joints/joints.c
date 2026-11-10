@@ -299,7 +299,7 @@ int mu_jt_create(mu_jt_joint *j, int32_t type, const float position[3], const fl
         if (subtype == 2) {   /* 0x01548aeb: Death Stab */
             copy3(j->target_position, target_position);
             j->light[0] = 1.0f; j->light[1] = j->light[2] = F_0_3;
-            j->lifetime = 20; j->max_tails = 5; j->tex_type = 0x7fde;
+            j->lifetime = 20; j->max_tails = 0x5; j->tex_type = 0x7fde;
         }
         break;
     }

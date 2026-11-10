@@ -59,6 +59,7 @@ class Native(unittest.TestCase):
         self.assertEqual(combat['fx_created'], 14)
         self.assertEqual(combat['joints_created'], 175)
         self.assertEqual(stab['requests'], 189)
+        self.assertEqual(combat['sounds'], 1)
         frames = [r for r in rows if 'combat_frame' in r]
         self.assertTrue(any(r['joints'] > 0 for r in frames))
         self.assertTrue(any(0x10e6 in r['effect_types'] for r in frames))
@@ -77,7 +78,7 @@ class Native(unittest.TestCase):
         self.assertNotEqual(images, absent)
 
     def test_other_class_and_missing_weapon_context_are_refused(self):
-        for cls, weapon in [(0, 'sword'), (1, 'none')]:
+        for cls, weapon in [(0, 'sword'), (0x11, 'sword'), (1, 'none')]:
             with self.subTest(cls=cls, weapon=weapon):
                 rows, _ = self.cast(cls=cls, weapon=weapon)
                 stab = next(r for r in rows if r.get('death_stab') is True)
@@ -98,4 +99,4 @@ class ClientComparison(unittest.TestCase):
                             '--output', str(out)], check=True, capture_output=True, cwd=ROOT)
             report = json.loads(out.read_text())
         self.assertTrue(report['all_equal'])
-        self.assertEqual(report['cases'], 360)
+        self.assertEqual(report['cases'], 424)

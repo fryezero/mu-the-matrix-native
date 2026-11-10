@@ -3372,3 +3372,19 @@ note = "RENDER-EFFECTS-024: two original sprite loader mappings and native file/
 all_equal = true
 all_mutants_caught = true
 "mutants.*.stopped" = 0
+
+[validate_render_effects27]
+test = "native/tests/test_render_effects27.py::ClientComparison.test_original_instructions"
+pins = ["text", "data"]
+families = ["caller", "joint_create", "joint_move", "joint_render", "effect_create", "effect_move", "lifecycle"]
+cases = 424
+mutants = 20
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/combat", "reconstructed/joints"]
+args = ["--cases", "60", "--mutations", "--output", "{report}"]
+note = "RENDER-EFFECTS-027: Death Stab skill 43 caller stream, 0x472/2 and Flare/12 create/move/GL, 0x10e6/1 emitter and continuous owner-death/expiry lifecycles; 20 compiled mutants"
+[validate_render_effects27.expect]
+all_equal = true
+all_mutants_caught = true
+"mutants.*.stopped" = 0

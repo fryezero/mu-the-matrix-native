@@ -732,12 +732,12 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
         }
         const int stab = (call->type == 0x472 && call->subtype == 2) ||
                          (e && e->type == 0x10e6 && call->type == 0x7f78 && call->subtype == 12);
-        const uint32_t refused = c->stats.unsupported;
+        const uint32_t created = c->stats.joints_created;
         if (stab) ++c->stats.death_stab_requests;
         create_joint(c, call->type, call->position, call->target, call->angle, call->subtype, target,
                      call->scale, (uint16_t)(stab ? 0xffff : arrow ? call->arg7 : c->hero_key & 0xffff),
                      (uint16_t)(arrow ? call->arg8 : 0));
-        if (stab) c->stats.death_stab_refused += c->stats.unsupported - refused;
+        if (stab && c->stats.joints_created == created) ++c->stats.death_stab_refused;
         c->jenv.has_creation_light = 0;
         return 0;
     }
@@ -745,7 +745,7 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
         mu_sfx_info info;
         memset(&info, 0, sizeof info);
         const int stab = call->type == 0x10e6 && call->subtype == 1;
-        const uint32_t refused = c->stats.unsupported;
+        const uint32_t created = c->stats.fx_created;
         if (stab) { ++c->stats.death_stab_requests; info.key = 0xffff; }
         int32_t owner = call->owner == -2 ? -1 : call->owner;
         if (e && e->type == MU_SFX_RAGEFUL_BLOW) {
@@ -762,7 +762,7 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
                                  owner, &info, call->scale);
         } else
             create_effect(c, call->type, call->subtype, call->position, call->angle, call->light, owner, &info);
-        if (stab) c->stats.death_stab_refused += c->stats.unsupported - refused;
+        if (stab && c->stats.fx_created == created) ++c->stats.death_stab_refused;
         return 0;
     }
     case MU_SFX_CALL_ANIMATION: {
@@ -1754,11 +1754,10 @@ static void death_stab_step(mu_combat *c)
         return;
     ++c->stats.death_stab_steps;
     mu_character *h = c->hero_character;
-    const mu_character_item *weapon = h ? &h->items[MU_CHARACTER_WEAPON_ITEM(0)] : NULL;
-    const int32_t bone = weapon ? weapon->link_bone : -1;
+    const int32_t bone = 33;   /* authored DK demo, default right-hand link at 0x0137f5d9 */
     /* This is the authored base-DK demo context. No later-class or equipment
      * selector is inferred from the client's CHARACTER +0x19b1 array. */
-    if (mu_class_check(c->walk->hero.class_byte) != 1 || !h || !h->player_loaded || !weapon->loaded ||
+    if (c->walk->hero.class_byte != 1 || !h || !h->player_loaded || c->config.weapon == MU_COMBAT_WEAPON_NONE ||
         !h->player_bones || bone < 0 || bone >= h->player_bone_count || h->player_bmd.bones[bone].dummy) {
         ++c->stats.death_stab_context_refused;
         return;
