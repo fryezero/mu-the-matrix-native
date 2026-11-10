@@ -1,4 +1,5 @@
 #include "../../reconstructed/objects/world_visual.h"
+#include "../../reconstructed/objects/world_inner_visual.h"
 #include "../../reconstructed/objects/world_visual_slots2.h"
 #include "mu_frame_time.h"
 /* The client's world-object lifecycle in the native session (NATIVE-OBJECTS-002,
@@ -1386,21 +1387,77 @@ static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_obje
     consume_visual(o, &log);
 }
 
-/* Scoped per-world RenderObjectVisual hooks. The initial flicker rand in 0x017f9758 is drawn before its world
- * dispatch by the caller (mu_obj_visual_flicker, RENDER-WORLDS-SLOTS3), even when the hook has no flame. */
-static int world_flames(mu_objects *o, int32_t i, uint8_t *img, const mu_object_model *m, float time, int posed)
+/* RENDER-WORLDS-INNER-001: the classless leaves of RenderObjectVisual. The outer rand has already been drawn.
+ * Requests use existing consumers; extra meshes join the first-pass list after RenderObject's body. Missing
+ * bones and unserved joint/effect hooks are refused explicitly. */
+static void inner_named_bone(void *context, const char *name, const float local[3], float out[3])
 {
-    if (!m || !m->loaded)
-        return 0;
-    if (o->world != 0x25 && o->world != 0x28)
-        return 0;
+    const int32_t k = visual_bone_index(context, name);
+    if (k < 0) { out[0] = out[1] = out[2] = NAN; return; }
+    test_area_bone(context, k, local, out);
+}
+static int world_inner(mu_objects *o, int32_t i, uint8_t *img, const mu_object_model *m, float time, int posed,
+                        const mu_obj_log *body_log, mu_obj_log *draws)
+{
+    const int kanturu = o->world == 37 || o->world == 40;
+    const int blood = (o->world >= 11 && o->world <= 17) || o->world == 52;
+    if (!m || !m->loaded || (!kanturu && !blood)) return 0;
     visual_context c = {o, m};
     mu_obj_event events[64];
     mu_obj_log log = {0, 64, 0, events};
-    const int status = mu_kanturu_flames(img, i, o->world, time, visual_rand,
-                                         posed ? visual_bone : NULL, &c, &log);
-    consume_visual(o, &log);
-    return status != MU_OBJ_UNSUPPORTED;
+    slot_fields(o, img, mu_obj_i32(img, MU_OBJF_TYPE));
+    const uint8_t stream = o->rt.model_fields[0x94];
+    if (kanturu) {
+        /* Headless fixtures use the authored WorldTime tick. No server/event state is inferred. */
+        const uint32_t clock = isfinite(time) && time >= 0.0f && (double)time < 4294967296.0 ? (uint32_t)time : 0;
+        mu_kanturu_inner(img, o->rt.model_fields, i, o->world, time, clock, visual_rand,
+                         posed ? test_area_bone : NULL, &c, &log);
+    } else {
+        mu_blood_castle_inner(img, i, o->world, time, visual_rand, posed ? inner_named_bone : NULL, &c, &log);
+    }
+    o->rt.stream[mu_obj_i32(img, MU_OBJF_TYPE)] = o->rt.model_fields[0x94];
+    int has_draws = 0, requests = 0;
+    for (int32_t k = 0; k < log.count; ++k) {
+        mu_obj_event e = events[k];
+        if (kanturu && mu_obj_i32(img, MU_OBJF_TYPE) == 0x60 && e.call == MU_OBJ_CALL_MESH &&
+            m->textures.model_count > 0 && m->textures.components && m->textures.components[0] == 4) {
+            ++o->rt.draw_unsupported;   /* fixed GREATER 0.25 cannot serve this GREATER 0 RGBA pass */
+            continue;
+        }
+        if (e.call == MU_OBJ_CALL_MESH || e.call == MU_OBJ_CALL_MODEL_STREAM) {
+            if (!has_draws) {
+                memcpy(o->rt.slot_color, o->rt.model_fields + MU_MDL_COLOR, 12);
+                o->rt.slot_stream = stream;
+                for (int32_t j = 0; body_log && j < body_log->count; ++j)
+                    if (body_log->events[j].call == MU_OBJ_CALL_BODY && draws->count < draws->capacity)
+                        draws->events[draws->count++] = body_log->events[j];
+                has_draws = 1;
+            }
+            if (draws->count < draws->capacity) draws->events[draws->count++] = e;
+            else draws->overflow = 1;
+        } else if (e.call == MU_INNER_PUSH_MATRIX || e.call == MU_INNER_POP_MATRIX || e.call == MU_INNER_ALPHA_FUNC) {
+            /* Push/PopMatrix have no intervening matrix writes. Type 0x60's alpha reference is checked below. */
+        } else if (e.call == MU_ICARUS_JOINT &&
+                   (!o->rt.joint || !mu_jt_kind_supported((int32_t)e.args[0], (int32_t)e.args[10]))) {
+            ++o->rt.draw_unsupported;
+        } else if (e.call == MU_OBJ_CALL_EFFECT && !o->rt.effect) {
+            ++o->rt.draw_unsupported;
+        } else if ((e.call == MU_OBJ_CALL_PARTICLE || e.call == MU_OBJ_CALL_SPRITE || e.call == MU_ICARUS_JOINT) &&
+                   (!isfinite(fbits(e.args[1])) || !isfinite(fbits(e.args[2])) || !isfinite(fbits(e.args[3])))) {
+            ++o->rt.draw_unsupported;
+        } else {
+            events[requests++] = e;
+        }
+    }
+    if (!posed && ((kanturu && (mu_obj_i32(img, MU_OBJF_TYPE) == 0x46 || mu_obj_i32(img, MU_OBJF_TYPE) == 0x5c ||
+                               mu_obj_i32(img, MU_OBJF_TYPE) == 0x62 || mu_obj_i32(img, MU_OBJF_TYPE) == 0x69 ||
+                               mu_obj_i32(img, MU_OBJF_TYPE) == 0x6e)) ||
+                    (blood && (mu_obj_i32(img, MU_OBJF_TYPE) == 11 || mu_obj_i32(img, MU_OBJF_TYPE) == 13))))
+        ++o->rt.draw_unsupported;
+    if (log.overflow) ++o->rt.draw_unsupported;
+    const mu_obj_log req = {requests, requests, 0, events};
+    consume_visual(o, &req);
+    return has_draws;
 }
 
 /* Draw options of a RenderMesh(mesh, flags, alpha, blend mesh, blend light, u, v, texture) event. */
@@ -1514,20 +1571,21 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
         }
     }
     /* NATIVE-PARTICLE-001: RenderObjectVisual through the particle module, after RenderObject */
-    int flame = 0;
+    int inner_draws = 0;
+    const int inner_world = o->world == 37 || o->world == 40 || (o->world >= 11 && o->world <= 17) || o->world == 52;
     if (!login && !charsel &&
-        (o->world == 0x25 || o->world == 0x28)) {
+        inner_world) {
         if (m && m->loaded && !posed)
             posed = pose_object(o, img, m, &log);
-        flame = world_flames(o, i, img, m, in.light.time, posed);
+        inner_draws = world_inner(o, i, img, m, in.light.time, posed, &log, &sc.log);
     }
-    const int hook = rt->visual && !login && !charsel && !flame && !primary_visual, has_model = m && m->loaded;
+    const int hook = rt->visual && !login && !charsel && !inner_world && !primary_visual, has_model = m && m->loaded;
     const int effects = !login && !charsel && !primary_visual;   /* RENDER-EFFECTS-008 */
     if (deferred) {
         visual_and_effects(o, i, img, hook, has_model, posed ? m : NULL, m, posed, &log, effects);
         return NULL;
     }
-    if (status == MU_OBJ_SKIPPED) {
+    if (status == MU_OBJ_SKIPPED && !inner_draws) {
         ++rt->draw_skipped;
         visual_and_effects(o, i, img, hook, has_model, NULL, m, posed, &log, effects);
         return NULL;
@@ -1545,7 +1603,7 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
         memcpy(rt->slot_color, rt->model_fields + MU_MDL_COLOR, 12);
         rt->slot_stream = 0xff;
     }
-    for (int32_t j = 0; (slots || abyss) && j < sc.log.count; ++j) {
+    for (int32_t j = 0; (slots || abyss || inner_draws) && j < sc.log.count; ++j) {
         const mu_obj_event *e = &rt->slot_events[j];
         if (e->call == MU_OBJ_CALL_BODY || e->call == MU_OBJ_CALL_MESH)
             ++slot_draws;
