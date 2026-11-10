@@ -3417,3 +3417,22 @@ args = ["--cases", "200", "--mutations", "--output", "{report}"]
 [validate_muun_visual.expect]
 all_equal = true
 all_mutants_caught = true
+
+[validate_audio_ui]
+test = "native/tests/test_audio_ui.py::UIAudio.test_original_ui_audio"
+pins = ["text", "data"]
+families = ["button", "credits"]
+cases = 5803
+mutants = 10
+cases_at = "cases"
+mutants_at = "mutants"
+build = ["reconstructed/ui"]
+args = ["--mutations", "--report", "{report}"]
+[validate_audio_ui.expect]
+"cases" = 5803
+"mismatches" = 0
+"families.button.cases" = 5763
+"families.button.sounds" = {min = 1}
+"families.credits.cases" = 40
+"families.credits.sounds" = 71
+"mutants" = {len = 10}
