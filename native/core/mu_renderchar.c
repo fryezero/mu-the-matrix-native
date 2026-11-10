@@ -8,6 +8,7 @@
 #include <strings.h>
 
 #include "../../reconstructed/renderchar/link_bones.h"
+#include "../../reconstructed/actors/actors.h"
 #include "../../reconstructed/model-codec/character.h"
 #include "mu_lang.h"
 #include "mu_particles.h"
@@ -394,7 +395,7 @@ static int draw_item(const mu_model *model, const mu_renderchar_glow *glow, cons
                 host.black_mesh = i;
     /* RenderCharacter's whole Skill/Skeleton body reaches the generic
      * RenderObjDraw stream, including Golden Archer's town +8 passes. */
-    int status = glow->type >= 0x422 && glow->type <= 0x424 ?
+    int status = mu_actor_player_body_file(glow->type) ?
         mu_rc_item_draws_generic(&it, &m, draws, 32, &count) :
         glow->type < 0 ? MU_RC_SPECIAL : owner || pre ?
         mu_rc_item_draws_owner(&it, &m, draws, 32, &count, &context, &host) :

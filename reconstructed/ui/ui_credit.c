@@ -1,5 +1,6 @@
 /* Reconstructed credits window (NATIVE-UI-002).  See ui_credit.h. */
 #include "ui_credit.h"
+#include "ui_sound.h"
 
 #include <string.h>
 
@@ -168,8 +169,7 @@ static void next_credits(mu_ui_ctx *ctx, mu_ui_credit_win *win)
 {
     int32_t type = record(win, win->next).type, k;
     if (type == MU_UI_CREDIT_END) {
-        uint32_t sound = 0x19;
-        emit(ctx->state, MU_UI_SOUND, &sound, 1, NULL, 0);
+        mu_ui_sound_emit(ctx->state, 25, 0x009d9eb2u, 0x009d9eedu);
         finish(ctx, win);
     } else if (type == MU_UI_CREDIT_TITLE) {
         win->rows[0] = win->next++;
