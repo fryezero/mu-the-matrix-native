@@ -98,8 +98,22 @@ static int load_player_npc(mu_world_actor *a, const char *root, const mu_monster
             return 1;
         }
     }
-    for (int k = 1; k < MU_CHARACTER_ITEMS; k++) {
+    for (int k = 0; k < MU_CHARACTER_ITEMS; k++) {
         int32_t type = row->slots[k].type;
+        if (k == 0 && type >= 0x422 && type <= 0x424) {
+            /* RenderCharacter's whole skeleton body. Startup 0x01832c28
+             * loads Skeleton01..03 into 0x422..0x424 from Data/Skill. */
+            snprintf(path, sizeof path, "%s/Data/Skill/Skeleton%02d.bmd", root, type - 0x421);
+            if (mu_character_set_item(a->player, k, path, no_textures, error, cap)) {
+                mu_data_free(&table);
+                return 1;
+            }
+            /* The town NPC branch 0x01367d85 uses +0x144 only in world 0.
+             * The later skeleton branch 0x01369f98 always passes zero. */
+            a->player_glow[k] = (mu_renderchar_glow){.type = type,
+                .level = params->world == 0 ? row->slots[k].level : 0};
+            continue;
+        }
         if (type < 0xae6 || type == 0xffff)
             continue;
         mu_item item;
@@ -145,11 +159,10 @@ static int load_actor(mu_world_actors *s, mu_world_actor *a, const char *root, i
     mu_actor_spec spec;
     char message[512];
     const mu_effect_class *fx = effect_class(server_class);
-    const mu_monster_class *row = server_class >= 0 ? mu_monster_class_find((uint32_t)server_class) : NULL;
+    mu_monster_class recipe;
     float cloth_scale = 0.9f;
     const int cloth_model = mu_cloth_npc_model((int16_t)server_class, s->map->world, &cloth_scale);
-    int player = row && row->kind == MU_CLASS_PLAYER_MODEL &&
-        (server_class == 257 || server_class == 229 || server_class == 55);
+    int player = mu_actor_player_recipe(server_class, &recipe);
     if (player) {
         memset(&spec, 0, sizeof spec);
     } else if (cloth_model >= 0) {
@@ -169,7 +182,7 @@ static int load_actor(mu_world_actors *s, mu_world_actor *a, const char *root, i
     mu_model_params params;
     mu_model_scene_params(&params);   /* light override 1 (NATIVE-LIGHT-001) */
     params.world = s->map->world;
-    if (player ? load_player_npc(a, root, row, &params, no_textures, message, sizeof message)
+    if (player ? load_player_npc(a, root, &recipe, &params, no_textures, message, sizeof message)
                : mu_actor_load(&a->actor, &spec, &params, no_textures, message, sizeof message))
         goto fail;
     a->tile[0] = a->home[0] = x;
