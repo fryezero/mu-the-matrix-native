@@ -20,8 +20,8 @@ The full affected private batch passes 21/21 rows, zero skips, in 521.9 s at
 pass and were visually inspected; each gains 1,098..3,299 pixels against an empty,
 names-hidden scene. Rendering takes 19.3 s. Latest main brought documentation only.
 
-Left: changed mutants, portable affected suites, private native tests under the
-8d cost cap, final identity sweep, final self-review and PR-ready delivery.
+Left: portable affected suites, private native tests under the 8d cost cap,
+final identity sweep, final self-review and PR-ready delivery.
 No ready entry has been written.
 
 Mutant audit: the first full run passed all 1,300 positive checks and caught 20/21
@@ -30,8 +30,17 @@ host only checked mesh presence. The host now reports the body file actually loa
 and the comparison checks its exact startup-derived identity. The same wrong-but-valid
 file mutation is retained for a targeted rerun; no production runtime code changed.
 The portable recipe test also checks independent expected constructor model IDs.
+The full positive recheck now passes 1,300 checks and catches the valid-file mutant
+in 121.6 s at `0bbf0da6`. All 21 controls are therefore verified across the full
+run and the targeted rerun. The other 20 controls were not repeated.
 
-Next: inspect the private iteration report, then finish the bounded nine-row set.
+Latest main's ITEMS-002X tables are integrated as `9aee9cfa`. Rebuild passes in
+15.7 s. Fresh selection still has 21 lane validators; the merge delta selects 15,
+which pass without mutants in 329.3 s. The other six are unchanged by symbol-level
+selection and retain their earlier result. Portable affected suites are running.
+Selection has 154 work items including 146 native modules, so 8d is reduced.
+
+Next: finish the portable run, the reduced private modules and the final sweep.
 Six other rows stay refused: 374 and 642 need companion construction/lifetime;
 378 needs its appearance/effect branch; 625/626 need action-dependent hooks; 617's
 startup model file is unresolved. Do not admit these as plain bodies.
