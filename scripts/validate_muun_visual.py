@@ -253,7 +253,7 @@ MUTANTS = [
     ('spring_damping', '20.0f * s->velocity[k]', '2.0f * s->velocity[k]'),
     ('spring_mass', '1.0f / 25.0f', '1.0f / 20.0f'),
     ('spring_memory', 's->force[k] - s->velocity[k]', 's->force[k] + s->velocity[k]'),
-    ('follow_height', 's->target[2] + info->offset[2]', 's->target[2]'),
+    ('follow_height', 's->target[2] + info->offset[2]', 's->target[2] - info->offset[2]'),
     ('follow_turn', 'heading, 10.0f', 'heading, 5.0f'),
     ('owner_life', 'owner_live && owner_kind == 1', 'owner_live || owner_kind == 1'),
     ('owner_key', 'key == owner_key', 'key != owner_key'),
