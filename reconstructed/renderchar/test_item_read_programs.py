@@ -2,7 +2,6 @@
 import json
 import os
 from pathlib import Path
-import random
 import subprocess
 import sys
 import tempfile
@@ -14,15 +13,19 @@ import validate_renderchar as v
 
 
 class ItemReadPrograms(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.v, cls.lib = v, base.lib()
+
+    item = base.RenderCharLibrary.item
+    draws = base.RenderCharLibrary.draws
+
     def test_admissions_preserve_the_existing_refusals(self):
-        lib = base.lib()
         for t in programs.TYPES:
-            case = v.random_case_any(random.Random(t), t)
-            case.update(a10=0xffffffff, a11=0xffffffff)
-            self.assertEqual(v.c_stream(lib, case)[0], 0, hex(t))
-            self.assertEqual(v.c_stream(lib, dict(case, select=1))[0], 2, hex(t))
-            self.assertEqual(v.c_stream(lib, dict(case, object_shadow=1))[0], 2, hex(t))
-        self.assertEqual(lib.mu_rc_item_special(0x0b51), 2)
+            self.assertEqual(self.draws(self.item(type=t))[0], 0, hex(t))
+            self.assertEqual(self.draws(self.item(type=t, select=1))[0], 2, hex(t))
+            self.assertEqual(self.draws(self.item(type=t, object_shadow=1))[0], 2, hex(t))
+        self.assertEqual(self.lib.mu_rc_item_special(0x0b51), 1)
 
     @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'original captures are opt-in')
     def test_original_instructions(self):

@@ -271,6 +271,15 @@ NO_GLOW_TYPES = [0x232c, 0x232d, 0x232e, 0x232f, 0x2330, 0x26f5]
 OMITTED_BASE_TYPES = [0x2368]
 LATE_GLOW_TYPES = list(range(0x26e6, 0x26ed))
 HELPER_TYPES = OMITTED_BASE_TYPES + LATE_GLOW_TYPES
+OTHER_TYPES = [0x0b09, 0x0b0b, 0x0b28, 0x0b40, 0x0b42, 0x0b43, 0x0b45, 0x0b61,
+               0x0eed, 0x0efa, 0x0f0b, 0x10f2, 0x1102, 0x1505, 0x1506, 0x1509,
+               0x1576, 0x1577, 0x1736, 0x1746, 0x192f, 0x1b2f, 0x212f,
+               0x2568, 0x2569, 0x256a, 0x256b]
+OTHER_CARRY = [0x0b09, 0x0b0b, 0x0eed, 0x0efa, 0x0f0b, 0x10f2, 0x1506, 0x1509,
+               0x2568, 0x2569, 0x256a, 0x256b]
+OTHER_EXIT = []
+PRE_CARRY += OTHER_CARRY
+EXIT_TYPES += OTHER_EXIT
 
 
 def body_scalars(time):
@@ -962,6 +971,8 @@ def slice_block(wa, block, frame=False):
             continue
         if name.startswith('j') or name in ('call', 'ret', 'retn', 'int3', 'leave'):
             break
+        if name in ('push', 'pop'):
+            stack_top = None
         if frame and name == 'push' and dst.type == X.X86_OP_IMM:
             pushed = ('k', _i32(dst.imm))
             at = nxt
@@ -1387,7 +1398,7 @@ PRE_EXTENDED += [0x1313, 0x1317, 0x1319] + READ_PROGRAM_TYPES
 # RENDER-ITEMS-002X: carry the last draw into later helpers, with full supplementary probes.
 PRE_CARRY += [t for t in READ_PROGRAM_TYPES if t not in (0x0b29, 0x0b4d, 0x0b52, 0x1314)]
 # These probes retain alpha/wave products and attribute nested pre-program ranges correctly.
-COUNTER_RANGE_TYPES += READ_PROGRAM_TYPES
+COUNTER_RANGE_TYPES += READ_PROGRAM_TYPES + OTHER_TYPES
 NAMED_NAMES = v.NAMED_MESH_NAMES
 _NAMED_VALUES = []
 
@@ -1424,7 +1435,7 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=Fals
                     return
                 # RENDER-ITEMS-002U: blocks that read the rendered-frame counter, for FRAME_TYPES only
                 f = bisect.bisect_left(frames, address)
-                counter = _SAMPLE_TYPE[0] in FRAME_TYPES and f < len(frames) and frames[f] + 4 <= address + size
+                counter = (_SAMPLE_TYPE[0] in FRAME_TYPES or _SAMPLE_TYPE[0] in OTHER_TYPES) and f < len(frames) and frames[f] + 4 <= address + size
                 k = bisect.bisect_left(clocks, address)
                 if not counter and (k == len(clocks) or clocks[k] >= address + size):
                     return
@@ -1497,7 +1508,7 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=Fals
         case['named_meshes'] = tuple(_NAMED_VALUES)
     case.update(item_level=lv << 3, quality=quality, option1=opt, ext=ext, record=record, a10=0xffffffff, a11=0xffffffff, render_type=(2, 0x102, 0x40042)[seed % 3])
     case['object_hidden'] = (-1, 0, 2)[(seed // 3) % 3]
-    if t in FRAME_TYPES:
+    if t in FRAME_TYPES or t in OTHER_TYPES:
         # RENDER-ITEMS-002U: the rendered-frame counter varies in these types' probes (others keep the zero page).
         draw = random.Random(seed * 7919 + lv * 104729 + quality * 31 + opt * 3 + ext * 5 + (record[1] & 0xff))
         case['frame'] = draw.choice((0, 1, 2, 3, 15, 59, 60, 61, 0x7fffffff, 0x80000000, 0xffffffff,
@@ -1638,7 +1649,7 @@ def infer(samples):
 ALL_TYPES = (REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES + RANKED_TYPES + EXPANDED_TYPES +
              NEXT_TYPES + CLOCK_TYPES + CLUSTER_TYPES + WING_TYPES + VISIBLE_TYPES + SCALAR_TYPES +
              CHAIN_TYPES + LEVEL_TYPES + COLOUR_TYPES + CARRY_TYPES + QUALITY_TYPES + PRODUCT_TYPES + DERIVED_TYPES +
-             OWNER_FX_TYPES + PRE_FX_TYPES + POST_FX_TYPES + [0x1588] + list(NAMED_TYPES) + NO_GLOW_TYPES + HELPER_TYPES)
+             OWNER_FX_TYPES + PRE_FX_TYPES + POST_FX_TYPES + [0x1588] + list(NAMED_TYPES) + NO_GLOW_TYPES + HELPER_TYPES + OTHER_TYPES)
 
 
 def fit(wa, lib, t, scalars=False, carry=False, extended=False):
@@ -1677,7 +1688,7 @@ def fit(wa, lib, t, scalars=False, carry=False, extended=False):
                 # Kind 5: the value of the kind-4 program at index a times one binary32 light constant.
                 programs.append((5, ref, ((1, word),)))
         programs.extend(counter_colour_seeds(wa, t, programs))
-        if not programs and t not in DERIVED_TYPES:
+        if not programs and t not in DERIVED_TYPES and t not in OTHER_TYPES:
             return None
         rules = _fit(wa, lib, t, tuple(programs), None, carry, extended)
         # Part 16: words one binary32 operation away from an input become kind-6 programs.
@@ -1831,7 +1842,7 @@ def extract():
     for t in ALL_TYPES:
         fitted = fit(wa, lib, t, scalars=True,
                      carry='exit' if t in EXIT_TYPES else t in CARRY_TYPES or t in DERIVED_CARRY or t in PRE_CARRY,
-                     extended=t in QUALITY_TYPES or t in PRODUCT_TYPES or t in PRE_EXTENDED or t in NAMED_TYPES or t in NO_GLOW_TYPES or t in HELPER_TYPES)
+                     extended=t in QUALITY_TYPES or t in PRODUCT_TYPES or t in PRE_EXTENDED or t in NAMED_TYPES or t in NO_GLOW_TYPES or t in HELPER_TYPES or t in OTHER_TYPES)
         if fitted is not None:
             types[t] = fitted
     if set(types) != set(ALL_TYPES):
@@ -1858,6 +1869,8 @@ def render(types):
              ' * source=17 copies OBJECT alpha. source=18..20 copies pulsed body light; source=21 copies armour blend pulse. source=22..34 selects clock scalars; source=35 copies OBJECT hidden mesh;',
              ' * source=36.. selects the type\'s own scalar program (kind 1 = wave 0x0185bdc4(a,0), 2 = sin(time*a), then mul/add/sub/div, binary32 or op|8 binary64 with one final rounding;',
              ' * kind 3 = clock chain of op/k pairs, see gen_item_bodies.C_TIME_F..C_U2D (30..33: the rendered-frame counter);',
+             ' * clock ops 34/35/36 are binary32 sin, conditional abs and CRT fabs (distinct signed-zero rules);',
+             ' * kind 9 = wave(a, k[0] degrees), then ops 1..; scalar op 5 is k-value, 6 is a lower clamp;',
              ' * kind 8 = raw 0x012bd4a6 result for mu_rc_body_names[a], including -1;',
              ' * kind 4 = (float)(rand() % a) then binary32',
              ' * mul/add/sub/div, drawn once in each phase of its phases mask; kind 5 = the type\'s program a (kind 4)',

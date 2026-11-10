@@ -26,6 +26,14 @@ Research part 38 is reserved; recheck main before the final push.
   96.16 s. The late caller and omitted-base recovery are separate exact fits.
 - Full tests and instruction checks remain pending. Provisional body delta is fourteen, subject to table
   generation, exhaustive forcing-record checks, changed-row mutants and final integration.
+- The further-body screen now adds 27 candidates after 292 independent states each, including counter
+  variation: `0x0b09`, `0x0b0b`, `0x0b28`, `0x0b40`, `0x0b42`, `0x0b43`, `0x0b45`, `0x0b61`,
+  `0x0eed`, `0x0efa`, `0x0f0b`, `0x10f2`, `0x1102`, `0x1505`, `0x1506`, `0x1509`, `0x1576`, `0x1577`,
+  `0x1736`, `0x1746`, `0x192f`, `0x1b2f`, `0x212f`, `0x2568..0x256b`.
+  It screens 182 candidates in census size order, 1,203.62 s elapsed including a resource pause.
+  Provisional total gain is 41, or 1,424 -> 1,465/1,674, leaving 209. Full tables and checks remain pending.
+  The four largest shields and four armour cases still refuse. Fitted `0x1710` and `0x10fd` fail independent
+  states 19 and 17; neither is admitted. No tolerance or cap changed.
 - Initial root and world builds pass. One baseline default sweep covers 46 maps, 92 PNGs, 92 dumps and
   46 reports, 104.19 s. Final identity, table reproduction, affected checks and changed-row mutants are pending.
 - Next: finish the seven read-program candidates, then helper-count types, then the largest other groups.

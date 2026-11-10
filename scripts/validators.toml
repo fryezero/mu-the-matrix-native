@@ -3439,3 +3439,22 @@ note = "RENDER-ITEMS-002Y: omitted base and seven late level overrides, independ
 "families.bodies.cases" = 2336
 "families.records.cases" = 4096
 "mutants.*" = {truthy = true}
+
+[validate_item_other_bodies]
+test = "reconstructed/renderchar/test_item_other_bodies.py::ItemOtherBodies.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "records", "clocks", "frame"]
+cases = 24084
+mutants = 2
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar"]
+args = ["--mutations", "--output", "{report}"]
+note = "RENDER-ITEMS-002Y: 27 further clock/product bodies, forcing records and directed clocks/counters"
+[validate_item_other_bodies.expect]
+"families.*.mismatches" = 0
+"families.bodies.cases" = 7884
+"families.records.cases" = 13824
+"families.clocks.cases" = 648
+"families.frame.cases" = 1728
+"mutants.*" = {truthy = true}
