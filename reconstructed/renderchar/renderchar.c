@@ -193,6 +193,16 @@ static float client_wave(float a, float time)
     return (w + 1.0f) * 0.5f;
 }
 
+/* 0x0185bdca..0x0185bdf6: phase in degrees, rounded at every SSE step. */
+static float client_wave_phase(float a, float phase, float time)
+{
+    float shifted = phase * 0.017453292f;
+    shifted = shifted * 1000.0f;
+    shifted = shifted / a;
+    shifted = shifted + time;
+    return client_wave(a, shifted);
+}
+
 /* cvttss2si/cvttsd2si: out of range and NaN give the integer indefinite. */
 static int32_t clock_trunc(double x)
 {
@@ -249,6 +259,8 @@ static float clock_program(const mu_rc_body_scalar *p, float time, uint32_t fram
         case 31: i = (int32_t)((uint32_t)i % word); break;
         case 32: i = (int32_t)((uint32_t)i / word); break;
         case 33: d = (double)(uint32_t)i; break;
+        case 34: f = client_sin(f); break;
+        case 35: if (0.0f > f) f = -f; break;
         default: i = (int32_t)(word - (uint32_t)i); break;
         }
     }
@@ -263,7 +275,15 @@ static float body_scalar(const mu_rc_body_scalar *p, float time, uint32_t frame)
     if (p->kind == 3)
         return clock_program(p, time, frame);
     memcpy(&a, &p->a, 4);
-    value = p->kind == 1 ? client_wave(a, time) : client_sin(time * a);
+    int first = 0;
+    if (p->kind == 9) {
+        float phase;
+        uint32_t word = (uint32_t)p->k[0];
+        memcpy(&phase, &word, 4);
+        value = client_wave_phase(a, phase, time);
+        first = 1;
+    } else
+        value = p->kind == 1 ? client_wave(a, time) : client_sin(time * a);
     if (p->count && (p->op[0] & 8)) {
         double wide = value;
         for (int i = 0; i < p->count; ++i) {
@@ -278,7 +298,7 @@ static float body_scalar(const mu_rc_body_scalar *p, float time, uint32_t frame)
         }
         return (float)wide;
     }
-    for (int i = 0; i < p->count; ++i) {
+    for (int i = first; i < p->count; ++i) {
         float k;
         uint32_t bits = (uint32_t)p->k[i];
         memcpy(&k, &bits, 4);
@@ -286,6 +306,8 @@ static float body_scalar(const mu_rc_body_scalar *p, float time, uint32_t frame)
         case 1: value = value * k; break;
         case 2: value = value + k; break;
         case 3: value = value - k; break;
+        case 5: value = k - value; break;
+        case 6: if (k > value) value = k; break;
         default: value = value / k; break;
         }
     }

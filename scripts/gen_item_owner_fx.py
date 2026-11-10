@@ -80,6 +80,9 @@ PRE_FX_TYPES = [
 # RENDER-ITEMS-002X: independent body and owned-program comparisons admit these fourteen.
 READ_PROGRAM_TYPES = [0x0b29, 0x0b52, 0x0f1e, 0x174a, 0x2301, 0x2302, 0x23a8, 0x23a9,
                       0x23ed, 0x23ee, 0x23fe, 0x23ff, 0x2403, 0x2404]
+# RENDER-ITEMS-002Y: reversed wave, absolute sine and clamped phase-wave body scalars.
+LATER_READ_PROGRAM_TYPES = [0x0b4d, 0x1314, 0x230d, 0x23f0, 0x23f2, 0x2497]
+READ_PROGRAM_TYPES += LATER_READ_PROGRAM_TYPES
 PRE_FX_TYPES += READ_PROGRAM_TYPES
 
 # RENDER-ITEMS-002T: owner blocks after the draws in RenderPartObjectBody's case that use the pre-draw idioms

@@ -339,13 +339,18 @@ def parse_scalar(wa, helper, ret):
         a = _load(wa, call - 13)
         if a is None or _text(wa, call - 14, 1) != b'\x51' or _text(wa, call - 19, 5) != MOVSS_ESP:
             return None
-        # Only the zero phase argument (xorps) is in the supported domain.
-        if _text(wa, call - 22, 3) != bytes.fromhex('0f57c0') or _text(wa, call - 23, 1) != b'\x51':
+        # A constant phase is a separate input to the helper, in degrees.
+        phase = None
+        if _text(wa, call - 22, 3) == bytes.fromhex('0f57c0') and _text(wa, call - 23, 1) == b'\x51':
+            phase = 0
+        elif _text(wa, call - 28, 1) == b'\x51':
+            phase = _load(wa, call - 27)
+        if phase is None:
             return None
         a_value = v.u2f(a)
         if a_value == 0 or not 2 <= abs(6283.185546875 / a_value) < 2**31:
             return None
-        kind, pops = 1, b'\x59\x59'
+        kind, pops = (1 if phase == 0 else 9), b'\x59\x59'
     elif helper == SINE_WRAPPER:
         if (_text(wa, call - 6, 1) != b'\x51' or _text(wa, call - 14, 4) != bytes.fromhex('f30f5905') or
                 _text(wa, call - 22, 8) != bytes.fromhex('f30f1005') + (0x06fce370).to_bytes(4, 'little')):
@@ -364,12 +369,12 @@ def parse_scalar(wa, helper, ret):
     double = fstp[:2] == b'\xdd\x9d'
     if fstp[:2] not in (b'\xd9\x9d', b'\xdd\x9d'):
         return None
-    if reload[:4] != (bytes.fromhex('f20f1085') if double else bytes.fromhex('f30f1085')) or fstp[2:] != reload[4:]:
-        # The stored binary32 local itself, as at 0x01711064.
-        return None if double else (kind, a, ())
-    at += 14
-    ops = []
-    while len(ops) < 4:
+    ops = [(5, phase)] if kind == 9 else []
+    reloaded = reload[:4] == (bytes.fromhex('f20f1085') if double else bytes.fromhex('f30f1085')) and fstp[2:] == reload[4:]
+    if double and not reloaded:
+        return None
+    at += 14 if reloaded else 6
+    while reloaded and len(ops) < 4:
         code = _text(wa, at, 8)
         if code[:2] != (b'\xf2\x0f' if double else b'\xf3\x0f') or code[2] not in SCALAR_OPS or code[3] != 0x05:
             break
@@ -386,6 +391,30 @@ def parse_scalar(wa, helper, ret):
         at += 8
     if double and (not ops or _text(wa, at, 4) != bytes.fromhex('f20f5ac0')):
         return None
+    # A constant minus the saved helper result, each rounded to binary32.
+    if not double and kind != 9 and not ops and _load(wa, at) is not None and \
+            _text(wa, at + 8, 4) == bytes.fromhex('f30f5c85') and \
+            _text(wa, at + 12, 4) == fstp[2:]:
+        ops.append((5, _load(wa, at)))
+    if not double:
+        # comiss k,[saved result]; jbe L; movss k; movss [saved result],k.
+        import capstone.x86 as X
+        seq = list(_capstone().disasm(_text(wa, ret + len(pops) + 6, 40), ret + len(pops) + 6))
+        if len(seq) >= 5:
+            load, cmp, jump, again, store = seq[:5]
+            if (load.mnemonic == again.mnemonic == 'movss' and cmp.mnemonic == 'comiss' and
+                    jump.mnemonic == 'jbe' and store.mnemonic == 'movss' and
+                    load.op_str == again.op_str and load.operands[1].type == X.X86_OP_MEM and
+                    load.operands[1].mem.base == 0 and load.operands[1].mem.index == 0 and
+                    cmp.operands[0].reg == load.operands[0].reg and
+                    cmp.operands[1].type == store.operands[0].type == X.X86_OP_MEM and
+                    cmp.operands[1].mem.base == store.operands[0].mem.base == X.X86_REG_EBP and
+                    cmp.operands[1].mem.disp == store.operands[0].mem.disp == struct.unpack('<i', fstp[2:])[0] and
+                    store.operands[1].reg == load.operands[0].reg and
+                    jump.operands[0].imm == store.address + store.size):
+                k = _word(wa, load.operands[1].mem.disp)
+                if k is not None:
+                    ops.append((6, k))
     return kind, a, tuple(ops)
 
 
@@ -688,12 +717,13 @@ def derive(wa, phases, width, products=False):
     return found
 
 
-def wave_helper(a, time):
+def wave_helper(a, time, phase=0.0):
     """0x0185bdc4(a, 0): signed cosine wave, binary32 steps. The zero phase
     term adds a signed zero to time, which cannot change the truncated tick."""
     import math
     f = lambda x: v.u2f(v.f2u(x))
-    tick = int(time) if -2147483648 <= time < 2147483648 else -2147483648
+    shifted = f(f(f(f(phase * f(0.017453292)) * f(1000.0)) / a) + time) if phase else time
+    tick = int(shifted) if -2147483648 <= shifted < 2147483648 else -2147483648
     period = int(f(f(6283.1855) / a))
     rem = int(math.fmod(tick, period))
     y = f(f(rem * f(0.001)) * a)
@@ -709,8 +739,10 @@ def scalar_value(program, time, frame=0):
     kind, a, ops = program
     if kind == 3:
         return clock_value(ops, time, frame)
-    if kind == 1:
-        value = wave_helper(v.u2f(a), time)
+    if kind in (1, 9):
+        value = wave_helper(v.u2f(a), time, v.u2f(ops[0][1]) if kind == 9 else 0.0)
+        if kind == 9:
+            ops = ops[1:]
     else:
         value = f(math.sin(f(time * v.u2f(a))))
     import struct
@@ -718,7 +750,8 @@ def scalar_value(program, time, frame=0):
     for op, word in ops:
         k = struct.unpack('<d', struct.pack('<Q', word))[0] if double else v.u2f(word)
         op &= 7
-        value = value * k if op == 1 else value + k if op == 2 else value - k if op == 3 else value / k
+        value = (value * k if op == 1 else value + k if op == 2 else value - k if op == 3 else
+                 k - value if op == 5 else max(value, k) if op == 6 else value / k)
         if not double:
             value = f(value)
     return v.f2u(f(value))
@@ -741,6 +774,7 @@ CLOCK = 0x06fce370
 # unsigned remainder/quotient (xor edx, edx; div) and the unsigned binary64 conversion (cvtsi2sd, then
 # shr r, 31; addsd [r*8 + 0x01bd3050] with the table {0.0, 2^32}).
 C_FRAME, C_U_MOD, C_U_DIV, C_U2D = range(30, 34)
+C_F_SIN, C_F_ABS = 34, 35
 FRAME_COUNTER, U32_FIX = 0x0bdc5ebc, 0x01bd3050
 COUNTER_RANGE_TYPES = [0x0f24, 0x0f28, 0x0f29, 0x0f2b, 0x0f2c, 0x1588]
 VECTOR_SETTERS = (0x00cfcead, 0x00cfcede)   # (this)[0..2] = (a, b, c) / (a, a, a); ret 0xc / ret 4
@@ -872,15 +906,18 @@ def slice_block(wa, block, frame=False):
 
     def as_int(x):
         """Integer constant: ('k', n) or ('e', offset, mul, add) = entry local*mul+add."""
-        return x if x and x[0] in ('k', 'e') else None
+        return x if x and x[0] in ('k', 'e', 'quotient', 'linear') else None
 
     def lin(x, mul, add):
         if x[0] == 'k':
             return ('k', _i32(x[1] * mul + add))
+        if x[0] != 'e':
+            return ('linear', x, mul, add)
         return ('e', x[1], x[2] * mul, x[3] * mul + add)
 
     at, steps, cdq = block, 0, None
     pushed = None   # RENDER-ITEMS-002U: push imm; pop r
+    stack_top, x87 = None, None
     while steps < 160:
         ins = next(md.disasm(text[at - 0x00401000:at - 0x00401000 + 16], at), None)
         if ins is None:
@@ -898,6 +935,25 @@ def slice_block(wa, block, frame=False):
         if frame and name == 'call' and dst.type == X.X86_OP_IMM and dst.imm in VECTOR_SETTERS:
             # RENDER-ITEMS-002U: a vec3 setter (writes three floats through ecx, nothing of the caller's frame)
             regs, pushed = {}, None
+            at = nxt
+            continue
+        if name == 'call' and dst.type == X.X86_OP_IMM and dst.imm in (SINE_WRAPPER, 0x0184f8ff, 0x0098a647):
+            if stack_top and stack_top[0] == 'c' and stack_top[1] == 'f':
+                x87 = chain(stack_top, 'f', (C_F_SIN if dst.imm == SINE_WRAPPER else C_F_ABS, 0))
+                regs = {}
+                at = nxt
+                continue
+            break
+        if name == 'fstp' and dst.type == X.X86_OP_MEM and dst.size == 4 and x87 is not None:
+            r = ref(dst)
+            if r[0] == 'local':
+                local[r[1]] = x87
+                outputs.append(x87)
+            elif dst.mem.base == X.X86_REG_ESP and dst.mem.disp == 0:
+                stack_top = x87
+            else:
+                break
+            x87 = None
             at = nxt
             continue
         if name.startswith('j') or name in ('call', 'ret', 'retn', 'int3', 'leave'):
@@ -947,6 +1003,8 @@ def slice_block(wa, block, frame=False):
                     x if frame and x and x[0] == 'c' and x[1] == 'd' and any(op == C_FRAME for op, _ in x[2]) else None)
             elif r[0] == 'abs' and r[1] == CLOCK:
                 break
+            elif dst.mem.base == X.X86_REG_ESP and dst.mem.disp == 0:
+                stack_top = x
             handled = 'stored'
         elif (frame and name == 'addsd' and dname and src.type == X.X86_OP_MEM and src.mem.base == 0 and src.mem.index and
               src.mem.scale == 8 and src.mem.disp & 0xffffffff == U32_FIX and _word(wa, U32_FIX) == 0 and
@@ -1039,7 +1097,7 @@ def slice_block(wa, block, frame=False):
                     result = chain(x, 'd', (C_D_NEG, 0))
         elif name == 'cdq':
             x = regs.get('eax')
-            regs['edx'] = ('cdq', x) if x and x[0] == 'c' and x[1] == 'i' else None
+            regs['edx'] = ('cdq', x) if as_int(x) or (x and x[0] == 'c' and x[1] == 'i') else None
             at = nxt
             continue
         elif name == 'idiv':
@@ -1099,7 +1157,8 @@ def slice_block(wa, block, frame=False):
         elif name == 'sar' and dname in gpr and src.type == X.X86_OP_IMM:
             x = regs.get(dname)
             if x and x[0] == 'biased' and 1 << src.imm == x[2]:
-                result = chain(x[1], 'i', (C_I_DIV, ('i', ('k', x[2]))))
+                result = (('quotient', x[1], x[2]) if as_int(x[1]) else
+                          chain(x[1], 'i', (C_I_DIV, ('i', ('k', x[2])))))
         elif name in ('inc', 'dec', 'neg') and dname in gpr:
             x = regs.get(dname)
             step = {'inc': 1, 'dec': -1}.get(name)
@@ -1147,19 +1206,26 @@ def slice_block(wa, block, frame=False):
 
 def resolve_clock(wa, program, values):
     """Substitute entry-local values; ('i', n) operands become 32-bit words."""
+    def integer(n):
+        if n[0] == 'k':
+            return n[1]
+        if n[0] == 'quotient':
+            base = integer(n[1])
+            return None if base is None else int(base / n[2])
+        if n[0] == 'linear':
+            base = integer(n[1])
+            return None if base is None else _i32(base * n[2] + n[3])
+        base = values[n[1]]
+        return _i32(base * n[2] + n[3]) if _local_stored(wa, n[1], base) else None
     ops = []
     for op, k in program:
         if isinstance(k, tuple) and k[0] == 'w':
             ops.append((op, k[1]))
         elif isinstance(k, tuple):
             n = k[1]
-            if n[0] == 'k':
-                word = n[1]
-            else:
-                base = values[n[1]]
-                if not _local_stored(wa, n[1], base):
-                    return None
-                word = _i32(base * n[2] + n[3])
+            word = integer(n)
+            if word is None:
+                return None
             if k[0] == 'i' and op in (C_F_MUL, C_F_DIV, C_F_ADD, C_F_SUB, C_F_RSUB, C_F_RDIV):
                 word = v.f2u(_f32(float(word)))
             elif k[0] == 'i' and op in (C_D_MUL, C_D_DIV, C_D_ADD, C_D_SUB, C_D_RSUB, C_D_RDIV):
@@ -1176,6 +1242,7 @@ def resolve_clock(wa, program, values):
 
 def clock_value(ops, time, frame=0):
     """Reference evaluation of a clock chain; returns the binary32 word. frame: [0x0bdc5ebc] (RENDER-ITEMS-002U)."""
+    import math
     f = i = d = None
     def trunc(x):
         return int(x) if -2147483648 <= x < 2147483648 else -2147483648
@@ -1190,6 +1257,8 @@ def clock_value(ops, time, frame=0):
         elif op == C_F_SUB: f = _f32(f - kf)
         elif op == C_F_RSUB: f = _f32(kf - f)
         elif op == C_F_RDIV: f = _f32(math_div(kf, f))
+        elif op == C_F_SIN: f = _f32(math.sin(f))
+        elif op == C_F_ABS: f = -f if 0 > f else f
         elif op == C_D_MUL: d = d * kd
         elif op == C_D_DIV: d = math_div(d, kd)
         elif op == C_D_ADD: d = d + kd
@@ -1311,7 +1380,7 @@ FRAME_TYPES += [0x0b68]
 COUNTER_RANGE_TYPES += [0x0b5c, 0x0b62, 0x1313, 0x1317, 0x1319]
 PRE_EXTENDED += [0x1313, 0x1317, 0x1319] + READ_PROGRAM_TYPES
 # RENDER-ITEMS-002X: carry the last draw into later helpers, with full supplementary probes.
-PRE_CARRY += [t for t in READ_PROGRAM_TYPES if t not in (0x0b29, 0x0b52)]
+PRE_CARRY += [t for t in READ_PROGRAM_TYPES if t not in (0x0b29, 0x0b4d, 0x0b52, 0x1314)]
 # These probes retain alpha/wave products and attribute nested pre-program ranges correctly.
 COUNTER_RANGE_TYPES += READ_PROGRAM_TYPES
 NAMED_NAMES = v.NAMED_MESH_NAMES
