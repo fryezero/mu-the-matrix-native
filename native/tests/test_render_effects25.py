@@ -16,11 +16,13 @@ PRIVATE = os.environ.get('MU_RECOVERY_INTEGRATION') == '1'
 
 
 class Native(unittest.TestCase):
-    def test_admitted_particle_requests_have_consumers(self):
+    def test_scoped_particle_requests_have_consumers(self):
         subprocess.run(['make', '-s', '-C', str(ROOT/'reconstructed/particles')],
                        check=True, capture_output=True)
         lib = pt.load_library(ROOT/('reconstructed/particles/libclient_particles.'+pt.SUFFIX))
-        census = proof.re23.request_census(lib)
+        census = proof.request_census(lib)
+        self.assertEqual(census['programs'], 96)
+        self.assertEqual(census['missing_programs'], [])
         self.assertEqual(census['unresolved'], [])
         self.assertTrue(all(p['supported'] for p in census['pairs'].values()), census)
 

@@ -13,6 +13,7 @@ import ctypes as C
 import json
 from pathlib import Path
 import random
+import re
 import tempfile
 import time
 
@@ -28,6 +29,36 @@ import validate_renderchar as rc
 ROOT = Path(__file__).resolve().parents[1]
 KINDS = [(0x7f89, 28), (0x8109, 7), (0x810a, 9)]
 CLOCKS = [0.0, 39.0, 123456.0, 1000000.0, -98765.0]
+# The 96 programs present at this lane's baseline. Later admissions remain in the
+# reported inventory without silently becoming a claim that this lane ported them.
+CENSUS_PROGRAMS = frozenset({
+    0xb27, 0xb2a, 0xb4b, 0xb4c, 0xb4f, 0xb50, 0xb53, 0xb57, 0xb59, 0xf1c, 0xf1d, 0xf1f,
+    0xf20, 0xf24, 0xf28, 0xf29, 0xf2a, 0xf2b, 0xf2c, 0xf2e, 0x130d, 0x1311, 0x1312, 0x1313,
+    0x1316, 0x1317, 0x1319, 0x131d, 0x1748, 0x1749, 0x1758, 0x19f4, 0x19fa, 0x1a00, 0x1a1f, 0x1a78,
+    0x1bc3, 0x1bc4, 0x1bc5, 0x1bc6, 0x1bc7, 0x1bc8, 0x1bc9, 0x1bca, 0x1bcb, 0x1bcc, 0x1bcd, 0x1bce,
+    0x1bcf, 0x1bd0, 0x1bdd, 0x1bde, 0x1bef, 0x1bf0, 0x1bf4, 0x1bf5, 0x1bf6, 0x1bf7, 0x1bf8, 0x1bf9,
+    0x1bfa, 0x1bfb, 0x1bfc, 0x1bfd, 0x1bfe, 0x1bff, 0x1c00, 0x1c01, 0x1c1e, 0x1c1f, 0x1c41, 0x1c42,
+    0x1c77, 0x1c78, 0x22ec, 0x230b, 0x230c, 0x2311, 0x2382, 0x2383, 0x2384, 0x2385, 0x2394, 0x2395,
+    0x23ef, 0x2400, 0x2405, 0x248f, 0x2494, 0x2496, 0x2499, 0x24cf, 0x24d6, 0x26f8, 0x26f9, 0x2713,
+})
+
+
+def request_census(lib):
+    inventory = re23.request_census(lib)
+    header = (ROOT/'reconstructed/renderchar/item_owner_fx.h').read_text()
+    present = set()
+    for name in ('mu_rc_fx_types', 'mu_rc_fx_pre_types'):
+        present.update(int(t, 0) for t in re.findall(r'^    \{([^,]+),',
+                       header.split(name+'[] = {')[1].split('};')[0], re.M))
+    pairs = {}
+    for key, entry in inventory['pairs'].items():
+        programs = [t for t in entry['programs'] if int(t, 0) in CENSUS_PROGRAMS]
+        if programs:
+            pairs[key] = dict(entry, programs=programs)
+    return dict(programs=len(present & CENSUS_PROGRAMS), particle_pairs=len(pairs), pairs=pairs,
+                unresolved=[r for r in inventory['unresolved'] if int(r['type'], 0) in CENSUS_PROGRAMS],
+                missing_programs=[hex(t) for t in sorted(CENSUS_PROGRAMS - present)],
+                later_programs=[hex(t) for t in sorted(present - CENSUS_PROGRAMS)], inventory=inventory)
 
 
 def particle_family(text, data, lib, name, cases, report):
@@ -239,8 +270,9 @@ def main():
     for name in ('create', 'move', 'render'):
         particle_family(text, data, lib, name, args.cases, report)
     missing_name(args.cases, report)
-    census = re23.request_census(lib)
-    report.add('census', not census['unresolved'] and all(p['supported'] for p in census['pairs'].values()),
+    census = request_census(lib)
+    report.add('census', not census['missing_programs'] and not census['unresolved'] and
+               all(p['supported'] for p in census['pairs'].values()),
                census)
     with tempfile.TemporaryDirectory(prefix='effects25-native-') as tmp:
         root = cloud_fixture(tmp)
@@ -249,6 +281,7 @@ def main():
         mutants = mutation_checks(tmp, text, data, root) if args.mutations and equal else []
     equal = all(f['cases'] == f['equal'] for f in report.families.values())
     result = dict(families=report.families, coverage=report.coverage, all_equal=equal,
+                  request_census=census,
                   cases=sum(f['cases'] for f in report.families.values()), mutants=mutants,
                   all_mutants_caught=all(m['detected'] and not m['stopped'] for m in mutants), seconds=round(time.monotonic()-start, 3),
                   text_sha256=am.TEXT_SHA256, data_sha256=am.DATA_SHA256)

@@ -3245,8 +3245,11 @@ before modulo and division; replacing it with an arbitrary continuous range chan
 Both particles retain the original common advance and existing bitmap/render paths. Their create/move/render
 record words, ordered calls and random consumption are compared against the pinned instructions.
 
-The final static admitted-program census is 96 programs / 32 distinct pairs, all with native consumers,
-zero unresolved bitmap expressions. This describes admitted programs, not the whole client.
+The proved static census is 96 programs / 32 distinct pairs, all with native consumers,
+zero unresolved bitmap expressions. The validator freezes those 96 program identities and also reports the full
+current inventory. Main's later part 36 adds fourteen programs, making 110 programs / 37 pairs. Five new pairs
+remain refused: `0x810a/12`, `0x81cf/1`, `0x810b/8`, `0x8500/2` and `0x8569/0`. Their callers and next steps are
+in the handoff. They are outside the 96-program before/after fixture and are not counted as ported here.
 The installed scene changes 7,389 accepted / 28 refused requests to 7,416 / zero; unsupported particles 12 to zero.
 New particle rand calls alter later gated requests, so the two scenes do not have equal request denominators.
 Eight maces separately change 5,610 / 61 to 5,671 / zero over 61 draws at both clocks. Their saved final PNGs are
