@@ -70,6 +70,7 @@ def originals(args):
         if not run['ok']: raise RuntimeError(run)
         rows[cl]['body'] = struct.unpack_from('<I', run['regions']['character'], 0x32b4)[0]
         rows[cl]['body_level'] = struct.unpack_from('<H', run['regions']['character'], 0x144)[0]
+        rows[cl]['body_kind'] = run['regions']['character'][0x328f]
     return (text, data, pins.FLAG.read(args.flag), pins.FEATURE.read(args.feature)), rows
 
 
@@ -109,7 +110,7 @@ def check_recipes(lib, rows):
             continue
         source = rows[cl]
         expected = [list(x) for x in source['slots']]
-        if cl in SKELETON: expected[0] = [source['body'], source['body_level'] if cl == 236 else 0]
+        if cl in SKELETON: expected[0] = [source['body'], source['body_level'] if source['body_kind'] == 4 else 0]
         actual = [[s.type, s.level] for s in row.slots]
         ok = status == 1 and row.model == source['model'] and row.scale_bits == source['scale_bits'] and \
              row.class_byte == source['class_byte'] and actual == expected
@@ -137,7 +138,7 @@ def check_render(lib, args, rows, cases):
                 struct.pack_into('<I', raw, 0x32b4, subtype)
                 struct.pack_into('<h', raw, 0x146, cl)
                 struct.pack_into('<H', raw, 0x144, rows[cl]['body_level'])
-                raw[0x328f] = 4 if cl == 236 else 2
+                raw[0x328f] = rows[cl]['body_kind']
                 return raw
             vr.character_record = record
             ch = {'class': 0, 'action': action, 'safe': 0, 'frame': vr.f2u(rng.uniform(0, 10)),
@@ -229,7 +230,7 @@ def check_native(host, root, rows):
             note(fam, False, {'class': cl, 'world': world_id, 'exit': result.returncode, 'error': result.stderr[-1500:]}); continue
         value = json.loads(result.stdout); expected = rows[cl]
         slots = [list(x) for x in expected['slots']]
-        if cl in SKELETON: slots[0] = [expected['body'], expected['body_level'] if cl == 236 and world_id == 0 else 0]
+        if cl in SKELETON: slots[0] = [expected['body'], expected['body_level'] if expected['body_kind'] == 4 and world_id == 0 else 0]
         correct = value['player'] == 1
         scale = am.from_bits(expected['scale_bits']) if expected['scale_bits'] else am.f32(.9)
         correct &= abs(value['scale'] - scale) < 1e-7

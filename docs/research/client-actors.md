@@ -249,11 +249,15 @@ RenderCharacter's final skeleton branch `0x01369f98..0x0136a00d` calls RenderPar
 using Player's shared posed bones, alpha OBJECT +0xdc, translate 1, flags 2, and level/option/ext zero.
 Its town branch `0x01367d85..0x01367e23` uses character +0x144 shifted by 3 in world 0; Golden Archer's
 constructor overwrites CreateCharacter's zero at `0x0137eed1` with 8 at `0x01384306`.
-**WIP correction:** the current native recipe and reference fixture miss this +8 town level and its passes.
-The passing body comparisons below cover the earlier zero-level fixture, not the correct Golden Archer town state.
-These are executed comparisons, including the real RenderObjDraw body
-stream for each model. No extra glow/blend mesh pass occurs in those tested body calls. Native uses its
-existing plain textured-body fallback for these non-item indices; they do not change the item-body census.
+The reference now retains each constructor's +0x144 word, including the value 1 written for classes
+15, 16 and 55. Their kind-2 route ignores it and passes zero. Golden Archer is kind 4, so its world-0
+call passes 64 and its nonzero-world call passes zero. The former zero-filled reference fixture missed
+this distinction; its old passing results did not verify the town +8 state.
+
+Executed comparisons cover worlds 0, 2, 3 and 51, plus RenderObjDraw's exact generic stream at twelve
+clocks for all three level-zero models and model `0x423` at +8. The +8 stream has the textured body
+and the `0x44` glow pass. Native admits `0x422..0x424` to that generic stream and applies the stored
+level only in world 0. These non-item models do not change the item-body census.
 The actor's class-table weapon and Death King's CLOAK-004 robe remain separate attachments.
 
 Eleven other rows have explicit helm/armour/pants/gloves/boots in the existing extracted equipment table.
