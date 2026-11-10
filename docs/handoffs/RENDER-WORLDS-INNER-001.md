@@ -36,3 +36,17 @@ Before outputs were taken once from `ff8e0543`: DATA-ACQ-002 32 views, 66.85 s; 
 affected capture clocks, world 40 2.52 s and world 37 3.04 s. The first October manifest attempt used obsolete
 local paths and failed before rendering; correcting those paths produced the recorded baseline. After comparisons
 and synthetic Blood Castle views are pending. All bulk outputs will be deleted before handoff.
+
+## Adapter review fix
+
+The first affected run passed all 61 rows at `2145b9b7`, 685.61 s wall, with 1,008,213 reported cases;
+`validate_worlds_o` has no case-count field in its runner row. Portable affected checks at `bc4c8f0b` passed
+1,598 tests, 1,328 passed / 270 skipped, zero failures/errors, 446.11 s including selection, 328.0 s test wall.
+
+Self-review found a hidden-object edge: after refusing the type-0x60 RGBA extra mesh, its two StreamMesh events
+alone could bypass RenderObject's hidden skip. The new host assertion reproduced it, 1.07 s. The adapter now
+requires a BODY or MESH event to bypass that skip. The expanded host also covers accepted hidden RGB and Chrome
+passes; it passes with `private-env.sh`, 1.30 s. This is the **8d reduced** private native module, one test.
+Final build after the fix passes, 10.54 s. The authored producer and all 33 mutant targets are unchanged.
+Merged latest origin/main `9d6ce467` as `652ec5c9`; docs only, no additional compiled inputs. Follow-up selection
+from `bc4c8f0b`, final renders and audit are pending.

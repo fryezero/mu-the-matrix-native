@@ -105,7 +105,13 @@ int main(int argc, char **argv)
         reset(o, world, 0x60); assert(pass(o) == &model);
         n = mu_objects_first_meshes(o, 0, NULL, &model, meshes, 4);
         assert(n == 1 && o->rt.draw_unsupported == 1);   /* alpha reference refusal retains the base body */
+        mu_obj_set_i32(o->rt.images, MU_OBJF_HIDDEN_MESH, -2);
+        assert(pass(o) == NULL);   /* refusing the extra pass must not bypass RenderObject's hidden skip */
         model.textures.model_count = 0; model.textures.components = NULL;
+        reset(o, world, 0x60); mu_obj_set_i32(o->rt.images, MU_OBJF_HIDDEN_MESH, -2);
+        assert(pass(o) == &model && mu_objects_first_meshes(o, 0, NULL, &model, meshes, 4) == 1);
+        reset(o, world, 0x55); mu_obj_set_i32(o->rt.images, MU_OBJF_HIDDEN_MESH, -2);
+        assert(pass(o) == &model && mu_objects_first_meshes(o, 0, NULL, &model, meshes, 4) == 2);
     }
     reset(o, 40, 0x3e); (void)pass(o); assert(o->rt.particle_count == 20);
     mu_obj_set_i32(o->rt.images, MU_OBJF_HIDDEN_MESH, -2); o->rt.particle_count = 0;

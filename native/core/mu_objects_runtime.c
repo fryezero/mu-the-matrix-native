@@ -1457,7 +1457,11 @@ static int world_inner(mu_objects *o, int32_t i, uint8_t *img, const mu_object_m
     if (log.overflow) ++o->rt.draw_unsupported;
     const mu_obj_log req = {requests, requests, 0, events};
     consume_visual(o, &req);
-    return has_draws;
+    /* StreamMesh writes alone are not a draw, in particular when the RGBA pass was refused. */
+    for (int32_t k = 0; k < draws->count; ++k)
+        if (draws->events[k].call == MU_OBJ_CALL_BODY || draws->events[k].call == MU_OBJ_CALL_MESH)
+            return 1;
+    return 0;
 }
 
 /* Draw options of a RenderMesh(mesh, flags, alpha, blend mesh, blend light, u, v, texture) event. */
