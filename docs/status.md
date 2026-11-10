@@ -1,6 +1,6 @@
 # Current status
 
-RENDER-ACTORS-001 WIP, stopped by owner 2026-11-09: skeleton bodies and nine equipment-loader admissions are implemented and bounded checks pass, but Golden Archer 236's +8 town level/passes were missed by the reference fixture. No ready-prs entry. [Verified work, known gap and exact next steps](handoffs/RENDER-ACTORS-001.md).
+RENDER-ACTORS-001 PR-ready: six whole skeleton bodies and nine equipment-loader admissions; Golden Archer 236 now draws its +8 town body and glow only in world 0, with level zero elsewhere. The 32-row census has 15 bounded fixes, two controls and 15 unresolved subtypes. 361 actor checks, 12/12 compiled mutants, 21 affected validators pass; default 92 PNGs, 92 dumps and 46 reports remain byte-identical. [Checks, timings and limits](handoffs/RENDER-ACTORS-001.md).
 
 APP-REFRESH-011 PR-ready: Native Preview installed from latest main 54a53e1a through #360 with the verified frame-zero GFx library; APP-REFRESH-006 Native Data retained after export-input diff and manifest check. Installed four-start HUD, isolated 0x0f2a counter, mace effects, Eunice 939 cloth and accessory slots 9-14 proofs pass. Full private run: 1,038 tests, 1,019 passed, 16 skipped, three stale-fixture failures; repaired affected classes pass 23/23. No production code changed. [Installation, rollback, checks and limits](handoffs/APP-REFRESH-011.md).
 
