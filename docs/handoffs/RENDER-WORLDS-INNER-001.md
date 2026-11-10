@@ -50,3 +50,8 @@ passes; it passes with `private-env.sh`, 1.30 s. This is the **8d reduced** priv
 Final build after the fix passes, 10.54 s. The authored producer and all 33 mutant targets are unchanged.
 Merged latest origin/main `9d6ce467` as `652ec5c9`; docs only, no additional compiled inputs. Follow-up selection
 from `bc4c8f0b`, final renders and audit are pending.
+
+The mapped-texture host case also reproduced a slot-0 assumption in the RGBA refusal, 1.13 s. The adapter now
+checks mesh 0's `texture_index` and its bounds. Both mapped RGBA refusal and mapped RGB acceptance pass.
+The preliminary 14-row follow-up was stopped to test this final version; no result from that interrupted run
+is used as passing evidence. The recovered producer and all mutant sites remain unchanged.

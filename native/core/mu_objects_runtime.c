@@ -1417,10 +1417,12 @@ static int world_inner(mu_objects *o, int32_t i, uint8_t *img, const mu_object_m
     }
     o->rt.stream[mu_obj_i32(img, MU_OBJF_TYPE)] = o->rt.model_fields[0x94];
     int has_draws = 0, requests = 0;
+    const int32_t texture_slot = m->bmd.mesh_count > 0 ? m->bmd.meshes[0].texture_index : -1;
     for (int32_t k = 0; k < log.count; ++k) {
         mu_obj_event e = events[k];
         if (kanturu && mu_obj_i32(img, MU_OBJF_TYPE) == 0x60 && e.call == MU_OBJ_CALL_MESH &&
-            m->textures.model_count > 0 && m->textures.components && m->textures.components[0] == 4) {
+            texture_slot >= 0 && texture_slot < m->textures.model_count && m->textures.components &&
+            m->textures.components[texture_slot] == 4) {
             ++o->rt.draw_unsupported;   /* fixed GREATER 0.25 cannot serve this GREATER 0 RGBA pass */
             continue;
         }

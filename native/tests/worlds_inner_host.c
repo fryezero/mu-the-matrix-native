@@ -107,6 +107,14 @@ int main(int argc, char **argv)
         assert(n == 1 && o->rt.draw_unsupported == 1);   /* alpha reference refusal retains the base body */
         mu_obj_set_i32(o->rt.images, MU_OBJF_HIDDEN_MESH, -2);
         assert(pass(o) == NULL);   /* refusing the extra pass must not bypass RenderObject's hidden skip */
+        model.bmd.meshes[0].texture_index = 1;
+        components[0] = 3; components[1] = 4;
+        reset(o, world, 0x60); assert(pass(o) == &model);
+        assert(mu_objects_first_meshes(o, 0, NULL, &model, meshes, 4) == 1 && o->rt.draw_unsupported == 1);
+        components[0] = 4; components[1] = 3;
+        reset(o, world, 0x60); assert(pass(o) == &model);
+        assert(mu_objects_first_meshes(o, 0, NULL, &model, meshes, 4) == 2 && o->rt.draw_unsupported == 0);
+        model.bmd.meshes[0].texture_index = 0;
         model.textures.model_count = 0; model.textures.components = NULL;
         reset(o, world, 0x60); mu_obj_set_i32(o->rt.images, MU_OBJF_HIDDEN_MESH, -2);
         assert(pass(o) == &model && mu_objects_first_meshes(o, 0, NULL, &model, meshes, 4) == 1);

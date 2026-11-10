@@ -21,18 +21,20 @@ class InlineVisuals(unittest.TestCase):
         obj = C.create_string_buffer(bytes([0x55]) * v.OBJ_SIZE, v.OBJ_SIZE)
         model = C.create_string_buffer(0x100)
         before = obj.raw; log = v.new_log(1)
-        rnd = v.RAND_FN(lambda c: self.fail('wrong-world RNG'))
-        bone = inner.w2.BONE_FN(lambda *a: self.fail('wrong-world bone'))
-        named = inner.w3.NAMED_FN(lambda *a: self.fail('wrong-world named bone'))
+        calls = []
+        rnd = v.RAND_FN(lambda c: calls.append('RNG') or 0)
+        bone = inner.w2.BONE_FN(lambda *a: calls.append('bone'))
+        named = inner.w3.NAMED_FN(lambda *a: calls.append('named bone'))
         for world in [-1, 0, 10, 18, 36, 38, 39, 41, 51, 53, 145]:
             self.assertEqual(self.lib.dll.mu_kanturu_inner(obj, model, 0, world, 0, 0, rnd, bone, None, C.byref(log)), 0)
             self.assertEqual(self.lib.dll.mu_blood_castle_inner(obj, 0, world, 0, rnd, named, None, C.byref(log)), 0)
-        self.assertEqual(obj.raw, before); self.assertEqual(log.count, 0)
+        self.assertEqual(obj.raw, before); self.assertEqual(log.count, 0); self.assertEqual(calls, [])
 
     def test_clock_window_and_log_overflow(self):
         obj = C.create_string_buffer(v.OBJ_SIZE); model = C.create_string_buffer(0x100)
         C.c_int32.from_buffer(obj, 0x5c).value = 0x25
-        rnd = v.RAND_FN(lambda c: self.fail('clock-only branch drew RNG'))
+        calls = []
+        rnd = v.RAND_FN(lambda c: calls.append('RNG') or 0)
         bone = inner.w2.BONE_FN()
         for clock, events in [(0, 1), (9, 1), (10, 0), (1023, 0), (1024, 1), (1033, 1), (1034, 0), (0xffffffff, 0)]:
             log = v.new_log(1)
@@ -42,7 +44,7 @@ class InlineVisuals(unittest.TestCase):
         C.c_int32.from_buffer(obj, 0x68).value = -1
         log = v.new_log(1)
         self.lib.dll.mu_kanturu_inner(obj, model, 0, 40, 0, 0, rnd, bone, None, C.byref(log))
-        self.assertEqual((log.count, log.overflow), (1, 1))
+        self.assertEqual((log.count, log.overflow), (1, 1)); self.assertEqual(calls, [])
 
 
 @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'private original text/data required')
