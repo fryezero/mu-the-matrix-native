@@ -163,6 +163,10 @@ typedef struct mu_rc_owner_host {
     /* RENDER-ITEMS-002T post programs: TransformPosition 0x012b6ef1 on the OBJECT's own bone matrix (0x0129f12c:
      * +0x318 + 0x30 * bone, bone < bones) with the item model's scale and origin. NULL: those positions are refused. */
     void (*owner_item_transform)(void *context, int32_t bone, const float local[3], int32_t translate, float out[3]);
+    /* 0x0150e782: a failed named lookup (-1) still uses BoneTransform - 0x30.
+     * The host must supply that separate record explicitly. NULL keeps the refusal;
+     * no other negative or out-of-range index is admitted. */
+    void (*item_before_transform)(void *context, float out[3]);
 } mu_rc_owner_host;
 /* RENDER-ITEMS-002R: 1 when the type's RenderObjDraw case creates effects before the body draws (a pre-draw
  * program of item_owner_fx.h), else 0. */

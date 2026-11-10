@@ -82,8 +82,8 @@ class Installed(unittest.TestCase):
         self.assertEqual(effects['effects_unsupported'], 0)
         particles = next(r for r in rows if r.get('particles') is True)
         self.assertGreater(particles['created'], 0)
-        # Clouds/28 remain a separate, counted refusal. Do not claim a whole-world zero.
-        self.assertGreater(particles['unsupported'], 0)
+        # EFFECTS-025 consumes clouds/28 too; this is the bounded Ferea fixture.
+        self.assertEqual(particles['unsupported'], 0)
 
 
 if __name__ == '__main__':

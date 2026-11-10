@@ -61,6 +61,11 @@ typedef struct mu_renderchar_env {
      * OBJECT-owned particles are then refused) and its +0x164 (RenderLinkItem stores 0; a ground item's angle). */
     uint32_t item_owner;
     float item_angle[3];
+    /* RENDER-EFFECTS-025: explicit compatibility record for BoneTransform[-1].
+     * The default native record is zero, independently of the bone allocation.
+     * A fixture may supply all twelve words. NULL retains missing-name refusals.
+     * Original process bookkeeping in this storage is not recovered from a pose. */
+    const float *item_before_matrix;
 } mu_renderchar_env;
 
 typedef struct mu_renderchar_stats {

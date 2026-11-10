@@ -129,11 +129,13 @@ long mu_renderchar_link_effects(const mu_model *model, const float *bones, int32
 
 void mu_renderchar_default_env(mu_renderchar_env *env)
 {
+    static const float before_bones[12] = {0};
     memset(env, 0, sizeof *env);
     env->quality = 5;
     env->glow_color[0] = env->glow_color[1] = env->glow_color[2] = 1.0f;
     env->render_type = 2;
     env->lang = NULL; /* caller supplies its runtime tables */
+    env->item_before_matrix = before_bones;
 }
 
 static void fill_item(mu_rc_item *it, const mu_renderchar_glow *g, const mu_renderchar_env *env, const float light[3],
@@ -182,6 +184,7 @@ typedef struct owner_services {
     long created, refused;
     const float *item_bones;   /* RENDER-ITEMS-002R: the item's own pose */
     uint32_t item_owner;       /* RENDER-EFFECTS-020: the item OBJECT's owner key */
+    const float *item_before_matrix;
 } owner_services;
 
 static void owner_transform(void *context, int32_t bone, const float local[3], float out[3])
@@ -272,6 +275,16 @@ static void item_transform(void *context, int32_t bone, const float local[3], in
                              o->model->params.origin);
 }
 
+/* 0x0150e746 does not reject the -1 from 0x012bd35a. Keep that record separate
+ * from the native bone allocation, and preserve TransformPosition's operations. */
+static void item_before_transform(void *context, float out[3])
+{
+    const owner_services *o = context;
+    static const float zero[3] = {0};
+    mu_pt_transform_position(o->item_before_matrix, zero, out, 1, o->model->params.body_scale,
+                             o->model->params.origin);
+}
+
 /* RENDER-ITEMS-002T: 0x012b678d(out, OBJECT, bone, NULL): the bone matrix's translation times the item model scale,
  * plus the OBJECT position. The native item has no OBJECT bone array (+0x318), so the matrix is BoneTransform (the
  * item's own pose), and its model origin stands in for the OBJECT position (as host.position). */
@@ -336,10 +349,11 @@ static int draw_item(const mu_model *model, const mu_renderchar_glow *glow, cons
             if (context.blue_mesh == -1 && !strcmp(name, "Item1161_Blue.jpg")) context.blue_mesh = i;
         }
     }
-    owner_services services = {model, owner, env->particles, 0, 0, env->item_bones, env->item_owner};
+    owner_services services = {model, owner, env->particles, 0, 0, env->item_bones, env->item_owner,
+                               env->item_before_matrix};
     mu_rc_owner_host host = {owner && owner->bones ? owner->bone_count : 0, -1, owner_transform, owner_random,
                              owner_emit, &services, model->bmd->bone_count, {0.0f, 0.0f, 0.0f},
-                             NULL, NULL, NULL, 0, {0.0f, 0.0f, 0.0f}, NULL, 0, 0, NULL};
+                             NULL, NULL, NULL, 0, {0.0f, 0.0f, 0.0f}, NULL, 0, 0, NULL, NULL};
     /* RENDER-ITEMS-002R: RenderObjDraw's own case creates effects before the body draws. They need the
      * particle pools; without the item's pose every item-bone request is refused (rand order is kept). The
      * TestFrustrum2D flag comes from the caller (RENDER-ITEMS-CALLERS-001; default in view). */
@@ -347,6 +361,8 @@ static int draw_item(const mu_model *model, const mu_renderchar_glow *glow, cons
     if (pre) {
         host.bone_named = item_bone_named;
         host.item_transform = item_transform;
+        if (env->item_bones && env->item_before_matrix)
+            host.item_before_transform = item_before_transform;
         host.refuse = item_refuse;
         host.visible = !env->item_out_of_view;
         /* RENDER-ITEMS-002S: OBJECT +0x158. The native item has no OBJECT of its own; its model origin stands in. */

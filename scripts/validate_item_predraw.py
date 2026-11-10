@@ -181,7 +181,7 @@ class ItemWorld(ownerfx.OwnerWorld):
         m.write(v.MODEL + 0x78, struct.pack('<3f', *o['origin']))
         m.ensure(BONE_TRANSFORM - 0x30, 0x30 * 260)
         # Bones past the count and the word before BoneTransform hold junk the C must never read.
-        m.write(BONE_TRANSFORM - 0x30, struct.pack('<12f', *([7.0] * 12)))
+        m.write(BONE_TRANSFORM - 0x30, struct.pack('<12f', *o.get('before_matrix', [7.0] * 12)))
         m.write(BONE_TRANSFORM, struct.pack('<%df' % len(o['matrices']), *o['matrices']))
         m.write(BONE_TRANSFORM + 0x30 * o['count'], struct.pack('<12f', *([-3.0] * 12)) * 8)
         m.write(v.OBJ + 0x1f4, bytes(36))
@@ -273,6 +273,12 @@ def run_c(lib, plib, case, o, flag):
         for k in range(3):
             out[k] = f32(f32(f32(o['scale']) * f32(source[12 * bone + 4 * k + 3])) + f32(o['position'][k]))
 
+    @ownerfx.BEFORE_TRANSFORM
+    def before_transform(_, out):
+        matrix = (C.c_float * 12)(*o['before_matrix'])
+        plib.mu_pt_transform_position(matrix, (C.c_float * 3)(0, 0, 0), out, 1, o['scale'],
+                                      (C.c_float * 3)(*o['origin']))
+
     def record(fx):
         f = fx.contents
         light = [u(x) for x in f.light]
@@ -302,6 +308,8 @@ def run_c(lib, plib, case, o, flag):
     host = Host(o['count'] if o['attached'] else 0, -1, TRANSFORM(), rand, emit, None, o['count'], (C.c_float * 3)(*o['angle']),
                 named, item_transform, refuse, flag, (C.c_float * 3)(*o['position']),
                 object_transform, o['frame'], 1, owner_item_transform)
+    if 'before_matrix' in o:
+        host.item_before_transform = before_transform
 
     class Adapter:
         def mu_rc_item_draws(self, *args):

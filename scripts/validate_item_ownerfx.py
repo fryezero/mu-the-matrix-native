@@ -53,6 +53,7 @@ RANDOM = C.CFUNCTYPE(C.c_int32, C.c_void_p)
 NAMED = C.CFUNCTYPE(C.c_int32, C.c_void_p, C.c_char_p)
 ITEM_TRANSFORM = C.CFUNCTYPE(None, C.c_void_p, C.c_int32, C.POINTER(C.c_float), C.c_int32, C.POINTER(C.c_float))
 OBJECT_TRANSFORM = C.CFUNCTYPE(None, C.c_void_p, C.c_int32, C.POINTER(C.c_float))
+BEFORE_TRANSFORM = C.CFUNCTYPE(None, C.c_void_p, C.POINTER(C.c_float))
 
 
 class Host(C.Structure):
@@ -64,7 +65,8 @@ class Host(C.Structure):
                 ('position', C.c_float * 3),   # RENDER-ITEMS-002S: OBJECT +0x158
                 # RENDER-ITEMS-002T: 0x012b678d on an item bone, the rendered-frame counter
                 ('object_transform', OBJECT_TRANSFORM), ('frame', C.c_uint32), ('frame_known', C.c_int32),
-                ('owner_item_transform', ITEM_TRANSFORM)]   # post programs: 0x012b6ef1 on the OBJECT's bone
+                ('owner_item_transform', ITEM_TRANSFORM),   # post programs: 0x012b6ef1 on the OBJECT's bone
+                ('item_before_transform', BEFORE_TRANSFORM)]  # explicit BoneTransform[-1], optional
 
 
 def u(x):
