@@ -8,6 +8,40 @@
 #include "npc_table.h"
 #include "player_action_table.h"
 
+int32_t mu_actor_player_body(int32_t server_class)
+{
+    /* CreateMonster 0x0138366a..0x013838f6; class 236 at 0x013842a4.
+     * RenderCharacter 0x01369f98..0x0136a00d draws OBJECT +0x60 as one
+     * RenderPartObject with level/option/ext 0, flags 2, on Player bones. */
+    switch (server_class) {
+    case 14: case 55: case 56: return 0x422;
+    case 15: case 236: return 0x423;
+    case 16: return 0x424;
+    default: return 0;
+    }
+}
+
+int mu_actor_player_recipe(int32_t server_class, mu_monster_class *out)
+{
+    const mu_monster_class *row = server_class >= 0 ? mu_monster_class_find((uint32_t)server_class) : NULL;
+    if (!row || row->kind != MU_CLASS_PLAYER_MODEL)
+        return 0;
+    int32_t body = mu_actor_player_body(server_class);
+    /* Do not admit the later subtype-based classes with empty equipment.
+     * Their world/action hooks are not a five-piece armour recipe. */
+    if (!body && !row->slots[1].type)
+        return 0;
+    if (out) {
+        *out = *row;
+        if (body) {
+            out->slots[0].type = (uint16_t)body;
+            /* Golden Archer constructor 0x01384306 writes CHARACTER+0x144. */
+            out->slots[0].level = server_class == 236 ? 8 : 0;
+        }
+    }
+    return 1;
+}
+
 /* OpenMonsterModel 0x0180b0f4 (action part) and helpers. Client memory is
  * read where the original reads it and written in the original order. */
 
