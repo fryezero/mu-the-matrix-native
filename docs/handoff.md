@@ -1,5 +1,7 @@
 # Continue from here
 
+RENDER-ACTORS-001 PR-ready: six whole skeleton bodies and nine equipment-loader admissions; Golden Archer 236 now draws its +8 town body and glow only in world 0, with level zero elsewhere. The 32-row census has 15 bounded fixes, two controls and 15 unresolved subtypes. 361 actor checks, 12/12 compiled mutants, 21 affected validators pass; default 92 PNGs, 92 dumps and 46 reports remain byte-identical. [Checks, timings and limits](handoffs/RENDER-ACTORS-001.md).
+
 APP-REFRESH-011 PR-ready: Native Preview installed from latest main 54a53e1a through #360 with the verified frame-zero GFx library; APP-REFRESH-006 Native Data retained after export-input diff and manifest check. Installed four-start HUD, isolated 0x0f2a counter, mace effects, Eunice 939 cloth and accessory slots 9-14 proofs pass. Full private run: 1,038 tests, 1,019 passed, 16 skipped, three stale-fixture failures; repaired affected classes pass 23/23. No production code changed. [Installation, rollback, checks and limits](handoffs/APP-REFRESH-011.md).
 
 RENDER-ITEMS-002W PR-ready: bodies 1,370 -> 1,404/1,674 (270 left), adding three bows and all 31 named-mesh parts. Worn `0x0f2a` blend light is recovered from the original caller; body-only native and current local Preview controls establish visible atlas motion. 54 current PR validators pass; late-main 57-row rerun passes. Installed apps are untouched. [Checks, row timings and limits](handoffs/RENDER-ITEMS-002W.md).
