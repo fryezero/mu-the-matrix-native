@@ -75,3 +75,17 @@ OBJECT dump, light dump unchanged. Before / after walls: 1.36 / 1.47 s. This is 
 Latest main advanced to `3732f82a` (#361 ITEMS-002X) during rendering. It changes shared renderchar headers.
 The registry append conflict retained both rows. The lane is rebuilding and selecting affected follow-up checks.
 No ready line has been written.
+
+## Late-main validation in progress
+
+`db731f4d` contains main `3732f82a` plus the reviewed worlds implementation. Rebuild passes, 10.73 s.
+`--list-affected-since 0e96c91a` selects 53 rows, including the item-table consumers, and prunes nine unchanged-symbol
+rows including terrain/model light. All 53 are running with `--private --no-mutants --cache --jobs 2`.
+The first ranked/continuation rows are taking the long path noted in the test budget. No mutants are repeated.
+Pending after that run: changed private native renderchar module plus this lane's host, portable renderchar suite,
+worlds 37/40 render recheck, final audit/docs/PR body/ready line and cleanup.
+
+The original-reference scores at `0e96c91a` are unchanged: world 40 image mean absolute difference 3.985, share off
+0.0426, 2,014 matched objects and four near after-flag differences; world 37 3,964 matched objects and three
+near after-flag differences. World 37's original PNG is unavailable. Blood Castle's demo retains the existing
+unrecovered create/move counters, 3 create and 72 move refusals; this lane covers its inline draw switch only.
