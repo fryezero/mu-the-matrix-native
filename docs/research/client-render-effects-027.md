@@ -29,11 +29,12 @@ Each comparison family uses a fresh machine. The continuous lifecycle family
 carries the original record bytes between ticks independently of the C record,
 including owner death, the closing tails and retirement.
 
-The initial focused run has 6,064 comparisons, zero mismatches, and 20/20 compiled
-production-C mutants caught without an original-machine stop, 50.74 s. The
+The final focused run has 6,064 comparisons, zero mismatches, and 23/23 compiled
+production-C mutants caught without an original-machine stop, 53.34 s. The
 randomized families have 1,000 cases each; 64 further comparisons cover complete
 create-to-retirement joint lifecycles. The mutants cover caller gates/counts,
-scatter/reach, the saved point, cutoff, emitter lifetime/child kind, ribbon
+scatter/reach, both request keys and the marker info word, the saved point,
+cutoff, emitter lifetime/child kind, ribbon
 lifetime/tail count/width/blend, direction frequency, curl phase/fade/recursion
 and ribbon render colour. This is component evidence, not whole-client or live
 image equivalence.

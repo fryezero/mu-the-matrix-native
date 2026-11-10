@@ -229,4 +229,4 @@ skill credit. The arrows' joint and particle kinds are created as calls but not 
 
 ## RENDER-EFFECTS-027 evidence and limits
 
-[Death Stab step audit](client-render-effects-027.md): 6,064 original component comparisons, zero mismatches, 20/20 compiled mutants. Base-DK fixture skill 43 now draws the 0x472/2 ribbons and 0x10e6/1 marker chain with Flare/12 curls, with original step gates, widths, saved point and lifetimes. The fixture makes 189 visual requests, zero refused. Death Stab stays L because the general weapon-link selector remains an authored bone-33 context. Persistent buff feeds and master/later-class selectors remain absent.
+[Death Stab step audit](client-render-effects-027.md): 6,064 original component comparisons, zero mismatches, 23/23 compiled mutants. Base-DK fixture skill 43 now draws the 0x472/2 ribbons and 0x10e6/1 marker chain with Flare/12 curls, with original step gates, widths, saved point and lifetimes. The fixture makes 189 visual requests, zero refused. Death Stab stays L because the general weapon-link selector remains an authored bone-33 context. Persistent buff feeds and master/later-class selectors remain absent.
