@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""RENDER-EFFECTS-025: explicit missing-name sprite state and Ferea clouds/28.
+"""RENDER-EFFECTS-025: missing-name sprite state, Ferea clouds/28 and two bow pairs.
 
 Original instructions run on declared offline records. A separate pre-bone record
 models the original -1 access without indexing before a native bone allocation.
@@ -19,9 +19,10 @@ import time
 import pins
 import actor_machine as am
 import validate_particles as pt
-import validate_render_effects as base
 import validate_item_predraw as pre
 import validate_item_quality as quality
+import validate_render_effects11 as re11
+import validate_render_effects23 as re23
 import validate_renderchar as rc
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -42,6 +43,8 @@ def particle_family(text, data, lib, name, cases, report):
                                          (0, 300), (1, 0), (1, -1), (500, 300), (7, 12), (6, 12),
                                          (5, 12), (10, 10), (1, 10)][(ordinal // len(KINDS)) % 14]
         p.owner = -1 if (ordinal // len(KINDS)) % 2 else 0
+        if kind == (0x810a, 9):
+            p.scale = pt.f32([0.01, 0.035, 0.04, 0.0, -0.1, 1.0][(ordinal // len(KINDS)) % 6])
         ordinal += 1
         return p
 
@@ -133,6 +136,94 @@ def native_check(host, root, report):
                dict(exit=p.returncode, stderr=p.stderr[-1000:]))
 
 
+PT_MUTANTS = [
+    ('cloud_admission', 'ferea_clouds.inc', 'subtype == 28;', 'subtype == 27;', 'create'),
+    ('cloud_life', 'ferea_clouds.inc', 'p->lifetime = 300;', 'p->lifetime = 301;', 'create'),
+    ('cloud_jitter', 'ferea_clouds.inc', 'const float dx = rand_range(h, -250.0f, 250.0f, 10) * scale;',
+     'const float dx = rand_range(h, -240.0f, 250.0f, 10) * scale;', 'create'),
+    ('cloud_start', 'ferea_clouds.inc', 'copy3(p->start, p->position);', '', 'create'),
+    ('cloud_size', 'ferea_clouds.inc', 'rand_range(h, 0.5f, 1.5f, 100)',
+     'rand_range(h, 0.6f, 1.5f, 100)', 'create'),
+    ('cloud_pulse', 'ferea_clouds.inc', '* 360.0f + 180.0f)', '* 360.0f + 0.0f)', 'move'),
+    ('cloud_clock', 'ferea_clouds.inc', '* 0.00019999999494757503f;', '* 0.002f;', 'move'),
+    ('cloud_orbit_axis', 'ferea_clouds.inc', 'p->angle[2] * 0.01745329238474369f;',
+     'p->angle[1] * 0.01745329238474369f;', 'move'),
+    ('cloud_spin', 'ferea_clouds.inc', 'p->rotation + 0.7f;', 'p->rotation + 0.6f;', 'move'),
+    ('cloud_render', 'particles.c', 'p->subtype == 0x14 || p->subtype == 28', 'p->subtype == 0x14', 'render'),
+    ('bow7_life', 'item_bow_kinds.inc', 'p->type == 0x8109 ? 10 : 12', 'p->type == 0x8109 ? 11 : 12', 'create'),
+    ('bow9_life', 'item_bow_kinds.inc', 'p->type == 0x8109 ? 10 : 12', 'p->type == 0x8109 ? 10 : 13', 'create'),
+    ('bow7_velocity', 'item_bow_kinds.inc', 'rand_range(h, -2.5f, 2.5f, 1)',
+     'rand_range(h, -2.5f, 2.5f, 10)', 'create'),
+    ('bow7_axis', 'item_bow_kinds.inc', 'const int32_t axis = mu_pt_rand(h) % 3;',
+     'const int32_t axis = (mu_pt_rand(h), 0);', 'move'),
+    ('bow7_scale', 'item_bow_kinds.inc', 'p->scale = p->initial_scale * ratio;',
+     'p->scale = p->scale * ratio;', 'move'),
+    ('bow9_pulse', 'item_bow_kinds.inc', 'ratio > 0.5f', 'ratio > 0.6f', 'move'),
+    ('bow9_step', 'item_bow_kinds.inc', 'p->scale - 0.035f;', 'p->scale - 0.03f;', 'move'),
+    ('bow9_clamp', 'item_bow_kinds.inc', 'if (0.0f > p->scale)', 'if (0.0f < p->scale)', 'move'),
+]
+RC_MUTANTS = [
+    ('missing_disabled', 'bone == -1 && h->item_before_transform', 'bone == -2 && h->item_before_transform'),
+    ('missing_wrong_index', 'bone == -1 && h->item_before_transform', 'bone == 0 && h->item_before_transform'),
+    ('missing_position', 'h->item_before_transform(h->context, fx.position);',
+     'h->item_before_transform(h->context, fx.position); fx.position[0] += 1.0f;'),
+]
+NATIVE_MUTANTS = [
+    ('native_default', 'env->item_before_matrix = before_bones;', 'env->item_before_matrix = NULL;'),
+    ('native_translate', 'o->item_before_matrix, zero, out, 1,', 'o->item_before_matrix, zero, out, 0,'),
+    ('native_route', 'host.item_before_transform = item_before_transform;', 'host.item_before_transform = NULL;'),
+]
+
+
+def renderchar_mutant(directory, name, old, new):
+    folder = Path(directory)/name
+    folder.mkdir()
+    base = ROOT/'reconstructed/renderchar'
+    for file in ('renderchar.c', 'owner_fx.inc', 'rank5_owner.inc'):
+        source = (base/file).read_text()
+        if file == 'owner_fx.inc':
+            if source.count(old) != 1:
+                raise ValueError(f'{name}: nonunique anchor')
+            source = source.replace(old, new)
+        (folder/file).write_text(source)
+    lib = folder/('lib.'+pt.SUFFIX)
+    subprocess.run(['clang', '-std=c11', '-O2', '-shared', '-fPIC', '-ffp-contract=off',
+                    '-I', str(base), str(folder/'renderchar.c'),
+                    str(ROOT/'reconstructed/record-math/record_math.c'), '-lm', '-o', str(lib)],
+                   check=True, capture_output=True)
+    return C.CDLL(str(lib))
+
+
+def mutation_checks(directory, text, data, root):
+    mutants = []
+    def result(name, report, family):
+        f = report.families[family]
+        mutants.append(dict(name=name, detected=f['cases']-f['equal'],
+                            stopped=sum(bool(x.get('stopped')) for x in f['first_failures'])))
+        print('mutant', json.dumps(mutants[-1]), flush=True)
+    for name, file, old, new, family in PT_MUTANTS:
+        lib = re11.compile_pt_mutant(directory, name, file, old, new)
+        report = pt.Report()
+        particle_family(text, data, lib, family, 120, report)
+        result(name, report, 'particle_'+family)
+    for name, old, new in RC_MUTANTS:
+        report = pt.Report()
+        missing_name(40, report, renderchar_mutant(directory, name, old, new))
+        result(name, report, 'missing_name')
+    for name, old, new in NATIVE_MUTANTS:
+        folder = Path(directory)/name
+        folder.mkdir()
+        source = (ROOT/'native/core/mu_renderchar.c').read_text()
+        if source.count(old) != 1:
+            raise ValueError(f'{name}: nonunique anchor')
+        path = folder/'mu_renderchar.c'
+        path.write_text(source.replace(old, new))
+        report = pt.Report()
+        native_check(build_host(folder, path), root, report)
+        result(name, report, 'native')
+    return mutants
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--cases', type=int, default=1000)
@@ -148,17 +239,23 @@ def main():
     for name in ('create', 'move', 'render'):
         particle_family(text, data, lib, name, args.cases, report)
     missing_name(args.cases, report)
+    census = re23.request_census(lib)
+    report.add('census', not census['unresolved'] and all(p['supported'] for p in census['pairs'].values()),
+               census)
     with tempfile.TemporaryDirectory(prefix='effects25-native-') as tmp:
-        native_check(build_host(tmp), cloud_fixture(tmp), report)
+        root = cloud_fixture(tmp)
+        native_check(build_host(tmp), root, report)
+        equal = all(f['cases'] == f['equal'] for f in report.families.values())
+        mutants = mutation_checks(tmp, text, data, root) if args.mutations and equal else []
     equal = all(f['cases'] == f['equal'] for f in report.families.values())
     result = dict(families=report.families, coverage=report.coverage, all_equal=equal,
-                  cases=sum(f['cases'] for f in report.families.values()), mutants=[],
-                  all_mutants_caught=True, seconds=round(time.monotonic()-start, 3),
+                  cases=sum(f['cases'] for f in report.families.values()), mutants=mutants,
+                  all_mutants_caught=all(m['detected'] and not m['stopped'] for m in mutants), seconds=round(time.monotonic()-start, 3),
                   text_sha256=am.TEXT_SHA256, data_sha256=am.DATA_SHA256)
     if args.output:
         Path(args.output).write_text(json.dumps(result, indent=2))
     print(json.dumps(result, indent=2))
-    return 0 if equal else 1
+    return 0 if equal and result['all_mutants_caught'] else 1
 
 
 if __name__ == '__main__':

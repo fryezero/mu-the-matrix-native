@@ -3372,3 +3372,20 @@ note = "RENDER-EFFECTS-024: two original sprite loader mappings and native file/
 all_equal = true
 all_mutants_caught = true
 "mutants.*.stopped" = 0
+
+[validate_render_effects25]
+test = "native/tests/test_render_effects25.py::ClientComparison.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["particle_create", "particle_move", "particle_render", "missing_name", "native", "census"]
+cases = 202
+mutants = 24
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/particles", "reconstructed/renderchar", "native"]
+build_targets = { native = ["build/libmunative.a", "build/libmusession_world.a"] }
+args = ["--cases", "20", "--mutations", "--output", "{report}"]
+note = "RENDER-EFFECTS-025: complete Hammer14 streams with explicit pre-bone records; clouds/28 and two bow particle pairs; native adapter/pool/raster and admitted-pair census; 24 compiled mutants"
+[validate_render_effects25.expect]
+all_equal = true
+all_mutants_caught = true
+"mutants.*.stopped" = 0

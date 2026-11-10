@@ -16,6 +16,14 @@ PRIVATE = os.environ.get('MU_RECOVERY_INTEGRATION') == '1'
 
 
 class Native(unittest.TestCase):
+    def test_admitted_particle_requests_have_consumers(self):
+        subprocess.run(['make', '-s', '-C', str(ROOT/'reconstructed/particles')],
+                       check=True, capture_output=True)
+        lib = pt.load_library(ROOT/('reconstructed/particles/libclient_particles.'+pt.SUFFIX))
+        census = proof.re23.request_census(lib)
+        self.assertEqual(census['unresolved'], [])
+        self.assertTrue(all(p['supported'] for p in census['pairs'].values()), census)
+
     def test_explicit_pre_bone_record_and_cloud_raster(self):
         subprocess.run(['make', '-s', '-C', str(ROOT/'native'), 'build/libmunative.a',
                         'build/libmusession_world.a'], check=True, capture_output=True)
@@ -38,7 +46,7 @@ class ClientComparison(unittest.TestCase):
                             '--output', str(path)], check=True, capture_output=True)
             report = json.loads(path.read_text())
         self.assertTrue(report['all_equal'])
-        self.assertEqual(report['cases'], 201)
+        self.assertEqual(report['cases'], 202)
 
 
 if __name__ == '__main__':

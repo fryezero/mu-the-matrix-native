@@ -38,3 +38,19 @@ Left:
 - Merge latest main, write research and final handoff/status/PR body, audit, push, PR, ready line, cleanup.
 
 The steward owns the full gate and merge. No ready-prs entry exists for this lane at this checkpoint.
+
+Checkpoint update: the full focused proof passes 10,002 component comparisons, zero mismatches,
+30.81 s script / 30.87 s command. The new registry row passes 202 comparisons and 24/24 compiled
+mutants, zero stopped, 59.8 s row / 59.89 s command. The private five-module run covers 41 tests:
+38 initially pass, three stale missing-name assertions are corrected and all three pass on rerun
+in 0.660 s. No production code changed for those expectation repairs. The expanded 96-program
+scene changes 7,389 accepted / 28 refused to 7,416 / zero; unsupported particles 12 to zero.
+The denominator changes because newly admitted particle rand calls affect later gated requests.
+The eight-mace run changes 5,610 / 61 to 5,671 / zero, with 61 more sprite allocations and one
+more sprite submitted at the final frame. Its final PNGs remain identical; no visible gain is
+claimed for those cameras. Closer Ferea creates 257 particles / zero unsupported versus 243 / 14.
+The two-clock final frames change 6,623 / 6,626 pixels.
+
+Post-build selectors retain 80 validators, including meshdraw, model_edge and movement symbol
+fallbacks. The portable selector exceeds the private 40-module cap; 8d is reduced to changed
+native modules plus shared consumers. The affected batches and final identity sweep are next.

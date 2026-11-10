@@ -259,7 +259,7 @@ class WorldRender(unittest.TestCase):
         self.assertGreater(sword['pre_effects'],0)
         self.assertEqual(sword['sha256'],again['sha256'])
         bow,_=self.render('--weapon','0',path,'--item-type','weapon0=0x1311','--world-time','0')
-        self.assertEqual((bow['special'],bow['pre_effects'],bow['pre_refused']),(0,0,1))
+        self.assertEqual((bow['special'],bow['pre_effects'],bow['pre_refused']),(0,1,0))
 
     def test_wing_joint_and_random_bone_programs(self):
         """RENDER-ITEMS-002S: wing 0x22ec's case creates twenty CreateJoint requests (0x7f7c/0xe, 0x7fd3/4) along
@@ -286,7 +286,7 @@ class WorldRender(unittest.TestCase):
         """RENDER-ITEMS-002T: 0x2713's block after its RenderPartObjectBody draws places three sprites at its own bones
         8, 10 and 11: on 12 bones all are created, on 10 the last two are refused. Mace 0x0f20's particles follow
         tests of the rendered-frame counter, which the native env does not supply by default, so they are refused
-        and counted; the mace's named bones are absent from the synthetic skeleton too."""
+        and counted. EFFECTS-025 supplies the separate pre-bone record for its missing-name sprites."""
         path=self.tmp/'post-fx.bmd'
         path.write_bytes(nf.character_layout(115,bones=12,meshes=2))
         post,_=self.render('--weapon','0',path,'--item-type','weapon0=0x2713','--world-time','0')
@@ -296,24 +296,24 @@ class WorldRender(unittest.TestCase):
         cut,_=self.render('--weapon','0',short,'--item-type','weapon0=0x2713','--world-time','0')
         self.assertEqual((cut['special'],cut['pre_effects'],cut['pre_refused']),(0,1,2))
         mace,_=self.render('--weapon','0',path,'--item-type','weapon0=0xf20','--world-time','0')
-        self.assertEqual((mace['special'],mace['pre_effects']),(0,0))
+        self.assertEqual((mace['special'],mace['pre_effects']),(0,17))
         self.assertGreater(mace['pre_refused'],0)
 
     def test_frame_counter_option(self):
         """RENDER-ITEMS-002U: with the rendered-frame counter supplied (mu-render --frame-counter, as the world
         runtime's own counter), mace 0x0f20's requests behind its counter tests run only on the frames the client
         runs them: two particles 0x855d/1 when counter % 3 == 0, one 0x84d1/1 when counter % 5 == 0. Without a
-        counter every request after the first test is refused (20). The particle pool has neither kind and the
-        synthetic skeleton lacks the named bones, so what runs is still refused, but no longer for the counter."""
+        counter the three gated particle requests are refused. EFFECTS-025 admits the 17 missing-name sprites
+        through the explicit native pre-bone record. Particle positions still require the absent named bones."""
         path=self.tmp/'counter-fx.bmd'
         path.write_bytes(nf.character_layout(115,bones=12,meshes=2))
         base,_=self.render('--weapon','0',path,'--item-type','weapon0=0xf20','--world-time','0')
-        self.assertEqual((base['pre_effects'],base['pre_refused']),(0,20))
+        self.assertEqual((base['pre_effects'],base['pre_refused']),(17,3))
         for frame in (0,1,2,3,5,6,10,15,0xffffffff):
             r,_=self.render('--weapon','0',path,'--item-type','weapon0=0xf20','--world-time','0',
                             '--frame-counter',str(frame))
-            expect=17+2*(frame%3==0)+(frame%5==0)
-            self.assertEqual((r['special'],r['pre_effects'],r['pre_refused']),(0,0,expect),frame)
+            expect=2*(frame%3==0)+(frame%5==0)
+            self.assertEqual((r['special'],r['pre_effects'],r['pre_refused']),(0,17,expect),frame)
 
         isolated, _ = self.render('--weapon', '0', path, '--item-type', 'weapon0=0xf20',
                                   '--world-time', '0', '--frame-counter', '0', '--item-body-only')

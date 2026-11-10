@@ -30,7 +30,7 @@ class ItemPreDraw(unittest.TestCase):
     draws = base.RenderCharLibrary.draws
 
     def run_item(self, t, names, count, values=(5,), visible=1, time=0.0, host=True, position=(0.0, 0.0, 0.0),
-                 frame=None, before=None):
+                 frame=None, before=None, named_missing=-1):
         """Draws, requests and refusals of one item with identity item bones (bone k translated by
         (k, 2k, 3k)), model scale 1 and origin (100, 200, 300)."""
         effects, drawn = [], []
@@ -42,7 +42,7 @@ class ItemPreDraw(unittest.TestCase):
 
         @predraw.NAMED
         def named(_, name):
-            return names.index(name.decode()) if name.decode() in names else -1
+            return names.index(name.decode()) if name.decode() in names else named_missing
 
         @predraw.ITEM_TRANSFORM
         def item_transform(_, bone, local, translate, out):
@@ -118,6 +118,12 @@ class ItemPreDraw(unittest.TestCase):
             self.assertEqual(new[i][0], 2)
             self.assertEqual(new[i][2], (11.0, 22.0, 33.0))
         self.assertFalse(any(fx[0] == 'refused' for fx in new))
+
+    def test_pre_bone_record_does_not_admit_other_negative_indices(self):
+        old = self.run_item(0x0f29, [], 64, frame=3, named_missing=-2)[2]
+        new = self.run_item(0x0f29, [], 64, frame=3, named_missing=-2, before=(11.0, 22.0, 33.0))[2]
+        self.assertEqual(new, old)
+        self.assertTrue(any(fx[0] == 'refused' for fx in new))
 
     def test_admissions_and_existing_domain(self):
         self.assertEqual(len(fxgen.PRE_FX_TYPES), 51)   # RENDER-ITEMS-002W: three read-program bows
