@@ -2,6 +2,8 @@
 
 CHARSEL-ITEMS-001 PR-ready: selection now draws authored demo equipment levels and excellent through the existing item renderer and texture rules. Original comparison: 8,817 cases, zero mismatches; 7/7 compiled mutants. File-only selection and default world captures remain byte-identical. [Checks, addresses, renders and limits](handoffs/CHARSEL-ITEMS-001.md).
 
+AUDIO-002G PR-ready: recovered CButton sound 25 now reaches server-select and character-select controls through their original release gates. Credits end-record provenance and native adapter are verified; the interactive credits owner remains absent. 5,803 original comparisons, 10/10 mutants, 9 private focused tests and 26 affected validators pass. [Addresses, refused contexts, timings and limits](handoffs/AUDIO-002G.md).
+
 RENDER-ITEMS-002X PR-ready: bodies 1,404 -> 1,424/1,674 (250 left), adding fourteen carried-field/binary32 read programs and six no-glow bodies. Both tables reproduce; 53 selected validators pass, 932,022 row checks, 49+2 changed-row mutants caught. Final private renderer/actor modules pass 27/27; default 92 PNGs, 92 dumps and 46 reports are byte-identical. [Checks, row timings and limits](handoffs/RENDER-ITEMS-002X.md).
 
 NEXT-GAPS-001 PR-ready, docs only: ranked offline gap inventory, ten lane briefs, file-conflict groups and sourced counts; no runtime change. [Research](research/next-gaps.md), [method and limits](handoffs/NEXT-GAPS-001.md).

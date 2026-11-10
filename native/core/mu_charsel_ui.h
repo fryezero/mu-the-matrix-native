@@ -17,6 +17,7 @@
 
 #include "../../reconstructed/ui/ui_charsel.h"
 #include "mu_charsel.h"
+#include "mu_ui_audio.h"
 #include "mu_ui_assets.h"
 #include "mu_ui_font.h"
 #include "mu_ui_raster.h"
@@ -29,6 +30,8 @@ typedef struct mu_charsel_ui {
     mu_ui_text text;
     mu_ui_font_set fonts;
     mu_ui_ctx ctx;
+    mu_ui_audio audio;
+    uint32_t audio_tick;
     mu_ui_sink inner;
     mu_ui_sink target;          /* NATIVE-PERF-001: the 2D calls on the GPU instead of the raster */
     int has_target;
