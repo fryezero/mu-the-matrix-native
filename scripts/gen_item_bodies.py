@@ -230,7 +230,7 @@ from gen_item_owner_fx import OWNER_FX_TYPES
 from gen_item_owner_fx import PRE_FX_TYPES, OBJDRAW as PRE_DRAW_RAND
 # Part 21 (RENDER-ITEMS-002T): owner blocks after the draws with the pre-draw idioms (gen_item_owner_fx.POST_FX_TYPES);
 # their draws fit the default probes with the effect requests set aside.
-from gen_item_owner_fx import POST_FX_TYPES
+from gen_item_owner_fx import POST_FX_TYPES, READ_PROGRAM_TYPES
 _SAMPLE_TYPE = [None]
 # Their probes, chosen by the 292-state comparison: the part-14 supplementary probes (records 0x26/0x5b,
 # qualities 0-2) and the part-13 carry rule. The rand sites of the pre-draw block itself belong to the effect
@@ -265,6 +265,10 @@ SUPPLEMENT_QUALITIES = (0, 1, 2, 9)
 DIM_TYPES = [0xae6 + group * 512 + index for group in (7, 8, 9, 11)
              for index in (*range(0x11c, 0x12c), 0x13a, 0x15d, 0x193)]
 PLAIN_TYPES = [*range(0x234a, 0x2368), *range(0x241d, 0x2477), *WING_TYPES]
+
+# RENDER-ITEMS-002X: these cases bypass the level-glow helper chain.
+NO_GLOW_TYPES = [0x232c, 0x232d, 0x232e, 0x232f, 0x2330, 0x26f5]
+
 
 def body_scalars(time):
     """Reviewed SSE scalar paths: 0x016ecaf5, 0x016eec41, 0x01713552."""
@@ -1305,7 +1309,11 @@ NAMED_TYPES = v.NAMED_BODY_TYPES
 LEVEL_SPLIT += list(NAMED_TYPES)
 FRAME_TYPES += [0x0b68]
 COUNTER_RANGE_TYPES += [0x0b5c, 0x0b62, 0x1313, 0x1317, 0x1319]
-PRE_EXTENDED += [0x1313, 0x1317, 0x1319]
+PRE_EXTENDED += [0x1313, 0x1317, 0x1319] + READ_PROGRAM_TYPES
+# RENDER-ITEMS-002X: carry the last draw into later helpers, with full supplementary probes.
+PRE_CARRY += [t for t in READ_PROGRAM_TYPES if t not in (0x0b29, 0x0b52)]
+# These probes retain alpha/wave products and attribute nested pre-program ranges correctly.
+COUNTER_RANGE_TYPES += READ_PROGRAM_TYPES
 NAMED_NAMES = v.NAMED_MESH_NAMES
 _NAMED_VALUES = []
 
@@ -1427,8 +1435,11 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=Fals
         wave = f(math.sin(f(v.u2f(case['time'])*f(0.001))))
         mul, add = (0.6, 0.4) if t == 0x0eee else (0.4, 0.6)
         generic_case['blend_light'] = v.f2u(f(f(wave*f(mul)) + f(add)))
-    if t in PLAIN_TYPES:
+    if t in PLAIN_TYPES or t in NO_GLOW_TYPES:
         generic_case['item_level'] = 0
+    if t in NO_GLOW_TYPES and generic_case['record'] is not None:
+        a, b, kind = generic_case['record']
+        generic_case['record'] = (a, 0 if b in (0x26, 0x5b) else b, kind)
     (_, generic) = v.c_stream(lib, generic_case, True)
     groups = []
     for (d, tag) in zip(st, tags):
@@ -1551,7 +1562,7 @@ def infer(samples):
 ALL_TYPES = (REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES + RANKED_TYPES + EXPANDED_TYPES +
              NEXT_TYPES + CLOCK_TYPES + CLUSTER_TYPES + WING_TYPES + VISIBLE_TYPES + SCALAR_TYPES +
              CHAIN_TYPES + LEVEL_TYPES + COLOUR_TYPES + CARRY_TYPES + QUALITY_TYPES + PRODUCT_TYPES + DERIVED_TYPES +
-             OWNER_FX_TYPES + PRE_FX_TYPES + POST_FX_TYPES + [0x1588] + list(NAMED_TYPES))
+             OWNER_FX_TYPES + PRE_FX_TYPES + POST_FX_TYPES + [0x1588] + list(NAMED_TYPES) + NO_GLOW_TYPES)
 
 
 def fit(wa, lib, t, scalars=False, carry=False, extended=False):
@@ -1637,6 +1648,8 @@ _PHASES = []   # the phases of the last _fit call (part 16 derive)
 
 
 def _fit(wa, lib, t, params, sites, carry=False, extended=False):
+    # A failed probe must not feed the previous type or program width into derive().
+    _PHASES.clear()
     levels = range(16) if t >= 0x3700 else (0, 7, 13)
     ss = [sample(wa, lib, t, lv, seed, params=params, sites=sites, carry=carry) for lv in levels
           for seed in PROBE_SEEDS]
@@ -1742,7 +1755,7 @@ def extract():
     for t in ALL_TYPES:
         fitted = fit(wa, lib, t, scalars=True,
                      carry='exit' if t in EXIT_TYPES else t in CARRY_TYPES or t in DERIVED_CARRY or t in PRE_CARRY,
-                     extended=t in QUALITY_TYPES or t in PRODUCT_TYPES or t in PRE_EXTENDED or t in NAMED_TYPES)
+                     extended=t in QUALITY_TYPES or t in PRODUCT_TYPES or t in PRE_EXTENDED or t in NAMED_TYPES or t in NO_GLOW_TYPES)
         if fitted is not None:
             types[t] = fitted
     if set(types) != set(ALL_TYPES):
@@ -1784,7 +1797,7 @@ def render(types):
         lines.append('    {%d, {' % len(rule))
         for entry, cells in rule:
             sources = ', '.join(str(v + 1 if op == 'in' else 0) for op, v in cells)
-            values = ', '.join('0' if op == 'in' else '0x%08xu' % (v & 0xffffffff) for op, v in cells)
+            values = ', '.join('0' if op == 'in' or not (v & 0xffffffff) else '0x%xu' % (v & 0xffffffff) for op, v in cells)
             lines.append('        {%d, {%s}, {%s}},' % ({'BODY': 1, 'MESH': 2, 'COLOR': 3, 'EXIT': 4}[entry], sources, values))
         lines.append('    }},')
     lines += ['};', 'typedef struct { uint8_t kind, count; uint32_t a; uint8_t op[%d]; uint64_t k[%d]; uint8_t phases; } mu_rc_body_scalar;' % (CLOCK_OPS, CLOCK_OPS),
@@ -1804,7 +1817,7 @@ def render(types):
     for t, indices, first, count in rows:
         rules = types[t][0]
         lines.append('    {0x%04x, {%s}, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d},' %
-                     (t, ', '.join(map(str, indices)), t in LEVEL_SPLIT, t in ATLAS_TYPES, t in DIM_TYPES, t in PLAIN_TYPES, t in PULSE_TYPES,
+                     (t, ', '.join(map(str, indices)), t in LEVEL_SPLIT, t in ATLAS_TYPES, t in DIM_TYPES, t in PLAIN_TYPES or t in NO_GLOW_TYPES, t in PULSE_TYPES,
                       any(op == 'in' and value == 20 for rule in rules for _, cells in rule for op, value in cells),
                       sum(1 << k for k in range(13) if any(op == 'in' and value == 21+k for rule in rules for _, cells in rule for op,value in cells)),
                       t in CARRY_TYPES or t in DERIVED_CARRY or t in PRE_CARRY, first, count))
