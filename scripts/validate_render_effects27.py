@@ -4,7 +4,7 @@
 RENDER-EFFECTS-027. Only synthetic CHARACTER/OBJECT/model state is supplied.
 Model, bone, target lookup and world predicate are declared services. The original
 step branch, rand scatter, joint creation/movement/tail shift and render stream
-execute. Sine/cosine use host-libm services under the strict existing Unicorn machines.
+execute under the strict existing Unicorn machines. Sine/cosine use host libm.
 """
 import argparse
 from collections import defaultdict
@@ -289,7 +289,7 @@ def run(cases, mutations=False):
     result['bodies'] = {name: dict(start=hex(a), end=hex(b), sha256=hashlib.sha256(text[a-am.TEXT_BASE:b-am.TEXT_BASE]).hexdigest())
                         for name, a, b in [('caller', 0x139959c, 0x1399c9d), ('scatter', 0xd750fa, 0xd751db),
                                            ('create472', 0x1548aeb, 0x1548bac), ('move472', 0x1569e07, 0x156a160),
-                                           ('direction', 0x158bac2, 0x158bdf0), ('create_flare12', 0x154a9a2, 0x154ab1a),
+                                           ('direction', 0x158bac2, 0x158bd14), ('create_flare12', 0x154a9a2, 0x154ab1a),
                                            ('move_flare12', 0x1579558, 0x1579941), ('move_tail', 0x15896fb, 0x15897e5),
                                            ('create_emitter', 0x13c465a, 0x13c4669), ('move_emitter', 0x14374f6, 0x1437553)]}
     result['seconds'] = time.monotonic() - start
