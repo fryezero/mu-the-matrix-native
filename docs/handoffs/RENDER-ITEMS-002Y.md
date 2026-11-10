@@ -42,3 +42,12 @@ Research part 38 is reserved; recheck main before the final push.
 Lane-local progress inputs are under `~/Documents/MTM/mu-mac-tools/native/scratch/render-items-002y/`.
 The baseline hashes, prerequisite C library, exploratory fit summaries and scripts are retained until finish.
 No client bytes or captures are committed. Source canonical private environment from the repository root.
+
+## Stopped 2026-11-09 22:5x: Codex usage limit
+
+The lane's agent stopped when Codex reported its usage limit (GPT-6.1 Sol unavailable until 2026-11-13 18:44).
+The orchestrator committed the two uncommitted test edits as they were (`test_item_clusters.py`,
+`test_item_types.py`: the refused-control type moves to `0x23f1`, because `0x2368` and `0x230d` are provisional
+admissions). They are consistent only once the tables are regenerated, so those two tests may fail on this
+checkpoint. A table generation run (`scratch/render-items-002y/generate.py`) was still in progress and its
+output is not verified. Resume from "WIP checkpoint" above: regenerate the tables, then run the pending checks.

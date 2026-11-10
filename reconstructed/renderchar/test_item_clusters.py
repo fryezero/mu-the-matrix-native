@@ -36,7 +36,7 @@ class ItemClusters(unittest.TestCase):
             self.assertEqual([x.entry for x in d],[1,1]+[2]*(n-2))
             self.assertEqual([x.hidden for x in d[:2]],[0,1])
             self.assertEqual(self.draws(self.item(type=t,option1=1))[1][-1].flags,0x42)
-        self.assertEqual(self.draws(self.item(type=0x2368))[0],1)
+        self.assertEqual(self.draws(self.item(type=0x23f1))[0],1)
 
     def test_recipe_bounds_and_explicit_overrides(self):
         import validate_renderchar as v
