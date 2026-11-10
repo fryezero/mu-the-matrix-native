@@ -19,6 +19,11 @@ The post-build validator selection is unchanged at 52 rows, 42.32 s, including t
 nine unused-symbol rows are pruned. Fifty unchanged rows are now running without mutants at `b4a95ec3`.
 The two changed mutant rows and final default identity sweep remain pending. This is still WIP, not ready.
 
+Second resume checkpoint: 42/50 unchanged selected rows pass, 733,596 comparisons,
+zero failures/errors/skips. The full batch is still running; partial reports are retained under
+`verify-runs/resume-validators/`. The first resume audit passes, 2,136 files and zero rejected, 30.28 s.
+No implementation edits follow `cdfbcb3f`; the merge and checkpoint edits do not change compiled inputs.
+
 ### Bodies and verified work
 
 - Bodies **1,404 -> 1,424 / 1,674**, **250 left**: fourteen of the 21 read-program candidates and six of the
