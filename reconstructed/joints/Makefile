@@ -3,6 +3,7 @@ CFLAGS = -std=c11 -O2 -Wall -Wextra -Werror -Wconversion -fPIC -ffp-contract=off
 SUFFIX = $(if $(filter Darwin,$(shell uname -s)),dylib,so)
 SRC = joints.c ../record-math/record_math.c ../movement/client_movement.c
 HDR = bow_joints.inc joints.h icarus_joints.inc kanturu_joints.inc ../record-math/record_math.h ../movement/client_movement.h
+HDR += death_stab_joints.inc
 
 all: libclient_joints.$(SUFFIX)
 

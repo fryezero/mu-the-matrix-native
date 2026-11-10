@@ -299,6 +299,7 @@ static int effect_supported(int32_t type, int32_t sub)
     if (uruk_effect_kind(type, sub))
         return 1;   /* RENDER-EFFECTS-018 */
     switch (type) {
+    case 0x10e6: return sub == 1;   /* RENDER-EFFECTS-027: Death Stab's trail emitter */
     case MU_SFX_MODEL_FIRE: return sub == 0 || sub == 1 || sub == 10;
     case MU_SFX_MODEL_ICE: case MU_SFX_MODEL_POISON: case MU_SFX_MODEL_ICE_DEBRIS: case MU_SFX_MODEL_WAVE: return sub == 0;
     case 0x7f4e: case MU_SFX_BITMAP_THUNDER: return sub == 0;
@@ -438,6 +439,9 @@ int mu_sfx_effect_create(mu_sfx_effect *e, int32_t type, int32_t subtype, const 
     if (uruk_effect_kind(type, subtype))
         return uruk_effect_create(e);   /* RENDER-EFFECTS-018 */
     switch (type) {
+    case 0x10e6:                 /* 0x013c465a, subtype 1's marker, no model draw */
+        e->lifetime = 10;
+        break;
     case MU_SFX_MODEL_ARROW: {
         /* 0x013cb34d, with the other bows' arrows (RENDER-EFFECTS-007, arrow_fx.inc) */
         float position_arg[3], angle_arg[3];
@@ -1082,6 +1086,14 @@ int mu_sfx_effect_move(mu_sfx_effect *e, const mu_sfx_env *env)
     if (uruk_effect_kind(type, sub))
         uruk_effect_move(e, env);   /* RENDER-EFFECTS-018 */
     switch (type) {
+    case 0x10e6: { /* 0x014374f6: the stationary marker emits one Flare/12 per step */
+        mu_sfx_call c = {0};
+        c.routine = MU_SFX_CALL_JOINT; c.type = 0x7f78; c.subtype = 12;
+        c.owner = -2; c.scale = 100.0f; c.arg7 = -1;
+        copy3(c.position, e->position); copy3(c.target, e->position); copy3(c.angle, e->angle);
+        env_call(env, &c, e);
+        break;
+    }
     case MU_SFX_MODEL_ARROW:
         /* 0x01464abf */
         light[0] = lum * F_0_8;
@@ -2599,4 +2611,56 @@ int mu_sfx_create_arrow(const mu_sfx_archer *a, const float position[3], const f
     if (out->type == -1)
         out->routine = 0;
     return out->routine != 0;
+}
+
+/* Death Stab's selected branch of the per-step attack helper 0x013966ea.
+ * The native demo supplies the model/bone results; the caller's arithmetic,
+ * requests, sound gate, saved point and AttackTime cutoff are reconstructed. */
+int mu_sfx_death_stab_step(mu_sfx_death_stab *s, const mu_sfx_env *env)
+{
+    if (!s->has_model)
+        return 0;
+    if (s->attack_time == 8 && !s->quiet_world) {
+        mu_sfx_call sound = {0};
+        sound.routine = MU_SFX_CALL_SOUND; sound.type = 0x71; sound.owner = -1;
+        env_call(env, &sound, NULL);
+    }
+    const float radians = s->angle[2] * f32bits(0x40490fdbu) / 180.0f;
+    const float sn = (float)sin((double)radians), cs = (float)cos((double)radians);
+    if (s->attack_time >= 2 && s->attack_time <= 8) {
+        for (int n = 0; n < 3; ++n) {
+            float p[3];
+            copy3(p, s->position);
+            p[2] = p[2] + 120.0f;
+            for (int k = 0; k < 3; ++k)
+                p[k] = (float)(smod(env_rand(env), 601) - 300) + p[k];
+            p[0] = -1400.0f * sn + p[0];
+            p[1] = cs * 1400.0f + p[1];
+            call_joint(env, NULL, 0x472, p, p, s->angle, 2, s->owner, 40.0f);
+        }
+    }
+    if (s->attack_time <= 8) {
+        if (!s->has_bone)
+            return 0;
+        copy3(s->sword_position, s->weapon_point);
+        s->sword_position[0] = sn * 300.0f + s->sword_position[0];
+        s->sword_position[1] = -300.0f * cs + s->sword_position[1];
+    }
+    if (s->attack_time >= 6 && s->attack_time <= 12) {
+        if (!s->has_bone)
+            return 0;
+        float p[3];
+        copy3(p, s->weapon_point);
+        float reach = (float)((int32_t)s->attack_time - 8) * 10.0f + 100.0f;
+        p[0] = sn * reach + p[0];
+        p[1] = -reach * cs + p[1];
+        const float light[3] = {1.0f, 1.0f, 1.0f};
+        for (int n = 0; n < 2; ++n)
+            call_effect(env, NULL, 0x10e6, p, s->angle, light, 1, s->owner);
+        /* 0x01399c29..0x01399c81 also sets a target CHARACTER byte at >=10.
+         * That target-state mutation is deliberately outside this visual adapter. */
+    }
+    if (s->attack_time >= 12)
+        s->attack_time = 15;
+    return 1;
 }

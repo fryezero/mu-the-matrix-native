@@ -212,6 +212,7 @@ static const struct {
     {0x8179, "Effect", "bostar3_R.jpg", 'j', 0x2601, 0x2900, 1},       /* 0x01822685 */
     {0x8013, "Effect", "damage01mono.jpg", 'j', 0x2601, 0x2900, 1},    /* 0x01821819 */
     {0x8002, "Effect", "PoundingBall.jpg", 'j', 0x2601, 0x2900, 1},    /* 0x01820f79 */
+    {0x7fde, "Effect", "NSkill.jpg", 'j', 0x2601, 0x2900, 0},         /* 0x018228a5: Death Stab */
 };
 
 _Static_assert(sizeof bitmap_files / sizeof bitmap_files[0] == MU_COMBAT_BITMAPS, "combat bitmap capacity");
@@ -520,6 +521,7 @@ static void refresh_objects(mu_combat *c)
     h->weapon = (int16_t)(c->weapon_item[0] < 0 ? -1 : c->weapon_item[0] - 0xae6);   /* TS: o + 0x56 */
     memcpy(h->position, c->walk->hero.position, sizeof h->position);
     memcpy(h->angle, c->walk->hero.angle, sizeof h->angle);   /* RENDER-EFFECTS-004: Rageful Blow aims along it */
+    memcpy(h->sword_position, c->death_stab_sword, sizeof h->sword_position);
 }
 
 /* RENDER-EFFECTS-009: an arrow effect's object view for the joints that follow it (OBJECT +0x00 live, +0x5c type,
@@ -531,7 +533,7 @@ static void effect_object(mu_combat *c, const mu_sfx_effect *e)
         return;
     mu_sfx_object *o = &c->objects[MU_COMBAT_EFFECT_OBJECT(i)];
     memset(o, 0, sizeof *o);
-    if (!mu_sfx_is_arrow(e->type) && e->type != 0x70a)
+    if (!mu_sfx_is_arrow(e->type) && e->type != 0x70a && e->type != 0x10e6)
         return;   /* RENDER-EFFECTS-015: 0x70a owns the arrows of its rain (their CreateEffect reads its +0x158) */
     o->live = e->live;
     o->visible = e->live;
@@ -714,7 +716,8 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
         return 0;
     case MU_SFX_CALL_JOINT: {
         int32_t target = call->owner;
-        if (target == -2 && e && e >= c->effects && e < c->effects + MU_SFX_EFFECTS && mu_sfx_is_arrow(e->type)) {
+        if (target == -2 && e && e >= c->effects && e < c->effects + MU_SFX_EFFECTS &&
+            (mu_sfx_is_arrow(e->type) || e->type == 0x10e6)) {
             effect_object(c, e);   /* "this effect": the arrow (RENDER-EFFECTS-009) */
             c->objects[MU_COMBAT_EFFECT_OBJECT(e - c->effects)].live = 1;   /* created, SetLive at the end */
             target = MU_COMBAT_EFFECT_OBJECT((int32_t)(e - c->effects));
@@ -727,15 +730,23 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
             memcpy(c->jenv.creation_light, call->light, sizeof call->light);
             c->jenv.has_creation_light = call->light[0] != 0 || call->light[1] != 0 || call->light[2] != 0;
         }
+        const int stab = (call->type == 0x472 && call->subtype == 2) ||
+                         (e && e->type == 0x10e6 && call->type == 0x7f78 && call->subtype == 12);
+        const uint32_t refused = c->stats.unsupported;
+        if (stab) ++c->stats.death_stab_requests;
         create_joint(c, call->type, call->position, call->target, call->angle, call->subtype, target,
-                     call->scale, (uint16_t)(arrow ? call->arg7 : c->hero_key & 0xffff),
+                     call->scale, (uint16_t)(stab ? 0xffff : arrow ? call->arg7 : c->hero_key & 0xffff),
                      (uint16_t)(arrow ? call->arg8 : 0));
+        if (stab) c->stats.death_stab_refused += c->stats.unsupported - refused;
         c->jenv.has_creation_light = 0;
         return 0;
     }
     case MU_SFX_CALL_EFFECT: {
         mu_sfx_info info;
         memset(&info, 0, sizeof info);
+        const int stab = call->type == 0x10e6 && call->subtype == 1;
+        const uint32_t refused = c->stats.unsupported;
+        if (stab) { ++c->stats.death_stab_requests; info.key = 0xffff; }
         int32_t owner = call->owner == -2 ? -1 : call->owner;
         if (e && e->type == MU_SFX_RAGEFUL_BLOW) {
             /* RENDER-EFFECTS-004: the pieces' info key (scale = key / 100). EarthQuake01..03 are owned by
@@ -751,6 +762,7 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
                                  owner, &info, call->scale);
         } else
             create_effect(c, call->type, call->subtype, call->position, call->angle, call->light, owner, &info);
+        if (stab) c->stats.death_stab_refused += c->stats.unsupported - refused;
         return 0;
     }
     case MU_SFX_CALL_ANIMATION: {
@@ -1736,11 +1748,41 @@ void mu_combat_receive(mu_combat *c)
 
 /* ---------------------------------------------------------------- step */
 
+static void death_stab_step(mu_combat *c)
+{
+    if (!c->hero_attack_time || c->attack_skill != 43)
+        return;
+    ++c->stats.death_stab_steps;
+    mu_character *h = c->hero_character;
+    const mu_character_item *weapon = h ? &h->items[MU_CHARACTER_WEAPON_ITEM(0)] : NULL;
+    const int32_t bone = weapon ? weapon->link_bone : -1;
+    /* This is the authored base-DK demo context. No later-class or equipment
+     * selector is inferred from the client's CHARACTER +0x19b1 array. */
+    if (mu_class_check(c->walk->hero.class_byte) != 1 || !h || !h->player_loaded || !weapon->loaded ||
+        !h->player_bones || bone < 0 || bone >= h->player_bone_count || h->player_bmd.bones[bone].dummy) {
+        ++c->stats.death_stab_context_refused;
+        return;
+    }
+    mu_sfx_death_stab s = {0};
+    s.attack_time = c->hero_attack_time; s.has_model = s.has_bone = 1;
+    s.quiet_world = c->map && c->map->world == 3;
+    s.owner = MU_COMBAT_HERO_OBJECT;
+    memcpy(s.position, c->walk->hero.position, sizeof s.position);
+    memcpy(s.angle, c->walk->hero.angle, sizeof s.angle);
+    memcpy(s.sword_position, c->death_stab_sword, sizeof s.sword_position);
+    const float zero[3] = {0};
+    mu_pt_transform_position(h->player_bones + 12 * bone, zero, s.weapon_point, 1, h->params.scale, s.position);
+    (void)mu_sfx_death_stab_step(&s, &c->env);
+    memcpy(c->death_stab_sword, s.sword_position, sizeof s.sword_position);
+    c->hero_attack_time = s.attack_time;
+}
+
 void mu_combat_step(mu_combat *c)
 {
     ++c->step;
     mu_combat_receive(c);
     hero_dead_step(c);
+    death_stab_step(c);   /* MoveCharacter 0x013a9047, before AttackTime increments */
     if (c->hero_attack_time && mu_attack_time_step(&c->hero_attack_time, MU_ATTACK_TIME_LIMIT)) {
         refresh_objects(c);
         end_of_attack(c);
@@ -2509,6 +2551,10 @@ void mu_combat_report_summary(const mu_combat *c, FILE *out, int quiet)
         fprintf(out, "%s[\"%c\", %d, %d, %u]", i ? ", " : "", c->unsupported_kinds[i].routine,
                 c->unsupported_kinds[i].type, c->unsupported_kinds[i].subtype, c->unsupported_kinds[i].count);
     fprintf(out, "]}\n");
+    if (s->death_stab_steps)
+        fprintf(out, "{\"death_stab\": true, \"steps\": %u, \"requests\": %u, \"refused\": %u,"
+                " \"context_refused\": %u}\n", s->death_stab_steps, s->death_stab_requests,
+                s->death_stab_refused, s->death_stab_context_refused);
     if (!quiet)
         for (int32_t i = 0; i < c->log_count; ++i)
             fprintf(out, "{\"combat_log\": \"%s\"}\n", c->log[i]);

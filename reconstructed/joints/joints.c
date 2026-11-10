@@ -122,7 +122,7 @@ int mu_jt_kind_supported(int32_t type, int32_t subtype)
 {
     if (bow_joint_kind(type, subtype) || wing_joint_kind(type, subtype)) return 1;
     switch (type) {
-    case 0x472: return subtype == 1;
+    case 0x472: return subtype == 1 || subtype == 2;
     case MU_JT_BITMAP_ENERGY:
         return subtype == 1;
     case MU_JT_BITMAP_SPIRIT:
@@ -130,7 +130,7 @@ int mu_jt_kind_supported(int32_t type, int32_t subtype)
     case MU_JT_BITMAP_SPARK:
         return subtype == 0 || subtype == 3;   /* 3: RENDER-EFFECTS-009, bow 0x12f9's sparks */
     case MU_JT_BITMAP_FLARE:
-        return subtype == 0 || subtype == 1 || subtype == 41 || subtype == 42;
+        return subtype == 0 || subtype == 1 || subtype == 12 || subtype == 41 || subtype == 42;
     case MU_JT_BITMAP_LASER:
         return subtype == 0x43 || subtype == 0x44 || subtype == 5;   /* 5: RENDER-EFFECTS-009, the arrows' trail */
     case MU_JT_BITMAP_THUNDER:
@@ -296,6 +296,11 @@ int mu_jt_create(mu_jt_joint *j, int32_t type, const float position[3], const fl
         j->light[0] = j->light[1] = j->light[2] = 0.2f;
         j->lifetime = 999999; j->max_tails = 30;
         j->tex_type = MU_JT_BITMAP_SPIRIT; j->scale = scale;
+        if (subtype == 2) {   /* 0x01548aeb: Death Stab */
+            copy3(j->target_position, target_position);
+            j->light[0] = 1.0f; j->light[1] = j->light[2] = F_0_3;
+            j->lifetime = 20; j->max_tails = 5; j->tex_type = 0x7fde;
+        }
         break;
     }
     case MU_JT_BITMAP_LASER: {
@@ -409,6 +414,16 @@ int mu_jt_create(mu_jt_joint *j, int32_t type, const float position[3], const fl
         j->lifetime = 100;
         j->max_tails = 20;
         j->scale = 10.0f;
+        if (subtype == 12) {   /* 0x0154a9a2: Death Stab's blue curls */
+            j->scale = scale; j->lifetime = 70; j->max_tails = 50;
+            j->light[0] = j->light[1] = F_0_1; j->light[2] = 1.0f;
+            j->jitter[0] = (float)imod(jrand(env), 360);
+            const float radians = -j->angle[2] * f32bits(0x40490fdbu) / 180.0f;
+            j->jitter[1] = fsin(radians) * -4.0f;
+            j->jitter[2] = fcos(radians) * -4.0f;
+            copy3(j->target_position, target_position);   /* 0x0154bfad */
+            break;
+        }
         if (subtype == 41) {   /* 0x0154a28e: rising glints emitted by NPC 257's persistent joint */
             j->scale = scale;
             j->lifetime = 40;
@@ -714,6 +729,7 @@ static void move_ring(mu_jt_joint *j, const mu_jt_env *env)
 #include "icarus_joints.inc"
 #include "kanturu_joints.inc"
 #include "wing_joints.inc"
+#include "death_stab_joints.inc"
 
 int mu_jt_move(mu_jt_joint *j, const mu_jt_env *env, const mu_jt_move_inputs *in)
 {
@@ -740,6 +756,11 @@ int mu_jt_move(mu_jt_joint *j, const mu_jt_env *env, const mu_jt_move_inputs *in
     }
     switch (j->type) {
     case 0x472:
+        if (j->subtype == 2) {   /* 0x01569e07..0x0156a15b */
+            if (!t || !t->live) j->target = -1;
+            else move_death_stab(j, t, env, in->index);
+            break;
+        }
         if (j->target < 0) break;
         if (!t || !t->live) { j->live = 0; j->lifetime = 0; break; }
         move_icarus_emitter(j, env, in->index);
@@ -869,6 +890,10 @@ int mu_jt_move(mu_jt_joint *j, const mu_jt_env *env, const mu_jt_move_inputs *in
         }
         break;
     case MU_JT_BITMAP_FLARE: {
+        if (j->subtype == 12) {   /* 0x01579558..0x0157993c */
+            move_death_stab_flare(j);
+            break;
+        }
         if (j->subtype == 41) {   /* 0x015788c9 */
             if (j->lifetime <= 20) {
                 j->jitter[2] = j->jitter[2] + 1.0f;
@@ -988,7 +1013,9 @@ tail:
     j->lifetime = j->lifetime - 1;
     if (j->lifetime < 0)
         j->live = 0;
-    /* (0x7f78 / 0x7fdd subtypes 4 and 0xc move a second time when LifeTime % 12 != 0; not supported kinds) */
+    /* 0x0158978d: Flare/12 recurses until the decremented lifetime is a multiple of 12. */
+    if (j->live && j->type == MU_JT_BITMAP_FLARE && j->subtype == 12 && j->lifetime % 12 != 0)
+        return mu_jt_move(j, env, in);
     return 1;
 }
 
