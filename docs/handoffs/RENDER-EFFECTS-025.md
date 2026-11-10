@@ -78,3 +78,8 @@ Static follow-up explains Hammer14's unchanged pixels. The original `up01` call 
 pushes scale zero at `0x017d9a54..0x017d9a58`. The native restored request also has scale zero.
 The refusal and allocation counts change; its visible area does not. No positive-size replacement
 or name trimming is introduced.
+
+The 83-row batch completes at compiled source `b63773a8`: all pass, 1,163,855 reported row checks,
+2,220.41 s command / 4,240.3 s aggregate row wall. No mutants repeated. Main `3732f82a` is now
+integrated, with both research parts 36/37 and both validator additions retained. Latest-main
+build, selectors, delta checks and final identity sweep are pending.

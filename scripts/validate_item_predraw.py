@@ -513,6 +513,7 @@ MUTANTS = {
     'range-product': ('value = value * other;', 'value = value + other;'),
     'range-product-left': ('memcpy(&value, input + p->a, 4);', 'memcpy(&value, input + p->a + 1, 4);'),
     'range-product-right': ('memcpy(&other, &input[p->k[0]], 4);', 'memcpy(&other, &input[p->k[0] + 1], 4);'),
+    'body-carry': ('&last) &&\n        mu_rc_body_types[type].carry)', '&last) &&\n        0)'),
     # Not mutated: the unknown-counter refusal (frame_known; a C refusal that matches the client's kind and bitmap
     # passes the comparison by design, so only test_item_predraw's frame-counter test catches it), op 49's bone guard
     # (unreachable: the owner gate already requires bone < bones), the post gate's item-bone exemption (here the OBJECT's model is the item model, so both counts

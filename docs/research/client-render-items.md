@@ -3069,6 +3069,101 @@ rank-5 pose or owner effects. Existing bone, record, buff, selected-item, proces
 remain. No original client process, protected component, live server/login, packet, character-power or memory-write
 work was used. Final counts, table size, exact validator timings and default-draw comparisons are in the handoff.
 
+## Part 36, carried fields, alpha products and no-glow bodies, RENDER-ITEMS-002X
+
+Prerequisite PR #360 merged at `54a53e1a` before this branch was created. This is offline/static work over the
+same pinned instructions as part 35: text SHA-256 `2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724`,
+data SHA-256 `c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f`. No client process, protected
+component, original installation change or service work is involved. [Handoff and checks](../handoffs/RENDER-ITEMS-002X.md).
+
+### Fourteen later read-program bodies
+
+`gen_item_owner_fx.READ_PROGRAM_TYPES` adds fourteen types. Every pre-program reads with the existing operations.
+The exact `(0, -4)` wave-operand fold for `0x2301/0x2302` is part 35's established reader behavior, not a new
+approximation here. It still produces the same zero used by the original masked SSE/CVTT route.
+
+| Types | Pre-program start | Body inputs needed |
+|---|---|---|
+| `0x0b29` | `0x0179ecc0` | Binary32 wave and RenderObjDraw argument alpha multiplied once, scalar kind 7. |
+| `0x0b52` | `0x017ab1ab` | Its own wave, clock chain and derived product; default carry. |
+| `0x0f1e` | `0x017d405a` | Two wave chains, retained intermediate colour products and carried model fields. |
+| `0x174a` | `0x017dd9b3` | Wave times argument alpha, plus carried model fields. |
+| `0x2301/0x2302` | `0x017b1c84` | Two wave chains multiplied by OBJECT alpha `+0xdc`, plus carried model fields. |
+| `0x23a8/0x23a9` | `0x017cbb53` | Their own binary32 wave chains, extended probes and carried model fields. |
+| `0x23ed/0x23fe/0x2403` | `0x01774185` | The sine chain and its binary32 addition, plus carried model fields. |
+| `0x23ee/0x23ff/0x2404` | `0x0177448a` | The sine chain and its binary32 addition, plus carried model fields. |
+
+A nested range call must be attributed to its original pre-program caller before it is excluded from the body
+random probes. The existing counter/range probe policy now includes these fourteen types. Treating a wrapper's
+internal rand return as a body-random site made extended fits fail before the body could be fitted. Body random
+sites outside a declared pre-program still remain part of the body fit and its consumption checks.
+
+The old initial fit of `0x23a8` fails independent state 3, and `0x23a9` state 6, by one ULP in mesh blend light.
+The accepted recipes use the parsed binary32 wave operations, rather than the shared binary64 blend expression.
+The wave pair fails initial states 20/17 with an extra original draw that the incorrectly fitted stream omits.
+Extended probes and carrying the model fields left by the previous body draw resolve those failures. No draw,
+colour word, alpha source or comparison tolerance is discarded. Argument alpha and OBJECT alpha remain separate
+inputs. Scalar kinds, clock-chain caps, scalar storage and public C/ctypes layouts do not change.
+
+The isolated owned comparison runs the same nonzero random stream through each complete original program and
+its C reconstruction. It checks every draw word and model field at each recorded draw, ordered requests and
+refusals, and exact random consumption. The host-free body family uses zero random results for these pre-program
+types, since there is no native pre-program without an item host. Nonzero shared-stream fidelity is established
+by the owned comparison, not attributed to the host-free path.
+
+### Six cases bypass the glow helper chain
+
+`0x232c..0x2330` and `0x26f5` use their own body path and then the ordinary option/ancient tail. They do not run
+the normal level-glow chain. The existing internal `plain` recipe flag selects that behavior; no new runtime
+opcode or public input is introduced. All raw levels are preserved in the input item.
+
+The body's generic-reference probes use level zero and clear only the forcing kind-B value in that reference
+copy. This prevents records `0x26/0x5b` from sending the reference down the glow chain. The original instruction
+run and the public native comparison retain the unmodified fixture record. The independent `validate_item_groups`
+family tests every level at qualities 0/1/2/9 with both forcing records, kind A 0/6 and both tail settings.
+Portable tests require that level and those records preserve the declared no-glow body. They do not change
+character stats or item records.
+
+### Safe refusal and table size
+
+The largest-group screen exposed stale `_PHASES` data after an unusable probe. A later type with another scalar
+width could feed the previous type's rows to `derive()` and raise IndexError. `_fit` now clears that state before
+sampling. A portable test seeds an earlier type's phase, forces a failed probe and verifies that no phase remains.
+It fails before the fix. The exploratory tail then rejects both types normally. A rejected type is never admitted
+because a previous type happened to leave compatible probe data.
+
+The generated C constants omit redundant leading zeroes and spell zero as `0`. Values, array ordering and integer
+widths are unchanged. Table reproduction and the C-to-C check cover the regenerated table; final size and body
+count are in the handoff. The audit's 512 KiB limit and existing scalar/operation caps still apply.
+
+The survey export had a separate membership list that omitted the named bodies from part 35 and the new
+no-glow list. It now consumes `gen.ALL_TYPES`. A portable regression compares its membership with native
+`mu_rc_item_special` for all 1,691 surveyed types. Re-exporting the saved raw survey changes only the intended
+20 type memberships and nine shape totals; raw classifications, addresses and stopped states remain unchanged.
+
+### Rejected groups and evidence limits
+
+Seven read-program candidates remain rejected: `0x0b4d`, `0x0b51`, `0x1314`, `0x230d`, `0x23f0`, `0x23f2`,
+`0x2497`. The helper group adds six types; the other historical 48 remain. The current three-level diagnostic
+finds 57 types with some helper-count disagreement, including types whose first blocker is an effect or matrix
+call. That diagnostic is not a redefinition or passing census of the historical 54-type group.
+
+Joining consecutive helpers without dropping a draw did not establish a fit for the fifteen tested cases. The
+prototype is removed. The no-glow experiment admits six of 23 candidates and rejects the rest. Those other cases
+still need model/input-state recovery or different caller flow; a count adjustment alone is insufficient.
+
+The four largest other groups attempted add no body. The four shields `0x1735/0x1737/0x1738/0x1755` refuse fits.
+The four armour types `0x2003/0x2007/0x200f/0x2010` reproduce independent overlay-colour failures at states
+22/25/27/21. Their differing words are body-light channels; the generic shade/light inputs do not explain them.
+The exact source/lifetime of those channels remains open. The two mace cases `0x0eed/0x0f0b` retain matrix work;
+`0x0ef4/0x12fb` refuse after the stale-phase fix. These are rejected probes, not coverage.
+
+Requests from the fourteen programs go through the existing item host and native consumers. Missing named bones,
+short skeletons, unsupported particle kinds/arguments and missing textures retain explicit refusals. No new
+particle kind, pose construction, original-client pixel equivalence or absolute random/counter phase is claimed.
+Selected-item, buff and prior record-domain limits remain. Final counts, wall times, affected rows, mutants,
+private native checks and the default-draw sweep are in the handoff.
+
 ## Part 37, missing-name sprite state, Ferea clouds and the remaining bow pairs, RENDER-EFFECTS-025
 
 Offline/static only. The original-instruction proof uses pinned text SHA-256
