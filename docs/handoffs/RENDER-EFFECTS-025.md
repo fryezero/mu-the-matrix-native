@@ -83,3 +83,16 @@ The 83-row batch completes at compiled source `b63773a8`: all pass, 1,163,855 re
 2,220.41 s command / 4,240.3 s aggregate row wall. No mutants repeated. Main `3732f82a` is now
 integrated, with both research parts 36/37 and both validator additions retained. Latest-main
 build, selectors, delta checks and final identity sweep are pending.
+
+Latest-main checkpoint: root build 10.23 s, render targets 3.35 s. The 147-item portable delta
+passes 1,385 tests, 1,153 passed / 232 skipped / no failures or errors, 314.2 s runner / 365.67 s
+command. The reduced private renderer/effects25 pass has 27 tests, all pass, 18.236 / 18.29 s.
+Final default sweep: 91/92 PNGs, 92/92 dumps and 45/46 path-normalized reports identical; only
+Ferea changes, 941 pixels in its frame 24. Sweep 60.79 s. Affected merged scenes complete in
+15.93 s. The 54-row latest-main validator delta is running.
+
+Main now has 110 programs / 37 particle pairs. This lane proves the retained 96 identities /
+32 pairs, all supported. The report retains the full inventory, including five new unsupported
+pairs from main: 0x810a/12, 0x81cf/1, 0x810b/8, 0x8500/2 and 0x8569/0. These are next work,
+not additions claimed by this lane. The final handoff draft is prepared; final checks/PR/ready
+entry/cleanup remain. No ready entry exists yet.
