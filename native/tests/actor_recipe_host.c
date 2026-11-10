@@ -19,8 +19,12 @@ int main(int argc, char **argv)
     int result = load_actor(&actors, &actor, argv[1], cl, 128, 124, 5, 0,
                             "DemoActor", 0, error, sizeof error);
     if (result) { fprintf(stderr, "%s\n", error); free(map); return 1; }
-    printf("{\"class\":%d,\"player\":%d,\"scale\":%.9g,\"slots\":[", cl,
-           actor.player != NULL, (double)actor.actor.spec.scale);
+    const char *body_file = actor.player ? actor.player->items[0].path : "";
+    size_t root_length = strlen(argv[1]);
+    if (!strncmp(body_file, argv[1], root_length) && body_file[root_length] == '/')
+        body_file += root_length + 1;
+    printf("{\"class\":%d,\"player\":%d,\"scale\":%.9g,\"body_file\":\"%s\",\"slots\":[", cl,
+           actor.player != NULL, (double)actor.actor.spec.scale, body_file);
     if (actor.player) {
         if (mu_character_update(actor.player) != MU_MODEL_OK) return 3;
         float lo[3], hi[3];

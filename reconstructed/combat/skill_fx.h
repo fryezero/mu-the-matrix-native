@@ -559,4 +559,15 @@ int mu_sfx_render_state(mu_sfx_gl_state *state, int32_t routine, int32_t argumen
  * MoveEffect 0x0142fd09, MoveJoint 0x01556c26); 0 for another sound. */
 uint32_t mu_sfx_sound_site(int32_t sound, uint32_t *routine);
 
+/* RENDER-EFFECTS-027: skill 43's step helper 0x013966ea, body 0x0139959c.
+ * Model/bone services are explicit inputs. weapon_point is TransformPosition
+ * of the selected link bone at zero offset; sword_position is OBJECT +0x104.
+ * Returns 0 for a missing model/bone. No target-character mutation is modelled. */
+typedef struct mu_sfx_death_stab {
+    uint8_t attack_time, has_model, has_bone, quiet_world;
+    float position[3], angle[3], weapon_point[3], sword_position[3];
+    int32_t owner;
+} mu_sfx_death_stab;
+int mu_sfx_death_stab_step(mu_sfx_death_stab *s, const mu_sfx_env *env);
+
 #endif

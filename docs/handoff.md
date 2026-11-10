@@ -1,10 +1,20 @@
 # Continue from here
 
+RENDER-WORLDS-INNER-001 PR-ready: Kanturu worlds 37/40 now run the complete inline hook `0x00e75089` (clock-windowed effect, smoke/particle requests, bone flares, lightning, Chrome and scrolling mesh passes) and Blood Castle worlds 11..17/52 run the inline switch `0x017fc023` for types 0x0b/0x0d/0x2a. 4,000 original call comparisons, 33/33 compiled mutants, 61 affected validators pass. Default sweep: only world 37 changes. [Scope, checks and limits](handoffs/RENDER-WORLDS-INNER-001.md).
+
+RENDER-EFFECTS-025 PR-ready: Hammer14's exact `up01` missing-name sprite state, Ferea clouds/28 create/move/render and the two remaining bow particle pairs (`0x8109/7`, `0x810a/9`) are ported. The 96-program scene goes from 28 refused requests to zero and unsupported particles from 12 to zero; closer Ferea creates 257 particles with zero unsupported. 10,002 component comparisons, 24/24 compiled mutants, 83 affected validators pass. Default sweep: only Ferea changes. [Census, checks and limits](handoffs/RENDER-EFFECTS-025.md).
+
+RENDER-EFFECTS-027 PR-ready: Death Stab (skill 43) now draws its trails in the offline base-DK fixture: three `0x472/2` red ribbons on steps 2..8 and two `0x10e6/1` markers with `Flare/12` blue curls on steps 6..12; one cast routes 189 requests with zero refusals. 6,064 original comparisons, 23/23 compiled mutants, 49 affected validators pass; the default sweep is byte-identical. [Evidence, checks and limits](handoffs/RENDER-EFFECTS-027.md).
+
+CHARSEL-ITEMS-001 PR-ready: selection now draws authored demo equipment levels and excellent through the existing item renderer and texture rules. Original comparison: 8,817 cases, zero mismatches; 7/7 compiled mutants. File-only selection and default world captures remain byte-identical. [Checks, addresses, renders and limits](handoffs/CHARSEL-ITEMS-001.md).
+
 AUDIO-002G PR-ready: recovered CButton sound 25 now reaches server-select and character-select controls through their original release gates. Credits end-record provenance and native adapter are verified; the interactive credits owner remains absent. 5,803 original comparisons, 10/10 mutants, 9 private focused tests and 26 affected validators pass. [Addresses, refused contexts, timings and limits](handoffs/AUDIO-002G.md).
 
 RENDER-ITEMS-002X PR-ready: bodies 1,404 -> 1,424/1,674 (250 left), adding fourteen carried-field/binary32 read programs and six no-glow bodies. Both tables reproduce; 53 selected validators pass, 932,022 row checks, 49+2 changed-row mutants caught. Final private renderer/actor modules pass 27/27; default 92 PNGs, 92 dumps and 46 reports are byte-identical. [Checks, row timings and limits](handoffs/RENDER-ITEMS-002X.md).
 
 NEXT-GAPS-001 PR-ready, docs only: ranked offline gap inventory, ten lane briefs, file-conflict groups and sourced counts; no runtime change. [Research](research/next-gaps.md), [method and limits](handoffs/NEXT-GAPS-001.md).
+
+RENDER-ACTORS-002 PR-ready: nine later player-model actor subtypes draw as whole bodies (372, 373, 503, 548, 616, 646, 706, 806, 807); six rows stay refused with their reasons. 1,300 actor checks, 21/21 mutant controls, 21 affected validators pass; default 92 PNGs, 92 dumps and 46 reports remain byte-identical. [Checks, timings and limits](handoffs/RENDER-ACTORS-002.md).
 
 RENDER-ACTORS-001 PR-ready: six whole skeleton bodies and nine equipment-loader admissions; Golden Archer 236 now draws its +8 town body and glow only in world 0, with level zero elsewhere. The 32-row census has 15 bounded fixes, two controls and 15 unresolved subtypes. 361 actor checks, 12/12 compiled mutants, 21 affected validators pass; default 92 PNGs, 92 dumps and 46 reports remain byte-identical. [Checks, timings and limits](handoffs/RENDER-ACTORS-001.md).
 

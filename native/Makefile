@@ -807,3 +807,8 @@ $(BUILD)/worlds-s2-host: tests/worlds_s2_host.c $(LIB) $(HEADERS)
 $(BUILD)/muun-visual-host: tests/muun_visual_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/muun-visual-host.o
 	$(CXX) $(BUILD)/muun-visual-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+
+# RENDER-WORLDS-INNER-001: classless inline calls in the production first pass.
+$(BUILD)/worlds-inner-host: tests/worlds_inner_host.c $(LIB) $(HEADERS)
+	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-inner-host.o
+	$(CXX) $(BUILD)/worlds-inner-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
