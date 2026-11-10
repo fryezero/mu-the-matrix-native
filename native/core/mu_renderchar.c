@@ -376,7 +376,11 @@ static int draw_item(const mu_model *model, const mu_renderchar_glow *glow, cons
         for (int i = 0; i < model->bmd->mesh_count; ++i)
             if (host.black_mesh == -1 && !strcmp(model->bmd->meshes[i].texture, "Item1161_Black.jpg"))
                 host.black_mesh = i;
-    int status = glow->type < 0 ? MU_RC_SPECIAL : owner || pre ?
+    /* RenderCharacter's whole Skill/Skeleton body reaches the generic
+     * RenderObjDraw stream, including Golden Archer's town +8 passes. */
+    int status = glow->type >= 0x422 && glow->type <= 0x424 ?
+        mu_rc_item_draws_generic(&it, &m, draws, 32, &count) :
+        glow->type < 0 ? MU_RC_SPECIAL : owner || pre ?
         mu_rc_item_draws_owner(&it, &m, draws, 32, &count, &context, &host) :
         mu_rc_item_draws_context(&it, &m, draws, 32, &count, &context);
     if (owner) {

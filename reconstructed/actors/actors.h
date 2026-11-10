@@ -224,4 +224,11 @@ typedef struct mu_monster_op {
  * the type is outside the table). */
 const mu_monster_op *mu_monster_type_ops(int32_t type, uint32_t *count);
 
+/* RENDER-ACTORS-001: bounded offline Player-model actor recipes. The six
+ * skeleton classes render a whole Skill/Skeleton mesh on Player's bones,
+ * rather than five armour parts. Other admitted classes have explicit parts
+ * in CreateMonster's extracted equipment table. Unknown recipes return 0. */
+int32_t mu_actor_player_body(int32_t server_class);
+int mu_actor_player_recipe(int32_t server_class, mu_monster_class *out);
+
 #endif

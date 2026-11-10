@@ -82,6 +82,18 @@ class WorldRender(unittest.TestCase):
         exc, _ = self.render('--excellent', 'weapon0=1', '--world-time', '300')
         self.assertEqual(exc['passes'], 6)
 
+    def test_skeleton_body_level_passes(self):
+        for model in (0x422, 0x423, 0x424):
+            low, _ = self.render('--item-type', f'helm={model}', '--world-time', '0')
+            high, png = self.render('--item-type', f'helm={model}', '--item-level', 'helm=8',
+                                    '--world-time', '0')
+            self.assertEqual((low['special'], low['passes']), (0, 5))
+            self.assertEqual((high['special'], high['passes']), (0, 6))
+            self.assertNotEqual(high['sha256'], low['sha256'])
+            again, repeat = self.render('--item-type', f'helm={model}', '--item-level', 'helm=8',
+                                         '--world-time', '0')
+            self.assertEqual((high['sha256'], png), (again['sha256'], repeat))
+
     def test_back_carry_and_fallback(self):
         base, _ = self.render()
         carried, _ = self.render('--safe-zone')
