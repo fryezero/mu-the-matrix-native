@@ -57,8 +57,85 @@ for a second offline-controller site. Historical adapter totals are not a curren
 
 ## Checks
 
-Verification in progress. Final counts, wall times, tested commit and Steward validators will replace
-this paragraph before the ready line. No full gate is run in the lane.
+All runtime/validator inputs were checked at `385c4e0c`.
+The root build passed in **14.82 s** on the same runtime sources before the docs-only main merge.
+Subsequent changes were tests, validator fixture setup and documentation, with no C/runtime changes.
+
+- Affected portable run: **156 work items, 1,513 tests**, **408.82 s** command wall time, including
+  selection; runner test wall time **336.6 s**. Initial result was 1,264 passed, 248 explicit skips
+  and one stale AUDIO-002E shell expectation. The corrected six-test module passes in **4.82 s**, one
+  expected private skip. Final combined result is **1,265 passed, 248 skipped, zero unresolved failures**.
+  This was a targeted correction/rerun, not a second full portable run.
+- The expectation now verifies the ordered Create click and quick Esc request: Create starts sound 25,
+  and Esc is suppressed while that id remains active. The existing one-instance-per-id policy is
+  preserved, not relaxed.
+- **8d reduced**: the selection has 156 work items and exceeds the 40-item cap. From the repo root,
+  source `~/Documents/MTM/mu-mac-tools/native/private-env.sh`, then run the new `test_audio_ui` module
+  and the changed `test_audio_charsel` shell method. **9 tests, zero failures/skips, 31.98 s**. The
+  unchanged charsel original validator's mutants were not rerun.
+- `validate_audio_ui`: **5,803 cases, zero mismatches**, **18.6 s** without mutants. This comprises
+  5,763 complete CButton updates and 40 credits sequences, including 3,000 credits frames, 66 button
+  and 71 credits sound boundaries, and 952,836 credits state words. The original boundary independently
+  supplies the sound site and arguments. The two body hashes are pinned in the validator.
+- New-target mutants, run once: **10/10 caught**, **36.0 s** row wall, **36.14 s** command wall.
+  Plants cover CButton site/enabled/release/held/order, credits site/gate, and cue id/object/loop.
+- Native tests prove accepted release once despite held/repeated input, refused/hidden/disabled input,
+  all four native charsel controls with an explicitly selected fixture, credits closure, detach/rebind,
+  disabled delivery, Effect mute, callback cleanup and rejection of unlabelled/foreign requests.
+  Five shell journeys retain equal audio-on/off PNG hashes. The existing installed sound 25 decodes
+  to nonzero PCM through both recovered controller events, using read-only Native Data and no options writes.
+- Affected validator runner: **26 passed, zero failures/errors/skips, 604.01 s** command wall including
+  selection. All nine symbol fallback rows were retained. Only `validate_audio_ui` receives mutants;
+  the other selected rows ran without their mutant switches.
+
+Repository source/index audit: **2,144 files, zero rejected, 27.35 s**. A final staged
+documentation audit runs before publication; its wall time is recorded in the PR.
+
+### Steward validators
+
+Tested commit **`385c4e0c`**. The final documentation commit does not change any compiled/validator input.
+Use the canonical private environment above. All rows below passed without mutants. The new
+`validate_audio_ui` row also passed its 10 mutants once at this same commit. Other rows need no mutants
+for this lane. The scene row additionally runs its existing loading-screen checks.
+
+Steward validators: validate_actor_recipes,validate_app_polish2,validate_app_polish4,validate_audio_callers,validate_audio_domains,validate_audio_items,validate_audio_ui,validate_charsel_window,validate_hud,validate_icarus_c2,validate_inventory_fx,validate_item_callers,validate_meshdraw,validate_model_edge,validate_movement,validate_render_effects16,validate_render_effects17,validate_render_effects18,validate_render_effects19,validate_render_effects24,validate_render_items,validate_scene,validate_ui,validate_ui_widgets,validate_world_order,validate_worlds_fog
+
+| Validator | Cases | Wall seconds |
+|---|---:|---:|
+| `validate_actor_recipes` | 361 | 30.2 |
+| `validate_app_polish2` | 1028 | 3.6 |
+| `validate_app_polish4` | 10485 | 41.2 |
+| `validate_audio_callers` | 5528 | 8.5 |
+| `validate_audio_domains` | 2544 | 29.8 |
+| `validate_audio_items` | 3000 | 4.0 |
+| `validate_audio_ui` | 5803 | 18.6 |
+| `validate_charsel_window` | 20 | 12.0 |
+| `validate_hud` | 48 | 134.3 |
+| `validate_icarus_c2` | 8400 | 39.3 |
+| `validate_inventory_fx` | 8017 | 8.6 |
+| `validate_item_callers` | 6013 | 1.5 |
+| `validate_meshdraw` | 14619 | 80.3 |
+| `validate_model_edge` | 954 | 167.3 |
+| `validate_movement` | 6614 | 78.7 |
+| `validate_render_effects16` | 424 | 4.6 |
+| `validate_render_effects17` | 618 | 8.5 |
+| `validate_render_effects18` | 540 | 1.5 |
+| `validate_render_effects19` | 400 | 1.4 |
+| `validate_render_effects24` | 226 | 2.7 |
+| `validate_render_items` | 5512 | 2.6 |
+| `validate_scene` | 225 routine cases | 1.4 |
+| `validate_ui` | 794 | 212.9 |
+| `validate_ui_widgets` | 630 | 105.7 |
+| `validate_world_order` | 2400 | 9.3 |
+| `validate_worlds_fog` | 4044 | 5.8 |
+
+The 6b symbol review found the new sound payload/adapter in the two reconstructed UI callers,
+`mu_charsel_ui`, shell delivery and the new native test host. Existing UI, shell and charsel audio
+consumers are covered by the affected run and focused reruns. No shared session sound registration,
+character renderer, actor, combat, item or world object routine changed. Standards/spec self-review
+covered source provenance, callback lifetime, mute/no-replay, original gates/order and owned-path scope.
+No independent review or full lane gate is claimed.
+
 
 ## Limits and next
 

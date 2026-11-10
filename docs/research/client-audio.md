@@ -593,3 +593,14 @@ request-bound paths and owners whose context is absent. For example, `0x00b48b5a
 excluded character-stat request, so this lane does not trace or wire it. Remaining candidates need
 individual owning-controller recovery, not a blanket click callback. Final evidence and limits are
 recorded in [AUDIO-002G](../handoffs/AUDIO-002G.md).
+
+
+### Verified result
+
+`validate_audio_ui` compares 5,763 complete button updates and 40 credits sequences, 5,803 cases,
+with zero mismatches. The sound boundary sees 66 button and 71 credits requests. Credits also compare
+3,000 update frames and 952,836 state words. All 10 compiled planted mistakes are caught. Native
+checks pass for once-per-release, refused/held input, detached/muted/disabled delivery, credits closure,
+four enabled charsel fixture controls and decoded installed sound 25. Five shell journeys retain
+identical audio-on/off PNGs. The quick Create/Esc test explicitly retains original same-id suppression.
+All 26 affected validators pass; per-row times and the tested commit are in the handoff.
