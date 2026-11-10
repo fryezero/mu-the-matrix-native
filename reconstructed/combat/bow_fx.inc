@@ -39,6 +39,7 @@ static float ring_pulse(const mu_sfx_effect *e)
 uint32_t mu_sfx_sound_site(int32_t sound, uint32_t *routine)
 {
     static const struct { int32_t sound; uint32_t routine, site; } sites[] = {
+        {0x71, 0x013966eau, 0x01399628u},    /* RENDER-EFFECTS-027: Death Stab, AttackTime 8 */
         {0x582, 0x013c0f19u, 0x013c42eeu},   /* CreateEffect 0x40e: the tornado */
         {0x55d, 0x013c0f19u, 0x0141953eu},   /* CreateEffect 0x70a: the ground skills' rain */
         {0x97, 0x0142fd09u, 0x01451cceu},    /* MoveEffect 0x461: Rageful Blow's quake */

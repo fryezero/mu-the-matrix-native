@@ -2,6 +2,8 @@
 
 RENDER-EFFECTS-025 PR-ready: Hammer14's exact `up01` missing-name sprite state, Ferea clouds/28 create/move/render and the two remaining bow particle pairs (`0x8109/7`, `0x810a/9`) are ported. The 96-program scene goes from 28 refused requests to zero and unsupported particles from 12 to zero; closer Ferea creates 257 particles with zero unsupported. 10,002 component comparisons, 24/24 compiled mutants, 83 affected validators pass. Default sweep: only Ferea changes. [Census, checks and limits](handoffs/RENDER-EFFECTS-025.md).
 
+RENDER-EFFECTS-027 PR-ready: Death Stab (skill 43) now draws its trails in the offline base-DK fixture: three `0x472/2` red ribbons on steps 2..8 and two `0x10e6/1` markers with `Flare/12` blue curls on steps 6..12; one cast routes 189 requests with zero refusals. 6,064 original comparisons, 23/23 compiled mutants, 49 affected validators pass; the default sweep is byte-identical. [Evidence, checks and limits](handoffs/RENDER-EFFECTS-027.md).
+
 CHARSEL-ITEMS-001 PR-ready: selection now draws authored demo equipment levels and excellent through the existing item renderer and texture rules. Original comparison: 8,817 cases, zero mismatches; 7/7 compiled mutants. File-only selection and default world captures remain byte-identical. [Checks, addresses, renders and limits](handoffs/CHARSEL-ITEMS-001.md).
 
 AUDIO-002G PR-ready: recovered CButton sound 25 now reaches server-select and character-select controls through their original release gates. Credits end-record provenance and native adapter are verified; the interactive credits owner remains absent. 5,803 original comparisons, 10/10 mutants, 9 private focused tests and 26 affected validators pass. [Addresses, refused contexts, timings and limits](handoffs/AUDIO-002G.md).
