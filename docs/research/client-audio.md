@@ -543,3 +543,30 @@ RMS / full-scale samples, before → after:
   left unchanged.
 - In the native session Kardamahal's track did not start (peak 24,139 either way), so a music source that clips
   itself was measured only offline.
+
+## AUDIO-002G discovery, 2026-11-09
+
+Static reading uses the same capture09/capture10 and executable pins as this document's opening.
+The lane is offline. No client or launcher ran, and no new service/event input is admitted.
+
+| Owner | Caller and gate recovered from pinned text | Native disposition |
+|---|---|---|
+| CButton update `0x009867e3` | `0x0098689e`, sound 25, null object, loop 0. Delta is not negative, sprite shown, enabled, cursor in active button, release edge, and held pointer equals this button. Click is set before sound; check state toggles after sound; held pointer clears afterward | Wire the existing legacy server-select and character-select controllers |
+| CCreditWin next block `0x009d9eb2` | `0x009d9eed`, sound 25, null object, loop 0, when current record type equals 0. Sound precedes finish `0x009d94e1`, hide, request marker, stop music 1, play music 21 | Preserve end-record provenance for the existing offline credits controller. Interactive shell has no credits owner; do not invent its open/finish route |
+| Scene-5 tick `0x01856e6c` | `0x01857064`, `0x01857163`, `0x018571e6`, already delivered by AUDIO-002E | Preserve existing Enter/menu/panel gates |
+| Login tick tail `0x0185722b` candidate | `0x01857529`, sound 25 after CInput byte `+0x31` refusal and Esc edge, before credits/menu choice | Refuse new wiring. Shell login panel is a placeholder; exact owning tail/input/menu contexts are not migrated |
+| Character-create GFx input query `0x00b49b97` | `0x00b49be4`, sound 25 when the movie exists, window visible, `0x009a5a06` permits input and Enter is pressed | Refuse standalone hook. This query's owning caller/lifetime must be recovered; adding a generic Enter click could duplicate scene-5 audio |
+| Legacy modal/delete controllers | `0x009a336e`, `0x009a339c`, `0x009a3538`, `0x009a3642`, sound 25 on modal Enter/Esc branches | Refuse. These legacy modal owners are not the native GFx create/delete controller; no callback-name substitution |
+| GFx base dispatcher `0x00aaf5d3` | No direct sound call in the complete body. UIInit, window position and input-focus callbacks delegate to window methods | No invented sound on every GFx callback |
+| GFx character list `0x00b4c1df` and select-row path | Current reconstruction delegates selection/entry; no sound call in the list callback body | No invented double-click sound |
+
+The CButton held pointer is shared by its context. A release outside, over another button, disabled
+button or inactive button refuses the click. An inactive containing CWin can still update its buttons
+and produce their sound before declining the owning action. Sound must not be gated on the later
+server-connect or character action succeeding. Credits completion is a presentation marker here;
+its original request remains out of scope. Repeated direct end-block invocation can sound again in
+the original; an owning host must honor HideWin to stop further window updates.
+
+This is a bounded owner audit, not a whole-client caller census. Nearby effect/NPC/item callers and
+unrecovered UI controllers are not admitted by proximity. Event audio inputs and the opaque frame gap
+remain excluded.
