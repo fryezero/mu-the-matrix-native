@@ -69,6 +69,7 @@ def originals(args):
                               frame=(0x1dd4 + 0xc, {-0x10: 0}))
         if not run['ok']: raise RuntimeError(run)
         rows[cl]['body'] = struct.unpack_from('<I', run['regions']['character'], 0x32b4)[0]
+        rows[cl]['body_level'] = struct.unpack_from('<H', run['regions']['character'], 0x144)[0]
     return (text, data, pins.FLAG.read(args.flag), pins.FEATURE.read(args.feature)), rows
 
 
@@ -108,7 +109,7 @@ def check_recipes(lib, rows):
             continue
         source = rows[cl]
         expected = [list(x) for x in source['slots']]
-        if cl in SKELETON: expected[0] = [source['body'], 0]
+        if cl in SKELETON: expected[0] = [source['body'], source['body_level'] if cl == 236 else 0]
         actual = [[s.type, s.level] for s in row.slots]
         ok = status == 1 and row.model == source['model'] and row.scale_bits == source['scale_bits'] and \
              row.class_byte == source['class_byte'] and actual == expected
@@ -119,27 +120,39 @@ def check_recipes(lib, rows):
 def check_render(lib, args, rows, cases):
     fam = family(); rng = random.Random(20261109)
     original_record = vr.character_record
+    original_world = vr.World
     try:
         for i in range(cases):
             cl = SKELETON[i % len(SKELETON)]; subtype = rows[cl]['body']
+            world_id = (0, 3, 2, 51)[(i // len(SKELETON)) % 4]
+            def world(*args):
+                w = original_world(*args)
+                w.m.ensure(0x01cf15fc, 4)
+                w.m.w32(0x01cf15fc, world_id)
+                return w
+            vr.World = world
             alpha = vr.f2u(rng.uniform(.05, 1)); action = rng.choice((1, 11, 50, 52, 111, 113, 114, 120))
             def record(**kw):
                 raw = original_record(**kw)
                 struct.pack_into('<I', raw, 0x32b4, subtype)
                 struct.pack_into('<h', raw, 0x146, cl)
+                struct.pack_into('<H', raw, 0x144, rows[cl]['body_level'])
                 raw[0x328f] = 4 if cl == 236 else 2
                 return raw
             vr.character_record = record
             ch = {'class': 0, 'action': action, 'safe': 0, 'frame': vr.f2u(rng.uniform(0, 10)),
                   'alpha': alpha, 'select': 0, 'speeds': [vr.f2u(.25)] * 390, 'slots': [None] * 9}
             run, calls, world = vr.character_client(args, ch)
-            body = [('PART', -1, lib.mu_actor_player_body(cl), 0, 0, 0, 1, 0, 2)]
+            recipe = Row(); lib.mu_actor_player_recipe(cl, C.byref(recipe))
+            level = recipe.slots[0].level if world_id == 0 else 0
+            body = [('PART', -1, lib.mu_actor_player_body(cl), level << 3, 0, 0, 1, 0, 2)]
             actual = [c for c in calls if c[0] == 'PART']
             rpo = [c for c in world.calls if c[0] == 'RPO' and c[2] != 1]
             note(fam, run['ok'] and actual == body and len(rpo) == 1 and rpo[0][1][4] == alpha,
-                 {'class': cl, 'action': action, 'calls': actual, 'run': run if not run['ok'] else None})
+                 {'class': cl, 'world': world_id, 'action': action, 'calls': actual, 'expected': body, 'run': run if not run['ok'] else None})
     finally:
         vr.character_record = original_record
+        vr.World = original_world
     return fam
 
 
@@ -171,24 +184,23 @@ def check_equipment(args, rows):
 
 
 def check_body_draw(args):
-    # These non-item model indices use the native renderer's existing plain
-    # textured-body fallback. Compare its generic body contract to the actual
-    # RenderObjDraw instructions, without claiming admission to the item census.
+    # Whole skeleton bodies use the original generic RenderObjDraw path.
+    # Compare level zero and Golden Archer's town +8, without item admission.
     fam = family(); lib = C.CDLL(str(vr.LIBRARY)); rng = random.Random(422)
-    for t in (0x422, 0x423, 0x424):
+    for t, level in ((0x422, 0), (0x423, 0), (0x424, 0), (0x423, 8)):
         for i in range(12):
-            case = vr.classify_case(t, dict(item_level=0, option1=0, ext=0, quality=5,
+            case = vr.classify_case(t, dict(item_level=level << 3, option1=0, ext=0, quality=5,
                                             time=vr.f2u(i * 12345.5), render_type=2))
             case['alpha'] = vr.f2u(rng.uniform(.01, 1))
             case['light'] = [vr.f2u(rng.uniform(.05, 1.5)) for _ in range(3)]
             run, stream, _, _ = vr.client_stream(args, case)
             status, expected = vr.c_stream(lib, case, generic=True)
             note(fam, run['ok'] and status == 0 and stream == expected,
-                 {'type': t, 'stream': stream, 'expected': expected})
+                 {'type': t, 'level': level, 'stream': stream, 'expected': expected})
     return fam
 
 
-def build_host(directory, source=None):
+def build_host(directory, source=None, draw_source=None):
     directory = Path(directory); native = ROOT/'native'
     code = (native/'tests/actor_recipe_host.c').read_text().replace(
         '#include "../core/mu_world_actors.c"', '#include "' + str(source or native/'core/mu_world_actors.c') + '"')
@@ -196,7 +208,12 @@ def build_host(directory, source=None):
     subprocess.run(['clang', '-std=c11', '-O1', '-ffp-contract=off', '-iquote', str(native/'core'),
                     '-I', str(native/'build/gen'), '-I', str(native/'session'), '-c', str(directory/'host.c'),
                     '-o', str(directory/'host.o')], check=True, capture_output=True)
-    subprocess.run(['clang++', str(directory/'host.o'), str(native/'build/libmunative.a'),
+    objects = [str(directory/'host.o')]
+    if draw_source:
+        subprocess.run(['clang', '-std=c11', '-O1', '-ffp-contract=off', '-iquote', str(native/'core'),
+                        '-c', str(draw_source), '-o', str(directory/'draw.o')], check=True, capture_output=True)
+        objects.append(str(directory/'draw.o'))
+    subprocess.run(['clang++', *objects, str(native/'build/libmunative.a'),
                     str(native/'build/libmusession_world.a'), '-L/opt/homebrew/opt/cryptopp/lib', '-lcryptopp',
                     '-L/opt/homebrew/opt/jpeg-turbo/lib', '-ljpeg', '-framework', 'CoreText',
                     '-framework', 'CoreGraphics', '-framework', 'CoreFoundation', '-lm', '-o', str(directory/'host')],
@@ -206,13 +223,13 @@ def build_host(directory, source=None):
 
 def check_native(host, root, rows):
     fam = family()
-    for cl in FIXED:
-        result = subprocess.run([str(host), root, str(cl)], capture_output=True, text=True)
+    for cl, world_id in [(cl, 0) for cl in FIXED] + [(cl, 3) for cl in SKELETON]:
+        result = subprocess.run([str(host), root, str(cl), str(world_id)], capture_output=True, text=True)
         if result.returncode:
-            note(fam, False, {'class': cl, 'error': result.stderr[-1500:]}); continue
+            note(fam, False, {'class': cl, 'world': world_id, 'exit': result.returncode, 'error': result.stderr[-1500:]}); continue
         value = json.loads(result.stdout); expected = rows[cl]
         slots = [list(x) for x in expected['slots']]
-        if cl in SKELETON: slots[0] = [expected['body'], 0]
+        if cl in SKELETON: slots[0] = [expected['body'], expected['body_level'] if cl == 236 and world_id == 0 else 0]
         correct = value['player'] == 1
         scale = am.from_bits(expected['scale_bits']) if expected['scale_bits'] else am.f32(.9)
         correct &= abs(value['scale'] - scale) < 1e-7
@@ -222,6 +239,8 @@ def check_native(host, root, rows):
             correct &= bool(actual[0]) == loaded
             if loaded:
                 correct &= actual[1:3] == [t, level] and actual[3] > 0 and actual[4] == 0
+                if cl in SKELETON and k == 0:
+                    correct &= actual[5:] == [2 if level == 8 else 1, 0]
         note(fam, correct, value)
     return fam
 
@@ -261,7 +280,7 @@ def main():
             changes = [('body_422', 'case 14: case 55: case 56: return 0x422;', 'case 14: case 55: case 56: return 0x423;'),
                        ('body_423', 'case 15: case 236: return 0x423;', 'case 15: case 236: return 0x424;'),
                        ('body_424', 'case 16: return 0x424;', 'case 16: return 0x422;'),
-                       ('body_level', 'out->slots[0].level = 0;', 'out->slots[0].level = 9;'),
+                       ('body_level', 'server_class == 236 ? 8 : 0', '0'),
                        ('empty_recipe', 'if (!body && !row->slots[1].type)', 'if (!body && row->slots[1].type)'),
                        ('nonplayer', 'row->kind != MU_CLASS_PLAYER_MODEL', 'row->kind == MU_CLASS_PLAYER_MODEL'),
                        ('body_slot', 'out->slots[0].type = (uint16_t)body;', 'out->slots[1].type = (uint16_t)body;')]
@@ -275,11 +294,18 @@ def main():
             for name, old, new in [('skip_body', 'for (int k = 0; k < MU_CHARACTER_ITEMS; k++)',
                                     'for (int k = 1; k < MU_CHARACTER_ITEMS; k++)'),
                                    ('body_file', 'type - 0x421', 'type - 0x420'),
-                                   ('body_directory', 'Data/Skill/Skeleton', 'Data/Player/Skeleton')]:
+                                   ('body_directory', 'Data/Skill/Skeleton', 'Data/Player/Skeleton'),
+                                   ('body_world', 'params->world == 0 ? row->slots[k].level : 0', 'row->slots[k].level')]:
                 assert source.count(old) == 1, (name, source.count(old))
                 path = directory/'mu_world_actors.c'; path.write_text(source.replace(old, new))
                 check = check_native(build_host(directory, path), opts.game_root, rows)
                 mutants[name] = {'caught': check['equal'] < check['cases'], 'stopped': 0}
+            source = (ROOT/'native/core/mu_renderchar.c').read_text()
+            old = 'glow->type >= 0x422 && glow->type <= 0x424'
+            assert source.count(old) == 1
+            path = directory/'mu_renderchar.c'; path.write_text(source.replace(old, '0'))
+            check = check_native(build_host(directory, draw_source=path), opts.game_root, rows)
+            mutants['body_draw_admission'] = {'caught': check['equal'] < check['cases'], 'stopped': 0}
     report = {'text_sha256': am.TEXT_SHA256, 'data_sha256': am.DATA_SHA256,
               'families': fams, 'cases': sum(x['cases'] for x in fams.values()),
               'all_equal': all(x['equal'] == x['cases'] for x in fams.values()), 'mutants': mutants,

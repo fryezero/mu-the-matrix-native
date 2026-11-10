@@ -35,7 +35,8 @@ int mu_actor_player_recipe(int32_t server_class, mu_monster_class *out)
         *out = *row;
         if (body) {
             out->slots[0].type = (uint16_t)body;
-            out->slots[0].level = 0;
+            /* Golden Archer constructor 0x01384306 writes CHARACTER+0x144. */
+            out->slots[0].level = server_class == 236 ? 8 : 0;
         }
     }
     return 1;

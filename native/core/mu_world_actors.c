@@ -108,7 +108,10 @@ static int load_player_npc(mu_world_actor *a, const char *root, const mu_monster
                 mu_data_free(&table);
                 return 1;
             }
-            a->player_glow[k] = (mu_renderchar_glow){.type = type};
+            /* The town NPC branch 0x01367d85 uses +0x144 only in world 0.
+             * The later skeleton branch 0x01369f98 always passes zero. */
+            a->player_glow[k] = (mu_renderchar_glow){.type = type,
+                .level = params->world == 0 ? row->slots[k].level : 0};
             continue;
         }
         if (type < 0xae6 || type == 0xffff)
