@@ -106,6 +106,7 @@ struct mu_shell {
     mu_audio_limiter out_limiter;   /* PLAY-FIX-001: the sum of the shell and world engines */
     int out_limiter_ready;
     mu_audio_table sound_table;
+    mu_ui_audio ui_audio;
     /* input */
     int32_t mouse_x, mouse_y;
     uint8_t button_down, button_up, button_held;
@@ -206,9 +207,12 @@ static void regions_init(mu_shell *s)
 
 /* ---- 2D layer ----------------------------------------------------------- */
 
+static void charsel_sound(void *context, const mu_cue *cue, uint32_t tick);
+
 static void sink_call(void *user, int op, const uint32_t *words, int count, const void *data, size_t bytes)
 {
     mu_shell *s = user;
+    mu_ui_audio_event(&s->ui_audio, op, words, count, data, bytes, s->now / 40u);
     if (op == MU_GDI_SELECTOBJECT && count >= 1)
         mu_ui_font_set_select(&s->fonts, words[0]);
     else if (op == MU_UI_EVENT && count >= 2 && s->event_count < 32) {
@@ -373,6 +377,7 @@ static void audio_open(mu_shell *s)
             fprintf(stderr, "audio table: %s\n", error);
     }
     s->audio = mu_audio_host_new(&config, error, sizeof error);
+    mu_ui_audio_set_sound(&s->ui_audio, charsel_sound, s);
     if (!s->audio && !s->cfg.quiet)
         fprintf(stderr, "audio: %s (continuing without music)\n", error);
 }
@@ -609,6 +614,8 @@ static int open_charsel(mu_shell *s)
         free(s->charsel_ui);
         s->charsel_ui = NULL;
     }
+    if (s->charsel_ui)
+        mu_ui_audio_set_sound(&s->charsel_ui->audio, charsel_sound, s);
     if (s->charsel_ui && s->gpu && s->platform.ui_target &&
         s->platform.ui_target(s->platform.user, &s->charsel_ui->raster, s->cfg.width, s->cfg.height,
                               &s->charsel_target) == 0) {
