@@ -67,3 +67,14 @@ That failed test passes in 0.013 s. No production behavior changed. Batch wall 2
 including selection. The native host now clears its raster, supplies identity view/projection
 and asserts actual fragments in addition to the existing routing and adapter assertions; it
 passes in 1.570 s. The original arithmetic comparators and compiled mutation targets are unchanged.
+
+The merged portable delta passes 1,464 tests: 1,223 pass, 241 skip, no failures/errors, 422.6 s
+runner / 504.28 s command. The six-module private run passes all 45 tests in 115.188 s runner /
+115.28 s command. The 83-row affected validator batch is running. Main has since landed
+RENDER-ITEMS-002X as `3732f82a`; merge and delta checks follow after the current batch finishes.
+Research part 36 is now occupied on main; this lane retains part 37.
+
+Static follow-up explains Hammer14's unchanged pixels. The original `up01` call at `0x017d9a6e`
+pushes scale zero at `0x017d9a54..0x017d9a58`. The native restored request also has scale zero.
+The refusal and allocation counts change; its visible area does not. No positive-size replacement
+or name trimming is introduced.

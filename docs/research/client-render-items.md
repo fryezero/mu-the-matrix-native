@@ -3089,6 +3089,12 @@ That is not the end of the original request. The bone sprite helper `0x0150e746`
 For -1 the matrix starts at `0x06fce368`, immediately before BoneTransform. This is an observed original
 out-of-domain read, not evidence that `up01 ` matches `up01` or that bone zero is the right substitute.
 
+The `up01` call itself has scale zero. At `0x017d9a54..0x017d9a58`, `xorps` and `movss` push zero
+for scale before the call at `0x017d9a6e`. Its bone index comes from local `-0x13c4`.
+The following `up02` call also uses zero scale. Restoring the missing-name request therefore adds a sprite
+allocation and transform, but no visible area. The native before/after PNG identity is expected for this call;
+changing its scale to make it visible would change the recovered original behavior.
+
 The preceding storage is process bookkeeping. Static references identify the float clock at `0x06fce370`,
 a path-service object pointer at `0x06fce374`, and a tick word at `0x06fce384`. The latter two occupy translation
 words when that storage is read as a matrix. Reading a native pointer or the previous native bone allocation
@@ -3149,7 +3155,7 @@ zero unresolved bitmap expressions. This describes admitted programs, not the wh
 The installed scene changes 7,389 accepted / 28 refused requests to 7,416 / zero; unsupported particles 12 to zero.
 New particle rand calls alter later gated requests, so the two scenes do not have equal request denominators.
 Eight maces separately change 5,610 / 61 to 5,671 / zero over 61 draws at both clocks. Their saved final PNGs are
-identical despite the additional submitted sprite; these cameras do not establish a visible Hammer14 gain.
+identical, consistent with the additional sprite's original zero scale.
 Closer Ferea creates 257 particles / zero unsupported versus 243 / 14 and changes the final native images.
 
 The focused proof has 10,002 component comparisons, zero mismatches; 24/24 compiled mutants are caught.
