@@ -27,3 +27,19 @@ context is counted. The target CHARACTER write at `0x01399c81` is excluded.
 
 Local resumable reports and baseline binaries are under
 `~/Documents/MTM/mu-mac-tools/native/scratch/render-effects-027/`.
+
+## Late-main WIP checkpoint
+
+The first private validator run at `3447e585` passes 49/49 rows, 711,353 reported
+cases, no failures/errors/skips, 693.80 s. The full row reports are local.
+
+Latest main `3732f82a`, ITEMS-002X #361, merged as `2b6026ca`. Both appended
+validator entries were retained. The merge changes generated item bodies and
+owner programs, so brief 6/8b selects a further 54 rows. Build passes, 10.57 s.
+The four relevant native modules pass 43/43 private tests, zero skips, 40.05 s.
+EFFECTS-016 runs its Native class here, since its 23 mutants already passed in
+the final 424-case audit, 41.14 s. Private selection is still above the 40-item
+cap, so this is **8d reduced**. No lane combat arithmetic changed in the merge.
+
+Still WIP until the late affected checks, final identity check and final docs
+are complete. The merge steward owns the full gate and merge.
