@@ -35,8 +35,8 @@ image equivalence.
 
 Model lookup, selected-bone lookup, TransformPosition, the current-world
 predicate and target lookup are declared services with authored results. The
-original caller's scatter helper, rand call sites, scalar arithmetic and
-trigonometric wrappers execute. The joint families execute their original
+original caller's scatter helper, rand call sites and scalar arithmetic
+execute. Sine/cosine use the existing host-libm services. The joint families execute their original
 creation, movement, direction helper, tail shift and GL render instructions;
 engine requests and host libm remain the existing recorded services.
 
@@ -45,7 +45,7 @@ engine requests and host libm remain the existing recorded services.
 MoveCharacter `0x013a763e` calls the per-step attack helper `0x013966ea` at
 `0x013a9047`, before incrementing CHARACTER `+0x21`. Its normalized base-skill
 43 branch is `0x0139959c..0x01399c9d`. The native route's action remains `0x9e`.
-The earlier combat description's “skill-step trails unaudited” gap was this
+The earlier combat description's "skill-step trails unaudited" gap was this
 helper, not a missing end-of-attack CreateEffect.
 
 The helper first obtains the current object model. It refuses a missing model,
@@ -64,7 +64,8 @@ supplies that result explicitly and does not reconstruct the general selector.
 | >=13, direct helper input | No trail requests; set AttackTime to 15. A normal cast has already ended |
 
 The helper's model/bone failures can return before the listed later writes.
-Those paths are included in the caller comparisons. Native admission is
+Missing-model and missing-transform answers are compared. The pre-body
+dummy/index gate is static evidence. Native admission is
 narrower: it requires the authored DK/bone context before requesting any trail.
 
 For the three early requests, begin at caster position with z +120. Helper
@@ -96,7 +97,7 @@ with no target, while independently comparing every visual request.
 | | The common create writes its first cross from the recycled record's previous width. The supplied target position replaces the owner's position for subtype 2 |
 | | `0x01569e07..0x0156a15b`: width = lifetime*3. Clamp `(lifetime-10)/10` to 0..1; blend from the saved random point plus a 300-unit direction toward the owner's `+0x104`. `0x0158bac2` uses pool ordinal*`0x4539`, ambient clock and frequency 1.4. A missing/dead owner clears the owner pointer and keeps the current head; it still shifts tails, decrements and retires below 0. Thus 21 normal pool ticks from a fresh record |
 | `0x10e6/1`, stationary trail marker | `0x013c465a`: lifetime 10, common effect fields preserved |
-| | `0x014374f6..0x01437551`: one `CreateJoint(0x7f78, position, position, angle, 12, this marker, 100, -1, 0, 0, -1, NULL, -1, 0)` per effect move. The common effect lifecycle produces eleven requests before retiring. Native draws the emitted joints, with no added marker model |
+| | `0x014374f6..0x01437551`: one `CreateJoint(0x7f78, position, position, angle, 12, this marker, 100, -1, 0, 0, -1, NULL, -1, 0)` per effect move. The common effect lifecycle produces eleven requests before retiring. RenderEffects defaults at `0x015324cf..0x015324fc` only draw types below `0x7a4`, so this marker has no model draw; native draws its emitted joints |
 | `0x7f78/12`, blue curls | `0x0154a9a2..0x0154ab15`: lifetime 70, max tails 50, supplied width, colour `0.1,0.1,1`, random phase `rand()%360`; drift x/y = `-4*sin(-yaw*pi_f/180)` / `-4*cos(-yaw*pi_f/180)`. Copy the supplied target point at `0x0154bfad` |
 | | `0x01579558..0x0157993c`: phase = `(lifetime + random phase)*0.1`; lateral offset `-26*cos(phase)`, vertical offset `26*sin(phase) - (90-lifetime)*0.3`. Increment the stored target x/y by the drift; rotate the lateral offset by `90-yaw`. Below lifetime 10 divide each light component by binary32 1.3 |
 | | Common tail `0x015896fb..0x015897e4`: shift, add time step, decrement. If alive and the new lifetime is not divisible by 12, recursively move the same record. A fresh curl therefore lasts seven outer pool ticks, including its terminal tick. It does not read the marker owner while moving |
@@ -132,3 +133,20 @@ persistent aura context remains separate from a spell's cast animation.
 
 Installed-data render evidence, default capture identity, exact affected rows
 and final wall times are recorded in the handoff before PR-ready.
+
+## Next limited skill, research only
+
+Static follow-up on Greater Defense 27 and Greater Damage 28: normalized base
+values `0x1b` and `0x1c` take the step helper's default branch
+`0x013967be -> 0x0139b454`, rather than a Death-Stab-like emission branch.
+The default tests animation/model state and can end AttackTime; it does not
+provide their persistent aura. Their existing cast sound is the shared
+`0x6f` call at `0x01255962`, with the class-`0x4d` exclusion, already recorded
+by AUDIO-002C. These are static observations, not new instruction-comparison
+families or evidence of a complete buff visual.
+
+A separate aura lane must identify the actual buff-presence consumer and its
+buff identifiers, exact attachment and removal requests, owner fields and
+lifetimes. It then needs an explicitly authored presence/expiry fixture,
+absent-buff refusal controls, original caller/consumer comparisons and a
+visible render. This lane adds none of that state and no buff implementation.

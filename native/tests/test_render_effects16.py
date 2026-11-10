@@ -43,7 +43,7 @@ class Native(unittest.TestCase):
                           'state and the crater\'s alpha test through native routes: OK', p.stdout)
             table = json.loads(subprocess.run([str(host), 'table'], capture_output=True, text=True,
                                               check=True).stdout)
-        self.assertEqual(len(table['bitmaps']), 36)
+        self.assertEqual(len(table['bitmaps']), 37)
         self.assertEqual(table['fire06_kinds'], [0, 1, 1, 1, 0])
         self.assertEqual(table['fire06'][1:], [0x2601, 0x2900])
 
@@ -62,7 +62,7 @@ class ClientComparison(unittest.TestCase):
         self.assertEqual(len(report['mutants']), MUTANTS)
 
 
-CASES, MUTANTS = 424, 23   # the registry row (scripts/validators.toml)
+CASES, MUTANTS = 425, 23   # the registry row (scripts/validators.toml)
 
 
 if __name__ == '__main__':

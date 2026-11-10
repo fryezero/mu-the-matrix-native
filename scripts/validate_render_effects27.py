@@ -3,8 +3,8 @@
 
 RENDER-EFFECTS-027. Only synthetic CHARACTER/OBJECT/model state is supplied.
 Model, bone, target lookup and world predicate are declared services. The original
-step branch, rand scatter, trigonometry, joint creation/movement/tail shift and
-render stream execute under the strict existing Unicorn machines.
+step branch, rand scatter, joint creation/movement/tail shift and render stream
+execute. Sine/cosine use host-libm services under the strict existing Unicorn machines.
 """
 import argparse
 from collections import defaultdict
@@ -192,7 +192,7 @@ def lifecycle(m, lib, rng, report):
             for tick in range(40):
                 if not raw[0]:
                     break
-                if owner_dies and tick >= 7:
+                if owner_dies and tick >= (7 if kind[0] == 0x472 else 3):
                     objects[0].live = 0
                 for k in range(3):
                     objects[0].sword_position[k] = fx.f32(objects[0].sword_position[k] + 2.0)
