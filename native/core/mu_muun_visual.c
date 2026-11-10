@@ -58,7 +58,7 @@ int mu_muun_visual_open(mu_muun_visual *v, const char *root, const char *lang, i
         goto fail;
     for (uint32_t k = 0; k < render.result.records; ++k) {
         const uint8_t *r = render.bytes + render.result.records_offset + (size_t)k * 612;
-        if (i32_at(r, 0) == code) record = r;   /* loader's keyed map: last equal key */
+        if (i32_at(r, 0) == code) { record = r; break; }
     }
     stage = "appearance record";
     if (!record) goto fail;
@@ -80,7 +80,7 @@ int mu_muun_visual_open(mu_muun_visual *v, const char *root, const char *lang, i
         mu_data_load(path, NULL, &items) || items.result.status != MU_DATA_OK ||
         mu_item_model(&items, v->info.item + MU_ITEM_MODEL_BASE, &item) != 1) goto fail;
     stage = "model file/base actions";
-    snprintf(relative, sizeof relative, "%s%s.bmd", item.folder, item.file);
+    snprintf(relative, sizeof relative, "%s%s", item.folder, item.file);
     if (!mu_objects_resolve(root, relative, path, sizeof path) ||
         mu_bmd_load_file(path, &v->bmd, error, error_size) != MU_BMD_OK || v->bmd.action_count < 3) goto fail;
     mu_model_params params;
@@ -110,7 +110,8 @@ int mu_muun_visual_open(mu_muun_visual *v, const char *root, const char *lang, i
     int32_t kept = 0;
     for (int32_t k = 0; k < v->effects.count; ++k) {
         const mu_object_effect_record *r = &v->effects.records[k];
-        if (!mu_muun_visual_bone_available(r->bone, v->bmd.bone_count, 1)) {
+        if (!mu_muun_visual_bone_available(r->bone, v->bmd.bone_count, 1) ||
+            (r->bone >= 0 && v->bmd.bones[r->bone].dummy)) {
             ++v->refused_bones;
             v->scene.instances[r->handle].owner.visible = 0;
         } else v->effects.records[kept++] = *r;
@@ -171,7 +172,7 @@ void mu_muun_visual_frame(mu_muun_visual *v, const mu_mv_owner *owner, uint32_t 
     memcpy(p.origin, v->state.position, sizeof p.origin);
     memcpy(p.angles, v->state.angle, sizeof p.angles);
     mu_model_apply_params(&v->model, &p);
-    v->posed = mu_model_pose(&v->model) == MU_MODEL_OK && mu_model_transform_all(&v->model) == MU_MODEL_OK;
+    v->posed = mu_model_pose(&v->model) == MU_MODEL_OK && v->model.posed && mu_model_transform_all(&v->model) == MU_MODEL_OK;
     if (!v->posed) { ++v->refused_pose; hide_all(v); return; }
     v->visible = 1;
     for (int32_t k = 0; k < v->effects.count; ++k) {

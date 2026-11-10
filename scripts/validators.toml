@@ -3403,3 +3403,17 @@ note = "RENDER-ACTORS-001: 32-class census, six skeleton body hooks, eleven equi
 all_equal = true
 all_mutants_caught = true
 "mutants.*.stopped" = 0
+
+[validate_muun_visual]
+test = "native/tests/test_muun_visual.py::ClientComparison.test_original_instructions"
+pins = ["text", "data"]
+families = ["setup", "select", "spring", "follow", "logic_gate", "render_gate"]
+cases = 912
+mutants = 18
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/muun", "reconstructed/movement", "reconstructed/record-math"]
+args = ["--cases", "200", "--mutations", "--output", "{report}"]
+[validate_muun_visual.expect]
+all_equal = true
+all_mutants_caught = true

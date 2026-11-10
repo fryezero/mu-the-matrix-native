@@ -41,4 +41,23 @@ requests do not enable action/tint gates. Visibility still matters for both effe
 The external matrix needs model/type, scale, position, angle and bone storage. The native fixture must
 refuse an absent bone rather than follow the original's unchecked shared-buffer fallback.
 
-Validation and native integration are in progress; this note makes no completed visual proof claim yet.
+## Native fixture (implemented; finish checks pending)
+
+`reconstructed/muun/visual` owns the base setup, action choice, spring, follow and base gates. The native
+`mu_muun_visual` loads the decoded render record and Item.bmd model, poses local bones with the existing
+instruction-compared model pipeline, then calls the unchanged `mu_muun_owner_refresh/update` consumer.
+It propagates the Muun action/frame, tint flags and visibility into each effect instance. Native fixture
+key/generation changes and owner death retire the owner terminally; frustum hiding can resume without cloning.
+Unavailable poses and missing, dummy or out-of-range bones are refused before any shared-pose fallback.
+
+`native/world/world_muun` owns the opt-in demo adapter, model textures and independent effect scene. The
+existing helper lifecycle calls it through small hooks. `MU_MUUN_FIXTURE=<render-info id>` places the companion
+by the authored demo hero. With no variable the adapter is idle. Effect data comes from Native Data's `lang`
+when present, otherwise `MU_LANG_DIR`. There is no authoritative selection, inventory or packet feed.
+The render adapter uses the original caller's x/y * 0.01 frustum coordinates and range -20.
+
+All 15 codes with effect rows load their actual skeletons: 16 attachments, no missing templates or bones.
+The GL fixture for code 363 shows the model and both attachments (eight vertices), with a body-only image
+control and a private render regression test. The original-instruction comparison covers 912 base-slot
+cases with zero mismatches. Finish counts, timings, limits and cleanup are in the
+[handoff](../handoffs/MUUN-VISUAL-001.md).

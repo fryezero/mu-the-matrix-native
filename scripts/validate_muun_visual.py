@@ -146,7 +146,16 @@ def cases(n):
         s.frame = rng.choice([0.0, 2.0, 9.5, 10.0, 11.0])
         for name in ('target', 'step', 'acceleration', 'velocity', 'force', 'delta'):
             getattr(s, name)[:] = [rng.uniform(-1, 1) for _ in range(3)]
-        yield s, i, o, rng.choice([0, 1, 2, 10, 500, 1000]), rng.choice([1, 10, 20])
+        if k < 30:
+            s.radius = 100.0
+            s.position[:] = [owner_value for owner_value in o.position]
+            s.position[0] = vc.f32(o.position[0] + [0, 100, 105, 110, 120][(k // 6) % 5])
+            s.frame = 9.5
+            i.speed[:] = [0.5] * 5
+            random_value, keys = (0 if k % 2 == 0 else 1), 10
+        else:
+            random_value, keys = rng.choice([0, 1, 2, 10, 500, 1000]), rng.choice([1, 10, 20])
+        yield s, i, o, random_value, keys
 
 
 def compare(lib, machine, count):
