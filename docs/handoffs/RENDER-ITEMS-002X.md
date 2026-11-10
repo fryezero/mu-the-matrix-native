@@ -7,6 +7,18 @@ No ready-prs entry was written. Worktree `~/Documents/MTM/worktrees/render-items
 `codex/render-items-002x`. The last compiled implementation checkpoint is `cdfbcb3f`; the stop commit adds this
 handoff and the test correction described below. No compiled implementation changes follow that checkpoint.
 
+### Resume verification, 2026-11-09
+
+Resumed on the existing branch and worktree. Main `ff8e0543` is merged at `b4a95ec3`; the merge changes only
+APP-REFRESH-011 docs and three native test modules, with no compiled implementation changes. The corrected
+renderchar suite passes: 111 tests, 87 passed, 24 private skips, 1.32 s. Root build passes, 27.24 s.
+The completed affected portable run selects 145 work items, including 140 native modules: 1,376 tests,
+1,146 passed, 230 skipped, zero failures/errors, 349.78 s including selection and 303.3 s runner wall.
+The canonical private renderer module passes 23/23 with no skips, 7.95 s. **8d reduced** remains applicable.
+The post-build validator selection is unchanged at 52 rows, 42.32 s, including the movement symbol fallback;
+nine unused-symbol rows are pruned. Fifty unchanged rows are now running without mutants at `b4a95ec3`.
+The two changed mutant rows and final default identity sweep remain pending. This is still WIP, not ready.
+
 ### Bodies and verified work
 
 - Bodies **1,404 -> 1,424 / 1,674**, **250 left**: fourteen of the 21 read-program candidates and six of the
