@@ -1,8 +1,13 @@
 # RENDER-WORLDS-INNER-001
 
 Branch `codex/render-worlds-inner-001`, PR #365. Started at `ff8e0543`; integrated actor main `a2ad8814`,
-docs `9d6ce467`, ITEMS-002X `3732f82a` and AUDIO-002G `807d757c`. Current code is `bff13a35`.
-The final affected-world replay and repository audit are pending; no ready line has been written.
+docs `9d6ce467`, ITEMS-002X `3732f82a`, AUDIO-002G `807d757c` and, at `3476dfc0`, main `3fbd8f66`
+(ACTORS-002, CHARSEL-ITEMS-001, EFFECTS-025, EFFECTS-027). PR-ready.
+
+The lane's agent (Codex, GPT-6.1 Sol) did the implementation and the checks below, then stopped at Codex's
+usage limit with the final replay and audit left. The orchestrator (Claude) merged main `3fbd8f66` (one
+`scripts/validators.toml` conflict, all rows kept), ran the final replay recorded under "Renders and byte
+identity", added the status lines and marked the PR ready. No lane source changed in that step.
 
 ## Scope and what draws now
 
@@ -161,7 +166,13 @@ sprites 20 -> 36 across two sampled draws; three new particle requests are refus
 Last-frame difference: 5,851 pixels, mean absolute RGB 0.147890/255. The counter changes the OBJECT dump;
 light dump stays identical. Before / after walls 1.36 / 1.47 s. Existing create/move refusals remain 3 / 72.
 
-The one full default sweep was completed at `0e96c91a`; the final main-integrated affected-world replay is pending.
+The lane's full default sweep was completed at `0e96c91a`.
+
+Final main-integrated replay at `3476dfc0` (orchestrator, 640x400 default sweep of both datasets, before binary
+built from main `3fbd8f66`, after binary rebuilt with `make -C native world`): 46 views, 230 files. 90/92 PNGs,
+92/92 dumps and 44/46 reports are byte-identical. The four changed files are world 37's two PNGs and its
+report (the intended inline draws) and world 40's report only (its PNGs are identical). Sweeps took 49.1 s and
+48.3 s. The merge steward's 63-row affected validator run on the same commit is in the steward log, batch 100.
 Local renders/reports are under the lane's own `~/Documents/MTM/mu-mac-tools/native/{renders,scratch}/render-worlds-inner-001/`.
 
 ## Limits and next
