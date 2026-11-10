@@ -24,6 +24,23 @@ zero failures/errors/skips. The full batch is still running; partial reports are
 `verify-runs/resume-validators/`. The first resume audit passes, 2,136 files and zero rejected, 30.28 s.
 No implementation edits follow `cdfbcb3f`; the merge and checkpoint edits do not change compiled inputs.
 
+### Late-main verification checkpoint
+
+Main advances to `a2ad8814` with RENDER-ACTORS-001 #363; merge `31e03afb` retains both validator rows.
+Build passes, 24.37 s. The 21 merge-affected rows pass without mutants, 238.21 s. Final PR selection is
+53 rows, including the new actor validator: **932,022 row comparisons, all passing**. Six additional merge-only
+rows pass separately. The movement fallback is retained; nine unused-symbol rows are pruned.
+Pre-draw: 42,540 comparisons, zero mismatches, 49/49 mutants, 391.7 s. Its total count was correct but the
+manifest retained two earlier family counts; these are now 19,856 bodies and 4,288 owned states. Saved-report
+recheck passes without repeating mutants, 0.07 s. The no-glow row initially ran 3,288 comparisons and caught
+both mutants, but failed its declared 4,824 count. Kind A now enumerates 0/6 instead of sampling one; the
+corrected 4,824-case row and both mutants pass, 27.14 s. No comparison or expected total was relaxed.
+The validator-only correction's portable renderchar suite passes 87 tests with 24 private skips, 0.89 s;
+its audit passes 2,136 files with zero rejected, 17.19 s. No runtime/table edit follows `cdfbcb3f` in this lane.
+
+The post-merge portable affected run is underway. Canonical private renderer/actor modules, the final identity
+sweep, final docs/audit/PR-ready actions remain pending. Still WIP and draft; no ready-prs line exists.
+
 ### Bodies and verified work
 
 - Bodies **1,404 -> 1,424 / 1,674**, **250 left**: fourteen of the 21 read-program candidates and six of the
