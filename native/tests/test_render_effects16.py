@@ -62,7 +62,7 @@ class ClientComparison(unittest.TestCase):
         self.assertEqual(len(report['mutants']), MUTANTS)
 
 
-CASES, MUTANTS = 425, 23   # the registry row (scripts/validators.toml)
+CASES, MUTANTS = 424, 23   # the registry row (scripts/validators.toml)
 
 
 if __name__ == '__main__':

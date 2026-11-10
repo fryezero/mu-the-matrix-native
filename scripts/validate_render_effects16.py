@@ -324,10 +324,11 @@ def decode_site(text, data, site):
 def family_bitmap_sites(text, data, host, report):
     table = json.loads(subprocess.run([str(host), 'table'], capture_output=True, text=True, check=True).stdout)
     rows = {row[0]: row for row in table['bitmaps']}
+    extra = sorted(set(rows) - set(SITES))
     for index, site in SITES.items():
         row, client = rows.get(index), decode_site(text, data, site)
         mine = None if row is None else (row[0], row[3], row[4], f'{row[1]}\\{row[2]}'.lower())
-        equal = client is not None and mine is not None and mine == (*client[:3], client[3].lower())
+        equal = not extra and client is not None and mine is not None and mine == (*client[:3], client[3].lower())
         report.add('bitmap_sites', equal, {'index': hex(index), 'site': hex(site), 'client': client, 'mine': mine})
         report.cover('bitmap_sites', f'filter {client[1]:#x} wrap {client[2]:#x}' if client else 'undecoded')
     client = decode_site(text, data, FIRE06_SITE)
@@ -336,8 +337,7 @@ def family_bitmap_sites(text, data, host, report):
     report.add('bitmap_sites', equal, {'index': '0x7f40', 'site': hex(FIRE06_SITE), 'client': client,
                                        'mine': table['fire06'], 'kinds': table['fire06_kinds']})
     report.cover('bitmap_sites', 'Fire06 world particle slot')
-    extra = sorted(set(rows) - set(SITES))
-    report.add('bitmap_sites', not extra, {'rows without a site': [hex(x) for x in extra]})
+    # Unknown rows fail the mapping checks above; keep the row's existing case budget.
 
 
 # ---------------------------------------------------------------- mutants

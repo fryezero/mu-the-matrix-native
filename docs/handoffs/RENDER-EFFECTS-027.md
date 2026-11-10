@@ -20,8 +20,9 @@ context is counted. The target CHARACTER write at `0x01399c81` is excluded.
 - Private changed modules: 18/18 tests, 24.41 s. EFFECTS-016 bitmap consumer repaired for NSkill; its two private tests and 23 mutants pass in 40.15 s.
 - Affected portable run completed 157/157 work items, 1,718 tests. One stale EFFECTS-016 bitmap expectation failed and its focused repair passes; 284 portable skips.
 - Installed GL DK proof: 189 requests, 14 emitters, 175 joints, zero refusals/hits/kills, one unsent cast; all four saved frames repeat byte-identically, 4.27 s. Baseline has no trail requests.
-- Main through `9d6ce467` merged, including ACTORS-001. Build passes, 16.76 s.
-- Left: final default identity result, 49 affected private validators, audit, final research/status/handoff and PR/ready line, cleanup.
+- Main through `9d6ce467` merged, including ACTORS-001. Final build passes, 13.29 s; repository audit 2,144 files, zero rejected, 22.20 s.
+- Default identity sweep: 46 entries, 92/92 PNGs and 92/92 OBJECT/light dumps byte-identical, 105.09 s.
+- Left: 49 affected private validators, final research/status/handoff and PR/ready line, cleanup.
 - Next: finish the sweep and run the selected validators with two workers and no mutants. The merge steward owns the full gate. Do not append a ready line for this checkpoint.
 
 Local resumable reports and baseline binaries are under

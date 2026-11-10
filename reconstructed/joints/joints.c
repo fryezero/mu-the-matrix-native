@@ -120,9 +120,12 @@ static void create_wing_streak(mu_jt_joint *j, float scale, const float target_p
 
 int mu_jt_kind_supported(int32_t type, int32_t subtype)
 {
+    /* RENDER-EFFECTS-027: the two Death Stab requests, with existing admissions intact. */
+    if ((type == 0x472 && subtype == 2) || (type == MU_JT_BITMAP_FLARE && subtype == 12))
+        return 1;
     if (bow_joint_kind(type, subtype) || wing_joint_kind(type, subtype)) return 1;
     switch (type) {
-    case 0x472: return subtype == 1 || subtype == 2;
+    case 0x472: return subtype == 1;
     case MU_JT_BITMAP_ENERGY:
         return subtype == 1;
     case MU_JT_BITMAP_SPIRIT:
@@ -130,7 +133,7 @@ int mu_jt_kind_supported(int32_t type, int32_t subtype)
     case MU_JT_BITMAP_SPARK:
         return subtype == 0 || subtype == 3;   /* 3: RENDER-EFFECTS-009, bow 0x12f9's sparks */
     case MU_JT_BITMAP_FLARE:
-        return subtype == 0 || subtype == 1 || subtype == 12 || subtype == 41 || subtype == 42;
+        return subtype == 0 || subtype == 1 || subtype == 41 || subtype == 42;
     case MU_JT_BITMAP_LASER:
         return subtype == 0x43 || subtype == 0x44 || subtype == 5;   /* 5: RENDER-EFFECTS-009, the arrows' trail */
     case MU_JT_BITMAP_THUNDER:
@@ -1013,7 +1016,9 @@ tail:
     j->lifetime = j->lifetime - 1;
     if (j->lifetime < 0)
         j->live = 0;
-    /* 0x0158978d: Flare/12 recurses until the decremented lifetime is a multiple of 12. */
+    /* Earlier port-limit note, superseded for Flare/12 below: */
+    /* (0x7f78 / 0x7fdd subtypes 4 and 0xc move a second time when LifeTime % 12 != 0; not supported kinds) */
+    /* RENDER-EFFECTS-027, 0x0158978d: recurse until the decremented lifetime is a multiple of 12. */
     if (j->live && j->type == MU_JT_BITMAP_FLARE && j->subtype == 12 && j->lifetime % 12 != 0)
         return mu_jt_move(j, env, in);
     return 1;
