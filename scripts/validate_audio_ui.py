@@ -131,6 +131,7 @@ def buttons(client,lib,limit=None):
     out=(C.c_uint32*512)();count=0;sounds=0
     for case in itertools.islice(button_cases(),limit):
         show,enable,active,held,down,up,delta,x,y,check,check_frame=case
+        m.write(b,bytes(0xe0))  # fresh synthetic object, including fields the ctor leaves untouched
         m.call(0x986569,ecx=b)
         args=[10,10,7,4,2,1,-1,check_frame,-1,-1,-1]
         m.call(0x9865f4,[a&0xffffffff for a in args],ecx=b)

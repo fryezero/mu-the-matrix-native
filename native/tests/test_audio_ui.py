@@ -148,7 +148,7 @@ class UIAudio(unittest.TestCase):
         cls.tmp.cleanup()
 
     def drive(self,mode,root=None,table=None):
-        log=self.folder/(mode+'.jsonl')
+        log=self.folder/(mode+('-installed' if root else '')+'.jsonl')
         p=subprocess.run([str(self.host),str(root or self.root),str(table or self.table),mode],capture_output=True,
                          text=True,env={**os.environ,'MU_AUDIO_CUE_LOG':str(log)})
         self.assertEqual(p.returncode,0,p.stdout+p.stderr)
@@ -214,7 +214,7 @@ class UIAudio(unittest.TestCase):
     @unittest.skipUnless(os.environ.get('MU_NATIVE_DATA_DIR') and os.environ.get('MU_GAME_ROOT'),
                          'Installed Native Data audio table and game root required')
     def test_installed_click_decodes(self):
-        table=Path(os.environ['MU_NATIVE_DATA_DIR'])/'audio/tables/audio-tables.tsv'
+        table=Path(os.environ['MU_NATIVE_DATA_DIR'])/'sound/audio-tables.tsv'
         self.assertTrue(table.is_file(),table)
         result,rows=self.drive('on',Path(os.environ['MU_GAME_ROOT']),table)
         self.assertGreater(result['nonzero'],0);self.assertEqual(len(rows),2)
