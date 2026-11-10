@@ -313,6 +313,8 @@ def check_native(host, root, rows):
         slots = [list(x) for x in expected['slots']]
         if cl in WHOLE: slots[0] = [expected['body'], expected['body_level'] if expected['body_kind'] == 4 and world_id == 0 else 0]
         correct = value['player'] == 1
+        if cl in WHOLE:
+            correct &= value['body_file'] == library(LIBRARY).mu_actor_player_body_file(expected['body']).decode()
         scale = am.from_bits(expected['scale_bits']) if expected['scale_bits'] else am.f32(.9)
         correct &= abs(value['scale'] - scale) < 1e-7
         for k, (t, level) in enumerate(slots):
@@ -355,8 +357,12 @@ def main():
     parser.add_argument('--game-root', default=os.environ.get('MU_GAME_ROOT'))
     parser.add_argument('--cases', type=int, default=840)
     parser.add_argument('--mutations', action='store_true')
+    parser.add_argument('--only-mutants', help='rerun only these comma-separated controls; requires --mutations')
     parser.add_argument('--output', type=Path, required=True)
     opts = parser.parse_args(); started = time.monotonic()
+    if opts.only_mutants and not opts.mutations:
+        parser.error('--only-mutants requires --mutations')
+    wanted = set(opts.only_mutants.split(',')) if opts.only_mutants else None
     args, rows = originals(opts)
     lib = library(LIBRARY)
     with tempfile.TemporaryDirectory() as tmp:
@@ -382,32 +388,38 @@ def main():
                 changes.append((f'body_{cl}', f'case {cl}: return {model:#x};', f'case {cl}: return 0x422;'))
             changes.append(('body_brown', 'case 616: case 646: return 0x5bb;', 'case 616: case 646: return 0x422;'))
             for name, old, new in changes:
+                if wanted is not None and name not in wanted: continue
                 assert source.count(old) == 1, (name, source.count(old))
                 path = directory/'actors.c'; path.write_text(source.replace(old, new))
                 mutant = build_library(path, directory/(name+'.dylib'))
                 check = check_recipes(mutant, rows)
                 mutants[name] = {'caught': check['equal'] < check['cases'], 'stopped': 0}
-            path = directory/'actors.c'
-            path.write_text(source.replace('Data/Skill/Jack.bmd', 'Data/Player/Jack.bmd'))
-            mutant = build_library(path, directory/'body_directory.dylib')
-            check = check_loader(args, mutant)
-            mutants['body_directory'] = {'caught': check['equal'] < check['cases'], 'stopped': 0}
+            if wanted is None or 'body_directory' in wanted:
+                path = directory/'actors.c'
+                path.write_text(source.replace('Data/Skill/Jack.bmd', 'Data/Player/Jack.bmd'))
+                mutant = build_library(path, directory/'body_directory.dylib')
+                check = check_loader(args, mutant)
+                mutants['body_directory'] = {'caught': check['equal'] < check['cases'], 'stopped': 0}
             source = (ROOT/'native/core/mu_world_actors.c').read_text()
             for name, old, new in [('skip_body', 'for (int k = 0; k < MU_CHARACTER_ITEMS; k++)',
                                     'for (int k = 1; k < MU_CHARACTER_ITEMS; k++)'),
                                    ('body_file', '"%s/%s", root, body_file', '"%s/%s", root, "Data/Skill/Skeleton01.bmd"'),
                                    ('body_texture_retry', 'if (!no_textures && part->textures.missing)', 'if (0)'),
                                    ('body_world', 'params->world == 0 ? row->slots[k].level : 0', 'row->slots[k].level')]:
+                if wanted is not None and name not in wanted: continue
                 assert source.count(old) == 1, (name, source.count(old))
                 path = directory/'mu_world_actors.c'; path.write_text(source.replace(old, new))
                 check = check_native(build_host(directory, path), opts.game_root, rows)
                 mutants[name] = {'caught': check['equal'] < check['cases'], 'stopped': 0}
-            source = (ROOT/'native/core/mu_renderchar.c').read_text()
-            old = 'mu_actor_player_body_file(glow->type)'
-            assert source.count(old) == 1
-            path = directory/'mu_renderchar.c'; path.write_text(source.replace(old, '0'))
-            check = check_native(build_host(directory, draw_source=path), opts.game_root, rows)
-            mutants['body_draw_admission'] = {'caught': check['equal'] < check['cases'], 'stopped': 0}
+            if wanted is None or 'body_draw_admission' in wanted:
+                source = (ROOT/'native/core/mu_renderchar.c').read_text()
+                old = 'mu_actor_player_body_file(glow->type)'
+                assert source.count(old) == 1
+                path = directory/'mu_renderchar.c'; path.write_text(source.replace(old, '0'))
+                check = check_native(build_host(directory, draw_source=path), opts.game_root, rows)
+                mutants['body_draw_admission'] = {'caught': check['equal'] < check['cases'], 'stopped': 0}
+            if wanted is not None and wanted != set(mutants):
+                raise ValueError(f'unknown controls: {sorted(wanted - set(mutants))}')
     report = {'text_sha256': am.TEXT_SHA256, 'data_sha256': am.DATA_SHA256,
               'families': fams, 'cases': sum(x['cases'] for x in fams.values()),
               'all_equal': all(x['equal'] == x['cases'] for x in fams.values()), 'mutants': mutants,

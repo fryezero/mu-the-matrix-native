@@ -28,12 +28,17 @@ class Recipes(unittest.TestCase):
     def test_census_and_skeleton_whole_bodies(self):
         subprocess.run(['make', '-s', '-C', str(ROOT/'reconstructed/actors')], check=True, capture_output=True)
         lib = v.library(v.LIBRARY)
+        # Expected constructor outputs, independently of the C recipe helper.
+        bodies = {14: 0x422, 15: 0x423, 16: 0x424, 55: 0x422, 56: 0x422, 236: 0x423,
+                  372: 0x425, 373: 0x429, 503: 0x541, 548: 0x552, 616: 0x5bb, 646: 0x5bb,
+                  706: 0x5bf, 806: 0x5c4, 807: 0x5c5}
         for cl in v.CENSUS + (-1, 0, 251, 65535):
             with self.subTest(cl=cl):
                 row = v.Row()
                 self.assertEqual(lib.mu_actor_player_recipe(cl, C.byref(row)), int(cl in v.FIXED))
                 if cl in v.WHOLE:
-                    self.assertEqual(row.slots[0].type, lib.mu_actor_player_body(cl))
+                    self.assertEqual(row.slots[0].type, bodies[cl])
+                    self.assertEqual(lib.mu_actor_player_body(cl), bodies[cl])
                     self.assertTrue(lib.mu_actor_player_body_file(row.slots[0].type))
                     self.assertEqual(row.slots[0].level, 8 if cl == 236 else 0)
                 elif cl in v.FIXED:

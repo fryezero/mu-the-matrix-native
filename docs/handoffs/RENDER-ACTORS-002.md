@@ -24,6 +24,13 @@ Left: changed mutants, portable affected suites, private native tests under the
 8d cost cap, final identity sweep, final self-review and PR-ready delivery.
 No ready entry has been written.
 
+Mutant audit: the first full run passed all 1,300 positive checks and caught 20/21
+controls in 327.4 s. The valid-file `body_file` mutation escaped because the native
+host only checked mesh presence. The host now reports the body file actually loaded,
+and the comparison checks its exact startup-derived identity. The same wrong-but-valid
+file mutation is retained for a targeted rerun; no production runtime code changed.
+The portable recipe test also checks independent expected constructor model IDs.
+
 Next: inspect the private iteration report, then finish the bounded nine-row set.
 Six other rows stay refused: 374 and 642 need companion construction/lifetime;
 378 needs its appearance/effect branch; 625/626 need action-dependent hooks; 617's
