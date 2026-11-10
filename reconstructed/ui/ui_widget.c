@@ -1,5 +1,6 @@
 /* Reconstructed legacy window/widget layer (NATIVE-UI-002).  See ui_widget.h. */
 #include "ui_widget.h"
+#include "ui_sound.h"
 
 #include <string.h>
 
@@ -136,9 +137,8 @@ void mu_ui_button_update(mu_ui_ctx *ctx, mu_ui_button *button, double delta)
         button->click = 0;
         if (in->lbutton_up) {
             if (mu_ui_button_cursor_in(ctx, button) && ctx->held_button == button) {
-                uint32_t sound = 0x19;
                 button->click = 1;
-                emit(ctx->state, MU_UI_SOUND, &sound, 1);    /* PlayBuffer(25, 0, 0) 0x00a6ac96 */
+                mu_ui_sound_emit(ctx->state, 25, 0x009867e3u, 0x0098689eu);
                 if (button->image_map[MU_UI_BTN_CHECK_UP] > -1)
                     button->check = button->check ? 0 : 1;
             }
