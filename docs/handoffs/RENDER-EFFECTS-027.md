@@ -1,53 +1,153 @@
 # RENDER-EFFECTS-027
 
-Death Stab's offline base-DK fixture trail lane. Base `ff8e0543`, branch
-`codex/render-effects-027`. No live client or network work. The installed apps
-and the other lanes' item/world consumers are untouched.
+Death Stab's offline base-DK fixture trails. Branch `codex/render-effects-027`,
+started at `ff8e0543`, with main through `807d757c` merged. The merge steward
+owns integration and the full gate. Final affected checks are in progress.
 
-## WIP
+## What draws
 
-The caller branch at `0x0139959c..0x01399c9d` of the step helper `0x013966ea`,
-called from MoveCharacter `0x013a9047`, is reconstructed with explicit model,
-bone and world-predicate inputs. Steps 2..8 request three `0x472/2` ribbons;
-steps 6..12 request two `0x10e6/1` markers. The markers emit `Flare/12` joints.
-The native base-DK demo uses authored right-hand link bone 33. Missing
-context is counted. The target CHARACTER write at `0x01399c81` is excluded.
+The selected skill-43 branch of attack-step helper `0x013966ea`, called by
+MoveCharacter `0x013a9047` before AttackTime increments, now supplies the demo's
+trail requests. Steps 2..8 make three `0x472/2` red ribbons. Steps 6..12 make
+two `0x10e6/1` markers, each of which emits `Flare/12` blue curls. The saved
+OBJECT `+0x104` point, step cutoff, scatter, widths, drift, recursive movement,
+tail streams and retirement follow the compared instructions.
 
-- Iteration: 1,200 original-instruction comparisons, zero mismatches, 3.67 s.
-  Caller, joint create/move/render, emitter create/move, 200 cases each.
-- Baseline build and 46-entry default capture sweep completed before changes.
-- Full focused comparison: 6,064 cases, zero mismatches, 20/20 compiled mutants, 50.74 s.
-- Private changed modules: 18/18 tests, 24.41 s. EFFECTS-016 bitmap consumer repaired for NSkill; its two private tests and 23 mutants pass in 40.15 s.
-- Affected portable run completed 157/157 work items, 1,718 tests. One stale EFFECTS-016 bitmap expectation failed and its focused repair passes; 284 portable skips.
-- Installed GL DK proof: 189 requests, 14 emitters, 175 joints, zero refusals/hits/kills, one unsent cast; all four saved frames repeat byte-identically, 4.27 s. Baseline has no trail requests.
-- Main through `9d6ce467` merged, including ACTORS-001. Final build passes, 13.29 s; repository audit 2,144 files, zero rejected, 22.20 s.
-- Default identity sweep: 46 entries, 92/92 PNGs and 92/92 OBJECT/light dumps byte-identical, 105.09 s.
-- Left: 49 affected private validators, final research/status/handoff and PR/ready line, cleanup.
-- Next: finish the sweep and run the selected validators with two workers and no mutants. The merge steward owns the full gate. Do not append a ready line for this checkpoint.
+[Research and address tables](../research/client-render-effects-027.md),
+[coverage inventory](../research/client-skill-visual-coverage.md).
 
-Local resumable reports and baseline binaries are under
-`~/Documents/MTM/mu-mac-tools/native/scratch/render-effects-027/`.
+The native adapter requires class byte exactly 1, a non-none demo weapon,
+loaded Player model and posed, non-dummy bone 33. This bone is authored fixture
+context. It does not recover the general CHARACTER link selector or infer real
+equipment eligibility. Other classes, promoted `0x11` and missing weapon
+context are refused and counted. No target CHARACTER state is written.
 
-## Late-main WIP checkpoint
+## Original evidence and lifetimes
 
-The first private validator run at `3447e585` passes 49/49 rows, 711,353 reported
-cases, no failures/errors/skips, 693.80 s. The full row reports are local.
+The pinned capture09 text and run10 data identities are in the research note.
+`validate_render_effects27.py` runs original caller instructions
+`0x0139959c..0x01399c9d`, both joint constructors/movers/render streams, the
+marker constructor/mover, and independent create-to-retirement joint sequences.
+Model/bone/target lookups, TransformPosition and world predicate are declared
+fixture services; sine/cosine use host libm. No original/live client was run.
 
-Latest main `3732f82a`, ITEMS-002X #361, merged as `2b6026ca`. Both appended
-validator entries were retained. The merge changes generated item bodies and
-owner programs, so brief 6/8b selects a further 54 rows. Build passes, 10.57 s.
-The four relevant native modules pass 43/43 private tests, zero skips, 40.05 s.
-EFFECTS-016 runs its Native class here, since its 23 mutants already passed in
-the final 424-case audit, 41.14 s. Private selection is still above the 40-item
-cap, so this is **8d reduced**. No lane combat arithmetic changed in the merge.
+- `0x472/2`: constructor `0x01548aeb`, mover `0x01569e07`, texture `0x7fde`
+  from startup site `0x018228a5`; lifetime 20, five tails, 21 outer ticks.
+- `0x10e6/1`: constructor `0x013c465a`, mover `0x014374f6`; lifetime 10,
+  eleven child requests, no model draw in the original RenderEffects default.
+- `Flare/12`: constructor `0x0154a9a2`, mover `0x01579558`, recursive common
+  tail `0x015896fb`; lifetime 70, fifty tails, seven outer ticks.
+- Caller comparisons check every one of the fourteen arguments, including both
+  key words and fixed defaults. Wrapper `0x013c0ed8` maps effect argument 11
+  into info word8; native preserves its `0xffff` value. The first stricter
+  comparison caught the request records' omitted keys, which were corrected.
+  Three added key mutants prove those fields are observed.
 
-Still WIP until the late affected checks, final identity check and final docs
-are complete. The merge steward owns the full gate and merge.
+The original target-byte write at `0x01399c81` is excluded. Continuous joint
+comparisons carry original record bytes between ticks independently of C,
+including owner death, closing tails and retirement. Recorded ordered GL calls
+are component evidence, not original GPU-image equivalence.
 
-The late portable selection passes: 147/147 work items, 1,383 tests, 1,151
-passed, 232 expected skips, zero failures/errors; outer wall 500.44 s (the
-runner reports 398.9 s after selection). Final caller review replaced borrowed
-trailing metadata with a direct fourteen-argument comparison. This caught the
-request records' omitted keys; native now carries both marker key/info word8
-from the request. The revised small run passes 1,264 comparisons in 2.83 s.
-Three key-word mutants were added; final 23-mutant run is next.
+## Checks
+
+All commands ran from the repository root, heavy jobs at nice 10, make at most
+four jobs and validator runners at two jobs. Resource-limit pauses were
+observed. No full gate ran in the lane. Private commands sourced
+`~/Documents/MTM/mu-mac-tools/native/private-env.sh`; all private inputs and
+symlinks remain outside version control.
+
+| Check | Result | Wall seconds |
+|---|---|---:|
+| Final focused original comparisons, code at `26eef91d` | 6,064 comparisons, zero mismatches; 23/23 compiled production-C mutants caught; no original-machine stops | 53.34 |
+| Earlier caller iteration | 1,200 comparisons, zero mismatches | 3.67 |
+| Complete-argument correction iteration | 1,264 comparisons, zero mismatches | 2.83 |
+| First portable affected run, 157 work items | 1,718 tests, 1,433 passed, 284 skipped; one stale EFFECTS-016 bitmap-count failure, repaired below | 502.59 |
+| Repaired EFFECTS-016 private module | 2 tests; 424 comparisons and 23 mutants, pass | 41.14 |
+| First private changed modules | 18 tests, all passed | 24.41 |
+| First affected private validators at `3447e585` | 49/49 rows passed, 711,353 reported cases, zero failures/errors/skips | 693.80 |
+| After ITEMS-002X merge, reduced private native modules | 43/43 passed, zero skips | 40.05 |
+| After ITEMS-002X merge, portable affected run at `6687e6a6` | 147 work items, 1,383 tests, 1,151 passed, 232 skipped, zero failures/errors | 500.44 |
+| Final root build through AUDIO-002G, `ba699cfc` | pass | 10.59 |
+
+The second portable runner reports 398.9 s after selection; the table records
+the outer wall time. The initial focused mutant run was repeated because the
+complete-argument comparator and production request words changed. The final
+run above supersedes its 20-mutant result. EFFECTS-016 mutants were not repeated
+after its checks stopped changing.
+
+The native private selection exceeds 40 items, so **8d reduced** applies. The
+changed combat, bitmap and renderer consumers are checked explicitly; the
+portable skip count does not imply those private checks ran.
+
+Final affected validator results, final portable/private checks and final audit
+will be recorded before PR-ready.
+
+## Render and identity evidence
+
+Before measurements were taken once from main `ff8e0543`. The authored installed-
+data GL scene uses `DemoKnight`, class 1, sword, tile 182,127, and only one
+placement, `actor 3 184 127 0 label DemoTarget`. It runs skill 43 at tick 2,
+stop at tick 3, for 28 frames, saving 0/9/18/27 at 960 by 600. Audio, other
+items and other players are disabled. These are native fixture renders, not
+screenshots of an original client.
+
+| Counter | Before | After |
+|---|---:|---:|
+| Effect records created | 0 | 14 |
+| Joint records created | 0 | 175 |
+| Routed visual requests, sum of those two counters | 0 | 189 |
+| Global unsupported requests | 0 | 0 |
+| Cast requests sent / unsent | 0 / 1 | 0 / 1 |
+| Hits / kills | 0 / 0 | 0 / 0 |
+| Sound decisions | 0 | 1 |
+
+The new Death Stab counters report 12 steps, 189 requests, zero refusals and
+zero context refusals. The baseline predates these dedicated counters. One
+cast contains 21 early ribbons, 14 markers and 154 marker-child curls. Portable
+fixture tests verify constant target HP, texture-removal pixel differences,
+class/weapon refusal controls, full retirement and repeated image identity.
+
+The initial GL proof and repeat took 4.27 s. All four after/repeat images were
+byte-identical; frame zero also matched baseline. Visual inspection showed the
+long ribbons converging on the DK and the short curls near the skill point.
+Final render and default-sweep results follow after late-main checks.
+
+The default capture baseline has 46 entries, 92 PNGs and 92 OBJECT/light dumps.
+Its first after sweep at `3447e585` was byte-identical for all 184 artifacts,
+105.09 s. The final comparison reuses that same baseline; it does not rerun
+before measurements. JSON reports are not part of the byte-identity claim.
+
+## Limits and next
+
+Death Stab stays L in the strict coverage inventory. General equipment link
+selection, master/later-class aliases, unrestricted caller contexts, target
+state, authoritative buffs, original GPU images and live play are outside
+this result. The original caller's dummy/index pre-gate is statically audited;
+missing-model and missing-transform answers are compared. Native admission
+requires its whole authored context before any trail request.
+
+Research-only follow-up covers Greater Defense 27 and Greater Damage 28. Both
+take the step helper's default branch, not this emission branch. A future aura
+lane needs the buff-presence consumer/IDs, attachment/removal calls, owner and
+lifetime rules, authored expiry controls and original comparisons. No buff
+state or aura implementation was added.
+
+No protection analysis, network/login/packet work, memory writes, character-
+stat features or original-client screenshots occurred. The owner's Wine apps
+and installed Native Preview were untouched. Other lanes' item/world source
+files were not edited; their main merges were retained.
+
+## Steward validators
+
+The exact selected names, row counts/timings and tested commits will be added
+when the final affected run finishes. No steward mutant reruns are needed
+unless the relevant checked inputs change.
+
+## Cleanup
+
+The lane's local reports, baseline binaries and rendered images are temporary
+under `~/Documents/MTM/mu-mac-tools/native/scratch/render-effects-027` and
+`~/Documents/MTM/mu-mac-tools/native/renders/render-effects-027`. They, the lane
+build directories and worktree will be removed after the final push and ready
+line. No inputs need to be retained for another lane. Shared validator cache,
+main checkout, private inputs and other lanes are preserved.
