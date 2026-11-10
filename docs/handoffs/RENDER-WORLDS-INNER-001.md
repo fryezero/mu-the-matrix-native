@@ -13,3 +13,26 @@ host. Small comparisons exposed and corrected pulse/light constants. The product
 
 Left: full original counts and changed mutants once, affected suites/validators, reduced private native tests,
 render comparison and one default byte-identity sweep, final self-review/docs/PR/ready line, cleanup.
+
+## Verification checkpoint
+
+Merged origin/main `a2ad8814` as `2145b9b7`; the validator-registry append conflict retained both this lane's row
+and ACTORS-001's row. Compiled inputs have not changed since that merge.
+
+| Check | Result | Wall |
+|---|---|---|
+| Build from merged main, `nice -n 10 make -j4` | Pass | 11.25 s |
+| `make -C native -j4 build/mu-world` | Pass | 4.77 s |
+| Full original call comparison without mutants | Four families, 4,000 cases, zero mismatches/stops | 2.09 s |
+| `validate_worlds_inner`, mutants once, at `2145b9b7` | 4,000 cases, zero mismatches/stops; 33/33 compiled mutants detected, minimum eight detections | 156.0 s |
+| Portable production host | Blood Castle world/model/bone gates and counter; Kanturu effect, joint, mesh order and explicit refusals | 1.14 s |
+| Portable new object module | Two passed, one private skip | 0.24 s |
+
+The current merged-main affected run selects 61 validator rows, including symbol fallbacks and ACTORS-001's
+new row. It is in progress. Portable selection is 149 work items. Private native/tests exceeds 40 items:
+**8d reduced**, run the newly added native module with the canonical private env.
+
+Before outputs were taken once from `ff8e0543`: DATA-ACQ-002 32 views, 66.85 s; October 22 14 views, 20.39 s;
+affected capture clocks, world 40 2.52 s and world 37 3.04 s. The first October manifest attempt used obsolete
+local paths and failed before rendering; correcting those paths produced the recorded baseline. After comparisons
+and synthetic Blood Castle views are pending. All bulk outputs will be deleted before handoff.
