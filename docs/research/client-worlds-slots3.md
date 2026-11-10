@@ -1,5 +1,8 @@
 # RENDER-WORLDS-SLOTS3: RenderObjectVisual's outer draw in every world
 
+Update: [RENDER-WORLDS-INNER-001](client-worlds-inner.md) recovers the Kanturu 37/40 hook and Blood Castle
+11..17/52 switch left open in section 3. The other classless inner draws remain open.
+
 Target: the executable SHA-256 `3cf91f3c203d305a771b04d00b271871f7ce1c6779b22e30fbae8c4f35b5527a`. Text and
 second-image-data captures pinned in `scripts/pins.py` (capture09/run10). Method: static disassembly, a Unicorn probe,
 then compiled authored C compared with the original instructions under the strict Unicorn machine

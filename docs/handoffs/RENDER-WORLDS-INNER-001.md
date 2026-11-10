@@ -55,3 +55,23 @@ The mapped-texture host case also reproduced a slot-0 assumption in the RGBA ref
 checks mesh 0's `texture_index` and its bounds. Both mapped RGBA refusal and mapped RGB acceptance pass.
 The preliminary 14-row follow-up was stopped to test this final version; no result from that interrupted run
 is used as passing evidence. The recovered producer and all mutant sites remain unchanged.
+
+## Render checkpoint and late main
+
+At `0e96c91a`, the 14 selected follow-up rows pass, 623,786 cases, zero failures/errors/skips, 466.33 s wall.
+Final private native host: 1 test, 1.16 s. New object module with the private env: 3 tests, including 800 original
+cases, 0.51 s. Build: 12.77 s, render executable 4.32 s. The producer and its 33 mutant sites remain unchanged.
+
+One default sweep: DATA-ACQ-002 64/64 PNGs and 64/64 dumps identical; October 22 26/28 PNGs and 28/28 dumps
+identical. Only world 37's two PNGs change. Last-frame delta: 2,087 pixels, mean absolute RGB 0.041796/255.
+World 40's captured-clock PNGs/dumps are identical; world 37's clock PNGs change, with identical dumps,
+2,095 pixels and mean absolute RGB 0.040111/255. After tour walls: 56.15 / 23.27 s; clocks 2.47 / 3.04 s.
+
+Authored Blood Castle fixture: three models load, object-runtime refusals 0. Drawn sprites 10 -> 18, created
+sprites 20 -> 36 across the two sampled draws. Three new particle requests are refused by the existing pool.
+The candle glow is visible. Last-frame delta: 5,851 pixels, mean absolute RGB 0.147890/255; +0xb4 changes the
+OBJECT dump, light dump unchanged. Before / after walls: 1.36 / 1.47 s. This is a demo layout, not client placement.
+
+Latest main advanced to `3732f82a` (#361 ITEMS-002X) during rendering. It changes shared renderchar headers.
+The registry append conflict retained both rows. The lane is rebuilding and selecting affected follow-up checks.
+No ready line has been written.

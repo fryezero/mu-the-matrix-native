@@ -58,10 +58,22 @@ refusal, clock edges, log overflow and the production runtime.
 - Joint 0x7f7c/8 has no existing native kind, so the runtime refuses and counts it. /18 uses the existing consumer.
 - Particle/effect kinds absent from the existing pools remain counted refusals in those consumers. This lane
   does not change item, particle or effect consumer code.
-- The shared renderers fix alpha reference at 0.25. Type 0x60's additional mesh is served for RGB textures,
+- The shared renderers fix alpha reference at 0.25. Type 0x60's additional mesh checks mesh 0's mapped texture slot and is served for RGB textures,
   for which GREATER 0 and 0.25 agree, and refused for RGBA textures. The base body remains drawable.
 - The clock fixture is deterministic; it is not a captured process `timeGetTime` value.
 - No original frame or event state is newly captured. Captured affected worlds are 37 and 40; Blood Castle
   has no captured image reference in the two existing tours.
 
 Final checks and render results are recorded in [the lane handoff](../handoffs/RENDER-WORLDS-INNER-001.md).
+
+## Negative checks
+
+The first small comparison rejected the guessed 0.005 pulse frequency and angle multiplier 5. The original
+uses 0.001 and, for Blood Castle's phase, 20. Focused cases then rejected type 0x62's guessed blue 0.3, which is
+0.1. All four final families pass 1,000 cases each, with zero mismatches/stops, and 33/33 compiled mutants are
+detected, minimum eight cases.
+
+Production-host negative cases reproduced two adapter mistakes before correction: StreamMesh events alone
+could bypass a hidden-object skip after an RGBA refusal, and the refusal initially assumed texture slot 0.
+The host now requires hidden RGBA refusal while preserving hidden RGB/Chrome draws, and distinguishes a mapped
+RGBA slot from a mapped RGB slot when slot 0 has the opposite component count.
