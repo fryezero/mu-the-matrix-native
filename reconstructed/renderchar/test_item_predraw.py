@@ -72,7 +72,8 @@ class ItemPreDraw(unittest.TestCase):
                               (ctypes.c_float * 3)(*position), object_transform, frame or 0, frame is not None)
         @ownerfx.BEFORE_TRANSFORM
         def before_transform(_, out):
-            out[:] = before
+            for k in range(3):
+                out[k] = before[k]
         if before is not None:
             hosted.item_before_transform = before_transform
         context = self.v.CContext(0, -1, self.v.RANDOM_FN(lambda _: rand(None)), None)

@@ -3068,3 +3068,91 @@ is exploratory and does not establish full coverage for that group. Named body d
 rank-5 pose or owner effects. Existing bone, record, buff, selected-item, process-rand and process-counter bounds
 remain. No original client process, protected component, live server/login, packet, character-power or memory-write
 work was used. Final counts, table size, exact validator timings and default-draw comparisons are in the handoff.
+
+## Part 37, missing-name sprite state, Ferea clouds and the remaining bow pairs, RENDER-EFFECTS-025
+
+Offline/static only. The original-instruction proof uses pinned text SHA-256
+`2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724` and data SHA-256
+`c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f`, plus the existing flag/feature pins
+for complete RenderObjDraw streams. Native renders compare native states; they do not establish original-client
+pixels, pose or process-state identity.
+
+### Hammer14's exact-name failure and the unchecked sprite index
+
+The original loader copies all 32 bone-name bytes at `0x012b4276..0x012b4287`, through memcpy at `0x012b4282`.
+There is no name trimming in that copy. The installed Hammer14 finding from part 34 remains: bone 9 is `up01 `,
+while the program requests `up01`. The exact search at `0x012bd35a` returns its fallback -1 at `0x012bd3b1`.
+
+That is not the end of the original request. The bone sprite helper `0x0150e746` computes
+`0x06fce398 + bone * 0x30` at `0x0150e782..0x0150e78b`, with no negative-index test. It calls TransformPosition
+`0x012b6ef1` on that matrix, local `(0,0,0)`, translate 1, and then CreateSprite at `0x0150e7bf`.
+For -1 the matrix starts at `0x06fce368`, immediately before BoneTransform. This is an observed original
+out-of-domain read, not evidence that `up01 ` matches `up01` or that bone zero is the right substitute.
+
+The preceding storage is process bookkeeping. Static references identify the float clock at `0x06fce370`,
+a path-service object pointer at `0x06fce374`, and a tick word at `0x06fce384`. The latter two occupy translation
+words when that storage is read as a matrix. Reading a native pointer or the previous native bone allocation
+would neither recover those original words nor provide a bounded native operation.
+
+The host therefore supplies this record explicitly, through `item_before_transform`. Only the -1 bone-sprite
+case may use it. NULL retains the refusal; other negative indices, oversized bones, missing ordinary poses and
+invalid dependent positions keep their bounds. `mu_renderchar_env.item_before_matrix` supplies all twelve words
+separately from the pose allocation. The default native record is zero, so that state places the missing-name
+sprite at the model origin through the existing TransformPosition arithmetic. A fixture can provide a nonzero
+record or NULL. This default is declared native compatibility state, not a recovered original process record.
+No bone names, assets or model choices change.
+
+`validate_render_effects25` compares 1,000 complete Hammer14 RenderObjDraw streams with the exact-name failure,
+zero and arbitrary nonzero finite pre-bone records, varied scale/origin, posed matrices, item states, counter
+values and hidden frames. Requests, body draws and rand consumption must match. Unlike the earlier bounded
+refusal check, this comparison requires the fallback sprite's position and arguments, with zero refusals.
+The native host separately checks the default record, nonzero translations, NULL refusal and the real native
+item draw adapter. Portable tests retain the -2 refusal and the prior short-skeleton bounds.
+
+### Clouds/28
+
+`reconstructed/particles/ferea_clouds.inc` follows CreateParticle `0x015edeaf..0x015ee200` and MoveParticles
+`0x0166200c..0x016623c3`. Common initialization, velocity movement, owner-position handling and lifetime
+retirement remain shared.
+
+Create sets lifetime and initial lifetime to 300. Two `0x011ff622` calls select x/y displacements from
+`[-250,250]` with ten quantization steps, then multiply by input scale. Start copies the displaced position.
+Scale is a quantized `[0.5,1.5]` times input scale; rotation is a quantized `[0,360]`; alpha starts at zero.
+Input light and angle remain unchanged.
+
+Move computes the alpha pulse as `(cos(((1-life/initial)*360+180)*degrees_to_radians)+1)*0.5`.
+It selects speed `[0.3,1.3]` with ten steps. The temporary center adds
+`sin(WorldTime * 0.00019999999494757503f) * speed` to current y, then the original vector helper's operations
+rotate that center offset by angle z around the current position. Preserve center construction and subtraction:
+the intermediate binary32 addition can round the displacement before the rotation. Rotation increases by 0.7.
+Render multiplies light by alpha, as the original later cloud branch does. The existing cloud bitmap is reused.
+
+### The next measured groups, two bow pairs
+
+The expanded installed scene covers 96 admitted item programs in twelve eight-wearer batches, sixteen consecutive
+draws each. Two newly admitted bow groups add particle pairs absent from part 32's 93-program census.
+The remaining unsupported requests in this fixture are five in the batch containing `0x1313`, and seven in the
+batch containing `0x1317`/`0x1319`. Static request evaluation has no unresolved bitmap expression and identifies:
+
+| Pair | Programs | Create / move | Behavior |
+|---|---|---|---|
+| `0x8109/7` | `0x1313`, `0x1317` | `0x015afd35` / `0x01618ab4` | Lifetime 10, saved initial scale, random rotation and quantized input velocity; scale = initial scale * life ratio, one rand-selected velocity component damped by that ratio |
+| `0x810a/9` | `0x1319` | `0x015b1605` / `0x0161acd9` | Lifetime 12, saved initial scale, random rotation; scale grows by 0.035 above half life, shrinks by 0.035 otherwise, clamps at zero |
+
+The first velocity range is `[-2.5,2.5]` with one quantization step. The helper truncates the multiplied bounds
+before modulo and division; replacing it with an arbitrary continuous range changes the client behavior.
+Both particles retain the original common advance and existing bitmap/render paths. Their create/move/render
+record words, ordered calls and random consumption are compared against the pinned instructions.
+
+The final static admitted-program census is 96 programs / 32 distinct pairs, all with native consumers,
+zero unresolved bitmap expressions. This describes admitted programs, not the whole client.
+The installed scene changes 7,389 accepted / 28 refused requests to 7,416 / zero; unsupported particles 12 to zero.
+New particle rand calls alter later gated requests, so the two scenes do not have equal request denominators.
+Eight maces separately change 5,610 / 61 to 5,671 / zero over 61 draws at both clocks. Their saved final PNGs are
+identical despite the additional submitted sprite; these cameras do not establish a visible Hammer14 gain.
+Closer Ferea creates 257 particles / zero unsupported versus 243 / 14 and changes the final native images.
+
+The focused proof has 10,002 component comparisons, zero mismatches; 24/24 compiled mutants are caught.
+Checks, timings, affected rows, rendered differences and limits are recorded in
+[RENDER-EFFECTS-025](../handoffs/RENDER-EFFECTS-025.md). The default zero pre-bone record, original process phase,
+pose and unsampled requests remain explicit limits. Installed Preview and Wine apps are untouched.
