@@ -16,3 +16,5 @@ clean:
 .PHONY: all clean
 
 -include ../deps.mk   # optional: validators build copies of single directories
+
+HEADERS += ui_sound.h
