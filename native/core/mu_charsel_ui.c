@@ -41,6 +41,7 @@ static const char *global_text(void *user, int32_t index)
 static void sink_call(void *user, int op, const uint32_t *words, int count, const void *data, size_t bytes)
 {
     mu_charsel_ui *ui = user;
+    mu_ui_audio_event(&ui->audio, op, words, count, data, bytes, ui->audio_tick);
     if (op == MU_GDI_SELECTOBJECT && count >= 1)
         mu_ui_font_set_select(&ui->fonts, words[0]);
     else if (op == MU_UI_EVENT && count >= 2 && ui->event_count < 16) {
@@ -135,6 +136,7 @@ void mu_charsel_ui_free(mu_charsel_ui *ui)
 void mu_charsel_ui_update(mu_charsel_ui *ui, const mu_charsel_session *s, int32_t x, int32_t y, uint8_t down,
                           uint8_t up)
 {
+    ui->audio_tick = s->steps;
     refresh(ui, s);
     mu_ui_charsel_win_update_display(&ui->ctx, &ui->win);   /* the GFx list's selection calls it */
     ui->ctx.input.cursor_x = x;
