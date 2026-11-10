@@ -268,6 +268,9 @@ PLAIN_TYPES = [*range(0x234a, 0x2368), *range(0x241d, 0x2477), *WING_TYPES]
 
 # RENDER-ITEMS-002X: these cases bypass the level-glow helper chain.
 NO_GLOW_TYPES = [0x232c, 0x232d, 0x232e, 0x232f, 0x2330, 0x26f5]
+OMITTED_BASE_TYPES = [0x2368]
+LATE_GLOW_TYPES = list(range(0x26e6, 0x26ed))
+HELPER_TYPES = OMITTED_BASE_TYPES + LATE_GLOW_TYPES
 
 
 def body_scalars(time):
@@ -774,7 +777,7 @@ CLOCK = 0x06fce370
 # unsigned remainder/quotient (xor edx, edx; div) and the unsigned binary64 conversion (cvtsi2sd, then
 # shr r, 31; addsd [r*8 + 0x01bd3050] with the table {0.0, 2^32}).
 C_FRAME, C_U_MOD, C_U_DIV, C_U2D = range(30, 34)
-C_F_SIN, C_F_ABS = 34, 35
+C_F_SIN, C_F_ABS, C_F_FABS = 34, 35, 36
 FRAME_COUNTER, U32_FIX = 0x0bdc5ebc, 0x01bd3050
 COUNTER_RANGE_TYPES = [0x0f24, 0x0f28, 0x0f29, 0x0f2b, 0x0f2c, 0x1588]
 VECTOR_SETTERS = (0x00cfcead, 0x00cfcede)   # (this)[0..2] = (a, b, c) / (a, a, a); ret 0xc / ret 4
@@ -939,7 +942,8 @@ def slice_block(wa, block, frame=False):
             continue
         if name == 'call' and dst.type == X.X86_OP_IMM and dst.imm in (SINE_WRAPPER, 0x0184f8ff, 0x0098a647):
             if stack_top and stack_top[0] == 'c' and stack_top[1] == 'f':
-                x87 = chain(stack_top, 'f', (C_F_SIN if dst.imm == SINE_WRAPPER else C_F_ABS, 0))
+                operation = C_F_SIN if dst.imm == SINE_WRAPPER else C_F_FABS if dst.imm == 0x0098a647 else C_F_ABS
+                x87 = chain(stack_top, 'f', (operation, 0))
                 regs = {}
                 at = nxt
                 continue
@@ -1259,6 +1263,7 @@ def clock_value(ops, time, frame=0):
         elif op == C_F_RDIV: f = _f32(math_div(kf, f))
         elif op == C_F_SIN: f = _f32(math.sin(f))
         elif op == C_F_ABS: f = -f if 0 > f else f
+        elif op == C_F_FABS: f = abs(f)
         elif op == C_D_MUL: d = d * kd
         elif op == C_D_DIV: d = math_div(d, kd)
         elif op == C_D_ADD: d = d + kd
@@ -1515,6 +1520,8 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=Fals
         if not groups or tag != groups[-1][0]:
             groups.append((tag, []))
         groups[-1][1].append(d)
+    if t in OMITTED_BASE_TYPES:
+        groups.insert(0, ('empty', []))
     if len(groups) == 3 and len(generic) == 5:
         groups[1:1] = [('empty', []), ('empty', [])]
     # Some armour branches return without the generic ancient helper. Keep an
@@ -1631,7 +1638,7 @@ def infer(samples):
 ALL_TYPES = (REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES + RANKED_TYPES + EXPANDED_TYPES +
              NEXT_TYPES + CLOCK_TYPES + CLUSTER_TYPES + WING_TYPES + VISIBLE_TYPES + SCALAR_TYPES +
              CHAIN_TYPES + LEVEL_TYPES + COLOUR_TYPES + CARRY_TYPES + QUALITY_TYPES + PRODUCT_TYPES + DERIVED_TYPES +
-             OWNER_FX_TYPES + PRE_FX_TYPES + POST_FX_TYPES + [0x1588] + list(NAMED_TYPES) + NO_GLOW_TYPES)
+             OWNER_FX_TYPES + PRE_FX_TYPES + POST_FX_TYPES + [0x1588] + list(NAMED_TYPES) + NO_GLOW_TYPES + HELPER_TYPES)
 
 
 def fit(wa, lib, t, scalars=False, carry=False, extended=False):
@@ -1824,7 +1831,7 @@ def extract():
     for t in ALL_TYPES:
         fitted = fit(wa, lib, t, scalars=True,
                      carry='exit' if t in EXIT_TYPES else t in CARRY_TYPES or t in DERIVED_CARRY or t in PRE_CARRY,
-                     extended=t in QUALITY_TYPES or t in PRODUCT_TYPES or t in PRE_EXTENDED or t in NAMED_TYPES or t in NO_GLOW_TYPES)
+                     extended=t in QUALITY_TYPES or t in PRODUCT_TYPES or t in PRE_EXTENDED or t in NAMED_TYPES or t in NO_GLOW_TYPES or t in HELPER_TYPES)
         if fitted is not None:
             types[t] = fitted
     if set(types) != set(ALL_TYPES):

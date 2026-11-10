@@ -54,6 +54,12 @@ class ReadScalars(unittest.TestCase):
             ops = ((gen.C_I_ADD, ('i', ('quotient', ('e', -4, 1, 0), 2))),)
             self.assertEqual(gen.resolve_clock(None, ops, {-4: -5}), ((gen.C_I_ADD, 0xfffffffffffffffe),))
 
+    def test_the_two_absolute_helpers_keep_distinct_signed_zero(self):
+        conditional = ((gen.C_TIME_F, 0), (gen.C_F_ABS, 0))
+        crt = ((gen.C_TIME_F, 0), (gen.C_F_FABS, 0))
+        self.assertEqual(gen.clock_value(conditional, -0.0), 0x80000000)
+        self.assertEqual(gen.clock_value(crt, -0.0), 0)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -117,7 +117,7 @@ class ItemPreDraw(unittest.TestCase):
             self.assertEqual(self.lib.mu_rc_item_owner_fx(t), 0, hex(t))
             for args in ({'a10': 0}, {'select': 1}, {'object_shadow': 1}):
                 self.assertEqual(self.draws(self.item(type=t, **args))[0], 2, (hex(t), args))
-        for t in (0x0ae6, 0x1bc3, 0x23f0, 0x2497, -1):
+        for t in (0x0ae6, 0x1bc3, 0x0b51, 0x23f1, -1):
             self.assertEqual(self.lib.mu_rc_item_pre_fx(t), 0, hex(t))
 
     def test_frame_counter_body_chains(self):

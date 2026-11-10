@@ -261,6 +261,7 @@ static float clock_program(const mu_rc_body_scalar *p, float time, uint32_t fram
         case 33: d = (double)(uint32_t)i; break;
         case 34: f = client_sin(f); break;
         case 35: if (0.0f > f) f = -f; break;
+        case 36: f = fabsf(f); break;
         default: i = (int32_t)(word - (uint32_t)i); break;
         }
     }
@@ -887,6 +888,10 @@ static int item_draws_impl(const mu_rc_item *it, mu_rc_model *model, mu_rc_draw 
                            it->kind_b == 0x27 || it->kind_b == 0x4b || it->kind_b == 0x72 || it->item_kind == 8 || it->item_kind == 0xb))
         return MU_RC_UNSUPPORTED;
     int32_t level = mu_rc_item_glow_level(it);
+    /* RenderObjDraw 0x0176f2db..0x0176f306, after record/quality remapping.
+     * The generic probe uses this same caller level before its helper draws. */
+    if (it->type >= 0x26e6 && it->type <= 0x26ec && level > 0)
+        level = 7;
     int type_row = body_type(it->type);
     if (parameters && type_row >= 0 && mu_rc_body_types[type_row].plain)
         level = 0;
