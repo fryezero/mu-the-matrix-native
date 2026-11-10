@@ -60,7 +60,7 @@ Alchemist = 14, Crusader = 15.
 | 28 Greater Damage | Elf | 18, recurring support | 4 | L | L | Cast animation/sound; persistent buff aura/authoritative buff feed absent |
 | 41 Twisting Slash | DK, MG, Slayer, Crusader | 0, repeated melee farming | 5 | P | P | Weapon swirl, smoke, sparks, joint streaks |
 | 42 Rageful Blow | DK, Slayer, Crusader | 170, later melee farming | 4 | M | P | Flying weapon 0x461, EarthQuake01..08/flashing/tail impact, quake rings, eight joints; ordinary worlds |
-| 43 Death Stab | DK | 160, later melee combat | 4 | L | L | Action 0x9e; associated skill-step trails remain unaudited |
+| 43 Death Stab | DK | 160, later melee combat | 4 | L | L | Action 0x9e; step trails now audited and drawn in the base-DK fixture by EFFECTS-027; general link selector remains |
 
 Totals: **18 P / 4 L / 1 M before; 20 P / 3 L / 0 M after**, out of 23
 routes. Strict primary coverage rises from 78.3% to 87.0%. Primary-covered
@@ -226,3 +226,7 @@ mutants. Triple Shot (24) stays P; its other bows now have their own arrows: 30 
 sparks are verified. Primary routes stay 20/23 and weighted coverage 65/77. The rank-5 pants have no owner block
 (verified), EffectManager bone −1 attaches, and Rudolph's 0x3fa and its Shiny01 0x7f66/7 are pet cosmetics without
 skill credit. The arrows' joint and particle kinds are created as calls but not yet native kinds.
+
+## RENDER-EFFECTS-027 evidence and limits
+
+[Death Stab step audit](client-render-effects-027.md): 6,064 original component comparisons, zero mismatches, 20/20 compiled mutants. Base-DK fixture skill 43 now draws the 0x472/2 ribbons and 0x10e6/1 marker chain with Flare/12 curls, with original step gates, widths, saved point and lifetimes. The fixture makes 189 visual requests, zero refused. Death Stab stays L because the general weapon-link selector remains an authored bone-33 context. Persistent buff feeds and master/later-class selectors remain absent.
