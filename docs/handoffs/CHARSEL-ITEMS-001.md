@@ -69,3 +69,17 @@ The new private GL regression requires different pixels for level 0 versus +9 an
 module passes 7 tests, two private skips, 9.41 s including its rebuild. Earlier selection
 after-images are superseded; the final affected rerun and regenerated visual comparisons are
 pending. The default world sweep's compiled inputs are unchanged by this selection-only fix.
+
+## Latest-main verification checkpoint
+
+Main `3732f82a` (#361) is merged as `003b561f8ec316621e57b3675f86938a0c1eb43c`, unmodified.
+Its twenty newly admitted types do not include the seven shipped selection records. Post-merge
+root build passes, 10.91 s. Post-merge affected portable: 112 items, 1,142 tests, 952 passed,
+190 skips, zero failures/errors; 450.37 s including selection, 370.2 s test wall. Eight private
+validators pass, 345.64 s. Canonical private 8d reduced plus world-entry/demo-record controls:
+12/12 pass, zero skips, 17.15 s. The pure header mutant target remains unchanged, so those seven
+compiled mutants were not repeated.
+
+Fresh post-merge selection scenes and sword controls are complete. The October 22 and
+DATA-ACQ-002 default sweeps rendered successfully in 23.19 / 68.44 s. Final byte comparisons,
+documentation/audit and PR/queue entry remain pending. No ready line has been written.
