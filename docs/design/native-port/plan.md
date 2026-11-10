@@ -1,5 +1,7 @@
 # Plan: the rest of the native macOS port
 
+CHARSEL-ITEMS-001 PR-ready: selection now draws authored demo equipment levels and excellent through the existing item renderer and texture rules. Original comparison: 8,817 cases, zero mismatches; 7/7 compiled mutants. File-only selection and default world captures remain byte-identical. [Checks, addresses, renders and limits](../../handoffs/CHARSEL-ITEMS-001.md).
+
 NEXT-GAPS-001 PR-ready, docs only: [ranked remaining offline lanes](../../research/next-gaps.md), with sourced counts, existing-owner dependencies and file-conflict groups. [Handoff](../../handoffs/NEXT-GAPS-001.md).
 
 APP-REFRESH-011 PR-ready: Native Preview installed from latest main 54a53e1a through #360 with the verified frame-zero GFx library; APP-REFRESH-006 Native Data retained after export-input diff and manifest check. Installed four-start HUD, isolated 0x0f2a counter, mace effects, Eunice 939 cloth and accessory slots 9-14 proofs pass. Full private run: 1,038 tests, 1,019 passed, 16 skipped, three stale-fixture failures; repaired affected classes pass 23/23. No production code changed. [Installation, rollback, checks and limits](../../handoffs/APP-REFRESH-011.md).

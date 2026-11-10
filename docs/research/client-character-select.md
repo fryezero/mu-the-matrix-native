@@ -819,3 +819,107 @@ zero mismatches/stops, 11/11 compiled mutants caught**. The unchanged existing c
 another 6,000 cases and 12/12 mutants. Six native tests cover sound delivery, mute/disable, detach,
 close and shell wiring; pre-change standalone hashes and audio-on/off shell renders agree.
 [Full evidence and limits](../handoffs/AUDIO-002E.md). No original client or live service was used.
+
+## CHARSEL-ITEMS-001: authored equipment levels in selection
+
+The selection scene uses the ordinary character item callers. It has no separate level-zero
+item renderer. The native selection adapter had bypassed those callers with one plain mesh draw,
+although APP-POLISH-008 already preserved authored equipment records beside each demo file.
+
+### Caller recovery
+
+Static disassembly used the pinned restored text capture09, SHA-256
+`2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724`, and the pinned second
+section run10 in `scripts/pins.py`. No character-list handler was decoded in this lane.
+
+| Site | Observation |
+|---|---|
+| `0x01857aa5..0x01857aee` | RenderCharacterScene reads shown slot `0x01cf1154`, checks its CHARACTER and OBJECT live/visible fields, then calls `RenderCharacter(c, o, 0)` at `0x01857aee`. Only that character is drawn. |
+| `0x0136a374` | Body slots descend 5..0, at `c + 0x1c4 + slot * 0x3fc`. |
+| `0x0136a483..0x0136a490` | Each part's model lookup reaches GetModel `0x00eaa8cf`. Its item loader `0x00cd558e` uses the record's texture folder and bitmap registrations, as already verified by RENDER-ITEMS-TEX-001/002. |
+| `0x0136a661..0x0136a6d7` | Ordinary body caller converts PART `+3` to a boolean excellent flag, reads ext at `+4`, sign-extends level byte `+2`, shifts it left three and calls RenderPartObject at `0x0136a6d7` with render type 2. |
+| `0x017e7932..0x017e7960`, `0x017e796a..0x017e7997` | RenderPartObject forwards the encoded level, excellent and ext to RenderObjDraw. These two sinks are already instruction-compared by INVENTORY-FX. |
+| `0x0136c3e7..0x0136c428` | Ordinary hand caller reads PART type, level byte and excellent byte, then calls RenderLinkItem at `0x0136c428`. Its sibling sites are `0x0136c33f` and `0x0136c3dd`. |
+| `0x0139eeb6..0x0139eefc` | Ordinary wing caller in BackCarry forwards the wing PART type, level and excellent byte to RenderLinkItem, with the wing offset and link mode 0. |
+| `0x012bdb19` | RenderLinkItem clears the item's model lighting byte `+0x50`. |
+| `0x012c6a1f..0x012c6a83` | RenderLinkItem converts excellent to a boolean and shifts its level argument left three. Its RenderObjDraw call at `0x012c6a83` forces ext to zero. The PART ext byte does not reach linked weapon or wing mesh passes. |
+
+The level/option call sequences above contain no scene-5 level reset. Scene 5 supplies the
+character light, as described in section 4. That observation supports passing authored appearance
+fields into these existing mesh-pass APIs. It says nothing about how a server character list
+populates those fields.
+
+### Native adapter
+
+`native/charsel/charsel_items.h` converts an explicitly set demo record to the model type
+`0xae6 + code`, level and boolean excellent flag. Body slots retain ext; linked slots force it to
+zero. `parts/character.c` admits a record only when its explicit file loaded, looks up Item.bmd's
+kind bytes, and owns an optional EnchantEffect table for the selection lifetime. Missing tables
+retain the existing item API's fallback behavior.
+
+Admitted slots also use the existing `mu_item_textures_character` API. This gives them the
+client's Item/Texture, skin and bitmap-override rules before GL upload. The common texture
+loader and its tables are unchanged; unrecorded slots retain their previous textures.
+
+The character part now calls `mu_renderchar_draw_item_owner` for those records. A draw-local
+model view applies linked-item lighting zero without changing the assembled character or any
+file-only item's draw. The adapter supplies the selection clock, rendered-frame counter, own
+item bones, scene-5 frustum flag and selection-local particle owner keys. Existing supported
+item pre/post programs, armour-owner effects and link effects can therefore reach the selection
+scene's existing effect passes. The original scene's RenderSprites/RenderParticles calls already
+follow the character. Unrecorded class parts and file-only equipment retain the previous single
+mesh path and create no new item-record report.
+
+`mu_charsel_rt_item` reports the admitted fields and cumulative pass/effect/refusal counts. The
+standalone tool emits `selection_items` rows only for admitted records. No controller, world-entry
+adapter, equipment decoder or common item renderer changed.
+
+### Mesh-pass evidence
+
+`validate_charsel_items` executes the body, hand and wing argument slices under Unicorn, follows
+linked arguments through the common RenderObjDraw call, and compares them with the native
+record adapter. An authored identity stub replaces only the vector-address getter in these
+slices. It also checks the selection scene's direct call site.
+
+Its `mesh_passes` family uses the existing renderchar machine's declared service recorders and
+compares full ordered mesh/color streams from original RenderObjDraw with the existing C port.
+It covers body and hand types, levels 0..15, excellent 0/1, body ext controls, quality 0..5, two
+fixed clocks and scene state 5. The native adapter's output supplies the tested level/option/ext.
+The renderer uses quality 5 in selection, matching the existing default item environment.
+
+| Level | Ordinary mesh passes at quality 5, before excellent/ancient |
+|---|---|
+| 0..2 | One body pass |
+| 3..6 | One body pass with the original pulsing shade |
+| 7..8 | Body plus `0x44` glow |
+| 9..10 | Body plus `0x44` and `0x48` glows |
+| 11..12 | Body plus `0x240`, `0x48` and `0x44` glows |
+| 13..15 | Body plus `0x240`, `0x1040`, `0x48` and `0x44` glows |
+
+Excellent adds its original `0x42` pass when the existing type/kind/quality gates permit it;
+ancient remains mutually exclusive. Type-specific bodies retain the existing renderer's
+supported recipes or counted plain fallback. The pass matrix does not claim the whole
+RenderCharacter routine or every equipment type is reconstructed.
+
+### Limits and next work
+
+Demo records remain authored appearance fixtures. There is no character-list packet decoding,
+account-backed equipment or stats work. FILE still chooses the mesh, so a handwritten mismatched
+code/file pair can assign one type's effects to another mesh. The shipped demo pairs are checked
+by APP-POLISH-008's existing private test.
+
+The selection assembly's existing class/pose restrictions remain. This adapter does not add
+class-specific replacement meshes, +15 class attachments, new cloth setup, or unsupported item
+recipes. The shipped selection demo uses +7/+9 equipment. A +15 mesh-pass comparison does not
+prove its separate attachment branch. There is no original-client capture of these authored
+outfits, no visual-equivalence claim, and no installed-app update in this lane.
+
+Final synthetic counts, native renders, byte-identity controls and test timings are in
+[CHARSEL-ITEMS-001](../handoffs/CHARSEL-ITEMS-001.md).
+
+The first integration had correct 2/6/8 sword pass counts but pixel-identical level controls,
+even after removing wings and shield. It still used the viewer's model-folder texture lookup,
+leaving the Cookery Short Sword white. Pass counts alone were insufficient evidence. This
+failed control led to the selection-only texture-loader call above and the private regression
+`PrivateTextures.test_level_and_excellent_reach_pixels`, which requires visible changes for
+both level and excellent at the same clock.

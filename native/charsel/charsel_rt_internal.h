@@ -8,6 +8,7 @@
 #include "../core/mu_charsel_ui.h"
 #include "../core/mu_objects.h"
 #include "../core/mu_perf.h"
+#include "../core/mu_lang.h"
 #include "../core/mu_scene.h"
 #include "../core/mu_terrain.h"
 #ifndef MU_CHARSEL_NO_GL
@@ -31,6 +32,10 @@ struct mu_charsel_rt {
     mu_objects objects;
     int has_objects;
     long objects_drawn;
+    /* CHARSEL-ITEMS-001: owned by parts/character.c, released before scene close. */
+    mu_charsel_item_draw item_draws[MU_CHARSEL_MAX_ENTRIES][MU_CHARACTER_ITEMS];
+    uint8_t item_records[MU_CHARSEL_MAX_ENTRIES][MU_CHARACTER_ITEMS];
+    mu_lang *item_lang;
 #ifndef MU_CHARSEL_NO_GL
     struct {
         GLuint tiles[MU_WORLD_BITMAPS], extras[MU_WORLD_EXTRA];
