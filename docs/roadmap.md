@@ -355,4 +355,3 @@ RENDER-WORLDS-AFTER6 registry handlers 4/6/8, the sprite mark (no frustum test) 
 RENDER-WORLDS-Q2 Ferea visual, class draw-first slot 0x10 of 134..145 and the live-clock tour are implemented: [checks and remaining work](handoffs/RENDER-WORLDS-Q2.md).
 
 RENDER-WORLDS-G3 Abyss 2 swimmers' blend mesh and Vulcanus' clouds 0xb haze are implemented; the Deep Dungeon dragon fire producer is identified: [checks and remaining work](handoffs/RENDER-WORLDS-G3.md).
-
