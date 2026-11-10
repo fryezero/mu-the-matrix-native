@@ -2636,7 +2636,11 @@ int mu_sfx_death_stab_step(mu_sfx_death_stab *s, const mu_sfx_env *env)
                 p[k] = (float)(smod(env_rand(env), 601) - 300) + p[k];
             p[0] = -1400.0f * sn + p[0];
             p[1] = cs * 1400.0f + p[1];
-            call_joint(env, NULL, 0x472, p, p, s->angle, 2, s->owner, 40.0f);
+            mu_sfx_call joint = {0};
+            joint.routine = MU_SFX_CALL_JOINT; joint.type = 0x472; joint.subtype = 2;
+            joint.owner = s->owner; joint.scale = 40.0f; joint.arg7 = -1;
+            copy3(joint.position, p); copy3(joint.target, p); copy3(joint.angle, s->angle);
+            env_call(env, &joint, NULL);
         }
     }
     if (s->attack_time <= 8) {
@@ -2655,8 +2659,14 @@ int mu_sfx_death_stab_step(mu_sfx_death_stab *s, const mu_sfx_env *env)
         p[0] = sn * reach + p[0];
         p[1] = -reach * cs + p[1];
         const float light[3] = {1.0f, 1.0f, 1.0f};
+        mu_sfx_call marker = {0};
+        marker.routine = MU_SFX_CALL_EFFECT; marker.type = 0x10e6; marker.subtype = 1;
+        marker.owner = s->owner; marker.range = -1; marker.arg7 = -1;
+        /* CreateEffect's key and info word8 are -1; all other trailing fields are 0.
+         * This route carries word8 in arg7 for the native wrapper below. */
+        copy3(marker.position, p); copy3(marker.angle, s->angle); copy3(marker.light, light);
         for (int n = 0; n < 2; ++n)
-            call_effect(env, NULL, 0x10e6, p, s->angle, light, 1, s->owner);
+            env_call(env, &marker, NULL);
         /* 0x01399c29..0x01399c81 also sets a target CHARACTER byte at >=10.
          * That target-state mutation is deliberately outside this visual adapter. */
     }

@@ -735,8 +735,8 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
         const uint32_t created = c->stats.joints_created;
         if (stab) ++c->stats.death_stab_requests;
         create_joint(c, call->type, call->position, call->target, call->angle, call->subtype, target,
-                     call->scale, (uint16_t)(stab ? 0xffff : arrow ? call->arg7 : c->hero_key & 0xffff),
-                     (uint16_t)(arrow ? call->arg8 : 0));
+                     call->scale, (uint16_t)(stab || arrow ? call->arg7 : c->hero_key & 0xffff),
+                     (uint16_t)(stab || arrow ? call->arg8 : 0));
         if (stab && c->stats.joints_created == created) ++c->stats.death_stab_refused;
         c->jenv.has_creation_light = 0;
         return 0;
@@ -746,7 +746,11 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
         memset(&info, 0, sizeof info);
         const int stab = call->type == 0x10e6 && call->subtype == 1;
         const uint32_t created = c->stats.fx_created;
-        if (stab) { ++c->stats.death_stab_requests; info.key = 0xffff; }
+        if (stab) {
+            ++c->stats.death_stab_requests;
+            info.key = (uint16_t)call->range;
+            info.field8 = (uint16_t)call->arg7;   /* wrapper 0x013c0ed8: original argument 11 */
+        }
         int32_t owner = call->owner == -2 ? -1 : call->owner;
         if (e && e->type == MU_SFX_RAGEFUL_BLOW) {
             /* RENDER-EFFECTS-004: the pieces' info key (scale = key / 100). EarthQuake01..03 are owned by

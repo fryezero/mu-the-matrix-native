@@ -19,12 +19,17 @@ Inputs remain private. No live client was started or inspected.
 **Verified** means compiled authored C compared with these original instructions
 under the strict Unicorn machine. The validator checks defined record fields,
 ordered call values, RNG consumption, the saved weapon point and AttackTime.
-Joint rendering compares the complete recorded GL stream, not GPU pixels.
+The caller comparator records all fourteen joint/effect arguments directly,
+including the key words and fixed defaults; it borrows no trailing values from
+the original stream. CreateEffect wrapper `0x013c0eaa..0x013c0f18` copies its
+argument 11 to info word `+8`, so both that word and the key are `0xffff` for
+these markers. Native preserves them. Joint rendering compares the complete
+recorded GL stream, not GPU pixels.
 Each comparison family uses a fresh machine. The continuous lifecycle family
 carries the original record bytes between ticks independently of the C record,
 including owner death, the closing tails and retirement.
 
-The full focused run has 6,064 comparisons, zero mismatches, and 20/20 compiled
+The initial focused run has 6,064 comparisons, zero mismatches, and 20/20 compiled
 production-C mutants caught without an original-machine stop, 50.74 s. The
 randomized families have 1,000 cases each; 64 further comparisons cover complete
 create-to-retirement joint lifecycles. The mutants cover caller gates/counts,

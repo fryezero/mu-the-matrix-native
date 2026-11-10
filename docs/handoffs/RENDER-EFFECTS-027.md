@@ -43,3 +43,11 @@ cap, so this is **8d reduced**. No lane combat arithmetic changed in the merge.
 
 Still WIP until the late affected checks, final identity check and final docs
 are complete. The merge steward owns the full gate and merge.
+
+The late portable selection passes: 147/147 work items, 1,383 tests, 1,151
+passed, 232 expected skips, zero failures/errors; outer wall 500.44 s (the
+runner reports 398.9 s after selection). Final caller review replaced borrowed
+trailing metadata with a direct fourteen-argument comparison. This caught the
+request records' omitted keys; native now carries both marker key/info word8
+from the request. The revised small run passes 1,264 comparisons in 2.83 s.
+Three key-word mutants were added; final 23-mutant run is next.

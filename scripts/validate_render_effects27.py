@@ -43,6 +43,9 @@ MUTANTS = [
     ('skill_fx.c', 'sn * 300.0f + s->sword_position[0]', 'sn * 290.0f + s->sword_position[0]', 'caller'),
     ('skill_fx.c', 's->attack_time >= 6 && s->attack_time <= 12', 's->attack_time >= 7 && s->attack_time <= 12', 'caller'),
     ('skill_fx.c', 'if (s->attack_time >= 12)', 'if (s->attack_time > 12)', 'caller'),
+    ('skill_fx.c', 'joint.arg7 = -1;', 'joint.arg7 = 0;', 'caller'),
+    ('skill_fx.c', 'marker.range = -1;', 'marker.range = 0;', 'caller'),
+    ('skill_fx.c', 'marker.arg7 = -1;', 'marker.arg7 = 0;', 'caller'),
     ('skill_fx.c', 'e->lifetime = 10;\n        break;\n    case MU_SFX_MODEL_ARROW: {',
      'e->lifetime = 9;\n        break;\n    case MU_SFX_MODEL_ARROW: {', 'effect_create'),
     ('skill_fx.c', 'c.routine = MU_SFX_CALL_JOINT; c.type = 0x7f78; c.subtype = 12;',
@@ -65,6 +68,43 @@ class Stab(C.Structure):
     _fields_ = [('attack_time', C.c_uint8), ('has_model', C.c_uint8), ('has_bone', C.c_uint8),
                 ('quiet_world', C.c_uint8), ('position', F3), ('angle', F3), ('weapon_point', F3),
                 ('sword_position', F3), ('owner', C.c_int32)]
+
+
+class CallerCase(fx.Case):
+    """Record all CreateJoint/CreateEffect arguments, without borrowed fields.
+
+    The native facade supplies the fixed trailing defaults below. Variable
+    keys/skill/scale are carried by mu_sfx_call and compared from that record.
+    """
+    def env(self, *args, **kwargs):
+        env = super().env(*args, **kwargs)
+        inner = self._keep[3]
+
+        def call(ctx, cp, ep):
+            c = cp.contents
+            if c.routine == fx.CREATE_JOINT:
+                self.c_calls.append(('joint', c.type, list(c.position), list(c.target), list(c.angle),
+                    c.subtype, c.owner, c.scale,
+                    [c.arg7 & 0xffffffff, c.arg8 & 0xffffffff, 0, 0xffffffff, 0, 0xffffffff, 0]))
+                return 0
+            if c.routine == fx.CREATE_EFFECT_WRAPPER:
+                self.c_calls.append(('effect', c.type, list(c.position), list(c.angle), list(c.light),
+                    c.subtype, c.owner, [c.range & 0xffffffff, 0, 0, 0, fx.bits(c.scale),
+                                        c.arg7 & 0xffffffff, 0, 0]))
+                return 0
+            return inner(ctx, cp, ep)
+        self._caller_call = fx.CALL_FN(call)
+        env.call = self._caller_call
+        return env
+
+
+def compare_caller_calls(client, mine):
+    if len(client) != len(mine):
+        return ('count', len(client), len(mine))
+    for a, b in zip(client, mine):
+        if not vc._same_call(a, b):
+            return ('complete call', a, b)
+    return None
 
 
 def configure():
@@ -124,7 +164,7 @@ def caller(m, lib, rng, cases, report):
         model.define(fx.MODEL + 0x2c, struct.pack('<I', fx.MODEL + 0x1000))
         model.define(fx.MODEL + 0x1022, bytes([0]))
         cutoff = am.defined_region('cutoff', 0x1cf1050, struct.pack('<i', -1))
-        case = fx.Case(rng, [], fx.rand_values(rng, 100), 0.0)
+        case = CallerCase(rng, [], fx.rand_values(rng, 100), 0.0)
         stubs = case.stubs(m)
         stubs.update({0x13a5658: lambda mm: 0, 0xac3bf7: lambda mm: (fx.CONTAINER, 4),
                       0x95f998: lambda mm: fx.CONTAINER, 0xbb1c32: lambda mm: 43,
@@ -150,7 +190,7 @@ def caller(m, lib, rng, cases, report):
             if actual != s.attack_time or any(not fx.same(x, y) for x, y in zip(point, s.sword_position)):
                 mismatch = ('state', actual, s.attack_time, point, list(s.sword_position))
             if mismatch is None:
-                mismatch = fx.compare_calls(case.client_calls, fx.sorted_calls(case.c_calls, case.client_calls))
+                mismatch = compare_caller_calls(case.client_calls, case.c_calls)
             if mismatch is None and case.client_rand != case.c_rand:
                 mismatch = ('rand calls', case.client_rand, case.c_rand)
         report.add('caller', vc.ok(result) and mismatch is None,
