@@ -34,7 +34,9 @@ enum mu_ui_op {
     /* NATIVE-UI-002: SelectObject(font DC, font handle) from the text facade's
      * SetFont, a sound request (PlayBuffer id), and a client event the UI
      * hands to game logic (enum mu_ui_event; words after the code are its
-     * arguments).  Renderers ignore the last two. */
+     * arguments). MU_UI_SOUND keeps its one id word; data/bytes carry the
+     * borrowed mu_ui_sound_source provenance from ui_sound.h when available.
+     * Renderers ignore the last two. */
     MU_GDI_SELECTOBJECT, MU_UI_SOUND, MU_UI_EVENT,
     /* CreateFontA (13 argument words, face as data), DeleteObject (handle),
      * and the client's LoadBitmap 0x0185baac (index, filter, wrap, check,

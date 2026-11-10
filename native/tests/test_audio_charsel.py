@@ -166,9 +166,17 @@ class CharselAudio(unittest.TestCase):
                     frames = [json.loads(l) for l in p.stdout.splitlines() if l.startswith('{')]
                     hashes.append([r['sha256'] for r in frames if 'sha256' in r])
                     if enabled:
-                        rows = [r for r in map(json.loads, log.read_text().splitlines())
-                                if r['op'] == 'play' and r['handler'] == 0x1856e6c]
-                        self.assertEqual([(r['site'], r['id'], r['result']) for r in rows], [(site, 25, 1)])
+                        plays = [r for r in map(json.loads, log.read_text().splitlines()) if r['op'] == 'play']
+                        rows = [r for r in plays if r['handler'] == 0x1856e6c]
+                        # AUDIO-002G: Create now plays the same id before the quick Esc close.
+                        # SND_Play must preserve its existing one-active-instance suppression.
+                        result = 0 if site == 0x18571e6 else 1
+                        self.assertEqual([(r['site'], r['id'], r['result']) for r in rows], [(site, 25, result)])
+                        if site == 0x18571e6:
+                            clicks = [r for r in plays if r['handler'] == 0x9867e3]
+                            self.assertEqual([(r['site'], r['id'], r['result']) for r in clicks],
+                                             [(0x98689e, 25, 1)])
+                            self.assertLess(clicks[0]['seq'], rows[0]['seq'])
             self.assertTrue(hashes[0])
             self.assertEqual(hashes[0], hashes[1])
 
