@@ -27,9 +27,9 @@ class ItemTypes(unittest.TestCase):
             self.assertEqual([d.flags for d in draws], [2])
             self.assertEqual(list(draws[0].body_light), list(self.item().light))
             self.assertEqual([d.flags for d in self.draws(self.item(type=t, option1=1))[1]], [2, 0x42])
-        # 0x22ec (adjacent) draws since RENDER-ITEMS-002S's joint program; the effect-heavy 0x2301 stays refused
+        # 0x22ec (adjacent) draws since RENDER-ITEMS-002S's joint program; the effect-heavy 0x230d stays refused
         self.assertEqual(self.draws(self.item(type=0x22ec))[0], 0)
-        self.assertEqual(self.draws(self.item(type=0x2301))[0], 1)
+        self.assertEqual(self.draws(self.item(type=0x230d))[0], 1)
 
     def test_weapon_remap_before_caps_and_mesh_override(self):
         for t in (0x12ed, 0x12f5):

@@ -103,7 +103,7 @@ class ItemPreDraw(unittest.TestCase):
                                    ('invalid-transform', 'object', 1)])
 
     def test_admissions_and_existing_domain(self):
-        self.assertEqual(len(fxgen.PRE_FX_TYPES), 51)   # RENDER-ITEMS-002W: three read-program bows
+        self.assertEqual(len(fxgen.PRE_FX_TYPES), 65)   # RENDER-ITEMS-002X: fourteen further programs
         for t in fxgen.POST_FX_TYPES:
             self.assertEqual(self.draws(self.item(type=t))[0], 0, hex(t))
             self.assertEqual((self.lib.mu_rc_item_post_fx(t), self.lib.mu_rc_item_pre_fx(t)), (1, 0), hex(t))
@@ -117,7 +117,7 @@ class ItemPreDraw(unittest.TestCase):
             self.assertEqual(self.lib.mu_rc_item_owner_fx(t), 0, hex(t))
             for args in ({'a10': 0}, {'select': 1}, {'object_shadow': 1}):
                 self.assertEqual(self.draws(self.item(type=t, **args))[0], 2, (hex(t), args))
-        for t in (0x0ae6, 0x1bc3, 0x0f1e, 0x23a8, -1):
+        for t in (0x0ae6, 0x1bc3, 0x23f0, 0x2497, -1):
             self.assertEqual(self.lib.mu_rc_item_pre_fx(t), 0, hex(t))
 
     def test_frame_counter_body_chains(self):
