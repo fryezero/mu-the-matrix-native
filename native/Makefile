@@ -125,6 +125,9 @@ CORE_SRC += core/mu_objects_anim.c
 RECON_SRC += $(RECON)/objects/action_registry.c
 # RENDER-WORLDS-FOG: the render scene's fog tests (world 0x1e's box)
 RECON_SRC += $(RECON)/environment/env_fog.c
+# MUUN-VISUAL-001: fixture-only base slot and model/attachment owner
+CORE_SRC += core/mu_muun_visual.c
+RECON_SRC += $(RECON)/muun/visual.c
 CORE_OBJ := $(patsubst %.c,$(BUILD)/%.o,$(CORE_SRC))
 RECON_OBJ := $(patsubst $(RECON)/%.c,$(BUILD)/recon/%.o,$(RECON_SRC))
 MODULUS_OBJ := $(BUILD)/modulus.o
@@ -798,3 +801,8 @@ $(BUILD)/worlds-s3-host: tests/worlds_s3_host.c $(LIB) $(HEADERS)
 $(BUILD)/worlds-s2-host: tests/worlds_s2_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-s2-host.o
 	$(CXX) $(BUILD)/worlds-s2-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+
+# MUUN-VISUAL-001 production fixture lifetime/pose host.
+$(BUILD)/muun-visual-host: tests/muun_visual_host.c $(LIB) $(HEADERS)
+	$(CC) $(CFLAGS) -c $< -o $(BUILD)/muun-visual-host.o
+	$(CXX) $(BUILD)/muun-visual-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
