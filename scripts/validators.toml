@@ -3389,3 +3389,17 @@ note = "RENDER-ACTORS-001: 32-class census, six skeleton body hooks, eleven equi
 all_equal = true
 all_mutants_caught = true
 "mutants.*.stopped" = 0
+
+[validate_charsel_items]
+test = "native/tests/test_charsel_items.py::InstructionComparison.test_original_selection_item_callers"
+pins = ["text", "data", "flag", "feature"]
+families = ["part_args", "link_args", "fallback", "selection_sink", "mesh_passes"]
+cases = 8817
+mutants = 7
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar"]
+args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+[validate_charsel_items.expect]
+"families.*.cases" = {all_min = 1}
+"families.*.mismatches" = 0

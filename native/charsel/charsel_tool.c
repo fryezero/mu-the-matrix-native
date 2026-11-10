@@ -126,6 +126,21 @@ static void report_summary(const app *a, const char *renderer)
                i, e->slot, e->class_byte, e->level, e->name, (double)scale, (int16_t)parts[0], (int16_t)parts[1],
                (int16_t)parts[2], (int16_t)parts[3], (int16_t)parts[4], (int16_t)parts[5],
                s->character_loaded[i] ? mu_model_action(&s->characters[i].player) : -1);
+        int first = 1;
+        for (int slot = 1; slot < MU_CHARACTER_ITEMS; ++slot) {
+            const mu_charsel_item_draw *d = mu_charsel_rt_item(a->rt, i, slot);
+            if (!d)
+                continue;
+            if (first)
+                printf("{\"selection_items\": true, \"record_entry\": %d, \"slots\": [", i);
+            printf("%s{\"item\": %d, \"type\": %d, \"level\": %d, \"option\": %d, \"ext\": %d,"
+                   " \"passes\": %ld, \"special\": %ld, \"effects\": %ld, \"refused\": %ld}", first ? "" : ", ",
+                   slot, d->glow.type, d->glow.level, d->glow.option1, d->glow.ext,
+                   d->passes, d->special, d->effects, d->refused);
+            first = 0;
+        }
+        if (!first)
+            printf("]}\n");
     }
 }
 
