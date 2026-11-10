@@ -40,6 +40,16 @@ which pass without mutants in 329.3 s. The other six are unchanged by symbol-lev
 selection and retain their earlier result. Portable affected suites are running.
 Selection has 154 work items including 146 native modules, so 8d is reduced.
 
+Portable affected checks pass 1,464 tests: 1,224 passed, 240 skipped, zero failures
+or errors, 530.2 s. Private 8d reduced passes all 27 tests in the actor recipe and
+native renderchar modules, zero skips, 43.3 s.
+
+The final integration point is AUDIO-002G main `807d757c`, merged as `80bd0c7f`.
+Rebuild passes in 13.4 s. Fresh lane selection remains 21 rows; 18 changed-input
+rows pass in 376.1 s, including the full actor comparison with file identity.
+The final portable delta is running. No actor implementation or mutation target
+changed in that merge.
+
 Next: finish the portable run, the reduced private modules and the final sweep.
 Six other rows stay refused: 374 and 642 need companion construction/lifetime;
 378 needs its appearance/effect branch; 625/626 need action-dependent hooks; 617's
