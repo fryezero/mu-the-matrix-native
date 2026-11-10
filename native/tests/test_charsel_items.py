@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import shutil
 import sys
 import tempfile
 import unittest
@@ -111,6 +112,39 @@ class InstructionComparison(unittest.TestCase):
             data = json.loads(report.read_text())
             self.assertTrue(all(f['cases'] and not f['mismatches'] for f in data['families'].values()))
             self.assertTrue(all(data.get('mutants', {'no_mutants': 1}).values()))
+
+
+@unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1' and os.environ.get('MU_GAME_ROOT'),
+                     'needs MU_GAME_ROOT and private installed item textures')
+class PrivateTextures(unittest.TestCase):
+    def test_level_and_excellent_reach_pixels(self):
+        subprocess.run(['make', '-C', str(ROOT / 'native'), 'charsel'], check=True, capture_output=True)
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            binary = folder / 'mu-charsel-window'
+            shutil.copy2(ROOT / 'native/build/mu-charsel-window', binary)
+            env = dict(os.environ)
+            if env.get('MU_NATIVE_DATA_DIR'):
+                env['MU_LANG_DIR'] = str(Path(env['MU_NATIVE_DATA_DIR']) / 'lang')
+            images, passes, clocks = [], [], []
+            for n, suffix in enumerate(('@0:68:0', '@0:68:9', '@0:68:9:1')):
+                listing = folder / 'list.txt'
+                listing.write_text('1 0x01 400 Ironclad weapon0=Item/CookriShortSword.bmd' + suffix + '\n')
+                out = folder / str(n)
+                p = subprocess.run([str(binary), '--game-root', env['MU_GAME_ROOT'], '--list', str(listing),
+                                    '--slot', '1', '--headless', '--no-ui', '--backend', 'gl', '--frames', '12',
+                                    '--every', '11', '--width', '640', '--height', '400', '--out-dir', str(out)],
+                                   capture_output=True, text=True, check=True, cwd=ROOT, env=env)
+                rows = [json.loads(line) for line in p.stdout.splitlines() if line.startswith('{')]
+                draw = next(row for row in rows if row.get('selection_items'))['slots'][0]
+                self.assertEqual((draw['special'], draw['refused']), (0, 0))
+                passes.append(draw['passes'])
+                clocks.append([row['tick'] for row in rows if 'frame' in row])
+                images.append((out / 'frame-0011.png').read_bytes())
+            self.assertEqual(passes, [2, 6, 8])
+            self.assertEqual(clocks, [clocks[0]] * 3)
+            self.assertNotEqual(images[0], images[1], 'level glow produced no pixels')
+            self.assertNotEqual(images[1], images[2], 'excellent produced no pixels')
 
 if __name__ == '__main__':
     unittest.main()

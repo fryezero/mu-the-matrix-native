@@ -54,3 +54,18 @@ only; compiled inputs are identical to implementation checkpoint `a59fd288`.
 
 Final PNG comparisons, default world identity sweep, final documentation/audit and PR queue entry
 are still pending. No PR-ready line has been written.
+
+## Texture integration correction
+
+An additional visual control found that the first sword level/option controls had identical
+pixels despite 2/6/8 pass counts, even without shield and wings. Selection had kept the viewer's
+model-folder texture lookup. The selection adapter now calls the existing
+`mu_item_textures_character` for admitted records, before GL upload, to use the client's
+Item/Texture, skin and bitmap-override rules. File-only items keep their previous texture path.
+No texture implementation, table, generator or shared renderer changed.
+
+The new private GL regression requires different pixels for level 0 versus +9 and +9 versus
++9 excellent at the same clocks. It passes after the fix, 1 test, 6.26 s. The focused portable
+module passes 7 tests, two private skips, 9.41 s including its rebuild. Earlier selection
+after-images are superseded; the final affected rerun and regenerated visual comparisons are
+pending. The default world sweep's compiled inputs are unchanged by this selection-only fix.

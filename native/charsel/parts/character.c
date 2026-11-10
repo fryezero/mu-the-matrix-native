@@ -1,6 +1,7 @@
 #include "../charsel_rt_internal.h"
 #include "../charsel_items.h"
 #include "../../core/mu_data.h"
+#include "../../core/mu_item_textures.h"
 
 const mu_charsel_item_draw *mu_charsel_rt_item(const mu_charsel_rt *a, int entry, int slot)
 {
@@ -38,6 +39,14 @@ static int open_items(mu_charsel_rt *a)
                 g->kind_a = item.attributes.kind_a;
                 g->kind_b = item.attributes.kind_b;
                 g->item_kind = item.attributes.type;
+            }
+            /* The record's item loader selects Item/Texture and the bitmap
+             * overrides used by its glow passes, as for the world hero. */
+            if (mu_item_textures_character(&a->s->characters[e], slot, have ? &table : NULL,
+                                            a->options.root, g->type, entry->class_byte)) {
+                snprintf(a->s->error, sizeof a->s->error, "selection item textures: out of memory");
+                mu_data_free(&table);
+                return 1;
             }
         }
     mu_data_free(&table);

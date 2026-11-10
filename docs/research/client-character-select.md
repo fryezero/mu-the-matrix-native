@@ -836,6 +836,7 @@ section run10 in `scripts/pins.py`. No character-list handler was decoded in thi
 |---|---|
 | `0x01857aa5..0x01857aee` | RenderCharacterScene reads shown slot `0x01cf1154`, checks its CHARACTER and OBJECT live/visible fields, then calls `RenderCharacter(c, o, 0)` at `0x01857aee`. Only that character is drawn. |
 | `0x0136a374` | Body slots descend 5..0, at `c + 0x1c4 + slot * 0x3fc`. |
+| `0x0136a483..0x0136a490` | Each part's model lookup reaches GetModel `0x00eaa8cf`. Its item loader `0x00cd558e` uses the record's texture folder and bitmap registrations, as already verified by RENDER-ITEMS-TEX-001/002. |
 | `0x0136a661..0x0136a6d7` | Ordinary body caller converts PART `+3` to a boolean excellent flag, reads ext at `+4`, sign-extends level byte `+2`, shifts it left three and calls RenderPartObject at `0x0136a6d7` with render type 2. |
 | `0x017e7932..0x017e7960`, `0x017e796a..0x017e7997` | RenderPartObject forwards the encoded level, excellent and ext to RenderObjDraw. These two sinks are already instruction-compared by INVENTORY-FX. |
 | `0x0136c3e7..0x0136c428` | Ordinary hand caller reads PART type, level byte and excellent byte, then calls RenderLinkItem at `0x0136c428`. Its sibling sites are `0x0136c33f` and `0x0136c3dd`. |
@@ -855,6 +856,10 @@ populates those fields.
 zero. `parts/character.c` admits a record only when its explicit file loaded, looks up Item.bmd's
 kind bytes, and owns an optional EnchantEffect table for the selection lifetime. Missing tables
 retain the existing item API's fallback behavior.
+
+Admitted slots also use the existing `mu_item_textures_character` API. This gives them the
+client's Item/Texture, skin and bitmap-override rules before GL upload. The common texture
+loader and its tables are unchanged; unrecorded slots retain their previous textures.
 
 The character part now calls `mu_renderchar_draw_item_owner` for those records. A draw-local
 model view applies linked-item lighting zero without changing the assembled character or any
@@ -911,3 +916,10 @@ outfits, no visual-equivalence claim, and no installed-app update in this lane.
 
 Final synthetic counts, native renders, byte-identity controls and test timings are in
 [CHARSEL-ITEMS-001](../handoffs/CHARSEL-ITEMS-001.md).
+
+The first integration had correct 2/6/8 sword pass counts but pixel-identical level controls,
+even after removing wings and shield. It still used the viewer's model-folder texture lookup,
+leaving the Cookery Short Sword white. Pass counts alone were insufficient evidence. This
+failed control led to the selection-only texture-loader call above and the private regression
+`PrivateTextures.test_level_and_excellent_reach_pixels`, which requires visible changes for
+both level and excellent at the same clock.
