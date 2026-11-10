@@ -262,7 +262,7 @@ class WorldRender(unittest.TestCase):
     def test_weapon_pre_draw_program(self):
         """RENDER-ITEMS-002R: RenderObjDraw's own case of sword 0x0b27 creates bone sprites on the weapon's own
         posed bones (constant indices) before the body draws; bow 0x1311 looks its bone up by name ("a02"), which
-        the synthetic skeleton (cbone0..) lacks, so its one request is refused and counted."""
+        the synthetic skeleton (cbone0..) lacks. EFFECTS-025 supplies the explicit pre-bone record for that sprite."""
         path=self.tmp/'pre-fx.bmd'
         path.write_bytes(nf.character_layout(115,bones=12,meshes=2))
         sword,_=self.render('--weapon','0',path,'--item-type','weapon0=0xb27','--world-time','0')
