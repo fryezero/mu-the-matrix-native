@@ -13,6 +13,7 @@
 #include "mu_data.h"
 #include "../../reconstructed/cloth/cloth.h"
 #include "mu_item_textures.h"
+#include "mu_texture_names.h"
 
 #define MONSTER_IDLE 0     /* docs/research/client-actors.md section 2 (inference) */
 #define MONSTER_WALK 2
@@ -100,13 +101,31 @@ static int load_player_npc(mu_world_actor *a, const char *root, const mu_monster
     }
     for (int k = 0; k < MU_CHARACTER_ITEMS; k++) {
         int32_t type = row->slots[k].type;
-        if (k == 0 && type >= 0x422 && type <= 0x424) {
-            /* RenderCharacter's whole skeleton body. Startup 0x01832c28
-             * loads Skeleton01..03 into 0x422..0x424 from Data/Skill. */
-            snprintf(path, sizeof path, "%s/Data/Skill/Skeleton%02d.bmd", root, type - 0x421);
+        const char *body_file = k == 0 ? mu_actor_player_body_file(type) : NULL;
+        if (body_file) {
+            /* Whole-body RenderPartObject on Player's posed bones. */
+            snprintf(path, sizeof path, "%s/%s", root, body_file);
             if (mu_character_set_item(a->player, k, path, no_textures, error, cap)) {
                 mu_data_free(&table);
                 return 1;
+            }
+            /* OpenTexture retries its name map, Item/, then Item/Texture/.
+             * The existing resolver implements that original lookup; the
+             * baseball/cheerleader bitmaps need its final retry. */
+            mu_character_item *part = &a->player->items[k];
+            if (!no_textures && part->textures.missing) {
+                for (int m = 0; m < part->bmd.mesh_count; ++m) {
+                    if (part->textures.slots[m]) continue;
+                    int32_t texture_type = 0, special = 0;
+                    int step = 0;
+                    mu_texture_names_upload upload = {0};
+                    if (mu_texture_names_item(root, NULL, type <= 0x429 ? "Skill\\" : "Item\\",
+                        part->bmd.meshes[m].texture, path, sizeof path, &texture_type, &special, &step, &upload) &&
+                        mu_textures_set_file(&part->textures, &part->bmd, m, path) == 0 && upload.wrap) {
+                        part->textures.filter[m] = upload.filter;
+                        part->textures.wrap[m] = upload.wrap;
+                    }
+                }
             }
             /* The town NPC branch 0x01367d85 uses +0x144 only in world 0.
              * The later skeleton branch 0x01369f98 always passes zero. */
