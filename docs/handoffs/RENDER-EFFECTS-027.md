@@ -1,8 +1,13 @@
 # RENDER-EFFECTS-027
 
 Death Stab's offline base-DK fixture trails. Branch `codex/render-effects-027`,
-started at `ff8e0543`, with main through `807d757c` merged. The merge steward
-owns integration and the full gate. Final affected checks are in progress.
+started at `ff8e0543`, with main through `e057d19e` merged. The merge steward
+owns integration and the full gate. PR-ready.
+
+The lane's agent (Codex, GPT-6.1 Sol) did the implementation and the checks below, then stopped at
+Codex's usage limit during its last validator delta. The orchestrator (Claude) merged main `e057d19e`
+(no conflicts), completed this handoff's steward section, added the status lines and opened the PR.
+No source changed in that step.
 
 ## What draws
 
@@ -79,8 +84,8 @@ The native private selection exceeds 40 items, so **8d reduced** applies. The
 changed combat, bitmap and renderer consumers are checked explicitly; the
 portable skip count does not imply those private checks ran.
 
-Final affected validator results, final portable/private checks and final audit
-will be recorded before PR-ready.
+The final affected validator run, portable gate and private modules after the last main merges
+are the merge steward's combined-tree run (steward log, batch 99).
 
 ## Render and identity evidence
 
@@ -110,7 +115,7 @@ class/weapon refusal controls, full retirement and repeated image identity.
 The initial GL proof and repeat took 4.27 s. All four after/repeat images were
 byte-identical; frame zero also matched baseline. Visual inspection showed the
 long ribbons converging on the DK and the short curls near the skill point.
-Final render and default-sweep results follow after late-main checks.
+No later render or sweep was run by the lane; the default sweep result is the one at `3447e585` below.
 
 The default capture baseline has 46 entries, 92 PNGs and 92 OBJECT/light dumps.
 Its first after sweep at `3447e585` was byte-identical for all 184 artifacts,
@@ -139,9 +144,14 @@ files were not edited; their main merges were retained.
 
 ## Steward validators
 
-The exact selected names, row counts/timings and tested commits will be added
-when the final affected run finishes. No steward mutant reruns are needed
-unless the relevant checked inputs change.
+Steward validators: validate_actor_recipes, validate_app_polish1, validate_app_polish2, validate_app_polish4, validate_armour_cloak, validate_audio_callers, validate_audio_combat, validate_audio_domains, validate_audio_items, validate_audio_ui, validate_charsel_window, validate_fidelity, validate_hud, validate_icarus, validate_icarus_c2, validate_inventory_fx, validate_item_callers, validate_item_carry, validate_item_chains, validate_item_cloak, validate_item_clusters, validate_item_continuation, validate_item_coverage, validate_item_derived, validate_item_expansion, validate_item_gear, validate_item_groups, validate_item_hiddenmesh, validate_item_named, validate_item_next, validate_item_ownerfx, validate_item_predraw, validate_item_product, validate_item_quality, validate_item_ranked, validate_item_scalars, validate_item_types, validate_item_wings_next, validate_joints, validate_meshdraw, validate_model_edge, validate_model_light, validate_movement, validate_npc_cloak, validate_render_effects, validate_render_effects10, validate_render_effects11, validate_render_effects12, validate_render_effects13, validate_render_effects14, validate_render_effects15, validate_render_effects16, validate_render_effects17, validate_render_effects18, validate_render_effects19, validate_render_effects20, validate_render_effects21, validate_render_effects22, validate_render_effects23, validate_render_effects24, validate_render_effects27, validate_render_effects3, validate_render_effects4, validate_render_effects5, validate_render_effects6, validate_render_effects7, validate_render_effects9, validate_render_items, validate_renderchar, validate_scene, validate_skill_fx, validate_terrain, validate_terrain_remaining, validate_ui, validate_ui_widgets, validate_world_order, validate_world_particle_consumers, validate_worlds_after6, validate_worlds_d, validate_worlds_f, validate_worlds_fog, validate_worlds_l, validate_worlds_m
+
+This is the lane's recorded steward list (83 rows). The first affected run at `3447e585` passed 49/49 rows,
+711,353 reported cases, in 693.80 s. The later selections after RENDER-ITEMS-002X and AUDIO-002G main
+(54 and 68 rows) were still running when the agent stopped, so their results are not claimed here. The merge
+steward runs the whole affected selection once on the combined tree; its result is in the steward log,
+batch 99. No steward mutant reruns are needed: the 23 compiled production-C mutants were caught at `26eef91d`
+and those targets are unchanged. Environment: `. ~/Documents/MTM/mu-mac-tools/native/private-env.sh`.
 
 ## Cleanup
 
