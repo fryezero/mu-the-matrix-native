@@ -5,6 +5,28 @@ Prerequisite #361 subsequently merged at `3732f82a`; its identical-tree main his
 Codex, GPT-6.1 Sol; no subagents. Offline/static only. Installed apps are untouched.
 Research part 38 is reserved; recheck main before the final push.
 
+## WIP checkpoint 2026-11-11 22:33, affected validators
+
+Portable selection and execution pass: 152 work items, 1,421 tests, 1,180 passed and 241 skipped,
+zero failures/errors, 523.96 s including selection. All 20 changed-row mutants are caught.
+The active no-mutant batch has 26/59 passing rows and 0 failed/error rows.
+Its compiled inputs remain at `90f61f89`; this checkpoint changes documentation only.
+
+Done rows and per-row reports are under
+`~/Documents/MTM/mu-mac-tools/native/scratch/render-items-002y/affected-validators/`.
+Wait for the active command. If interrupted, load the exact 59 names from `selection.json` and
+resume that report with the canonical private environment, cache, no mutants and two workers.
+Do not repeat completed mutants.
+
+Identity note: the preliminary `f7fed588` sweep used prerequisite tables with the branch C file,
+so it is not a clean-main baseline. After this batch, build actual main runtime inputs in this
+worktree, record the binary SHA, restore the committed branch inputs and rebuild for comparison.
+Do not alter runtime inputs while the validator batch is active.
+
+Left: finish all 59 rows, reduced private native renderer/App Polish 8 modules, explicit world
+rebuild and SHA-256, final default identity, final docs/PR/ready-prs entry and cleanup.
+The 02:15 WIP decision and 02:30 stop remain binding. No ready-prs line exists yet.
+
 ## WIP checkpoint 2026-11-11, portable pass and validator batch
 
 At compiled source `90f61f89`, the corrected read row passes 5,352 cases and six mutants, 30.0 s;
