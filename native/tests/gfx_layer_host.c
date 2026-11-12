@@ -204,6 +204,22 @@ int main(int argc, char **argv)
             printf("at %s %s took %d\n", argv[i + 1], argv[i + 2],
                    click(L, atof(argv[i + 1]) * scale, atof(argv[i + 2]) * scale, 0));
             i += 2;
+        } else if (!strcmp(op, "move") && i + 2 < argc) {
+            printf("move took %d\n", mu_gfx_layer_mouse(L, 0, 0, atof(argv[i + 1]) * scale,
+                                                        atof(argv[i + 2]) * scale));
+            i += 2;
+        } else if (!strcmp(op, "equipment")) {
+            mu_gfx_equip_item equip[MU_GFX_EQUIP_SLOTS];
+            for (int s = 0; s < MU_GFX_EQUIP_SLOTS; s++)
+                equip[s] = (mu_gfx_equip_item){-1, 0, 0, 0};
+            equip[0] = (mu_gfx_equip_item){68, (9 << 3) | 0x87, 1, 2};
+            mu_gfx_layer_set_equipment(L, equip, 1);
+        } else if (!strcmp(op, "equipdraws")) {
+            mu_gfx_item_draw draws[MU_GFX_EQUIP_SLOTS];
+            int n = mu_gfx_layer_equip_draws(L, draws, MU_GFX_EQUIP_SLOTS);
+            for (int d = 0; d < n; d++)
+                printf("{\"equipment\":%d,\"select\":%d,\"word\":%d,\"excellent\":%d,\"set\":%d}\n",
+                       -1-draws[d].item,draws[d].select,draws[d].level_word,draws[d].excellent,draws[d].set_bits);
         } else if (!strcmp(op, "closebtn")) {
             int32_t v[4];
             mu_gfx_layer_view(L, MU_GFX_INVENTORY, v);
