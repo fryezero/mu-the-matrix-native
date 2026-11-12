@@ -301,3 +301,90 @@ enter the class/action-specific block `0x01368b4b..0x01368ed6`. Class 617's
 `0x5ba` direct body branch is known, but its startup filename is not established.
 
 The [handoff](../handoffs/RENDER-ACTORS-002.md) records current verification and limits.
+
+## 9. The six refused rows, RENDER-ACTORS-003
+
+Same pinned text/data as section 8. Offline/static only. The new constructor
+fixtures are authored appearances, not a claim about spawnability or event state.
+The admission delta is 625/626 only. The bounded table is now 28 admitted and four
+refused out of 32, including the two pre-existing controls. See the full before
+and after table and check results in [the handoff](../handoffs/RENDER-ACTORS-003.md).
+
+### 625 and 626, verified fixture bodies
+
+Their generic constructors set OBJECT `+0x60` to `0x5bc` and `0x5bd`, retain
+CreateCharacter's kind 1 and class byte 0, and leave equipment empty. Startup's
+AccessModel calls at `0x018330c0` and `0x018330f5` load `Data/Item/iron_robot.bmd`
+and `Data/Item/iron_robot_gold.bmd`, respectively. The constructor scales are
+1.1 and 0.6. The loader and RenderObjDraw stream comparisons check exact file
+identity, meshes, texture completeness and the generic level-zero body pass.
+
+RenderCharacter `0x01368b4b..0x01368ed6` tests the class nibble with
+`0x0095f5cc`, which returns `class_byte & 15`. Its two class checks are sequential:
+
+- Class 2, action `0xd1`: write the subtype into slot 0 and call `0x016d5eb3`
+  twice, with the original 10/0.3 and 5/0.6 parameters and flags `0x42`.
+  The subsequent class-6 check's else branch also draws the ordinary body.
+- Class 2 at other actions draws an ordinary body at both checks.
+- Class 6, action `0xdf`: write slot 0 and call `0x016d5eb3` once, with
+  2.5/1/0, flags 2. There is no ordinary body call in that branch.
+- Class 6, actions `0xdd`/`0xde`: with signed OBJECT `+0x364 < 0` or CHARACTER
+  byte `+0x2c > 0`, draw through the slot pointer. Otherwise write slot 0 and
+  call the item registry `0x00d2d3f9`.
+- Every other class nibble, including both constructor fixtures, makes one
+  ordinary body call at every tested action. No action-dependent call applies.
+
+The bounded hook audit executes those instructions in 270 synthetic cases,
+including evolved class bytes `0x12`/`0x16`, action neighbours, target and counter
+controls. It records the hook services and slot writes. It does not implement
+those transformed-player mesh/registry services. The admitted recipes continue
+to construct only class-byte-0 actors. Whole RenderCharacter comparisons retain
+kind/world/action refusal controls; a plain body is not supplied to transformed
+class-2 or class-6 records by this API.
+
+### 374 and 642, extracted creation, refused lifetime
+
+The kind-1 branches at `0x01368ed6..0x01369043` and
+`0x013689d4..0x01368b4b` first draw the subtype body. If CHARACTER `+0x3248` is
+null, each allocates `0x3ec` bytes and calls constructor `0x009eb32a` with argument
+2 equal to 20 and argument 3 zero. The six trailing float arguments are
+`0,0,0,0,0,0` for model `0x3ee`, class 374, and `4,22,0,0,0,0` for model
+`0x55c`, class 642. Getter `0x013bb3ee` returns the allocation plus four, the
+embedded OBJECT. The caller writes that OBJECT's `+0xbc` to 0.25 or 0.3 and
+`+0x34c` to the actor OBJECT. An existing allocation is retained without another
+constructor call. Sixteen original-instruction controls check kind, allocation,
+reuse, owner pointer and the exact binary32 factor.
+
+Allocation and construction are named recording stubs in that audit. It does
+not prove the companion's per-frame follow/pose/draw, owner loss, destruction or
+slot reuse. Constructor `0x009eb32a` installs vtable `0x01a7fa7c`; its following
+method `0x009eb5b2` starts from the owning CHARACTER and model state. These are
+separate from the Muun base-slot module. Both actor rows remain refused until
+that downstream behavior and native lifetime have been recovered and compared.
+
+### 378, extracted appearance prefix, refused cloth branch
+
+The kind-1 `0x3e9` branch at `0x01369043..0x013699f8` draws the body first.
+Buff `0x12` skips the remaining appearance branch. Without it, the prefix emits
+two `CreateEffect(0x7ef7)` requests, a `0x7f84` screen bitmap and two rotating
+`0x8036` quads. The audit executes eight kind/buff controls and stops at
+`0x013695b1`, before the cloth allocation. This is deliberately a prefix result.
+
+The remaining original branch allocates two `0xe8` cloth objects, initializes
+them through vtable slot `+8`, uses bitmap pairs `0x8034`/`0x8035`, and stores
+the list/count in OBJECT `+0x48`/`+0x3e`. Its later cloth update/render and cleanup
+call `0x0137aafe` are not recovered by this lane. A body-only admission would
+omit those cloths and the aura, so class 378 remains refused. Buff, emitter,
+screen-quad and cloth state must be treated together in the next implementation.
+
+### 617, startup file still unresolved
+
+Its generic constructor stores subtype `0x5ba` and its direct body branch is
+known. The executed startup block `0x01833010..0x0183332f` registers the neighbouring
+panda, robot and Lilith models but no `0x5ba`. A raw immediate search of the
+pinned text likewise finds no `push 0x5ba` in startup; occurrences elsewhere
+include sound identifiers and are not model-loader evidence. This is not proof
+that no computed or manager-mediated loader exists. No filename has been tied
+to this model index, and no similarly named file is substituted. Class 617 stays
+refused. The missing proof is an AccessModel or equivalent registration that
+connects `0x5ba` to an exact file, followed by an actual native load.

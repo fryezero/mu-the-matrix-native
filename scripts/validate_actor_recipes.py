@@ -548,6 +548,14 @@ def main():
                 mutant = build_library(path, directory/'body_directory.dylib')
                 check = check_loader(args, mutant)
                 mutants['body_directory'] = {'caught': check['equal'] < check['cases'], 'stopped': 0}
+            for name, old, new in (
+                    ('robot_file', 'Data/Item/iron_robot.bmd', 'Data/Item/iron_robot_gold.bmd'),
+                    ('robot_gold_file', 'Data/Item/iron_robot_gold.bmd', 'Data/Item/panda.bmd')):
+                if wanted is not None and name not in wanted: continue
+                assert source.count(old) == 1
+                path = directory/'actors.c'; path.write_text(source.replace(old, new))
+                check = check_loader(args, build_library(path, directory/(name+'.dylib')))
+                mutants[name] = {'caught': check['equal'] < check['cases'], 'stopped': 0}
             source = (ROOT/'native/core/mu_world_actors.c').read_text()
             for name, old, new in [('skip_body', 'for (int k = 0; k < MU_CHARACTER_ITEMS; k++)',
                                     'for (int k = 1; k < MU_CHARACTER_ITEMS; k++)'),
