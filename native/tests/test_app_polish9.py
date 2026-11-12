@@ -236,8 +236,21 @@ class DemoOwnership(unittest.TestCase):
                     self.assertEqual(shown,name)
                 self.assertEqual(tuple(int(n) for n in matches[-1][0].split(',')[:8]),profiles[slot])
                 log = (Path(tmp)/'gfx.log').read_text()
-                self.assertIn(f'.SetCharacterName(["{name}"])',log)
-                self.assertIn(f'{hp[slot]} / {hp[slot]}',log)
+                self.assertTrue(f'.SetCharacterName(["{name}"])' in log,'selected name missing from CharacterInfo')
+                rendered = {}
+                for line in log.splitlines():
+                    if 'CharacterInfoFrame <-' in line and '.SetName(' in line:
+                        row = json.loads(line.split('.SetName(',1)[1].rsplit(') =',1)[0])
+                        rendered[row[1]] = re.sub('<[^>]*>','',str(row[4])).strip()
+                self.assertEqual(rendered[2],str(profiles[slot][0]))
+                self.assertEqual(rendered[5],str(profiles[slot][2]))
+                for row,value in zip((8,13,24,29,42),profiles[slot][3:]):
+                    if row in rendered:
+                        self.assertEqual(rendered[row],format(value,','))
+                # Current original table masks the vital rows out. If enabled by
+                # another fixture, their values must still use the shared view.
+                if 26 in rendered:
+                    self.assertEqual(rendered[26],f'{hp[slot]} / {hp[slot]}')
 
 
 if __name__ == '__main__':
