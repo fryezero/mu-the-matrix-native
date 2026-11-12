@@ -202,3 +202,23 @@ checks, then final after sweep with the documented upstream Elbeland difference.
 audit, fetch/check main, push/PR/link/ready entry/cleanup afterward. Next step: the prepared batch-104
 build/selection controller; all earlier proof/census/render/check reports remain in lane scratch.
 No ready-prs entry exists. The 02:15/02:30 cutoff still applies.
+
+## WIP checkpoint, 23:53
+
+Done: batch-104 root/world builds pass in 14.629 / 5.384 s. Incoming selection is 67/227 rows,
+72.162 s; suite selection is 158/203 items, 73.872 s. Fresh lane selection is 89/227 rows, 112.055 s,
+including both new world/audio rows. Portable delta passes 1,653 tests (1,367 passed / 286 skipped,
+zero failures/errors), 455.088 s command / 386.4 s runner. Reduced private passes 43/43, zero skips,
+37.266 s. The direct shared-symbol consumers remain the same nine modules.
+
+Only 37 overlapping/new lane rows need refresh; the other 30 incoming rows reuse incoming-main
+evidence outside this lane's compiled diff, following the merge-check budget. Both new rows, actor
+recipes and model edge have passed so far, no failures/errors/skips. The existing sequential controller
+is running this 37-row set. The retained proof remains 17,008 checks / 37 compiled mutants, unchanged
+targets; no baseline capture or completed mutant is rerun.
+
+Left: finish the 37 rows, explicit world rebuild and final after sweep. Its comparison expects the
+upstream Elbeland 348-pixel last-frame change and two changed dumps, with all other PNGs/dumps
+byte-identical. Then run finalize_104.py, inspect final docs/status, stage/audit, fetch/check main and
+commit/push/PR/link/ready entry/cleanup. Next step: inspect batch104-check-steps.json and the current
+controller. final_audit.py is prepared but not launched. No ready-prs entry exists; 02:15/02:30 cutoff applies.
