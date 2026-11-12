@@ -130,6 +130,7 @@ CORE_SRC += core/mu_muun_visual.c
 RECON_SRC += $(RECON)/muun/visual.c
 # RENDER-EFFECTS-028: isolated fixture aura reconstruction.
 RECON_SRC += $(RECON)/combat/aura_fx.c
+RECON_SRC += $(RECON)/combat/demo_skill_fx.c
 CORE_OBJ := $(patsubst %.c,$(BUILD)/%.o,$(CORE_SRC))
 RECON_OBJ := $(patsubst $(RECON)/%.c,$(BUILD)/recon/%.o,$(RECON_SRC))
 MODULUS_OBJ := $(BUILD)/modulus.o
