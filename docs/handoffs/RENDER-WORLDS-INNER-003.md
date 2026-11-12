@@ -1,6 +1,6 @@
 # RENDER-WORLDS-INNER-003
 
-Branch `codex/render-worlds-inner-003`, from merged main `fb747e42`, PR #378. Verified subset; final documentation checks and audit are in progress. Implementation and checks by Codex, GPT-6.1 Sol, without subagents. Merge belongs to the steward.
+Branch `codex/render-worlds-inner-003`, from merged main `fb747e42`, PR #378. PR-ready verified subset. Implementation and checks by Codex, GPT-6.1 Sol, without subagents. Merge belongs to the steward.
 
 ## Scope and what draws now
 
@@ -34,11 +34,13 @@ check walls. No full lane gate.
 | Explicit world build | Pass, distinct before/after hashes below | 6.11 s |
 | Post-portable explicit world rebuild | Pass, same after hash | 0.20 s |
 | Initial repository audit | 2,212 files, zero rejected | 19.32 s |
-| Pre-ACTORS-004 final audit | 2,226 files, zero rejected | 17.22 s |
+| Pre-ACTORS-004 audit | 2,226 files, zero rejected | 17.22 s |
 | Documentation consumers | 36 tests, 35 passed / one expected skip | 7.77 s |
 | Latest private items UI | 7/7 pass, no skips after UI2 | 15.66 s |
+| Final documentation consumers | 36 tests, 35 passed / one expected skip | 7.28 s |
+| Final post-actor audit | 2,233 files, zero rejected | 17.50 s |
 
-**8d reduced:** private native selection is 166 work items, above the 40-item cap. The changed production host
+**8d reduced:** the initial private native selection is 166 work items, above the 40-item cap. The changed production host
 and new producer module ran privately. The incoming item-UI module also ran privately. No existing shared
 struct field, table size or constant value changed. 6b's new exported names occur only in the new module/tests
 and adapter. All 68 selected validator rows, including conservative compiler fallbacks, were retained.
@@ -130,7 +132,7 @@ No steward mutants requested; all 54 new mutants are complete and their inputs a
 | `validate_worlds_slots2` | 33000 | 43.6 |
 | `validate_worlds_slots3` | 36000 | 45.8 |
 
-Steward validators: validate_actor_recipes,validate_audio_callers,validate_audio_domains,validate_audio_items,validate_audio_objects,validate_charsel_items,validate_charsel_world,validate_icarus,validate_icarus_c2,validate_inventory_fx,validate_item_callers,validate_items_ui,validate_login_world,validate_meshdraw,validate_model_edge,validate_model_light,validate_movement,validate_object_render,validate_render_effects16,validate_render_effects17,validate_render_effects18,validate_render_effects19,validate_render_effects24,validate_render_effects25,validate_render_effects28,validate_render_worlds_a,validate_terrain,validate_terrain_remaining,validate_world_fidelity,validate_world_light_name,validate_world_tile_folder,validate_worlds_121,validate_worlds_after,validate_worlds_after2,validate_worlds_after3,validate_worlds_after4,validate_worlds_after5,validate_worlds_after6,validate_worlds_b,validate_worlds_d,validate_worlds_e,validate_worlds_f,validate_worlds_g,validate_worlds_g2,validate_worlds_g3,validate_worlds_h,validate_worlds_i,validate_worlds_inner,validate_worlds_inner2,validate_worlds_inner3,validate_worlds_j,validate_worlds_k,validate_worlds_karutan,validate_worlds_n,validate_worlds_o,validate_worlds_p,validate_worlds_p2,validate_worlds_q,validate_worlds_q2,validate_worlds_r,validate_worlds_r2,validate_worlds_raklion,validate_worlds_s,validate_worlds_s2,validate_worlds_s3,validate_worlds_slots,validate_worlds_slots2,validate_worlds_slots3.
+Steward validators: validate_actor_composites,validate_actor_recipes,validate_audio_callers,validate_audio_domains,validate_audio_items,validate_audio_objects,validate_charsel_items,validate_charsel_world,validate_icarus,validate_icarus_c2,validate_inventory_fx,validate_item_callers,validate_items_ui,validate_login_world,validate_meshdraw,validate_model_edge,validate_model_light,validate_movement,validate_object_render,validate_render_effects16,validate_render_effects17,validate_render_effects18,validate_render_effects19,validate_render_effects24,validate_render_effects25,validate_render_effects28,validate_render_worlds_a,validate_terrain,validate_terrain_remaining,validate_world_fidelity,validate_world_light_name,validate_world_tile_folder,validate_worlds_121,validate_worlds_after,validate_worlds_after2,validate_worlds_after3,validate_worlds_after4,validate_worlds_after5,validate_worlds_after6,validate_worlds_b,validate_worlds_d,validate_worlds_e,validate_worlds_f,validate_worlds_g,validate_worlds_g2,validate_worlds_g3,validate_worlds_h,validate_worlds_i,validate_worlds_inner,validate_worlds_inner2,validate_worlds_inner3,validate_worlds_j,validate_worlds_k,validate_worlds_karutan,validate_worlds_n,validate_worlds_o,validate_worlds_p,validate_worlds_p2,validate_worlds_q,validate_worlds_q2,validate_worlds_r,validate_worlds_r2,validate_worlds_raklion,validate_worlds_s,validate_worlds_s2,validate_worlds_s3,validate_worlds_slots,validate_worlds_slots2,validate_worlds_slots3.
 
 Env: canonical private-env supplies MU_GAME_ROOT, MU_SECTION3, MU_EVIDENCE_DIR, MU_NATIVE_DATA_DIR, snapshot/lang
 directories, graphics library and shared original cache. Inputs are read-only. tools/python, evidence and
@@ -251,7 +253,9 @@ The world producer/adapter and mutant targets remain unchanged.
 | `validate_render_effects28` | 630 | 2.6 |
 
 Final own-range selection retains all original 68 rows and adds `validate_actor_composites`, which was newly
-registered on main. Its no-mutant run is pending; the original/mutant targets are the incoming actor lane's.
+registered on main. It passes 1,427 reported checks without mutants in 6.8 s at `a9b5a8f9`, with compiled inputs unchanged from `c8b8cd12`.
+The final steward list therefore contains 69 passing rows. No new actor mutants were run by this lane;
+the incoming actor lane owns its ten compiled-mutant results. No existing row was pruned by final selection.
 
 ## Limits and next
 
@@ -276,14 +280,6 @@ A static reread confirms the common chain forwards to guarded leaves and then th
 looks up a registered world handler and invokes slot 0x34. Complete registry/context coverage for 46/98
 remains unverified. Do not invent a leaf or event model to close those rows.
 
-## WIP
-
-- Done: four world producers, original/compiled-mutant/private checks, initial 68 validators and portable
-  suite, all render proofs, both UI integrations and ACTORS-004 with eighteen passing overlaps, 1,518 passing
-  portable tests and three private actor tests. Both main replays preserve 108 images/dumps and 54 reports.
-- Left: the one newly selected actor validator, final documentation checks/audit, PR and cleanup.
-- Next: run validate_actor_composites without mutants, update the 69-row steward list, then finalize and publish.
-
 ## WIP checkpoint history and cleanup
 
 - `5f8fbb98`: four producers and 1,600 small original cases; full checks/renders left, next full mutants and host.
@@ -294,6 +290,9 @@ remains unverified. Do not invent a leaf or event model to close those rows.
 
 - `ff036d7c`: completed UI integrations, render proofs, documentation consumers and the pre-actor audit;
   new ACTORS-004 integration left.
+
+- `a9b5a8f9`: ACTORS-004 merge, eighteen passing overlaps, portable/private checks and replay complete;
+  the newly selected actor validator and final audit/PR left.
 
 Each checkpoint was committed and pushed with a WIP done/left/next section. No new private input needs
 retention. Lane scratch/renders/builds are disposable and will be removed at handback, along with the worktree

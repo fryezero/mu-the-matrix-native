@@ -1,6 +1,6 @@
 # Continue from here
 
-RENDER-WORLDS-INNER-003 verified subset PR-ready: Aida 33, Kanturu Remain 38, Land of Trials 31 and Devil Square 9 run their inline glows, meshes, particles and lightning requests through existing consumers. Missing kinds/bones stay counted; world 54 has instruction/host coverage only. 8,000 comparisons, 54/54 mutants, 68 affected validators pass. All 44 unaffected capture views stay byte-identical. [Checks, render scores and remaining worlds](handoffs/RENDER-WORLDS-INNER-003.md).
+RENDER-WORLDS-INNER-003 verified subset PR-ready: Aida 33, Kanturu Remain 38, Land of Trials 31 and Devil Square 9 run their inline glows, meshes, particles and lightning requests through existing consumers. Missing kinds/bones stay counted; world 54 has instruction/host coverage only. 8,000 comparisons, 54/54 mutants, 69 selected validators pass. All 44 unaffected capture views stay byte-identical. [Checks, render scores and remaining worlds](handoffs/RENDER-WORLDS-INNER-003.md).
 
 RENDER-ACTORS-004 PR-ready: five Female/Man/Girl NPC assemblies (230/248/250/253/255) and a 1,024-selector construction census. Bounded body plans rise 28 to 33; 911 remain incomplete/unverified and 80 refused. 1,427 new checks, 10/10 mutants and 24 affected validators pass; the final replay preserves all 44 unaffected views. [Evidence, checks and limits](handoffs/RENDER-ACTORS-004.md).
 

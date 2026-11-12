@@ -1,6 +1,6 @@
 # Roadmap and work queue
 
-RENDER-WORLDS-INNER-003 verified subset PR-ready: Aida 33, Kanturu Remain 38, Land of Trials 31 and Devil Square 9 run their inline glows, meshes, particles and lightning requests through existing consumers. Missing kinds/bones stay counted; world 54 has instruction/host coverage only. 8,000 comparisons, 54/54 mutants, 68 affected validators pass. All 44 unaffected capture views stay byte-identical. [Checks, render scores and remaining worlds](handoffs/RENDER-WORLDS-INNER-003.md).
+RENDER-WORLDS-INNER-003 verified subset PR-ready: Aida 33, Kanturu Remain 38, Land of Trials 31 and Devil Square 9 run their inline glows, meshes, particles and lightning requests through existing consumers. Missing kinds/bones stay counted; world 54 has instruction/host coverage only. 8,000 comparisons, 54/54 mutants, 69 selected validators pass. All 44 unaffected capture views stay byte-identical. [Checks, render scores and remaining worlds](handoffs/RENDER-WORLDS-INNER-003.md).
 
 UI-WINDOWS-002 PR-ready: eight inert presentation adapters open Macro/Sub, HuntRecord, expanded storage, matching children/current guild matching and the original guide frame. Native journeys, 1,650 portable tests, 15 private UI/audio checks and 12 validators pass; the pre-integration lane has 230 default identities. Original Help route remains unproved. [Checks and limits](handoffs/UI-WINDOWS-002.md).
 
