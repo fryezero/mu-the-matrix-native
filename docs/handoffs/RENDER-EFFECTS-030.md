@@ -1,8 +1,8 @@
 # RENDER-EFFECTS-030
 
-WIP: implementation proofs and all private checks pass. The late
-UI-WINDOWS-002 after-only render replay, final audit and
-publication/cleanup remain. No ready-prs entry yet.
+PR-ready: the bounded implementation, builds, affected private/portable checks,
+final render replays and repository audit pass. The steward owns the combined
+gate and merge.
 
 Branch `codex/render-effects-030` began at EFFECTS-028 `32e36706` while #376
 was open. Main at start was `d4af71dd`. Required parent/current main was merged
@@ -92,31 +92,40 @@ The target-index correction changes no draw/move consumer output.
 
 ## Default identity and final binary
 
-Both binaries were explicitly built as world targets and are distinct:
+Both executables were explicitly built as world targets and are distinct:
 
 - Baseline at parent EFFECTS-028 `32e36706`: root/world 31.92/4.54 s,
   SHA-256 `6f1f9d6a6367e54078a8848b3398dddff92d75ffb6cbf47bf5fd49956a6d43e7`.
-- Final `43f079ec` compiled inputs: explicit world check 0.39 s,
-  SHA-256 `0295c403813ae99d13a2ec0acf64ed92f0c396b66ce113097fc46b227d70836e`.
-  The sweep checks this hash before and after rendering.
+- Final compiled inputs `9e3193c6` (actor integration `caf81580`): explicit
+  world build 0.27 s, SHA-256
+  `534c010edc21062eb380c2d61d08e116dcc4aa48da8a205745a27533f4aa4da0`.
+  The replay checks the hash before and after rendering. The reconstructed
+  combat library remains byte-identical to the full-proof library above.
 
 The baseline was taken once, before lane edits, and never rerun. Default draw,
 no draw_all/live_time, 640x400, 25 frames sampled at 0/24:
 
-| Dataset | PNG identity | OBJECT/light identity | Normalized reports | Before / after wall |
+| Dataset | PNG identity | OBJECT/light identity | Normalized reports | Before / final after render wall |
 |---|---|---|---|---:|
-| October 22, 14 views | 27/28 | 26/28 | 13/14 | 16.18 / 20.33 s |
-| DATA-ACQ-002, 32 views | 64/64 | 64/64 | 31/32 | 44.12 / 52.06 s |
+| October 22, 14 views | 27/28 | 26/28 | 13/14 | 16.18 / 18.66 s |
+| DATA-ACQ-002, 32 views | 64/64 | 64/64 | 31/32 | 44.12 / 45.46 s |
 
-Totals are 91/92 PNGs, 90/92 dumps and 44/46 reports identical. JSON comparison
-normalizes only output-directory prefixes and compares every row/value. It
-finds exactly the five file deltas already documented by merged
+Totals are 91/92 PNGs, 90/92 dumps and 44/46 reports identical to the original
+baseline. JSON comparison normalizes only output-directory prefixes and compares
+every row/value. Exactly five files differ, already documented by merged
 [INNER-002](RENDER-WORLDS-INNER-002.md): Elbeland's last PNG, both Elbeland dumps,
 and Elbeland/Swamp reports. Elbeland changes 348 pixels, mean absolute RGB
-0.001029/255, matching that lane's result. All 44 other views are identical.
-This lane's skill routes are inactive in default captures. The complete after
-sweep and comparison take 72.96 s (comparison 0.47 s); no before measurement
-is repeated and no original GPU equivalence follows.
+0.001029/255. All 44 other views are identical. This lane's skill routes are
+inactive in default captures; no original GPU equivalence follows.
+
+The initial completed after sweep at `43f079ec` takes 72.96 s, with the same
+five deltas. The UI-WINDOWS-002 after-only replay takes 81.88 s and preserves
+all 230 prior after-file hashes. The final ACTORS-004 after-only replay takes
+97.31 s and again preserves all 230 after files byte-for-byte. It also confirms
+42/42 skill after/repeat pairs and 6/6 early-flight pairs against earlier
+images. Its stages take 28.43 s skill fixtures, 4.12 s early flight, 18.66 s
+October and 45.46 s DATA-ACQ; the rest is hashing/comparison. No baseline or
+mutant proof is repeated for either integration.
 
 ## Completed checks and test budget
 
@@ -129,7 +138,7 @@ No owner client, installed application, packet/power or protection work occurs.
 |---|---|---:|
 | Root build, `92ef41f3` | pass | 12.16 s |
 | Root build after ITEMS-UI merge, `a06eaf2b` | pass, up to date | 1.05 s |
-| Explicit final world build, `43f079ec` | pass, up to date; distinct final/baseline hashes | 0.39 s |
+| World build before late integrations, `43f079ec` | pass, up to date; distinct final/baseline hashes | 0.39 s |
 | New full focused proof, `25353381` | 1,914 checks; 18/18 mutants; zero stops | 29.47 s |
 | Initial reduced private modules, `bee54942` | 21/21, zero skips/failures | 59.55 s |
 | Merged reduced private modules, `92ef41f3` | 22/22, zero skips/failures | 74.05 s |
@@ -141,7 +150,7 @@ No owner client, installed application, packet/power or protection work occurs.
 | Private merge extra, `a06eaf2b` | 53/53 rows, no failures/errors/skips; cache, no mutants | 326.32 s |
 | Final seven-scene after/repeat refresh, `43f079ec` | 42/42 matching pairs; all earlier after images match | 38.54 s |
 | Early Penetration / alias flight, `43f079ec` | 6/6 matching pairs; visible frame-6 projectile | 5.75 s |
-| Final default sweep, `43f079ec` | exact documented INNER-002 delta only | 72.96 s |
+| Default sweep before late integrations, `43f079ec` | exact documented INNER-002 delta only | 72.96 s |
 | Repository audit before late UI merge, `75d5cb5a` plus status lines | 2,223 staged files, zero rejected | 24.87 s |
 | Late UI root build, `552f6020` | pass | 6.09 s |
 | Late UI private validators, `552f6020` | 12/12, zero failures/errors/skips; no mutants | 103.11 s |
@@ -150,6 +159,10 @@ No owner client, installed application, packet/power or protection work occurs.
 | Actor-structure affected private validators, `caf81580` | 25/25, zero failures/errors/skips; no mutants | 226.87 s |
 | Actor/skill reduced private modules, `caf81580` | 10/10, zero skips/failures | 56.82 s |
 | Late UI portable delta since `75d5cb5a`, `552f6020` | 138 items; 1,454 tests, 1,183 pass / 271 expected skips, zero failures/errors | 398.41 s (333.6 s runner) |
+| Actor portable delta since `01b5c420`, `caf81580` | 165 items; 1,524 tests, 1,263 pass / 261 expected skips, zero failures/errors | 506.74 s (439.7 s runner) |
+| Final explicit world build, `9e3193c6` | pass, up to date; new SHA-256 | 0.27 s |
+| Final after-only replay, `9e3193c6` | 230/230 prior default files, 42 skill pairs and six early-flight pairs match | 97.31 s |
+| Final repository audit | 2,234 staged files, zero rejected | 17.31 s |
 
 8d reduced: initial native selection was 152 items, above the 40-item cap.
 The first private run covers the changed effect fixtures, all BowSession cases,
@@ -162,12 +175,13 @@ Incoming ITEMS-UI private tests pass 7/7, 29.51 s. Final portable delta passes
 
 Current selection was inspected before its run. Main-merge selection since
 `bee54942` was 82 rows (58.75 s); UI-only selection since `92ef41f3` was ten
-(46.29 s). Additional runs are `(merge - current) union UI`: 49 new rows and
-four changed-input rechecks. There are 107 distinct rows, not 111 distinct
-validators. The four rechecks are audio_callers/domains/items and effects16.
-The late UI-WINDOWS-002 merge reaches twelve existing rows, which pass again
-at `552f6020`. Rows not labelled windows2 retain unchanged compiled inputs
-since their recorded current/extra commits. No further mutants are required.
+(46.29 s). Initial additional runs are `(merge - current) union UI`: 49 new
+rows and four changed-input rechecks, giving 107 distinct rows. UI-WINDOWS-002
+then selects twelve existing rows (22.13 s). ACTORS-004 selects 25 rows
+(68.36 s), including one new row: the final set is 108 distinct validators.
+All selected symbol fallbacks are retained. The table records each row's latest
+pass; unselected compiled inputs retain their earlier pass. No further mutants
+are needed. No lane full gate runs; the steward owns the combined gate.
 
 ## Steward validators
 
@@ -294,86 +308,29 @@ Steward validators: validate_actor_composites,validate_actor_recipes,validate_ap
 
 ## Limits and next lane
 
-- Repository audit, final status/PR, ready entry and cleanup are pending.
 - EFFECTS-026 owns the missing charge/child, Swell Life joint/effect and Blood
   Storm emitter consumers. Research lists constructor/mover addresses. Blood
   Storm's static constructor lifetime 70/child 0x584/0/sound 0x2b0 is not a
   validated native lifecycle. No primary pixels are claimed for refused routes.
 - Other M/L inventory rows, summons, shield/mount actions, general equipment,
   optional target ice/freeze response and unadmitted aliases remain open.
+- No owner client, installed app, protection, network/login or power-state work
+  is performed. Fixtures and named original services bound all conclusions.
 
-## WIP checkpoint, 00:27 local, November 12
+## Delivery
 
-All 107 distinct affected private validators pass, plus the final 172-item
-portable delta, reduced private UI modules and all proof renders. Latest main
-fetched at 00:19 is `626abce1`, already merged. The final default sweep has only
-the five documented incoming INNER-002 file deltas; early Penetration flight is
-visually confirmed and all fixture after/repeats match. No source correction
-is pending. Next: repository audit after the load guard, final PR-ready status,
-push/PR/ready entry, then remove the owned scratch/renders/builds/worktree.
-No ready entry or PR-ready claim has been made. The complete evidence and UI
-merge are checkpointed here before waiting for the final audit.
+Latest main `c35458a0` is integrated as `caf81580`; compiled proof inputs are
+unchanged by subsequent documentation checkpoints. WIP history is preserved in
+pushed commits, including `25353381`, `bee54942`, `b84abf2a`, `52b4bada`,
+`43f079ec`, `75d5cb5a`, `552f6020`, `01b5c420`, `caf81580` and `9e3193c6`.
+Final documentation/policy checks and PR metadata identify the published head.
 
-## WIP, 00:32 local: final-main advance
+The PR targets main from `codex/render-effects-030`. The final ready entry is
+written only after the last push; nothing is pushed afterward. Cleanup removes
+this lane's scratch/renders, build outputs, worktree and local branch. The remote
+branch stays for the steward. No new private input needs retaining. The next
+APP-REFRESH lane may pick up these fixture visuals after the merge.
 
-Repository audit passes, 2,223 staged files, zero rejected, 24.87 s. The last
-fetch found main `0ccd5f44` (UI-WINDOWS-002), after the completed checks. Its
-changes are GFx, world input/adapter and test hosts; combat/reconstructed inputs
-are unchanged. Merge it, retain both status entries, rebuild, select only its
-affected checks, run changed private UI modules, and refresh final binary proofs
-where compiled inputs changed. No ready entry or final PR-ready claim yet.
-
-## Late UI integration checks in progress
-
-Merged main `0ccd5f44` as `552f6020`; both shared status entries are retained.
-The root rebuild passes, 6.09 s. Selection since `75d5cb5a` reaches twelve
-rows, 22.13 s; all twelve pass at `552f6020`, zero failures/errors/skips,
-103.11 s, cache and no mutants. They are already in the 107-row set; the
-Steward table above now records their latest timings with the windows2 label.
-Unselected compiled inputs and all combat/reconstruction code are unchanged.
-
-Private old/new window and UI-audio modules pass 15/15, no skips, 66.29 s.
-The affected portable delta passes 1,454 tests, 1,183 passed / 271 expected
-skips, zero failures/errors, 398.41 s (333.6 s runner). Explicitly rebuild world,
-record the new hash and replay after scenes only. All 230 prior after-file
-hashes are retained, alongside the original once-taken baseline. No new
-original proof or mutant run is needed. Final audit/publication is pending.
-
-## WIP checkpoint, 00:54 local, November 12
-
-All checks for main `0ccd5f44` merged as `552f6020` pass: root build, twelve
-affected validators, fifteen private UI/audio tests and the 138-item portable
-delta. All original/combat proof inputs remain unchanged. Next: explicit world
-build and after-only replay against retained hashes, final audit, final status
-and PR/ready entry, then cleanup. No new baseline or mutants are run.
-No ready entry or final PR-ready claim yet.
-
-## WIP, 01:01 local: actor structure integration
-
-Late UI after-only replay passes: the new world SHA-256 is
-`3d2cd447853bc6bf46aaf08c27b2c2fd6130e8a08e1aa00f95db53c1793522f0`;
-all 230 prior after-file hashes, all 42 skill pairs and all six early-flight
-pairs match, 81.88 s total. The reconstructed full-proof library is unchanged.
-
-Main has advanced to `c35458a0` (RENDER-ACTORS-004), changing the actor structure
-used by combat. Integrate it before readiness, preserving both shared status
-entries. Next: root build, exact actor-delta validator selection/run, reduced
-private actor/new Native tests, portable delta, after-only replay and audit.
-No new original mutant proof or baseline is required. No ready entry yet.
-
-Actor-structure selection since `01b5c420`: 25 rows, 68.36 s. All 25 pass at
-`caf81580`, zero failures/errors/skips, 226.87 s, cache/no mutants. The new
-composite row increases the final distinct Steward set from 107 to 108. Latest
-row timings above use the actors4 label. Root rebuild passes in 12.93 s.
-Reduced private actor/skill, portable delta, final replay and audit remain.
-
-## WIP checkpoint, 01:22 local, November 12
-
-Main `c35458a0` is integrated as `caf81580`. All 108 distinct affected private
-rows pass, including the exact 25-row actor delta. Reduced private actor/skill
-modules pass 10/10, zero skips, 56.82 s, including the nonzero client-index
-regression and all four new skill Native cases against the new actor layout.
-The final actor portable delta selects 165 work items and is running; its
-completed tests group passes. All original proof inputs remain unchanged.
-Next: portable completion, explicit world rebuild/after-only replay, audit and
-final PR/ready entry. No baseline or mutants are repeated. Not PR-ready yet.
+Final audit: 2,234 staged files, zero rejected, 17.31 s. Final readiness/timing
+ledger edits also pass the same audit policy against their staged bytes. No
+compiled input changes after the checks above. Ready for steward.

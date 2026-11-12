@@ -1,6 +1,6 @@
 # Continue from here
 
-RENDER-EFFECTS-030 verified subset: complete DK/Elf selection audit, corrected Triple Shot caller (three -> four ordinary arrows), Ice Arrow/Penetration and individually selected 416/424 aliases. Swell Life's 38 visuals and Blood Storm's emitter remain refused. 1,914 focused checks, 18/18 new mutants and 108 distinct affected validators pass; default changes are only the merged INNER-002 delta. [Checks, coverage and limits](handoffs/RENDER-EFFECTS-030.md).
+RENDER-EFFECTS-030 PR-ready subset: complete DK/Elf selection audit, corrected Triple Shot caller (three -> four ordinary arrows), Ice Arrow/Penetration and individually selected 416/424 aliases. Swell Life's 38 visuals and Blood Storm's emitter remain refused. 1,914 focused checks, 18/18 new mutants and 108 distinct affected validators pass; default changes are only the merged INNER-002 delta. [Checks, coverage and limits](handoffs/RENDER-EFFECTS-030.md).
 
 RENDER-ACTORS-004 PR-ready: five Female/Man/Girl NPC assemblies (230/248/250/253/255) and a 1,024-selector construction census. Bounded body plans rise 28 to 33; 911 remain incomplete/unverified and 80 refused. 1,427 new checks, 10/10 mutants and 24 affected validators pass; the final replay preserves all 44 unaffected views. [Evidence, checks and limits](handoffs/RENDER-ACTORS-004.md).
 
