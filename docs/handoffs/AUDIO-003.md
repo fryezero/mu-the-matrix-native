@@ -86,8 +86,9 @@ Unicorn family here. State-dependent event managers retain missing-input cues.
 
 ## Verification
 
-Results are being collected at source commit `c3c8273c`. Final docs do not change
-compiled inputs. The build after integrating main passed in 5.08 s; the earlier
+The affected validators ran at `ab5839746985d6ae813efac8273ac87d05bb7eec`;
+compiled/validator inputs are source commit `c3c8273c`. Final docs do not change
+those inputs. The build after integrating main passed in 5.08 s; the earlier
 lane build passed in 5.61 s.
 
 - New original caller comparison: 4,000 cases, 1,000 each for Devias, Elbeland,
@@ -112,25 +113,37 @@ lane build passed in 5.61 s.
   explicit skips, zero failures/errors. Six reported suite groups, including
   120 native modules. Runner wall 410.6 s; command wall 495.72 s including
   selection. The initial banner names the registry's 38 suite directories.
-- 8d reduced: 120 native items exceed the 40-item cap. The changed native module
-  will run from the repository root with canonical `private-env.sh`, along with
-  the small pinned census test. No full lane gate or full private registry runs.
-- Affected validators: seven selected, including the movement symbol fallback.
-  All will run without mutants; no unchanged validator's mutants are repeated.
-- Repository audit and final source/spec self-review pending. No independent
+- 8d reduced: 120 native items exceed the 40-item cap. From the repository
+  root with canonical `private-env.sh`, the changed native module plus pinned
+  census test pass **11/11**, zero skips/failures, **6.34 s** command wall.
+  No full lane gate or full private registry ran.
+- Affected validators: all seven pass, zero failures/errors/skips, 114.07 s
+  command wall including selection. The movement symbol fallback is retained.
+  All ran without mutants; no unchanged validator's mutants are repeated.
+- Repository audit: **2,194 staged files, zero rejected, 26.26 s** command
+  wall. Source/spec self-review passed for provenance,
+  callback lifetime, mute/no-replay, original gates/order and owned-path scope. No independent
   reviewer, live fidelity, mixed-output FMOD parity or default capture sweep is
   claimed. Only the synthetic audio-on/off frame control was needed for this
   audio-only change; no before/after identity sweep ran.
 
 ### Steward validators
 
-Source commit `c3c8273c91df67a17b6e1103cc2c7b7e9a06b4b7`.
+Tested commit `ab5839746985d6ae813efac8273ac87d05bb7eec`.
 Canonical environment: source `~/Documents/MTM/mu-mac-tools/native/private-env.sh`
 from the repo root. No further mutants are needed for the steward.
 
 Steward validators: validate_movement,validate_audio_callers,validate_audio_domains,validate_audio_items,validate_worlds_g2,validate_render_effects16,validate_audio_objects
 
-Per-row counts and wall times will be filled after the run.
+| Validator | Cases/checks | Wall seconds |
+|---|---:|---:|
+| `validate_movement` | 6,614 | 77.0 |
+| `validate_audio_callers` | 5,528 | 8.0 |
+| `validate_audio_domains` | 2,544 | 31.9 |
+| `validate_audio_items` | 3,000 | 5.9 |
+| `validate_worlds_g2` | 2,657 | 9.7 |
+| `validate_render_effects16` | 424 | 4.3 |
+| `validate_audio_objects` | 4,000 | 4.8 |
 
 The 6b review finds the new helper only in the object part, the new native host
 and new validator. No existing shared symbol, constant, record layout or table
@@ -146,17 +159,14 @@ Kethotum sites. Stop consumers need an equally explicit command boundary.
 No event feed, pickup answer, transformed/buff input or FMOD mixer parity is
 inferred from these fixtures.
 
-## WIP checkpoint
+## WIP checkpoints, completed
 
 `1a9a1fed` was committed and pushed with done/left/next notes at the first
 checkpoint. It preserved the census, adapter and small 800-case comparison.
-Second checkpoint, 22:02 CST: source `c3c8273c` is complete and the affected
-portable run passed 1,526 tests with zero failures/errors. Done: full original
-corpus, mutants, installed smoke, zone music and actual object-part control.
-Left: seven affected private validators, reduced private tests, audit, final
-documentation, PR publication and cleanup. Next step: resume those checks when
-load is below the resource guard. This checkpoint is not PR-ready; no
-ready-prs entry is written.
+`ab583974` was pushed at 22:02 CST with the full original/mutant/portable results
+and the remaining private checks. Both WIP sections are superseded by the green
+finish results above. Main was fetched again after the audit and remains
+`710ac816`; no further integration or compiled-input rerun is needed.
 
 Local reports are under `~/Documents/MTM/mu-mac-tools/native/scratch/audio-003/`
 and ignored `verify-runs/`. They are not future inputs. At PR-ready remove these

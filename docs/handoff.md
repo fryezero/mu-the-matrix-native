@@ -1,5 +1,7 @@
 # Continue from here
 
+AUDIO-003 PR-ready: 16 existing object callers now deliver Devias doors, seven Elbeland loops, Uruk ambience and Kardamahal sounds through the session audio reader. Census: 1,980 candidates, 1,225 owner-classified and 755 unresolved; enumerated audio boundaries 113 -> 129. Static zone music already had delivery and passes the new decoded smoke. 4,000 original cases, 10/10 compiled mutants. [Checks, census and refused groups](handoffs/AUDIO-003.md).
+
 UI-WINDOWS-001 PR-ready: D Command, N MatchingSelect, B Gens, Y PetInventory and K Gremory now open their original movies as presentation-only views. Empty tabs/pages and close work; state-changing actions refuse. 1,421 portable tests, 12 affected validators, real-window proofs and default identities pass. Original Help open route remains unproved. [Checks, inventory and limits](handoffs/UI-WINDOWS-001.md).
 
 MUUN-VISUAL-001 PR-ready: a fixture-only Muun now draws beside the demo hero in `mu-world` (`MU_MUUN_FIXTURE=<code>`): model, pose, follow motion and owner lifetime from the original's slot setup/update, with the 16 already-verified effect attachments now visible on it. 912 original instruction cases, 18/18 compiled mutants, 54 affected validators pass. No Muun packets, inventory or bonuses. [Scope, checks and limits](handoffs/MUUN-VISUAL-001.md).
