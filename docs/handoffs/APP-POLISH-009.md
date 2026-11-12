@@ -304,3 +304,28 @@ Then refresh endpoint captures and after files against the retained once-only
 626abce1 before baseline. Actor-004's own identity evidence shows no changes
 beyond the INNER-002 behavior already in that baseline. Finish audit/docs/PR/link/
 ready/cleanup before 02:15; otherwise push WIP and stop by 02:30. No PR/ready entry.
+
+## WIP checkpoint, 2026-11-12 01:25 Chicago
+
+Actor integration source/test head: `1d709542`. Root build 11.457 s;
+client/world 10.322 s. All seven focused private actor/session methods pass,
+zero skips, 110.348 s, including all five demo profiles. Selection since
+`1f42e17b`: 25 rows in 63.952 s; all 25 pass without mutants in 223.945 s,
+zero failure/error/skip. The combined evidence is 108 rows: 25 at `1d709542`,
+four unchanged UI rows at `1f42e17b`, 79 unchanged rows at `7e97044e`.
+Reported cases total 1,231,227, plus two rows without unified totals.
+
+Final affected portable run passes 1,525 tests: 1,264 passed / 261 skipped,
+zero failures/errors; 393.7 s runner wall, 448.875 s command. Its 165 work
+items include the changed actor consumers. The last capture step is waiting
+for host load <=14 (declining from 35.8 to 22.5, memory free 63%). It will be
+followed by an after-only identity refresh against the retained original
+626abce1 before files. No before files are rerun. No source changes are pending.
+
+Finish the two proof commands, inspect new captures if their hashes change,
+fill the final 108-row table from scratch `validator-table-latest.md` and
+`validator-union-latest.txt`, record latest build/check/capture/hash metadata,
+remove these WIP sections, audit, final commit/push, PR/link/ready line and
+cleanup. The existing PR body file is stale and must be regenerated with the
+final head and actor integration results. No PR or ready entry exists yet.
+Respect the 02:15 WIP cutoff / 02:30 stop. Never push after the ready line.
