@@ -189,3 +189,68 @@ scope. A future authored record field needs a caller that supplies the chosen sl
 
 All counts, final checks, render controls and remaining limits are recorded in
 [MUUN-VISUAL-002](../handoffs/MUUN-VISUAL-002.md). No full original-scene or live-motion equivalence is claimed.
+
+
+## Kind-1 secondary body, MUUN-VISUAL-003
+
+The original comparisons, compiled mutants and native tests verify the construction/pose subset below.
+Final check counts belong in [the lane handoff](../handoffs/MUUN-VISUAL-003.md).
+
+The pinned target remains the client identified above. Static inputs are restored text and the second
+image section in `scripts/pins.py`. No original process, service, packet, protection module or memory
+write is involved. All owner selection and command fields in this lane are authored fixtures.
+
+### Attachment appearance census correction
+
+A fresh private decoded-table join by item/model code confirms 002's census: five of the fifteen attachment
+appearances have eight mesh rows, while the other ten have zero rows. Their absence is not an unimplemented
+pass. This lane preserves the ordinary mesh adapter and does not invent extra passes for those ten models.
+
+The eight kind-1 base records add a separate audited subset: ids 101/103/105 each have three ordinary
+mesh rows, and the other five have zero. The existing ordinary adapter already supports these records.
+The private extension reuses the full mesh caller comparison for all eight at three clocks, 24 installed
+cases with zero mismatches, and checks the nine-row census. Neither ordinary-pass arithmetic nor its
+checker/mutants changed. These nine rows are separate from the eight rows of the original fifteen codes.
+
+### Separate riding skeleton
+
+Static construction `0x009bec34` first calls base setup and allocates/initializes another OBJECT at slot
+`+0xbc`. Its model is render-info runtime `+0x268`, obtained by searching model header names from the file
+record's string at `+9`. Those names are not the installed filenames. The eight kind-1 records are 16/17
+and 100..105. Startup calls `0x0183678c..0x0183694a` bind models `0x5cb..0x5d2` to the two wolfpetVehicle files
+and six rippen/pon/griffs riding files under `Data/Skill`. Native searches their actual loaded model headers
+and refuses an unavailable or unrecognized secondary skeleton.
+
+Secondary scales are 0.6 for `0x5cb/c`, 0.9 for `0x5cd..0x5d2`, otherwise 1 in the original constructor.
+`0x009bf9a9` supplies speed 0.3 to actions 0..4, with action 2 overridden to 0.8 on `0x5cb/c` and 0.4 on
+`0x5cd..0x5d2`. The separate owner action dispatcher `0x009bfabd`, inserted into a map for keys 0..389
+by `0x009bfd63`, requests action 0, 2 or 4. Missing keys retain the previous secondary action. Update
+`0x009bf58b` calls SetAction only when this mapped action changes. Secondary animation and pose use their
+own model and bone buffer. Owner position/angles are copied by `0x009bf6f8`, independently of the base
+companion's follow position.
+
+For these eight records the constructor chooses `Bip01 Spine1`. `0x009bf820` resolves that name on the
+secondary OBJECT's own bone buffer, transforms the zero point without world translation, scales the
+result once and adds 30 to its z component. Native exposes that posed attachment offset and refuses an
+absent, dummy, unresolved or out-of-range named bone. It does not use a shared pose as a substitute.
+
+Render `0x009bf31e` calls base rendering first. Secondary rendering then requires an owner, clear owner
+byte `+0x31e8`, a live second OBJECT, no buff 0x1a, exact active-item equality and a false mount predicate.
+It performs a separate frustum test at the owner's x/y * 0.01 with range -20 and calls RenderObject for
+the second OBJECT. The fixture supplies ordinary flags and an explicit selected item. These are visual
+inputs, not inventory or authoritative mount selection.
+
+`MU_MUUN_FIXTURE=<kind-1 id>` preserves the base-only fixture. Adding `MU_MUUN_MOUNT_FIXTURE=1` loads the
+second skeleton and selects that fixture item. An authored cycle supplies owner actions 1, 65 and 248 for
+25 logic steps each, exercising secondary actions 0, 2 and 4. Neither hero action nor owner gameplay state
+is changed. The base slot's terminal owner key/generation/death lease gates the secondary body too.
+
+### Explicit remaining boundaries
+
+This is a secondary-body and attachment-offset subset. The offset is not applied to the hero's rider pose.
+The separate `0x009bfe13` model effects, buff-0x12 RenderObject mode, owner-kind-2 fade, production active-mount
+selection and rider-action mutation remain outside this subset. Remote helper timers and effect 0x47a also
+remain unimplemented. At this branch base the native `mu_sfx_effect_create` visual switch has no 0x47a
+consumer; routing requests through `mu_world_particles_effect` would count unsupported effects rather than
+draw a transition. This lane does not change particle consumers. No full original-scene, live-motion,
+installed-app or performance equivalence is claimed.

@@ -126,8 +126,8 @@ RECON_SRC += $(RECON)/objects/action_registry.c
 # RENDER-WORLDS-FOG: the render scene's fog tests (world 0x1e's box)
 RECON_SRC += $(RECON)/environment/env_fog.c
 # MUUN-VISUAL-001: fixture-only base slot and model/attachment owner
-CORE_SRC += core/mu_muun_visual.c
-RECON_SRC += $(RECON)/muun/visual.c $(RECON)/muun/passes.c
+CORE_SRC += core/mu_muun_visual.c core/mu_muun_mount.c
+RECON_SRC += $(RECON)/muun/visual.c $(RECON)/muun/passes.c $(RECON)/muun/secondary.c
 # RENDER-EFFECTS-028: isolated fixture aura reconstruction.
 RECON_SRC += $(RECON)/combat/aura_fx.c
 CORE_OBJ := $(patsubst %.c,$(BUILD)/%.o,$(CORE_SRC))
@@ -814,3 +814,7 @@ $(BUILD)/muun-visual-host: tests/muun_visual_host.c $(LIB) $(HEADERS)
 $(BUILD)/worlds-inner-host: tests/worlds_inner_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-inner-host.o
 	$(CXX) $(BUILD)/worlds-inner-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+
+$(BUILD)/muun-mount-host: tests/muun_mount_host.c $(LIB) $(HEADERS)
+	$(CC) $(CFLAGS) -c $< -o $(BUILD)/muun-mount-host.o
+	$(CXX) $(BUILD)/muun-mount-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@

@@ -8,6 +8,7 @@ RENDER-WORLDS-INNER-003 verified subset PR-ready: Aida 33, Kanturu Remain 38, La
 
 APP-POLISH-009 PR-ready: the HUD and sixteen task panels fit the 640x480 native minimum while retaining original alignment; CharacterInfo and the HUD read one joined demo record, including Windleaf's existing level 320 / 318 free points. Sixty original resize cases, 4,608 native fit cases and 10/10 compiled mutants; 23 private UI checks and seven actor/session checks pass; 108 affected/post-merge validators pass with tested heads recorded. The latest portable run has 1,264 passed / 261 skipped, zero failures or errors. All 92 default PNGs and 92 dumps stay identical. [Evidence, timings and limits](handoffs/APP-POLISH-009.md).
 
+MUUN-VISUAL-003 verified subset PR-ready: eight kind-1 secondary bodies, original actions/speeds, named-bone offsets and terminal owner leases; nine kind-1 base mesh rows verified. 873 original cases, 16/16 compiled mutants, eleven private tests and unchanged default captures pass. Rider placement and remote transitions remain open. [Checks and limits](handoffs/MUUN-VISUAL-003.md).
 
 RENDER-ACTORS-004 PR-ready: five Female/Man/Girl NPC assemblies (230/248/250/253/255) and a 1,024-selector construction census. Bounded body plans rise 28 to 33; 911 remain incomplete/unverified and 80 refused. 1,427 new checks, 10/10 mutants and 24 affected validators pass; the final replay preserves all 44 unaffected views. [Evidence, checks and limits](handoffs/RENDER-ACTORS-004.md).
 
