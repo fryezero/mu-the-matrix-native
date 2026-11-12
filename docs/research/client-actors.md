@@ -521,3 +521,9 @@ must not be used as a total count of complete native actors.
 The composite admission is in the world actor loader. The standalone
 `mu-render actor` command retains its earlier base-model-only behavior. Use
 authored world fixtures for these five assembled NPCs.
+
+Class 617 was the closest file-only follow-up. None of the 740 completed
+ordinary opener executions in this census registers model `0x5ba`. This narrows
+the next search to startup or another registration path. Eight NPC openers
+remain unresolved, so this is not a whole-client absence claim. No filename
+was proved and class 617 remains refused.

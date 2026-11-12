@@ -103,3 +103,18 @@ world rebuild passed in 7.0 s after 240 s of waits. After binary SHA-256 is
 The limited validator delta against `d835c137` is queued. Post-merge affected
 portable tests, reduced private tests, all proof renders and the final identity
 sweep remain pending. No ready entry; this is still WIP.
+
+Checkpoint, 23:19: all 22 selected main-merge delta validators pass at
+`aa330645`, 106,052 row checks, zero failures/errors/skips. Overall 769.4 s,
+including 360 s of resource waits and selection. `validate_app_polish1/2`
+were pruned because their compiled inputs did not change; their earlier passes
+at `d835c137` remain current. Composite row 1,427 checks / 11.0 s; existing actor
+recipes 1,669 / 112.8 s. No mutants repeated.
+
+Post-merge portable run passes 1,773 tests: 1,481 passed, 292 expected skips,
+zero failures/errors. Runner 384.8 s, command 596.8 s including selection and
+120 s resource wait. It selected 165 work items, above the private cap. Reduced
+private tests are queued; actor renders, identity and final delivery remain.
+Class 617's optional file lead was checked against the 740 completed ordinary
+openers. None registers `0x5ba`; eight NPC openers remain unresolved. No guessed
+filename or body admission was added.
