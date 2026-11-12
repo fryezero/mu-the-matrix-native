@@ -5,6 +5,32 @@ Prerequisite #361 subsequently merged at `3732f82a`; its identical-tree main his
 Codex, GPT-6.1 Sol; no subagents. Offline/static only. Installed apps are untouched.
 Research part 38 is reserved; recheck main before the final push.
 
+## WIP checkpoint 2026-11-12 00:09, final portable/private finish
+
+Done: complete +41 tables, 1,424 -> 1,465 bodies, unchanged caps and exact classifier delta.
+All twenty changed-row mutants caught. All 62 selected steward rows have passing coverage,
+991,788 reported cases. Main `626abce17f0a` is merged; checkpoint parent `0ac7cc03d775`.
+
+- affected: 59/59 passing, 3626.11 s at 90f61f89a399
+- merged: 63/63 passing, 917.38 s at 80510f6ffb56
+- latest: 66/66 passing, 763.74 s at 763d33303ea9
+- post-ui: 10/10 passing, 63.10 s at 0ac7cc03d775
+
+The runtime C and both generated headers remain identical to compiled source `90f61f89`.
+The first portable batch passes 1,421 tests, 1,180 passed / 241 skipped, 523.96 s including selection.
+The final merge portable run passes: 173 work items, 1,867 tests, 1,550 passed / 317 skipped, zero failures/errors; runner wall 438.1 s. Reports live under this lane's scratch. Directed clocks for
+five earlier sine folds pass 120 cases against original instructions and saved prerequisite C, 1.54 s.
+They repeat against freshly built main during final identity.
+
+Left: complete or inspect the 8d-reduced private renderer/App Polish 8 report. Confirm latest-main
+ancestry, then run `identity.py` through `run_step.py` with canonical private-env.sh from this repo root.
+It overlays only the three owned runtime files, restores them in finally, rebuilds each world binary,
+records distinct hashes, compares all 46 captures and repeats the 216,448-state C-to-C delta plus the
+120 directed old-fold clocks. The preliminary f7fed588 sweep is void as a clean-main baseline.
+Then run `finish_docs.py`, doc consumer checks and final audit, push, create/link PR, append ready-prs
+last, and clean up. Final doc drafts and scripts are in this lane scratch; no new private input is needed.
+No ready-prs entry exists. Stop by 02:30; if not PR-ready at 02:15 push WIP and stop.
+
 ## WIP checkpoint 2026-11-11 23:48, main-merge checks
 
 Done: +41 tables are regenerated; all twenty changed-row mutants are caught. The original affected
