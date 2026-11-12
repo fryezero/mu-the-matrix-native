@@ -3312,8 +3312,9 @@ There is no new position-follow operation for this pair.
 On subsequent steps, once life is below initial life, alpha falls by 1 / initial life. Scale grows by
 saved scale / initial lifetime. Its render branch, after the original height filter, copies the selected
 OBJECT `+0x1f4 + 12*arg8` point into position when an owner exists. Unlike `0x810a/0x25`, it adds no saved
-start offset. A NULL owner leaves position alone in render. The native owner table supplies points 0..3 for this pair; older consumers retain their 0..2 bounds;
-unknown, stale or out-of-domain native owners retain a refusal/retirement rather than an out-of-bounds read.
+start offset. A NULL owner leaves position alone in render. The native owner table supplies points 0..3 for
+this pair; older consumers retain their 0..2 bounds. Unknown, stale or out-of-domain native owners retain
+a refusal/retirement rather than an out-of-bounds read.
 
 The original caller refreshes all four points every draw. In particular, `0x017cd01f` writes `cr002`
 to OBJECT `+0x218`; `0x017cd025..0x017cd0f0` gates four particle requests on counter % 25 == 0.
@@ -3337,7 +3338,10 @@ The native host separately checks exact bitmap mappings with distinct synthetic 
 positive raster fragments for every pair, changed owner points, stale-owner retirement and full pool retirement.
 The 110-program / 37-pair domain is frozen by identity, while later inventory additions remain reported.
 
-Scene results, final check counts, mutation evidence, wall times and remaining fixture limits are recorded in
+The full focused run passes 17,008 checks, including 16,640 original-instruction executions. All 37 compiled
+mutants are caught without original-machine stops. The bounded sixteen-draw installed scene reduces pre-draw
+refusals 122 to zero; both longer clock fixtures reduce 485 to zero. One exact model path remains unavailable.
+Scene results, wall times and remaining fixture limits are recorded in
 [RENDER-EFFECTS-026](../handoffs/RENDER-EFFECTS-026.md). The scene census uses installed models and explicit demo
 records; it does not establish equipment eligibility or cover every counter phase, context or world producer.
 An absent exact authored model path is recorded as unavailable, without name trimming or an asset substitution.

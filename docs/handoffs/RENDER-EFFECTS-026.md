@@ -126,3 +126,18 @@ private pass and 1,690-test portable pass remain as recorded above. Source targe
 Left: finish the remaining affected rows and queued audit, integrate latest main, finalize handoff/research
 status, final audit, PR/ready entry and cleanup. Next step: resume the existing guarded check controller;
 do not launch a second heavy job. Shared load is above 14, so new checks wait. Owner cutoff remains 02:30.
+
+## WIP checkpoint, 22:26
+
+Done: all 86 affected private no-mutant validators pass, 1,166,680 case checks, zero failures/errors/skips,
+2,354.564 s command. The pre-final-doc audit passes: 2,194 files, zero rejected, 24.805 s. Latest main
+`710ac816` (#372 UI windows) merges cleanly at `7f94e87d312d711fbf3e21631d25462d96a22bc9`. Root/world
+builds pass in 6.182 / 5.434 s. No particle/caller proof target changed, so completed mutants are retained.
+Post-merge selection is 12/223 validators (31.043 s), 134/201 suite work items (75.971 s), including 129 native
+modules; 8d reduced still applies. The portable delta run is active, with no failures reported.
+The earlier sweep's "25 default draws" means 25 simulation frames with default drawing and first/last saves.
+
+Left: finish post-merge portable and reduced-private checks, twelve selected integration validators and an
+after-only default sweep against the retained original baseline. Then finalize docs/status/audit, PR, ready
+entry and cleanup. Next step: inspect postcheck-steps.json and the existing sequential controller. Load is
+above 14, so it waits before new checks. The final handoff draft with all 86 row timings is in lane scratch.
