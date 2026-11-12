@@ -1,271 +1,268 @@
 # RENDER-ITEMS-002Y
 
-Branch `codex/render-items-002y`, from prerequisite #361 head `d6c74e22` while the steward gates it.
-Prerequisite #361 subsequently merged at `3732f82a`; its identical-tree main history is merged at `4e9fa043`.
-Codex, GPT-6.1 Sol; no subagents. Offline/static only. Installed apps are untouched.
-Research part 38 is reserved; recheck main before the final push.
+Branch `codex/render-items-002y`, following #361 at `3732f82a`. Codex, GPT-6.1 Sol; no subagents.
+Offline/static only. Research is [part 38](../research/client-render-items.md#part-38-later-read-programs-and-body-caller-helper-flow-render-items-002y).
+Main `626abce17f0a` is merged at `0ac7cc03d775`. The lane runs affected checks; the merge steward owns the full gate and merge.
 
-## WIP checkpoint 2026-11-12 00:09, final portable/private finish
+## Result
 
-Done: complete +41 tables, 1,424 -> 1,465 bodies, unchanged caps and exact classifier delta.
-All twenty changed-row mutants caught. All 62 selected steward rows have passing coverage,
-991,788 reported cases. Main `626abce17f0a` is merged; checkpoint parent `0ac7cc03d775`.
+Bodies **1,424 -> 1,465 of 1,674**, leaving **209**. Six later read programs, eight helper-count bodies
+and 27 further bodies are admitted. Skins remain 17/17; links remain eighteen targets/twenty-four types.
+Complete pinned extraction emits 1,446 type rows, a 514,029-byte body header and a 295,763-byte owner
+header. The 24-scalar, twelve-operation, sixteen-draw and 512-KiB audit limits are unchanged.
 
-- affected: 59/59 passing, 3626.11 s at 90f61f89a399
-- merged: 63/63 passing, 917.38 s at 80510f6ffb56
-- latest: 66/66 passing, 763.74 s at 763d33303ea9
-- post-ui: 10/10 passing, 63.10 s at 0ac7cc03d775
+The six read types are `0x0b4d`, `0x1314`, `0x230d`, `0x23f0`, `0x23f2` and `0x2497`.
+The scalar reader preserves separate wave phase, reversed wave, lower clamp, signed local division,
+clock sine, conditional abs and CRT fabs. It follows only the reviewed pure calls and stores.
+The six complete owned programs also retain exact ordered requests/refusals and scripted random use.
 
-The runtime C and both generated headers remain identical to compiled source `90f61f89`.
-The first portable batch passes 1,421 tests, 1,180 passed / 241 skipped, 523.96 s including selection.
-The final merge portable run passes: 173 work items, 1,867 tests, 1,550 passed / 317 skipped, zero failures/errors; runner wall 438.1 s. Reports live under this lane's scratch. Directed clocks for
-five earlier sine folds pass 120 cases against original instructions and saved prerequisite C, 1.54 s.
-They repeat against freshly built main during final identity.
+`0x2368` omits its base draw. Types `0x26e6..0x26ec` force a positive effective level to seven in the
+body caller, after record and quality remapping; zero stays zero. The public scalar-remap function
+keeps its existing contract. Forcing fixtures enumerate both kind-B records, kind A 0/6, all sixteen
+levels, qualities 0/1/2/9 and both tail settings. Raw input items and records remain unchanged.
 
-Left: complete or inspect the 8d-reduced private renderer/App Polish 8 report. Confirm latest-main
-ancestry, then run `identity.py` through `run_step.py` with canonical private-env.sh from this repo root.
-It overlays only the three owned runtime files, restores them in finally, rebuilds each world binary,
-records distinct hashes, compares all 46 captures and repeats the 216,448-state C-to-C delta plus the
-120 directed old-fold clocks. The preliminary f7fed588 sweep is void as a clean-main baseline.
-Then run `finish_docs.py`, doc consumer checks and final audit, push, create/link PR, append ready-prs
-last, and clean up. Final doc drafts and scripts are in this lane scratch; no new private input is needed.
-No ready-prs entry exists. Stop by 02:30; if not PR-ready at 02:15 push WIP and stop.
+The 27 further bodies and their carry rules are listed in part 38. Every new body passes the 292-state
+independent sample. Directed clocks and counters supplement the forcing-record cases. Negative-zero
+probes distinguish six final positive-zero additions from otherwise identical saved intermediates.
+This preserves the original helper semantics rather than normalizing all zeros. Five earlier bodies
+now use direct clock-sine chains; all 57 historical derived types retain their original comparisons,
+and the explicit kind-6 count changes from 118 to 113.
 
-## WIP checkpoint 2026-11-11 23:48, main-merge checks
+The native C-to-C sample changes exactly 41 memberships, 128 states each, and no earlier result.
+The classifier changes exactly 41 memberships and 31 shape totals: complete shapes 609 -> 640 of 798.
+Raw survey shapes, addresses, classifications and stopped-state summaries stay unchanged.
+The survey's 1,691 denominator includes the seventeen skins; the body denominator is 1,674.
 
-Done: +41 tables are regenerated; all twenty changed-row mutants are caught. The original affected
-batch passes all 59 rows, 978,272 recorded cases, in 3,626.11 s at compiled source `90f61f89`.
-Portable checks pass 1,421 tests, 1,180 passed / 241 skipped, in 523.96 s including selection.
-Main `6b75fbda` is merged at `80510f6f`; all 63 merge-input rows pass in 917.38 s.
-Main `fb747e42` is merged at `763d3330`, root build passes in 11.97 s. Its selector
-requires 66 rows; 45 currently pass, 0 fail and 0 error.
-These checks run at `763d3330`, with cache, no mutants and two workers. No runtime input changes
-occur while the batch is active.
+## Checks and environment
 
-Left: main advanced again to `626abce1` while selection ran. The ancestor guard in `run_step.py` causes
-a planned stop after this completed validator batch and before portable/private tests. Merge newer
-main, build and select only changed inputs since `763d3330` plus any new PR-selected rows. Then run
-portable merge checks once, the 8d-reduced private renderer/App Polish 8 modules, and genuine-main
-identity. `identity.py` saves/restores all three owned runtime inputs with try/finally, rebuilds both
-world binaries explicitly, records different hashes, and checks all 46 captures. The preliminary
-`f7fed588` sweep is superseded, because its C file already contained branch changes.
+All test/tool commands run from the repository root. Private commands source
+`~/Documents/MTM/mu-mac-tools/native/private-env.sh`, including `MU_SECTION3`, `MU_GAME_ROOT`,
+`MU_EVIDENCE_DIR`, `MU_NATIVE_DATA_DIR`, snapshot and render-time inputs. Heavy work runs at nice 10,
+make at most four jobs and validator runners two workers. Load, memory and disk checks precede jobs;
+load above 14 caused cooldowns. No full lane gate or hosted workflow ran.
 
-Directed clocks for five earlier folded sine bodies also pass: 120 cases against saved prerequisite C and original instructions, 1.54 s. They repeat against freshly built main during final identity.
-Next step: wait for the active validators; use `post_ui_checks.py` after merging item-UI main. Preserve the current `latest-selection.json` as `pre-ui-selection.json` first.
-Do not repeat completed mutants. Final research/status/handoff/PR/ready-prs and cleanup remain.
-Stop by 02:30; if not PR-ready at 02:15 push WIP and stop. No ready-prs entry exists.
+Brief 6b consumer review includes `test_native_renderchar.py` and `test_app_polish8.py`. The initial
+private native selection is 147 work items, above the forty-item cap, so this lane uses **8d reduced**
+and runs those two modules privately from the root. Portable selection and instruction validators are
+separate runs; private mutants are not accidentally repeated by the portable suite.
 
-## WIP checkpoint 2026-11-11 23:25, main-merge checks
+| Check | Result | Wall |
+|---|---|---:|
+| Complete body and owner table regeneration | 1,446 type rows; unchanged caps | 1,296.19 s |
+| Old-fold directed-clock preflight | 120 cases match saved prerequisite C and original instructions | 1.54 s |
+| Portable renderchar suite | 126 tests, 99 passed / 27 private skips | 0.44 s |
+| Full classifier export | 1,691 types / 798 shapes, exactly 41 membership and 31 shape-total changes | 81.68 s |
+| Initial affected portable run | 152 work items; 1,421 tests, 1,180 passed / 241 skipped | 523.96 s |
+| First main-merge root build | Pass | 23.93 s |
+| Latest main-merge root build | Pass | 11.97 s |
+| Final main-merge root build | Pass | 0.58 s |
+| Latest affected portable run | 173 work items; 1867 tests, 1550 passed / 317 skipped, zero failures/errors | 572.00 s |
+| Canonical private renderer and App Polish 8 | 33/33 passed, zero skips; 8d reduced | 14.54 s |
+| Genuine-main renderchar build | Pass | 0.60 s |
+| Genuine-main explicit world build | Pass | 7.14 s |
+| Genuine-main default sweep | 46 captures, draw_all=false, live_time=false | 97.61 s |
+| Restored branch root build | Pass | 21.72 s |
+| Restored branch explicit world build | Pass | 8.49 s |
+| Fresh-main C-to-C admission delta and old-fold clocks | 216,448 states: 211,200 identical, 5,248 admissions on exactly 41 types; 120 additional old-fold clocks match original and main | 23.78 s |
+| Final default identity | 92 PNGs, 92 mesh dumps and 46 normalized reports identical | 78.89 s |
+| Affected no-mutant validators at `90f61f89a399` | 59/59 passed, zero failures/errors | 3,626.11 s |
+| Merged no-mutant validators at `80510f6ffb56` | 63/63 passed, zero failures/errors | 917.38 s |
+| Latest no-mutant validators at `763d33303ea9` | 66/66 passed, zero failures/errors | 763.74 s |
+| Post-ui no-mutant validators at `0ac7cc03d775` | 10/10 passed, zero failures/errors | 63.10 s |
 
-Done: +41 tables are regenerated; all twenty changed-row mutants are caught. The original affected
-batch passes all 59 rows, 978,272 recorded cases, in 3,626.11 s at compiled source `90f61f89`.
-Portable checks pass 1,421 tests, 1,180 passed / 241 skipped, in 523.96 s including selection.
-Main `6b75fbda` is merged at `80510f6f`, root build passes in 23.93 s. The merge-input selector
-requires 63 rows; 43 currently pass, 0 fail and 0 error.
-These checks run at `80510f6f`, with cache, no mutants and two workers. No runtime input changes
-occur while the batch is active.
+Documentation consumers pass: 36 tests, 35 passed / 1 skipped, zero failures/errors, 12.41 s. Final source audit is recorded in the PR body.
 
-Left: main advanced again to `fb747e42` while selection ran. The local `refresh-main` marker causes
-a planned stop after this completed validator batch and before portable/private tests. Merge newer
-main, build and select only changed inputs since `80510f6f` plus any new PR-selected rows. Then run
-portable merge checks once, the 8d-reduced private renderer/App Polish 8 modules, and genuine-main
-identity. `identity.py` saves/restores all three owned runtime inputs with try/finally, rebuilds both
-world binaries explicitly, records different hashes, and checks all 46 captures. The preliminary
-`f7fed588` sweep is superseded, because its C file already contained branch changes.
+The latest portable runner wall is 438.1 s; wrapper times include selection where selection is part of the command. Resource cooldowns are outside these job timings.
+The final PR selection contains 62 rows and 991,788 recorded cases. Unchanged rows retain their earlier passing result; the merge selectors rerun every row whose compiled inputs changed. These are finite recorded case totals, not a unique whole-client state count.
 
-Next step: wait for session's active validators; use per-row reports under this lane's scratch.
-Do not repeat completed mutants. Final research/status/handoff/PR/ready-prs and cleanup remain.
-Stop by 02:30; if not PR-ready at 02:15 push WIP and stop. No ready-prs entry exists.
+Changed-row mutants ran once per final target: helper groups 6,432 cases / 4 mutants, 36.0 s; historical derived bodies 36,252 cases / 7 mutants, 314.6 s; corrected read programs 5,352 cases / 6 mutants, 30.0 s; corrected other bodies 24,084 cases / 3 mutants, 108.0 s. All twenty compiled mutants are caught. The final read/other batch wall is 108.11 s. The derived metadata recheck is 0.07 s; its 113-program expectation preserves all 57 historical type comparisons. No steward mutants are requested.
 
-## WIP checkpoint 2026-11-11 23:01, affected validators
+## Default identity provenance
 
-Portable selection and execution pass: 152 work items, 1,421 tests, 1,180 passed and 241 skipped,
-zero failures/errors, 523.96 s including selection. All 20 changed-row mutants are caught.
-The active no-mutant batch has 59/59 passing rows and 0 failed/error rows.
-Its compiled inputs remain at `90f61f89`; this checkpoint changes documentation only.
+Genuine main `626abce17f0a0c874c5481cd73b59ec129409f61` is built inside this lane worktree by temporarily overlaying only the three runtime files that differ from main: `renderchar.c`, `item_bodies.h` and `item_owner_fx.h`. Their committed branch bytes are saved and restored in `finally`; the index stays on the branch. Main and all other worktrees remain untouched. Each side explicitly runs `make -C native -j4 world`, reduced to two jobs if required by the resource cooldown.
 
-Done rows and per-row reports are under
-`~/Documents/MTM/mu-mac-tools/native/scratch/render-items-002y/affected-validators/`.
-All 59 rows passed in 3,626.11 s. The portable batch and changed-row mutants are complete.
-Next merge latest main, then run only checks whose compiled inputs changed.
+- Before `mu-world` SHA-256: `0486f35e813b641f2500df6b0107515c33d3fb37d2cc3683005c8b91b08b10ef`.
+- After `mu-world` SHA-256: `7a6d245c7e85eb024f0ae42f6f9e7ad20f65bfcf0b23ef2f34a5bc11a43b8528`.
 
-Identity note: the preliminary `f7fed588` sweep used prerequisite tables with the branch C file,
-so it is not a clean-main baseline. Build actual main runtime inputs in this
-worktree, record the binary SHA, restore the committed branch inputs and rebuild for comparison.
-The validator batch has finished.
+The hashes differ. Both sweeps use the same canonical private environment, 640 x 400 dimensions, default draw and fixed time over both existing capture manifests. Every capture has two PNGs, two mesh dumps and one report. Output-directory text is normalized in reports; no other report fields or bytes are removed. All 230 artifacts match. No original-client pixel equivalence is claimed.
 
-Left: merge latest main and retest changed compiled inputs, reduced private native renderer/App Polish 8 modules, explicit world
-rebuild and SHA-256, final default identity, final docs/PR/ready-prs entry and cleanup.
-The 02:15 WIP decision and 02:30 stop remain binding. No ready-prs line exists yet.
+## Steward validators
 
-## WIP checkpoint 2026-11-11 22:33, affected validators
+Steward validators: validate_item_ranked,validate_item_continuation,validate_item_expansion,validate_item_clusters,validate_item_types,validate_fidelity,validate_meshdraw,validate_model_edge,validate_movement,validate_renderchar,validate_item_read_programs,validate_icarus_c2,validate_audio_callers,validate_item_gear,validate_item_next,validate_render_effects5,validate_render_effects7,validate_render_effects9,validate_render_effects10,validate_render_effects11,validate_render_effects12,validate_audio_domains,validate_audio_items,validate_item_coverage,validate_item_wings_next,validate_item_scalars,validate_item_chains,validate_item_carry,validate_item_quality,validate_item_product,validate_item_derived,validate_item_ownerfx,validate_item_predraw,validate_item_hiddenmesh,validate_render_effects13,validate_render_effects14,validate_render_effects15,validate_render_effects16,validate_render_effects17,validate_item_callers,validate_inventory_fx,validate_render_effects18,validate_render_effects19,validate_render_effects20,validate_render_effects21,validate_item_cloak,validate_armour_cloak,validate_render_effects22,validate_item_named,validate_npc_cloak,validate_render_effects23,validate_render_effects24,validate_render_effects27,validate_item_groups,validate_render_effects25,validate_actor_recipes,validate_item_helper_groups,validate_item_other_bodies,validate_charsel_items,validate_audio_objects,validate_render_effects28,validate_items_ui
 
-Portable selection and execution pass: 152 work items, 1,421 tests, 1,180 passed and 241 skipped,
-zero failures/errors, 523.96 s including selection. All 20 changed-row mutants are caught.
-The active no-mutant batch has 26/59 passing rows and 0 failed/error rows.
-Its compiled inputs remain at `90f61f89`; this checkpoint changes documentation only.
+Use the canonical private environment above, `--private --no-mutants --cache --jobs 2`. Source commits and walls are recorded per row below. The latest merge leaves this lane's three runtime files unchanged; selectors establish which earlier compiled inputs remain identical. Every fallback retained by the final selector is kept in this list.
 
-Done rows and per-row reports are under
-`~/Documents/MTM/mu-mac-tools/native/scratch/render-items-002y/affected-validators/`.
-Wait for the active command. If interrupted, load the exact 59 names from `selection.json` and
-resume that report with the canonical private environment, cache, no mutants and two workers.
-Do not repeat completed mutants.
+| Validator | Cases | Wall | Tested source |
+|---|---:|---:|---|
+| `validate_item_ranked` | 17,736 | 229.6 s | `90f61f89a399` |
+| `validate_item_continuation` | 25,772 | 285.5 s | `90f61f89a399` |
+| `validate_item_expansion` | 52,172 | 390.6 s | `90f61f89a399` |
+| `validate_item_clusters` | 74,292 | 504.4 s | `90f61f89a399` |
+| `validate_item_types` | 135,176 | 49.6 s | `90f61f89a399` |
+| `validate_fidelity` | 991 | 92.5 s | `90f61f89a399` |
+| `validate_meshdraw` | 14,619 | 82.1 s | `763d33303ea9` |
+| `validate_model_edge` | 954 | 151.0 s | `763d33303ea9` |
+| `validate_movement` | 6,614 | 50.2 s | `763d33303ea9` |
+| `validate_renderchar` | 1,706 | 43.5 s | `90f61f89a399` |
+| `validate_item_read_programs` | 5,352 | 19.7 s | `90f61f89a399` |
+| `validate_icarus_c2` | 8,400 | 22.4 s | `763d33303ea9` |
+| `validate_audio_callers` | 5,528 | 9.3 s | `0ac7cc03d775` |
+| `validate_item_gear` | 25,256 | 207.4 s | `90f61f89a399` |
+| `validate_item_next` | 14,992 | 259.3 s | `90f61f89a399` |
+| `validate_render_effects5` | 1,190 | 3.1 s | `80510f6ffb56` |
+| `validate_render_effects7` | 596 | 1.6 s | `80510f6ffb56` |
+| `validate_render_effects9` | 304 | 1.0 s | `80510f6ffb56` |
+| `validate_render_effects10` | 154 | 0.3 s | `80510f6ffb56` |
+| `validate_render_effects11` | 176 | 0.2 s | `80510f6ffb56` |
+| `validate_render_effects12` | 64 | 0.3 s | `80510f6ffb56` |
+| `validate_audio_domains` | 2,544 | 31.9 s | `0ac7cc03d775` |
+| `validate_audio_items` | 3,000 | 5.2 s | `0ac7cc03d775` |
+| `validate_item_coverage` | 31,724 | 331.2 s | `90f61f89a399` |
+| `validate_item_wings_next` | 33,622 | 356.0 s | `90f61f89a399` |
+| `validate_item_scalars` | 26,274 | 244.0 s | `90f61f89a399` |
+| `validate_item_chains` | 35,406 | 282.0 s | `90f61f89a399` |
+| `validate_item_carry` | 114,388 | 902.8 s | `90f61f89a399` |
+| `validate_item_quality` | 28,080 | 243.2 s | `90f61f89a399` |
+| `validate_item_product` | 2,874 | 143.2 s | `90f61f89a399` |
+| `validate_item_derived` | 36,252 | 268.8 s | `90f61f89a399` |
+| `validate_item_ownerfx` | 14,964 | 319.2 s | `90f61f89a399` |
+| `validate_item_predraw` | 42,540 | 435.6 s | `90f61f89a399` |
+| `validate_item_hiddenmesh` | 116,281 | 532.6 s | `80510f6ffb56` |
+| `validate_render_effects13` | 180 | 0.4 s | `80510f6ffb56` |
+| `validate_render_effects14` | 660 | 1.0 s | `80510f6ffb56` |
+| `validate_render_effects15` | 509 | 0.6 s | `80510f6ffb56` |
+| `validate_render_effects16` | 424 | 5.2 s | `0ac7cc03d775` |
+| `validate_render_effects17` | 618 | 8.3 s | `763d33303ea9` |
+| `validate_item_callers` | 6,013 | 3.0 s | `763d33303ea9` |
+| `validate_inventory_fx` | 8,017 | 9.7 s | `763d33303ea9` |
+| `validate_render_effects18` | 540 | 2.5 s | `763d33303ea9` |
+| `validate_render_effects19` | 400 | 1.4 s | `763d33303ea9` |
+| `validate_render_effects20` | 148 | 0.2 s | `80510f6ffb56` |
+| `validate_render_effects21` | 267 | 0.3 s | `80510f6ffb56` |
+| `validate_item_cloak` | 5,694 | 151.5 s | `90f61f89a399` |
+| `validate_armour_cloak` | 4,448 | 50.6 s | `90f61f89a399` |
+| `validate_render_effects22` | 202 | 6.1 s | `80510f6ffb56` |
+| `validate_item_named` | 20,057 | 182.4 s | `90f61f89a399` |
+| `validate_npc_cloak` | 2,619 | 46.7 s | `90f61f89a399` |
+| `validate_render_effects23` | 1,174 | 6.6 s | `80510f6ffb56` |
+| `validate_render_effects24` | 226 | 4.7 s | `763d33303ea9` |
+| `validate_render_effects27` | 424 | 1.0 s | `80510f6ffb56` |
+| `validate_item_groups` | 4,824 | 33.1 s | `90f61f89a399` |
+| `validate_render_effects25` | 202 | 10.6 s | `763d33303ea9` |
+| `validate_actor_recipes` | 1,669 | 128.3 s | `763d33303ea9` |
+| `validate_item_helper_groups` | 6,432 | 24.2 s | `90f61f89a399` |
+| `validate_item_other_bodies` | 24,084 | 85.0 s | `90f61f89a399` |
+| `validate_charsel_items` | 8,817 | 9.2 s | `763d33303ea9` |
+| `validate_audio_objects` | 4,000 | 4.1 s | `763d33303ea9` |
+| `validate_render_effects28` | 630 | 2.3 s | `763d33303ea9` |
+| `validate_items_ui` | 8,517 | 12.0 s | `0ac7cc03d775` |
 
-Identity note: the preliminary `f7fed588` sweep used prerequisite tables with the branch C file,
-so it is not a clean-main baseline. After this batch, build actual main runtime inputs in this
-worktree, record the binary SHA, restore the committed branch inputs and rebuild for comparison.
-Do not alter runtime inputs while the validator batch is active.
+Rows without a case-count field are marked not reported and are excluded from summed case totals.
 
-Left: finish all 59 rows, reduced private native renderer/App Polish 8 modules, explicit world
-rebuild and SHA-256, final default identity, final docs/PR/ready-prs entry and cleanup.
-The 02:15 WIP decision and 02:30 stop remain binding. No ready-prs line exists yet.
+Additional rows required only by merged-main changes are also passing; they are not added to the PR selection.
 
-## WIP checkpoint 2026-11-11, portable pass and validator batch
+| Merge-only validator | Cases | Wall | Tested source |
+|---|---:|---:|---|
+| `validate_app_polish1` | 752 | 41.7 s | `0ac7cc03d775` |
+| `validate_app_polish2` | 1,028 | 5.9 s | `0ac7cc03d775` |
+| `validate_app_polish4` | 10,485 | 62.0 s | `80510f6ffb56` |
+| `validate_app_polish7` | 5,120 | 3.4 s | `0ac7cc03d775` |
+| `validate_audio_charsel` | 5,968 | 4.0 s | `80510f6ffb56` |
+| `validate_audio_combat` | 19,548 | 33.0 s | `80510f6ffb56` |
+| `validate_charsel_world` | 1,200 | 2.6 s | `763d33303ea9` |
+| `validate_combat` | 496 | 0.9 s | `80510f6ffb56` |
+| `validate_gfx3` | not reported | 10.5 s | `0ac7cc03d775` |
+| `validate_icarus` | 5,240 | 33.1 s | `763d33303ea9` |
+| `validate_items` | 444 | 2.4 s | `80510f6ffb56` |
+| `validate_login_world` | 1,200 | 2.8 s | `763d33303ea9` |
+| `validate_map_polish` | 876 | 0.7 s | `0ac7cc03d775` |
+| `validate_model_light` | 1,433 | 5.7 s | `763d33303ea9` |
+| `validate_muun_passes` | 1,361 | 2.0 s | `80510f6ffb56` |
+| `validate_muun_visual` | 912 | 2.3 s | `80510f6ffb56` |
+| `validate_object_render` | 1,984 | 3.8 s | `763d33303ea9` |
+| `validate_path` | 4,719 | 29.9 s | `80510f6ffb56` |
+| `validate_render_effects` | 660 | 1.4 s | `80510f6ffb56` |
+| `validate_render_effects3` | 720 | 1.2 s | `80510f6ffb56` |
+| `validate_render_effects4` | 1,920 | 7.4 s | `80510f6ffb56` |
+| `validate_render_effects6` | 1,000 | 1.5 s | `80510f6ffb56` |
+| `validate_render_worlds_a` | 9,000 | 13.6 s | `763d33303ea9` |
+| `validate_session_party` | 200 | 0.9 s | `80510f6ffb56` |
+| `validate_skill_fx` | 660 | 1.1 s | `80510f6ffb56` |
+| `validate_terrain` | 583,500 | 440.4 s | `763d33303ea9` |
+| `validate_terrain_remaining` | 2,147 | 4.6 s | `763d33303ea9` |
+| `validate_viewport_monsters` | 1,963 | 11.1 s | `80510f6ffb56` |
+| `validate_world_fidelity` | 200 | 0.2 s | `763d33303ea9` |
+| `validate_world_light_name` | 304 | 0.5 s | `763d33303ea9` |
+| `validate_world_particle_consumers` | 900 | 1.0 s | `80510f6ffb56` |
+| `validate_world_tile_folder` | 5,700 | 51.5 s | `763d33303ea9` |
+| `validate_worlds_121` | 4,000 | 4.7 s | `763d33303ea9` |
+| `validate_worlds_after` | 13,424 | 16.0 s | `763d33303ea9` |
+| `validate_worlds_after2` | 32,216 | 32.9 s | `763d33303ea9` |
+| `validate_worlds_after3` | 10,212 | 10.2 s | `763d33303ea9` |
+| `validate_worlds_after4` | 9,181 | 15.1 s | `763d33303ea9` |
+| `validate_worlds_after5` | 6,000 | 11.6 s | `763d33303ea9` |
+| `validate_worlds_after6` | 7,300 | 52.8 s | `763d33303ea9` |
+| `validate_worlds_b` | 4,000 | 3.7 s | `763d33303ea9` |
+| `validate_worlds_d` | 2,400 | 4.3 s | `763d33303ea9` |
+| `validate_worlds_e` | 4,840 | 17.7 s | `763d33303ea9` |
+| `validate_worlds_f` | 1,818 | 0.5 s | `763d33303ea9` |
+| `validate_worlds_fog` | 4,044 | 12.0 s | `80510f6ffb56` |
+| `validate_worlds_g` | 6,000 | 4.2 s | `763d33303ea9` |
+| `validate_worlds_g2` | 2,657 | 8.3 s | `763d33303ea9` |
+| `validate_worlds_g3` | 4,000 | 6.2 s | `763d33303ea9` |
+| `validate_worlds_h` | 6,000 | 4.3 s | `763d33303ea9` |
+| `validate_worlds_i` | 6,000 | 4.7 s | `763d33303ea9` |
+| `validate_worlds_inner` | 4,000 | 4.1 s | `763d33303ea9` |
+| `validate_worlds_inner2` | 5,000 | 4.9 s | `763d33303ea9` |
+| `validate_worlds_j` | 6,000 | 4.4 s | `763d33303ea9` |
+| `validate_worlds_k` | 6,000 | 4.9 s | `763d33303ea9` |
+| `validate_worlds_karutan` | 3,000 | 4.0 s | `763d33303ea9` |
+| `validate_worlds_l` | 1,260 | 1.5 s | `80510f6ffb56` |
+| `validate_worlds_m` | 1,080 | 1.4 s | `80510f6ffb56` |
+| `validate_worlds_n` | 13,000 | 9.4 s | `763d33303ea9` |
+| `validate_worlds_o` | not reported | 6.8 s | `763d33303ea9` |
+| `validate_worlds_p` | 10,000 | 8.9 s | `763d33303ea9` |
+| `validate_worlds_p2` | 6,000 | 5.7 s | `763d33303ea9` |
+| `validate_worlds_q` | 11,000 | 20.9 s | `763d33303ea9` |
+| `validate_worlds_q2` | 4,000 | 8.7 s | `763d33303ea9` |
+| `validate_worlds_r` | 12,000 | 9.9 s | `763d33303ea9` |
+| `validate_worlds_r2` | 9,000 | 10.5 s | `763d33303ea9` |
+| `validate_worlds_raklion` | 3,000 | 4.4 s | `763d33303ea9` |
+| `validate_worlds_s` | 11,000 | 9.3 s | `763d33303ea9` |
+| `validate_worlds_s2` | 10,000 | 8.9 s | `763d33303ea9` |
+| `validate_worlds_s3` | 22,000 | 20.7 s | `763d33303ea9` |
+| `validate_worlds_slots` | 18,999 | 21.2 s | `763d33303ea9` |
+| `validate_worlds_slots2` | 33,000 | 37.3 s | `763d33303ea9` |
+| `validate_worlds_slots3` | 36,000 | 36.3 s | `763d33303ea9` |
 
-At compiled source `90f61f89`, the corrected read row passes 5,352 cases and six mutants, 30.0 s;
-the other-body row passes 24,084 cases and three mutants, 108.0 s. Their batch takes 108.11 s.
-All 20 changed-row mutants are caught, including the four helper and seven derived mutants already
-completed. Saved helper/derived metadata rechecks pass in 0.07 s with the corrected 113-program count;
-the two earlier failing rows are superseded by the corrected passing run.
+## History and limits
 
-The affected portable run passes 152 work items, 1,421 tests: 1,180 passed, 241 skipped, zero failures
-or errors. Runner wall is 442.5 s; total including selection is 523.96 s. Selection beforehand takes
-57.94 s. Private native selection is 147 items, so use `8d reduced`: the renderer module and App Polish 8.
+The November 9 session stopped with provisional screens and interrupted generation. Those provisional
+counts are superseded by complete regeneration and the checks above. The first resume comparison batch
+found an unsupported record-kind-4 clock fixture, an obsolete 118-program expectation and a real signed-zero
+fit ambiguity. The clock fixture now uses the declared supported record, all forcing-record cases remain,
+and the five direct clock folds are explicitly enumerated. Added negative-zero samples retain every prior
+probe and select the caller's final addition. Corrected rows and their mutants pass. No tolerance or cap
+was relaxed. The historical failed aggregate is not reported as a passing batch.
 
-Validator selection takes 70.46 s and retains 59 rows, including movement's symbol fallback; nine
-unused-symbol rows are pruned. The no-mutant batch is active at
-`~/Documents/MTM/mu-mac-tools/native/scratch/render-items-002y/affected-validators/`.
-Ranked and continuation have passed. Wait for the active command; if interrupted, resume its report
-with the exact row list in `selection.json`, the canonical private env, `--no-mutants --cache --jobs 2
---resume`. This checkpoint changes docs only; compiled inputs remain at `90f61f89`.
+The preliminary `f7fed588` sweep had prerequisite tables with the branch C file. It is not clean-main
+identity evidence and is superseded by the genuine main overlay/rebuild described above. Main checkouts,
+other worktrees, the owner's client and installed apps were not edited or driven.
 
-Left: finish all 59 validators, reduced native private modules, explicit world rebuild and binary
-SHA-256, final default identity sweep, final research/status/handoff docs, PR and ready-prs entry.
-No ready-prs entry exists yet. The 02:15 WIP decision and 02:30 stop remain binding.
+Remaining: one read-program candidate, forty historical helper-count types and 168 other bodies, total 209.
+Next is `0x0b51`: its body starts a 6,000-tick piecewise colour cycle at `0x0175f2e6`, with branches at
+`0x0175f320..0x0175f42c`. Implement an instruction-checked piecewise scalar reader/runtime form before
+admission; reading its pre-program alone is insufficient. Then revisit helper counts and the largest other
+groups. The 61-type three-level diagnostic is a lead, not a replacement denominator. `0x1710` and `0x10fd`
+remain excluded after independent-state failures; the largest shield and armour candidates still refuse.
+The owner prioritized the verified 41-body PR over a further unverified group under the stop deadline.
 
-## WIP checkpoint 2026-11-11, rebuilt zero regression passes
+These are finite instruction and C-to-C comparisons within declared contexts. Host-free read bodies use
+the declared zero random sequence; complete owned programs separately compare nonzero scripted requests
+and random consumption. Selected-item, record, buff, pose, owner/bone, invalid-context and absolute
+random/counter-phase limits remain. Native consumers can still refuse unsupported contexts. This is not
+original pose/pixel equivalence, a whole-item effect completion claim, or native Windows evidence.
+No service, packet, account, protection, character-power or original-client process work is involved.
 
-The regenerated root build passes in 10.49 s. All four original/native streams for `0x2568..0x256b`
-at negative-zero time match exactly, 0.07 s. Their textures are `0x80de..0x80e1`; the portable regression
-now selects each original texture explicitly rather than assuming the first one for all four types.
-The corrected portable renderer passes 126 tests, 27 private skips, 0.44 s. The C-to-C check passes
-216,448 states again in 8.99 s, with 211,200 identical and exactly the 41 intended admissions changed.
-The additional probes retain the explicit zero addition in six scalar chains: `0x230d`, `0x2497`
-and `0x2568..0x256b`. There is no change to any previously admitted type in that C-to-C sample.
-
-The corrected read/other instruction rows and six/three mutants run next, then the affected portable
-and private batch, reduced native private modules, rebuilt-world identity and final PR docs.
-This remains WIP until those checks finish; no ready-prs entry has been written.
-
-## WIP checkpoint 2026-11-11, regenerated zero-sensitive fits
-
-The second complete generation passes in 1,296.19 s including cache flush. It admits the same 1,446
-recipe rows; the body header is 514,029 bytes and the unchanged owner header is 295,763 bytes.
-All previous probes remain, with 3,564 additional negative-zero samples. No candidate was removed and
-no scalar, operation or audit cap changed. The new body table is committed in this checkpoint.
-The pending observable regression must still pass against a rebuilt library before this is a result.
-
-Next: build, run the portable renderer and the C-to-C delta, then the corrected read/other rows with
-their six/three mutants, the full affected selection without repeated mutants, reduced private native
-tests, and one final default identity sweep after the explicit world rebuild. The four helper mutants
-and seven derived mutants already caught at `a37e63ca` remain completed; their target code is unchanged.
-The saved derived report's 113-program metadata needs rechecking against the corrected manifest.
-PR, final status/research docs and ready-prs entry remain pending. The 02:15/02:30 deadline is binding.
-
-## WIP checkpoint 2026-11-11, signed-zero correction
-
-Done: source and initial regenerated tables are pushed at `a37e63ca`. The changed-row run takes
-314.76 s. The helper row passes 6,432 comparisons and all four mutants in 36.0 s. The historical
-derived row completes 36,252 comparisons with zero mismatches and catches all seven mutants in 314.6 s;
-its remaining failure is metadata: kind-6 program count is 113, with five programs now exact clock chains,
-rather than the historical 118. The manifest now records the actual 113. No state comparison is removed.
-
-The read-program row stops after 34.4 s on a clock fixture with record kind 4, an explicitly unsupported
-domain. Directed clocks now use the reviewed neutral record; forcing-record enumeration is unchanged.
-The other-body row stops after 111.9 s at negative-zero time for `0x2568`. Isolated sine and conditional
-abs both preserve negative zero, 12 helper cases, 0.09 s. Caller tracing, 0.11 s, finds the final
-`xorps; addss` at `0x016fce1b..0x016fce1e`: positive zero plus the saved product clears its zero sign.
-The reader already captures this operation, but the fit had selected its indistinguishable pre-add
-intermediate over positive-clock probes. Extra negative-zero probes now distinguish those values for
-all six later read bodies and 27 other bodies, while retaining every previous probe and the existing caps.
-No runtime arithmetic changed. The new portable observable regression is red on the old table, 0.16 s.
-A third other-body mutant will remove zero additions to establish that the final comparison catches it.
-
-Left: regenerate both tables with the added probes, pass the regression and remaining changed-row
-checks, affected portable/private validators, reduced private native modules, final rebuilt identity,
-final docs and PR. The generated tables and failed-check reports remain provisional.
-Next step: one full table run, then the changed rows and affected batch. The 02:15/02:30 deadline is
-restored. Prioritize the verified body set over further groups. Keep the baseline hashes and prerequisite
-library under the lane scratch path until final identity and C-to-C checks pass.
-
-## Resumed 2026-11-11
-
-Main `d4af71dd` is merged at `f7fed588`. The registry append conflict preserves both lanes' rows;
-28 registry tests pass in 6.25 s. Root build passes in 16.64 s and the explicit world build in 4.67 s.
-A fresh pre-regeneration default sweep covers all 46 maps in 57.29 s. Its rebuilt `mu-world` SHA-256 is
-`c244aec9e8b89e014dd0e88139d0da26fa2df06aff728e35b3aa5039d0011020`.
-The historical sweep is superseded because it did not record its binary hash. The fresh baseline is the
-merged lane with the prerequisite item tables; the admission C-to-C check will separately cover earlier items.
-Complete generation passes in 1,265.21 s including cache flush and the checkpoint pause. It emits 1,446
-recipe rows, a 513,963-byte body header and a 295,763-byte owner header. Both remain below the audit limit.
-The regenerated root build passes in 10.74 s. The corrected portable renderer passes 125 tests, 27 private
-skips, in 0.42 s. The first portable run found stale pre-program and derived-program structure assertions.
-There are 71 pre-programs. Five historical bodies (`0x0b0c`, `0x16fc..0x16fe`, `0x1b33`) now use one exact
-clock-sine chain rather than an intermediate kind-6 program; tests enumerate those replacements explicitly.
-The derived validator retains all original state comparisons and will run its mutants once too.
-
-The C-to-C check passes 216,448 states in 9.78 s: 211,200 identical, with exactly the 41 intended newly
-admitted types changing in 128 states each. Survey membership includes the 17 skin cases, 1,441 -> 1,482;
-body coverage alone is 1,424 -> 1,465 of 1,674. No earlier type changes in this finite comparison.
-The full classifier/export delta passes in 81.68 s: 1,691 types, 798 shapes, exactly 41 memberships and
-31 shape totals change; complete shapes 609 -> 640. Raw shape/address/stopped-state summaries are unchanged.
-Forcing-record/clock/counter/owned comparisons, changed-row mutants, affected validators, private native
-checks and final identity remain pending. Generated outputs are still provisional until those checks pass.
-The owner restored the stop time: stop by 02:30 on 2026-11-12; if not ready at 02:15, push WIP and stop. No PR or ready-prs entry exists yet.
-
-## WIP checkpoint
-
-- Base coverage is 1,424 of 1,674 bodies. No final admission count is claimed at this checkpoint.
-- Six later read-program bodies pass 292 independent states each: `0x0b4d`, `0x1314`, `0x230d`, `0x23f0`,
-  `0x23f2`, `0x2497`. The latter five complete owned programs pass 320 states, exact streams and random counts,
-  2.96 s. Body screens 51.26 and 56.04 s. Tables are not regenerated yet.
-- The scalar reader now handles a reversed wave result, constant phase with a lower clamp, and clock sine/abs
-  chains, including signed division of constant entry locals. Scalar storage and operation-count caps are
-  unchanged. `0x0b51` still needs its piecewise body-colour cycle; it remains unadmitted.
-- All six complete owned programs pass 384 states, 4.05 s. Conditional abs preserves negative zero;
-  the CRT fabs route clears it. They have separate scalar operations.
-- Five authored parser tests cover phase, clamp, signed entry-local division and the two signed-zero routes.
-  The first four pass, 0.013 s; the signed-zero addition awaits the finish run.
-- Eight helper-count bodies pass 292 independent states each. `0x2368` has an omitted base draw and normal
-  glow/tails, 6.87 s. `0x26e6..0x26ec` overwrite every positive effective level with 7 at `0x0176f2fc`, after
-  earlier record/quality remapping; this is a body-caller rule, not a change to the closed scalar remap API.
-- A three-level helper diagnostic finds 61 mismatching types, including stopped/effect paths. It is not a
-  replacement denominator for the historical 48. A no-glow experiment across its usable candidates adds none,
-  96.16 s. The late caller and omitted-base recovery are separate exact fits.
-- Full tests and instruction checks remain pending. Provisional body delta is fourteen, subject to table
-  generation, exhaustive forcing-record checks, changed-row mutants and final integration.
-- The further-body screen now adds 27 candidates after 292 independent states each, including counter
-  variation: `0x0b09`, `0x0b0b`, `0x0b28`, `0x0b40`, `0x0b42`, `0x0b43`, `0x0b45`, `0x0b61`,
-  `0x0eed`, `0x0efa`, `0x0f0b`, `0x10f2`, `0x1102`, `0x1505`, `0x1506`, `0x1509`, `0x1576`, `0x1577`,
-  `0x1736`, `0x1746`, `0x192f`, `0x1b2f`, `0x212f`, `0x2568..0x256b`.
-  It screens 182 candidates in census size order, 1,203.62 s elapsed including a resource pause.
-  Provisional total gain is 41, or 1,424 -> 1,465/1,674, leaving 209. Full tables and checks remain pending.
-  The four largest shields and four armour cases still refuse. Fitted `0x1710` and `0x10fd` fail independent
-  states 19 and 17; neither is admitted. No tolerance or cap changed.
-- Initial root and world builds pass. One baseline default sweep covers 46 maps, 92 PNGs, 92 dumps and
-  46 reports, 104.19 s. Final identity, table reproduction, affected checks and changed-row mutants are pending.
-- Next: finish the seven read-program candidates, then helper-count types, then the largest other groups.
-  Run the full affected validation batch with enough time before the owner's deadline. This is not ready.
-
-Lane-local progress inputs are under `~/Documents/MTM/mu-mac-tools/native/scratch/render-items-002y/`.
-The baseline hashes, prerequisite C library, exploratory fit summaries and scripts are retained until finish.
-No client bytes or captures are committed. Source canonical private environment from the repository root.
-
-## Stopped 2026-11-09 22:5x: Codex usage limit
-
-The lane's agent stopped when Codex reported its usage limit (GPT-6.1 Sol unavailable until 2026-11-13 18:44).
-The orchestrator committed the two uncommitted test edits as they were (`test_item_clusters.py`,
-`test_item_types.py`: the refused-control type moves to `0x23f1`, because `0x2368` and `0x230d` are provisional
-admissions). They are consistent only once the tables are regenerated, so those two tests may fail on this
-checkpoint. A table generation run (`scratch/render-items-002y/generate.py`) was still in progress and its
-output is not verified. Resume from "WIP checkpoint" above: regenerate the tables, then run the pending checks.
+All local reports, generated prototypes and render intermediates are disposable and removed at handoff,
+along with this worktree and its build outputs. No new private input is needed by the next lane.
