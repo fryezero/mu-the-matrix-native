@@ -193,7 +193,7 @@ All counts, final checks, render controls and remaining limits are recorded in
 
 ## Kind-1 secondary body, MUUN-VISUAL-003
 
-Work in progress. This section records the bounded construction/pose implementation; completion and
+The focused original comparisons and native tests verify the construction/pose subset below. Finish
 check counts belong in [the lane handoff](../handoffs/MUUN-VISUAL-003.md).
 
 The pinned target remains the client identified above. Static inputs are restored text and the second
@@ -244,5 +244,7 @@ is changed. The base slot's terminal owner key/generation/death lease gates the 
 This is a secondary-body and attachment-offset subset. The offset is not applied to the hero's rider pose.
 The separate `0x009bfe13` model effects, buff-0x12 RenderObject mode, owner-kind-2 fade, production active-mount
 selection and rider-action mutation remain outside this subset. Remote helper timers and effect 0x47a also
-remain unimplemented; this lane does not change particle consumers. No full original-scene, live-motion,
+remain unimplemented. At this branch base the native `mu_sfx_effect_create` visual switch has no 0x47a
+consumer; routing requests through `mu_world_particles_effect` would count unsupported effects rather than
+draw a transition. This lane does not change particle consumers. No full original-scene, live-motion,
 installed-app or performance equivalence is claimed.
