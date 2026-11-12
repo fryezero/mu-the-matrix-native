@@ -108,6 +108,10 @@ only world 51 and does not claim those forwarded worlds.
 | 0x6e | rand % 2 == 0: two more rolls, local x = cos(T*0.03)*(rand%5+30), y = sin(T*0.03)*(rand%5+30), z = 70; bone 0 -> owned 0x7ef7/11 particle, white, scale 0.6 |
 | 0x79 | Bones 3..8, local 5/-4/-1: six 0x7ef7 sprites, scale p, light p/p*0.5/p*0.3; p = (sin(T*0.002)+1)*0.5+0.5 |
 
+The existing Elbeland move handler hides type 0x3c before a normal visual pass. Its ten-request branch is
+verified with authored pre-hidden state in the producer and production host; it is not claimed to fire in the
+captured steady-state view.
+
 Type 0x3a has no defined stack colour in this function. The whole guard and branch are compared with an authored
 prior stack colour installed at the branch boundary `0x00e31358`, without replacing any instructions. This is
 synthetic input evidence, not a recovered colour or an original frame claim. The native producer accepts that

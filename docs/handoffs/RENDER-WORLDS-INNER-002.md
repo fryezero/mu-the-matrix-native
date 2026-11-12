@@ -19,13 +19,14 @@ the anchor was narrowed, 86.64 s. No successful mutant was recompiled.
 Left: affected checks, after renders, final research/status updates,
 latest-main integration, audit, PR and ready queue. No readiness claim yet.
 
-At this checkpoint the 64 selected validators are running without mutants at `a15ef265`, with no failure
-reported so far. The selection includes every fallback. Private native selection is 162 work items, so
+At this checkpoint all 64 selected validators passed without mutants at `a15ef265` in 934.54 s,
+1,023,171 reported cases plus worlds_o, whose report has no case total. The selection includes every fallback.
+Portable affected suites passed in 427.26 s including selection, 356.5 s test wall: 1,634 tests,
+1,355 passed / 279 expected skips, zero failures/errors. Private native selection is 162 work items, so
 **8d reduced** applies: run the changed production host module with the canonical private environment.
 The rebuilt after binary SHA-256 is `619be48504bcca387c1fd2b17d97ad1fb062a51ed52b56fff92d7442aaca7044`.
 
-Next: finish the foreground `checks.py` pipeline, which runs affected portable suites and focused private
-modules after validators. Then run the lane's `renders.py`, inspect the PNGs and record identity/score results.
+Next: finish the focused private modules in the foreground `checks.py` pipeline. Then run the lane's `renders.py`, inspect the PNGs and record identity/score results.
 If interrupted, use `validators.log` and `verify-runs/lane-validators` to preserve completed checks. Do not
 recompile the 27 completed mutants. All these local paths are under the lane's own scratch directory unless
 repository-relative.
