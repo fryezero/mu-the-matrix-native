@@ -5,6 +5,30 @@ Prerequisite #361 subsequently merged at `3732f82a`; its identical-tree main his
 Codex, GPT-6.1 Sol; no subagents. Offline/static only. Installed apps are untouched.
 Research part 38 is reserved; recheck main before the final push.
 
+## WIP checkpoint 2026-11-11 23:48, main-merge checks
+
+Done: +41 tables are regenerated; all twenty changed-row mutants are caught. The original affected
+batch passes all 59 rows, 978,272 recorded cases, in 3,626.11 s at compiled source `90f61f89`.
+Portable checks pass 1,421 tests, 1,180 passed / 241 skipped, in 523.96 s including selection.
+Main `6b75fbda` is merged at `80510f6f`; all 63 merge-input rows pass in 917.38 s.
+Main `fb747e42` is merged at `763d3330`, root build passes in 11.97 s. Its selector
+requires 66 rows; 45 currently pass, 0 fail and 0 error.
+These checks run at `763d3330`, with cache, no mutants and two workers. No runtime input changes
+occur while the batch is active.
+
+Left: main advanced again to `626abce1` while selection ran. The ancestor guard in `run_step.py` causes
+a planned stop after this completed validator batch and before portable/private tests. Merge newer
+main, build and select only changed inputs since `763d3330` plus any new PR-selected rows. Then run
+portable merge checks once, the 8d-reduced private renderer/App Polish 8 modules, and genuine-main
+identity. `identity.py` saves/restores all three owned runtime inputs with try/finally, rebuilds both
+world binaries explicitly, records different hashes, and checks all 46 captures. The preliminary
+`f7fed588` sweep is superseded, because its C file already contained branch changes.
+
+Directed clocks for five earlier folded sine bodies also pass: 120 cases against saved prerequisite C and original instructions, 1.54 s. They repeat against freshly built main during final identity.
+Next step: wait for the active validators; use `post_ui_checks.py` after merging item-UI main. Preserve the current `latest-selection.json` as `pre-ui-selection.json` first.
+Do not repeat completed mutants. Final research/status/handoff/PR/ready-prs and cleanup remain.
+Stop by 02:30; if not PR-ready at 02:15 push WIP and stop. No ready-prs entry exists.
+
 ## WIP checkpoint 2026-11-11 23:25, main-merge checks
 
 Done: +41 tables are regenerated; all twenty changed-row mutants are caught. The original affected
