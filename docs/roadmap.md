@@ -1,5 +1,7 @@
 # Roadmap and work queue
 
+MUUN-VISUAL-002 verified subset PR-ready: the fifteen fixture appearances gain eight extra mesh passes across five models and base-slot shadows; authored command categories drive actions 3/4 on fourteen models, with 363 refused. 1,406 new original cases, 15/15 compiled mutants, 28 affected validators pass; all 92 default PNGs and 92 dumps are identical. Kind-1 secondary bodies and production selection remain open. [Checks, report-environment limit and next work](handoffs/MUUN-VISUAL-002.md).
+
 CHARSEL-ITEMS-001 PR-ready: selection now draws authored demo equipment levels and excellent through the existing item renderer and texture rules. Original comparison: 8,817 cases, zero mismatches; 7/7 compiled mutants. File-only selection and default world captures remain byte-identical. [Checks, addresses, renders and limits](handoffs/CHARSEL-ITEMS-001.md).
 
 NEXT-GAPS-001 PR-ready, docs only: ranked offline gap inventory, ten lane briefs, file-conflict groups and sourced counts; no runtime change. [Research](research/next-gaps.md), [method and limits](handoffs/NEXT-GAPS-001.md).

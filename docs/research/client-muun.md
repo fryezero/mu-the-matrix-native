@@ -119,15 +119,49 @@ flag. It uses alpha 0.2 in worlds 7/128..130 and calls `RenderBodyShadow(-1,-1,-
 Native uses the existing verified projection over the whole body. Its ordinary-owner fixture supplies option 0 and owner kind 1. `--no-particles` also suppresses the
 shared shadow renderer, as it does for other companions. This does not establish live option/buff parity.
 
+### Slot-class census
+
+**Static:** the manager factory `0x009b9dda` selects slot classes from render-record byte `+8`. This is
+separate from MuunInfo's command category byte `+0x0c`.
+
+| Slot kind | Construction and visual methods | Result of this lane |
+|---|---|---|
+| 0 | `0x009a90c6`, vtable `0x01a7ed58`, 188-byte base slot | All fifteen audited attachment appearances use this kind |
+| 1 | `0x009beac5`, vtable `0x01a7f268`, 244-byte slot; setup `0x009bec34`, update `0x009bf225`, render `0x009bf31e` | Secondary-body lifecycle audited below; not implemented or counted as a complete appearance |
+| 2 | `0x009b0c9d`, vtable `0x01a7ee18`, 188 bytes | Setup/update/render wrappers forward to the base routines |
+| 3 | `0x009c2bd0`, vtable `0x01a7f2a0`, 188 bytes | Setup/update/render wrappers forward to the base routines |
+
+The installed render table has 378 kind-0 and eight kind-1 records, with no kind-2/3 records. The eight
+kind-1 ids are 16, 17 and 100..105. None belongs to the fifteen attachment appearances proved here.
+
+Kind 1 allocates a second `0x3d8` OBJECT at slot `+0xbc`, with model from runtime render-info `+0x268`, its own
+bone storage, owner pointer, scale, alpha and clock. Destruction `0x009bebd3` frees its bones and OBJECT.
+Update calls the base, checks the second OBJECT and owner, then `0x009bf58b` maps the owner's action through a
+separate action table and calls SetAction on changes. `0x009bf626` advances the second model using its action
+speed; `0x009bf6f8` copies the owner's position and angles. `0x009bf820` resolves the named attachment on this
+second skeleton, transforms the zero point and scales its offset. The owner's active-mount item comparison,
+owner flag `+0x31e8`, buff `0x1a` and a further mount predicate gate secondary rendering. If admitted, it uses
+its own frustum and `RenderObject`, plus `0x009bfe13` for model-specific effects on models `0x5cb..0x5d2`.
+Those effects include named-bone particles and additional positions; they are not the fifteen `.ein` attachments.
+
+This is an explicit remaining visual gap. The current fixture supplies a base-slot lease and optional same-owner
+command target, not that secondary skeleton or an authored active-mount lease. No kind-1 secondary-body, owner
+rider-action or effect equivalence is claimed. Its next bounded implementation needs both models, the separate
+action mapping, exact attachment names and a synthetic mount-selection input, with no authoritative feed.
+
 ### Auxiliary command audit and authored pose cycle
 
 **Static:** slot setup `0x009a9c88` reads MuunInfo category `+0x0c`. Only categories 50..99 allocate the 84-byte
 helper at `0x009c2243`. Its defaults `0x009c22e3` clear its timers, pending/remote flags and offset; setup
-supplies an offset, timer parameter and render-record timing values. `0x009c2371` advances those timers. A
-remote helper's transition expiry creates effect `0x47a` at object position plus offset.
+supplies an offset, timer parameter and render-record timing values. `0x009c2371` advances those timers.
+The timer helper `0x009c2b6c` zeros period, elapsed and flag;
+`0x009c2bb0` adds the supplied delta and `0x009c2b91` tests elapsed >= period. Initial periods are 10 seconds
+and 0.5 seconds; slot setup supplies the record periods in milliseconds / 1000 and a 3-second transition
+period. A remote helper's transition expiry creates effect `0x47a` at object position plus offset.
 
 `0x009c2539` refuses a command while flag `+0x2c` is set. A different owner key invokes a separate target
-lookup/rotation path, sets `+0x44`, and emits `0x47a`. With the owner's own key it skips that path, marks a
+lookup/rotation path, rotates the owner-relative displacement by owner key * 30 degrees, sets `+0x44`,
+and emits `0x47a`. With the owner's own key it skips that path, marks a
 command pending, resolves its supplied target, faces that target with CreateAngle, and maps categories
 50/53 to action 3; 51/52/54/55 to action 4. Other categories request no action. These action calls are compared
 with the original over the signed category domain, including absent and extreme values. Base-state selection
