@@ -10,11 +10,15 @@ modules, demo-labelled native proofs and reference comparisons pass. Main `710ac
 cleanly as `2d9c56d1`. Root rebuild 5.39 s, mu-world rebuild 4.60 s. Five of this lane's validators overlap
 its compiled inputs and passed again, 74.47 s. Full before/after evidence below is the pre-UI object-source run.
 
-Left: portable integration selection, 133 work items, is running with no reported failure. Private UI module,
-final main-integrated output identity, final audit and publication/cleanup remain. Status/plan edits are still
+Portable integration is complete: 1,421 tests, 1,165 passed / 256 skips, zero failures/errors,
+453.15 s including selection, 375.6 s test wall. Private UI module passes 3/3 without skips in 3.86 s.
+Left: final main-integrated output identity is queued under the load guard, then final audit and
+publication/cleanup. All code validation is green. Status/plan edits are still
 uncommitted drafts. No ready-prs line has been written.
 
-Next: finish the foreground `integration.py` in this lane's scratch, then run `integrated-renders.py`.
+Next: finish the active guarded `integration-render-replay` job, which runs `integrated-renders.py`
+sequentially. It compares the fresh main-integrated binary with corrected after outputs only; before numbers
+and mutants must not be rerun. `complete-integration-docs.py` is prepared to append the exact results.
 Append exact integration results and final binary SHA here, remove this WIP section, finish audit, commit/push,
 create/link PR, append ready-prs once, then push nothing more and clean up. Original 64-row reports are in
 `verify-runs/lane-validators`; the five reruns are in `verify-runs/integration-validators`. No mutant rerun.
