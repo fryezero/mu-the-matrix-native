@@ -1,5 +1,7 @@
 # Current status
 
+UI-WINDOWS-002 PR-ready: eight inert presentation adapters open Macro/Sub, HuntRecord, expanded storage, matching children/current guild matching and the original guide frame. Native journeys, 1,650 portable tests, 15 private UI/audio checks and 12 validators pass; the pre-integration lane has 230 default identities. Original Help route remains unproved. [Checks and limits](handoffs/UI-WINDOWS-002.md).
+
 ITEMS-UI-001 PR-ready: equipment hover uses the original integer 640x480 bounds and now opens fixture item tooltips. 8,512 instruction comparisons plus five static checks, 8/8 compiled mutants, ten affected validators and 29 private tests pass; the refreshed default sweep is byte-identical. Bits 0x87 add no glow in the compared bodies; original main-game GFx ordering remains unverified. [Checks, evidence and limits](handoffs/ITEMS-UI-001.md).
 
 RENDER-WORLDS-INNER-002 PR-ready: Elbeland 51 and Swamp of Calmness 56 now run their inline visual producers, including bone glows, particles/owned smoke and five existing lightning subtypes. Elbeland 0x3a's unwritten stack colour remains an explicit refusal. 5,000 original call comparisons, 27/27 compiled mutants and 64 affected validators pass. All 44 unaffected capture views stay byte-identical; close-up glows/lightning are visible. [Scope, checks and limits](handoffs/RENDER-WORLDS-INNER-002.md).
