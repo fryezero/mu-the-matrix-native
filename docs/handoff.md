@@ -1,5 +1,17 @@
 # Continue from here
 
+RENDER-WORLDS-INNER-002 PR-ready: Elbeland 51 and Swamp of Calmness 56 now run their inline visual producers, including bone glows, particles/owned smoke and five existing lightning subtypes. Elbeland 0x3a's unwritten stack colour remains an explicit refusal. 5,000 original call comparisons, 27/27 compiled mutants and 64 affected validators pass. All 44 unaffected capture views stay byte-identical; close-up glows/lightning are visible. [Scope, checks and limits](handoffs/RENDER-WORLDS-INNER-002.md).
+
+AUDIO-003 PR-ready: 16 existing object callers now deliver Devias doors, seven Elbeland loops, Uruk ambience and Kardamahal sounds through the session audio reader. Census: 1,980 candidates, 1,225 owner-classified and 755 unresolved; enumerated audio boundaries 113 -> 129. Static zone music already had delivery and passes the new decoded smoke. 4,000 original cases, 10/10 compiled mutants. [Checks, census and refused groups](handoffs/AUDIO-003.md).
+
+RENDER-EFFECTS-028 PR-ready: fixture-only Greater Defense/Damage auras now persist until authored expiry and retire on owner death. Defense ribbons and midpoint flares, attack link sprites; 4,390 original comparisons, 18/18 aura mutants, 56 affected validators pass; default captures remain identical. [Evidence, counts and limits](handoffs/RENDER-EFFECTS-028.md).
+
+APP-REFRESH-012 PR-ready, docs only: detached main d4af71dd installed; APP-REFRESH-006 Native Data and settings preserved. Full private suite 1,069 tests, 1,054 passed/15 skipped, zero failures/errors. Standard journeys and all seven new feature categories pass, with explicit fixture/audio-preference limits. [Installation, rollback, proofs and checks](handoffs/APP-REFRESH-012.md).
+
+MUUN-VISUAL-002 verified subset PR-ready: the fifteen fixture appearances gain eight extra mesh passes across five models and base-slot shadows; authored command categories drive actions 3/4 on fourteen models, with 363 refused. 1,406 new original cases, 15/15 compiled mutants, 28 affected validators pass; all 92 default PNGs and 92 dumps are identical. Kind-1 secondary bodies and production selection remain open. [Checks, report-environment limit and next work](handoffs/MUUN-VISUAL-002.md).
+
+RENDER-ACTORS-003 PR-ready: classes 625/626 draw in their original kind-1, class-byte-0 fixture context. Census 26/32 to 28/32 admitted; 374/378/617/642 stay refused with exact limits. [Checks, full census and next routines](handoffs/RENDER-ACTORS-003.md).
+
 UI-WINDOWS-001 PR-ready: D Command, N MatchingSelect, B Gens, Y PetInventory and K Gremory now open their original movies as presentation-only views. Empty tabs/pages and close work; state-changing actions refuse. 1,421 portable tests, 12 affected validators, real-window proofs and default identities pass. Original Help open route remains unproved. [Checks, inventory and limits](handoffs/UI-WINDOWS-001.md).
 
 MUUN-VISUAL-001 PR-ready: a fixture-only Muun now draws beside the demo hero in `mu-world` (`MU_MUUN_FIXTURE=<code>`): model, pose, follow motion and owner lifetime from the original's slot setup/update, with the 16 already-verified effect attachments now visible on it. 912 original instruction cases, 18/18 compiled mutants, 54 affected validators pass. No Muun packets, inventory or bonuses. [Scope, checks and limits](handoffs/MUUN-VISUAL-001.md).

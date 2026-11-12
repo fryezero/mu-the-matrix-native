@@ -58,6 +58,8 @@ SITES = {0x7534: 0x01820a39, 0x7dfe: 0x01820bb9, 0x7df3: 0x01820a79, 0x7df4: 0x0
          0x7fe9: 0x01822c65, 0x810a: 0x0182d4bf, 0x8155: 0x01822625, 0x8179: 0x01822685, 0x8013: 0x01821819,
          0x8002: 0x01820f79,
          0x7fde: 0x018228a5}   # RENDER-EFFECTS-027: NSkill.jpg
+# RENDER-EFFECTS-028: checked with the bitmap census without enlarging this row's case budget.
+AURA_SITES = {0x7fdd: 0x01822885, 0x7f67: 0x01822045}
 FIRE06_SITE, FIRE06_PATH = 0x018229e5, 'Effect\\Fire06.jpg'
 
 PT_MUTANTS = [
@@ -324,16 +326,22 @@ def decode_site(text, data, site):
 def family_bitmap_sites(text, data, host, report):
     table = json.loads(subprocess.run([str(host), 'table'], capture_output=True, text=True, check=True).stdout)
     rows = {row[0]: row for row in table['bitmaps']}
-    extra = sorted(set(rows) - set(SITES))
+    extra = sorted(set(rows) - set(SITES) - set(AURA_SITES))
+    aura_checks = []
+    for index, site in AURA_SITES.items():
+        row, client = rows.get(index), decode_site(text, data, site)
+        mine = None if row is None else (row[0], row[3], row[4], f'{row[1]}\\{row[2]}'.lower())
+        aura_checks.append(client is not None and mine == (*client[:3], client[3].lower()))
+    aura_equal = all(aura_checks)
     for index, site in SITES.items():
         row, client = rows.get(index), decode_site(text, data, site)
         mine = None if row is None else (row[0], row[3], row[4], f'{row[1]}\\{row[2]}'.lower())
-        equal = not extra and client is not None and mine is not None and mine == (*client[:3], client[3].lower())
+        equal = not extra and aura_equal and client is not None and mine is not None and mine == (*client[:3], client[3].lower())
         report.add('bitmap_sites', equal, {'index': hex(index), 'site': hex(site), 'client': client, 'mine': mine})
         report.cover('bitmap_sites', f'filter {client[1]:#x} wrap {client[2]:#x}' if client else 'undecoded')
     client = decode_site(text, data, FIRE06_SITE)
     slot, filt, wrap = table['fire06']
-    equal = client == (0x7f40, filt, wrap, FIRE06_PATH) and slot >= 0 and table['fire06_kinds'] == [0, 1, 1, 1, 0]
+    equal = aura_equal and client == (0x7f40, filt, wrap, FIRE06_PATH) and slot >= 0 and table['fire06_kinds'] == [0, 1, 1, 1, 0]
     report.add('bitmap_sites', equal, {'index': '0x7f40', 'site': hex(FIRE06_SITE), 'client': client,
                                        'mine': table['fire06'], 'kinds': table['fire06_kinds']})
     report.cover('bitmap_sites', 'Fire06 world particle slot')

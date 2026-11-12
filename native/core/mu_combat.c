@@ -212,6 +212,8 @@ static const struct {
     {0x8179, "Effect", "bostar3_R.jpg", 'j', 0x2601, 0x2900, 1},       /* 0x01822685 */
     {0x8013, "Effect", "damage01mono.jpg", 'j', 0x2601, 0x2900, 1},    /* 0x01821819 */
     {0x8002, "Effect", "PoundingBall.jpg", 'j', 0x2601, 0x2900, 1},    /* 0x01820f79 */
+    {0x7fdd, "Effect", "flareBlue.jpg", 'j', 0x2601, 0x2900, 0}, /* 0x01822885 */
+    {0x7f67, "Effect", "Shiny02.jpg", 'j', 0x2601, 0x2900, 0}, /* 0x01822045 */
     {0x7fde, "Effect", "NSkill.jpg", 'j', 0x2601, 0x2900, 0},         /* 0x018228a5: Death Stab */
 };
 
@@ -390,6 +392,11 @@ int mu_combat_init(mu_combat *c, const char *root, mu_walk *walk, mu_character *
     c->hero_hp = 0;
     c->crt_seed = config->seed ? config->seed : 1u;
     c->time_step = 0.1f;
+    const char *aura = getenv("MU_AURA_FIXTURE_TICKS");
+    if (aura) {
+        char *end = NULL; long ticks = strtol(aura, &end, 10);
+        if (end != aura && !*end && ticks > 0 && ticks <= 10000) c->aura_duration = (int32_t)ticks;
+    }
     init_env(c);
     if (config->weapon < 0 || config->weapon > MU_COMBAT_WEAPON_STAFF) {
         snprintf(error, error_size, "unknown weapon kind %d", config->weapon);
@@ -1209,6 +1216,9 @@ static void end_of_attack(mu_combat *c)
 
 /* One logic step of the three pools in the client's order: MoveEffects
  * 0x0150ddb1, MoveJoints 0x01589b06, MoveParticles 0x0159122d. */
+static void aura_step(mu_combat *c);
+static void aura_cast(mu_combat *c, int32_t skill);
+
 static void move_pools(mu_combat *c)
 {
     c->light_count = 0;
@@ -1224,6 +1234,7 @@ static void move_pools(mu_combat *c)
     c->jenv.serial = c->serial;
     c->jenv.ambient_clock = c->step;   /* [0x0bdc5eb0], one count per logic step (RENDER-EFFECTS-014: Flare/b) */
     mu_joints_move_all(c->joints, MU_SFX_JOINTS, &c->jenv, c->time_step, joint_inputs, c);
+    aura_step(c);
     int32_t kept = 0;
     for (int32_t i = 0; i < c->particle_count; ++i) {
         mu_sfx_particle *p = &c->particles[i];
@@ -1503,6 +1514,7 @@ static void start_attack(mu_combat *c, int32_t t, int32_t skill)
         action = v && v->action >= 0 ? v->action
                                      : mu_player_magic_action(h->class_byte, mu_class_check(h->class_byte), rands[0]);
         ++c->stats.skills;
+        aura_cast(c, skill);
         /* the receive handlers' sounds of the melee skills and buffs (0x70..0x73, 0x6f) */
         play(c, mu_combat_skill_sound(skill, 0, -1, 0), -1);
     }
@@ -1750,6 +1762,8 @@ void mu_combat_receive(mu_combat *c)
     }
 }
 
+#include "mu_combat_aura.inc"
+
 /* ---------------------------------------------------------------- step */
 
 static void death_stab_step(mu_combat *c)
@@ -1840,7 +1854,9 @@ int32_t mu_combat_quads(mu_combat *c, mu_combat_quad *quads, int32_t max)
      * space, in the blend of their render type, with the colour in effect for each quad; GL clamps the
      * vertex colour (glColor3f) to 0..1 */
     mu_joint_quad jq[4096];
-    const int32_t joint_quads = mu_joints_quads(c->joints, MU_SFX_JOINTS, 0, c->map ? c->map->time : 0.0f, jq, 4096);
+    aura_draw_plan(c);
+    int32_t joint_quads = mu_joints_quads(c->joints, MU_SFX_JOINTS, 0, c->map ? c->map->time : 0.0f, jq, 4096);
+    joint_quads += aura_quads(c, jq + joint_quads, 4096 - joint_quads);
     for (int32_t k = 0; k < joint_quads; ++k) {
         mu_combat_quad *q = next_quad(quads, max, &n);
         if (!q)
@@ -1895,6 +1911,21 @@ int32_t mu_combat_quads(mu_combat *c, mu_combat_quad *quads, int32_t max)
                 q->color[v][ch] = sprite.light[ch] < 0.0f ? 0.0f : (sprite.light[ch] > 1.0f ? 1.0f : sprite.light[ch]);
             q->color[v][3] = 1.0f;
         }
+    }
+    for (int i=0;i<c->aura_sprite_count;++i) {
+        const mu_jt_call *sp=&c->aura_sprites[i];
+        const int32_t slot=bitmap_slot(c,sp->type);
+        if(slot<0) { ++c->aura_refused; continue; }
+        mu_combat_quad *q=next_quad(quads,max,&n); if(!q) { ++c->aura_refused; return n; }
+        const mu_combat_bitmap *bm=&c->bitmaps[slot];
+        mu_sfx_sprite sprite={0}; sprite.bitmap=sp->type; sprite.additive=1;
+        memcpy(sprite.position,sp->position,sizeof sprite.position);
+        memcpy(sprite.light,sp->light,sizeof sprite.light);
+        sprite.width=(float)bm->image.width*sp->scale; sprite.height=(float)bm->image.height*sp->scale;
+        sprite.axes=4; sprite.uw=sprite.vh=1.0f;
+        mu_sfx_sprite_corners(camera,&sprite,q->position,q->texcoord);
+        q->eye_space=1; q->bitmap=slot; q->depth_test=1; q->additive=1;
+        for(int v=0;v<4;++v) { for(int k=0;k<3;++k) q->color[v][k]=sp->light[k]; q->color[v][3]=1.0f; }
     }
     /* RenderPoints 0x0169159e(0) after blend 0x0184a990 (SRC_ALPHA,
      * ONE_MINUS_SRC_ALPHA) and depth test off */
@@ -2511,6 +2542,11 @@ void mu_combat_report_frame(const mu_combat *c, FILE *out, int32_t frame)
         first = 0;
     }
     fprintf(out, "]}\n");
+    if (c->aura_duration) {
+        int live=0; for(int i=0;i<5;++i) live+=c->aura_joints[i].live!=0;
+        fprintf(out, "{\"aura_frame\": %d, \"step\": %d, \"live\": %d, \"sprites\": %d}\n",
+                frame,c->step,live,c->aura_sprite_count);
+    }
 }
 
 static int loaded_bitmaps(const mu_combat *c)
@@ -2554,6 +2590,11 @@ void mu_combat_report_summary(const mu_combat *c, FILE *out, int quiet)
         fprintf(out, "%s[\"%c\", %d, %d, %u]", i ? ", " : "", c->unsupported_kinds[i].routine,
                 c->unsupported_kinds[i].type, c->unsupported_kinds[i].subtype, c->unsupported_kinds[i].count);
     fprintf(out, "]}\n");
+    if (c->aura_duration) {
+        int live=0; for(int i=0;i<5;++i) live+=c->aura_joints[i].live!=0;
+        fprintf(out, "{\"aura_fixture\": true, \"requests\": %u, \"created\": %u, \"refused\": %u, \"live\": %d, \"defense_expiry\": %d, \"attack_expiry\": %d}\n",
+                c->aura_requests,c->aura_created,c->aura_refused,live,c->aura_expiry[0],c->aura_expiry[1]);
+    }
     if (s->death_stab_steps)
         fprintf(out, "{\"death_stab\": true, \"steps\": %u, \"requests\": %u, \"refused\": %u,"
                 " \"context_refused\": %u}\n", s->death_stab_steps, s->death_stab_requests,
