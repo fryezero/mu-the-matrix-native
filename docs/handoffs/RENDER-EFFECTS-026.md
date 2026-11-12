@@ -78,3 +78,27 @@ clock fixtures, default 46-view sweep, affected checks and final docs/PR/ready e
 proof controller is waiting for resource limits, with logs under the lane scratch directory. The old
 32-mutant result does not stand in for the expanded proof. Baseline captures remain valid and must be
 reused. Next step: inspect fourth-full-proof.json / proof-steps.json when the guarded run completes.
+
+WIP update, 21:22: the expanded proof passes all 17,008 checks, 47.950 s script / 48.020 s command,
+including 2,000 complete original caller streams with twelve point words. Final registry proof passes
+348 checks and 37/37 compiled mutants, zero original-machine stops, 92.6 s row / 92.802 s command.
+These supersede the narrower initial proof. Source targets are at `8d370d6f`; only public-header comments
+and research wording change afterward. Mutants need no further rerun without a target/check change.
+
+Final after scenes are `full-final-after`, `later61-final`, `later61-clock-final`; clock baseline is
+`later61-clock-before`. All have zero unsupported particles. Sixteen-draw pre counts are 13,151 / 122 ->
+13,273 / zero, owner counts 2,784 / zero unchanged, particles 703 / 122 -> 825 / zero. The later 61-draw
+fixture at both clocks is 10,223 / 485 -> 10,708 / zero, particles 36 / 485 -> 521 / zero. Last submitted
+particles across the fourteen scenes are 14 -> 223. Full census still has the one unavailable model.
+
+QA passes in 2.50 s. Default sweep: 92/92 PNGs and 92/92 dumps byte-identical, 46 views, 25 default draws,
+no draw_all. Before / after walls 61.706 / 87.626 s. Explicit after-world rebuild before sweep 5.441 s.
+After binary SHA-256 `52d3a94dac2ab14bcaa0a4d4b61a8fc97a94d097b27c735d500894a59fc548c9`, distinct from
+baseline `4954601057b7ee7976c787157b321703d40c65dba68c46901b08d22adb1be76c`. Full item scene has 209/218
+saved PNGs byte-identical; both longer scenes have 19/28 identical. Only the six expected caller models
+change. The five synthetic native raster controls also pass with the created scale and alpha.
+
+Post-build selection: 86/223 validators, 75.721 s, with movement's shell-object fallback retained;
+161/200 suite work items, 153 native modules, 60.758 s. 8d reduced applies. Root build, reduced private
+modules, affected portable suites and all 86 affected no-mutant validators are next. Main is still
+`d4af71dd`. Final handoff/status/PR/ready entry and cleanup remain after those checks and visual inspection.

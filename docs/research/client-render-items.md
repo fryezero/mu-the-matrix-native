@@ -3332,7 +3332,7 @@ frame-time accumulation and head retirement remain shared. No authored scale, mo
 
 `validate_render_effects26` compares the original constructors, movers and complete ordered RenderParticles
 calls against production C, including owner/null cases, random consumption, half-life boundaries, split-height
-passes, blend modes and the three saved OBJECT points. Undefined memory accesses remain machine failures.
+passes, blend modes and all four saved OBJECT points. Undefined memory accesses remain machine failures.
 The native host separately checks exact bitmap mappings with distinct synthetic greys, allocation, stepping,
 positive raster fragments for every pair, changed owner points, stale-owner retirement and full pool retirement.
 The 110-program / 37-pair domain is frozen by identity, while later inventory additions remain reported.
