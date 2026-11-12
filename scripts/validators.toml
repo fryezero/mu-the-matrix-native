@@ -3557,6 +3557,41 @@ args = ["--mutations", "--report", "{report}"]
 "families.credits.sounds" = 71
 "mutants" = {len = 10}
 
+[validate_worlds_inner2]
+test = "reconstructed/objects/test_worlds_inner2.py::ClientComparison.test_original"
+pins = ["text", "data"]
+families = ["world_51", "world_56", "world_51_focus", "world_56_focus", "stack_light"]
+cases = 5000
+mutants = 27
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+note = "RENDER-WORLDS-INNER-002: Elbeland and Swamp full inline calls, bone inputs, RNG, writes; prior stack colour fixture, production refusal without it"
+[validate_worlds_inner2.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+
+[validate_audio_objects]
+test = "native/tests/test_audio_objects.py::ObjectAudio.test_original_object_audio"
+pins = ["text", "data"]
+families = ["devias", "elbeland", "kardamahal", "uruk"]
+cases = 4000
+mutants = 10
+cases_at = "cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "1000", "--mutations", "--report", "{report}"]
+[validate_audio_objects.expect]
+"cases" = 4000
+"sites" = 16
+"mismatches" = 0
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants" = {len = 10}
+"mutants.*.detected" = {all_min = 1}
+
 [validate_render_effects28]
 test = "native/tests/test_render_effects28.py::ClientComparison.test_original_instructions"
 pins = ["text", "data"]

@@ -19,7 +19,12 @@ static void joint(void *c, int32_t type, const float p[3], const float q[3], con
                    int32_t owner, float scale)
 {
     (void)c; (void)a;
-    assert(type == 0x7f7c && sub == 18 && owner == -1 && scale == 50.0f && p[0] != q[0]);
+    if (type == 0x7f7c) {
+        assert(sub == 18 && owner == -1 && scale == 50.0f && p[0] != q[0]);
+    } else {
+        assert(type == 0x7f7d && (sub == 26 || sub == 16 || sub == 17 || sub == 24 || sub == 25));
+        assert(owner == 0 && scale == 1.0f && memcmp(p, q, 12) == 0);
+    }
     ++joints;
 }
 static void reset(mu_objects *o, int32_t world, int32_t type)
@@ -126,6 +131,36 @@ int main(int argc, char **argv)
     (void)pass(o); assert(o->rt.particle_count == 0);
     reset(o, 37, 0x6e); model.bmd.bone_count = 1; (void)pass(o);
     assert(o->rt.sprite_count == 0 && o->rt.draw_unsupported == 1); model.bmd.bone_count = 7;
+    reset(o, 51, 0x79); o->models[0x79] = NULL; assert(pass(o) == NULL && o->rt.seed == 1);
+    reset(o, 56, 0x39); o->models[0x39] = NULL; assert(pass(o) == NULL && o->rt.seed == 1);
+    reset(o, 51, 0x79); assert(pass(o) == &model);
+    assert(o->rt.sprite_count == 4 && o->rt.draw_unsupported == 2); /* synthetic skeleton ends at bone 6 */
+    reset(o, 51, 0x3f); assert(pass(o) == &model && o->rt.sprite_count == 1);
+    assert(o->rt.sprites[0].scale == 6.0f && o->rt.seed == next(1));
+    reset(o, 51, 0x6e); o->rt.seed = seed_for(2, 2, 0);
+    (void)pass(o); assert(o->rt.particle_count == 1);
+    assert(o->rt.particles[0].bitmap == 0x7ef7 && o->rt.particles[0].sub == 11);
+    reset(o, 51, 0x3c); (void)pass(o);
+    assert(o->rt.particle_count == 10 && mu_obj_i32(o->rt.images, MU_OBJF_HIDDEN_MESH) == -2);
+    o->rt.particle_count = 0; (void)pass(o); assert(o->rt.particle_count == 0);
+    reset(o, 51, 0x3a); (void)pass(o);
+    assert(o->rt.particle_count == 0 && o->rt.draw_unsupported == 1);
+    reset(o, 51, 0x6e); o->rt.seed = seed_for(2, 2, 0);
+    model.bmd.bone_count = 0; (void)pass(o);
+    assert(o->rt.particle_count == 0 && o->rt.draw_unsupported == 1);
+    model.bmd.bone_count = 7;
+    reset(o, 56, 0x39); o->rt.seed = seed_for(2, 3, 0); (void)pass(o);
+    assert(o->rt.particle_count == 2 && o->rt.particles[0].sub == 5 && o->rt.particles[1].sub == 21);
+    reset(o, 56, 0x48); o->rt.seed = seed_for(2, 6, 0); (void)pass(o);
+    assert(o->rt.particle_count == 1 && o->rt.particles[0].position[2] == 50.0f);
+    for (int32_t t = 0x63; t <= 0x67; ++t) {
+        reset(o, 56, t); o->rt.seed = seed_for(2, 50, 0); (void)pass(o);
+        assert(joints == 1 && o->rt.draw_unsupported == 0);
+        o->rt.joint = NULL; o->rt.seed = seed_for(2, 50, 0); (void)pass(o);
+        assert(o->rt.draw_unsupported == 1); /* missing consumer is counted */
+        o->rt.joint = joint;
+        assert(mu_obj_f32(o->rt.images, MU_OBJF_LIGHT + 4) == 0.65f);
+    }
     free(o->rt.images); free(o); mu_model_free(&model.model); mu_bmd_free(&model.bmd);
     puts("classless inline host: Blood Castle gates/bones/counter, Kanturu effects/joints/meshes/refusals OK");
     return 0;
