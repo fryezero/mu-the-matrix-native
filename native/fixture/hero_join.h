@@ -9,6 +9,7 @@
  *      fixture server is given for this hero (mu_skills_demo_hero: the offline session's "hero" line, else the
  *      class start stats at level 1, or the seed's own level). The server's resource answers (A0/30, A0/06,
  *      A0/11) use the same rule, so the HUD's current and maximum values agree.
+ * The same authored join supplies level and unspent points to the development seed.
  * Fixture data for the offline demo characters only. */
 #ifndef MU_FIXTURE_HERO_JOIN_H
 #define MU_FIXTURE_HERO_JOIN_H
@@ -25,6 +26,8 @@ static inline void mu_fixture_hero_join(mu_session_seed *seed, const mu_skills_d
         stats[4] = 0;
     if (join && join->has_stats) {
         level = join->level > 0 ? join->level : 1;
+        seed->level = level;
+        seed->points = join->points;
         memcpy(stats, join->stats, sizeof stats);
     }
     if (seed->class_byte == 1 && level == 1 && !memcmp(stats, RECORDED_STATS, sizeof stats)) {

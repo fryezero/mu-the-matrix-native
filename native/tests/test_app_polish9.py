@@ -26,6 +26,41 @@ PRIVATE = os.environ.get('MU_RECOVERY_INTEGRATION') == '1'
 
 
 class Bounds(unittest.TestCase):
+    def test_authored_join_metadata_reaches_the_seeded_record(self):
+        import validate_app_polish7 as join
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            for tool in ('gen_layout.py','gen_domains.py'):
+                subprocess.run([sys.executable,str(ROOT/'scripts'/tool),'--out',str(work/'gen')],
+                               check=True,capture_output=True)
+            source = '''#include <stdio.h>
+#include <string.h>
+#include "native/session/domains/hero.h"
+#include "native/session/domains/hero_state.h"
+#define MU_SESSION_SEED 1
+#include "native/fixture/hero_join.h"
+#define mu_session_touch(s,d) ((void)(s))
+struct mu_session { mu_dom_hero hero; };
+'''
+            source += join.function('native/session/domains/hero.c','static void hero_join_vitals(')+'\n'
+            source += join.function('native/session/domains/hero.c','void mu_dom_hero_seed(')+'\n'
+            source += '''int main(void) {
+mu_session_seed seed={0}; seed.class_byte=2;
+mu_skills_demo_join joined={NULL,1,320,{22,1302,20,15,0},318};
+mu_fixture_hero_join(&seed,&joined);
+mu_session session={0}; mu_dom_hero_seed(&session,&seed);
+printf("%d %d %d %u %d %d\\n",seed.level,seed.points,
+       mu_prg_i32(session.hero.attr,MU_PRG_A_LEVEL),mu_prg_u16(session.hero.attr,MU_PRG_A_POINTS),
+       seed.vitals[0],mu_prg_i32(session.hero.attr,MU_PRG_A_LIFE_MAX));
+return 0;
+}'''
+            (work/'metadata.c').write_text(source)
+            subprocess.run([os.environ.get('CC','cc'),'-std=c11','-I',str(ROOT),'-I',str(ROOT/'native/session'),
+                            '-I',str(work/'gen'),str(work/'metadata.c'),'-o',str(work/'metadata')],
+                           check=True,capture_output=True)
+            p = subprocess.run([str(work/'metadata')],check=True,capture_output=True,text=True)
+            self.assertEqual(p.stdout.strip(),'320 318 320 318 1119 1119')
+
     def test_undersize_and_position_preservation(self):
         with tempfile.TemporaryDirectory() as tmp:
             fit = validator.native_fit(Path(tmp))
@@ -201,7 +236,7 @@ class DemoOwnership(unittest.TestCase):
                     self.assertEqual(shown,name)
                 self.assertEqual(tuple(int(n) for n in matches[-1][0].split(',')[:8]),profiles[slot])
                 log = (Path(tmp)/'gfx.log').read_text()
-                self.assertIn(f'.SetCharacterName ["{name}"]',log)
+                self.assertIn(f'.SetCharacterName(["{name}"])',log)
                 self.assertIn(f'{hp[slot]} / {hp[slot]}',log)
 
 

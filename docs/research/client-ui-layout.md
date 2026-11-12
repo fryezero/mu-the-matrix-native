@@ -57,6 +57,12 @@ data displays a dash. No new class formula, authoritative state, combat rule,
 stat feature or power feature is added. The standalone progression demonstration
 still works when no session is bound.
 
+The ownership check also found missing seed metadata: Windleaf's existing join
+line supplied level 320 and 318 points to the fixture, but the session retained
+the seed defaults, level 1 and zero points. The fixture join now copies those
+authored fields to the development seed. Its vitals remain 1119/778/1775/284.
+This copies the existing record; no allocation operation or new formula is added.
+
 The demo character-list levels are decorative authored selection data. Existing
 join fixtures remain level 1 for four characters and level 320 for Windleaf.
 This lane preserves their join values and does not reinterpret those labels as

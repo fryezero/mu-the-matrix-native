@@ -436,6 +436,7 @@ void mu_dom_hero_seed(mu_session *s, const struct mu_session_seed *seed)
     h->record[0x12] = seed->class_byte;
     h->attr[MU_PRG_A_CLASS] = seed->class_byte;
     mu_prg_set32(h->attr, MU_PRG_A_LEVEL, (uint32_t)(seed->level > 0 ? seed->level : 1));
+    mu_prg_set16(h->attr, MU_PRG_A_POINTS, (uint32_t)seed->points);
     snprintf(h->name, sizeof h->name, "%s", seed->name);
     /* Offline join data only, current = maximum, through the join answer's own copy rule. No formula, other
      * packet handler or recurring refill. A seed without vitals leaves them zero. */

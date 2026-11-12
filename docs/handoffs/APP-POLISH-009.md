@@ -81,3 +81,26 @@ The queued private command is `native.tests.test_app_polish9`,
 After those: endpoint captures, one rebuilt default identity sweep, final
 research/handoff/status lines, audit, PR and ready-prs entry. No ready entry yet.
 Production source remains `6c62c838`, with the rebuilt binary hashes recorded above.
+
+## WIP checkpoint, 2026-11-11 23:00 Chicago
+
+Affected portable run passed: 1,405 tests, 1,149 passed, 256 skipped, zero
+failures/errors. Runner wall 469.5 s; command including selection 562.633 s.
+The reduced private run completed 11 methods in 128.386 s. Layout, resize,
+pointer-close, original resize, both skill regressions and all presentation
+checks passed. DemoOwnership had five subtest failures: four used an incorrect
+GFx log spelling; Windleaf additionally exposed real missing seed metadata.
+The fixture had level 320 / 318 points, while its session seed remained 1 / 0.
+
+Fixed in this checkpoint: append authored points to the development-only seed,
+copy level/points from the existing fixture join, and seed the hero's points.
+Vitals and formulas are unchanged. The invoke-log assertion is corrected.
+An explicit portable metadata round-trip and original alignment assertions are
+added. These changes still need rebuilding and verification. The prior validator
+and portable results cover the earlier source, not this metadata fix.
+
+Next: run the new metadata unit; rebuild root and client/world; reselect affected
+checks with the seed-header 6b closure; rerun affected no-mutant validators and
+portable suites; private AppPolish9 and the focused skills/UI checks. Layout
+mutants already passed 10/10 and their compiled inputs are unchanged. Then
+captures, default identity, final docs/audit/PR/ready line. No ready entry exists.
