@@ -69,6 +69,7 @@
 
 #include "inv_grid.h"
 #include "item_slots.h"
+#include "items_ui.h"
 #include "tooltip_html.h"
 #include "mugfx/include/mugfx.h"
 #include "../core/mu_perf.h"
@@ -325,7 +326,7 @@ struct mu_gfx_layer {
     mu_equip_slot equip_slot[MU_EQUIP_SLOTS];
     uint8_t equip_reported[MU_EQUIP_SLOTS];
     mu_gfx_equip_item equip[MU_GFX_EQUIP_SLOTS];
-    int have_equip;
+    int have_equip, equip_hover;
     uint8_t equip_class;
     /* chat */
     int chat_edit, chat_ready;
@@ -413,6 +414,7 @@ static int service_draws(mu_gfx_layer *L,int m,mu_gfx_item_draw *out,int max);
 static void service_call(movie *mv,const char *name,const char *args,const double *v,int n);
 static void service_tooltip(mu_gfx_layer *L,item *it,char *html,size_t cap);
 static int inventory_busy(const mu_gfx_layer *L) { return L->mix.pending || L->services.pending; }
+static int equipment_hover(mu_gfx_layer *L);
 static int item_reserved(const mu_gfx_layer *L,int i) { return L->trade_reserved[i] || service_reserved(L,i); }
 
 /* NATIVE-NPC-001 (section "NPC windows" below) */
@@ -667,6 +669,9 @@ static const char *invokef(mu_gfx_layer *L, int m, const char *path, const char 
     movie *mv = &L->mv[m];
     if (!mv->g || !path || !path[0])
         return NULL;
+    /* A new popup supersedes the equipment hover's ownership of the shared movie. */
+    if (m == MU_GFX_TOOLTIP && !strncmp(method, "SetInfoPopup", 12))
+        L->equip_hover = -1;
     va_list ap;
     va_start(ap, fmt);
     int len = vsnprintf(NULL, 0, fmt, ap);
@@ -1087,6 +1092,7 @@ static void show_item_tooltip(mu_gfx_layer *L, int cell)
 
 static void hide_tooltip(mu_gfx_layer *L)
 {
+    L->equip_hover = -1;
     movie *tip = &L->mv[MU_GFX_TOOLTIP];
     if (tip->open)
         invokef(L, MU_GFX_TOOLTIP, tip->path, "SetInfoPopupClose", "[]");
@@ -2267,7 +2273,7 @@ mu_gfx_layer *mu_gfx_layer_open(const mu_gfx_layer_config *c, char *error, size_
     L->scale = c->scale > 0 ? c->scale : 1.0;
     L->w = (int32_t)lround(L->px_w / L->scale);
     L->h = (int32_t)lround(L->px_h / L->scale);
-    L->held = L->hover = L->capture = -1;
+    L->held = L->hover = L->capture = L->equip_hover = -1;
     L->potions = 25;
     demo_hero(&L->hero);
     memset(&L->shown, 0xff, sizeof L->shown);   /* everything differs: first feed sends all */
@@ -2499,7 +2505,7 @@ int mu_gfx_layer_mouse(mu_gfx_layer *L, int kind, int button, double x, double y
             if (inside && !over && L->api.hit_test(mv->g, lx, ly))
                 over = 1;
         }
-        return over || L->capture >= 0;
+        return equipment_hover(L) || over || L->capture >= 0;
     }
     if (kind == 2) {   /* release: to the movie that took the press */
         int m = L->capture;
@@ -2976,7 +2982,8 @@ static int build_item_draws(mu_gfx_layer *L, const rect_list *R, mu_gfx_item_dra
 }
 
 /* INVENTORY-FX: the equipment calls of 0x00b913a2 as item draws (wrapper arguments 6..16: 0, frame +0xcc == 1,
- * 0, 0, frame, 0, 0.0f, -1, 0, 1, 0). The cursor test 0x00ec4bf2 uses the slot rectangle in stage points. */
+ * 0, 0, frame, 0, 0.0f, -1, 0, 1, 0). ITEMS-UI-001: the wrapper truncates the 640x480 slot fields before
+ * 0x00ec4bf2. Window-space floating rectangles give different boundary hits at scaled resolutions. */
 static int build_equip_draws(const mu_gfx_layer *L, const rect_list *R, mu_gfx_item_draw *draws, int max)
 {
     int n = 0;
@@ -3006,10 +3013,70 @@ static int build_equip_draws(const mu_gfx_layer *L, const rect_list *R, mu_gfx_i
         d->frame_id = (int32_t)c->frame_id;
         d->frame_scale = L->inv_scale;
         d->alpha = 1.0f;
-        d->select = L->mouse_x >= d->rect[0] && L->mouse_x < d->rect[0] + d->rect[2] && L->mouse_y >= d->rect[1] &&
-                    L->mouse_y < d->rect[1] + d->rect[3];
+        d->select = mu_items_ui_cursor(d->slot, mu_items_ui_mouse(L->mouse_x, L->w, 640),
+                                      mu_items_ui_mouse(L->mouse_y, L->h, 480));
     }
     return n;
+}
+
+/* The slot wrapper requests the tooltip at 0x016c24d7 after the same cursor test.
+ * Equipment has no grid rollover callback, so the host must make this request. */
+static int equipment_hover(mu_gfx_layer *L)
+{
+    if (!L->mv[MU_GFX_INVENTORY].open || !L->have_equip || L->held >= 0 || inventory_busy(L)) {
+        if (L->equip_hover >= 0)
+            hide_tooltip(L);
+        return 0;
+    }
+    int slot = -1;
+    mu_gfx_item_draw draws[MU_EQUIP_SLOTS];
+    int stack[MU_GFX_MOVIES], nstack = stacking(L, stack), top = -1;
+    double x, y;
+    for (int i = 0; i < nstack; i++) {
+        movie *mv = &L->mv[stack[i]];
+        if (local(L, mv, L->mouse_x, L->mouse_y, &x, &y) && L->api.hit_test(mv->g, x, y)) {
+            top = stack[i];
+            break;
+        }
+    }
+    rect_list rects;
+    int n = 0, hit = -1;
+    if (top == MU_GFX_INVENTORY) {
+        item_rects(L, &rects);
+        n = build_equip_draws(L, &rects, draws, MU_EQUIP_SLOTS);
+        for (int i = 0; i < n; i++)
+            if (draws[i].select) { slot = -1 - draws[i].item; hit = i; break; }
+    }
+    if (slot == L->equip_hover)
+        return slot >= 0;
+    if (L->equip_hover >= 0)
+        hide_tooltip(L);
+    if (hit < 0 || !L->mv[MU_GFX_TOOLTIP].g)
+        return 0;
+    const mu_gfx_item_draw *d = &draws[hit];
+    char html[8192], quoted[16384];
+    int failed = L->cfg.tooltip_ex ? L->cfg.tooltip_ex(L->cfg.tooltip_user, d->code, d->level,
+                                                     MU_GFX_TIP_PLAIN, html, sizeof html) :
+                 !L->cfg.tooltip || L->cfg.tooltip(L->cfg.tooltip_user, d->code, d->level, html, sizeof html);
+    if (failed) {
+        item fallback = {0};
+        fallback.grid.code = d->code;
+        fallback.grid.width = fallback.grid.height = 1;
+        fallback.level = d->level;
+        snprintf(fallback.name, sizeof fallback.name, "Item %d", d->code);
+        builtin_tooltip(&fallback, html, sizeof html);
+    }
+    json_quote(quoted, sizeof quoted, html);
+    /* InfoPopup takes window points; preserve the wrapper's independent truncations. */
+    int r[4];
+    for (int i = 0; i < 4; i++)
+        r[i] = mu_items_ui_trunc((float)mu_items_ui_trunc(d->slot[i]) /
+                                (i & 1 ? mu_gfx_rate_y(L->h) : mu_gfx_rate_x(L->w)));
+    L->mv[MU_GFX_TOOLTIP].open = 1;
+    invokef(L, MU_GFX_TOOLTIP, L->mv[MU_GFX_TOOLTIP].path, "SetInfoPopup", "[%d,%d,%d,%d,%s]",
+            r[0], r[1], r[2], r[3], quoted);
+    L->equip_hover = slot;
+    return 1;
 }
 
 #ifndef MU_GFX_NO_GL
@@ -3060,6 +3127,9 @@ void mu_gfx_layer_set_equipment(mu_gfx_layer *L, const mu_gfx_equip_item items[M
 {
     if (!L)
         return;
+    if (L->equip_hover >= 0 && (!items || class_byte != L->equip_class ||
+        memcmp(&L->equip[L->equip_hover], &items[L->equip_hover], sizeof *items)))
+        hide_tooltip(L);
     L->have_equip = items != NULL;
     L->equip_class = class_byte;
     for (int s = 0; s < MU_GFX_EQUIP_SLOTS; s++)
@@ -3119,6 +3189,7 @@ void mu_gfx_layer_composite(mu_gfx_layer *L, uint8_t *rgba, int32_t W, int32_t H
 {
     if (!L || !rgba)
         return;
+    equipment_hover(L);
     render_movies(L, 1);
     int order[MU_GFX_MOVIES], n = draw_order(L, order);
     rect_list R;
@@ -4197,6 +4268,7 @@ void mu_gfx_layer_draw_gl(mu_gfx_layer *L)
 #ifndef MU_GFX_NO_GL
     if (!L)
         return;
+    equipment_hover(L);
     render_movies(L, 0);
     perf_gl_begin(L);
     glPushAttrib(GL_ALL_ATTRIB_BITS);
