@@ -176,9 +176,16 @@ static void actors_frame(struct mu_world_rt *a, void *self, uint32_t now)
         mu_world_actors_frame(&a->actors, mu_frame_time_value());   /* effect node update per frame, dt [0x01cf103c] */
 }
 
-static void npc_item_draw(mu_world_rt *a, const mu_world_actor *npc, int item, const mu_render_backend *backend)
+static void npc_item_draw(mu_world_rt *a, const mu_world_actor *npc, int item, float alpha,
+                           const mu_render_backend *backend)
 {
     const mu_character_item *part = &npc->player->items[item];
+    if (mu_actor_npc_recipe(npc->server_class, NULL)) {
+        /* RenderCharacter's descending part loop, level/option/ext zero.
+         * NPC models are ordinary textured geometry, not Item.bmd entries. */
+        mu_world_actor_npc_part_draw(npc, item, alpha, backend, NULL);
+        return;
+    }
     mu_renderchar_env env;
     mu_renderchar_default_env(&env);
     env.lang = a->lang;
@@ -234,9 +241,9 @@ static void actors_draw_soft(struct mu_world_rt *a, void *self, mu_world_draw *d
                 raster->texture_count = part->textures.count;
                 raster->texture_filter = part->textures.filter;
                 raster->texture_wrap = part->textures.wrap;
-                if (a->has_particles)
+                if (a->has_particles && !mu_actor_npc_recipe(actor->server_class, NULL))
                     mu_world_particles_character_shadow(&a->particles, &part->model, &part->bmd, &backend);
-                npc_item_draw(a, actor, k, &backend);
+                npc_item_draw(a, actor, k, alpha, &backend);
             }
             continue;
         }
@@ -341,9 +348,9 @@ static void actors_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *d)
                     continue;
                 mu_render_backend part_backend;
                 mu_gl_backend_bind(&p->actor_part_gl[i][k], &part_backend);
-                if (a->has_particles)
+                if (a->has_particles && !mu_actor_npc_recipe(actor->server_class, NULL))
                     mu_world_particles_character_shadow(&a->particles, &part->model, &part->bmd, &part_backend);
-                npc_item_draw(a, actor, k, &part_backend);
+                npc_item_draw(a, actor, k, alpha, &part_backend);
             }
             if (a->batch)
                 mu_gl_batch_session_begin(a->batch);

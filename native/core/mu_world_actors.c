@@ -168,6 +168,31 @@ static int load_player_npc(mu_world_actor *a, const char *root, const mu_monster
     return 0;
 }
 
+static int load_npc_parts(mu_world_actor *a, const char *root, const mu_model_params *params,
+                          int no_textures, char *error, size_t cap)
+{
+    mu_monster_class row;
+    if (!mu_actor_npc_recipe(a->server_class, &row)) return 0;
+    a->player = calloc(1, sizeof *a->player);
+    if (!a->player) { snprintf(error, cap, "out of memory"); return 1; }
+    if (mu_character_init(a->player, a->actor.spec.path, params, error, cap)) return 1;
+    a->player->params.scale = a->actor.spec.scale;
+    a->player->params.world_items = 1;
+    /* These NPC base files supply the pose, not Player actions or item data.
+     * Only the constructor-selected parts need per-instance geometry. */
+    for (int k = 1; k < MU_CHARACTER_PART_SLOTS; ++k) {
+        int32_t type = row.slots[k].type;
+        if (!type || type == 0xffff) continue;
+        const char *file = mu_actor_npc_part_file(type);
+        char path[4096];
+        if (!file) { snprintf(error, cap, "NPC %d: unknown part %#x", a->server_class, type); return 1; }
+        snprintf(path, sizeof path, "%s/%s", root, file);
+        if (mu_character_set_item(a->player, k, path, no_textures, error, cap)) return 1;
+        a->player_glow[k] = (mu_renderchar_glow){.type = type};
+    }
+    return 0;
+}
+
 static int load_actor(mu_world_actors *s, mu_world_actor *a, const char *root, int32_t server_class, int32_t x,
                       int32_t y, int32_t direction, int32_t wander, const char *label, int no_textures, char *error,
                       size_t error_size)
@@ -204,6 +229,8 @@ static int load_actor(mu_world_actors *s, mu_world_actor *a, const char *root, i
     if (player ? load_player_npc(a, root, &recipe, &params, no_textures, message, sizeof message)
                : mu_actor_load(&a->actor, &spec, &params, no_textures, message, sizeof message))
         goto fail;
+    if (!player && load_npc_parts(a, root, &params, no_textures, message, sizeof message))
+        goto fail;
     a->tile[0] = a->home[0] = x;
     a->tile[1] = a->home[1] = y;
     a->wander = wander;
@@ -212,7 +239,7 @@ static int load_actor(mu_world_actors *s, mu_world_actor *a, const char *root, i
     a->position[2] = ground(s->map, a->position[0], a->position[1]);
     a->angle[2] = (float)(direction & 7) * 45.0f;   /* demo: server direction byte times 45 degrees */
 
-    if (!a->player) {
+    if (!a->player || mu_actor_npc_recipe(a->server_class, NULL)) {
         mu_actor_set_action(&a->actor, MONSTER_IDLE);
         place_model(s, a);
     }
@@ -282,7 +309,7 @@ void mu_world_actors_free(mu_world_actors *s)
 
 static void actor_step(mu_world_actors *s, mu_world_actor *a)
 {
-    if (a->player) {
+    if (a->player && !mu_actor_npc_recipe(a->server_class, NULL)) {
         uint16_t action = mu_model_action(&a->player->player);
         mu_character_tick(a->player, mu_character_action_speed(a->player, action), &a->step_result);
         return;
@@ -338,7 +365,8 @@ void mu_world_actors_step_one(mu_world_actors *s, int32_t index, mu_rp_character
     memcpy(c->tile, a->tile, sizeof c->tile); memcpy(c->position, a->position, sizeof c->position);
     memcpy(c->angle, a->angle, sizeof c->angle);
     c->path.current = a->path.current; c->path.current_float = a->path.current_float;
-    c->action = a->player ? mu_model_action(&a->player->player) : mu_actor_action(&a->actor);
+    c->action = a->player && !mu_actor_npc_recipe(a->server_class, NULL) ?
+        mu_model_action(&a->player->player) : mu_actor_action(&a->actor);
 }
 
 void mu_world_actors_frame(mu_world_actors *s, float effect_dt)
@@ -347,6 +375,9 @@ void mu_world_actors_frame(mu_world_actors *s, float effect_dt)
         mu_world_actor *a = &s->list[i];
         if (a->player) {
             mu_character *p = a->player;
+            if (mu_actor_npc_recipe(a->server_class, NULL))
+                mu_character_set_state(p, mu_actor_action(&a->actor), mu_actor_frame(&a->actor),
+                    mu_model_prior_frame(&a->actor.model), mu_model_prior_action(&a->actor.model));
             memcpy(p->params.position, a->position, sizeof a->position);
             memcpy(p->params.angles, a->angle, sizeof a->angle);
             mu_obj_terrain_light(s->map->light, 6, 1, a->position[0], a->position[1], p->params.light);
@@ -376,4 +407,18 @@ void mu_world_actors_frame(mu_world_actors *s, float effect_dt)
     }
     if (s->has_effects && s->effects.instance_count)
         mu_effect_scene_update(&s->effects, effect_dt);
+}
+
+int mu_world_actor_npc_part_draw(const mu_world_actor *a, int slot, float alpha,
+                                 const mu_render_backend *backend, mu_draw_stats *stats)
+{
+    if (!a->player || !mu_actor_npc_recipe(a->server_class, NULL) ||
+        slot < 0 || slot >= MU_CHARACTER_PART_SLOTS || !a->player->items[slot].loaded)
+        return 1;
+    const mu_character_item *part = &a->player->items[slot];
+    mu_draw_options options;
+    mu_draw_default_options(&options);
+    options.textures = &part->textures;
+    options.alpha = alpha;
+    return mu_scene_draw_model(&part->model, &options, backend, stats);
 }

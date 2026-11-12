@@ -235,4 +235,9 @@ int mu_actor_player_recipe(int32_t server_class, mu_monster_class *out);
  * This does not admit transformed-player class/action/effect variants. */
 const char *mu_actor_player_body_file(int32_t body);
 
+/* RENDER-ACTORS-004: Female/Man/Girl NPCs use OpenNpc's secondary models
+ * on their own skeleton, with CreateMonster's selected part slots. */
+int mu_actor_npc_recipe(int32_t server_class, mu_monster_class *out);
+const char *mu_actor_npc_part_file(int32_t model);
+
 #endif
