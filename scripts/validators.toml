@@ -3579,3 +3579,17 @@ args = ["--cases", "3000", "--mutations", "--output", "{report}"]
 [validate_items_ui.expect]
 "families.*.cases" = {all_min = 1}
 "families.*.mismatches" = 0
+
+[validate_muun_secondary]
+test = "native/tests/test_muun_secondary.py::Original.test_original_secondary_callers"
+pins = ["text", "data"]
+families = ["setup", "action", "render_gate", "attachment"]
+cases = 873
+mutants = 16
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/muun"]
+args = ["--cases", "200", "--mutations", "--output", "{report}"]
+[validate_muun_secondary.expect]
+all_equal = true
+all_mutants_caught = true
