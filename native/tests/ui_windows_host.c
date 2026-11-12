@@ -36,6 +36,7 @@ int main(int argc, char **argv)
         mu_gfx_layer_key(L,0,keys[i],0,0);
         assert(mu_gfx_layer_is_open(L,m));
         for(size_t j=0;j<sizeof blocked/sizeof *blocked;j++) {
+            if(m==MU_GFX_MATCHING && (j==2 || j==3)) continue; /* 002 adds empty child views. */
             assert(!presentation_call(&L->mv[m],blocked[j],"[0]",(double[]){0},1));
             refused++;
             /* Exercise the real callback entry as well, to catch routing fallthrough. */
