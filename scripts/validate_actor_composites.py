@@ -175,7 +175,7 @@ def check_native(host, root, rows):
                 recipes.note(fam, False, {'class':cl, 'exit':run.returncode, 'error':run.stderr}); continue
             value = json.loads(run.stdout); expected = rows[cl]
             ok = value['base_model'] == expected['model'] and value['base_meshes'] == 0 and value['height'] > 1 and \
-                 value['initial'] == 0 and value['frame'] > 0 and value['frame'] == value['actor_frame'] and \
+                 abs(value['scale'] - .9) < 1e-7 and value['initial'] == 0 and value['frame'] > 0 and value['frame'] == value['actor_frame'] and \
                  value['alpha'] == [.375, .375] and value['refused'] == [1, 1]
             for slot, loaded, model, missing, vertices, file in value['slots']:
                 t = expected['slots'][slot][0]
@@ -214,7 +214,9 @@ def main():
             source = (ROOT/'native/core/mu_world_actors.c').read_text()
             for name, old, new in (
                 ('npc_load', '!player && load_npc_parts', 'player && load_npc_parts'),
+                ('npc_scale', 'a->player->params.scale = a->actor.spec.scale;', 'a->player->params.scale = 1.0f;'),
                 ('npc_slot', 'for (int k = 1; k < MU_CHARACTER_PART_SLOTS; ++k)', 'for (int k = 2; k < MU_CHARACTER_PART_SLOTS; ++k)'),
+                ('npc_tick', 'if (a->player && !mu_actor_npc_recipe(a->server_class, NULL))', 'if (a->player)'),
                 ('npc_frame', 'mu_actor_frame(&a->actor),', '0.0f,'),
                 ('npc_alpha', 'options.alpha = alpha;', 'options.alpha = 1.0f;'),
                 ('npc_draw', 'return mu_scene_draw_model(&part->model, &options, backend, stats);', 'return 0;')):

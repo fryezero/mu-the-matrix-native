@@ -7,12 +7,12 @@ Offline/static only, no subagents. Deadline 02:30 on 2026-11-12. No ready entry.
 
 Done: binding briefs and actor handoffs read. All 1,024 fixture class selectors,
 601 monster and 147 NPC opener selectors audited with the existing original
-constructor/opener machines. The first class census is committed separately in
+constructor/opener machines. The first class census is recorded in
 `docs/research/actor-construction-census.csv`. Construction coverage is bounded
 by world 0, rand 0 and the explicitly declining processors of NATIVE-ACTOR-001.
 There are 963 extracted constructors and 61 unresolved original contexts.
-Native body plans before this lane: 28 bounded correct, 931 incomplete or
-unverified special passes, 65 refused. These are not whole-client fidelity counts.
+Native body plans before this lane: 28 bounded correct, 916 incomplete or
+unverified special passes, 80 refused. These are not whole-client fidelity counts.
 
 Five shared NPC composites are being implemented: 230, 248, 250, 253, 255.
 OpenNpc requests 22 Female/Man/Girl part files. Constructors select three or
@@ -46,3 +46,28 @@ comparisons and lists 748 opener selectors, 16 secondary-model openers and 42
 secondary model loads. New bounded body plans move 28 to 33, incomplete or
 unverified special passes 931 to 926, refused remains 65. Final mutant,
 affected, render and identity checks have not run. This is WIP, not PR-ready.
+
+Census policy correction after the first checkpoint: 13 no-opener classes and
+eight unregistered NPC model indices also fail the current native loader.
+They move from incomplete/unverified to refused. The corrected after totals
+are 33 bounded body plans, 905 incomplete/unverified and 86 refused, out of
+1,024 fixture selectors. The first checkpoint's 65-refusal figure was incomplete.
+
+The final loader audit also retains the six existing EffectManager overrides
+750/751/752/753/758/873, which resolve before the core class table. The core
+machine leaves them unresolved, but the native loader already draws their
+separately extracted recipes. Final after totals are therefore 33 bounded body
+plans, 911 incomplete/unverified and 80 refused. The CSV names these overrides;
+this supersedes both earlier provisional refusal counts.
+
+Checkpoint, 22:17: corrected census regeneration is complete. All 963 core
+constructor records agree with the native table's model, opened selector,
+scale, class byte and nine slots. The 1,024-row class CSV now includes native
+EffectManager overrides; totals are 33 / 911 / 80 as above. The 748-row opener
+CSV separates extra bitmap and sound loads. Sixteen openers request 42 secondary
+models. Census execution took 9.6 s after 14 minutes of resource waits.
+
+Selection after a rebuilt world binary: 24 validators, all three symbol
+fallbacks retained; 161 affected suite items. Full runs remain pending.
+The native host now checks actual assembly scale and zero draw refusals; the
+new validator has ten compiled mutant controls registered, not yet run.

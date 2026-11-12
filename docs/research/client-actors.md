@@ -437,12 +437,16 @@ unresolved. The current class table likewise has 963 rows. The historical
 plan. "Incomplete/unverified special passes" includes generic body admissions
 whose complete RenderCharacter special behavior has not been proved. A plain
 construction path does not certify the absence of later special rendering.
-"Refused" includes the 61 unresolved constructors and four ACTORS-003 recipes.
+Six of those 61 contexts have separate EffectManager recipes in
+`effect_class_table.h`, which the native world loader resolves before the core
+class table. Their native overrides are named in the CSV. "Refused" includes
+the other 55 unresolved contexts, 13 no-opener classes, eight NPC indices without
+recovered file registrations and four ACTORS-003 recipes.
 These conservative categories prevent an opener inventory from becoming a
 whole-client visual-equivalence claim.
 
 `scripts/actor_census.py` also enumerates all 601 OpenMonsterModel selectors and
-147 OpenNpc selectors. Monster selectors complete with 16 synthetic actions.
+147 OpenNpc selectors in the [opener inventory](actor-opener-census.csv). Monster selectors complete with 16 synthetic actions.
 Eight NPC selectors stop on undeclared per-mesh state, as section 5 records.
 Secondary-model and sound/bitmap-loader counts describe calls to named services,
 not decoded resources or implemented consumers. All inputs use the shared
@@ -484,8 +488,8 @@ new composite parts do not inherit the Player armour shadow pass.
 
 The five recipes are the largest class group in the audited secondary-opener
 set. The demo placement source explicitly names Female/Man/Girl assembly as
-missing. All three skeleton families belong to the town NPC world group; none
-is added to canonical fixtures by this lane. The nine monster openers in
+missing. All three skeleton families use an authored world-0 town fixture here. No
+canonical placement is added by this lane. The nine monster openers in
 section 10 remain action/debris/effect leads. In the extracted class table only
 type 226 has classes, 595 and 635; neither appears in the shipped demo placement.
 Loading those extra models alone would not supply their missing behavior.
