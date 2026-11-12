@@ -13,6 +13,7 @@
 
 struct mu_world_muun {
     mu_muun_visual visual;
+    int32_t command_category;
 #ifndef MU_WORLD_NO_GL
     mu_gl_backend gl;
 #endif
@@ -52,6 +53,16 @@ int mu_world_muun_open(mu_world_rt *a, mu_world_muun **out)
     if (mu_muun_visual_open(&m->visual, a->root, lang, (int32_t)code, &owner, 1, error, sizeof error)) {
         fprintf(stderr, "%s\n", error); free(m); return 1;
     }
+    const char *command = getenv("MU_MUUN_COMMAND_FIXTURE");
+    if (command && *command) {
+        errno = 0;
+        long category = strtol(command, &end, 10);
+        if (errno || *end || category < 50 || category > 55) {
+            fprintf(stderr, "MU_MUUN_COMMAND_FIXTURE needs an authored category 50..55\n");
+            mu_world_muun_close(m); return 1;
+        }
+        m->command_category = (int32_t)category;
+    }
     m->visual.model.params.world = a->map->world;
     mu_effect_scene_set_world(&m->visual.scene, a->map);
     *out = m;
@@ -69,6 +80,11 @@ void mu_world_muun_tick(mu_world_rt *a, mu_world_muun *m)
 {
     if (!m) return;
     mu_mv_owner owner = owner_of(a);
+    /* Fixed authored 100-step clock; same-owner command only, with an explicit demo target. */
+    if (m->command_category && m->visual.steps % 100 == 0) {
+        const float target[3] = {owner.position[0] + 200.0f, owner.position[1], owner.position[2]};
+        mu_muun_visual_command(&m->visual, m->command_category, target);
+    }
     mu_muun_visual_step(&m->visual, &owner, 1);
 }
 
@@ -90,6 +106,16 @@ static void frame(mu_world_rt *a, mu_world_muun *m)
     mu_muun_visual_frame(v, &owner, 1, frustum, mu_frame_time_value());
 }
 
+/* Ordinary models use RenderBodyShadow(-1,-1,-1,-1,0). */
+static void shadow(mu_world_rt *a, mu_world_muun *m, const mu_render_backend *backend)
+{
+    if (!a->has_particles) return;
+    float alpha = mu_mv_shadow_alpha(a->map->world, 0, 1, 1.0f, m->visual.shadow_alpha);
+    if (alpha == 0.0f) return;
+    const float rgba[4] = {0, 0, 0, alpha};
+    mu_world_particles_shadow(&a->particles, &m->visual.model, &m->visual.bmd, rgba, backend);
+}
+
 void mu_world_muun_soft(mu_world_rt *a, mu_world_muun *m, mu_world_draw *draw)
 {
     if (!m) return;
@@ -100,11 +126,9 @@ void mu_world_muun_soft(mu_world_rt *a, mu_world_muun *m, mu_world_draw *draw)
     r->texture_filter = m->visual.textures.filter; r->texture_wrap = m->visual.textures.wrap;
     mu_render_backend backend;
     mu_raster_backend(r, &backend);
-    mu_draw_options options;
-    mu_draw_default_options(&options);
-    options.textures = &m->visual.textures;
     mu_draw_stats stats = {0};
-    mu_scene_draw_model(&m->visual.model, &options, &backend, &stats);
+    shadow(a, m, &backend);
+    mu_muun_visual_draw(&m->visual, a->map->time, &backend, &stats);
     r->textures = NULL; r->texture_count = 0; r->texture_filter = NULL; r->texture_wrap = NULL;
     float eye[3], at[3];
     world_rt_effect_camera(a, eye, at);
@@ -128,11 +152,9 @@ void mu_world_muun_gl(mu_world_rt *a, mu_world_muun *m, mu_world_draw *draw)
     if (!m->gl.textures) mu_gl_upload(&m->gl, &m->visual.textures, 0);
     mu_render_backend backend;
     mu_gl_backend_bind(&m->gl, &backend);
-    mu_draw_options options;
-    mu_draw_default_options(&options);
-    options.textures = &m->visual.textures;
     mu_draw_stats stats = {0};
-    mu_scene_draw_model(&m->visual.model, &options, &backend, &stats);
+    shadow(a, m, &backend);
+    mu_muun_visual_draw(&m->visual, a->map->time, &backend, &stats);
     float eye[3], at[3];
     world_rt_effect_camera(a, eye, at);
     const mu_client_view *v = &a->walk.frame.view;
@@ -150,9 +172,9 @@ void mu_world_muun_report(const mu_world_muun *m, FILE *out)
     const mu_muun_visual *v = &m->visual;
     fprintf(out, "{\"muun_fixture\":%d,\"model\":%d,\"live\":%d,\"visible\":%d,\"state\":%d,"
         "\"position\":[%.3f,%.3f,%.3f],\"action\":%u,\"frame\":%.3f,\"textures_missing\":%d,"
-        "\"attachments\":%d,\"invalid\":%ld,\"refused_bones\":%ld,\"updates\":%ld,\"vertices\":%u}\n",
+        "\"mesh_passes\":%d,\"mesh_draws\":%ld,\"refused_meshes\":%ld,\"commands\":%ld,\"refused_commands\":%ld,\"attachments\":%d,\"invalid\":%ld,\"refused_bones\":%ld,\"updates\":%ld,\"vertices\":%u}\n",
         v->info.code, v->state.model, v->live, v->visible, v->state.state,
         (double)v->state.position[0], (double)v->state.position[1], (double)v->state.position[2],
-        v->state.action, (double)v->state.frame, v->textures.missing, v->effects.count, v->effects.invalid,
+        v->state.action, (double)v->state.frame, v->textures.missing, v->mesh_count, v->mesh_draws, v->refused_meshes, v->command_draws, v->refused_commands, v->effects.count, v->effects.invalid,
         v->refused_bones, v->effects.updates, v->scene.vertices_drawn);
 }
