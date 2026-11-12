@@ -18,11 +18,17 @@ Native root build passed, 11.36 s; rebuilt world passed, 5.64 s. Four
 private native tests passed in 9.33 s, including both buffs drawing, expiry,
 repeat identity, unchanged HP/requests and existing bitmap/combat consumers.
 Portable affected suites passed: 162 work items, 1,742 tests, 1,453 passed,
-289 skipped, zero failures/errors, 518.00 s outer wall. The 56 private
-affected validators are running at `4f616859`; compiled inputs are unchanged
-since that commit. Native private selection is 163 items, so 8d reduced applies.
+289 skipped, zero failures/errors, 518.00 s outer wall. All 56 private affected validators passed, zero fail/error/skip, 1,029.71 s
+outer wall. Run launched at `4f616859`; compiled sources match `a3762b6a`.
+The added bitmap-site checker was corrected before its row executed and passed. Native private selection is 163 items, so 8d reduced applies.
 
-Left: debug comparisons, compiled mutants, native fixture pixels, affected
-checks, final sweep, research/status docs, merge current main and publish PR.
-Next: inspect `scratch/render-effects-028` under the shared native tools for
-baseline sweep and build outputs, check resource guard, run the small comparator.
+Changed bitmap checker: 424 cases and 23/23 compiled mutants passed, 34.39 s.
+Installed-data GL proofs passed, 10.03 s: skill 27 has 95 requests / zero
+refused, skill 28 has 209 / zero refused; all ten after/repeat PNGs match,
+and the expired frames match baseline. The after identity sweep is running.
+
+Left: after identity result, audit, final status docs and PR publication.
+Main is still `d4af71dd` on the last fetch.
+Next: inspect `scratch/render-effects-028/sweep-after.log` under the shared
+native tools. World was rebuilt immediately before the sweep. Finalize the
+handoff from the reports, update status lines, audit, then publish the PR.
