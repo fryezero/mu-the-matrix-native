@@ -17,7 +17,37 @@ int32_t mu_actor_player_body(int32_t server_class)
     case 14: case 55: case 56: return 0x422;
     case 15: case 236: return 0x423;
     case 16: return 0x424;
+    /* Kind-1, base-class-0 actors: direct whole-body branches at
+     * 0x01368496..0x013689d4. Companion/effect recipes stay refused. */
+    case 372: return 0x425;
+    case 373: return 0x429;
+    case 503: return 0x541;
+    case 548: return 0x552;
+    case 616: case 646: return 0x5bb;
+    case 706: return 0x5bf;
+    case 806: return 0x5c4;
+    case 807: return 0x5c5;
     default: return 0;
+    }
+}
+
+const char *mu_actor_player_body_file(int32_t body)
+{
+    /* AccessModel calls in the startup loader, 0x01832c28..0x01833310.
+     * These models share Player bones; they are not Item.bmd records. */
+    switch (body) {
+    case 0x422: return "Data/Skill/Skeleton01.bmd";
+    case 0x423: return "Data/Skill/Skeleton02.bmd";
+    case 0x424: return "Data/Skill/Skeleton03.bmd";
+    case 0x425: return "Data/Skill/Skeleton03.bmd";
+    case 0x429: return "Data/Skill/Jack.bmd";
+    case 0x541: return "Data/Item/panda.bmd";
+    case 0x552: return "Data/Item/trans_skeleton.bmd";
+    case 0x5bb: return "Data/Item/panda_brown.bmd";
+    case 0x5bf: return "Data/Item/Trans_Lilith.bmd";
+    case 0x5c4: return "Data/Item/baseball_player.bmd";
+    case 0x5c5: return "Data/Item/cheerleader.bmd";
+    default: return NULL;
     }
 }
 

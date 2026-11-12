@@ -69,7 +69,8 @@ class Host(C.Structure):
                 ('object_transform', C.CFUNCTYPE(None, C.c_void_p, C.c_int32, C.POINTER(C.c_float))),
                 ('frame', C.c_uint32), ('frame_known', C.c_int32),
                 ('owner_item_transform', C.CFUNCTYPE(None, C.c_void_p, C.c_int32, C.POINTER(C.c_float), C.c_int32,
-                                                     C.POINTER(C.c_float)))]
+                                                     C.POINTER(C.c_float))),
+                ('item_before_transform', C.CFUNCTYPE(None, C.c_void_p, C.POINTER(C.c_float)))]
 
 
 def u(x):

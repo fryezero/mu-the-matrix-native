@@ -3392,6 +3392,39 @@ all_equal = true
 all_mutants_caught = true
 "mutants.*.stopped" = 0
 
+
+[validate_worlds_inner]
+test = "reconstructed/objects/test_worlds_inner.py::ClientComparison.test_original_instructions"
+pins = ["text", "data"]
+families = ["kanturu", "kanturu_focus", "blood", "blood_focus"]
+cases = 4000
+mutants = 33
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+note = "RENDER-WORLDS-INNER-001: complete Kanturu hook 0xe75089 and Blood Castle worlds 11..17/52 switch 0x17fc023, ordered draws/emitters, bone inputs, field writes, RNG and fixed independent clock; 33 compiled mutants"
+[validate_worlds_inner.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+
+[validate_render_effects27]
+test = "native/tests/test_render_effects27.py::ClientComparison.test_original_instructions"
+pins = ["text", "data"]
+families = ["caller", "joint_create", "joint_move", "joint_render", "effect_create", "effect_move", "lifecycle"]
+cases = 424
+mutants = 23
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/combat", "reconstructed/joints"]
+args = ["--cases", "60", "--mutations", "--output", "{report}"]
+note = "RENDER-EFFECTS-027: Death Stab skill 43 caller stream, 0x472/2 and Flare/12 create/move/GL, 0x10e6/1 emitter and continuous owner-death/expiry lifecycles; 23 compiled mutants"
+[validate_render_effects27.expect]
+all_equal = true
+all_mutants_caught = true
+"mutants.*.stopped" = 0
+
 [validate_item_groups]
 test = "reconstructed/renderchar/test_item_groups.py::ItemGroups.test_original_instructions"
 pins = ["text", "data", "flag", "feature"]
@@ -3406,18 +3439,36 @@ args = ["--mutations", "--output", "{report}"]
 "families.*.mismatches" = 0
 "mutants.*" = {truthy = true}
 
+
+[validate_render_effects25]
+test = "native/tests/test_render_effects25.py::ClientComparison.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["particle_create", "particle_move", "particle_render", "missing_name", "native", "census"]
+cases = 202
+mutants = 24
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/particles", "reconstructed/renderchar", "native"]
+build_targets = { native = ["build/libmunative.a", "build/libmusession_world.a"] }
+args = ["--cases", "20", "--mutations", "--output", "{report}"]
+note = "RENDER-EFFECTS-025: complete Hammer14 streams with explicit pre-bone records; clouds/28 and two bow particle pairs; native adapter/pool/raster and admitted-pair census; 24 compiled mutants"
+[validate_render_effects25.expect]
+all_equal = true
+all_mutants_caught = true
+"mutants.*.stopped" = 0
+
 [validate_actor_recipes]
 test = "native/tests/test_actor_recipes.py::ClientComparison.test_original_instructions"
 pins = ["text", "data", "flag", "feature"]
-families = ["recipes", "render", "equipment", "body_draw", "loader", "native"]
-cases = 361
-mutants = 12
+families = ["recipes", "render", "kind_gates", "equipment", "body_draw", "kind_default", "loader", "native", "refused"]
+cases = 1300
+mutants = 21
 cases_at = "families.*.cases"
 mutants_at = "mutants"
 build = ["reconstructed/actors", "reconstructed/renderchar", "native"]
 build_targets = { native = ["build/libmunative.a", "build/libmusession_world.a"] }
-args = ["--cases", "240", "--mutations", "--output", "{report}"]
-note = "RENDER-ACTORS-001: 32-class census, six skeleton body hooks, eleven equipment recipes, startup loader and actual native actor loads; 12 compiled mutants"
+args = ["--cases", "840", "--mutations", "--output", "{report}"]
+note = "RENDER-ACTORS-002: 32-class census, nine later subtype admissions, kind/world/action controls, startup files, native loads and six native refusals; 21 compiled mutants"
 [validate_actor_recipes.expect]
 all_equal = true
 all_mutants_caught = true
@@ -3458,6 +3509,34 @@ note = "RENDER-ITEMS-002Y: 27 further clock/product bodies, forcing records and 
 "families.clocks.cases" = 648
 "families.frame.cases" = 1728
 "mutants.*" = {truthy = true}
+
+[validate_muun_visual]
+test = "native/tests/test_muun_visual.py::ClientComparison.test_original_instructions"
+pins = ["text", "data"]
+families = ["setup", "select", "spring", "follow", "logic_gate", "render_gate"]
+cases = 912
+mutants = 18
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/muun", "reconstructed/movement", "reconstructed/record-math"]
+args = ["--cases", "200", "--mutations", "--output", "{report}"]
+[validate_muun_visual.expect]
+all_equal = true
+all_mutants_caught = true
+
+[validate_charsel_items]
+test = "native/tests/test_charsel_items.py::InstructionComparison.test_original_selection_item_callers"
+pins = ["text", "data", "flag", "feature"]
+families = ["part_args", "link_args", "fallback", "selection_sink", "mesh_passes"]
+cases = 8817
+mutants = 7
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar"]
+args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+[validate_charsel_items.expect]
+"families.*.cases" = {all_min = 1}
+"families.*.mismatches" = 0
 
 [validate_audio_ui]
 test = "native/tests/test_audio_ui.py::UIAudio.test_original_ui_audio"

@@ -9,7 +9,16 @@
 #include "../../viewer/gl_backend.h"
 #endif
 #include "../world_rt_internal.h"
+#include "../world_muun.h"
 #include "../../session/mu_session.h"
+
+typedef struct helpers_part {
+    mu_world_muun *muun;
+#ifndef MU_WORLD_NO_GL
+    mu_gl_backend helper_gl[MU_WH_MODELS];
+    mu_world_rt *rt;
+#endif
+} helpers_part;
 
 /* NATIVE-HELPERS-001: SetPlayerStop / SetPlayerWalk ask the rider action 0x0106c382 while the owner rides. */
 static int hero_ride(void *context, mu_walk *walk, int32_t how)
@@ -29,6 +38,7 @@ static int helpers_open(struct mu_world_rt *a, void *self)
 {
     (void)self;
     char error[1024];
+    if (mu_world_muun_open(a, &((helpers_part *)self)->muun)) return 1;
     if (!a->no_helpers && (a->helper_arg || a->players)) {   /* NATIVE-HELPERS-001 */
         int32_t state = 0, item = -1;
         if (a->helper_arg) {
@@ -62,6 +72,7 @@ static int helpers_open(struct mu_world_rt *a, void *self)
 
 static void helpers_close(struct mu_world_rt *a, void *self)
 {
+    mu_world_muun_close(((helpers_part *)self)->muun);
     (void)self;
     if (a->helpers) {   /* NATIVE-HELPERS-001 */
         mu_world_helpers_close(a->helpers);
@@ -74,6 +85,7 @@ static void helpers_close(struct mu_world_rt *a, void *self)
 static void helpers_tick(struct mu_world_rt *a, void *self)
 {
     (void)self;
+    mu_world_muun_tick(a, ((helpers_part *)self)->muun);
     if (!a->helpers) return;
     if (a->players && a->players->session) {
         mu_session *session = a->players->session;
@@ -90,6 +102,7 @@ static void helpers_tick(struct mu_world_rt *a, void *self)
 static void helpers_draw_soft(struct mu_world_rt *a, void *self, mu_world_draw *d)
 {
     (void)self;
+    mu_world_muun_soft(a, ((helpers_part *)self)->muun, d);
     if (a->helpers)   /* NATIVE-HELPERS-001 */
         mu_world_helpers_draw_raster(a->helpers, d->raster, a->legacy_box ? NULL : &a->frustum,
                                      a->has_character ? &a->ch : NULL);
@@ -98,6 +111,7 @@ static void helpers_draw_soft(struct mu_world_rt *a, void *self, mu_world_draw *
 static void helpers_report_frame(const struct mu_world_rt *a, const void *self, int32_t frame)
 {
     (void)self;
+    mu_world_muun_report(((const helpers_part *)self)->muun, stdout);
     if (a->helpers)
         mu_world_helpers_report_frame(a->helpers, stdout, frame);
 }
@@ -110,15 +124,11 @@ static void helpers_report_summary(const struct mu_world_rt *a, const void *self
 }
 
 #ifndef MU_WORLD_NO_GL
-typedef struct helpers_part {
-    mu_gl_backend helper_gl[MU_WH_MODELS];
-    mu_world_rt *rt;               /* the runtime of the running draw (the helper callbacks' context) */
-} helpers_part;
-
 static void helpers_gl_teardown(struct mu_world_rt *a, void *self)
 {
     (void)a;
     helpers_part *p = self;
+    mu_world_muun_gl_teardown(p->muun);
     for (int32_t i = 0; i < MU_WH_MODELS; ++i)
         if (p->helper_gl[i].textures)
             mu_gl_release(&p->helper_gl[i]);
@@ -167,6 +177,7 @@ static void helpers_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *d)
 {
     (void)d;
     helpers_part *p = self;
+    mu_world_muun_gl(a, p->muun, d);
     if (a->helpers) {
         if (a->batch && !a->players)
             mu_gl_batch_session_end(a->batch);
@@ -185,8 +196,8 @@ static void helpers_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *d)
 
 const mu_world_part_ops mu_part_helpers = {
     .name = "helpers",
-#ifndef MU_WORLD_NO_GL
     .state_size = sizeof(helpers_part),
+#ifndef MU_WORLD_NO_GL
     .draw_gl = helpers_draw_gl,
     .gl_teardown = helpers_gl_teardown,
 #endif

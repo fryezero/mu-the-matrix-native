@@ -8,8 +8,15 @@
 #include <stdint.h>
 #include "../core/mu_charsel.h"
 #include "../core/mu_raster.h"
+#include "../core/mu_renderchar.h"
 
 typedef struct mu_charsel_rt mu_charsel_rt;
+/* Cumulative selection-only draws for a loaded authored item record. */
+typedef struct mu_charsel_item_draw {
+    mu_renderchar_glow glow;
+    long passes, special, effects, refused;
+} mu_charsel_item_draw;
+const mu_charsel_item_draw *mu_charsel_rt_item(const mu_charsel_rt *rt, int entry, int slot);
 typedef struct mu_charsel_rt_options {
     const char *root, *list_path, *objects_dir;
     const mu_charsel_list *list; /* overrides list_path; NULL uses file or built-in list */

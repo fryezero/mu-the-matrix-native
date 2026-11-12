@@ -125,6 +125,9 @@ CORE_SRC += core/mu_objects_anim.c
 RECON_SRC += $(RECON)/objects/action_registry.c
 # RENDER-WORLDS-FOG: the render scene's fog tests (world 0x1e's box)
 RECON_SRC += $(RECON)/environment/env_fog.c
+# MUUN-VISUAL-001: fixture-only base slot and model/attachment owner
+CORE_SRC += core/mu_muun_visual.c
+RECON_SRC += $(RECON)/muun/visual.c
 CORE_OBJ := $(patsubst %.c,$(BUILD)/%.o,$(CORE_SRC))
 RECON_OBJ := $(patsubst $(RECON)/%.c,$(BUILD)/recon/%.o,$(RECON_SRC))
 MODULUS_OBJ := $(BUILD)/modulus.o
@@ -233,6 +236,7 @@ WORLD_RT_SRC := world/world_rt.c world/input.c world/parts/terrain.c world/parts
                 world/parts/particles.c world/parts/combat.c world/parts/progress.c world/parts/items.c \
                 world/parts/characters.c world/parts/names.c world/parts/players.c world/parts/social.c world/parts/helpers.c \
                 world/parts/haze.c world/parts/map.c world/parts/gfx.c world/parts/skills.c world/parts/marker.c
+WORLD_RT_SRC += world/world_muun.c
 WORLD_RT_HDR := world/mu_world_rt.h world/world_rt_internal.h world/world_part.h world/parts.def viewer/gl_batch.h
 WORLD_RT_SRC += world/input_keys.c
 WORLD_RT_SRC += world/world_cloak.c
@@ -798,3 +802,13 @@ $(BUILD)/worlds-s3-host: tests/worlds_s3_host.c $(LIB) $(HEADERS)
 $(BUILD)/worlds-s2-host: tests/worlds_s2_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-s2-host.o
 	$(CXX) $(BUILD)/worlds-s2-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+
+# MUUN-VISUAL-001 production fixture lifetime/pose host.
+$(BUILD)/muun-visual-host: tests/muun_visual_host.c $(LIB) $(HEADERS)
+	$(CC) $(CFLAGS) -c $< -o $(BUILD)/muun-visual-host.o
+	$(CXX) $(BUILD)/muun-visual-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+
+# RENDER-WORLDS-INNER-001: classless inline calls in the production first pass.
+$(BUILD)/worlds-inner-host: tests/worlds_inner_host.c $(LIB) $(HEADERS)
+	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-inner-host.o
+	$(CXX) $(BUILD)/worlds-inner-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@

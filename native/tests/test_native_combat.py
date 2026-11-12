@@ -315,11 +315,11 @@ class InstalledTests(unittest.TestCase):
         summary = next(json.loads(l) for l in result.stdout.splitlines() if l.startswith('{"combat": true'))
         # bitmaps: + Spark01, the swirl's spark joints (NATIVE-JOINT-001), + JointLaser01, the arrows' 0x7fd6 trails
         # (RENDER-EFFECTS-009, #283), + eight bow trail bitmaps (RENDER-EFFECTS-012), + Flare (RENDER-EFFECTS-014):
-        # 25, + the eleven decal bitmaps of 0x70a, 0x70c and 0x45e (RENDER-EFFECTS-015): all 36. Models: the 8
+        # 25, + eleven decal bitmaps (RENDER-EFFECTS-015), + Death Stab's NSkill (RENDER-EFFECTS-027): 37. Models: the 8
         # skill models + the weapon, + Ice01/Ice02/Magic02 (RENDER-EFFECTS-002, #221) + Rageful Blow's 9 (RENDER-EFFECTS-004,
         # #247); all 20 Data/Skill files exist in the installed client (INTEGRATION-GREEN-002); + the ground skills'
         # min_elf_skill_ring01..08 (Data/Effect, RENDER-EFFECTS-015): 29
-        self.assertEqual((summary['bitmaps_loaded'], summary['models_loaded']), (36, 29))
+        self.assertEqual((summary['bitmaps_loaded'], summary['models_loaded']), (37, 29))
         self.assertEqual(summary['pick_hits'], 1)
         self.assertGreaterEqual(summary['kills'], 1)
 

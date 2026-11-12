@@ -30,7 +30,7 @@ class ItemPreDraw(unittest.TestCase):
     draws = base.RenderCharLibrary.draws
 
     def run_item(self, t, names, count, values=(5,), visible=1, time=0.0, host=True, position=(0.0, 0.0, 0.0),
-                 frame=None):
+                 frame=None, before=None, named_missing=-1):
         """Draws, requests and refusals of one item with identity item bones (bone k translated by
         (k, 2k, 3k)), model scale 1 and origin (100, 200, 300)."""
         effects, drawn = [], []
@@ -42,7 +42,7 @@ class ItemPreDraw(unittest.TestCase):
 
         @predraw.NAMED
         def named(_, name):
-            return names.index(name.decode()) if name.decode() in names else -1
+            return names.index(name.decode()) if name.decode() in names else named_missing
 
         @predraw.ITEM_TRANSFORM
         def item_transform(_, bone, local, translate, out):
@@ -70,6 +70,12 @@ class ItemPreDraw(unittest.TestCase):
         hosted = ownerfx.Host(0, -1, ownerfx.TRANSFORM(), rand, emit, None, count, (ctypes.c_float * 3)(),
                               named, item_transform if host else predraw.ITEM_TRANSFORM(), refuse, visible,
                               (ctypes.c_float * 3)(*position), object_transform, frame or 0, frame is not None)
+        @ownerfx.BEFORE_TRANSFORM
+        def before_transform(_, out):
+            for k in range(3):
+                out[k] = before[k]
+        if before is not None:
+            hosted.item_before_transform = before_transform
         context = self.v.CContext(0, -1, self.v.RANDOM_FN(lambda _: rand(None)), None)
         it, model = self.item(type=t, time=time), self.v.CModel()
         out, n = (self.v.CDraw * 32)(), ctypes.c_int32()
@@ -101,6 +107,24 @@ class ItemPreDraw(unittest.TestCase):
         self.assertEqual(effects, [('invalid-transform', 'item', 1),
                                    ('invalid-transform', 'owner-item', -1),
                                    ('invalid-transform', 'object', 1)])
+
+    def test_missing_name_sprite_requires_explicit_pre_bone_record(self):
+        # Preserve the trailing space. The original search returns -1, not bone zero.
+        names = ['c001', 'c002', 'c003', 'head001', 'head002', 'mid01', 'mid02', 'up01 ', 'up02', 'under01']
+        old = self.run_item(0x0f29, names, 64, frame=3)[2]
+        new = self.run_item(0x0f29, names, 64, frame=3, before=(11.0, 22.0, 33.0))[2]
+        refused = [i for i, fx in enumerate(old) if fx[0] == 'refused']
+        self.assertTrue(refused)
+        for i in refused:
+            self.assertEqual(new[i][0], 2)
+            self.assertEqual(new[i][2], (11.0, 22.0, 33.0))
+        self.assertFalse(any(fx[0] == 'refused' for fx in new))
+
+    def test_pre_bone_record_does_not_admit_other_negative_indices(self):
+        old = self.run_item(0x0f29, [], 64, frame=3, named_missing=-2)[2]
+        new = self.run_item(0x0f29, [], 64, frame=3, named_missing=-2, before=(11.0, 22.0, 33.0))[2]
+        self.assertEqual(new, old)
+        self.assertTrue(any(fx[0] == 'refused' for fx in new))
 
     def test_admissions_and_existing_domain(self):
         self.assertEqual(len(fxgen.PRE_FX_TYPES), 65)   # RENDER-ITEMS-002X: fourteen further programs
