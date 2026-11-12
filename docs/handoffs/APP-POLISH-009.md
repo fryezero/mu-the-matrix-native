@@ -42,3 +42,25 @@ memory >=25%; no result claimed. Research and the validator manifest row are now
 written. Compiled mutants, final affected/private checks, identity sweep, captures
 and PR-ready documentation remain. Resume with the pending strengthened-test log
 under this lane's scratch, then the selective checks. No ready-prs entry yet.
+
+## WIP checkpoint, 2026-11-11 22:20 Chicago
+
+Final production source is `6c62c838`. Latest fetched main remains `710ac816`.
+Final root build: 1.333 s; explicit client/world rebuild: 12.862 s; repository
+audit: 2,193 staged files, 0 rejected, 25.590 s. Rebuilt final mu-world SHA-256
+`e90d3754d2e90cd6b9d1d6484861f6c53d30c08f5ebb11df2a185415a072a4d8`, distinct
+from the baseline above. HUD width/bottom arithmetic is now covered by the
+compiled-negative-control definitions as well as panel fitting, ten mutants total.
+
+Strengthened layout run: pointer close delivery for all sixteen panels and
+open-window resizing pass. One 1024x699 subprocess refused startup without stderr;
+its isolated rerun, at both backing scales with map checks, passed in 5.542 s.
+The first strengthened matrix had all other sizes pass. A full final private
+run is still required; no completion claim from the initial refusal.
+
+Post-build selection: 11 validators, 133 portable work items, including 129 native
+modules. Thus private checks use **8d reduced**. The pending private-selection log,
+then affected no-mutant validators, ten changed-target mutants once, affected
+portable tests, focused private fixture/UI checks, identity sweep and endpoint
+captures are next. No PR or ready-prs line yet. All logs remain in the lane's
+scratch directory named above. Runtime code and docs are checkpointed remotely.
