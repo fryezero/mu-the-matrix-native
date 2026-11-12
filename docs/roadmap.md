@@ -1,6 +1,6 @@
 # Roadmap and work queue
 
-RENDER-EFFECTS-030 verified subset: complete DK/Elf selection audit, corrected Triple Shot caller (three -> four ordinary arrows), Ice Arrow/Penetration and individually selected 416/424 aliases. Swell Life's 38 visuals and Blood Storm's emitter remain refused. 1,914 focused checks, 18/18 new mutants and 107 distinct affected validators pass; default changes are only the merged INNER-002 delta. [Checks, coverage and limits](handoffs/RENDER-EFFECTS-030.md).
+RENDER-EFFECTS-030 verified subset: complete DK/Elf selection audit, corrected Triple Shot caller (three -> four ordinary arrows), Ice Arrow/Penetration and individually selected 416/424 aliases. Swell Life's 38 visuals and Blood Storm's emitter remain refused. 1,914 focused checks, 18/18 new mutants and 108 distinct affected validators pass; default changes are only the merged INNER-002 delta. [Checks, coverage and limits](handoffs/RENDER-EFFECTS-030.md).
 
 UI-WINDOWS-002 PR-ready: eight inert presentation adapters open Macro/Sub, HuntRecord, expanded storage, matching children/current guild matching and the original guide frame. Native journeys, 1,650 portable tests, 15 private UI/audio checks and 12 validators pass; the pre-integration lane has 230 default identities. Original Help route remains unproved. [Checks and limits](handoffs/UI-WINDOWS-002.md).
 

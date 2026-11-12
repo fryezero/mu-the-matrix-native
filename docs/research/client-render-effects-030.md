@@ -311,7 +311,7 @@ its server key. The native fixture explicitly asserts that the slot and server
 key differ and that the saved word equals the slot. No target-side visual or
 state is added by this metadata correction.
 
-Final native evidence and all 107 affected validator row timings are in the
+Final native evidence and all 108 affected validator row timings are in the
 [handoff](../handoffs/RENDER-EFFECTS-030.md). Seven merged scenes preserve all
 42 earlier after images and repeat byte-identically; Penetration and alias 416
 have a visually inspected frame-6 projectile with a farther authored target.

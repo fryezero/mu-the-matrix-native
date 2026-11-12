@@ -146,6 +146,9 @@ No owner client, installed application, packet/power or protection work occurs.
 | Late UI root build, `552f6020` | pass | 6.09 s |
 | Late UI private validators, `552f6020` | 12/12, zero failures/errors/skips; no mutants | 103.11 s |
 | Late UI private windows/audio, `552f6020` | 15/15, zero skips/failures | 66.29 s |
+| Actor-structure root build, `caf81580` | pass | 12.93 s |
+| Actor-structure affected private validators, `caf81580` | 25/25, zero failures/errors/skips; no mutants | 226.87 s |
+| Actor/skill reduced private modules, `caf81580` | 10/10, zero skips/failures | 56.82 s |
 | Late UI portable delta since `75d5cb5a`, `552f6020` | 138 items; 1,454 tests, 1,183 pass / 271 expected skips, zero failures/errors | 398.41 s (333.6 s runner) |
 
 8d reduced: initial native selection was 152 items, above the 40-item cap.
@@ -172,40 +175,41 @@ Canonical private env supplies MU_RECOVERY_INTEGRATION, MU_GAME_ROOT,
 MU_NATIVE_DATA_DIR, MU_GFX_LIB, MU_LANG_DIR, MU_SECTION3 and evidence/snapshot
 paths. Use --private --no-mutants --cache --jobs 2. No further mutants required.
 The table gives each row's latest completed registered-check count and wall;
-current = `92ef41f3`, extra = `a06eaf2b`, windows2 = `552f6020`. These counts mix original comparisons
+current = `92ef41f3`, extra = `a06eaf2b`, windows2 = `552f6020`, actors4 = `caf81580`. These counts mix original comparisons
 and native/negative controls according to each row; they are not a single
 original-instruction case total.
 
 | Validator | Cases | Wall s | Selection |
 |---|---:|---:|---|
-| `validate_actor_recipes` | 1669 | 134.4 | current |
-| `validate_app_polish1` | 752 | 24.8 | windows2 |
-| `validate_app_polish2` | 1028 | 4.9 | windows2 |
-| `validate_app_polish4` | 10485 | 42.4 | windows2 |
+| `validate_actor_composites` | 1427 | 8.8 | actors4 |
+| `validate_actor_recipes` | 1669 | 119.5 | actors4 |
+| `validate_app_polish1` | 752 | 22.4 | actors4 |
+| `validate_app_polish2` | 1028 | 4.0 | actors4 |
+| `validate_app_polish4` | 10485 | 42.5 | actors4 |
 | `validate_app_polish7` | 5120 | 2.6 | windows2 |
-| `validate_audio_callers` | 5528 | 6.5 | windows2 |
+| `validate_audio_callers` | 5528 | 5.8 | actors4 |
 | `validate_audio_charsel` | 5968 | 5.6 | current |
-| `validate_audio_combat` | 19548 | 33.6 | current |
-| `validate_audio_domains` | 2544 | 28.6 | windows2 |
-| `validate_audio_items` | 3000 | 4.1 | windows2 |
-| `validate_audio_objects` | 4000 | 5.4 | current |
-| `validate_charsel_items` | 8817 | 9.2 | current |
+| `validate_audio_combat` | 19548 | 32.4 | actors4 |
+| `validate_audio_domains` | 2544 | 26.7 | actors4 |
+| `validate_audio_items` | 3000 | 4.5 | actors4 |
+| `validate_audio_objects` | 4000 | 5.4 | actors4 |
+| `validate_charsel_items` | 8817 | 11.1 | actors4 |
 | `validate_charsel_world` | 1200 | 4.9 | extra |
 | `validate_combat` | 496 | 0.8 | current |
 | `validate_gfx3` | - | 7.1 | windows2 |
 | `validate_icarus` | 5240 | 37.6 | extra |
-| `validate_icarus_c2` | 8400 | 23.8 | current |
-| `validate_inventory_fx` | 8017 | 11.2 | current |
-| `validate_item_callers` | 6013 | 1.4 | current |
+| `validate_icarus_c2` | 8400 | 23.0 | actors4 |
+| `validate_inventory_fx` | 8017 | 10.9 | actors4 |
+| `validate_item_callers` | 6013 | 1.5 | actors4 |
 | `validate_item_hiddenmesh` | 116281 | 509.1 | current |
 | `validate_items` | 444 | 2.7 | current |
-| `validate_items_ui` | 8517 | 18.6 | extra |
+| `validate_items_ui` | 8517 | 13.6 | actors4 |
 | `validate_login_world` | 1200 | 7.6 | extra |
 | `validate_map_polish` | 876 | 0.5 | windows2 |
 | `validate_meshdraw` | 14619 | 56.2 | current |
 | `validate_model_edge` | 954 | 118.6 | current |
 | `validate_model_light` | 1433 | 5.4 | current |
-| `validate_movement` | 6614 | 71.5 | windows2 |
+| `validate_movement` | 6614 | 60.6 | actors4 |
 | `validate_muun_passes` | 1361 | 1.7 | extra |
 | `validate_muun_visual` | 912 | 1.6 | extra |
 | `validate_object_render` | 1984 | 13.7 | extra |
@@ -217,18 +221,18 @@ original-instruction case total.
 | `validate_render_effects13` | 180 | 0.6 | current |
 | `validate_render_effects14` | 660 | 1.6 | current |
 | `validate_render_effects15` | 509 | 1.1 | current |
-| `validate_render_effects16` | 424 | 3.9 | windows2 |
-| `validate_render_effects17` | 618 | 9.3 | current |
-| `validate_render_effects18` | 540 | 1.7 | current |
-| `validate_render_effects19` | 400 | 1.1 | current |
+| `validate_render_effects16` | 424 | 4.1 | actors4 |
+| `validate_render_effects17` | 618 | 13.4 | actors4 |
+| `validate_render_effects18` | 540 | 1.8 | actors4 |
+| `validate_render_effects19` | 400 | 1.0 | actors4 |
 | `validate_render_effects20` | 148 | 0.3 | current |
 | `validate_render_effects21` | 267 | 0.8 | current |
 | `validate_render_effects22` | 202 | 7.1 | current |
 | `validate_render_effects23` | 1174 | 9.6 | current |
-| `validate_render_effects24` | 226 | 5.1 | current |
-| `validate_render_effects25` | 202 | 10.7 | current |
+| `validate_render_effects24` | 226 | 2.9 | actors4 |
+| `validate_render_effects25` | 202 | 14.2 | actors4 |
 | `validate_render_effects27` | 424 | 2.7 | current |
-| `validate_render_effects28` | 630 | 2.9 | current |
+| `validate_render_effects28` | 630 | 2.7 | actors4 |
 | `validate_render_effects3` | 720 | 1.3 | current |
 | `validate_render_effects30` | 452 | 0.5 | current |
 | `validate_render_effects4` | 1920 | 7.0 | current |
@@ -241,7 +245,7 @@ original-instruction case total.
 | `validate_skill_fx` | 660 | 1.4 | current |
 | `validate_terrain` | 583500 | 420.8 | current |
 | `validate_terrain_remaining` | 2147 | 5.0 | current |
-| `validate_viewport_monsters` | 1963 | 11.6 | current |
+| `validate_viewport_monsters` | 1963 | 12.7 | actors4 |
 | `validate_world_fidelity` | 200 | 0.3 | extra |
 | `validate_world_light_name` | 304 | 0.5 | extra |
 | `validate_world_particle_consumers` | 900 | 0.9 | current |
@@ -257,7 +261,7 @@ original-instruction case total.
 | `validate_worlds_d` | 2400 | 4.2 | current |
 | `validate_worlds_e` | 4840 | 20.4 | extra |
 | `validate_worlds_f` | 1818 | 0.5 | current |
-| `validate_worlds_fog` | 4044 | 7.7 | windows2 |
+| `validate_worlds_fog` | 4044 | 7.9 | actors4 |
 | `validate_worlds_g` | 6000 | 4.5 | extra |
 | `validate_worlds_g2` | 2657 | 6.2 | extra |
 | `validate_worlds_g3` | 4000 | 7.4 | extra |
@@ -286,7 +290,7 @@ original-instruction case total.
 | `validate_worlds_slots2` | 33000 | 38.8 | extra |
 | `validate_worlds_slots3` | 36000 | 41.2 | extra |
 
-Steward validators: validate_actor_recipes,validate_app_polish1,validate_app_polish2,validate_app_polish4,validate_app_polish7,validate_audio_callers,validate_audio_charsel,validate_audio_combat,validate_audio_domains,validate_audio_items,validate_audio_objects,validate_charsel_items,validate_charsel_world,validate_combat,validate_gfx3,validate_icarus,validate_icarus_c2,validate_inventory_fx,validate_item_callers,validate_item_hiddenmesh,validate_items,validate_items_ui,validate_login_world,validate_map_polish,validate_meshdraw,validate_model_edge,validate_model_light,validate_movement,validate_muun_passes,validate_muun_visual,validate_object_render,validate_path,validate_render_effects,validate_render_effects10,validate_render_effects11,validate_render_effects12,validate_render_effects13,validate_render_effects14,validate_render_effects15,validate_render_effects16,validate_render_effects17,validate_render_effects18,validate_render_effects19,validate_render_effects20,validate_render_effects21,validate_render_effects22,validate_render_effects23,validate_render_effects24,validate_render_effects25,validate_render_effects27,validate_render_effects28,validate_render_effects3,validate_render_effects30,validate_render_effects4,validate_render_effects5,validate_render_effects6,validate_render_effects7,validate_render_effects9,validate_render_worlds_a,validate_session_party,validate_skill_fx,validate_terrain,validate_terrain_remaining,validate_viewport_monsters,validate_world_fidelity,validate_world_light_name,validate_world_particle_consumers,validate_world_tile_folder,validate_worlds_121,validate_worlds_after,validate_worlds_after2,validate_worlds_after3,validate_worlds_after4,validate_worlds_after5,validate_worlds_after6,validate_worlds_b,validate_worlds_d,validate_worlds_e,validate_worlds_f,validate_worlds_fog,validate_worlds_g,validate_worlds_g2,validate_worlds_g3,validate_worlds_h,validate_worlds_i,validate_worlds_inner,validate_worlds_inner2,validate_worlds_j,validate_worlds_k,validate_worlds_karutan,validate_worlds_l,validate_worlds_m,validate_worlds_n,validate_worlds_o,validate_worlds_p,validate_worlds_p2,validate_worlds_q,validate_worlds_q2,validate_worlds_r,validate_worlds_r2,validate_worlds_raklion,validate_worlds_s,validate_worlds_s2,validate_worlds_s3,validate_worlds_slots,validate_worlds_slots2,validate_worlds_slots3
+Steward validators: validate_actor_composites,validate_actor_recipes,validate_app_polish1,validate_app_polish2,validate_app_polish4,validate_app_polish7,validate_audio_callers,validate_audio_charsel,validate_audio_combat,validate_audio_domains,validate_audio_items,validate_audio_objects,validate_charsel_items,validate_charsel_world,validate_combat,validate_gfx3,validate_icarus,validate_icarus_c2,validate_inventory_fx,validate_item_callers,validate_item_hiddenmesh,validate_items,validate_items_ui,validate_login_world,validate_map_polish,validate_meshdraw,validate_model_edge,validate_model_light,validate_movement,validate_muun_passes,validate_muun_visual,validate_object_render,validate_path,validate_render_effects,validate_render_effects10,validate_render_effects11,validate_render_effects12,validate_render_effects13,validate_render_effects14,validate_render_effects15,validate_render_effects16,validate_render_effects17,validate_render_effects18,validate_render_effects19,validate_render_effects20,validate_render_effects21,validate_render_effects22,validate_render_effects23,validate_render_effects24,validate_render_effects25,validate_render_effects27,validate_render_effects28,validate_render_effects3,validate_render_effects30,validate_render_effects4,validate_render_effects5,validate_render_effects6,validate_render_effects7,validate_render_effects9,validate_render_worlds_a,validate_session_party,validate_skill_fx,validate_terrain,validate_terrain_remaining,validate_viewport_monsters,validate_world_fidelity,validate_world_light_name,validate_world_particle_consumers,validate_world_tile_folder,validate_worlds_121,validate_worlds_after,validate_worlds_after2,validate_worlds_after3,validate_worlds_after4,validate_worlds_after5,validate_worlds_after6,validate_worlds_b,validate_worlds_d,validate_worlds_e,validate_worlds_f,validate_worlds_fog,validate_worlds_g,validate_worlds_g2,validate_worlds_g3,validate_worlds_h,validate_worlds_i,validate_worlds_inner,validate_worlds_inner2,validate_worlds_j,validate_worlds_k,validate_worlds_karutan,validate_worlds_l,validate_worlds_m,validate_worlds_n,validate_worlds_o,validate_worlds_p,validate_worlds_p2,validate_worlds_q,validate_worlds_q2,validate_worlds_r,validate_worlds_r2,validate_worlds_raklion,validate_worlds_s,validate_worlds_s2,validate_worlds_s3,validate_worlds_slots,validate_worlds_slots2,validate_worlds_slots3
 
 ## Limits and next lane
 
@@ -356,3 +360,20 @@ used by combat. Integrate it before readiness, preserving both shared status
 entries. Next: root build, exact actor-delta validator selection/run, reduced
 private actor/new Native tests, portable delta, after-only replay and audit.
 No new original mutant proof or baseline is required. No ready entry yet.
+
+Actor-structure selection since `01b5c420`: 25 rows, 68.36 s. All 25 pass at
+`caf81580`, zero failures/errors/skips, 226.87 s, cache/no mutants. The new
+composite row increases the final distinct Steward set from 107 to 108. Latest
+row timings above use the actors4 label. Root rebuild passes in 12.93 s.
+Reduced private actor/skill, portable delta, final replay and audit remain.
+
+## WIP checkpoint, 01:22 local, November 12
+
+Main `c35458a0` is integrated as `caf81580`. All 108 distinct affected private
+rows pass, including the exact 25-row actor delta. Reduced private actor/skill
+modules pass 10/10, zero skips, 56.82 s, including the nonzero client-index
+regression and all four new skill Native cases against the new actor layout.
+The final actor portable delta selects 165 work items and is running; its
+completed tests group passes. All original proof inputs remain unchanged.
+Next: portable completion, explicit world rebuild/after-only replay, audit and
+final PR/ready entry. No baseline or mutants are repeated. Not PR-ready yet.
