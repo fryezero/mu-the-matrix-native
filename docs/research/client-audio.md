@@ -604,3 +604,100 @@ checks pass for once-per-release, refused/held input, detached/muted/disabled de
 four enabled charsel fixture controls and decoded installed sound 25. Five shell journeys retain
 identical audio-on/off PNGs. The quick Create/Esc test explicitly retains original same-id suppression.
 All 26 affected validators pass; per-row times and the tested commit are in the handoff.
+
+## AUDIO-003 census and object delivery, 2026-11-11
+
+Target/capture pins are unchanged from this document's opening. This lane uses
+only pinned offline captures and authored fixtures. The reproducible inventory
+is `scripts/audio_caller_census.py --report <local-path>`. It exports addresses,
+authored classifications and source references, never client bytes or asset paths.
+
+### Census method and limits
+
+The historical denominator is reproduced exactly: **1,980 E8 rel32 candidates**
+targeting SND_Play. This is a syntactic scan, not 1,980 CFG-verified invocations or
+1,980 distinct sounds. The opaque interval is excluded and never followed.
+The nearest MSVC prologue groups candidates; it is not a recovered symbol.
+Known anchors are classified through the cited reconstructed callers, exact
+source references, or the existing 48-class vtable inventory's slot +0x70.
+Unassigned owners stay explicit instead of acquiring a gate by address proximity.
+
+The monster-sound dispatch `0x013a084d` calls `0x013a04d6`, then the world-51
+`0x00e33c95`, world-56 `0x00e669c9` and class slot +0x70 through `0x013a08ad`.
+The monster-render hook chain's direct predecessors are `0x0137895c` ->
+`0x00dfe9a6`, `0x01378996` -> `0x00db16a3`, `0x013789b3` -> `0x00d6654b`,
+`0x013789d0` -> `0x00e7bb9f`, `0x013789ed` -> `0x00e81b53` and
+`0x01378a2e` -> `0x00d579e6`. These are static owner classifications, not
+newly admitted native routines or executed gate proofs.
+
+The source-reference field means a bounded native reconstruction mentions that
+owner. It does not prove that all its sound branches exist, run or deliver.
+The separate adapter column enumerates reviewed native audio boundaries. Its
+113-site baseline consists of the historical 76, two UI sites from AUDIO-002G,
+32 frame ambient sites, two Crywolf result sites and the earlier hero level-up
+site. Credits is an offline-controller boundary, not an interactive shell owner.
+Conditional adapters still require their documented fixture/session input.
+
+| Owner bucket | Candidates | Existing audio boundary | AUDIO-003 additions |
+|---|---:|---:|---:|
+| UI | 20 | 8 | 0 |
+| Hero actions, including shared monster hit/attack/death services | 37 | 28 | 0 |
+| Skills and shared character/effect timelines | 263 | 18 | 0 |
+| Monsters and NPC voices | 781 | 3 | 0 |
+| World objects and ambient | 111 | 47 | 16 |
+| Items | 9 | 6 | 0 |
+| Events and progression presentation | 4 | 3 | 0 |
+| Unresolved owner | 755 | 0 | 0 |
+| Total | 1,980 | 113 | 16 |
+
+These exclusive buckets are a planning classification. Shared routines appear
+once. **1,225 candidates have an owner bucket; 755 remain unresolved.** Of the
+781 monster/NPC candidates, 763 have no native body reference in this inventory.
+That is a useful next-lane lead, not proof that every one needs a new routine.
+The 755 unknowns must not be reported as absent native sounds. A complete semantic
+whole-client ownership census remains open; this lane records the unresolved
+remainder as a refused group rather than estimating it from sound ids.
+
+### Wired object boundaries
+
+`native/core/mu_object_audio.h` accepts a world/id pair only after the existing
+reconstructed routine selected the request. The object part adds one delivery
+call, then uses the existing independent session audio reader. Standalone hosts
+use immediate delivery; disabled/detached hosts retain no replay queue.
+
+| Owner and sound sites | Gate retained in the reconstructed caller | Delivery |
+|---|---|---|
+| MoveObject `0x017ff238`, Devias branch `0x017fffda`; `0x0180041b` / `0x018005be` | Bounds mode false; distance to original XY strictly below 200; type 0x56 versus 0x14/0x41/0x58 | 18 / 17, NULL, loop 0 |
+| Elbeland helper `0x00e34169`; `0x00e3425f`, `27c`, `290`, `2aa`, `2be`, `2d8`, `2ec`, latter six prefixed `0x00e34` | Types 2/0x35/0x38/0x3b/0x55/0x59/0x6e; 2/0x35/0x3b/0x59 additionally require the hero terrain safe bit absent | 0x317/0x318/0x319/0x314/0x316/0x315/0x313, OBJECT, loop 1 |
+| Uruk visual `0x00e6f3d5`; `0x00e6f4a6` | World 100/101, type 20, existing visual-pass eligibility | 0x442, NULL, loop 0 |
+| Kardamahal move `0x00e0ed1c`; `0x00e0f41b`, `43d`, `465`, `478`, `48b`, `49e`, latter five prefixed `0x00e0f` | World 143; type 133; types 146/149 action 2; types 150..152 signed rand remainder 2 = 0 / nonzero; type 167; type 169 | 0x5a6/0x5a9/0x5a7/0x5a8/0x5a4/0x5a5, NULL, loop 0 |
+
+There is no new per-site volume or 3D rule. The verified SND_Play manager ignores
+the object and uses the Effect group. Log key -3 denotes an unkeyed world OBJECT;
+-2 denotes NULL. No original or native pointer is logged. Elbeland's loop argument
+was also lost by the old standalone id-only facade and is now retained.
+
+These emitters intentionally request sound repeatedly while their caller's gate
+holds. The original manager permits one active voice per id. No invented
+once-per-door/action debounce suppresses a later request after a short sample
+ends. Once-per-action hero/monster markers remain in their existing combat lane.
+The adapter consumes no RNG and changes no object, animation or visual field.
+
+Ignis `0x00e05edd` and `0x00e05f09` both use 0x570, but distinguish action/frame
+branches. An id-only hook cannot provide exact site provenance. They remain
+refused until the audio boundary carries that context. The two Kethotum variants
+also have ambiguous repeated-id sites. Kubera stop requests still have no native
+consumer and remain counted refusals. No event state, remote pickup success,
+authoritative buff, transformed context or opaque instruction is admitted.
+
+### Static world and zone music
+
+No selector change was needed. `mu_world_sound_frame` already supplies scene 6,
+world, HeroTile, hero safe-zone/tile coordinates and terrain attributes to
+`mu_audio_host_set_world` and `mu_audio_host_tick`. The existing instruction-proved
+frame block and world-only delegated managers select the tracks. The new native
+smoke follows pub -> Lorencia -> Devias church -> Devias field -> Noria ->
+Dungeon -> Atlans -> Lost Tower -> Aida -> Kanturu -> an unscored control world,
+checking each requested index and resolved PCM. Repeated same-track frame
+requests retain the current loop. State-dependent event managers and the opaque
+frame interval retain their explicit missing-input behavior.
