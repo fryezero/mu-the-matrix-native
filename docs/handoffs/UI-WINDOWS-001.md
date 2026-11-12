@@ -118,7 +118,7 @@ No validator or original mutant target changed, so no mutants were rerun.
 | `validate_audio_callers` | 5528 | 7.8 |
 | `validate_audio_domains` | 2544 | 29.3 |
 | `validate_audio_items` | 3000 | 4.6 |
-| `validate_gfx3` | 80 window cases; loader/menu/skill contracts | 6.8 |
+| `validate_gfx3` | 6 skill + 18 window cases; loader/menu contracts | 6.8 |
 | `validate_map_polish` | 876 | 0.8 |
 | `validate_movement` | 6614 | 72.6 |
 | `validate_render_effects16` | 424 | 4.7 |
