@@ -162,3 +162,81 @@ minimum 46 detections. All 64 affected validators and the portable/private check
 views are byte-identical. Elbeland's close-up glows and Swamp's six joints / 196 quads were visually inspected
 in demo-labelled native frames. Elbeland has no original PNG; Swamp's captured image score is unchanged.
 [Full counts, refusals, per-row walls and next addresses](../handoffs/RENDER-WORLDS-INNER-002.md).
+
+## RENDER-WORLDS-INNER-003: Aida, Kanturu Remain, Trials and Devil Square
+
+Same executable/text/data pins and offline method as INNER-001. New authored producer
+`world_inner3_visual.c`, existing object-runtime adapter. Aida was first by captured population, 4,135 objects
+including 160 type-30 twelve-glow objects, followed by Kanturu Remain, 2,121 objects. Trials and Devil Square
+have no captured placement/image reference in the two existing tours and require authored proof layouts.
+No event state is read. Clock-dependent requests use a fixed offline tick independently in the comparator,
+and the authored WorldTime tick in production. These are not original/native temporal equivalence claims.
+
+### Aida 33 and shared guard 54
+
+Complete producer `0x00d622dd..0x00d63d6b`, reached at `0x017fcbc6`; guard `0x00d61f81` accepts 33/54.
+
+| Type | Inline behavior |
+|---|---|
+| 0x1e / 0x47 | Six named transforms, Box07/08/09/13/14/18, two 0x7f26 sprites each. Type 0x1e uses blue/grey, large scales 5.5/4.5/4/4.5/4/4; 0x47 uses red, large scales 6/5.5/5/5.5/5/5. The small sprite scale is 3 |
+| 0x38 / 0x39 / 0x3a | White particles 0x801a/2 at rand % 2 == 0; 0x801c/4 always; 0x801b/2 at rand % 3 == 0. Object scale |
+| 0x3b / 0x3e / 0x3f | While hidden mesh != -2, twenty owned 0x7f89/26 requests. Colours 0.01/0.03/0.05, 0.05/0.05/0.05, 0.05/0.02/0.02. The visual leaf does not hide them |
+| 0x3c | Clock % 1024 < 10: owned 0x193/3 request, white. Set hidden mesh -2 regardless |
+| 0x41 / 0x42 | Matrix wrappers with argument 1, StreamMesh 0, mesh 0 flags 2 with object's alpha/blend fields, U = (-truncated time % 100000) * 0.00005; restore StreamMesh -1 |
+| 0x43 | Object light becomes 0.3/0.3/0.3; 0x7f42/7 particle at object scale |
+| 0x46 | Always obtain clock, then rand % 5 == 1 and clock % 1024 < 30: owned 0x199/0, light 0.1, word4 = low 16 bits of truncated object scale |
+| 0x4b | Named Bone01, local zero, white 0x7f78 sprite, scale 3, rotation time / 10. The calculated sine pulse is overwritten before the draw |
+| 0x4d / 0x4e | As 0x41/42, U = (truncated time % 100000) * 0.0002 |
+
+The six local offsets are 0/-3/1, 0/-3/0, 0/-3/0, -3/-1/0, -3/-3/0, 0/2/-8.
+The first large red glow has light 0.5/0/0, the other five 0.25/0/0; small red glows 0.15/0/0.
+Blue large glows 0.1/0.1/0.3, small grey glows 0.15/0.15/0.15. All sprites here have the OBJECT owner.
+The word4 request uses the existing keyed-effect channel, including word4 zero, and counts a missing hook.
+
+### Kanturu Remain 38
+
+Complete producer `0x00e7df87..0x00e7ed6e`, reached at `0x017fcc11`; guard `0x00e843df` accepts 38.
+
+| Type | Inline behavior |
+|---|---|
+| 4 | Bone 1, local -1/0/0. Pulse p = (sin(time * 0.002) + 2) * 0.5. Light p*0.3/p*0.5/p; scale is binary64 p / 3.2 rounded to binary32. One 0x7ef7 and two identical 0x802b sprites |
+| 8 | Bone 4, zero local. Grey p = (sin(time * 0.001) + 1) * 0.5; 0x7f2b/0 particle scale 1.5 and 0x7f26 sprite scale 10. Four RNG endpoint offsets, then rand % 20 == 0: 0x7f7c/18, scale 40, no owner |
+| 0xa | rand % 6 == 0: position Z replaced with 410, white 0x801c/7 at object scale |
+| 0x2d / 0x2e / 0x2f | While hidden mesh != -2, twenty owned 0x7f89 particles, subtypes 1/2/7; grey 0.06/0.06/0.2, object scale |
+| 0x30 | rand % 3 == 0: owned 0x7f89/10, grey 0.2, object scale |
+| 0x31 | While hidden mesh != -2, five owned 0x7f89/1, light 0/0.01/0.03, object scale |
+| 0x32 | rand % 3 == 0, then a second roll: owned 0x7f89/11, light 0/0.01/(rand % 3 * 0.01 + 0.02), object scale |
+| 0x34 / 0x35 | 0x801c/7 white at object scale, rand % 6 == 0; 0x802a/1 light 0.4/0.6/0.7 at scale 1, rand % 3 == 0 |
+| 0x36 / 0x38 / 0x41 | rand % 20 == 0 for 0x36, % 10 == 0 otherwise, then scale rand % 10 + 30. Unowned 0x7f7d joints, subtypes 8/9/10, identical position endpoints |
+| 0x37 | rand % 5 == 0: owned 0x4ac/1, light 0.8/0.8/1 |
+
+Joint 0x7f7c/18 already has a native consumer. The three 0x7f7d subtypes 8/9/10 do not and remain counted
+refusals. Missing posed bones refuse each dependent request. Missing particle/effect kinds retain existing
+consumer refusals. No consumer code changes.
+
+### Land of Trials 31
+
+Complete producer `0x00dfc095..0x00dfc3ce`, reached at `0x017fcbad`; guard `0x00dfbbbb` accepts 31.
+
+- Type 3 / 0x35: rand % 3 == 0, white 0x801c/3 or 0x7f5a/22 at object scale.
+- Type 0x31: bone 3 with local 0/-10/0. Pulse sin(time * 0.002) * 0.35 + 0.65. Two red 0x7ef7 sprites,
+  scales pulse * 1.2 + 0.3 and 0.5, OBJECT-owned. One grey-0.3 0x7f67 sprite of scale 1.2,
+  rotation rand % 360, without an OBJECT owner.
+
+### Devil Square 9
+
+Inline type-2 branch `0x017fb7e7..0x017fba59` inside RenderObjectVisual `0x017f9758`.
+Two independent rand % 4 == 0 gates transform Bip01 R UpperArm and Bip01 L UpperArm. The third right-arm
+transform/request always occurs. Local -15/0/0, white 0x771d/0 particles, scale 1, no owner.
+The comparator enters RenderObjectVisual itself and includes absent-model and the single outer-RNG gate.
+The native adapter owns the inner requests, preserving the existing outer draw.
+
+### Integration limits
+
+No original frame or authoritative event context is newly captured. Missing named/indexed bones, missing
+keyed-effect hook and missing joint kinds retain explicit counts. Other task worlds 24/30/39/41/42 remain
+unported here. A static reread of `0x017fcb5c..0x017fccbc` confirms worlds 46/98 have no dedicated branch in
+that chain; `0x00ea2dc1` does a registry lookup followed by the registered handler's slot 0x34. Their complete
+registry/context coverage remains unverified. The Kanturu GREATER 0 alpha-reference seam stays deferred.
+
+[Checks, fidelity results and remaining addresses](../handoffs/RENDER-WORLDS-INNER-003.md).

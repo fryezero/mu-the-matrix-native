@@ -3565,3 +3565,20 @@ args = ["--cases", "1000", "--mutations", "--output", "{report}"]
 [validate_muun_passes.expect]
 all_equal = true
 all_mutants_caught = true
+
+[validate_worlds_inner3]
+test = "reconstructed/objects/test_worlds_inner3.py::ClientComparison.test_original"
+pins = ["text", "data"]
+families = ["aida", "aida_focus", "remain", "remain_focus", "trials", "trials_focus", "devil", "devil_focus"]
+cases = 8000
+mutants = 54
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+note = "RENDER-WORLDS-INNER-003: Aida 33/54, Kanturu Remain 38, Trials 31 and Devil Square 9 ordered inline calls, RNG, bones, clock, object/model writes"
+[validate_worlds_inner3.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0
