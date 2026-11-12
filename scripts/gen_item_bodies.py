@@ -230,7 +230,7 @@ from gen_item_owner_fx import OWNER_FX_TYPES
 from gen_item_owner_fx import PRE_FX_TYPES, OBJDRAW as PRE_DRAW_RAND
 # Part 21 (RENDER-ITEMS-002T): owner blocks after the draws with the pre-draw idioms (gen_item_owner_fx.POST_FX_TYPES);
 # their draws fit the default probes with the effect requests set aside.
-from gen_item_owner_fx import POST_FX_TYPES, READ_PROGRAM_TYPES
+from gen_item_owner_fx import POST_FX_TYPES, READ_PROGRAM_TYPES, LATER_READ_PROGRAM_TYPES
 _SAMPLE_TYPE = [None]
 # Their probes, chosen by the 292-state comparison: the part-14 supplementary probes (records 0x26/0x5b,
 # qualities 0-2) and the part-13 carry rule. The rand sites of the pre-draw block itself belong to the effect
@@ -268,6 +268,18 @@ PLAIN_TYPES = [*range(0x234a, 0x2368), *range(0x241d, 0x2477), *WING_TYPES]
 
 # RENDER-ITEMS-002X: these cases bypass the level-glow helper chain.
 NO_GLOW_TYPES = [0x232c, 0x232d, 0x232e, 0x232f, 0x2330, 0x26f5]
+OMITTED_BASE_TYPES = [0x2368]
+LATE_GLOW_TYPES = list(range(0x26e6, 0x26ed))
+HELPER_TYPES = OMITTED_BASE_TYPES + LATE_GLOW_TYPES
+OTHER_TYPES = [0x0b09, 0x0b0b, 0x0b28, 0x0b40, 0x0b42, 0x0b43, 0x0b45, 0x0b61,
+               0x0eed, 0x0efa, 0x0f0b, 0x10f2, 0x1102, 0x1505, 0x1506, 0x1509,
+               0x1576, 0x1577, 0x1736, 0x1746, 0x192f, 0x1b2f, 0x212f,
+               0x2568, 0x2569, 0x256a, 0x256b]
+OTHER_CARRY = [0x0b09, 0x0b0b, 0x0eed, 0x0efa, 0x0f0b, 0x10f2, 0x1506, 0x1509,
+               0x2568, 0x2569, 0x256a, 0x256b]
+OTHER_EXIT = []
+PRE_CARRY += OTHER_CARRY
+EXIT_TYPES += OTHER_EXIT
 
 
 def body_scalars(time):
@@ -339,13 +351,18 @@ def parse_scalar(wa, helper, ret):
         a = _load(wa, call - 13)
         if a is None or _text(wa, call - 14, 1) != b'\x51' or _text(wa, call - 19, 5) != MOVSS_ESP:
             return None
-        # Only the zero phase argument (xorps) is in the supported domain.
-        if _text(wa, call - 22, 3) != bytes.fromhex('0f57c0') or _text(wa, call - 23, 1) != b'\x51':
+        # A constant phase is a separate input to the helper, in degrees.
+        phase = None
+        if _text(wa, call - 22, 3) == bytes.fromhex('0f57c0') and _text(wa, call - 23, 1) == b'\x51':
+            phase = 0
+        elif _text(wa, call - 28, 1) == b'\x51':
+            phase = _load(wa, call - 27)
+        if phase is None:
             return None
         a_value = v.u2f(a)
         if a_value == 0 or not 2 <= abs(6283.185546875 / a_value) < 2**31:
             return None
-        kind, pops = 1, b'\x59\x59'
+        kind, pops = (1 if phase == 0 else 9), b'\x59\x59'
     elif helper == SINE_WRAPPER:
         if (_text(wa, call - 6, 1) != b'\x51' or _text(wa, call - 14, 4) != bytes.fromhex('f30f5905') or
                 _text(wa, call - 22, 8) != bytes.fromhex('f30f1005') + (0x06fce370).to_bytes(4, 'little')):
@@ -364,12 +381,12 @@ def parse_scalar(wa, helper, ret):
     double = fstp[:2] == b'\xdd\x9d'
     if fstp[:2] not in (b'\xd9\x9d', b'\xdd\x9d'):
         return None
-    if reload[:4] != (bytes.fromhex('f20f1085') if double else bytes.fromhex('f30f1085')) or fstp[2:] != reload[4:]:
-        # The stored binary32 local itself, as at 0x01711064.
-        return None if double else (kind, a, ())
-    at += 14
-    ops = []
-    while len(ops) < 4:
+    ops = [(5, phase)] if kind == 9 else []
+    reloaded = reload[:4] == (bytes.fromhex('f20f1085') if double else bytes.fromhex('f30f1085')) and fstp[2:] == reload[4:]
+    if double and not reloaded:
+        return None
+    at += 14 if reloaded else 6
+    while reloaded and len(ops) < 4:
         code = _text(wa, at, 8)
         if code[:2] != (b'\xf2\x0f' if double else b'\xf3\x0f') or code[2] not in SCALAR_OPS or code[3] != 0x05:
             break
@@ -386,6 +403,30 @@ def parse_scalar(wa, helper, ret):
         at += 8
     if double and (not ops or _text(wa, at, 4) != bytes.fromhex('f20f5ac0')):
         return None
+    # A constant minus the saved helper result, each rounded to binary32.
+    if not double and kind != 9 and not ops and _load(wa, at) is not None and \
+            _text(wa, at + 8, 4) == bytes.fromhex('f30f5c85') and \
+            _text(wa, at + 12, 4) == fstp[2:]:
+        ops.append((5, _load(wa, at)))
+    if not double:
+        # comiss k,[saved result]; jbe L; movss k; movss [saved result],k.
+        import capstone.x86 as X
+        seq = list(_capstone().disasm(_text(wa, ret + len(pops) + 6, 40), ret + len(pops) + 6))
+        if len(seq) >= 5:
+            load, cmp, jump, again, store = seq[:5]
+            if (load.mnemonic == again.mnemonic == 'movss' and cmp.mnemonic == 'comiss' and
+                    jump.mnemonic == 'jbe' and store.mnemonic == 'movss' and
+                    load.op_str == again.op_str and load.operands[1].type == X.X86_OP_MEM and
+                    load.operands[1].mem.base == 0 and load.operands[1].mem.index == 0 and
+                    cmp.operands[0].reg == load.operands[0].reg and
+                    cmp.operands[1].type == store.operands[0].type == X.X86_OP_MEM and
+                    cmp.operands[1].mem.base == store.operands[0].mem.base == X.X86_REG_EBP and
+                    cmp.operands[1].mem.disp == store.operands[0].mem.disp == struct.unpack('<i', fstp[2:])[0] and
+                    store.operands[1].reg == load.operands[0].reg and
+                    jump.operands[0].imm == store.address + store.size):
+                k = _word(wa, load.operands[1].mem.disp)
+                if k is not None:
+                    ops.append((6, k))
     return kind, a, tuple(ops)
 
 
@@ -688,12 +729,13 @@ def derive(wa, phases, width, products=False):
     return found
 
 
-def wave_helper(a, time):
+def wave_helper(a, time, phase=0.0):
     """0x0185bdc4(a, 0): signed cosine wave, binary32 steps. The zero phase
     term adds a signed zero to time, which cannot change the truncated tick."""
     import math
     f = lambda x: v.u2f(v.f2u(x))
-    tick = int(time) if -2147483648 <= time < 2147483648 else -2147483648
+    shifted = f(f(f(f(phase * f(0.017453292)) * f(1000.0)) / a) + time) if phase else time
+    tick = int(shifted) if -2147483648 <= shifted < 2147483648 else -2147483648
     period = int(f(f(6283.1855) / a))
     rem = int(math.fmod(tick, period))
     y = f(f(rem * f(0.001)) * a)
@@ -709,8 +751,10 @@ def scalar_value(program, time, frame=0):
     kind, a, ops = program
     if kind == 3:
         return clock_value(ops, time, frame)
-    if kind == 1:
-        value = wave_helper(v.u2f(a), time)
+    if kind in (1, 9):
+        value = wave_helper(v.u2f(a), time, v.u2f(ops[0][1]) if kind == 9 else 0.0)
+        if kind == 9:
+            ops = ops[1:]
     else:
         value = f(math.sin(f(time * v.u2f(a))))
     import struct
@@ -718,7 +762,8 @@ def scalar_value(program, time, frame=0):
     for op, word in ops:
         k = struct.unpack('<d', struct.pack('<Q', word))[0] if double else v.u2f(word)
         op &= 7
-        value = value * k if op == 1 else value + k if op == 2 else value - k if op == 3 else value / k
+        value = (value * k if op == 1 else value + k if op == 2 else value - k if op == 3 else
+                 k - value if op == 5 else max(value, k) if op == 6 else value / k)
         if not double:
             value = f(value)
     return v.f2u(f(value))
@@ -741,6 +786,7 @@ CLOCK = 0x06fce370
 # unsigned remainder/quotient (xor edx, edx; div) and the unsigned binary64 conversion (cvtsi2sd, then
 # shr r, 31; addsd [r*8 + 0x01bd3050] with the table {0.0, 2^32}).
 C_FRAME, C_U_MOD, C_U_DIV, C_U2D = range(30, 34)
+C_F_SIN, C_F_ABS, C_F_FABS = 34, 35, 36
 FRAME_COUNTER, U32_FIX = 0x0bdc5ebc, 0x01bd3050
 COUNTER_RANGE_TYPES = [0x0f24, 0x0f28, 0x0f29, 0x0f2b, 0x0f2c, 0x1588]
 VECTOR_SETTERS = (0x00cfcead, 0x00cfcede)   # (this)[0..2] = (a, b, c) / (a, a, a); ret 0xc / ret 4
@@ -872,15 +918,18 @@ def slice_block(wa, block, frame=False):
 
     def as_int(x):
         """Integer constant: ('k', n) or ('e', offset, mul, add) = entry local*mul+add."""
-        return x if x and x[0] in ('k', 'e') else None
+        return x if x and x[0] in ('k', 'e', 'quotient', 'linear') else None
 
     def lin(x, mul, add):
         if x[0] == 'k':
             return ('k', _i32(x[1] * mul + add))
+        if x[0] != 'e':
+            return ('linear', x, mul, add)
         return ('e', x[1], x[2] * mul, x[3] * mul + add)
 
     at, steps, cdq = block, 0, None
     pushed = None   # RENDER-ITEMS-002U: push imm; pop r
+    stack_top, x87 = None, None
     while steps < 160:
         ins = next(md.disasm(text[at - 0x00401000:at - 0x00401000 + 16], at), None)
         if ins is None:
@@ -900,8 +949,30 @@ def slice_block(wa, block, frame=False):
             regs, pushed = {}, None
             at = nxt
             continue
+        if name == 'call' and dst.type == X.X86_OP_IMM and dst.imm in (SINE_WRAPPER, 0x0184f8ff, 0x0098a647):
+            if stack_top and stack_top[0] == 'c' and stack_top[1] == 'f':
+                operation = C_F_SIN if dst.imm == SINE_WRAPPER else C_F_FABS if dst.imm == 0x0098a647 else C_F_ABS
+                x87 = chain(stack_top, 'f', (operation, 0))
+                regs = {}
+                at = nxt
+                continue
+            break
+        if name == 'fstp' and dst.type == X.X86_OP_MEM and dst.size == 4 and x87 is not None:
+            r = ref(dst)
+            if r[0] == 'local':
+                local[r[1]] = x87
+                outputs.append(x87)
+            elif dst.mem.base == X.X86_REG_ESP and dst.mem.disp == 0:
+                stack_top = x87
+            else:
+                break
+            x87 = None
+            at = nxt
+            continue
         if name.startswith('j') or name in ('call', 'ret', 'retn', 'int3', 'leave'):
             break
+        if name in ('push', 'pop'):
+            stack_top = None
         if frame and name == 'push' and dst.type == X.X86_OP_IMM:
             pushed = ('k', _i32(dst.imm))
             at = nxt
@@ -947,6 +1018,8 @@ def slice_block(wa, block, frame=False):
                     x if frame and x and x[0] == 'c' and x[1] == 'd' and any(op == C_FRAME for op, _ in x[2]) else None)
             elif r[0] == 'abs' and r[1] == CLOCK:
                 break
+            elif dst.mem.base == X.X86_REG_ESP and dst.mem.disp == 0:
+                stack_top = x
             handled = 'stored'
         elif (frame and name == 'addsd' and dname and src.type == X.X86_OP_MEM and src.mem.base == 0 and src.mem.index and
               src.mem.scale == 8 and src.mem.disp & 0xffffffff == U32_FIX and _word(wa, U32_FIX) == 0 and
@@ -1039,7 +1112,7 @@ def slice_block(wa, block, frame=False):
                     result = chain(x, 'd', (C_D_NEG, 0))
         elif name == 'cdq':
             x = regs.get('eax')
-            regs['edx'] = ('cdq', x) if x and x[0] == 'c' and x[1] == 'i' else None
+            regs['edx'] = ('cdq', x) if as_int(x) or (x and x[0] == 'c' and x[1] == 'i') else None
             at = nxt
             continue
         elif name == 'idiv':
@@ -1099,7 +1172,8 @@ def slice_block(wa, block, frame=False):
         elif name == 'sar' and dname in gpr and src.type == X.X86_OP_IMM:
             x = regs.get(dname)
             if x and x[0] == 'biased' and 1 << src.imm == x[2]:
-                result = chain(x[1], 'i', (C_I_DIV, ('i', ('k', x[2]))))
+                result = (('quotient', x[1], x[2]) if as_int(x[1]) else
+                          chain(x[1], 'i', (C_I_DIV, ('i', ('k', x[2])))))
         elif name in ('inc', 'dec', 'neg') and dname in gpr:
             x = regs.get(dname)
             step = {'inc': 1, 'dec': -1}.get(name)
@@ -1147,19 +1221,26 @@ def slice_block(wa, block, frame=False):
 
 def resolve_clock(wa, program, values):
     """Substitute entry-local values; ('i', n) operands become 32-bit words."""
+    def integer(n):
+        if n[0] == 'k':
+            return n[1]
+        if n[0] == 'quotient':
+            base = integer(n[1])
+            return None if base is None else int(base / n[2])
+        if n[0] == 'linear':
+            base = integer(n[1])
+            return None if base is None else _i32(base * n[2] + n[3])
+        base = values[n[1]]
+        return _i32(base * n[2] + n[3]) if _local_stored(wa, n[1], base) else None
     ops = []
     for op, k in program:
         if isinstance(k, tuple) and k[0] == 'w':
             ops.append((op, k[1]))
         elif isinstance(k, tuple):
             n = k[1]
-            if n[0] == 'k':
-                word = n[1]
-            else:
-                base = values[n[1]]
-                if not _local_stored(wa, n[1], base):
-                    return None
-                word = _i32(base * n[2] + n[3])
+            word = integer(n)
+            if word is None:
+                return None
             if k[0] == 'i' and op in (C_F_MUL, C_F_DIV, C_F_ADD, C_F_SUB, C_F_RSUB, C_F_RDIV):
                 word = v.f2u(_f32(float(word)))
             elif k[0] == 'i' and op in (C_D_MUL, C_D_DIV, C_D_ADD, C_D_SUB, C_D_RSUB, C_D_RDIV):
@@ -1176,6 +1257,7 @@ def resolve_clock(wa, program, values):
 
 def clock_value(ops, time, frame=0):
     """Reference evaluation of a clock chain; returns the binary32 word. frame: [0x0bdc5ebc] (RENDER-ITEMS-002U)."""
+    import math
     f = i = d = None
     def trunc(x):
         return int(x) if -2147483648 <= x < 2147483648 else -2147483648
@@ -1190,6 +1272,9 @@ def clock_value(ops, time, frame=0):
         elif op == C_F_SUB: f = _f32(f - kf)
         elif op == C_F_RSUB: f = _f32(kf - f)
         elif op == C_F_RDIV: f = _f32(math_div(kf, f))
+        elif op == C_F_SIN: f = _f32(math.sin(f))
+        elif op == C_F_ABS: f = -f if 0 > f else f
+        elif op == C_F_FABS: f = abs(f)
         elif op == C_D_MUL: d = d * kd
         elif op == C_D_DIV: d = math_div(d, kd)
         elif op == C_D_ADD: d = d + kd
@@ -1311,13 +1396,13 @@ FRAME_TYPES += [0x0b68]
 COUNTER_RANGE_TYPES += [0x0b5c, 0x0b62, 0x1313, 0x1317, 0x1319]
 PRE_EXTENDED += [0x1313, 0x1317, 0x1319] + READ_PROGRAM_TYPES
 # RENDER-ITEMS-002X: carry the last draw into later helpers, with full supplementary probes.
-PRE_CARRY += [t for t in READ_PROGRAM_TYPES if t not in (0x0b29, 0x0b52)]
+PRE_CARRY += [t for t in READ_PROGRAM_TYPES if t not in (0x0b29, 0x0b4d, 0x0b52, 0x1314)]
 # These probes retain alpha/wave products and attribute nested pre-program ranges correctly.
-COUNTER_RANGE_TYPES += READ_PROGRAM_TYPES
+COUNTER_RANGE_TYPES += READ_PROGRAM_TYPES + OTHER_TYPES
 NAMED_NAMES = v.NAMED_MESH_NAMES
 _NAMED_VALUES = []
 
-def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=False, quality=9, record=(0, 0, 0)):
+def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=False, quality=9, record=(0, 0, 0), time_word=None):
     import math
     global _sample_state
     tags = []
@@ -1350,7 +1435,7 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=Fals
                     return
                 # RENDER-ITEMS-002U: blocks that read the rendered-frame counter, for FRAME_TYPES only
                 f = bisect.bisect_left(frames, address)
-                counter = _SAMPLE_TYPE[0] in FRAME_TYPES and f < len(frames) and frames[f] + 4 <= address + size
+                counter = (_SAMPLE_TYPE[0] in FRAME_TYPES or _SAMPLE_TYPE[0] in OTHER_TYPES) and f < len(frames) and frames[f] + 4 <= address + size
                 k = bisect.bisect_left(clocks, address)
                 if not counter and (k == len(clocks) or clocks[k] >= address + size):
                     return
@@ -1422,8 +1507,10 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=Fals
     if t in NAMED_TYPES:
         case['named_meshes'] = tuple(_NAMED_VALUES)
     case.update(item_level=lv << 3, quality=quality, option1=opt, ext=ext, record=record, a10=0xffffffff, a11=0xffffffff, render_type=(2, 0x102, 0x40042)[seed % 3])
+    if time_word is not None:
+        case['time'] = time_word
     case['object_hidden'] = (-1, 0, 2)[(seed // 3) % 3]
-    if t in FRAME_TYPES:
+    if t in FRAME_TYPES or t in OTHER_TYPES:
         # RENDER-ITEMS-002U: the rendered-frame counter varies in these types' probes (others keep the zero page).
         draw = random.Random(seed * 7919 + lv * 104729 + quality * 31 + opt * 3 + ext * 5 + (record[1] & 0xff))
         case['frame'] = draw.choice((0, 1, 2, 3, 15, 59, 60, 61, 0x7fffffff, 0x80000000, 0xffffffff,
@@ -1446,6 +1533,8 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=Fals
         if not groups or tag != groups[-1][0]:
             groups.append((tag, []))
         groups[-1][1].append(d)
+    if t in OMITTED_BASE_TYPES:
+        groups.insert(0, ('empty', []))
     if len(groups) == 3 and len(generic) == 5:
         groups[1:1] = [('empty', []), ('empty', [])]
     # Some armour branches return without the generic ancient helper. Keep an
@@ -1562,7 +1651,7 @@ def infer(samples):
 ALL_TYPES = (REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES + RANKED_TYPES + EXPANDED_TYPES +
              NEXT_TYPES + CLOCK_TYPES + CLUSTER_TYPES + WING_TYPES + VISIBLE_TYPES + SCALAR_TYPES +
              CHAIN_TYPES + LEVEL_TYPES + COLOUR_TYPES + CARRY_TYPES + QUALITY_TYPES + PRODUCT_TYPES + DERIVED_TYPES +
-             OWNER_FX_TYPES + PRE_FX_TYPES + POST_FX_TYPES + [0x1588] + list(NAMED_TYPES) + NO_GLOW_TYPES)
+             OWNER_FX_TYPES + PRE_FX_TYPES + POST_FX_TYPES + [0x1588] + list(NAMED_TYPES) + NO_GLOW_TYPES + HELPER_TYPES + OTHER_TYPES)
 
 
 def fit(wa, lib, t, scalars=False, carry=False, extended=False):
@@ -1601,7 +1690,7 @@ def fit(wa, lib, t, scalars=False, carry=False, extended=False):
                 # Kind 5: the value of the kind-4 program at index a times one binary32 light constant.
                 programs.append((5, ref, ((1, word),)))
         programs.extend(counter_colour_seeds(wa, t, programs))
-        if not programs and t not in DERIVED_TYPES:
+        if not programs and t not in DERIVED_TYPES and t not in OTHER_TYPES:
             return None
         rules = _fit(wa, lib, t, tuple(programs), None, carry, extended)
         # Part 16: words one binary32 operation away from an input become kind-6 programs.
@@ -1709,13 +1798,19 @@ def supplement(wa, lib, t, params, sites, carry, ss, phases):
     """Part 14: further probes for QUALITY_TYPES. Records of kind B 0x26/0x5b force glow
     level 9, so they reach helper phases the record-free probes skip (wings map levels
     0/7/13 to 0). Qualities 0-2 cap the glow level, and the further clocks separate
-    binary32 programs from the shared binary64 pulse. False when a probe is unusable."""
+    binary32 programs from the shared binary64 pulse. Later clock bodies also keep negative-zero probes:
+    a saved product and that product plus positive zero must remain distinct. False when a probe is unusable."""
+    probes = [(seed, None) for seed in SUPPLEMENT_SEEDS]
+    if t in LATER_READ_PROGRAM_TYPES or t in OTHER_TYPES:
+        # Both base phases, in addition to every existing probe. The actual xorps/addss
+        # chain is already parsed; these inputs prevent fitting its pre-add intermediate.
+        probes += [(seed, 0x80000000) for seed in SUPPLEMENT_SEEDS[:2]]
     for record in SUPPLEMENT_RECORDS:
         for quality in SUPPLEMENT_QUALITIES:
             for lv in (0, 7, 13):
-                for seed in SUPPLEMENT_SEEDS:
+                for seed, time_word in probes:
                     stream = sample(wa, lib, t, lv, seed, params=params, sites=sites, carry=carry,
-                                    quality=quality, record=record)
+                                    quality=quality, record=record, time_word=time_word)
                     if stream is None:
                         ss.append(None)
                         if sites is None:
@@ -1735,9 +1830,9 @@ def supplement(wa, lib, t, params, sites, carry, ss, phases):
             for opt, ext, phase, flags in ((1, 0, 3, 0x42), (0, 1, 4, 0x840)):
                 if ext and t in DIM_TYPES:
                     continue
-                for seed in SUPPLEMENT_SEEDS:
+                for seed, time_word in probes:
                     stream = sample(wa, lib, t, 0, seed, opt, ext, params=params, sites=sites, carry=carry,
-                                    quality=quality, record=record)
+                                    quality=quality, record=record, time_word=time_word)
                     if stream is None:
                         ss.append(None)
                         if sites is None:
@@ -1755,7 +1850,7 @@ def extract():
     for t in ALL_TYPES:
         fitted = fit(wa, lib, t, scalars=True,
                      carry='exit' if t in EXIT_TYPES else t in CARRY_TYPES or t in DERIVED_CARRY or t in PRE_CARRY,
-                     extended=t in QUALITY_TYPES or t in PRODUCT_TYPES or t in PRE_EXTENDED or t in NAMED_TYPES or t in NO_GLOW_TYPES)
+                     extended=t in QUALITY_TYPES or t in PRODUCT_TYPES or t in PRE_EXTENDED or t in NAMED_TYPES or t in NO_GLOW_TYPES or t in HELPER_TYPES or t in OTHER_TYPES)
         if fitted is not None:
             types[t] = fitted
     if set(types) != set(ALL_TYPES):
@@ -1782,6 +1877,8 @@ def render(types):
              ' * source=17 copies OBJECT alpha. source=18..20 copies pulsed body light; source=21 copies armour blend pulse. source=22..34 selects clock scalars; source=35 copies OBJECT hidden mesh;',
              ' * source=36.. selects the type\'s own scalar program (kind 1 = wave 0x0185bdc4(a,0), 2 = sin(time*a), then mul/add/sub/div, binary32 or op|8 binary64 with one final rounding;',
              ' * kind 3 = clock chain of op/k pairs, see gen_item_bodies.C_TIME_F..C_U2D (30..33: the rendered-frame counter);',
+             ' * clock ops 34/35/36 are binary32 sin, conditional abs and CRT fabs (distinct signed-zero rules);',
+             ' * kind 9 = wave(a, k[0] degrees), then ops 1..; scalar op 5 is k-value, 6 is a lower clamp;',
              ' * kind 8 = raw 0x012bd4a6 result for mu_rc_body_names[a], including -1;',
              ' * kind 4 = (float)(rand() % a) then binary32',
              ' * mul/add/sub/div, drawn once in each phase of its phases mask; kind 5 = the type\'s program a (kind 4)',

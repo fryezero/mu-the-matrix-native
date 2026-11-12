@@ -127,7 +127,7 @@ class ItemPreDraw(unittest.TestCase):
         self.assertTrue(any(fx[0] == 'refused' for fx in new))
 
     def test_admissions_and_existing_domain(self):
-        self.assertEqual(len(fxgen.PRE_FX_TYPES), 65)   # RENDER-ITEMS-002X: fourteen further programs
+        self.assertEqual(len(fxgen.PRE_FX_TYPES), 71)   # RENDER-ITEMS-002Y: six later read programs
         for t in fxgen.POST_FX_TYPES:
             self.assertEqual(self.draws(self.item(type=t))[0], 0, hex(t))
             self.assertEqual((self.lib.mu_rc_item_post_fx(t), self.lib.mu_rc_item_pre_fx(t)), (1, 0), hex(t))
@@ -141,7 +141,7 @@ class ItemPreDraw(unittest.TestCase):
             self.assertEqual(self.lib.mu_rc_item_owner_fx(t), 0, hex(t))
             for args in ({'a10': 0}, {'select': 1}, {'object_shadow': 1}):
                 self.assertEqual(self.draws(self.item(type=t, **args))[0], 2, (hex(t), args))
-        for t in (0x0ae6, 0x1bc3, 0x23f0, 0x2497, -1):
+        for t in (0x0ae6, 0x1bc3, 0x0b51, 0x23f1, -1):
             self.assertEqual(self.lib.mu_rc_item_pre_fx(t), 0, hex(t))
 
     def test_frame_counter_body_chains(self):

@@ -20,7 +20,7 @@ typedef struct mu_world_actor {
     int32_t session_slot;
     int16_t session_key;
     mu_actor actor;
-    /* Player-model NPCs use CreateMonster's extracted equipment, without becoming remote players. */
+    /* Assembled NPCs use their own skeleton or Player, with extracted parts. */
     mu_character *player;
     mu_renderchar_glow player_glow[MU_CHARACTER_ITEMS];
     int32_t server_class;
@@ -62,5 +62,9 @@ void mu_world_actors_step_one(mu_world_actors *actors, int32_t index, mu_rp_char
  * (external matrices) and run the effect node updates (dt per frame, the
  * client's 0.1). */
 void mu_world_actors_frame(mu_world_actors *actors, float effect_dt);
+
+/* Ordinary RenderObjDraw pass for a recovered composite NPC part. */
+int mu_world_actor_npc_part_draw(const mu_world_actor *actor, int slot, float alpha,
+    const mu_render_backend *backend, mu_draw_stats *stats);
 
 #endif

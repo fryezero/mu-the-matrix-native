@@ -419,3 +419,111 @@ loads are a bounded lead list, not a whole-client missing-model count. Next:
 trace each extra model into its construction/action/render and ownership path
 before adding a composite native actor. The native opener currently ports the
 action rules but does not execute these secondary loads, as section 1 records.
+
+## 11. Construction census and composite town NPCs, RENDER-ACTORS-004
+
+The [class census](actor-construction-census.csv) enumerates all 1,024 class
+selectors accepted by authored monster fixtures. It records the executed
+constructor or unresolved processor, model, opener, construction category and
+native status for each selector. This is a bounded construction census. It
+retains section 4's world-0/rand-0 and declining-map-processor assumptions;
+no server placements, spawnability or event state are inferred. The current
+constructor recorder includes the class-257 joint service added after the old
+section-4 extraction. It resolves 963 classes and leaves 61 original contexts
+unresolved. The current class table likewise has 963 rows. The historical
+949-row result in section 4 is not the current denominator.
+
+"Correct bounded body plan" means the separately checked ACTORS-001..004 body
+plan. "Incomplete/unverified special passes" includes generic body admissions
+whose complete RenderCharacter special behavior has not been proved. A plain
+construction path does not certify the absence of later special rendering.
+Six of those 61 contexts have separate EffectManager recipes in
+`effect_class_table.h`, which the native world loader resolves before the core
+class table. Their native overrides are named in the CSV. "Refused" includes
+the other 55 unresolved contexts, 13 no-opener classes, eight NPC indices without
+recovered file registrations and four ACTORS-003 recipes.
+These conservative categories prevent an opener inventory from becoming a
+whole-client visual-equivalence claim.
+
+| Native world body classification | Before ACTORS-004 | After |
+|---|---:|---:|
+| Checked bounded body plan | 28 | 33 |
+| Incomplete or unverified special passes | 916 | 911 |
+| Refused by the loader | 80 | 80 |
+| Fixture selector contexts | 1,024 | 1,024 |
+
+Repeated/default selectors remain in this denominator. It is not a count of
+unique registered creatures. Construction tags overlap: 768 plain body paths,
+144 equipment/part constructors, 56 special-appearance paths, 55 unresolved
+construction paths, 44 startup/no-opener paths, nine secondary-model class
+contexts, 14 extra-bitmap contexts, four auxiliary/action contexts, two
+companions and two excluded transformed-player action hooks. The CSV and its
+named sources define each category; these counts must not be summed.
+
+`scripts/actor_census.py` also enumerates all 601 OpenMonsterModel selectors and
+147 OpenNpc selectors in the [opener inventory](actor-opener-census.csv). Monster selectors complete with 16 synthetic actions.
+Eight NPC selectors stop on undeclared per-mesh state, as section 5 records.
+Secondary-model and sound/bitmap-loader counts describe calls to named services,
+not decoded resources or implemented consumers. All inputs use the shared
+`Pin.read` hashes identified above.
+
+### The five-class composite group
+
+OpenNpc's first three branches, starting at `0x01808ab5`, register the Female,
+Man and Girl skeletons, then their interleaved two-variant part models. The
+executed original loader records 22 secondary AccessModel calls. CreateMonster
+selects these parts in the following authored fixture classes:
+
+| Class | Skeleton | Selected part models, in original descending draw order |
+|---|---|---|
+| 230 | Man01, `0x9ff` | `0xa1d`, `0xa1c`, `0xa1a`, `0xa17` |
+| 248 | Man01, `0x9ff` | `0xa1e`, `0xa1c`, `0xa1a`, `0xa18` |
+| 250 | Man01, `0x9ff` | `0xa1d`, `0xa1b`, `0xa19`, `0xa17` |
+| 253 | Girl01, `0xa00` | `0xa23`, `0xa21`, `0xa1f` |
+| 255 | Female01, `0x9fe` | `0xa16`, `0xa12`, `0xa10`, `0xa0e` |
+
+Each constructor retains default object kind 1 and class byte zero, scale 0.9,
+level/option/ext zero. The constructor reference supplies CreateCharacter's proved default kind 1
+and checks that the generic branch retains it. It does not assume town kind 4. The original RenderCharacter caller
+executes from entry with authored alpha, frames, actions and world contexts.
+RenderObject is a named base-body/pose recorder, and stateful world services
+decline explicitly. The recorded part calls match the native recipe in order;
+the generic RenderObjDraw stream for all 15 selected distinct models is compared
+separately. This does not prove original temporal or pixel equivalence.
+
+Native admission uses the existing `mu_character` shared-pose mechanism with
+the corresponding NPC skeleton instead of Player. OpenNpc's recovered action
+speeds remain on the normal `mu_actor` animation object. Its frame/prior state
+feeds the composite skeleton; selected parts skin against those posed bones.
+The native host requires a zero-mesh base, nonempty selected geometry, zero
+missing textures, advancing matching animation frames and the requested alpha.
+It checks actual selected filenames. Unselected global variants need no
+per-instance load. The original root-only shadow call has no base meshes;
+new composite parts do not inherit the Player armour shadow pass.
+
+The five recipes are the largest class group in the audited secondary-opener
+set. The demo placement source explicitly names Female/Man/Girl assembly as
+missing. All three skeleton families use an authored world-0 town fixture here. No
+canonical placement is added by this lane. The nine monster openers in
+section 10 remain action/debris/effect leads. In the extracted class table only
+type 226 has classes, 595 and 635; neither appears in the shipped demo placement.
+Loading those extra models alone would not supply their missing behavior.
+
+### Limits
+
+Classes 374/642 still need companion lifetime, 378 needs cloth/aura and 617
+needs an exact startup file. The five new NPCs do not relax those refusals.
+Generic walking, head/weapon links, buff-driven appearance, fade/shadow parity,
+world-specific override state and complete special-pass fidelity remain
+separate from the proved constructor and part draw plans. The opener inventory
+must not be used as a total count of complete native actors.
+
+The composite admission is in the world actor loader. The standalone
+`mu-render actor` command retains its earlier base-model-only behavior. Use
+authored world fixtures for these five assembled NPCs.
+
+Class 617 was the closest file-only follow-up. None of the 740 completed
+ordinary opener executions in this census registers model `0x5ba`. This narrows
+the next search to startup or another registration path. Eight NPC openers
+remain unresolved, so this is not a whole-client absence claim. No filename
+was proved and class 617 remains refused.

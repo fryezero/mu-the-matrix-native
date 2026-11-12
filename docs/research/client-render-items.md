@@ -3261,6 +3261,118 @@ Checks, timings, affected rows, rendered differences and limits are recorded in
 [RENDER-EFFECTS-025](../handoffs/RENDER-EFFECTS-025.md). The default zero pre-bone record, original process phase,
 pose and unsampled requests remain explicit limits. Installed Preview and Wine apps are untouched.
 
+## Part 38, later read programs and body-caller helper flow, RENDER-ITEMS-002Y
+
+The verified subset adds 41 bodies. The prerequisite is #361, merged at `3732f82a`; main `626abce17f0a` is merged before the lane finishes. This is offline/static work over text SHA-256
+`2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724` and data SHA-256
+`c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f`.
+[Handoff, checks and limits](../handoffs/RENDER-ITEMS-002Y.md).
+
+### Six of the seven later read-program candidates
+
+The programs already read with the existing owner-program operations. Their body scalars needed additional
+byte-checked scalar forms, without increasing the 24-scalar, 12-operation or sixteen-draw limits.
+
+| Type | Pre-program start | Body rule |
+|---|---|---|
+| `0x0b4d` | `0x017a8fc7` | Signed half-period clock arithmetic, sine/CRT fabs UVs and binary32 products |
+| `0x1314` | `0x017a2ac9` | The saved wave result subtracted from 1 at `0x01757245..0x01757255` |
+| `0x230d`, `0x2497` | `0x01771ee0` | Sine followed by conditional abs and binary32 colour operations in the body helper |
+| `0x23f0`, `0x23f2` | `0x01774cf2` | Constant-phase wave and lower clamp at `0x016e94b3..0x016e94fd` |
+
+Kind 9 preserves the helper's separate degree-phase argument. `0x0185bdca..0x0185bdf6` multiplies phase by
+the binary32 degrees-to-radians constant, multiplies by 1,000, divides by the period coefficient, adds WorldTime,
+then truncates to the signed tick. Each SSE operation rounds separately. The existing signed remainder/cosine
+wave follows. The clamp is accepted only when the compared local, rewritten local and branch destination agree.
+Nearby instruction forms retain refusal; authored instruction fixtures exercise those boundaries.
+
+Clock ops 34/35/36 preserve binary32 sine, conditional abs `0x0184f8ff`, and CRT fabs through
+`0x0098a647 -> 0x0098a6d2 -> 0x01983660`. Conditional abs retains negative zero; CRT fabs clears its sign.
+The clock reader follows only these declared pure calls, their explicit stack operand and binary32 x87 store.
+It does not treat arbitrary calls as scalar expressions. A push or pop clears the tracked stack operand.
+
+The signed `cdq; sub; sar` half-local idiom remains symbolic until its entry local is resolved. The original
+immediate-store check still applies to that local; integer wrap/truncation and the existing chain cap remain.
+For `0x0b4d`, this reaches the half-period offset before its signed remainder and negative UV.
+
+`0x0b51` remains excluded. Its piecewise body-colour cycle starts with the 6,000-tick period at
+`0x0175f2e6`; the branches at `0x0175f320..0x0175f42c` need a runtime colour selection that the current fitted
+scalar forms do not establish. Reading its pre-program is not body admission.
+
+### Eight helper-count bodies
+
+The late body-caller override is distinct from the closed scalar remap chain. At
+`0x0176f2db..0x0176f306`, OBJECT type `0x26e6..0x26ec` changes every positive effective level to 7, at
+`0x0176f2fc`. Zero stays zero. This is after the earlier record and quality remapping. Applying a cap of 7,
+or forcing every raw level to 7, would both be wrong. The raw item and record are unchanged.
+
+The C body caller and its generic probe use that same late level before generating helper inputs.
+`mu_rc_item_glow_level` retains its earlier closed-chain contract. Independent cases include all raw levels,
+kind B `0x26/0x5b`, kind A 0/6, qualities 0/1/2/9 and both tail settings.
+
+`0x2368` omits its base draw while keeping the ordinary glow and option/ancient helpers. Its recorded body
+counts at quality 9 are zero at raw level 0, one at level 7 and four at level 13. The generator inserts an
+empty base group, then fits each remaining helper separately. The runtime uses the existing empty recipe.
+It does not merge helpers or invent a draw to match a count.
+
+The three-level diagnostic finds 61 types with some count disagreement, including stopped/effect paths.
+It is not a replacement denominator for the historical 48. A separate no-glow hypothesis admits none;
+only the exact omitted-base and late-caller rules above are carried forward.
+
+### Twenty-seven further bodies
+
+The further screen visits 182 candidates in census size order. These pass 292 independent states each,
+including independent frame counters: `0x0b09`, `0x0b0b`, `0x0b28`, `0x0b40`, `0x0b42`, `0x0b43`,
+`0x0b45`, `0x0b61`, `0x0eed`, `0x0efa`, `0x0f0b`, `0x10f2`, `0x1102`, `0x1505`, `0x1506`, `0x1509`,
+`0x1576`, `0x1577`, `0x1736`, `0x1746`, `0x192f`, `0x1b2f`, `0x212f`, `0x2568..0x256b`.
+They use existing scalar/product and carry operations; the new clock-sine reader supplies previously missing
+intermediate values. Twelve need the model fields left by the previous draw. None needs an increased cap.
+
+`0x1710` and `0x10fd` fit probes but fail independent states 19 and 17; neither is enabled. The four largest
+shield candidates and the four armour candidates from part 36 still refuse. Those failures remain next work,
+not additional coverage.
+
+### Signed-zero fits and earlier clock folds
+
+Directed negative-zero time exposed an ambiguous fit. The original sine and conditional-abs helpers
+both preserve negative zero. At `0x016fce1b..0x016fce1e`, the caller adds positive zero to its saved
+product with `xorps; addss`, clearing that zero sign. The reader already captured the addition;
+positive-clock probes had not distinguished its result from the pre-add intermediate. No global zero
+normalization or helper-semantics change is justified.
+
+For the six later read bodies and 27 other bodies, the supplementary fit retains every original probe
+and adds two negative-zero seeds for both base phases and the existing records/qualities/tails:
+3,564 additional original samples. Six chains retain their final zero addition: `0x230d`, `0x2497`,
+`0x2568..0x256b`. Complete regeneration emits 1,446 type rows, a 514,029-byte body header and the
+295,763-byte owner header. The zero-fit correction leaves the regenerated owner header unchanged. Scalar, operation, draw and audit caps are unchanged.
+
+The portable regression checks the `0x2568..0x256b` zero-light meshes at original textures
+`0x80de..0x80e1`; it is red before regeneration and passes afterward. All four complete original/native
+zero-time streams match exactly. A planted mistake removes zero additions from clock programs.
+Directed clocks use a neutral supported record: the broad random helper had included record kind 4,
+whose separate outer caller is still explicitly refused. All forcing-record cases are retained.
+
+Five earlier bodies, `0x0b0c`, `0x16fc..0x16fe` and `0x1b33`, now use one exact clock-sine chain each
+instead of an intermediate kind-6 program. Structural checks enumerate those five replacements;
+all 57 earlier derived bodies retain their 36,252 original comparisons. Kind-6 program count is
+113 rather than 118. The C-to-C sample changes no earlier type. The export changes exactly 41
+memberships and 31 shape totals; complete survey shapes rise from 609 to 640 of 798. Raw shapes,
+addresses and stopped-state summaries remain unchanged. Finish checks and walls are in the handoff.
+
+### Validation boundary
+
+Bodies move from 1,424 to 1,465 of 1,674, leaving 209: one read-program candidate, forty historical helper-count types and 168 others. Complete regeneration, forcing-record/clock/counter comparisons, all twenty changed-row mutants, C-to-C admission delta, classifier export, affected checks and the genuine-main default identity sweep pass. Final counts, source commits and walls are in the handoff.
+
+Comparisons execute the pinned RenderObjDraw and its body helpers under the established recording boundaries.
+They compare every draw word, model field at the recorded draws, ordered requests/refusals and scripted random
+consumption where a host is present. Host-free read-program bodies use the declared zero sequence; their
+nonzero complete programs are checked separately. These are finite state comparisons, not a proof over every
+possible process state. Existing selected-item, record, buff, pose, bone and absolute random/counter-phase
+limits remain. Unsupported contexts and native consumers retain explicit refusals.
+
+No original-client process, protection analysis, original memory access, service/packet work or character-power
+work is involved. No original pose or pixel equivalence is claimed, and no installed app is changed.
+
 ## Part 39, five later item particle consumers, RENDER-EFFECTS-026
 
 Offline/static only. Original instructions use pinned text SHA-256

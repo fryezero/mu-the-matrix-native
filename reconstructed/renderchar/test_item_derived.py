@@ -40,10 +40,13 @@ class ItemDerived(unittest.TestCase):
                 self.assertEqual(self.draws(self.item(type=t, **args))[0], 2, (hex(t), args))
 
     def test_programs_read_earlier_inputs(self):
-        """Every type has a kind-6 program, and each reads a float input or an earlier program."""
+        """The five folded sine chains are explicit; other types retain earlier-input derived programs."""
         for t in gen.DERIVED_TYPES:
             programs = quality.table_programs(t)
-            self.assertTrue(derived.derived_programs(t), hex(t))
+            if t in derived.CLOCK_REPLACEMENTS:
+                self.assertEqual(programs, [(3, 0)], hex(t))
+            else:
+                self.assertTrue(derived.derived_programs(t), hex(t))
             for index, (kind, a) in enumerate(programs):
                 if kind == 6:
                     self.assertTrue(a in gen.DERIVED_SOURCES or 35 <= a < 35 + index, (hex(t), index, a))
