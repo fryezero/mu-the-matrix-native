@@ -432,6 +432,10 @@ void mugfx_start(MuGfx *g)
         g->win_x = 348;
         g->win_y = 40;
         call(g, "requestWindowPos", "[348.0,40.0]");
+    } else if (is(g, "CommandWindow") || is(g, "MatchingSelect") || is(g, "GensRanking") ||
+               is(g, "PetInventoryFrame") || is(g, "GremoryCase")) {
+        char args[96]; snprintf(args, sizeof args, "[\"g_%s\"]", g->name);
+        call(g, "UIInit", args);
     } else if (is(g, "HelpWindow")) {
         call(g, "UIInit", "[\"g_mcHelpWindow\"]");
     } else if (is(g, "InfoPopup")) {
