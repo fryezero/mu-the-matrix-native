@@ -3502,7 +3502,6 @@ args = ["--mutations", "--report", "{report}"]
 "families.credits.sounds" = 71
 "mutants" = {len = 10}
 
-<<<<<<< HEAD
 [validate_render_effects26]
 test = "native/tests/test_render_effects26.py::ClientComparison.test_original_instructions"
 pins = ["text", "data", "flag", "feature"]
@@ -3519,7 +3518,7 @@ note = "RENDER-EFFECTS-026: five later item particle create/move/render branches
 all_equal = true
 all_mutants_caught = true
 "mutants.*.stopped" = 0
-=======
+
 [validate_render_effects28]
 test = "native/tests/test_render_effects28.py::ClientComparison.test_original_instructions"
 pins = ["text", "data"]
@@ -3548,4 +3547,3 @@ args = ["--cases", "1000", "--mutations", "--output", "{report}"]
 [validate_muun_passes.expect]
 all_equal = true
 all_mutants_caught = true
->>>>>>> origin/main
