@@ -116,7 +116,7 @@ def inventory(text, data, root=ROOT):
                      'audio_003_adapter': site in added})
     counts = Counter((r['owner'], r['native_reference']) for r in rows)
     return {'method': 'direct E8 candidates; exact anchors with explicit unresolved remainder',
-            'text_sha256': pins.TEXT.sha256, 'total': len(rows),
+            'text_sha256': pins.TEXT.sha256, 'data_sha256': pins.DATA.sha256, 'total': len(rows),
             'mapped_audio_sites': sum(r['audio_adapter'] for r in rows),
             'added_audio_sites': sum(r['audio_003_adapter'] for r in rows),
             'summary': [{'owner': owner, 'native_reference': native, 'sites': n}

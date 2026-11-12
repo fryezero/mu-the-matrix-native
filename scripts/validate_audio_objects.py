@@ -155,9 +155,14 @@ def main():
         families, corpus, errors = check(args.cases, adapter, text, data)
         # Cross-world/id refusals and ordered multi-event delivery supplement
         # the actual callers, whose current cases emit at most one request.
-        for world, ids in [(51, [0x317, 0x318, 0x313]), (143, [0x5a7, 0x5a8]),
-                           (0, [0x317, 0x5a5]), (80, [0x5a5]), (138, [0x570])]:
-            expected = decode(adapter, world, ids)
+        for world, ids, expected in [
+            (51, [0x317, 0x318, 0x313], [(0xe34169,0xe3425f,0x317,-3,1),
+                                      (0xe34169,0xe3427c,0x318,-3,1), (0xe34169,0xe342ec,0x313,-3,1)]),
+            (143, [0x5a7, 0x5a8], [(0xe0ed1c,0xe0f465,0x5a7,-2,0), (0xe0ed1c,0xe0f478,0x5a8,-2,0)]),
+            (0, [0x317, 0x5a5], []), (80, [0x5a5], []), (138, [0x570], [])]:
+            actual = decode(adapter, world, ids)
+            if actual != expected:
+                errors.append({'supplemental_world': world, 'expected': expected, 'actual': actual})
             corpus.append((world, ids, expected))
         seen = {row[1] for _, _, rows in corpus for row in rows}
         if len(seen) != 16:

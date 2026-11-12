@@ -158,6 +158,45 @@ class ObjectAudio(unittest.TestCase):
                             '--report', str(Path(temp)/'report.json')], cwd=ROOT, check=True, capture_output=True)
 
 
+class ObjectWorldDelivery(unittest.TestCase):
+    def test_actual_world_part_delivers_loop_and_keeps_frames(self):
+        from test_native_npc import write_npc_world, PLACE
+        from test_native_terrain import write_world
+        from test_native_objects import obj_plain, write_models
+        subprocess.run(['make','-s','-j4','-C',str(NATIVE),'build/mu-walk'],check=True)
+        with tempfile.TemporaryDirectory(prefix='audio-object-world-') as temp:
+            folder = Path(temp)
+            root = write_npc_world(folder/'game')
+            write_world(root,52)
+            write_models(root,52,['Object57.bmd'])
+            objects = folder/'objects';objects.mkdir()
+            (objects/'EncTerrain52.plain').write_bytes(obj_plain(52,[(56,12000.,12000.,0.,0.,1.)]))
+            placement = folder/'placement.txt';placement.write_text(PLACE)
+            wav = root/'loop.wav';wav.write_bytes(constant_wav(.125,80,rate=8000))
+            table = folder/'table.tsv';table.write_text(f'sound\t{0x319}\t{wav.name}\t1\t1\t0\n')
+            hashes = []
+            for enabled in (True,False):
+                tag = 'on' if enabled else 'off';log = folder/(tag+'.jsonl')
+                command = [str(NATIVE/'build/mu-walk'),'--game-root',str(root),'--headless','--backend','soft',
+                           '--world','51','--placement',str(placement),'--objects-dir',str(objects),
+                           '--width','64','--height','64','--frames','24','--every','12','--tile','120,120',
+                           '--out-dir',str(folder/tag),'--sound-table',str(table)]
+                if not enabled: command += ['--no-audio']
+                result = subprocess.run(command,capture_output=True,text=True,
+                                        env=dict(os.environ,MU_AUDIO_CUE_LOG=str(log)))
+                self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+                reports = [json.loads(line) for line in result.stdout.splitlines() if line.startswith('{')]
+                hashes.append([row['sha256'] for row in reports if 'sha256' in row])
+                if enabled:
+                    rows = [json.loads(line) for line in log.read_text().splitlines()]
+                    plays = [row for row in rows if row['op']=='play' and row['site']==0xe34290]
+                    self.assertGreater(len(plays),1)
+                    self.assertTrue(all(row['loop']==1 and row['handler']==0xe34169 and row['cue_seq']>=0 for row in plays))
+                    self.assertEqual([row['result'] for row in plays],[1]+[0]*(len(plays)-1))
+            self.assertTrue(hashes[0])
+            self.assertEqual(hashes[0],hashes[1])
+
+
 class ZoneMusic(unittest.TestCase):
     def test_static_zones_switch_decode_and_preserve_same_track(self):
         subprocess.run(['make', '-s', '-j4', '-C', str(NATIVE), 'audio'], check=True)

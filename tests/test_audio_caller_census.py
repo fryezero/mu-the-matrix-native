@@ -4,6 +4,7 @@ from pathlib import Path
 import struct
 import sys
 import unittest
+from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT/'scripts'))
 import audio_caller_census as census
@@ -18,6 +19,10 @@ class AudioCensus(unittest.TestCase):
         struct.pack_into('<i', payload, 11, census.PLAY+1 - (census.BASE+15))
         payload[-1] = 0xe8
         self.assertEqual(census.call_sites(payload), [census.BASE])
+        for base, count in [(census.OPAQUE[0], 0), (census.OPAQUE[1], 1)]:
+            call = b'\xe8' + struct.pack('<i', census.PLAY - (base+5))
+            with patch.object(census, 'BASE', base):
+                self.assertEqual(len(census.call_sites(call)), count)
 
     @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'Pinned census is opt-in')
     def test_pinned_inventory_keeps_unresolved_and_new_sites_separate(self):
