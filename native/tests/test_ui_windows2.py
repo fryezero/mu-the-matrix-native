@@ -37,7 +37,7 @@ class PresentationWindows(unittest.TestCase):
             run = subprocess.run([str(host), str(movies), str(lib)], capture_output=True, text=True,
                                  env={**os.environ, "MU_WINDOWS2_REAL": "1" if real else "0"})
             self.assertEqual(run.returncode, 0, run.stdout+run.stderr)
-            self.assertIn('408 inert callbacks', run.stdout)
+            self.assertIn('416 inert callbacks', run.stdout)
 
     def test_production_firewall_navigation_focus_and_sound_owner(self):
         self.run_host()

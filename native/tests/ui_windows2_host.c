@@ -34,6 +34,12 @@ int main(int argc,char **argv)
         snprintf(field,sizeof field,"%s.mcGuildInfoFrameClass.tfGuildName.text",L->mv[MU_GFX_GUILD_MATCH].path);
         v=L->api.get_variable(L->mv[MU_GFX_GUILD_MATCH].g,field);
         assert(v && strstr(v,"None"));
+        for(int i=1;i<=15;i++) {
+            char expected[32];snprintf(expected,sizeof expected,"Class %d",i);
+            snprintf(field,sizeof field,"%s.mcRecruitMenu.cbClass%d.label",L->mv[MU_GFX_MATCH_GUILD].path,i);
+            v=L->api.get_variable(L->mv[MU_GFX_MATCH_GUILD].g,field);
+            assert(v && strstr(v,expected));
+        }
     }
     foreign=0;
     mu_gfx_hero before=*mu_gfx_layer_hero(L);
@@ -48,7 +54,7 @@ int main(int argc,char **argv)
         "onClickbtnOKRequestWait","onClickbtnCancelRequestWait","onClickbtnDeleteRequestWait",
         "onClickbtnHighLight","setCheckBox","changeMap","unknown","onClickbtnDisband","onClickbtnPosition","onClickbtnClear","onClickbtnFire",
         "onClickbtnUnionDisbandGuild","onClickbtnUnionDisbandUnion","onClickbtnRivalAdd","onClickbtnRivalDelete",
-        "onClickbtnRandomParty","onClickbtnInfoCheck","onClickbtnJoinState","onClickbtnShowInputPossible"};
+        "onClickbtnRandomParty","onClickbtnInfoCheck","onClickbtnJoinState","onClickbtnShowInputPossible","onClickbtnEntryList"};
     int refused=0;
     for(int m=MU_GFX_MACRO;m<MU_GFX_MOVIES;m++) {
         if(!L->mv[m].g || !*L->mv[m].path) fprintf(stderr,"missing %d %s path=%s\n",m,FILES[m],L->mv[m].path);

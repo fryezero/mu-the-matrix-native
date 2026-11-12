@@ -176,7 +176,7 @@ static void presentation_fixture(mu_gfx_layer *L, int m)
         presentation_set(L,m,"tiPassword.disabled","true");
         break;
     case MU_GFX_MATCH_GUILD:
-        invokef(L,m,w->path,"InitRecruitText","[{\"title\":\"Offline preview\",\"mentInput\":\"Not saved\",\"guildMent\":\"Guild ment\",\"recruitInterest\":\"Recruit interest\",\"recruitLevel\":\"Recruitment\",\"recruitClass\":\"Recruit class\",\"cbLevelUp\":\"Cb level up\",\"cbEventMap\":\"Cb event map\",\"cbPvP\":\"Cb pv p\",\"arkaBattle\":\"Arka battle\",\"siegeWar\":\"Siege war\",\"cbLevel01\":\"Cb level01\",\"cbLevel02\":\"Cb level02\",\"cbLevel03\":\"Cb level03\",\"cbLevel04\":\"Cb level04\",\"cbLevel05\":\"Cb level05\",\"btnRecruitOK\":\"Recruit ok\",\"btnRecruitCancel\":\"Recruit cancel\",\"btnEntryList\":\"Entry list\"}]");
+        invokef(L,m,w->path,"InitRecruitText","[{\"title\":\"Guild matching - preview\",\"mentInput\":\"Not saved\",\"guildMent\":\"Notice\",\"recruitInterest\":\"Interests\",\"recruitLevel\":\"Level filters\",\"recruitClass\":\"Demo class filters\",\"cbLevelUp\":\"Level up\",\"cbEventMap\":\"Events\",\"cbPvP\":\"PvP\",\"arkaBattle\":\"Arca battle\",\"siegeWar\":\"Siege\",\"btnRecruitOK\":\"Unavailable\",\"btnRecruitCancel\":\"Unavailable\",\"btnEntryList\":\"Unavailable\",\"cbLevel01\":\"Bracket 1\",\"cbLevel02\":\"Bracket 2\",\"cbLevel03\":\"Bracket 3\",\"cbLevel04\":\"Bracket 4\",\"cbLevel05\":\"Bracket 5\",\"cbClass01\":\"Class 1\",\"cbClass02\":\"Class 2\",\"cbClass03\":\"Class 3\",\"cbClass04\":\"Class 4\",\"cbClass05\":\"Class 5\",\"cbClass06\":\"Class 6\",\"cbClass07\":\"Class 7\",\"cbClass08\":\"Class 8\",\"cbClass09\":\"Class 9\",\"cbClass10\":\"Class 10\",\"cbClass11\":\"Class 11\",\"cbClass12\":\"Class 12\",\"cbClass13\":\"Class 13\",\"cbClass14\":\"Class 14\",\"cbClass15\":\"Class 15\"}]");
         invokef(L,m,w->path,"InitSearch","[\"Guild matching - offline preview\",\"Empty demo catalogue\",\"\",\"No guilds\",\"Search\",\"Recruit\",\"Unavailable\",\"Unavailable\",\"Join statee\",\"Unavailable\"]");
         invokef(L,m,w->path,"ClearAllGuildList","[]");
         invokef(L,m,w->path,"SetPageSelect","[1,1]");
@@ -206,7 +206,7 @@ static void presentation_fixture(mu_gfx_layer *L, int m)
     }
     if (m==MU_GFX_MATCH_PARTY || m==MU_GFX_MATCH_GUILD || m==MU_GFX_GUILD_MATCH) {
         static const char *const controls[]={"btnSearch","btnRefresh","btnRecruitOK","btnRecruitCancel",
-            "btnJoin","btnJoinCancel","btnRandomParty","btnPartyRecruitSave","tiSearchInput",
+            "btnEntryList","btnJoin","btnJoinCancel","btnRandomParty","btnPartyRecruitSave","tiSearchInput",
             "tiPassword","tiMentInput","tiMinLevel","tiMaxLevel","cbUsePW","cbAutoJoin","cbEnergyElf","cbMandate"};
         for (size_t i=0;i<sizeof controls/sizeof *controls;i++) {
             char field[128];snprintf(field,sizeof field,"%s.disabled",controls[i]);

@@ -84,3 +84,14 @@ original route/sound decisions. A short MacroSub caption now reads "Read only".
 Left: final rebuild, selected validator confirmation, default identity,
 final native capture inspection, audit, final ledger and PR-ready handoff.
 No installed bundle or live client has been changed by this lane.
+
+### Final visual correction, 22:59
+
+The full window capture tour exposed fifteen missing dynamic class-label
+keys on MatchingGuild's Recruit tab. Its authored provider now supplies
+`cbClass01..cbClass15`, labelled Class 1..15 as demo categories, and its
+application-list action is disabled and explicitly refused. The real-movie
+regression reads every label after ten ticks. Final focused controller
+suite passes 4/4 in 3.94 s, with 416 refused callbacks per host.
+The earlier 230/230 identity was valid at `e658680e`; compare the same
+baseline hashes to a rebuilt final binary after this data-only correction.
