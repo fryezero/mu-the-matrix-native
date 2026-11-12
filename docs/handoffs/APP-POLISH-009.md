@@ -104,3 +104,33 @@ checks with the seed-header 6b closure; rerun affected no-mutant validators and
 portable suites; private AppPolish9 and the focused skills/UI checks. Layout
 mutants already passed 10/10 and their compiled inputs are unchanged. Then
 captures, default identity, final docs/audit/PR/ready line. No ready entry exists.
+
+## WIP checkpoint, 2026-11-11 23:20 Chicago
+
+Merged latest main `fb747e42` as `d2b5fd0c`, retaining every upstream validator
+and APP-POLISH-009's row. Manifest parses with 227 entries and no conflict markers.
+Upstream includes AUDIO-003, INNER-002 and prior actor/Muun/aura work, so earlier
+compiled-input checks need a post-merge selection/rerun. Production metadata fix
+is in `2919c022`; current test/merge head includes `dfaaabee` and `d2b5fd0c`.
+
+New portable metadata unit passed in 0.276 s, command 0.371 s. Root rebuild
+16.925 s, client/world rebuild 24.487 s. Actual five-character check now agrees
+on names, profiles and Windleaf's 320/318; its remaining HP-line assertion failed
+because original charinfo.tsv masks rows 26/27/34/35 out for all classes. Verified
+that mask and the actual SetName feed. The test now checks original active level,
+points and stat rows, conditionally checking HP only if the asset enables it.
+No row is invented or enabled. This corrected test still needs a passing rerun.
+
+Endpoint captures inspected, opaque, demo Ironclad only: 640x480 and 2560x1440,
+23.759 s. Small SHA-256 `479d107cd7b3c499e732c015b8906395376816386647b4d126b73e658c21112d`,
+large `2b4aa4da31eea1fb6a6c3e514eb1caea70e598ad7d624240e99b17a40877e1ae`.
+They are in the lane's renders directory and predate this upstream merge; layout
+and fixture sources were unchanged by that merge. Final captures can supersede them.
+
+Temporary control worktree `~/Documents/MTM/worktrees/app-polish-009-base` is
+owned by this lane, detached at `fb747e42`, and building in the foreground. This
+replaces the unused d4af71dd baseline before the ONLY default identity sweep,
+so inbound world/audio visuals cannot be mistaken for this lane's changes.
+No before sweep has run yet. Finish the control build, rebuild this branch,
+run corrected private tests, affected post-merge validators and portable tests,
+identity, final docs/audit/PR/ready line. Keep respecting the 02:15/02:30 cutoff.
