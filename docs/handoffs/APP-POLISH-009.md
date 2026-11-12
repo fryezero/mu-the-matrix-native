@@ -290,3 +290,17 @@ Wine player app and staged Wine app were not changed. Proofs and reports are
 summarized here; per the brief, the lane's scratch/renders/build outputs and
 both owned worktrees/local branch are removed after the ready entry. No private
 artifact from this lane is needed as a later input.
+
+## WIP: actor-core integration before publication, 2026-11-12 01:03 Chicago
+
+Main advanced to `c35458a0` (#381) before creating the PR. Merged it; only shared
+status conflicts required resolution, preserving both lanes. No authored UI,
+fixture or mutant-target changes. The earlier final UI proofs stay valid at
+their recorded heads. New Actor-004 functions change compiled world/core inputs,
+so select changes since the last tested `1f42e17b`, retain every selected row,
+run them without mutants, and run the affected portable modules plus private
+DemoOwnership and the incoming actor modules. Rebuild root and client/world.
+Then refresh endpoint captures and after files against the retained once-only
+626abce1 before baseline. Actor-004's own identity evidence shows no changes
+beyond the INNER-002 behavior already in that baseline. Finish audit/docs/PR/link/
+ready/cleanup before 02:15; otherwise push WIP and stop by 02:30. No PR/ready entry.
