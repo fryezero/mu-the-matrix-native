@@ -208,7 +208,7 @@ with that flag, 1.88 s, and pass with only the flag removed, 1.42 s. The queue n
 Both private UI modules pass 7/7 in 9.06 s. The final 54-view replay takes 90.22 s plus 0.29 s comparison:
 all 108 PNGs, 108 OBJECT/light dumps and 54 normalized reports are byte-identical to the pre-UI2 after outputs.
 Thus every before/after result and original-reference score above remains the final lane result. No production source change is needed for this environment correction.
-Final main-integrated mu-world SHA-256: `fb59df136c01b9e582b7d31f10172760fb43fe4c86a9925afe4454f5785ab263`.
+UI2-integrated mu-world SHA-256: `fb59df136c01b9e582b7d31f10172760fb43fe4c86a9925afe4454f5785ab263`.
 It is distinct from the before and pre-UI2 binaries. No object producer, adapter or mutant target changed in either integration.
 
 | Overlapping validator at `1db14727` | Reported cases | Wall s |
@@ -219,6 +219,39 @@ It is distinct from the before and pre-UI2 binaries. No object producer, adapter
 | `validate_movement` | 6614 | 52.2 |
 | `validate_render_effects16` | 424 | 3.5 |
 
+
+ACTORS-004 main `c35458a0` merged as `c8b8cd12dff2c22b1865a4cdf679a3ec4530a46a`, keeping both status entries.
+Root/world builds pass in 13.35 / 3.92 s. Its selector took 64.90 s and retained eighteen overlapping rows,
+including both fallbacks. All eighteen pass without mutants in 174.94 s. The affected portable run passes
+1,518 tests, 1,261 passed / 257 expected skips, zero failures/errors, 459.97 s including selection and
+400.7 s test wall. The new private actor module passes 3/3 without skips in 5.64 s. Its 54-view replay takes
+77.28 s plus 0.26 s comparison: all 108 PNGs, 108 dumps and 54 normalized reports are identical to UI2.
+The final binary is `1106199bf3a7529aef06891e31a2c423301294d7ef4f6c2e621f224a80b9a327`.
+The world producer/adapter and mutant targets remain unchanged.
+
+| Overlapping validator at `c8b8cd12` | Reported cases | Wall s |
+|---|---:|---:|
+| `validate_actor_recipes` | 1669 | 96.4 |
+| `validate_audio_callers` | 5528 | 5.2 |
+| `validate_audio_domains` | 2544 | 19.2 |
+| `validate_audio_items` | 3000 | 2.7 |
+| `validate_audio_objects` | 4000 | 2.8 |
+| `validate_charsel_items` | 8817 | 7.9 |
+| `validate_icarus_c2` | 8400 | 13.0 |
+| `validate_inventory_fx` | 8017 | 6.8 |
+| `validate_item_callers` | 6013 | 1.2 |
+| `validate_items_ui` | 8517 | 9.2 |
+| `validate_movement` | 6614 | 57.8 |
+| `validate_render_effects16` | 424 | 3.1 |
+| `validate_render_effects17` | 618 | 6.6 |
+| `validate_render_effects18` | 540 | 1.0 |
+| `validate_render_effects19` | 400 | 0.8 |
+| `validate_render_effects24` | 226 | 2.6 |
+| `validate_render_effects25` | 202 | 7.6 |
+| `validate_render_effects28` | 630 | 2.6 |
+
+Final own-range selection retains all original 68 rows and adds `validate_actor_composites`, which was newly
+registered on main. Its no-mutant run is pending; the original/mutant targets are the incoming actor lane's.
 
 ## Limits and next
 
@@ -245,11 +278,11 @@ remains unverified. Do not invent a leaf or event model to close those rows.
 
 ## WIP
 
-- Done: implementation, original/compiled-mutant/affected/private checks, both UI integrations, all render
-  proofs, documentation consumers and audit on UI2 main. The final UI2 replay preserves 108 images/dumps and
-  54 reports.
-- Left: newly merged ACTORS-004 integration and its overlapping checks/replay, final audit/PR/cleanup.
-- Next: merge main c35458a0, keep both status entries, and check only changed compiled inputs.
+- Done: four world producers, original/compiled-mutant/private checks, initial 68 validators and portable
+  suite, all render proofs, both UI integrations and ACTORS-004 with eighteen passing overlaps, 1,518 passing
+  portable tests and three private actor tests. Both main replays preserve 108 images/dumps and 54 reports.
+- Left: the one newly selected actor validator, final documentation checks/audit, PR and cleanup.
+- Next: run validate_actor_composites without mutants, update the 69-row steward list, then finalize and publish.
 
 ## WIP checkpoint history and cleanup
 
@@ -258,6 +291,9 @@ remains unverified. Do not invent a leaf or event model to close those rows.
 - `b41083f2`: all 68 affected validators and 1,661 portable tests; render analysis, final integration/docs/PR left.
 - `3cedc070`: all four render proofs and latest-main overlap checks; corrected integration test environment
   and final UI replay/docs/PR left. No object source changed.
+
+- `ff036d7c`: completed UI integrations, render proofs, documentation consumers and the pre-actor audit;
+  new ACTORS-004 integration left.
 
 Each checkpoint was committed and pushed with a WIP done/left/next section. No new private input needs
 retention. Lane scratch/renders/builds are disposable and will be removed at handback, along with the worktree
