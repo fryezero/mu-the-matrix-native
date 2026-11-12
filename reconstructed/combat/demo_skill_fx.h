@@ -8,7 +8,7 @@ enum { MU_SKILL30_ARROW = 0x0158d5bd, MU_SKILL30_MAX_CALLS = 40 };
 typedef struct mu_skill30_input {
     int32_t skill, base, learned_index, owner, model, action;
     uint8_t attack_time, tile[2];
-    uint16_t target_key;
+    uint16_t target_index; /* CHARACTER +0x40: client character-table index */
     float frame, prior_frame, position[3], angle[3], light[3];
 } mu_skill30_input;
 typedef struct mu_skill30_call {
@@ -16,7 +16,7 @@ typedef struct mu_skill30_call {
     uint32_t site;             /* sound provenance, zero for other calls */
 } mu_skill30_call;
 typedef struct mu_skill30_plan {
-    int32_t count, limit, target_key;
+    int32_t count, limit, target_index;
     mu_skill30_call calls[MU_SKILL30_MAX_CALLS];
 } mu_skill30_plan;
 /* Phase 0: attack-step helper; phase 1: selected end-of-attack body.

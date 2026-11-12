@@ -27,12 +27,12 @@ F3 = C.c_float * 3
 PAIRS = [(24,24),(48,48),(51,51),(52,52),(344,344),(416,52),(424,51)]
 class Input(C.Structure):
     _fields_ = [(n,C.c_int32) for n in ['skill','base','learned_index','owner','model','action']] + [
-        ('attack_time',C.c_uint8),('tile',C.c_uint8*2),('target_key',C.c_uint16),
+        ('attack_time',C.c_uint8),('tile',C.c_uint8*2),('target_index',C.c_uint16),
         ('frame',C.c_float),('prior_frame',C.c_float),('position',F3),('angle',F3),('light',F3)]
 class Call(C.Structure):
     _fields_ = [('visual',fx.Call),('site',C.c_uint32)]
 class Plan(C.Structure):
-    _fields_ = [('count',C.c_int32),('limit',C.c_int32),('target_key',C.c_int32),('calls',Call*40)]
+    _fields_ = [('count',C.c_int32),('limit',C.c_int32),('target_index',C.c_int32),('calls',Call*40)]
 class Machine(fx.FxMachine):
     def stub_entry(self,uc,address,size,ignored):
         if address in (0x13aea7a,0x13b1911) and address in self.stubs:
@@ -68,12 +68,12 @@ def compare(text,data,lib,cases):
             s=Input();s.skill,s.base=raw,base;s.owner=0;s.model=rng.choice([0xa91,0x7b7])
             s.action=rng.choice([0x6e,0x6f,0x9c,0x11d,0x132,0x133]);s.attack_time=n%18
             s.frame=rng.choice([0.,4.,4.999,5.,6.,float('nan')]);s.prior_frame=3.
-            s.tile[:]=[rng.randrange(256),rng.randrange(256)];s.target_key=rng.randrange(65536)
+            s.tile[:]=[rng.randrange(256),rng.randrange(256)];s.target_index=rng.randrange(65536)
             s.learned_index=rng.choice([0,1,7,13,149])
             for k in range(3):
                 s.position[k]=fx.f32(rng.uniform(0,25000));s.angle[k]=fx.f32(rng.uniform(0,360));s.light[k]=fx.f32(rng.uniform(0,1))
             char=am.undefined_region('character',CHAR,0x3670)
-            for off,b in [(0x21,bytes([s.attack_time])),(0x26,struct.pack('<H',raw)),(0x40,struct.pack('<H',s.target_key)),
+            for off,b in [(0x21,bytes([s.attack_time])),(0x26,struct.pack('<H',raw)),(0x40,struct.pack('<H',s.target_index)),
                           (0x2f,bytes(s.tile))]:char.define(CHAR+off,b)
             obj=am.undefined_region('object',fx.OBJECTS,0x400)
             for off,b in [(0x5c,struct.pack('<i',s.model)),(0x2a,struct.pack('<H',s.action)),
@@ -112,7 +112,7 @@ def compare(text,data,lib,cases):
                 cr=result['regions']['character'];ob=result['regions']['object']
                 fields=[(s.attack_time,cr[0x21]),(s.frame,struct.unpack_from('<f',ob,0xd0)[0]),
                     (s.prior_frame,struct.unpack_from('<f',ob,0xd4)[0]),
-                    (plan.target_key if plan.target_key>=0 else 65535,struct.unpack_from('<H',ob,0x364)[0])]
+                    (plan.target_index if plan.target_index>=0 else 65535,struct.unpack_from('<H',ob,0x364)[0])]
                 if any(not fx.same(a,b) for a,b in fields):error=('state',fields)
                 if not vc._same_call(client,mine):error=('calls',client[:3],mine[:3],len(client),len(mine))
                 if not end and plan.limit!=struct.unpack('<i',result['regions']['cutoff'])[0]:error=('limit',plan.limit)
@@ -185,7 +185,7 @@ MUTANTS=[('s->attack_time == 3','s->attack_time == 2'),('p->limit = 5;','p->limi
     ('c->range = s->learned_index;','c->range = s->skill;'),('n < 36','n < 35'),
     ('n % 20 == 0','n % 19 == 0'),('(float)n * 10.0f','(float)n * 9.0f'),
     ('c->scale = 60.0f','c->scale = 50.0f'),('c->position[2] += 100.0f','c->position[2] += 90.0f'),
-    ('c->arg7 = 0;','c->arg7 = -1;'),('p->target_key = s->target_key','p->target_key = 0'),
+    ('c->arg7 = 0;','c->arg7 = -1;'),('p->target_index = s->target_index','p->target_index = 0'),
     ('+ 0.5f) * 100.0f','+ 0.4f) * 100.0f'),('0x583, 0','0x584, 0'),
     ('skill == 416 && base == 52','skill == 416 && base == 51')]
 def run(cases,mutations):

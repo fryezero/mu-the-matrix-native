@@ -26,7 +26,7 @@ static void arrow(mu_skill30_plan *p, const mu_skill30_input *s, int flag)
 }
 int mu_skill30_plan_cast(mu_skill30_input *s, int end, mu_skill30_plan *p)
 {
-    memset(p, 0, sizeof *p); p->limit = 15; p->target_key = -1;
+    memset(p, 0, sizeof *p); p->limit = 15; p->target_index = -1;
     if (!mu_skill30_select(s->skill, s->base)) return 0;
     if (!end) {
         if (s->base == 344) s->attack_time = 15; /* 0x0139b2fd */
@@ -66,7 +66,7 @@ int mu_skill30_plan_cast(mu_skill30_input *s, int end, mu_skill30_plan *p)
         p->calls[p->count-1].site = 0x013aa2a7;
         p->calls[p->count-1].visual.owner = -1;
     } else {
-        if (s->base == 51) p->target_key = s->target_key;
+        if (s->base == 51) p->target_index = s->target_index;
         if (s->base == 24) arrow(p, s, 1); /* intentional fallthrough at 0x013af9fe */
         arrow(p, s, 0);
     }

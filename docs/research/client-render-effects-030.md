@@ -72,7 +72,7 @@ RenderCharacter consumer. Priorities estimate repeated use, not telemetry.
 | Elf | 34 Summon Dark Knight | 1 | M | D / `0x013a9449` | Same summon owner gap |
 | Elf | 35 Summon Bali | 1 | M | D / `0x013a9449` | Same summon owner gap |
 | Elf | 36 Summon Soldier | 1 | M | D / `0x013a9449` | Same summon owner gap |
-| Elf | 51 Ice Arrow | 4 | M | D / `0x013afa2c` | Missing target-key write and single-arrow caller |
+| Elf | 51 Ice Arrow | 4 | M | D / `0x013afa2c` | Missing target-index write and single-arrow caller |
 | Elf | 52 Penetration | 4 | M | `0x01399ca2` / `0x013af9fe` | Missing step-3 charge `0x7fd0/0`, five-step cutoff and subtype-2 arrow caller |
 | Elf | 2044 Raining Arrow of Saturation | 5 | P | Receive visual slice `0x0125f5d1`; `0x014d1a18` | Authored ground-volley route, rings, rain, landings and decals |
 
@@ -93,7 +93,7 @@ inputs; a masked class nibble alone is not admission evidence.
 ## Recovered caller slices
 
 The new `demo_skill_fx` module accepts an explicit raw/base pair, owner, learned
-slot, target key and visual state. Compared pairs are 24/24, 48/48, 51/51,
+slot, target client index and visual state. Compared pairs are 24/24, 48/48, 51/51,
 52/52, 344/344, 416/52 and 424/51. The last two match the installed brand
 links but are synthetic selector inputs in the proof. Every other tested pair
 is refused. This does not grant a learned skill, authoritative class or power.
@@ -118,9 +118,9 @@ is refused. This does not grant a learned skill, authoritative class or power.
   The charge constructor is `0x013c8b17`, mover `0x01442503`, and is absent.
   The subtype-2 arrow also requests missing child `0x46c/0`. Both refusals are
   counted. The existing arrow body and its motion are reused.
-- Ice Arrow's end body `0x013afa2c..0x013afa66` copies CHARACTER target key
-  to OBJECT `+0x364`, then requests one arrow. The existing CreateArrow selector
-  uses this key for base 51. No freeze, target animation or target buff is set.
+- Ice Arrow's end body `0x013afa2c..0x013afa66` copies CHARACTER target index
+  `+0x40` to OBJECT `+0x364`, then requests one arrow. The existing CreateArrow selector
+  uses this word for base 51. No freeze, target animation or target buff is set.
 - Triple Shot's `0x013af9db` requests CreateArrows with learned-list index,
   flag 1 and final selector 0. It falls through to `0x013af9fe`, which requests
   learned-list index, flag 0 and actual raw skill ID. This is three fan shots
@@ -302,3 +302,11 @@ synthetic inputs. The original caller comparator observes every request
 argument in order, including both key/default words. Sound owners and call
 sites are checked as part of that stream. These are component proofs, not
 original GPU-image equivalence or whole-client acceptance.
+
+The saved Ice Arrow word is a client character-table index. The original accessor
+`0x009a13f4` bounds it to 400 entries and resolves `table + index * 0x3670`;
+`0x009a143b` returns that character's OBJECT. The native adapter uses the
+authored actor's `session_slot`, preserving this namespace rather than copying
+its server key. The native fixture explicitly asserts that the slot and server
+key differ and that the saved word equals the slot. No target-side visual or
+state is added by this metadata correction.

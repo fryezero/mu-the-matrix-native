@@ -24,7 +24,7 @@ class Native(unittest.TestCase):
         (skill/'Arrow01.bmd').write_bytes(nf.synthetic_layout(400,actions=1,keys=(8,)))
         effect=cls.root/'Data/Effect';effect.mkdir(exist_ok=True)
         (effect/'smoke01.OZJ').write_bytes(ozj_jpeg(32,32))
-        cls.placement=Path(cls.tmp.name)/'actors.txt';cls.placement.write_text('actor 3 122 120 0 label DemoTarget\n')
+        cls.placement=Path(cls.tmp.name)/'actors.txt';cls.placement.write_text('actor 3 120 123 0 label DemoOther\nactor 3 122 120 0 label DemoTarget\n')
     @classmethod
     def tearDownClass(cls):cls.tmp.cleanup()
     def cast(self,skill,cls=2,weapon='bow',frames=90):
@@ -45,6 +45,9 @@ class Native(unittest.TestCase):
             self.assertEqual((summary['requests_sent'],summary['requests_unsent'],summary['hits'],summary['kills']),(0,1,0,0))
             plan=next(r for r in rows if r.get('skill30'))
             self.assertEqual((plan['arrow_calls'],plan['refused']),(1,0))
+            self.assertGreater(plan['target_slot'],0)
+            self.assertEqual(plan['target_index'],plan['target_slot'])
+            self.assertNotEqual(plan['target_index'],plan['target_key'])
             frames=[r for r in rows if 'combat_frame' in r]
             self.assertTrue(any(r['fx'] for r in frames))
             self.assertEqual(frames[-1]['fx'],0)

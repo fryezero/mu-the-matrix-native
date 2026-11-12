@@ -218,7 +218,7 @@ typedef struct mu_combat {
     int intent_skill_checked; /* UI casts use the session skill checks; effect scripts remain explicit visual probes. */
     int32_t intent_skill;      /* -1 none, 0 normal attack, else the base skill */
     int32_t attack_target;     /* target of the running attack */
-    uint16_t skill30_target_key;
+    uint16_t skill30_target_index;
     int32_t attack_skill;      /* skill of the running attack */
     uint8_t hero_attack_time;  /* c + 0x21 */
     int32_t hero_hp;           /* session hero HP */

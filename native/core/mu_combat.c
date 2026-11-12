@@ -704,7 +704,7 @@ static void hero_archer(const mu_combat *c, mu_sfx_archer *a)
     a->hero_weapon = c->weapon_item[0] < 0 ? -1 : c->weapon_item[0] - 0xae6;
     a->key = (uint16_t)c->hero_key;
     if (skill30_base(c, c->attack_skill) == 51) {
-        a->mastery = 51; a->field_364 = c->skill30_target_key;
+        a->mastery = 51; a->field_364 = c->skill30_target_index;
     }
 }
 
@@ -1092,7 +1092,8 @@ static int skill30_plan(mu_combat *c, int end)
     hero_frame(c, in.position, in.angle, in.light);
     if (c->actors && c->attack_target >= 0 && c->attack_target < c->actors->count) {
         const mu_world_actor *target = &c->actors->list[c->attack_target];
-        in.target_key = (uint16_t)target->session_key;
+        /* CHARACTER +0x40 indexes the original 400-slot client table, not a server key. */
+        in.target_index = (uint16_t)target->session_slot;
         in.tile[0] = (uint8_t)target->tile[0]; in.tile[1] = (uint8_t)target->tile[1];
     }
     if (c->session) {
@@ -1103,7 +1104,7 @@ static int skill30_plan(mu_combat *c, int end)
     (void)mu_skill30_plan_cast(&in, end, &plan);
     c->hero_attack_time = in.attack_time;
     c->walk->hero.frame = in.frame; c->walk->hero.prior_frame = in.prior_frame;
-    if (plan.target_key >= 0) c->skill30_target_key = (uint16_t)plan.target_key;
+    if (plan.target_index >= 0) c->skill30_target_index = (uint16_t)plan.target_index;
     for (int i = 0; i < plan.count; ++i) {
         const mu_sfx_call *call = &plan.calls[i].visual;
         uint32_t refused = c->stats.unsupported;
@@ -2672,9 +2673,14 @@ void mu_combat_report_summary(const mu_combat *c, FILE *out, int quiet)
         fprintf(out, "{\"aura_fixture\": true, \"requests\": %u, \"created\": %u, \"refused\": %u, \"live\": %d, \"defense_expiry\": %d, \"attack_expiry\": %d}\n",
                 c->aura_requests,c->aura_created,c->aura_refused,live,c->aura_expiry[0],c->aura_expiry[1]);
     }
-    if (s->skill30_requests || s->skill30_arrows)
-        fprintf(out, "{\"skill30\": true, \"requests\": %u, \"arrow_calls\": %u, \"refused\": %u}\n",
-                s->skill30_requests,s->skill30_arrows,s->skill30_refused);
+    if (s->skill30_requests || s->skill30_arrows) {
+        const mu_world_actor *target = c->actors && c->attack_target >= 0 && c->attack_target < c->actors->count
+            ? &c->actors->list[c->attack_target] : NULL;
+        fprintf(out, "{\"skill30\": true, \"requests\": %u, \"arrow_calls\": %u, \"refused\": %u,"
+                " \"target_index\": %u, \"target_slot\": %d, \"target_key\": %d}\n",
+                s->skill30_requests,s->skill30_arrows,s->skill30_refused,(unsigned)c->skill30_target_index,
+                target ? target->session_slot : -1,target ? target->session_key : -1);
+    }
     if (s->death_stab_steps)
         fprintf(out, "{\"death_stab\": true, \"steps\": %u, \"requests\": %u, \"refused\": %u,"
                 " \"context_refused\": %u}\n", s->death_stab_steps, s->death_stab_requests,

@@ -138,3 +138,18 @@ early-flight placement to observe the projectile. No before measurement is repea
 Next: private validators at two jobs when the resource guard permits. The 18
 new caller mutants and all 1,914 focused checks remain valid because their
 sources did not change. No ready-prs line or PR-ready claim yet.
+
+## WIP checkpoint, 23:26 local
+
+Self-review found CHARACTER `+0x40` is a client character index, not a server
+key. Original accessor `0x009a13f4` bounds it to 400 slots. Corrected the native
+adapter to use the authored actor's session slot and renamed the module word
+consistently. The native regression now targets a nonzero slot and requires
+that it differ from the server key. Root build passes, 11.83 s; regression run
+is pending the resource guard. The module rename does not change its logic,
+mutant definitions or ABI; the original full proof is retained.
+
+Main has advanced to `fb747e42` (AUDIO-003 and INNER-002). Next: merge it before
+the actual private validators, then rebuild and run the corrected native test.
+Private current/delta selections before this advance form 59 distinct rows.
+Remaining checks, final identity, review and PR remain pending. No ready line.
