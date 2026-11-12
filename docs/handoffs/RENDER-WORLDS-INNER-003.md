@@ -17,7 +17,9 @@ and Devil Square 9. Owned source is `reconstructed/objects/world_inner3_visual.*
   both appended validator rows. Integrated root/world builds pass in 13.18 / 6.11 s. Producer inputs are unchanged. Original baseline binary explicitly built from `fb747e42`,
   SHA-256 `e41e2ec2e3e91e6d89e12c81865bdf1bcbde256fa4c3ef88c40380c7c0a249f8`.
   Both default captured tours rendered once with `--hero-name Preview` and `MU_GFX_PUBLIC_DEMO=1`.
-- Left: Affected checks, 8d reduced selection, fidelity/identity evidence, review, final docs/PR/cleanup.
+- Left: Fidelity/identity evidence, private incoming-UI check, review, final docs/audit/PR/cleanup.
+  All 68 affected validators pass, 1,044,687 reported cases plus WORLDS-O, 972.13 s. Portable checks pass
+  1,661 tests, 1,373 passed / 288 expected skips, zero failures/errors, 496.46 s including selection.
 - Next: wait for load at most 14 and free memory at least 25%, then run the queued affected selectors/checks and fidelity pass.
   Resume inputs and logs are under `~/Documents/MTM/mu-mac-tools/native/scratch/render-worlds-inner-003/`.
   The integrated mu-world is `7bf4a7e24a283e07e472ea09dff63989955876237a18ecfda2028004bad6114a`.
@@ -62,5 +64,91 @@ Canonical private-env supplied private inputs. No full lane gate. Resource waits
 
 **8d reduced:** the changed production host and new producer module ran privately. No shared struct fields,
 table sizes or existing constant values changed. The new exported names occur in the new module/tests and
-production adapter. All selected fallback validators remain in the queued run. Affected regression and render
-results are pending, so these are checkpoint results, not a PR-ready declaration.
+production adapter. All selected fallback validators remain in the queued run. Affected regression results are recorded below. Render results remain pending, so these are checkpoint
+results, not a PR-ready declaration.
+
+## Affected validator results
+
+All 68 selected rows pass at `3893d98115890c27b182c19584de18132fe425c6`; later changes are documentation only.
+Total runner wall 972.13 s, including affected selection. No steward mutants requested. The 54 new compiled
+mutants completed at `5f8fbb98`; none of their compiled inputs changed in the main integration.
+
+| Validator | Reported cases | Wall s |
+|---|---:|---:|
+| `validate_actor_recipes` | 1669 | 151.7 |
+| `validate_audio_callers` | 5528 | 7.4 |
+| `validate_audio_domains` | 2544 | 28.9 |
+| `validate_audio_items` | 3000 | 4.9 |
+| `validate_audio_objects` | 4000 | 6.5 |
+| `validate_charsel_items` | 8817 | 18.3 |
+| `validate_charsel_world` | 1200 | 2.3 |
+| `validate_icarus` | 5240 | 33.6 |
+| `validate_icarus_c2` | 8400 | 24.7 |
+| `validate_inventory_fx` | 8017 | 12.0 |
+| `validate_item_callers` | 6013 | 3.1 |
+| `validate_items_ui` | 8517 | 19.9 |
+| `validate_login_world` | 1200 | 2.3 |
+| `validate_meshdraw` | 14619 | 108.5 |
+| `validate_model_edge` | 954 | 175.6 |
+| `validate_model_light` | 1433 | 7.3 |
+| `validate_movement` | 6614 | 78.0 |
+| `validate_object_render` | 1984 | 4.1 |
+| `validate_render_effects16` | 424 | 6.3 |
+| `validate_render_effects17` | 618 | 13.4 |
+| `validate_render_effects18` | 540 | 1.4 |
+| `validate_render_effects19` | 400 | 1.0 |
+| `validate_render_effects24` | 226 | 3.3 |
+| `validate_render_effects25` | 202 | 19.2 |
+| `validate_render_effects28` | 630 | 3.2 |
+| `validate_render_worlds_a` | 9000 | 14.0 |
+| `validate_terrain` | 583500 | 430.5 |
+| `validate_terrain_remaining` | 2147 | 4.0 |
+| `validate_world_fidelity` | 200 | 0.2 |
+| `validate_world_light_name` | 304 | 0.5 |
+| `validate_world_tile_folder` | 5700 | 50.0 |
+| `validate_worlds_121` | 4000 | 7.6 |
+| `validate_worlds_after` | 13424 | 14.9 |
+| `validate_worlds_after2` | 32216 | 32.8 |
+| `validate_worlds_after3` | 10212 | 10.1 |
+| `validate_worlds_after4` | 9181 | 17.5 |
+| `validate_worlds_after5` | 6000 | 11.3 |
+| `validate_worlds_after6` | 7300 | 82.5 |
+| `validate_worlds_b` | 4000 | 4.7 |
+| `validate_worlds_d` | 2400 | 4.3 |
+| `validate_worlds_e` | 4840 | 17.5 |
+| `validate_worlds_f` | 1818 | 0.5 |
+| `validate_worlds_g` | 6000 | 4.6 |
+| `validate_worlds_g2` | 2657 | 7.1 |
+| `validate_worlds_g3` | 4000 | 5.7 |
+| `validate_worlds_h` | 6000 | 5.4 |
+| `validate_worlds_i` | 6000 | 4.7 |
+| `validate_worlds_inner` | 4000 | 5.5 |
+| `validate_worlds_inner2` | 5000 | 10.9 |
+| `validate_worlds_inner3` | 8000 | 14.3 |
+| `validate_worlds_j` | 6000 | 4.6 |
+| `validate_worlds_k` | 6000 | 5.3 |
+| `validate_worlds_karutan` | 3000 | 7.8 |
+| `validate_worlds_n` | 13000 | 11.5 |
+| `validate_worlds_o` | not reported | 8.1 |
+| `validate_worlds_p` | 10000 | 13.0 |
+| `validate_worlds_p2` | 6000 | 7.4 |
+| `validate_worlds_q` | 11000 | 16.4 |
+| `validate_worlds_q2` | 4000 | 8.2 |
+| `validate_worlds_r` | 12000 | 12.5 |
+| `validate_worlds_r2` | 9000 | 9.3 |
+| `validate_worlds_raklion` | 3000 | 5.5 |
+| `validate_worlds_s` | 11000 | 9.5 |
+| `validate_worlds_s2` | 10000 | 11.9 |
+| `validate_worlds_s3` | 22000 | 29.9 |
+| `validate_worlds_slots` | 18999 | 22.9 |
+| `validate_worlds_slots2` | 33000 | 43.6 |
+| `validate_worlds_slots3` | 36000 | 45.8 |
+
+Steward validators: validate_actor_recipes,validate_audio_callers,validate_audio_domains,validate_audio_items,validate_audio_objects,validate_charsel_items,validate_charsel_world,validate_icarus,validate_icarus_c2,validate_inventory_fx,validate_item_callers,validate_items_ui,validate_login_world,validate_meshdraw,validate_model_edge,validate_model_light,validate_movement,validate_object_render,validate_render_effects16,validate_render_effects17,validate_render_effects18,validate_render_effects19,validate_render_effects24,validate_render_effects25,validate_render_effects28,validate_render_worlds_a,validate_terrain,validate_terrain_remaining,validate_world_fidelity,validate_world_light_name,validate_world_tile_folder,validate_worlds_121,validate_worlds_after,validate_worlds_after2,validate_worlds_after3,validate_worlds_after4,validate_worlds_after5,validate_worlds_after6,validate_worlds_b,validate_worlds_d,validate_worlds_e,validate_worlds_f,validate_worlds_g,validate_worlds_g2,validate_worlds_g3,validate_worlds_h,validate_worlds_i,validate_worlds_inner,validate_worlds_inner2,validate_worlds_inner3,validate_worlds_j,validate_worlds_k,validate_worlds_karutan,validate_worlds_n,validate_worlds_o,validate_worlds_p,validate_worlds_p2,validate_worlds_q,validate_worlds_q2,validate_worlds_r,validate_worlds_r2,validate_worlds_raklion,validate_worlds_s,validate_worlds_s2,validate_worlds_s3,validate_worlds_slots,validate_worlds_slots2,validate_worlds_slots3.
+
+Env: canonical private-env supplies MU_GAME_ROOT, MU_SECTION3, MU_EVIDENCE_DIR, MU_NATIVE_DATA_DIR, snapshot/lang
+directories, graphics library and shared original cache. Inputs are read-only; tools/python, evidence and input
+links are never committed. All selected fallback rows are retained.
+
+Portable affected suites at the same source state: 1,661 tests, 1,373 passed / 288 expected skips, zero
+failures/errors. Runner wall 496.46 s including selection, 417.2 s test wall, jobs 2. No full lane gate.
