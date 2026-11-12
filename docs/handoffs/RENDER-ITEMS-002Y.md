@@ -5,6 +5,19 @@ Prerequisite #361 subsequently merged at `3732f82a`; its identical-tree main his
 Codex, GPT-6.1 Sol; no subagents. Offline/static only. Installed apps are untouched.
 Research part 38 is reserved; recheck main before the final push.
 
+## Resumed 2026-11-11
+
+Main `d4af71dd` is merged at `f7fed588`. The registry append conflict preserves both lanes' rows;
+28 registry tests pass in 6.25 s. Root build passes in 16.64 s and the explicit world build in 4.67 s.
+A fresh pre-regeneration default sweep covers all 46 maps in 57.29 s. Its rebuilt `mu-world` SHA-256 is
+`c244aec9e8b89e014dd0e88139d0da26fa2df06aff728e35b3aa5039d0011020`.
+The historical sweep is superseded because it did not record its binary hash. The fresh baseline is the
+merged lane with the prerequisite item tables; the admission C-to-C check will separately cover earlier items.
+Full generation is running from scratch with the canonical private environment and original-side cache.
+The 20:31 checkpoint has reached 1,350 fits without a reported refusal; tables are not yet written.
+Final table checks, forcing records, mutants, admission/export deltas and affected validators remain pending.
+The owner lifted the stop time for this session. No PR or ready-prs entry exists yet.
+
 ## WIP checkpoint
 
 - Base coverage is 1,424 of 1,674 bodies. No final admission count is claimed at this checkpoint.
