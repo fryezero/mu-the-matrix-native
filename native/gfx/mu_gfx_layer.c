@@ -305,6 +305,7 @@ struct mu_gfx_layer {
     int order[MU_GFX_MOVIES];   /* window z-order, bottom first */
     int norder;
     unsigned presentation_ready;
+    int macro_tab, macro_sub_type, guild_tab, hunt_mini;
     int pet_page;
     int help_ready;             /* SYS-MISC-001b: installed provider loaded */
     int32_t w, h;               /* the movies' stage in points */
@@ -401,7 +402,11 @@ static const char *const FILES[MU_GFX_MOVIES] = {"main", "InventoryFrame", "Info
                                                  "MasterSkillTree", "SkillTree4th", "SkillTree5th",
                                                  "winQuestSummary", "QuestProgressInfo", "NpcJobChangeQuest", "winParty", "Trade", "FriendMenu", "FriendWindow", "MixGoblinSel", "MixInventoryFrame", "PersonalShopProductList", "PersonalShopRegister", "PersonalShopPurchase",
                                                  "winOption", "winSystemMenu", "HelpWindow",
-                                                 "CommandWindow", "MatchingSelect", "GensRanking", "PetInventoryFrame", "GremoryCase"};
+                                                 "CommandWindow", "MatchingSelect", "GensRanking", "PetInventoryFrame", "GremoryCase",
+                                                 "MacroMain", "MacroSub", "HuntRecord", "StorageInven",
+                                                 "MatchingParty", "MatchingGuild", "Guildmatching_2024", "PlayGuide"};
+
+static void presentation_shown(mu_gfx_layer *, int, int);
 
 static int service_reserved(const mu_gfx_layer *L,int index);
 static int service_inventory(mu_gfx_layer *L,int cell);
@@ -1149,7 +1154,10 @@ void mu_gfx_layer_show(mu_gfx_layer *L, int m, int open)
         hide_tooltip(L);
     if (open && m == MU_GFX_CHARACTER)
         feed_character(L);
-    if (m == MU_GFX_PARTY || m == MU_GFX_QUEST_SUMMARY)
+    presentation_shown(L,m,open);
+    if (m == MU_GFX_HUNT_RECORD)
+        invokef(L,m,mv->path,open ? "open" : "close",open ? "[{\"mine\":true,\"curMapIndex\":0}]" : "[]");
+    else if (m == MU_GFX_PARTY || m == MU_GFX_QUEST_SUMMARY)
         invokef(L, m, mv->path, open ? "openWindow" : "closeWindow", "[]");
     else
         invokef(L, m, mv->path, "SetVisible", "[%s]", open ? "true" : "false");
@@ -1418,6 +1426,11 @@ static const char *on_call_(movie *mv, const char *name, const char *args)
     }
     if (mv->id>=MU_GFX_STORE_LIST && mv->id<=MU_GFX_STORE_PURCHASE && strcmp(name,"UIInit") && strcmp(name,"CloseWindow")) {
         service_call(mv,name,args,v,n);return NULL;
+    }
+    if (mv->id == MU_GFX_HUNT_RECORD && !strcmp(name,"HuntRecord")) {
+        snprintf(mv->path,sizeof mv->path,"_level0.scene");
+        L->api.invoke(mv->g,"_level0.scene","noTest","[]");
+        return NULL;
     }
     if (mv->id >= MU_GFX_PARTY && mv->id <= MU_GFX_MESSENGER) {
         char command[96] = "";
@@ -1747,6 +1760,9 @@ static const int WINDOW_ALIGN[MU_GFX_MOVIES] = {
     [MU_GFX_MIX_SELECT] = 9, [MU_GFX_MIX] = 9,
     [MU_GFX_COMMAND] = 9, [MU_GFX_MATCHING] = 9, [MU_GFX_GENS] = 9,
     [MU_GFX_PET_INVENTORY] = 11, [MU_GFX_GREMORY] = 9,
+    [MU_GFX_MACRO] = 9, [MU_GFX_MACRO_SUB] = 9, [MU_GFX_HUNT_RECORD] = 9,
+    [MU_GFX_STORAGE_EXT] = 9, [MU_GFX_MATCH_PARTY] = 9, [MU_GFX_MATCH_GUILD] = 9,
+    [MU_GFX_GUILD_MATCH] = 9, [MU_GFX_PLAY_GUIDE] = 9,
     [MU_GFX_OPTION] = 9, [MU_GFX_SYSTEM_MENU] = 9, [MU_GFX_HELP] = 9
 };
 
@@ -2705,6 +2721,7 @@ int mu_gfx_layer_key(mu_gfx_layer *L, int down, int vk, uint32_t codepoint, int 
             chat_open(L, 1);
         return 1;
     }
+    if (down && vk == 'T' && mods == 2 && presentation_open(L,MU_GFX_PLAY_GUIDE,0)) return 1;
     if (down && vk == 'H' && mods == 2) {
         if (!L->help_ready || !L->mv[MU_GFX_HELP].g || !L->mv[MU_GFX_HELP].path[0]) return 0;
         mu_gfx_layer_toggle(L, MU_GFX_HELP);

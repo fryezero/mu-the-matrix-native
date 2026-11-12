@@ -974,11 +974,12 @@ static void quest_wrapped(void *user, const char *text)
         qw(g, MU_Q_DIALOG_TEXT, NULL, text, 0, 0);
 }
 
-/* 0x00c716f0..fb: menu dispatcher, distinct from legacy CButton audio. */
+/* Menu dispatcher and direct Macro/expanded-storage releases. Distinct from legacy CButton audio. */
 static void presentation_sound(void *user, int32_t id, uint32_t site)
 {
     world_gfx *g = user;
-    if (g->window_audio && id == 25 && site == 0x00c716f6u)
+    if (g->window_audio && id == 25 &&
+        (site == 0x00c716f6u || site == 0x00efd43au || site == 0x00efc772u))
         mu_audio_host_play(g->window_audio, id, 0);
 }
 
