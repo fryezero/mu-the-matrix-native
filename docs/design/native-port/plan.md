@@ -1,5 +1,7 @@
 # Plan: the rest of the native macOS port
 
+RENDER-EFFECTS-030 verified subset: complete DK/Elf selection audit, corrected Triple Shot caller (three -> four ordinary arrows), Ice Arrow/Penetration and individually selected 416/424 aliases. Swell Life's 38 visuals and Blood Storm's emitter remain refused. 1,914 focused checks, 18/18 new mutants and 107 distinct affected validators pass; default changes are only the merged INNER-002 delta. [Checks, coverage and limits](../../handoffs/RENDER-EFFECTS-030.md).
+
 ITEMS-UI-001 PR-ready: equipment hover uses the original integer 640x480 bounds and now opens fixture item tooltips. 8,512 instruction comparisons plus five static checks, 8/8 compiled mutants, ten affected validators and 29 private tests pass; the refreshed default sweep is byte-identical. Bits 0x87 add no glow in the compared bodies; original main-game GFx ordering remains unverified. [Checks, evidence and limits](../../handoffs/ITEMS-UI-001.md).
 
 RENDER-EFFECTS-028 PR-ready: fixture-only Greater Defense/Damage auras now persist until authored expiry and retire on owner death. Defense ribbons and midpoint flares, attack link sprites; 4,390 original comparisons, 18/18 aura mutants, 56 affected validators pass; default captures remain identical. [Evidence, counts and limits](../../handoffs/RENDER-EFFECTS-028.md).

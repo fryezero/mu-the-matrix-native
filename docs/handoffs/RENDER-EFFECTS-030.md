@@ -140,6 +140,7 @@ No owner client, installed application, packet/power or protection work occurs.
 | Final seven-scene after/repeat refresh, `43f079ec` | 42/42 matching pairs; all earlier after images match | 38.54 s |
 | Early Penetration / alias flight, `43f079ec` | 6/6 matching pairs; visible frame-6 projectile | 5.75 s |
 | Final default sweep, `43f079ec` | exact documented INNER-002 delta only | 72.96 s |
+| Repository audit, `75d5cb5a` plus status lines | 2,223 staged files, zero rejected | 24.87 s |
 
 8d reduced: initial native selection was 152 items, above the 40-item cap.
 The first private run covers the changed effect fixtures, all BowSession cases,
@@ -301,3 +302,12 @@ is pending. Next: repository audit after the load guard, final PR-ready status,
 push/PR/ready entry, then remove the owned scratch/renders/builds/worktree.
 No ready entry or PR-ready claim has been made. The complete evidence and UI
 merge are checkpointed here before waiting for the final audit.
+
+## WIP, 00:32 local: final-main advance
+
+Repository audit passes, 2,223 staged files, zero rejected, 24.87 s. The last
+fetch found main `0ccd5f44` (UI-WINDOWS-002), after the completed checks. Its
+changes are GFx, world input/adapter and test hosts; combat/reconstructed inputs
+are unchanged. Merge it, retain both status entries, rebuild, select only its
+affected checks, run changed private UI modules, and refresh final binary proofs
+where compiled inputs changed. No ready entry or final PR-ready claim yet.
