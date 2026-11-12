@@ -65,6 +65,9 @@ int mu_muun_visual_open(mu_muun_visual *v, const char *root, const char *lang, i
     }
     stage = "appearance record";
     if (!record) goto fail;
+    v->slot_kind = record[8];
+    memcpy(v->secondary_name, record + 9, 256);
+    v->secondary_name[256] = 0;
     v->base_body = record[0x258] != 0;
     v->shadow_alpha = f32_at(record, 0x254);
     if (!isfinite(v->shadow_alpha)) goto fail;

@@ -2,6 +2,7 @@
 #include "world_muun.h"
 #include "world_rt_internal.h"
 #include "../core/mu_muun_visual.h"
+#include "../core/mu_muun_mount.h"
 #include "../core/mu_frame_time.h"
 #include "../../reconstructed/environment/env.h"
 #include <errno.h>
@@ -14,8 +15,10 @@
 struct mu_world_muun {
     mu_muun_visual visual;
     int32_t command_category;
+    int mount_fixture;
+    mu_muun_mount mount;
 #ifndef MU_WORLD_NO_GL
-    mu_gl_backend gl;
+    mu_gl_backend gl, mount_gl;
 #endif
 };
 
@@ -63,7 +66,16 @@ int mu_world_muun_open(mu_world_rt *a, mu_world_muun **out)
         }
         m->command_category = (int32_t)category;
     }
+    const char *mount = getenv("MU_MUUN_MOUNT_FIXTURE");
+    if (mount && *mount) {
+        if (strcmp(mount, "1") || mu_muun_mount_open(&m->mount, &m->visual, a->root, error, sizeof error)) {
+            fprintf(stderr, "MU_MUUN_MOUNT_FIXTURE=1 requires a valid kind-1 appearance\n");
+            mu_world_muun_close(m); return 1;
+        }
+        m->mount_fixture = 1;
+    }
     m->visual.model.params.world = a->map->world;
+    if (m->mount.loaded) m->mount.model.params.world = a->map->world;
     mu_effect_scene_set_world(&m->visual.scene, a->map);
     *out = m;
     return 0;
@@ -72,6 +84,7 @@ int mu_world_muun_open(mu_world_rt *a, mu_world_muun **out)
 void mu_world_muun_close(mu_world_muun *m)
 {
     if (!m) return;
+    mu_muun_mount_close(&m->mount);
     mu_muun_visual_close(&m->visual);
     free(m);
 }
@@ -86,6 +99,9 @@ void mu_world_muun_tick(mu_world_rt *a, mu_world_muun *m)
         mu_muun_visual_command(&m->visual, m->command_category, target);
     }
     mu_muun_visual_step(&m->visual, &owner, 1);
+    /* Authored rider actions, independent of hero combat or authoritative mount state. */
+    const int32_t actions[] = {1, 65, 248};
+    mu_muun_mount_step(&m->mount, &m->visual, actions[(m->visual.steps / 25) % 3]);
 }
 
 static void frame(mu_world_rt *a, mu_world_muun *m)
@@ -104,12 +120,23 @@ static void frame(mu_world_rt *a, mu_world_muun *m)
     v->model.params.light_minimum = MU_ENV_LIGHT_MINIMUM;
     mu_mv_owner owner = owner_of(a);
     mu_muun_visual_frame(v, &owner, 1, frustum, mu_frame_time_value());
+    const int mount_frustum = a->legacy_box || mu_terrain_test_frustum_2d(a->frustum.x2d, a->frustum.y2d, 6,
+        owner.position[0] * 0.01f, owner.position[1] * 0.01f, -20.0f);
+    if (m->mount.loaded) {
+        float mount_light[3] = {0, 0, 0};
+        mu_obj_terrain_light(a->map->light, 6, 1, owner.position[0], owner.position[1], mount_light);
+        mu_env_body_light(&object, mount_light, m->mount.model.params.color, &m->mount.model.params.lighting);
+        m->mount.model.params.light_ambient = MU_ENV_LIGHT_AMBIENT;
+        m->mount.model.params.light_scale = MU_ENV_LIGHT_SCALE;
+        m->mount.model.params.light_minimum = MU_ENV_LIGHT_MINIMUM;
+    }
+    mu_muun_mount_frame(&m->mount, v, &owner, m->mount_fixture ? v->info.item : -1, 0, 0, 0, mount_frustum);
 }
 
 /* Ordinary models use RenderBodyShadow(-1,-1,-1,-1,0). */
 static void shadow(mu_world_rt *a, mu_world_muun *m, const mu_render_backend *backend)
 {
-    if (!a->has_particles) return;
+    if (!a->has_particles || !m->visual.visible) return;
     float alpha = mu_mv_shadow_alpha(a->map->world, 0, 1, 1.0f, m->visual.shadow_alpha);
     if (alpha == 0.0f) return;
     const float rgba[4] = {0, 0, 0, alpha};
@@ -120,7 +147,7 @@ void mu_world_muun_soft(mu_world_rt *a, mu_world_muun *m, mu_world_draw *draw)
 {
     if (!m) return;
     frame(a, m);
-    if (!m->visual.visible) return;
+    if (!m->visual.visible && !m->mount.visible) return;
     mu_raster *r = draw->raster;
     r->textures = m->visual.textures.slots; r->texture_count = m->visual.textures.count;
     r->texture_filter = m->visual.textures.filter; r->texture_wrap = m->visual.textures.wrap;
@@ -129,6 +156,9 @@ void mu_world_muun_soft(mu_world_rt *a, mu_world_muun *m, mu_world_draw *draw)
     mu_draw_stats stats = {0};
     shadow(a, m, &backend);
     mu_muun_visual_draw(&m->visual, a->map->time, &backend, &stats);
+    r->textures = m->mount.textures.slots; r->texture_count = m->mount.textures.count;
+    r->texture_filter = m->mount.textures.filter; r->texture_wrap = m->mount.textures.wrap;
+    mu_muun_mount_draw(&m->mount, a->map->time, &backend, &stats);
     r->textures = NULL; r->texture_count = 0; r->texture_filter = NULL; r->texture_wrap = NULL;
     float eye[3], at[3];
     world_rt_effect_camera(a, eye, at);
@@ -141,13 +171,14 @@ void mu_world_muun_soft(mu_world_rt *a, mu_world_muun *m, mu_world_draw *draw)
 void mu_world_muun_gl_teardown(mu_world_muun *m)
 {
     if (m && m->gl.textures) mu_gl_release(&m->gl);
+    if (m && m->mount_gl.textures) mu_gl_release(&m->mount_gl);
 }
 
 void mu_world_muun_gl(mu_world_rt *a, mu_world_muun *m, mu_world_draw *draw)
 {
     if (!m) return;
     frame(a, m);
-    if (!m->visual.visible) return;
+    if (!m->visual.visible && !m->mount.visible) return;
     if (a->batch && !a->players) mu_gl_batch_session_end(a->batch);
     if (!m->gl.textures) mu_gl_upload(&m->gl, &m->visual.textures, 0);
     mu_render_backend backend;
@@ -155,6 +186,11 @@ void mu_world_muun_gl(mu_world_rt *a, mu_world_muun *m, mu_world_draw *draw)
     mu_draw_stats stats = {0};
     shadow(a, m, &backend);
     mu_muun_visual_draw(&m->visual, a->map->time, &backend, &stats);
+    if (m->mount.visible) {
+        if (!m->mount_gl.textures) mu_gl_upload(&m->mount_gl, &m->mount.textures, 0);
+        mu_gl_backend_bind(&m->mount_gl, &backend);
+        mu_muun_mount_draw(&m->mount, a->map->time, &backend, &stats);
+    }
     float eye[3], at[3];
     world_rt_effect_camera(a, eye, at);
     const mu_client_view *v = &a->walk.frame.view;
@@ -170,6 +206,10 @@ void mu_world_muun_report(const mu_world_muun *m, FILE *out)
 {
     if (!m) return;
     const mu_muun_visual *v = &m->visual;
+    if (m->mount_fixture) fprintf(out, "{\"muun_mount\":%d,\"visible\":%d,\"action\":%u,"
+        "\"attached\":%d,\"missing\":%d,\"refused_actions\":%ld,\"refused_bones\":%ld,\"draws\":%ld}\n",
+        m->mount.model_code, m->mount.visible, mu_model_action(&m->mount.model), m->mount.attached,
+        m->mount.textures.missing, m->mount.refused_actions, m->mount.refused_bones, m->mount.draws);
     fprintf(out, "{\"muun_fixture\":%d,\"model\":%d,\"live\":%d,\"visible\":%d,\"state\":%d,"
         "\"position\":[%.3f,%.3f,%.3f],\"action\":%u,\"frame\":%.3f,\"textures_missing\":%d,"
         "\"mesh_passes\":%d,\"mesh_draws\":%ld,\"refused_meshes\":%ld,\"commands\":%ld,\"refused_commands\":%ld,\"attachments\":%d,\"invalid\":%ld,\"refused_bones\":%ld,\"updates\":%ld,\"vertices\":%u}\n",

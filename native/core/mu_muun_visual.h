@@ -10,6 +10,8 @@
 
 typedef struct mu_muun_visual {
     mu_mv_info info;
+    uint8_t slot_kind;
+    char secondary_name[257];
     mu_mv_state state;
     uint8_t *mesh_records;
     int32_t *mesh_textures;
