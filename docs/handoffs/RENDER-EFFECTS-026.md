@@ -467,3 +467,25 @@ for that merge, stage/audit, push/PR/link/ready entry/cleanup. Next step: inspec
 and continue its controller; retain all completed proofs and baselines. finalize_104.py / final_audit.py
 are prepared, and the former already generated the checked pre-UI result above. No ready-prs entry exists.
 If still not PR-ready at 02:15, push WIP and stop by 02:30 as instructed.
+
+## WIP checkpoint, 00:40 on 2026-11-12
+
+Done: the ITEMS-UI-001 merge checks pass. Portable: 1,300 tests, 1,055 passed / 245 skipped, zero
+failures/errors, 352.046 s command / 292.0 s runner. Private: 43/43, zero skips, 34.732 s. All seven
+overlapping/new rows pass 21,793 reported cases, zero failures/errors/skips, 36.712 s. The final
+UI1 replay takes 63.029 s / 0.334 s comparison and matches all 92 PNGs and 92 dumps from batch 104;
+against the original baseline only the documented Elbeland difference remains. Binary SHA-256:
+`4cc0912c77fc32a1b64998d99bd919ba802c3a9600851e22eb5e3b1699d8c4f3`.
+
+Main then advanced to UI-WINDOWS-002 `0ccd5f44`, merged cleanly at
+`56e469a548c69e3b79d6583f659b1c465829f5a4`. Only presentation/UI adapter code changes. Root/world builds
+pass in 5.287 / 4.337 s; incoming validator selection is complete, 23.950 s. The port's particle/point
+code and its consumers are unchanged. The new movie-count consumer is ui_windows2_host.c; its private
+module plus the existing UI module are added to the nine port/shared modules for this final pass.
+
+Left: final own selection, private modules, overlapping validators, explicit world build and after
+replay/comparison; then finalize_105.py plus a final UI2 section, stage/audit, PR/link/ready entry/cleanup.
+Incoming UI-only portable evidence is reused: the UI2 handoff records its passing portable and private
+runs; this lane's full post-UI1 portable run above is complete. The final UI2 pass follows the merge
+budget and covers the port's tests plus the changed shared movie-count consumer. No ready-prs line
+exists. Next step: finish batch106_build.py and run batch106_checks.py. Cutoff remains 02:15 / 02:30.
