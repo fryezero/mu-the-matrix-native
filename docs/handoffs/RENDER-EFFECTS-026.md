@@ -180,3 +180,25 @@ and final after-only sweep/comparison. Then run the prepared final documentation
 fetch/check latest main, commit/push, PR/link/ready entry and cleanup. Next step: resume the existing
 sequential controller and inspect batch103-check-steps.json. Finalization refuses incomplete checks.
 The 02:15/02:30 cutoff remains binding; no ready-prs entry exists.
+
+## WIP checkpoint, 23:32
+
+Done: all batch-103 checks pass. Portable: 1,773 tests, 1,481 passed / 292 skipped, zero failures/errors,
+519.424 s command / 416.7 s runner. Reduced private: 43/43 tests, zero skips, 30.998 s. All 59 delta
+validators pass 848,830 cases, zero failures/errors/skips, 882.643 s, source `7a21ba0c`. The rebuilt final
+after sweep still matches all 92 PNGs and 92 dumps, 54.788 s capture / 0.185 s comparison; binary SHA-256
+`fd290c2a2a7e02e26219c154bf0e8b40a695d3a090b08cd0bf6e0e8c6da8e393`. Original baselines are retained.
+
+Final fetch brought main `fb747e42` (AUDIO-003 and INNER-002). Merged as
+`ac51b0dc0bc5e5b6e4a3af57230a622eca0ee45d`; the registry parses with all rows retained, and our diff is
+still 17 added registry lines / zero deletions. These incoming changes affect world-object producers and
+audio delivery, not the five particle/caller proof targets. INNER-002 documents an intended Elbeland last
+PNG change (348 pixels) and its two dumps; 44 unaffected views remain identical. The final sweep must
+report this incoming-main difference honestly instead of asserting full old-main identity. Neither new
+world producer names any of the five new pairs. No baseline capture or completed mutant is rerun.
+
+Left: build/select the batch-104 compiled delta, run overlapping lane checks and reduced private/portable
+checks, then final after sweep with the documented upstream Elbeland difference. Finalize docs/status and
+audit, fetch/check main, push/PR/link/ready entry/cleanup afterward. Next step: the prepared batch-104
+build/selection controller; all earlier proof/census/render/check reports remain in lane scratch.
+No ready-prs entry exists. The 02:15/02:30 cutoff still applies.
