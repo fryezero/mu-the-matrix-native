@@ -303,6 +303,8 @@ struct mu_gfx_layer {
     movie mv[MU_GFX_MOVIES];
     int order[MU_GFX_MOVIES];   /* window z-order, bottom first */
     int norder;
+    unsigned presentation_ready;
+    int pet_page;
     int help_ready;             /* SYS-MISC-001b: installed provider loaded */
     int32_t w, h;               /* the movies' stage in points */
     int32_t px_w, px_h;         /* window pixels */
@@ -397,7 +399,8 @@ static const char *const FILES[MU_GFX_MOVIES] = {"main", "InventoryFrame", "Info
                                                  "MyQuestInfo", "SkillInfoPopup", "SkillStampFrame", "MoveCommand",
                                                  "MasterSkillTree", "SkillTree4th", "SkillTree5th",
                                                  "winQuestSummary", "QuestProgressInfo", "NpcJobChangeQuest", "winParty", "Trade", "FriendMenu", "FriendWindow", "MixGoblinSel", "MixInventoryFrame", "PersonalShopProductList", "PersonalShopRegister", "PersonalShopPurchase",
-                                                 "winOption", "winSystemMenu", "HelpWindow"};
+                                                 "winOption", "winSystemMenu", "HelpWindow",
+                                                 "CommandWindow", "MatchingSelect", "GensRanking", "PetInventoryFrame", "GremoryCase"};
 
 static int service_reserved(const mu_gfx_layer *L,int index);
 static int service_inventory(mu_gfx_layer *L,int cell);
@@ -1364,6 +1367,8 @@ static void chat_submit(mu_gfx_layer *L)
     chat_open(L, 0);
 }
 
+#include "mu_gfx_windows.inc"
+
 /* ---- movie -> game ---------------------------------------------------------------------------- */
 
 static const char *on_call_(movie *mv, const char *name, const char *args);
@@ -1447,6 +1452,10 @@ static const char *on_call_(movie *mv, const char *name, const char *args)
             L->cfg.quest_call(L->cfg.tooltip_user, mv->id, name, args);   /* NATIVE-QUEST-001: the handler's OnLoad */
         return NULL;
     }
+    if (presentation_movie(mv->id)) {
+        presentation_call(mv, name, args, v, n);
+        return NULL;
+    }
     if (mv->id == MU_GFX_MOVE_COMMAND && strcmp(name, "TweenTimeSet")) {
         /* NATIVE-MAP-001: the Move window's handler runs in the host (reconstructed/map) */
         if (L->maph.window)
@@ -1523,7 +1532,8 @@ static const char *on_call_(movie *mv, const char *name, const char *args)
                 int id = (int)json_field(args, "keyCode", -1);
                 L->key_used = 1;
                 logf_(L, "game: menu id %d", id);
-                if (id == 1)
+                if (presentation_menu(L, id)) { /* presentation-only routes */ }
+                else if (id == 1)
                     mu_gfx_layer_toggle(L, MU_GFX_CHARACTER);
                 else if (id == 14)
                     mu_gfx_layer_toggle(L, MU_GFX_INVENTORY);
@@ -1729,6 +1739,8 @@ static const int WINDOW_ALIGN[MU_GFX_MOVIES] = {
     [MU_GFX_QUEST_SUMMARY] = 9, [MU_GFX_QUEST_NOTICE] = 9, [MU_GFX_JOB_QUEST] = 9,
     [MU_GFX_PARTY] = 9, [MU_GFX_TRADE] = 9, [MU_GFX_FRIENDS] = 9, [MU_GFX_MESSENGER] = 9,
     [MU_GFX_MIX_SELECT] = 9, [MU_GFX_MIX] = 9,
+    [MU_GFX_COMMAND] = 9, [MU_GFX_MATCHING] = 9, [MU_GFX_GENS] = 9,
+    [MU_GFX_PET_INVENTORY] = 11, [MU_GFX_GREMORY] = 9,
     [MU_GFX_OPTION] = 9, [MU_GFX_SYSTEM_MENU] = 9, [MU_GFX_HELP] = 9
 };
 
@@ -1756,7 +1768,7 @@ static void window_sizes(mu_gfx_layer *L, int resizing)
             invokef(L, m, L->mv[m].path, "SetAlign", "[%d]", WINDOW_ALIGN[m]);
         }
         /* 0x00acb333 -> 0x00aae4ae sizes every handler, including the align-9 stamp window. */
-        if (resizing || WINDOW_ALIGN[m] != 9 || m == MU_GFX_SKILL_STAMP || m == MU_GFX_HELP) {
+        if (resizing || WINDOW_ALIGN[m] != 9 || m == MU_GFX_SKILL_STAMP || m == MU_GFX_HELP || presentation_movie(m)) {
             invokef(L, m, L->mv[m].path, "SetWindowSize", "[%d,%d]", L->w, L->h);
         }
     }
@@ -2187,6 +2199,7 @@ static void init_windows(mu_gfx_layer *L)
         snprintf(buf + n, sizeof buf - n, "}]");
         invokef(L, MU_GFX_CHARACTER, L->mv[MU_GFX_CHARACTER].path, "InitText", "%s", buf);
     }
+    presentation_init(L);
     skill_init_window(L);
     window_sizes(L, 0);
     for (int m = MU_GFX_INVENTORY; m < MU_GFX_MOVIES; m++)
@@ -2689,6 +2702,7 @@ int mu_gfx_layer_key(mu_gfx_layer *L, int down, int vk, uint32_t codepoint, int 
         mu_gfx_layer_show(L, MU_GFX_HELP, 0);
         return 1;
     }
+    if (down && !mods && presentation_key(L, vk)) return 1;
     if (!main->g)
         return 0;
     /* The bar's own Key listener turns digit/QWER keys into onSelectSkill

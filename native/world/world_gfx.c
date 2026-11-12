@@ -61,6 +61,7 @@ struct world_gfx {
     /* NATIVE-QUEST-001: the quest session (reconstructed/quest with the demo server) */
     mu_quest_session quest;
     mu_cue_cursor audio_cursor;
+    mu_audio_host *window_audio; /* borrowed, refreshed each world step */
     int have_quest;
     mu_walk *walk;
     mu_map_session *maps;
@@ -973,6 +974,14 @@ static void quest_wrapped(void *user, const char *text)
         qw(g, MU_Q_DIALOG_TEXT, NULL, text, 0, 0);
 }
 
+/* 0x00c716f0..fb: menu dispatcher, distinct from legacy CButton audio. */
+static void presentation_sound(void *user, int32_t id, uint32_t site)
+{
+    world_gfx *g = user;
+    if (g->window_audio && id == 25 && site == 0x00c716f6u)
+        mu_audio_host_play(g->window_audio, id, 0);
+}
+
 static int quest_key(void *user, int vk)
 {
     world_gfx *g = user;
@@ -1071,6 +1080,7 @@ void world_gfx_quest_travel_complete(world_gfx *g, int success)
 
 void world_gfx_quest_step(world_gfx *g, mu_audio_host *audio)
 {
+    if (g) g->window_audio = audio;
     if (g && g->have_quest) {
         const mu_quest_client *c = g->quest.client;
         const mu_gfx_hero *h = mu_gfx_layer_hero(g->layer);
@@ -1368,6 +1378,7 @@ world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int widt
         snprintf(error, error_size, "out of memory");
         return NULL;
     }
+    g->window_audio = NULL; /* old world audio is about to be destroyed */
     g->session = session;
     g->root = game_root;
     g->equipment_demo = open && strstr(open, "equipment-demo");
@@ -1402,6 +1413,7 @@ world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int widt
                                .buff_tooltip = buff_tooltip,
                                .quest_call = quest_call,
                                .dialog_wrapped = quest_wrapped,
+                               .window_sound = presentation_sound,
                                .window_key = quest_key,
                                .window_draw = window_draw,
                                .mix_quote = mix_quote,
@@ -1523,6 +1535,7 @@ int world_gfx_skill_action(world_gfx *g, const char *verb, int a, int b)
 void world_gfx_rebind_skills(world_gfx *g, struct mu_session *session)
 {
     if(!g)return;
+    g->window_audio = NULL; /* old world audio is about to be destroyed */
     g->session = session;
     if (!session) g->progress = NULL; /* the old world destroys its progression facade next */
     mu_gfx_layer_set_skill_host(g->layer,NULL);
