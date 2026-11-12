@@ -142,16 +142,16 @@ class RenderEffects(unittest.TestCase):
             for name in names: (assets/name).unlink()
 
     def test_triple_shot_verified_fan(self):
-        """RENDER-EFFECTS-004: CreateArrows' default fan, three Arrow01 shots at 0, +15 and -15 degrees."""
+        """RENDER-EFFECTS-004: CreateArrows' default fan, fan at 0, +15, -15 and the caller's fallthrough shot."""
         arrow = self.root/'Data/Skill/Arrow01.bmd'
         arrow.write_bytes(nf.synthetic_layout(400, actions=1, keys=(8,)))
         try:
             rows, images = self.cast_as(24, 'bow', 2, 30)
             summary = next(r for r in rows if r.get('combat') is True)
             self.assertEqual(summary['requests_unsent'], 1)
-            self.assertEqual((summary['arrows'], summary['unsupported']), (3, 0))
+            self.assertEqual((summary['arrows'], summary['unsupported']), (4, 0))
             frames = [r for r in rows if 'combat_frame' in r]
-            self.assertTrue(any(f['effect_types'].count(0x43b) == 3 for f in frames))
+            self.assertTrue(any(f['effect_types'].count(0x43b) == 4 for f in frames))
         finally:
             arrow.unlink()
 
@@ -160,7 +160,7 @@ class RenderEffects(unittest.TestCase):
         model loads in its own slot and draws (removing it changes pixels)."""
         rows, _ = self.cast_as(24, 'crossbow', 2, 30)
         summary = next(r for r in rows if r.get('combat') is True)
-        self.assertEqual((summary['arrows'], summary['unsupported']), (3, 0))
+        self.assertEqual((summary['arrows'], summary['unsupported']), (4, 0))
         frames = [r for r in rows if 'combat_frame' in r]
         self.assertTrue(any(f['effect_types'].count(0x43c) == 3 for f in frames))
         arrow = self.root/'Data/Skill/LaceArrow.bmd'

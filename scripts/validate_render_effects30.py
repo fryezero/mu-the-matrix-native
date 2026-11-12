@@ -124,6 +124,60 @@ def compare(text,data,lib,cases):
             expected=(raw,base) in PAIRS
             report.add('selector',bool(lib.mu_skill30_select(raw,base))==expected,dict(skill=raw,base=base))
     return report
+def lifecycle(text,data,report):
+    """Original records persist independently from creation until removal."""
+    import validate_render_effects4 as r4
+    lib=r4.load(ROOT/f'reconstructed/combat/libcombat.{fx.SUFFIX}')
+    rng=random.Random(30030);m=fx.FxMachine(text,data)
+    for raw,base in [(51,51),(52,52),(416,52),(424,51)]:
+        for dies in [False,True]:
+            objects=[fx.random_object(rng)];objects[0].live=1
+            pos=[12000.,12000.,80.];angle=[0.,0.,90.];light=[1.,1.,1.]
+            archer=r4.Archer();archer.weapon=0x12e6;archer.hero_weapon=0x800;archer.is_hero=1;archer.key=1234
+            archer.mastery=base;archer.field_364=5678
+            out=r4.ArrowEffect();case=fx.Case(rng,objects,fx.rand_values(rng,200),60.,1,8,True)
+            env=case.env()
+            lib.mu_sfx_create_arrow(C.byref(archer),F3(*pos),F3(*angle),7,0,raw,0,C.byref(env),C.byref(out))
+            info=out.info;pos=list(out.position);angle=list(out.angle)
+            record=am.defined_region('record',fx.POOL,bytes(0x3d8))
+            inputs=am.defined_region('inputs',fx.INPUTS,struct.pack('<9f',*pos,*angle,*light)+fx.info_bytes(info))
+            hero=am.defined_region('hero-data',fx.HERO_DATA,bytes(0x3000))
+            regions=[record,inputs,fx.object_region(objects),hero,
+                am.defined_region('hero-ptr',fx.HERO_DATA_PTR,struct.pack('<I',fx.HERO_DATA)),
+                am.defined_region('hero',fx.HERO_POINTER,struct.pack('<I',0x5000000))]
+            # Recreate the service stream after the standalone selector above.
+            case=fx.Case(rng,objects,fx.rand_values(rng,200),60.,1,8,True)
+            r=m.execute(fx.CREATE_EFFECT,[out.type,out.subtype,fx.INPUTS,fx.INPUTS+12,fx.INPUTS+24,
+                fx.OBJECTS,fx.bits(0.),fx.INPUTS+36],regions,case.stubs(m),ecx=fx.POOL,cleanup=0x20)
+            e=fx.Effect();env=case.env()
+            lib.mu_sfx_effect_create(C.byref(e),out.type,out.subtype,F3(*pos),F3(*angle),F3(*light),0,0.,C.byref(info),C.byref(env))
+            mismatch=fx.compare_effect(e,r['regions']['record'],record.defined) if vc.ok(r) else None
+            if mismatch is None:mismatch=fx.compare_calls(case.client_calls,case.c_calls)
+            report.add('lifecycle',vc.ok(r) and mismatch is None,dict(skill=raw,step='create',error=mismatch,stopped=r['stopped']))
+            if not vc.ok(r):continue
+            original=r['regions']['record']
+            for tick in range(64):
+                if dies and tick==4:objects[0].live=0
+                record=am.defined_region('record',fx.POOL,original)
+                model=bytearray(0x2000);struct.pack_into('<I',model,0x30,fx.MODEL+0x1000)
+                for a in range(0x100):struct.pack_into('<h',model,0x1000+16*a+8,8)
+                regions=[record,fx.object_region(objects),am.defined_region('model',fx.MODEL,model),
+                    am.defined_region('quake',fx.QUAKE,bytes(4)),am.defined_region('world',fx.WORLD,bytes(4)),
+                    am.defined_region('clock',0x6fce370,struct.pack('<f',1000.+tick*40.))]
+                case=fx.Case(rng,objects,fx.rand_values(rng,200),60.,1,8,True)
+                r=m.execute(fx.MOVE_EFFECT,[fx.POOL,0],regions,case.stubs(m));env=case.env();env.world_time=1000.+tick*40.
+                lib.mu_sfx_effect_move(C.byref(e),C.byref(env))
+                mismatch=fx.compare_effect(e,r['regions']['record'],record.defined,fx.MOVE_DEFINED|{'frame'}) if vc.ok(r) else None
+                if mismatch is None:mismatch=fx.compare_calls(case.client_calls,case.c_calls)
+                if mismatch is None and case.client_rand!=case.c_rand:mismatch=('rng',case.client_rand,case.c_rand)
+                report.add('lifecycle',vc.ok(r) and mismatch is None,dict(skill=raw,step=tick,error=mismatch,stopped=r['stopped'],machine_error=r['error']))
+                if not vc.ok(r):break
+                original=r['regions']['record']
+                if not original[0]:
+                    report.add('retirement',not e.live,dict(skill=raw,step=tick));break
+            else:report.add('retirement',False,dict(skill=raw,error='not retired within 64 ticks'))
+
+
 MUTANTS=[('s->attack_time == 3','s->attack_time == 2'),('p->limit = 5;','p->limit = 6;'),
     ('s->frame >= 5.0f','s->frame >= 6.0f'),('s->prior_frame = 4.0f','s->prior_frame = 3.0f'),
     ('s->attack_time > 9','s->attack_time > 10'),('s->attack_time = 15; /*','s->attack_time = 14; /*'),
@@ -137,13 +191,15 @@ MUTANTS=[('s->attack_time == 3','s->attack_time == 2'),('p->limit = 5;','p->limi
 def run(cases,mutations):
     start=time.monotonic();text=pins.TEXT.read();data=pins.DATA.read()
     rep=compare(text,data,load(ROOT/f'reconstructed/combat/libcombat.{fx.SUFFIX}'),cases)
+    lifecycle(text,data,rep)
     out={'families':rep.families,'mutants':[],'text_sha256':pins.TEXT.sha256,'data_sha256':pins.DATA.sha256}
     out['all_equal']=all(f['cases']==f['equal'] for f in rep.families.values())
     if mutations and out['all_equal']:
         src=(ROOT/'reconstructed/combat/demo_skill_fx.c').read_text()
         with tempfile.TemporaryDirectory() as tmp:
-            tmp=Path(tmp);dest=tmp/'demo_skill_fx.c';lib=tmp/f'mutant.{fx.SUFFIX}'
+            tmp=Path(tmp);dest=tmp/'demo_skill_fx.c'
             for i,(old,new) in enumerate(MUTANTS):
+                lib=tmp/f'mutant-{i}.{fx.SUFFIX}'
                 assert old in src,old
                 dest.write_text(src.replace(old,new))
                 subprocess.run(['clang','-std=c11','-O2','-shared','-fPIC','-ffp-contract=off','-fno-fast-math',

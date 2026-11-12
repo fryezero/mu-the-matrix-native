@@ -1115,7 +1115,15 @@ static int skill30_plan(mu_combat *c, int end)
             play(c, sound, -1);
         } else {
             ++c->stats.skill30_requests;
-            (void)env_call(c, call, NULL);
+            if (call->routine == MU_SFX_CALL_JOINT) {
+                create_joint(c, call->type, call->position, call->target, call->angle,
+                    call->subtype, call->owner, call->scale, (uint16_t)call->arg7, (uint16_t)call->arg8);
+            } else {
+                mu_sfx_info info = {0}; info.key = (uint16_t)call->range;
+                info.field8 = (uint16_t)call->arg7;
+                create_effect_scaled(c, call->type, call->subtype, call->position, call->angle,
+                    call->light, call->owner, &info, call->scale);
+            }
         }
         c->stats.skill30_refused += c->stats.unsupported - refused;
     }

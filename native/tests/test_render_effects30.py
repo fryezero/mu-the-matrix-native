@@ -11,6 +11,8 @@ import unittest
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'native/tests'))
 from test_native_combat import write_combat_world
+import native_fixtures as nf
+from test_native_particles import ozj_jpeg
 class Native(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -18,10 +20,14 @@ class Native(unittest.TestCase):
         cls.tmp=tempfile.TemporaryDirectory();cls.binary=Path(cls.tmp.name)/'mu-walk'
         shutil.copy2(ROOT/'native/build/mu-walk',cls.binary)
         cls.root=Path(write_combat_world(Path(cls.tmp.name)/'game'))
+        skill=cls.root/'Data/Skill';skill.mkdir(exist_ok=True)
+        (skill/'Arrow01.bmd').write_bytes(nf.synthetic_layout(400,actions=1,keys=(8,)))
+        effect=cls.root/'Data/Effect';effect.mkdir(exist_ok=True)
+        (effect/'smoke01.OZJ').write_bytes(ozj_jpeg(32,32))
         cls.placement=Path(cls.tmp.name)/'actors.txt';cls.placement.write_text('actor 3 122 120 0 label DemoTarget\n')
     @classmethod
     def tearDownClass(cls):cls.tmp.cleanup()
-    def cast(self,skill,cls=2,weapon='bow',frames=42):
+    def cast(self,skill,cls=2,weapon='bow',frames=90):
         with tempfile.TemporaryDirectory() as tmp:
             p=subprocess.run([str(self.binary),'--game-root',str(self.root),'--headless','--backend','soft',
                 '--no-audio','--no-items','--no-players','--tile','120,120','--placement',str(self.placement),
@@ -44,9 +50,13 @@ class Native(unittest.TestCase):
             self.assertEqual(frames[-1]['fx'],0)
             self.assertTrue(all(r['monsters'][0]['hp']==frames[0]['monsters'][0]['hp'] for r in frames))
             _,repeat=self.cast(51,cls);self.assertEqual(on,repeat)
-            _,off=self.cast(47,cls);self.assertNotEqual(on,off)
+            arrow=self.root/'Data/Skill/Arrow01.bmd';hidden=arrow.with_suffix('.off')
+            arrow.rename(hidden)
+            try:_,off=self.cast(51,cls)
+            finally:hidden.rename(arrow)
+            self.assertNotEqual(on,off)
     def test_missing_consumers_are_counted_and_never_change_target_hp(self):
-        for skill,cls,weapon,refused in [(52,2,'bow',1),(48,1,'sword',38),(344,1,'sword',1)]:
+        for skill,cls,weapon,refused in [(52,2,'bow',2),(48,1,'sword',38),(344,1,'sword',1)]:
             rows,_=self.cast(skill,cls,weapon)
             plan=next(r for r in rows if r.get('skill30'))
             self.assertEqual(plan['refused'],refused,(skill,plan))
@@ -71,4 +81,4 @@ class Original(unittest.TestCase):
             subprocess.run([sys.executable,str(ROOT/'scripts/validate_render_effects30.py'),'--cases','70',
                 '--output',str(output)],check=True,cwd=ROOT,capture_output=True)
             report=json.loads(output.read_text())
-        self.assertTrue(report['all_equal']);self.assertEqual(report['cases'],188)
+        self.assertTrue(report['all_equal']);self.assertEqual(report['cases'],452)

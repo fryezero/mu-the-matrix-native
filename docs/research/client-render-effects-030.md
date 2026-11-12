@@ -87,3 +87,165 @@ If a required item/particle consumer is absent, record its exact counted refusal
 for EFFECTS-026. Do not add that lane's consumer. Actor summons remain an actor
 follow-up. Later-class aliases require individually compared synthetic selector
 inputs; a masked class nibble alone is not admission evidence.
+
+## Recovered caller slices
+
+The new `demo_skill_fx` module accepts an explicit raw/base pair, owner, learned
+slot, target key and visual state. Compared pairs are 24/24, 48/48, 51/51,
+52/52, 344/344, 416/52 and 424/51. The last two match the installed brand
+links but are synthetic selector inputs in the proof. Every other tested pair
+is refused. This does not grant a learned skill, authoritative class or power.
+
+- Blood Storm sets AttackTime to 15 at `0x0139b2fd`. Its area-end body
+  `0x013a9f25..0x013aa064` uses the caster's light array as a destination point:
+  x/y = target tile plus 0.5, times 100, z = caster z. It requests `0x583/0`,
+  owned by the caster, key and info word8 -1, scale 0. The missing emitter
+  constructor is `0x013f2b83`, with lifetime 70, child `0x584/0` and sound
+  `0x2b0`. The native refusal is retained; no primary Blood Storm pixels are
+  claimed. Its generic fixture cast action is not a recovered receive action.
+- Swell Life's step body `0x0139a51f` ends the attack after step 9 only for
+  Player actions `0x9c/0x11d`. The end body `0x013aa0e1..0x013aa2af` requests
+  36 `0x7fd3/2` joints, caster z +100, angles -10/0/n*10, width 60, key 0,
+  skill 0 and the remaining original defaults. At ordinals 0 and 20 it also
+  requests `0x7f84/4` at the caster. The final sound is `0x7f`, null owner,
+  at `0x013aa2a7`. All 38 visual consumers are currently refused. No persistent
+  Swell Life presence, duration, health value or target state is supplied.
+- Penetration's step body `0x01399ca2..0x01399d80` holds Player actions
+  `0x6f <= action < 0x133` at frame 5, prior frame 4, once frame >=5.
+  Step 3 requests `0x7fd0/0` and sound `0x81` owned by the caster. Cutoff is 5.
+  The charge constructor is `0x013c8b17`, mover `0x01442503`, and is absent.
+  The subtype-2 arrow also requests missing child `0x46c/0`. Both refusals are
+  counted. The existing arrow body and its motion are reused.
+- Ice Arrow's end body `0x013afa2c..0x013afa66` copies CHARACTER target key
+  to OBJECT `+0x364`, then requests one arrow. The existing CreateArrow selector
+  uses this key for base 51. No freeze, target animation or target buff is set.
+- Triple Shot's `0x013af9db` requests CreateArrows with learned-list index,
+  flag 1 and final selector 0. It falls through to `0x013af9fe`, which requests
+  learned-list index, flag 0 and actual raw skill ID. This is three fan shots
+  plus one straight shot for the ordinary fixture bow. The old adapter emitted
+  only three and passed the skill ID as a learned index.
+
+The learned-index lookup is the original `0x016a782e` service. It searches
+only 150 slots, returns the first match and falls back to slot zero. The native
+adapter follows that bound. No live learned list is acquired.
+
+## Native boundaries
+
+Only the authored demo's class and weapon context admits these new callers.
+Bow/crossbow actions are the unwinged choices in `0x013946ee` and
+`0x013947d8`; Swell Life uses the base fixture action `0x9c` from the
+SkillAction call at `0x0125738f`. This is a bounded visual adapter, not the
+whole receive handlers. The live target's optional Ice Arrow response is absent.
+Audio request provenance is preserved for the two new step/end sounds; the
+older arrow helper's ignored sound decisions remain outside this change.
+
+Missing consumers are explicit follow-ups for the effects-consumer lane,
+not substitutes or successes. No new item/particle consumer, actor, world,
+Muun or UI source is added. New visible results reuse the existing arrow
+construction/movement and model pass. Static selector evidence, native
+repeatability and original GPU fidelity remain distinct.
+
+## Complete tree catalogue and alias audit
+
+The initial learned set above is narrower than the tree catalogue. Applying
+the native stamp manager's actual filters, `fill_basic` and `fill_special`,
+to the pinned class maps produces 26 basic and one special entry for DK,
+36 basic and one special for Elf. Use type 7 records are excluded by this
+UI path, unlike the old workload estimate. Class nibble lookup gives the same
+catalogue for the synthetic promoted bytes described above.
+
+Every catalogue row outside the learned set is listed here. Each is M before
+and after: no cast admission exists for its exact ID in this bounded native
+adapter. A shared effect kind does not establish its caller. A visible
+unlearned icon cannot itself become a hotbar cast. The addresses are the
+selected static step and area/targeted end bodies for that base ID, without
+executing receive or power logic. This is a reviewed visual coverage summary,
+not a copy of the skill table or its requirements.
+
+| Class | Unlearned catalogue skill | Before / after | Step body | Area / targeted end body |
+|---|---|---|---|---|
+| DK | 76 Plasma Storm | M / M | `0x0139b454` | `0x013ad018` / `0x013b1911` |
+| DK | 232 Strike of Destruction | M / M | `0x0139b2fd` | `0x013a99b4` / `0x013b1911` |
+| DK | 723 Fire Blow | M / M | `0x01397e0b` | `0x013aea7a` / `0x013b1911` |
+| DK | 740 Archangel's will | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| DK | 813 Rush | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| DK | 1125 Poison Storm | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| DK | 1126 Frozen Slayer | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| DK | 1127 Bloodying Hit | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| DK | 1500 Sword's Fury | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| DK | 1501 Sword Blow | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| DK | 1502 Strong Belief | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| DK | 1503 Solid Protection | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| DK | 2040 Sword Blow of Saturation | M / M | `0x0139b454` | `0x013a955a` / `0x013b1911` |
+| DK | 2043 Destruction of Gale | M / M | `0x0139b2fd` | `0x013a99b4` / `0x013b1911` |
+| Elf | 46 Starfall | M / M | `0x0139b454` | `0x013aea7a` / `0x013afa6b` |
+| Elf | 76 Plasma Storm | M / M | `0x0139b454` | `0x013ad018` / `0x013b1911` |
+| Elf | 77 Infinity Arrow | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| Elf | 234 Recovery | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| Elf | 235 Multi-Shot | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| Elf | 425 Cure | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| Elf | 426 Party Healing | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| Elf | 427 Poison Arrow | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| Elf | 430 Bless | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| Elf | 432 Summon Satyros | M / M | `0x0139b454` | `0x013a9449` / `0x013b1911` |
+| Elf | 651 Shadow Step | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| Elf | 652 Evasion | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| Elf | 727 Focus Shot | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| Elf | 740 Archangel's will | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| Elf | 1125 Poison Storm | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| Elf | 1126 Frozen Slayer | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| Elf | 1127 Bloodying Hit | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| Elf | 2023 Raining Arrow | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| Elf | 2024 Dex Booster | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| Elf | 2025 Holy Bolt | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| Elf | 2026 Improve Elemental Attack Power | M / M | `0x0139b454` | `0x013aea7a` / `0x013b18a2` |
+| Elf | 2027 Improve Elemental Defense | M / M | `0x0139b454` | `0x013aea7a` / `0x013b16c1` |
+| Elf | 2047 Holy Bolt of Gale | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+
+The class maps also expose 46 DK and 40 Elf brand aliases. The table below
+lists every alias, grouped only when its base, original bodies and coverage
+are the same. Only 416 and 424 gain explicit synthetic visual selection in
+this lane; the others remain M. These records replace a learned base entry
+when supplied by the authored fixture. Their presence in a decoded table does
+not make them learned. No master/fourth/fifth power or state is synthesized.
+
+| Class | Alias IDs | Base | Before / after | Step body | Area / targeted end body |
+|---|---|---:|---|---|---|
+| DK | 328 | 19 | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| DK | 329 | 20 | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| DK | 326 | 22 | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| DK | 327 | 23 | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| DK | 330, 332, 811 | 41 | M / M | `0x0139b454` | `0x013aba81` / `0x013b1911` |
+| DK | 331, 333, 812, 1069 | 42 | M / M | `0x0139b454` | `0x013a94a4` / `0x013b1911` |
+| DK | 336, 339, 342, 1071 | 43 | M / M | `0x0139959c` | `0x013aea7a` / `0x013b1911` |
+| DK | 356, 360, 363 | 48 | M / M | `0x0139a51f` | `0x013aa0e1` / `0x013b1911` |
+| DK | 807, 809, 1202 | 232 | M / M | `0x0139b2fd` | `0x013a99b4` / `0x013b1911` |
+| DK | 340, 343 | 337 | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| DK | 346 | 344 | M / M | `0x0139b2fd` | `0x013a9f25` / `0x013b1911` |
+| DK | 1072 | 723 | M / M | `0x01397e0b` | `0x013aea7a` / `0x013b1911` |
+| DK | 1129, 1133, 1196, 1199 | 1125 | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| DK | 1130, 1134, 1197, 1200 | 1126 | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| DK | 1131, 1135, 1198, 1201 | 1127 | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| DK | 801, 802 | 1500 | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| DK | 1203 | 1501 | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| DK | 810 | 1502 | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| DK | 803, 804, 805, 806, 1204 | 1503 | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| Elf | 414, 418, 1081 | 24 | M / M | `0x0139b454` | `0x013aea7a` / `0x013af9db` |
+| Elf | 413, 1226 | 26 | M / M | `0x0139b454` | `0x013aea7a` / `0x013afaab` |
+| Elf | 417, 423, 1229 | 27 | M / M | `0x0139b454` | `0x013aea7a` / `0x013afb06` |
+| Elf | 420, 422, 1228 | 28 | M / M | `0x0139b454` | `0x013aea7a` / `0x013afcea` |
+| Elf | 424 | 51 | M / L, explicit selector only | `0x0139b454` | `0x013aea7a` / `0x013afa2c` |
+| Elf | 416 | 52 | M / L, explicit selector only | `0x01399ca2` | `0x013aea7a` / `0x013af9fe` |
+| Elf | 441 | 77 | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| Elf | 411, 431, 1083 | 235 | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| Elf | 429, 1227 | 426 | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| Elf | 434 | 427 | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| Elf | 433, 1230 | 430 | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| Elf | 1085 | 727 | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| Elf | 1129, 1133, 1196, 1199 | 1125 | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| Elf | 1130, 1134, 1197, 1200 | 1126 | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| Elf | 1131, 1135, 1198, 1201 | 1127 | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| Elf | 1222 | 2023 | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| Elf | 876, 1223 | 2025 | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
+| Elf | 1224 | 2026 | M / M | `0x0139b454` | `0x013aea7a` / `0x013b18a2` |
+| Elf | 1225 | 2027 | M / M | `0x0139b454` | `0x013aea7a` / `0x013b16c1` |

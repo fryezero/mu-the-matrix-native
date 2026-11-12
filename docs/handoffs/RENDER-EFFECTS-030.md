@@ -41,3 +41,23 @@ pixel-removal controls, decide bounded skill-consumer work, verify lifecycles,
 run mutants once at finish, affected checks and identity, integrate main, PR.
 Next: fix portable test horizon and record both Penetration refusals, then run
 the complete caller comparison before consumer implementation.
+
+## WIP checkpoint, 22:13 local
+
+Done: expanded the audit to the full tree catalogue, 27 DK and 37 Elf entries,
+plus 46/40 class-map aliases. Exact caller and lifecycle proof passes 1,914
+comparisons, zero mismatches, 18/18 compiled production-C mutants, zero
+original-machine stops, 29.47 s. Eight original arrow records are carried
+independently from create to retirement, including owner-death sequences.
+The two admitted synthetic master pairs are 416/52 and 424/51. The native
+request facade now preserves the original keys and info words directly.
+Portable asset-removal controls and corrected Triple Shot regression expectations
+are written. Registry row added with a 452-case no-mutant private budget.
+
+Left: run the repaired native tests and required affected selection/checks;
+installed-data before/after/repeat renders and final rebuilt identity sweep;
+merge latest main and resolve any incoming changes; review, final docs, PR.
+No additional mutant run is needed unless its source/checks change. Resource
+pauses account for most elapsed time. Main currently `710ac816`; #376 still open.
+Next: native focused tests, then selections after a current build. The full gate
+remains the steward's job. No PR-ready claim or ready-prs entry yet.

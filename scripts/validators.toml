@@ -3517,3 +3517,19 @@ note = "RENDER-EFFECTS-028: authored aura presence, bounded RenderCharacter call
 all_equal = true
 all_mutants_caught = true
 "mutants.*.stopped" = 0
+
+[validate_render_effects30]
+test = "native/tests/test_render_effects30.py::Original.test_original_caller_streams"
+pins = ["text", "data"]
+families = ["step", "end", "selector", "lifecycle", "retirement"]
+cases = 452
+mutants = 18
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/combat"]
+args = ["--cases", "70", "--mutations", "--output", "{report}"]
+note = "RENDER-EFFECTS-030: complete visual caller requests and step writes for DK/Elf authored context; two individually selected master aliases; missing consumers remain counted refusals"
+[validate_render_effects30.expect]
+all_equal = true
+all_mutants_caught = true
+"mutants.*.stopped" = 0
