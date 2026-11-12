@@ -125,7 +125,7 @@ class InstalledLorenciaFires(unittest.TestCase):
                       '--out-dir', out_dir, '--width', 320, '--height', 200, '--objects-dir',
                       os.environ['MU_OBJECTS_PLAIN_DIR'])
         p = out['particles']
-        # 95 slots: Map_Smoke1 at 50 is loaded only in Elbeland, world 51 (RENDER-EFFECTS-005, #257, put
+        # 97 slots: Map_Smoke1 at 50 is loaded only in Elbeland, world 51 (RENDER-EFFECTS-005, #257, put
         # smoke_line03 0x83de and lighting01_10cha 0x84e2 before it; INTEGRATION-GREEN-002). RENDER-EFFECTS-010
         # adds Clud64 0x7ffd, the arrows' 0x8081..0x8083, 0x85fb, 0x8450, pin_star03 0x810a and flower1..3
         # 0x7f73..0x7f75 before the two rain textures. RENDER-EFFECTS-011 adds pin_star02_pupple 0x810c
@@ -134,7 +134,7 @@ class InstalledLorenciaFires(unittest.TestCase):
         # 0x81cf (the wings' item-owned particles) before Fire06.
         # RENDER-EFFECTS-023 adds fourteen mace bitmap mappings before Fire06; 024 adds two sprite textures.
         # Every Lorencia-applicable bitmap must load, including the last two rain textures.
-        self.assertEqual(p['bitmaps'], [1]*50 + [0] + [1]*44)   # RENDER-EFFECTS-019: WATERFALL4 0x801d
+        self.assertEqual(p['bitmaps'], [1]*50 + [0] + [1]*46)   # RENDER-EFFECTS-019: WATERFALL4 0x801d
         self.assertGreater(p['created'], 20)
         self.assertEqual(p['unsupported'], 0)
         self.assertGreater(p['drawn_particles'], 0)

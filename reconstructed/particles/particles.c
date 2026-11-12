@@ -40,10 +40,12 @@ static float rand_range(const mu_pt_host *h, float lo, float hi, int32_t steps);
 #include "item_counter_kinds.inc"  /* RENDER-EFFECTS-022 */
 #include "item_mace_kinds.inc"     /* RENDER-EFFECTS-023 */
 #include "ferea_clouds.inc"        /* RENDER-EFFECTS-025 */
+#include "item_later_kinds.inc"    /* RENDER-EFFECTS-026 */
 #include "item_bow_kinds.inc"      /* RENDER-EFFECTS-025 */
 
 int mu_pt_kind_supported(int32_t type, int32_t subtype)
 {
+    if (mu_pt_item_later_kind(type, subtype)) return 1;
     if (mu_pt_ferea_cloud_kind(type, subtype) || mu_pt_item_bow_kind(type, subtype)) return 1;
     if (mu_pt_item_mace_kind(type, subtype)) return 1;
     if (mu_pt_worlds_l_kind(type, subtype) || mu_pt_worlds_m_kind(type, subtype)) return 1;
@@ -196,6 +198,10 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
     if (!mu_pt_kind_supported(type, subtype))
         return 0;
 
+    if (mu_pt_item_later_kind(type, subtype)) {
+        mu_pt_item_later_create(p, h, scale);
+        return 1;
+    }
     if (mu_pt_item_bow_kind(type, subtype)) {
         mu_pt_item_bow_create(p, h);
         return 1;
@@ -678,7 +684,9 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
         owner_position(p, h);   /* 0x01616fee..0x01617071 */
     int supported = mu_pt_kind_supported(p->type, p->subtype);
     if (supported) {
-        if (mu_pt_item_bow_kind(p->type, p->subtype))
+        if (mu_pt_item_later_kind(p->type, p->subtype))
+            mu_pt_item_later_move(p, h);
+        else if (mu_pt_item_bow_kind(p->type, p->subtype))
             mu_pt_item_bow_move(p, h);
         else if (mu_pt_ferea_cloud_kind(p->type, p->subtype))
             mu_pt_ferea_cloud_move(p, h);
@@ -1234,6 +1242,7 @@ int mu_pt_render_record(mu_pt_particle *p, const mu_pt_bitmap *b, uint8_t mode, 
         return 1;   /* RENDER-EFFECTS-011: Flare/5 at lifetime 60 */
     if (mu_pt_item_predraw_kind(p->type, p->subtype) && !mu_pt_item_predraw_render(p, s))
         return 1;   /* RENDER-EFFECTS-021: shiny06/5 draws no sprite */
+    mu_pt_item_later_render(p, s);
     mu_pt_item_mace_render(p, s);
     out->sprites = 1;
     return 1;
