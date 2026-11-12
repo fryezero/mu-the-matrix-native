@@ -77,3 +77,88 @@ Production-host negative cases reproduced two adapter mistakes before correction
 could bypass a hidden-object skip after an RGBA refusal, and the refusal initially assumed texture slot 0.
 The host now requires hidden RGBA refusal while preserving hidden RGB/Chrome draws, and distinguishes a mapped
 RGBA slot from a mapped RGB slot when slot 0 has the opposite component count.
+
+## RENDER-WORLDS-INNER-002: Elbeland and Swamp of Calmness
+
+Same executable/text/data pins and offline method as INNER-001. The owned producer is
+`world_inner2_visual.c`; `mu_objects_runtime.c` runs it after the single existing outer RNG draw and routes its
+requests through the existing sprite, particle and joint consumers. No event-state input is read by these two
+world branches. Fixed synthetic stack colour is a comparison input only.
+
+Elbeland was chosen first for its captured population: 5,175 objects, including 164 type 0x3c smoke bursts,
+26 type 0x79 six-bone glows and six type 0x3f glows. Swamp has 4,236 captured objects, including 87/119 owned
+smoke emitters of types 0x4d/0x4e and 59 raised-smoke emitters of type 0x48. These are object-list populations,
+not counts visible from the capture camera.
+
+### Elbeland 51
+
+`0x00e3116a..0x00e31984`, reached from RenderObjectVisual at `0x017fcc89`.
+The guard `0x00e309a7` also accepts 73/74, which `0x00e309d9` forwards to another handler. This lane owns
+only world 51 and does not claim those forwarded worlds.
+
+| Type | Complete inline producer in world 51 |
+|---|---|
+| 0 | rand % 3 == 0: particle 0x8016/0 at position, white, object scale |
+| 0x36 | rand % 4 == 0: 0x801b/4 at position, white, object scale |
+| 0x3a | 0x801e/0 at position, scale 1; light reads unwritten stack local `[ebp-0x10..-8]` |
+| 0x3b | 0x801c/8 always, white, object scale |
+| 0x3c | If hidden mesh != -2: ten owned 0x7f89/3 requests, light 0.06/0.07/0.08, object scale; then hidden mesh -2 |
+| 0x3d | rand % 3 == 0: 0x8017/0, white, object scale |
+| 0x3f | Bone 5, local -40/-10/0: 0x7ef7 sprite, scale object scale times 6, light p/p/p*0.6; p = (sin(T*0.001)+1)*0.3+0.4 |
+| 0x6e | rand % 2 == 0: two more rolls, local x = cos(T*0.03)*(rand%5+30), y = sin(T*0.03)*(rand%5+30), z = 70; bone 0 -> owned 0x7ef7/11 particle, white, scale 0.6 |
+| 0x79 | Bones 3..8, local 5/-4/-1: six 0x7ef7 sprites, scale p, light p/p*0.5/p*0.3; p = (sin(T*0.002)+1)*0.5+0.5 |
+
+The existing Elbeland move handler hides type 0x3c before a normal visual pass. Its ten-request branch is
+verified with authored pre-hidden state in the producer and production host; it is not claimed to fire in the
+captured steady-state view.
+
+Type 0x3a has no defined stack colour in this function. The whole guard and branch are compared with an authored
+prior stack colour installed at the branch boundary `0x00e31358`, without replacing any instructions. This is
+synthetic input evidence, not a recovered colour or an original frame claim. The native producer accepts that
+input for comparison; production supplies no such value and emits a counted refusal instead of inventing white.
+
+### Swamp of Calmness 56
+
+`0x00e5f94b..0x00e6021c`, reached at `0x017fcc9f`; world test `0x00e5f48a` accepts only 56.
+
+| Type | Complete inline producer in world 56 |
+|---|---|
+| 0x39 | rand % 3 == 0: 0x8016/5 then 0x7f5a/21, white, object scale |
+| 0x47 | rand % 3 == 0: 0x8016/5, white, object scale |
+| 0x48 | rand % 6 == 0: position.z + 50, 0x7f5a/49, light 0.03, object scale |
+| 0x4a | rand % 3 == 0: 0x7f5a/21, white, twice object scale |
+| 0x4d / 0x4e | rand % 6 == 0: owned 0x7f89/20, light 0.04/0.06/0.03 or 0.03/0.03/0.05, object scale |
+| 0x63..0x67 | rand % 50 == 0: write object light 1/0.65/0; owned 0x7f7d joint, subtypes 26/16/17/24/25, identical position endpoints, object angle and scale |
+
+All five joint subtypes already exist natively. Missing joint hooks and missing bone transforms remain counted
+refusals. No particle consumer is added by this lane; absent particle kinds retain their existing pool refusals.
+
+### Remaining inline work
+
+Addresses below are static entry points for the next lane, not a claim that every branch needs new code.
+The previous broad list included worlds that only reach the common chain. Recheck the call paths and guards
+before implementing anything there.
+
+| World | Entry or dispatch to inspect |
+|---|---|
+| 9 | RenderObjectVisual inline case `0x017fb7e7`, type 2 |
+| 24 | Kalima `0x00def747`, guarded by `0x009b0418`, also accepts 25..29/36 |
+| 30 | `0x00d8e640`; event byte getter `0x00d8b3e3` reads `0x01ec8ee7`, use an authored input only |
+| 31 | `0x00dfc095`, types 3/0x31/0x35 |
+| 33 | `0x00d622dd`, world guard also accepts 54 |
+| 38 | `0x00e7df87`, guard `0x00e843df` |
+| 39 | `0x00e84941`, guard `0x00e84513`; tower state is a separate fixture input |
+| 41/42 | thiscall `0x00d5404b`, getter `0x00d53c8f`, world tests `0x00d53d11`/`0x00d53d32` |
+| 46/98 | common chain `0x017fcb5c..0x017fccbc`, then manager `0x00ea2dc1`; no dedicated leaf identified here |
+
+Kanturu type 0x60's extra RGBA pass still needs the coordinated GREATER 0 alpha-reference seam described in
+INNER-001. This lane does not change shared mesh or raster state. The rest of the worlds above remain unported
+by this lane. No event model, new capture, live client or installed-app change.
+
+### INNER-002 final verification
+
+Five families pass 5,000 original call comparisons, zero mismatches/stops. All 27 compiled mutants are caught,
+minimum 46 detections. All 64 affected validators and the portable/private checks pass. The 44 unaffected
+views are byte-identical. Elbeland's close-up glows and Swamp's six joints / 196 quads were visually inspected
+in demo-labelled native frames. Elbeland has no original PNG; Swamp's captured image score is unchanged.
+[Full counts, refusals, per-row walls and next addresses](../handoffs/RENDER-WORLDS-INNER-002.md).
