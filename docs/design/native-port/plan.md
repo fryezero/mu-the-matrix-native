@@ -1,5 +1,7 @@
 # Plan: the rest of the native macOS port
 
+RENDER-EFFECTS-028 PR-ready: fixture-only Greater Defense/Damage auras now persist until authored expiry and retire on owner death. Defense ribbons and midpoint flares, attack link sprites; 4,390 original comparisons, 18/18 aura mutants, 56 affected validators pass; default captures remain identical. [Evidence, counts and limits](../../handoffs/RENDER-EFFECTS-028.md).
+
 CHARSEL-ITEMS-001 PR-ready: selection now draws authored demo equipment levels and excellent through the existing item renderer and texture rules. Original comparison: 8,817 cases, zero mismatches; 7/7 compiled mutants. File-only selection and default world captures remain byte-identical. [Checks, addresses, renders and limits](../../handoffs/CHARSEL-ITEMS-001.md).
 
 NEXT-GAPS-001 PR-ready, docs only: [ranked remaining offline lanes](../../research/next-gaps.md), with sourced counts, existing-owner dependencies and file-conflict groups. [Handoff](../../handoffs/NEXT-GAPS-001.md).
@@ -220,6 +222,7 @@ content (cash-shop catalogues, event schedules) is observable only live (OP).
 | RENDER-EFFECTS-024 | Original-loader mace sprite textures `0x81ec`/`0x854a`; Ferea fire emitter `0x413/10` and `0x8084/3` | 11,006 component comparisons, 18/18 mutants; [census and limits](../../handoffs/RENDER-EFFECTS-024.md) | RENDER-EFFECTS-023 | PR-ready |
 | RENDER-EFFECTS-025 | Hammer14 `up01` missing-name sprite state; Ferea clouds/28; bow pairs `0x8109/7` and `0x810a/9` | 10,002 component comparisons, 24/24 mutants; [census and limits](../../handoffs/RENDER-EFFECTS-025.md) | RENDER-EFFECTS-024 | PR-ready |
 | RENDER-EFFECTS-027 | Death Stab (skill 43) step trails for the base-DK fixture: `0x472/2` ribbons, `0x10e6/1` markers, `Flare/12` curls | 6,064 comparisons, 23/23 mutants; [evidence and limits](../../handoffs/RENDER-EFFECTS-027.md) | RENDER-EFFECTS-024 | PR-ready |
+| RENDER-EFFECTS-028 | Authored Greater Defense/Damage buff auras, expiry and owner lifetime | 4,390 original cases, 18/18 aura mutants, 56 affected validators; [checks and limits](../../handoffs/RENDER-EFFECTS-028.md) | RENDER-EFFECTS-027 | PR-ready, fixture-only |
 | MUUN-VISUAL-001 | Fixture-only Muun model, pose/follow and owner lifetime; the 16 verified effect attachments drawn on it | 912 instruction cases, 18/18 mutants; [scope and limits](../../handoffs/MUUN-VISUAL-001.md) | RENDER-EFFECTS-018 | PR-ready |
 | RENDER-EFFECTS-023 | Nineteen remaining mace particle pairs, fourteen world bitmap slots and viewer item OBJECTs | 58,014 component comparisons, 31/31 mutants, default byte identity; [census and limits](../../handoffs/RENDER-EFFECTS-023.md) | RENDER-EFFECTS-022, RENDER-ITEMS-002V | PR-ready |
 | RENDER-EFFECTS-022 | Counter-gated mace particles `0x810a/0x25`, `0x855d/1`, `0x84d1/1`; retained OBJECT points and argument 8; rank-5 world owners | 10,002 instruction comparisons, native owner-generation tests, 18/18 fixture particles drawn, default tours byte-identical; [checks, census and limits](../../handoffs/RENDER-EFFECTS-022.md) | RENDER-ITEMS-002U, RENDER-EFFECTS-020/021 | PR-ready |

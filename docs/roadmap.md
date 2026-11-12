@@ -1,5 +1,7 @@
 # Roadmap and work queue
 
+RENDER-EFFECTS-028 PR-ready: fixture-only Greater Defense/Damage auras now persist until authored expiry and retire on owner death. Defense ribbons and midpoint flares, attack link sprites; 4,390 original comparisons, 18/18 aura mutants, 56 affected validators pass; default captures remain identical. [Evidence, counts and limits](handoffs/RENDER-EFFECTS-028.md).
+
 CHARSEL-ITEMS-001 PR-ready: selection now draws authored demo equipment levels and excellent through the existing item renderer and texture rules. Original comparison: 8,817 cases, zero mismatches; 7/7 compiled mutants. File-only selection and default world captures remain byte-identical. [Checks, addresses, renders and limits](handoffs/CHARSEL-ITEMS-001.md).
 
 NEXT-GAPS-001 PR-ready, docs only: ranked offline gap inventory, ten lane briefs, file-conflict groups and sourced counts; no runtime change. [Research](research/next-gaps.md), [method and limits](handoffs/NEXT-GAPS-001.md).

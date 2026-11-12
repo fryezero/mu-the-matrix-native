@@ -1,5 +1,7 @@
 # Current status
 
+RENDER-EFFECTS-028 PR-ready: fixture-only Greater Defense/Damage auras now persist until authored expiry and retire on owner death. Defense ribbons and midpoint flares, attack link sprites; 4,390 original comparisons, 18/18 aura mutants, 56 affected validators pass; default captures remain identical. [Evidence, counts and limits](handoffs/RENDER-EFFECTS-028.md).
+
 MUUN-VISUAL-001 PR-ready: a fixture-only Muun now draws beside the demo hero in `mu-world` (`MU_MUUN_FIXTURE=<code>`): model, pose, follow motion and owner lifetime from the original's slot setup/update, with the 16 already-verified effect attachments now visible on it. 912 original instruction cases, 18/18 compiled mutants, 54 affected validators pass. No Muun packets, inventory or bonuses. [Scope, checks and limits](handoffs/MUUN-VISUAL-001.md).
 
 RENDER-WORLDS-INNER-001 PR-ready: Kanturu worlds 37/40 now run the complete inline hook `0x00e75089` (clock-windowed effect, smoke/particle requests, bone flares, lightning, Chrome and scrolling mesh passes) and Blood Castle worlds 11..17/52 run the inline switch `0x017fc023` for types 0x0b/0x0d/0x2a. 4,000 original call comparisons, 33/33 compiled mutants, 61 affected validators pass. Default sweep: only world 37 changes. [Scope, checks and limits](handoffs/RENDER-WORLDS-INNER-001.md).
