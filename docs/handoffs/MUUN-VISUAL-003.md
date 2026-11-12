@@ -43,8 +43,10 @@ feeds remain excluded. No claim of complete kind-1 or full-scene equivalence.
 
 Local scratch and renders are under `~/Documents/MTM/mu-mac-tools/native/{scratch,renders}/muun-visual-003`.
 The first checkpoint is `a03c51e0`; its code is the frozen input of the successful 30-row validator batch.
-This second WIP checkpoint changes documentation only. The 157-item portable batch is running; remaining
-steps are the focused private regression, retained proofs, after sweep, final-main check and PR preparation.
+Second checkpoint `6434f2fe` recorded the thirty-row run. The 157-item portable batch subsequently passed:
+1,437 tests, 1,186 passed, 251 skipped, zero failures/errors, 386.97 s including selection. Both Muun modules
+passed privately, 10 tests, 16.65 s. The third checkpoint includes latest main at merge `448f947c` and its
+12 passing validator rows; post-merge portable/render checks remain pending under the load guard.
 Portable selection: 157 work items, 82.37 s. **8d reduced:** this exceeds forty; both direct Muun modules
 will run privately, while all 157 portable items are retained. No future-lane input has been created.
 Keep only needed resume inputs if stopped WIP; remove generated
@@ -93,3 +95,37 @@ MU_GAME_ROOT, MU_SECTION3, MU_EVIDENCE_DIR, MU_NATIVE_DATA_DIR and row-specific 
 | `validate_worlds_f` | 1,818 | 0.4 s |
 
 Total reported row cases: 703,901.
+
+
+## Latest-main integration checkpoint
+
+Main advanced to `0ccd5f44`, UI-WINDOWS-002. It merged cleanly at `448f947c`. The incoming changes touch
+GFx and world input, with no Muun, native/core, reconstructed or validator source changes. Incremental
+root build passes in 6.95 s. The 12 selected post-merge validator rows pass in 170.97 s at `448f947c`;
+no mutant rerun. The original thirty rows remain listed above with their actual tested commit.
+
+Pending: post-merge portable selection/run and world-render checks, a freshly rebuilt-world after sweep,
+final documentation and PR preparation. The before baseline is retained and will not be rerun.
+The pre-merge identity result is 92/92 PNGs, 92/92 dumps and 46/46 path-normalized reports identical.
+The private Muun run passes 10/10 tests in 16.65 s. Native proof has 32 PNGs over eight bodies
+at actions 0/2/4, 8.08 s, with the contact sheet inspected.
+
+Steward validators after the merge: validate_app_polish1, validate_app_polish2, validate_app_polish4, validate_app_polish7, validate_audio_callers, validate_audio_domains, validate_audio_items, validate_gfx3, validate_map_polish, validate_movement, validate_render_effects16, validate_worlds_fog
+
+| Validator refreshed at `448f947c` | Reported cases | Wall |
+|---|---:|---:|
+| `validate_app_polish1` | 752 | 25.1 s |
+| `validate_app_polish2` | 1,028 | 5.5 s |
+| `validate_app_polish4` | 10,485 | 48.6 s |
+| `validate_app_polish7` | 5,120 | 2.4 s |
+| `validate_audio_callers` | 5,528 | 8.1 s |
+| `validate_audio_domains` | 2,544 | 45.9 s |
+| `validate_audio_items` | 3,000 | 5.2 s |
+| `validate_gfx3` | no aggregate reported | 7.8 s |
+| `validate_map_polish` | 876 | 1.0 s |
+| `validate_movement` | 6,614 | 95.5 s |
+| `validate_render_effects16` | 424 | 4.8 s |
+| `validate_worlds_fog` | 4,044 | 12.2 s |
+
+Resource waits delayed the finish steps; one heavy lane job at a time is maintained. All tests and tools
+run from the repository root. No full lane gate or hosted CI ran.
