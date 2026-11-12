@@ -62,6 +62,10 @@ MUTANTS = {
     'bottom': ('available_h - h * out.scale', 'available_h'),
     'left': ('fmax(0.0, fmin(x,', 'fmin(0.0, fmin(x,'),
     'top': ('fmax(0.0, fmin(y,', 'fmin(0.0, fmin(y,'),
+    'hud_width': ('original_scale * viewport_width / bar_width', 'original_scale * bar_width / viewport_width'),
+    'hud_bottom': ('viewport_height - background_height', 'viewport_height + background_height'),
+    'hud_floor': ('floor(viewport_height - background_height * out.scale / 100.0)',
+                  '(viewport_height - background_height * out.scale / 100.0)'),
 }
 
 
@@ -77,16 +81,26 @@ void probe(const double *a, double *out) {
     mu_gfx_fit f = mu_gfx_fit_window(a[0],a[1],a[2],a[3],a[4],a[5]);
     out[0]=f.x; out[1]=f.y; out[2]=f.scale;
 }
+void bar(const double *a, double *out) {
+    mu_gfx_fit f = mu_gfx_fit_bar(a[0],a[1],a[2],a[3],a[4]);
+    out[0]=f.x; out[1]=f.y; out[2]=f.scale;
+}
 ''')
     lib = work / 'fit.so'
     subprocess.run([os.environ.get('CC', 'cc'), '-std=c11', '-O2', '-shared', '-fPIC',
                     str(source), '-lm', '-o', str(lib)], check=True, capture_output=True)
     api = ctypes.CDLL(str(lib))
     api.probe.argtypes = [ctypes.POINTER(ctypes.c_double)] * 2
+    api.bar.argtypes = [ctypes.POINTER(ctypes.c_double)] * 2
     def run(a):
         out = (ctypes.c_double * 3)()
         api.probe((ctypes.c_double * 6)(*a), out)
         return list(out)
+    def bar(a):
+        out = (ctypes.c_double * 3)()
+        api.bar((ctypes.c_double * 5)(*a), out)
+        return list(out)
+    run.bar = bar
     return run
 
 
@@ -109,6 +123,18 @@ def fit_errors(run, cases):
     return errors
 
 
+def bar_errors(run, cases):
+    errors = []
+    for a in cases:
+        width, bg, original, vw, vh = a
+        x, y, scale = run.bar(a)
+        gap = vh - (y + bg*scale/100)
+        if not (x == 0 and y == int(y) and 0 <= gap < 1+1e-7 and 0 < scale <= original
+                and abs(width*scale/original-vw) < 1e-7):
+            errors.append([a,[x,y,scale]])
+    return errors
+
+
 def run(args):
     started = time.monotonic()
     text, data = pins.TEXT.read(args.text), pins.DATA.read(args.data)
@@ -128,19 +154,26 @@ def run(args):
         cases.append(tuple(rng.uniform(-1500, 2500) for _ in range(2)) +
                      tuple(rng.uniform(1, 3000) for _ in range(4)))
     caught = {}
+    bars = []
+    for _ in range(min(args.cases,512)):
+        vw = rng.uniform(640,2560)
+        bars.append((vw+rng.uniform(1,1000),rng.uniform(50,150),95,vw,rng.uniform(480,1440)))
     with tempfile.TemporaryDirectory() as tmp:
         work = Path(tmp)
-        errors = fit_errors(native_fit(work), cases)
+        native = native_fit(work)
+        errors = fit_errors(native, cases) + bar_errors(native,bars)
         assert not errors, errors[:3]
         if args.mutants:
             for name in MUTANTS:
                 d = work / name
                 d.mkdir()
-                caught[name] = len(fit_errors(native_fit(d, name), cases))
+                native = native_fit(d,name)
+                caught[name] = len(fit_errors(native,cases)) + len(bar_errors(native,bars))
                 assert caught[name] > 0, name
     return {'text_sha256': pins.TEXT.sha256, 'data_sha256': pins.DATA.sha256,
             'families': {'resize': {'cases': checked, 'mismatches': 0},
-                         'native_fit': {'cases': len(cases), 'mismatches': 0}},
+                         'native_fit': {'cases': len(cases), 'mismatches': 0},
+                         'native_hud': {'cases': len(bars), 'mismatches': 0}},
             'mismatches': 0, 'mutants_caught': caught, 'wall_seconds': time.monotonic()-started}
 
 

@@ -40,7 +40,7 @@ anchor. The movie still performs alignment and reports positions. After a resize
 the original scale is restored before applying the fit for the new size.
 This bounded fit is native policy, not claimed original-client equivalence.
 Its compiled arithmetic has containment, maximal-fit and no-enlargement checks
-with seven compiled mutants. Tooltips retain their owning movie's placement.
+with ten compiled mutants. Tooltips retain their owning movie's placement.
 
 ## CharacterInfo ownership
 

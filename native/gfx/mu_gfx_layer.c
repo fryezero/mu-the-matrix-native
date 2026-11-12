@@ -1801,13 +1801,14 @@ static void fit_windows(mu_gfx_layer *L)
     double bar_w = movie_number(L, MU_GFX_MAIN, "_width");
     double bar_scale = movie_number(L, MU_GFX_MAIN, "_xscale");
     if (bar_w > L->w && bar_scale > 0) {
-        double scale = bar_scale * L->w / bar_w;
-        movie_number_set(L, MU_GFX_MAIN, "_xscale", scale);
-        movie_number_set(L, MU_GFX_MAIN, "_yscale", scale);
         double bg = movie_number(L, MU_GFX_MAIN, "_bg._height");
-        movie_number_set(L, MU_GFX_MAIN, "_x", 0);
-        if (isfinite(bg))
-            movie_number_set(L, MU_GFX_MAIN, "_y", floor(L->h - bg * scale / 100));
+        if (isfinite(bg) && bg > 0) {
+            mu_gfx_fit f = mu_gfx_fit_bar(bar_w, bg, bar_scale, L->w, L->h);
+            movie_number_set(L, MU_GFX_MAIN, "_xscale", f.scale);
+            movie_number_set(L, MU_GFX_MAIN, "_yscale", f.scale);
+            movie_number_set(L, MU_GFX_MAIN, "_x", f.x);
+            movie_number_set(L, MU_GFX_MAIN, "_y", f.y);
+        }
     }
     double bottom = movie_number(L, MU_GFX_MAIN, "_y");
     if (!(bottom > L->h / 2.0 && bottom <= L->h))

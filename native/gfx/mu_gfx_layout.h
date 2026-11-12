@@ -20,4 +20,14 @@ static inline mu_gfx_fit mu_gfx_fit_window(double x, double y, double w, double 
     out.y = fmax(0.0, fmin(y, available_h - h * out.scale));
     return out;
 }
+
+/* Only called when the original HUD is wider than the viewport. Width is
+ * already scaled; the background height is local to Frame.Main. */
+static inline mu_gfx_fit mu_gfx_fit_bar(double bar_width, double background_height, double original_scale,
+                                       double viewport_width, double viewport_height)
+{
+    mu_gfx_fit out = {0, 0, original_scale * viewport_width / bar_width};
+    out.y = floor(viewport_height - background_height * out.scale / 100.0);
+    return out;
+}
 #endif

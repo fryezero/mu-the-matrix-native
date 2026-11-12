@@ -32,6 +32,8 @@ class Bounds(unittest.TestCase):
             cases = [(-100,-30,900,700,640,406), (1200,900,300,600,1024,650),
                      (50,60,300,600,1920,970), (0,0,300,600,1024,650)]
             self.assertEqual(validator.fit_errors(fit, cases), [])
+            self.assertEqual(validator.bar_errors(fit,[(874.95,106,95,640,480),
+                                                       (1200,106.5,100,800,600)]),[])
 
     def test_resize_reaches_unaligned_character_window(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -84,7 +86,7 @@ class LayoutSweep(unittest.TestCase):
                     p = subprocess.run([str(self.host), str(Path(os.environ['MU_NATIVE_DATA_DIR'])/'gfx'),
                                         os.environ['MU_GFX_LIB'], *args, 'maplayout'], env=env, capture_output=True,
                                        text=True, timeout=180)
-                    self.assertEqual(p.returncode,0,p.stderr[-2000:])
+                    self.assertEqual(p.returncode,0,p.stderr[-2000:]+p.stdout[-2000:])
                     rows = [json.loads(l) for l in p.stdout.splitlines() if l.startswith('{"layout_movie"')]
                     opened = [r for r in rows if r['open'] and r['layout_movie'] not in (0,4)]
                     self.assertEqual({r['layout_movie'] for r in opened}, {self.ids[n] for n in NAMES})
