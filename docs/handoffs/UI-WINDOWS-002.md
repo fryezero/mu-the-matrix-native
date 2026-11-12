@@ -189,3 +189,12 @@ After the ready-prs entry, push nothing further. Cleanup removes this lane's
 renders/scratch, its detached baseline tree, build outputs, worktree and
 local branch. The remote PR branch stays for the steward. No new input needs
 retaining. The next APP-REFRESH lane can include these views after the merge.
+
+## Publication integration WIP
+
+Done: integrated latest steward main `fb747e42` (AUDIO-003 and
+RENDER-WORLDS-INNER-002), retaining both sides of three status conflicts.
+Left: rebuild and rerun selected checks whose compiled inputs changed since
+`142c3aeb`; the lane's default identity results above apply before this
+world/audio integration, not as a claim about its changed maps.
+Next: record the integration checks, then publish and queue without another push.

@@ -2,6 +2,10 @@
 
 UI-WINDOWS-002 PR-ready: eight inert presentation adapters open Macro/Sub, HuntRecord, expanded storage, matching children/current guild matching and the original guide frame. Local lifecycle and native captures pass; 1,429 portable tests, final private controller/audio checks, 12 validators and 230 default identities pass. Original Help route remains unproved. [Checks and limits](handoffs/UI-WINDOWS-002.md).
 
+RENDER-WORLDS-INNER-002 PR-ready: Elbeland 51 and Swamp of Calmness 56 now run their inline visual producers, including bone glows, particles/owned smoke and five existing lightning subtypes. Elbeland 0x3a's unwritten stack colour remains an explicit refusal. 5,000 original call comparisons, 27/27 compiled mutants and 64 affected validators pass. All 44 unaffected capture views stay byte-identical; close-up glows/lightning are visible. [Scope, checks and limits](handoffs/RENDER-WORLDS-INNER-002.md).
+
+AUDIO-003 PR-ready: 16 existing object callers now deliver Devias doors, seven Elbeland loops, Uruk ambience and Kardamahal sounds through the session audio reader. Census: 1,980 candidates, 1,225 owner-classified and 755 unresolved; enumerated audio boundaries 113 -> 129. Static zone music already had delivery and passes the new decoded smoke. 4,000 original cases, 10/10 compiled mutants. [Checks, census and refused groups](handoffs/AUDIO-003.md).
+
 RENDER-EFFECTS-028 PR-ready: fixture-only Greater Defense/Damage auras now persist until authored expiry and retire on owner death. Defense ribbons and midpoint flares, attack link sprites; 4,390 original comparisons, 18/18 aura mutants, 56 affected validators pass; default captures remain identical. [Evidence, counts and limits](handoffs/RENDER-EFFECTS-028.md).
 
 APP-REFRESH-012 PR-ready, docs only: detached main d4af71dd installed; APP-REFRESH-006 Native Data and settings preserved. Full private suite 1,069 tests, 1,054 passed/15 skipped, zero failures/errors. Standard journeys and all seven new feature categories pass, with explicit fixture/audio-preference limits. [Installation, rollback, proofs and checks](handoffs/APP-REFRESH-012.md).
