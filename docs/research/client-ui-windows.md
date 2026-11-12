@@ -53,11 +53,13 @@ there is no queued replay.
 ## Ranked missing-movie inventory
 
 Rank is an implementation recommendation based on expected player frequency
-and fixture cost, not measured usage. The first two need labels only; Pet and
-Gens are common empty views; Gremory has simple local tabs. Registrations are
-string-push addresses, not proof of a complete open route. `Open route untraced`
+and fixture cost, not measured usage. Tier 10 defers movies whose open route or usage frequency is unknown; it does not invent a frequency estimate. The first two need labels only; Pet and
+Gens are common empty views; Gremory has simple local tabs. Name references are
+string-push instruction addresses when present, otherwise immediate addresses. They are not proof of a complete open route. `Open route untraced`
 means exactly that, and is a remaining research task. Data needs on untraced
 rows are conservative domain inferences, not decoded server contracts.
+
+There are 134 baseline-absent survey rows, five added here and 129 left. There are 21 separately accounted-for entries.
 
 This lists every movie name in the existing private survey absent from the
 baseline FILES set, after separating the already hosted front-end/HUD/library
@@ -66,138 +68,142 @@ Expanded warehouse shares already bound `StorageInven.swf`: H at `0x00efc715`,
 manager `+0x104`, requires the warehouse. It remains left because its additional
 grid owner is absent; H must never open a remote warehouse.
 
-| Movie | Rank / data cost | Registration string push | Original route evidence | Data need and result |
+| Movie | Rank / data cost | Registration / name reference | Original route evidence | Data need and result |
 |---|---|---|---|---|
-| `ArkaBattleNotice.swf` | deferred / unmeasured | 0xac6dbe | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `ArkaBattleProgress.swf` | deferred / unmeasured | 0xac6d3c | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `ArkaBattleRegister.swf` | deferred / unmeasured | 0xac6cb7 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `ArkaResultInfo.swf` | deferred / unmeasured | 0xac6681 | Open route untraced | Domain fixture/controller contract not recovered; left |
-| `ArtifactFrame.swf` | deferred / unmeasured | 0xac5ef4 | Open route untraced | Domain-specific records/controller absent; no stat/power work; left |
-| `ArtifactInfoPopup.swf` | deferred / unmeasured | 0xac52f9 | Open route untraced | Domain-specific records/controller absent; no stat/power work; left |
-| `AutomaticMacro.swf` | 7 / high | 0xac9218 | Home helper branch 0x00efd1a7; exact movie-open call untraced | Helper start/stop and answers excluded; left |
-| `BattleCoreDialog.swf` | deferred / unmeasured | 0xac778a | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `BattleCoreEnter.swf` | deferred / unmeasured | 0xac7706 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `BattleField_BigDialog.swf` | deferred / unmeasured | unlocated | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `BattleFieldNotify.swf` | deferred / unmeasured | unlocated | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `BlockedChat.swf` | deferred / unmeasured | 0xac7d39 | Open route untraced | Social/list records and controller absent; left |
-| `BombHunt.swf` | deferred / unmeasured | 0xac72ed | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `BossHpUI.swf` | deferred / unmeasured | unlocated | Open route untraced | Domain fixture/controller contract not recovered; left |
-| `BoxOfBlessEvent.swf` | deferred / unmeasured | 0xac8372 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `CharacterFrame.swf` | deferred / unmeasured | unlocated | Open route untraced | Domain fixture/controller contract not recovered; left |
-| `CombinationFrame.swf` | deferred / unmeasured | unlocated | Open route untraced | Domain fixture/controller contract not recovered; left |
-| `CommandWindow.swf` | 1 / none | 0xac699c | D, 0x00efcee8, manager +0x134; menu 3 has no dispatch | Labels only; command intents refused; opens here |
-| `CursedTempleEnter.swf` | deferred / unmeasured | 0xac89cb | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `CursedTempleinfo.swf` | deferred / unmeasured | unlocated | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `CursedTempleMatchMenu.swf` | deferred / unmeasured | 0xac8ce9 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `CursedTempleResult.swf` | deferred / unmeasured | 0xac8d6e | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `CursedTempleScore.swf` | deferred / unmeasured | 0xac8df3 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `DamageCount.swf` | deferred / unmeasured | unlocated | Open route untraced | Domain-specific records/controller absent; no stat/power work; left |
-| `DeathPenaltyExpRecovery.swf` | deferred / unmeasured | 0xac8949 | Open route untraced | Domain-specific records/controller absent; no stat/power work; left |
-| `DivideWindow.swf` | deferred / unmeasured | 0xac4f83 | Open route untraced | Domain fixture/controller contract not recovered; left |
-| `Duel.swf` | deferred / unmeasured | unlocated | Open route untraced | Social/list records and controller absent; left |
-| `DuelWatch.swf` | deferred / unmeasured | unlocated | Open route untraced | Social/list records and controller absent; left |
-| `ElementalMix.swf` | deferred / unmeasured | 0xac7dbe | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
-| `EnchantEffectTool.swf` | deferred / unmeasured | 0xafd3d0 | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
-| `EnterBloodCastle.swf` | deferred / unmeasured | 0xac6895 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `EnterEmpireGuardian.swf` | deferred / unmeasured | 0xac6917 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `EventInfo.swf` | deferred / unmeasured | 0xac8bdf | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `EventInventoryFrame.swf` | deferred / unmeasured | 0xac623c | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `EventMapEntranceUI.swf` | deferred / unmeasured | 0xac883f | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `EventMapHelper.swf` | deferred / unmeasured | 0xac6810 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `EventMapProgressInfo.swf` | deferred / unmeasured | unlocated | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `EventMapRoundCount.swf` | deferred / unmeasured | 0xac8efa | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `EventMapTutorial.swf` | deferred / unmeasured | 0xac75ff | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `ExchangeLuckCoin.swf` | deferred / unmeasured | 0xac931f | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
-| `ExtensionBagFrame.swf` | 9 / medium | 0xac5e6f | Inventory child; exact open callback untraced | Item grids and expansion state absent; left |
-| `GensRanking.swf` | 4 / low | 0xac63ee | B/menu 11, 0x00efcbb6 -> 0x00aae767, +0xbc | Empty family/rank/contribution view; authority absent; opens here |
-| `GoldArcher.swf` | deferred / unmeasured | unlocated | Open route untraced | Domain fixture/controller contract not recovered; left |
-| `GremoryCase.swf` | 5 / low | 0xac7baa | K/menu 15, 0x00efcc2a -> 0x00c73abc | Four empty tabs; claim/expiry records absent; opens here |
-| `GuardianMix.swf` | deferred / unmeasured | 0xac7ec8 | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
-| `GuildCreateFrame.swf` | deferred / unmeasured | 0xac6470 | Open route untraced | Social/list records and controller absent; left |
-| `GuildInfoFrame.swf` | deferred / unmeasured | 0xac64f5 | Open route untraced | Social/list records and controller absent; left |
-| `Guildmatching_2024.swf` | 6 / high | 0xac88c4 | G/menu 10, 0x00efcb7c -> 0x00b0aed2, +0x2b0 | Guild catalogue, search/application/answer owner absent; left |
-| `GuildPosition.swf` | deferred / unmeasured | 0xac4ff6 | Open route untraced | Social/list records and controller absent; left |
-| `HarmonyMix.swf` | deferred / unmeasured | 0xac7f4d | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
-| `HuntRecord.swf` | 8 / medium | 0xac9004 | End, 0x00efc39a / 0x0095523a -> 0x00b8a5e2/8cf/8fc, +0x1d0 | Custom root lifecycle, timing and historical rows absent; left |
-| `ImageNotice.swf` | deferred / unmeasured | 0xac7aa3 | Open route untraced | Domain fixture/controller contract not recovered; left |
+| `ArkaBattleNotice.swf` | 10 / unknown | 0xac6dbd | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `ArkaBattleProgress.swf` | 10 / unknown | 0xac6d3b | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `ArkaBattleRegister.swf` | 10 / unknown | 0xac6cb6 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `ArkaResultInfo.swf` | 10 / unknown | 0xac6680 | Open route untraced | Domain fixture/controller contract not recovered; left |
+| `ArtifactFrame.swf` | 10 / unknown | 0xac5ef3 | Open route untraced | Domain-specific records/controller absent; no stat/power work; left |
+| `ArtifactInfoPopup.swf` | 10 / unknown | 0xac52f8 | Open route untraced | Domain-specific records/controller absent; no stat/power work; left |
+| `AutomaticMacro.swf` | 7 / high | 0xac9217 | Home helper branch 0x00efd1a7; exact movie-open call untraced | Helper start/stop and answers excluded; left |
+| `BattleCoreDialog.swf` | 10 / unknown | 0xac7789 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `BattleCoreEnter.swf` | 10 / unknown | 0xac7705 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `BattleField_BigDialog.swf` | 10 / unknown | unlocated | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `BattleFieldNotify.swf` | 10 / unknown | unlocated | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `BlockedChat.swf` | 10 / unknown | 0xac7d38 | Open route untraced | Social/list records and controller absent; left |
+| `BombHunt.swf` | 10 / unknown | 0xac72ec | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `BossHpUI.swf` | 10 / unknown | unlocated | Open route untraced | Domain fixture/controller contract not recovered; left |
+| `BoxOfBlessEvent.swf` | 10 / unknown | 0xac8371 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `CharacterFrame.swf` | 10 / unknown | unlocated | Open route untraced | Domain fixture/controller contract not recovered; left |
+| `CombinationFrame.swf` | 10 / unknown | unlocated | Open route untraced | Domain fixture/controller contract not recovered; left |
+| `CommandWindow.swf` | 1 / none | 0xac699b | D, 0x00efcee8, manager +0x134; menu 3 has no dispatch | Labels only; command intents refused; opens here |
+| `CursedTempleEnter.swf` | 10 / unknown | 0xac89ca | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `CursedTempleinfo.swf` | 10 / unknown | unlocated | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `CursedTempleMatchMenu.swf` | 10 / unknown | 0xac8ce8 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `CursedTempleResult.swf` | 10 / unknown | 0xac8d6d | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `CursedTempleScore.swf` | 10 / unknown | 0xac8df2 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `DamageCount.swf` | 10 / unknown | unlocated | Open route untraced | Domain-specific records/controller absent; no stat/power work; left |
+| `DeathPenaltyExpRecovery.swf` | 10 / unknown | 0xac8948 | Open route untraced | Domain-specific records/controller absent; no stat/power work; left |
+| `DivideWindow.swf` | 10 / unknown | 0xac4f82 | Open route untraced | Domain fixture/controller contract not recovered; left |
+| `Duel.swf` | 10 / unknown | unlocated | Open route untraced | Social/list records and controller absent; left |
+| `DuelWatch.swf` | 10 / unknown | unlocated | Open route untraced | Social/list records and controller absent; left |
+| `ElementalMix.swf` | 10 / unknown | 0xac7dbd | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
+| `EnchantEffectTool.swf` | 10 / unknown | 0xafd3d0 | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
+| `EnterBloodCastle.swf` | 10 / unknown | 0xac6894 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `EnterEmpireGuardian.swf` | 10 / unknown | 0xac6916 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `EventInfo.swf` | 10 / unknown | 0xac8bde | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `EventInventoryFrame.swf` | 10 / unknown | 0xac623b | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `EventMapEntranceUI.swf` | 10 / unknown | 0xac883e | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `EventMapHelper.swf` | 10 / unknown | 0xac680f | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `EventMapProgressInfo.swf` | 10 / unknown | unlocated | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `EventMapRoundCount.swf` | 10 / unknown | 0xac8ef9 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `EventMapTutorial.swf` | 10 / unknown | 0xac75fe | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `ExchangeLuckCoin.swf` | 10 / unknown | 0xac931e | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
+| `ExtensionBagFrame.swf` | 9 / medium | 0xac5e6e | Inventory child; exact open callback untraced | Item grids and expansion state absent; left |
+| `GensRanking.swf` | 4 / low | 0xac63ed | B/menu 11, 0x00efcbb6 -> 0x00aae767, +0xbc | Empty family/rank/contribution view; authority absent; opens here |
+| `GoldArcher.swf` | 10 / unknown | unlocated | Open route untraced | Domain fixture/controller contract not recovered; left |
+| `GremoryCase.swf` | 5 / low | 0xac7ba9 | K/menu 15, 0x00efcc2a -> 0x00c73abc | Four empty tabs; claim/expiry records absent; opens here |
+| `GuardianMix.swf` | 10 / unknown | 0xac7ec7 | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
+| `GuildCreateFrame.swf` | 10 / unknown | 0xac646f | Open route untraced | Social/list records and controller absent; left |
+| `GuildInfoFrame.swf` | 10 / unknown | 0xac64f4 | Open route untraced | Social/list records and controller absent; left |
+| `Guildmatching_2024.swf` | 6 / high | 0xac88c3 | G/menu 10, 0x00efcb7c -> 0x00b0aed2, +0x2b0 | Guild catalogue, search/application/answer owner absent; left |
+| `GuildPosition.swf` | 10 / unknown | 0xac4ff5 | Open route untraced | Social/list records and controller absent; left |
+| `HarmonyMix.swf` | 10 / unknown | 0xac7f4c | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
+| `HuntRecord.swf` | 8 / medium | 0xac9003 | End, 0x00efc39a / 0x0095523a -> 0x00b8a5e2/8cf/8fc, +0x1d0 | Custom root lifecycle, timing and historical rows absent; left |
+| `ImageNotice.swf` | 10 / unknown | 0xac7aa2 | Open route untraced | Domain fixture/controller contract not recovered; left |
 | `IME.swf` | optional / OS | 0xc4068a | 0x00c4068a names IME; input finding has no complete open route | OS owns composition; movie candidate contract absent; left |
-| `IngameShop.swf` | deferred / high | 0xac8161 | X/menu 0, 0x00efc9e6 -> 0x00c73193 | Account catalogue and transaction authority excluded; left |
-| `JewelBingo.swf` | deferred / unmeasured | 0xac81e6 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `KanturuEvent.swf` | deferred / unmeasured | 0xac9193 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `LabyrinthInfo.swf` | deferred / unmeasured | 0xac736f | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `LabyrinthMinimap.swf` | deferred / unmeasured | 0xac73f4 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `LabyrinthZoneName.swf` | deferred / unmeasured | 0xac8b5a | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `ListofMatches.swf` | deferred / unmeasured | unlocated | Open route untraced | Domain fixture/controller contract not recovered; left |
-| `MacroMain.swf` | 7 / high | 0xac6bad | Z, 0x00efd3a4 -> 0x00aae767, +0x144 | Persistent helper configuration, skills/items and activation absent; left |
-| `MacroSub.swf` | 7 / high | 0xac6c32 | MacroMain child; exact open callback untraced | Configuration owner absent; left |
-| `MapName.swf` | deferred / unmeasured | 0xac8ad5 | Open route untraced | Domain fixture/controller contract not recovered; left |
-| `MatchingAlarm.swf` | deferred / unmeasured | unlocated | Open route untraced | Social/list records and controller absent; left |
-| `MatchingGuild.swf` | 6 / high | 0xac6aa3 | MatchingSelect guild child; exact callback untraced | Remote guild catalogue/requests absent; left |
-| `MatchingParty.swf` | 6 / high | 0xac6b28 | MatchingSelect party child; exact callback untraced | Remote party catalogue/requests absent; left |
-| `MatchingSelect.swf` | 2 / none | 0xac6a1e | N/menu 12, 0x00efcbf0 -> 0x00c73aeb, +0x14c | Labels only; catalogue buttons refused; opens here |
-| `MBoxShop.swf` | deferred / unmeasured | 0xac826b | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
-| `MiniGameHelpWindow.swf` | deferred / unmeasured | 0xac93a1 | Open route untraced | Domain fixture/controller contract not recovered; left |
-| `MiniGameRummy.swf` | deferred / unmeasured | 0xac7268 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `MixAttributeScalp.swf` | deferred / unmeasured | 0xac50e8 | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
-| `MixSel.swf` | deferred / unmeasured | 0xac5066 | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
-| `MixStone.swf` | deferred / unmeasured | unlocated | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
-| `MonsterCompensation.swf` | deferred / unmeasured | 0xac7684 | Open route untraced | Domain-specific records/controller absent; no stat/power work; left |
-| `MonsterInfo.swf` | deferred / unmeasured | unlocated | Open route untraced | Domain-specific records/controller absent; no stat/power work; left |
-| `MonsterSoulReward.swf` | deferred / unmeasured | 0xac4f10 | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
-| `MUMix.swf` | deferred / unmeasured | 0xac84fe | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
-| `MuunExchange.swf` | deferred / unmeasured | 0xac6369 | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
-| `NpcGateKeeper.swf` | deferred / unmeasured | 0xac5c18 | Open route untraced | Domain fixture/controller contract not recovered; left |
-| `NumberBaseball.swf` | deferred / unmeasured | 0xafd40c | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `Option.swf` | deferred / unmeasured | unlocated | Open route untraced | Domain fixture/controller contract not recovered; left |
-| `OrdealSquareBattleCnt.swf` | deferred / unmeasured | 0xac799c | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `OrdealSquareBattleEnter.swf` | deferred / unmeasured | 0xac7917 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `OrdealSquareEnterMenu.swf` | deferred / unmeasured | 0xac7479 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `OrdealSquareResult.swf` | deferred / unmeasured | 0xac757d | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `OrdealSquareScore.swf` | deferred / unmeasured | 0xac74fb | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `PartySkill.swf` | deferred / unmeasured | unlocated | Open route untraced | Social/list records and controller absent; left |
-| `Pentagram.swf` | deferred / unmeasured | 0xac657a | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
-| `PersonalShop.swf` | deferred / unmeasured | 0xac6fcf | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
-| `PersonalShopCaution.swf` | deferred / unmeasured | 0xac4e30 | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
-| `PersonalShopProduct.swf` | deferred / unmeasured | unlocated | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
-| `PetFrame.swf` | deferred / unmeasured | 0xaf0ebc | Open route untraced | Domain-specific records/controller absent; no stat/power work; left |
-| `PetInfo.swf` | deferred / unmeasured | unlocated | Open route untraced | Domain-specific records/controller absent; no stat/power work; left |
-| `PetInfoPopup.swf` | deferred / unmeasured | 0xac5274 | Open route untraced | Domain-specific records/controller absent; no stat/power work; left |
-| `PetInventoryFrame.swf` | 3 / low | 0xac62e4 | Y/menu 13, 0x00efc559 -> 0x00c739e3, +0x1a8 | Five empty pages; real Muun records/slots/appearance absent; opens here |
-| `PlayGuide.swf` | deferred / medium | 0xac548b | Ctrl+T, 0x00efc0da; exact movie lifecycle untraced | Guide provider and controller absent; left |
-| `PlayTimeEvent.swf` | deferred / unmeasured | 0xac83f4 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `PrivateStoreFrame.swf` | deferred / unmeasured | unlocated | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
-| `ProgressFrame.swf` | deferred / unmeasured | 0xac8f7f | Open route untraced | Domain fixture/controller contract not recovered; left |
-| `PurchaseInven.swf` | deferred / unmeasured | unlocated | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
-| `QuestSummary.swf` | deferred / unmeasured | 0xafd42a | Open route untraced | Domain fixture/controller contract not recovered; left |
-| `QuickCommand.swf` | deferred / unmeasured | 0xac569f | Open route untraced | Domain fixture/controller contract not recovered; left |
-| `RebuyList.swf` | deferred / unmeasured | 0xac7c2f | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
-| `ResistPopup.swf` | deferred / unmeasured | 0xac561a | Open route untraced | Domain fixture/controller contract not recovered; left |
-| `RewardItemExchange.swf` | deferred / unmeasured | 0xac8479 | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
-| `RuudShopFrame.swf` | deferred / unmeasured | 0xac7cb4 | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
-| `SearchPrivateStore.swf` | deferred / unmeasured | unlocated | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
-| `SeasonalEvent.swf` | deferred / unmeasured | 0xac82f0 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `SeasonPass.swf` | deferred / unmeasured | 0xac94ab | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `SimpleUI.swf` | deferred / unmeasured | 0xac929d | Open route untraced | Domain fixture/controller contract not recovered; left |
-| `SimpleUISubWin.swf` | deferred / unmeasured | 0xac4ea0 | Open route untraced | Domain fixture/controller contract not recovered; left |
-| `SkillTree5thInventory.swf` | deferred / unmeasured | 0xac862b | Open route untraced | Domain-specific records/controller absent; no stat/power work; left |
-| `SkillTree5thItemViewer.swf` | deferred / medium | 0xac86b0 | Ctrl+J/I branch 0x00efc104/1ad; child lifecycle untraced | Card/item fixture owner absent; no stat/power work; left |
-| `SkillTree5thLevelUpPopup.swf` | deferred / unmeasured | 0xac8735 | Open route untraced | Domain-specific records/controller absent; no stat/power work; left |
-| `SkillTree5thSlotClickPopup.swf` | deferred / unmeasured | 0xac87ba | Open route untraced | Domain-specific records/controller absent; no stat/power work; left |
-| `SlottedWingInfo.swf` | deferred / unmeasured | 0xac65ff | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
-| `SnsWindow.swf` | deferred / unmeasured | unlocated | Open route untraced | Domain fixture/controller contract not recovered; left |
-| `SocketMix.swf` | deferred / unmeasured | 0xac7e43 | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
-| `SpeedserverPlus.swf` | deferred / unmeasured | 0xac8a50 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `StrongestMatchMenu.swf` | deferred / unmeasured | 0xac6e43 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `StrongestMatchRank.swf` | deferred / unmeasured | 0xac6ec5 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `StrongestMatchResult.swf` | deferred / unmeasured | 0xac6f4a | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `SwitchMode.swf` | deferred / unmeasured | 0xac4cd7 | Open route untraced | Domain fixture/controller contract not recovered; left |
-| `SystemMenu.swf` | deferred / unmeasured | unlocated | Open route untraced | Domain fixture/controller contract not recovered; left |
-| `TimeCounter.swf` | deferred / unmeasured | 0xac7b25 | Open route untraced | Domain fixture/controller contract not recovered; left |
-| `Tooltip.swf` | deferred / unmeasured | unlocated | Open route untraced | Domain fixture/controller contract not recovered; left |
-| `Trainer.swf` | deferred / unmeasured | unlocated | Open route untraced | Domain fixture/controller contract not recovered; left |
-| `winEarringUpgrade.swf` | deferred / unmeasured | 0xc67d77 | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
-| `winEventMuMobile.swf` | deferred / unmeasured | unlocated | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `winLabyrinthReboot.swf` | deferred / unmeasured | 0xacd7f0 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `IngameShop.swf` | deferred / high | 0xac8160 | X/menu 0, 0x00efc9e6 -> 0x00c73193 | Account catalogue and transaction authority excluded; left |
+| `JewelBingo.swf` | 10 / unknown | 0xac81e5 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `KanturuEvent.swf` | 10 / unknown | 0xac9192 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `LabyrinthInfo.swf` | 10 / unknown | 0xac736e | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `LabyrinthMinimap.swf` | 10 / unknown | 0xac73f3 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `LabyrinthZoneName.swf` | 10 / unknown | 0xac8b59 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `ListofMatches.swf` | 10 / unknown | unlocated | Open route untraced | Domain fixture/controller contract not recovered; left |
+| `MacroMain.swf` | 7 / high | 0xac6bac | Z, 0x00efd3a4 -> 0x00aae767, +0x144 | Persistent helper configuration, skills/items and activation absent; left |
+| `MacroSub.swf` | 7 / high | 0xac6c31 | MacroMain child; exact open callback untraced | Configuration owner absent; left |
+| `MapName.swf` | 10 / unknown | 0xac8ad4 | Open route untraced | Domain fixture/controller contract not recovered; left |
+| `MatchingAlarm.swf` | 10 / unknown | unlocated | Open route untraced | Social/list records and controller absent; left |
+| `MatchingGuild.swf` | 6 / high | 0xac6aa2 | MatchingSelect guild child; exact callback untraced | Remote guild catalogue/requests absent; left |
+| `MatchingParty.swf` | 6 / high | 0xac6b27 | MatchingSelect party child; exact callback untraced | Remote party catalogue/requests absent; left |
+| `MatchingSelect.swf` | 2 / none | 0xac6a1d | N/menu 12, 0x00efcbf0 -> 0x00c73aeb, +0x14c | Labels only; catalogue buttons refused; opens here |
+| `MBoxShop.swf` | 10 / unknown | 0xac826a | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
+| `MiniGameHelpWindow.swf` | 10 / unknown | 0xac93a0 | Open route untraced | Domain fixture/controller contract not recovered; left |
+| `MiniGameRummy.swf` | 10 / unknown | 0xac7267 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `MixAttributeScalp.swf` | 10 / unknown | 0xac50e7 | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
+| `MixSel.swf` | 10 / unknown | 0xac5065 | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
+| `MixStone.swf` | 10 / unknown | unlocated | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
+| `MonsterCompensation.swf` | 10 / unknown | 0xac7683 | Open route untraced | Domain-specific records/controller absent; no stat/power work; left |
+| `MonsterInfo.swf` | 10 / unknown | unlocated | Open route untraced | Domain-specific records/controller absent; no stat/power work; left |
+| `MonsterSoulReward.swf` | 10 / unknown | 0xac4f0f | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
+| `MUMix.swf` | 10 / unknown | 0xac84fd | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
+| `MuunExchange.swf` | 10 / unknown | 0xac6368 | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
+| `NpcGateKeeper.swf` | 10 / unknown | 0xac5c17 | Open route untraced | Domain fixture/controller contract not recovered; left |
+| `NumberBaseball.swf` | 10 / unknown | 0xafd40c | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `Option.swf` | 10 / unknown | unlocated | Open route untraced | Domain fixture/controller contract not recovered; left |
+| `OrdealSquareBattleCnt.swf` | 10 / unknown | 0xac799b | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `OrdealSquareBattleEnter.swf` | 10 / unknown | 0xac7916 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `OrdealSquareEnterMenu.swf` | 10 / unknown | 0xac7478 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `OrdealSquareResult.swf` | 10 / unknown | 0xac757c | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `OrdealSquareScore.swf` | 10 / unknown | 0xac74fa | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `PartyFrame.swf` | 10 / unknown | 0x95faa4 | Open route untraced | Social/list records and controller absent; left |
+| `PartySkill.swf` | 10 / unknown | unlocated | Open route untraced | Social/list records and controller absent; left |
+| `Pentagram.swf` | 10 / unknown | 0xac6579 | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
+| `PersonalShop.swf` | 10 / unknown | 0xac6fce | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
+| `PersonalShopCaution.swf` | 10 / unknown | 0xac4e2f | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
+| `PersonalShopProduct.swf` | 10 / unknown | unlocated | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
+| `PetFrame.swf` | 10 / unknown | 0xaf0ebb | Open route untraced | Domain-specific records/controller absent; no stat/power work; left |
+| `PetInfo.swf` | 10 / unknown | unlocated | Open route untraced | Domain-specific records/controller absent; no stat/power work; left |
+| `PetInfoPopup.swf` | 10 / unknown | 0xac5273 | Open route untraced | Domain-specific records/controller absent; no stat/power work; left |
+| `PetInventoryFrame.swf` | 3 / low | 0xac62e3 | Y/menu 13, 0x00efc559 -> 0x00c739e3, +0x1a8 | Five empty pages; real Muun records/slots/appearance absent; opens here |
+| `PlayGuide.swf` | deferred / medium | 0xac548a | Ctrl+T, 0x00efc0da; exact movie lifecycle untraced | Guide provider and controller absent; left |
+| `PlayTimeEvent.swf` | 10 / unknown | 0xac83f3 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `PrivateStoreFrame.swf` | 10 / unknown | unlocated | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
+| `ProgressFrame.swf` | 10 / unknown | 0xac8f7e | Open route untraced | Domain fixture/controller contract not recovered; left |
+| `PurchaseInven.swf` | 10 / unknown | unlocated | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
+| `QuestSummary.swf` | 10 / unknown | 0xafd42a | Open route untraced | Domain fixture/controller contract not recovered; left |
+| `QuickCommand.swf` | 10 / unknown | 0xac569e | Open route untraced | Domain fixture/controller contract not recovered; left |
+| `RebuyList.swf` | 10 / unknown | 0xac7c2e | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
+| `ResistPopup.swf` | 10 / unknown | 0xac5619 | Open route untraced | Domain fixture/controller contract not recovered; left |
+| `RewardItemExchange.swf` | 10 / unknown | 0xac8478 | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
+| `RuudShopFrame.swf` | 10 / unknown | 0xac7cb3 | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
+| `SearchPrivateStore.swf` | 10 / unknown | unlocated | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
+| `SeasonalEvent.swf` | 10 / unknown | 0xac82ef | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `SeasonPass.swf` | 10 / unknown | 0xac94aa | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `SelectMenu.swf` | 10 / unknown | unlocated | Open route untraced | Domain fixture/controller contract not recovered; left |
+| `ServerSelect.swf` | 10 / unknown | 0xac4b7d | Open route untraced | Domain fixture/controller contract not recovered; left |
+| `SimpleUI.swf` | 10 / unknown | 0xac929c | Open route untraced | Domain fixture/controller contract not recovered; left |
+| `SimpleUISubWin.swf` | 10 / unknown | 0xac4e9f | Open route untraced | Domain fixture/controller contract not recovered; left |
+| `SkillTree5thInventory.swf` | 10 / unknown | 0xac862a | Open route untraced | Domain-specific records/controller absent; no stat/power work; left |
+| `SkillTree5thItemViewer.swf` | deferred / medium | 0xac86af | Ctrl+J/I branch 0x00efc104/1ad; child lifecycle untraced | Card/item fixture owner absent; no stat/power work; left |
+| `SkillTree5thLevelUpPopup.swf` | 10 / unknown | 0xac8734 | Open route untraced | Domain-specific records/controller absent; no stat/power work; left |
+| `SkillTree5thSlotClickPopup.swf` | 10 / unknown | 0xac87b9 | Open route untraced | Domain-specific records/controller absent; no stat/power work; left |
+| `SlottedWingInfo.swf` | 10 / unknown | 0xac65fe | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
+| `SnsWindow.swf` | 10 / unknown | unlocated | Open route untraced | Domain fixture/controller contract not recovered; left |
+| `SocketMix.swf` | 10 / unknown | 0xac7e42 | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
+| `SpeedserverPlus.swf` | 10 / unknown | 0xac8a4f | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `StrongestMatchMenu.swf` | 10 / unknown | 0xac6e42 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `StrongestMatchRank.swf` | 10 / unknown | 0xac6ec4 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `StrongestMatchResult.swf` | 10 / unknown | 0xac6f49 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `SwitchMode.swf` | 10 / unknown | 0xac4cd6 | Open route untraced | Domain fixture/controller contract not recovered; left |
+| `SystemMenu.swf` | 10 / unknown | unlocated | Open route untraced | Domain fixture/controller contract not recovered; left |
+| `TimeCounter.swf` | 10 / unknown | 0xac7b24 | Open route untraced | Domain fixture/controller contract not recovered; left |
+| `Trainer.swf` | 10 / unknown | unlocated | Open route untraced | Domain fixture/controller contract not recovered; left |
+| `winEarringUpgrade.swf` | 10 / unknown | 0xc67d77 | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
+| `winEventMuMobile.swf` | 10 / unknown | unlocated | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `winLabyrinthReboot.swf` | 10 / unknown | 0xacd7f0 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `winLoginSceneBottomUI.swf` | 10 / unknown | 0xafd3f8 | Open route untraced | Domain fixture/controller contract not recovered; left |
+| `winPet.swf` | 10 / unknown | 0xc8f575 | Open route untraced | Domain-specific records/controller absent; no stat/power work; left |
 
 ## Entries outside the missing-world-view list
 
@@ -221,10 +227,6 @@ grid owner is absent; H must never open a remote warehouse.
 | `Icons.swf` | Loaded HUD/data/library child, outside the FILES window denominator |
 | `ImageData.swf` | Loaded HUD/data/library child, outside the FILES window denominator |
 | `ItemDurability.swf` | Loaded HUD/data/library child, outside the FILES window denominator |
-| `PartyFrame.swf` | Loaded HUD/data/library child, outside the FILES window denominator |
 | `Popups.swf` | Loaded HUD/data/library child, outside the FILES window denominator |
-| `SelectMenu.swf` | Existing front-end host, outside the world FILES registry |
-| `ServerSelect.swf` | Existing front-end host, outside the world FILES registry |
+| `Tooltip.swf` | Loaded HUD/data/library child, outside the FILES window denominator |
 | `TopMenu.swf` | Loaded HUD/data/library child, outside the FILES window denominator |
-| `winLoginSceneBottomUI.swf` | Existing front-end host, outside the world FILES registry |
-| `winPet.swf` | Loaded HUD/data/library child, outside the FILES window denominator |

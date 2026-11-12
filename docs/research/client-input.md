@@ -58,7 +58,7 @@ Existing UI adapters retain their own eligibility and close rules.
 
 | Key | Client branch -> handler and recovered name | Native route and boundary |
 |---|---|---|
-| Y | `00efc559` -> menu 13 -> `00c739e3`, PetInventoryFrame, manager +1a8 | Unavailable; pet inventory view/domain absent |
+| Y | `00efc559` -> menu 13 -> `00c739e3`, PetInventoryFrame, manager +1a8 | [UI-WINDOWS-001](client-ui-windows.md): five empty pages; item, sorting, book and appearance actions inert |
 | I | `00efc593` -> menu 14 -> `00c73a2f`, InventoryFrame | GFx inventory toggle |
 | C | `00efc5cd` -> menu 1 -> `00c733cf`, CharacterInfoFrame; excludes held Shift | Existing character-window adapter |
 | Q/W/E/R | `00efc86c/8a6/8e0/91a` -> menus 16..19 -> `00c557db`, item slots 0..3 | Existing native item-hotkey action with slots 0..3; slot 0 uses the demo potion, other slots explicitly empty. No authoritative item-use request claimed |
@@ -72,15 +72,15 @@ Existing UI adapters retain their own eligibility and close rules.
 | P | `00efcb08` -> menu 7 -> `00c73603`, PersonalShop, manager +164 | Existing offline store action while inventory is open; unavailable without that precondition. Corrects former native party alias |
 | F | `00efcb42` -> menu 9 -> `00c738a4`, FriendMenu, manager +230 | Existing social/friends adapter |
 | G | `00efcb7c` -> menu 10 -> `00b0aed2`, Guildmatching_2024, manager +2b0 | Unavailable; guild-matching view/domain absent |
-| B | `00efcbb6` -> menu 11 -> `00aae767`, GensRanking, manager +bc | Unavailable; Gens view/domain absent |
-| N | `00efcbf0` -> menu 12 -> `00c73aeb`, MatchingSelect, manager +14c | Unavailable; matching view/domain absent |
-| K | `00efcc2a` -> menu 15 -> `00c73abc`, GremoryCase | Unavailable; case inventory view/domain absent |
+| B | `00efcbb6` -> menu 11 -> `00aae767`, GensRanking, manager +bc | [UI-WINDOWS-001](client-ui-windows.md): empty family/rank presentation; no replicated Gens record |
+| N | `00efcbf0` -> menu 12 -> `00c73aeb`, MatchingSelect, manager +14c | [UI-WINDOWS-001](client-ui-windows.md): original selection movie; catalogue buttons inert |
+| K | `00efcc2a` -> menu 15 -> `00c73abc`, GremoryCase | [UI-WINDOWS-001](client-ui-windows.md): four empty Gremory tabs; claims inert |
 | V | `00efcc64`, also `00efc62a` -> InventoryFrame virtual open/close | Existing inventory alias |
 | S | `00efcd10`, also `00efc6d6` -> `00aae767`, PersonalShopProductList, manager +168, requires inventory | Existing offline personal-store list action while inventory open |
 | H | `00efc715` -> `00aae767`, expanded StorageInven, manager +104, requires warehouse | Unavailable; expanded warehouse view absent; does not open a remote warehouse |
 | A | `00efcd95` -> `00aae767`, MasterSkillTree; class/state guards | Existing native master-tree adapter; native demo guards retained |
 | U | `00efcea8` -> `00aae767`, SkillStampFrame | Existing skill-imprint adapter |
-| D | `00efcee8` -> `00aae767`, CommandWindow, manager +134, with world/state guards | Unavailable; command view/controller absent |
+| D | `00efcee8` -> `00aae767`, CommandWindow, manager +134, with world/state guards | [UI-WINDOWS-001](client-ui-windows.md): original Command movie; command buttons disabled and callbacks refused |
 | Tab | `00efd09d/00efd10d`, contextual map paths | Existing base-movie/map input; no world-state fabrication |
 | Home | `00efd1a7` -> helper controller, including `00c8de1c` and helper start/stop requests | Unavailable; helper domain absent; no request reconstructed in this lane |
 | Z | `00efd3a4` -> `00aae767`, MacroMain, manager +144 | Unavailable; macro view/controller absent |
