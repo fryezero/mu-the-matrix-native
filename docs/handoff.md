@@ -1,5 +1,7 @@
 # Continue from here
 
+MUUN-VISUAL-002 verified subset PR-ready: the fifteen fixture appearances gain eight extra mesh passes across five models and base-slot shadows; authored command categories drive actions 3/4 on fourteen models, with 363 refused. 1,406 new original cases, 15/15 compiled mutants, 28 affected validators pass; all 92 default PNGs and 92 dumps are identical. Kind-1 secondary bodies and production selection remain open. [Checks, report-environment limit and next work](handoffs/MUUN-VISUAL-002.md).
+
 RENDER-ACTORS-003 PR-ready: classes 625/626 draw in their original kind-1, class-byte-0 fixture context. Census 26/32 to 28/32 admitted; 374/378/617/642 stay refused with exact limits. [Checks, full census and next routines](handoffs/RENDER-ACTORS-003.md).
 
 UI-WINDOWS-001 PR-ready: D Command, N MatchingSelect, B Gens, Y PetInventory and K Gremory now open their original movies as presentation-only views. Empty tabs/pages and close work; state-changing actions refuse. 1,421 portable tests, 12 affected validators, real-window proofs and default identities pass. Original Help open route remains unproved. [Checks, inventory and limits](handoffs/UI-WINDOWS-001.md).
