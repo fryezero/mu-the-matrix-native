@@ -3441,15 +3441,15 @@ all_mutants_caught = true
 [validate_actor_recipes]
 test = "native/tests/test_actor_recipes.py::ClientComparison.test_original_instructions"
 pins = ["text", "data", "flag", "feature"]
-families = ["recipes", "render", "kind_gates", "equipment", "body_draw", "kind_default", "loader", "native", "refused"]
-cases = 1300
-mutants = 21
+families = ["recipes", "render", "kind_gates", "robot_hooks", "companion_boundary", "appearance_boundary", "equipment", "body_draw", "kind_default", "loader", "native", "refused"]
+cases = 1669
+mutants = 25
 cases_at = "families.*.cases"
 mutants_at = "mutants"
 build = ["reconstructed/actors", "reconstructed/renderchar", "native"]
 build_targets = { native = ["build/libmunative.a", "build/libmusession_world.a"] }
 args = ["--cases", "840", "--mutations", "--output", "{report}"]
-note = "RENDER-ACTORS-002: 32-class census, nine later subtype admissions, kind/world/action controls, startup files, native loads and six native refusals; 21 compiled mutants"
+note = "RENDER-ACTORS-003: 32-class census, two class-byte-0 robot admissions, transformed action hooks, companion/appearance boundaries, startup files, native loads and four native refusals; 25 compiled mutants"
 [validate_actor_recipes.expect]
 all_equal = true
 all_mutants_caught = true
@@ -3501,3 +3501,32 @@ args = ["--mutations", "--report", "{report}"]
 "families.credits.cases" = 40
 "families.credits.sounds" = 71
 "mutants" = {len = 10}
+
+[validate_render_effects28]
+test = "native/tests/test_render_effects28.py::ClientComparison.test_original_instructions"
+pins = ["text", "data"]
+families = ["caller", "joint_create", "joint_move", "joint_render", "lifecycle"]
+cases = 630
+mutants = 18
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/combat"]
+args = ["--cases", "60", "--mutations", "--output", "{report}"]
+note = "RENDER-EFFECTS-028: authored aura presence, bounded RenderCharacter caller, subtype-4 create/move/GL and independent expiry/death lifecycles; ordinary equipment lookup context"
+[validate_render_effects28.expect]
+all_equal = true
+all_mutants_caught = true
+"mutants.*.stopped" = 0
+[validate_muun_passes]
+test = "native/tests/test_muun_visual.py::MeshComparison.test_original_mesh_and_command_callers"
+pins = ["text", "data"]
+families = ["mesh", "command", "shadow"]
+cases = 1361
+mutants = 15
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/muun", "reconstructed/data"]
+args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+[validate_muun_passes.expect]
+all_equal = true
+all_mutants_caught = true

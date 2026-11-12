@@ -10,6 +10,33 @@ static void presentation_set(mu_gfx_layer *L, int m, const char *field, const ch
     L->api.set_variable(L->mv[m].g,path,value);
 }
 
+/* The Info tab embeds a separate component rather than methods on the outer movie. */
+static void presentation_guild_info(mu_gfx_layer *L, int m)
+{
+    movie *w=&L->mv[m];char child[192];
+    snprintf(child,sizeof child,"%s.mcGuildInfoFrameClass",w->path);
+    invokef(L,m,child,"InitText","[\"Guild info - preview\",\"Score\",\"Members\",\"Rival\",\"Notice\",\"Name\",\"Position\",\"Server\",\"No alliance\"]");
+    invokef(L,m,child,"InitButtonText","[\"Guild\",\"Members\",\"Alliance\",\"Rival\",\"Unavailable\",\"Unavailable\",\"Unavailable\",\"Unavailable\",\"Unavailable\",\"Unavailable\",\"Unavailable\"]");
+    invokef(L,m,child,"SetGuildMaster","[false]");
+    invokef(L,m,child,"SetUnion","[false]");
+    invokef(L,m,child,"SetGuildName","[\"None\"]");
+    invokef(L,m,child,"SetGuildScore","[\"0\",\"0\"]");
+    invokef(L,m,child,"SetGuildMemberNum","[\"0\"]");
+    invokef(L,m,child,"SetRivalGuildName","[\"None\"]");
+    invokef(L,m,child,"ClearGuildNotice","[]");
+    invokef(L,m,child,"AddGuildNotice","[\"Offline preview. No guild record.\"]");
+    invokef(L,m,child,"ClearGuildMember","[]");
+    invokef(L,m,child,"ClearUnionGuild","[]");
+    invokef(L,m,child,"ClearRivalGuild","[]");
+    invokef(L,m,child,"ShowGuildInfo","[]");
+    static const char *const controls[]={"btnDisband","btnPosition","btnClear","btnFire",
+        "btnUnionDisbandGuild","btnUnionDisbandUnion","btnRivalAdd","btnRivalDelete"};
+    for (size_t i=0;i<sizeof controls/sizeof *controls;i++) {
+        char field[192];snprintf(field,sizeof field,"mcGuildInfoFrameClass.%s.disabled",controls[i]);
+        presentation_set(L,m,field,"true");
+    }
+}
+
 static void presentation_fixture(mu_gfx_layer *L, int m)
 {
     movie *w=&L->mv[m];
@@ -164,6 +191,7 @@ static void presentation_fixture(mu_gfx_layer *L, int m)
         presentation_set(L,m,"tiPassword.disabled","true");
         break;
     case MU_GFX_GUILD_MATCH:
+        presentation_guild_info(L,m);
         invokef(L,m,w->path,"InitTexts","[{\"tfTitle\":\"Guild matching - offline preview\",\"searchTab\":\"Search\",\"recruitTab\":\"Recruit\",\"infoTab\":\"Info\",\"lbGuildRecruitInfoTextTitle\":\"Guild recruit info text title\",\"lbGuildName\":\"Guild name\",\"lbGuildUserCount\":\"Guild user count\",\"lbGuildMaster\":\"Guild master\",\"lbLevelLimit\":\"Level limit\",\"lbGuildLevelAverage\":\"Guild level average\",\"joinStateMent\":\"Join statee ment\",\"joinStateText1\":\"Join statee text1\",\"joinStateText2\":\"Join statee text2\",\"joinStateText3\":\"Join statee text3\",\"joinStateBack\":\"Join statee back\",\"joinStateLetter\":\"Join statee letter\",\"joinStateCancel\":\"Join statee cancel\",\"searchMent\":\"Empty demo catalogue\",\"recruitList\":\"No guilds\",\"searchdInput\":\"Searchd input\",\"btnSearch\":\"Unavailable\",\"btnJoin\":\"Join\",\"btnJoinStat\":\"Join state\",\"btnRefresh\":\"Unavailable\",\"lbRecruitText0\":\"Recruitment\",\"lbRecruitText1\":\"Title\",\"lbRecruitText2\":\"Details\",\"lbRecruitText3\":\"Filters\",\"lbRecruitText4\":\"No applications\",\"lbRecruitText5\":\"Requirements\",\"lbRecruitText6\":\"Preview only\",\"lbRecruitText7\":\"Any\",\"lbRecruitText8\":\"No data\",\"lbRecruitText9\":\"Any\",\"lbRecruitText10\":\"Any\",\"lbRecruitText11\":\"Offline preview\",\"lbRecruitText12\":\"Not saved\",\"btnRecruitRegister\":\"Unavailable\",\"btnRecruitStop\":\"Unavailable\"}]");
         invokef(L,m,w->path,"ClearAllGuildList","[]");
         invokef(L,m,w->path,"ClearRecruitListInfo","[]");
@@ -250,6 +278,9 @@ static int presentation_call2(movie *w, const char *name, const char *args, cons
         invokef(L,w->id,w->path,"ShowWindow","[%d]",tab);
         return 1;
     }
+    if (w->id==MU_GFX_GUILD_MATCH && (!strcmp(name,"onClickbtnToggleInfo") ||
+        !strcmp(name,"onClickbtnToggleMember") || !strcmp(name,"onClickbtnToggleUnion") ||
+        !strcmp(name,"onClickbtnToggleRival"))) return 1; /* child already selected its local empty view */
     if (w->id==MU_GFX_GUILD_MATCH && !strcmp(name,"onTabChange") && n==1 && v[0]>=0 && v[0]<=2 && v[0]==(int)v[0]) {
         L->guild_tab=(int)v[0];
         invokef(L,w->id,w->path,"SetTab","[%d]",L->guild_tab);

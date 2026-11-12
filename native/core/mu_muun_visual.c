@@ -4,6 +4,7 @@
 #include "../../reconstructed/movement/client_movement.h"
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 static float f32_at(const uint8_t *r, size_t offset)
@@ -38,6 +39,8 @@ void mu_muun_visual_close(mu_muun_visual *v)
     hide_all(v);
     mu_effect_scene_free(&v->scene);
     mu_muun_effects_free(v->table);
+    free(v->mesh_records);
+    free(v->mesh_textures);
     mu_textures_free(&v->textures);
     mu_model_free(&v->model);
     mu_bmd_free(&v->bmd);
@@ -49,7 +52,7 @@ int mu_muun_visual_open(mu_muun_visual *v, const char *root, const char *lang, i
 {
     memset(v, 0, sizeof *v);
     char path[2048], relative[1024], directory[2048];
-    mu_data_table render = {0}, items = {0};
+    mu_data_table render = {0}, items = {0}, meshes = {0};
     mu_item item;
     const uint8_t *record = NULL;
     const char *stage = "render table";
@@ -62,6 +65,9 @@ int mu_muun_visual_open(mu_muun_visual *v, const char *root, const char *lang, i
     }
     stage = "appearance record";
     if (!record) goto fail;
+    v->base_body = record[0x258] != 0;
+    v->shadow_alpha = f32_at(record, 0x254);
+    if (!isfinite(v->shadow_alpha)) goto fail;
     v->info.code = code;
     v->info.item = i32_at(record, 4);
     v->info.scale = f32_at(record, 0x110);
@@ -100,6 +106,45 @@ int mu_muun_visual_open(mu_muun_visual *v, const char *root, const char *lang, i
             v->textures = retry;
         } else mu_textures_free(&retry);
     }
+    /* MuunMeshInfo is keyed by the model item, not by the effect/render-info id. */
+    stage = "mesh table";
+    if (mu_objects_resolve(root, "Data/Local/MuunMeshInfo.bmd", path, sizeof path) &&
+        !mu_data_load(path, NULL, &meshes) && meshes.result.status == MU_DATA_OK) {
+        size_t count = meshes.result.records;
+        v->mesh_records = calloc(count, 300);
+        v->mesh_textures = calloc(count, sizeof *v->mesh_textures);
+        if (count && (!v->mesh_records || !v->mesh_textures)) goto fail;
+        for (uint32_t k = 0; k < meshes.result.records; ++k) {
+            const uint8_t *r = meshes.bytes + meshes.result.records_offset + (size_t)k * 300;
+            if (i32_at(r, 0) != v->info.item) continue;
+            int32_t mesh = i32_at(r, 4);
+            /* These later special models need their own caller branches, never this fallback. */
+            if (v->info.item + MU_ITEM_MODEL_BASE == 0x2b7a || v->info.item + MU_ITEM_MODEL_BASE == 0x2b7b ||
+                v->info.item + MU_ITEM_MODEL_BASE == 0x2b8d || v->info.item + MU_ITEM_MODEL_BASE == 0x2b8e ||
+                v->info.item + MU_ITEM_MODEL_BASE == 0x2b90 || mesh < 0 || mesh >= v->bmd.mesh_count) {
+                ++v->refused_meshes; continue;
+            }
+            int valid = 1;
+            for (int off = 0x108; off <= 0x120; off += 4) valid &= isfinite(f32_at(r, (size_t)off));
+            if (r[0x128] && r[0x129] && (fabsf(f32_at(r, 0x118)) < 0.001f ||
+                fabsf(f32_at(r, 0x118)) > 1000.0f)) valid = 0;
+            if (!valid) { ++v->refused_meshes; continue; }
+            int32_t texture = -1;
+            char name[257]; memcpy(name, r + 8, 256); name[256] = 0;
+            if (strcmp(name, "default")) {
+                const char *names[] = {name}, *directories[] = {directory};
+                if (!mu_objects_resolve(root, "Data/Item/Texture", directory, sizeof directory)) {
+                    ++v->refused_meshes; continue;
+                }
+                texture = 0xa000 + v->textures.extra_count;
+                if (mu_textures_add_extras(&v->textures, &texture, directories, names, 1, 0x2601, 0x2900)) goto fail;
+                if (!v->textures.slots[v->textures.count - 1]) { ++v->refused_meshes; continue; }
+            }
+            memcpy(v->mesh_records + (size_t)v->mesh_count * 300, r, 300);
+            v->mesh_textures[v->mesh_count++] = texture;
+        }
+    }
+    mu_data_free(&meshes);
     stage = "effect scene";
     if (mu_effect_scene_init(&v->scene, root, 0x4d55554eu) != MU_EFFECT_OK) goto fail;
     v->table = mu_muun_effects_load(lang);
@@ -125,6 +170,7 @@ int mu_muun_visual_open(mu_muun_visual *v, const char *root, const char *lang, i
     return 0;
 fail:
     mu_data_free(&items);
+    mu_data_free(&meshes);
     mu_data_free(&render);
     mu_muun_visual_close(v);
     snprintf(error, error_size, "Muun fixture %d: missing/invalid %s", code, stage);
@@ -190,4 +236,43 @@ void mu_muun_visual_frame(mu_muun_visual *v, const mu_mv_owner *owner, uint32_t 
     object.bones = mu_model_bone_matrices(&v->model);
     object.model_bones = v->bmd.bone_count;
     mu_muun_owner_update(&v->effects, &object, dt);
+}
+
+int mu_muun_visual_command(mu_muun_visual *v, int32_t category, const float target[3])
+{
+    int32_t action = mu_mv_command_action(category);
+    if (!v->live || action < 0 || action >= v->bmd.action_count || !target ||
+        !isfinite(target[0]) || !isfinite(target[1])) { ++v->refused_commands; return 0; }
+    v->state.angle[2] = mu_create_angle(v->state.position[0], v->state.position[1], target[0], target[1]);
+    v->state.state = action;
+    mu_move_set_action(&v->state.action, &v->state.prior_action, &v->state.frame, &v->state.prior_frame,
+                       v->bmd.action_count, action);
+    ++v->command_draws;
+    return 1;
+}
+
+void mu_muun_visual_draw(mu_muun_visual *v, float time, const mu_render_backend *backend, mu_draw_stats *stats)
+{
+    if (!v->visible || !v->posed) return;
+    mu_draw_options o;
+    mu_draw_default_options(&o);
+    o.textures = &v->textures;
+    o.time = time;
+    if (v->base_body) mu_scene_draw_model(&v->model, &o, backend, stats);
+    for (int32_t k = 0; k < v->mesh_count; ++k) {
+        mu_mv_pass pass;
+        mu_mv_mesh_pass(v->mesh_records + (size_t)k * 300, v->model.params.color, 1.0f, -1,
+                       1.0f, v->mesh_textures[k], time, &pass);
+        mu_draw_model_fields fields = {0};
+        memcpy(fields.color, pass.color, sizeof fields.color);
+        o.fields = &fields;
+        o.mesh_plus_one = pass.mesh + 1;
+        o.flags = (uint32_t)pass.flags;
+        o.alpha = pass.alpha;
+        o.select = pass.blend;
+        o.color_scale = pass.light;
+        o.texture = pass.texture;
+        mu_scene_draw_model(&v->model, &o, backend, stats);
+        ++v->mesh_draws;
+    }
 }

@@ -47,3 +47,25 @@ captured. The first WIP loader captures above are superseded. Final labels
 are shortened, and request controls are disabled as well as refused by the
 controller. Next: final focused/affected suites, selected private validators,
 repository audit, default identity and committed check ledger.
+
+### Final fixture check
+
+Portable affected run at `32c59170`: 134 work items, 1,424 tests, 1,164
+passed, 260 optional skips, zero failures/errors. Execution 385.5 s,
+command wall 464.59 s. Selection contains 129 native work items, so 8d is
+reduced. The final isolated guild Info empty-provider initialization and
+explicit management refusals pass with both original and synthetic movies.
+The focused private run passes 14/14 in 66.28 s, including 408 inert
+callbacks per new-window host, the original key blocks and UI audio.
+No enum/layout/input code changed after the broad portable run.
+
+### Main integration, 22:27
+
+Merged steward main `6b75fbda`, including RENDER-ACTORS-003,
+MUUN-VISUAL-002, APP-REFRESH-012 and RENDER-EFFECTS-028. The four shared
+status-document conflicts keep both lanes' entries. Their compiled core
+inputs changed, so rerun the affected portable suite and all twelve selected
+private validator rows on the merged tree. The nested guild Info fixture
+and its twelve additional explicit refusal names are included in this merge.
+The fourteen focused private tests passed in 66.28 s before integration;
+repeat the focused private modules after the merge as well.
