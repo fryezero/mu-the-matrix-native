@@ -185,7 +185,7 @@ class ItemWorld(ownerfx.OwnerWorld):
         m.write(BONE_TRANSFORM - 0x30, struct.pack('<12f', *o.get('before_matrix', [7.0] * 12)))
         m.write(BONE_TRANSFORM, struct.pack('<%df' % len(o['matrices']), *o['matrices']))
         m.write(BONE_TRANSFORM + 0x30 * o['count'], struct.pack('<12f', *([-3.0] * 12)) * 8)
-        m.write(v.OBJ + 0x1f4, bytes(36))
+        m.write(v.OBJ + 0x1f4, bytes(4 * o.get('point_words', 9)))
         m.write(v.OBJ + 0x164, struct.pack('<3f', *o['angle']))
         m.write(v.OBJ + 0x158, struct.pack('<3f', *o['position']))
         m.ensure(FRAME_COUNTER, 4)
@@ -214,14 +214,14 @@ def original(wa, reset, case, o):
     unexpected = [c for c in other if c[0] != 'effect']
     if not result['ok'] or unexpected:
         raise AssertionError(('predraw original', hex(case['type']), result, unexpected[:3]))
-    o["client_points"] = reset.world.m.read(v.OBJ + 0x1f4, 36)
+    o["client_points"] = reset.world.m.read(v.OBJ + 0x1f4, 4 * o.get('point_words', 9))
     return stream, list(effects), reset.world.drawn, reset.world.flag
 
 
 def run_c(lib, plib, case, o, flag):
     """C stream, effect requests (refused ones as ('refused', kind, bitmap)) and rand() count of one state."""
     used, effects = [0], []
-    o["native_points"] = bytearray(36)
+    o["native_points"] = bytearray(4 * o.get('point_words', 9))
     stream_values = o['stream']
 
     def draw():
@@ -295,6 +295,9 @@ def run_c(lib, plib, case, o, flag):
     @EMIT
     def emit(_, fx):
         if fx.contents.kind == 4:
+            # Legacy families observe nine words; EFFECTS-026 explicitly opts into all twelve.
+            if 4 * fx.contents.subtype >= len(o['native_points']):
+                return
             struct.pack_into('<f', o['native_points'], 4 * fx.contents.subtype, fx.contents.position[0])
             return
         effects.append(record(fx))

@@ -510,6 +510,9 @@ void mu_pt_sprite_store(const mu_pt_sprite *s, uint8_t out[MU_PT_SPRITE_BYTES]);
 void mu_pt_sprite_load(mu_pt_sprite *s, const uint8_t in[MU_PT_SPRITE_BYTES]);
 void mu_pt_sprite_mask(uint8_t out[MU_PT_SPRITE_BYTES]);
 
+/* RENDER-EFFECTS-026: render-time OBJECT point for 0x8569/0. */
+int mu_pt_item_later_follow(mu_pt_particle *p, const float point[3]);
+
 #ifdef __cplusplus
 }
 #endif

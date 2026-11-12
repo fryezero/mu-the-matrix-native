@@ -54,7 +54,7 @@
  * MoveParticles in that order each step; the effect models before the joints, the joints before the sprite
  * section. Viewer choices: these pools are the module's own (the skills keep theirs in mu_combat), the effect
  * models play their first action (frame += speed, looping) and the tornado's PlayBuffer is counted, not played. */
-enum { MU_WORLD_PT_BITMAPS = 95, MU_WORLD_PT_CAPACITY = 4096, MU_WORLD_PT_SHADOW_MESHES = 64,
+enum { MU_WORLD_PT_BITMAPS = 97, MU_WORLD_PT_CAPACITY = 4096, MU_WORLD_PT_SHADOW_MESHES = 64,
        MU_WORLD_FX_EFFECTS = MU_SFX_EFFECTS, MU_WORLD_FX_MODELS = 18, MU_WORLD_EIN_LINKS = 4096, MU_WORLD_FX_QUADS = 8192,
        MU_WORLD_FX_LIGHTS = MU_JT_JOINTS + MU_SFX_EFFECTS,
        /* RENDER-EFFECTS-020: item owner slots, and the logic steps an unrefreshed slot is kept before reuse (longer
@@ -68,7 +68,7 @@ typedef struct mu_world_item_owner {
     uint32_t key;            /* caller identity (0: free) */
     uint16_t generation;
     float position[3];       /* OBJECT +0x158 */
-    float points[3][3];     /* RENDER-EFFECTS-022: OBJECT +0x1f4..+0x217, persistent between item draws */
+    float points[4][3];     /* RENDER-EFFECTS-022/026: OBJECT +0x1f4..+0x223, persistent between item draws */
     uint32_t seen;           /* stats.steps of the last refresh */
 } mu_world_item_owner;
 
@@ -195,7 +195,7 @@ int mu_world_particles_create_owned(mu_world_particles *p, int32_t type, const f
 int mu_world_particles_create_args(mu_world_particles *p, int32_t type, const float position[3],
                                    const float angle[3], const float light[3], int32_t subtype, float scale,
                                    int32_t owner, int32_t arg8);
-/* Store one of the nine OBJECT anchor words. Returns 0 for an absent/stale owner or word outside 0..8. */
+/* Store one of the twelve OBJECT anchor words. Returns 0 for an absent/stale owner or word outside 0..11. */
 int mu_world_particles_item_point(mu_world_particles *p, int32_t owner, int32_t word, float value);
 /* RENDER-EFFECTS-020: the owner argument for a particle owned by an item OBJECT. key: the caller's identity of the
  * OBJECT (nonzero); position: its +0x158. Registers the key (a free slot, or one unrefreshed for
