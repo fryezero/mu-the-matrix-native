@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import shutil
 import sys
 import tempfile
 import unittest
@@ -16,7 +17,9 @@ class Native(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         subprocess.run(['make','-s','-C',str(ROOT/'native'),'build/mu-walk'],check=True,capture_output=True)
-        cls.tmp=tempfile.TemporaryDirectory();cls.root=Path(write_combat_world(Path(cls.tmp.name)/'game'))
+        cls.tmp=tempfile.TemporaryDirectory();cls.binary=Path(cls.tmp.name)/'mu-walk'
+        shutil.copy2(ROOT/'native/build/mu-walk',cls.binary)
+        cls.root=Path(write_combat_world(Path(cls.tmp.name)/'game'))
         effect=cls.root/'Data/Effect';effect.mkdir(exist_ok=True)
         for name in ['flareBlue.OZJ','Shiny02.OZJ']:(effect/name).write_bytes(ozj_jpeg(32,32))
         cls.placement=Path(cls.tmp.name)/'actors.txt';cls.placement.write_text('actor 3 122 120 0 label DemoTarget\n')
@@ -25,7 +28,7 @@ class Native(unittest.TestCase):
     def cast(self,skill,duration='20',frames=32):
         with tempfile.TemporaryDirectory() as tmp:
             env=dict(os.environ,MU_AURA_FIXTURE_TICKS=duration)
-            p=subprocess.run([str(ROOT/'native/build/mu-walk'),'--game-root',str(self.root),'--headless',
+            p=subprocess.run([str(self.binary),'--game-root',str(self.root),'--headless',
                 '--backend','soft','--no-audio','--no-items','--no-players','--tile','120,120',
                 '--placement',str(self.placement),'--combat','--class','2','--combat-script',
                 f'2:skill:{skill}:DemoTarget;3:stop','--frames',str(frames),'--every','1',
@@ -41,6 +44,10 @@ class Native(unittest.TestCase):
                 aura=next(r for r in rows if r.get('aura_fixture'))
                 self.assertGreater(aura['requests'],0);self.assertGreater(aura['created'],0)
                 self.assertEqual((aura['refused'],aura['live']),(0,0))
+                aframes=[r for r in rows if 'aura_frame' in r]
+                self.assertTrue(any(r['live'] for r in aframes))
+                self.assertEqual((aframes[-1]['live'],aframes[-1]['sprites']),(0,0))
+                if skill==28:self.assertTrue(any(r['sprites']>=6 for r in aframes))
                 combat=next(r for r in rows if r.get('combat') is True)
                 self.assertEqual((combat['hits'],combat['kills'],combat['requests_sent'],combat['requests_unsent']),(0,0,0,1))
                 frames=[r for r in rows if 'combat_frame' in r]

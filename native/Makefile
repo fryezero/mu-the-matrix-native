@@ -92,7 +92,7 @@ RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.
              $(RECON)/data/table_layouts.c \
              $(RECON)/hud/inv_grid.c $(RECON)/hud/item_slots.c $(RECON)/hud/item_pass.c \
              $(RECON)/hud/tooltip_html.c $(RECON)/hud/tooltip_format.c \
-             $(RECON)/combat/combat.c $(RECON)/combat/skill_fx.c $(RECON)/combat/aura_fx.c $(RECON)/joints/joints.c \
+             $(RECON)/combat/combat.c $(RECON)/combat/skill_fx.c $(RECON)/joints/joints.c \
              $(RECON)/environment/env_core.c $(RECON)/environment/env_boids.c $(RECON)/environment/env_elbeland.c $(RECON)/environment/env_icarus.c $(RECON)/environment/env_fish.c $(RECON)/environment/env_body.c \
              $(RECON)/environment/env_leaves.c $(RECON)/environment/raklion_snow.c $(RECON)/environment/env_world.c \
              $(RECON)/particles/particles.c $(RECON)/particles/world_flames.c $(RECON)/particles/elbeland.c $(RECON)/particles/sprites.c $(RECON)/particles/shadow.c \
@@ -128,6 +128,8 @@ RECON_SRC += $(RECON)/environment/env_fog.c
 # MUUN-VISUAL-001: fixture-only base slot and model/attachment owner
 CORE_SRC += core/mu_muun_visual.c
 RECON_SRC += $(RECON)/muun/visual.c
+# RENDER-EFFECTS-028: isolated fixture aura reconstruction.
+RECON_SRC += $(RECON)/combat/aura_fx.c
 CORE_OBJ := $(patsubst %.c,$(BUILD)/%.o,$(CORE_SRC))
 RECON_OBJ := $(patsubst $(RECON)/%.c,$(BUILD)/recon/%.o,$(RECON_SRC))
 MODULUS_OBJ := $(BUILD)/modulus.o
@@ -812,5 +814,3 @@ $(BUILD)/muun-visual-host: tests/muun_visual_host.c $(LIB) $(HEADERS)
 $(BUILD)/worlds-inner-host: tests/worlds_inner_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-inner-host.o
 	$(CXX) $(BUILD)/worlds-inner-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
-
-# RENDER-EFFECTS-028: isolated fixture aura reconstruction.

@@ -56,8 +56,8 @@ Alchemist = 14, Crusader = 15.
 | 23 Slash | DK, MG | 0, weapon skill | 2 | P | P | Weapon action 0x8d |
 | 24 Triple Shot | Elf | 0, recurring ranged farming | 5 | L | P | Verified CreateArrows fan (0, +15, -15) and CreateArrow bow table; other bows' arrow models remain |
 | 26 Heal | Elf | 8, recurring support | 4 | P | P | Target ground effect, three energy ribbons and arrival sprite |
-| 27 Greater Defense | Elf | 13, recurring support | 4 | L | L | Cast animation/sound; persistent buff aura/authoritative buff feed absent |
-| 28 Greater Damage | Elf | 18, recurring support | 4 | L | L | Cast animation/sound; persistent buff aura/authoritative buff feed absent |
+| 27 Greater Defense | Elf | 13, recurring support | 4 | L | L | Fixture aura now draws and expires in EFFECTS-028; authoritative feed and general owner contexts remain |
+| 28 Greater Damage | Elf | 18, recurring support | 4 | L | L | Fixture aura now draws and expires in EFFECTS-028; authoritative feed and general owner contexts remain |
 | 41 Twisting Slash | DK, MG, Slayer, Crusader | 0, repeated melee farming | 5 | P | P | Weapon swirl, smoke, sparks, joint streaks |
 | 42 Rageful Blow | DK, Slayer, Crusader | 170, later melee farming | 4 | M | P | Flying weapon 0x461, EarthQuake01..08/flashing/tail impact, quake rings, eight joints; ordinary worlds |
 | 43 Death Stab | DK | 160, later melee combat | 4 | L | L | Action 0x9e; step trails now audited and drawn in the base-DK fixture by EFFECTS-027; general link selector remains |
@@ -230,3 +230,12 @@ skill credit. The arrows' joint and particle kinds are created as calls but not 
 ## RENDER-EFFECTS-027 evidence and limits
 
 [Death Stab step audit](client-render-effects-027.md): 6,064 original component comparisons, zero mismatches, 23/23 compiled mutants. Base-DK fixture skill 43 now draws the 0x472/2 ribbons and 0x10e6/1 marker chain with Flare/12 curls, with original step gates, widths, saved point and lifetimes. The fixture makes 189 visual requests, zero refused. Death Stab stays L because the general weapon-link selector remains an authored bone-33 context. Persistent buff feeds and master/later-class selectors remain absent.
+
+## RENDER-EFFECTS-028 fixture evidence
+
+[Buff aura audit](client-render-effects-028.md): 4,390 original comparisons,
+zero mismatches and 18/18 compiled mutants. Opt-in authored skill 27/28 casts
+now draw the defense ribbons, their midpoint blue flares and the attack
+weapon-link sprites, with independent expiry and owner-death removal controls.
+The strict inventory remains 20 P / 3 L / 0 M. This fixture does not supply an
+authoritative buff feed, general link selection or subtype-9 equipment context.
