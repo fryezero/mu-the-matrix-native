@@ -1,29 +1,7 @@
 # RENDER-WORLDS-INNER-002
 
-Branch `codex/render-worlds-inner-002`, from main `d4af71dd`. WIP integration. Implementation and checks by Codex,
+Branch `codex/render-worlds-inner-002`, from main `d4af71dd`. PR-ready. Implementation and checks by Codex,
 GPT-6.1 Sol, without subagents. Latest-main integration is recorded below. Merge belongs to the steward.
-
-## WIP integration checkpoint
-
-Done: object source and all 27 mutants are unchanged; 64 affected validators, portable suites, focused private
-modules, demo-labelled native proofs and reference comparisons pass. Main `710ac816` (UI-WINDOWS-001) merged
-cleanly as `2d9c56d1`. Root rebuild 5.39 s, mu-world rebuild 4.60 s. Five of this lane's validators overlap
-its compiled inputs and passed again, 74.47 s. Full before/after evidence below is the pre-UI object-source run.
-
-Portable integration is complete: 1,421 tests, 1,165 passed / 256 skips, zero failures/errors,
-453.15 s including selection, 375.6 s test wall. Private UI module passes 3/3 without skips in 3.86 s.
-Left: final main-integrated output identity is queued under the load guard, then final audit and
-publication/cleanup. All code validation is green. Status/plan edits are still
-uncommitted drafts. No ready-prs line has been written.
-
-Next: finish the active guarded `integration-render-replay` job, which runs `integrated-renders.py`
-sequentially. It compares the fresh main-integrated binary with corrected after outputs only; before numbers
-and mutants must not be rerun. `complete-integration-docs.py` is prepared to append the exact results.
-Append exact integration results and final binary SHA here, remove this WIP section, finish audit, commit/push,
-create/link PR, append ready-prs once, then push nothing more and clean up. Original 64-row reports are in
-`verify-runs/lane-validators`; the five reruns are in `verify-runs/integration-validators`. No mutant rerun.
-Owner stop contract: if not PR-ready by 02:15 on 2026-11-12, push WIP and stop by 02:30.
-Local scratch is `~/Documents/MTM/mu-mac-tools/native/scratch/render-worlds-inner-002/`.
 
 ## Scope and what draws now
 
@@ -57,6 +35,7 @@ individual check walls. No full lane gate.
 | Private producer module | 4/4 pass, including 1,000 original cases, no skips | 0.90 s |
 | After `make -C native -j4 world` | Pass; distinct binaries below | 3.81 s |
 | Repository audit before first checkpoint | 0 rejected | 24.36 s |
+| Final repository audit | 2,192 files, 0 rejected | 40.15 s |
 
 The first mutant run passed all 5,000 baseline cases and eight compiled mutants, then setup rejected a
 nonunique smoke-owner anchor. The anchor was narrowed and only the remaining nineteen mutants were compiled.
@@ -65,8 +44,8 @@ row without mutants in 5.8 s. No producer or adapter source changed after `b0500
 anchor correction. Later checkpoint commits change documentation only.
 
 **8d reduced:** private native selection is 162 work items, above the 40-item cap. The changed production-host
-module ran privately, along with the new producer module. 6b review found no shared struct field, table size or
-constant change. New producer/refusal symbols occur only in the new producer/tests and this adapter. All 64
+module ran privately, along with the new producer module. 6b review found no change to existing shared struct fields, table sizes or
+constant values. New producer/refusal symbols occur only in the new producer/tests and this adapter. All 64
 selected validator rows, including fallback rows, were retained. Selection walls: 58.67 s validators, 63.99 s
 private native work items. The portable runner's own selection/execution is included in its wall above.
 
@@ -195,6 +174,35 @@ Elbeland tile 24,163, 25 frames, default two sampled draws: 0 -> 36 created spri
 0 -> 6 joints, 196 drawn joint quads, zero joint refusals; 109 created sprites, 15 refused particle requests.
 Both close-up OBJECT/light dumps stay identical. The final demo-labelled native images were visually inspected.
 No new original capture, event feed or original/native temporal equivalence is claimed.
+
+## Latest main integration
+
+Main `710ac816` (UI-WINDOWS-001) merged cleanly as `2d9c56d1e8d50ed6cb461698748edaba116b4352`.
+The incoming changes are UI/GFx/world-input code, not the object producer/adapter or its mutant targets.
+Root rebuild 5.39 s; explicit world rebuild 4.60 s.
+The post-build selector took 26.55 s: 12 incoming affected rows, five overlapping
+this lane's 64-row list, including the movement fallback. All five passed without mutants in
+74.47 s at `2d9c56d1`; the other seven reuse the incoming UI lane's evidence.
+
+| Overlapping validator | Reported cases | Wall s |
+|---|---:|---:|
+| `validate_audio_callers` | 5528 | 6.4 |
+| `validate_audio_domains` | 2544 | 42.4 |
+| `validate_audio_items` | 3000 | 4.1 |
+| `validate_movement` | 6614 | 74.4 |
+| `validate_render_effects16` | 424 | 3.9 |
+
+Portable integration selection, 133 work items: 1,421 tests, 1,165 passed / 256 expected skips,
+zero failures/errors, 453.15 s including selection, 375.6 s test wall.
+The private UI module also passes 3/3 without skips in 3.86 s, with canonical
+private env. This is a focused integration check, not a full private native run.
+
+Final main-integrated mu-world SHA-256: `a9d67fdf4ed58cd5ab6de0f814b86981aad19e0e203cd07352fb1f18166ff976`. Its final replay took
+102.19 s: all 104 PNGs, 104 OBJECT/light dumps and 52 normalized reports are
+byte-identical to the corrected pre-UI after outputs. This includes both default tours, both affected clocks,
+both close-ups and Swamp's original-resolution default/clock views. Thus the before/after differences and
+reference scores recorded above remain the final lane results. No baseline numbers or mutants were rerun
+for this merge. The final integrated replay uses the same demo-name controls.
 
 ## Limits and next
 

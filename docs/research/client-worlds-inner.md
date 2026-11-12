@@ -154,3 +154,11 @@ before implementing anything there.
 Kanturu type 0x60's extra RGBA pass still needs the coordinated GREATER 0 alpha-reference seam described in
 INNER-001. This lane does not change shared mesh or raster state. The rest of the worlds above remain unported
 by this lane. No event model, new capture, live client or installed-app change.
+
+### INNER-002 final verification
+
+Five families pass 5,000 original call comparisons, zero mismatches/stops. All 27 compiled mutants are caught,
+minimum 46 detections. All 64 affected validators and the portable/private checks pass. The 44 unaffected
+views are byte-identical. Elbeland's close-up glows and Swamp's six joints / 196 quads were visually inspected
+in demo-labelled native frames. Elbeland has no original PNG; Swamp's captured image score is unchanged.
+[Full counts, refusals, per-row walls and next addresses](../handoffs/RENDER-WORLDS-INNER-002.md).

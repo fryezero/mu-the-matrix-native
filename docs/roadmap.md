@@ -1,5 +1,7 @@
 # Roadmap and work queue
 
+RENDER-WORLDS-INNER-002 PR-ready: Elbeland 51 and Swamp of Calmness 56 now run their inline visual producers, including bone glows, particles/owned smoke and five existing lightning subtypes. Elbeland 0x3a's unwritten stack colour remains an explicit refusal. 5,000 original call comparisons, 27/27 compiled mutants and 64 affected validators pass. All 44 unaffected capture views stay byte-identical; close-up glows/lightning are visible. [Scope, checks and limits](handoffs/RENDER-WORLDS-INNER-002.md).
+
 UI-WINDOWS-001 PR-ready: D Command, N MatchingSelect, B Gens, Y PetInventory and K Gremory now open their original movies as presentation-only views. Empty tabs/pages and close work; state-changing actions refuse. 1,421 portable tests, 12 affected validators, real-window proofs and default identities pass. Original Help open route remains unproved. [Checks, inventory and limits](handoffs/UI-WINDOWS-001.md).
 
 CHARSEL-ITEMS-001 PR-ready: selection now draws authored demo equipment levels and excellent through the existing item renderer and texture rules. Original comparison: 8,817 cases, zero mismatches; 7/7 compiled mutants. File-only selection and default world captures remain byte-identical. [Checks, addresses, renders and limits](handoffs/CHARSEL-ITEMS-001.md).
