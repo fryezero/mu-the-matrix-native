@@ -1,0 +1,1025 @@
+server_class,constructor,constructor_case,native_override,model,opener,construction,native
+0,generic,0x1382f2d,,0x7a5,monster:0,constructor equipment/parts,incomplete/unverified special passes
+1,generic,0x138326a,,0x7a6,monster:1,constructor equipment/parts,incomplete/unverified special passes
+2,generic,0x13833a7,,0x7a7,monster:2,plain body construction,incomplete/unverified special passes
+3,generic,0x1382e38,,0x7ae,monster:9,plain body construction,incomplete/unverified special passes
+4,generic,0x1382f2d,,0x7a5,monster:0,constructor equipment/parts,incomplete/unverified special passes
+5,generic,0x138326a,,0x7a6,monster:1,constructor equipment/parts,incomplete/unverified special passes
+6,generic,0x13834bc,,0x7a9,monster:4,constructor equipment/parts,incomplete/unverified special passes
+7,generic,0x13835c2,,0x7aa,monster:5,constructor equipment/parts,incomplete/unverified special passes
+8,generic,,,,unresolved,unresolved construction,refused
+9,generic,0x13834bc,,0x7a9,monster:4,constructor equipment/parts,incomplete/unverified special passes
+10,generic,0x138341f,,0x7a8,monster:3,constructor equipment/parts,incomplete/unverified special passes
+11,generic,0x13830d6,,0x7ac,monster:7,plain body construction,incomplete/unverified special passes
+12,generic,0x1383162,,0x7ab,monster:6,plain body construction,incomplete/unverified special passes
+13,generic,0x13831da,,0x7ad,monster:8,constructor equipment/parts,incomplete/unverified special passes
+14,generic,0x138366a,,0xa91,no opener,special appearance hook; constructor equipment/parts; no opener/startup model,correct bounded body plan
+15,generic,0x1383791,,0xa91,no opener,special appearance hook; constructor equipment/parts; no opener/startup model,correct bounded body plan
+16,generic,0x138383a,,0xa91,no opener,special appearance hook; constructor equipment/parts; no opener/startup model,correct bounded body plan
+17,generic,0x1382eb0,,0x7af,monster:10,constructor equipment/parts,incomplete/unverified special passes
+18,generic,0x1382d88,,0x7b0,monster:11,constructor equipment/parts,incomplete/unverified special passes
+19,generic,0x1382d10,,0x7b1,monster:12,plain body construction,incomplete/unverified special passes
+20,generic,0x1382c98,,0x7b2,monster:13,plain body construction,incomplete/unverified special passes
+21,generic,0x1382c20,,0x7b3,monster:14,plain body construction,incomplete/unverified special passes
+22,generic,0x1382b9e,,0x7b4,monster:15,plain body construction,incomplete/unverified special passes
+23,generic,0x1382af6,,0x7b5,monster:16,constructor equipment/parts,incomplete/unverified special passes
+24,generic,0x1382a91,,0x7b6,monster:17,plain body construction,incomplete/unverified special passes
+25,generic,0x13829ca,,0x7b7,monster:18,constructor equipment/parts,incomplete/unverified special passes
+26,generic,0x138293a,,0x7b8,monster:19,constructor equipment/parts,incomplete/unverified special passes
+27,generic,0x13828c2,,0x7b9,monster:20,plain body construction,incomplete/unverified special passes
+28,generic,0x1382825,,0x7ba,monster:21,constructor equipment/parts,incomplete/unverified special passes
+29,generic,0x1382795,,0x7bb,monster:22,constructor equipment/parts,incomplete/unverified special passes
+30,generic,0x138271d,,0x7bc,monster:23,plain body construction,incomplete/unverified special passes
+31,generic,0x1382675,,0x7bd,monster:24,constructor equipment/parts,incomplete/unverified special passes
+32,generic,0x1382610,,0x7be,monster:25,plain body construction,incomplete/unverified special passes
+33,generic,0x138255b,,0x7b8,monster:19,constructor equipment/parts,incomplete/unverified special passes
+34,generic,0x13823b1,,0xa91,no opener,special appearance hook; constructor equipment/parts; no opener/startup model,correct bounded body plan
+35,generic,0x13822dc,,0x7b0,monster:11,constructor equipment/parts,incomplete/unverified special passes
+36,generic,0x1382264,,0x7c1,monster:28,plain body construction,incomplete/unverified special passes
+37,generic,0x13821ec,,0x7bf,monster:26,plain body construction,incomplete/unverified special passes
+38,generic,0x1382149,,0x7c0,monster:27,constructor equipment/parts,incomplete/unverified special passes
+39,generic,0x13820c4,,0x7c1,monster:28,plain body construction,incomplete/unverified special passes
+40,generic,0x138201c,,0x7c2,monster:29,constructor equipment/parts,incomplete/unverified special passes
+41,generic,0x1381f8c,,0x7c3,monster:30,constructor equipment/parts,incomplete/unverified special passes
+42,generic,0x1381ec0,,0x7c4,monster:31,plain body construction,incomplete/unverified special passes
+43,generic,0x1381e48,,0x7a7,monster:2,plain body construction,incomplete/unverified special passes
+44,generic,0x1381dd0,,0x7c4,monster:31,plain body construction,incomplete/unverified special passes
+45,generic,0x1381d16,,0x7c6,monster:33,plain body construction,incomplete/unverified special passes
+46,generic,0x1381cd4,,0x7c7,monster:34,plain body construction,incomplete/unverified special passes
+47,generic,0x1381c5d,,0x7c8,monster:35,constructor equipment/parts,incomplete/unverified special passes
+48,generic,0x1381c03,,0x7c9,monster:36,constructor equipment/parts,incomplete/unverified special passes
+49,generic,0x1381ba6,,0x7ca,monster:37,plain body construction,incomplete/unverified special passes
+50,generic,0x1381b64,,0x7cb,monster:38,plain body construction,incomplete/unverified special passes
+51,generic,0x1381b15,,0x7c6,monster:33,plain body construction,incomplete/unverified special passes
+52,generic,0x1381abb,,0x7c8,monster:35,constructor equipment/parts,incomplete/unverified special passes
+53,generic,0x1383aef,,0x7cc,monster:39,special appearance hook,incomplete/unverified special passes
+54,generic,0x1383c48,,0x7cd,monster:40,constructor equipment/parts,incomplete/unverified special passes
+55,generic,0x138366a,,0xa91,no opener,special appearance hook; constructor equipment/parts; no opener/startup model,correct bounded body plan
+56,generic,0x138366a,,0xa91,no opener,special appearance hook; constructor equipment/parts; no opener/startup model,correct bounded body plan
+57,generic,0x13819a0,,0x7ce,monster:41,special appearance hook; constructor equipment/parts,incomplete/unverified special passes
+58,generic,0x1381828,,0x7cf,monster:42,special appearance hook; extra bitmap load; constructor equipment/parts,incomplete/unverified special passes
+59,generic,0x1381828,,0x7cf,monster:42,special appearance hook; extra bitmap load; constructor equipment/parts,incomplete/unverified special passes
+60,generic,0x1381725,,0x7d0,monster:43,special appearance hook,incomplete/unverified special passes
+61,generic,0x13815e7,,0x7d1,monster:44,special appearance hook,incomplete/unverified special passes
+62,generic,0x13814e4,,0x7d2,monster:45,special appearance hook,incomplete/unverified special passes
+63,generic,0x13815e7,,0x7d1,monster:44,special appearance hook,incomplete/unverified special passes
+64,generic,0x13811d9,,0x7d3,monster:46,constructor equipment/parts,incomplete/unverified special passes
+65,generic,0x13812dd,,0x7d4,monster:47,plain body construction,incomplete/unverified special passes
+66,generic,0x138138b,,0x7d5,monster:48,plain body construction,incomplete/unverified special passes
+67,generic,0x1382149,,0x7c0,monster:27,constructor equipment/parts,incomplete/unverified special passes
+68,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+69,generic,0x1380d4b,,0x7d7,monster:50,plain body construction,incomplete/unverified special passes
+70,generic,0x1380d97,,0x7d8,monster:51,plain body construction,incomplete/unverified special passes
+71,generic,0x1380e03,,0x7d9,monster:52,extra bitmap load; constructor equipment/parts,incomplete/unverified special passes
+72,generic,0x1380f2c,,0x7da,monster:53,constructor equipment/parts,incomplete/unverified special passes
+73,generic,0x1380f99,,0x7db,monster:54,plain body construction,incomplete/unverified special passes
+74,generic,0x1380e03,,0x7d9,monster:52,extra bitmap load; constructor equipment/parts,incomplete/unverified special passes
+75,generic,0x1380f99,,0x7db,monster:54,plain body construction,incomplete/unverified special passes
+76,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+77,generic,0x1381151,,0x7dc,monster:55+monster:56,plain body construction,incomplete/unverified special passes
+78,generic,0x1380905,,0x7b8,monster:19,constructor equipment/parts,incomplete/unverified special passes
+79,generic,0x13809a8,,0x7c4,monster:31,plain body construction,incomplete/unverified special passes
+80,generic,0x1380a20,,0x7c9,monster:36,constructor equipment/parts,incomplete/unverified special passes
+81,generic,0x1380a8d,,0x7c7,monster:34,plain body construction,incomplete/unverified special passes
+82,generic,0x1380acf,,0x7cf,monster:42,special appearance hook; extra bitmap load; constructor equipment/parts,incomplete/unverified special passes
+83,generic,0x1380c1d,,0x7ce,monster:41,special appearance hook; constructor equipment/parts,incomplete/unverified special passes
+84,generic,0x1380630,,0x7d4,monster:47,plain body construction,incomplete/unverified special passes
+85,generic,0x138067d,,0x7d3,monster:46,constructor equipment/parts,incomplete/unverified special passes
+86,generic,0x13806f5,,0x7e0,monster:59,constructor equipment/parts,incomplete/unverified special passes
+87,generic,0x13807c3,,0x7df,monster:58,plain body construction,incomplete/unverified special passes
+88,generic,0x138083b,,0x7de,monster:57,constructor equipment/parts,incomplete/unverified special passes
+89,generic,0x138035d,,0x7e3,monster:62,constructor equipment/parts,incomplete/unverified special passes
+90,generic,0x1380630,,0x7d4,monster:47,plain body construction,incomplete/unverified special passes
+91,generic,0x138067d,,0x7d3,monster:46,constructor equipment/parts,incomplete/unverified special passes
+92,generic,0x13806f5,,0x7e0,monster:59,constructor equipment/parts,incomplete/unverified special passes
+93,generic,0x13807c3,,0x7df,monster:58,plain body construction,incomplete/unverified special passes
+94,generic,0x138083b,,0x7de,monster:57,constructor equipment/parts,incomplete/unverified special passes
+95,generic,0x138035d,,0x7e3,monster:62,constructor equipment/parts,incomplete/unverified special passes
+96,generic,0x1380630,,0x7d4,monster:47,plain body construction,incomplete/unverified special passes
+97,generic,0x138067d,,0x7d3,monster:46,constructor equipment/parts,incomplete/unverified special passes
+98,generic,0x13806f5,,0x7e0,monster:59,constructor equipment/parts,incomplete/unverified special passes
+99,generic,0x13807c3,,0x7df,monster:58,plain body construction,incomplete/unverified special passes
+100,generic,0x1383cf3,,0x27,no opener,no opener/startup model,refused
+101,generic,0x1383d17,,0x28,no opener,no opener/startup model,refused
+102,generic,0x1383d3b,,0x33,no opener,no opener/startup model,refused
+103,generic,0x1383d5f,,0x19,no opener,no opener/startup model,refused
+104,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+105,generic,0x1389dea,,0xa3f,npc:2623,plain body construction,incomplete/unverified special passes
+106,generic,0x1383d83,,0x33,no opener,no opener/startup model,refused
+107,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+108,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+109,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+110,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+111,generic,0x138083b,,0x7de,monster:57,constructor equipment/parts,incomplete/unverified special passes
+112,generic,0x138035d,,0x7e3,monster:62,constructor equipment/parts,incomplete/unverified special passes
+113,generic,0x1380630,,0x7d4,monster:47,plain body construction,incomplete/unverified special passes
+114,generic,0x138067d,,0x7d3,monster:46,constructor equipment/parts,incomplete/unverified special passes
+115,generic,0x13806f5,,0x7e0,monster:59,constructor equipment/parts,incomplete/unverified special passes
+116,generic,0x13807c3,,0x7df,monster:58,plain body construction,incomplete/unverified special passes
+117,generic,0x138083b,,0x7de,monster:57,constructor equipment/parts,incomplete/unverified special passes
+118,generic,0x138035d,,0x7e3,monster:62,constructor equipment/parts,incomplete/unverified special passes
+119,generic,0x1380630,,0x7d4,monster:47,plain body construction,incomplete/unverified special passes
+120,generic,0x138067d,,0x7d3,monster:46,constructor equipment/parts,incomplete/unverified special passes
+121,generic,0x13806f5,,0x7e0,monster:59,constructor equipment/parts,incomplete/unverified special passes
+122,generic,0x13807c3,,0x7df,monster:58,plain body construction,incomplete/unverified special passes
+123,generic,0x138083b,,0x7de,monster:57,constructor equipment/parts,incomplete/unverified special passes
+124,generic,0x138035d,,0x7e3,monster:62,constructor equipment/parts,incomplete/unverified special passes
+125,generic,0x1380630,,0x7d4,monster:47,plain body construction,incomplete/unverified special passes
+126,generic,0x138067d,,0x7d3,monster:46,constructor equipment/parts,incomplete/unverified special passes
+127,generic,0x13806f5,,0x7e0,monster:59,constructor equipment/parts,incomplete/unverified special passes
+128,generic,0x13807c3,,0x7df,monster:58,plain body construction,incomplete/unverified special passes
+129,generic,0x138083b,,0x7de,monster:57,constructor equipment/parts,incomplete/unverified special passes
+130,generic,0x138035d,,0x7e3,monster:62,constructor equipment/parts,incomplete/unverified special passes
+131,generic,0x1380400,,0x7e2,monster:61,plain body construction,incomplete/unverified special passes
+132,generic,0x138048c,,0x7e1,monster:60,plain body construction,incomplete/unverified special passes
+133,generic,0x1380518,,0x7e1,monster:60,plain body construction,incomplete/unverified special passes
+134,generic,0x13805a4,,0x7e1,monster:60,plain body construction,incomplete/unverified special passes
+135,generic,0x138138b,,0x7d5,monster:48,plain body construction,incomplete/unverified special passes
+136,generic,0x1381334,,0x7d4,monster:47,plain body construction,incomplete/unverified special passes
+137,generic,0x138125b,,0x7d3,monster:46,constructor equipment/parts,incomplete/unverified special passes
+138,generic,0x1380630,,0x7d4,monster:47,plain body construction,incomplete/unverified special passes
+139,generic,0x138067d,,0x7d3,monster:46,constructor equipment/parts,incomplete/unverified special passes
+140,generic,0x13806f5,,0x7e0,monster:59,constructor equipment/parts,incomplete/unverified special passes
+141,generic,0x13807c3,,0x7df,monster:58,plain body construction,incomplete/unverified special passes
+142,generic,0x138083b,,0x7de,monster:57,constructor equipment/parts,incomplete/unverified special passes
+143,generic,0x138035d,,0x7e3,monster:62,constructor equipment/parts,incomplete/unverified special passes
+144,0xdf1b30,,,0x7e4,monster:63,plain body construction,incomplete/unverified special passes
+145,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes
+146,0xdf1b30,,,0x7e6,monster:65,plain body construction,incomplete/unverified special passes
+147,0xdf1b30,,,0x7e7,monster:66,plain body construction,incomplete/unverified special passes
+148,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes
+149,0xdf1b30,,,0x7e9,monster:68,plain body construction,incomplete/unverified special passes
+150,generic,0x1381d58,,0x7c5,monster:32,plain body construction,incomplete/unverified special passes
+151,generic,0x1383c48,,0x7cd,monster:40,constructor equipment/parts,incomplete/unverified special passes
+152,generic,0x13800ba,,0x416,no opener,no opener/startup model,refused
+153,generic,0x13800ba,,0x416,no opener,no opener/startup model,refused
+154,generic,0x13800ba,,0x416,no opener,no opener/startup model,refused
+155,generic,0x13800ba,,0x416,no opener,no opener/startup model,refused
+156,generic,0x13800ba,,0x416,no opener,no opener/startup model,refused
+157,generic,0x13800ba,,0x416,no opener,no opener/startup model,refused
+158,generic,0x13800ba,,0x416,no opener,no opener/startup model,refused
+159,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+160,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,incomplete/unverified special passes
+161,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,incomplete/unverified special passes
+162,generic,0x138019c,,0x7eb,monster:70,constructor equipment/parts,incomplete/unverified special passes
+163,generic,0x138023f,,0x7ec,monster:71,constructor equipment/parts,incomplete/unverified special passes
+164,generic,0x138019c,,0x7eb,monster:70,constructor equipment/parts,incomplete/unverified special passes
+165,generic,0x138023f,,0x7ec,monster:71,constructor equipment/parts,incomplete/unverified special passes
+166,generic,0x138019c,,0x7eb,monster:70,constructor equipment/parts,incomplete/unverified special passes
+167,generic,0x138023f,,0x7ec,monster:71,constructor equipment/parts,incomplete/unverified special passes
+168,generic,0x138019c,,0x7eb,monster:70,constructor equipment/parts,incomplete/unverified special passes
+169,generic,0x138023f,,0x7ec,monster:71,constructor equipment/parts,incomplete/unverified special passes
+170,generic,0x138019c,,0x7eb,monster:70,constructor equipment/parts,incomplete/unverified special passes
+171,generic,0x138023f,,0x7ec,monster:71,constructor equipment/parts,incomplete/unverified special passes
+172,generic,0x138019c,,0x7eb,monster:70,constructor equipment/parts,incomplete/unverified special passes
+173,generic,0x138023f,,0x7ec,monster:71,constructor equipment/parts,incomplete/unverified special passes
+174,0xdf1b30,,,0x7e4,monster:63,plain body construction,incomplete/unverified special passes
+175,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes
+176,0xdf1b30,,,0x7e6,monster:65,plain body construction,incomplete/unverified special passes
+177,0xdf1b30,,,0x7e7,monster:66,plain body construction,incomplete/unverified special passes
+178,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes
+179,0xdf1b30,,,0x7e9,monster:68,plain body construction,incomplete/unverified special passes
+180,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,incomplete/unverified special passes
+181,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,incomplete/unverified special passes
+182,0xdf1b30,,,0x7e4,monster:63,plain body construction,incomplete/unverified special passes
+183,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes
+184,0xdf1b30,,,0x7e6,monster:65,plain body construction,incomplete/unverified special passes
+185,0xdf1b30,,,0x7e7,monster:66,plain body construction,incomplete/unverified special passes
+186,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes
+187,0xdf1b30,,,0x7e9,monster:68,plain body construction,incomplete/unverified special passes
+188,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,incomplete/unverified special passes
+189,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,incomplete/unverified special passes
+190,0xdf1b30,,,0x7e4,monster:63,plain body construction,incomplete/unverified special passes
+191,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes
+192,0xdf1b30,,,0x7e6,monster:65,plain body construction,incomplete/unverified special passes
+193,0xdf1b30,,,0x7e7,monster:66,plain body construction,incomplete/unverified special passes
+194,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes
+195,0xdf1b30,,,0x7e9,monster:68,plain body construction,incomplete/unverified special passes
+196,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,incomplete/unverified special passes
+197,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,incomplete/unverified special passes
+198,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+199,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+200,generic,0x1383da7,,0x451,no opener,no opener/startup model,refused
+201,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+202,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+203,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+204,generic,,,,unresolved,unresolved construction,refused
+205,generic,0x1384ef9,,0xa39,npc:2617,plain body construction,incomplete/unverified special passes
+206,generic,0x1384fb4,,0xa3a,npc:2618,plain body construction,incomplete/unverified special passes
+207,generic,0x138506f,,0xa3b,npc:2619,plain body construction,incomplete/unverified special passes
+208,generic,0x138512a,,0xa3c,npc:2620,plain body construction,incomplete/unverified special passes
+209,generic,0x13851e5,,0xa3d,npc:2621,plain body construction,incomplete/unverified special passes
+210,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+211,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+212,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+213,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+214,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+215,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+216,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+217,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+218,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+219,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+220,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+221,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+222,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+223,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+224,generic,0x137ffef,,0xa35,npc:2613,plain body construction,incomplete/unverified special passes
+225,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+226,generic,0x1383e03,,0xa29,npc:2601,plain body construction,incomplete/unverified special passes
+227,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+228,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+229,generic,0x1383e6b,,0xa91,no opener,special appearance hook; constructor equipment/parts; no opener/startup model,correct bounded body plan
+230,generic,0x1383fe7,,0x9ff,npc:2559,sub-model/extra-load; constructor equipment/parts,correct bounded body plan
+231,generic,0x13840ae,,0xa28,npc:2600,plain body construction,incomplete/unverified special passes
+232,generic,0x1384116,,0xa26,npc:2598,plain body construction,incomplete/unverified special passes
+233,generic,0x138416d,,0xa27,npc:2599,plain body construction,incomplete/unverified special passes
+234,generic,0x13841c4,,0x7b8,monster:19,constructor equipment/parts,incomplete/unverified special passes
+235,generic,0x138424d,,0xa25,npc:2597,plain body construction,incomplete/unverified special passes
+236,generic,0x13842a4,,0xa91,npc:2705,special appearance hook,correct bounded body plan
+237,generic,0x1384312,,0xa0c,npc:2572,plain body construction,incomplete/unverified special passes
+238,generic,0x13843be,,0xa0b,npc:2571,plain body construction,incomplete/unverified special passes
+239,generic,0x1384405,,0xa0a,npc:2570,plain body construction,incomplete/unverified special passes
+240,generic,0x1384437,,0xa09,npc:2569,plain body construction,incomplete/unverified special passes
+241,generic,0x1384469,,0xa08,npc:2568,plain body construction,incomplete/unverified special passes
+242,generic,,,,unresolved,unresolved construction,refused
+243,generic,0x13846f7,,0xa07,npc:2567,plain body construction,incomplete/unverified special passes
+244,generic,0x138475f,,0xa03,npc:2563,plain body construction,incomplete/unverified special passes
+245,generic,0x13847c7,,0xa05,npc:2565,plain body construction,incomplete/unverified special passes
+246,generic,0x138482f,,0xa04,npc:2564,plain body construction,incomplete/unverified special passes
+247,generic,0x1384897,,0xa91,no opener,special appearance hook; constructor equipment/parts; no opener/startup model,correct bounded body plan
+248,generic,0x13849a4,,0x9ff,npc:2559,sub-model/extra-load; constructor equipment/parts,correct bounded body plan
+249,generic,0x1384a6b,,0xa91,no opener,special appearance hook; constructor equipment/parts; no opener/startup model,correct bounded body plan
+250,generic,0x1384b60,,0x9ff,npc:2559,sub-model/extra-load; constructor equipment/parts,correct bounded body plan
+251,generic,0x1384c27,,0xa01,npc:2561,plain body construction,incomplete/unverified special passes
+252,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+253,generic,0x1384ca2,,0xa00,npc:2560,sub-model/extra-load; constructor equipment/parts,correct bounded body plan
+254,generic,0x1384d51,,0xa02,npc:2562,plain body construction,incomplete/unverified special passes
+255,generic,0x1384db9,,0x9fe,npc:2558,sub-model/extra-load; constructor equipment/parts,correct bounded body plan
+256,generic,0x13844d1,,0xa37,npc:2615,plain body construction,incomplete/unverified special passes
+257,generic,0x1384539,,0xa91,no opener,special appearance hook; constructor equipment/parts; no opener/startup model,correct bounded body plan
+258,generic,0x138549e,,0xa91,no opener,special appearance hook; constructor equipment/parts; no opener/startup model,correct bounded body plan
+259,generic,0x138559e,,0xa2b,npc:2603,plain body construction,incomplete/unverified special passes
+260,0xdf1b30,,,0x7e4,monster:63,plain body construction,incomplete/unverified special passes
+261,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes
+262,0xdf1b30,,,0x7e6,monster:65,plain body construction,incomplete/unverified special passes
+263,0xdf1b30,,,0x7e7,monster:66,plain body construction,incomplete/unverified special passes
+264,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes
+265,0xdf1b30,,,0x7e9,monster:68,plain body construction,incomplete/unverified special passes
+266,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,incomplete/unverified special passes
+267,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,incomplete/unverified special passes
+268,0xdf1b30,,,0x7e4,monster:63,plain body construction,incomplete/unverified special passes
+269,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes
+270,0xdf1b30,,,0x7e6,monster:65,plain body construction,incomplete/unverified special passes
+271,0xdf1b30,,,0x7e7,monster:66,plain body construction,incomplete/unverified special passes
+272,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes
+273,0xdf1b30,,,0x7e9,monster:68,plain body construction,incomplete/unverified special passes
+274,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,incomplete/unverified special passes
+275,0xdf1b30,,,0x7e5,monster:64,constructor equipment/parts,incomplete/unverified special passes
+276,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+277,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+278,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+279,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+280,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+281,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+282,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+283,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+284,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+285,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+286,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+287,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+288,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+289,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+290,0xdfc787,,,,unresolved,unresolved construction,refused
+291,0xdfc787,,,,unresolved,unresolved construction,refused
+292,0xdfc787,,,,unresolved,unresolved construction,refused
+293,0xdfc787,,,,unresolved,unresolved construction,refused
+294,0xdfc787,,,,unresolved,unresolved construction,refused
+295,0xdfc787,,,,unresolved,unresolved construction,refused
+296,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+297,0xdfc787,,,0xa91,no opener,special appearance hook; constructor equipment/parts; no opener/startup model,correct bounded body plan
+298,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+299,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+300,generic,0x13814e4,,0x7d2,monster:45,special appearance hook,incomplete/unverified special passes
+301,generic,0x1380e03,,0x7d9,monster:52,extra bitmap load; constructor equipment/parts,incomplete/unverified special passes
+302,0xdfc787,,,,unresolved,unresolved construction,refused
+303,0xdfc787,,,,unresolved,unresolved construction,refused
+304,0xd640ce,,,0x809,monster:100,plain body construction,incomplete/unverified special passes
+305,0xd640ce,,,0x80a,monster:101,plain body construction,incomplete/unverified special passes
+306,0xd640ce,,,0x80b,monster:102,plain body construction,incomplete/unverified special passes
+307,0xd640ce,,,0x80c,monster:103,plain body construction,incomplete/unverified special passes
+308,0xd640ce,,,0x80d,monster:104,plain body construction,incomplete/unverified special passes
+309,0xd640ce,,,0x80e,monster:105,plain body construction,incomplete/unverified special passes
+310,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+311,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+312,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+313,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+314,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+315,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+316,generic,0x13852a0,,0x800,monster:91,plain body construction,incomplete/unverified special passes
+317,generic,0x138530e,,0x803,monster:94,plain body construction,incomplete/unverified special passes
+318,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+319,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+320,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+321,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+322,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+323,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+324,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+325,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+326,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+327,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+328,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+329,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+330,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+331,0xdf1b30,,,0x7e7,monster:66,plain body construction,incomplete/unverified special passes
+332,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes
+333,0xdf1b30,,,0x7e6,monster:65,plain body construction,incomplete/unverified special passes
+334,0xdf1b30,,,0x7e4,monster:63,plain body construction,incomplete/unverified special passes
+335,0xdf1b30,,,0x7e9,monster:68,plain body construction,incomplete/unverified special passes
+336,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes
+337,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,incomplete/unverified special passes
+338,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,incomplete/unverified special passes
+339,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+340,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+341,generic,0x138530e,,0x803,monster:94,plain body construction,incomplete/unverified special passes
+342,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+343,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+344,generic,0x13852a0,,0x800,monster:91,plain body construction,incomplete/unverified special passes
+345,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+346,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+347,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+348,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+349,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+350,0xe76c0a,,,,unresolved,unresolved construction,refused
+351,0xe76c0a,,,,unresolved,unresolved construction,refused
+352,0xe76c0a,,,,unresolved,unresolved construction,refused
+353,0xe76c0a,,,0x812,monster:109,plain body construction,incomplete/unverified special passes
+354,0xe76c0a,,,,unresolved,unresolved construction,refused
+355,0xe76c0a,,,,unresolved,unresolved construction,refused
+356,0xe76c0a,,,0x815,monster:112,plain body construction,incomplete/unverified special passes
+357,0xe76c0a,,,,unresolved,unresolved construction,refused
+358,0xe7ff85,,,,unresolved,unresolved construction,refused
+359,0xe7ff85,,,,unresolved,unresolved construction,refused
+360,0xe7ff85,,,,unresolved,unresolved construction,refused
+361,generic,0x1382f2d,,0x7a5,monster:0,special appearance hook,incomplete/unverified special passes
+362,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+363,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+364,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+365,0xa93a2e,,,0x81f,monster:122,plain body construction,incomplete/unverified special passes
+366,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+367,0xe7ff85,,,,unresolved,unresolved construction,refused
+368,generic,0x138537c,,0xa40,npc:2624,plain body construction,incomplete/unverified special passes
+369,generic,0x1384344,,0xa41,npc:2625,plain body construction,incomplete/unverified special passes
+370,generic,0x1384381,,0xa42,npc:2626,plain body construction,incomplete/unverified special passes
+371,generic,0x138549e,,0xa91,no opener,special appearance hook; constructor equipment/parts; no opener/startup model,correct bounded body plan
+372,generic,0x13838fb,,0xa91,no opener,special appearance hook; no opener/startup model,correct bounded body plan
+373,generic,0x1383978,,0xa91,no opener,special appearance hook; no opener/startup model,correct bounded body plan
+374,generic,0x13839f5,,0xa91,no opener,companion; special appearance hook; no opener/startup model,refused
+375,generic,0x1385638,,0xa91,no opener,special appearance hook; constructor equipment/parts; no opener/startup model,correct bounded body plan
+376,generic,,,,unresolved,unresolved construction,refused
+377,generic,,,,unresolved,unresolved construction,refused
+378,generic,0x1383a72,,0xa91,no opener,special appearance hook; no opener/startup model,refused
+379,generic,0x138540f,,0xa43,npc:2627,plain body construction,incomplete/unverified special passes
+380,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+381,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+382,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+383,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+384,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+385,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+386,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+387,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+388,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+389,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+390,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+391,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+392,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+393,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+394,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+395,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+396,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+397,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+398,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+399,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+400,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+401,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+402,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+403,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+404,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+405,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+406,generic,0x13859ac,,0xa44,npc:2628,plain body construction,incomplete/unverified special passes
+407,generic,0x1385a14,,0xa45,npc:2629,plain body construction,incomplete/unverified special passes
+408,generic,,,,unresolved,unresolved construction,refused
+409,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+410,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+411,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+412,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+413,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+414,generic,0x138549e,,0xa91,no opener,special appearance hook; constructor equipment/parts; no opener/startup model,correct bounded body plan
+415,0xe326cd,,,0xa4d,npc:2637,plain body construction,incomplete/unverified special passes
+416,0xe326cd,,,0xa4e,npc:2638,plain body construction,incomplete/unverified special passes
+417,0xe326cd,,,0xa4f,npc:2639,plain body construction,incomplete/unverified special passes
+418,0xe326cd,,,0x825,monster:128,plain body construction,incomplete/unverified special passes
+419,0xe326cd,,,0x826,monster:129,plain body construction,incomplete/unverified special passes
+420,0xe326cd,,,0x827,monster:130,plain body construction,incomplete/unverified special passes
+421,0xe326cd,,,0x828,monster:131,plain body construction,incomplete/unverified special passes
+422,0xe326cd,,,0x829,monster:132,plain body construction,incomplete/unverified special passes
+423,0xe326cd,,,0x82a,monster:133,plain body construction,incomplete/unverified special passes
+424,0xe326cd,,,0x82b,monster:134,plain body construction,incomplete/unverified special passes
+425,0xe326cd,,,0x82c,monster:135,plain body construction,incomplete/unverified special passes
+426,generic,0x138019c,,0x7eb,monster:70,constructor equipment/parts,incomplete/unverified special passes
+427,generic,0x138023f,,0x7ec,monster:71,constructor equipment/parts,incomplete/unverified special passes
+428,generic,0x1380630,,0x7d4,monster:47,plain body construction,incomplete/unverified special passes
+429,generic,0x138067d,,0x7d3,monster:46,constructor equipment/parts,incomplete/unverified special passes
+430,generic,0x13806f5,,0x7e0,monster:59,constructor equipment/parts,incomplete/unverified special passes
+431,generic,0x13807c3,,0x7df,monster:58,plain body construction,incomplete/unverified special passes
+432,generic,0x138083b,,0x7de,monster:57,constructor equipment/parts,incomplete/unverified special passes
+433,generic,0x138035d,,0x7e3,monster:62,constructor equipment/parts,incomplete/unverified special passes
+434,generic,0x1385bb6,,0x87a,monster:213,plain body construction,incomplete/unverified special passes
+435,generic,0x1385c31,,0x87b,monster:214,plain body construction,incomplete/unverified special passes
+436,generic,,,,unresolved,unresolved construction,refused
+437,generic,,,,unresolved,unresolved construction,refused
+438,generic,,,,unresolved,unresolved construction,refused
+439,generic,0x138601b,,0x86e,monster:201,plain body construction,incomplete/unverified special passes
+440,generic,0x13860c2,,0x870,monster:203,plain body construction,incomplete/unverified special passes
+441,0xe60ac8,,,0x82d,monster:136,plain body construction,incomplete/unverified special passes
+442,0xe60ac8,,,0x82e,monster:137,plain body construction,incomplete/unverified special passes
+443,0xe60ac8,,,0x82f,monster:138,plain body construction,incomplete/unverified special passes
+444,0xe60ac8,,,0x830,monster:139,plain body construction,incomplete/unverified special passes
+445,0xe60ac8,,,0x831,monster:140,plain body construction,incomplete/unverified special passes
+446,0xe60ac8,,,0x832,monster:141,plain body construction,incomplete/unverified special passes
+447,0xe60ac8,,,0x833,monster:142,plain body construction,incomplete/unverified special passes
+448,0xe60ac8,,,0x834,monster:143,plain body construction,incomplete/unverified special passes
+449,0xe60ac8,,,0x835,monster:144,plain body construction,incomplete/unverified special passes
+450,generic,,,,unresolved,unresolved construction,refused
+451,generic,0x13866bc,,0xa51,npc:2641,plain body construction,incomplete/unverified special passes
+452,generic,0x13869f5,,0xa54,npc:2644,plain body construction,incomplete/unverified special passes
+453,generic,0x1386a83,,0xa55,npc:2645,plain body construction,incomplete/unverified special passes
+454,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+455,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+456,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+457,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+458,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+459,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+460,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+461,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+462,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+463,0xa96ab8,,,0x83f,monster:154,plain body construction,incomplete/unverified special passes
+464,generic,0x1386b11,,0xa91,no opener,special appearance hook; constructor equipment/parts; no opener/startup model,correct bounded body plan
+465,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+466,generic,0x13813d8,,0x841,monster:156,plain body construction,incomplete/unverified special passes
+467,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+468,generic,0x138718b,,0xa56,npc:2646,plain body construction,refused
+469,generic,0x138718b,,0xa57,npc:2647,plain body construction,refused
+470,generic,0x138718b,,0xa58,npc:2648,plain body construction,refused
+471,generic,0x138718b,,0xa59,npc:2649,plain body construction,refused
+472,generic,0x138718b,,0xa5a,npc:2650,plain body construction,refused
+473,generic,0x138718b,,0xa5b,npc:2651,plain body construction,refused
+474,generic,0x138718b,,0xa5c,npc:2652,plain body construction,refused
+475,generic,0x138718b,,0xa5d,npc:2653,plain body construction,refused
+476,generic,0x138145e,,0x840,monster:155,plain body construction,incomplete/unverified special passes
+477,generic,0x1386c31,,0xa5e,npc:2654,sub-model/extra-load; action-dependent or auxiliary hook,incomplete/unverified special passes
+478,generic,0x138726e,,0xa37,npc:2615,plain body construction,incomplete/unverified special passes
+479,generic,0x13872d6,,0xa63,npc:2659,plain body construction,incomplete/unverified special passes
+480,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+481,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+482,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+483,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+484,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+485,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+486,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+487,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+488,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+489,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+490,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+491,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+492,generic,0x1387364,,0xa64,npc:2660,plain body construction,incomplete/unverified special passes
+493,generic,0x13874dc,,0x7a8,monster:3,constructor equipment/parts,incomplete/unverified special passes
+494,generic,0x138757e,,0x7bf,monster:26,plain body construction,incomplete/unverified special passes
+495,generic,,,,unresolved,unresolved construction,refused
+496,generic,0x1387715,,0x7d9,monster:52,extra bitmap load; constructor equipment/parts,incomplete/unverified special passes
+497,generic,0x13877cd,,0x812,monster:109,plain body construction,incomplete/unverified special passes
+498,generic,,,,unresolved,unresolved construction,refused
+499,generic,0x138799c,,0x83a,monster:149,plain body construction,incomplete/unverified special passes
+500,generic,0x1387a43,,0x833,monster:142,plain body construction,incomplete/unverified special passes
+501,generic,0x1387aea,,0x7c4,monster:31,plain body construction,incomplete/unverified special passes
+502,generic,0x1387435,,0x825,monster:128,plain body construction,incomplete/unverified special passes
+503,generic,0x1386cb9,,0xa91,no opener,special appearance hook; no opener/startup model,correct bounded body plan
+504,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+505,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+506,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+507,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+508,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+509,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+510,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+511,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+512,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+513,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+514,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+515,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+516,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+517,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+518,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+519,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+520,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+521,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+522,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+523,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+524,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+525,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+526,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+527,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+528,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+529,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+530,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+531,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+532,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+533,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+534,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+535,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+536,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+537,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+538,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+539,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+540,generic,0x1387b8e,,0xa65,npc:2661,plain body construction,incomplete/unverified special passes
+541,generic,0x1387c1c,,0xa66,npc:2662,plain body construction,incomplete/unverified special passes
+542,generic,0x1387caa,,0xa67,npc:2663,plain body construction,incomplete/unverified special passes
+543,generic,0x1387d38,,0xa68,npc:2664,plain body construction,incomplete/unverified special passes
+544,generic,0x1387db3,,0xa69,npc:2665,plain body construction,incomplete/unverified special passes
+545,generic,0x1387e2e,,0xa6a,npc:2666,plain body construction,incomplete/unverified special passes
+546,generic,0x1387ebc,,0xa6b,npc:2667,plain body construction,incomplete/unverified special passes
+547,generic,0x1387f4a,,0xa6c,npc:2668,plain body construction,incomplete/unverified special passes
+548,generic,0x1386d23,,0xa91,no opener,special appearance hook; no opener/startup model,correct bounded body plan
+549,0xd640ce,,,0x866,monster:193,plain body construction,incomplete/unverified special passes
+550,0xd640ce,,,0x867,monster:194,plain body construction,incomplete/unverified special passes
+551,0xd640ce,,,0x868,monster:195,plain body construction,incomplete/unverified special passes
+552,0xd640ce,,,0x869,monster:196,plain body construction,incomplete/unverified special passes
+553,0xe76c0a,,,,unresolved,unresolved construction,refused
+554,0xe76c0a,,,,unresolved,unresolved construction,refused
+555,0xe76c0a,,,0x86c,monster:199,plain body construction,incomplete/unverified special passes
+556,0xe76c0a,,,,unresolved,unresolved construction,refused
+557,0xe60ac8,,,0x86e,monster:201,plain body construction,incomplete/unverified special passes
+558,0xe60ac8,,,0x86f,monster:202,plain body construction,incomplete/unverified special passes
+559,0xe60ac8,,,0x870,monster:203,plain body construction,incomplete/unverified special passes
+560,0xe60ac8,,,0x86e,monster:201,plain body construction,incomplete/unverified special passes
+561,0xe60ac8,,,0x865,monster:192,plain body construction,incomplete/unverified special passes
+562,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+563,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+564,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+565,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+566,generic,0x1387fd8,,0xa6d,npc:2669,plain body construction,incomplete/unverified special passes
+567,generic,0x1388053,,0xa6e,npc:2670,plain body construction,incomplete/unverified special passes
+568,generic,0x13880ed,,0xa6f,npc:2671,plain body construction,incomplete/unverified special passes
+569,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+570,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+571,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+572,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+573,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+574,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+575,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+576,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+577,generic,0x13881be,,0xa70,npc:2672,plain body construction,incomplete/unverified special passes
+578,generic,0x138824c,,0xa71,npc:2673,plain body construction,incomplete/unverified special passes
+579,generic,0x1386d8d,,0xa72,npc:2674,plain body construction,incomplete/unverified special passes
+580,generic,0x13882c7,,0xa75,npc:2677,plain body construction,incomplete/unverified special passes
+581,generic,0x1388395,,0xa76,npc:2678,plain body construction,incomplete/unverified special passes
+582,generic,0x13886cd,,0xa78,npc:2680,plain body construction,incomplete/unverified special passes
+583,generic,0x1388463,,0xa74,npc:2676,plain body construction,incomplete/unverified special passes
+584,generic,0x13885ff,,0xa77,npc:2679,plain body construction,incomplete/unverified special passes
+585,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+586,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+587,generic,0x138879b,,0x87f,monster:218,plain body construction,incomplete/unverified special passes
+588,generic,0x1388816,,0x880,monster:219,plain body construction,incomplete/unverified special passes
+589,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+590,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+591,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+592,generic,0x1388c65,,0x884,monster:223,plain body construction,incomplete/unverified special passes
+593,generic,,,,unresolved,unresolved construction,refused
+594,generic,,,,unresolved,unresolved construction,refused
+595,generic,0x1388f74,,0x887,monster:226,sub-model/extra-load; action-dependent or auxiliary hook,incomplete/unverified special passes
+596,generic,0x1388dd6,,0x888,monster:227,extra bitmap load,incomplete/unverified special passes
+597,0xe76c0a,,,0x812,monster:109,plain body construction,incomplete/unverified special passes
+598,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+599,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+600,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+601,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+602,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+603,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+604,generic,0x1388531,,0xa73,npc:2675,plain body construction,incomplete/unverified special passes
+605,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+606,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+607,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+608,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+609,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+610,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+611,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+612,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+613,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+614,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+615,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+616,generic,0x1386e5b,,0xa91,no opener,special appearance hook; no opener/startup model,correct bounded body plan
+617,generic,0x1386ec5,,0xa91,no opener,special appearance hook; no opener/startup model,refused
+618,generic,0x1388891,,0x889,monster:228,plain body construction,incomplete/unverified special passes
+619,generic,0x138891d,,0x889,monster:228,plain body construction,incomplete/unverified special passes
+620,generic,0x13889a9,,0x889,monster:228,plain body construction,incomplete/unverified special passes
+621,generic,0x1388a35,,0x889,monster:228,plain body construction,incomplete/unverified special passes
+622,generic,0x1388ac1,,0x889,monster:228,plain body construction,incomplete/unverified special passes
+623,generic,0x1388b4d,,0x889,monster:228,plain body construction,incomplete/unverified special passes
+624,generic,0x1388bd9,,0x889,monster:228,plain body construction,incomplete/unverified special passes
+625,generic,0x1386f2f,,0xa91,no opener,special appearance hook; action-dependent transformed-player hook excluded; no opener/startup model,correct bounded body plan
+626,generic,0x1386fac,,0xa91,no opener,special appearance hook; action-dependent transformed-player hook excluded; no opener/startup model,correct bounded body plan
+627,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+628,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+629,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+630,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+631,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+632,generic,0x1388c65,,0x884,monster:223,plain body construction,incomplete/unverified special passes
+633,generic,,,,unresolved,unresolved construction,refused
+634,generic,,,,unresolved,unresolved construction,refused
+635,generic,0x1388f74,,0x887,monster:226,sub-model/extra-load; action-dependent or auxiliary hook,incomplete/unverified special passes
+636,generic,0x1388dd6,,0x888,monster:227,extra bitmap load,incomplete/unverified special passes
+637,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+638,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+639,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+640,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+641,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+642,generic,0x1387029,,0xa91,no opener,companion; special appearance hook; no opener/startup model,refused
+643,generic,0x1389003,,0xa79,npc:2681,plain body construction,incomplete/unverified special passes
+644,generic,0x138019c,,0x7eb,monster:70,constructor equipment/parts,incomplete/unverified special passes
+645,generic,0x138023f,,0x7ec,monster:71,constructor equipment/parts,incomplete/unverified special passes
+646,generic,0x1386e5b,,0xa91,no opener,special appearance hook; no opener/startup model,correct bounded body plan
+647,0xa93a2e,,,0x8a1,monster:252,plain body construction,incomplete/unverified special passes
+648,0xa93a2e,,,0x8a2,monster:253,plain body construction,incomplete/unverified special passes
+649,0xa93a2e,,,0x8a3,monster:254,plain body construction,incomplete/unverified special passes
+650,0xa93a2e,,,0x8a4,monster:255,plain body construction,incomplete/unverified special passes
+651,generic,0x138919f,,0xa7a,npc:2682,plain body construction,incomplete/unverified special passes
+652,generic,0x1389992,,0x7b8,monster:19,constructor equipment/parts,incomplete/unverified special passes
+653,generic,0x1389839,,0x7cc,monster:39,special appearance hook,incomplete/unverified special passes
+654,generic,0x13896a2,,0x7cf,monster:42,special appearance hook; extra bitmap load; constructor equipment/parts,incomplete/unverified special passes
+655,generic,,,,unresolved,unresolved construction,refused
+656,generic,,,,unresolved,unresolved construction,refused
+657,generic,,,,unresolved,unresolved construction,refused
+658,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+659,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+660,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+661,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+662,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+663,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+664,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+665,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+666,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+667,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+668,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+669,generic,0x1389a7a,,0xa7d,npc:2685,sub-model/extra-load; action-dependent or auxiliary hook,incomplete/unverified special passes
+670,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+671,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+672,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+673,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+674,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+675,0xa93a2e,,,0x81f,monster:122,plain body construction,incomplete/unverified special passes
+676,0xa96ab8,,,0x83f,monster:154,plain body construction,incomplete/unverified special passes
+677,generic,0x1389992,,0x7b8,monster:19,constructor equipment/parts,incomplete/unverified special passes
+678,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+679,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+680,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+681,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+682,generic,0x1389a35,,0xa7c,npc:2684,plain body construction,incomplete/unverified special passes
+683,generic,0x1389b08,,0xa7e,npc:2686,plain body construction,incomplete/unverified special passes
+684,generic,0x1389b83,,0xa7f,npc:2687,plain body construction,incomplete/unverified special passes
+685,generic,0x1389bfe,,0xa80,npc:2688,plain body construction,incomplete/unverified special passes
+686,generic,0x1389c79,,0xa81,npc:2689,plain body construction,incomplete/unverified special passes
+687,generic,0x1389cf4,,0xa82,npc:2690,plain body construction,incomplete/unverified special passes
+688,generic,0x1389d6f,,0xa83,npc:2691,plain body construction,incomplete/unverified special passes
+689,generic,0x1389e65,,0xa3f,npc:2623,plain body construction,incomplete/unverified special passes
+690,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+691,0xa93a2e,,,0x8ae,monster:265,plain body construction,incomplete/unverified special passes
+692,0xa93a2e,,,0x8af,monster:266,plain body construction,incomplete/unverified special passes
+693,0xa93a2e,,,0x8b0,monster:267,plain body construction,incomplete/unverified special passes
+694,0xa93a2e,,,0x8b1,monster:268,plain body construction,incomplete/unverified special passes
+695,generic,0x13890d1,,0xa84,npc:2692,plain body construction,incomplete/unverified special passes
+696,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+697,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+698,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+699,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+700,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+701,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+702,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+703,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+704,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+705,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+706,generic,0x1387093,,0xa91,no opener,special appearance hook; no opener/startup model,correct bounded body plan
+707,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+708,generic,,,,unresolved,unresolved construction,refused
+709,generic,0x1389fda,,0x8b2,monster:269,extra bitmap load,incomplete/unverified special passes
+710,generic,0x138a072,,0x8b3,monster:270,extra bitmap load,incomplete/unverified special passes
+711,generic,0x138a10a,,0x8b4,monster:271,extra bitmap load,incomplete/unverified special passes
+712,generic,0x138a1a2,,0x8b5,monster:272,extra bitmap load,incomplete/unverified special passes
+713,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+714,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+715,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+716,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+717,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+718,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+719,generic,0x138a23a,,0xa27,npc:2599,plain body construction,incomplete/unverified special passes
+720,generic,0x138a28a,,0xa0c,npc:2572,plain body construction,incomplete/unverified special passes
+721,generic,0x138a2cf,,0x84a,monster:165,plain body construction,incomplete/unverified special passes
+722,generic,0x138a34a,,0xa47,npc:2631,plain body construction,incomplete/unverified special passes
+723,generic,0x138a3d8,,0xa65,npc:2661,plain body construction,incomplete/unverified special passes
+724,generic,0x138a466,,0xa0b,npc:2571,plain body construction,incomplete/unverified special passes
+725,generic,0x138a4e3,,0xa86,npc:2694,plain body construction,incomplete/unverified special passes
+726,0xa93a2e,,,0x8ba,monster:277,plain body construction,incomplete/unverified special passes
+727,0xa93a2e,,,0x8bb,monster:278,plain body construction,incomplete/unverified special passes
+728,0xa93a2e,,,0x8bc,monster:279,plain body construction,incomplete/unverified special passes
+729,0xa93a2e,,,0x8bd,monster:280,plain body construction,incomplete/unverified special passes
+730,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+731,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+732,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+733,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+734,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+735,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+736,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+737,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+738,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+739,0xa93a2e,,,0x8cb,monster:294,plain body construction,incomplete/unverified special passes
+740,0xa93a2e,,,0x8cc,monster:295,plain body construction,incomplete/unverified special passes
+741,0xa93a2e,,,0x8cd,monster:296,plain body construction,incomplete/unverified special passes
+742,0xa93a2e,,,0x8ce,monster:297,plain body construction,incomplete/unverified special passes
+743,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+744,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+745,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+746,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+747,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+748,generic,0x138a5b1,,0xa87,npc:2695,plain body construction,incomplete/unverified special passes
+749,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+750,generic,,"effect class table, model 0xa89",,unresolved,special appearance hook,incomplete/unverified special passes
+751,generic,,"effect class table, model 0xa89",,unresolved,special appearance hook,incomplete/unverified special passes
+752,generic,,"effect class table, model 0xa89",,unresolved,special appearance hook,incomplete/unverified special passes
+753,generic,,"effect class table, model 0xa89",,unresolved,special appearance hook,incomplete/unverified special passes
+754,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+755,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+756,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+757,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+758,generic,,"effect class table, model 0xa88",,unresolved,special appearance hook,incomplete/unverified special passes
+759,0xa93a2e,,,,unresolved,unresolved construction,refused
+760,0xa93a2e,,,,unresolved,unresolved construction,refused
+761,0xa93a2e,,,,unresolved,unresolved construction,refused
+762,0xa93a2e,,,,unresolved,unresolved construction,refused
+763,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+764,generic,0x138ad94,,0xa8a,npc:2698,plain body construction,incomplete/unverified special passes
+765,generic,0x138ad94,,0xa8a,npc:2698,plain body construction,incomplete/unverified special passes
+766,generic,0x138ad94,,0xa8a,npc:2698,plain body construction,incomplete/unverified special passes
+767,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+768,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+769,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+770,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+771,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+772,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+773,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+774,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+775,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+776,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+777,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+778,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+779,generic,0x1386176,,0x7e6,monster:65,plain body construction,incomplete/unverified special passes
+780,generic,0x1386222,,0x7e9,monster:68,plain body construction,incomplete/unverified special passes
+781,generic,0x13862d8,,0x800,monster:91,plain body construction,incomplete/unverified special passes
+782,generic,0x1386346,,0x803,monster:94,plain body construction,incomplete/unverified special passes
+783,generic,0x13863b4,,0x86e,monster:201,plain body construction,incomplete/unverified special passes
+784,generic,0x138645b,,0x86f,monster:202,plain body construction,incomplete/unverified special passes
+785,generic,0x1386507,,0x875,monster:208,plain body construction,incomplete/unverified special passes
+786,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+787,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+788,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+789,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+790,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+791,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+792,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+793,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+794,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+795,0xa93a2e,,,0x8f1,monster:332,plain body construction,incomplete/unverified special passes
+796,0xa93a2e,,,0x8f2,monster:333,plain body construction,incomplete/unverified special passes
+797,0xa93a2e,,,0x8f3,monster:334,plain body construction,incomplete/unverified special passes
+798,0xa93a2e,,,0x8f4,monster:335,plain body construction,incomplete/unverified special passes
+799,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+800,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+801,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+802,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+803,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+804,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+805,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+806,generic,0x13870fd,,0xa91,no opener,special appearance hook; no opener/startup model,correct bounded body plan
+807,generic,0x1387144,,0xa91,no opener,special appearance hook; no opener/startup model,correct bounded body plan
+808,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+809,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+810,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+811,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+812,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+813,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+814,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+815,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+816,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+817,0xa93a2e,,,0x8fd,monster:344,plain body construction,incomplete/unverified special passes
+818,0xa93a2e,,,0x8fe,monster:345,plain body construction,incomplete/unverified special passes
+819,0xa93a2e,,,0x8ff,monster:346,plain body construction,incomplete/unverified special passes
+820,0xa93a2e,,,0x900,monster:347,plain body construction,incomplete/unverified special passes
+821,generic,,,,unresolved,unresolved construction,refused
+822,generic,,,,unresolved,unresolved construction,refused
+823,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+824,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+825,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+826,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+827,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+828,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+829,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+830,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+831,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+832,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+833,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+834,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+835,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+836,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+837,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+838,generic,,,,unresolved,unresolved construction,refused
+839,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+840,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+841,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+842,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+843,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+844,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+845,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+846,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+847,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+848,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+849,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+850,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+851,generic,,,,unresolved,unresolved construction,refused
+852,generic,,,,unresolved,unresolved construction,refused
+853,generic,,,,unresolved,unresolved construction,refused
+854,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+855,0xa93a2e,,,0x90d,monster:360,plain body construction,incomplete/unverified special passes
+856,0xa93a2e,,,0x90e,monster:361,plain body construction,incomplete/unverified special passes
+857,0xa93a2e,,,0x90f,monster:362,plain body construction,incomplete/unverified special passes
+858,0xa93a2e,,,0x910,monster:363,plain body construction,incomplete/unverified special passes
+859,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+860,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+861,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+862,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+863,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+864,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+865,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+866,generic,0x138bd01,,0xa8d,npc:2701,plain body construction,incomplete/unverified special passes
+867,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+868,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+869,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+870,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+871,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+872,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+873,generic,,"effect class table, model 0xa52",,unresolved,special appearance hook,incomplete/unverified special passes
+874,generic,0x1386962,,0xa53,npc:2643,plain body construction,incomplete/unverified special passes
+875,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+876,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+877,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+878,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+879,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+880,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+881,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+882,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+883,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+884,0xa93a2e,,,0x91c,monster:375,plain body construction,incomplete/unverified special passes
+885,0xa93a2e,,,0x91d,monster:376,plain body construction,incomplete/unverified special passes
+886,0xa93a2e,,,0x91e,monster:377,plain body construction,incomplete/unverified special passes
+887,0xa93a2e,,,0x91f,monster:378,plain body construction,incomplete/unverified special passes
+888,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+889,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+890,generic,,,,unresolved,unresolved construction,refused
+891,generic,0x138bf43,,0xa8e,npc:2702,plain body construction,incomplete/unverified special passes
+892,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+893,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+894,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+895,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+896,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+897,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+898,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+899,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+900,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+901,0xa93a2e,,,0x934,monster:399,plain body construction,incomplete/unverified special passes
+902,0xa93a2e,,,0x935,monster:400,plain body construction,incomplete/unverified special passes
+903,0xa93a2e,,,0x936,monster:401,plain body construction,incomplete/unverified special passes
+904,0xa93a2e,,,0x937,monster:402,plain body construction,incomplete/unverified special passes
+905,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+906,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+907,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+908,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+909,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+910,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+911,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+912,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+913,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+914,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+915,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+916,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+917,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+918,generic,0x138bfde,,0x93f,monster:410,plain body construction,incomplete/unverified special passes
+919,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+920,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+921,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+922,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+923,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+924,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+925,generic,,,,unresolved,unresolved construction,refused
+926,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+927,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+928,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+929,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+930,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+931,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+932,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+933,0xa93a2e,,,0x949,monster:420,plain body construction,incomplete/unverified special passes
+934,0xa93a2e,,,0x94a,monster:421,plain body construction,incomplete/unverified special passes
+935,0xa93a2e,,,0x94b,monster:422,plain body construction,incomplete/unverified special passes
+936,0xa93a2e,,,0x94c,monster:423,plain body construction,incomplete/unverified special passes
+937,generic,0x1382f2d,,0x7a5,monster:0,special appearance hook,incomplete/unverified special passes
+938,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+939,generic,0x138cb89,,0xa8b,npc:2699,special appearance hook,incomplete/unverified special passes
+940,generic,0x138cb89,,0xa8b,npc:2699,special appearance hook,incomplete/unverified special passes
+941,generic,0x138cb89,,0xa8b,npc:2699,special appearance hook,incomplete/unverified special passes
+942,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+943,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+944,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+945,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+946,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+947,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+948,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+949,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+950,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+951,0xa93a2e,,,0x95c,monster:439,plain body construction,incomplete/unverified special passes
+952,0xa93a2e,,,0x95d,monster:440,plain body construction,incomplete/unverified special passes
+953,0xa93a2e,,,0x95e,monster:441,plain body construction,incomplete/unverified special passes
+954,0xa93a2e,,,0x95f,monster:442,plain body construction,incomplete/unverified special passes
+955,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+956,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+957,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+958,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+959,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+960,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+961,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+962,generic,,,,unresolved,unresolved construction,refused
+963,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+964,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+965,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+966,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+967,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+968,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+969,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+970,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+971,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+972,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+973,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+974,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+975,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+976,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+977,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+978,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+979,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+980,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+981,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+982,generic,,,,unresolved,unresolved construction,refused
+983,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+984,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+985,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+986,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+987,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+988,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+989,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+990,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+991,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+992,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+993,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+994,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+995,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+996,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+997,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+998,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+999,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+1000,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+1001,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+1002,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+1003,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+1004,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+1005,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+1006,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+1007,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+1008,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+1009,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+1010,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+1011,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+1012,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+1013,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+1014,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+1015,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+1016,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+1017,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+1018,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+1019,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+1020,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+1021,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+1022,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
+1023,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,incomplete/unverified special passes
