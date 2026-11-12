@@ -26,7 +26,15 @@ Portable affected suites passed in 427.26 s including selection, 356.5 s test wa
 **8d reduced** applies: run the changed production host module with the canonical private environment.
 The rebuilt after binary SHA-256 is `619be48504bcca387c1fd2b17d97ad1fb062a51ed52b56fff92d7442aaca7044`.
 
-Next: finish the focused private modules in the foreground `checks.py` pipeline. Then run the lane's `renders.py`, inspect the PNGs and record identity/score results.
+Private modules now pass: production host 1/1 in 0.31 s; producer 4/4, including 1,000 original cases,
+in 0.90 s. Initial image outputs lacked the explicit demo-name argument and are being replaced, not counted
+as final proof. Both corrected default sweeps and captured-clock views have finished. The corrected close-ups
+are queued by the resource guard. The active foreground pipeline is `safe-renders.py` in this lane's scratch.
+It uses `--hero-name Preview` and MU_GFX_PUBLIC_DEMO=1 for both binaries.
+
+Next: finish `safe-renders.py`, rerun the local `summarize.py`, inspect the corrected close-ups, then run
+`finalize-docs.py` once and check its numbers. Finish audit/latest-main check, final commit/push, PR/link,
+ready-prs line and cleanup. Do not regenerate already-valid default sweeps or recompile mutants.
 If interrupted, use `validators.log` and `verify-runs/lane-validators` to preserve completed checks. Do not
 recompile the 27 completed mutants. All these local paths are under the lane's own scratch directory unless
 repository-relative.
