@@ -3671,6 +3671,21 @@ note = "RENDER-WORLDS-INNER-003: Aida 33/54, Kanturu Remain 38, Trials 31 and De
 "families.*.stopped" = 0
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
+[validate_app_polish9]
+test = "native/tests/test_app_polish9.py::OriginalResize.test_original_instructions"
+pins = ["text", "data"]
+needs = ["cc"]
+families = ["resize", "native_fit", "native_hud"]
+cases = 4668
+cases_at = "families.*.cases"
+mutants = 10
+mutants_at = "mutants_caught"
+args = ["--text", "{text}", "--data", "{data}", "--cases", "4096", "--mutants", "--out", "{report}"]
+note = "APP-POLISH-009: original collection resize 0x00ac09b2 / handler 0x00aae4ae; bounded native fit invariants, compiled mutants"
+[validate_app_polish9.expect]
+mismatches = 0
+"families.*.mismatches" = 0
+"mutants_caught" = {len = 10}
 
 [validate_items_ui]
 test = "native/tests/test_items_ui.py::Original.test_instruction_comparison"

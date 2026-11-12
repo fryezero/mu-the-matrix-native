@@ -40,6 +40,7 @@
 #define _POSIX_C_SOURCE 200809L
 #define _DARWIN_C_SOURCE 1
 #include "mu_gfx_layer.h"
+#include "mu_gfx_layout.h"
 #include "../../reconstructed/social/item_options.h"
 
 #include <dlfcn.h>
@@ -985,7 +986,7 @@ static void feed_character(mu_gfx_layer *L)
     if (h->has_derived)   /* NATIVE-PROGRESS-001: the class formula (reconstructed/progress) */
         snprintf(dmg, sizeof dmg, "%d ~ %d", h->dmg_min, h->dmg_max);
     else
-        snprintf(dmg, sizeof dmg, "%d ~ %d", h->strength / 6 + h->level, h->strength / 4 + h->level * 2);
+        snprintf(dmg, sizeof dmg, "-");
     if (L->nchar_rows > 0) {
         /* NATIVE-LANG-002: the client's rows (CharacterInfoSetup, row builder 0x00b3dedc): SetName("%d %d %d %s
          * %s %s %d", type, id, sort, line(label, colour), line(value, value colour), "", button), the lines
@@ -1156,7 +1157,7 @@ void mu_gfx_layer_show(mu_gfx_layer *L, int m, int open)
     presentation_shown(L,m,open);
     if (m == MU_GFX_HUNT_RECORD)
         invokef(L,m,mv->path,open ? "open" : "close",open ? "[{\"mine\":true,\"curMapIndex\":0}]" : "[]");
-    else if (m == MU_GFX_PARTY)
+    else if (m == MU_GFX_PARTY || m == MU_GFX_QUEST_SUMMARY)
         invokef(L, m, mv->path, open ? "openWindow" : "closeWindow", "[]");
     else
         invokef(L, m, mv->path, "SetVisible", "[%s]", open ? "true" : "false");
@@ -1765,7 +1766,7 @@ static const int WINDOW_ALIGN[MU_GFX_MOVIES] = {
     [MU_GFX_OPTION] = 9, [MU_GFX_SYSTEM_MENU] = 9, [MU_GFX_HELP] = 9
 };
 
-static void window_sizes(mu_gfx_layer *L)
+static void window_sizes(mu_gfx_layer *L, int resizing)
 {
     for (int m = MU_GFX_INVENTORY; m < MU_GFX_MOVIES; m++) {
         if (m == MU_GFX_CHAT || !L->mv[m].g || !L->mv[m].path[0])
@@ -1789,8 +1790,103 @@ static void window_sizes(mu_gfx_layer *L)
             invokef(L, m, L->mv[m].path, "SetAlign", "[%d]", WINDOW_ALIGN[m]);
         }
         /* 0x00acb333 -> 0x00aae4ae sizes every handler, including the align-9 stamp window. */
-        if (WINDOW_ALIGN[m] != 9 || m == MU_GFX_SKILL_STAMP || m == MU_GFX_HELP || presentation_movie(m)) {
+        if (resizing || WINDOW_ALIGN[m] != 9 || m == MU_GFX_SKILL_STAMP || m == MU_GFX_HELP || presentation_movie(m)) {
             invokef(L, m, L->mv[m].path, "SetWindowSize", "[%d,%d]", L->w, L->h);
+        }
+    }
+}
+
+static double movie_number(mu_gfx_layer *L, int m, const char *field)
+{
+    char path[256];
+    snprintf(path, sizeof path, "%s.%s", L->mv[m].path, field);
+    const char *s = L->api.get_variable(L->mv[m].g, path);
+    char *end = NULL;
+    double n = s ? strtod(s, &end) : NAN;
+    return s && end != s && isfinite(n) ? n : NAN;
+}
+
+static void movie_number_set(mu_gfx_layer *L, int m, const char *field, double n)
+{
+    char path[256], value[64];
+    snprintf(path, sizeof path, "%s.%s", L->mv[m].path, field);
+    snprintf(value, sizeof value, "%.12g", n);
+    L->api.set_variable(L->mv[m].g, path, value);
+}
+
+/* The movies retain their own alignment and drag logic. Only bounds that overflow
+ * the native viewport are adapted. HUD geometry is measured from Frame.Main. */
+static void fit_windows(mu_gfx_layer *L)
+{
+    if (!L->api.get_variable || !L->api.set_variable)
+        return;
+    double bar_w = movie_number(L, MU_GFX_MAIN, "_width");
+    double bar_scale = movie_number(L, MU_GFX_MAIN, "_xscale");
+    if (bar_w > L->w && bar_scale > 0) {
+        double bg = movie_number(L, MU_GFX_MAIN, "_bg._height");
+        if (isfinite(bg) && bg > 0) {
+            mu_gfx_fit f = mu_gfx_fit_bar(bar_w, bg, bar_scale, L->w, L->h);
+            movie_number_set(L, MU_GFX_MAIN, "_xscale", f.scale);
+            movie_number_set(L, MU_GFX_MAIN, "_yscale", f.scale);
+            movie_number_set(L, MU_GFX_MAIN, "_x", f.x);
+            movie_number_set(L, MU_GFX_MAIN, "_y", f.y);
+        }
+    }
+    double bottom = movie_number(L, MU_GFX_MAIN, "_y");
+    if (!(bottom > L->h / 2.0 && bottom <= L->h))
+        bottom = L->h;
+    for (int m = MU_GFX_INVENTORY; m < MU_GFX_MOVIES; m++) {
+        movie *mv = &L->mv[m];
+        if (!mv->g || !mv->open || !mv->path[0] || m == MU_GFX_CHAT || m == MU_GFX_TOOLTIP ||
+            m == MU_GFX_SKILL_POPUP)
+            continue;
+        double x = movie_number(L, m, "_x"), y = movie_number(L, m, "_y");
+        const char *s = invokef(L, m, mv->path, "GetWidth", "[]");
+        double w = s ? strtod(s, NULL) : 0;
+        s = invokef(L, m, mv->path, "GetHeight", "[]");
+        double h = s ? strtod(s, NULL) : 0;
+        int component = w > 0 && h > 0;
+        if (!component) { /* KeyWindows have no MUComponent getters. */
+            w = movie_number(L, m, "_width");
+            h = movie_number(L, m, "_height");
+        }
+        if (!isfinite(x) || !isfinite(y) || !(w > 0 && h > 0))
+            continue;
+        mu_gfx_fit f = mu_gfx_fit_window(x, y, w, h, L->w, bottom);
+        if (f.scale < 1.0 - 0.0001) {
+            double scale = movie_number(L, m, "_xscale") * f.scale;
+            if (!isfinite(scale) || scale <= 0)
+                continue;
+            if (component)
+                invokef(L, m, mv->path, "SetScale", "[%.8g]", scale);
+            else {
+                movie_number_set(L, m, "_xscale", scale);
+                movie_number_set(L, m, "_yscale", scale);
+            }
+            L->applied_scale[m] = (float)(scale / 100);
+            if (m == MU_GFX_INVENTORY)
+                L->inv_scale = L->applied_scale[m];
+            else if (m == MU_GFX_CHARACTER) {
+                L->char_scale = L->applied_scale[m];
+                invokef(L, m, mv->path, "SetDragArea", "[]");
+            } else if (m == MU_GFX_NPC_SHOP || m == MU_GFX_STORAGE || m == MU_GFX_MIX)
+                L->swin[m == MU_GFX_MIX ? 2 : m == MU_GFX_STORAGE].scale = L->applied_scale[m];
+            if (component) {
+                invokef(L, m, mv->path, "SetWindowSize", "[%d,%d]", L->w, L->h);
+                x = movie_number(L, m, "_x");
+                y = movie_number(L, m, "_y");
+                f = mu_gfx_fit_window(x, y, w * f.scale, h * f.scale, L->w, bottom);
+            }
+            mv->view_dirty = 1;
+        }
+        if (fabs(f.x - x) > 0.05 || fabs(f.y - y) > 0.05) {
+            if (component)
+                invokef(L, m, mv->path, "SetPos", "[%.8g,%.8g]", f.x, f.y);
+            else {
+                movie_number_set(L, m, "_x", f.x);
+                movie_number_set(L, m, "_y", f.y);
+            }
+            mv->view_dirty = 1;
         }
     }
 }
@@ -2133,7 +2229,7 @@ static void init_windows(mu_gfx_layer *L)
     }
     presentation_init(L);
     skill_init_window(L);
-    window_sizes(L);
+    window_sizes(L, 0);
     for (int m = MU_GFX_INVENTORY; m < MU_GFX_MOVIES; m++)
         if (L->mv[m].g && L->mv[m].path[0] && m != MU_GFX_TOOLTIP && m != MU_GFX_CHAT)
             invokef(L, m, L->mv[m].path, "SetVisible", "[false]");
@@ -2384,13 +2480,14 @@ void mu_gfx_layer_resize(mu_gfx_layer *L, int32_t w, int32_t h)
             L->mv[m].view_dirty = 1;
             L->mv[m].frame_valid = 0;
         }
-    window_sizes(L);
+    window_sizes(L, 1);
+    fit_windows(L);
 }
 
 void mu_gfx_layer_set_hero(mu_gfx_layer *L, const mu_gfx_hero *h)
 {
     if (L && h) {
-        if (h->has_derived && memcmp(&L->hero, h, sizeof *h))   /* NATIVE-PROGRESS-001: the rows follow */
+        if (memcmp(&L->hero, h, sizeof *h))   /* rows follow even before derived values exist */
             L->hero_dirty_char = 1;
         L->hero = *h;
     }
@@ -2399,6 +2496,8 @@ void mu_gfx_layer_set_hero(mu_gfx_layer *L, const mu_gfx_hero *h)
 void mu_gfx_layer_exp_data(mu_gfx_layer *L, const char *json)
 {
     if (!L)
+        return;
+    if (!strcmp(L->exp_json, json ? json : ""))
         return;
     snprintf(L->exp_json, sizeof L->exp_json, "%s", json ? json : "");
     L->exp_json_dirty = 1;
@@ -2786,6 +2885,7 @@ void mu_gfx_layer_advance(mu_gfx_layer *L, double dt)
         if (L->mv[m].g && !L->mv[m].alias && (visible(L, m) || m == MU_GFX_CHAT || m == MU_GFX_TOOLTIP))
             L->api.advance(L->mv[m].g, dt);
     pump(L);
+    fit_windows(L);
     /* The chat view fills itself with test lines once its CLIK components
      * initialise (ChatView.testChatType); clear them, then greet (layer choice). */
     if (!L->chat_ready && L->time_ms >= 200 && L->mv[MU_GFX_CHAT].path[0]) {

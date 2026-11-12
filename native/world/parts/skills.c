@@ -32,6 +32,7 @@ static mu_skills_demo_join hero_join_data(const mu_world_rt *a)
 void world_rt_hero_join(const mu_world_rt *a, mu_session_seed *seed)
 {
     mu_skills_demo_join join = hero_join_data(a);
+    snprintf(seed->name, sizeof seed->name, "%s", a->hero_name ? a->hero_name : "Preview");
     mu_fixture_hero_join(seed, &join);
 }
 int32_t world_rt_hero_join_hp(const mu_world_rt *a)
