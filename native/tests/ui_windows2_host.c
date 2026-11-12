@@ -100,8 +100,9 @@ int main(int argc,char **argv)
     assert(presentation_menu(L,10) && L->mv[MU_GFX_GUILD_MATCH].open);
     for(int tab=0;tab<3;tab++) assert(presentation_call(&L->mv[MU_GFX_GUILD_MATCH],"onTabChange","[]",(double[]){tab},1));
     assert(!presentation_call(&L->mv[MU_GFX_GUILD_MATCH],"onTabChange","[3]",(double[]){3},1));
+    assert(presentation_menu(L,22) && L->mv[MU_GFX_PLAY_GUIDE].open);
     assert(!memcmp(&before,mu_gfx_layer_hero(L),sizeof before));
-    assert(L->held==held && L->potions==potions && foreign==0 && sounds==3);
+    assert(L->held==held && L->potions==potions && foreign==0 && sounds==4);
     L->presentation_ready=0;
     assert(!presentation_open(L,MU_GFX_MACRO,0xefd43a) && zsounds==1);
     mu_gfx_layer_close(L);

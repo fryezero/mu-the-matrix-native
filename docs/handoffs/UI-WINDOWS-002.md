@@ -69,3 +69,18 @@ private validator rows on the merged tree. The nested guild Info fixture
 and its twelve additional explicit refusal names are included in this merge.
 The fourteen focused private tests passed in 66.28 s before integration;
 repeat the focused private modules after the merge as well.
+
+### WIP checkpoint, 22:43
+
+Post-merge affected portable run at `d9015c71`: 135 work items, 1,429 tests,
+1,166 passed, 263 optional skips, zero failures/errors; 432.5 s execution,
+504.20 s command wall. All twelve affected private validators passed in
+152.23 s at that commit. The final original PlayGuide menu route was then
+proved at menu-table entry 22 -> `0x00c71576`, including sound 25 at
+`0x00c716f6`, and bound alongside Ctrl+T. The focused private suite passes
+15/15 in 71.70 s, with 408 refused callbacks in each host and 34 bounded
+original route/sound decisions. A short MacroSub caption now reads "Read only".
+
+Left: final rebuild, selected validator confirmation, default identity,
+final native capture inspection, audit, final ledger and PR-ready handoff.
+No installed bundle or live client has been changed by this lane.

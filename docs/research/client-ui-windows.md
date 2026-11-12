@@ -41,7 +41,7 @@ ledger; the following table supersedes its disposition for these rows.
 | MatchingParty | Registration/name `0x00ac6b27`; MatchingSelect callback owner `0x00bc04a5`, party comparison `0x00bc04f4`; search tab `0x00bb8fb1`, party-info tab `0x00bbf6df`, recruit tab `0x00bbfaf3` | Selector -> empty catalogue; local search/recruit/party-info tabs and close. Original catalogue requests are replaced by an empty presentation provider; no remote answer is claimed |
 | MatchingGuild | Registration/name `0x00ac6aa2`; MatchingSelect guild comparison `0x00bc0700` | Selector -> empty legacy guild catalogue; local search/recruit tabs and close. Original request remains inert; no original response-driven eligibility is reconstructed |
 | Guildmatching_2024 | Registration/name `0x00ac88c3`; G/menu 10 `0x00efcb7c` -> `0x00b0aed2`, manager `+0x2b0` | Empty catalogue and three local tabs, close. No search, recruitment, application or mail |
-| PlayGuide | Registration/name `0x00ac548a`; Ctrl+T `0x00efc0da`, getter `0x00b3b39e`, manager `+0x2ac` -> `0x00aae767` | Original empty guide frame, title and close. External guide content/provider absent; this is frame presentation only |
+| PlayGuide | Registration/name `0x00ac548a`; Ctrl+T `0x00efc0da` and menu 22 `0x00c71576`, getter `0x00b3b39e`, manager `+0x2ac` -> `0x00aae767` | Original empty guide frame, title and close. Menu release uses sound 25 at `0x00c716f6`. External guide content/provider absent; this is frame presentation only |
 
 Exact original world/class/window predicates remain outside these adapters.
 The fixtures supply eligibility and original empty data. Original compiled

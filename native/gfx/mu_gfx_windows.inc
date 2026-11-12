@@ -107,7 +107,7 @@ static int presentation_open(mu_gfx_layer *L, int m, int menu)
 static int presentation_menu(mu_gfx_layer *L, int id)
 {
     int m = id == 10 ? MU_GFX_GUILD_MATCH : id == 11 ? MU_GFX_GENS : id == 12 ? MU_GFX_MATCHING :
-            id == 13 ? MU_GFX_PET_INVENTORY : id == 15 ? MU_GFX_GREMORY : -1;
+            id == 13 ? MU_GFX_PET_INVENTORY : id == 15 ? MU_GFX_GREMORY : id == 22 ? MU_GFX_PLAY_GUIDE : -1;
     return m >= 0 ? presentation_open(L,m,0x00c716f6) : 0;
 }
 

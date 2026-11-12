@@ -115,3 +115,26 @@ class OriginalWindowRoutes(unittest.TestCase):
                         self.assertEqual(observed,expected, (route,pressed,opened,mini))
                         decisions += 1
         self.assertEqual(decisions,24)
+
+    def test_original_playguide_menu_22_block_and_sound(self):
+        sys.path.insert(0, str(ROOT/'scripts'))
+        import pins
+        import struct
+        from unicorn import Uc, UC_ARCH_X86, UC_MODE_32, UC_HOOK_CODE
+        from unicorn.x86_const import UC_X86_REG_ESP, UC_X86_REG_EBP, UC_X86_REG_EAX, UC_X86_REG_EIP
+        text=pins.TEXT.read()
+        self.assertEqual(struct.unpack_from('<I',text,0xc7170d-0x401000+22*4)[0],0xc71576)
+        u=Uc(UC_ARCH_X86,UC_MODE_32)
+        u.mem_map(0x401000,(len(text)+4095)&~4095);u.mem_write(0x401000,text)
+        u.mem_map(0x10000000,0x10000)
+        u.reg_write(UC_X86_REG_ESP,0x10008000);u.reg_write(UC_X86_REG_EBP,0x1000f000)
+        calls=[]
+        def hook(uc,addr,size,data):
+            if addr in (0xac3bf7,0xb3b39e,0xaae767,0xa6ac96):
+                calls.append(addr);sp=uc.reg_read(UC_X86_REG_ESP)
+                if addr==0xa6ac96:self.assertEqual(struct.unpack('<3I',uc.mem_read(sp+4,12)),(25,0,0))
+                ret=struct.unpack('<I',uc.mem_read(sp,4))[0]
+                uc.reg_write(UC_X86_REG_ESP,sp+4);uc.reg_write(UC_X86_REG_EAX,0x10000100)
+                uc.reg_write(UC_X86_REG_EIP,ret)
+        u.hook_add(UC_HOOK_CODE,hook);u.emu_start(0xc71576,0xc716fe,count=80)
+        self.assertEqual(calls,[0xac3bf7,0xb3b39e,0xaae767,0xa6ac96])
