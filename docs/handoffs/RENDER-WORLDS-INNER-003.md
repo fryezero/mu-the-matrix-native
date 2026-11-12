@@ -1,7 +1,6 @@
 # RENDER-WORLDS-INNER-003
 
-Branch `codex/render-worlds-inner-003`, from merged main `fb747e42`, PR #378. Verified subset; final UI integration
-is in progress. Implementation and checks by Codex, GPT-6.1 Sol, without subagents. Merge belongs to the steward.
+Branch `codex/render-worlds-inner-003`, from merged main `fb747e42`, PR #378. Verified subset; final documentation checks and audit are in progress. Implementation and checks by Codex, GPT-6.1 Sol, without subagents. Merge belongs to the steward.
 
 ## Scope and what draws now
 
@@ -35,7 +34,9 @@ check walls. No full lane gate.
 | Explicit world build | Pass, distinct before/after hashes below | 6.11 s |
 | Post-portable explicit world rebuild | Pass, same after hash | 0.20 s |
 | Initial repository audit | 2,212 files, zero rejected | 19.32 s |
-| Final audit and documentation consumers | Pending final integration | Pending |
+| Pre-ACTORS-004 final audit | 2,226 files, zero rejected | 17.22 s |
+| Documentation consumers | 36 tests, 35 passed / one expected skip | 7.77 s |
+| Latest private items UI | 7/7 pass, no skips after UI2 | 15.66 s |
 
 **8d reduced:** private native selection is 166 work items, above the 40-item cap. The changed production host
 and new producer module ran privately. The incoming item-UI module also ran privately. No existing shared
@@ -202,9 +203,13 @@ UI-WINDOWS-002 main `0ccd5f44` then merged cleanly as `1db14727be393c99711b3a98a
 Root/world builds pass in 7.07 / 4.17 s. The post-build overlap selector took 21.75 s and retained five rows,
 including the movement fallback. All five pass without mutants in 78.30 s. The first incoming portable run completed 1,448 tests but reported one failure and one error, 334.40 s.
 Its queue incorrectly exported MU_GFX_PUBLIC_DEMO=1 to tests. Two focused methods reproduce both failures
-with that flag, 1.88 s, and pass with only the flag removed, 1.42 s. The queue now limits it to renders and
-is repeating the affected integration suite in the normal environment. Private UI checks and render replay
-follow. No production source change is needed for this environment correction. No object producer, adapter or mutant target changed in either integration.
+with that flag, 1.88 s, and pass with only the flag removed, 1.42 s. The queue now limits it to renders. The corrected integration run passes all 1,448 tests,
+1,181 passed / 267 expected skips, zero failures/errors, 369.67 s including selection and 298.7 s test wall.
+Both private UI modules pass 7/7 in 9.06 s. The final 54-view replay takes 90.22 s plus 0.29 s comparison:
+all 108 PNGs, 108 OBJECT/light dumps and 54 normalized reports are byte-identical to the pre-UI2 after outputs.
+Thus every before/after result and original-reference score above remains the final lane result. No production source change is needed for this environment correction.
+Final main-integrated mu-world SHA-256: `fb59df136c01b9e582b7d31f10172760fb43fe4c86a9925afe4454f5785ab263`.
+It is distinct from the before and pre-UI2 binaries. No object producer, adapter or mutant target changed in either integration.
 
 | Overlapping validator at `1db14727` | Reported cases | Wall s |
 |---|---:|---:|
@@ -240,19 +245,18 @@ remains unverified. Do not invent a leaf or event model to close those rows.
 
 ## WIP
 
-- Done: four producers, 8,000 original cases, 54 mutants, five private host/module tests, 68 affected
-  validators, 1,661 portable tests, seven incoming item-UI tests and all four worlds' render proofs.
-  UI-WINDOWS-002 is merged; root/world builds and all five overlapping validators pass.
-- Left: incoming UI portable/private checks and 54-view render replay, final metadata/audit, PR and cleanup.
-- Next: finish the corrected serial integration checks, confirm image/dump/report identity against the completed
-  pre-UI2 after outputs, then write final status lines and publish for the steward.
+- Done: implementation, original/compiled-mutant/affected/private checks, both UI integrations, all render
+  proofs, documentation consumers and audit on UI2 main. The final UI2 replay preserves 108 images/dumps and
+  54 reports.
+- Left: newly merged ACTORS-004 integration and its overlapping checks/replay, final audit/PR/cleanup.
+- Next: merge main c35458a0, keep both status entries, and check only changed compiled inputs.
 
 ## WIP checkpoint history and cleanup
 
 - `5f8fbb98`: four producers and 1,600 small original cases; full checks/renders left, next full mutants and host.
 - `c7d28d3d`: 8,000 cases, 54 mutants, private host and ITEMS-UI integration; affected checks/renders left.
 - `b41083f2`: all 68 affected validators and 1,661 portable tests; render analysis, final integration/docs/PR left.
-- Next checkpoint: all four render proofs and latest-main overlap checks; corrected integration test environment
+- `3cedc070`: all four render proofs and latest-main overlap checks; corrected integration test environment
   and final UI replay/docs/PR left. No object source changed.
 
 Each checkpoint was committed and pushed with a WIP done/left/next section. No new private input needs
