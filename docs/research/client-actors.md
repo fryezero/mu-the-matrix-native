@@ -391,3 +391,31 @@ that no computed or manager-mediated loader exists. No filename has been tied
 to this model index, and no similarly named file is substituted. Class 617 stays
 refused. The missing proof is an AccessModel or equivalent registration that
 connects `0x5ba` to an exact file, followed by an actual native load.
+
+## 10. Secondary-model opener leads beyond the 32 rows
+
+Research only, extracted in RENDER-ACTORS-003. Nine original OpenMonsterModel
+runs at world 0 with 16-action synthetic model records complete in 0.05 s.
+AccessModel, texture, sound and model lookup services are the same named stubs
+as section 1. The extra AccessModel calls below are recorded before returning
+from the original opener. They are not a native construction/lifetime proof.
+
+| Monster type | Extra model indices and files | AccessModel call sites | Classes in the current extracted table |
+|---|---|---|---|
+| 147 | `0x507..0x50c`, `Data/Monster/icegiantpart_1..6.bmd` | `0x0180be7d`, `0x0180beb2`, `0x0180bee7`, `0x0180bf1c`, `0x0180bf51`, `0x0180bf86` | none recorded |
+| 226 | `0x5af`, `Data/Monster/gnomedie.bmd` | `0x0180bfc0` | 595, 635 |
+| 229 | `0x59f`, `Data/Monster/Monster230.bmd` | `0x0180c09f` | none recorded |
+| 230 | `0x5a0`, `Data/Monster/Monster231.bmd` | `0x0180c139` | none recorded |
+| 231 | `0x5a1`, `Data/Monster/Monster232.bmd` | `0x0180c1f3` | none recorded |
+| 232 | `0x5a2`, `Data/Monster/Monster233.bmd` | `0x0180c28d` | none recorded |
+| 233 | `0x5a3`, `Data/Monster/Monster234.bmd` | `0x0180c327` | none recorded |
+| 245 | `0x5ae`, `Data/Monster/normusdie.bmd` | `0x0180c590` | none recorded |
+| 289 | `0x605`, `Data/Effect/Magic_type02.bmd`; `0x603`, `Data/Effect/pgunbossspin.bmd` | `0x0180b9d9`, `0x0180ba2e` | none recorded |
+
+The class column is a lookup in the existing world-0 constructor extraction,
+with its section-4 assumptions. An absent row says nothing about ordinary
+spawnability or another map processor. These nine openers and 15 secondary
+loads are a bounded lead list, not a whole-client missing-model count. Next:
+trace each extra model into its construction/action/render and ownership path
+before adding a composite native actor. The native opener currently ports the
+action rules but does not execute these secondary loads, as section 1 records.
