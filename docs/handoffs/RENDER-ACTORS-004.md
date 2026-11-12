@@ -118,3 +118,23 @@ private tests are queued; actor renders, identity and final delivery remain.
 Class 617's optional file lead was checked against the 740 completed ordinary
 openers. None registers `0x5ba`; eight NPC openers remain unresolved. No guessed
 filename or body admission was added.
+
+Checkpoint, 23:40: reduced private tests passed 6/6 with no skips, 66.5 s,
+plus a 120 s resource wait. Six GL scenes completed in 6.0 s. The five new
+assemblies were visually inspected; changed pixels versus the empty control
+were 1,370 / 1,399 / 1,342 / 835 / 1,071 for 230/248/250/253/255.
+
+Before the latest world/audio main update, the final default replay passed all
+230 file hashes for 46 views, 95.0 s, with the distinct `b3bcddd6...` binary.
+Main then advanced to `fb747e42` and was integrated as `1d0c3c2c`. This imports
+AUDIO-003 and WORLDS-INNER-002, without actor implementation changes. The latter
+intentionally changes the Elbeland and Swamp capture results, documented in its
+handoff. Root/world builds pass, 21.9 s / 6.7 s execution, with 120 s waits each.
+Current binary SHA-256:
+`d19650a7913a921062168dd53fdaa88796a67b67d18045efc2d6df0d483ae0ce`.
+
+Eighteen overlapping validators were selected against `aa330645`, with all
+eight symbol fallbacks retained. That run is active. The post-update portable,
+private, actor-image replay and identity checks are queued. Earlier actor image
+hashes are saved for a direct comparison after this merge. No new mutants are
+needed; final documentation/audit/PR delivery remain. No ready entry.
