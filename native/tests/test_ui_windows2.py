@@ -34,7 +34,8 @@ class PresentationWindows(unittest.TestCase):
             if real:
                 movies = Path(os.environ['MU_NATIVE_DATA_DIR'])/'gfx'
                 lib = Path(os.environ['MU_GFX_LIB'])
-            run = subprocess.run([str(host), str(movies), str(lib)], capture_output=True, text=True)
+            run = subprocess.run([str(host), str(movies), str(lib)], capture_output=True, text=True,
+                                 env={**os.environ, "MU_WINDOWS2_REAL": "1" if real else "0"})
             self.assertEqual(run.returncode, 0, run.stdout+run.stderr)
             self.assertIn('312 inert callbacks', run.stdout)
 

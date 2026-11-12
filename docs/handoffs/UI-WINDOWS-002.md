@@ -20,3 +20,19 @@ identity sweep. The first captures are exploratory, not final proof.
 Next: rebuild the corrected graphical adapters, run the window/mouse journeys
 and inspect every final capture. No installed app or live client was touched.
 This is WIP, not PR-ready. Nothing is in ready-prs.txt for this lane.
+
+### WIP checkpoint, 22:10
+
+Fixed the duplicate HuntRecord scene attachment after visual inspection.
+The original movie already places `scene`. End now follows the original
+full / mini / closed cycle. Matching child tabs have local routes and the
+fixture keeps all requests refused. The latest source has not yet completed
+its final build and checks. The 21:47 six-test run passed in 9.07 s, before
+these final loader/lifecycle corrections.
+
+The resource guard blocked the next heavy step continuously from 21:50
+through 22:10, with load above 14 and memory above 25 percent. Continue at
+`nice -n 10`, `make -j2`, validators with two jobs, using the common brief's
+20-minute fallback. Baseline world built in 12.76 s; no identity comparison
+has run yet. Next is the focused private suite, followed by the final build,
+mouse captures and affected checks. Still WIP, not ready for the steward.

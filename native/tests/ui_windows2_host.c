@@ -21,6 +21,17 @@ int main(int argc,char **argv)
         .standalone=1,.window_sound=sound,.progress_call=other};
     char error[512];mu_gfx_layer *L=mu_gfx_layer_open(&cfg,error,sizeof error);
     if(!L){fprintf(stderr,"%s\n",error);return 1;}
+    for(int tick=0;tick<10;tick++) mu_gfx_layer_advance(L,40);
+    if (getenv("MU_WINDOWS2_REAL") && !strcmp(getenv("MU_WINDOWS2_REAL"),"1")) {
+        const char *v=L->api.get_variable(L->mv[MU_GFX_HUNT_RECORD].g,"_level0.scene.isTest");
+        assert(v && !strcmp(v,"false"));
+        v=L->api.get_variable(L->mv[MU_GFX_HUNT_RECORD].g,"_level0.scene._TestController._visible");
+        assert(v && !strcmp(v,"false"));
+        /* The real movie path is provided by UIInit rather than guessed here. */
+        char field[192];snprintf(field,sizeof field,"%s.btnSave.disabled",L->mv[MU_GFX_MACRO].path);
+        v=L->api.get_variable(L->mv[MU_GFX_MACRO].g,field);
+        assert(v && !strcmp(v,"true"));
+    }
     foreign=0;
     mu_gfx_hero before=*mu_gfx_layer_hero(L);
     int held=L->held, potions=L->potions;
@@ -62,6 +73,9 @@ int main(int argc,char **argv)
     assert(!presentation_call(&L->mv[MU_GFX_MACRO],"btnMenu","[-1]",(double[]){-1},1));
     mu_gfx_layer_show(L,MU_GFX_MACRO,0);assert(!L->mv[MU_GFX_MACRO_SUB].open);
     assert(mu_gfx_layer_key(L,1,35,0,0) && L->mv[MU_GFX_HUNT_RECORD].open);
+    assert(mu_gfx_layer_key(L,1,35,0,0) && L->mv[MU_GFX_HUNT_RECORD].open && L->hunt_mini);
+    assert(mu_gfx_layer_key(L,1,35,0,0) && !L->mv[MU_GFX_HUNT_RECORD].open);
+    assert(mu_gfx_layer_key(L,1,35,0,0));
     on_call(&L->mv[MU_GFX_HUNT_RECORD],"closeWindow","[]");assert(!L->mv[MU_GFX_HUNT_RECORD].open);
     assert(mu_gfx_layer_key(L,1,'T',0,2) && L->mv[MU_GFX_PLAY_GUIDE].open);
     mu_gfx_layer_show(L,MU_GFX_PLAY_GUIDE,0);

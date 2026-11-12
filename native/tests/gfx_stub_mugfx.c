@@ -352,8 +352,7 @@ static const char *run_invoke(MuGfx *g, const char *path, const char *method, co
             g->text[0] = 0;
             call(g, "chat", msg);
         }
-    } else if (is(g,"HuntRecord") && !strcmp(method,"attachMovie")) {
-        call(g,"HuntRecord","[]");
+
     } else if (is(g, "InventoryFrame")) {
         if (!strcmp(method, "SetAlign")) {
             g->win_x = (float)(g->stage_w - 332);
@@ -439,6 +438,8 @@ void mugfx_start(MuGfx *g)
                is(g,"MatchingParty") || is(g,"MatchingGuild") || is(g,"Guildmatching_2024") || is(g,"PlayGuide")) {
         char args[96]; snprintf(args, sizeof args, "[\"g_%s\"]", g->name);
         call(g, "UIInit", args);
+    } else if (is(g,"HuntRecord")) {
+        call(g,"HuntRecord","[]");
     } else if (is(g, "HelpWindow")) {
         call(g, "UIInit", "[\"g_mcHelpWindow\"]");
     } else if (is(g, "InfoPopup")) {

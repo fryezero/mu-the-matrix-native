@@ -115,6 +115,7 @@ static void presentation_fixture(mu_gfx_layer *L, int m)
         break;
     case MU_GFX_HUNT_RECORD:
         invokef(L,m,w->path,"noTest","[]");
+        presentation_set(L,m,"_TestController.visible","false");
         presentation_set(L,m,"_TestController._visible","false");
         invokef(L,m,w->path,"setCharInfo","[{\"titleLabel\":\"Hunt record - offline preview\",\"label\":\"Demo class\",\"classInfo\":\"Dark Knight\"}]");
         invokef(L,m,w->path,"initWindow","[{\"myInfoLabel\":\"Demo record\",\"tableTabLabel\":\"Table\",\"graphTabLabel\":\"Graph\",\"accureInfo\":\"Total\",\"perSecInfo\":\"Per second\",\"DateLabel\":\"Date\",\"LevelLabel\":\"Level\",\"HuntTimeLabel\":\"Time\",\"NorDmg\":\"Normal\",\"AttDmg\":\"Skill\",\"heal\":\"Healing\",\"MonCnt\":\"Monsters\",\"Exp\":\"Experience\",\"miniWndTitle\":\"Demo record\",\"NorDmgPerSec\":\"Normal / sec\",\"AttDmgPerSec\":\"Skill / sec\",\"healPerSec\":\"Healing / sec\",\"MonCntPerSec\":\"Monsters / sec\",\"ExpPerSec\":\"Exp / sec\",\"mapInfo\":[{\"label\":\"Offline preview\",\"index\":0}]}]");
@@ -187,6 +188,7 @@ static void presentation_shown(mu_gfx_layer *L, int m, int open)
     if (!open && m==MU_GFX_MACRO) mu_gfx_layer_show(L,MU_GFX_MACRO_SUB,0);
     if (!open && m==MU_GFX_STORAGE) mu_gfx_layer_show(L,MU_GFX_STORAGE_EXT,0);
     if (!open && m==MU_GFX_MACRO_SUB) L->macro_sub_type=0;
+    if (m==MU_GFX_HUNT_RECORD) L->hunt_mini=0;
 }
 
 /* -1 means the original 001 allowlist still applies. */
@@ -236,6 +238,9 @@ static int presentation_call2(movie *w, const char *name, const char *args, cons
         invokef(L,w->id,w->path,"SetTab","[%d]",L->guild_tab);
         return 1;
     }
-    if (w->id==MU_GFX_HUNT_RECORD && (!strcmp(name,"onBigWnd") || !strcmp(name,"onMiniWnd"))) return 1;
+    if (w->id==MU_GFX_HUNT_RECORD && (!strcmp(name,"onBigWnd") || !strcmp(name,"onMiniWnd"))) {
+        L->hunt_mini=!strcmp(name,"onMiniWnd");
+        return 1;
+    }
     return -1;
 }

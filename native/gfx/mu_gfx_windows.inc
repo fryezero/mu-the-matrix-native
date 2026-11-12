@@ -121,7 +121,14 @@ static int presentation_key(mu_gfx_layer *L, int vk)
             }
     }
     if (vk == 'Z') return presentation_open(L,MU_GFX_MACRO,0x00efd43a);
-    if (vk == 35) return presentation_open(L,MU_GFX_HUNT_RECORD,0);
+    if (vk == 35) {
+        if (L->mv[MU_GFX_HUNT_RECORD].open && !L->hunt_mini) {
+            invokef(L,MU_GFX_HUNT_RECORD,L->mv[MU_GFX_HUNT_RECORD].path,"changeMiniWnd","[]");
+            L->hunt_mini=1;
+            return 1;
+        }
+        return presentation_open(L,MU_GFX_HUNT_RECORD,0);
+    }
     if (vk == 'H' && L->mv[MU_GFX_STORAGE].open) return presentation_open(L,MU_GFX_STORAGE_EXT,0x00efc772);
     if (vk == 'G') return presentation_menu(L,10);
     if (vk == 'D') return presentation_open(L,MU_GFX_COMMAND,0);

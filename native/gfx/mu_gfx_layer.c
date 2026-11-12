@@ -303,7 +303,7 @@ struct mu_gfx_layer {
     int order[MU_GFX_MOVIES];   /* window z-order, bottom first */
     int norder;
     unsigned presentation_ready;
-    int macro_tab, macro_sub_type, guild_tab;
+    int macro_tab, macro_sub_type, guild_tab, hunt_mini;
     int pet_page;
     int help_ready;             /* SYS-MISC-001b: installed provider loaded */
     int32_t w, h;               /* the movies' stage in points */
@@ -1706,8 +1706,6 @@ static int open_movie(mu_gfx_layer *L, int m, char *error, size_t cap)
     int authored_stamp = m == MU_GFX_SKILL_STAMP;
     L->api.set_view(mv->g, authored_stamp ? 1024 : L->w, authored_stamp ? 768 : L->h, 0, 0, 0, 0, L->scale);
     L->api.start(mv->g);
-    if (m == MU_GFX_HUNT_RECORD)
-        L->api.invoke(mv->g,"_level0","attachMovie","[\"mcHuntRecord\",\"scene\",10]");
     if (authored_stamp)
         L->api.set_view(mv->g, L->w, L->h, 0, 0, 0, 0, L->scale);
     mv->view[0] = mv->view[1] = 0;
