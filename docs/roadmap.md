@@ -1,5 +1,7 @@
 # Roadmap and work queue
 
+APP-REFRESH-012 PR-ready, docs only: detached main d4af71dd installed; APP-REFRESH-006 Native Data and settings preserved. Full private suite 1,069 tests, 1,054 passed/15 skipped, zero failures/errors. Standard journeys and all seven new feature categories pass, with explicit fixture/audio-preference limits. [Installation, rollback, proofs and checks](handoffs/APP-REFRESH-012.md).
+
 MUUN-VISUAL-002 verified subset PR-ready: the fifteen fixture appearances gain eight extra mesh passes across five models and base-slot shadows; authored command categories drive actions 3/4 on fourteen models, with 363 refused. 1,406 new original cases, 15/15 compiled mutants, 28 affected validators pass; all 92 default PNGs and 92 dumps are identical. Kind-1 secondary bodies and production selection remain open. [Checks, report-environment limit and next work](handoffs/MUUN-VISUAL-002.md).
 
 UI-WINDOWS-001 PR-ready: D Command, N MatchingSelect, B Gens, Y PetInventory and K Gremory now open their original movies as presentation-only views. Empty tabs/pages and close work; state-changing actions refuse. 1,421 portable tests, 12 affected validators, real-window proofs and default identities pass. Original Help open route remains unproved. [Checks, inventory and limits](handoffs/UI-WINDOWS-001.md).
