@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 HERE=Path(__file__).resolve().parent
 ROOT=HERE.parents[1]
 sys.path.insert(0,str(HERE))
@@ -41,7 +42,7 @@ class Fixture(Host):
             struct.pack_into('<4f',r,0x110,.65,50,0,20);struct.pack_into('<5f',r,0x238,*([.25]*5));r[0x258]=1
             (root/'Data/Local/MuunRenderInfo.bmd').write_bytes(item_file([r]))
             row=self.run_host(root,root/'lang',16)
-            self.assertEqual(row['model'],0x5cb)
+            self.assertEqual((row['model'],row['bone']),(0x5cb,1))
 
 @unittest.skipUnless(PRIVATE,'requires canonical private-env.sh and installed Muun models')
 class Installed(Host):
@@ -49,8 +50,33 @@ class Installed(Host):
         rows=[self.run_host(os.environ['MU_GAME_ROOT'],Path(os.environ['MU_NATIVE_DATA_DIR'])/'lang',code)
               for code in (16,17,100,101,102,103,104,105)]
         self.assertEqual([r['model'] for r in rows],list(range(0x5cb,0x5d3)))
+        self.assertEqual([r['bone'] for r in rows],[4]*8)
         self.assertTrue(all(r['missing']==0 for r in rows),rows)
         print('Kind-1 summary:',json.dumps(rows,sort_keys=True))
+
+@unittest.skipUnless(PRIVATE,'requires pinned instructions and installed kind-1 mesh records')
+class BaseMeshes(unittest.TestCase):
+    def test_kind1_base_mesh_callers(self):
+        sys.path.insert(0,str(ROOT/'scripts'))
+        import validate_muun_passes as vp
+        records=vp.decoded('MuunRenderInfo.bmd');meshes=vp.decoded('MuunMeshInfo.bmd')
+        counts={}
+        def samples(count,installed):
+            for code in (16,17,100,101,102,103,104,105):
+                r=next(x for x in records if struct.unpack_from('<i',x)[0]==code)
+                self.assertEqual(r[8],1)
+                item=struct.unpack_from('<i',r,4)[0]
+                rows=[x for x in meshes if struct.unpack_from('<i',x)[0]==item]
+                counts[code]=len(rows)
+                for clock in (0,3141,123456):yield item+0xae6,r[0x258],rows,clock
+        text=vp.pins.load_pinned(vp.pins.TEXT.default_str(),vp.pins.TEXT.size,vp.pins.TEXT.sha256,'text')
+        data=vp.pins.load_pinned(vp.pins.DATA.default_str(),vp.pins.DATA.size,vp.pins.DATA.sha256,'data')
+        with tempfile.TemporaryDirectory() as td, mock.patch.object(vp,'samples',samples):
+            rows=vp.compare(vp.build(td,(ROOT/'reconstructed/muun/passes.c').read_text()),vp.vc.Combat(text,data),0,True)
+        self.assertTrue(all(r['mismatches']==0 for r in rows.values()),rows)
+        self.assertEqual(rows['mesh']['cases'],24)
+        self.assertEqual({code:n for code,n in counts.items() if n},{101:3,103:3,105:3})
+        print('Kind-1 base mesh comparison:',json.dumps(rows,sort_keys=True))
 
 @unittest.skipUnless(PRIVATE,'requires pinned private client instructions')
 class Original(unittest.TestCase):

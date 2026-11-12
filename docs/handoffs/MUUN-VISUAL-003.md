@@ -1,144 +1,145 @@
 # MUUN-VISUAL-003
 
-Work in progress on `codex/muun-visual-003`, from main `626abce1`. Offline/static only.
-No installed-app, live client, service, packet, protection, actor, item table or particle-consumer edits.
+PR-ready verified subset on `codex/muun-visual-003`. Main `c35458a0` is integrated through merge
+`5085c66b`; the source checkpoint is `dbd8328b`. The merge steward owns integration. Offline/static only.
+No installed-app, live client, service, packet, protection, actor-lane, item-table, particle-consumer or
+README edits were authored in this lane. Incoming UI/actor changes came from main.
 
 ## What draws
 
-Focused comparisons and native tests pass; finish checks are pending. The explicit kind-1 mount fixture loads an independent secondary
-skeleton for render-info ids 16/17/100..105. It uses the recovered model-header lookup, scales, action map,
-speeds, owner position/angle and named-bone attachment offset. The existing fifteen attachment appearances
-and their eight extra mesh rows are unchanged. The other ten appearances have no additional rows.
+Eight kind-1 records, ids 16/17/100..105, now have a separate secondary-body fixture. Set
+`MU_MUUN_FIXTURE=<id>` and `MU_MUUN_MOUNT_FIXTURE=1`. Without the second variable, the existing base-only
+fixture remains. The second skeleton loads by its actual BMD header name, uses original scale and speed,
+copies the owner's position/angles, and owns independent pose/bone/texture storage. An authored 25-step
+cycle supplies owner actions 1/65/248, selecting secondary actions 0/2/4. It changes no hero action or stats.
 
-## WIP
+The named `Bip01 Spine1` attachment offset is posed and exposed, scaled once with the original +30 z.
+All eight installed skeletons resolve bone 4. Missing, dummy, unresolved and out-of-range bones are refused.
+The secondary body shares the base slot's terminal owner key/generation/death lease. Selection mismatch,
+hidden owner, buff 0x1a, mount predicate and frustum hiding suppress it. Ordinary fixture flags are explicit.
 
-Done: read both binding briefs and the 001/002 handoffs; created the assigned worktree; built the baseline;
-re-audited installed mesh rows; traced secondary construction, action mapping, speed, render gates and
-attachment; wrote the implementation, instruction comparator and native fixture tests.
+A fresh table join confirms the original fifteen appearances still have eight extra rows on five models;
+the other ten have zero rows, not missing implementations. The kind-1 base companions additionally verify
+nine existing ordinary mesh rows on ids 101/103/105, three each. All other kind-1 records have zero rows.
+The existing ordinary adapter renders them without a production-code change to mesh-pass arithmetic.
 
-Checked: new native target builds under `-Werror`, 4.63 s; private secondary module 4/4 tests, 16.73 s;
-873 original cases, zero mismatches; 16/16 compiled mutants caught under `-Werror`, 7.10 s. All eight real
-secondary skeletons have their named bone, actions 0/2/4 and zero missing textures. GL and software pixel
-differences pass. Default before sweeps complete: fourteen views 30.31 s, thirty-two views 59.46 s.
-The original comparison caught and corrected the initial WolfA run-speed error. Two validator-stub stack
-cleanup errors were corrected before the successful run. Historical baseline manifests had stale paths;
-those failed before rendering and were replaced with the current fourteen-view manifest.
+The hero is not lifted or re-posed onto the mount. This is a secondary-body/attachment-offset subset,
+not a complete mounted-rider appearance. [Addresses, method and limits](../research/client-muun.md).
 
-Left: retained native proof renders, affected checks, after identity sweep, audit and final-main integration.
-Shared-host load caused waits. One probe/test batch started before its high-load output was inspected; subsequent probes and heavy
-launches are separate.
+## Final checks
 
-Next step: finish the running 157-item affected portable batch, then both Muun private modules, retained
-proofs and the after identity sweep. No further unchanged mutant rerun.
-The repository audit passes with 2,225 staged files, zero rejected, 16.35 s. Root build passes in 10.53 s.
-All 30 affected private validators pass at `a03c51e0`, 562.05 s including selection, no skipped rows. Keep the 02:15 WIP and 02:30 stop deadlines.
+Commands ran from the repo root, heavy jobs at nice 10, make at most four jobs and runners two workers.
+Canonical private-env.sh supplies private inputs. One early probe/test batch started before its high-load
+output was inspected; later launches use separate resource probes. No full lane gate or hosted workflow ran.
 
-## Limits and next
+| Check | Result | Wall |
+|---|---|---:|
+| Root build | pass; initial final build and two main refreshes | 10.53 + 6.95 + 11.20 s |
+| New secondary original comparison and one-time mutants | 873 cases, zero mismatches; 16/16 mutants compile under `-Werror` and are caught | 7.10 s |
+| Final private Muun modules | 11/11 pass; all 23 audited records, exact named bone, 16 attachments, 17 mesh rows, poses, leases/refusals and GL/software controls | 19.48 s |
+| Added kind-1 base mesh audit, included above | 24 installed original mesh-caller cases at three clocks, zero mismatches; reused command/shadow controls also pass, 385 total | included above |
+| Final focused portable modules | 2 passed, 9 explicit private skips | 0.60 s |
+| Affected private validators at `a03c51e0` | 30/30 pass, 703,901 reported row cases, zero skipped rows | 562.05 s including selection |
+| UI-merge validator refresh at `448f947c` | 12/12 pass, zero skipped rows | 170.97 s including selection |
+| Actor-merge validator refresh at `dbd8328b` | 26/26 pass, zero skipped rows; unrelated symbol-pruned rows not repeated | 342.46 s including selection |
+| Original affected portable batch | 157 items; 1,437 tests, 1,186 passed, 251 skipped, zero failures/errors | 386.97 s including selection |
+| UI-merge portable refresh | 138 items; 1,452 tests, 1,180 passed, 272 skipped, zero failures/errors | 281.33 s including selection |
+| Actor-merge portable refresh | 165 items; 1,522 tests, 1,260 passed, 262 skipped, zero failures/errors | 500.20 s including selection |
+| UI-merge private world refresh | 3/3 pass | 16.53 s |
+| Final native proof | 32 GL PNGs, eight bodies at actions 0/2/4, zero texture/mesh/bone refusals; contact sheet inspected; all 32 equal the inspected pre-merge images | 10.51 s |
+| Default before sweep | 46 views, no draw-all/live-time, 640x400 | 30.31 + 59.46 s |
+| Final after sweep | 92/92 PNGs, 92/92 dumps and 46/46 normalized reports identical | 22.86 + 36.19 s |
+| Repository audit | 2,236 staged files, zero rejected | 17.20 s |
 
-Hero rider placement, model-specific secondary effects, owner-kind-2 fade, buff-0x12 render mode and remote
-transitions are not implemented. Production selection, inventory, bonuses, damage, commands and network
-feeds remain excluded. No claim of complete kind-1 or full-scene equivalence.
+**8d reduced:** original selection contains 152 native work items, above forty. Both direct Muun modules
+ran privately, including the final installed-record comparison extension. Shared-symbol grep finds no
+other native host using the changed Muun fields/functions. Subsequent main merges received their selected
+portable/private validator refreshes, and the final private Muun modules cover the integrated world binary.
+The final two test assertions and installed mesh sample extension passed in the focused runs above.
+No unchanged mutant set was repeated. The ordinary-pass checker and arithmetic are unchanged.
 
-## Checkpoints and cleanup
+Constructor comparison uses an already allocated OBJECT and named base-setup/model/pose services;
+allocation is static-audited and native ownership is tested separately. Attachment comparison supplies
+the named-bone zero-point service and verifies caller scaling/+30; it does not replace the existing verified
+model transform. No full original-scene or live-motion equivalence is claimed.
 
-Local scratch and renders are under `~/Documents/MTM/mu-mac-tools/native/{scratch,renders}/muun-visual-003`.
-The first checkpoint is `a03c51e0`; its code is the frozen input of the successful 30-row validator batch.
-Second checkpoint `6434f2fe` recorded the thirty-row run. The 157-item portable batch subsequently passed:
-1,437 tests, 1,186 passed, 251 skipped, zero failures/errors, 386.97 s including selection. Both Muun modules
-passed privately, 10 tests, 16.65 s. The third checkpoint includes latest main at merge `448f947c` and its
-12 passing validator rows; post-merge portable/render checks remain pending under the load guard.
-Portable selection: 157 work items, 82.37 s. **8d reduced:** this exceeds forty; both direct Muun modules
-will run privately, while all 157 portable items are retained. No future-lane input has been created.
-Keep only needed resume inputs if stopped WIP; remove generated
-outputs, worktree and local branch after the ready queue entry on successful delivery.
+## Default identity
 
+Both binaries were explicitly checked with `make -C native -j4 world` before their sweeps. Before, main
+`626abce1`, SHA-256 `0486f35e813b641f2500df6b0107515c33d3fb37d2cc3683005c8b91b08b10ef`.
+Final after, with both main merges, SHA-256
+`69f62bc81a96af599172574ddfbb3cd02abb6edc7c2850a75929b72c93a14963`.
+They are different executables. All 230 compared files match. Only output-directory prefixes are normalized
+in the 46 reports; PNGs and OBJECT/light dumps match raw bytes. The before baseline was taken once.
+The first pre-merge after sweep also matched; incoming compiled world changes justified the final replay.
+Historical manifests with stale paths failed before output and were replaced with the current paths.
 
 ## Steward validators
 
-Steward validators: validate_actor_recipes, validate_audio_callers, validate_audio_charsel, validate_audio_combat, validate_audio_domains, validate_audio_items, validate_audio_objects, validate_charsel_items, validate_icarus_c2, validate_inventory_fx, validate_item_callers, validate_items_ui, validate_meshdraw, validate_model_edge, validate_model_light, validate_movement, validate_muun_secondary, validate_path, validate_render_effects16, validate_render_effects17, validate_render_effects18, validate_render_effects19, validate_render_effects24, validate_render_effects25, validate_render_effects28, validate_session_party, validate_terrain, validate_terrain_remaining, validate_viewport_monsters, validate_worlds_f
+Steward validators: validate_actor_composites, validate_actor_recipes, validate_app_polish1, validate_app_polish2, validate_app_polish4, validate_app_polish7, validate_audio_callers, validate_audio_charsel, validate_audio_combat, validate_audio_domains, validate_audio_items, validate_audio_objects, validate_charsel_items, validate_gfx3, validate_icarus_c2, validate_inventory_fx, validate_item_callers, validate_items_ui, validate_map_polish, validate_meshdraw, validate_model_edge, validate_model_light, validate_movement, validate_muun_secondary, validate_path, validate_render_effects16, validate_render_effects17, validate_render_effects18, validate_render_effects19, validate_render_effects24, validate_render_effects25, validate_render_effects28, validate_session_party, validate_terrain, validate_terrain_remaining, validate_viewport_monsters, validate_worlds_f, validate_worlds_fog
 
-All rows pass at `a03c51e03eb5a42eb0708fc7ff3a34ba9ed4ad80`. No steward mutant rerun is needed;
-the new row's sixteen mutants compiled and were caught once. The canonical private environment supplies
-MU_GAME_ROOT, MU_SECTION3, MU_EVIDENCE_DIR, MU_NATIVE_DATA_DIR and row-specific inputs.
+The table gives each row's most recent passing run, including conservative fallback rows. The three batch
+snapshots above retain earlier counts. Muun production inputs equal `a03c51e0`; main's UI and actor inputs
+are integrated. Only tests/docs were extended after `dbd8328b`, as covered by the final focused runs.
+No mutants are needed in the steward run. Source `~/Documents/MTM/mu-mac-tools/native/private-env.sh` from
+the root for MU_GAME_ROOT, MU_SECTION3, MU_EVIDENCE_DIR, MU_NATIVE_DATA_DIR and row-specific inputs.
 
-| Validator | Reported cases | Wall |
-|---|---:|---:|
-| `validate_actor_recipes` | 1,669 | 123.6 s |
-| `validate_audio_callers` | 5,528 | 4.8 s |
-| `validate_audio_charsel` | 5,968 | 4.5 s |
-| `validate_audio_combat` | 19,548 | 28.2 s |
-| `validate_audio_domains` | 2,544 | 27.4 s |
-| `validate_audio_items` | 3,000 | 4.7 s |
-| `validate_audio_objects` | 4,000 | 3.7 s |
-| `validate_charsel_items` | 8,817 | 7.8 s |
-| `validate_icarus_c2` | 8,400 | 16.0 s |
-| `validate_inventory_fx` | 8,017 | 10.6 s |
-| `validate_item_callers` | 6,013 | 1.4 s |
-| `validate_items_ui` | 8,517 | 15.7 s |
-| `validate_meshdraw` | 14,619 | 61.0 s |
-| `validate_model_edge` | 954 | 132.4 s |
-| `validate_model_light` | 1,433 | 7.0 s |
-| `validate_movement` | 6,614 | 62.6 s |
-| `validate_muun_secondary` | 873 | 0.6 s |
-| `validate_path` | 4,719 | 30.6 s |
-| `validate_render_effects16` | 424 | 4.1 s |
-| `validate_render_effects17` | 618 | 9.4 s |
-| `validate_render_effects18` | 540 | 1.7 s |
-| `validate_render_effects19` | 400 | 1.1 s |
-| `validate_render_effects24` | 226 | 2.9 s |
-| `validate_render_effects25` | 202 | 10.0 s |
-| `validate_render_effects28` | 630 | 1.8 s |
-| `validate_session_party` | 200 | 0.8 s |
-| `validate_terrain` | 583,500 | 402.9 s |
-| `validate_terrain_remaining` | 2,147 | 4.0 s |
-| `validate_viewport_monsters` | 1,963 | 11.1 s |
-| `validate_worlds_f` | 1,818 | 0.4 s |
+| Validator | Reported cases | Wall | Tested commit |
+|---|---:|---:|---|
+| `validate_actor_composites` | 1,427 | 9.5 s | `dbd8328b` |
+| `validate_actor_recipes` | 1,669 | 124.0 s | `dbd8328b` |
+| `validate_app_polish1` | 752 | 30.9 s | `dbd8328b` |
+| `validate_app_polish2` | 1,028 | 4.8 s | `dbd8328b` |
+| `validate_app_polish4` | 10,485 | 38.0 s | `dbd8328b` |
+| `validate_app_polish7` | 5,120 | 2.4 s | `448f947c` |
+| `validate_audio_callers` | 5,528 | 7.0 s | `dbd8328b` |
+| `validate_audio_charsel` | 5,968 | 4.5 s | `a03c51e0` |
+| `validate_audio_combat` | 19,548 | 49.0 s | `dbd8328b` |
+| `validate_audio_domains` | 2,544 | 34.7 s | `dbd8328b` |
+| `validate_audio_items` | 3,000 | 7.0 s | `dbd8328b` |
+| `validate_audio_objects` | 4,000 | 6.1 s | `dbd8328b` |
+| `validate_charsel_items` | 8,817 | 10.5 s | `dbd8328b` |
+| `validate_gfx3` | no aggregate reported | 7.8 s | `448f947c` |
+| `validate_icarus_c2` | 8,400 | 30.4 s | `dbd8328b` |
+| `validate_inventory_fx` | 8,017 | 10.4 s | `dbd8328b` |
+| `validate_item_callers` | 6,013 | 1.6 s | `dbd8328b` |
+| `validate_items_ui` | 8,517 | 17.8 s | `dbd8328b` |
+| `validate_map_polish` | 876 | 1.0 s | `448f947c` |
+| `validate_meshdraw` | 14,619 | 61.0 s | `a03c51e0` |
+| `validate_model_edge` | 954 | 132.4 s | `a03c51e0` |
+| `validate_model_light` | 1,433 | 7.0 s | `a03c51e0` |
+| `validate_movement` | 6,614 | 71.3 s | `dbd8328b` |
+| `validate_muun_secondary` | 873 | 0.8 s | `dbd8328b` |
+| `validate_path` | 4,719 | 30.6 s | `a03c51e0` |
+| `validate_render_effects16` | 424 | 4.7 s | `dbd8328b` |
+| `validate_render_effects17` | 618 | 11.3 s | `dbd8328b` |
+| `validate_render_effects18` | 540 | 2.3 s | `dbd8328b` |
+| `validate_render_effects19` | 400 | 1.4 s | `dbd8328b` |
+| `validate_render_effects24` | 226 | 3.6 s | `dbd8328b` |
+| `validate_render_effects25` | 202 | 12.5 s | `dbd8328b` |
+| `validate_render_effects28` | 630 | 3.5 s | `dbd8328b` |
+| `validate_session_party` | 200 | 0.8 s | `a03c51e0` |
+| `validate_terrain` | 583,500 | 402.9 s | `a03c51e0` |
+| `validate_terrain_remaining` | 2,147 | 4.0 s | `a03c51e0` |
+| `validate_viewport_monsters` | 1,963 | 13.8 s | `dbd8328b` |
+| `validate_worlds_f` | 1,818 | 0.4 s | `a03c51e0` |
+| `validate_worlds_fog` | 4,044 | 8.2 s | `dbd8328b` |
 
-Total reported row cases: 703,901.
 
+## Limits and next
 
-## Latest-main integration checkpoint
+Rider placement/action mutation, secondary model-specific `0x009bfe13` effects, owner-kind-2 fade and
+buff-0x12 render mode are not implemented. The fixture uses ordinary owner flags. Remote transition clocks
+and `0x47a` requests remain open; the native effect consumer does not admit that type, and this lane owns no
+particle-consumer change. A follow-up needs that consumer and an authored clock before transition pixel proof.
+The five special mesh models refused in 002 remain refused. Code 363 still refuses unavailable actions 3/4.
+Production selection, inventory, bonuses, damage, packets and authoritative command/target feeds remain excluded.
+No installed-app, full-scene/live equivalence or strict performance claim.
 
-Main advanced to `0ccd5f44`, UI-WINDOWS-002. It merged cleanly at `448f947c`. The incoming changes touch
-GFx and world input, with no Muun, native/core, reconstructed or validator source changes. Incremental
-root build passes in 6.95 s. The 12 selected post-merge validator rows pass in 170.97 s at `448f947c`;
-no mutant rerun. The original thirty rows remain listed above with their actual tested commit.
+## Checkpoints and cleanup
 
-Pending: post-merge portable selection/run and world-render checks, a freshly rebuilt-world after sweep,
-final documentation and PR preparation. The before baseline is retained and will not be rerun.
-The pre-merge identity result is 92/92 PNGs, 92/92 dumps and 46/46 path-normalized reports identical.
-The private Muun run passes 10/10 tests in 16.65 s. Native proof has 32 PNGs over eight bodies
-at actions 0/2/4, 8.08 s, with the contact sheet inspected.
-
-Steward validators after the merge: validate_app_polish1, validate_app_polish2, validate_app_polish4, validate_app_polish7, validate_audio_callers, validate_audio_domains, validate_audio_items, validate_gfx3, validate_map_polish, validate_movement, validate_render_effects16, validate_worlds_fog
-
-| Validator refreshed at `448f947c` | Reported cases | Wall |
-|---|---:|---:|
-| `validate_app_polish1` | 752 | 25.1 s |
-| `validate_app_polish2` | 1,028 | 5.5 s |
-| `validate_app_polish4` | 10,485 | 48.6 s |
-| `validate_app_polish7` | 5,120 | 2.4 s |
-| `validate_audio_callers` | 5,528 | 8.1 s |
-| `validate_audio_domains` | 2,544 | 45.9 s |
-| `validate_audio_items` | 3,000 | 5.2 s |
-| `validate_gfx3` | no aggregate reported | 7.8 s |
-| `validate_map_polish` | 876 | 1.0 s |
-| `validate_movement` | 6,614 | 95.5 s |
-| `validate_render_effects16` | 424 | 4.8 s |
-| `validate_worlds_fog` | 4,044 | 12.2 s |
-
-Resource waits delayed the finish steps; one heavy lane job at a time is maintained. All tests and tools
-run from the repository root. No full lane gate or hosted CI ran.
-
-## Actor-main integration WIP
-
-Main advanced again to `c35458a0`, RENDER-ACTORS-004, and merged cleanly at `5085c66b`. Root build passes,
-11.20 s. The symbol-aware selection keeps 25 validator rows and prunes twelve rows whose changed library
-has no changed symbol they use, including terrain and model-edge. Those 25 rows and the affected portable
-work remain to run. No Muun implementation or comparison check changed. The secondary validator's opening
-description now explicitly says its constructor cases use an already allocated OBJECT; original allocation
-is static evidence, while native ownership/retirement is covered by the host tests.
-
-UI-merge portable refresh passed 1,452 tests, 1,180 passed, 272 skipped, zero failures/errors, 281.33 s.
-Its three private Muun world-render tests passed in 16.53 s. The final after sweep/proof will use the
-actor-integrated binary. The before baseline will not be rerun.
+WIP checkpoints were pushed at `a03c51e0`, `6434f2fe`, `7d8a5752` and `dbd8328b`, each recording done/left/next.
+The final delivery replaces the WIP text with verified results. Scratch and renders use
+`~/Documents/MTM/mu-mac-tools/native/{scratch,renders}/muun-visual-003`. No future-lane input was created.
+After the ready queue entry, no further push is permitted. Generated outputs, builds, worktree and local
+branch are removed; the remote PR branch remains for the steward.

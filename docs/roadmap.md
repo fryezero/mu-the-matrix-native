@@ -1,5 +1,7 @@
 # Roadmap and work queue
 
+MUUN-VISUAL-003 verified subset PR-ready: eight kind-1 secondary bodies, original actions/speeds, named-bone offsets and terminal owner leases; nine kind-1 base mesh rows verified. 873 original cases, 16/16 compiled mutants, eleven private tests and unchanged default captures pass. Rider placement and remote transitions remain open. [Checks and limits](handoffs/MUUN-VISUAL-003.md).
+
 UI-WINDOWS-002 PR-ready: eight inert presentation adapters open Macro/Sub, HuntRecord, expanded storage, matching children/current guild matching and the original guide frame. Native journeys, 1,650 portable tests, 15 private UI/audio checks and 12 validators pass; the pre-integration lane has 230 default identities. Original Help route remains unproved. [Checks and limits](handoffs/UI-WINDOWS-002.md).
 
 ITEMS-UI-001 PR-ready: equipment hover uses the original integer 640x480 bounds and now opens fixture item tooltips. 8,512 instruction comparisons plus five static checks, 8/8 compiled mutants, ten affected validators and 29 private tests pass; the refreshed default sweep is byte-identical. Bits 0x87 add no glow in the compared bodies; original main-game GFx ordering remains unverified. [Checks, evidence and limits](handoffs/ITEMS-UI-001.md).

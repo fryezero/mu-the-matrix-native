@@ -193,8 +193,8 @@ All counts, final checks, render controls and remaining limits are recorded in
 
 ## Kind-1 secondary body, MUUN-VISUAL-003
 
-The focused original comparisons and native tests verify the construction/pose subset below. Finish
-check counts belong in [the lane handoff](../handoffs/MUUN-VISUAL-003.md).
+The original comparisons, compiled mutants and native tests verify the construction/pose subset below.
+Final check counts belong in [the lane handoff](../handoffs/MUUN-VISUAL-003.md).
 
 The pinned target remains the client identified above. Static inputs are restored text and the second
 image section in `scripts/pins.py`. No original process, service, packet, protection module or memory
@@ -205,6 +205,12 @@ write is involved. All owner selection and command fields in this lane are autho
 A fresh private decoded-table join by item/model code confirms 002's census: five of the fifteen attachment
 appearances have eight mesh rows, while the other ten have zero rows. Their absence is not an unimplemented
 pass. This lane preserves the ordinary mesh adapter and does not invent extra passes for those ten models.
+
+The eight kind-1 base records add a separate audited subset: ids 101/103/105 each have three ordinary
+mesh rows, and the other five have zero. The existing ordinary adapter already supports these records.
+The private extension reuses the full mesh caller comparison for all eight at three clocks, 24 installed
+cases with zero mismatches, and checks the nine-row census. Neither ordinary-pass arithmetic nor its
+checker/mutants changed. These nine rows are separate from the eight rows of the original fifteen codes.
 
 ### Separate riding skeleton
 
