@@ -73,7 +73,7 @@ def samples(count, installed):
         struct.pack_into('<7fI',row,0x108,*[rng.uniform(0,1) for _ in range(4)],
                          rng.choice([0.5,1,2,4]),rng.uniform(0,0.2),rng.uniform(0.4,1),rng.choice([2,4,8,0x42]))
         row[0x128:0x12c] = bytes((k>>b)&1 for b in range(4))
-        yield 0x2b81, 1, [bytes(row)], rng.choice([0,1,20,3141,6283,123456,-1000])
+        yield 0x2b81, k%2, [bytes(row)], rng.choice([0,1,20,3141,6283,123456,-1000])
     if installed:
         records = decoded('MuunRenderInfo.bmd')
         meshes = decoded('MuunMeshInfo.bmd')
@@ -102,10 +102,11 @@ def compare(lib,machine,count,installed):
             calls.append((mesh,args,bytes(m.uc.mem_read(MODEL+0x54,12))))
             return 0,32
         rs=[]
+        textures=[-1 if k%2 else 0xa000+k for k in range(len(records))]
         ptr=bytearray(max(4,len(records)*4))
         for k,r in enumerate(records):
             struct.pack_into('<I',ptr,k*4,ROW+0x1000*k)
-            rs.append(am.defined_region(f'row{k}',ROW+0x1000*k,r+struct.pack('<i',-1)))
+            rs.append(am.defined_region(f'row{k}',ROW+0x1000*k,r+struct.pack('<i',textures[k])))
         stubs={0xcd4ea8:lambda m:0,0xcd5d29:lambda m:(ITEM,4),0x1807c1f:lambda m:0,
                0x9c2aea:lambda m:0,0x1807c32:lambda m:(INFO,4),0x9beaa7:lambda m:len(records),
                0x9bca89:lambda m:(POINTER+4*m.argument(0),4),
@@ -119,8 +120,8 @@ def compare(lib,machine,count,installed):
         f=lambda x:struct.unpack('<I',struct.pack('<f',x))[0]
         if body:expected.append((False,[2,f(0.8),0xffffffff,f(0.75),0,0,0,0xffffffff],struct.pack('<3f',*color)))
         # Base OBJECT hidden_mesh is zero; body call uses it, mesh wrapper's last argument is texture.
-        for r in records:
-            p=Pass();lib.mu_mv_mesh_pass(r,color,0.8,-1,0.75,-1,float(clock),C.byref(p))
+        for k,r in enumerate(records):
+            p=Pass();lib.mu_mv_mesh_pass(r,color,0.8,-1,0.75,textures[k],float(clock),C.byref(p))
             expected.append((True,[p.mesh & 0xffffffff,p.flags & 0xffffffff,f(p.alpha),p.blend & 0xffffffff,
                                    f(p.light),0,0,p.texture & 0xffffffff],struct.pack('<3f',*p.color)))
         row=rows['mesh'];row['cases']+=1
@@ -170,7 +171,7 @@ def compare(lib,machine,count,installed):
     return rows
 
 
-MUTANTS=[('mesh','integer(r, 4)','integer(r, 0)'),('flags','integer(r, 0x124)','2'),
+MUTANTS=[('texture','out->texture = texture','out->texture = texture ^ 1'),('mesh','integer(r, 4)','integer(r, 0)'),('flags','integer(r, 0x124)','2'),
  ('blend_gate','if (r[0x129])','if (!r[0x129])'),('blend_mesh','out->blend = out->mesh','out->blend = -1'),
  ('wave_gate','r[0x128] ?','!r[0x128] ?'),('wave_sign','wave(-number','wave(number'),
  ('range','number(r, 0x120) - number(r, 0x11c)','number(r, 0x120) + number(r, 0x11c)'),

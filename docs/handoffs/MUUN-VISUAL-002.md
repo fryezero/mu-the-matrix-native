@@ -17,15 +17,17 @@ MuunInfo table has no auxiliary categories. [Addresses and scope](../research/cl
 
 ## WIP checkpoint
 
-Done: full static audit, before default sweeps using a rebuilt world binary, mesh/command implementation,
-original-instruction comparator, private skeleton/attachment/command controls and GL/software mesh pixel controls.
-The six private Muun tests passed before the added shadow path, 11.09 s. Baselines took 32.85 s and 82.09 s.
+Done: full static audit, before default sweeps using a rebuilt world binary, mesh/shadow/command implementation,
+original-instruction comparison and all 15 compiled mutants, and six private native Muun tests including
+GL/software pixel controls. Private tests 13.28 s; mutant row 13.21 s, 1,361 cases and 15/15 caught.
+Full build 9.42 s. Baselines took 32.85 s and 82.09 s.
 Before binary SHA-256: `601057b7ee7976c787157b321703d40c65dba68c46901b08d22adb1be76c`.
+After rebuilt binary SHA-256: `eb7853668e46c82d4c2581780c80cf033077b788a753c90aade75db6b4d98f85`.
 
-Left: finish shadow comparison, final compiled mutants, native render proofs, final build/affected selectors,
-affected portable/private checks, final rebuilt-binary default identity sweep, latest-main merge, final docs/PR/queue.
-Next: run the small shadow comparison, then the changed private Muun module. Local resume inputs are under
-`~/Documents/MTM/mu-mac-tools/native/scratch/muun-visual-002/` and `renders/muun-visual-002/`.
+Left: native render proof inspection, affected selectors and portable/private checks, final default identity sweep,
+latest-main merge, final docs/PR/queue. Next: finish the proof run, then select and run affected checks.
+Local resume inputs are under `~/Documents/MTM/mu-mac-tools/native/scratch/muun-visual-002/`
+and `renders/muun-visual-002/`.
 
 ## Limits
 

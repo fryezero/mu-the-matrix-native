@@ -1,5 +1,6 @@
 """Fixture-only Muun: production models, pose/bone safety and terminal owner leases."""
 import json
+import io
 import os
 from pathlib import Path
 import struct
@@ -50,12 +51,26 @@ class Fixture(Build):
             (root/'lang/muuneffects.tsv').write_text(''.join(
                 f'173\tData\\\\Effect\\\\fixture.ein\t0\t0\t0\t0\t0\t0\t1\t{bone}\t1\n' for bone in (5,50,3)))
             row=host(root,root/'lang');absent=host(root,root/'lang',174);no_table=host(root,root/'missing')
+            from PIL import Image
+            textures=root/'Data/Item/Texture';textures.mkdir()
+            jpeg=io.BytesIO();Image.new('RGB',(4,4),(80,120,160)).save(jpeg,'JPEG')
+            data=jpeg.getvalue();(textures/'valid.OZJ').write_bytes(data[:24]+data)
+            mesh_rows=[]
+            for mesh,name in [(0,b'missing.jpg'),(0,b'valid.jpg'),(99,b'default')]:
+                r=bytearray(300);struct.pack_into('<ii',r,0,0x2001,mesh)
+                r[8:8+len(name)]=name;struct.pack_into('<I',r,0x124,0x42)
+                mesh_rows.append(r)
+            (root/'Data/Local/MuunMeshInfo.bmd').write_bytes(item_file(mesh_rows))
+            extras=host(root,root/'lang')
         self.assertEqual(absent,{'loaded':False,'code':174})
         self.check_controls(row)
         self.assertEqual((row['model'],row['bones'],row['actions']),(0x2ae7,7,5))
         self.assertEqual((row['records'],row['requested'],row['invalid'],row['refused_bones']),(1,3,0,2))
         self.assertEqual(row['updates'],31)
         self.assertTrue(no_table['loaded']);self.assertEqual((no_table['records'],no_table['requested']),(0,0))
+        self.check_controls(extras)
+        self.assertEqual((extras['mesh_passes'],extras['refused_meshes'],extras['first_mesh_texture']),
+                         (1,2,0xa001))
 
 
 @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION')=='1' and os.environ.get('MU_GAME_ROOT'),
