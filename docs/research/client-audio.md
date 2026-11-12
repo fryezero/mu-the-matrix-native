@@ -701,3 +701,15 @@ Dungeon -> Atlans -> Lost Tower -> Aida -> Kanturu -> an unscored control world,
 checking each requested index and resolved PCM. Repeated same-track frame
 requests retain the current loop. State-dependent event managers and the opaque
 frame interval retain their explicit missing-input behavior.
+
+### AUDIO-003 verification
+
+The 16 new boundaries match 4,000 original-caller cases, zero mismatches/stops,
+with 10/10 compiled mutants caught once. Original return addresses and arguments
+are independent of the native adapter. The existing caller families retain
+OBJECT, AL, full normalized call order and RNG comparisons. A synthetic native
+world proves Elbeland's session delivery and equal audio-on/off frames. Native
+checks also cover loop PCM, safe refusal, active-id suppression, mute, disabled
+and detached delivery, no replay and independent readers. Read-only installed
+inputs decode all 16 ids, and eleven world/zone segments resolve the expected
+music and PCM. [Final counts, wall times and steward rows](../handoffs/AUDIO-003.md).
