@@ -127,7 +127,9 @@ is refused. This does not grant a learned skill, authoritative class or power.
 
 The learned-index lookup is the original `0x016a782e` service. It searches
 only 150 slots, returns the first match and falls back to slot zero. The native
-adapter follows that bound. No live learned list is acquired.
+adapter searches active learned entries with the same 150-slot cap. Stale
+entries beyond the learned count are outside native admission. No live learned
+list is acquired.
 
 ## Native boundaries
 

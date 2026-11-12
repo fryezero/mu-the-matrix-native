@@ -104,3 +104,16 @@ by grep and the special-bow regression assertions were corrected too.
 Left: affected portable suites and private validators, earlier Penetration
 pixel, final rebuilt default identity sweep, final audit/review/docs/PR/cleanup.
 Next: start the portable affected run when the resource guard permits.
+
+## Portable completion and parent integration
+
+Portable affected run at `bee54942`: 163 work items, 1,748 tests, 1,457 passed,
+291 expected private skips, zero failures/errors. Outer wall 628.32 s; runner
+wall after selection 491.7 s. No full gate ran.
+
+The next fetch found main `6b75fbda`, with #373 ACTORS-003, #374 MUUN-VISUAL-002,
+#375 APP-REFRESH-012 and the required parent #376 now merged. Integrate this
+main before the private validators and final identity. Only changed compiled
+inputs need subsequent checks. The earlier portable and native evidence remains
+recorded; integration checks are pending. The installed app was changed by the
+refresh lane, not this lane.
