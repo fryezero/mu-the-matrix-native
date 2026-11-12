@@ -127,7 +127,7 @@ RECON_SRC += $(RECON)/objects/action_registry.c
 RECON_SRC += $(RECON)/environment/env_fog.c
 # MUUN-VISUAL-001: fixture-only base slot and model/attachment owner
 CORE_SRC += core/mu_muun_visual.c
-RECON_SRC += $(RECON)/muun/visual.c
+RECON_SRC += $(RECON)/muun/visual.c $(RECON)/muun/passes.c
 # RENDER-EFFECTS-028: isolated fixture aura reconstruction.
 RECON_SRC += $(RECON)/combat/aura_fx.c
 RECON_SRC += $(RECON)/combat/demo_skill_fx.c
