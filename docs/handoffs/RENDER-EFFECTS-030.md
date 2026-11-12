@@ -1,12 +1,14 @@
 # RENDER-EFFECTS-030
 
-WIP: all implementation, affected checks and render proofs pass. Repository
-audit, final PR/ready entry and cleanup remain. No ready-prs entry yet.
+WIP: implementation proofs and all private checks pass. The late
+UI-WINDOWS-002 after-only render replay, final audit and
+publication/cleanup remain. No ready-prs entry yet.
 
 Branch `codex/render-effects-030` began at EFFECTS-028 `32e36706` while #376
 was open. Main at start was `d4af71dd`. Required parent/current main was merged
 as `b5e53b91`, then AUDIO-003/INNER-002 as `92ef41f3`, and ITEMS-UI-001
-(main `626abce1`) as `a06eaf2b`. No subagents or full lane gate.
+(main `626abce1`) as `a06eaf2b`; UI-WINDOWS-002 main `0ccd5f44` is
+merged as `552f6020`. No subagents or full lane gate.
 
 ## Skill audit and implemented boundary
 
@@ -140,7 +142,11 @@ No owner client, installed application, packet/power or protection work occurs.
 | Final seven-scene after/repeat refresh, `43f079ec` | 42/42 matching pairs; all earlier after images match | 38.54 s |
 | Early Penetration / alias flight, `43f079ec` | 6/6 matching pairs; visible frame-6 projectile | 5.75 s |
 | Final default sweep, `43f079ec` | exact documented INNER-002 delta only | 72.96 s |
-| Repository audit, `75d5cb5a` plus status lines | 2,223 staged files, zero rejected | 24.87 s |
+| Repository audit before late UI merge, `75d5cb5a` plus status lines | 2,223 staged files, zero rejected | 24.87 s |
+| Late UI root build, `552f6020` | pass | 6.09 s |
+| Late UI private validators, `552f6020` | 12/12, zero failures/errors/skips; no mutants | 103.11 s |
+| Late UI private windows/audio, `552f6020` | 15/15, zero skips/failures | 66.29 s |
+| Late UI portable delta since `75d5cb5a`, `552f6020` | 138 items; 1,454 tests, 1,183 pass / 271 expected skips, zero failures/errors | 398.41 s (333.6 s runner) |
 
 8d reduced: initial native selection was 152 items, above the 40-item cap.
 The first private run covers the changed effect fixtures, all BowSession cases,
@@ -156,8 +162,9 @@ Current selection was inspected before its run. Main-merge selection since
 (46.29 s). Additional runs are `(merge - current) union UI`: 49 new rows and
 four changed-input rechecks. There are 107 distinct rows, not 111 distinct
 validators. The four rechecks are audio_callers/domains/items and effects16.
-Current row inputs are unchanged after `92ef41f3`, except these four, which
-pass again at `a06eaf2b`. No unchanged consumer mutants were requested.
+The late UI-WINDOWS-002 merge reaches twelve existing rows, which pass again
+at `552f6020`. Rows not labelled windows2 retain unchanged compiled inputs
+since their recorded current/extra commits. No further mutants are required.
 
 ## Steward validators
 
@@ -165,27 +172,27 @@ Canonical private env supplies MU_RECOVERY_INTEGRATION, MU_GAME_ROOT,
 MU_NATIVE_DATA_DIR, MU_GFX_LIB, MU_LANG_DIR, MU_SECTION3 and evidence/snapshot
 paths. Use --private --no-mutants --cache --jobs 2. No further mutants required.
 The table gives each row's latest completed registered-check count and wall;
-current = `92ef41f3`, extra = `a06eaf2b`. These counts mix original comparisons
+current = `92ef41f3`, extra = `a06eaf2b`, windows2 = `552f6020`. These counts mix original comparisons
 and native/negative controls according to each row; they are not a single
 original-instruction case total.
 
 | Validator | Cases | Wall s | Selection |
 |---|---:|---:|---|
 | `validate_actor_recipes` | 1669 | 134.4 | current |
-| `validate_app_polish1` | 752 | 22.0 | extra |
-| `validate_app_polish2` | 1028 | 3.9 | extra |
-| `validate_app_polish4` | 10485 | 41.8 | current |
-| `validate_app_polish7` | 5120 | 1.9 | extra |
-| `validate_audio_callers` | 5528 | 7.7 | extra |
+| `validate_app_polish1` | 752 | 24.8 | windows2 |
+| `validate_app_polish2` | 1028 | 4.9 | windows2 |
+| `validate_app_polish4` | 10485 | 42.4 | windows2 |
+| `validate_app_polish7` | 5120 | 2.6 | windows2 |
+| `validate_audio_callers` | 5528 | 6.5 | windows2 |
 | `validate_audio_charsel` | 5968 | 5.6 | current |
 | `validate_audio_combat` | 19548 | 33.6 | current |
-| `validate_audio_domains` | 2544 | 37.4 | extra |
-| `validate_audio_items` | 3000 | 5.4 | extra |
+| `validate_audio_domains` | 2544 | 28.6 | windows2 |
+| `validate_audio_items` | 3000 | 4.1 | windows2 |
 | `validate_audio_objects` | 4000 | 5.4 | current |
 | `validate_charsel_items` | 8817 | 9.2 | current |
 | `validate_charsel_world` | 1200 | 4.9 | extra |
 | `validate_combat` | 496 | 0.8 | current |
-| `validate_gfx3` | - | 11.5 | extra |
+| `validate_gfx3` | - | 7.1 | windows2 |
 | `validate_icarus` | 5240 | 37.6 | extra |
 | `validate_icarus_c2` | 8400 | 23.8 | current |
 | `validate_inventory_fx` | 8017 | 11.2 | current |
@@ -194,11 +201,11 @@ original-instruction case total.
 | `validate_items` | 444 | 2.7 | current |
 | `validate_items_ui` | 8517 | 18.6 | extra |
 | `validate_login_world` | 1200 | 7.6 | extra |
-| `validate_map_polish` | 876 | 2.7 | extra |
+| `validate_map_polish` | 876 | 0.5 | windows2 |
 | `validate_meshdraw` | 14619 | 56.2 | current |
 | `validate_model_edge` | 954 | 118.6 | current |
 | `validate_model_light` | 1433 | 5.4 | current |
-| `validate_movement` | 6614 | 57.6 | current |
+| `validate_movement` | 6614 | 71.5 | windows2 |
 | `validate_muun_passes` | 1361 | 1.7 | extra |
 | `validate_muun_visual` | 912 | 1.6 | extra |
 | `validate_object_render` | 1984 | 13.7 | extra |
@@ -210,7 +217,7 @@ original-instruction case total.
 | `validate_render_effects13` | 180 | 0.6 | current |
 | `validate_render_effects14` | 660 | 1.6 | current |
 | `validate_render_effects15` | 509 | 1.1 | current |
-| `validate_render_effects16` | 424 | 4.6 | extra |
+| `validate_render_effects16` | 424 | 3.9 | windows2 |
 | `validate_render_effects17` | 618 | 9.3 | current |
 | `validate_render_effects18` | 540 | 1.7 | current |
 | `validate_render_effects19` | 400 | 1.1 | current |
@@ -250,7 +257,7 @@ original-instruction case total.
 | `validate_worlds_d` | 2400 | 4.2 | current |
 | `validate_worlds_e` | 4840 | 20.4 | extra |
 | `validate_worlds_f` | 1818 | 0.5 | current |
-| `validate_worlds_fog` | 4044 | 9.5 | current |
+| `validate_worlds_fog` | 4044 | 7.7 | windows2 |
 | `validate_worlds_g` | 6000 | 4.5 | extra |
 | `validate_worlds_g2` | 2657 | 6.2 | extra |
 | `validate_worlds_g3` | 4000 | 7.4 | extra |
@@ -311,3 +318,28 @@ changes are GFx, world input/adapter and test hosts; combat/reconstructed inputs
 are unchanged. Merge it, retain both status entries, rebuild, select only its
 affected checks, run changed private UI modules, and refresh final binary proofs
 where compiled inputs changed. No ready entry or final PR-ready claim yet.
+
+## Late UI integration checks in progress
+
+Merged main `0ccd5f44` as `552f6020`; both shared status entries are retained.
+The root rebuild passes, 6.09 s. Selection since `75d5cb5a` reaches twelve
+rows, 22.13 s; all twelve pass at `552f6020`, zero failures/errors/skips,
+103.11 s, cache and no mutants. They are already in the 107-row set; the
+Steward table above now records their latest timings with the windows2 label.
+Unselected compiled inputs and all combat/reconstruction code are unchanged.
+
+Private old/new window and UI-audio modules pass 15/15, no skips, 66.29 s.
+The affected portable delta passes 1,454 tests, 1,183 passed / 271 expected
+skips, zero failures/errors, 398.41 s (333.6 s runner). Explicitly rebuild world,
+record the new hash and replay after scenes only. All 230 prior after-file
+hashes are retained, alongside the original once-taken baseline. No new
+original proof or mutant run is needed. Final audit/publication is pending.
+
+## WIP checkpoint, 00:54 local, November 12
+
+All checks for main `0ccd5f44` merged as `552f6020` pass: root build, twelve
+affected validators, fifteen private UI/audio tests and the 138-item portable
+delta. All original/combat proof inputs remain unchanged. Next: explicit world
+build and after-only replay against retained hashes, final audit, final status
+and PR/ready entry, then cleanup. No new baseline or mutants are run.
+No ready entry or final PR-ready claim yet.
