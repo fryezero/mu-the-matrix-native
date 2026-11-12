@@ -7,7 +7,7 @@
 #include "../core/mu_objects.h"
 
 static mu_object_model model;
-static int effects, joints;
+static int effects, joints, keyed;
 static uint32_t next(uint32_t seed) { return seed * 214013u + 2531011u; }
 static void effect(void *c, int32_t type, int32_t sub, const float p[3], const float a[3], const float l[3], int32_t owner)
 {
@@ -20,12 +20,19 @@ static void joint(void *c, int32_t type, const float p[3], const float q[3], con
 {
     (void)c; (void)a;
     if (type == 0x7f7c) {
-        assert(sub == 18 && owner == -1 && scale == 50.0f && p[0] != q[0]);
+        assert(sub == 18 && owner == -1 && (scale == 50.0f || scale == 40.0f) && p[0] != q[0]);
     } else {
         assert(type == 0x7f7d && (sub == 26 || sub == 16 || sub == 17 || sub == 24 || sub == 25));
         assert(owner == 0 && scale == 1.0f && memcmp(p, q, 12) == 0);
     }
     ++joints;
+}
+static void keyed_effect(void *c, int32_t type, int32_t sub, const float p[3], const float a[3], const float l[3],
+                           int32_t owner, uint16_t word)
+{
+    (void)c; (void)p; (void)a;
+    assert(type == 0x199 && sub == 0 && owner == 0 && word == 3 && l[0] == 0.1f);
+    ++keyed;
 }
 static void reset(mu_objects *o, int32_t world, int32_t type)
 {
@@ -161,6 +168,63 @@ int main(int argc, char **argv)
         o->rt.joint = joint;
         assert(mu_obj_f32(o->rt.images, MU_OBJF_LIGHT + 4) == 0.65f);
     }
+    /* INNER-003: production named bones, RGB extra meshes, clock and word4 channels. */
+    static const char *const aida_names[] = {"Box07","Box08","Box09","Box13","Box14","Box18","Bone01"};
+    for (int k = 0; k < 7; ++k) strcpy(model.bmd.bones[k].name, aida_names[k]);
+    for (int world = 33; world <= 54; world += 21) {
+        reset(o,world,0x1e); assert(pass(o) == &model && o->rt.sprite_count == 12 && o->rt.seed == next(1));
+        assert(o->rt.sprites[0].scale == 5.5f && o->rt.sprites[1].light[0] == 0.15f);
+        reset(o,world,0x47); assert(pass(o) == &model && o->rt.sprite_count == 12);
+        assert(o->rt.sprites[0].scale == 6 && o->rt.sprites[0].light[0] == 0.5f);
+        model.bmd.bones[0].name[0] = 'x';
+        reset(o,world,0x1e); assert(pass(o) == &model && o->rt.sprite_count == 10 && o->rt.draw_unsupported == 2);
+        model.bmd.bones[0].name[0] = 'B';
+        reset(o,world,0x1e); o->models[0x1e] = NULL; assert(pass(o) == NULL && o->rt.seed == 1);
+        reset(o,world,0x3b); (void)pass(o); assert(o->rt.particle_count == 20);
+        mu_obj_set_i32(o->rt.images,MU_OBJF_HIDDEN_MESH,-2); o->rt.particle_count = 0;
+        (void)pass(o); assert(o->rt.particle_count == 0);
+        reset(o,world,0x3c); (void)pass(o); assert(effects == 1 && mu_obj_i32(o->rt.images,MU_OBJF_HIDDEN_MESH) == -2);
+        reset(o,world,0x3c); o->rt.effect = NULL; (void)pass(o); assert(o->rt.draw_unsupported == 1);
+        o->rt.effect = effect;
+        reset(o,world,0x46); o->rt.seed = seed_for(2,5,1); o->rt.effect_word4 = keyed_effect;
+        mu_obj_set_f32(o->rt.images,MU_OBJF_SCALE,3.9f); keyed = 0; (void)pass(o); assert(keyed == 1);
+        o->rt.effect_word4 = NULL; o->rt.seed = seed_for(2,5,1); (void)pass(o); assert(o->rt.draw_unsupported == 1);
+        reset(o,world,0x41); assert(pass(o) == &model);
+        mu_object_mesh meshes[4]; assert(mu_objects_first_meshes(o,0,NULL,&model,meshes,4) == 2);
+        assert(meshes[1].options.mesh_plus_one == 1 && o->rt.stream[0x41] == 0xff);
+    }
+    reset(o,38,4); assert(pass(o) == &model && o->rt.sprite_count == 3 && o->rt.seed == next(1));
+    model.bmd.bone_count = 1; reset(o,38,4); (void)pass(o);
+    assert(o->rt.sprite_count == 0 && o->rt.draw_unsupported == 3); model.bmd.bone_count = 7;
+    reset(o,38,8); o->rt.seed = seed_for(6,20,0); (void)pass(o);
+    assert(joints == 1 && o->rt.sprite_count == 1 && o->rt.particle_count == 1);
+    reset(o,38,8); o->rt.joint = NULL; o->rt.seed = seed_for(6,20,0); (void)pass(o);
+    assert(o->rt.draw_unsupported == 1); o->rt.joint = joint;
+    reset(o,38,0xa); o->rt.seed = seed_for(2,6,0); (void)pass(o);
+    assert(o->rt.particle_count == 1 && o->rt.particles[0].position[2] == 410);
+    reset(o,38,0x31); (void)pass(o); assert(o->rt.particle_count == 5);
+    assert(o->rt.particles[0].sub == 1 && o->rt.particles[0].light[0] == 0);
+    const int refused_types[] = {0x36,0x38,0x41};
+    for (int k = 0; k < 3; ++k) {
+        reset(o,38,refused_types[k]); o->rt.seed = seed_for(2,k == 0 ? 20 : 10,0); (void)pass(o);
+        assert(joints == 0 && o->rt.draw_unsupported == 1); /* 0x7f7d/8,9,10 have no native consumer */
+    }
+    reset(o,38,0x35); o->rt.seed = seed_for(2,3,0); (void)pass(o);
+    assert(o->rt.particle_count == 1 && o->rt.particles[0].sub == 1 && o->rt.particles[0].scale == 1);
+    reset(o,38,4); o->models[4] = NULL; assert(pass(o) == NULL && o->rt.seed == 1);
+    reset(o,31,0x31); (void)pass(o); assert(o->rt.sprite_count == 3 && o->rt.seed == next(next(1)));
+    assert(o->rt.sprites[0].bitmap == 0x7ef7 && o->rt.sprites[2].bitmap == 0x7f67);
+    assert(o->rt.sprites[2].scale == 1.2f && o->rt.sprites[2].rotation >= 0 && o->rt.sprites[2].rotation < 360);
+    reset(o,31,3); o->rt.seed = seed_for(2,3,0); (void)pass(o);
+    assert(o->rt.particle_count == 1 && o->rt.particles[0].bitmap == 0x801c && o->rt.particles[0].sub == 3);
+    model.bmd.bone_count = 3; reset(o,31,0x31); (void)pass(o);
+    assert(o->rt.sprite_count == 0 && o->rt.draw_unsupported == 3); model.bmd.bone_count = 7;
+    strcpy(model.bmd.bones[0].name,"Bip01 R UpperArm"); strcpy(model.bmd.bones[1].name,"Bip01 L UpperArm");
+    reset(o,9,2); (void)pass(o); assert(o->rt.particle_count == 1 && o->rt.seed == next(next(next(1))));
+    assert(o->rt.particles[0].bitmap == 0x771d && o->rt.particles[0].scale == 1);
+    model.bmd.bones[0].name[0] = 'x'; reset(o,9,2); (void)pass(o);
+    assert(o->rt.particle_count == 0 && o->rt.draw_unsupported == 1);
+    reset(o,9,2); o->models[2] = NULL; assert(pass(o) == NULL && o->rt.seed == 1);
     free(o->rt.images); free(o); mu_model_free(&model.model); mu_bmd_free(&model.bmd);
     puts("classless inline host: Blood Castle gates/bones/counter, Kanturu effects/joints/meshes/refusals OK");
     return 0;

@@ -1,5 +1,6 @@
 #include "../../reconstructed/objects/world_visual.h"
 #include "../../reconstructed/objects/world_inner_visual.h"
+#include "../../reconstructed/objects/world_inner3_visual.h"
 #include "../../reconstructed/objects/world_visual_slots2.h"
 #include "mu_frame_time.h"
 /* The client's world-object lifecycle in the native session (NATIVE-OBJECTS-002,
@@ -1401,12 +1402,18 @@ static void inner_missing_bone(void *context, int32_t k, const float local[3], f
     (void)context; (void)k; (void)local;
     out[0] = out[1] = out[2] = NAN;
 }
+static void inner_missing_named_bone(void *context, const char *name, const float local[3], float out[3])
+{
+    (void)name;
+    inner_missing_bone(context, 0, local, out);
+}
 static int world_inner(mu_objects *o, int32_t i, uint8_t *img, const mu_object_model *m, float time, int posed,
                         const mu_obj_log *body_log, mu_obj_log *draws)
 {
     const int kanturu = o->world == 37 || o->world == 40;
     const int blood = (o->world >= 11 && o->world <= 17) || o->world == 52;
-    if (!m || !m->loaded || (!kanturu && !blood && o->world != 51 && o->world != 56)) return 0;
+    if (!m || !m->loaded || (!kanturu && !blood && o->world != 51 && o->world != 56 && o->world != 33 &&
+                             o->world != 54 && o->world != 38 && o->world != 31 && o->world != 9)) return 0;
     visual_context c = {o, m};
     mu_obj_event events[64];
     mu_obj_log log = {0, 64, 0, events};
@@ -1419,6 +1426,19 @@ static int world_inner(mu_objects *o, int32_t i, uint8_t *img, const mu_object_m
                          posed ? test_area_bone : NULL, &c, &log);
     } else if (blood) {
         mu_blood_castle_inner(img, i, o->world, time, visual_rand, posed ? inner_named_bone : NULL, &c, &log);
+    } else if (o->world == 9) {
+        mu_devil_square_inner(img, i, o->world, visual_rand,
+                               posed ? inner_named_bone : inner_missing_named_bone, &c, &log);
+    } else if (o->world == 31) {
+        mu_trials_inner(img, i, o->world, time, visual_rand,
+                          posed ? test_area_bone : inner_missing_bone, &c, &log);
+    } else if (o->world == 38) {
+        mu_kanturu_remain_inner(img, i, o->world, time, visual_rand,
+                                 posed ? test_area_bone : inner_missing_bone, &c, &log);
+    } else if (o->world == 33 || o->world == 54) {
+        const uint32_t clock = isfinite(time) && time >= 0.0f && (double)time < 4294967296.0 ? (uint32_t)time : 0;
+        mu_aida_inner(img, o->rt.model_fields, i, o->world, time, clock, visual_rand,
+                       posed ? inner_named_bone : inner_missing_named_bone, &c, &log);
     } else {
         mu_later_world_inner(img, i, o->world, time, visual_rand, posed ? test_area_bone : inner_missing_bone, &c, NULL, &log);
     }
@@ -1588,7 +1608,8 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
     /* NATIVE-PARTICLE-001: RenderObjectVisual through the particle module, after RenderObject */
     int inner_draws = 0;
     const int inner_world = o->world == 37 || o->world == 40 || (o->world >= 11 && o->world <= 17) ||
-                            o->world == 52 || o->world == 51 || o->world == 56;
+                            o->world == 52 || o->world == 51 || o->world == 56 || o->world == 33 ||
+                            o->world == 54 || o->world == 38 || o->world == 31 || o->world == 9;
     if (!login && !charsel &&
         inner_world) {
         if (m && m->loaded && !posed)
