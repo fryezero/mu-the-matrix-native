@@ -34,9 +34,18 @@ movie hit tests. Final affected checks cover that adapter change.
 Affected selection: ten validator rows, 29.22 s; 123 test work items, including
 121 native items, 71.34 s. Private tests will use the binding **8d reduced** cap.
 
-Left: affected
-selection/checks, private reduced tests, fixed-clock hover/overlap captures, final-main
-merge, audit, status lines and PR/steward readiness.
+Checkpoint update at `bb492408`: 1,281 portable tests, 1,041 passed, 240 skipped,
+zero failures/errors, 451.30 s including selection; ten affected validators pass,
+101.50 s; 8d reduced private pass 29/29, no skips, 73.40 s. Two stricter popup
+coordinate assertions pass in 1.37 s. Final-code sword/ring captures change only the
+inventory/popup region, 19,429 / 12,760 pixels, zero changes outside it.
+
+The default sweep passes all 276 files across 46 views, including 92 PNGs, with
+different rebuilt binaries. Main subsequently advanced to `6b75fbda` (#373..#376).
+The checkpoint audit was deferred by the resource guard; the final audit remains pending.
+
+Left: merge that main, rebuild, rerun checks whose compiled inputs changed,
+refresh after-only sweep/captures if needed, final audit, status lines and PR/steward readiness.
 
 Next: wait for the resource guard, run the build and new validator, then inspect a
 native equipment hover with the fixed-clock library from canonical private-env.sh.

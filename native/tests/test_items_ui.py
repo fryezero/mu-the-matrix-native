@@ -74,7 +74,8 @@ class EquipmentLayer(unittest.TestCase):
         rows = [json.loads(s) for s in output.splitlines() if s.startswith('{"equipment"')]
         self.assertEqual([row['select'] for row in rows],[1,0])
         self.assertEqual((rows[0]['word'],rows[0]['excellent'],rows[0]['set']),((9<<3)|0x87,1,2))
-        self.assertIn('SetInfoPopup ',log)
+        # Wrapper integers (479,24,15,24), divided by the original screen rates.
+        self.assertIn('SetInfoPopup [958,40,30,40,',log)
         self.assertIn('SetInfoPopupClose ',log)
 
     def test_retina_hover_and_inventory_close(self):
@@ -83,7 +84,7 @@ class EquipmentLayer(unittest.TestCase):
                                    'move',959,41,'equipdraws','key',73,scale='2')
         row = next(json.loads(s) for s in output.splitlines() if s.startswith('{"equipment"'))
         self.assertEqual(row['select'],1)
-        self.assertIn('SetInfoPopup ',log)
+        self.assertIn('SetInfoPopup [958,40,30,40,',log)
         self.assertIn('SetInfoPopupClose ',log)
 
 
