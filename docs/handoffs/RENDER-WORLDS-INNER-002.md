@@ -10,10 +10,14 @@ from `d4af71dd` with `make -C native -j4 world`, SHA-256
 `4954601057b7ee7976c787157b321703d40c65dba68c46901b08d22adb1be76c`.
 Baseline default tours and affected clock views recorded once in this lane's local scratch directory.
 
-Left: full comparisons/mutants, affected checks, after renders, final research/status updates,
+Full comparison: 5,000 cases, zero mismatches/stops; 27/27 compiled mutants caught, minimum 46 detections.
+The first eight compiled before a nonunique anchor stopped setup, 49.78 s; the remaining nineteen ran after
+the anchor was narrowed, 86.64 s. No successful mutant was recompiled.
+
+Left: affected checks, after renders, final research/status updates,
 latest-main integration, audit, PR and ready queue. No readiness claim yet.
 
-Next: run the new validator's full comparisons and compiled mutants, then select affected checks.
+Next: build mu-world, select affected checks, then run the selected validators and suites.
 Local scratch: `~/Documents/MTM/mu-mac-tools/native/scratch/render-worlds-inner-002/`.
 
 ## Scope and what draws now

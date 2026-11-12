@@ -145,7 +145,7 @@ MUTATIONS = [
     ('Elbeland smoke count', 'k < 10', 'k < 9', 'world_51_focus'),
     ('Elbeland hidden gate', 'MU_OBJF_HIDDEN_MESH) != -2', 'MU_OBJF_HIDDEN_MESH) != -1', 'world_51_focus'),
     ('Elbeland hidden write', 'MU_OBJF_HIDDEN_MESH, -2', 'MU_OBJF_HIDDEN_MESH, -1', 'world_51_focus'),
-    ('Elbeland smoke owner', 'p, light, scale, 1', 'p, light, scale, 0', 'world_51_focus'),
+    ('Elbeland smoke owner', '0x7f89, 3, p, light, scale, 1', '0x7f89, 3, p, light, scale, 0', 'world_51_focus'),
     ('Elbeland glow bone', 'bone(c, 5', 'bone(c, 4', 'world_51_focus'),
     ('Elbeland glow scale', 'scale * 6.0f', 'scale * 5.0f', 'world_51_focus'),
     ('Elbeland orbit RNG', 'rnd(c) % 2', 'rnd(c) % 3', 'world_51_focus'),
