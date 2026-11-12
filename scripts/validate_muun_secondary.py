@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Kind-1 visual helpers against pinned instructions. No packet, stat or live process inputs.
 
-Executes full secondary setup with named allocation/model/pose/string services, full action dispatcher,
+Executes full secondary setup with an already allocated OBJECT and named model/pose/string services,
+full action dispatcher,
 full secondary render caller with recorded RenderObject, and full attachment caller with a supplied named
 bone zero-point service. The latter tests caller scaling, not the already verified bone transform itself.
 """

@@ -129,3 +129,16 @@ Steward validators after the merge: validate_app_polish1, validate_app_polish2, 
 
 Resource waits delayed the finish steps; one heavy lane job at a time is maintained. All tests and tools
 run from the repository root. No full lane gate or hosted CI ran.
+
+## Actor-main integration WIP
+
+Main advanced again to `c35458a0`, RENDER-ACTORS-004, and merged cleanly at `5085c66b`. Root build passes,
+11.20 s. The symbol-aware selection keeps 25 validator rows and prunes twelve rows whose changed library
+has no changed symbol they use, including terrain and model-edge. Those 25 rows and the affected portable
+work remain to run. No Muun implementation or comparison check changed. The secondary validator's opening
+description now explicitly says its constructor cases use an already allocated OBJECT; original allocation
+is static evidence, while native ownership/retirement is covered by the host tests.
+
+UI-merge portable refresh passed 1,452 tests, 1,180 passed, 272 skipped, zero failures/errors, 281.33 s.
+Its three private Muun world-render tests passed in 16.53 s. The final after sweep/proof will use the
+actor-integrated binary. The before baseline will not be rerun.
