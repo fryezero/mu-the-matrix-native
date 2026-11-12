@@ -1,5 +1,7 @@
 # Continue from here
 
+RENDER-EFFECTS-026 PR-ready: five later item particle pairs now draw, including all four saved wing points. The frozen 110-program / 37-pair inventory is supported; the 109 installed-model scene reduces pre-draw refusals 122 to zero, and the fourteen-program longer fixture reduces 485 to zero at both clocks. 17,008 focused checks, 37/37 compiled mutants and all 90 selected lane validators are covered, with overlapping rows refreshed after main integration. Final default captures: 44 unaffected views byte-identical; incoming INNER-002 accounts for the Elbeland PNG and two dump changes. One exact model path remains unavailable. [Census, checks and limits](handoffs/RENDER-EFFECTS-026.md).
+
 UI-WINDOWS-002 PR-ready: eight inert presentation adapters open Macro/Sub, HuntRecord, expanded storage, matching children/current guild matching and the original guide frame. Native journeys, 1,650 portable tests, 15 private UI/audio checks and 12 validators pass; the pre-integration lane has 230 default identities. Original Help route remains unproved. [Checks and limits](handoffs/UI-WINDOWS-002.md).
 
 ITEMS-UI-001 PR-ready: equipment hover uses the original integer 640x480 bounds and now opens fixture item tooltips. 8,512 instruction comparisons plus five static checks, 8/8 compiled mutants, ten affected validators and 29 private tests pass; the refreshed default sweep is byte-identical. Bits 0x87 add no glow in the compared bodies; original main-game GFx ordering remains unverified. [Checks, evidence and limits](handoffs/ITEMS-UI-001.md).

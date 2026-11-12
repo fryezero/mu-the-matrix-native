@@ -1,6 +1,6 @@
 # RENDER-EFFECTS-026
 
-WIP on `codex/render-effects-026`, initially from main `d4af71dd`, with main `fb747e42` (steward batch 104) integrated.
+PR-ready on `codex/render-effects-026`, initially from main `d4af71dd`, with main `0ccd5f44` (UI-WINDOWS-002) integrated.
 Codex GPT-6.1 Sol; no subagents. Offline/static only. The steward owns the full gate and merge.
 Research: [part 39](../research/client-render-items.md#part-39-five-later-item-particle-consumers-render-effects-026).
 
@@ -87,8 +87,8 @@ validator workers two. Resource guards caused waits. No lane full gate runs.
 |---|---|---:|
 | `validate_render_effects26.py --cases 1000` | 17,008 checks, zero mismatches | 48.020 command / 47.950 script |
 | New registry row, `--cases 20 --mutations` | 348 checks, 37/37 compiled mutants caught, zero machine stops | 92.802 command / 92.6 row |
-| Final root `make -j4` | pass | 12.407 |
-| Explicit `make -C native -j4 world` before final sweep | pass | 5.441 |
+| Particle-final root `make -j4` | pass | 12.407 |
+| Explicit `make -C native -j4 world` before first after sweep | pass | 5.441 |
 | Private reduced modules | 43/43 tests pass, zero skips | 54.529 command / 54.392 tests |
 | Portable `run_test_suites.py --affected origin/main` | 1,690 tests: 1,400 passed, 290 skipped, zero failures/errors | 353.122 command / 294.9 runner |
 | Post-build validator selection | 86/223 rows | 75.721 |
@@ -99,7 +99,8 @@ validator workers two. Resource guards caused waits. No lane full gate runs.
 | Default 46-view sweep, before / after | 92/92 PNGs and 92/92 dumps byte-identical | 61.706 / 87.626 |
 | Image/census/hash QA plus five native raster controls | pass | 2.500 |
 | Affected private validators, no mutants, workers 2 | 86/86 rows pass, 1,166,680 cases, zero failures/errors/skips | 2,354.564 |
-| Repository audit | 2,194 files, zero rejected (before final docs) | 24.805 |
+| Earlier repository audit | 2,194 files, zero rejected (before final docs) | 24.805 |
+| Final staged repository audit | 2,227 files, zero rejected | 37.950 |
 
 
 The 17,008 focused checks contain 16,640 cases against original instructions: 5,000 create, 4,640 move,
@@ -123,12 +124,12 @@ nine-word observation; the new coupled family explicitly requests all twelve.
 
 ## Steward validators
 
-Steward validators: validate_item_ranked,validate_item_continuation,validate_item_expansion,validate_item_effects,validate_item_clusters,validate_item_types,validate_fidelity,validate_meshdraw,validate_model_edge,validate_movement,validate_particles,validate_renderchar,validate_render_worlds_a,validate_icarus_c2,validate_worlds_e,validate_audio_callers,validate_item_gear,validate_item_next,validate_render_effects,validate_render_effects3,validate_render_effects4,validate_render_effects5,validate_render_effects6,validate_render_effects7,validate_render_effects9,validate_render_effects10,validate_render_effects11,validate_render_effects12,validate_world_particle_consumers,validate_audio_domains,validate_audio_items,validate_worlds_l,validate_item_coverage,validate_item_wings_next,validate_item_scalars,validate_item_chains,validate_worlds_m,validate_worlds_after,validate_worlds_g3,validate_worlds_after2,validate_worlds_after3,validate_worlds_after4,validate_worlds_after5,validate_worlds_after6,validate_item_carry,validate_item_quality,validate_item_product,validate_item_derived,validate_item_ownerfx,validate_item_predraw,validate_item_hiddenmesh,validate_app_polish1,validate_app_polish2,validate_app_polish4,validate_render_effects13,validate_render_effects14,validate_worlds_slots,validate_worlds_slots2,validate_worlds_slots3,validate_worlds_121,validate_worlds_raklion,validate_worlds_karutan,validate_render_effects15,validate_render_effects16,validate_worlds_fog,validate_render_effects17,validate_item_callers,validate_inventory_fx,validate_render_effects18,validate_render_effects19,validate_render_effects20,validate_render_effects21,validate_item_cloak,validate_armour_cloak,validate_render_effects22,validate_item_named,validate_npc_cloak,validate_render_effects23,validate_render_effects24,validate_worlds_inner,validate_render_effects27,validate_item_groups,validate_render_effects25,validate_actor_recipes,validate_charsel_items,validate_render_effects26,validate_worlds_inner2,validate_audio_objects,validate_render_effects28
+Steward validators: validate_item_ranked,validate_item_continuation,validate_item_expansion,validate_item_effects,validate_item_clusters,validate_item_types,validate_fidelity,validate_meshdraw,validate_model_edge,validate_movement,validate_particles,validate_renderchar,validate_render_worlds_a,validate_icarus_c2,validate_worlds_e,validate_audio_callers,validate_item_gear,validate_item_next,validate_render_effects,validate_render_effects3,validate_render_effects4,validate_render_effects5,validate_render_effects6,validate_render_effects7,validate_render_effects9,validate_render_effects10,validate_render_effects11,validate_render_effects12,validate_world_particle_consumers,validate_audio_domains,validate_audio_items,validate_worlds_l,validate_item_coverage,validate_item_wings_next,validate_item_scalars,validate_item_chains,validate_worlds_m,validate_worlds_after,validate_worlds_g3,validate_worlds_after2,validate_worlds_after3,validate_worlds_after4,validate_worlds_after5,validate_worlds_after6,validate_item_carry,validate_item_quality,validate_item_product,validate_item_derived,validate_item_ownerfx,validate_item_predraw,validate_item_hiddenmesh,validate_app_polish1,validate_app_polish2,validate_app_polish4,validate_render_effects13,validate_render_effects14,validate_worlds_slots,validate_worlds_slots2,validate_worlds_slots3,validate_worlds_121,validate_worlds_raklion,validate_worlds_karutan,validate_render_effects15,validate_render_effects16,validate_worlds_fog,validate_render_effects17,validate_item_callers,validate_inventory_fx,validate_render_effects18,validate_render_effects19,validate_render_effects20,validate_render_effects21,validate_item_cloak,validate_armour_cloak,validate_render_effects22,validate_item_named,validate_npc_cloak,validate_render_effects23,validate_render_effects24,validate_worlds_inner,validate_render_effects27,validate_item_groups,validate_render_effects25,validate_actor_recipes,validate_charsel_items,validate_render_effects26,validate_worlds_inner2,validate_audio_objects,validate_render_effects28,validate_items_ui
 
-Tested at `cd8d586faf97f2685246e514c63887ab1c2a5053`; the initial lane selection is 86/223 rows; the batch-103 selection is 87/225; latest selection is 89/227, including
+Tested at `cd8d586faf97f2685246e514c63887ab1c2a5053`; the initial lane selection is 86/223 rows; the batch-103 selection is 87/225; batch-104 selection is 89/227; latest selection is 90/228, including
 movement's shell-object fallback. No steward mutant rerun is needed. New-row mutants passed at
 `8d370d6ffc0725fd62cbccec2ded2fdf7d716efa`; later edits to its targets are comments only. The steward can
-skip unchanged compiled inputs. The post-merge integration selection and second tested commit are recorded below.
+skip unchanged compiled inputs. The integration sections below identify each later tested commit and its changed-input rows.
 
 
 | Validator | Cases | Wall seconds | Result |
@@ -416,7 +417,7 @@ bitmap-count or owner-point consumer. The new audio/producer modules retain thei
 The explicit world build immediately before the final after sweep passes in
 0.282 s. Capture takes 73.049 s;
 comparison takes 0.262 s. No before capture is repeated.
-Final world SHA-256: `090f76f0a1d54a78768347fe6f2ff045034f616de928ad6cbf212478370d0ac8`, distinct from the retained baseline
+Batch-104 world SHA-256: `090f76f0a1d54a78768347fe6f2ff045034f616de928ad6cbf212478370d0ac8`, distinct from the retained baseline
 `4954601057b7ee7976c787157b321703d40c65dba68c46901b08d22adb1be76c`.
 
 Final default result: **91/92 PNGs and 90/92 OBJECT/light dumps identical**. All 44 unaffected views
@@ -425,6 +426,92 @@ incoming INNER-002 result; both changed dumps are Elbeland's. Swamp PNGs/dumps r
 Before batch 104, the lane's fully rebuilt particle/UI/actor/Muun/aura binary matched all 92 PNGs and 92
 dumps as recorded above. The latest Elbeland difference belongs to the incoming producer, and is retained.
 [Incoming capture domain and limits](RENDER-WORLDS-INNER-002.md#renders-and-byte-identity).
+
+## Final UI integration
+
+Main `626abce1` (ITEMS-UI-001) merges cleanly at `b3f8495d8a531a7b9a52fe3842c214c1e75ab1b4`.
+Its GFx implementation changes; the five particle and fourth-point caller targets remain unchanged.
+Root/world builds pass in 1.367 / 8.435 s.
+Incoming selection is 10/228 rows (21.650 s) and 126/204
+suite work items (59.987 s). Final lane selection is 90/228,
+99.643 s. The 7 overlapping/new lane rows below pass
+21,793 reported cases, zero failures/errors/skips, 36.712 s command,
+at `12dfb23aabd29aedb577f0e30e60067e08a1ab91`. The other 3 incoming rows reuse incoming evidence.
+No unchanged mutant is rerun.
+
+| Validator | Reported cases | Wall seconds | Result |
+|---|---:|---:|---|
+| `validate_app_polish1` | 752 | 20.3 | pass |
+| `validate_app_polish2` | 1,028 | 4.0 | pass |
+| `validate_audio_callers` | 5,528 | 5.8 | pass |
+| `validate_audio_domains` | 2,544 | 23.5 | pass |
+| `validate_audio_items` | 3,000 | 5.1 | pass |
+| `validate_items_ui` | 8,517 | 10.7 | pass |
+| `validate_render_effects16` | 424 | 3.4 | pass |
+
+Portable delta, `run_test_suites.py --affected-since 4e57f313`,
+352.046 s command:
+
+`run_test_suites: 3 suites, 1300 tests, 1055 passed, 245 skipped, 0 failures, 0 errors; 0 failed suite(s); 292.0s wall, jobs=2`
+
+The same nine private modules pass 43/43, zero skips,
+34.732 s command (**8d reduced**). The bitmap-count and point-field
+consumer scan is unchanged. Incoming UI-specific private evidence is retained outside this lane's diff.
+
+The explicit world build immediately before the after replay takes
+0.298 s. Capture takes 63.029 s;
+comparison takes 0.334 s. All **92/92 PNGs and 92/92 dumps are
+byte-identical to the completed batch-104 after captures**. Against the one-time original baseline,
+91/92 PNGs and 90/92 dumps match: only the same 348 Elbeland pixels and its two dumps differ.
+All 44 unaffected views remain byte-identical. No baseline capture is repeated.
+
+ITEMS-UI world SHA-256: `4cc0912c77fc32a1b64998d99bd919ba802c3a9600851e22eb5e3b1699d8c4f3`, distinct from original baseline
+`4954601057b7ee7976c787157b321703d40c65dba68c46901b08d22adb1be76c`. This final UI merge does not alter the particle scene results above.
+
+## Final window integration
+
+Main `0ccd5f44` (UI-WINDOWS-002) merges cleanly at `56e469a548c69e3b79d6583f659b1c465829f5a4`.
+Incoming changes are presentation/GFx, its tests and the world UI adapter. No port particle/point source
+or check changes. Root/world builds pass in 5.287 /
+4.337 s. Incoming selection is 12/228 rows in
+23.950 s and 138/205 suite items in
+50.235 s. Final lane selection is 90/228,
+112.783 s.
+
+The merge-check budget reuses incoming UI-only portable evidence
+([UI-WINDOWS-002 checks](UI-WINDOWS-002.md#checks-and-wall-times)); this lane's last full portable
+pass is the 1,300-test post-ITEMS-UI run above. Its port and shared-symbol modules run again privately,
+plus both UI-window modules, including the direct new `MU_GFX_MOVIES` consumer. All
+50/50 tests pass with zero skips in 52.311 s.
+**8d reduced** remains in force. The port's bitmap-count/point-field consumer scan is unchanged.
+
+All 9 overlapping lane validators pass 34,419 reported cases with zero failures/errors/skips,
+104.058 s command, at `92cc98317e9b89ed9680aa2c35722173ec43cfe1`.
+The other 3 incoming rows retain incoming evidence outside the lane's compiled diff.
+No unchanged mutant is repeated.
+
+| Validator | Reported cases | Wall seconds | Result |
+|---|---:|---:|---|
+| `validate_app_polish1` | 752 | 27.4 | pass |
+| `validate_app_polish2` | 1,028 | 4.0 | pass |
+| `validate_app_polish4` | 10,485 | 48.2 | pass |
+| `validate_audio_callers` | 5,528 | 6.7 | pass |
+| `validate_audio_domains` | 2,544 | 26.8 | pass |
+| `validate_audio_items` | 3,000 | 4.0 | pass |
+| `validate_movement` | 6,614 | 78.2 | pass |
+| `validate_render_effects16` | 424 | 3.5 | pass |
+| `validate_worlds_fog` | 4,044 | 7.5 | pass |
+
+Before the final after replay, explicit `make -C native -j4 world` passes in
+0.221 s. Replay takes 59.368 s;
+comparison takes 0.339 s. All **92 PNGs and 92 dumps match the
+completed pre-window after captures** byte for byte. Original-baseline identity remains 91/92 PNGs and
+90/92 dumps, with exactly the incoming Elbeland 348-pixel last frame and two dumps changed. All 44
+unaffected views remain byte-identical. No baseline capture is repeated.
+
+Final world SHA-256: `bf734f232f17f1424db0dda4f43e1523df86edc21717cf9f9f589dd4aeb73d79`, distinct from original baseline
+`4954601057b7ee7976c787157b321703d40c65dba68c46901b08d22adb1be76c`. The particle-scene measurements and original-instruction proof above
+remain for their unchanged producer/consumer inputs.
 
 ## Limits and next
 
@@ -435,57 +522,8 @@ The unavailable exact model path needs a separate asset-provenance resolution. N
 broader counter/owner contexts should extend the census rather than silently change its denominator.
 
 No anti-cheat/protection analysis, live client, login/network/packet work, character-power feature or
-client-memory writes occurred. This lane leaves actor files, item tables/generators, the README and installed applications untouched. The steward owns the combined gate and merge.
+original-client memory writes occurred. This lane leaves actor files, item tables/generators, the README and installed applications untouched. The steward owns the combined gate and merge.
 
 After the final push and single ready-prs entry, lane-owned scratch/renders and build outputs are removed,
 then the worktree and local branch. Shared evidence, inputs, tools and validator cache remain. No new
 private input is needed by a later lane.
-
-## WIP, final UI integration
-
-All batch-104 checks and the final capture comparison pass. Latest fetch brought ITEMS-UI-001,
-main `626abce1`, merged cleanly. Its GFx source needs a final compiled-input overlap check. Particle
-and point-consumer sources/checks are unchanged; no original baseline or completed mutant is repeated.
-The ready result above describes the fully checked `fb747e42` inputs. Final publication waits for the
-UI merge checks, updated status, staged audit, PR and ready entry. No ready-prs line exists.
-
-## WIP checkpoint, 00:15 on 2026-11-12
-
-Done: all 37 batch-104 overlap/new rows pass 276,735 reported cases, zero failures/errors/skips,
-436.190 s. Final world rebuild is 0.282 s; after capture 73.049 s and comparison 0.262 s. Final result
-against the retained original baseline is 91/92 PNGs / 90/92 dumps identical, with exactly the upstream
-Elbeland last-frame 348 pixels and its two dumps changed. All 44 unaffected views are identical.
-World SHA-256: `090f76f0a1d54a78768347fe6f2ff045034f616de928ad6cbf212478370d0ac8`.
-
-Latest main `626abce1` (ITEMS-UI-001) merges cleanly at `b3f8495d8a531a7b9a52fe3842c214c1e75ab1b4`.
-The only pending compiled input is incoming GFx UI code; particle/caller targets are unchanged. The
-batch-105 build/selection controller is waiting for load > 14. The direct shared-symbol scan is unchanged.
-The final status entries are prepared in the working tree, not yet staged for publication.
-
-Left: complete the UI compiled-input overlap checks, final after-only replay, update the final handoff
-for that merge, stage/audit, push/PR/link/ready entry/cleanup. Next step: inspect batch105-build-steps.json
-and continue its controller; retain all completed proofs and baselines. finalize_104.py / final_audit.py
-are prepared, and the former already generated the checked pre-UI result above. No ready-prs entry exists.
-If still not PR-ready at 02:15, push WIP and stop by 02:30 as instructed.
-
-## WIP checkpoint, 00:40 on 2026-11-12
-
-Done: the ITEMS-UI-001 merge checks pass. Portable: 1,300 tests, 1,055 passed / 245 skipped, zero
-failures/errors, 352.046 s command / 292.0 s runner. Private: 43/43, zero skips, 34.732 s. All seven
-overlapping/new rows pass 21,793 reported cases, zero failures/errors/skips, 36.712 s. The final
-UI1 replay takes 63.029 s / 0.334 s comparison and matches all 92 PNGs and 92 dumps from batch 104;
-against the original baseline only the documented Elbeland difference remains. Binary SHA-256:
-`4cc0912c77fc32a1b64998d99bd919ba802c3a9600851e22eb5e3b1699d8c4f3`.
-
-Main then advanced to UI-WINDOWS-002 `0ccd5f44`, merged cleanly at
-`56e469a548c69e3b79d6583f659b1c465829f5a4`. Only presentation/UI adapter code changes. Root/world builds
-pass in 5.287 / 4.337 s; incoming validator selection is complete, 23.950 s. The port's particle/point
-code and its consumers are unchanged. The new movie-count consumer is ui_windows2_host.c; its private
-module plus the existing UI module are added to the nine port/shared modules for this final pass.
-
-Left: final own selection, private modules, overlapping validators, explicit world build and after
-replay/comparison; then finalize_105.py plus a final UI2 section, stage/audit, PR/link/ready entry/cleanup.
-Incoming UI-only portable evidence is reused: the UI2 handoff records its passing portable and private
-runs; this lane's full post-UI1 portable run above is complete. The final UI2 pass follows the merge
-budget and covers the port's tests plus the changed shared movie-count consumer. No ready-prs line
-exists. Next step: finish batch106_build.py and run batch106_checks.py. Cutoff remains 02:15 / 02:30.
