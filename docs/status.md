@@ -3,6 +3,7 @@
 RENDER-ACTORS-004 WIP: 1,024-class construction census and five Female/Man/Girl composite NPC recipes; verification in progress. [Handoff](handoffs/RENDER-ACTORS-004.md).
 
 RENDER-ACTORS-003 PR-ready: authored class-0 robot actors 625/626 now draw with startup-proved files; the 32-row table moves 26 admitted / 6 refused to 28 / 4. Companion, cloth/aura and missing-file rows retain explicit refusals. 1,669 checks, 25/25 mutants; [handoff](handoffs/RENDER-ACTORS-003.md).
+UI-WINDOWS-001 PR-ready: D Command, N MatchingSelect, B Gens, Y PetInventory and K Gremory now open their original movies as presentation-only views. Empty tabs/pages and close work; state-changing actions refuse. 1,421 portable tests, 12 affected validators, real-window proofs and default identities pass. Original Help open route remains unproved. [Checks, inventory and limits](handoffs/UI-WINDOWS-001.md).
 
 MUUN-VISUAL-001 PR-ready: a fixture-only Muun now draws beside the demo hero in `mu-world` (`MU_MUUN_FIXTURE=<code>`): model, pose, follow motion and owner lifetime from the original's slot setup/update, with the 16 already-verified effect attachments now visible on it. 912 original instruction cases, 18/18 compiled mutants, 54 affected validators pass. No Muun packets, inventory or bonuses. [Scope, checks and limits](handoffs/MUUN-VISUAL-001.md).
 
