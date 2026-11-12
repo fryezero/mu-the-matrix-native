@@ -5,6 +5,29 @@ Prerequisite #361 subsequently merged at `3732f82a`; its identical-tree main his
 Codex, GPT-6.1 Sol; no subagents. Offline/static only. Installed apps are untouched.
 Research part 38 is reserved; recheck main before the final push.
 
+## WIP checkpoint 2026-11-11, portable pass and validator batch
+
+At compiled source `90f61f89`, the corrected read row passes 5,352 cases and six mutants, 30.0 s;
+the other-body row passes 24,084 cases and three mutants, 108.0 s. Their batch takes 108.11 s.
+All 20 changed-row mutants are caught, including the four helper and seven derived mutants already
+completed. Saved helper/derived metadata rechecks pass in 0.07 s with the corrected 113-program count;
+the two earlier failing rows are superseded by the corrected passing run.
+
+The affected portable run passes 152 work items, 1,421 tests: 1,180 passed, 241 skipped, zero failures
+or errors. Runner wall is 442.5 s; total including selection is 523.96 s. Selection beforehand takes
+57.94 s. Private native selection is 147 items, so use `8d reduced`: the renderer module and App Polish 8.
+
+Validator selection takes 70.46 s and retains 59 rows, including movement's symbol fallback; nine
+unused-symbol rows are pruned. The no-mutant batch is active at
+`~/Documents/MTM/mu-mac-tools/native/scratch/render-items-002y/affected-validators/`.
+Ranked and continuation have passed. Wait for the active command; if interrupted, resume its report
+with the exact row list in `selection.json`, the canonical private env, `--no-mutants --cache --jobs 2
+--resume`. This checkpoint changes docs only; compiled inputs remain at `90f61f89`.
+
+Left: finish all 59 validators, reduced native private modules, explicit world rebuild and binary
+SHA-256, final default identity sweep, final research/status/handoff docs, PR and ready-prs entry.
+No ready-prs entry exists yet. The 02:15 WIP decision and 02:30 stop remain binding.
+
 ## WIP checkpoint 2026-11-11, rebuilt zero regression passes
 
 The regenerated root build passes in 10.49 s. All four original/native streams for `0x2568..0x256b`
