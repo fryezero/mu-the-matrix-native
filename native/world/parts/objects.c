@@ -11,11 +11,13 @@
 #endif
 #include "../world_rt_internal.h"
 #include "../../core/mu_session_audio.h"
+#include "../../core/mu_object_audio.h"
 
 static void object_sound(void *context, int32_t id)
 {
     mu_world_rt *a = context;
     mu_session *session = world_rt_characters_session(a);
+    if (mu_object_audio_deliver(session, a->has_sound ? a->sound.host : NULL, a->world, id)) { world_rt_characters_audio_drain(a); return; }
     if (session) {
         if (mu_session_object_sound(session, id)) world_rt_characters_audio_drain(a);
     } else if (a->has_sound) mu_audio_host_play(a->sound.host, id, 0);
