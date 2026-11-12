@@ -24,6 +24,11 @@ int32_t mu_actor_player_body(int32_t server_class)
     case 503: return 0x541;
     case 548: return 0x552;
     case 616: case 646: return 0x5bb;
+    /* 0x01368b4b..0x01368ed6: the constructors retain class byte 0.
+     * Class-2/6 transformed players have different action hooks and are
+     * outside these authored actor recipes. */
+    case 625: return 0x5bc;
+    case 626: return 0x5bd;
     case 706: return 0x5bf;
     case 806: return 0x5c4;
     case 807: return 0x5c5;
@@ -44,6 +49,8 @@ const char *mu_actor_player_body_file(int32_t body)
     case 0x541: return "Data/Item/panda.bmd";
     case 0x552: return "Data/Item/trans_skeleton.bmd";
     case 0x5bb: return "Data/Item/panda_brown.bmd";
+    case 0x5bc: return "Data/Item/iron_robot.bmd";
+    case 0x5bd: return "Data/Item/iron_robot_gold.bmd";
     case 0x5bf: return "Data/Item/Trans_Lilith.bmd";
     case 0x5c4: return "Data/Item/baseball_player.bmd";
     case 0x5c5: return "Data/Item/cheerleader.bmd";
