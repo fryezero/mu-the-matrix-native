@@ -123,23 +123,23 @@ class BowSession(unittest.TestCase):
         return summary, kinds, rows, images
 
     def test_bow_12f9_sparks_trails_and_smoke(self):
-        """Bow 0x12f9: four Carow arrows, fifteen Spark02 sparks with their 0x7fd5/3 joints at the hero's bone,
+        """Bow 0x12f9: five Carow arrows, thirty Spark02 sparks with their 0x7fd5/3 joints at the hero's bone,
         the arrows' 0x7fd6/5 trails and Carow's 0x7f5a/0xd smoke; nothing unsupported (it was 130 kinds' requests)."""
         summary, kinds, rows, images = self.shoot('0x12f9')
-        self.assertEqual(summary['arrows'], 4)
-        self.assertEqual(summary['bow_sparks'], 15)
+        self.assertEqual(summary['arrows'], 5)
+        self.assertEqual(summary['bow_sparks'], 30)
         self.assertEqual((summary['unsupported'], kinds), (0, []))
-        self.assertGreaterEqual(summary['joints_created'], 4 + 1)   # four trails, at least one spark joint
-        self.assertGreater(summary['particles_created'], 15)        # the sparks and the smoke
+        self.assertGreaterEqual(summary['joints_created'], 5 + 1)   # five trails, at least one spark joint
+        self.assertGreater(summary['particles_created'], 30)        # the sparks and the smoke
         frames = [r for r in rows if 'combat_frame' in r]
         self.assertTrue(any(f['joints'] >= 4 for f in frames))
 
     def test_imperial_arrow_named_bone_sprites(self):
-        """0x617: four Imperial arrows; each step nine sprites at the named bones (red_01, red_02, t1..t5). A name
+        """0x617: five Imperial arrows; each step nine sprites at the named bones (red_01, red_02, t1..t5). A name
         the model lacks (t5 here, every name in the second run) still requests its sprite: 0x012bd35a answers -1 and
         0x0150e746 places it with that (unset) matrix, so the count does not depend on the names."""
         summary, kinds, _, _ = self.shoot('0x132f')
-        self.assertEqual(summary['arrows'], 4)
+        self.assertEqual(summary['arrows'], 5)
         self.assertGreater(summary['sprites'], 0)
         self.assertEqual(summary['sprites'] % 9, 0)
         self.assertEqual(kinds, [])   # RENDER-EFFECTS-010: its 0x85fb/2 and 0x8450/4 trails are supported

@@ -249,3 +249,52 @@ not make them learned. No master/fourth/fifth power or state is synthesized.
 | Elf | 876, 1223 | 2025 | M / M | `0x0139b454` | `0x013aea7a` / `0x013b1911` |
 | Elf | 1224 | 2026 | M / M | `0x0139b454` | `0x013aea7a` / `0x013b18a2` |
 | Elf | 1225 | 2027 | M / M | `0x0139b454` | `0x013aea7a` / `0x013b16c1` |
+
+The composite Triple Shot correction also affects special bows. Their existing
+four-shot fan is followed by the same one-shot request, so five arrows result.
+Bow `0x12f9` executes its existing fifteen-spark suffix on each CreateArrows
+call, thirty sparks total. The original fan/arrow consumer comparisons remain
+unchanged; the new caller proof observes both requests and their distinct
+arguments. The special-bow regression expectations follow that composition.
+
+## After status in the learned demo set
+
+| Skill | Before -> after | Result and remaining visual limit |
+|---|---|---|
+| 24 Triple Shot | L -> P | Both original requests; four ordinary arrows or five with the special fan; original learned-index argument order |
+| 51 Ice Arrow | M -> L | Target-keyed arrow now draws and retires; optional target-side ice/freeze receive visual and general equipment context remain unadmitted |
+| 52 Penetration | M -> L | Step gate, short cutoff and subtype-2 projectile draw; charge and `0x46c/0` child remain refused |
+| 48 Swell Life | M -> M | Caller now requests the original 38 visuals and counts all 38 refusals; no primary aura pixels claimed |
+| 344 Blood Storm | M -> M | Original emitter request and early cutoff, one refused emitter; no primary Blood Storm pixels claimed |
+| 416 / 424 | M -> L | Individually evidenced synthetic selector pairs only, with the same base limits |
+
+All other learned rows retain their before label. This is 11 P / 5 L / 13 M
+across the 29-row learned inventory. The separate historical 23-route total
+stays 20 P / 3 L; its Triple Shot primary component label is now supported by
+the corrected composite caller too. No percentage for all client skills follows.
+
+The separate private alias test also executes the real base walk
+`0x00bb1c32..0x00bb1c9e` over authored lookup records, not a stubbed base result.
+It supplies only each record's index and brand at `+4/+0x5c`, with undefined
+bytes elsewhere. Correct 416->52 and 424->51 chains are accepted. Swapped chains
+and brand-zero records are refused by the new selector. These six original
+cases prove the individual synthetic selector inputs without class or power state.
+
+## Focused proof accounting
+
+The full new validator passes 1,914 checks in 29.47 s: 572 original step
+comparisons, 1,000 original end-caller comparisons, 256 independent original
+arrow create/move comparisons, 78 native selector controls and eight terminal
+retirement assertions. Thus 1,828 checks execute original caller/record
+instructions. The six additional real brand-walk cases are separate private
+test evidence. All 18 compiled production-C mutants are caught with zero
+original-machine stops. Unchanged consumers receive no new mutant run.
+
+The eight lifecycle sequences cover base and master-selected ordinary arrows,
+with each original record carried forward independently. C never reseeds an
+original record between ticks. Normal expiry and an owner dying during flight
+are both included. Host terrain/model/animation services remain declared
+synthetic inputs. The original caller comparator observes every request
+argument in order, including both key/default words. Sound owners and call
+sites are checked as part of that stream. These are component proofs, not
+original GPU-image equivalence or whole-client acceptance.

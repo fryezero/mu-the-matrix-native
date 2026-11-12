@@ -82,3 +82,33 @@ class Original(unittest.TestCase):
                 '--output',str(output)],check=True,cwd=ROOT,capture_output=True)
             report=json.loads(output.read_text())
         self.assertTrue(report['all_equal']);self.assertEqual(report['cases'],452)
+
+    def test_original_alias_brand_walks(self):
+        # The real 0x00bb1c32 walks authored lookup records. No base-result stub.
+        import ctypes as C
+        import struct
+        sys.path.insert(0,str(ROOT/'scripts'))
+        import actor_machine as am
+        import pins
+        import validate_combat as vc
+        subprocess.run(['make','-s','-C',str(ROOT/'reconstructed/combat')],check=True,capture_output=True)
+        lib=C.CDLL(str(ROOT/'reconstructed/combat/libcombat.dylib'))
+        lib.mu_skill30_select.argtypes=[C.c_int32,C.c_int32]
+        machine=vc.Combat(pins.TEXT.read(),pins.DATA.read())
+        for skill,expected in [(416,52),(424,51)]:
+            for supplied in [expected,51 if expected==52 else 52,0]:
+                address=0x2a000000
+                alias=am.undefined_region('alias',address,0xd0)
+                alias.define(address+4,struct.pack('<i',skill))
+                alias.define(address+0x5c,struct.pack('<i',supplied))
+                base=am.undefined_region('base',address+0x1000,0xd0)
+                base.define(address+0x1004,struct.pack('<i',supplied))
+                base.define(address+0x105c,bytes(4))
+                def lookup(mm):
+                    return (address if mm.argument(0)==skill else address+0x1000,4)
+                result=machine.execute(0xbb1c32,[skill],[alias,base],{0x961620:lookup},ecx=0x1234,cleanup=4)
+                with self.subTest(skill=skill,supplied=supplied):
+                    self.assertTrue(vc.ok(result),result)
+                    selected=result['eax']
+                    self.assertEqual(selected,supplied or skill)
+                    self.assertEqual(bool(lib.mu_skill30_select(skill,selected)),supplied==expected)

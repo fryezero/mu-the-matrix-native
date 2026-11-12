@@ -46,7 +46,7 @@ the complete caller comparison before consumer implementation.
 
 Done: expanded the audit to the full tree catalogue, 27 DK and 37 Elf entries,
 plus 46/40 class-map aliases. Exact caller and lifecycle proof passes 1,914
-comparisons, zero mismatches, 18/18 compiled production-C mutants, zero
+focused checks, zero mismatches, 18/18 compiled production-C mutants, zero
 original-machine stops, 29.47 s. Eight original arrow records are carried
 independently from create to retirement, including owner-death sequences.
 The two admitted synthetic master pairs are 416/52 and 424/51. The native
@@ -61,3 +61,46 @@ No additional mutant run is needed unless its source/checks change. Resource
 pauses account for most elapsed time. Main currently `710ac816`; #376 still open.
 Next: native focused tests, then selections after a current build. The full gate
 remains the steward's job. No PR-ready claim or ready-prs entry yet.
+
+## Progress after fixture proof
+
+The seven installed-data fixtures pass before/after/repeat rendering, 69.49 s.
+All 42 after/repeat PNG pairs match. Ordinary Triple Shot changes three arrows
+to four with zero refusals; Ice Arrow changes zero to one with zero refusals.
+Penetration and alias 416 each create one arrow and count two missing consumers.
+Swell Life counts 38 missing visual consumers; Blood Storm counts one. Alias
+424 creates one arrow with zero refusals. These are bounded native fixture
+results, not original GPU comparisons or completed buff/target visuals.
+
+Visual inspection confirms the new Ice Arrow projectile and orange trail from
+the existing Arrow01 consumer. No invented icy projectile replaces it. The
+optional target-side ice/freeze receive visual is unadmitted, so skill 51 is L,
+not a complete skill claim. Penetration's projectile needs an earlier saved
+frame because its five-step timeline fires sooner than the other bow skills.
+The complete native/private run first passed 15/16; its stale crossbow count
+assertion is repaired, along with the other special-bow count/spark controls.
+The affected suite/validator selections are in progress after main `710ac816`
+was merged as `9714bb3f`. No source merge conflict occurred; shared docs kept
+both lane entries. Final passing checks and identity are still pending.
+
+## WIP checkpoint, 22:33 local
+
+Done: reduced private native run passes 21/21, zero skips, 59.55 s. It covers
+both changed native effect modules, the new caller/alias tests, installed-data
+combat and both parent aura controls. The six real `0x00bb1c32` brand walks
+pass for correct, swapped and zero-brand synthetic records. The loader also
+included one unchanged EFFECTS-009 mutant test unintentionally; it passed and
+will not be repeated. The intended new 18-mutant proof ran only once.
+
+Native fixtures pass seven before/after/repeat scenes, 42 byte-identical image
+pairs, 69.49 s. Current world binary SHA-256
+`d93eaa630b3d3d1f37abe75139f08d49a72dcf2bd70417ed7ad0e2fdd2a7bf23`.
+Affected selections: 163 portable work items, 124.04 s; 57 private validator
+rows, 46.22 s. Private native selection exceeds the cap, so 8d reduced applies.
+All selected validator rows will run without mutants; the new focused proof
+already covers the changed targets. Shared-symbol/count consumers were checked
+by grep and the special-bow regression assertions were corrected too.
+
+Left: affected portable suites and private validators, earlier Penetration
+pixel, final rebuilt default identity sweep, final audit/review/docs/PR/cleanup.
+Next: start the portable affected run when the resource guard permits.

@@ -142,7 +142,7 @@ class RenderEffects(unittest.TestCase):
             for name in names: (assets/name).unlink()
 
     def test_triple_shot_verified_fan(self):
-        """RENDER-EFFECTS-004: CreateArrows' default fan, fan at 0, +15, -15 and the caller's fallthrough shot."""
+        """RENDER-EFFECTS-004: CreateArrows' default fan at 0, +15, -15 and the caller's fallthrough shot."""
         arrow = self.root/'Data/Skill/Arrow01.bmd'
         arrow.write_bytes(nf.synthetic_layout(400, actions=1, keys=(8,)))
         try:
@@ -162,15 +162,15 @@ class RenderEffects(unittest.TestCase):
         summary = next(r for r in rows if r.get('combat') is True)
         self.assertEqual((summary['arrows'], summary['unsupported']), (4, 0))
         frames = [r for r in rows if 'combat_frame' in r]
-        self.assertTrue(any(f['effect_types'].count(0x43c) == 3 for f in frames))
+        self.assertTrue(any(f['effect_types'].count(0x43c) == 4 for f in frames))
         arrow = self.root/'Data/Skill/LaceArrow.bmd'
         arrow.write_bytes(nf.synthetic_layout(401, actions=1, keys=(8,)))
         try:
             rows, images = self.cast_as(24, 'bow', 2, 30, ('--combat-bow', '0x12fa'))
             summary = next(r for r in rows if r.get('combat') is True)
-            self.assertEqual(summary['arrows'], 3)
+            self.assertEqual(summary['arrows'], 4)
             frames = [r for r in rows if 'combat_frame' in r]
-            self.assertTrue(any(f['effect_types'].count(0x47f) == 3 for f in frames))
+            self.assertTrue(any(f['effect_types'].count(0x47f) == 4 for f in frames))
             arrow.rename(arrow.with_suffix('.off'))
             try: _, absent = self.cast_as(24, 'bow', 2, 30, ('--combat-bow', '0x12fa'))
             finally: arrow.with_suffix('.off').rename(arrow)
