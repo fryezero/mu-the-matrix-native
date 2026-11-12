@@ -15,6 +15,7 @@ import subprocess
 import time
 
 import validate_render_effects25 as previous
+from validate_render_effects26 import CENSUS_PROGRAMS
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -25,18 +26,10 @@ def programs():
                    for t in re.findall(r'^    \{([^,]+),', header.split(name+'[] = {')[1].split('};')[0], re.M)})
 
 
-def player(t, n):
-    group, index = divmod(t - 0xae6, 512)
-    # A weapon slot explicitly carries the authored model, including later wing
-    # and accessory models. This is a renderer fixture, not equipment eligibility.
-    return (f'player Demo{n} class=0x01 at={126+n%4},{123+n//4} dir=3 pk=3 '
-            f'level=400 weapon0={group}:{index}:9\n')
-
-
 def capture(binary, game, output, later=False, frames=16, clock=0):
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
-    ts = programs()
+    ts = sorted(set(programs()) & CENSUS_PROGRAMS)
     if later:
         ts = sorted(set(ts) - previous.CENSUS_PROGRAMS)
     batches = [[t] for t in ts]
@@ -44,6 +37,12 @@ def capture(binary, game, output, later=False, frames=16, clock=0):
                        str(Path(game)/'Data/Local/Item.bmd'), '--json'],
                        check=True, capture_output=True, text=True).stdout)
     models = {r['model_index']: r for r in models['items']}
+    config = dict(binary_sha256=hashlib.sha256(Path(binary).read_bytes()).hexdigest(),
+                  frames=frames,clock=clock,programs=ts,full_draw=True)
+    config_path=output/'capture-args.json'
+    if config_path.exists() and json.loads(config_path.read_text()) != config:
+        raise ValueError('existing capture has different binary or fixture inputs')
+    config_path.write_text(json.dumps(config,indent=2))
     results = []
     start = time.monotonic()
     for n, types in enumerate(batches):
@@ -52,8 +51,6 @@ def capture(binary, game, output, later=False, frames=16, clock=0):
             results.append(json.loads((dest/'summary.json').read_text()))
             continue
         dest.mkdir(exist_ok=True)
-        fixture = dest/'players.txt'
-        fixture.write_text(''.join(player(t,i) for i,t in enumerate(types)))
         t = types[0]
         record = models[t]
         asset = (record['folder']+record['file']).replace('\\','/')
@@ -78,9 +75,11 @@ def capture(binary, game, output, later=False, frames=16, clock=0):
         (dest/'report.json').write_text(json.dumps(rows,indent=2))
         pre = next((r['hero'] for r in rows if r.get('item_pre_draw')),
                    dict(pre_effects=0, pre_refused=0, hidden=0))
+        owner = next((r['hero'] for r in rows if r.get('item_owner_fx')),
+                     dict(owner_effects=0,owner_refused=0))
         pt = next(r for r in rows if r.get('particles') is True)
         refused = Counter(re.findall(r'REFUSED ([0-9a-f]+/\d+)',run.stderr))
-        results.append(dict(types=[hex(t) for t in types], pre=pre, particles=pt, refused_pairs=dict(refused)))
+        results.append(dict(types=[hex(t) for t in types], pre=pre, owner=owner, particles=pt, refused_pairs=dict(refused)))
         (dest/'summary.json').write_text(json.dumps(results[-1]))
         print(json.dumps(results[-1]),flush=True)
     result = dict(binary_sha256=hashlib.sha256(Path(binary).read_bytes()).hexdigest(), frames=frames,

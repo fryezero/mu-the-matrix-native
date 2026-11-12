@@ -235,6 +235,11 @@ NATIVE_MUTANTS = [
     ('file_8500','Data/Skill/wing_hetachi2.OZJ','Data/Effect/Damage_ring_2.OZJ'),
     ('file_8569','Data/Effect/Damage_ring_2.OZJ','Data/Skill/wing_hetachi2.OZJ'),
     ('point_route','else if (later) mu_pt_item_later_follow(record, point);','else if (later) (void)point;'),
+    ('point_index','? it->points[record->arg8] : NULL','? it->points[0] : NULL'),
+    ('bitmap_filter','t->filter[i] = bitmap_ids[i] == MU_PT_BITMAP_IMPACK03 ||',
+     't->filter[i] = bitmap_ids[i] == 0x8500 || bitmap_ids[i] == MU_PT_BITMAP_IMPACK03 ||'),
+    ('bitmap_wrap','t->wrap[i] = bitmap_ids[i] == 0x84d1 ||',
+     't->wrap[i] = bitmap_ids[i] == 0x8569 || bitmap_ids[i] == 0x84d1 ||'),
 ]
 
 

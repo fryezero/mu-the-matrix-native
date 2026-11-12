@@ -28,7 +28,6 @@ int main(int argc, char **argv)
         mu_pt_particle *record = &p->list.records[0];
         const int32_t lifetime = record->lifetime;
         memcpy(record->position,zero,sizeof zero);
-        record->scale = 0.025f; record->alpha = 0.5f;
         mu_raster raster;
         assert(!mu_raster_init(&raster,64,64));
         mu_raster_clear(&raster,black);

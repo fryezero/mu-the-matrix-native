@@ -3260,3 +3260,76 @@ The focused proof has 10,002 component comparisons, zero mismatches; 24/24 compi
 Checks, timings, affected rows, rendered differences and limits are recorded in
 [RENDER-EFFECTS-025](../handoffs/RENDER-EFFECTS-025.md). The default zero pre-bone record, original process phase,
 pose and unsampled requests remain explicit limits. Installed Preview and Wine apps are untouched.
+
+## Part 39, five later item particle consumers, RENDER-EFFECTS-026
+
+Offline/static only. Original instructions use pinned text SHA-256
+`2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724` and data SHA-256
+`c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f`.
+Native before/after images establish native visibility and regression behavior, not original GPU pixels.
+Part 38 belongs to the independent RENDER-ITEMS-002Y lane.
+
+The five pairs left by part 37 now have native create, move and render consumers. The two new bitmap
+registrations follow original LoadBitmap `0x0185baac` calls, with LINEAR/CLAMP and flags 1/0:
+
+| Pair | Create branch | Move branch | Render branch | Later callers |
+|---|---|---|---|---|
+| `0x8500/2` | `0x0160d351` | `0x01685e1b` | `0x015a9b9a` | `0x23a8`, `0x23a9` |
+| `0x810b/8` | `0x01601dca` | `0x0167be27` | `0x015a0fce` | `0x23a8`, `0x23a9` |
+| `0x810a/12` | `0x015b1a73` | `0x0161b036` | `0x0159faca` | `0x0f1e`, `0x174a` |
+| `0x81cf/1` | `0x0160baa3` | `0x01684277` | `0x015a5eec` | `0x2301`, `0x2302` |
+| `0x8569/0` | `0x01610b2d` | `0x016896de` | `0x015aa1a0` | `0x23a8`, `0x23a9` |
+
+`0x8500` loads `Skill\wing_hetachi2.jpg` at `0x01827a23`; native file `Data/Skill/wing_hetachi2.OZJ`.
+`0x8569` loads `Effect\Damage_ring_2.jpg` at `0x01825e21`; native file `Data/Effect/Damage_ring_2.OZJ`.
+The three other bitmaps already have native slots. Two slots are appended before Fire06 and the rain
+textures, preserving prior non-tail slot indices. The effect-file count now derives from the full count
+minus the two rain slots. The new constructor/mover code is isolated in `item_later_kinds.inc`.
+
+### Record behavior
+
+`0x8500/2` lives rand % 11 + 20 steps. Scale keeps the input; initial scale stores input / lifetime.
+Rotation is a quantized [0,360] draw. Record word `+0x84` stores a quantized [-20,20] spin, not a saved
+start-angle component. Velocity x/y use [-2,2], z uses [-2,0.8], with 100 quantization steps. Below half
+life it subtracts initial scale from scale, and every step subtracts 1 / initial lifetime from alpha.
+Rotation adds the saved spin. Velocity then adds quantized x/y [-0.2,0.2], z [-0.2,0.1] jitter.
+
+`0x810b/8` lives 25 steps. Initial scale is input / integer half-life, therefore input / 12 rather than
+input / 12.5. It saves random rotation and three quantized [-1.2,1.2] velocities. Below integer half-life
+it subtracts the saved initial-scale word from scale; each step subtracts 1 / initial lifetime from alpha.
+
+`0x810a/12` lives 20 steps. Its quantized [0.5,1] scale multiplier is saved as initial scale. It saves
+random rotation, displaces each position component by a quantized [-10,10] draw and gives each velocity
+component a separate draw from that range times 0.2. Each step subtracts initial scale / initial lifetime
+from scale and 1 / initial lifetime from alpha.
+
+`0x81cf/1` shares subtype 0's constructor but has its own compared movement branch. It lives 20 steps,
+starts at scale zero, saves input scale and starts alpha at one. A NULL owner clears live. Otherwise
+scale grows by saved scale / initial lifetime, and below integer half-life alpha falls by 1 / half-life.
+There is no new position-follow operation for this pair.
+
+`0x8569/0` lives 30 steps, starts scale zero and saves input scale. A NULL owner clears live during move.
+On subsequent steps, once life is below initial life, alpha falls by 1 / initial life. Scale grows by
+saved scale / initial lifetime. Its render branch, after the original height filter, copies the selected
+OBJECT `+0x1f4 + 12*arg8` point into position when an owner exists. Unlike `0x810a/0x25`, it adds no saved
+start offset. A NULL owner leaves position alone in render. The native owner table supplies points 0..2;
+unknown, stale or out-of-domain native owners retain a refusal/retirement rather than an out-of-bounds read.
+
+All five render the current light times alpha, using the existing sprite renderer and blend selection.
+Common initialization, moving-vector rotation, terrain-backed owner-position reads, lifetime decrement,
+frame-time accumulation and head retirement remain shared. No authored scale, model or bone name changes.
+
+### Proof and census domain
+
+`validate_render_effects26` compares the original constructors, movers and complete ordered RenderParticles
+calls against production C, including owner/null cases, random consumption, half-life boundaries, split-height
+passes, blend modes and the three saved OBJECT points. Undefined memory accesses remain machine failures.
+The native host separately checks exact bitmap mappings with distinct synthetic greys, allocation, stepping,
+positive raster fragments for every pair, changed owner points, stale-owner retirement and full pool retirement.
+The 110-program / 37-pair domain is frozen by identity, while later inventory additions remain reported.
+
+Scene results, final check counts, mutation evidence, wall times and remaining fixture limits are recorded in
+[RENDER-EFFECTS-026](../handoffs/RENDER-EFFECTS-026.md). The scene census uses installed models and explicit demo
+records; it does not establish equipment eligibility or cover every counter phase, context or world producer.
+An absent exact authored model path is recorded as unavailable, without name trimming or an asset substitution.
+No live client, protection analysis, network state, character-power feature or client-memory write is used.
