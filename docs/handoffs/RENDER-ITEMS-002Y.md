@@ -5,6 +5,21 @@ Prerequisite #361 subsequently merged at `3732f82a`; its identical-tree main his
 Codex, GPT-6.1 Sol; no subagents. Offline/static only. Installed apps are untouched.
 Research part 38 is reserved; recheck main before the final push.
 
+## WIP checkpoint 2026-11-11, regenerated zero-sensitive fits
+
+The second complete generation passes in 1,296.19 s including cache flush. It admits the same 1,446
+recipe rows; the body header is 514,029 bytes and the unchanged owner header is 295,763 bytes.
+All previous probes remain, with 3,564 additional negative-zero samples. No candidate was removed and
+no scalar, operation or audit cap changed. The new body table is committed in this checkpoint.
+The pending observable regression must still pass against a rebuilt library before this is a result.
+
+Next: build, run the portable renderer and the C-to-C delta, then the corrected read/other rows with
+their six/three mutants, the full affected selection without repeated mutants, reduced private native
+tests, and one final default identity sweep after the explicit world rebuild. The four helper mutants
+and seven derived mutants already caught at `a37e63ca` remain completed; their target code is unchanged.
+The saved derived report's 113-program metadata needs rechecking against the corrected manifest.
+PR, final status/research docs and ready-prs entry remain pending. The 02:15/02:30 deadline is binding.
+
 ## WIP checkpoint 2026-11-11, signed-zero correction
 
 Done: source and initial regenerated tables are pushed at `a37e63ca`. The changed-row run takes
