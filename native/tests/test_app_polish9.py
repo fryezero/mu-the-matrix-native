@@ -73,6 +73,19 @@ class LayoutSweep(unittest.TestCase):
     def tearDownClass(cls):
         cls.tmp.cleanup()
 
+    def assert_original_alignment(self,r,w,h,bottom):
+        movie = r['layout_movie']
+        width = r['width'] if r['width'] is not None else r['_width']
+        height = r['height'] if r['height'] is not None else r['_height']
+        if movie in (self.ids['INVENTORY'],self.ids['PET_INVENTORY']):
+            self.assertAlmostEqual(r['_x'],w-width,delta=0.15,msg=r)
+        elif movie in (self.ids['MOVE_COMMAND'],self.ids['TREE5']):
+            self.assertAlmostEqual(r['_x'],0,delta=0.15,msg=r)
+        elif movie in (self.ids['MASTER_TREE'],self.ids['TREE4']):
+            self.assertAlmostEqual(r['_x'],(w-width)/2,delta=0.15,msg=r)
+        if movie in (self.ids['MASTER_TREE'],self.ids['TREE4'],self.ids['TREE5']):
+            self.assertAlmostEqual(r['_y'],max(0,min((h-height)/2,bottom-height)),delta=0.15,msg=r)
+
     def test_every_window_at_each_size(self):
         for scale, sizes in ((1,SIZES),(2,[SIZES[0],SIZES[-1]])):
             for w,h in sizes:
@@ -94,6 +107,7 @@ class LayoutSweep(unittest.TestCase):
                     bottom = main['_y']
                     self.assertGreaterEqual(main['_x'], -0.06)
                     self.assertLessEqual(main['_x']+main['_width'], w+0.06)
+                    self.assertAlmostEqual(main['_x'],int((w-main['_width'])//2),delta=1.05)
                     for r in opened:
                         self.assertTrue(r['_visible'],r)
                         ww = r['width'] if r['width'] is not None else r['_width']
@@ -104,6 +118,7 @@ class LayoutSweep(unittest.TestCase):
                         self.assertGreaterEqual(r['_y'],-0.06,r)
                         self.assertLessEqual(r['_x']+ww,w+0.15,r)
                         self.assertLessEqual(r['_y']+hh,bottom+0.15,r)
+                        self.assert_original_alignment(r,w,h,bottom)
                         # Close registration points must remain inside the viewport.
                         if r['btnClose._x'] is not None:
                             self.assertLessEqual(r['_x']+r['btnClose._x']*r['_xscale']/100,w+0.15,r)
@@ -151,6 +166,7 @@ class LayoutSweep(unittest.TestCase):
                 self.assertGreaterEqual(r['_y'],-0.06,r)
                 self.assertLessEqual(r['_x']+ww,w+0.15,r)
                 self.assertLessEqual(r['_y']+hh,bottom+0.15,r)
+                self.assert_original_alignment(r,w,h,bottom)
         closes = [json.loads(l) for l in p.stdout.splitlines() if l.startswith('{"close_movie"')]
         self.assertEqual(len(closes),len(NAMES))
         self.assertTrue(all(r['close_delivered'] for r in closes),closes)
