@@ -153,6 +153,9 @@ def main():
         header = HEADER.read_text()
         adapter = build(folder/'base', header)
         families, corpus, errors = check(args.cases, adapter, text, data)
+        original_sites = {row[1] for _, _, rows in corpus for row in rows}
+        if len(original_sites) != 16:
+            errors.append({'original_site_coverage': len(original_sites), 'expected': 16})
         # Cross-world/id refusals and ordered multi-event delivery supplement
         # the actual callers, whose current cases emit at most one request.
         for world, ids, expected in [
@@ -182,7 +185,8 @@ def main():
                     mutant = build(folder/str(n), header.replace(old, new, 1))
                 caught = sum(decode(mutant, world, ids) != expected for world, ids, expected in corpus)
                 mutations.append({'name': label, 'detected': caught})
-        report = {'cases': sum(f['cases'] for f in families.values()), 'sites': len(seen),
+        report = {'cases': sum(f['cases'] for f in families.values()), 'sites': len(seen), 'original_sites': len(original_sites),
+                  'text_sha256': pins.TEXT.sha256, 'data_sha256': pins.DATA.sha256,
                   'families': families, 'mismatches': len(errors), 'examples': errors[:8], 'mutants': mutations}
         args.report.parent.mkdir(parents=True, exist_ok=True)
         args.report.write_text(json.dumps(report, indent=2) + '\n')
