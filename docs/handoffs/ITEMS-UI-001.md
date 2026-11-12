@@ -47,6 +47,20 @@ The checkpoint audit was deferred by the resource guard; the final audit remains
 Left: merge that main, rebuild, rerun checks whose compiled inputs changed,
 refresh after-only sweep/captures if needed, final audit, status lines and PR/steward readiness.
 
+Post-merge WIP: `6b75fbda` is now merged as `35c9c51d`. The registry append
+conflict preserves all three new rows; against main it is exactly this lane's 14
+added lines. Root build passes, 18.15 s. Post-merge symbol selection took 53.34 s
+and selects only audio_callers, audio_domains, audio_items, render_effects16 and
+items_ui from the lane's ten rows. The other five rows' compiled inputs did not
+change. Rerun those five with no mutants at `35c9c51d`; the cursor header and
+renderchar inputs of its eight-mutant proof are unchanged.
+
+The shared host reached load 72 while this lane had no heavy job running. New
+checks are deferred by the resource guard. Remaining: the five rows, affected
+post-merge portable/private checks, after-only world/overlay proof refresh if
+compiled inputs require it, final audit/docs/PR. Original before sweep hashes
+and captures are saved and must be reused, not rerun.
+
 Next: wait for the resource guard, run the build and new validator, then inspect a
 native equipment hover with the fixed-clock library from canonical private-env.sh.
 
