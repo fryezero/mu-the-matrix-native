@@ -27,7 +27,7 @@ LIBRARY = ROOT/'reconstructed/actors'/('libactors.dylib' if sys.platform == 'dar
 FIXED = (14, 15, 16, 34, 55, 56, 229, 236, 247, 249, 257, 258, 297, 371, 375, 414, 464)
 SKELETON = (14, 15, 16, 55, 56, 236)
 CENSUS = FIXED + (372, 373, 374, 378, 503, 548, 616, 617, 625, 626, 642, 646, 706, 806, 807)
-LATER = (372, 373, 503, 548, 616, 646, 706, 806, 807)
+LATER = (372, 373, 503, 548, 616, 625, 626, 646, 706, 806, 807)
 FIXED += LATER
 WHOLE = SKELETON + LATER
 
@@ -88,18 +88,20 @@ def originals(args):
     return (text, data, pins.FLAG.read(args.flag), pins.FEATURE.read(args.feature)), rows
 
 
-def bounded(machine, start, end, stubs, regions=(), frame=(0x100, {})):
+def bounded(machine, start, end, stubs, regions=(), frame=(0x100, {}), arguments=()):
     def finish(uc, address, size, ignored):
         uc.reg_write(machine.x86.UC_X86_REG_EBP, machine.preserved[machine.x86.UC_X86_REG_EBP])
         uc.reg_write(machine.x86.UC_X86_REG_ESP, am.ENTRY_ESP + 4)
         uc.mem_write(am.TIB, struct.pack('<I', am.SEH_HEAD))
         uc.reg_write(machine.x86.UC_X86_REG_EIP, am.SENTINEL)
         uc.emu_stop()
-    hook = machine.uc.hook_add(machine.UC_HOOK_CODE, finish, begin=end, end=end)
+    ends = end if isinstance(end, tuple) else (end,)
+    hooks = [machine.uc.hook_add(machine.UC_HOOK_CODE, finish, begin=e, end=e) for e in ends]
     try:
-        return machine.execute(start, [], list(regions), stubs, frame=frame)
+        return machine.execute(start, list(arguments), list(regions), stubs, frame=frame)
     finally:
-        machine.uc.hook_del(hook)
+        for hook in hooks:
+            machine.uc.hook_del(hook)
 
 
 def check_kind_default(args):
@@ -263,13 +265,157 @@ def check_equipment(args, rows):
     return fam
 
 
+def check_robot_hooks(args):
+    """Extract the excluded transformed-player hooks, with exact call order.
+
+    Only the constructor's class-byte-0 body is admitted by this lane. Hook
+    services are recorders, not implementations of their mesh/registry bodies.
+    """
+    fam = family(); machine = am.ActorMachine(args[0], args[1])
+    char = va.CLASS_CHARACTER; obj = char + 0x3254
+    for subtype in (0x5bc, 0x5bd):
+        for cls in (0, 2, 6, 0x12, 0x16):
+            for action in (1, 0xd0, 0xd1, 0xd2, 0xdc, 0xdd, 0xde, 0xdf, 0xe0):
+                for target, counter in ((-1, 0), (0, 0), (0, 1)):
+                    raw = vr.character_record(cls=cls, action=action)
+                    struct.pack_into('<I', raw, 0x32b4, subtype)
+                    struct.pack_into('<h', raw, 0x35b8, target)
+                    raw[0x2c] = counter
+                    calls = []
+                    def body(m):
+                        calls.append(('body', m.argument(1), m.argument(2), m.argument(12)))
+                        return 0
+                    def hook(m):
+                        calls.append(('hook', *(m.argument(i) for i in range(4, 9))))
+                        return 0
+                    def registry(m):
+                        calls.append(('registry', m.argument(1)))
+                        return 0, 0x10
+                    run = bounded(machine, 0x01368b4b, (0x01368ed6, 0x0136ab7a),
+                        {0x00cfc94a: lambda m: char + 0x1b8,
+                         0x017e63f4: body, 0x016d5eb3: hook, 0x00d2d3f9: registry},
+                        [am.defined_region('character', char, raw)],
+                        frame=(0xb00, {-0x3c: 1}), arguments=(char, obj, 0))
+                    ordinary = ('body', subtype, 0, 2)
+                    expected = []; changed = False
+                    if cls & 15 == 2:
+                        if action == 0xd1:
+                            expected += [('hook', 0, vr.f2u(10), vr.f2u(.3), 0x42, vr.f2u(1)),
+                                         ('hook', 0, vr.f2u(5), vr.f2u(.6), 0x42, vr.f2u(1))]
+                            changed = True
+                        else:
+                            expected.append(ordinary)
+                    if cls & 15 == 6:
+                        if action == 0xdf:
+                            expected.append(('hook', vr.f2u(2.5), vr.f2u(1), 0, 2, vr.f2u(1)))
+                            changed = True
+                        elif action in (0xdd, 0xde):
+                            if target < 0 or counter > 0:
+                                expected.append(('body', subtype, char + 0x1c4, 2))
+                            else:
+                                expected.append(('registry', char + 0x1c4)); changed = True
+                        else:
+                            expected.append(ordinary)
+                    else:
+                        expected.append(ordinary)
+                    slot = struct.unpack_from('<H', run['regions']['character'], 0x1c4)[0]
+                    note(fam, run['ok'] and calls == expected and slot == (subtype if changed else 65535),
+                         dict(subtype=subtype, cls=cls, action=action, target=target, counter=counter,
+                              calls=calls, expected=expected, slot=slot, run=None if run['ok'] else {k: v for k, v in run.items() if k != 'regions'}))
+    return fam
+
+
+def check_companion_boundary(args):
+    """Extract the two render-time allocations. Downstream lifetime stays refused."""
+    fam = family(); machine = am.ActorMachine(args[0], args[1])
+    char = va.CLASS_CHARACTER; obj = char + 0x3254; companion = 0x24000000
+    for cl, subtype, start, end, model, offset, scale in (
+            (374, 0x3ed, 0x01368ed6, 0x01369043, 0x3ee, (0, 0, 0), .25),
+            (642, 0x5be, 0x013689d4, 0x01368b4b, 0x55c, (4, 22, 0), .3)):
+        for kind in (0, 1, 2, 4):
+            for existing in (0, companion):
+                raw = vr.character_record(cls=0)
+                raw[0x328f] = kind
+                struct.pack_into('<I', raw, 0x32b4, subtype)
+                struct.pack_into('<I', raw, 0x3248, existing)
+                calls = []
+                def allocate(m):
+                    calls.append(('allocate', m.argument(0))); return companion
+                def construct(m):
+                    calls.append(('construct', *(m.argument(i) for i in range(9))))
+                    return companion, 0x24
+                def body(m):
+                    calls.append(('body', m.argument(1))); return 0
+                run = bounded(machine, start, (end, 0x0136ab7a),
+                    {0x00cfc94a: lambda m: char + 0x1b8, 0x017e63f4: body,
+                     0x0191ba7b: allocate, 0x009eb32a: construct},
+                    [am.defined_region('character', char, raw),
+                     am.defined_region('companion', companion, bytes(0x3ec))],
+                    frame=(0xb00, {-0x3c: 1}), arguments=(char, obj, 0))
+                expected = []
+                if kind == 1:
+                    expected.append(('body', subtype))
+                    if not existing:
+                        expected += [('allocate', 0x3ec),
+                                     ('construct', model, 20, 0, *(vr.f2u(v) for v in offset), 0, 0, 0)]
+                cr = run['regions']['character']; comp = run['regions']['companion']
+                created = kind == 1 and not existing
+                owner = struct.unpack_from('<I', comp, 4 + 0x34c)[0]
+                factor = struct.unpack_from('<f', comp, 4 + 0xbc)[0]
+                note(fam, run['ok'] and calls == expected and
+                     struct.unpack_from('<I', cr, 0x3248)[0] == (companion if created else existing) and
+                     owner == (obj if created else 0) and factor == (am.f32(scale) if created else 0),
+                     dict(cls=cl, kind=kind, existing=existing, calls=calls, expected=expected,
+                          owner=owner, scale=factor, run=None if run['ok'] else {k: v for k, v in run.items() if k != 'regions'}))
+    return fam
+
+
+def check_appearance_boundary(args):
+    """378's prefix stops before its two cloth-object allocations, not at a guessed body-only plan."""
+    fam = family(); machine = am.ActorMachine(args[0], args[1])
+    char = va.CLASS_CHARACTER; obj = char + 0x3254
+    for kind in (0, 1, 2, 4):
+        for buff in (0, 1):
+            raw = vr.character_record(cls=0)
+            raw[0x328f] = kind
+            struct.pack_into('<I', raw, 0x32b4, 0x3e9)
+            calls = []
+            def body(m):
+                calls.append(('body', m.argument(1))); return 0
+            def emission(name):
+                def emit(m):
+                    calls.append((name, m.argument(0))); return 0
+                return emit
+            def vector(m):
+                return m.uc.reg_read(m.x86.UC_X86_REG_ECX) + 4 * m.argument(0), 4
+            run = bounded(machine, 0x01369043, (0x013699f8, 0x0136ab7a, 0x013695b1),
+                {0x00cfc94a: lambda m: char + 0x1b8, 0x017e63f4: body,
+                 0x01295ade: lambda m: (buff, 4), 0x00cfc922: vector,
+                 0x00a0c1d0: lambda m: m.uc.reg_read(m.x86.UC_X86_REG_ECX),
+                 0x01692eb7: emission('effect'), 0x00d8c872: emission('bitmap'),
+                 0x016cdd5f: emission('quad'), 0x0184aa2b: lambda m: 0},
+                [am.defined_region('character', char, raw),
+                 am.defined_region('time', 0x06fce370, struct.pack('<f', 123456)),
+                 am.defined_region('flag', 0x0bdd1cc8, args[2], writable=False),
+                 am.defined_region('feature', 0x01cf6618, args[3], writable=False)],
+                frame=(0xb00, {-0x3c: 1}), arguments=(char, obj, 0))
+            expected = [('body', 0x3e9)] if kind == 1 else []
+            if kind == 1 and not buff:
+                expected += [('effect', 0x7ef7), ('effect', 0x7ef7), ('bitmap', 0x7f84),
+                             ('quad', 0x8036), ('quad', 0x8036)]
+            note(fam, run['ok'] and calls == expected,
+                 dict(kind=kind, buff18=buff, calls=calls, expected=expected,
+                      run=None if run['ok'] else {k: v for k, v in run.items() if k != 'regions'}))
+    return fam
+
+
 def check_body_draw(args):
     # Whole skeleton bodies use the original generic RenderObjDraw path.
     # Compare level zero and Golden Archer's town +8, without item admission.
     fam = family(); lib = C.CDLL(str(vr.LIBRARY)); rng = random.Random(422)
     for t, level in ((0x422, 0), (0x423, 0), (0x424, 0), (0x423, 8),
                      (0x425, 0), (0x429, 0), (0x541, 0), (0x552, 0),
-                     (0x5bb, 0), (0x5bf, 0), (0x5c4, 0), (0x5c5, 0)):
+                     (0x5bb, 0), (0x5bc, 0), (0x5bd, 0), (0x5bf, 0), (0x5c4, 0), (0x5c5, 0)):
         for i in range(12):
             case = vr.classify_case(t, dict(item_level=level << 3, option1=0, ext=0, quality=5,
                                             time=vr.f2u(i * 12345.5), render_type=2))
@@ -370,6 +516,8 @@ def main():
         host = build_host(directory)
         fams = {'recipes': check_recipes(lib, rows), 'render': check_render(lib, args, rows, opts.cases),
                 'kind_gates': check_kind_gates(lib, args, rows),
+                'robot_hooks': check_robot_hooks(args), 'companion_boundary': check_companion_boundary(args),
+                'appearance_boundary': check_appearance_boundary(args),
                 'equipment': check_equipment(args, rows), 'body_draw': check_body_draw(args),
                 'kind_default': check_kind_default(args), 'loader': check_loader(args, lib),
                 'native': check_native(host, opts.game_root, rows), 'refused': check_refused(host, opts.game_root)}
@@ -383,7 +531,7 @@ def main():
                        ('empty_recipe', 'if (!body && !row->slots[1].type)', 'if (!body && row->slots[1].type)'),
                        ('nonplayer', 'row->kind != MU_CLASS_PLAYER_MODEL', 'row->kind == MU_CLASS_PLAYER_MODEL'),
                        ('body_slot', 'out->slots[0].type = (uint16_t)body;', 'out->slots[1].type = (uint16_t)body;')]
-            for cl, model in ((372, 0x425), (373, 0x429), (503, 0x541), (548, 0x552),
+            for cl, model in ((372, 0x425), (373, 0x429), (503, 0x541), (548, 0x552), (625, 0x5bc), (626, 0x5bd),
                               (706, 0x5bf), (806, 0x5c4), (807, 0x5c5)):
                 changes.append((f'body_{cl}', f'case {cl}: return {model:#x};', f'case {cl}: return 0x422;'))
             changes.append(('body_brown', 'case 616: case 646: return 0x5bb;', 'case 616: case 646: return 0x422;'))
