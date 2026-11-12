@@ -215,23 +215,25 @@ selection and a 120 s resource wait. Root build and explicit world rebuild pass,
 started with 168 work items. Reduced private tests, image replay, final identity,
 audit, PR and ready entry remain pending. Main still matches `626abce1`.
 
-## Delivery
-
-All implementation and integration checks above pass. The four documentation consumer modules pass 36 tests, 35 passed and one
-expected skip, zero failures/errors: 9.0 s runner / 489.1 s command including
-a 480 s resource wait. The staged audit passes 2,224 files with zero rejected,
-38.0 s. Final doc-only readiness/timing edits also pass the audit policy
-against their staged bytes; no compiled input changed. Ready for steward. Temporary
-proof images, private reports, build outputs, worktree and local branch are
-removed after the PR and ready entry; no private input is needed by a later
-lane. Remote branch `codex/render-actors-004` is retained for the steward.
-
 Checkpoint, 00:20 on 2026-11-12: all implementation, affected integration,
 private actor tests and image/identity replays pass as recorded above. The final
 four documentation consumer modules and staged audit are queued behind resource
 limits. Left: those two checks, final documentation, PR, ready line and cleanup.
 Next: resume the resource-guarded final audit; no production changes are pending.
 This checkpoint is WIP, with no PR or ready entry.
+
+## Delivery
+
+All implementation and integration checks above pass. The four documentation
+consumer modules pass 36 tests, 35 passed and one
+expected skip, zero failures/errors: 9.0 s runner / 489.1 s command including
+a 480 s resource wait. The staged audit passes 2,224 files with zero rejected,
+38.0 s. Final doc-only readiness/timing edits also pass the audit policy
+against their staged bytes; no compiled input changed. Ready for steward.
+Temporary proof images, private reports, build outputs, worktree and local branch are
+removed after the PR and ready entry; no private input is needed by a later
+lane. Remote branch `codex/render-actors-004` is retained for the steward.
+
 
 Final delivery supersedes the WIP checkpoints. PR and ready entry are produced
 from this checked source; the steward owns the merge and combined gate.
