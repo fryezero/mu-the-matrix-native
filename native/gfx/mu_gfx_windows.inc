@@ -2,14 +2,17 @@
  * item, command or request handler is reachable from these callbacks. */
 static int presentation_movie(int m)
 {
-    return m >= MU_GFX_COMMAND && m <= MU_GFX_GREMORY;
+    return m >= MU_GFX_COMMAND && m < MU_GFX_MOVIES;
 }
+
+#include "mu_gfx_windows2.inc"
 
 static void presentation_init(mu_gfx_layer *L)
 {
-    for (int m = MU_GFX_COMMAND; m <= MU_GFX_GREMORY; ++m) {
+    for (int m = MU_GFX_COMMAND; m < MU_GFX_MOVIES; ++m) {
         movie *w = &L->mv[m];
         if (!w->g || !w->path[0]) continue;
+        if (m > MU_GFX_GREMORY) presentation_fixture(L,m);
         switch (m) {
         case MU_GFX_COMMAND:
             invokef(L,m,w->path,"InitTitle","[\"Command\"]");
@@ -19,7 +22,7 @@ static void presentation_init(mu_gfx_layer *L)
             break;
         case MU_GFX_MATCHING:
             invokef(L,m,w->path,"InitSelect",
-                "[\"Matching\",\"Offline preview: catalogues unavailable\",\"Party\",\"Guild\",\"Close\"]");
+                "[\"Matching\",\"Offline preview: empty catalogues\",\"Party\",\"Guild\",\"Close\"]");
             break;
         case MU_GFX_GENS:
             invokef(L,m,w->path,"InitText",
@@ -63,7 +66,8 @@ static void presentation_init(mu_gfx_layer *L)
 static int presentation_call(movie *w, const char *name, const char *args, const double *v, int n)
 {
     mu_gfx_layer *L = w->L;
-    (void)args;
+    int extra = presentation_call2(w,name,args,v,n);
+    if (extra >= 0) return extra;
     if (!strcmp(name,"CloseWindow") ||
         (w->id == MU_GFX_MATCHING && !strcmp(name,"onClickbtnClose"))) {
         mu_gfx_layer_show(L,w->id,0);
@@ -96,15 +100,15 @@ static int presentation_open(mu_gfx_layer *L, int m, int menu)
     mu_gfx_layer_toggle(L,m);
     /* Menu handler 0x00c714bd emits once after dispatch. Direct D does not. */
     if (menu && L->cfg.window_sound)
-        L->cfg.window_sound(L->cfg.tooltip_user,25,0x00c716f6u);
+        L->cfg.window_sound(L->cfg.tooltip_user,25,(uint32_t)menu);
     return 1;
 }
 
 static int presentation_menu(mu_gfx_layer *L, int id)
 {
-    int m = id == 11 ? MU_GFX_GENS : id == 12 ? MU_GFX_MATCHING :
+    int m = id == 10 ? MU_GFX_GUILD_MATCH : id == 11 ? MU_GFX_GENS : id == 12 ? MU_GFX_MATCHING :
             id == 13 ? MU_GFX_PET_INVENTORY : id == 15 ? MU_GFX_GREMORY : -1;
-    return m >= 0 ? presentation_open(L,m,1) : 0;
+    return m >= 0 ? presentation_open(L,m,0x00c716f6) : 0;
 }
 
 static int presentation_key(mu_gfx_layer *L, int vk)
@@ -116,6 +120,10 @@ static int presentation_key(mu_gfx_layer *L, int vk)
                 return 1;
             }
     }
+    if (vk == 'Z') return presentation_open(L,MU_GFX_MACRO,0x00efd43a);
+    if (vk == 35) return presentation_open(L,MU_GFX_HUNT_RECORD,0);
+    if (vk == 'H' && L->mv[MU_GFX_STORAGE].open) return presentation_open(L,MU_GFX_STORAGE_EXT,0x00efc772);
+    if (vk == 'G') return presentation_menu(L,10);
     if (vk == 'D') return presentation_open(L,MU_GFX_COMMAND,0);
     return presentation_menu(L,vk == 'B' ? 11 : vk == 'N' ? 12 :
                               vk == 'Y' ? 13 : vk == 'K' ? 15 : -1);
