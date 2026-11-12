@@ -141,3 +141,23 @@ Left: finish post-merge portable and reduced-private checks, twelve selected int
 after-only default sweep against the retained original baseline. Then finalize docs/status/audit, PR, ready
 entry and cleanup. Next step: inspect postcheck-steps.json and the existing sequential controller. Load is
 above 14, so it waits before new checks. The final handoff draft with all 86 row timings is in lane scratch.
+
+## WIP checkpoint, 22:46
+
+Done: UI-main delta passes 1,424 portable tests (1,167 passed / 257 skipped, zero failures/errors),
+459.368 s command / 376.4 s runner; 46 private tests pass with zero skips, 57.897 s command. All twelve
+selected integration validators pass, 40,415 cases, 92.894 s command, source `5bf576d6`. Rebuilt world
+after-only sweep passes 92/92 PNGs and 92/92 dumps byte-identical, 79.611 s capture / 0.240 s comparison.
+Its SHA-256 is `a3512931e8a49e3a68688c6a6ca9e6006f210d2b6fe43482544067d902b54f0e`; original baseline
+captures are retained and have not been rerun.
+
+Latest main advanced to `6b75fbda` (batch 103: actors, Muun, aura and app-refresh). It is merged locally,
+with registry resolution at `d5e29d71a752bbf872b3881186eabe60fc436a1c`. The registry parses with the repo
+Python; all upstream rows/actor expectations survive, and this lane adds 17 lines / deletes zero versus
+main. No particle or caller proof target changed. The batch-103 build/selection controller has waited
+for load > 14 since roughly 22:34; no heavy lane job ran during that pause.
+
+Left: build and select the latest-main compiled delta, run only its affected checks and a final after
+identity sweep, then final docs/status/audit/PR/ready entry/cleanup. Next step: inspect batch103-build-steps.json
+and the current controller. The completed 17,008-check / 37-mutant proof and census are still authoritative
+for their unchanged targets. Resource and 02:15/02:30 cutoff rules remain binding.
