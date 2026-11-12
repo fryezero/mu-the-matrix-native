@@ -31,7 +31,9 @@ Master/fourth/fifth trees do not automatically add a learned skill or a cast
 route. Skill 47 is a stale fixture entry absent from the pinned language table.
 
 P means the bounded primary cast visual is present. L means a specific visual
-or context remains missing. M means the native cast adapter refuses the skill.
+or context remains missing. M means the primary cast visual is missing. Before this lane that normally
+also means the native adapter refuses the skill. A recovered caller whose
+consumers all refuse still remains M.
 These labels concern presentation only. Authoritative buffs, power, target
 state and service eligibility are excluded. They do not change the historical
 23-route denominator in the earlier coverage table.
@@ -295,7 +297,7 @@ original-machine stops. Unchanged consumers receive no new mutant run.
 The eight lifecycle sequences cover base and master-selected ordinary arrows,
 with each original record carried forward independently. C never reseeds an
 original record between ticks. Normal expiry and an owner dying during flight
-are both included. Host terrain/model/animation services remain declared
+are both included. Host terrain/model/animation and arrow-hit services remain declared
 synthetic inputs. The original caller comparator observes every request
 argument in order, including both key/default words. Sound owners and call
 sites are checked as part of that stream. These are component proofs, not

@@ -117,3 +117,24 @@ main before the private validators and final identity. Only changed compiled
 inputs need subsequent checks. The earlier portable and native evidence remains
 recorded; integration checks are pending. The installed app was changed by the
 refresh lane, not this lane.
+
+## WIP checkpoint, 23:10 local
+
+Done: required parent/current main merged as `b5e53b91`; own combat sources and
+validator match the already-tested inputs exactly. Merged root build passes
+13.92 s; explicit world build passes 5.30 s, binary SHA-256
+`226f769d2b2380c08af6d6d13c77dc104404ca23048b3fa53306c38746a87faa`.
+Portable merge delta since `bee54942`: 159 work items, 1,465 tests, 1,216 passed,
+249 expected skips, zero failures/errors, 513.57 s outer / 399.8 s runner wall.
+This checks incoming actor/Muun compiled inputs; it is not a second full gate.
+
+Left: refreshed affected private validator selection/run, reduced private
+incoming actor/Muun modules, merged after/repeat fixtures, earlier Penetration
+flight proof, default identity, final audit/docs/PR/cleanup. The close-target
+Penetration probe records immediate retirement by the existing arrow hit service;
+the earlier off-camera interpretation is superseded. Use the longer authored
+early-flight placement to observe the projectile. No before measurement is repeated.
+
+Next: private validators at two jobs when the resource guard permits. The 18
+new caller mutants and all 1,914 focused checks remain valid because their
+sources did not change. No ready-prs line or PR-ready claim yet.
