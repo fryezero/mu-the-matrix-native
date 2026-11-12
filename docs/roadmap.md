@@ -1,5 +1,7 @@
 # Roadmap and work queue
 
+ITEMS-UI-001 PR-ready: equipment hover uses the original integer 640x480 bounds and now opens fixture item tooltips. 8,512 instruction comparisons plus five static checks, 8/8 compiled mutants, ten affected validators and 29 private tests pass; the refreshed default sweep is byte-identical. Bits 0x87 add no glow in the compared bodies; original main-game GFx ordering remains unverified. [Checks, evidence and limits](handoffs/ITEMS-UI-001.md).
+
 RENDER-EFFECTS-028 PR-ready: fixture-only Greater Defense/Damage auras now persist until authored expiry and retire on owner death. Defense ribbons and midpoint flares, attack link sprites; 4,390 original comparisons, 18/18 aura mutants, 56 affected validators pass; default captures remain identical. [Evidence, counts and limits](handoffs/RENDER-EFFECTS-028.md).
 
 APP-REFRESH-012 PR-ready, docs only: detached main d4af71dd installed; APP-REFRESH-006 Native Data and settings preserved. Full private suite 1,069 tests, 1,054 passed/15 skipped, zero failures/errors. Standard journeys and all seven new feature categories pass, with explicit fixture/audio-preference limits. [Installation, rollback, proofs and checks](handoffs/APP-REFRESH-012.md).

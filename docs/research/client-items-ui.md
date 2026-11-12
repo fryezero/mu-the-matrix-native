@@ -4,6 +4,11 @@ Offline/static work against the text and data pins in `scripts/pins.py`. No live
 original launcher, installed app, packet data or character-power behavior is involved.
 See [the lane handoff](../handoffs/ITEMS-UI-001.md) for measured checks and limits.
 
+| Compared capture | SHA-256 |
+|---|---|
+| Restored text, capture09, base `0x00401000` | `2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724` |
+| Second image section, run10, base `0x01a7c000` | `c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f` |
+
 ## Icon appearance bits
 
 The full ITEM level word already reaches the native icon adapter from authored equipment.
@@ -22,7 +27,9 @@ Instruction comparison in `validate_items_ui` flips every combination of bits `0
 for levels 0..15 on the ordinary sword, armour and level-14/15 special body `0x3895`.
 It compares the original ordered mesh/body/colour stream against the existing native
 stream with those bits removed, at a fixed clock, with separate excellent and ancient
-controls. This establishes no additional visual effect for these bits in that domain.
+controls. These use authored record kinds 0/0/0, quality 5 and clock 1,234 ms;
+this is not a census of every item body. This establishes no additional visual
+effect for these bits in that domain.
 Adding a new glow or excellent interpretation would contradict this evidence.
 The shared renderer and its tables therefore stay unchanged.
 
@@ -55,8 +62,8 @@ ITEM bytes or additional item-stat option records from the appearance-only field
 
 ## Frame ordering and the opaque boundary
 
-The captured main-game render `0x0185916b` calls RenderSprites at `0x01859ab6` and
-`0x01859bb1`, before the legacy UI pass at `0x01859ce7`. The next UI call at
+The captured main-game render `0x0185916b` has RenderSprites call sites at
+`0x01859ab6` and `0x01859bb1`, both before the legacy UI pass at `0x01859ce7`. The next UI call at
 `0x01859cf1` goes to opaque `0x10b3e920`; this lane does not follow it.
 
 The original captured per-window pass `0x00abfcca` displays a movie, draws its 3D
