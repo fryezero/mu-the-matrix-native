@@ -184,3 +184,25 @@ Left: finish this validator run; affected portable tests; final endpoint capture
 and one default identity sweep; final docs/audit/PR/ready line and owned cleanup.
 Do not run more unchanged mutants, a full lane gate, an installation or a merge.
 No PR or ready entry yet. Resume logs are in the lane's named scratch directory.
+
+
+## WIP checkpoint, 2026-11-12 00:19 Chicago
+
+All 107 selected validators passed at source/test head `7e97044e`: zero failures,
+errors or skips, 1,251.812 s active command wall, 1,229,800 reported row cases
+plus gfx3/worlds_o without unified totals. No unchanged mutants were rerun.
+Final private checks remain 19/19 pass in 147.640 s. Main was still `626abce1`
+on the remote at 00:15; the fully tested branch contains that commit.
+
+The affected portable command is queued/running under the foreground resource
+guard (load wait, free memory 67%). It is followed sequentially by final
+640x480/2560x1440 captures and the single default identity sweep. Before/after
+binary hashes are distinct as recorded above. No baseline renders have run.
+The identity helper explicitly rebuilds world once more after tests and records
+its final hash. The old tour's private path normalization is already verified.
+
+Final handoff draft and per-row wall-time table are prepared under this lane's
+scratch (`handoff-template.md`, `validator-table.md`); fill its remaining check,
+capture and identity markers only after those results pass. Then update the
+four status lines, stage/audit, commit/push, PR/link, ready entry, and cleanup.
+No PR or ready entry exists. No production/test source changed after `7e97044e`.
