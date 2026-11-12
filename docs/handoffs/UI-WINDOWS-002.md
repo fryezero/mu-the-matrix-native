@@ -1,97 +1,191 @@
 # UI-WINDOWS-002
 
-## WIP checkpoint
+## Delivered scope
 
-2026-11-11 21:48 local. Base UI-WINDOWS-001 `13721b04`; merged main
-`710ac816`, the steward merge of #372. Work remains in this lane's isolated tree.
+Eight presentation adapters now open in the offline native client: seven
+additional surveyed movies and a second instance of StorageInven. All data
+is authored demo data or the original empty state. Request, configuration,
+item and guild-management actions are inert. Original Help's open route
+remains unproved; existing native Ctrl+H keeps its native-policy label.
 
-Done: eight presentation fixtures and route adapters for MacroMain/Sub,
-HuntRecord, expanded StorageInven, MatchingParty/Guild, Guildmatching_2024
-and PlayGuide. Six private tests pass, including 312 refused callback cases
-per host and 24 original Z/H/End key-block decisions. Root build passed in
-35.64 s; graphical client and world build passed in 17.66 s. First actual
-shell key journey completed in 14.46 s, with demo-only window captures.
+Started from UI-WINDOWS-001 `13721b04`, then integrated steward main
+`6b75fbda`. Final production source is `142c3aeb14de4d22ed7949d0f20f02d9f950c57e`. Later changes are docs
+only; final head is in PR metadata. The [research](../research/client-ui-windows.md)
+records addresses, the provider boundary and every remaining survey row.
+The registry has 44 entries / 43 distinct filenames. Twelve of the historical
+134 baseline-absent survey rows are bound; 122 remain. This is a survey
+count, not whole-client completion or full menu fidelity.
 
-Left: finish visual corrections to HuntRecord's test panel/title; verify
-matching tabs, MacroSub and expanded-storage mouse journeys; finish static
-route ledger and Help limit; affected suites/validators, audit and default
-identity sweep. The first captures are exploratory, not final proof.
+| Window | Proved route | Fixture / lifecycle |
+|---|---|---|
+| MacroMain | Z, `0x00efd3a4`, manager `+0x144` | Empty base-DK options, three local tabs, close; activation and saving refused |
+| MacroSub | MacroMain `btnMenu`, `0x00ba7d89` -> `0x00ba6fcf` -> `0x00babb31` | Potion / condition child views; same-type toggle, different-type replacement, parent teardown; config actions refused |
+| HuntRecord | End, `0x00efc39a`, manager `+0x1d0` | Original placed `scene`; zero current record, empty history, table/graph/total/per-second; full -> mini -> closed |
+| Expanded storage | H, `0x00efc715`, getter `0x00c08ba8`, manager `+0x104` | Separate empty 120-cell view, only while an authored warehouse is open; close / parent teardown; H never acquires storage |
+| MatchingParty | N -> selector Party; callback `0x00bc04f4` | Empty catalogue, search/recruit/party-info tabs, close; original requests replaced by empty provider |
+| MatchingGuild | N -> selector Guild; callback `0x00bc0700` | Empty legacy catalogue and search/recruit tabs; fifteen authored Class 1..15 filter labels; requests refused |
+| Guildmatching_2024 | G/menu 10, `0x00efcb7c` -> `0x00b0aed2` | Empty catalogue, recruit and nested guild-info/member/alliance/rival views; no guild authority |
+| PlayGuide | Ctrl+T `0x00efc0da`; menu 22 `0x00c71576` | Original empty guide frame and close. External guide content/provider remains absent |
 
-Next: rebuild the corrected graphical adapters, run the window/mouse journeys
-and inspect every final capture. No installed app or live client was touched.
-This is WIP, not PR-ready. Nothing is in ready-prs.txt for this lane.
+## Controller and sound checks
 
-### WIP checkpoint, 22:10
+[Production controller](../../native/gfx/mu_gfx_windows2.inc) uses an exclusive
+allowlist before the existing NPC/item/social/command handlers. Unknown
+callbacks refuse. The [C host](../../native/tests/ui_windows2_host.c) lists
+all 52 forged action names, tested against eight new windows: 416 action/window
+combinations in each synthetic and real-movie host. Hero, held item, potion
+and foreign-handler counters remain unchanged. Checks also cover readiness,
+missing routes, parent teardown, tab bounds and direct/menu sound ownership.
+All fifteen legacy class captions and HuntRecord's non-test state are read
+back after ten real-movie ticks. HuntRecord already places `scene`; attaching
+another clip creates a duplicate test panel and must not be done.
 
-Fixed the duplicate HuntRecord scene attachment after visual inspection.
-The original movie already places `scene`. End now follows the original
-full / mini / closed cycle. Matching child tabs have local routes and the
-fixture keeps all requests refused. The latest source has not yet completed
-its final build and checks. The 21:47 six-test run passed in 9.07 s, before
-these final loader/lifecycle corrections.
+Thirty-four bounded original route/sound decisions pass, including Z/H/End,
+menu 22's getter/toggle/sound sequence, and UI-WINDOWS-001's key/menu blocks.
+These are bounded caller checks, not every original world/class/context gate.
+Fixtures supply eligibility. Sound 25 uses `0x00c716f6` for menu dispatch,
+`0x00efd43a` for Z and `0x00efc772` for eligible H, once per accepted event.
+No guessed tab/child/close sound is added. The unowned GFx sound query
+`0x00b49b97` remains unwired. Existing UI audio's 5,803 original comparisons,
+release/hold/refusal/mute/detach and installed decode regressions pass.
 
-The resource guard blocked the next heavy step continuously from 21:50
-through 22:10, with load above 14 and memory above 25 percent. Continue at
-`nice -n 10`, `make -j2`, validators with two jobs, using the common brief's
-20-minute fallback. Baseline world built in 12.76 s; no identity comparison
-has run yet. Next is the focused private suite, followed by the final build,
-mouse captures and affected checks. Still WIP, not ready for the steward.
+## Native journeys and captures
 
-### Source freeze, 22:15
+Actual worktree `native/build/mu-client`, canonical read-only Native Data and
+GFx library, `--no-store --no-audio`, `MU_GFX_SINGLE_BUFFER=1`,
+`MU_GFX_TEST_CLOCK=1`, `MU_GFX_PUBLIC_DEMO=1`. Logical size 1024x768,
+framebuffer 2048x1536. No installed bundle was replaced by this lane.
+The final 222-frame journey takes 25.90 s command wall.
 
-The corrected native journey passes through all eight adapters. The placed
-HuntRecord scene now has no test panel; End reaches the mini view and then
-closes. An authored empty warehouse NPC opens the parent, and H shows the
-empty expanded instance. Matching search/recruit tabs and MacroSub are
-captured. The first WIP loader captures above are superseded. Final labels
-are shortened, and request controls are disabled as well as refused by the
-controller. Next: final focused/affected suites, selected private validators,
-repository audit, default identity and committed check ledger.
+Z opens Macro, its potion child and Other tab. End visits the full and mini
+HuntRecord views and closes it. N opens both matching children; both Recruit
+tabs work. G opens nested empty guild information. An authored empty storage
+NPC opens the parent warehouse; H opens the expanded grid. The expanded,
+parent and inventory close. Ctrl+T opens the guide and Esc closes it. Final
+frames show all these views closed. Earlier exploratory runs also exercised
+HuntRecord's Graph tab. No casts, transfers or live requests were introduced.
 
-### Final fixture check
+All fifteen final proof frames were inspected and are fully opaque. They are
+window/framebuffer-only, with demo names. Local proof directory was
+`~/Documents/MTM/mu-mac-tools/native/renders/ui-windows-002/`; captures are
+removed after PR-ready per the owner. No screenshot or client asset is committed.
 
-Portable affected run at `32c59170`: 134 work items, 1,424 tests, 1,164
-passed, 260 optional skips, zero failures/errors. Execution 385.5 s,
-command wall 464.59 s. Selection contains 129 native work items, so 8d is
-reduced. The final isolated guild Info empty-provider initialization and
-explicit management refusals pass with both original and synthetic movies.
-The focused private run passes 14/14 in 66.28 s, including 408 inert
-callbacks per new-window host, the original key blocks and UI audio.
-No enum/layout/input code changed after the broad portable run.
+| Inspected capture | SHA-256 |
+|---|---|
+| `checked-closed.png` | `b8f2d129c080c0d8d9cd4477b2dfa2c27567cc6b5b14529baf0363f4cbd4957c` |
+| `checked-end.png` | `4d95719004d99570371f605e705beb5c46563cb7a227bf6a57591b13731c414b` |
+| `checked-expanded.png` | `eca022a40858e4370675560503fc64294c60db6e111100bd1336804b99aa282c` |
+| `checked-guide.png` | `58c3b06702a28afb3273ea7bee3f4870ec047b8a7b442ff28f0227b18a59d3ad` |
+| `checked-guild-info.png` | `e96bb56335cec3e4b9c56c7c949015a158561842d4cf671940f093d14787b352` |
+| `checked-hunt.png` | `e378c3ca68cafc29925b6173d11e40a86fef976f507d7c5f8fd0de6c49e7c99e` |
+| `checked-legacy-recruit.png` | `63279ac75eb3378f54d58f8cd025dc7e2e5cf96efbea7fabd2d6d0e37d18c925` |
+| `checked-legacy.png` | `48561f7b6c3680b2d7d3a6bab4026fb103dce24c5a516d515fac7410730f2077` |
+| `checked-macro.png` | `873909e7a609e25b9b0bc62a731458653d93dd303b85e7c9edef3c9934457278` |
+| `checked-mini.png` | `07924b33f4ac72e055e0620d741fea58278a7f5ba1ff28a5ecfe01266a0397aa` |
+| `checked-other.png` | `2c46176e9544105c5315d0c80d69882273257283e9433771ddc2c30c30436559` |
+| `checked-party-recruit.png` | `967aeb2d0b8fb6a79d0148a7997014d2ebbbeac78c743136754b8bfc0f0f289d` |
+| `checked-party.png` | `64a4395e7af654418dd4442f88a372d2d73e9df811cde352ec688528c79d84fa` |
+| `checked-sub.png` | `679f01da2f9b29dbef4892e5ad36e8b616f94630fe157f3faa2b9886e926487f` |
+| `checked-warehouse.png` | `500ce5065423f5962c8830240e80b272d5a97f8b6969cf78ac0ca82d5d9184d2` |
 
-### Main integration, 22:27
+## Checks and wall times
 
-Merged steward main `6b75fbda`, including RENDER-ACTORS-003,
-MUUN-VISUAL-002, APP-REFRESH-012 and RENDER-EFFECTS-028. The four shared
-status-document conflicts keep both lanes' entries. Their compiled core
-inputs changed, so rerun the affected portable suite and all twelve selected
-private validator rows on the merged tree. The nested guild Info fixture
-and its twelve additional explicit refusal names are included in this merge.
-The fourteen focused private tests passed in 66.28 s before integration;
-repeat the focused private modules after the merge as well.
+All commands run from the repository root. Heavy jobs use `nice -n 10`.
+Builds use `-j4` initially, then `-j2` after the 21:50..22:10 resource-guard
+wait, using the common brief's twenty-minute fallback. Validator jobs = 2.
+No full gate or hosted workflow ran in this lane.
 
-### WIP checkpoint, 22:43
+| Check | Result | Wall seconds |
+|---|---|---:|
+| Integrated root build / final root freshness | pass | 26.86 / 0.56 |
+| Final graphical client and explicit world build | pass | 9.27 |
+| Current-main baseline explicit world build | pass | 5.47 |
+| Affected portable before main integration | 134 work items; 1,424 tests, 1,164 passed, 260 optional skips, no failures/errors, at `32c59170` | 385.5 execution / 464.59 command |
+| Affected portable after main integration | 135 work items; 1,429 tests, 1,166 passed, 263 optional skips, no failures/errors, at `d9015c71` | 432.5 execution / 504.20 command |
+| Focused private UI/windows/audio | 15/15, including original menu-22 block and UI audio | 71.70 |
+| Final private new-window controller module | 4/4; both hosts, all fifteen dynamic captions and 416 refusals per host | 3.94 |
+| Final affected private validators | 12/12, zero fail/error/skip, no mutants | 129.91 |
+| Final actual native journey | 222 frames, eight adapters, final all-closed captures | 25.90 |
+| Default identity, 46 maps | 92 PNG + 92 dumps + 46 normalised report identities | 168.47 |
+| Final documentation-consumer modules | 36 tests, one optional skip, zero failures/errors | 7.65 |
+| Repository audit | 2,206 files, zero rejected | 29.57 |
 
-Post-merge affected portable run at `d9015c71`: 135 work items, 1,429 tests,
-1,166 passed, 263 optional skips, zero failures/errors; 432.5 s execution,
-504.20 s command wall. All twelve affected private validators passed in
-152.23 s at that commit. The final original PlayGuide menu route was then
-proved at menu-table entry 22 -> `0x00c71576`, including sound 25 at
-`0x00c716f6`, and bound alongside Ctrl+T. The focused private suite passes
-15/15 in 71.70 s, with 408 refused callbacks in each host and 34 bounded
-original route/sound decisions. A short MacroSub caption now reads "Read only".
+The final changes after the broad integrated run were the original menu-22
+allowlist, its original-instruction test and fixture text/caption completion.
+Final focused controllers and all selected validators confirm that source.
+**8d reduced:** 130 selected native work items exceed the 40-item cap.
+The changed private UI modules plus UI audio run from the root with canonical
+`private-env.sh`. The broad run includes shared GFx2/3, input/router, Help,
+map, social, layout, session and shell consumers, per brief 6b. No validator
+checks or original reconstruction target changed in this lane, so mutants
+were not rerun.
 
-Left: final rebuild, selected validator confirmation, default identity,
-final native capture inspection, audit, final ledger and PR-ready handoff.
-No installed bundle or live client has been changed by this lane.
+| Steward validator | Cases / contracts, zero mismatches | Seconds |
+|---|---:|---:|
+| `validate_app_polish1` | 752 | 24.3 |
+| `validate_app_polish2` | 1028 | 4.2 |
+| `validate_app_polish4` | 10485 | 35.7 |
+| `validate_app_polish7` | 5120 | 3.1 |
+| `validate_audio_callers` | 5528 | 6.8 |
+| `validate_audio_domains` | 2544 | 36.9 |
+| `validate_audio_items` | 3000 | 4.6 |
+| `validate_gfx3` | 6 skill + 18 window; loader/menu | 7.3 |
+| `validate_map_polish` | 876 | 0.5 |
+| `validate_movement` | 6614 | 71.8 |
+| `validate_render_effects16` | 424 | 4.0 |
+| `validate_worlds_fog` | 4044 | 9.9 |
 
-### Final visual correction, 22:59
+Steward validators: validate_app_polish1,validate_app_polish2,validate_app_polish4,validate_app_polish7,validate_audio_callers,validate_audio_domains,validate_audio_items,validate_gfx3,validate_map_polish,validate_movement,validate_render_effects16,validate_worlds_fog.
+All final rows ran at `142c3aeb14de4d22ed7949d0f20f02d9f950c57e`. Use canonical
+`~/Documents/MTM/mu-mac-tools/native/private-env.sh` from the root.
+Keep the selected `validate_movement` symbol-level fallback. No compiled
+input changes follow those runs; later commits only finish this ledger.
 
-The full window capture tour exposed fifteen missing dynamic class-label
-keys on MatchingGuild's Recruit tab. Its authored provider now supplies
-`cbClass01..cbClass15`, labelled Class 1..15 as demo categories, and its
-application-list action is disabled and explicitly refused. The real-movie
-regression reads every label after ten ticks. Final focused controller
-suite passes 4/4 in 3.94 s, with 416 refused callbacks per host.
-The earlier 230/230 identity was valid at `e658680e`; compare the same
-baseline hashes to a rebuilt final binary after this data-only correction.
+## Default identity and binary provenance
+
+Before is explicitly rebuilt main `6b75fbda`; after is the rebuilt final
+production source above. SHA-256 differs, so this is not a self-comparison.
+
+- Before: `1785e14013da7b5caa263a89f95d9de3cc4e2b259a0568b5a2a4659621bc473b`.
+- After: `2bc66a580f3e900b38df108ea9c2e71d372bcfd3d0c6e6e3025c214a95a545dd`.
+
+One baseline render only: 74.64 s. Final after render:
+93.83 s. A valid earlier after render at `e658680e` was superseded
+when visual review required the dynamic-caption fix; baseline hashes were
+retained and never rerendered. Both existing manifests resolve their original
+local inputs. Resolution 640x400, default draw, no draw_all/live_time.
+PNG and dump bytes compare directly; report output and binary paths are
+normalised. All 230 file identities match. This does not establish original
+image equivalence, UI pixel parity or performance acceptance.
+
+## Limits, next and cleanup
+
+Help's only direct getter caller is `0x00b6b744`; it reads auxiliary
+EventMapHelper rows and does not open Help. Menu 3 is a sound-only epilogue,
+8 opens SystemMenu, 22 opens PlayGuide. Indirect or other-scene Help routes
+remain unproved. No F1 or guessed Help menu binding was added.
+
+AutomaticMacro/Home activation remains inert; an independent presentation
+open lifecycle is unproved. ExtensionBagFrame needs its child route and grid
+owner. The separate fifth-tree item viewer needs its card/item lifecycle,
+with power features excluded. The other 119 left rows keep their individual
+untraced-route/provider reasons in the research survey. No authoritative
+macro timing/configuration, hunting history, matching catalogue, storage
+expansion state or guide content is reconstructed. Labels are authored English
+fixtures; full localisation, all class/world predicates and other window
+sizes remain unproved.
+
+No original client, protection module, live memory, Wine play/staged app or
+installed Native Preview bundle was changed by this lane. No README work.
+No raw assets, data rows, screenshots or private-input symlinks are committed.
+
+WIP checkpoints `88b70c06`, `620c4cd5`, `32c59170`, `d9015c71`,
+`e658680e` and final source above were pushed before readiness, with done /
+left / next-step sections preserved in their history. The four shared status
+conflicts during the main merge kept both lanes' entries. This is PR-ready
+for the merge steward, not merged. Finish before the owner's 02:30 stop.
+
+After the ready-prs entry, push nothing further. Cleanup removes this lane's
+renders/scratch, its detached baseline tree, build outputs, worktree and
+local branch. The remote PR branch stays for the steward. No new input needs
+retaining. The next APP-REFRESH lane can include these views after the merge.

@@ -1,6 +1,6 @@
 # Roadmap and work queue
 
-UI-WINDOWS-002 WIP: presentation fixtures for Macro/Sub, HuntRecord, expanded storage, matching children/current guild matching and the original Ctrl+T guide frame. Help's original route remains unproved. [Evidence and limits](handoffs/UI-WINDOWS-002.md).
+UI-WINDOWS-002 PR-ready: eight inert presentation adapters open Macro/Sub, HuntRecord, expanded storage, matching children/current guild matching and the original guide frame. Local lifecycle and native captures pass; 1,429 portable tests, final private controller/audio checks, 12 validators and 230 default identities pass. Original Help route remains unproved. [Checks and limits](handoffs/UI-WINDOWS-002.md).
 
 RENDER-EFFECTS-028 PR-ready: fixture-only Greater Defense/Damage auras now persist until authored expiry and retire on owner death. Defense ribbons and midpoint flares, attack link sprites; 4,390 original comparisons, 18/18 aura mutants, 56 affected validators pass; default captures remain identical. [Evidence, counts and limits](handoffs/RENDER-EFFECTS-028.md).
 
