@@ -18,6 +18,68 @@ changes cannot reach session, item, social or command handlers. Four Gremory tab
 and all five empty Muun pages work locally. Existing compiled movie methods own
 the tab selection, layout, drag and close presentation.
 
+## UI-WINDOWS-002 follow-up
+
+UI-WINDOWS-002 starts at UI-WINDOWS-001 `13721b04` and merges the steward's
+main `710ac816`. It uses the same restored text/data SHA-256 pins stated
+above, existing converted movies and static ActionScript inspection. No
+original client, protected module, live memory or service was used.
+
+Eight presentation adapters add seven distinct surveyed movies, plus a
+second instance of already-bound StorageInven. The world registry has 44
+entries, 43 distinct filenames. Of the historical 134 baseline-absent survey
+rows, twelve now have bindings and 122 remain. These counts do not measure
+whole-client completion. The original survey below remains the baseline
+ledger; the following table supersedes its disposition for these rows.
+
+| Movie | Static route / display evidence | Native fixture and lifecycle |
+|---|---|---|
+| MacroMain | Z `0x00efd3a4`, getter `0x0095f986`, manager `+0x144`, toggle `0x00aae767`; sound 25 at `0x00efd43a` | Authored base-DK empty options, three local tabs, close. No helper start, persistent config, skills or items |
+| MacroSub | MacroMain `btnMenu` comparison `0x00ba7d89` -> `0x00ba6fcf`; class-dependent opener `0x00babb31`, `ShowWindow` at `0x00babb6a` | Potion and skill-condition child previews, same-type toggle, different-type replacement, close with parent. Base-DK has no party-support child |
+| HuntRecord | End `0x00efc39a`, getter `0x0095f647`, manager `+0x1d0`; open `0x00b8a5e2`, full-to-mini `0x00b8a8cf`, close `0x00b8a8fc` | Original placed `scene`, `noTest` callback owner `0x00b8b583`, authored zero record, empty history, table/graph/total/per-second, full/mini/closed cycle |
+| Expanded StorageInven | Second registration `0x00ac6193`, getter `0x00c08ba8`, manager `+0x104`; H `0x00efc715` requires open warehouse and original `+0xa5` eligibility; sound 25 `0x00efc772`; `SetExtend` reference `0x00c3e180` | Separate empty 120-cell movie instance, fixture eligibility, close and parent teardown. H never acquires a warehouse |
+| MatchingParty | Registration/name `0x00ac6b27`; MatchingSelect callback owner `0x00bc04a5`, party comparison `0x00bc04f4`; search tab `0x00bb8fb1`, party-info tab `0x00bbf6df`, recruit tab `0x00bbfaf3` | Selector -> empty catalogue; local search/recruit/party-info tabs and close. Original catalogue requests are replaced by an empty presentation provider; no remote answer is claimed |
+| MatchingGuild | Registration/name `0x00ac6aa2`; MatchingSelect guild comparison `0x00bc0700` | Selector -> empty legacy guild catalogue; local search/recruit tabs and close. Original request remains inert; no original response-driven eligibility is reconstructed |
+| Guildmatching_2024 | Registration/name `0x00ac88c3`; G/menu 10 `0x00efcb7c` -> `0x00b0aed2`, manager `+0x2b0` | Empty catalogue and three local tabs, close. No search, recruitment, application or mail |
+| PlayGuide | Registration/name `0x00ac548a`; Ctrl+T `0x00efc0da` and menu 22 `0x00c71576`, getter `0x00b3b39e`, manager `+0x2ac` -> `0x00aae767` | Original empty guide frame, title and close. Menu release uses sound 25 at `0x00c716f6`. External guide content/provider absent; this is frame presentation only |
+
+Exact original world/class/window predicates remain outside these adapters.
+The fixtures supply eligibility and original empty data. Original compiled
+movies own tab visuals and their local animations. No lifecycle claim is a
+claim about authoritative helper timing, hunt history or remote catalogues.
+
+The callback allowlist is exclusive: saves/resets, helper activation, skill
+selection, item/equipment moves, zen operations, storage expansion purchases,
+search/refresh/page requests, recruitment, application, join/approval/cancel
+and mail refuse before any session/NPC/item/social handler. Disabled controls
+also reject forged callbacks. Local tabs, child navigation, close and movie
+metadata are the only accepted operations. Unknown callbacks refuse.
+
+Original menu dispatch sound 25 remains at `0x00c716f6`; H and Z use the two
+separate direct call sites above. Native input suppresses held/repeated keys.
+No guessed tab, child-navigation or close sound is added. The unowned GFx
+query `0x00b49b97` and full GFx sound parity remain outside this lane.
+
+### Help and the remaining survey
+
+A new direct-call scan of the pinned restored text again finds exactly one
+call to Help getter `0x00b6cba2`, at `0x00b6b744`. That caller reads auxiliary
+EventMapHelper rows rather than opening Help. The menu table still has no
+Help route: ID 3 is the sound epilogue and ID 8 opens SystemMenu. The main
+movie has no Help menu entry. This does not rule out an indirect call or an
+unexamined scene. No original Help key/menu route is proved; native Ctrl+H
+keeps its explicit native-policy label and F1 gets no new binding.
+
+AutomaticMacro remains left: Home is a helper activation branch, and an
+independent presentation-open lifecycle is unproved. ExtensionBagFrame needs
+its expansion/grid owner and an exact original child route. The fifth-tree
+item viewer needs its card/item lifecycle, with power features excluded.
+All other 119 remaining rows retain the per-row untraced-route and missing
+provider reasons in the survey. No unused registration/name reference alone
+is promoted into an invented key. PlayGuide is the additional proved empty
+first-page route admitted here; no claim is made about original external
+content or the other 122 first pages.
+
 ## Help route investigation
 
 Help is already bound and is not a new missing movie. Registration `0x00ac678a`

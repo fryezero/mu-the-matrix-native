@@ -3557,6 +3557,23 @@ args = ["--mutations", "--report", "{report}"]
 "families.credits.sounds" = 71
 "mutants" = {len = 10}
 
+[validate_actor_composites]
+test = "native/tests/test_actor_composites.py::ClientComparison.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["kind_default", "recipes", "openers", "render", "draw", "native"]
+cases = 1427
+mutants = 10
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/actors", "reconstructed/renderchar", "native"]
+build_targets = { native = ["build/libmunative.a", "build/libmusession_world.a"] }
+args = ["--cases", "240", "--mutations", "--output", "{report}"]
+note = "RENDER-ACTORS-004: five composite NPC constructor/part plans, 22 secondary files, generic draw streams, native loading/animation/alpha and ten compiled mutants"
+[validate_actor_composites.expect]
+all_equal = true
+all_mutants_caught = true
+"mutants.*.stopped" = 0
+
 [validate_worlds_inner2]
 test = "reconstructed/objects/test_worlds_inner2.py::ClientComparison.test_original"
 pins = ["text", "data"]
