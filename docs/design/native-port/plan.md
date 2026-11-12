@@ -1,5 +1,7 @@
 # Plan: the rest of the native macOS port
 
+APP-POLISH-009 PR-ready: the HUD and sixteen task panels fit the 640x480 native minimum while retaining original alignment; CharacterInfo and the HUD read one joined demo record, including Windleaf's existing level 320 / 318 free points. Sixty original resize cases, 4,608 native fit cases and 10/10 compiled mutants; 19 private tests and 107 affected/post-merge validators pass; the portable run has 1,263 passed / 269 skipped, zero failures or errors. All 92 default PNGs and 92 dumps stay identical. [Evidence, timings and limits](../../handoffs/APP-POLISH-009.md).
+
 ITEMS-UI-001 PR-ready: equipment hover uses the original integer 640x480 bounds and now opens fixture item tooltips. 8,512 instruction comparisons plus five static checks, 8/8 compiled mutants, ten affected validators and 29 private tests pass; the refreshed default sweep is byte-identical. Bits 0x87 add no glow in the compared bodies; original main-game GFx ordering remains unverified. [Checks, evidence and limits](../../handoffs/ITEMS-UI-001.md).
 
 RENDER-EFFECTS-028 PR-ready: fixture-only Greater Defense/Damage auras now persist until authored expiry and retire on owner death. Defense ribbons and midpoint flares, attack link sprites; 4,390 original comparisons, 18/18 aura mutants, 56 affected validators pass; default captures remain identical. [Evidence, counts and limits](../../handoffs/RENDER-EFFECTS-028.md).

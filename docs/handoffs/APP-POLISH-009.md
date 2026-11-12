@@ -1,208 +1,278 @@
 # APP-POLISH-009
 
-## WIP checkpoint, 2026-11-11 21:40 Chicago
+The HUD and the sixteen task panels now fit the native 640x480 minimum while
+retaining the original alignment. CharacterInfo reads the same joined demo
+record as the HUD. Windleaf's existing authored level 320 and 318 free points
+now survive the fixture-to-session seed; no new stat formula or allocation
+operation is added. Missing derived display data remains a dash.
 
-Done: read the complete lane/common briefs, APP-POLISH-007/008 and owning UI sources.
-Built baseline root and `mu-world`; baseline binary SHA-256
-`4954601057b7ee7976c787157b321703d40c65dba68c46901b08d22adb1be76c`.
-Original collection resize `0x00ac09b2` calls `0x00aae4ae` for every non-null
-handler. Unicorn: 60 cases pass. Native fit: 200 cases pass, no mutants yet.
-The initial real-movie 640x480 probe confirmed the original fixed scales overflow.
-An initial bounded fit keeps inventory, CharacterInfo, quest, Warps and trees above
-the HUD. CharacterInfo now reads the same session records as the HUD; this is
-presentation only. No fixture stat formula, combat rule or installed app changed.
+## Recovered rules and implementation
 
-Left: merge latest main including UI-WINDOWS-001 #372, finish original/static
-layout evidence and compiled mutants, automate all-window/size and demo ownership
-checks, inspect proof captures, run affected tests/validators plus reduced private
-checks and the default identity sweep, finish research/status/PR documentation.
+Pinned text SHA-256 `2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724`;
+data SHA-256 `c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f`.
+Full evidence and the native policy distinction are in
+[client-ui-layout.md](../research/client-ui-layout.md).
 
-Next: merge `origin/main`, then include Command, Gens, PetInventory, Gremory and
-MatchingSelect in the real-movie layout sweep. This checkpoint is not PR-ready.
+- Collection resize `0x00ac09b2..0x00ac0a38` visits every non-null handler;
+  `0x00aae4ae..0x00aae506` updates its viewport and calls `SetWindowSize`.
+  Unicorn compares 60 empty/null/populated collection cases.
+- Manager `0x00acb333..0x00acb426` resizes three collections and stores
+  640/width and 480/height rates. Registry `0x00ac4a79`, creator `0x00ac9edc`
+  and scale setter `0x00aaebca` provide alignment and fixed low-height scales.
+- Original `MUComponent.SetWindowSize` aligns inventory/PetInventory right,
+  Warps left, master/fourth trees centrally and fifth tree left-centre.
+  The original HUD floors its horizontal centre and bottom anchor. Map scale
+  is 83% below 700 and 100% otherwise, with the original centred 800x600 mask.
+- Original fixed scales overflow 640x480: inventory y=40, height=530.35;
+  master tree (-96.6,-80.35), size 833.3x640.7; HUD x=-118, width=874.95.
+  The native adaptation caps scale, fits panels above the measured HUD top,
+  clamps positions, and reapplies original alignment after shrinking. Resize
+  restores original scales before fitting. This is native policy, not a claim
+  of original pixel parity at the native minimum.
+- `world_gfx` copies name/class, level/master level, points, experience,
+  base/added stats, existing derived fields, money and speed from the bound
+  session. HP/MP/SD/AG continue through the existing session-vitals path.
+  The independent progression demo feeds CharacterInfo only without a session.
+  Authored fixture name/level/points reach the development-only seed.
+- The original CharacterInfo table masks HP/MP/SD/AG rows 26/27/34/35 out for
+  every current class. Tests check the enabled rows through actual `SetName`
+  calls and leave those masks intact. Four joins retain level 1; Windleaf
+  retains its existing level 320. Decorative selection-list levels are not
+  reinterpreted as new stat inputs.
 
-Local inputs to resume: `~/Documents/MTM/mu-mac-tools/native/scratch/app-polish-009/`
-contains the rebuilt baseline binary, preliminary logs and real-movie geometry.
-The worktree is `~/Documents/MTM/worktrees/app-polish-009`.
+Merged main through `626abce17f0a0c874c5481cd73b59ec129409f61`, including
+UI-WINDOWS-001 #372 and ITEMS-UI-001 #379. No authored icon/cursor, item-table,
+effect, actor, world-renderer, Muun or audio change. Shared manifest changes
+add APP-POLISH-009's row and preserve all upstream rows.
 
-## WIP checkpoint, 2026-11-11 22:00 Chicago
+## Checks
 
-Merged main `710ac816`, including UI-WINDOWS-001 #372, as `66b4357c`.
-The shared sizing conflict retained both creation sizing for presentation windows
-and the universal resize dispatch. Root and client/world builds passed.
-First focused private run: 5 tests pass in 72.042 s, including the five demo
-characters and preliminary geometry for 272 window/size/backing-scale combinations.
-The latter did not yet assert actual visibility. The strengthened test adds that
-assertion, open-window resizing, original map mask/centering and pointer close
-activation. QuestSummary's generic show route now uses its actual open/close
-methods. The recording host distinguishes quest/tree close delivery from owning
-controller behavior.
+Checks ran from the repository root, nice 10, at most make -j4 and two runner
+workers. Wall times below exclude the brief's resource waits. The full lane
+gate was not run. Canonical private environment was sourced from
+`~/Documents/MTM/mu-mac-tools/native/private-env.sh`; Native Data stayed read-only.
 
-The strengthened layout run is waiting in the foreground for load <=14 with free
-memory >=25%; no result claimed. Research and the validator manifest row are now
-written. Compiled mutants, final affected/private checks, identity sweep, captures
-and PR-ready documentation remain. Resume with the pending strengthened-test log
-under this lane's scratch, then the selective checks. No ready-prs entry yet.
+| Check | Result | Wall seconds |
+|---|---|---:|
+| Final root build | Pass | 0.799 |
+| Explicit final client/world build | Pass | 14.180 |
+| Upstream control world rebuild | Pass | 6.748 |
+| Final reduced private checks, `7e97044e` | 19/19 methods pass; no skips | 147.640 |
+| Own and post-merge validator selection | 27 own; 107 since prior tested `6ea82f67`; union 107 | 30.926 + 34.038 |
+| Selected private validators, `7e97044e` | 107 pass, zero fail/error/skip; 1,229,800 reported cases plus two rows without a unified case total | 1251.812 |
+| Changed-target compiled mutants, `6ea82f67` | 4,668 cases; zero mismatches; 10/10 mutants caught | 6.688 |
+| Affected portable tests, `66f4bba7` | 1,532 tests: 1,263 passed, 269 skipped; zero failures/errors | 411.697 |
+| Repository audit | 2,222 staged files, zero rejected | 29.293 |
+| Endpoint captures | 640x480 and 2560x1440, opaque, inspected | 18.794 |
+| Default identity, including explicit world rebuild | 92/92 PNGs, 92/92 OBJECT/light dumps, 46/46 normalized reports identical | 137.031 |
 
-## WIP checkpoint, 2026-11-11 22:20 Chicago
+The new validator separates 60 original resize cases from 4,096 native panel-fit
+and 512 native HUD-fit invariant cases. Mutants caught: grow, width, height,
+right, bottom, left, top, HUD width, HUD bottom and HUD floor. Each altered C
+header compiled successfully. The fit header, validator and original helper are
+unchanged since that one mutant run; unchanged mutants were disabled later.
 
-Final production source is `6c62c838`. Latest fetched main remains `710ac816`.
-Final root build: 1.333 s; explicit client/world rebuild: 12.862 s; repository
-audit: 2,193 staged files, 0 rejected, 25.590 s. Rebuilt final mu-world SHA-256
-`e90d3754d2e90cd6b9d1d6484861f6c53d30c08f5ebb11df2a185415a072a4d8`, distinct
-from the baseline above. HUD width/bottom arithmetic is now covered by the
-compiled-negative-control definitions as well as panel fitting, ten mutants total.
+**8d reduced:** canonical private selection exceeded 40 work items (164/164 at
+the first selection; the final portable selection includes 162 native modules).
+Final private modules: `test_app_polish9`,
+`test_app_polish5.PrivateGroundSkill`, `test_ui_windows`, and the incoming
+`test_items_ui`. New module coverage includes five demo profiles, 272 visible
+panel/size/backing-scale combinations, 48 open-panel resize checks, sixteen real
+pointer-close deliveries, seventeen map-layout checks and original resize code.
+Quest/tree close probes record controller delivery; their recording host does
+not implement the owning controllers. Separate presentation tests cover the five #372 windows'
+controller firewall. The fixture test builds and privately copies
+its client binary. The 6b seed-consumer closure is selected: session core, combat,
+map overlay, characters, party, monsters, skills, items and audio.
 
-Strengthened layout run: pointer close delivery for all sixteen panels and
-open-window resizing pass. One 1024x699 subprocess refused startup without stderr;
-its isolated rerun, at both backing scales with map checks, passed in 5.542 s.
-The first strengthened matrix had all other sizes pass. A full final private
-run is still required; no completion claim from the initial refusal.
+The matrix covers 640x480, 800x600, 1024x600/699/700/768, 1280x720/800/1024,
+1366x768, 1440x900, 1600x1000, 1680x1050, 1920x1080 and 2560x1440; Retina
+backing scale 2 at both endpoints. It covers inventory, CharacterInfo, imprint,
+master/fourth/fifth trees, Warps, four quest panels and all five #372 panels.
+The native viewport is continuously resizable; this samples its supported range
+and common aspects, not an exhaustive original display-mode list.
 
-Post-build selection: 11 validators, 133 portable work items, including 129 native
-modules. Thus private checks use **8d reduced**. The pending private-selection log,
-then affected no-mutant validators, ten changed-target mutants once, affected
-portable tests, focused private fixture/UI checks, identity sweep and endpoint
-captures are next. No PR or ready-prs line yet. All logs remain in the lane's
-scratch directory named above. Runtime code and docs are checkpointed remotely.
+Development findings: the ownership test exposed and fixed the real missing
+Windleaf seed metadata. Earlier log-spelling and masked-vital-row assertions were
+corrected against the actual original feed. One early 1024x699 renderer startup
+returned 1 without stderr; an isolated two-backing-scale rerun and both final
+full matrices passed. Its cause remains unproved.
 
-## WIP checkpoint, 2026-11-11 22:40 Chicago
+## Captures and default identity
 
-All 11 affected validators passed at HEAD `6ea82f67` with no mutants, 122.046 s
-including selection. The changed-target run passed all 4,668 cases and caught
-10/10 compiled mutants, 6.688 s. Families: 60 original resize-dispatch cases,
-4,096 native panel-fit cases and 512 native HUD-fit cases. No failures, errors
-or skips. Full per-row reports are in `verify-runs/lane-validators` and
-`verify-runs/lane-mutants` in this worktree.
+Final native framebuffer-only captures show demo Ironclad, inventory and
+CharacterInfo with the HUD, at a fixed clock. Both are opaque. At the minimum,
+all panel controls and the full HUD remain inside the viewport and the panels
+clear the HUD. At the largest size the original scale is retained. Inspected
+both final PNGs; the hashes also match the pre-#379 captures.
 
-The affected portable run is active, 38 suites / 133 work items / two workers.
-The canonical private selection is 164 work items, so **8d reduced** applies.
-The queued private command is `native.tests.test_app_polish9`,
-`native.tests.test_app_polish5.PrivateGroundSkill`, and `native.tests.test_ui_windows`.
-After those: endpoint captures, one rebuilt default identity sweep, final
-research/handoff/status lines, audit, PR and ready-prs entry. No ready entry yet.
-Production source remains `6c62c838`, with the rebuilt binary hashes recorded above.
+| Capture | Size | SHA-256 |
+|---|---|---|
+| `small.png` | 640x480 | `479d107cd7b3c499e732c015b8906395376816386647b4d126b73e658c21112d` |
+| `large.png` | 2560x1440 | `2b4aa4da31eea1fb6a6c3e514eb1caea70e598ad7d624240e99b17a40877e1ae` |
 
-## WIP checkpoint, 2026-11-11 23:00 Chicago
+Local proof location before required cleanup:
+`~/Documents/MTM/mu-mac-tools/native/renders/app-polish-009/`.
+Captures use `mu-client --session native/client/demo-session.txt --headless
+--backend gl --no-audio --no-store --progress --frames 115 --every 1000`, the
+canonical Native Data gfx/objects and lang directories, `MU_GFX_TEST_CLOCK=1`
+and `MU_GFX_PUBLIC_DEMO=1`. The authored script selects group 0/server 0,
+uses demo text, joins row 1 at frames 42/54, then opens C at 80 and I at 85.
+Only the two endpoint width/height arguments differ.
 
-Affected portable run passed: 1,405 tests, 1,149 passed, 256 skipped, zero
-failures/errors. Runner wall 469.5 s; command including selection 562.633 s.
-The reduced private run completed 11 methods in 128.386 s. Layout, resize,
-pointer-close, original resize, both skill regressions and all presentation
-checks passed. DemoOwnership had five subtest failures: four used an incorrect
-GFx log spelling; Windleaf additionally exposed real missing seed metadata.
-The fixture had level 320 / 318 points, while its session seed remained 1 / 0.
+One default sweep, no draw_all/live_time, uses the 14-view October 22 tour and
+32-view DATA-ACQ-002 tour. The private October 22 manifest's obsolete tools-path
+prefix was normalized before rendering; shared inputs were not changed.
+All 92 PNG pairs and 92 OBJECT/light dump pairs are byte-identical. All 46
+reports are identical after only binary/output-path normalization. Before
+numbers were taken once. This is native repeatability, not live-client parity.
 
-Fixed in this checkpoint: append authored points to the development-only seed,
-copy level/points from the existing fixture join, and seed the hero's points.
-Vitals and formulas are unchanged. The invoke-log assertion is corrected.
-An explicit portable metadata round-trip and original alignment assertions are
-added. These changes still need rebuilding and verification. The prior validator
-and portable results cover the earlier source, not this metadata fix.
+Both trees explicitly built `world` after the main merge. After tests, another
+explicit branch `make -C native -j2 world` took 0.317 s before the sweep.
+The final hashes are distinct:
 
-Next: run the new metadata unit; rebuild root and client/world; reselect affected
-checks with the seed-header 6b closure; rerun affected no-mutant validators and
-portable suites; private AppPolish9 and the focused skills/UI checks. Layout
-mutants already passed 10/10 and their compiled inputs are unchanged. Then
-captures, default identity, final docs/audit/PR/ready line. No ready entry exists.
+- Control, main `626abce1`: `0486f35e813b641f2500df6b0107515c33d3fb37d2cc3683005c8b91b08b10ef`.
+- Branch: `6f44d4de3913304dfee686528d04c20573942cdbea55f84423df3b33176e58be`.
 
-## WIP checkpoint, 2026-11-11 23:20 Chicago
+The sweep itself took 136.658 s; outer command 137.031 s. The portable runner's
+post-selection wall was 354.7 s; its outer command above includes selection.
 
-Merged latest main `fb747e42` as `d2b5fd0c`, retaining every upstream validator
-and APP-POLISH-009's row. Manifest parses with 227 entries and no conflict markers.
-Upstream includes AUDIO-003, INNER-002 and prior actor/Muun/aura work, so earlier
-compiled-input checks need a post-merge selection/rerun. Production metadata fix
-is in `2919c022`; current test/merge head includes `dfaaabee` and `d2b5fd0c`.
+## Steward validators
 
-New portable metadata unit passed in 0.276 s, command 0.371 s. Root rebuild
-16.925 s, client/world rebuild 24.487 s. Actual five-character check now agrees
-on names, profiles and Windleaf's 320/318; its remaining HP-line assertion failed
-because original charinfo.tsv masks rows 26/27/34/35 out for all classes. Verified
-that mask and the actual SetName feed. The test now checks original active level,
-points and stat rows, conditionally checking HP only if the asset enables it.
-No row is invented or enabled. This corrected test still needs a passing rerun.
+All rows below passed without rerunning unchanged mutants at `7e97044e`.
+Later commits change documentation only. The selection retains every fallback
+row, including the incoming compiled-input closure required by 6b/8b. Use the
+canonical private environment above and the validator cache. No row needs new
+mutants unless its checks or compiled mutant targets change.
 
-Endpoint captures inspected, opaque, demo Ironclad only: 640x480 and 2560x1440,
-23.759 s. Small SHA-256 `479d107cd7b3c499e732c015b8906395376816386647b4d126b73e658c21112d`,
-large `2b4aa4da31eea1fb6a6c3e514eb1caea70e598ad7d624240e99b17a40877e1ae`.
-They are in the lane's renders directory and predate this upstream merge; layout
-and fixture sources were unchanged by that merge. Final captures can supersede them.
+Steward validators: validate_actor_recipes,validate_app_polish1,validate_app_polish2,validate_app_polish4,validate_app_polish7,validate_app_polish9,validate_audio_callers,validate_audio_charsel,validate_audio_combat,validate_audio_domains,validate_audio_items,validate_audio_objects,validate_charsel_items,validate_charsel_world,validate_combat,validate_gfx3,validate_icarus,validate_icarus_c2,validate_inventory_fx,validate_item_callers,validate_item_hiddenmesh,validate_items,validate_items_ui,validate_login_world,validate_map_polish,validate_meshdraw,validate_model_edge,validate_model_light,validate_movement,validate_muun_passes,validate_muun_visual,validate_object_render,validate_path,validate_render_effects,validate_render_effects10,validate_render_effects11,validate_render_effects12,validate_render_effects13,validate_render_effects14,validate_render_effects15,validate_render_effects16,validate_render_effects17,validate_render_effects18,validate_render_effects19,validate_render_effects20,validate_render_effects21,validate_render_effects22,validate_render_effects23,validate_render_effects24,validate_render_effects25,validate_render_effects27,validate_render_effects28,validate_render_effects3,validate_render_effects4,validate_render_effects5,validate_render_effects6,validate_render_effects7,validate_render_effects9,validate_render_worlds_a,validate_session_party,validate_skill_fx,validate_terrain,validate_terrain_remaining,validate_viewport_monsters,validate_world_fidelity,validate_world_light_name,validate_world_particle_consumers,validate_world_tile_folder,validate_worlds_121,validate_worlds_after,validate_worlds_after2,validate_worlds_after3,validate_worlds_after4,validate_worlds_after5,validate_worlds_after6,validate_worlds_b,validate_worlds_d,validate_worlds_e,validate_worlds_f,validate_worlds_fog,validate_worlds_g,validate_worlds_g2,validate_worlds_g3,validate_worlds_h,validate_worlds_i,validate_worlds_inner,validate_worlds_inner2,validate_worlds_j,validate_worlds_k,validate_worlds_karutan,validate_worlds_l,validate_worlds_m,validate_worlds_n,validate_worlds_o,validate_worlds_p,validate_worlds_p2,validate_worlds_q,validate_worlds_q2,validate_worlds_r,validate_worlds_r2,validate_worlds_raklion,validate_worlds_s,validate_worlds_s2,validate_worlds_s3,validate_worlds_slots,validate_worlds_slots2,validate_worlds_slots3
 
-Temporary control worktree `~/Documents/MTM/worktrees/app-polish-009-base` is
-owned by this lane, detached at `fb747e42`, and building in the foreground. This
-replaces the unused d4af71dd baseline before the ONLY default identity sweep,
-so inbound world/audio visuals cannot be mistaken for this lane's changes.
-No before sweep has run yet. Finish the control build, rebuild this branch,
-run corrected private tests, affected post-merge validators and portable tests,
-identity, final docs/audit/PR/ready line. Keep respecting the 02:15/02:30 cutoff.
+| Validator | Reported cases | Wall seconds |
+|---|---:|---:|
+| `validate_actor_recipes` | 1669 | 105.0 |
+| `validate_app_polish1` | 752 | 35.3 |
+| `validate_app_polish2` | 1028 | 7.2 |
+| `validate_app_polish4` | 10485 | 68.8 |
+| `validate_app_polish7` | 5120 | 5.0 |
+| `validate_app_polish9` | 4668 | 8.7 |
+| `validate_audio_callers` | 5528 | 10.2 |
+| `validate_audio_charsel` | 5968 | 5.3 |
+| `validate_audio_combat` | 19548 | 34.5 |
+| `validate_audio_domains` | 2544 | 51.5 |
+| `validate_audio_items` | 3000 | 6.8 |
+| `validate_audio_objects` | 4000 | 5.5 |
+| `validate_charsel_items` | 8817 | 11.8 |
+| `validate_charsel_world` | 1200 | 3.4 |
+| `validate_combat` | 496 | 1.3 |
+| `validate_gfx3` | not reported | 11.2 |
+| `validate_icarus` | 5240 | 37.2 |
+| `validate_icarus_c2` | 8400 | 23.0 |
+| `validate_inventory_fx` | 8017 | 5.9 |
+| `validate_item_callers` | 6013 | 1.0 |
+| `validate_item_hiddenmesh` | 116281 | 541.5 |
+| `validate_items` | 444 | 3.8 |
+| `validate_items_ui` | 8517 | 17.6 |
+| `validate_login_world` | 1200 | 4.7 |
+| `validate_map_polish` | 876 | 0.7 |
+| `validate_meshdraw` | 14619 | 109.9 |
+| `validate_model_edge` | 954 | 167.5 |
+| `validate_model_light` | 1433 | 6.3 |
+| `validate_movement` | 6614 | 110.0 |
+| `validate_muun_passes` | 1361 | 1.4 |
+| `validate_muun_visual` | 912 | 1.3 |
+| `validate_object_render` | 1984 | 4.2 |
+| `validate_path` | 4719 | 31.7 |
+| `validate_render_effects` | 660 | 1.6 |
+| `validate_render_effects10` | 154 | 0.7 |
+| `validate_render_effects11` | 176 | 0.5 |
+| `validate_render_effects12` | 64 | 0.5 |
+| `validate_render_effects13` | 180 | 0.8 |
+| `validate_render_effects14` | 660 | 1.8 |
+| `validate_render_effects15` | 509 | 0.6 |
+| `validate_render_effects16` | 424 | 4.9 |
+| `validate_render_effects17` | 618 | 5.8 |
+| `validate_render_effects18` | 540 | 0.8 |
+| `validate_render_effects19` | 400 | 0.7 |
+| `validate_render_effects20` | 148 | 0.2 |
+| `validate_render_effects21` | 267 | 0.2 |
+| `validate_render_effects22` | 202 | 4.7 |
+| `validate_render_effects23` | 1174 | 5.5 |
+| `validate_render_effects24` | 226 | 1.8 |
+| `validate_render_effects25` | 202 | 6.7 |
+| `validate_render_effects27` | 424 | 0.9 |
+| `validate_render_effects28` | 630 | 2.6 |
+| `validate_render_effects3` | 720 | 1.6 |
+| `validate_render_effects4` | 1920 | 12.1 |
+| `validate_render_effects5` | 1190 | 6.5 |
+| `validate_render_effects6` | 1000 | 2.3 |
+| `validate_render_effects7` | 596 | 2.6 |
+| `validate_render_effects9` | 304 | 1.5 |
+| `validate_render_worlds_a` | 9000 | 15.0 |
+| `validate_session_party` | 200 | 1.2 |
+| `validate_skill_fx` | 660 | 1.2 |
+| `validate_terrain` | 583500 | 431.3 |
+| `validate_terrain_remaining` | 2147 | 4.5 |
+| `validate_viewport_monsters` | 1963 | 12.1 |
+| `validate_world_fidelity` | 200 | 0.2 |
+| `validate_world_light_name` | 304 | 0.5 |
+| `validate_world_particle_consumers` | 900 | 1.5 |
+| `validate_world_tile_folder` | 5700 | 44.7 |
+| `validate_worlds_121` | 4000 | 3.1 |
+| `validate_worlds_after` | 13424 | 16.4 |
+| `validate_worlds_after2` | 32216 | 32.2 |
+| `validate_worlds_after3` | 10212 | 12.7 |
+| `validate_worlds_after4` | 9181 | 20.7 |
+| `validate_worlds_after5` | 6000 | 20.1 |
+| `validate_worlds_after6` | 7300 | 84.8 |
+| `validate_worlds_b` | 4000 | 3.6 |
+| `validate_worlds_d` | 2400 | 4.3 |
+| `validate_worlds_e` | 4840 | 18.8 |
+| `validate_worlds_f` | 1818 | 0.5 |
+| `validate_worlds_fog` | 4044 | 4.0 |
+| `validate_worlds_g` | 6000 | 7.1 |
+| `validate_worlds_g2` | 2657 | 6.5 |
+| `validate_worlds_g3` | 4000 | 6.1 |
+| `validate_worlds_h` | 6000 | 4.3 |
+| `validate_worlds_i` | 6000 | 5.7 |
+| `validate_worlds_inner` | 4000 | 2.1 |
+| `validate_worlds_inner2` | 5000 | 6.2 |
+| `validate_worlds_j` | 6000 | 6.1 |
+| `validate_worlds_k` | 6000 | 7.2 |
+| `validate_worlds_karutan` | 3000 | 2.1 |
+| `validate_worlds_l` | 1260 | 1.9 |
+| `validate_worlds_m` | 1080 | 2.3 |
+| `validate_worlds_n` | 13000 | 10.3 |
+| `validate_worlds_o` | not reported | 9.0 |
+| `validate_worlds_p` | 10000 | 10.1 |
+| `validate_worlds_p2` | 6000 | 5.5 |
+| `validate_worlds_q` | 11000 | 12.1 |
+| `validate_worlds_q2` | 4000 | 9.2 |
+| `validate_worlds_r` | 12000 | 11.5 |
+| `validate_worlds_r2` | 9000 | 7.4 |
+| `validate_worlds_raklion` | 3000 | 2.4 |
+| `validate_worlds_s` | 11000 | 17.4 |
+| `validate_worlds_s2` | 10000 | 15.2 |
+| `validate_worlds_s3` | 22000 | 30.2 |
+| `validate_worlds_slots` | 18999 | 25.5 |
+| `validate_worlds_slots2` | 33000 | 20.1 |
+| `validate_worlds_slots3` | 36000 | 18.7 |
 
-## WIP checkpoint, 2026-11-11 23:40 Chicago
+Self-review against repository evidence/privacy standards and the task brief is
+complete, with no open findings within the stated coverage. External steward
+review remains pending.
 
-At `122b088e`, both merged builds passed: root 20.705 s, client/world 21.190 s.
-Reduced private checks passed all 12 methods in 100.443 s (command 100.565 s):
-five demo profiles and actual CharacterInfo rows, 272 panel/size/backing-scale
-combinations, 48 resize-panel checks, sixteen pointer-close deliveries, original
-resize instructions and focused skill/presentation regressions. The ownership
-test builds and privately copies its binary. No remaining assertion failures.
+## Limits and next
 
-Own selection is 27 validators; changes since the previous tested `6ea82f67`
-select 102, union 106. These include conservative compiled-input fallbacks and
-must not be dropped. Before running them, fetched main again: ITEMS-UI-001 #379
-is now merged at `626abce1`. Merged as `0f82133e`; only conflict was the shared
-manifest append, resolved retaining both rows. All 227 upstream entries are
-identical and APP-POLISH-009 makes 228. No inventory icon/cursor edits of ours.
-The control worktree fast-forwarded to the same upstream. No identity sweep has
-run, so the control baseline can still be rebuilt once before the only sweep.
+Offline/static fixture presentation only. No original client or launcher ran;
+no live account, server, packet, protection or power work was added. Converted
+original movies and the fixed-clock GFx library are private local inputs.
+The sweep covers the sixteen named task panels and map/HUD, not every NPC,
+trade, social or tooltip state. Inventory item-model protrusions retain the
+original icon rules and are outside this lane's ownership.
 
-Next: rebuild control world and branch root/client/world; rerun private UI checks
-including the incoming hover module; reselect the validator union (including
-validate_items_ui), run it without mutants, run affected portable tests, take
-final captures and the single default identity sweep, finish docs/audit/PR/queue
-and cleanup. The ten fit mutants already passed once; their inputs are unchanged.
-No ready-prs entry yet. Respect the 02:15 WIP / 02:30 stop deadlines.
-
-
-## WIP checkpoint, 2026-11-11 23:59 Chicago
-
-Final merged source/test head is `7e97044e`, with main `626abce1` (#379).
-Control world rebuilt in 6.748 s; branch root 0.799 s; client/world 14.180 s.
-Distinct rebuilt mu-world SHA-256 values: control
-`0486f35e813b641f2500df6b0107515c33d3fb37d2cc3683005c8b91b08b10ef`, branch
-`6f44d4de3913304dfee686528d04c20573942cdbea55f84423df3b33176e58be`.
-No before renders have run yet. Corrected tour22's stale local path prefix in
-this lane's private manifest copy before rendering; shared inputs are unchanged.
-
-Final reduced private run passed 19/19 methods, no skips/failures/errors,
-147.546 s (command 147.640 s), including the incoming equipment-hover module.
-Final selectors: own 27 rows, since `6ea82f67` 107 rows, union 107; 30.926 s
-and 34.038 s active selection walls. The full union is running without mutants,
-two workers, canonical private environment and cache. Current totals:
-{'pass': 41, 'fail': 0, 'error': 0, 'skip': 0}. Reports: `verify-runs/lane-validators-final`.
-The fit header and its validator/imported original helper are unchanged since
-the passing ten-mutant run. The only later edit is research wording.
-
-Left: finish this validator run; affected portable tests; final endpoint captures
-and one default identity sweep; final docs/audit/PR/ready line and owned cleanup.
-Do not run more unchanged mutants, a full lane gate, an installation or a merge.
-No PR or ready entry yet. Resume logs are in the lane's named scratch directory.
-
-
-## WIP checkpoint, 2026-11-12 00:19 Chicago
-
-All 107 selected validators passed at source/test head `7e97044e`: zero failures,
-errors or skips, 1,251.812 s active command wall, 1,229,800 reported row cases
-plus gfx3/worlds_o without unified totals. No unchanged mutants were rerun.
-Final private checks remain 19/19 pass in 147.640 s. Main was still `626abce1`
-on the remote at 00:15; the fully tested branch contains that commit.
-
-The affected portable command is queued/running under the foreground resource
-guard (load wait, free memory 67%). It is followed sequentially by final
-640x480/2560x1440 captures and the single default identity sweep. Before/after
-binary hashes are distinct as recorded above. No baseline renders have run.
-The identity helper explicitly rebuilds world once more after tests and records
-its final hash. The old tour's private path normalization is already verified.
-
-Final handoff draft and per-row wall-time table are prepared under this lane's
-scratch (`handoff-template.md`, `validator-table.md`); fill its remaining check,
-capture and identity markers only after those results pass. Then update the
-four status lines, stage/audit, commit/push, PR/link, ready entry, and cleanup.
-No PR or ready entry exists. No production/test source changed after `7e97044e`.
+Next: the steward performs integration checks and merges; a later APP-REFRESH
+lane can install and inspect the combined app. The installed Native Preview,
+Wine player app and staged Wine app were not changed. Proofs and reports are
+summarized here; per the brief, the lane's scratch/renders/build outputs and
+both owned worktrees/local branch are removed after the ready entry. No private
+artifact from this lane is needed as a later input.
