@@ -1,5 +1,7 @@
 # Plan: the rest of the native macOS port
 
+UI-WINDOWS-002 WIP: presentation fixtures for Macro/Sub, HuntRecord, expanded storage, matching children/current guild matching and the original Ctrl+T guide frame. Help's original route remains unproved. [Evidence and limits](../../handoffs/UI-WINDOWS-002.md).
+
 UI-WINDOWS-001 PR-ready: D Command, N MatchingSelect, B Gens, Y PetInventory and K Gremory now open their original movies as presentation-only views. Empty tabs/pages and close work; state-changing actions refuse. 1,421 portable tests, 12 affected validators, real-window proofs and default identities pass. Original Help open route remains unproved. [Checks, inventory and limits](../../handoffs/UI-WINDOWS-001.md).
 
 CHARSEL-ITEMS-001 PR-ready: selection now draws authored demo equipment levels and excellent through the existing item renderer and texture rules. Original comparison: 8,817 cases, zero mismatches; 7/7 compiled mutants. File-only selection and default world captures remain byte-identical. [Checks, addresses, renders and limits](../../handoffs/CHARSEL-ITEMS-001.md).

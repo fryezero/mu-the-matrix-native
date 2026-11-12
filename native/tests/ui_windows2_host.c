@@ -82,10 +82,15 @@ int main(int argc,char **argv)
     assert(presentation_menu(L,12));
     on_call(&L->mv[MU_GFX_MATCHING],"onClickbtnParty","[]");
     assert(!L->mv[MU_GFX_MATCHING].open && L->mv[MU_GFX_MATCH_PARTY].open);
+    assert(presentation_call(&L->mv[MU_GFX_MATCH_PARTY],"onClickbtnRecruitTab","[]",NULL,0));
+    assert(presentation_call(&L->mv[MU_GFX_MATCH_PARTY],"onClickbtnPartyInfoTab","[]",NULL,0));
+    assert(presentation_call(&L->mv[MU_GFX_MATCH_PARTY],"onClickbtnSearchTab","[]",NULL,0));
     mu_gfx_layer_show(L,MU_GFX_MATCH_PARTY,0);
     assert(presentation_menu(L,12));
     on_call(&L->mv[MU_GFX_MATCHING],"onClickbtnGuild","[]");
     assert(!L->mv[MU_GFX_MATCHING].open && L->mv[MU_GFX_MATCH_GUILD].open);
+    assert(presentation_call(&L->mv[MU_GFX_MATCH_GUILD],"onClickbtnRecruitTab","[]",NULL,0));
+    assert(presentation_call(&L->mv[MU_GFX_MATCH_GUILD],"onClickbtnSearchTab","[]",NULL,0));
     mu_gfx_layer_show(L,MU_GFX_MATCH_GUILD,0);
     assert(presentation_menu(L,10) && L->mv[MU_GFX_GUILD_MATCH].open);
     for(int tab=0;tab<3;tab++) assert(presentation_call(&L->mv[MU_GFX_GUILD_MATCH],"onTabChange","[]",(double[]){tab},1));

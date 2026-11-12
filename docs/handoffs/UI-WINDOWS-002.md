@@ -36,3 +36,14 @@ through 22:10, with load above 14 and memory above 25 percent. Continue at
 20-minute fallback. Baseline world built in 12.76 s; no identity comparison
 has run yet. Next is the focused private suite, followed by the final build,
 mouse captures and affected checks. Still WIP, not ready for the steward.
+
+### Source freeze, 22:15
+
+The corrected native journey passes through all eight adapters. The placed
+HuntRecord scene now has no test panel; End reaches the mini view and then
+closes. An authored empty warehouse NPC opens the parent, and H shows the
+empty expanded instance. Matching search/recruit tabs and MacroSub are
+captured. The first WIP loader captures above are superseded. Final labels
+are shortened, and request controls are disabled as well as refused by the
+controller. Next: final focused/affected suites, selected private validators,
+repository audit, default identity and committed check ledger.

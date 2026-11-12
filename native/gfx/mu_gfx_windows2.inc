@@ -124,7 +124,7 @@ static void presentation_fixture(mu_gfx_layer *L, int m)
         presentation_set(L,m,"_Wnd._checkBoxMyInfo.disabled","true");
         break;
     case MU_GFX_STORAGE_EXT:
-        invokef(L,m,w->path,"InitTitle","[\"Expanded storage - offline preview\"]");
+        invokef(L,m,w->path,"InitTitle","[\"Expanded storage\"]");
         invokef(L,m,w->path,"SetExtend","[true]");
         invokef(L,m,w->path,"SetKeepZen","[\"0\"]");
         invokef(L,m,w->path,"InitText","[\"Stored zen\",\"Charge\"]");
@@ -134,7 +134,7 @@ static void presentation_fixture(mu_gfx_layer *L, int m)
         break;
     case MU_GFX_MATCH_PARTY:
         invokef(L,m,w->path,"InitPartyInfoText","[{\"PartyInfoTitle\":\"Offline preview\"}]");
-        invokef(L,m,w->path,"InitRecruitText","[{\"recruitTitle\":\"Offline preview\",\"recruitMent\":\"Recruit ment\",\"waitingListTitle\":\"Offline preview\",\"mentInput\":\"Ment input\",\"levelMin\":\"Level min\",\"levelMax\":\"Level max\",\"usePW\":\"Use pw\",\"autoJoin\":\"Auto join\",\"energyElf\":\"Energy elf\",\"recruitLevel\":\"Recruit level\",\"levelMent\":\"Level ment\",\"energyElfMent\":\"Energy elf ment\",\"category1\":\"Category1\",\"category2\":\"Category2\",\"category3\":\"Category3\",\"category4\":\"Category4\",\"btnRecruitOK\":\"Recruit ok\",\"btnRecruitCancel\":\"Recruit cancel\"}]");
+        invokef(L,m,w->path,"InitRecruitText","[{\"recruitTitle\":\"Offline preview\",\"recruitMent\":\"Recruit ment\",\"waitingListTitle\":\"Offline preview\",\"mentInput\":\"Not saved\",\"levelMin\":\"Minimum\",\"levelMax\":\"Maximum\",\"usePW\":\"Password\",\"autoJoin\":\"Automatic join\",\"energyElf\":\"Elf slot\",\"recruitLevel\":\"Recruitment\",\"levelMent\":\"Level range\",\"energyElfMent\":\"Demo only\",\"category1\":\"Name\",\"category2\":\"Class\",\"category3\":\"Level\",\"category4\":\"Requests\",\"btnRecruitOK\":\"Recruit ok\",\"btnRecruitCancel\":\"Recruit cancel\"}]");
         invokef(L,m,w->path,"InitSearchText","[{\"title\":\"Party matching - offline preview\",\"searchTab\":\"Search\",\"recruitTab\":\"Recruit\",\"partyInfoTab\":\"Party info\",\"partyMemberTitle\":\"Party member title\",\"tfRole\":\"Role\",\"tfName\":\"Name\",\"tfClass\":\"Class\",\"tfLevel\":\"Level\",\"join\":\"Join\",\"joinCancel\":\"Join cancel\",\"autoMacro\":\"Auto macro\",\"btnRandomParty\":\"Random party\",\"searchMent\":\"Empty demo catalogue\",\"searchdInput\":\"Searchd input\",\"btnSearch\":\"Unavailable\",\"recruitList\":\"No parties\",\"btnShowPossible\":\"Show possible\",\"btnInfoCheck\":\"Info check\",\"tfTitleRequestWait\":\"Title request wait\",\"btnRefresh\":\"Unavailable\"}]");
         invokef(L,m,w->path,"ClearAllPartyList","[]");
         invokef(L,m,w->path,"SetPageSelect","[1,1]");
@@ -149,8 +149,8 @@ static void presentation_fixture(mu_gfx_layer *L, int m)
         presentation_set(L,m,"tiPassword.disabled","true");
         break;
     case MU_GFX_MATCH_GUILD:
-        invokef(L,m,w->path,"InitRecruitText","[{\"title\":\"Offline preview\",\"mentInput\":\"Ment input\",\"guildMent\":\"Guild ment\",\"recruitInterest\":\"Recruit interest\",\"recruitLevel\":\"Recruit level\",\"recruitClass\":\"Recruit class\",\"cbLevelUp\":\"Cb level up\",\"cbEventMap\":\"Cb event map\",\"cbPvP\":\"Cb pv p\",\"arkaBattle\":\"Arka battle\",\"siegeWar\":\"Siege war\",\"cbLevel01\":\"Cb level01\",\"cbLevel02\":\"Cb level02\",\"cbLevel03\":\"Cb level03\",\"cbLevel04\":\"Cb level04\",\"cbLevel05\":\"Cb level05\",\"btnRecruitOK\":\"Recruit ok\",\"btnRecruitCancel\":\"Recruit cancel\",\"btnEntryList\":\"Entry list\"}]");
-        invokef(L,m,w->path,"InitSearch","[\"Guild matching - offline preview\",\"Empty demo catalogue\",\"\",\"No guilds\",\"Search\",\"Recruit\",\"Unavailable\",\"Unavailable\",\"Join state\",\"Unavailable\"]");
+        invokef(L,m,w->path,"InitRecruitText","[{\"title\":\"Offline preview\",\"mentInput\":\"Not saved\",\"guildMent\":\"Guild ment\",\"recruitInterest\":\"Recruit interest\",\"recruitLevel\":\"Recruitment\",\"recruitClass\":\"Recruit class\",\"cbLevelUp\":\"Cb level up\",\"cbEventMap\":\"Cb event map\",\"cbPvP\":\"Cb pv p\",\"arkaBattle\":\"Arka battle\",\"siegeWar\":\"Siege war\",\"cbLevel01\":\"Cb level01\",\"cbLevel02\":\"Cb level02\",\"cbLevel03\":\"Cb level03\",\"cbLevel04\":\"Cb level04\",\"cbLevel05\":\"Cb level05\",\"btnRecruitOK\":\"Recruit ok\",\"btnRecruitCancel\":\"Recruit cancel\",\"btnEntryList\":\"Entry list\"}]");
+        invokef(L,m,w->path,"InitSearch","[\"Guild matching - offline preview\",\"Empty demo catalogue\",\"\",\"No guilds\",\"Search\",\"Recruit\",\"Unavailable\",\"Unavailable\",\"Join statee\",\"Unavailable\"]");
         invokef(L,m,w->path,"ClearAllGuildList","[]");
         invokef(L,m,w->path,"SetPageSelect","[1,1]");
         invokef(L,m,w->path,"ShowWindow","[0]");
@@ -164,7 +164,7 @@ static void presentation_fixture(mu_gfx_layer *L, int m)
         presentation_set(L,m,"tiPassword.disabled","true");
         break;
     case MU_GFX_GUILD_MATCH:
-        invokef(L,m,w->path,"InitTexts","[{\"tfTitle\":\"Guild matching - offline preview\",\"searchTab\":\"Search\",\"recruitTab\":\"Recruit\",\"infoTab\":\"Info\",\"lbGuildRecruitInfoTextTitle\":\"Guild recruit info text title\",\"lbGuildName\":\"Guild name\",\"lbGuildUserCount\":\"Guild user count\",\"lbGuildMaster\":\"Guild master\",\"lbLevelLimit\":\"Level limit\",\"lbGuildLevelAverage\":\"Guild level average\",\"joinStateMent\":\"Join state ment\",\"joinStateText1\":\"Join state text1\",\"joinStateText2\":\"Join state text2\",\"joinStateText3\":\"Join state text3\",\"joinStateBack\":\"Join state back\",\"joinStateLetter\":\"Join state letter\",\"joinStateCancel\":\"Join state cancel\",\"searchMent\":\"Empty demo catalogue\",\"recruitList\":\"No guilds\",\"searchdInput\":\"Searchd input\",\"btnSearch\":\"Unavailable\",\"btnJoin\":\"Join\",\"btnJoinStat\":\"Join stat\",\"btnRefresh\":\"Unavailable\",\"lbRecruitText0\":\"Recruit text0\",\"lbRecruitText1\":\"Recruit text1\",\"lbRecruitText2\":\"Recruit text2\",\"lbRecruitText3\":\"Recruit text3\",\"lbRecruitText4\":\"Recruit text4\",\"lbRecruitText5\":\"Recruit text5\",\"lbRecruitText6\":\"Recruit text6\",\"lbRecruitText7\":\"Recruit text7\",\"lbRecruitText8\":\"Recruit text8\",\"lbRecruitText9\":\"Recruit text9\",\"lbRecruitText10\":\"Recruit text10\",\"lbRecruitText11\":\"Recruit text11\",\"lbRecruitText12\":\"Recruit text12\",\"btnRecruitRegister\":\"Recruit register\",\"btnRecruitStop\":\"Recruit stop\"}]");
+        invokef(L,m,w->path,"InitTexts","[{\"tfTitle\":\"Guild matching - offline preview\",\"searchTab\":\"Search\",\"recruitTab\":\"Recruit\",\"infoTab\":\"Info\",\"lbGuildRecruitInfoTextTitle\":\"Guild recruit info text title\",\"lbGuildName\":\"Guild name\",\"lbGuildUserCount\":\"Guild user count\",\"lbGuildMaster\":\"Guild master\",\"lbLevelLimit\":\"Level limit\",\"lbGuildLevelAverage\":\"Guild level average\",\"joinStateMent\":\"Join statee ment\",\"joinStateText1\":\"Join statee text1\",\"joinStateText2\":\"Join statee text2\",\"joinStateText3\":\"Join statee text3\",\"joinStateBack\":\"Join statee back\",\"joinStateLetter\":\"Join statee letter\",\"joinStateCancel\":\"Join statee cancel\",\"searchMent\":\"Empty demo catalogue\",\"recruitList\":\"No guilds\",\"searchdInput\":\"Searchd input\",\"btnSearch\":\"Unavailable\",\"btnJoin\":\"Join\",\"btnJoinStat\":\"Join state\",\"btnRefresh\":\"Unavailable\",\"lbRecruitText0\":\"Recruitment\",\"lbRecruitText1\":\"Title\",\"lbRecruitText2\":\"Details\",\"lbRecruitText3\":\"Filters\",\"lbRecruitText4\":\"No applications\",\"lbRecruitText5\":\"Requirements\",\"lbRecruitText6\":\"Preview only\",\"lbRecruitText7\":\"Any\",\"lbRecruitText8\":\"No data\",\"lbRecruitText9\":\"Any\",\"lbRecruitText10\":\"Any\",\"lbRecruitText11\":\"Offline preview\",\"lbRecruitText12\":\"Not saved\",\"btnRecruitRegister\":\"Unavailable\",\"btnRecruitStop\":\"Unavailable\"}]");
         invokef(L,m,w->path,"ClearAllGuildList","[]");
         invokef(L,m,w->path,"ClearRecruitListInfo","[]");
         invokef(L,m,w->path,"ClearJoinStateScrollListData","[]");
@@ -175,6 +175,23 @@ static void presentation_fixture(mu_gfx_layer *L, int m)
     case MU_GFX_PLAY_GUIDE:
         invokef(L,m,w->path,"InitText","[\"Play guide - offline preview\"]");
         break;
+    }
+    if (m==MU_GFX_MATCH_PARTY || m==MU_GFX_MATCH_GUILD || m==MU_GFX_GUILD_MATCH) {
+        static const char *const controls[]={"btnSearch","btnRefresh","btnRecruitOK","btnRecruitCancel",
+            "btnJoin","btnJoinCancel","btnRandomParty","btnPartyRecruitSave","tiSearchInput",
+            "tiPassword","tiMentInput","tiMinLevel","tiMaxLevel","cbUsePW","cbAutoJoin","cbEnergyElf","cbMandate"};
+        for (size_t i=0;i<sizeof controls/sizeof *controls;i++) {
+            char field[128];snprintf(field,sizeof field,"%s.disabled",controls[i]);
+            presentation_set(L,m,field,"true");
+        }
+    }
+    if (m==MU_GFX_GUILD_MATCH) {
+        presentation_set(L,m,"m_mcMovie.mcRecruit.btnRecruitRegister.disabled","true");
+        presentation_set(L,m,"m_mcMovie.mcRecruit.btnRecruitStop.disabled","true");
+        presentation_set(L,m,"m_mcMovie.mcRecruit.tiMentInput.disabled","true");
+        presentation_set(L,m,"m_mcMovie.mcRecruit.taMentDetail.disabled","true");
+        presentation_set(L,m,"m_mcMovie.mcRecruit.lbMinLevel.disabled","true");
+        presentation_set(L,m,"m_mcMovie.mcRecruit.lbMaxLevel.disabled","true");
     }
 }
 
