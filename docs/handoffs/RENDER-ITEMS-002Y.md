@@ -13,9 +13,21 @@ A fresh pre-regeneration default sweep covers all 46 maps in 57.29 s. Its rebuil
 `c244aec9e8b89e014dd0e88139d0da26fa2df06aff728e35b3aa5039d0011020`.
 The historical sweep is superseded because it did not record its binary hash. The fresh baseline is the
 merged lane with the prerequisite item tables; the admission C-to-C check will separately cover earlier items.
-Full generation is running from scratch with the canonical private environment and original-side cache.
-The 20:31 checkpoint has reached 1,350 fits without a reported refusal; tables are not yet written.
-Final table checks, forcing records, mutants, admission/export deltas and affected validators remain pending.
+Complete generation passes in 1,265.21 s including cache flush and the checkpoint pause. It emits 1,446
+recipe rows, a 513,963-byte body header and a 295,763-byte owner header. Both remain below the audit limit.
+The regenerated root build passes in 10.74 s. The corrected portable renderer passes 125 tests, 27 private
+skips, in 0.42 s. The first portable run found stale pre-program and derived-program structure assertions.
+There are 71 pre-programs. Five historical bodies (`0x0b0c`, `0x16fc..0x16fe`, `0x1b33`) now use one exact
+clock-sine chain rather than an intermediate kind-6 program; tests enumerate those replacements explicitly.
+The derived validator retains all original state comparisons and will run its mutants once too.
+
+The C-to-C check passes 216,448 states in 9.78 s: 211,200 identical, with exactly the 41 intended newly
+admitted types changing in 128 states each. Survey membership includes the 17 skin cases, 1,441 -> 1,482;
+body coverage alone is 1,424 -> 1,465 of 1,674. No earlier type changes in this finite comparison.
+The full classifier/export delta passes in 81.68 s: 1,691 types, 798 shapes, exactly 41 memberships and
+31 shape totals change; complete shapes 609 -> 640. Raw shape/address/stopped-state summaries are unchanged.
+Forcing-record/clock/counter/owned comparisons, changed-row mutants, affected validators, private native
+checks and final identity remain pending. Generated outputs are still provisional until those checks pass.
 The owner lifted the stop time for this session. No PR or ready-prs entry exists yet.
 
 ## WIP checkpoint
