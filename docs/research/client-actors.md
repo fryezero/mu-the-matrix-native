@@ -445,6 +445,21 @@ recovered file registrations and four ACTORS-003 recipes.
 These conservative categories prevent an opener inventory from becoming a
 whole-client visual-equivalence claim.
 
+| Native world body classification | Before ACTORS-004 | After |
+|---|---:|---:|
+| Checked bounded body plan | 28 | 33 |
+| Incomplete or unverified special passes | 916 | 911 |
+| Refused by the loader | 80 | 80 |
+| Fixture selector contexts | 1,024 | 1,024 |
+
+Repeated/default selectors remain in this denominator. It is not a count of
+unique registered creatures. Construction tags overlap: 768 plain body paths,
+144 equipment/part constructors, 56 special-appearance paths, 55 unresolved
+construction paths, 44 startup/no-opener paths, nine secondary-model class
+contexts, 14 extra-bitmap contexts, four auxiliary/action contexts, two
+companions and two excluded transformed-player action hooks. The CSV and its
+named sources define each category; these counts must not be summed.
+
 `scripts/actor_census.py` also enumerates all 601 OpenMonsterModel selectors and
 147 OpenNpc selectors in the [opener inventory](actor-opener-census.csv). Monster selectors complete with 16 synthetic actions.
 Eight NPC selectors stop on undeclared per-mesh state, as section 5 records.

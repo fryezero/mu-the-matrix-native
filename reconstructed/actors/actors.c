@@ -10,7 +10,7 @@
 
 int mu_actor_npc_recipe(int32_t server_class, mu_monster_class *out)
 {
-    /* OpenNpc 0x01808ab5..0x01808e7e; generic CreateMonster constructors.
+    /* OpenNpc 0x01808ab5..0x01808e23; generic CreateMonster constructors.
      * Keep the five authored recipes bounded to the recovered part plans. */
     switch (server_class) {
     case 230: case 248: case 250: case 253: case 255: break;

@@ -87,3 +87,19 @@ Portable affected tests are running. Reduced private tests, five actor renders,
 final rebuilt-binary identity, final audit/docs and PR-ready delivery remain.
 No production code has changed since `95d9f97c`; the subsequent source additions
 are test/census checks and the incoming main UI lane. No ready entry exists.
+
+Checkpoint, 22:57: first portable affected run passed 1,495 tests, 1,246 passed
+and 249 expected private-data skips, zero failures/errors. Runner wall 440.1 s;
+overall command 650.5 s, including selection and a 120 s resource wait.
+
+Main through `6b75fbda` is integrated as `e7d97c92`, including #373's steward
+merge. All status entries and validator rows were retained. Actor behavior and
+mutation targets did not change. One new-source comment now uses the verified
+exclusive NPC branch end `0x01808e23`, from the pinned jump table.
+
+The merged root build passed in 17.0 s after 480 s of resource waits; explicit
+world rebuild passed in 7.0 s after 240 s of waits. After binary SHA-256 is
+`b3bcddd6409b8988554051c2e980e02cfd0e737624e2eef235ddb6176452f161`.
+The limited validator delta against `d835c137` is queued. Post-merge affected
+portable tests, reduced private tests, all proof renders and the final identity
+sweep remain pending. No ready entry; this is still WIP.
