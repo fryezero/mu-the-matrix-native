@@ -5,6 +5,32 @@ Prerequisite #361 subsequently merged at `3732f82a`; its identical-tree main his
 Codex, GPT-6.1 Sol; no subagents. Offline/static only. Installed apps are untouched.
 Research part 38 is reserved; recheck main before the final push.
 
+## WIP checkpoint 2026-11-11, signed-zero correction
+
+Done: source and initial regenerated tables are pushed at `a37e63ca`. The changed-row run takes
+314.76 s. The helper row passes 6,432 comparisons and all four mutants in 36.0 s. The historical
+derived row completes 36,252 comparisons with zero mismatches and catches all seven mutants in 314.6 s;
+its remaining failure is metadata: kind-6 program count is 113, with five programs now exact clock chains,
+rather than the historical 118. The manifest now records the actual 113. No state comparison is removed.
+
+The read-program row stops after 34.4 s on a clock fixture with record kind 4, an explicitly unsupported
+domain. Directed clocks now use the reviewed neutral record; forcing-record enumeration is unchanged.
+The other-body row stops after 111.9 s at negative-zero time for `0x2568`. Isolated sine and conditional
+abs both preserve negative zero, 12 helper cases, 0.09 s. Caller tracing, 0.11 s, finds the final
+`xorps; addss` at `0x016fce1b..0x016fce1e`: positive zero plus the saved product clears its zero sign.
+The reader already captures this operation, but the fit had selected its indistinguishable pre-add
+intermediate over positive-clock probes. Extra negative-zero probes now distinguish those values for
+all six later read bodies and 27 other bodies, while retaining every previous probe and the existing caps.
+No runtime arithmetic changed. The new portable observable regression is red on the old table, 0.16 s.
+A third other-body mutant will remove zero additions to establish that the final comparison catches it.
+
+Left: regenerate both tables with the added probes, pass the regression and remaining changed-row
+checks, affected portable/private validators, reduced private native modules, final rebuilt identity,
+final docs and PR. The generated tables and failed-check reports remain provisional.
+Next step: one full table run, then the changed rows and affected batch. The 02:15/02:30 deadline is
+restored. Prioritize the verified body set over further groups. Keep the baseline hashes and prerequisite
+library under the lane scratch path until final identity and C-to-C checks pass.
+
 ## Resumed 2026-11-11
 
 Main `d4af71dd` is merged at `f7fed588`. The registry append conflict preserves both lanes' rows;
@@ -28,7 +54,7 @@ The full classifier/export delta passes in 81.68 s: 1,691 types, 798 shapes, exa
 31 shape totals change; complete shapes 609 -> 640. Raw shape/address/stopped-state summaries are unchanged.
 Forcing-record/clock/counter/owned comparisons, changed-row mutants, affected validators, private native
 checks and final identity remain pending. Generated outputs are still provisional until those checks pass.
-The owner lifted the stop time for this session. No PR or ready-prs entry exists yet.
+The owner restored the stop time: stop by 02:30 on 2026-11-12; if not ready at 02:15, push WIP and stop. No PR or ready-prs entry exists yet.
 
 ## WIP checkpoint
 

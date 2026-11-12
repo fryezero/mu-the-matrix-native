@@ -21,6 +21,7 @@ TYPES = gen.OTHER_TYPES
 MUTANTS = {
     'light-product': ('value = value * other;', 'value = value + other;'),
     'helper-carry': ('mu_rc_body_types[type].carry)', '0)'),
+    'clock-zero-add': ('case 6: f = f + kf; break;', 'case 6: if (word) f = f + kf; break;'),
 }
 
 

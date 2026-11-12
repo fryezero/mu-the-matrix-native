@@ -53,7 +53,8 @@ def compare(wa, lib, count=292):
                 cases = list(records(t))
             else:
                 rng = random.Random(0x2007a + t)
-                cases = [dict(v.random_case_any(rng, t), time=v.f2u(clock), a10=0xffffffff, a11=0xffffffff)
+                cases = [dict(v.random_case_any(rng, t), time=v.f2u(clock), record=(0, 0, 0),
+                              a10=0xffffffff, a11=0xffffffff)
                          for clock in CLOCKS]
             if count < 292:
                 cases = cases[:count]

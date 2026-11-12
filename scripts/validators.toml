@@ -2791,7 +2791,7 @@ build = ["reconstructed/renderchar"]
 args = ["--mutations", "--output", "{report}"]
 [validate_item_derived.expect]
 "families.*.mismatches" = 0
-"families.derived.programs" = 118
+"families.derived.programs" = 113
 "mutants.*" = {truthy = true}
 
 [validate_item_ownerfx]
@@ -3496,7 +3496,7 @@ test = "reconstructed/renderchar/test_item_other_bodies.py::ItemOtherBodies.test
 pins = ["text", "data", "flag", "feature"]
 families = ["bodies", "records", "clocks", "frame"]
 cases = 24084
-mutants = 2
+mutants = 3
 cases_at = "families.*.cases"
 mutants_at = "mutants"
 build = ["reconstructed/renderchar"]

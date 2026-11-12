@@ -1,6 +1,7 @@
 """Additional body admission and private full-stream comparisons."""
 import json
 import os
+import random
 from pathlib import Path
 import subprocess
 import sys
@@ -26,6 +27,17 @@ class ItemOtherBodies(unittest.TestCase):
             for refusal in ({'select': 1}, {'object_shadow': 1}, {'a10': 0}):
                 self.assertEqual(self.draws(self.item(type=t, **refusal))[0], 2, (hex(t), refusal))
 
+    def test_clock_zero_sign(self):
+        # Original 0x016fce1b..0x016fce1e adds positive zero after the saved product.
+        for t in range(0x2568, 0x256c):
+            case = v.random_case_any(random.Random(t), t)
+            case.update(time=0x80000000, record=None, quality=9, item_level=0,
+                        option1=0, ext=0, render_type=2, a10=0xffffffff, a11=0xffffffff)
+            status, draws = v.c_stream(self.lib, case)
+            self.assertEqual(status, 0)
+            colour = [d[2] for d in draws if d[0] == 'MESH' and d[1][0] == 1 and d[1][7] == 32990]
+            self.assertEqual(colour, [(0, 0, 0)], hex(t))
+
     @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'original captures are opt-in')
     def test_original_instructions(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -39,7 +51,7 @@ class ItemOtherBodies(unittest.TestCase):
         self.assertEqual(report['families']['clocks']['cases'], 24*n)
         self.assertEqual(report['families']['frame']['cases'], 64*n)
         self.assertTrue(all(f['mismatches'] == 0 for f in report['families'].values()))
-        self.assertEqual(len(report['mutants']), 2)
+        self.assertEqual(len(report['mutants']), 3)
         self.assertTrue(all(report['mutants'].values()))
 
 

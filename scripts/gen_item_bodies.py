@@ -230,7 +230,7 @@ from gen_item_owner_fx import OWNER_FX_TYPES
 from gen_item_owner_fx import PRE_FX_TYPES, OBJDRAW as PRE_DRAW_RAND
 # Part 21 (RENDER-ITEMS-002T): owner blocks after the draws with the pre-draw idioms (gen_item_owner_fx.POST_FX_TYPES);
 # their draws fit the default probes with the effect requests set aside.
-from gen_item_owner_fx import POST_FX_TYPES, READ_PROGRAM_TYPES
+from gen_item_owner_fx import POST_FX_TYPES, READ_PROGRAM_TYPES, LATER_READ_PROGRAM_TYPES
 _SAMPLE_TYPE = [None]
 # Their probes, chosen by the 292-state comparison: the part-14 supplementary probes (records 0x26/0x5b,
 # qualities 0-2) and the part-13 carry rule. The rand sites of the pre-draw block itself belong to the effect
@@ -1402,7 +1402,7 @@ COUNTER_RANGE_TYPES += READ_PROGRAM_TYPES + OTHER_TYPES
 NAMED_NAMES = v.NAMED_MESH_NAMES
 _NAMED_VALUES = []
 
-def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=False, quality=9, record=(0, 0, 0)):
+def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=False, quality=9, record=(0, 0, 0), time_word=None):
     import math
     global _sample_state
     tags = []
@@ -1507,6 +1507,8 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=Fals
     if t in NAMED_TYPES:
         case['named_meshes'] = tuple(_NAMED_VALUES)
     case.update(item_level=lv << 3, quality=quality, option1=opt, ext=ext, record=record, a10=0xffffffff, a11=0xffffffff, render_type=(2, 0x102, 0x40042)[seed % 3])
+    if time_word is not None:
+        case['time'] = time_word
     case['object_hidden'] = (-1, 0, 2)[(seed // 3) % 3]
     if t in FRAME_TYPES or t in OTHER_TYPES:
         # RENDER-ITEMS-002U: the rendered-frame counter varies in these types' probes (others keep the zero page).
@@ -1796,13 +1798,19 @@ def supplement(wa, lib, t, params, sites, carry, ss, phases):
     """Part 14: further probes for QUALITY_TYPES. Records of kind B 0x26/0x5b force glow
     level 9, so they reach helper phases the record-free probes skip (wings map levels
     0/7/13 to 0). Qualities 0-2 cap the glow level, and the further clocks separate
-    binary32 programs from the shared binary64 pulse. False when a probe is unusable."""
+    binary32 programs from the shared binary64 pulse. Later clock bodies also keep negative-zero probes:
+    a saved product and that product plus positive zero must remain distinct. False when a probe is unusable."""
+    probes = [(seed, None) for seed in SUPPLEMENT_SEEDS]
+    if t in LATER_READ_PROGRAM_TYPES or t in OTHER_TYPES:
+        # Both base phases, in addition to every existing probe. The actual xorps/addss
+        # chain is already parsed; these inputs prevent fitting its pre-add intermediate.
+        probes += [(seed, 0x80000000) for seed in SUPPLEMENT_SEEDS[:2]]
     for record in SUPPLEMENT_RECORDS:
         for quality in SUPPLEMENT_QUALITIES:
             for lv in (0, 7, 13):
-                for seed in SUPPLEMENT_SEEDS:
+                for seed, time_word in probes:
                     stream = sample(wa, lib, t, lv, seed, params=params, sites=sites, carry=carry,
-                                    quality=quality, record=record)
+                                    quality=quality, record=record, time_word=time_word)
                     if stream is None:
                         ss.append(None)
                         if sites is None:
@@ -1822,9 +1830,9 @@ def supplement(wa, lib, t, params, sites, carry, ss, phases):
             for opt, ext, phase, flags in ((1, 0, 3, 0x42), (0, 1, 4, 0x840)):
                 if ext and t in DIM_TYPES:
                     continue
-                for seed in SUPPLEMENT_SEEDS:
+                for seed, time_word in probes:
                     stream = sample(wa, lib, t, 0, seed, opt, ext, params=params, sites=sites, carry=carry,
-                                    quality=quality, record=record)
+                                    quality=quality, record=record, time_word=time_word)
                     if stream is None:
                         ss.append(None)
                         if sites is None:
