@@ -32,3 +32,24 @@ mu-client's actual window `shot:NAME` actions. Respect the load/memory guard.
 Scratch and renders are under `mu-mac-tools/native/{scratch,renders}/ui-windows-001`.
 The baseline comparison tree is the lane's detached scratch `base` worktree.
 No installed app, original client or live service was touched.
+
+## WIP checkpoint 2
+
+Owner deadline now supersedes the open-ended brief: stop work by 02:30 on
+2026-11-12; if not ready at 02:15, push WIP done / left / next by 02:30.
+
+Done: source commit `ec855c57`; graphical client/world builds; all five windows
+open by numeric original-key schedules and close with Esc in the actual native
+window. Six window-only captures were inspected; the whole run is 12.89 s.
+The empty Gens fixture now hides the timeline's default badge. The private
+production-controller tests also run against real Ruffle/original movies:
+3/3 tests, 3.79 s, including eight original key-block decisions and one
+original sound epilogue, plus 115 refused actions in each of two hosts.
+The 130-row missing-movie inventory is in `client-ui-windows.md`; 25 already
+hosted or library entries are separated. Untraced routes are explicit.
+
+Left: portable affected run in progress, 12 selected private validators,
+second mouse-navigation capture, reduced private UI-audio regression,
+identity sweep and final audit/docs/PR. Baseline world build 21.28 s; both
+world binaries are rebuilt and have different hashes. Next: finish the
+foreground checks, then the one default before/after sweep. No PR is ready yet.
