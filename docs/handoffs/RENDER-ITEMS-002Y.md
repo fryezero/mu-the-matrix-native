@@ -5,6 +5,20 @@ Prerequisite #361 subsequently merged at `3732f82a`; its identical-tree main his
 Codex, GPT-6.1 Sol; no subagents. Offline/static only. Installed apps are untouched.
 Research part 38 is reserved; recheck main before the final push.
 
+## WIP checkpoint 2026-11-11, rebuilt zero regression passes
+
+The regenerated root build passes in 10.49 s. All four original/native streams for `0x2568..0x256b`
+at negative-zero time match exactly, 0.07 s. Their textures are `0x80de..0x80e1`; the portable regression
+now selects each original texture explicitly rather than assuming the first one for all four types.
+The corrected portable renderer passes 126 tests, 27 private skips, 0.44 s. The C-to-C check passes
+216,448 states again in 8.99 s, with 211,200 identical and exactly the 41 intended admissions changed.
+The additional probes retain the explicit zero addition in six scalar chains: `0x230d`, `0x2497`
+and `0x2568..0x256b`. There is no change to any previously admitted type in that C-to-C sample.
+
+The corrected read/other instruction rows and six/three mutants run next, then the affected portable
+and private batch, reduced native private modules, rebuilt-world identity and final PR docs.
+This remains WIP until those checks finish; no ready-prs entry has been written.
+
 ## WIP checkpoint 2026-11-11, regenerated zero-sensitive fits
 
 The second complete generation passes in 1,296.19 s including cache flush. It admits the same 1,446
