@@ -159,3 +159,28 @@ validate_items_ui), run it without mutants, run affected portable tests, take
 final captures and the single default identity sweep, finish docs/audit/PR/queue
 and cleanup. The ten fit mutants already passed once; their inputs are unchanged.
 No ready-prs entry yet. Respect the 02:15 WIP / 02:30 stop deadlines.
+
+
+## WIP checkpoint, 2026-11-11 23:59 Chicago
+
+Final merged source/test head is `7e97044e`, with main `626abce1` (#379).
+Control world rebuilt in 6.748 s; branch root 0.799 s; client/world 14.180 s.
+Distinct rebuilt mu-world SHA-256 values: control
+`0486f35e813b641f2500df6b0107515c33d3fb37d2cc3683005c8b91b08b10ef`, branch
+`6f44d4de3913304dfee686528d04c20573942cdbea55f84423df3b33176e58be`.
+No before renders have run yet. Corrected tour22's stale local path prefix in
+this lane's private manifest copy before rendering; shared inputs are unchanged.
+
+Final reduced private run passed 19/19 methods, no skips/failures/errors,
+147.546 s (command 147.640 s), including the incoming equipment-hover module.
+Final selectors: own 27 rows, since `6ea82f67` 107 rows, union 107; 30.926 s
+and 34.038 s active selection walls. The full union is running without mutants,
+two workers, canonical private environment and cache. Current totals:
+{'pass': 41, 'fail': 0, 'error': 0, 'skip': 0}. Reports: `verify-runs/lane-validators-final`.
+The fit header and its validator/imported original helper are unchanged since
+the passing ten-mutant run. The only later edit is research wording.
+
+Left: finish this validator run; affected portable tests; final endpoint captures
+and one default identity sweep; final docs/audit/PR/ready line and owned cleanup.
+Do not run more unchanged mutants, a full lane gate, an installation or a merge.
+No PR or ready entry yet. Resume logs are in the lane's named scratch directory.

@@ -53,7 +53,7 @@ The session's `mu_hero_stats` now feeds the name, class, level, points, experien
 base/added stats and existing derived fields as well as HP/MP/SD/AG. Session
 money, speed text and the existing experience-bar record feed their display
 fields. The selected demo name is supplied to the session seed. Missing derived
-data displays a dash. No new class formula, authoritative state, combat rule,
+data displays a dash. No new class formula, combat rule,
 stat feature or power feature is added. The standalone progression demonstration
 still works when no session is bound.
 
