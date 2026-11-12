@@ -65,7 +65,8 @@ enum { MU_GFX_MAIN, MU_GFX_INVENTORY, MU_GFX_TOOLTIP, MU_GFX_CHARACTER, MU_GFX_C
        MU_GFX_NPC_SHOP, MU_GFX_STORAGE, MU_GFX_QUEST_PROGRESS, MU_GFX_MY_QUEST, MU_GFX_SKILL_POPUP,
        MU_GFX_SKILL_STAMP, MU_GFX_MOVE_COMMAND, MU_GFX_MASTER_TREE, MU_GFX_TREE4, MU_GFX_TREE5,
        MU_GFX_QUEST_SUMMARY, MU_GFX_QUEST_NOTICE, MU_GFX_JOB_QUEST, MU_GFX_PARTY, MU_GFX_TRADE, MU_GFX_FRIENDS, MU_GFX_MESSENGER, MU_GFX_MIX_SELECT, MU_GFX_MIX, MU_GFX_STORE_LIST, MU_GFX_STORE_REGISTER, MU_GFX_STORE_PURCHASE,
-       MU_GFX_OPTION, MU_GFX_SYSTEM_MENU, MU_GFX_HELP, MU_GFX_MOVIES };
+       MU_GFX_OPTION, MU_GFX_SYSTEM_MENU, MU_GFX_HELP,
+       MU_GFX_COMMAND, MU_GFX_MATCHING, MU_GFX_GENS, MU_GFX_PET_INVENTORY, MU_GFX_GREMORY, MU_GFX_MOVIES };
 /* NATIVE-PROGRESS-001 adds winOption and winSystemMenu (optional KeyWindows): their channel calls, O and the
  * Esc that no other window takes go to cfg.progress_call. */
 /* NATIVE-MAP-001 adds MoveCommand (the Move window, optional); its callbacks and the base movie's other channels
@@ -206,6 +207,8 @@ typedef struct mu_gfx_layer_config {
      * User is tooltip_user. Missing records return 0, known records return 1. */
     int (*social_item_info)(void *user, int32_t code, struct mu_gfx_slot_item *out);
     int (*tooltip_packet)(void *user, const uint8_t bytes[15], int context, char *html, size_t cap);
+    /* UI-WINDOWS-001: original menu dispatch sound, immediate and borrowed. */
+    void (*window_sound)(void *user, int32_t id, uint32_t site);
 } mu_gfx_layer_config;
 enum { MU_GFX_TIP_PLAIN = 0, MU_GFX_TIP_SHOP, MU_GFX_TIP_SELL };
 
