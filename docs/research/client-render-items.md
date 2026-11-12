@@ -3338,7 +3338,7 @@ The native host separately checks exact bitmap mappings with distinct synthetic 
 positive raster fragments for every pair, changed owner points, stale-owner retirement and full pool retirement.
 The 110-program / 37-pair domain is frozen by identity, while later inventory additions remain reported.
 
-The full focused run passes 17,008 checks, including 16,640 original-instruction executions. All 37 compiled
+The full focused run passes 17,008 checks, including 16,640 cases against original instructions. All 37 compiled
 mutants are caught without original-machine stops. The bounded sixteen-draw installed scene reduces pre-draw
 refusals 122 to zero; both longer clock fixtures reduce 485 to zero. One exact model path remains unavailable.
 Scene results, wall times and remaining fixture limits are recorded in

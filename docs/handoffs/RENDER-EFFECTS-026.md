@@ -161,3 +161,22 @@ Left: build and select the latest-main compiled delta, run only its affected che
 identity sweep, then final docs/status/audit/PR/ready entry/cleanup. Next step: inspect batch103-build-steps.json
 and the current controller. The completed 17,008-check / 37-mutant proof and census are still authoritative
 for their unchanged targets. Resource and 02:15/02:30 cutoff rules remain binding.
+
+## WIP checkpoint, 23:06
+
+Done: batch-103 root/world builds pass in 15.278 / 7.564 s. Main-delta selection is 59/225 validator
+rows (49.363 s), 165/202 suite items (118.776 s). Fresh lane selection is 87/225 rows (113.683 s);
+`validate_render_effects28` is the one new lane row and is already in the 59-row delta batch. No row is
+uncovered by the initial results plus queued refresh. Particle/caller proof targets still have no
+behavior change; the 17,008 checks and 37 mutants remain valid. Report wording now says cases against
+original instructions, avoiding an unsupported claim about counted emulator entry calls.
+
+The affected portable delta run is active. Repository policy, model-codec, actor, combat, joint, item
+and object suites have passed so far; no failure is reported. Shared resource guards continue to pause
+between heavy steps. Source was compiled at `69377e74`; current changes are documentation only.
+
+Left: finish this portable run, the reduced-private modules, 59 delta validators, explicit world rebuild
+and final after-only sweep/comparison. Then run the prepared final documentation writer, stage/audit,
+fetch/check latest main, commit/push, PR/link/ready entry and cleanup. Next step: resume the existing
+sequential controller and inspect batch103-check-steps.json. Finalization refuses incomplete checks.
+The 02:15/02:30 cutoff remains binding; no ready-prs entry exists.
