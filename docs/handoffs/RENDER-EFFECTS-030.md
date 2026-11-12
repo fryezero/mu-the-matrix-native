@@ -1,0 +1,336 @@
+# RENDER-EFFECTS-030
+
+PR-ready: the bounded implementation, builds, affected private/portable checks,
+final render replays and repository audit pass. The steward owns the combined
+gate and merge.
+
+Branch `codex/render-effects-030` began at EFFECTS-028 `32e36706` while #376
+was open. Main at start was `d4af71dd`. Required parent/current main was merged
+as `b5e53b91`, then AUDIO-003/INNER-002 as `92ef41f3`, and ITEMS-UI-001
+(main `626abce1`) as `a06eaf2b`; UI-WINDOWS-002 main `0ccd5f44` is
+merged as `552f6020`. No subagents or full lane gate.
+
+## Skill audit and implemented boundary
+
+[Complete inventory and original addresses](../research/client-render-effects-030.md):
+28 learned entries plus ordinary attack; also every visible unlearned tree entry
+and all 46 DK / 40 Elf brand aliases. The pinned catalogue contains 27 DK and
+37 Elf class entries, with 37 entries outside the learned list. Shipped demo
+class bytes are `0x01/0x02`, with no evolved record. Promoted fixture lists and
+visual selectors are distinguished explicitly. Skill 47 is stale and refused.
+
+The 29-row learned inventory moves 10 P / 4 L / 15 M to 11 P / 5 L / 13 M.
+P/L/M concern bounded presentation, not eligibility or authoritative state.
+The historical 23-route denominator remains 20 P / 3 L.
+
+| Skill | Before -> after | New behavior and remaining boundary |
+|---|---|---|
+| 24 Triple Shot | L -> P | Original fallthrough and learned-index argument order; ordinary bow three -> four arrows, special fan four -> five; bow 0x12f9 sparks fifteen -> thirty |
+| 51 Ice Arrow | M -> L | Single Arrow01 caller, saved client target index, draw and retirement; optional target ice/freeze response and general equipment context remain absent |
+| 52 Penetration | M -> L | Step-3 charge request, frame-5 hold, five-step cutoff, subtype-2 arrow; charge 0x7fd0/0 and child 0x46c/0 are refused |
+| 48 Swell Life | M -> M | Original 36 joints plus two effect requests; all 38 visual consumers refused; no primary aura pixels claimed |
+| 344 Blood Storm | M -> M | Early cutoff and original destination/emitter request; emitter 0x583/0 refused; generic fixture action is not a recovered receive action |
+| 416 / 424 | M -> L | Individually evidenced synthetic 416/52 and 424/51 selectors; retain the same base limits |
+
+The module preserves complete ordered caller arguments, keys/default words,
+owner and sound provenance. Only authored class/weapon/tile/learned-list context
+is supplied. The native adapter scans active learned entries, capped at 150;
+original stale entries past the learned count are outside admission.
+
+Self-review corrected the saved Ice Arrow word from server key to client index.
+Original accessor `0x009a13f4` resolves a 400-slot character table. The native
+regression uses a nonzero session slot, requires a distinct server key, and
+checks that the saved word equals the slot. The reconstructed module/header
+rename changed neither ABI nor compiled bytes: library SHA-256 stayed
+`5085c72b528733ff8d84755475e57243ccba7ad130617ed3e30741c45639b20d`.
+
+## Original proof
+
+Full new validator at `25353381`: 1,914 focused checks, zero mismatches,
+18/18 compiled production-C mutants caught, zero original-machine stops,
+29.47 s command wall. Accounting is 572 original step, 1,000 original end,
+256 original create/move comparisons, 78 native selector controls and eight
+retirement assertions. Thus 1,828 execute original record/caller instructions.
+The additional private brand test executes six real `0x00bb1c32` walks over
+synthetic lookup records: correct, swapped and zero-brand inputs for both aliases.
+
+Eight arrow lifecycle sequences carry original records independently from
+creation to retirement, including owner-death sequences. C never reseeds the
+original records between ticks. Terrain, animation/model and arrow-hit services
+remain declared synthetic inputs. This is not original GPU-image equivalence.
+The full proof's compiled module is byte-identical after the metadata rename;
+its 452-check registry sample passes on the current branch without mutants.
+
+## Native fixture proof
+
+Initial installed-data before/after/repeat: seven scenes, 69.49 s command wall,
+42/42 after/repeat PNG pairs identical. Hero names are DemoKnight/DemoArcher,
+target DemoTarget; Lorencia tile 182,127, target 184,127, frames 0..90 at 40 ms.
+Use GL, 960x600, no audio/items/players, save every 18 and step time series every 1.
+One script cast on frame 2 and stop on frame 3 prevents a repeated cast.
+
+| Skill | Arrows before -> after | New direct visual / arrow caller requests | Total refused before -> after |
+|---|---:|---:|---:|
+| 344 | 0 -> 0 | 1 / 0 | 0 -> 1 |
+| 24 | 3 -> 4 | 0 / 2 | 0 -> 0 |
+| 51 | 0 -> 1 | 0 / 1 | 0 -> 0 |
+| 52 | 0 -> 1 | 1 / 1 | 0 -> 2 |
+| 48 | 0 -> 0 | 38 / 0 | 0 -> 38 |
+| 416 | 0 -> 1 | 1 / 1 | 0 -> 2 |
+| 424 | 0 -> 1 | 0 / 1 | 0 -> 0 |
+
+All after casts have zero sent requests, one unsent request, zero hits/kills
+and unchanged target HP. Existing model/bitmap totals remain 29/39. Visual
+inspection shows the existing Arrow01 body and orange trail for Ice Arrow;
+no invented icy projectile is supplied. Close-target Penetration retires
+immediately through the existing arrow-hit service. Its early-flight proof
+with target tile 187,127 passes both base 52 and alias 416: six matching PNG
+pairs, one live Arrow01 at frame 6, 5.75 s command wall. Visual inspection
+confirms the projectile. The final seven-scene refresh passes 42/42 matching
+after/repeat pairs and matches all earlier verified after images, 38.54 s.
+The target-index correction changes no draw/move consumer output.
+
+## Default identity and final binary
+
+Both executables were explicitly built as world targets and are distinct:
+
+- Baseline at parent EFFECTS-028 `32e36706`: root/world 31.92/4.54 s,
+  SHA-256 `6f1f9d6a6367e54078a8848b3398dddff92d75ffb6cbf47bf5fd49956a6d43e7`.
+- Final compiled inputs `9e3193c6` (actor integration `caf81580`): explicit
+  world build 0.27 s, SHA-256
+  `534c010edc21062eb380c2d61d08e116dcc4aa48da8a205745a27533f4aa4da0`.
+  The replay checks the hash before and after rendering. The reconstructed
+  combat library remains byte-identical to the full-proof library above.
+
+The baseline was taken once, before lane edits, and never rerun. Default draw,
+no draw_all/live_time, 640x400, 25 frames sampled at 0/24:
+
+| Dataset | PNG identity | OBJECT/light identity | Normalized reports | Before / final after render wall |
+|---|---|---|---|---:|
+| October 22, 14 views | 27/28 | 26/28 | 13/14 | 16.18 / 18.66 s |
+| DATA-ACQ-002, 32 views | 64/64 | 64/64 | 31/32 | 44.12 / 45.46 s |
+
+Totals are 91/92 PNGs, 90/92 dumps and 44/46 reports identical to the original
+baseline. JSON comparison normalizes only output-directory prefixes and compares
+every row/value. Exactly five files differ, already documented by merged
+[INNER-002](RENDER-WORLDS-INNER-002.md): Elbeland's last PNG, both Elbeland dumps,
+and Elbeland/Swamp reports. Elbeland changes 348 pixels, mean absolute RGB
+0.001029/255. All 44 other views are identical. This lane's skill routes are
+inactive in default captures; no original GPU equivalence follows.
+
+The initial completed after sweep at `43f079ec` takes 72.96 s, with the same
+five deltas. The UI-WINDOWS-002 after-only replay takes 81.88 s and preserves
+all 230 prior after-file hashes. The final ACTORS-004 after-only replay takes
+97.31 s and again preserves all 230 after files byte-for-byte. It also confirms
+42/42 skill after/repeat pairs and 6/6 early-flight pairs against earlier
+images. Its stages take 28.43 s skill fixtures, 4.12 s early flight, 18.66 s
+October and 45.46 s DATA-ACQ; the rest is hashing/comparison. No baseline or
+mutant proof is repeated for either integration.
+
+## Completed checks and test budget
+
+All heavy work uses nice 10, at most make -j4 and two validator/test jobs.
+Load/memory guards are observed. Canonical private-env.sh is sourced from the
+repository root; private data and tools/evidence/input links remain untracked.
+No owner client, installed application, packet/power or protection work occurs.
+
+| Check / tested commit | Result | Command wall |
+|---|---|---:|
+| Root build, `92ef41f3` | pass | 12.16 s |
+| Root build after ITEMS-UI merge, `a06eaf2b` | pass, up to date | 1.05 s |
+| World build before late integrations, `43f079ec` | pass, up to date; distinct final/baseline hashes | 0.39 s |
+| New full focused proof, `25353381` | 1,914 checks; 18/18 mutants; zero stops | 29.47 s |
+| Initial reduced private modules, `bee54942` | 21/21, zero skips/failures | 59.55 s |
+| Merged reduced private modules, `92ef41f3` | 22/22, zero skips/failures | 74.05 s |
+| Incoming private ITEMS-UI module, `43f079ec` | 7/7, zero skips/failures | 29.51 s |
+| Portable affected, `bee54942` | 163 items; 1,748 tests, 1,457 pass / 291 expected skips, zero failures/errors | 628.32 s (491.7 s runner) |
+| Portable merge delta, `b5e53b91` | 159 items; 1,465 tests, 1,216 pass / 249 expected skips, zero failures/errors | 513.57 s (399.8 s runner) |
+| Final portable delta since `b5e53b91`, `43f079ec` | 172 items; 1,834 tests, 1,518 pass / 316 expected skips, zero failures/errors | 477.92 s (378.6 s runner) |
+| Private affected current, `92ef41f3` | 58/58 rows, no failures/errors/skips; cache, no mutants | 920.51 s |
+| Private merge extra, `a06eaf2b` | 53/53 rows, no failures/errors/skips; cache, no mutants | 326.32 s |
+| Final seven-scene after/repeat refresh, `43f079ec` | 42/42 matching pairs; all earlier after images match | 38.54 s |
+| Early Penetration / alias flight, `43f079ec` | 6/6 matching pairs; visible frame-6 projectile | 5.75 s |
+| Default sweep before late integrations, `43f079ec` | exact documented INNER-002 delta only | 72.96 s |
+| Repository audit before late UI merge, `75d5cb5a` plus status lines | 2,223 staged files, zero rejected | 24.87 s |
+| Late UI root build, `552f6020` | pass | 6.09 s |
+| Late UI private validators, `552f6020` | 12/12, zero failures/errors/skips; no mutants | 103.11 s |
+| Late UI private windows/audio, `552f6020` | 15/15, zero skips/failures | 66.29 s |
+| Actor-structure root build, `caf81580` | pass | 12.93 s |
+| Actor-structure affected private validators, `caf81580` | 25/25, zero failures/errors/skips; no mutants | 226.87 s |
+| Actor/skill reduced private modules, `caf81580` | 10/10, zero skips/failures | 56.82 s |
+| Late UI portable delta since `75d5cb5a`, `552f6020` | 138 items; 1,454 tests, 1,183 pass / 271 expected skips, zero failures/errors | 398.41 s (333.6 s runner) |
+| Actor portable delta since `01b5c420`, `caf81580` | 165 items; 1,524 tests, 1,263 pass / 261 expected skips, zero failures/errors | 506.74 s (439.7 s runner) |
+| Final explicit world build, `9e3193c6` | pass, up to date; new SHA-256 | 0.27 s |
+| Final after-only replay, `9e3193c6` | 230/230 prior default files, 42 skill pairs and six early-flight pairs match | 97.31 s |
+| Final repository audit | 2,234 staged files, zero rejected | 17.31 s |
+
+8d reduced: initial native selection was 152 items, above the 40-item cap.
+The first private run covers the changed effect fixtures, all BowSession cases,
+new caller/brand tests, installed combat and parent aura controls. It also
+unintentionally included the unchanged EFFECTS-009 mutant method; that passed
+and was not repeated. The new 18-mutant run occurs only once. The merged run
+covers new Native cases and incoming actor, Muun and object-audio modules.
+Incoming ITEMS-UI private tests pass 7/7, 29.51 s. Final portable delta passes
+1,834 tests with 316 expected skips; its 161 native items still exceed the cap.
+
+Current selection was inspected before its run. Main-merge selection since
+`bee54942` was 82 rows (58.75 s); UI-only selection since `92ef41f3` was ten
+(46.29 s). Initial additional runs are `(merge - current) union UI`: 49 new
+rows and four changed-input rechecks, giving 107 distinct rows. UI-WINDOWS-002
+then selects twelve existing rows (22.13 s). ACTORS-004 selects 25 rows
+(68.36 s), including one new row: the final set is 108 distinct validators.
+All selected symbol fallbacks are retained. The table records each row's latest
+pass; unselected compiled inputs retain their earlier pass. No further mutants
+are needed. No lane full gate runs; the steward owns the combined gate.
+
+## Steward validators
+
+Canonical private env supplies MU_RECOVERY_INTEGRATION, MU_GAME_ROOT,
+MU_NATIVE_DATA_DIR, MU_GFX_LIB, MU_LANG_DIR, MU_SECTION3 and evidence/snapshot
+paths. Use --private --no-mutants --cache --jobs 2. No further mutants required.
+The table gives each row's latest completed registered-check count and wall;
+current = `92ef41f3`, extra = `a06eaf2b`, windows2 = `552f6020`, actors4 = `caf81580`. These counts mix original comparisons
+and native/negative controls according to each row; they are not a single
+original-instruction case total.
+
+| Validator | Cases | Wall s | Selection |
+|---|---:|---:|---|
+| `validate_actor_composites` | 1427 | 8.8 | actors4 |
+| `validate_actor_recipes` | 1669 | 119.5 | actors4 |
+| `validate_app_polish1` | 752 | 22.4 | actors4 |
+| `validate_app_polish2` | 1028 | 4.0 | actors4 |
+| `validate_app_polish4` | 10485 | 42.5 | actors4 |
+| `validate_app_polish7` | 5120 | 2.6 | windows2 |
+| `validate_audio_callers` | 5528 | 5.8 | actors4 |
+| `validate_audio_charsel` | 5968 | 5.6 | current |
+| `validate_audio_combat` | 19548 | 32.4 | actors4 |
+| `validate_audio_domains` | 2544 | 26.7 | actors4 |
+| `validate_audio_items` | 3000 | 4.5 | actors4 |
+| `validate_audio_objects` | 4000 | 5.4 | actors4 |
+| `validate_charsel_items` | 8817 | 11.1 | actors4 |
+| `validate_charsel_world` | 1200 | 4.9 | extra |
+| `validate_combat` | 496 | 0.8 | current |
+| `validate_gfx3` | - | 7.1 | windows2 |
+| `validate_icarus` | 5240 | 37.6 | extra |
+| `validate_icarus_c2` | 8400 | 23.0 | actors4 |
+| `validate_inventory_fx` | 8017 | 10.9 | actors4 |
+| `validate_item_callers` | 6013 | 1.5 | actors4 |
+| `validate_item_hiddenmesh` | 116281 | 509.1 | current |
+| `validate_items` | 444 | 2.7 | current |
+| `validate_items_ui` | 8517 | 13.6 | actors4 |
+| `validate_login_world` | 1200 | 7.6 | extra |
+| `validate_map_polish` | 876 | 0.5 | windows2 |
+| `validate_meshdraw` | 14619 | 56.2 | current |
+| `validate_model_edge` | 954 | 118.6 | current |
+| `validate_model_light` | 1433 | 5.4 | current |
+| `validate_movement` | 6614 | 60.6 | actors4 |
+| `validate_muun_passes` | 1361 | 1.7 | extra |
+| `validate_muun_visual` | 912 | 1.6 | extra |
+| `validate_object_render` | 1984 | 13.7 | extra |
+| `validate_path` | 4719 | 33.7 | current |
+| `validate_render_effects` | 660 | 1.4 | current |
+| `validate_render_effects10` | 154 | 0.4 | current |
+| `validate_render_effects11` | 176 | 0.3 | current |
+| `validate_render_effects12` | 64 | 0.3 | current |
+| `validate_render_effects13` | 180 | 0.6 | current |
+| `validate_render_effects14` | 660 | 1.6 | current |
+| `validate_render_effects15` | 509 | 1.1 | current |
+| `validate_render_effects16` | 424 | 4.1 | actors4 |
+| `validate_render_effects17` | 618 | 13.4 | actors4 |
+| `validate_render_effects18` | 540 | 1.8 | actors4 |
+| `validate_render_effects19` | 400 | 1.0 | actors4 |
+| `validate_render_effects20` | 148 | 0.3 | current |
+| `validate_render_effects21` | 267 | 0.8 | current |
+| `validate_render_effects22` | 202 | 7.1 | current |
+| `validate_render_effects23` | 1174 | 9.6 | current |
+| `validate_render_effects24` | 226 | 2.9 | actors4 |
+| `validate_render_effects25` | 202 | 14.2 | actors4 |
+| `validate_render_effects27` | 424 | 2.7 | current |
+| `validate_render_effects28` | 630 | 2.7 | actors4 |
+| `validate_render_effects3` | 720 | 1.3 | current |
+| `validate_render_effects30` | 452 | 0.5 | current |
+| `validate_render_effects4` | 1920 | 7.0 | current |
+| `validate_render_effects5` | 1190 | 4.3 | current |
+| `validate_render_effects6` | 1000 | 1.5 | current |
+| `validate_render_effects7` | 596 | 1.8 | current |
+| `validate_render_effects9` | 304 | 1.0 | current |
+| `validate_render_worlds_a` | 9000 | 23.4 | extra |
+| `validate_session_party` | 200 | 0.9 | current |
+| `validate_skill_fx` | 660 | 1.4 | current |
+| `validate_terrain` | 583500 | 420.8 | current |
+| `validate_terrain_remaining` | 2147 | 5.0 | current |
+| `validate_viewport_monsters` | 1963 | 12.7 | actors4 |
+| `validate_world_fidelity` | 200 | 0.3 | extra |
+| `validate_world_light_name` | 304 | 0.5 | extra |
+| `validate_world_particle_consumers` | 900 | 0.9 | current |
+| `validate_world_tile_folder` | 5700 | 36.7 | extra |
+| `validate_worlds_121` | 4000 | 8.7 | extra |
+| `validate_worlds_after` | 13424 | 17.0 | extra |
+| `validate_worlds_after2` | 32216 | 33.0 | extra |
+| `validate_worlds_after3` | 10212 | 10.4 | extra |
+| `validate_worlds_after4` | 9181 | 15.0 | extra |
+| `validate_worlds_after5` | 6000 | 13.1 | extra |
+| `validate_worlds_after6` | 7300 | 77.4 | current |
+| `validate_worlds_b` | 4000 | 3.9 | extra |
+| `validate_worlds_d` | 2400 | 4.2 | current |
+| `validate_worlds_e` | 4840 | 20.4 | extra |
+| `validate_worlds_f` | 1818 | 0.5 | current |
+| `validate_worlds_fog` | 4044 | 7.9 | actors4 |
+| `validate_worlds_g` | 6000 | 4.5 | extra |
+| `validate_worlds_g2` | 2657 | 6.2 | extra |
+| `validate_worlds_g3` | 4000 | 7.4 | extra |
+| `validate_worlds_h` | 6000 | 4.5 | extra |
+| `validate_worlds_i` | 6000 | 4.9 | extra |
+| `validate_worlds_inner` | 4000 | 5.4 | extra |
+| `validate_worlds_inner2` | 5000 | 6.8 | extra |
+| `validate_worlds_j` | 6000 | 4.6 | extra |
+| `validate_worlds_k` | 6000 | 5.4 | extra |
+| `validate_worlds_karutan` | 3000 | 5.9 | extra |
+| `validate_worlds_l` | 1260 | 1.5 | current |
+| `validate_worlds_m` | 1080 | 2.6 | current |
+| `validate_worlds_n` | 13000 | 9.7 | extra |
+| `validate_worlds_o` | - | 7.3 | extra |
+| `validate_worlds_p` | 10000 | 8.9 | extra |
+| `validate_worlds_p2` | 6000 | 5.8 | extra |
+| `validate_worlds_q` | 11000 | 14.4 | extra |
+| `validate_worlds_q2` | 4000 | 8.9 | extra |
+| `validate_worlds_r` | 12000 | 9.3 | extra |
+| `validate_worlds_r2` | 9000 | 8.6 | extra |
+| `validate_worlds_raklion` | 3000 | 7.1 | extra |
+| `validate_worlds_s` | 11000 | 10.0 | extra |
+| `validate_worlds_s2` | 10000 | 8.6 | extra |
+| `validate_worlds_s3` | 22000 | 24.2 | extra |
+| `validate_worlds_slots` | 18999 | 23.1 | extra |
+| `validate_worlds_slots2` | 33000 | 38.8 | extra |
+| `validate_worlds_slots3` | 36000 | 41.2 | extra |
+
+Steward validators: validate_actor_composites,validate_actor_recipes,validate_app_polish1,validate_app_polish2,validate_app_polish4,validate_app_polish7,validate_audio_callers,validate_audio_charsel,validate_audio_combat,validate_audio_domains,validate_audio_items,validate_audio_objects,validate_charsel_items,validate_charsel_world,validate_combat,validate_gfx3,validate_icarus,validate_icarus_c2,validate_inventory_fx,validate_item_callers,validate_item_hiddenmesh,validate_items,validate_items_ui,validate_login_world,validate_map_polish,validate_meshdraw,validate_model_edge,validate_model_light,validate_movement,validate_muun_passes,validate_muun_visual,validate_object_render,validate_path,validate_render_effects,validate_render_effects10,validate_render_effects11,validate_render_effects12,validate_render_effects13,validate_render_effects14,validate_render_effects15,validate_render_effects16,validate_render_effects17,validate_render_effects18,validate_render_effects19,validate_render_effects20,validate_render_effects21,validate_render_effects22,validate_render_effects23,validate_render_effects24,validate_render_effects25,validate_render_effects27,validate_render_effects28,validate_render_effects3,validate_render_effects30,validate_render_effects4,validate_render_effects5,validate_render_effects6,validate_render_effects7,validate_render_effects9,validate_render_worlds_a,validate_session_party,validate_skill_fx,validate_terrain,validate_terrain_remaining,validate_viewport_monsters,validate_world_fidelity,validate_world_light_name,validate_world_particle_consumers,validate_world_tile_folder,validate_worlds_121,validate_worlds_after,validate_worlds_after2,validate_worlds_after3,validate_worlds_after4,validate_worlds_after5,validate_worlds_after6,validate_worlds_b,validate_worlds_d,validate_worlds_e,validate_worlds_f,validate_worlds_fog,validate_worlds_g,validate_worlds_g2,validate_worlds_g3,validate_worlds_h,validate_worlds_i,validate_worlds_inner,validate_worlds_inner2,validate_worlds_j,validate_worlds_k,validate_worlds_karutan,validate_worlds_l,validate_worlds_m,validate_worlds_n,validate_worlds_o,validate_worlds_p,validate_worlds_p2,validate_worlds_q,validate_worlds_q2,validate_worlds_r,validate_worlds_r2,validate_worlds_raklion,validate_worlds_s,validate_worlds_s2,validate_worlds_s3,validate_worlds_slots,validate_worlds_slots2,validate_worlds_slots3
+
+## Limits and next lane
+
+- EFFECTS-026 owns the missing charge/child, Swell Life joint/effect and Blood
+  Storm emitter consumers. Research lists constructor/mover addresses. Blood
+  Storm's static constructor lifetime 70/child 0x584/0/sound 0x2b0 is not a
+  validated native lifecycle. No primary pixels are claimed for refused routes.
+- Other M/L inventory rows, summons, shield/mount actions, general equipment,
+  optional target ice/freeze response and unadmitted aliases remain open.
+- No owner client, installed app, protection, network/login or power-state work
+  is performed. Fixtures and named original services bound all conclusions.
+
+## Delivery
+
+Latest main `c35458a0` is integrated as `caf81580`; compiled proof inputs are
+unchanged by subsequent documentation checkpoints. WIP history is preserved in
+pushed commits, including `25353381`, `bee54942`, `b84abf2a`, `52b4bada`,
+`43f079ec`, `75d5cb5a`, `552f6020`, `01b5c420`, `caf81580` and `9e3193c6`.
+Final documentation/policy checks and PR metadata identify the published head.
+
+The PR targets main from `codex/render-effects-030`. The final ready entry is
+written only after the last push; nothing is pushed afterward. Cleanup removes
+this lane's scratch/renders, build outputs, worktree and local branch. The remote
+branch stays for the steward. No new private input needs retaining. The next
+APP-REFRESH lane may pick up these fixture visuals after the merge.
+
+Final audit: 2,234 staged files, zero rejected, 17.31 s. Final readiness/timing
+ledger edits also pass the same audit policy against their staged bytes. No
+compiled input changes after the checks above. Ready for steward.

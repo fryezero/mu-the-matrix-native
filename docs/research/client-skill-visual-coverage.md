@@ -239,3 +239,10 @@ now draw the defense ribbons, their midpoint blue flares and the attack
 weapon-link sprites, with independent expiry and owner-death removal controls.
 The strict inventory remains 20 P / 3 L / 0 M. This fixture does not supply an
 authoritative buff feed, general link selection or subtype-9 equipment context.
+
+## Wider demo inventory, RENDER-EFFECTS-030
+
+The [selectable DK/Elf audit](client-render-effects-030.md) enumerates all 28
+learned demo entries plus ordinary attack, including stale skill 47, missing
+Blood Storm and arrow callers, and the corrected Triple Shot caller limitation.
+Its denominator is separate from the historical 23-route table above.
