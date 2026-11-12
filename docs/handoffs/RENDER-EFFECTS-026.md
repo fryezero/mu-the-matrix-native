@@ -116,3 +116,13 @@ Left: finish the affected validator batch and queued audit, replace this WIP his
 handoff and status lines, fetch/merge latest main with only required delta checks, final audit/PR/ready
 entry/cleanup. Next step: inspect check-steps.json and verify-runs/lane-validators/summary.json when the
 running batch ends. Resource guard and the 02:15/02:30 owner cutoff remain binding.
+
+## WIP checkpoint, 22:06
+
+Done: the affected private validator batch has passed 50 of 86 selected rows, zero failures/errors/skips,
+863,980 cases so far. The completed proof, 37 mutants, native scenes, identity sweep, root build, 43-test
+private pass and 1,690-test portable pass remain as recorded above. Source targets remain unchanged.
+
+Left: finish the remaining affected rows and queued audit, integrate latest main, finalize handoff/research
+status, final audit, PR/ready entry and cleanup. Next step: resume the existing guarded check controller;
+do not launch a second heavy job. Shared load is above 14, so new checks wait. Owner cutoff remains 02:30.
