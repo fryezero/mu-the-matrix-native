@@ -1143,7 +1143,7 @@ void mu_gfx_layer_show(mu_gfx_layer *L, int m, int open)
         hide_tooltip(L);
     if (open && m == MU_GFX_CHARACTER)
         feed_character(L);
-    if (m == MU_GFX_PARTY)
+    if (m == MU_GFX_PARTY || m == MU_GFX_QUEST_SUMMARY)
         invokef(L, m, mv->path, open ? "openWindow" : "closeWindow", "[]");
     else
         invokef(L, m, mv->path, "SetVisible", "[%s]", open ? "true" : "false");
@@ -1834,7 +1834,12 @@ static void fit_windows(mu_gfx_layer *L)
             double scale = movie_number(L, m, "_xscale") * f.scale;
             if (!isfinite(scale) || scale <= 0)
                 continue;
-            invokef(L, m, mv->path, "SetScale", "[%.8g]", scale);
+            if (component)
+                invokef(L, m, mv->path, "SetScale", "[%.8g]", scale);
+            else {
+                movie_number_set(L, m, "_xscale", scale);
+                movie_number_set(L, m, "_yscale", scale);
+            }
             L->applied_scale[m] = (float)(scale / 100);
             if (m == MU_GFX_INVENTORY)
                 L->inv_scale = L->applied_scale[m];

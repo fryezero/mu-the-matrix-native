@@ -23,8 +23,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #include "../gfx/mu_gfx_layer.h"
+
+static double number(mu_gfx_layer *L, int m, const char *path)
+{
+    const char *s = mu_gfx_layer_get_variable(L, m, path);
+    char *end = NULL;
+    double n = s ? strtod(s, &end) : NAN;
+    return s && end != s ? n : NAN;
+}
 
 static void print_state(mu_gfx_layer *L)
 {
@@ -90,10 +99,13 @@ static int host_buff_tooltip(void *user, int32_t buff, char *html, size_t cap)
 
 /* NATIVE-SKILL-001: a recording skill host */
 static int skill_fed;
+static int close_probe_active, close_probe_seen;
 static void tree_call(void *user, int movie, const char *name, const char *args)
 {
     (void)user;
     printf("tree callback %d %s %s\n", movie, name, args);
+    if (close_probe_active && !strcmp(name,"CloseWindow"))
+        close_probe_seen = 1;
 }
 static int skill_feed(void *user, char *json, size_t cap)
 {
@@ -261,8 +273,63 @@ int main(int argc, char **argv)
         } else if (!strcmp(op, "compose")) {
             printf("compose took %d\n", mu_gfx_layer_compose(L, a, (int)strlen(a)));
             i++;
+        } else if (!strcmp(op, "clickclose")) {
+            close_probe_active = 1;
+            close_probe_seen = 0;
+            int m = atoi(a);
+            const char *root = mu_gfx_layer_path(L, m);
+            char path[768], field[800], root_name[160];
+            snprintf(path, sizeof path, "%s.btnClose", root);
+            snprintf(field, sizeof field, "%s._width", path);
+            double bw = number(L,m,field), bh, gx = 0, gy = 0;
+            snprintf(field, sizeof field, "%s._height", path);
+            bh = number(L,m,field);
+            snprintf(root_name, sizeof root_name, "\"%s\"", strrchr(root,'.') ? strrchr(root,'.')+1 : root);
+            for (int depth = 0; depth < 10 && isfinite(bw) && isfinite(bh); depth++) {
+                snprintf(field,sizeof field,"%s._xscale",path);
+                double sx = number(L,m,field)/100;
+                snprintf(field,sizeof field,"%s._yscale",path);
+                double sy = number(L,m,field)/100;
+                if (depth) { bw *= sx; bh *= sy; }
+                snprintf(field,sizeof field,"%s._x",path);
+                gx = number(L,m,field) + gx*sx;
+                snprintf(field,sizeof field,"%s._y",path);
+                gy = number(L,m,field) + gy*sy;
+                snprintf(field,sizeof field,"%s._name",path);
+                const char *name = mu_gfx_layer_get_variable(L,m,field);
+                if (name && !strcmp(name,root_name))
+                    break;
+                strncat(path,"._parent",sizeof path-strlen(path)-1);
+            }
+            for (int iy = -4; iy <= 4 && mu_gfx_layer_is_open(L,m) && !close_probe_seen; iy++)
+                for (int ix = -4; ix <= 4 && mu_gfx_layer_is_open(L,m) && !close_probe_seen; ix++) {
+                    double cx = gx+bw*ix/8, cy = gy+bh*iy/8;
+                    if (isfinite(cx) && isfinite(cy) && cx >= 0 && cy >= 0 && cx < pw && cy < ph) {
+                        click(L,cx*scale,cy*scale,0);
+                        mu_gfx_layer_advance(L,40);
+                    }
+                }
+            printf("{\"close_movie\":%d,\"closed\":%d,\"close_delivered\":%d}\n",m,
+                   !mu_gfx_layer_is_open(L,m),close_probe_seen || !mu_gfx_layer_is_open(L,m));
+            if (close_probe_seen)
+                mu_gfx_layer_show(L,m,0); /* the recording host supplies no quest/tree controller */
+            close_probe_active = 0;
+            i++;
+        } else if (!strcmp(op, "maplayout")) {
+            const char *root = mu_gfx_layer_channel_path(L,"hudMap");
+            mu_gfx_layer_invoke(L,MU_GFX_MAIN,root,"setShowMap","[true]");
+            printf("{\"map_layout\":true");
+            static const char *const fields[] = {"_xscale","_mask._x","_mask._y","_mask._width","_mask._height"};
+            for (size_t k = 0; k < sizeof fields/sizeof fields[0]; k++) {
+                char path[256];
+                snprintf(path,sizeof path,"%s.%s",root,fields[k]);
+                const char *r = mu_gfx_layer_get_variable(L,MU_GFX_MAIN,path);
+                printf(",\"%s\":%s",fields[k],r?r:"null");
+            }
+            printf("}\n");
+            mu_gfx_layer_invoke(L,MU_GFX_MAIN,root,"setShowMap","[false]");
         } else if (!strcmp(op, "layout")) {
-            static const char *const fields[] = {"_x", "_y", "_width", "_height", "_xscale", "m_iWidth", "m_iHeight",
+            static const char *const fields[] = {"_x", "_y", "_width", "_height", "_xscale", "_visible", "m_iWidth", "m_iHeight",
                                                  "btnClose._x", "btnClose._y", "btnClose._width", "btnClose._height"};
             for (int m = 0; m < MU_GFX_MOVIES; m++) {
                 const char *root = mu_gfx_layer_path(L, m);

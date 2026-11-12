@@ -1607,6 +1607,14 @@ void world_gfx_frame(world_gfx *g, double dt_ms, int draw)
         fprintf(stderr, "hud_vitals t=%.0f session=%d,%d,%d,%d hud=%d,%d,%d,%d max=%d,%d,%d,%d\n",
                 g->time_ms, v.hp, v.mp, v.sd, v.ag, h->hp, h->mp, h->sd, h->ag,
                 h->max_hp, h->max_mp, h->max_sd, h->max_ag);
+        fprintf(stderr, "character_fixture session=%d,%d,%d,%d,%d,%d,%d,%d,%lld,%lld,%d "
+                        "view=%d,%d,%d,%d,%d,%d,%d,%d,%lld,%lld,%d name=%s\n",
+                v.level, v.master_level, v.points, v.stats[0]+v.added[0], v.stats[1]+v.added[1],
+                v.stats[2]+v.added[2], v.stats[3]+v.added[3], v.stats[4]+v.added[4],
+                (long long)(v.stage >= 3 ? v.master_exp : v.exp),
+                (long long)(v.stage >= 3 ? v.master_next_exp : v.next_exp), v.has_derived,
+                h->level, h->master_level, h->points, h->strength, h->agility, h->vitality, h->energy,
+                h->command, (long long)h->exp, (long long)h->exp_max, h->has_derived, h->name);
     }
     if (draw)
         mu_gfx_layer_draw_gl(g->layer);

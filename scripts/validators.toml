@@ -3501,3 +3501,19 @@ args = ["--mutations", "--report", "{report}"]
 "families.credits.cases" = 40
 "families.credits.sounds" = 71
 "mutants" = {len = 10}
+
+[validate_app_polish9]
+test = "native/tests/test_app_polish9.py::OriginalResize.test_original_instructions"
+pins = ["text", "data"]
+needs = ["cc"]
+families = ["resize", "native_fit"]
+cases = 4156
+cases_at = "families.*.cases"
+mutants = 7
+mutants_at = "mutants_caught"
+args = ["--text", "{text}", "--data", "{data}", "--cases", "4096", "--mutants", "--out", "{report}"]
+note = "APP-POLISH-009: original collection resize 0x00ac09b2 / handler 0x00aae4ae; bounded native fit invariants, compiled mutants"
+[validate_app_polish9.expect]
+mismatches = 0
+"families.*.mismatches" = 0
+"mutants_caught" = {len = 7}
