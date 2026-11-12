@@ -135,6 +135,8 @@ refusals. No particle consumer is added by this lane; absent particle kinds reta
 
 ### Remaining inline work
 
+This table is the end-of-INNER-002 snapshot. INNER-003 below closes 9/31/33/38.
+
 Addresses below are static entry points for the next lane, not a claim that every branch needs new code.
 The previous broad list included worlds that only reach the common chain. Recheck the call paths and guards
 before implementing anything there.
@@ -240,3 +242,12 @@ that chain; `0x00ea2dc1` does a registry lookup followed by the registered handl
 registry/context coverage remains unverified. The Kanturu GREATER 0 alpha-reference seam stays deferred.
 
 [Checks, fidelity results and remaining addresses](../handoffs/RENDER-WORLDS-INNER-003.md).
+
+### INNER-003 verification
+
+Eight families pass 8,000 original call comparisons, zero mismatches/stops. All 54 compiled mutants are caught,
+minimum six detections, zero stopped mutants. The 68 affected validators pass, and portable checks pass 1,661
+tests with zero failures/errors. The default sweep preserves all 44 unaffected views; only Remain's images
+change. All 92 OBJECT/light dumps stay identical. Aida's close-up glows, Remain's core, Trials' lamp and Devil Square's arm particles are visible in
+demo-labelled outputs. Remain also creates four joints and draws sixteen quads in the last frame. Original Remain image
+scores increase slightly; its earlier object/placement/state residuals remain explicit in the handoff.
