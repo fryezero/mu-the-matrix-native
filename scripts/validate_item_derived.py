@@ -15,6 +15,8 @@ import validate_renderchar as v
 
 ROOT = Path(__file__).resolve().parents[1]
 TYPES = gen.DERIVED_TYPES
+# The extended sine reader folds these former derived programs into one exact clock chain.
+CLOCK_REPLACEMENTS = frozenset((0x0b0c, 0x16fc, 0x16fd, 0x16fe, 0x1b33))
 # Clock values for the derived family: zero, small, period edges of the wave/sin/clock programs, large.
 TIMES = (0.0, 1.0, 999.0, 1570.0, 2000.0, 6283.0, 123456.0, 1999999.0)
 
@@ -29,7 +31,10 @@ def derived_cases(wa, lib):
     from item_body_machine import ResetWorld
     reset, vectors, programs = ResetWorld(wa, quality.RandomWorld), [], 0
     for t in TYPES:
-        if not derived_programs(t):
+        if t in CLOCK_REPLACEMENTS:
+            if quality.table_programs(t) != [(3, 0)]:
+                raise AssertionError(('clock replacement differs', hex(t), quality.table_programs(t)))
+        elif not derived_programs(t):
             raise AssertionError(('no derived program', hex(t)))
         programs += len(derived_programs(t))
         rng = random.Random(0x20040 + t)

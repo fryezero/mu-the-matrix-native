@@ -53,7 +53,8 @@ import validate_item_quality as quality
 import validate_renderchar as v
 
 ROOT = Path(__file__).resolve().parents[1]
-TYPES = fxgen.PRE_FX_TYPES + fxgen.POST_FX_TYPES
+# Later read programs have their own record/clock and owned-stream row.
+TYPES = [t for t in fxgen.PRE_FX_TYPES if t not in fxgen.LATER_READ_PROGRAM_TYPES] + fxgen.POST_FX_TYPES
 HIDDEN_TYPES = [0x2382, 0x2383, 0x2384, 0x2385]
 HIDDEN_VALUES = (1, 2, 3, 7)
 OWNER_NEED = {}     # post programs: 1 + the highest OBJECT bone (0x0129f12c), filled by program_names

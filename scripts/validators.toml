@@ -1804,6 +1804,25 @@ args = ["--cases", "500", "--mutations", "--output", "{report}"]
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
 
+[validate_item_read_programs]
+test = "reconstructed/renderchar/test_item_read_programs.py::ItemReadPrograms.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "records", "clocks", "owned"]
+cases = 5352
+mutants = 6
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar", "reconstructed/particles"]
+args = ["--mutations", "--output", "{report}"]
+note = "RENDER-ITEMS-002Y: six later read programs, every forcing record/level/quality, directed clocks and complete owned requests"
+[validate_item_read_programs.expect]
+"families.*.mismatches" = 0
+"families.bodies.cases" = 1752
+"families.records.cases" = 3072
+"families.clocks.cases" = 144
+"families.owned.cases" = 384
+"mutants.*" = {truthy = true}
+
 [validate_icarus_c2]
 test = "native/tests/test_native_icarus.py::IcarusInstructions.test_c2_cover_and_emitter_instructions_and_compiled_mutants"
 pins = ["text", "data"]
@@ -2772,7 +2791,7 @@ build = ["reconstructed/renderchar"]
 args = ["--mutations", "--output", "{report}"]
 [validate_item_derived.expect]
 "families.*.mismatches" = 0
-"families.derived.programs" = 118
+"families.derived.programs" = 113
 "mutants.*" = {truthy = true}
 
 [validate_item_ownerfx]
@@ -3454,6 +3473,42 @@ note = "RENDER-ACTORS-003: 32-class census, two class-byte-0 robot admissions, t
 all_equal = true
 all_mutants_caught = true
 "mutants.*.stopped" = 0
+
+[validate_item_helper_groups]
+test = "reconstructed/renderchar/test_item_helper_groups.py::ItemHelperGroups.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "records"]
+cases = 6432
+mutants = 4
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar"]
+args = ["--mutations", "--output", "{report}"]
+note = "RENDER-ITEMS-002Y: omitted base and seven late level overrides, independent states and forcing fixture records"
+[validate_item_helper_groups.expect]
+"families.*.mismatches" = 0
+"families.bodies.cases" = 2336
+"families.records.cases" = 4096
+"mutants.*" = {truthy = true}
+
+[validate_item_other_bodies]
+test = "reconstructed/renderchar/test_item_other_bodies.py::ItemOtherBodies.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "records", "clocks", "frame"]
+cases = 24084
+mutants = 3
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar"]
+args = ["--mutations", "--output", "{report}"]
+note = "RENDER-ITEMS-002Y: 27 further clock/product bodies, forcing records and directed clocks/counters"
+[validate_item_other_bodies.expect]
+"families.*.mismatches" = 0
+"families.bodies.cases" = 7884
+"families.records.cases" = 13824
+"families.clocks.cases" = 648
+"families.frame.cases" = 1728
+"mutants.*" = {truthy = true}
 
 [validate_muun_visual]
 test = "native/tests/test_muun_visual.py::ClientComparison.test_original_instructions"
