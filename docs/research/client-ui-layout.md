@@ -68,5 +68,10 @@ join fixtures remain level 1 for four characters and level 320 for Windleaf.
 This lane preserves their join values and does not reinterpret those labels as
 new stat inputs. HUD and CharacterInfo display the same joined record.
 
+The original CharacterInfo row table disables HP, MP, SD and AG rows
+26/27/34/35 for every current class mask. The sweep checks the enabled level,
+points and stat rows through the actual `SetName` calls; it does not enable
+new rows. Vitals still come from the same session record and reach the HUD.
+
 Checks, timings, captures and limits are recorded in the
 [handoff](../handoffs/APP-POLISH-009.md).

@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -210,6 +211,18 @@ class LayoutSweep(unittest.TestCase):
 @unittest.skipUnless(PRIVATE and os.environ.get('MU_GAME_ROOT') and os.environ.get('MU_NATIVE_DATA_DIR'),
                      'private offline client fixture')
 class DemoOwnership(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        subprocess.run(['make','-C',str(ROOT/'native'),'-j2','client'],
+                       check=True,capture_output=True)
+        cls.tmp = tempfile.TemporaryDirectory(prefix='mu-character9-client-')
+        cls.binary = Path(cls.tmp.name)/'mu-client'
+        shutil.copy2(ROOT/'native/build/mu-client',cls.binary)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tmp.cleanup()
+
     def test_all_five_demo_characters(self):
         names = ['Nightfall','Ironclad','Windleaf','Spellblade','Crownlord']
         profiles = [(1,0,0,18,18,15,30,0), (1,0,0,28,20,25,10,0),
@@ -222,7 +235,7 @@ class DemoOwnership(unittest.TestCase):
                         f'28:enter 42:click:row:{slot} 54:dblclick:row:{slot} 80:key:67')
                 env = {**os.environ, 'MU_LANG_DIR': str(Path(os.environ['MU_NATIVE_DATA_DIR'])/'lang'),
                        'MU_HUD_TRACE':'1', 'MU_GFX_TEST_CLOCK':'1', 'MU_GFX_LOG':str(Path(tmp)/'gfx.log')}
-                p = subprocess.run([str(ROOT/'native/build/mu-client'), '--game-root',os.environ['MU_GAME_ROOT'],
+                p = subprocess.run([str(self.binary), '--game-root',os.environ['MU_GAME_ROOT'],
                     '--session',str(ROOT/'native/client/demo-session.txt'), '--width','1024','--height','768',
                     '--world-objects',str(Path(os.environ['MU_NATIVE_DATA_DIR'])/'objects'),
                     '--gfx',str(Path(os.environ['MU_NATIVE_DATA_DIR'])/'gfx'), '--no-audio','--no-store',
