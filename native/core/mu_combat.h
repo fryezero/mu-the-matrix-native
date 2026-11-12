@@ -88,8 +88,10 @@ void mu_combat_default_config(mu_combat_config *config);
 /* RENDER-EFFECTS-007: Data/Skill file of a bow arrow model type (NULL: none). */
 const char *mu_combat_arrow_file(int32_t type);
 
+#include "../../reconstructed/combat/aura_fx.h"
+
 /* Bitmap slots the renderer binds by id. */
-enum { MU_COMBAT_BITMAPS = 37 };   /* RENDER-EFFECTS-027: + NSkill for Death Stab */
+enum { MU_COMBAT_BITMAPS = 39 };   /* RENDER-EFFECTS-028: + flareBlue and Shiny02 */
 
 typedef struct mu_combat_bitmap {
     int32_t id;               /* client bitmap index (0x7534 font, 0x7df3.. specials, 0x7f2b, 0x7f84) */
@@ -227,6 +229,10 @@ typedef struct mu_combat {
     uint8_t hero_counter;      /* c + 0x28 */
     int16_t weapon_item[2];    /* c + 0x19ac (client item indices of the demo weapon) */
     float speeds[MU_PLAYER_ACTIONS];   /* SetAttackSpeed result; < 0 for actions it does not store */
+    int32_t aura_duration, aura_expiry[2], aura_sprite_count;
+    mu_jt_joint aura_joints[5];
+    mu_jt_call aura_sprites[11];
+    uint32_t aura_requests, aura_created, aura_refused;
     int32_t step;
     uint32_t rng;
     uint32_t audio_rng; /* AUDIO-002C: new attack voices cannot change visual random phase. */

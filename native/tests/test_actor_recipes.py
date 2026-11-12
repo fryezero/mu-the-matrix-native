@@ -30,7 +30,7 @@ class Recipes(unittest.TestCase):
         lib = v.library(v.LIBRARY)
         # Expected constructor outputs, independently of the C recipe helper.
         bodies = {14: 0x422, 15: 0x423, 16: 0x424, 55: 0x422, 56: 0x422, 236: 0x423,
-                  372: 0x425, 373: 0x429, 503: 0x541, 548: 0x552, 616: 0x5bb, 646: 0x5bb,
+                  372: 0x425, 373: 0x429, 503: 0x541, 548: 0x552, 616: 0x5bb, 625: 0x5bc, 626: 0x5bd, 646: 0x5bb,
                   706: 0x5bf, 806: 0x5c4, 807: 0x5c5}
         for cl in v.CENSUS + (-1, 0, 251, 65535):
             with self.subTest(cl=cl):
@@ -58,4 +58,4 @@ class ClientComparison(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stdout[-4000:]+result.stderr[-2000:])
             value = json.loads(report.read_text())
             self.assertTrue(value['all_equal'])
-            self.assertEqual(value['families']['native']['cases'], 32)
+            self.assertEqual(value['families']['native']['cases'], 34)
