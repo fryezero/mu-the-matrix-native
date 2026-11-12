@@ -313,7 +313,10 @@ and after table and check results in [the handoff](../handoffs/RENDER-ACTORS-003
 ### 625 and 626, verified fixture bodies
 
 Their generic constructors set OBJECT `+0x60` to `0x5bc` and `0x5bd`, retain
-CreateCharacter's kind 1 and class byte 0, and leave equipment empty. Startup's
+CreateCharacter's kind 1 and class byte 0, and leave equipment empty. The bounded
+default-store checks execute `0x0137dbd4..0x0137dbdb` and
+`0x0137db50..0x0137db57`; the latter starts with a poisoned class byte `0x16`.
+The fixture therefore does not infer class zero from a zero-filled stub. Startup's
 AccessModel calls at `0x018330c0` and `0x018330f5` load `Data/Item/iron_robot.bmd`
 and `Data/Item/iron_robot_gold.bmd`, respectively. The constructor scales are
 1.1 and 0.6. The loader and RenderObjDraw stream comparisons check exact file

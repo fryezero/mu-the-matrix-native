@@ -110,6 +110,14 @@ def check_kind_default(args):
     run = bounded(machine, 0x0137dbd4, 0x0137dbdb, {}, [region],
                   frame=(0x40, {-4: va.CLASS_CHARACTER + 0x3254}))
     note(fam, run['ok'] and run['regions']['character'][0x328f] == 1, run)
+    # The robot admission depends on this default, not the extractor's
+    # zero-filled CreateCharacter stub. Poison the incoming class byte.
+    raw = bytearray(0x4000); raw[0x12] = 0x16
+    run = bounded(machine, 0x0137db50, 0x0137db57, {},
+                  [am.defined_region('character', va.CLASS_CHARACTER, raw)],
+                  arguments=(va.CLASS_CHARACTER,))
+    note(fam, run['ok'] and run['regions']['character'][0x12] == 0,
+         {k: v for k, v in run.items() if k != 'regions'})
     return fam
 
 
