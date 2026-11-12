@@ -3581,3 +3581,17 @@ note = "APP-POLISH-009: original collection resize 0x00ac09b2 / handler 0x00aae4
 mismatches = 0
 "families.*.mismatches" = 0
 "mutants_caught" = {len = 10}
+
+[validate_items_ui]
+test = "native/tests/test_items_ui.py::Original.test_instruction_comparison"
+pins = ["text", "data", "flag", "feature"]
+families = ["cursor", "mouse", "option_bits", "ordering"]
+cases = 8517
+mutants = 8
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar"]
+args = ["--cases", "3000", "--mutations", "--output", "{report}"]
+[validate_items_ui.expect]
+"families.*.cases" = {all_min = 1}
+"families.*.mismatches" = 0
