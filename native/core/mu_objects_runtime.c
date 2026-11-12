@@ -1396,12 +1396,17 @@ static void inner_named_bone(void *context, const char *name, const float local[
     if (k < 0) { out[0] = out[1] = out[2] = NAN; return; }
     test_area_bone(context, k, local, out);
 }
+static void inner_missing_bone(void *context, int32_t k, const float local[3], float out[3])
+{
+    (void)context; (void)k; (void)local;
+    out[0] = out[1] = out[2] = NAN;
+}
 static int world_inner(mu_objects *o, int32_t i, uint8_t *img, const mu_object_model *m, float time, int posed,
                         const mu_obj_log *body_log, mu_obj_log *draws)
 {
     const int kanturu = o->world == 37 || o->world == 40;
     const int blood = (o->world >= 11 && o->world <= 17) || o->world == 52;
-    if (!m || !m->loaded || (!kanturu && !blood)) return 0;
+    if (!m || !m->loaded || (!kanturu && !blood && o->world != 51 && o->world != 56)) return 0;
     visual_context c = {o, m};
     mu_obj_event events[64];
     mu_obj_log log = {0, 64, 0, events};
@@ -1412,8 +1417,10 @@ static int world_inner(mu_objects *o, int32_t i, uint8_t *img, const mu_object_m
         const uint32_t clock = isfinite(time) && time >= 0.0f && (double)time < 4294967296.0 ? (uint32_t)time : 0;
         mu_kanturu_inner(img, o->rt.model_fields, i, o->world, time, clock, visual_rand,
                          posed ? test_area_bone : NULL, &c, &log);
-    } else {
+    } else if (blood) {
         mu_blood_castle_inner(img, i, o->world, time, visual_rand, posed ? inner_named_bone : NULL, &c, &log);
+    } else {
+        mu_later_world_inner(img, i, o->world, time, visual_rand, posed ? test_area_bone : inner_missing_bone, &c, NULL, &log);
     }
     o->rt.stream[mu_obj_i32(img, MU_OBJF_TYPE)] = o->rt.model_fields[0x94];
     int has_draws = 0, requests = 0;
@@ -1426,7 +1433,9 @@ static int world_inner(mu_objects *o, int32_t i, uint8_t *img, const mu_object_m
             ++o->rt.draw_unsupported;   /* fixed GREATER 0.25 cannot serve this GREATER 0 RGBA pass */
             continue;
         }
-        if (e.call == MU_OBJ_CALL_MESH || e.call == MU_OBJ_CALL_MODEL_STREAM) {
+        if (e.call == MU_INNER_UNWRITTEN_LIGHT) {
+            ++o->rt.draw_unsupported;
+        } else if (e.call == MU_OBJ_CALL_MESH || e.call == MU_OBJ_CALL_MODEL_STREAM) {
             if (!has_draws) {
                 memcpy(o->rt.slot_color, o->rt.model_fields + MU_MDL_COLOR, 12);
                 o->rt.slot_stream = stream;
@@ -1578,7 +1587,8 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
     }
     /* NATIVE-PARTICLE-001: RenderObjectVisual through the particle module, after RenderObject */
     int inner_draws = 0;
-    const int inner_world = o->world == 37 || o->world == 40 || (o->world >= 11 && o->world <= 17) || o->world == 52;
+    const int inner_world = o->world == 37 || o->world == 40 || (o->world >= 11 && o->world <= 17) ||
+                            o->world == 52 || o->world == 51 || o->world == 56;
     if (!login && !charsel &&
         inner_world) {
         if (m && m->loaded && !posed)
