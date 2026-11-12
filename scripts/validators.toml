@@ -3582,3 +3582,17 @@ args = ["--cases", "1000", "--mutations", "--output", "{report}"]
 [validate_muun_passes.expect]
 all_equal = true
 all_mutants_caught = true
+
+[validate_items_ui]
+test = "native/tests/test_items_ui.py::Original.test_instruction_comparison"
+pins = ["text", "data", "flag", "feature"]
+families = ["cursor", "mouse", "option_bits", "ordering"]
+cases = 8517
+mutants = 8
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar"]
+args = ["--cases", "3000", "--mutations", "--output", "{report}"]
+[validate_items_ui.expect]
+"families.*.cases" = {all_min = 1}
+"families.*.mismatches" = 0
