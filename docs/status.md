@@ -1,6 +1,6 @@
 # Current status
 
-UI-WINDOWS-002 PR-ready: eight inert presentation adapters open Macro/Sub, HuntRecord, expanded storage, matching children/current guild matching and the original guide frame. Local lifecycle and native captures pass; 1,429 portable tests, final private controller/audio checks, 12 validators and 230 default identities pass. Original Help route remains unproved. [Checks and limits](handoffs/UI-WINDOWS-002.md).
+UI-WINDOWS-002 PR-ready: eight inert presentation adapters open Macro/Sub, HuntRecord, expanded storage, matching children/current guild matching and the original guide frame. Native journeys, 1,650 portable tests, 15 private UI/audio checks and 12 validators pass; the pre-integration lane has 230 default identities. Original Help route remains unproved. [Checks and limits](handoffs/UI-WINDOWS-002.md).
 
 RENDER-WORLDS-INNER-002 PR-ready: Elbeland 51 and Swamp of Calmness 56 now run their inline visual producers, including bone glows, particles/owned smoke and five existing lightning subtypes. Elbeland 0x3a's unwritten stack colour remains an explicit refusal. 5,000 original call comparisons, 27/27 compiled mutants and 64 affected validators pass. All 44 unaffected capture views stay byte-identical; close-up glows/lightning are visible. [Scope, checks and limits](handoffs/RENDER-WORLDS-INNER-002.md).
 

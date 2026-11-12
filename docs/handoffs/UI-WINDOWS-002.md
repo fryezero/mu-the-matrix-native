@@ -9,8 +9,10 @@ item and guild-management actions are inert. Original Help's open route
 remains unproved; existing native Ctrl+H keeps its native-policy label.
 
 Started from UI-WINDOWS-001 `13721b04`, then integrated steward main
-`6b75fbda`. Final production source is `142c3aeb14de4d22ed7949d0f20f02d9f950c57e`. Later changes are docs
-only; final head is in PR metadata. The [research](../research/client-ui-windows.md)
+`6b75fbda`. Lane production source is `142c3aeb14de4d22ed7949d0f20f02d9f950c57e`. Publication
+then integrated steward main `fb747e42` at `ee27cde402893d3a39d1106bad6b92d996416579`;
+that merge adds world/audio work, with no further lane controller edits.
+Final head is in PR metadata. The [research](../research/client-ui-windows.md)
 records addresses, the provider boundary and every remaining survey row.
 The registry has 44 entries / 43 distinct filenames. Twelve of the historical
 134 baseline-absent survey rows are bound; 122 remain. This is a survey
@@ -55,7 +57,8 @@ Actual worktree `native/build/mu-client`, canonical read-only Native Data and
 GFx library, `--no-store --no-audio`, `MU_GFX_SINGLE_BUFFER=1`,
 `MU_GFX_TEST_CLOCK=1`, `MU_GFX_PUBLIC_DEMO=1`. Logical size 1024x768,
 framebuffer 2048x1536. No installed bundle was replaced by this lane.
-The final 222-frame journey takes 25.90 s command wall.
+The final lane journey at `142c3aeb` has 222 frames and takes 25.90 s command
+wall. Its UI controller inputs do not change in the publication merge.
 
 Z opens Macro, its potion child and Other tab. End visits the full and mini
 HuntRecord views and closes it. N opens both matching children; both Recruit
@@ -108,7 +111,7 @@ No full gate or hosted workflow ran in this lane.
 | Final actual native journey | 222 frames, eight adapters, final all-closed captures | 25.90 |
 | Default identity, 46 maps | 92 PNG + 92 dumps + 46 normalised report identities | 168.47 |
 | Final documentation-consumer modules | 36 tests, one optional skip, zero failures/errors | 7.65 |
-| Repository audit | 2,206 files, zero rejected | 29.57 |
+| Lane audit before publication integration | 2,206 files, zero rejected | 29.57 |
 
 The final changes after the broad integrated run were the original menu-22
 allowlist, its original-instruction test and fixture text/caption completion.
@@ -136,15 +139,18 @@ were not rerun.
 | `validate_worlds_fog` | 4044 | 9.9 |
 
 Steward validators: validate_app_polish1,validate_app_polish2,validate_app_polish4,validate_app_polish7,validate_audio_callers,validate_audio_domains,validate_audio_items,validate_gfx3,validate_map_polish,validate_movement,validate_render_effects16,validate_worlds_fog.
-All final rows ran at `142c3aeb14de4d22ed7949d0f20f02d9f950c57e`. Use canonical
+All twelve lane rows passed at `142c3aeb14de4d22ed7949d0f20f02d9f950c57e`.
+Publication integration checks below identify the five rerun rows and their
+second tested commit; the other seven rows have unchanged compiled inputs.
+Use canonical
 `~/Documents/MTM/mu-mac-tools/native/private-env.sh` from the root.
-Keep the selected `validate_movement` symbol-level fallback. No compiled
-input changes follow those runs; later commits only finish this ledger.
+Keep the selected `validate_movement` symbol-level fallback. After the
+publication integration runs below, later commits only finish this ledger.
 
 ## Default identity and binary provenance
 
-Before is explicitly rebuilt main `6b75fbda`; after is the rebuilt final
-production source above. SHA-256 differs, so this is not a self-comparison.
+This lane-delta sweep precedes the publication integration. Before is
+explicitly rebuilt main `6b75fbda`; after is rebuilt lane source `142c3aeb`. SHA-256 differs, so this is not a self-comparison.
 
 - Before: `1785e14013da7b5caa263a89f95d9de3cc4e2b259a0568b5a2a4659621bc473b`.
 - After: `2bc66a580f3e900b38df108ea9c2e71d372bcfd3d0c6e6e3025c214a95a545dd`.
@@ -156,7 +162,11 @@ retained and never rerendered. Both existing manifests resolve their original
 local inputs. Resolution 640x400, default draw, no draw_all/live_time.
 PNG and dump bytes compare directly; report output and binary paths are
 normalised. All 230 file identities match. This does not establish original
-image equivalence, UI pixel parity or performance acceptance.
+image equivalence, UI pixel parity or performance acceptance. The later
+publication merge intentionally changes world visuals inherited from main,
+so these identities are not a claim about that merged tree. Its explicitly
+rebuilt mu-world SHA-256 is
+`fe480a83bab827fe6a3a1bae1a9704f301aa759fe42ebcb603b3aa89e71ffd08`.
 
 ## Limits, next and cleanup
 
@@ -190,11 +200,40 @@ renders/scratch, its detached baseline tree, build outputs, worktree and
 local branch. The remote PR branch stays for the steward. No new input needs
 retaining. The next APP-REFRESH lane can include these views after the merge.
 
-## Publication integration WIP
+## Publication integration checks
 
-Done: integrated latest steward main `fb747e42` (AUDIO-003 and
-RENDER-WORLDS-INNER-002), retaining both sides of three status conflicts.
-Left: rebuild and rerun selected checks whose compiled inputs changed since
-`142c3aeb`; the lane's default identity results above apply before this
-world/audio integration, not as a claim about its changed maps.
-Next: record the integration checks, then publish and queue without another push.
+Latest steward main `fb747e42` brings AUDIO-003 and RENDER-WORLDS-INNER-002.
+Merge `ee27cde402893d3a39d1106bad6b92d996416579` retains both sides of three
+shared status conflicts. There are no controller changes from `142c3aeb`.
+The final integrated root build passes in 23.44 s; the explicit graphical
+client/world rebuild passes in 12.80 s. No compiled inputs change afterward.
+
+The portable rerun uses `--affected-since 142c3aeb`: 157 work items,
+1,650 tests, 1,365 passed, 285 optional skips, zero failures/errors.
+Wall: 382.1 s execution / 443.33 s command. Private UI-WINDOWS-001,
+UI-WINDOWS-002 and UI audio pass 15/15 in 36.05 s, including the original
+routes, both inert-action hosts, dynamic captions and sound regressions.
+The native selection exceeds forty items, so **8d reduced** still applies.
+
+Within the twelve lane validator rows, `--list-affected-since 142c3aeb`
+selects these five; all pass at `ee27cde402893d3a39d1106bad6b92d996416579`,
+zero mismatch/fail/error/skip, no mutants, 56.12 s command wall:
+
+| Rerun validator | Cases | Seconds |
+|---|---:|---:|
+| `validate_audio_callers` | 5,528 | 6.0 |
+| `validate_audio_domains` | 2,544 | 26.3 |
+| `validate_audio_items` | 3,000 | 4.3 |
+| `validate_movement` | 6,614 | 56.0 |
+| `validate_render_effects16` | 424 | 3.5 |
+
+The other seven rows retain their `142c3aeb` results: their compiled inputs
+are unchanged. Default identity and window captures above identify the
+pre-integration lane source; no new baseline render is taken. Steward main's
+world/audio changes retain their own handoffs and gate provenance.
+
+The final `--list-affected origin/main` confirms the same twelve steward rows
+(26.36 s), including the movement fallback.
+
+Final staged audit: 2,216 files, zero rejected, 15.44 s. The final ledger
+bytes also pass the audit per-file checks before staging.

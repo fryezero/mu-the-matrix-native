@@ -1,6 +1,6 @@
 # Plan: the rest of the native macOS port
 
-UI-WINDOWS-002 PR-ready: eight inert presentation adapters open Macro/Sub, HuntRecord, expanded storage, matching children/current guild matching and the original guide frame. Local lifecycle and native captures pass; 1,429 portable tests, final private controller/audio checks, 12 validators and 230 default identities pass. Original Help route remains unproved. [Checks and limits](../../handoffs/UI-WINDOWS-002.md).
+UI-WINDOWS-002 PR-ready: eight inert presentation adapters open Macro/Sub, HuntRecord, expanded storage, matching children/current guild matching and the original guide frame. Native journeys, 1,650 portable tests, 15 private UI/audio checks and 12 validators pass; the pre-integration lane has 230 default identities. Original Help route remains unproved. [Checks and limits](../../handoffs/UI-WINDOWS-002.md).
 
 RENDER-EFFECTS-028 PR-ready: fixture-only Greater Defense/Damage auras now persist until authored expiry and retire on owner death. Defense ribbons and midpoint flares, attack link sprites; 4,390 original comparisons, 18/18 aura mutants, 56 affected validators pass; default captures remain identical. [Evidence, counts and limits](../../handoffs/RENDER-EFFECTS-028.md).
 
