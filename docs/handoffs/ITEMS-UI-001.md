@@ -23,7 +23,18 @@ The stand-in test host emits three pre-existing missing-field-initializer warnin
 After binary SHA-256 is
 `750020165d5a20bc1f8512ca564e17e27b45a81e4fd5910ed25621b2b31765dd`.
 
-Left: final full-count validator and changed-header mutants, affected
+Checkpoint update: main `710ac816`, including UI-WINDOWS-001 #372, merged cleanly
+as `43d97c28`. The full new validator at `57ad1819` passes 8,517 checks, zero
+mismatches, and catches 8/8 compiled mutants in 20.12 s. The first mutant attempt
+stopped on an unused-variable warning in the endpoint-rounding mutant; its anchor
+was corrected, then the complete final run passed. No production arithmetic changed.
+The native closed-inventory fast path was added afterward to avoid unnecessary
+movie hit tests. Final affected checks cover that adapter change.
+
+Affected selection: ten validator rows, 29.22 s; 123 test work items, including
+121 native items, 71.34 s. Private tests will use the binding **8d reduced** cap.
+
+Left: affected
 selection/checks, private reduced tests, fixed-clock hover/overlap captures, final-main
 merge, audit, status lines and PR/steward readiness.
 

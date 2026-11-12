@@ -1053,7 +1053,6 @@ static void builtin_tooltip(const item *it, char *html, size_t cap)
 
 static void show_item_tooltip(mu_gfx_layer *L, int cell)
 {
-    L->equip_hover = -1;
     movie *tip = &L->mv[MU_GFX_TOOLTIP];
     mu_grid_item *gi = mu_grid_item_at(&L->grid, cell);
     if (!tip->g || !gi || !L->grid.cells[cell] || L->held >= 0)
@@ -3007,6 +3006,11 @@ static int build_equip_draws(const mu_gfx_layer *L, const rect_list *R, mu_gfx_i
  * Equipment has no grid rollover callback, so the host must make this request. */
 static int equipment_hover(mu_gfx_layer *L)
 {
+    if (!L->mv[MU_GFX_INVENTORY].open || !L->have_equip || L->held >= 0 || inventory_busy(L)) {
+        if (L->equip_hover >= 0)
+            hide_tooltip(L);
+        return 0;
+    }
     int slot = -1;
     mu_gfx_item_draw draws[MU_EQUIP_SLOTS];
     int stack[MU_GFX_MOVIES], nstack = stacking(L, stack), top = -1;
@@ -3020,7 +3024,7 @@ static int equipment_hover(mu_gfx_layer *L)
     }
     rect_list rects;
     int n = 0, hit = -1;
-    if (top == MU_GFX_INVENTORY && L->held < 0 && !inventory_busy(L)) {
+    if (top == MU_GFX_INVENTORY) {
         item_rects(L, &rects);
         n = build_equip_draws(L, &rects, draws, MU_EQUIP_SLOTS);
         for (int i = 0; i < n; i++)
