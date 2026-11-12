@@ -64,3 +64,20 @@ then affected no-mutant validators, ten changed-target mutants once, affected
 portable tests, focused private fixture/UI checks, identity sweep and endpoint
 captures are next. No PR or ready-prs line yet. All logs remain in the lane's
 scratch directory named above. Runtime code and docs are checkpointed remotely.
+
+## WIP checkpoint, 2026-11-11 22:40 Chicago
+
+All 11 affected validators passed at HEAD `6ea82f67` with no mutants, 122.046 s
+including selection. The changed-target run passed all 4,668 cases and caught
+10/10 compiled mutants, 6.688 s. Families: 60 original resize-dispatch cases,
+4,096 native panel-fit cases and 512 native HUD-fit cases. No failures, errors
+or skips. Full per-row reports are in `verify-runs/lane-validators` and
+`verify-runs/lane-mutants` in this worktree.
+
+The affected portable run is active, 38 suites / 133 work items / two workers.
+The canonical private selection is 164 work items, so **8d reduced** applies.
+The queued private command is `native.tests.test_app_polish9`,
+`native.tests.test_app_polish5.PrivateGroundSkill`, and `native.tests.test_ui_windows`.
+After those: endpoint captures, one rebuilt default identity sweep, final
+research/handoff/status lines, audit, PR and ready-prs entry. No ready entry yet.
+Production source remains `6c62c838`, with the rebuilt binary hashes recorded above.
