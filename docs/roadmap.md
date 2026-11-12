@@ -1,5 +1,11 @@
 # Roadmap and work queue
 
+RENDER-EFFECTS-028 PR-ready: fixture-only Greater Defense/Damage auras now persist until authored expiry and retire on owner death. Defense ribbons and midpoint flares, attack link sprites; 4,390 original comparisons, 18/18 aura mutants, 56 affected validators pass; default captures remain identical. [Evidence, counts and limits](handoffs/RENDER-EFFECTS-028.md).
+
+APP-REFRESH-012 PR-ready, docs only: detached main d4af71dd installed; APP-REFRESH-006 Native Data and settings preserved. Full private suite 1,069 tests, 1,054 passed/15 skipped, zero failures/errors. Standard journeys and all seven new feature categories pass, with explicit fixture/audio-preference limits. [Installation, rollback, proofs and checks](handoffs/APP-REFRESH-012.md).
+
+MUUN-VISUAL-002 verified subset PR-ready: the fifteen fixture appearances gain eight extra mesh passes across five models and base-slot shadows; authored command categories drive actions 3/4 on fourteen models, with 363 refused. 1,406 new original cases, 15/15 compiled mutants, 28 affected validators pass; all 92 default PNGs and 92 dumps are identical. Kind-1 secondary bodies and production selection remain open. [Checks, report-environment limit and next work](handoffs/MUUN-VISUAL-002.md).
+
 UI-WINDOWS-001 PR-ready: D Command, N MatchingSelect, B Gens, Y PetInventory and K Gremory now open their original movies as presentation-only views. Empty tabs/pages and close work; state-changing actions refuse. 1,421 portable tests, 12 affected validators, real-window proofs and default identities pass. Original Help open route remains unproved. [Checks, inventory and limits](handoffs/UI-WINDOWS-001.md).
 
 CHARSEL-ITEMS-001 PR-ready: selection now draws authored demo equipment levels and excellent through the existing item renderer and texture rules. Original comparison: 8,817 cases, zero mismatches; 7/7 compiled mutants. File-only selection and default world captures remain byte-identical. [Checks, addresses, renders and limits](handoffs/CHARSEL-ITEMS-001.md).
