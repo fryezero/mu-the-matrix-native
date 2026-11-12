@@ -22,6 +22,8 @@
 #include "../../reconstructed/path/client_path.h"
 #include "../../reconstructed/objects/object_render.h"
 
+#include "../../reconstructed/combat/demo_skill_fx.h"
+
 #define HERO_KEY 0x1234          /* any key: the hero's own key 0x06fca288 */
 #define MONSTER_KEY_BASE 0x100   /* demo keys of the placed actors */
 
@@ -681,6 +683,19 @@ static void check_arrow(mu_combat *c, mu_sfx_effect *e)
 
 /* RENDER-EFFECTS-004: the hero as CreateArrow's archer; the services the native session does not model answer as
  * for a character without master-tree skills, item option 0x54 or skill-tree value */
+static int skill30_base(const mu_combat *c, int32_t skill)
+{
+    int base = skill;
+    if (skill == 416) base = 52;
+    if (skill == 424) base = 51;
+    if (!mu_skill30_select(skill, base)) return -1;
+    int cls = c->walk->hero.class_byte & 15;
+    if ((base == 48 || base == 344) ? cls != 1 : cls != 2) return -1;
+    if ((base == 24 || base == 51 || base == 52) &&
+        c->config.weapon != MU_COMBAT_WEAPON_BOW && c->config.weapon != MU_COMBAT_WEAPON_CROSSBOW) return -1;
+    return base;
+}
+
 static void hero_archer(const mu_combat *c, mu_sfx_archer *a)
 {
     memset(a, 0, sizeof *a);
@@ -688,6 +703,9 @@ static void hero_archer(const mu_combat *c, mu_sfx_archer *a)
     a->is_hero = 1;
     a->hero_weapon = c->weapon_item[0] < 0 ? -1 : c->weapon_item[0] - 0xae6;
     a->key = (uint16_t)c->hero_key;
+    if (skill30_base(c, c->attack_skill) == 51) {
+        a->mastery = 51; a->field_364 = c->skill30_target_index;
+    }
 }
 
 /* RENDER-EFFECTS-015: MoveEffect 0x70a's CreateArrow(caster, this effect, 0, 0x7e7, 0x7e7, 0x7e7, 0) (0x014d1cc6,
@@ -1061,6 +1079,58 @@ static void create_arrows(mu_combat *c, uint16_t skill, uint16_t flag, uint16_t 
     }
 }
 
+/* Audited visual slices only. Missing consumers retain the original request and
+ * enter the ordinary counted-refusal path. No buff values or target state. */
+static int skill30_plan(mu_combat *c, int end)
+{
+    int base = skill30_base(c, c->attack_skill);
+    if (base < 0) return 0;
+    mu_skill30_input in = {0}; mu_skill30_plan plan;
+    in.skill = c->attack_skill; in.base = base; in.owner = MU_COMBAT_HERO_OBJECT;
+    in.model = 0xa91; in.action = c->walk->hero.action; in.attack_time = c->hero_attack_time;
+    in.frame = c->walk->hero.frame; in.prior_frame = c->walk->hero.prior_frame;
+    hero_frame(c, in.position, in.angle, in.light);
+    if (c->actors && c->attack_target >= 0 && c->attack_target < c->actors->count) {
+        const mu_world_actor *target = &c->actors->list[c->attack_target];
+        /* CHARACTER +0x40 indexes the original 400-slot client table, not a server key. */
+        in.target_index = (uint16_t)target->session_slot;
+        in.tile[0] = (uint8_t)target->tile[0]; in.tile[1] = (uint8_t)target->tile[1];
+    }
+    if (c->session) {
+        const mu_skill_hero *hero = mu_skill_book_hero(mu_session_skills(c->session));
+        for (int i = 0; hero && i < hero->count && i < 150; ++i)
+            if (hero->skills[i] == in.skill) { in.learned_index = i; break; }
+    }
+    (void)mu_skill30_plan_cast(&in, end, &plan);
+    c->hero_attack_time = in.attack_time;
+    c->walk->hero.frame = in.frame; c->walk->hero.prior_frame = in.prior_frame;
+    if (plan.target_index >= 0) c->skill30_target_index = (uint16_t)plan.target_index;
+    for (int i = 0; i < plan.count; ++i) {
+        const mu_sfx_call *call = &plan.calls[i].visual;
+        uint32_t refused = c->stats.unsupported;
+        if (call->routine == MU_SKILL30_ARROW) {
+            ++c->stats.skill30_arrows;
+            create_arrows(c, (uint16_t)call->range, (uint16_t)call->subtype, (uint16_t)call->type);
+        } else if (call->routine == MU_SFX_CALL_SOUND) {
+            mu_combat_audio sound = {end ? 0x013a763eu : 0x013966eau, plan.calls[i].site, call->type};
+            play(c, sound, -1);
+        } else {
+            ++c->stats.skill30_requests;
+            if (call->routine == MU_SFX_CALL_JOINT) {
+                create_joint(c, call->type, call->position, call->target, call->angle,
+                    call->subtype, call->owner, call->scale, (uint16_t)call->arg7, (uint16_t)call->arg8);
+            } else {
+                mu_sfx_info info = {0}; info.key = (uint16_t)call->range;
+                info.field8 = (uint16_t)call->arg7;
+                create_effect_scaled(c, call->type, call->subtype, call->position, call->angle,
+                    call->light, call->owner, &info, call->scale);
+            }
+        }
+        c->stats.skill30_refused += c->stats.unsupported - refused;
+    }
+    return plan.limit;
+}
+
 /* Inferno's ring 0x0142da3e(position, 0) (static reading): eight points at
  * 45-degree steps, 220 units out; at each the verified subtype-0 burst
  * and two stones, Stone 0x419 + rand % 2 of subtype 1 and of subtype 0. */
@@ -1099,6 +1169,7 @@ static void end_of_attack(mu_combat *c)
     if (target_ok)   /* the end-of-attack angle: CreateAngle toward the target (0x013af01b) */
         angle[2] = mu_create_angle(pos[0], pos[1], c->actors->list[t].position[0], c->actors->list[t].position[1]);
     play(c, mu_combat_skill_sound(skill, 1, -1, 0), -1);   /* the end-of-attack blocks' sounds (0x42, 0x75, 0x77, 0x73, ...) */
+    if (skill30_plan(c, 1)) return;
     switch (skill) {
     case 0:
         if (h->action >= 0x7e && h->action <= 0x81)   /* 0x013aea7a: bow actions shoot */
@@ -1416,7 +1487,7 @@ void mu_combat_cast(mu_combat *c, int32_t skill, int32_t actor)
         ground_volley(c, skill);
         return;
     }
-    if (!alive(c, actor) || !mu_skill_visual_find(skill))
+    if (!alive(c, actor) || (!mu_skill_visual_find(skill) && skill30_base(c, skill) < 0))
         return;
     c->target = actor;
     c->intent_skill = skill;
@@ -1513,6 +1584,12 @@ static void start_attack(mu_combat *c, int32_t t, int32_t skill)
         const mu_skill_visual *v = mu_skill_visual_find(skill);
         action = v && v->action >= 0 ? v->action
                                      : mu_player_magic_action(h->class_byte, mu_class_check(h->class_byte), rands[0]);
+        int base30 = skill30_base(c, skill);
+        if (base30 == 24 || base30 == 51)
+            action = c->config.weapon == MU_COMBAT_WEAPON_CROSSBOW ? 0x7f : 0x7e;
+        if (base30 == 52)
+            action = c->config.weapon == MU_COMBAT_WEAPON_CROSSBOW ? 0x94 : 0x93;
+        if (base30 == 48) action = 0x9c;
         ++c->stats.skills;
         aura_cast(c, skill);
         /* the receive handlers' sounds of the melee skills and buffs (0x70..0x73, 0x6f) */
@@ -1800,7 +1877,8 @@ void mu_combat_step(mu_combat *c)
     mu_combat_receive(c);
     hero_dead_step(c);
     death_stab_step(c);   /* MoveCharacter 0x013a9047, before AttackTime increments */
-    if (c->hero_attack_time && mu_attack_time_step(&c->hero_attack_time, MU_ATTACK_TIME_LIMIT)) {
+    int limit30 = c->hero_attack_time ? skill30_plan(c, 0) : 0;
+    if (c->hero_attack_time && mu_attack_time_step(&c->hero_attack_time, limit30 ? limit30 : MU_ATTACK_TIME_LIMIT)) {
         refresh_objects(c);
         end_of_attack(c);
         /* the attack ends: the hero stands again (SetPlayerStop 0x0138fe69) */
@@ -2594,6 +2672,14 @@ void mu_combat_report_summary(const mu_combat *c, FILE *out, int quiet)
         int live=0; for(int i=0;i<5;++i) live+=c->aura_joints[i].live!=0;
         fprintf(out, "{\"aura_fixture\": true, \"requests\": %u, \"created\": %u, \"refused\": %u, \"live\": %d, \"defense_expiry\": %d, \"attack_expiry\": %d}\n",
                 c->aura_requests,c->aura_created,c->aura_refused,live,c->aura_expiry[0],c->aura_expiry[1]);
+    }
+    if (s->skill30_requests || s->skill30_arrows) {
+        const mu_world_actor *target = c->actors && c->attack_target >= 0 && c->attack_target < c->actors->count
+            ? &c->actors->list[c->attack_target] : NULL;
+        fprintf(out, "{\"skill30\": true, \"requests\": %u, \"arrow_calls\": %u, \"refused\": %u,"
+                " \"target_index\": %u, \"target_slot\": %d, \"target_key\": %d}\n",
+                s->skill30_requests,s->skill30_arrows,s->skill30_refused,(unsigned)c->skill30_target_index,
+                target ? target->session_slot : -1,target ? target->session_key : -1);
     }
     if (s->death_stab_steps)
         fprintf(out, "{\"death_stab\": true, \"steps\": %u, \"requests\": %u, \"refused\": %u,"
