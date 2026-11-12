@@ -23,7 +23,13 @@ static void presentation_init(mu_gfx_layer *L)
             break;
         case MU_GFX_GENS:
             invokef(L,m,w->path,"InitText",
-                "[\"Gens\",\"Family\",\"Gens rank\",\"Rank\",\"Grade\",\"Contribution\",\"Information\"]");
+                "[\"Gens\",\"Family\",\"Gens rank\",\"Rank\",\"\",\"Contribution\",\"Information\"]");
+            /* Authored empty fixture: the timeline otherwise shows its default family badge. */
+            for (int family = 0; family < 2; ++family) {
+                char path[192];
+                snprintf(path,sizeof path,"%s.mcGensRanking.mcMark_%c._visible",w->path,family ? 'V' : 'D');
+                L->api.set_variable(w->g,path,"false");
+            }
             invokef(L,m,w->path,"SetGensTeamName","[\"None\"]");
             invokef(L,m,w->path,"SetRanking","[\"-\"]");
             invokef(L,m,w->path,"SetGensRanking","[\"-\"]");

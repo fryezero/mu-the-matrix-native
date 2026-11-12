@@ -17,6 +17,7 @@ int main(int argc, char **argv)
     char error[512];
     mu_gfx_layer *L=mu_gfx_layer_open(&cfg,error,sizeof error);
     if(!L){fprintf(stderr,"%s\n",error);return 1;}
+    foreign=0; /* optional movie loading is outside the action checks */
     const int keys[]={'D','N','B','Y','K'};
     const char *blocked[]={"onClickbtnTrade","onClickbtnPurchase","onClickbtnParty","onClickbtnGuild",
         "onClickbtnWhisper","onClickbtnGuildUnion","onClickbtnRivalOn","onClickbtnRivalOff",
