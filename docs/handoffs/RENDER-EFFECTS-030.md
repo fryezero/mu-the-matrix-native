@@ -343,3 +343,16 @@ delta. All original/combat proof inputs remain unchanged. Next: explicit world
 build and after-only replay against retained hashes, final audit, final status
 and PR/ready entry, then cleanup. No new baseline or mutants are run.
 No ready entry or final PR-ready claim yet.
+
+## WIP, 01:01 local: actor structure integration
+
+Late UI after-only replay passes: the new world SHA-256 is
+`3d2cd447853bc6bf46aaf08c27b2c2fd6130e8a08e1aa00f95db53c1793522f0`;
+all 230 prior after-file hashes, all 42 skill pairs and all six early-flight
+pairs match, 81.88 s total. The reconstructed full-proof library is unchanged.
+
+Main has advanced to `c35458a0` (RENDER-ACTORS-004), changing the actor structure
+used by combat. Integrate it before readiness, preserving both shared status
+entries. Next: root build, exact actor-delta validator selection/run, reduced
+private actor/new Native tests, portable delta, after-only replay and audit.
+No new original mutant proof or baseline is required. No ready entry yet.
