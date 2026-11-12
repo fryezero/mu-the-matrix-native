@@ -153,3 +153,24 @@ Main has advanced to `fb747e42` (AUDIO-003 and INNER-002). Next: merge it before
 the actual private validators, then rebuild and run the corrected native test.
 Private current/delta selections before this advance form 59 distinct rows.
 Remaining checks, final identity, review and PR remain pending. No ready line.
+
+## WIP checkpoint, 23:46 local
+
+Merged current main `fb747e42` cleanly as `92ef41f3` (AUDIO-003 and INNER-002).
+Final root build passes, 12.16 s. Reduced private integration passes 22/22,
+zero skips/failures, 74.05 s: new native callers plus incoming actor, Muun and
+object-audio modules. The nonzero client-slot/server-key regression passes.
+The reconstructed combat library SHA-256 remains
+`5085c72b528733ff8d84755475e57243ccba7ad130617ed3e30741c45639b20d`,
+exactly matching the pre-rename full-proof library. No new mutant run is needed.
+
+The actual private `--affected origin/main` batch selects 58 rows and is still
+running at two jobs with cache and no mutants. 52 rows have passed so far;
+no failure/error/skip has appeared. Terrain alone took 420.8 s.
+
+Left: complete this batch, select/run only additional main-merge rows, finish
+portable merge checks, refresh the after/repeat fixtures and early Penetration
+flight proof, explicit world build/default sweep, final audit/docs/PR/cleanup.
+INNER-002 documents expected Elbeland PNG/dump and Swamp report changes versus
+the once-taken starting baseline; compare the exact delta rather than claiming
+all defaults are unchanged. No PR-ready claim or ready line yet.

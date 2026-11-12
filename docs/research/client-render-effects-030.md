@@ -266,7 +266,7 @@ arguments. The special-bow regression expectations follow that composition.
 | Skill | Before -> after | Result and remaining visual limit |
 |---|---|---|
 | 24 Triple Shot | L -> P | Both original requests; four ordinary arrows or five with the special fan; original learned-index argument order |
-| 51 Ice Arrow | M -> L | Target-keyed arrow now draws and retires; optional target-side ice/freeze receive visual and general equipment context remain unadmitted |
+| 51 Ice Arrow | M -> L | Arrow with a saved client target index now draws and retires; optional target-side ice/freeze receive visual and general equipment context remain unadmitted |
 | 52 Penetration | M -> L | Step gate, short cutoff and subtype-2 projectile draw; charge and `0x46c/0` child remain refused |
 | 48 Swell Life | M -> M | Caller now requests the original 38 visuals and counts all 38 refusals; no primary aura pixels claimed |
 | 344 Blood Storm | M -> M | Original emitter request and early cutoff, one refused emitter; no primary Blood Storm pixels claimed |
