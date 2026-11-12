@@ -22,6 +22,8 @@ RenderJoints. Buff queries, joint-existence queries, link-bone lookup and
 TransformPosition are explicit services. The latter returns independently
 authored points. The comparison includes ordered complete sprite/joint calls,
 bone queries, RNG consumption, modeled record fields and the recorded GL stream.
+GL color-vector calls normalize to the equivalent color-triple callback;
+values and order, texture/state, vertices and sprite requests are compared.
 The slice stops at its own boundary; surrounding character rendering is outside
 this proof. The common frame exit restores caller registers and SEH state.
 
