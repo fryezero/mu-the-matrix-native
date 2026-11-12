@@ -1,6 +1,7 @@
 # Current status
 
 RENDER-ACTORS-004 PR-ready: five Female/Man/Girl NPC assemblies (230/248/250/253/255) and a 1,024-selector construction census. Bounded body plans rise 28 to 33; 911 remain incomplete/unverified and 80 refused. 1,427 new checks, 10/10 mutants and 24 affected validators pass; the final replay preserves all 44 unaffected views. [Evidence, checks and limits](handoffs/RENDER-ACTORS-004.md).
+UI-WINDOWS-002 PR-ready: eight inert presentation adapters open Macro/Sub, HuntRecord, expanded storage, matching children/current guild matching and the original guide frame. Native journeys, 1,650 portable tests, 15 private UI/audio checks and 12 validators pass; the pre-integration lane has 230 default identities. Original Help route remains unproved. [Checks and limits](handoffs/UI-WINDOWS-002.md).
 
 ITEMS-UI-001 PR-ready: equipment hover uses the original integer 640x480 bounds and now opens fixture item tooltips. 8,512 instruction comparisons plus five static checks, 8/8 compiled mutants, ten affected validators and 29 private tests pass; the refreshed default sweep is byte-identical. Bits 0x87 add no glow in the compared bodies; original main-game GFx ordering remains unverified. [Checks, evidence and limits](handoffs/ITEMS-UI-001.md).
 
