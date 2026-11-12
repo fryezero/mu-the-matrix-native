@@ -105,7 +105,7 @@ static int panel(mu_world_rt *a, int vk, int mods)
         }
     }
     /* Existing adapters own toggle/close behavior and their context guards. */
-    int native_key = vk == 'D' || vk == 'N' || vk == 'B' || vk == 'Y' || vk == 'K' || vk == 'I' || vk == 'V' || vk == 'C' || vk == 'T' || vk == 'M' ||
+    int native_key = vk == 'Z' || vk == 'G' || vk == 'H' || vk == 0x23 || vk == 'D' || vk == 'N' || vk == 'B' || vk == 'Y' || vk == 'K' || vk == 'I' || vk == 'V' || vk == 'C' || vk == 'T' || vk == 'M' ||
                      vk == 'O' || vk == 'F' || vk == 'U' || vk == 'A' || vk == 27 || vk == 13 ||
                      vk == 9 || (vk >= '0' && vk <= '9') || vk == 'Q' || vk == 'R' || vk == 'W' || vk == 'E' ||
                      (vk == 'H' && mods == 2); /* SYS-MISC-001b: labelled native HelpWindow binding */
