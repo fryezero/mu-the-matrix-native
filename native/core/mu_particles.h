@@ -68,7 +68,7 @@ typedef struct mu_world_item_owner {
     uint32_t key;            /* caller identity (0: free) */
     uint16_t generation;
     float position[3];       /* OBJECT +0x158 */
-    float points[3][3];     /* RENDER-EFFECTS-022: OBJECT +0x1f4..+0x217, persistent between item draws */
+    float points[4][3];     /* RENDER-EFFECTS-022: OBJECT +0x1f4..+0x223, persistent between item draws */
     uint32_t seen;           /* stats.steps of the last refresh */
 } mu_world_item_owner;
 

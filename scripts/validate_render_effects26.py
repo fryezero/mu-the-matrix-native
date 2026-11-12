@@ -66,11 +66,11 @@ def render_family(m, lib, rng, cases, report, negatives, owned_points=True):
         point = None
         if owned_points and kind == (0x8569, 0):
             p.owner = rng.choice([-1, 0, 0, 0])
-            p.arg8 = n % 3
-            points = [pt.rf(rng, -100, 500) for _ in range(9)]
+            p.arg8 = n % 4
+            points = [pt.rf(rng, -100, 500) for _ in range(12)]
             case.owners = [[0.0, 0.0, 0.0]]
             owner_regions = case.owner_regions()
-            owner_regions[0].define(pt.OBJECTS + 0x1f4, pt.struct.pack('<9f', *points))
+            owner_regions[0].define(pt.OBJECTS + 0x1f4, pt.struct.pack('<12f', *points))
             point = pt.F3(*points[3*p.arg8:3*p.arg8+3]) if p.owner >= 0 else None
         world_time = pt.f32(rng.uniform(0, 1e6))
         record = pt.particle_region(lib, p)
@@ -137,6 +137,35 @@ def render_family(m, lib, rng, cases, report, negatives, owned_points=True):
         report.cover('render', f'{kind[0]:#x}/{kind[1]}' + ('' if drawn == 1 else ' skipped'))
 
 
+def caller_points(cases, report, lib=None):
+    from item_body_machine import ResetWorld
+    pre, quality = re25.pre, re25.quality
+    lib = lib or C.CDLL(str(re25.rc.LIBRARY))
+    plib = pre.ownerfx.particles_library()
+    wa = tuple(p.read() for p in (pins.TEXT,pins.DATA,pins.FLAG,pins.FEATURE))
+    reset = ResetWorld(wa,pre.ItemWorld)
+    names,consts = pre.program_names()
+    rng = random.Random('effects26-four-points')
+    for n in range(cases):
+        t = (0x23a8,0x23a9)[n % 2]
+        case = dict(list(quality.state_cases(t))[n % 292][1])
+        o = pre.item_setup(rng,t,3,names[t],consts[t])
+        o['records'] = True
+        o['point_words'] = 12
+        for i,name in enumerate(names[t]):o['names'][i]=name
+        o['attached'] = n % 2 == 1
+        o['owner_matrices'] = [pre.f32(-x) for x in o['matrices']]
+        o['hidden'] = n % 7 == 6
+        o['frame'] = [0,1,24,25,26,49,50,51,0xffffffff][n % 9]
+        case['frame'] = o['frame']
+        expected = pre.original(wa,reset,case,o)
+        actual = pre.run_c(lib,plib,case,o,expected[3])
+        ok,refused = pre.same(expected,actual)
+        report.add('caller_points',ok and o['client_points']==o['native_points'],
+                   dict(case=n,type=hex(t),requests_equal=ok,refused=refused,
+                        points_equal=o['client_points']==o['native_points']))
+
+
 def configure(lib):
     lib.mu_pt_item_later_follow.argtypes = [C.POINTER(pt.Particle), C.POINTER(C.c_float)]
     lib.mu_pt_item_later_follow.restype = C.c_int
@@ -149,7 +178,8 @@ def build_host(directory, particles=None):
     directory = Path(directory)
     source = (native/'tests/effects26_host.c').read_text().replace(
         '#include "../core/mu_particles.c"', f'#include "{particles or native/"core/mu_particles.c"}"').replace(
-        '#include "../core/mu_png.h"', f'#include "{native/"core/mu_png.h"}"')
+        '#include "../core/mu_png.h"', f'#include "{native/"core/mu_png.h"}"').replace(
+        '#include "../core/mu_renderchar.h"', f'#include "{native/"core/mu_renderchar.h"}"')
     (directory/'host.c').write_text(source)
     obj, host = directory/'host.o', directory/'host'
     subprocess.run(['clang','-std=c11','-O1','-ffp-contract=off','-I',str(native/'build/gen'),
@@ -236,10 +266,19 @@ NATIVE_MUTANTS = [
     ('file_8569','Data/Effect/Damage_ring_2.OZJ','Data/Skill/wing_hetachi2.OZJ'),
     ('point_route','else if (later) mu_pt_item_later_follow(record, point);','else if (later) (void)point;'),
     ('point_index','? it->points[record->arg8] : NULL','? it->points[0] : NULL'),
+    ('fourth_bound','point_count = later ? 4 : 3','point_count = later ? 3 : 3'),
+    ('fourth_store_bound','word >= 12','word >= 9'),
     ('bitmap_filter','t->filter[i] = bitmap_ids[i] == MU_PT_BITMAP_IMPACK03 ||',
      't->filter[i] = bitmap_ids[i] == 0x8500 || bitmap_ids[i] == MU_PT_BITMAP_IMPACK03 ||'),
     ('bitmap_wrap','t->wrap[i] = bitmap_ids[i] == 0x84d1 ||',
      't->wrap[i] = bitmap_ids[i] == 0x8569 || bitmap_ids[i] == 0x84d1 ||'),
+]
+
+
+RC_MUTANTS = [
+    ('fourth_disabled','o->a == 305 && o->b == 16','o->a == 306 && o->b == 16'),
+    ('fourth_word','fx.subtype = 9 + k;','fx.subtype = 6 + k;'),
+    ('fourth_value','fx.position[0] = r[o->a + k];','fx.position[0] = r[o->a];'),
 ]
 
 
@@ -258,6 +297,11 @@ def mutations(directory,text,data,root):
         path=folder/'mu_particles.c';path.write_text(source.replace(old,new))
         r=pt.Report();native_check(build_host(folder,path),root,r)
         result.append(dict(name=name,detected=sum(f['cases']-f['equal'] for f in r.families.values()),stopped=0))
+    for name,old,new in RC_MUTANTS:
+        lib=re25.renderchar_mutant(directory,name,old,new)
+        r=pt.Report();caller_points(80,r,lib)
+        f=r.families['caller_points']
+        result.append(dict(name=name,detected=f['cases']-f['equal'],stopped=0))
     return result
 
 
@@ -269,6 +313,7 @@ def main():
     lib=configure(pt.load_library(ROOT/('reconstructed/particles/libclient_particles.'+pt.SUFFIX)))
     r=pt.Report()
     for name in ('create','move','render'): particle_family(text,data,lib,name,a.cases,r)
+    caller_points(a.cases*2,r)
     census=request_census(lib)
     r.add('census',not census['missing_programs'] and not census['unresolved'] and
           all(v['supported'] for v in census['pairs'].values()),census)

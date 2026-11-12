@@ -12,7 +12,7 @@ Done:
 - Full focused proof: 15,008 checks, zero mismatches, 14.549 s. This is 14,640 original-instruction cases,
   360 directed native head-retirement cases, five native pool/raster checks, two loader checks and one census.
 - New registry row: 308 checks, 32/32 compiled production-C mutants caught, zero original-machine stops.
-  52.6 s row, 52.74 s command. Mutation targets and checks are finalized; do not repeat those mutants.
+  52.6 s row, 52.74 s command. This initial result is superseded by the expanded fourth-point proof described below.
 - Root build passes in 12.87 s, explicit rebuilt mu-world in 5.84 s. The source header's new declaration
   is inside its C++ linkage guard. The native raster host draws the created scale/alpha without enlarging them.
 - Static inventory covers the frozen 110 program identities / 37 particle pairs, all supported, zero unresolved
@@ -54,3 +54,27 @@ models. It measures native requests, not equipment eligibility. This is not EFFE
 and its counts must not be compared as the same denominator. No live client, opaque-module work, network,
 server state, character-power feature, client-memory writes or owner app changes occurred.
 No ready-prs line exists. Several shared-machine load-limit pauses have been necessary.
+
+## WIP, fourth-point correction
+
+Owner cutoff: all work stops by 02:30 on 2026-11-12. If not PR-ready by 02:15, push the WIP handoff and stop
+by 02:30. Do not start a check that cannot finish in that window.
+
+Done: the full-draw sixteen-frame after scene has 13,273 accepted / zero refused pre-draw requests,
+2,784 / zero owner requests, 825 created / zero unsupported particles, 151.845 s. The initial 61-draw after
+has 10,708 / zero pre-draw and 521 created / zero unsupported particles, 29.155 s. These after captures
+precede the fourth-point correction and need replacement for the final evidence.
+
+Review found a real coverage gap: `0x8569/0` emits argument 8 values 0..3. Original call `0x017cd01f`
+refreshes a fourth cr002 point at OBJECT +0x218 every draw. Native storage previously had only three
+points, and the earlier comparator only exercised indices 0..2. The capture queue was stopped before
+any default sweep or affected check. The fourth point now has storage, continuous caller refresh and
+render routing. The generated tables and item generator remain untouched. The new caller comparison
+observes twelve words and complete streams. Its first 348-check sample passes, including 40 original
+caller comparisons. A native adapter assertion for ungated frame refresh was added afterward.
+
+Left: full 17,008-check proof, 37 compiled mutants after this correction, final after scenes and both
+clock fixtures, default 46-view sweep, affected checks and final docs/PR/ready entry/cleanup. The guarded
+proof controller is waiting for resource limits, with logs under the lane scratch directory. The old
+32-mutant result does not stand in for the expanded proof. Baseline captures remain valid and must be
+reused. Next step: inspect fourth-full-proof.json / proof-steps.json when the guarded run completes.

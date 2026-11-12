@@ -13,7 +13,7 @@ int main(void)
     const int32_t owner = mu_world_particles_item_owner(p, 1, at);
     for (int i = 0; i < 9; ++i) assert(mu_world_particles_item_point(p, owner, i, (float)(i * 10)));
     assert(!mu_world_particles_item_point(p, owner, -1, 1));
-    assert(!mu_world_particles_item_point(p, owner, 9, 1));
+    assert(!mu_world_particles_item_point(p, owner, 12, 1));
     assert(!mu_world_particles_item_point(p, -1, 0, 1));
     for (int k = 0; k < 3; ++k) {
         assert(mu_world_particles_create_args(p, 0x810a, at, zero, light, 0x25, 0.6f, owner, k));

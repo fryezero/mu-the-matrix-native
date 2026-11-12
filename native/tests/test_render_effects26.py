@@ -37,7 +37,7 @@ class Native(unittest.TestCase):
 @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION')=='1','requires pinned private instructions')
 class ClientComparison(unittest.TestCase):
     def test_original_instructions(self):
-        for directory in ('reconstructed/particles','native'):
+        for directory in ('reconstructed/particles','reconstructed/renderchar','native'):
             subprocess.run(['make','-s','-C',str(ROOT/directory)],check=True,capture_output=True)
         with tempfile.TemporaryDirectory() as tmp:
             out=Path(tmp)/'report.json'
@@ -45,7 +45,7 @@ class ClientComparison(unittest.TestCase):
                             '--output',str(out)],check=True,capture_output=True)
             result=json.loads(out.read_text())
         self.assertTrue(result['all_equal'])
-        self.assertEqual(result['cases'],308)
+        self.assertEqual(result['cases'],348)
 
 
 if __name__=='__main__':unittest.main()

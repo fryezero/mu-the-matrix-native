@@ -3504,16 +3504,16 @@ args = ["--mutations", "--report", "{report}"]
 
 [validate_render_effects26]
 test = "native/tests/test_render_effects26.py::ClientComparison.test_original_instructions"
-pins = ["text", "data"]
-families = ["particle_create", "particle_move", "particle_render", "native", "bitmaps", "census"]
-cases = 308
-mutants = 32
+pins = ["text", "data", "flag", "feature"]
+families = ["particle_create", "particle_move", "particle_render", "native", "bitmaps", "census", "caller_points"]
+cases = 348
+mutants = 37
 cases_at = "families.*.cases"
 mutants_at = "mutants"
-build = ["reconstructed/particles", "native"]
+build = ["reconstructed/particles", "reconstructed/renderchar", "native"]
 build_targets = { native = ["build/libmunative.a", "build/libmusession_world.a"] }
 args = ["--cases", "20", "--mutations", "--output", "{report}"]
-note = "RENDER-EFFECTS-026: five later item particle create/move/render branches, OBJECT-point follow, two original bitmap registrations, native pool/raster and 110-program inventory; 32 compiled mutants"
+note = "RENDER-EFFECTS-026: five later item particle create/move/render branches, OBJECT-point follow, two original bitmap registrations, native pool/raster and 110-program inventory; 37 compiled mutants"
 [validate_render_effects26.expect]
 all_equal = true
 all_mutants_caught = true

@@ -439,7 +439,7 @@ int32_t mu_world_particles_item_owner(mu_world_particles *p, uint32_t key, const
     return MU_WORLD_FX_ITEM_BASE + ((int32_t)it->generation << 8) + slot;
 }
 
-/* Only item-owned particles use the three OBJECT points; validate generation before touching a slot. */
+/* Only item-owned particles use the retained OBJECT points; validate generation before touching a slot. */
 static mu_world_item_owner *item_owner_slot(mu_world_particles *p, int32_t owner)
 {
     if (owner < MU_WORLD_FX_ITEM_BASE || owner >= MU_WORLD_FX_ITEM_BASE + (0x10000 << 8) || !fx_object(p, owner))
@@ -450,7 +450,7 @@ static mu_world_item_owner *item_owner_slot(mu_world_particles *p, int32_t owner
 int mu_world_particles_item_point(mu_world_particles *p, int32_t owner, int32_t word, float value)
 {
     mu_world_item_owner *it = item_owner_slot(p, owner);
-    if (!it || word < 0 || word >= 9)
+    if (!it || word < 0 || word >= 12)
         return 0;
     it->points[word / 3][word % 3] = value;
     return 1;
@@ -1235,7 +1235,8 @@ long mu_world_particles_draw(mu_world_particles *p, const float modelview[16], c
         if (!record->live || (!spark && !direct && !later))
             continue;
         mu_world_item_owner *it = item_owner_slot(p, record->owner);
-        const float *point = it && record->arg8 >= 0 && record->arg8 < 3 ? it->points[record->arg8] : NULL;
+        const int32_t point_count = later ? 4 : 3;
+        const float *point = it && record->arg8 >= 0 && record->arg8 < point_count ? it->points[record->arg8] : NULL;
         if (spark) mu_pt_item_counter_follow(record, point);
         else if (record->owner != MU_PT_NO_OWNER && !point) record->live = 0; /* stale/unknown native owner */
         else if (later) mu_pt_item_later_follow(record, point);

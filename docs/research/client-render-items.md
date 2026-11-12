@@ -3312,8 +3312,17 @@ There is no new position-follow operation for this pair.
 On subsequent steps, once life is below initial life, alpha falls by 1 / initial life. Scale grows by
 saved scale / initial lifetime. Its render branch, after the original height filter, copies the selected
 OBJECT `+0x1f4 + 12*arg8` point into position when an owner exists. Unlike `0x810a/0x25`, it adds no saved
-start offset. A NULL owner leaves position alone in render. The native owner table supplies points 0..2;
+start offset. A NULL owner leaves position alone in render. The native owner table supplies points 0..3 for this pair; older consumers retain their 0..2 bounds;
 unknown, stale or out-of-domain native owners retain a refusal/retirement rather than an out-of-bounds read.
+
+The original caller refreshes all four points every draw. In particular, `0x017cd01f` writes `cr002`
+to OBJECT `+0x218`; `0x017cd025..0x017cd0f0` gates four particle requests on counter % 25 == 0.
+The older generated program exported only nine point words. The effect consumer now exports the fourth
+transform's three words too, for the two frozen wing programs at destination r305 / bone register r16.
+The item tables and generator are unchanged. A coupled original comparison observes all twelve words and
+the complete request streams, including draws away from the 25-counter gate. The native adapter checks
+that point 3 follows changed poses on ungated frames 24 and 26. Legacy validator families keep their
+explicit nine-word view; this lane opts into all twelve words and tests index 3 in the render comparator.
 
 All five render the current light times alpha, using the existing sprite renderer and blend selection.
 Common initialization, moving-vector rotation, terrain-backed owner-position reads, lifetime decrement,

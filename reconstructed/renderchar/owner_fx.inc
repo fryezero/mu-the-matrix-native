@@ -397,6 +397,19 @@ static void run_fx(const mu_rc_fx_op *ops, int count, int regs, const mu_rc_item
                 break;
             }
             h->object_transform(h->context, bone, &r[o->a]);
+            /* EFFECTS-026: 0x017cd01f stores cr002 at OBJECT +0x218.
+             * The generated table retains only the older nine point words.
+             * Complete its cr002 destination r305 here without changing that table. */
+            if ((it->type == 0x23a8 || it->type == 0x23a9) && o->a == 305 && o->b == 16 &&
+                h->emit && !lost) {
+                for (int k = 0; k < 3; ++k) {
+                    memset(&fx, 0, sizeof fx);
+                    fx.kind = MU_RC_OWNER_POINT;
+                    fx.subtype = 9 + k;
+                    fx.position[0] = r[o->a + k];
+                    h->emit(h->context, &fx);
+                }
+            }
             bad[o->a] = bad[o->a + 1] = bad[o->a + 2] = 0;
             break;
         case 44: { /* 0x00d01fc6(out r[a..a+2], arguments r[b..b+5]); r[a+3] = its x87 result */
