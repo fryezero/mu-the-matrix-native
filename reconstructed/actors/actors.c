@@ -8,6 +8,51 @@
 #include "npc_table.h"
 #include "player_action_table.h"
 
+int mu_actor_npc_recipe(int32_t server_class, mu_monster_class *out)
+{
+    /* OpenNpc 0x01808ab5..0x01808e7e; generic CreateMonster constructors.
+     * Keep the five authored recipes bounded to the recovered part plans. */
+    switch (server_class) {
+    case 230: case 248: case 250: case 253: case 255: break;
+    default: return 0;
+    }
+    const mu_monster_class *row = mu_monster_class_find((uint32_t)server_class);
+    if (!row || row->kind != MU_CLASS_NPC)
+        return 0;
+    if (out) *out = *row;
+    return 1;
+}
+
+const char *mu_actor_npc_part_file(int32_t model)
+{
+    /* Interleaved variants emitted by OpenNpc's three two-iteration loops. */
+    switch (model) {
+    case 0xa0d: return "Data/Npc/FemaleHead01.bmd";
+    case 0xa0e: return "Data/Npc/FemaleHead02.bmd";
+    case 0xa0f: return "Data/Npc/FemaleUpper01.bmd";
+    case 0xa10: return "Data/Npc/FemaleUpper02.bmd";
+    case 0xa11: return "Data/Npc/FemaleLower01.bmd";
+    case 0xa12: return "Data/Npc/FemaleLower02.bmd";
+    case 0xa15: return "Data/Npc/FemaleBoots01.bmd";
+    case 0xa16: return "Data/Npc/FemaleBoots02.bmd";
+    case 0xa17: return "Data/Npc/ManHead01.bmd";
+    case 0xa18: return "Data/Npc/ManHead02.bmd";
+    case 0xa19: return "Data/Npc/ManUpper01.bmd";
+    case 0xa1a: return "Data/Npc/ManUpper02.bmd";
+    case 0xa1b: return "Data/Npc/ManGloves01.bmd";
+    case 0xa1c: return "Data/Npc/ManGloves02.bmd";
+    case 0xa1d: return "Data/Npc/ManBoots01.bmd";
+    case 0xa1e: return "Data/Npc/ManBoots02.bmd";
+    case 0xa1f: return "Data/Npc/GirlHead01.bmd";
+    case 0xa20: return "Data/Npc/GirlHead02.bmd";
+    case 0xa21: return "Data/Npc/GirlUpper01.bmd";
+    case 0xa22: return "Data/Npc/GirlUpper02.bmd";
+    case 0xa23: return "Data/Npc/GirlLower01.bmd";
+    case 0xa24: return "Data/Npc/GirlLower02.bmd";
+    default: return NULL;
+    }
+}
+
 int32_t mu_actor_player_body(int32_t server_class)
 {
     /* CreateMonster 0x0138366a..0x013838f6; class 236 at 0x013842a4.
