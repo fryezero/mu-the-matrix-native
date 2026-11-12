@@ -276,3 +276,19 @@ Wine player app and staged Wine app were not changed. Proofs and reports are
 summarized here; per the brief, the lane's scratch/renders/build outputs and
 both owned worktrees/local branch are removed after the ready entry. No private
 artifact from this lane is needed as a later input.
+
+## WIP: latest UI-WINDOWS-002 merge, 2026-11-12 00:36 Chicago
+
+Remote main advanced to `0ccd5f44` (#380) before PR publication. Integrated as
+`21f215fa`; the show-route conflict keeps both HuntRecord's original open/close
+and QuestSummary/Party's openWindow/closeWindow. Shared status conflicts retain
+both lanes. No other authored production changes. Earlier checks and identity
+above are valid at the explicitly named earlier heads, not claimed at this merge.
+
+Next: build root/client/world, rerun AppPolish9 and both UI presentation modules
+plus the existing focused skills/items UI checks; select changes since the last
+107-validator-tested head `7e97044e`, rerun only those rows without mutants and
+the affected portable modules. Keep the original 626abce1 before images once;
+refresh only after images for this new world/GFx build, then refresh endpoint
+proofs, audit, finish docs/PR/link/queue and cleanup. The fit mutant inputs and
+fixture metadata are unchanged. No PR/ready entry exists; stop by the deadline.
