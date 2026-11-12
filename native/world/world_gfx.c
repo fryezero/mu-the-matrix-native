@@ -81,6 +81,7 @@ struct world_gfx {
      * window and the system menu */
     struct mu_progress *progress;
     wg_options *options;
+    int char_class;
 };
 
 static int mix_quote(void *user,int group,const mu_mix_item *items,int n,mu_mix_quote *out)
@@ -583,6 +584,7 @@ static void char_rows(world_gfx *g, const char *open)
 static void char_rows_class(world_gfx *g, int32_t cls)
 {
     cls &= 0xf;                   /* class= accepts the hero's stage bits as well as a base class index */
+    g->char_class = cls;
     const mu_lang_charinfo *rows[256];
     int n = mu_lang_charinfo_rows(g->lang, cls, rows, 256);
     if (n <= 0)
@@ -1233,7 +1235,7 @@ static int stat_button(void *user, double row)
 static void progress_sync(world_gfx *g)
 {
     mu_progress *p = g->progress;
-    if (!p || !g->layer)
+    if (!p || !g->layer || g->session)
         return;
     if (p->exp_dirty) {
         mu_gfx_layer_exp_data(g->layer, p->exp_json);
@@ -1294,6 +1296,55 @@ static void vitals_sync(world_gfx *g)
     h.ag = v.ag;
     h.max_ag = v.max_ag;
     mu_gfx_layer_set_hero(g->layer, &h);
+}
+
+
+/* APP-POLISH-009: presentation reads the session's demo records, like setHPMP. */
+static void character_sync(world_gfx *g)
+{
+    if (!g->layer || !g->session)
+        return;
+    mu_hero_stats v;
+    mu_session_hero(g->session, &v);
+    mu_gfx_hero h = *mu_gfx_layer_hero(g->layer);
+    /* APP-POLISH-009: one fixture-backed record owns both the HUD and CharacterInfo.
+     * The independent progression demo remains available without a session. */
+    snprintf(h.name, sizeof h.name, "%s", v.name);
+    h.level = v.level;
+    h.master_level = v.master_level;
+    h.points = v.points;
+    h.exp = v.stage >= 3 ? v.master_exp : v.exp;
+    h.exp_max = v.stage >= 3 ? v.master_next_exp : v.next_exp;
+    h.strength = v.stats[0] + v.added[0];
+    h.agility = v.stats[1] + v.added[1];
+    h.vitality = v.stats[2] + v.added[2];
+    h.energy = v.stats[3] + v.added[3];
+    h.command = v.stats[4] + v.added[4];
+    memcpy(h.added, v.added, sizeof h.added);
+    const char *cname = mu_lang_text(g->lang, mu_ccr_class_name_text(v.class_byte, 1));
+    if (cname && *cname)
+        mu_lang_ascii(h.class_name, sizeof h.class_name, cname);
+    else
+        h.class_name[0] = 0;
+    h.has_derived = v.has_derived;
+    h.dmg_min = v.dmg_min;
+    h.dmg_max = v.dmg_max;
+    h.atk_rate = v.atk_rate;
+    h.pvp_rate = v.pvp_rate;
+    h.defense = v.defense;
+    h.def_rate = v.def_rate;
+    h.pvp_defrate = v.pvp_defrate;
+    h.magic_min = v.magic_min;
+    h.magic_max = v.magic_max;
+    h.curse_min = v.curse_min;
+    h.curse_max = v.curse_max;
+    snprintf(h.speed_text, sizeof h.speed_text, "%s", mu_session_hero_speed_text(g->session));
+    h.zen = mu_session_money(g->session);
+    h.ruud = 0; /* no Ruud record in the offline fixture */
+    mu_gfx_layer_set_hero(g->layer, &h);
+    mu_gfx_layer_exp_data(g->layer, mu_session_hero_exp_bar(g->session));
+    if (g->char_class != v.class_index)
+        char_rows_class(g, v.class_index);
 }
 
 void world_gfx_progress(world_gfx *g, struct mu_progress *p)
@@ -1532,6 +1583,7 @@ void world_gfx_frame(world_gfx *g, double dt_ms, int draw)
     wg_skill_tick(g->skill, dt_ms);
     wg_tree_tick(g->tree);
     progress_sync(g);   /* NATIVE-PROGRESS-001 */
+    character_sync(g);
     vitals_sync(g);
     wg_options_step(g->options, dt_ms);
     mu_gfx_layer_advance(g->layer, dt_ms);

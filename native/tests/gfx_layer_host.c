@@ -211,6 +211,11 @@ int main(int argc, char **argv)
         } else if (!strcmp(op, "advance")) {
             mu_gfx_layer_advance(L, atof(a));
             i++;
+        } else if (!strcmp(op, "resize") && i + 2 < argc) {
+            pw = atoi(argv[i + 1]);
+            ph = atoi(argv[i + 2]);
+            mu_gfx_layer_resize(L, (int32_t)(pw * scale), (int32_t)(ph * scale));
+            i += 2;
         } else if (!strcmp(op, "composite")) {
             int32_t W = (int32_t)(1280 * scale), H = (int32_t)(800 * scale);
             uint8_t *px = calloc((size_t)W * (size_t)H, 4);
@@ -256,6 +261,29 @@ int main(int argc, char **argv)
         } else if (!strcmp(op, "compose")) {
             printf("compose took %d\n", mu_gfx_layer_compose(L, a, (int)strlen(a)));
             i++;
+        } else if (!strcmp(op, "layout")) {
+            static const char *const fields[] = {"_x", "_y", "_width", "_height", "_xscale", "m_iWidth", "m_iHeight",
+                                                 "btnClose._x", "btnClose._y", "btnClose._width", "btnClose._height"};
+            for (int m = 0; m < MU_GFX_MOVIES; m++) {
+                const char *root = mu_gfx_layer_path(L, m);
+                if (!root || !*root)
+                    continue;
+                printf("{\"layout_movie\":%d,\"open\":%d,\"path\":\"%s\"", m, mu_gfx_layer_is_open(L, m), root);
+                for (size_t k = 0; k < sizeof fields / sizeof fields[0]; k++) {
+                    char path[256];
+                    snprintf(path, sizeof path, "%s.%s", root, fields[k]);
+                    const char *r = mu_gfx_layer_get_variable(L, m, path);
+                    printf(",\"%s\":%s", fields[k], r ? r : "null");
+                }
+                const char *r = mu_gfx_layer_invoke(L, m, NULL, "GetWidth", "[]");
+                printf(",\"width\":%s", r ? r : "null");
+                r = mu_gfx_layer_invoke(L, m, NULL, "GetHeight", "[]");
+                printf(",\"height\":%s}\n", r ? r : "null");
+            }
+        } else if (!strcmp(op, "get") && i + 2 < argc) {
+            const char *r = mu_gfx_layer_get_variable(L, atoi(argv[i + 1]), argv[i + 2]);
+            printf("get %s = %s\n", argv[i + 2], r ? r : "null");
+            i += 2;
         } else if (!strcmp(op, "invoke") && i + 4 < argc) {
             const char *path = strcmp(argv[i + 2], "-") ? argv[i + 2] : NULL;
             const char *r = mu_gfx_layer_invoke(L, atoi(argv[i + 1]), path, argv[i + 3], argv[i + 4]);
