@@ -134,3 +134,28 @@ so inbound world/audio visuals cannot be mistaken for this lane's changes.
 No before sweep has run yet. Finish the control build, rebuild this branch,
 run corrected private tests, affected post-merge validators and portable tests,
 identity, final docs/audit/PR/ready line. Keep respecting the 02:15/02:30 cutoff.
+
+## WIP checkpoint, 2026-11-11 23:40 Chicago
+
+At `122b088e`, both merged builds passed: root 20.705 s, client/world 21.190 s.
+Reduced private checks passed all 12 methods in 100.443 s (command 100.565 s):
+five demo profiles and actual CharacterInfo rows, 272 panel/size/backing-scale
+combinations, 48 resize-panel checks, sixteen pointer-close deliveries, original
+resize instructions and focused skill/presentation regressions. The ownership
+test builds and privately copies its binary. No remaining assertion failures.
+
+Own selection is 27 validators; changes since the previous tested `6ea82f67`
+select 102, union 106. These include conservative compiled-input fallbacks and
+must not be dropped. Before running them, fetched main again: ITEMS-UI-001 #379
+is now merged at `626abce1`. Merged as `0f82133e`; only conflict was the shared
+manifest append, resolved retaining both rows. All 227 upstream entries are
+identical and APP-POLISH-009 makes 228. No inventory icon/cursor edits of ours.
+The control worktree fast-forwarded to the same upstream. No identity sweep has
+run, so the control baseline can still be rebuilt once before the only sweep.
+
+Next: rebuild control world and branch root/client/world; rerun private UI checks
+including the incoming hover module; reselect the validator union (including
+validate_items_ui), run it without mutants, run affected portable tests, take
+final captures and the single default identity sweep, finish docs/audit/PR/queue
+and cleanup. The ten fit mutants already passed once; their inputs are unchanged.
+No ready-prs entry yet. Respect the 02:15 WIP / 02:30 stop deadlines.
