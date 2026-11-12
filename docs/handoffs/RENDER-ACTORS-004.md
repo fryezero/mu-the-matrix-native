@@ -71,3 +71,19 @@ Selection after a rebuilt world binary: 24 validators, all three symbol
 fallbacks retained; 161 affected suite items. Full runs remain pending.
 The native host now checks actual assembly scale and zero draw refusals; the
 new validator has ten compiled mutant controls registered, not yet run.
+
+Checkpoint, 22:37: main through UI-WINDOWS-001 `710ac816` is integrated as
+`d835c137`. Documentation conflicts retained both lane summaries. Integrated
+root build and explicit world rebuild pass, 7.5 s and 6.6 s.
+
+All 24 affected validators pass at `d835c137`: 107,832 row checks, zero failures,
+errors or skips, 494.3 s including selection. The new composite row passes 1,427
+checks in 8.8 s. Its once-only compiled mutant run passes all ten controls,
+49.7 s. Evidence breakdown: 389 original-instruction/loader comparisons,
+1,028 authored refusal controls and ten native contexts. Existing actor recipes
+pass all 1,669 checks, 102.3 s. Only the new row ran compiled mutants.
+
+Portable affected tests are running. Reduced private tests, five actor renders,
+final rebuilt-binary identity, final audit/docs and PR-ready delivery remain.
+No production code has changed since `95d9f97c`; the subsequent source additions
+are test/census checks and the incoming main UI lane. No ready entry exists.

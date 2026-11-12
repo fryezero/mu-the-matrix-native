@@ -502,3 +502,7 @@ Generic walking, head/weapon links, buff-driven appearance, fade/shadow parity,
 world-specific override state and complete special-pass fidelity remain
 separate from the proved constructor and part draw plans. The opener inventory
 must not be used as a total count of complete native actors.
+
+The composite admission is in the world actor loader. The standalone
+`mu-render actor` command retains its earlier base-model-only behavior. Use
+authored world fixtures for these five assembled NPCs.
