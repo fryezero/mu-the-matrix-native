@@ -1,5 +1,7 @@
 # Continue from here
 
+APP-REFRESH-012 PR-ready, docs only: detached main d4af71dd installed; APP-REFRESH-006 Native Data and settings preserved. Full private suite 1,069 tests, 1,054 passed/15 skipped, zero failures/errors. Standard journeys and all seven new feature categories pass, with explicit fixture/audio-preference limits. [Installation, rollback, proofs and checks](handoffs/APP-REFRESH-012.md).
+
 MUUN-VISUAL-001 PR-ready: a fixture-only Muun now draws beside the demo hero in `mu-world` (`MU_MUUN_FIXTURE=<code>`): model, pose, follow motion and owner lifetime from the original's slot setup/update, with the 16 already-verified effect attachments now visible on it. 912 original instruction cases, 18/18 compiled mutants, 54 affected validators pass. No Muun packets, inventory or bonuses. [Scope, checks and limits](handoffs/MUUN-VISUAL-001.md).
 
 RENDER-WORLDS-INNER-001 PR-ready: Kanturu worlds 37/40 now run the complete inline hook `0x00e75089` (clock-windowed effect, smoke/particle requests, bone flares, lightning, Chrome and scrolling mesh passes) and Blood Castle worlds 11..17/52 run the inline switch `0x017fc023` for types 0x0b/0x0d/0x2a. 4,000 original call comparisons, 33/33 compiled mutants, 61 affected validators pass. Default sweep: only world 37 changes. [Scope, checks and limits](handoffs/RENDER-WORLDS-INNER-001.md).

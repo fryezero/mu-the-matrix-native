@@ -1,5 +1,7 @@
 # Roadmap and work queue
 
+APP-REFRESH-012 PR-ready, docs only: detached main d4af71dd installed; APP-REFRESH-006 Native Data and settings preserved. Full private suite 1,069 tests, 1,054 passed/15 skipped, zero failures/errors. Standard journeys and all seven new feature categories pass, with explicit fixture/audio-preference limits. [Installation, rollback, proofs and checks](handoffs/APP-REFRESH-012.md).
+
 CHARSEL-ITEMS-001 PR-ready: selection now draws authored demo equipment levels and excellent through the existing item renderer and texture rules. Original comparison: 8,817 cases, zero mismatches; 7/7 compiled mutants. File-only selection and default world captures remain byte-identical. [Checks, addresses, renders and limits](handoffs/CHARSEL-ITEMS-001.md).
 
 NEXT-GAPS-001 PR-ready, docs only: ranked offline gap inventory, ten lane briefs, file-conflict groups and sourced counts; no runtime change. [Research](research/next-gaps.md), [method and limits](handoffs/NEXT-GAPS-001.md).
