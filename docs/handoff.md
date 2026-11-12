@@ -1,6 +1,6 @@
 # Continue from here
 
-RENDER-ACTORS-004 WIP: five NPC composites and the wider construction census; checkpoints and unchecked work in [the lane handoff](handoffs/RENDER-ACTORS-004.md).
+RENDER-ACTORS-004 WIP: five NPC assemblies and the 1,024-selector census pass all implementation checks; final documentation checks and staged audit are waiting for resources. [Handoff](handoffs/RENDER-ACTORS-004.md).
 
 ITEMS-UI-001 PR-ready: equipment hover uses the original integer 640x480 bounds and now opens fixture item tooltips. 8,512 instruction comparisons plus five static checks, 8/8 compiled mutants, ten affected validators and 29 private tests pass; the refreshed default sweep is byte-identical. Bits 0x87 add no glow in the compared bodies; original main-game GFx ordering remains unverified. [Checks, evidence and limits](handoffs/ITEMS-UI-001.md).
 
