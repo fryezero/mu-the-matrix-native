@@ -61,3 +61,97 @@ The GL fixture for code 363 shows the model and both attachments (eight vertices
 control and a private render regression test. The original-instruction comparison covers 912 base-slot
 cases with zero mismatches. Finish counts, timings, limits and cleanup are in the
 [handoff](../handoffs/MUUN-VISUAL-001.md).
+
+## Mesh and command fixtures, MUUN-VISUAL-002
+
+Target identity is unchanged from [the effect consumer](client-render-effects-018.md): the pinned restored
+text and second image section in `scripts/pins.py`, from client SHA-256
+`3cf91f3c203d305a771b04d00b271871f7ce1c6779b22e30fbae8c4f35b5527a`.
+No original client, server handler, network, protection module or memory write is used.
+
+### Extra mesh passes
+
+**Static:** `0x017f76ec..0x017f919e`, called from RenderObject's after pass, identifies a Muun through the item
+record's bytes `+0x250 == 12` and `+0x251 != 0`. For an ordinary OBJECT, `+0x60 == 0`, the render-info lookup
+`0x01807c32` supplies the base-body byte `+0x258` and vector `+0x270`. The base body draws first when that byte
+is set. Then each mesh record draws in vector order. Each row starts with the OBJECT's blend mesh/light,
+alpha, UV offsets and model colour. The model colour is restored after every row.
+
+The mesh loader `0x009b9510..0x009b98fc` decodes 300-byte records into 304-byte runtime rows. It associates
+rows by **item/model code**, rather than the render-info/effect id. Texture `default` means no override,
+otherwise the loader appends the name to `Data/Item/Texture/`, with linear filtering and repeat wrapping.
+The last runtime int32 `+0x12c` is the allocated bitmap id; it is absent from the file.
+
+| Mesh-record field | Meaning in this branch |
+|---|---|
+| `+4`, `+0x124` | mesh index, render flags |
+| `+0x108` | RGB override when byte `+0x12a` is nonzero |
+| `+0x114` | alpha override when byte `+0x12b` is nonzero |
+| `+0x118`, `+0x11c`, `+0x120` | pulse parameter, minimum, maximum |
+| byte `+0x129` | replace blend mesh with this row's mesh |
+| byte `+0x128` | pulse blend light rather than use the minimum |
+
+The pulsed light is `wave(-parameter, 0) * (maximum - minimum) + minimum`, with the original's binary32
+operation order. `0x0185bdc4` truncates its clock and signed period, evaluates its cosine and folds it into
+0..1. The native implementation refuses invalid pulse periods before rendering.
+
+**Verified:** `validate_muun_passes` executes the complete caller, including `0x0185bdc4`, with named item,
+render-info and vector services. Only the CRT cosine is a host math service. It compares the complete ordered
+body/mesh argument stream and colour at every call, and checks the restored colour. Synthetic flags cover
+every gate combination, multiple flags and positive/negative clocks. The private extension uses the actual
+rows of all fifteen attachment codes at three clocks. Decoded data stays local and is never serialized in
+the report.
+
+**Private data audit:** codes 174, 176, 178, 184 and 363 have respectively 1, 2, 1, 1 and 3 extra mesh rows.
+The other ten codes have no extra rows. All fifteen request their base body. Six added texture overrides
+load successfully. The three rows of 363 include RGB/alpha and alpha-only passes plus a pulsing texture pass.
+This is an eight-pass subset, not a census of every Muun in the client.
+
+Special models `0x2b7a`, `0x2b7b`, `0x2b8d`, `0x2b8e` and `0x2b90` take further branches, including atlas
+motion and bone-driven effects. None is one of the fifteen audited attachment models. Native refuses their
+extra rows rather than drawing them with this ordinary branch.
+
+### Base-slot shadow
+
+**Static and verified:** vtable `0x01a7ed58`, slot `+0x18`, calls `0x009aa54b`. It reads render-info alpha
+`+0x254`, or OBJECT alpha when the owner kind is 2. It skips worlds 10/132, 24..29/36 and the original option
+flag. It uses alpha 0.2 in worlds 7/128..130 and calls `RenderBodyShadow(-1,-1,-1,-1,0)` for these fifteen models.
+Native uses the existing verified projection over the whole body. Its ordinary-owner fixture supplies option 0 and owner kind 1. `--no-particles` also suppresses the
+shared shadow renderer, as it does for other companions. This does not establish live option/buff parity.
+
+### Auxiliary command audit and authored pose cycle
+
+**Static:** slot setup `0x009a9c88` reads MuunInfo category `+0x0c`. Only categories 50..99 allocate the 84-byte
+helper at `0x009c2243`. Its defaults `0x009c22e3` clear its timers, pending/remote flags and offset; setup
+supplies an offset, timer parameter and render-record timing values. `0x009c2371` advances those timers. A
+remote helper's transition expiry creates effect `0x47a` at object position plus offset.
+
+`0x009c2539` refuses a command while flag `+0x2c` is set. A different owner key invokes a separate target
+lookup/rotation path, sets `+0x44`, and emits `0x47a`. With the owner's own key it skips that path, marks a
+command pending, resolves its supplied target, faces that target with CreateAngle, and maps categories
+50/53 to action 3; 51/52/54/55 to action 4. Other categories request no action. These action calls are compared
+with the original over the signed category domain, including absent and extreme values. Base-state selection
+`0x009a9e29` already returns states 3/4 to idle at animation end; follow `0x009aa268` does not chase in them.
+
+**Implemented fixture:** `MU_MUUN_COMMAND_FIXTURE=50..55`, together with `MU_MUUN_FIXTURE=<id>`, supplies an
+explicit synthetic command category and a fixed demo target every 100 logic steps. It uses the recovered
+action map, SetAction, posed skeleton and existing animation-end transition. It never infers a command from
+combat, inventory or owner stats. Unsupported categories, absent actions, invalid targets and retired owners
+are refused. Fourteen of the fifteen actual models have actions 3/4; code 363 has only actions 0..2 and refuses
+both. Posed attachment/lifetime controls continue to cover all fifteen models.
+
+**Limit:** the installed MuunInfo table has no categories 50..99. The fifteen attachment records are category
+1. Thus this is an authored pose demonstration of the same-owner branch, not evidence that those appearances
+receive attack commands in production. Remote target motion, original helper timers and `0x47a` transitions
+remain audited but unimplemented. The fixture clock is explicitly authored and is not the original process clock.
+
+### Demo selection boundary
+
+The statically established ownership rule remains slot owner/key plus an explicitly supplied render-info
+record. No source of authoritative MainMuun/SubMuun/HeroMuun selection has been established within this
+offline visual audit; its packet/inventory inputs remain excluded. Therefore no demo character record is
+assigned a Muun implicitly. The environment appearance switch remains, as permitted by this lane's conditional
+scope. A future authored record field needs a caller that supplies the chosen slot and record explicitly.
+
+All counts, final checks, render controls and remaining limits are recorded in
+[MUUN-VISUAL-002](../handoffs/MUUN-VISUAL-002.md). No full original-scene or live-motion equivalence is claimed.
