@@ -102,3 +102,17 @@ Post-build selection: 86/223 validators, 75.721 s, with movement's shell-object 
 161/200 suite work items, 153 native modules, 60.758 s. 8d reduced applies. Root build, reduced private
 modules, affected portable suites and all 86 affected no-mutant validators are next. Main is still
 `d4af71dd`. Final handoff/status/PR/ready entry and cleanup remain after those checks and visual inspection.
+
+## WIP checkpoint, 21:42
+
+Done: final root build passes in 12.407 s. Reduced private run passes all 43 tests, zero skips,
+54.529 s command. Affected portable run passes 1,690 tests: 1,400 passed, 290 skipped, zero failures/errors;
+353.122 s command including selection, 294.9 s runner wall. Source inputs are at `cd8d586f`.
+The 86-row affected private no-mutant batch is running, 31 rows passed so far, no failure reported.
+All proofs, 37 mutants and render checks above are complete; representative spark, ring and wing
+before/after/difference images were opened and inspected. Do not repeat completed mutants.
+
+Left: finish the affected validator batch and queued audit, replace this WIP history with the final
+handoff and status lines, fetch/merge latest main with only required delta checks, final audit/PR/ready
+entry/cleanup. Next step: inspect check-steps.json and verify-runs/lane-validators/summary.json when the
+running batch ends. Resource guard and the 02:15/02:30 owner cutoff remain binding.
