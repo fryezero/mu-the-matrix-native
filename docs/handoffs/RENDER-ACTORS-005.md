@@ -45,3 +45,13 @@ needed. All six after proofs are inspected; changed pixels versus before are
 20, 238, 98, 715, 370 and 99 respectively, with an unchanged empty control.
 Main is still `b7dfd2ed`. Affected selection/runs, private reduced tests,
 identity, final audit and PR readiness remain pending.
+
+Checkpoint update, 22:13 on 2026-11-14: all 29 affected private
+validators pass at `f86f0109`, 122,764 row checks, zero failures/errors/skips,
+454.1 s including selection. All three symbol fallbacks are included.
+Portable affected run passes 1,554 tests, 1,282 passed and 272 expected skips,
+zero failures/errors, 377.6 s runner / 437.0 s command, excluding its preceding
+resource wait. Selection is 169 items, including 161 native modules, so 8d is
+reduced to the three actor modules. Latest main is still `b7dfd2ed` and is
+integrated. Next: focused private actor tests, final rebuilt-binary identity,
+delivery documentation/audit, PR and ready entry. No ready entry exists.
