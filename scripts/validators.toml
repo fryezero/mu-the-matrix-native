@@ -3802,7 +3802,6 @@ note = "INNER-004: complete Crywolf/Barracks leaves and bounded Kalima/tower inl
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
 
-<<<<<<< HEAD
 [validate_worlds_inner5]
 test = "reconstructed/objects/test_worlds_inner5.py::ClientComparison.test_original"
 pins = ["text", "data"]
@@ -3819,7 +3818,7 @@ note = "INNER-005: Kalima 15/29/32 including hero motion and authored water samp
 "families.*.stopped" = 0
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
-=======
+
 [validate_render_effects32]
 test = "native/tests/test_render_effects32.py::Original.test_original_remaining_callers"
 pins = ["text", "data"]
@@ -3880,4 +3879,3 @@ args = ["--cases", "200", "--installed", "--mutations", "--output", "{report}"]
 [validate_muun_special.expect]
 all_equal = true
 all_mutants_caught = true
->>>>>>> origin/main
