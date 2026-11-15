@@ -1,5 +1,7 @@
 # Current status
 
+AUDIO-005 WIP: 245 fixture-bounded monster play sites plus four Kubera play/two stop sites; census 1,434 classified / 546 unresolved through the checked UI integration. All 23 new compiled controls and 74 validator rows are recorded. Latest EFFECTS-031 merge builds, but 82 selected validators, integration refresh and fresh identity remain pending. [Done, left and next step](handoffs/AUDIO-005.md).
+
 UI-WINDOWS-004 PR-ready: nine more empty NPC movies use ten proved manager slots. The 118 entry-unresolved rows classify 9 provider-complete, 17 provider-missing, 30 state-dependent and 62 no route found. The inherited PlayGuide key/menu route is withdrawn after the registry proves it selects EventMapEntranceUI. Survey 16/134 bound -> 24/134, unresolved 118 -> 110. Thirteen original route decisions, eight compiled mutants, nine captured native layouts, 22 affected validators and 230 default identities pass. [Scope and checks](handoffs/UI-WINDOWS-004.md).
 
 RENDER-EFFECTS-031 verified subset PR-ready: eleven particle, six joint and five effect pairs now consume existing world/skill requests. Remain close-up refusals 64 to zero, Swell Life 38 to zero, Penetration/416 two to one. The frozen item census stays 110 programs / 37 pairs; the separate extension admits 22 of 25 pairs. 66,051 focused checks, all 69 compiled controls and 80 selected validators pass. Blood Storm and the later Penetration child remain refused. [Counts, timings, identity and limits](handoffs/RENDER-EFFECTS-031.md).
