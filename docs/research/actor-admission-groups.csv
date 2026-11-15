@@ -11,7 +11,7 @@ server_class,group,decision,reason
 19,plain monster body,checked plain body plan,
 20,plain monster body,checked plain body plan,
 21,plain monster body,checked plain body plan,
-22,plain monster body,checked plain body plan,
+22,plain monster body,incomplete,"constructor render-state override: 0x74,0xa8"
 23,constructor equipment/parts,incomplete,constructor equipment/parts
 24,plain monster body,checked plain body plan,
 25,constructor equipment/parts,incomplete,constructor equipment/parts
@@ -37,7 +37,7 @@ server_class,group,decision,reason
 46,plain monster body,incomplete,additional caller services: effect
 47,constructor equipment/parts,incomplete,constructor equipment/parts
 48,constructor equipment/parts,incomplete,constructor equipment/parts
-49,plain monster body,checked plain body plan,
+49,plain monster body,incomplete,"constructor render-state override: 0x74,0xa8"
 50,plain monster body,checked plain body plan,
 51,plain monster body,incomplete,additional caller services: effect
 52,constructor equipment/parts,incomplete,constructor equipment/parts
@@ -51,7 +51,7 @@ server_class,group,decision,reason
 62,special appearance hook,incomplete,special appearance hook
 63,special appearance hook,incomplete,special appearance hook
 64,constructor equipment/parts,incomplete,constructor equipment/parts
-65,plain monster body,checked plain body plan,
+65,plain monster body,incomplete,constructor render-state override: 0x68
 66,plain monster body,checked plain body plan,
 67,constructor equipment/parts,incomplete,constructor equipment/parts
 68,repeated default body,checked plain body plan,
@@ -125,12 +125,12 @@ server_class,group,decision,reason
 141,plain monster body,checked plain body plan,
 142,constructor equipment/parts,incomplete,constructor equipment/parts
 143,constructor equipment/parts,incomplete,constructor equipment/parts
-144,plain monster body,checked plain body plan,
+144,plain monster body,incomplete,constructor render-state override: 0x74
 145,constructor equipment/parts,incomplete,constructor equipment/parts
 146,plain monster body,checked plain body plan,
-147,plain monster body,checked plain body plan,
+147,plain monster body,incomplete,constructor render-state override: 0x74
 148,constructor equipment/parts,incomplete,constructor equipment/parts
-149,plain monster body,checked plain body plan,
+149,plain monster body,incomplete,constructor render-state override: 0x74
 150,plain monster body,checked plain body plan,
 151,constructor equipment/parts,incomplete,constructor equipment/parts
 159,repeated default body,checked plain body plan,
@@ -148,28 +148,28 @@ server_class,group,decision,reason
 171,constructor equipment/parts,incomplete,constructor equipment/parts
 172,constructor equipment/parts,incomplete,constructor equipment/parts
 173,constructor equipment/parts,incomplete,constructor equipment/parts
-174,plain monster body,checked plain body plan,
+174,plain monster body,incomplete,constructor render-state override: 0x74
 175,constructor equipment/parts,incomplete,constructor equipment/parts
 176,plain monster body,checked plain body plan,
-177,plain monster body,checked plain body plan,
+177,plain monster body,incomplete,constructor render-state override: 0x74
 178,constructor equipment/parts,incomplete,constructor equipment/parts
-179,plain monster body,checked plain body plan,
+179,plain monster body,incomplete,constructor render-state override: 0x74
 180,constructor equipment/parts,incomplete,constructor equipment/parts
 181,constructor equipment/parts,incomplete,constructor equipment/parts
-182,plain monster body,checked plain body plan,
+182,plain monster body,incomplete,constructor render-state override: 0x74
 183,constructor equipment/parts,incomplete,constructor equipment/parts
 184,plain monster body,checked plain body plan,
-185,plain monster body,checked plain body plan,
+185,plain monster body,incomplete,constructor render-state override: 0x74
 186,constructor equipment/parts,incomplete,constructor equipment/parts
-187,plain monster body,checked plain body plan,
+187,plain monster body,incomplete,constructor render-state override: 0x74
 188,constructor equipment/parts,incomplete,constructor equipment/parts
 189,constructor equipment/parts,incomplete,constructor equipment/parts
-190,plain monster body,checked plain body plan,
+190,plain monster body,incomplete,constructor render-state override: 0x74
 191,constructor equipment/parts,incomplete,constructor equipment/parts
 192,plain monster body,checked plain body plan,
-193,plain monster body,checked plain body plan,
+193,plain monster body,incomplete,constructor render-state override: 0x74
 194,constructor equipment/parts,incomplete,constructor equipment/parts
-195,plain monster body,checked plain body plan,
+195,plain monster body,incomplete,constructor render-state override: 0x74
 196,constructor equipment/parts,incomplete,constructor equipment/parts
 197,constructor equipment/parts,incomplete,constructor equipment/parts
 198,repeated default body,checked plain body plan,
@@ -220,20 +220,20 @@ server_class,group,decision,reason
 254,plain NPC body,incomplete,plain NPC body
 256,plain NPC body,incomplete,plain NPC body
 259,plain NPC body,incomplete,plain NPC body
-260,plain monster body,checked plain body plan,
+260,plain monster body,incomplete,constructor render-state override: 0x74
 261,constructor equipment/parts,incomplete,constructor equipment/parts
 262,plain monster body,checked plain body plan,
-263,plain monster body,checked plain body plan,
+263,plain monster body,incomplete,constructor render-state override: 0x74
 264,constructor equipment/parts,incomplete,constructor equipment/parts
-265,plain monster body,checked plain body plan,
+265,plain monster body,incomplete,constructor render-state override: 0x74
 266,constructor equipment/parts,incomplete,constructor equipment/parts
 267,constructor equipment/parts,incomplete,constructor equipment/parts
-268,plain monster body,checked plain body plan,
+268,plain monster body,incomplete,constructor render-state override: 0x74
 269,constructor equipment/parts,incomplete,constructor equipment/parts
 270,plain monster body,checked plain body plan,
-271,plain monster body,checked plain body plan,
+271,plain monster body,incomplete,constructor render-state override: 0x74
 272,constructor equipment/parts,incomplete,constructor equipment/parts
-273,plain monster body,checked plain body plan,
+273,plain monster body,incomplete,constructor render-state override: 0x74
 274,constructor equipment/parts,incomplete,constructor equipment/parts
 275,constructor equipment/parts,incomplete,constructor equipment/parts
 276,repeated default body,checked plain body plan,
@@ -282,11 +282,11 @@ server_class,group,decision,reason
 328,repeated default body,checked plain body plan,
 329,repeated default body,checked plain body plan,
 330,repeated default body,checked plain body plan,
-331,plain monster body,checked plain body plan,
+331,plain monster body,incomplete,constructor render-state override: 0x74
 332,constructor equipment/parts,incomplete,constructor equipment/parts
 333,plain monster body,checked plain body plan,
-334,plain monster body,checked plain body plan,
-335,plain monster body,checked plain body plan,
+334,plain monster body,incomplete,constructor render-state override: 0x74
+335,plain monster body,incomplete,constructor render-state override: 0x74
 336,constructor equipment/parts,incomplete,constructor equipment/parts
 337,constructor equipment/parts,incomplete,constructor equipment/parts
 338,constructor equipment/parts,incomplete,constructor equipment/parts
@@ -390,7 +390,7 @@ server_class,group,decision,reason
 460,repeated default body,checked plain body plan,
 461,repeated default body,checked plain body plan,
 462,repeated default body,checked plain body plan,
-463,plain monster body,checked plain body plan,
+463,plain monster body,incomplete,constructor render-state override: 0x68
 465,repeated default body,checked plain body plan,
 466,plain monster body,checked plain body plan,
 467,repeated default body,checked plain body plan,
@@ -548,10 +548,10 @@ server_class,group,decision,reason
 643,plain NPC body,incomplete,plain NPC body
 644,constructor equipment/parts,incomplete,constructor equipment/parts
 645,constructor equipment/parts,incomplete,constructor equipment/parts
-647,plain monster body,checked plain body plan,
-648,plain monster body,checked plain body plan,
-649,plain monster body,checked plain body plan,
-650,plain monster body,checked plain body plan,
+647,plain monster body,incomplete,constructor render-state override: 0x60
+648,plain monster body,incomplete,constructor render-state override: 0x60
+649,plain monster body,incomplete,constructor render-state override: 0x60
+650,plain monster body,incomplete,constructor render-state override: 0x60
 651,plain NPC body,incomplete,plain NPC body
 652,constructor equipment/parts,incomplete,constructor equipment/parts
 653,special appearance hook,incomplete,special appearance hook
@@ -574,7 +574,7 @@ server_class,group,decision,reason
 673,repeated default body,checked plain body plan,
 674,repeated default body,checked plain body plan,
 675,plain monster body,checked plain body plan,
-676,plain monster body,checked plain body plan,
+676,plain monster body,incomplete,constructor render-state override: 0x68
 677,constructor equipment/parts,incomplete,constructor equipment/parts
 678,repeated default body,checked plain body plan,
 679,repeated default body,checked plain body plan,
@@ -589,10 +589,10 @@ server_class,group,decision,reason
 688,plain NPC body,incomplete,plain NPC body
 689,plain NPC body,incomplete,plain NPC body
 690,repeated default body,checked plain body plan,
-691,plain monster body,checked plain body plan,
-692,plain monster body,checked plain body plan,
-693,plain monster body,checked plain body plan,
-694,plain monster body,checked plain body plan,
+691,plain monster body,incomplete,constructor render-state override: 0x60
+692,plain monster body,incomplete,constructor render-state override: 0x60
+693,plain monster body,incomplete,constructor render-state override: 0x60
+694,plain monster body,incomplete,constructor render-state override: 0x60
 695,plain NPC body,incomplete,plain NPC body
 696,repeated default body,checked plain body plan,
 697,repeated default body,checked plain body plan,
@@ -622,10 +622,10 @@ server_class,group,decision,reason
 723,plain NPC body,incomplete,plain NPC body
 724,plain NPC body,incomplete,plain NPC body
 725,plain NPC body,incomplete,plain NPC body
-726,plain monster body,checked plain body plan,
-727,plain monster body,checked plain body plan,
-728,plain monster body,checked plain body plan,
-729,plain monster body,checked plain body plan,
+726,plain monster body,incomplete,constructor render-state override: 0x60
+727,plain monster body,incomplete,constructor render-state override: 0x60
+728,plain monster body,incomplete,constructor render-state override: 0x60
+729,plain monster body,incomplete,constructor render-state override: 0x60
 730,repeated default body,checked plain body plan,
 731,repeated default body,checked plain body plan,
 732,repeated default body,checked plain body plan,
@@ -635,10 +635,10 @@ server_class,group,decision,reason
 736,repeated default body,checked plain body plan,
 737,repeated default body,checked plain body plan,
 738,repeated default body,checked plain body plan,
-739,plain monster body,checked plain body plan,
-740,plain monster body,checked plain body plan,
-741,plain monster body,checked plain body plan,
-742,plain monster body,checked plain body plan,
+739,plain monster body,incomplete,constructor render-state override: 0x60
+740,plain monster body,incomplete,constructor render-state override: 0x60
+741,plain monster body,incomplete,constructor render-state override: 0x60
+742,plain monster body,incomplete,constructor render-state override: 0x60
 743,repeated default body,checked plain body plan,
 744,repeated default body,checked plain body plan,
 745,repeated default body,checked plain body plan,
@@ -672,7 +672,7 @@ server_class,group,decision,reason
 777,repeated default body,checked plain body plan,
 778,repeated default body,checked plain body plan,
 779,plain monster body,checked plain body plan,
-780,plain monster body,checked plain body plan,
+780,plain monster body,incomplete,constructor render-state override: 0x74
 781,plain monster body,checked plain body plan,
 782,plain monster body,checked plain body plan,
 783,plain monster body,incomplete,additional caller services: effect
@@ -687,10 +687,10 @@ server_class,group,decision,reason
 792,repeated default body,checked plain body plan,
 793,repeated default body,checked plain body plan,
 794,repeated default body,checked plain body plan,
-795,plain monster body,checked plain body plan,
-796,plain monster body,checked plain body plan,
-797,plain monster body,checked plain body plan,
-798,plain monster body,checked plain body plan,
+795,plain monster body,incomplete,constructor render-state override: 0x60
+796,plain monster body,incomplete,constructor render-state override: 0x60
+797,plain monster body,incomplete,constructor render-state override: 0x60
+798,plain monster body,incomplete,constructor render-state override: 0x60
 799,repeated default body,checked plain body plan,
 800,repeated default body,checked plain body plan,
 801,repeated default body,checked plain body plan,
@@ -707,10 +707,10 @@ server_class,group,decision,reason
 814,repeated default body,checked plain body plan,
 815,repeated default body,checked plain body plan,
 816,repeated default body,checked plain body plan,
-817,plain monster body,checked plain body plan,
-818,plain monster body,checked plain body plan,
-819,plain monster body,checked plain body plan,
-820,plain monster body,checked plain body plan,
+817,plain monster body,incomplete,constructor render-state override: 0x60
+818,plain monster body,incomplete,constructor render-state override: 0x60
+819,plain monster body,incomplete,constructor render-state override: 0x60
+820,plain monster body,incomplete,constructor render-state override: 0x60
 823,repeated default body,checked plain body plan,
 824,repeated default body,checked plain body plan,
 825,repeated default body,checked plain body plan,
@@ -739,10 +739,10 @@ server_class,group,decision,reason
 849,repeated default body,checked plain body plan,
 850,repeated default body,checked plain body plan,
 854,repeated default body,checked plain body plan,
-855,plain monster body,checked plain body plan,
-856,plain monster body,checked plain body plan,
-857,plain monster body,checked plain body plan,
-858,plain monster body,checked plain body plan,
+855,plain monster body,incomplete,constructor render-state override: 0x60
+856,plain monster body,incomplete,constructor render-state override: 0x60
+857,plain monster body,incomplete,constructor render-state override: 0x60
+858,plain monster body,incomplete,constructor render-state override: 0x60
 859,repeated default body,checked plain body plan,
 860,repeated default body,checked plain body plan,
 861,repeated default body,checked plain body plan,
@@ -768,10 +768,10 @@ server_class,group,decision,reason
 881,repeated default body,checked plain body plan,
 882,repeated default body,checked plain body plan,
 883,repeated default body,checked plain body plan,
-884,plain monster body,checked plain body plan,
-885,plain monster body,checked plain body plan,
-886,plain monster body,checked plain body plan,
-887,plain monster body,checked plain body plan,
+884,plain monster body,incomplete,constructor render-state override: 0x60
+885,plain monster body,incomplete,constructor render-state override: 0x60
+886,plain monster body,incomplete,constructor render-state override: 0x60
+887,plain monster body,incomplete,constructor render-state override: 0x60
 888,repeated default body,checked plain body plan,
 889,repeated default body,checked plain body plan,
 891,plain NPC body,incomplete,plain NPC body
@@ -784,10 +784,10 @@ server_class,group,decision,reason
 898,repeated default body,checked plain body plan,
 899,repeated default body,checked plain body plan,
 900,repeated default body,checked plain body plan,
-901,plain monster body,checked plain body plan,
-902,plain monster body,checked plain body plan,
-903,plain monster body,checked plain body plan,
-904,plain monster body,checked plain body plan,
+901,plain monster body,incomplete,constructor render-state override: 0x60
+902,plain monster body,incomplete,constructor render-state override: 0x60
+903,plain monster body,incomplete,constructor render-state override: 0x60
+904,plain monster body,incomplete,constructor render-state override: 0x60
 905,repeated default body,checked plain body plan,
 906,repeated default body,checked plain body plan,
 907,repeated default body,checked plain body plan,
@@ -815,10 +815,10 @@ server_class,group,decision,reason
 930,repeated default body,checked plain body plan,
 931,repeated default body,checked plain body plan,
 932,repeated default body,checked plain body plan,
-933,plain monster body,checked plain body plan,
-934,plain monster body,checked plain body plan,
-935,plain monster body,checked plain body plan,
-936,plain monster body,checked plain body plan,
+933,plain monster body,incomplete,constructor render-state override: 0x60
+934,plain monster body,incomplete,constructor render-state override: 0x60
+935,plain monster body,incomplete,constructor render-state override: 0x60
+936,plain monster body,incomplete,constructor render-state override: 0x60
 937,special appearance hook,incomplete,special appearance hook
 938,repeated default body,checked plain body plan,
 939,special appearance hook,incomplete,special appearance hook
@@ -833,10 +833,10 @@ server_class,group,decision,reason
 948,repeated default body,checked plain body plan,
 949,repeated default body,checked plain body plan,
 950,repeated default body,checked plain body plan,
-951,plain monster body,checked plain body plan,
-952,plain monster body,checked plain body plan,
-953,plain monster body,checked plain body plan,
-954,plain monster body,checked plain body plan,
+951,plain monster body,incomplete,constructor render-state override: 0x60
+952,plain monster body,incomplete,constructor render-state override: 0x60
+953,plain monster body,incomplete,constructor render-state override: 0x60
+954,plain monster body,incomplete,constructor render-state override: 0x60
 955,repeated default body,checked plain body plan,
 956,repeated default body,checked plain body plan,
 957,repeated default body,checked plain body plan,

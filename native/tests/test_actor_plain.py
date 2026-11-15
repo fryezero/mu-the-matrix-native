@@ -1,5 +1,6 @@
 """Table-driven actor plan admission, conservative exclusions and private comparison."""
 import csv
+import collections
 import ctypes as C
 import json
 import os
@@ -20,9 +21,11 @@ class Plans(unittest.TestCase):
         self.assertEqual(len(groups), 905)
         self.assertEqual(len({int(r['server_class']) for r in groups}), 905)
         admitted = {int(r['server_class']) for r in groups if r['decision'] == 'checked plain body plan'}
-        self.assertEqual(len(admitted), 621)
+        self.assertEqual(len(admitted), 550)
         with (ROOT/'docs/research/actor-construction-census.csv').open() as f:
             census = {int(r['server_class']): r for r in csv.DictReader(f)}
+        self.assertEqual(collections.Counter(r['native'] for r in census.values()), {
+            'correct bounded body plan':589, 'incomplete/unverified special passes':355, 'refused':80})
         for cl in range(-1, 1025):
             plan = v.Plan()
             self.assertEqual(lib.mu_actor_plain_plan(cl, C.byref(plan)), int(cl in admitted))
@@ -34,8 +37,11 @@ class Plans(unittest.TestCase):
         for cl in (1, 5, 10, 374, 378, 595, 617, 635, 642):
             self.assertNotIn(cl, admitted)
         for r in groups:
-            if int(r['server_class']) not in admitted:
+            cl = int(r['server_class'])
+            self.assertEqual(census[cl]['remaining_reason'], r['reason'])
+            if cl not in admitted:
                 self.assertTrue(r['reason'])
+                self.assertEqual(census[cl]['native'], 'incomplete/unverified special passes')
 
 @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'requires private-env.sh')
 class ClientComparison(unittest.TestCase):
@@ -47,4 +53,4 @@ class ClientComparison(unittest.TestCase):
             self.assertEqual(run.returncode, 0, run.stdout[-4000:]+run.stderr[-3000:])
             value = json.loads(path.read_text())
             self.assertTrue(value['all_equal'])
-            self.assertEqual(value['admitted'], 621)
+            self.assertEqual(value['admitted'], 550)

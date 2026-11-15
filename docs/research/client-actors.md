@@ -663,7 +663,19 @@ The accepted constructor must create one kind-1/class-byte-0 body, have no
 selected equipment or joints, and agree with the compiled class table's model,
 scale and opener. A zero scale store retains the proved 0.9 constructor default.
 Repeated default selectors get these checks individually, not by aliasing one
-passing Monster01 row.
+passing Monster01 row. A CPU-write hook additionally records constructor stores
+to RenderObject's model/subtype, lighting, hidden/blend mesh, render mode, UV,
+alpha and owner/cloth fields. A candidate with any such override is excluded
+from this uniform group. The hook observes original instructions without
+poisoning the constructor's input or adding a service stub. The opener also
+rejects a StreamMesh store, which needs a different native pass/lighting plan.
+
+This write audit corrected the provisional 621-row table. Twenty-seven rows
+write hidden/blend-mesh state, and another 44 write OBJECT subtype +0x60.
+They are not plain merely because the older census tagged their equipment
+slots as empty. Their native admissions remain incomplete pending those
+specific appearance plans. The final census and verifier results supersede
+all provisional counts in the checkpoint history.
 
 For every candidate, OpenMonsterModel executes from `0x0180b0f4` in worlds
 0/3/2/51/18/30. Its complete model/action bytes and ordered primary AccessModel
@@ -733,7 +745,7 @@ From repo root with the canonical private environment, build first, then run
 `scripts/validate_actor_plain.py --generate --output <local-report>` to derive
 plans and decisions. Rebuild after generation and run the validator without
 `--generate` to compare the compiled plans and table bytes. Its `--mutations`
-mode compiles admission/model/scale/pass/translate and native option controls.
+mode compiles admission, over-admission, model/opener/scale/pass/translate and native option controls.
 Regenerate both census CSVs with `scripts/actor_census.py --classes
  docs/research/actor-construction-census.csv --openers
  docs/research/actor-opener-census.csv --composite-ready --monster-ready

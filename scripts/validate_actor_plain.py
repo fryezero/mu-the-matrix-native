@@ -45,12 +45,26 @@ def initial_rows():
     with GROUPS.open() as f:
         return list(csv.DictReader(f))
 
+# Constructor writes to fields consumed by RenderObject or attached lifetime
+# must not be lost behind CreateCharacter's named recording boundary.
+APPEARANCE_FIELDS = ((0x5,3),(0xd,2),(0x3b,1),(0x3e,2),(0x48,4),(0x5c,4),
+    (0x60,4),(0x68,4),(0x74,4),(0x80,4),(0xa8,4),(0xac,4),(0xb0,4),
+    (0xdc,4),(0xe4,4),(0xe8,4),(0xec,12),(0x34c,4))
+
 def constructor(machine, cl):
+    from unicorn import UC_HOOK_MEM_WRITE
+    writes = set(); base = va.CLASS_CHARACTER+0x3254
+    def write(uc, access, address, size, value, ignored):
+        off = address-base
+        if any(off < a+n and a < off+size for a,n in APPEARANCE_FIELDS):
+            writes.add(off)
+    hook = machine.uc.hook_add(UC_HOOK_MEM_WRITE, write, begin=base, end=base+0x3ff)
     original_case, original_record = va.class_case, va.class_record
     def initialized(world, rand):
         regions, stubs, record = original_case(world, rand)
         create = stubs[va.CREATE_CHARACTER]
         def store(m):
+            writes.clear()
             result = create(m)
             m.uc.mem_write(va.CLASS_CHARACTER+0x328f, b'\1')
             return result
@@ -59,12 +73,14 @@ def constructor(machine, cl):
     def record(cl, via, rec, run):
         row = original_record(cl, via, rec, run)
         row['object_kind'] = run['regions']['character'][0x328f]
+        row['appearance_writes'] = sorted(writes)
         return row
     try:
         va.class_case, va.class_record = initialized, record
         return va.extract_class(machine, cl)
     finally:
         va.class_case, va.class_record = original_case, original_record
+        machine.uc.hook_del(hook)
 
 def render_check(args, row, world, action, alpha, frame):
     skips = vr.CHAR_SKIPS
@@ -102,6 +118,8 @@ def opener(machine, authored, row):
         if not run['ok'] or run['calls'] != expected or native['status'] != 0 or native['calls'] != expected or any(
             run['regions'].get(k) != v for k,v in native['regions'].items()):
             return False, dict(cl=row['class'], world=world, actual=run['calls'], expected=expected)
+        if run['regions']['model0'][0x94:0x98] != bytes(case['regions'][0].data[0x94:0x98]):
+            return False, dict(cl=row['class'], reason='opener StreamMesh override')
         results.append(run)
     return True, None
 
@@ -213,7 +231,7 @@ def main():
             continue
         ok, detail = opener(machine, authored, r)
         recipes.note(open_fam, ok, detail)
-        if not ok: reasons[cl] = 'opener texture/model context differs'; continue
+        if not ok: reasons[cl] = detail.get('reason','opener texture/model context differs'); continue
         good = True; missing = set()
         for world, action, alpha, frame in ((w,a,(.125,.375,.75,1.)[n],float(a)+.25)
                 for n,w in enumerate((0,3,2,51)) for a in range(7)):
@@ -221,6 +239,9 @@ def main():
             recipes.note(render_fam, ok, detail); good &= ok
             if not ok: missing.add(detail['reason'])
         if not good: reasons[cl] = '; '.join(sorted(missing)); continue
+        if r['appearance_writes']:
+            reasons[cl] = 'constructor render-state override: '+','.join(hex(a) for a in r['appearance_writes'])
+            continue
         rows[cl] = r
     families.update(constructor=constructor_fam, openers=open_fam, candidate_render=render_fam)
     print('caller candidates', len(rows), 'rejected', dict(collections.Counter(reasons.values())), flush=True)
@@ -277,6 +298,8 @@ def main():
             src = (ROOT/'reconstructed/actors/actors.c').read_text()
             for name, old, new in (
                 ('admission', 'if (server_class < 0) return 0; /* plain plan */', 'if (server_class != 2) return 0; /* plain plan */'),
+                ('state_admission', 'if (server_class < 0) return 0; /* plain plan */', 'if (server_class == 22) return 1; if (server_class < 0) return 0; /* plain plan */'),
+                ('opener', '*out = mu_actor_plain_plans[lo];', '*out = mu_actor_plain_plans[lo]; out->opened++;'),
                 ('model', '*out = mu_actor_plain_plans[lo];', '*out = mu_actor_plain_plans[lo]; out->model++;'),
                 ('scale', '*out = mu_actor_plain_plans[lo];', '*out = mu_actor_plain_plans[lo]; out->scale_bits = 0x3f800000u;'),
                 ('passes', '*out = mu_actor_plain_plans[lo];', '*out = mu_actor_plain_plans[lo]; out->flags = 0x44;'),

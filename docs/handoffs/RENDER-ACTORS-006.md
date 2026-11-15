@@ -73,3 +73,24 @@ Left: finish validators, constructor appearance-state audit, compiled controls,
 portable affected suites, reduced private modules, proof renders, identity,
 latest-main integration, final audit/docs and PR/ready publication. No ready
 entry and no completion claim.
+
+Checkpoint 2026-11-14 23:30: the 621-row source/result is provisional and is
+superseded by the constructor write audit. It found 27 hidden/blend-mesh
+contexts and 44 subtype contexts that the earlier constructor recorder had
+not checked. These 71 rows are excluded, with explicit offsets in the decision
+CSV. The revised generator verifies 550 plans / 51 actual model files,
+20,410 positive checks, 212.21 s plus a 60 s resource wait. The final API replay
+will have 21,437 checks and nine compiled controls, still pending. Latest main
+through AUDIO-004 (`2b0b2716`) is merged; both lanes' status/validator entries
+are retained. The merge-resolution follow-up removes all markers and parses
+the registry with the repository Python. PR #389 remains unmerged.
+
+The rebuilt 550-row library, canonical census regeneration and final checks
+are queued behind the resource guard. Until that command finishes, the class
+and opener CSVs in this WIP checkpoint still contain the old 621-row counts.
+Expected final census is 589 checked / 355 incomplete / 80 refused. Do not use
+the earlier 30-row/147,157-check result as validation of this revised table.
+Next: finish the queued rebuild/census/focused test, audit and commit the
+consistent revised source, then run the selected validators and new-row
+controls once on that source. Portable affected, 8d reduced, proof renders,
+identity, final documentation/audit, PR and ready entry remain unfinished.
