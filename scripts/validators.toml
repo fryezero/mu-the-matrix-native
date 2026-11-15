@@ -3174,9 +3174,9 @@ args = ["--mutations", "--output", "{report}"]
 [validate_hero_items]
 test = "native/tests/test_native_hero_items.py::ClientComparison.test_original_instructions"
 pins = ["text", "data"]
-families = ["set_class", "defaults", "head", "item_flag", "record"]
-cases = 10088
-mutants = 18
+families = ["set_class", "defaults", "head", "item_flag", "record", "head_rows", "castle", "scale", "part_loop", "part_type"]
+cases = 52904
+mutants = 51
 cases_at = "families.*.cases"
 mutants_at = "mutants"
 build = ["reconstructed/hero-equipment", "reconstructed/players"]
@@ -3188,6 +3188,11 @@ args = ["--mutations", "--output", "{report}"]
 "families.head.cases" = 832
 "families.item_flag.cases" = 3000
 "families.record.cases" = 3000
+"families.head_rows.cases" = 4720
+"families.castle.cases" = 8120
+"families.scale.cases" = 8192
+"families.part_loop.cases" = 4376
+"families.part_type.cases" = 17408
 "mutants.*" = {truthy = true}
 
 [validate_inventory_fx]
