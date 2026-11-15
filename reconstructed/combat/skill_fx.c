@@ -131,6 +131,7 @@ static void call_joint(const mu_sfx_env *env, mu_sfx_effect *e, int32_t bitmap, 
     c.subtype = subtype;
     c.owner = owner;
     c.scale = scale;
+    if (e->type == 0x7f84 && e->subtype == 3) c.arg7 = -1;
     copy3(c.position, position);
     copy3(c.target, target);
     copy3(c.angle, angle);
@@ -299,6 +300,7 @@ static int effect_supported(int32_t type, int32_t sub)
     if (uruk_effect_kind(type, sub))
         return 1;   /* RENDER-EFFECTS-018 */
     switch (type) {
+    case 0x583: case 0x584: return sub == 0; /* RENDER-EFFECTS-033 */
     case 0x46c: return sub == 0; /* RENDER-EFFECTS-033 */
     case 0x7fd0: return sub == 0; /* RENDER-EFFECTS-031, Penetration charge */
     case 0x7f42: return sub == 6; /* RENDER-EFFECTS-031, word4 world emitter */
@@ -616,6 +618,27 @@ int mu_sfx_effect_create(mu_sfx_effect *e, int32_t type, int32_t subtype, const 
         e->direction[2] = 0.0f;
         e->position[2] = e->position[2] + 100.0f;
         break;
+    case 0x583: {
+        /* 0x013f2b83: the caster owns the sword; the destination remains in light. */
+        const mu_sfx_object *o = env_object(env,owner);
+        if (!o) { memset(e,0,sizeof *e); return 0; } /* original null owner faults */
+        e->lifetime = 70; e->field_64 = 0;
+        mu_sfx_call c = {0}; c.routine = MU_SFX_CALL_EFFECT; c.type = 0x584;
+        c.owner = owner; c.range = -1; c.arg7 = -1; c.scale = 1.0f;
+        copy3(c.position,e->position); copy3(c.angle,o->angle);
+        c.light[0] = c.light[1] = c.light[2] = 1.0f;
+        env_call(env,&c,e);
+        call_sound(env,e,0x2b0);
+        break;
+    }
+    case 0x584: {
+        /* 0x013f2c53: the red flare is a separate particle consumer. */
+        e->lifetime = 36; e->blend_light = 0.0f;
+        float p[3]; copy3(p,e->position); p[2] -= -170.0f;
+        const float red[3] = {1.0f,F_0_1,F_0_1};
+        call_particle(env,e,0x8145,p,e->angle,red,1,1.0f,-1);
+        break;
+    }
     case 0x46c: { /* 0x013ca40b..0x013ca6a6, subtype 0 */
         if (!o) { memset(e, 0, sizeof *e); return 0; }
         e->lifetime = 100; e->blend_mesh = 0; e->blend_light = 1.0f;
@@ -1308,6 +1331,64 @@ int mu_sfx_effect_move(mu_sfx_effect *e, const mu_sfx_env *env)
         call_terrain_light(env, e, light, 2);
         check(env, e, MU_SFX_CALL_CHECK_MAGIC);
         break;
+    case 0x583: {
+        /* 0x014a18fc: ten jittered small bursts, then the central burst. */
+        if (!env_object(env,e->owner)) { kill_effect(env,e); e->lifetime = 0; break; }
+        mu_sfx_call c = {0}; c.routine = MU_SFX_CALL_EFFECT; c.owner = -2;
+        c.range = c.arg7 = -1; c.scale = 1.0f;
+        copy3(c.angle,e->angle); c.light[0] = c.light[1] = c.light[2] = 1.0f;
+        if (e->lifetime >= 41 && e->lifetime <= 50) {
+            static const float scales[10] = {0.8f,0.8f,0.9f,0.9f,0.7f,0.7f,0.6f,0.6f,0.5f,0.5f};
+            /* Only the constructor-reachable ten indices are admitted. */
+            if (e->field_64 < 0 || e->field_64 >= 10) return 0;
+            for (int k = 0; k < 3; ++k) c.position[k] = (float)(smod(env_rand(env),401)-200) + e->light[k];
+            c.type = 0x585; c.scale = scales[e->field_64++]; env_call(env,&c,e);
+        } else if (e->lifetime == 35) {
+            c.type = 0x586; copy3(c.position,e->light); env_call(env,&c,e);
+        }
+        break;
+    }
+    case 0x584: {
+        /* 0x014a1b1c..0x014a2131. The client's outer five samples reuse one pose. */
+        const mu_sfx_object *o = env_object(env,e->owner);
+        if (!o || o->client_hit != 1) { kill_effect(env,e); e->lifetime = 0; break; }
+        int16_t keys = 1;
+        if (env && env->model && !env->model(env->context,type,e->action,&keys)) return 1;
+        mu_sfx_call c = {0}; c.routine = MU_SFX_CALL_ANIMATION; c.type = type;
+        c.owner = -2; c.scale = 0.35f; env_call(env,&c,e);
+        if (e->lifetime == 35) {
+            c.routine = MU_SFX_CALL_POSE; c.arg7 = 0; env_call(env,&c,e);
+            c.routine = MU_SFX_CALL_BONE; c.range = 0; env_call(env,&c,e);
+            float p[3]; copy3(p,e->position);
+            if (env && env->bone) env->bone(env->context,e,0,p);
+            c.routine = MU_SFX_CALL_EFFECT; c.type = 0x4b7; c.subtype = 1; c.owner = -1;
+            c.range = c.arg7 = -1; c.scale = 6.0f;
+            c.light[0] = c.light[1] = c.light[2] = 1.0f;
+            copy3(c.position,p); copy3(c.angle,e->angle); env_call(env,&c,e);
+        }
+        if (e->frame > 2.0f && e->frame < 30.0f) {
+            /* AccessModel 0x01836157 sets action 0 speed to 0.35; no other action admitted. */
+            if (e->action != 0) return 0;
+            mu_sfx_effect posed = *e; posed.frame = e->frame - 0.35f;
+            c = (mu_sfx_call){0}; c.routine = MU_SFX_CALL_POSE; c.type = type;
+            c.owner = -2; c.arg7 = 1; env_call(env,&c,&posed);
+            static const int bones[11] = {61,53,50,44,39,14,19,24,29,34,10};
+            for (int sample = 0; sample < 5; ++sample) for (int n = 0; n < 11; ++n) {
+                float a[3] = {n == 10 ? 40.0f : 20.0f,0,0}, b[3] = {n == 10 ? -40.0f : -20.0f,0,0};
+                c = (mu_sfx_call){0}; c.routine = MU_SFX_CALL_BLUR; c.type = 0x814b;
+                c.owner = -2; c.arg7 = n; c.arg8 = 30; c.light[0] = 1.0f;
+                copy3(c.position,a); copy3(c.target,b);
+                if (env && env->bone_transform) {
+                    env->bone_transform(env->context,&posed,bones[n],a,0,c.position);
+                    env->bone_transform(env->context,&posed,bones[n],b,0,c.target);
+                }
+                env_call(env,&c,e);
+            }
+        }
+        if (e->lifetime > 24) e->blend_light += 0.0416f;
+        else if (e->lifetime < 13) e->blend_light -= 0.0416f;
+        break;
+    }
     case 0x46c: { /* 0x01463c5e..0x0146409b, ordinary-world visual */
         const mu_sfx_object *o = env_object(env,e->owner);
         if (!o || !o->live) { e->lifetime = -1; break; }

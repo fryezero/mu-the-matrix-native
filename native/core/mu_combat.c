@@ -288,6 +288,7 @@ static void load_models(mu_combat *c, const char *root)
         {0x704, "Data/Effect/min_elf_skill_ring05.bmd"}, {0x705, "Data/Effect/min_elf_skill_ring06.bmd"},
         {0x706, "Data/Effect/min_elf_skill_ring07.bmd"}, {0x707, "Data/Effect/min_elf_skill_ring08.bmd"},
         {0x46c, "Data/Skill/Piercing.bmd"}, /* AccessModel 0x0183461a */
+        {0x584, "Data/Skill/blood_storm_sword.bmd"}, /* AccessModel 0x01836157 */
     };
     int32_t quake_missing = 0, rings_missing = 0;
     for (int i = 0; i < MU_COMBAT_MODELS; ++i) {
@@ -400,6 +401,8 @@ int mu_combat_init(mu_combat *c, const char *root, mu_walk *walk, mu_character *
         char *end = NULL; long ticks = strtol(aura, &end, 10);
         if (end != aura && !*end && ticks > 0 && ticks <= 10000) c->aura_duration = (int32_t)ticks;
     }
+    const char *blood_fixture = getenv("MU_SKILL33_BLOOD_OWNER");
+    c->blood_owner_flag = blood_fixture && !strcmp(blood_fixture,"1");
     const char *ice_fixture = getenv("MU_SKILL33_TARGET_ICE");
     if (ice_fixture) {
         char *end; long ticks = strtol(ice_fixture,&end,10);
@@ -545,6 +548,7 @@ static void refresh_objects(mu_combat *c)
     mu_sfx_object *h = &c->objects[MU_COMBAT_HERO_OBJECT];
     h->live = 1;
     h->visible = 1;
+    h->client_hit = c->blood_owner_flag;
     h->weapon = (int16_t)(c->weapon_item[0] < 0 ? -1 : c->weapon_item[0] - 0xae6);   /* TS: o + 0x56 */
     memcpy(h->position, c->walk->hero.position, sizeof h->position);
     memcpy(h->angle, c->walk->hero.angle, sizeof h->angle);   /* RENDER-EFFECTS-004: Rageful Blow aims along it */
@@ -566,7 +570,7 @@ static void effect_object(mu_combat *c, const mu_sfx_effect *e)
         memcpy(o->position,e->position,sizeof o->position);
         return;
     }
-    if (!mu_sfx_is_arrow(e->type) && e->type != 0x70a && e->type != 0x10e6 && e->type != 0x46c)
+    if (!mu_sfx_is_arrow(e->type) && e->type != 0x70a && e->type != 0x10e6 && e->type != 0x46c && e->type != 0x583)
         return;   /* RENDER-EFFECTS-015: 0x70a owns the arrows of its rain (their CreateEffect reads its +0x158) */
     o->live = e->live;
     o->visible = e->live;
@@ -783,7 +787,7 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
     case MU_SFX_CALL_JOINT: {
         int32_t target = call->owner;
         if (target == -2 && e && e >= c->effects && e < c->effects + MU_SFX_EFFECTS &&
-            (mu_sfx_is_arrow(e->type) || e->type == 0x10e6)) {
+            (mu_sfx_is_arrow(e->type) || e->type == 0x10e6 || e->type == 0x46c)) {
             effect_object(c, e);   /* "this effect": the arrow (RENDER-EFFECTS-009) */
             c->objects[MU_COMBAT_EFFECT_OBJECT(e - c->effects)].live = 1;   /* created, SetLive at the end */
             target = MU_COMBAT_EFFECT_OBJECT((int32_t)(e - c->effects));
@@ -791,7 +795,8 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
         /* Arrow CreateJoint arguments, not the hero key: Flare02 uses arg7 as lifetime.
          * call_joint_args uses a zero vector for a NULL colour; these supported arrow callers
          * supply nonzero colours whenever argument 12 is present. */
-        const int arrow = e && (mu_sfx_is_arrow(e->type) || e->type == 0x46c);
+        const int arrow = e && (mu_sfx_is_arrow(e->type) || e->type == 0x46c ||
+            (e->type == 0x7f84 && e->subtype == 3));
         if (arrow) {
             memcpy(c->jenv.creation_light, call->light, sizeof call->light);
             c->jenv.has_creation_light = call->light[0] != 0 || call->light[1] != 0 || call->light[2] != 0;
@@ -818,6 +823,11 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
             info.field8 = (uint16_t)call->arg7;   /* wrapper 0x013c0ed8: original argument 11 */
         }
         int32_t owner = call->owner == -2 ? -1 : call->owner;
+        if (e && (call->type == 0x46c || e->type == 0x583) && call->owner == -2) {
+            effect_object(c,e);
+            owner = MU_COMBAT_EFFECT_OBJECT((int32_t)(e - c->effects));
+            info.key = (uint16_t)call->range;
+        }
         if (e && e->type == MU_SFX_RAGEFUL_BLOW) {
             /* RENDER-EFFECTS-004: the pieces' info key (scale = key / 100). EarthQuake01..03 are owned by
              * the flying weapon itself; they read only its type (not 0x804) for their red light, so the
@@ -826,7 +836,10 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
             if (call->owner == -2)
                 owner = e->owner;
         }
-        if (call->type == 0x38b5) {
+        if (e && (e->type == 0x583 || e->type == 0x584)) {
+            info.key = (uint16_t)call->range; info.field8 = (uint16_t)call->arg7;
+            create_effect_scaled(c,call->type,call->subtype,call->position,call->angle,call->light,owner,&info,call->scale);
+        } else if (call->type == 0x38b5) {
             info.key = (uint16_t)call->range;
             create_effect_scaled(c, call->type, call->subtype, call->position, call->angle, call->light,
                                  owner, &info, call->scale);
@@ -841,12 +854,14 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
         if (e && c->env.model)
             c->env.model(c, e->type, e->action, &keys);
         if (e) {
-            e->frame = e->frame + e->velocity;
+            e->frame = e->frame + call->scale;
             if (keys > 1 && e->frame >= (float)keys)
                 e->frame = e->frame - (float)keys;
         }
         return 1;
     }
+    case MU_SFX_CALL_BLUR:
+        unsupported(c,'b',call->type,call->arg7); return 0;
     case MU_SFX_CALL_VISUAL_PRESENCE:
         return call->type == 0x39 && call->owner >= 0 && call->owner < MU_WORLD_ACTORS_MAX &&
             c->step < c->target_ice_until[call->owner];
@@ -2349,6 +2364,8 @@ int32_t mu_combat_draw_models(mu_combat *c, mu_combat_model_fn draw, void *conte
         mu_sfx_effect *e = &c->effects[i];
         if (!e->live)
             continue;
+        if (e->type == 0x412 && (e->subtype == 1 || e->subtype == 2) && e->field_68 == -2)
+            continue; /* original RenderBody hidden-mesh sentinel */
         int32_t slot = model_slot(c, e->type);
         float origin[3], angles[3];
         memcpy(origin, e->position, sizeof origin);

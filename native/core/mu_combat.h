@@ -128,6 +128,7 @@ enum {
     /* RENDER-EFFECTS-015: min_elf_skill_ring01..08 (0x700..0x707), the ground skills' rings */
     MU_COMBAT_MODEL_ELF_RING1, MU_COMBAT_MODEL_ELF_RING8 = MU_COMBAT_MODEL_ELF_RING1 + 7,
     MU_COMBAT_MODEL_PIERCING, /* RENDER-EFFECTS-033, 0x46c */
+    MU_COMBAT_MODEL_BLOOD_SWORD, /* 0x584 */
     MU_COMBAT_MODELS
 };
 
@@ -224,6 +225,7 @@ typedef struct mu_combat {
     uint16_t skill30_target_index;
     mu_skill32_context skill32_context;
     int32_t target_ice_ticks, target_ice_until[MU_WORLD_ACTORS_MAX];
+    uint8_t blood_owner_flag; /* separate authored OBJECT +0x3b fixture input */
     int32_t attack_skill;      /* skill of the running attack */
     uint8_t hero_attack_time;  /* c + 0x21 */
     int32_t hero_hp;           /* session hero HP */

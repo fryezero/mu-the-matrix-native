@@ -39,3 +39,30 @@ Exploratory comparator failures are not verification. One callback wrapper
 initially referenced a mutable ctypes field and recursed; it now retains the
 original callback object. A suspected orange-ribbon smoke branch belongs to a
 different dispatch path and was removed after original comparison.
+
+## WIP checkpoint 2, 10:27 local
+
+Done since the first checkpoint:
+- Added Fire03/10 create, move and complete draw-stream comparison; its exact
+  bitmap loader entry and native bitmap slot; native summon/arrow/optional-ice
+  fixture controls pass (three tests, 9.715 s).
+- First 200-case consumer sample: 800 effect creates/moves, 1,000 joint
+  creates/moves/draws, 200 particle creates/moves/draws, all equal, no stops.
+- Blood Storm 0x583/0 and 0x584/0 are now implemented with exact owner flag,
+  parent child requests and bone/blur emission. Root build passes (13.288 s).
+  The new comparison is pending. Downstream 0x585/0, 0x586/0, 0x4b7/1,
+  particle 0x8145/1 and blur 0x814b are not claimed as complete consumers.
+- Added a native callback host. Its first run caught a lost self owner for
+  Penetration's trails; the adapter now preserves that owner. Retest pending.
+- Optional target-ice call streams match, but the fragment exit hook was not
+  registered, leaving ABI callee-saved checks false. Hook registration is
+  corrected; retest pending. No failing run is reported as verification.
+
+Left: finish Blood Storm comparison and native lifecycle; resolve the remaining
+held-input/actor-selector audit; final mutant run, registry, affected checks,
+private reduced 8d, fixture renders, identity comparison, latest-main merge and
+PR-ready delivery. No rating has been promoted yet. PR #394 remains open as of
+10:27 local; main remains 6900914e.
+
+Next step: inspect blood-sample.json after its resource wait, correct only
+instruction-evidenced differences, then add the missing consumer controls.

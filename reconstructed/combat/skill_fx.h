@@ -119,6 +119,7 @@ enum {
     MU_SFX_CALL_CREATE_ARROW = 0x0158cf57,    /* RENDER-EFFECTS-015: CreateArrow(that character, this effect (-2), 0,
                                                  skill = type, flag = subtype, index = range, last 0) with the
                                                  effect's position, angle and light at the call */
+    MU_SFX_CALL_BLUR = 0x01534ea1, /* paired bone trail: position/target, type, ordinal=arg7, life=arg8 */
     MU_SFX_CALL_VISUAL_PRESENCE = 0x01295ade, /* authored visual presence: type=id, owner=index */
     MU_SFX_CALL_OWNER_FLAG = 0x014eca8b       /* RENDER-EFFECTS-010: the owner OBJECT's +0x64 (owner = the effect's
                                                  owner): returns it, and sets it to 1 when it was 0 */

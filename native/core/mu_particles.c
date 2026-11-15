@@ -49,6 +49,7 @@ static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     0x81ec, 0x854a,   /* RENDER-EFFECTS-024: mace bone sprites */
     0x8500, 0x8569,   /* RENDER-EFFECTS-026 */
     0x7f42, 0x802a,   /* RENDER-EFFECTS-031: Flame01 and water */
+    0x7f3e, /* RENDER-EFFECTS-033, Fire03 */
     MU_PT_BITMAP_FIRE06,
     MU_PT_BITMAP_RAIN_SPLASH,
     MU_PT_BITMAP_RAIN_RING};
@@ -114,6 +115,7 @@ static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     "Data/Effect/Flame01.OZJ", "Data/Effect/water.OZJ",
     /* RENDER-EFFECTS-016: Fire06 0x7f40, 0x70c's stone particle (LoadBitmap 0x018229e5 in 0x0182049e,
      * LINEAR/CLAMP) */
+    "Data/Effect/Fire03.OZJ",
     "Data/Effect/Fire06.OZJ"};
 
 /* The world objects' effect models (AccessModel, static readings of the loaders): the Tormenta handler's
@@ -715,7 +717,7 @@ static int fx_call(mu_world_particles *p, const mu_jt_call *call, mu_sfx_effect 
             return 0;
         }
         mu_world_particles_joint(p, call->type, call->position, call->target, call->angle, call->subtype,
-                                 call->owner, call->scale, 0xffff, 0, 0, 0xffff, 0, call->light);
+                                 call->owner, call->scale, 0xffff, 0, 0, 0xffff, 0, e && e->type == 0x7f84 && e->subtype == 3 ? NULL : call->light);
         return 0;
     case MU_JT_CALL_DELETE:
         for (int i = 0; p->joints && i < MU_JT_JOINTS; i++)
@@ -724,6 +726,12 @@ static int fx_call(mu_world_particles *p, const mu_jt_call *call, mu_sfx_effect 
                 p->joints[i].live = 0;
         return 0;
     case MU_JT_CALL_EFFECT:
+        if (e && call->type == 0x46c && call->owner == -2) {
+            mu_sfx_info info = {0}; info.key = (uint16_t)call->range;
+            mu_world_particles_effect(p,call->type,call->subtype,call->position,call->angle,call->light,
+                MU_WORLD_FX_SELF_BASE+(int32_t)(e-p->effects),call->scale,&info);
+            return 0;
+        }
         mu_world_particles_effect(p, call->type, call->subtype, call->position, call->angle, call->light,
                                   call->owner == -2 ? -1 : call->owner, 0.0f, NULL);
         return 0;
