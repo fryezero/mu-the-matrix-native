@@ -271,6 +271,8 @@ static float clock_program(const mu_rc_body_scalar *p, float time, uint32_t fram
             if (f <= 0.0f) f = 0.0f;
             break;
         }
+        case 38: f = kf > f ? f : kf; break;   /* 0x0184f927(k, value) */
+        case 39: if (i >= ki) i = (int32_t)((uint32_t)ki * 2u - 1u - (uint32_t)i); break;   /* 0x016e4324 */
         default: i = (int32_t)(word - (uint32_t)i); break;
         }
     }
@@ -314,27 +316,14 @@ static float body_scalar(const mu_rc_body_scalar *p, float time, uint32_t frame)
         first = 1;
     } else
         value = p->kind == 1 ? client_wave(a, time) : client_sin(time * a);
-    if (p->count && (p->op[0] & 8)) {
-        double wide = value;
-        for (int i = 0; i < p->count; ++i) {
-            double k;
-            memcpy(&k, &p->k[i], 8);
-            switch (p->op[i] & 7) {
-            case 1: wide = wide * k; break;
-            case 2: wide = wide + k; break;
-            case 3: wide = wide - k; break;
-            default: wide = wide / k; break;
-            }
-        }
-        return (float)wide;
-    }
     for (int i = first; i < p->count; ++i) {
         float k;
         uint32_t bits = (uint32_t)p->k[i];
         if (p->op[i] & 8) {
-            /* 0x01718e04: binary32 operations, then cvtss2sd, binary64 constants and one cvtsd2ss. */
+            /* A run of binary64 constants with one rounding (fstp qword, or cvtss2sd after binary32
+             * operations at 0x01718e04). A binary32 clamp may follow the rounding (0x0171a102). */
             double wide = value;
-            for (; i < p->count; ++i) {
+            for (; i < p->count && (p->op[i] & 8); ++i) {
                 double k64;
                 memcpy(&k64, &p->k[i], 8);
                 switch (p->op[i] & 7) {
@@ -344,7 +333,9 @@ static float body_scalar(const mu_rc_body_scalar *p, float time, uint32_t frame)
                 default: wide = wide / k64; break;
                 }
             }
-            return (float)wide;
+            value = (float)wide;
+            --i;
+            continue;
         }
         memcpy(&k, &bits, 4);
         switch (p->op[i]) {
@@ -354,6 +345,7 @@ static float body_scalar(const mu_rc_body_scalar *p, float time, uint32_t frame)
         case 5: value = k - value; break;
         case 6: if (k > value) value = k; break;
         case 7: if (value > k) value = k; break;   /* 0x01719da4: comiss value, k; jbe */
+        case 17: value = k > value ? value : k; break;   /* 0x01706fb2: comiss k, value; jbe */
         default: value = value / k; break;
         }
     }

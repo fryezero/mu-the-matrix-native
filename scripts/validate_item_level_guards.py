@@ -34,6 +34,8 @@ MUTANTS = {
     'upper-clamp': ('case 7: if (value > k) value = k; break;', 'case 7: break;'),
     'clamp-direction': ('case 7: if (value > k) value = k; break;', 'case 7: if (value < k) value = k; break;'),
     'wide-tail': ('case 2: wide = wide + k64; break;', 'case 2: wide = (double)((float)wide + (float)k64); break;'),
+    'ping-pong': ('case 39: if (i >= ki) i = (int32_t)((uint32_t)ki * 2u - 1u - (uint32_t)i); break;', 'case 39: break;'),
+    'ping-pong-edge': ('case 39: if (i >= ki) i', 'case 39: if (i > ki) i'),
     'model-carry': ('mu_rc_body_types[type].carry)', '0)'),
 }
 

@@ -240,12 +240,21 @@ REMAINDER_CARRY = REMAINDER_PROGRAM_TYPES + RANDOM_LEVEL_CARRY
 # packed-word form (cmp [ebp+0x28], 9). DECODED_GUARD_TYPES take the wing form at 0x016e226a..0x016e6627: the word
 # is not -1 and its decoded level (0x016a78c9: sar 3, and 0xf) is at least eleven. level_guards() reads every
 # instruction of both forms for every listed type before a recipe is fitted.
-PACKED_GUARD_TYPES = [0x0b34, 0x0b36, 0x1103, 0x130e, 0x1524]
-DECODED_GUARD_TYPES = [0x239a, 0x239b, 0x239c, 0x239d, 0x239f, 0x23a2, 0x23a3, 0x23a4, 0x23a6]
+PACKED_GUARD_TYPES = [0x0b34, 0x0b35, 0x0b36, 0x1103, 0x130e, 0x1524]
+DECODED_GUARD_TYPES = [0x239a, 0x239b, 0x239c, 0x239d, 0x239f, 0x23a0, 0x23a2, 0x23a3, 0x23a4, 0x23a6, 0x23a7]
 DECODED_GUARD_LEVEL = 11
 PACKED_LEVEL_TYPES = RANDOM_LEVEL_TYPES + PACKED_GUARD_TYPES
 GUARD_TYPES = PACKED_GUARD_TYPES + DECODED_GUARD_TYPES
-AB_TYPES = GUARD_TYPES   # every 002AB type: the lane's reader forms apply to these lists only
+# Bodies that bracket their draws with 0x012b7e53 / 0x012b7e65, which are glPushMatrix and glPopMatrix and nothing
+# else (matrix_brackets() checks both helpers and each case). No matrix call lies between them.
+MATRIX_TYPES = [0x0ef4, 0x12fa, 0x12fb, 0x14f2, 0x16f5, 0x16f6, 0x1711, 0x24f1]
+MATRIX_CARRY = [0x16f5, 0x24f1]
+# Ordinary bodies whose only unread word was a helper scalar tail: the ternary minimum (0x10f3, 0x1703) and the
+# upper clamp after the constant operations (0x1101).
+TAIL_TYPES = [0x10f3, 0x1101, 0x1703]
+AB_TYPES = GUARD_TYPES + MATRIX_TYPES + TAIL_TYPES   # every 002AB type: the lane's reader forms apply to these only
+REMAINDER_TYPES += MATRIX_TYPES + TAIL_TYPES
+REMAINDER_CARRY += MATRIX_CARRY
 GUARD_CARRY = list(DECODED_GUARD_TYPES)
 LEVEL_SPLIT += GUARD_TYPES
 REMAINDER_TYPES += GUARD_TYPES
@@ -431,6 +440,12 @@ def parse_scalar(wa, helper, ret):
         at += 8
     if double and (not ops or _text(wa, at, 4) != bytes.fromhex('f20f5ac0')):
         return None
+    if double and _SAMPLE_TYPE[0] in AB_TYPES:
+        # 0x0171a102: the rounded binary64 result is clamped in binary32.
+        tail = clamp_tail(wa, at + 4, struct.unpack('<i', fstp[2:])[0])
+        if tail is None:
+            return None
+        ops.extend(tail)
     if not double and reloaded and _SAMPLE_TYPE[0] in AB_TYPES:
         tail = scalar_tail(wa, at, struct.unpack('<i', fstp[2:])[0])
         if tail is None:
@@ -438,6 +453,10 @@ def parse_scalar(wa, helper, ret):
         ops.extend(tail)
         if tail:
             return kind, a, tuple(ops)
+        if kind == 1:
+            minimum = ternary_minimum(wa, call - 23, at)
+            if minimum is not None:
+                return kind, a, tuple(ops) + minimum
     # A constant minus the saved helper result, each rounded to binary32.
     if not double and kind != 9 and not ops and _load(wa, at) is not None and \
             _text(wa, at + 8, 4) == bytes.fromhex('f30f5c85') and \
@@ -486,7 +505,16 @@ def scalar_tail(wa, at, saved):
                 return None
             ops.append((SCALAR_OPS[code[2]] | 8, low | high << 32))
             at += 8
-        return tuple(ops) if ops and _text(wa, at, 4) == bytes.fromhex('f20f5ac0') else None
+        if not ops or _text(wa, at, 4) != bytes.fromhex('f20f5ac0'):
+            return None
+        clamp = clamp_tail(wa, at + 4, saved)
+        return None if clamp is None else tuple(ops) + clamp
+    return clamp_tail(wa, at, saved)
+
+
+def clamp_tail(wa, at, saved):
+    """The upper clamp of scalar_tail(): ((7, k),), () when it does not start here, None when it differs."""
+    import capstone.x86 as X
     seq = list(_capstone().disasm(_text(wa, at, 48), at))[:6]
     if len(seq) < 6 or [i.mnemonic for i in seq[:4]] != ['movss', 'movss', 'comiss', 'jbe']:
         return ()
@@ -512,6 +540,59 @@ def scalar_tail(wa, at, saved):
         return None
     k = _word(wa, cmp.operands[1].mem.disp & 0xffffffff)
     return None if k is None else ((7, k),)
+
+
+def ternary_minimum(wa, start, at):
+    """RENDER-ITEMS-002AB: (k > x) ? x : k with the wave expression x evaluated twice (0x01706f77..0x01707005).
+
+    start..at is the first evaluation (argument pushes, call, pops, fstp, reload, constant operations). Then
+    movss xmm1, [k]; comiss xmm1, xmm0; jbe ELSE; the same evaluation again (only its frame local differs);
+    movss [R], xmm0; jmp JOIN; ELSE: movss xmm0, [k]; movss [R], xmm0; JOIN:. Returns ((17, k),) or None."""
+    import struct
+    import capstone.x86 as X
+    md = _capstone()
+    head = list(md.disasm(_text(wa, at, 24), at))[:3]
+    if len(head) != 3 or [i.mnemonic for i in head] != ['movss', 'comiss', 'jbe']:
+        return None
+    load, compare, jump = head
+    if not (load.operands[0].type == X.X86_OP_REG and load.operands[0].reg == X.X86_REG_XMM1 and
+            load.operands[1].type == X.X86_OP_MEM and load.operands[1].mem.base == 0 and
+            load.operands[1].mem.index == 0 and compare.op_str == 'xmm1, xmm0'):
+        return None
+    first = list(md.disasm(_text(wa, start, at - start), start))
+    again = jump.address + jump.size
+    second = list(md.disasm(_text(wa, again, at - start), again))
+    if not first or first[-1].address + first[-1].size != at or len(first) != len(second):
+        return None
+    locals_first, locals_second = set(), set()
+    for one, two in zip(first, second):
+        if one.mnemonic != two.mnemonic:
+            return None
+        if one.op_str != two.op_str:
+            # Only the helper result's frame local may differ between the two evaluations.
+            a_, b_ = one.op_str, two.op_str
+            import re
+            pattern = r'dword ptr \[ebp - (0x[0-9a-f]+)\]'
+            if re.sub(pattern, 'LOCAL', a_) != re.sub(pattern, 'LOCAL', b_) or 'LOCAL' not in re.sub(pattern, 'LOCAL', a_):
+                return None
+            locals_first.add(re.search(pattern, a_)[1])
+            locals_second.add(re.search(pattern, b_)[1])
+        elif one.mnemonic == 'call' and one.operands[0].imm != two.operands[0].imm:
+            return None
+    if len(locals_first) != 1 or len(locals_second) != 1:
+        return None
+    end = second[-1].address + second[-1].size
+    tail = list(md.disasm(_text(wa, end, 40), end))[:4]
+    if len(tail) != 4 or [i.mnemonic for i in tail] != ['movss', 'jmp', 'movss', 'movss']:
+        return None
+    store, skip, other, store_other = tail
+    result = store.op_str.split(', ')[0]
+    if (not result.startswith('dword ptr [ebp - ') or store.op_str != result + ', xmm0' or
+            jump.operands[0].imm != other.address or other.op_str != load.op_str.replace('xmm1', 'xmm0') or
+            store_other.op_str != store.op_str or skip.operands[0].imm != store_other.address + store_other.size):
+        return None
+    k = _word(wa, load.operands[1].mem.disp & 0xffffffff)
+    return None if k is None else ((17, k),)
 
 
 def short_scalar(wa, kind, a, phase, at):
@@ -879,9 +960,15 @@ def scalar_value(program, time, frame=0):
         value = f(math.sin(f(time * v.u2f(a))))
     import struct
     for op, word in ops:
-        # RENDER-ITEMS-002AB: the width is per operation (binary32 operations may precede a widened tail).
+        # RENDER-ITEMS-002AB: the width is per operation. Binary32 operations may precede a widened tail, and a
+        # binary32 clamp may follow the tail's rounding. 17 is the ternary minimum (k > x ? x : k).
         double = bool(op & 8)
         k = struct.unpack('<d', struct.pack('<Q', word))[0] if double else v.u2f(word)
+        if not double:
+            value = f(value)
+        if op == 17:
+            value = value if k > value else k
+            continue
         op &= 7
         value = (value * k if op == 1 else value + k if op == 2 else value - k if op == 3 else
                  k - value if op == 5 else max(value, k) if op == 6 else
@@ -1021,6 +1108,11 @@ CLOCK = 0x06fce370
 # shr r, 31; addsd [r*8 + 0x01bd3050] with the table {0.0, 2^32}).
 C_FRAME, C_U_MOD, C_U_DIV, C_U2D = range(30, 34)
 C_F_SIN, C_F_ABS, C_F_FABS, C_F_FALLOFF = 34, 35, 36, 37
+# RENDER-ITEMS-002AB: 38 = 0x0184f927(k, value): value if k > value else k (the helper's own comiss/jbe order);
+# 39 = integer ping-pong: a value >= n becomes 2n - 1 - value (cmp; jl; mov; shl 1; dec; sub; mov).
+C_F_MIN_K, C_I_MIRROR = 38, 39
+MIN_HELPER = 0x0184f927
+MIN_HELPER_BYTES = bytes.fromhex('558becf30f1045080f2f450c7605d9450ceb03d945085dc3')
 FRAME_COUNTER, U32_FIX = 0x0bdc5ebc, 0x01bd3050
 COUNTER_RANGE_TYPES = [0x0f24, 0x0f28, 0x0f29, 0x0f2b, 0x0f2c, 0x1588]
 VECTOR_SETTERS = (0x00cfcead, 0x00cfcede)   # (this)[0..2] = (a, b, c) / (a, a, a); ret 0xc / ret 4
@@ -1137,6 +1229,39 @@ def falloff_branch(wa, at, local, regs):
     return dst, ('c', 'f', value[2] + ((C_F_FALLOFF, ('w', threshold | top << 32)),)), code[12].address
 
 
+def mirror_branch(wa, at, local, regs):
+    """RENDER-ITEMS-002AB: read the complete integer ping-pong at a cmp (0x016e4324):
+    cmp eax, [N]; jl L; mov eax, [N]; shl eax, 1; dec eax; sub eax, [F]; mov [F], eax; L:
+    with eax the chain held in local F and N an integer constant local. Returns (F, chain, L) or None."""
+    import capstone.x86 as X
+    code = list(_capstone().disasm(wa[0][at - 0x401000:at - 0x401000 + 48], at))[:7]
+    if len(code) != 7 or [i.mnemonic for i in code] != ['cmp', 'jl', 'mov', 'shl', 'dec', 'sub', 'mov']:
+        return None
+
+    def frame_local(op):
+        return (op.type == X.X86_OP_MEM and op.mem.base == X.X86_REG_EBP and op.mem.index == 0 and
+                op.mem.disp < 0)
+
+    def eax(op):
+        return op.type == X.X86_OP_REG and op.reg == X.X86_REG_EAX
+    compare, jump, load, double, minus, subtract, store = code
+    if not (eax(compare.operands[0]) and frame_local(compare.operands[1]) and
+            eax(load.operands[0]) and frame_local(load.operands[1]) and
+            load.operands[1].mem.disp == compare.operands[1].mem.disp and
+            eax(double.operands[0]) and double.operands[1].type == X.X86_OP_IMM and double.operands[1].imm == 1 and
+            eax(minus.operands[0]) and eax(subtract.operands[0]) and frame_local(subtract.operands[1]) and
+            frame_local(store.operands[0]) and eax(store.operands[1]) and
+            store.operands[0].mem.disp == subtract.operands[1].mem.disp and
+            subtract.operands[1].mem.disp != compare.operands[1].mem.disp and
+            jump.operands[0].imm == store.address + store.size):
+        return None
+    n, target = local.get(compare.operands[1].mem.disp), subtract.operands[1].mem.disp
+    value = regs.get('eax')
+    if not (n and n[0] == 'k' and value and value[0] == 'c' and value[1] == 'i' and local.get(target) == value):
+        return None
+    return target, ('c', 'i', value[2] + ((C_I_MIRROR, ('i', n)),)), store.address + store.size
+
+
 def slice_block(wa, block, frame=False, fold=False):
     """Static walk from one block start. Returns (entry locals read, outputs) where
     each output is a chain whose integer local reads are ('local', offset). frame (RENDER-ITEMS-002U): the block
@@ -1204,6 +1329,7 @@ def slice_block(wa, block, frame=False, fold=False):
     at, steps, cdq = block, 0, None
     pushed = None   # RENDER-ITEMS-002U: push imm; pop r
     stack_top, x87 = None, None
+    pushes = []   # RENDER-ITEMS-002AB: values of the last pushed argument slots (fold blocks only)
     while steps < 160:
         ins = next(md.disasm(text[at - 0x00401000:at - 0x00401000 + 16], at), None)
         if ins is None:
@@ -1243,6 +1369,23 @@ def slice_block(wa, block, frame=False, fold=False):
             x87 = None
             at = nxt
             continue
+        if fold and name == 'call' and dst.type == X.X86_OP_IMM and dst.imm == MIN_HELPER:
+            # 0x0184f927(k, value) with the constant pushed last (argument 0): one checked helper body.
+            if (_text(wa, MIN_HELPER, len(MIN_HELPER_BYTES)) == MIN_HELPER_BYTES and len(pushes) >= 2 and
+                    pushes[-1] and pushes[-1][0] == 'kf' and pushes[-2] and pushes[-2][0] == 'c' and
+                    pushes[-2][1] == 'f'):
+                x87 = chain(pushes[-2], 'f', (C_F_MIN_K, ('w', pushes[-1][1])))
+                regs, pushes = {}, []
+                at = nxt
+                continue
+            break
+        if fold and name == 'cmp':
+            branch = mirror_branch(wa, at, local, regs)
+            if branch is not None:
+                target, program, at = branch
+                local[target] = program
+                regs['eax'] = None
+                continue
         if name == 'comiss':
             branch = falloff_branch(wa, at, local, regs)
             if branch is not None:
@@ -1255,6 +1398,10 @@ def slice_block(wa, block, frame=False, fold=False):
             break
         if name in ('push', 'pop'):
             stack_top = None
+            if name == 'push':
+                pushes.append(None)
+            elif pushes:
+                pushes.pop()
         if frame and name == 'push' and dst.type == X.X86_OP_IMM:
             pushed = ('k', _i32(dst.imm))
             at = nxt
@@ -1302,6 +1449,8 @@ def slice_block(wa, block, frame=False, fold=False):
                 break
             elif dst.mem.base == X.X86_REG_ESP and dst.mem.disp == 0:
                 stack_top = x
+                if pushes and name == 'movss':
+                    pushes[-1] = x
             handled = 'stored'
         elif (frame and name == 'addsd' and dname and src.type == X.X86_OP_MEM and src.mem.base == 0 and src.mem.index and
               src.mem.scale == 8 and src.mem.disp & 0xffffffff == U32_FIX and _word(wa, U32_FIX) == 0 and
@@ -1572,6 +1721,10 @@ def clock_value(ops, time, frame=0):
         elif op == C_F_FALLOFF:
             f = _f32(v.u2f(k >> 32) - f) if f >= kf else 1.0
             if f <= 0.0: f = 0.0
+        elif op == C_F_MIN_K: f = f if kf > f else kf
+        elif op == C_I_MIRROR:
+            n = _i32(k & 0xffffffff)
+            if i >= n: i = _i32(2 * n - 1 - i)
         elif op == C_D_MUL: d = d * kd
         elif op == C_D_DIV: d = math_div(d, kd)
         elif op == C_D_ADD: d = d + kd
@@ -1850,7 +2003,7 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=Fals
     # empty recipe for that phase rather than inventing an extra draw.
     if ext and len(groups) + 1 == len(generic) and generic[-1][1][0] & 0x800:
         groups.append(('omitted-ancient', []))
-    if t == 0x0eee and other == [('gl', 'glPushMatrix', []), ('gl', 'glPopMatrix', [])]:
+    if (t == 0x0eee or t in MATRIX_TYPES) and other == [('gl', 'glPushMatrix', []), ('gl', 'glPopMatrix', [])]:
         other = []
     if t in OWNER_FX_TYPES or t in PRE_FX_TYPES or t in POST_FX_TYPES:
         other = [c for c in other if c[0] != 'effect']
@@ -1960,7 +2113,7 @@ def infer(samples):
 ALL_TYPES = (REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES + RANKED_TYPES + EXPANDED_TYPES +
              NEXT_TYPES + CLOCK_TYPES + CLUSTER_TYPES + WING_TYPES + VISIBLE_TYPES + SCALAR_TYPES +
              CHAIN_TYPES + LEVEL_TYPES + COLOUR_TYPES + CARRY_TYPES + QUALITY_TYPES + PRODUCT_TYPES + DERIVED_TYPES +
-             OWNER_FX_TYPES + PRE_FX_TYPES + POST_FX_TYPES + [0x1588] + list(NAMED_TYPES) + NO_GLOW_TYPES + HELPER_TYPES + DIRECT_TYPES + OTHER_TYPES + list(CALLER_TYPES) + FALLOFF_TYPES + RANDOM_LEVEL_TYPES + GUARD_TYPES)
+             OWNER_FX_TYPES + PRE_FX_TYPES + POST_FX_TYPES + [0x1588] + list(NAMED_TYPES) + NO_GLOW_TYPES + HELPER_TYPES + DIRECT_TYPES + OTHER_TYPES + list(CALLER_TYPES) + FALLOFF_TYPES + RANDOM_LEVEL_TYPES + AB_TYPES)
 
 
 def fit(wa, lib, t, scalars=False, carry=False, extended=False):
@@ -2174,20 +2327,50 @@ LEVEL_DECODE = 0x016a78c9
 
 
 def case_extent(wa, t):
-    """[start, end) of the body helper's own case of one type: cmp dword [ebp+0x10], t; jne end.
-    A type without exactly one such forward case (ranges, shared cases, tables) is refused."""
+    """[start, end) of the body helper's case of one type.
+
+    Own case: cmp dword [ebp+0x10], t; jne end. Shared case: cmp t; je body, then only further cmp x; je body
+    members and one closing cmp y; jne end whose fall-through is body; the extent is then [body, end).
+    Compares of the type inside its extent are sub-branches of that case. Ranges, tables and any other
+    selection are refused."""
     import struct
     text, pattern = wa[0], b'\x81\x7d\x10' + struct.pack('<I', t)
+
+    def compare(at):
+        """(kind, target, next) of cmp dword [ebp+0x10], imm32; je/jne rel8/rel32 at a text offset."""
+        if text[at:at + 3] != b'\x81\x7d\x10':
+            return None
+        code = text[at + 7:at + 13]
+        if code[:2] in (b'\x0f\x84', b'\x0f\x85'):
+            size, target = 13, 0x401000 + at + 13 + struct.unpack_from('<i', code, 2)[0]
+        elif code[:1] in (b'\x74', b'\x75'):
+            size, target = 9, 0x401000 + at + 9 + struct.unpack_from('<b', code, 1)[0]
+        else:
+            return None
+        return ('je' if code[:1] == b'\x74' or code[:2] == b'\x0f\x84' else 'jne'), target, at + size
+
     found, at = [], text.find(pattern, BODY_HELPER[0] - 0x401000)
     while at != -1 and at < BODY_HELPER[1] - 0x401000:
-        if text[at + 7:at + 9] == b'\x0f\x85':
-            start = 0x401000 + at
-            end = start + 13 + struct.unpack_from('<i', text, at + 9)[0]
-            found.append((start, end))
+        first = compare(at)
+        if first and first[0] == 'jne':
+            found.append((0x401000 + at, first[1]))
+        elif first and first[0] == 'je':
+            body, walk = first[1], first[2]
+            for _ in range(16):
+                member = compare(walk)
+                if member is None or member[0] == 'je' and member[1] != body:
+                    break
+                if member[0] == 'jne':
+                    if 0x401000 + member[2] == body:
+                        found.append((body, member[1]))
+                    break
+                walk = member[2]
         at = text.find(pattern, at + 1)
-    if len(found) != 1 or not found[0][0] < found[0][1] <= BODY_HELPER[1]:
+    outer = [extent for extent in found
+             if all(extent[0] <= other[0] and other[1] <= extent[1] for other in found)]
+    if len(outer) != 1 or not outer[0][0] < outer[0][1] <= BODY_HELPER[1]:
         raise ValueError(f'type {t:#06x} has no single body case')
-    return found[0]
+    return outer[0]
 
 
 def level_guards(wa):
@@ -2243,10 +2426,47 @@ def level_guards(wa):
     return out
 
 
+MATRIX_BEGIN, MATRIX_END = 0x012b7e53, 0x012b7e65
+MATRIX_HELPERS = {MATRIX_BEGIN: bytes.fromhex('558bec51894dfcff1518c7a70190c9c20400'),   # call [glPushMatrix]; ret 4
+                  MATRIX_END: bytes.fromhex('558bec51894dfcff152cc7a70190c9c3')}         # call [glPopMatrix]; ret
+
+
+def matrix_brackets(wa):
+    """RENDER-ITEMS-002AB: every MATRIX_TYPES case calls 0x012b7e53 once, then 0x012b7e65 once, and no OpenGL
+    import directly. Both helpers are read whole: they call glPushMatrix / glPopMatrix and return, so the pair
+    encloses no matrix change (glColor imports, which the stream records, are the only other imports read).
+    Returns {type: (begin call, end call)}."""
+    md = _capstone()
+    for address, payload in MATRIX_HELPERS.items():
+        if _text(wa, address, len(payload)) != payload:
+            raise ValueError(f'matrix helper {address:#x} differs')
+    if _word(wa, 0x01a7c718) is None or _word(wa, 0x01a7c72c) is None:
+        raise ValueError('matrix import slots are outside the data image')
+    out = {}
+    for t in MATRIX_TYPES:
+        start, end = case_extent(wa, t)
+        listing = list(md.disasm(_text(wa, start, end - start), start))
+        if not listing or listing[-1].address + listing[-1].size != end:
+            raise ValueError(f'type {t:#06x}: case does not decode to its end')
+        calls = [(i.address, i.operands[0].imm) for i in listing if i.mnemonic == 'call' and
+                 i.op_str.startswith('0x')]
+        # Immediate glColor calls are COLOR records of the stream; any other import is refused.
+        colours = {f'dword ptr [{slot:#x}]' for slot in COLOUR_SLOTS}
+        imports = [i.address for i in listing if i.mnemonic == 'call' and 'dword ptr [' in i.op_str and
+                   i.op_str not in colours]
+        begins = [at for at, target in calls if target == MATRIX_BEGIN]
+        ends = [at for at, target in calls if target == MATRIX_END]
+        if imports or len(begins) != 1 or len(ends) != 1 or not begins[0] < ends[0]:
+            raise ValueError(f'type {t:#06x}: matrix bracket form differs')
+        out[t] = (begins[0], ends[0])
+    return out
+
+
 def extract():
     wa = tuple((pin.read() for pin in (pins.TEXT, pins.DATA, pins.FLAG, pins.FEATURE)))
     lib = C.CDLL(str(v.LIBRARY))
     level_guards(wa)
+    matrix_brackets(wa)
     types = {}
     for t in ALL_TYPES:
         fitted = fit(wa, lib, t, scalars=True,
