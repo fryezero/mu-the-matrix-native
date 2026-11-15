@@ -165,7 +165,7 @@ class Object(ctypes.Structure):   # mu_jt_object (reconstructed/joints)
                 ('angle', ctypes.c_float*3), ('level', ctypes.c_int8),   # RENDER-EFFECTS-004
                 ('scale', ctypes.c_float), ('lifetime', ctypes.c_int32),   # RENDER-EFFECTS-013
                 ('impact', ctypes.c_float*3),   # RENDER-EFFECTS-014
-                ('sword_position', ctypes.c_float*3)]   # RENDER-EFFECTS-027
+                ('sword_position', ctypes.c_float*3), ('heading', ctypes.c_float*3)]   # RENDER-EFFECTS-027
 
 
 class Call(ctypes.Structure):

@@ -516,6 +516,10 @@ static const mu_jt_object *fx_object(mu_world_particles *p, int32_t index)
         const mu_sfx_effect *e = &p->effects[index - MU_WORLD_FX_SELF_BASE];
         memset(o, 0, sizeof *o); o->live = o->visible = e->live; o->type = e->type;
         memcpy(o->position, e->position, sizeof o->position);
+        if (e->type == 0x46c) {
+            memcpy(o->angle,e->angle,sizeof o->angle); memcpy(o->impact,e->impact,sizeof o->impact);
+            o->heading[0]=e->heading; o->heading[1]=e->heading_yz[0]; o->heading[2]=e->heading_yz[1];
+        }
         return o;
     }
     if (index == MU_WORLD_FX_HERO_OBJECT) {
@@ -704,6 +708,12 @@ static int fx_call(mu_world_particles *p, const mu_jt_call *call, mu_sfx_effect 
                                         call->scale, call->owner >= 0 ? call->owner : MU_PT_NO_OWNER);
         return 0;
     case MU_JT_CALL_JOINT:
+        if (e && e->type == 0x46c && call->owner == -2) {
+            const int32_t owner = MU_WORLD_FX_SELF_BASE + (int32_t)(e - p->effects);
+            mu_world_particles_joint(p,call->type,call->position,call->target,call->angle,call->subtype,
+                owner,call->scale,(uint16_t)call->arg7,(uint16_t)call->arg8,0,0xffff,0,NULL);
+            return 0;
+        }
         mu_world_particles_joint(p, call->type, call->position, call->target, call->angle, call->subtype,
                                  call->owner, call->scale, 0xffff, 0, 0, 0xffff, 0, call->light);
         return 0;

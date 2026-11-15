@@ -287,6 +287,7 @@ static void load_models(mu_combat *c, const char *root)
         {0x702, "Data/Effect/min_elf_skill_ring03.bmd"}, {0x703, "Data/Effect/min_elf_skill_ring04.bmd"},
         {0x704, "Data/Effect/min_elf_skill_ring05.bmd"}, {0x705, "Data/Effect/min_elf_skill_ring06.bmd"},
         {0x706, "Data/Effect/min_elf_skill_ring07.bmd"}, {0x707, "Data/Effect/min_elf_skill_ring08.bmd"},
+        {0x46c, "Data/Skill/Piercing.bmd"}, /* AccessModel 0x0183461a */
     };
     int32_t quake_missing = 0, rings_missing = 0;
     for (int i = 0; i < MU_COMBAT_MODELS; ++i) {
@@ -398,6 +399,11 @@ int mu_combat_init(mu_combat *c, const char *root, mu_walk *walk, mu_character *
     if (aura) {
         char *end = NULL; long ticks = strtol(aura, &end, 10);
         if (end != aura && !*end && ticks > 0 && ticks <= 10000) c->aura_duration = (int32_t)ticks;
+    }
+    const char *ice_fixture = getenv("MU_SKILL33_TARGET_ICE");
+    if (ice_fixture) {
+        char *end; long ticks = strtol(ice_fixture,&end,10);
+        if (end != ice_fixture && !*end && ticks > 0 && ticks <= 10000) c->target_ice_ticks = (int32_t)ticks;
     }
     init_env(c);
     if (config->weapon < 0 || config->weapon > MU_COMBAT_WEAPON_STAFF) {
@@ -532,6 +538,8 @@ static void refresh_objects(mu_combat *c)
         const mu_combat_monster *m = &c->monsters[i];
         o->live = !m->removed;
         o->visible = !m->removed;
+        memcpy(&o->action,c->actors->list[i].actor.object+0x2a,sizeof o->action);
+        memcpy(&o->type,c->actors->list[i].actor.object+0x5c,sizeof o->type);
         memcpy(o->position, c->actors->list[i].position, sizeof o->position);
     }
     mu_sfx_object *h = &c->objects[MU_COMBAT_HERO_OBJECT];
@@ -558,11 +566,12 @@ static void effect_object(mu_combat *c, const mu_sfx_effect *e)
         memcpy(o->position,e->position,sizeof o->position);
         return;
     }
-    if (!mu_sfx_is_arrow(e->type) && e->type != 0x70a && e->type != 0x10e6)
+    if (!mu_sfx_is_arrow(e->type) && e->type != 0x70a && e->type != 0x10e6 && e->type != 0x46c)
         return;   /* RENDER-EFFECTS-015: 0x70a owns the arrows of its rain (their CreateEffect reads its +0x158) */
     o->live = e->live;
     o->visible = e->live;
     o->type = e->type;
+    o->heading[0] = e->heading; o->heading[1] = e->heading_yz[0]; o->heading[2] = e->heading_yz[1];
     o->lifetime = e->lifetime;   /* OBJECT +0x6c, joint 0x80e3/5 */
     memcpy(o->impact, e->impact, sizeof o->impact);   /* OBJECT +0x110, joint 0x7f78/b (RENDER-EFFECTS-014) */
     memcpy(o->position, e->position, sizeof o->position);
@@ -782,7 +791,7 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
         /* Arrow CreateJoint arguments, not the hero key: Flare02 uses arg7 as lifetime.
          * call_joint_args uses a zero vector for a NULL colour; these supported arrow callers
          * supply nonzero colours whenever argument 12 is present. */
-        const int arrow = e && mu_sfx_is_arrow(e->type);
+        const int arrow = e && (mu_sfx_is_arrow(e->type) || e->type == 0x46c);
         if (arrow) {
             memcpy(c->jenv.creation_light, call->light, sizeof call->light);
             c->jenv.has_creation_light = call->light[0] != 0 || call->light[1] != 0 || call->light[2] != 0;
@@ -838,6 +847,9 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
         }
         return 1;
     }
+    case MU_SFX_CALL_VISUAL_PRESENCE:
+        return call->type == 0x39 && call->owner >= 0 && call->owner < MU_WORLD_ACTORS_MAX &&
+            c->step < c->target_ice_until[call->owner];
     case MU_SFX_CALL_CHECK_ARROW:
         if (!e && call->owner >= MU_COMBAT_EFFECT_OBJECT(0) && call->owner < MU_COMBAT_EFFECT_OBJECT(MU_SFX_EFFECTS)) {
             /* RENDER-EFFECTS-014: Flare/b's skill-1 joint (MoveJoint 0x0157a6cb) writes its arrow's +0x158, then
@@ -1159,6 +1171,33 @@ static int skill30_plan(mu_combat *c, int end)
             }
         }
         c->stats.skill30_refused += c->stats.unsupported - refused;
+    }
+    if (end && base == 51 && c->actors && alive(c,c->attack_target) &&
+        c->target_ice_ticks > 0) {
+        /* A separate authored presentation event. The cast supplies no freeze or target state. */
+        const mu_world_actor *a = &c->actors->list[c->attack_target];
+        mu_skill30_input target = {0}; mu_skill30_plan ice;
+        target.owner = c->attack_target;
+        c->target_ice_until[c->attack_target] = c->step + c->target_ice_ticks;
+        memcpy(target.position,a->position,sizeof target.position);
+        memcpy(target.angle,a->angle,sizeof target.angle);
+        target.light[0] = target.light[1] = target.light[2] = 1.0f;
+        mu_skill33_target_ice(&target,1,&ice);
+        for (int i = 0; i < ice.count; ++i) {
+            const mu_sfx_call *call = &ice.calls[i].visual;
+            if (call->routine == 0x0142ec5c) {
+                for (int k = 0; k < MU_SFX_EFFECTS; ++k)
+                    if (c->effects[k].type == call->type && c->effects[k].subtype == call->subtype &&
+                        c->effects[k].owner == call->owner) c->effects[k].live = 0;
+            } else {
+                ++c->stats.skill30_requests;
+                uint32_t refused = c->stats.unsupported;
+                mu_sfx_info info = {0}; info.key = (uint16_t)call->range; info.field8 = (uint16_t)call->arg7;
+                create_effect_scaled(c,call->type,call->subtype,call->position,call->angle,
+                    call->light,call->owner,&info,call->scale);
+                c->stats.skill30_refused += c->stats.unsupported - refused;
+            }
+        }
     }
     return plan.limit;
 }

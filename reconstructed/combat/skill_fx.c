@@ -299,14 +299,16 @@ static int effect_supported(int32_t type, int32_t sub)
     if (uruk_effect_kind(type, sub))
         return 1;   /* RENDER-EFFECTS-018 */
     switch (type) {
+    case 0x46c: return sub == 0; /* RENDER-EFFECTS-033 */
     case 0x7fd0: return sub == 0; /* RENDER-EFFECTS-031, Penetration charge */
     case 0x7f42: return sub == 6; /* RENDER-EFFECTS-031, word4 world emitter */
     case 0x47a: return sub == 0 || sub == 1; /* RENDER-EFFECTS-031 */
     case 0x10e6: return sub == 1;   /* RENDER-EFFECTS-027: Death Stab's trail emitter */
     case MU_SFX_MODEL_FIRE: return sub == 0 || sub == 1 || sub == 10;
-    case MU_SFX_MODEL_ICE: case MU_SFX_MODEL_POISON: case MU_SFX_MODEL_ICE_DEBRIS: case MU_SFX_MODEL_WAVE: return sub == 0;
+    case MU_SFX_MODEL_ICE: return sub >= 0 && sub <= 2;
+    case MU_SFX_MODEL_POISON: case MU_SFX_MODEL_ICE_DEBRIS: case MU_SFX_MODEL_WAVE: return sub == 0;
     case 0x7f4e: case MU_SFX_BITMAP_THUNDER: return sub == 0;
-    case MU_SFX_BITMAP_MAGIC_GROUND2: return sub == 0 || sub == 1 || sub == 4;   /* sub 0: the level-up ground (NATIVE-PROGRESS-001) */
+    case MU_SFX_BITMAP_MAGIC_GROUND2: return sub == 0 || sub == 1 || sub == 3 || sub == 4;   /* sub 0: the level-up ground (NATIVE-PROGRESS-001) */
     case MU_SFX_MODEL_CIRCLE: case MU_SFX_MODEL_CIRCLE_LIGHT: case MU_SFX_MODEL_INFERNO:
     case MU_SFX_MODEL_LASER: case MU_SFX_TWISTING_SLASH: case MU_SFX_TWISTING_SWIRL:
         return sub == 0;
@@ -530,6 +532,19 @@ int mu_sfx_effect_create(mu_sfx_effect *e, int32_t type, int32_t subtype, const 
         e->velocity = 1.0f;
         e->angle[0] = 0.0f;
         e->blend_mesh = 0;
+        if (subtype == 1 || subtype == 2) { /* 0x013d01f8..0x013d04e1 */
+            e->lifetime = 20; e->velocity = F_0_3; e->angle[0] = -20.0f;
+            e->blend_light = 0.5f; e->gravity = 5.0f; e->heading = 0.0f;
+            e->heading_yz[0] = 0.0f; e->heading_yz[1] = (float)(env_rand(env) % 360);
+            for (int n = 0; n < 3; ++n) {
+                float p[3]; p[0] = (float)(env_rand(env) % 64 - 32) + e->position[0];
+                p[1] = (float)(env_rand(env) % 64 - 32) + e->position[1];
+                p[2] = (float)(env_rand(env) % 128 + 32) + e->position[2];
+                call_particle(env,e,0x7f5a,p,e->angle,e->light,0,1.0f,-1);
+            }
+            light[0] = 0.4f; light[1] = 0.3f; light[2] = 0.2f;
+            call_terrain_light(env,e,light,2); copy3(e->impact,e->position);
+        }
         break;
     case MU_SFX_MODEL_POISON:                                  /* 0x013d71c9 */
         e->blend_mesh = 1;
@@ -601,6 +616,18 @@ int mu_sfx_effect_create(mu_sfx_effect *e, int32_t type, int32_t subtype, const 
         e->direction[2] = 0.0f;
         e->position[2] = e->position[2] + 100.0f;
         break;
+    case 0x46c: { /* 0x013ca40b..0x013ca6a6, subtype 0 */
+        if (!o) { memset(e, 0, sizeof *e); return 0; }
+        e->lifetime = 100; e->blend_mesh = 0; e->blend_light = 1.0f;
+        e->gravity = 0.0f; e->scale = 12.0f; copy3(e->impact, o->position);
+        mu_sfx_call c = {0}; c.routine = MU_SFX_CALL_JOINT; c.type = 0x7f79;
+        c.owner = -2; c.scale = e->scale; c.arg7 = 30;
+        copy3(c.position,e->position); copy3(c.target,e->position); copy3(c.angle,e->angle);
+        for (int n = 0; n < 4; ++n) { c.subtype = n; env_call(env,&c,e); }
+        memset(&c, 0, sizeof c); c.routine = MU_SFX_CALL_SOUND; c.type = 0x7a;
+        c.owner = -1; c.arg8 = 0x013ca7cc; env_call(env,&c,e);
+        e->scale = 1.0f; break;
+    }
     case 0x7fd0: { /* 0x013c8b62 */
         e->lifetime = 10;
         const float offset[3] = {0.0f, -100.0f, 0.0f};
@@ -1152,7 +1179,31 @@ int mu_sfx_effect_move(mu_sfx_effect *e, const mu_sfx_env *env)
         call_particle(env, e, MU_SFX_BITMAP_FIRE, e->position, e->angle, light, 0, 1.0f, MU_SFX_NO_OWNER);
         check(env, e, MU_SFX_CALL_CHECK_ARROW);
         break;
-    case MU_SFX_MODEL_ICE:                                  /* 0x0146b979 */
+    case MU_SFX_MODEL_ICE:                                  /* 0x0146b945 */
+        if (sub == 1 || sub == 2) { /* 0x0146bbb8..0x0146bfef */
+            const mu_sfx_object *o = env_object(env,e->owner);
+            if (!o) { kill_effect(env,e); break; }
+            mu_sfx_call presence = {0}; presence.routine = MU_SFX_CALL_VISUAL_PRESENCE;
+            presence.type = 0x39; presence.owner = e->owner;
+            if (o->live && env_call(env,&presence,e)) {
+                int still = o->type == 0xa91 ? o->action >= 0x32 && o->action < 0x6f : o->action == 2;
+                e->field_68 = still ? -2 : -1;
+                if (still) e->frame = e->prior_frame = 0.0f;
+                copy3(e->position,o->position);
+                if (e->frame >= 4.0f) e->frame = 4.0f;
+                e->lifetime = 10;
+            } else e->alpha -= 0.05f;
+            if (sub == 1) {
+                e->heading_yz[1] += 20.0f;
+                e->gravity = (float)sin((double)((env ? env->world_time : 0.0f) * 0.01f)) * 20.0f + 30.0f;
+                float a[3] = {e->heading,e->heading_yz[0],e->heading_yz[1]}, v[3] = {60.0f,0,0}, m[12], p[3];
+                mu_angle_matrix(a,m); mu_vector_rotate(v,m,p);
+                for (int k = 0; k < 3; ++k) p[k] = o->position[k] + p[k];
+                p[2] += e->gravity;
+                const float white[3] = {1,1,1}; call_particle(env,e,0x7f3e,p,e->angle,white,10,2.0f,-1);
+            }
+            break;
+        }
         if (e->frame >= 5.0f) {
             e->velocity = 0.0f;
             if (smod(env_rand(env), 2) == 0) {
@@ -1257,6 +1308,16 @@ int mu_sfx_effect_move(mu_sfx_effect *e, const mu_sfx_env *env)
         call_terrain_light(env, e, light, 2);
         check(env, e, MU_SFX_CALL_CHECK_MAGIC);
         break;
+    case 0x46c: { /* 0x01463c5e..0x0146409b, ordinary-world visual */
+        const mu_sfx_object *o = env_object(env,e->owner);
+        if (!o || !o->live) { e->lifetime = -1; break; }
+        e->gravity += 90.0f;
+        copy3(e->angle,o->angle); e->heading = o->angle[0];
+        e->heading_yz[0] = o->angle[1]; e->heading_yz[1] = o->angle[2];
+        copy3(e->impact,e->position); copy3(e->position,o->position);
+        e->heading_yz[0] = e->gravity;
+        break;
+    }
     case 0x7fd0: { /* 0x01442645..0x01442b67, subtype 0 */
         for (int n = 0; n < 3; ++n) {
             const float offset[3] = {0.0f, 120.0f, 0.0f};
