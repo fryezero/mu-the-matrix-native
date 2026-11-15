@@ -108,3 +108,14 @@ command and report paths from the prior checkpoint remain in use; it still queue
 consumer modules on success. Runtime, generators and validators are unchanged. Left/next remain
 wait and inspect, native proof asset preflight, latest-main refresh as selected, one rebuilt default
 identity and item proofs, final docs/audit/PR/ready entry and cleanup. No ready entry exists.
+
+At the 12:55 checkpoint: 31/73 private rows pass with no failed/error/skipped row. Carry passes
+in 774.6 s, quality in 247.9 s, product in 180.3 s, derived in 337.7 s, scalars in 369.8 s and
+chains in 410.8 s. Owner/pre-draw checks are active. The same foreground aggregate and queued native
+consumer command are still running, with the same logs/reports. Runtime, generator and verifier
+sources remain unchanged. The proof helper now follows the exact loader convention: Item.bmd and
+special-model paths already include Data. It will retain renderer diagnostics and run extra effect-enabled
+proofs for the five producer programs. No native proof or default identity sweep has run yet.
+Next/left remain complete and inspect this aggregate/native consumers, asset-path preflight, latest-main
+affected refresh, one explicitly rebuilt before/after default sweep with item proofs, final docs/audit/PR,
+ready entry and cleanup. Do not start duplicate validators or report readiness from this checkpoint.
