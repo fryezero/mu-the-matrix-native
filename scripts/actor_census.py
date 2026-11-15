@@ -119,8 +119,11 @@ def main():
     parser.add_argument('--openers', type=Path, required=True)
     parser.add_argument('--composite-ready', action='store_true')
     parser.add_argument('--monster-ready', action='store_true')
+    parser.add_argument('--groups-ready', action='store_true', help='include ACTORS-007 checked NPC/hand-link plans')
     parser.add_argument('--plain-ready', action='store_true', help='include ACTORS-006 checked single-body plans')
     args = parser.parse_args()
+    if args.groups_ready and not args.plain_ready:
+        parser.error('--groups-ready requires --plain-ready')
     records, openers, static = collect()
     lib = recipes.library(recipes.LIBRARY)
     lib.mu_monster_class_find.argtypes = [C.c_uint32]
@@ -132,6 +135,12 @@ def main():
         path = Path(__file__).resolve().parents[1]/'docs/research/actor-admission-groups.csv'
         with path.open() as f: groups = {int(r['server_class']):r for r in csv.DictReader(f)}
         lib.mu_actor_plain_plan.argtypes = [C.c_int32, C.c_void_p]
+    group_decisions = {}
+    if args.groups_ready:
+        with (Path(__file__).resolve().parents[1]/'docs/research/actor-group-decisions.csv').open() as f:
+            group_decisions = {int(r['server_class']):r for r in csv.DictReader(f)}
+        lib.mu_actor_group_plan.argtypes = [C.c_int32, C.c_void_p]
+    checked_group_openers = collections.Counter()
     checked_openers = collections.Counter()
     rows = []
     for record in records:
@@ -162,10 +171,25 @@ def main():
                 checked_openers[('monster', record['opens'][0][1])] += 1
             value['admission_group'] = group.get('group', '')
             value['remaining_reason'] = group.get('reason', '')
+        if args.groups_ready:
+            group = group_decisions.get(record['class'], {})
+            checked = bool(lib.mu_actor_group_plan(record['class'], None))
+            if checked != (group.get('decision') == 'checked group body plan'):
+                raise ValueError('group plan and admission inventory differ')
+            if checked:
+                if not admitted: raise ValueError('group plan lacks native admission')
+                value['native'] = 'correct bounded body plan'
+                checked_group_openers[tuple(record['opens'][0])] += 1
+            if group:
+                value['remaining_reason'] = group['reason']
+                value['admission_group'] = group['group']
         rows.append(value)
     if args.plain_ready:
         for value in openers:
             value['checked_plain_body_contexts'] = checked_openers[(value['family'],value['selector'])]
+    if args.groups_ready:
+        for value in openers:
+            value['checked_group_body_contexts'] = checked_group_openers[(value['family'],value['selector'])]
     for path, values in ((args.classes, rows), (args.openers, openers)):
         with path.open('w', newline='') as out:
             writer = csv.DictWriter(out, fieldnames=list(values[0]), lineterminator="\n")
