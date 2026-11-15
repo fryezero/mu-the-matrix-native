@@ -24,8 +24,11 @@ class Plans(unittest.TestCase):
         self.assertEqual(len(admitted), 550)
         with (ROOT/'docs/research/actor-construction-census.csv').open() as f:
             census = {int(r['server_class']): r for r in csv.DictReader(f)}
+        with (ROOT/'docs/research/actor-group-decisions.csv').open() as f:
+            newer = {int(r['server_class']):r for r in csv.DictReader(f)}
+        added = sum(r['decision'] == 'checked group body plan' for r in newer.values())
         self.assertEqual(collections.Counter(r['native'] for r in census.values()), {
-            'correct bounded body plan':589, 'incomplete/unverified special passes':355, 'refused':80})
+            'correct bounded body plan':589+added, 'incomplete/unverified special passes':355-added, 'refused':80})
         for cl in range(-1, 1025):
             plan = v.Plan()
             self.assertEqual(lib.mu_actor_plain_plan(cl, C.byref(plan)), int(cl in admitted))
@@ -38,9 +41,10 @@ class Plans(unittest.TestCase):
             self.assertNotIn(cl, admitted)
         for r in groups:
             cl = int(r['server_class'])
-            self.assertEqual(census[cl]['remaining_reason'], r['reason'])
-            if cl not in admitted:
-                self.assertTrue(r['reason'])
+            current = newer.get(cl, r)
+            self.assertEqual(census[cl]['remaining_reason'], current['reason'])
+            if cl not in admitted and current['decision'] != 'checked group body plan':
+                self.assertTrue(current['reason'])
                 self.assertEqual(census[cl]['native'], 'incomplete/unverified special passes')
 
 @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'requires private-env.sh')
