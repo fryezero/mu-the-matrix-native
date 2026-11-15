@@ -129,3 +129,29 @@ Its wall was 100.47 s. Exclude `native/tests/test_native_app.py` from the portab
   tests, explicit world build, persistent proof inspection and default after identity, final docs/PR/queue
   and cleanup. A complete final handoff draft and render/comparison drivers are in task-local scratch.
 - Next: inspect all refresh row outcomes, then recheck resources before the next heavy command.
+
+### WIP after the integrated validator refresh
+
+- Done: all 74 refresh rows pass, 1,203,243 reported cases, zero failures/errors/skips, 1,318.35 s.
+  Their compiled source is `bee48677`. Sixty-nine rows disable optional mutants; five have no switch.
+  The 80-row latest-result union has 1,208,131 reported cases, with six unchanged Muun functions
+  carrying their `abf4654f` results. Local `steward-table.md` records every wall/case count/commit.
+- Running: portable affected-since preview from `abf4654f`. The previous 172-item passing portable
+  result remains recorded separately; the final source/main refresh has not run yet.
+- Left: portable refresh, private 29-test Muun run, persistent proof inspection, final rebuilt after
+  identity, completed handoff/status/PR/ready entry and removal of all task-local outputs.
+- Next: inspect the portable selection, retain fallback items, exclude the app-packaging module,
+  recheck resources and run it with two workers and MU_RECOVERY_INTEGRATION=0.
+
+### WIP portable checkpoint
+
+- Done: the refresh portable preview selects 183 items, including 175 native modules, in 94.33 s.
+  Excluding only `native/tests/test_native_app.py` leaves 182 items. Every earlier selected item remains;
+  ten added items cover incoming audio/session changes and the new Muun module. No fallback is dropped.
+- Running: portable refresh with integration disabled and two workers. Audio, environment, objects and
+  tests/ suites have passed; native modules continue without a reported failure. Logs and result prefix
+  are local `scratch/muun-visual-005/portable-refresh`. Compiled inputs remain `bee48677`.
+- Left: complete portable, run all seven private Muun modules, render/inspect persistent proofs, explicitly
+  rebuild world and compare the single default after sweep, then final docs/status/PR/ready entry/cleanup.
+- Next: inspect the portable summary, check resources, then build world and run the 29 private tests
+  under canonical private-env.sh. `proof.py` and prepared after manifests are in task-local scratch.
