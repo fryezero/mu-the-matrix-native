@@ -53,6 +53,44 @@ static inline int mu_object_audio_cue(int32_t world, int32_t id, mu_cue *cue)
     return 1;
 }
 
+/* AUDIO-004: exact command boundary. Only the already-gated play requests in
+ * the reviewed allowlist are admitted. Stops have no command here and remain
+ * refused by the runtime; they cannot be mistaken for a play of the same id. */
+#include "../../reconstructed/objects/audio_request.h"
+static inline int mu_object_audio_command_cue(int32_t world, const mu_obj_event *event, mu_cue *cue)
+{
+    if (!event || event->call != MU_OBJ_CALL_SOUND || event->count != 3 ||
+        event->args[15] != MU_AUDIO_OBJECT_TAG) return 0;
+    const uint32_t routine = event->args[13], site = event->args[14];
+    int accepted = 0;
+#define MU_OBJECT_AUDIO_SITE(w, r, s, id, owner, loop) \
+    if ((world == (w) || ((w) == 69 && world >= 70 && world <= 72) || ((w) == 80 && world == 81)) && \
+        routine == (r) && site == (s) && event->args[0] == (id) && \
+        event->args[1] == (owner) && event->args[2] == (loop)) accepted = 1;
+#include "../../reconstructed/audio/object_audio_sites.inc"
+#undef MU_OBJECT_AUDIO_SITE
+    if (!accepted) return 0;
+    memset(cue, 0, sizeof *cue);
+    cue->kind = MU_CUE_SOUND;
+    cue->handler = routine;
+    cue->u.sound.site = site;
+    cue->u.sound.id = (int32_t)event->args[0];
+    cue->u.sound.at_key = event->args[1] ? -3 : -2;
+    cue->u.sound.loop = (int32_t)event->args[2];
+    return 1;
+}
+static inline int mu_object_audio_command_deliver(mu_session *session, mu_audio_host *host,
+                                                  int32_t world, const mu_obj_event *event)
+{
+    mu_cue cue;
+    if (!mu_object_audio_command_cue(world, event, &cue)) return 0;
+    if (session)
+        mu_session_sound_emit(session, cue.handler, cue.u.sound.site, cue.u.sound.id, cue.u.sound.at_key, cue.u.sound.loop);
+    else if (host)
+        mu_audio_host_cue(host, &cue, 0);
+    return 1;
+}
+
 /* A session keeps its independent cursor even while audio is disabled. A
  * standalone host has no backlog. The caller drains after an accepted cue. */
 static inline int mu_object_audio_deliver(mu_session *session, mu_audio_host *host, int32_t world, int32_t id)

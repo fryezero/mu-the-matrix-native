@@ -1,6 +1,7 @@
 /* Ignis Volcano, world 138. Create 0x00e05afe, move 0x00e05d76, visual 0x00e07081; predicate 0x00e0895c. */
 #include "worlds_p2.h"
 #include "worlds_b_internal.h"
+#include "audio_request.h"
 int mu_ignis_create(uint8_t *o, int32_t index, int32_t world, int32_t model_actions, mu_obj_log *log)
 {
     if (world != 138 || !o) return 0;
@@ -36,6 +37,7 @@ int mu_ignis_move(uint8_t *o, int32_t index, const mu_obj_move_inputs *in, mu_ob
     const float frame = mu_obj_f32(o, MU_OBJF_FRAME);
     if ((action == 1 && 8.0f > frame) || (action == 3 && frame > 28.0f)) {
         wb_sound(log, index, 0x570, 1, 0);
+        mu_audio_ignis_request(log, action);
         return 1;
     }
     return 0;

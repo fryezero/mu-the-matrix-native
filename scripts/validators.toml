@@ -3773,3 +3773,22 @@ note = "RENDER-ITEMS-002Z: fourteen early bodies, independent states and every f
 "families.parts.cases" = 288
 "families.exits.cases" = 896
 "mutants.*" = {truthy = true}
+
+[validate_audio_objects4]
+test = "native/tests/test_audio_objects4.py::Original.test_original_commands"
+pins = ["text", "data"]
+families = ["ok_move", "bk_move", "ignis_move", "keth_directed", "premove_directed", "premove_69", "premove_70", "premove_71", "premove_72", "premove_80", "premove_81", "premove_122"]
+cases = 10093
+mutants = 10
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "1000", "--mutations", "--report", "{report}"]
+note = "AUDIO-004: 33 original object sound sites with exact routine/site/id/object/loop commands; gates, AL, OBJECT, call order and RNG retained"
+[validate_audio_objects4.expect]
+mismatches = 0
+original_sites = 33
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0
