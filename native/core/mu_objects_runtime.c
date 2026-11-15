@@ -2,6 +2,7 @@
 #include "../../reconstructed/objects/world_inner_visual.h"
 #include "../../reconstructed/objects/world_inner3_visual.h"
 #include "../../reconstructed/objects/world_inner4_visual.h"
+#include "../../reconstructed/objects/world_inner5_visual.h"
 #include "../../reconstructed/objects/world_visual_slots2.h"
 #include "mu_frame_time.h"
 /* The client's world-object lifecycle in the native session (NATIVE-OBJECTS-002,
@@ -1434,10 +1435,18 @@ static int world_inner(mu_objects *o, int32_t i, uint8_t *img, const mu_object_m
     } else if (blood) {
         mu_blood_castle_inner(img, i, o->world, time, visual_rand, posed ? inner_named_bone : NULL, &c, &log);
     } else if ((o->world >= 24 && o->world <= 29) || o->world == 36) {
+        /* Fixed authored idle hero and absent water manager, whose getter returns zero. */
+        const mu_kalima_fixture fixture = {0, {0,0,0}, NULL};
+        if (!mu_kalima_helpers(img, i, o->world, time, &fixture,
+                             posed ? inner_named_bone : inner_missing_named_bone, &c, &log))
         mu_kalima_inner(img, i, o->world, time, visual_rand,
                          posed ? inner_named_bone : inner_missing_named_bone, &c, &log);
     } else if (o->world == 39) {
-        /* Fixed authored hidden byte 0. Type 0's tower context is refused by the producer. */
+        /* Fixed authored hidden byte 0 for the nonzero tower types. */
+        /* Fixed authored inactive sequence. Mutated outputs are local to this draw fixture. */
+        mu_tower_fixture fixture = {.phase = -1};
+        if (!mu_tower_zero(img, i, o->world, &fixture, visual_rand,
+                           posed ? test_area_bone : inner_missing_bone, &c, &log))
         mu_tower_inner(img, i, o->world, time, 0, visual_rand,
                         posed ? test_area_bone : inner_missing_bone, &c, &log);
     } else if (o->world == 30) {

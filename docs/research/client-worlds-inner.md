@@ -373,3 +373,97 @@ admitted extra RGBA pass; Remain 38 remains 6.190 at default clock and 6.192 at 
 Kalima grids are water-occluded with no changed pixels; a separate seven-type proof at authored Z=500
 visibly shows the glow/plume/spray and changes 46,966 pixels per alias. Crywolf, tower, Barracks and Refuge
 have visible authored proof deltas. These layouts do not establish original placement or event fidelity.
+
+## RENDER-WORLDS-INNER-005 starting classification
+
+The complete active switch sets below were reread from pinned instructions before implementation.
+There is no unimplemented uniform group left. INNER-004's uniform groups are already admitted;
+this lane has three Kalima helper rows and one tower singleton/sequence row.
+
+| World | Types, decimal | INNER-004 state | Missing dependency at start |
+|---|---|---|---|
+| 24..29/36 | 12,35,36,37,38,39,40 | Seven admitted | None in the bounded visual leaf |
+| 24..29/36 | 15,29 | Refused | Hero action/position in `0x00dfa988`; direction/head-angle damping and position/angle writes; water manager sampler in `0x00deeb4e` |
+| 24..29/36 | 32 | Refused | Same motion/water helpers, plus Bone02 sprite before water Z write |
+| 39 | 1,5,11,32,46,47,48,49,50,52,53,54,74 | Thirteen admitted | Consumer refusals remain separate |
+| 39 | 0 | Refused | Singleton fields +0x7c/+0x80/+0x89/+0x8a; nested `0x00e8d888` phase, burst/sequence counters, hero position and three timer answers; bone 34/other indexed transforms and effect consumers |
+| 46/98 | No leaf identified | Refused | Registry lookup in `0x00ea2dc1`; registration and handler object/vtable context need a wider static trace |
+
+Unlisted types take the original default branch and produce no inner request. This table counts active
+branches, not all object models or whole-world behavior. Entry/guard addresses remain those in INNER-004.
+
+### Recovered helper context
+
+Kalima motion `0x00dfa988..0x00dfae3f` first copies hero position at +0x33ac, then accepts hero action
++0x327e in [0x32,0x6f). If direction.x < 0.1 and planar distance < 50, direction.xy becomes
+minus the hero delta times 0.6 and direction.z becomes zero. It damps all direction and head-angle
+components by 0.6, then adds them to position and angle. All intermediates are binary32.
+Types 15/29 then sample water and set Z to the result +180. Type 32 first emits the same owned Bone02
+0x7ef7 glow as type 12, with the current pose, then samples and writes Z.
+
+The water wrapper `0x00deeb4e..0x00deeba3` clamps negative X/Y to zero. Global `0x01ec9188` selects a
+manager whose `0x009f9b67` sampler returns the height; a null manager returns exact zero. The sampler
+is an explicit authored input boundary. Its simulation is not reconstructed here. Native production
+uses a fixed authored idle hero and null water manager, so it executes the original null-manager
+branch and writes Z=180. This fixture is not a claim about original Kalima water state. Missing whole
+context still refuses before writes, and a missing Bone02 refuses only its dependent sprite.
+
+Tower type 0 `0x00e84a02..0x00e84c77` reads singleton +0x7c/+0x80 and byte accessors at +0x89/+0x8a.
+The getter is `0x009a6ef3`, byte readers `0x009a65b2` / `0x009a65d6`, setters `0x009a65c2` /
+`0x009a65e6`. It writes hidden mesh 0 while inactive; stage 3..18 fixes Z=-749.5. The rising
+branch clamps at that level, clears rising, draws one random shake and increments Z by 13. The other
+branch transforms bone 34 with two random offsets, emitting 0x7f5a/43 only for frame [5,12.5).
+Stage 18 or mode 1 then fixes Z=-2749.5. The nested sequence always follows.
+
+Nested `0x00e8d888..0x00e8e4e4` reads/writes phase `0x01cf0e98`, emit byte `0x01ec91ae`, burst
+counter `0x01ec91b0` and sequence counter `0x01ec91b4`. Active forces phase 2. Phase 0 requests
+one 0x4be/0 and 100 random 0x419/2 or 0x41a/2 effects around the authored hero, then sets phase -1.
+Phase 1 emits ten paired falling effects, gated by emit/burst and timer 0, resetting after four bursts.
+Phase 2 covers sequence 0's random bone puffs, sequences 1/3's three 0x4bf/0 requests, sequences 2/4's
+three paired smoke/fire requests, and terminal clearing at sequence >=5. Timer instance
+`0x00c74245` and answer `0x01185396` remain explicit authored inputs, with original argument checks.
+Three overwritten random offsets in sequence 0 still consume RNG. Production fixes the entire
+sequence inactive, phase -1, mode/stage zero. State changes in active comparisons are local fixture
+outputs, not a native event controller. Sound boundaries 0x2bf/0x2c0/0x2c1 are visual-only here.
+
+New consumer requests that remain refused on the starting main are particle pairs 0x7f5a/43,
+0x7f54/1, 0x7f5a/47 and effect pairs 0x4be/0, 0x419/2, 0x41a/2, 0x4c0/0, 0x4c1/0, 0x4c2/0,
+0x4c5/0x4c0, 0x4c5/0x4c1, 0x4c5/0x4c2, 0x4bf/0. These thirteen pairs belong to the effect-consumer
+lane. This lane adds producers only.
+
+### Wider 46/98 registry trace
+
+Static constructor path `0x00ea261d..0x00ea26bd` allocates a 0x1c-byte manager, calls constructor
+`0x00ea58f1`, then calls factory `0x00ea488e`. The factory creates the same 48 concrete handler
+objects and their constructor-installed vtables recorded in world-handler-coverage.json.
+`0x00ea8cf9` adds a world to a handler's +8 list, after its duplicate check `0x00d806b0`.
+Manager registration `0x00ea4452..0x00ea4543` obtains that handler's world list through
+`0x00ea8d7e`, walks it and assigns the same shared object into manager+4's world-keyed map via
+`0x00ea8bbe` / `0x00ea8a8c`. Thus a registration carries a specific constructed object and its vtable,
+not a world-derived leaf address.
+
+A whole-pinned-text direct-call scan finds 57 calls to the world-list adder and 48 calls to manager
+registration, all inside the factory. Neither world 46 nor 98 is in those handler lists. The common
+chain `0x017fcb5c..0x017fccbc` has no dedicated leaf for them. The manager checks key presence,
+nonempty shared object and enabled flag, then invokes that object's vtable +0x34 at `0x00ea2eba`.
+There is no statically identified 46/98 handler object or vtable to name. Indirect registration or
+runtime-created context is not disproved by the direct-call census. Both rows therefore stay counted
+refusals. The private registry test checks the factory inventory and both whole-text caller sets.
+
+### INNER-005 final verification
+
+Four families pass 4,000 original comparisons, zero mismatches/stops. All 37 compiled mutants are caught,
+minimum 18 detections, zero stopped controls. The final 76 selected validator rows pass; 31 overlaps
+are refreshed after batch-115 main integration. Portable checks finish with 1,554 passed / 344 expected
+skips, zero failures/errors; 25 incoming/focused private checks pass without skips, using reduced 8d.
+The app-packaging module is excluded as required.
+
+All 46 default capture views preserve 92 PNGs, 92 OBJECT/light dumps and 46 normalized reports. The
+integrated 55-view after replay preserves all 220 PNG/dump hashes and 55 reports. Remain stays 6.190,
+share-off 0.0568. Every Kalima alias's helper proof creates 25 sprites and draws one last-frame Bone02
+glow, with context refusals 75 -> 0 and 2,174 changed last-frame pixels. Tower's fixed inactive hidden
+mesh 0 changes 220,412 last-frame pixels, context refusals 25 -> 0; its sampled animation range emits
+no puff, and no particle gain is claimed. All models load in the scoped proof layouts. Fixed fixtures
+do not establish original placement, active event/water authority or temporal equivalence.
+
+[Exact walls, source commits, fixture layouts, consumer IDs and cleanup](../handoffs/RENDER-WORLDS-INNER-005.md).
