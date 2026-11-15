@@ -711,6 +711,9 @@ static int skill32_admitted(const mu_combat *c, int32_t skill)
 {
     if (!mu_skill32_select(skill, skill) ||
         mu_skill32_action(skill, c->walk->hero.class_byte, &c->skill32_context) < 0) return 0;
+    /* The default step's exceptional hero item 0x815 has a separate spark
+     * burst. It is outside this fixture request subset (item = 0xae6 + 0x815). */
+    if ((skill == 18 || (skill >= 30 && skill <= 36)) && c->weapon_item[0] == 0x12fb) return 0;
     const mu_skill_hero *hero = c->session ? mu_skill_book_hero(mu_session_skills(c->session)) : NULL;
     return hero && mu_skill32_learned(skill, hero->skills, hero->count);
 }

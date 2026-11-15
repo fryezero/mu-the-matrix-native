@@ -257,3 +257,15 @@ worktree and local branch; retain the remote PR branch. No new private input
 needs retaining. Local paths before cleanup are the matching
 `~/Documents/MTM/mu-mac-tools/native/scratch/render-effects-032/` and
 `renders/render-effects-032/` directories.
+
+
+## WIP checkpoint 00:38, 2026-11-15
+
+UI-WINDOWS-003 #391 main a95880c4 is integrated through 28788cfc.
+All 13 affected UI delta validators pass without mutant reruns (168.14 s).
+Final review found that the default-step special hero item 0x815 needed an
+explicit native admission refusal; configured weapon 0x12fb is now refused
+for Defense and summons, with neighboring ordinary-item positive controls.
+Combined portable/private checks, the small admission delta validators,
+after-only fixture/default replays and final audit remain pending.
+No new pure comparator mutant targets changed.

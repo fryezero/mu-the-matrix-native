@@ -39,7 +39,10 @@ Summons' seven learned IDs all select the same end body. Actor construction,
 which would give the summon its primary body and lifetime, belongs to the actor
 lane. The ground subtype 3 is also absent from the native effect consumer.
 The default step ends AttackTime at frame >=5 for Player actions 0x6f..0x132.
-The exceptional hero item 0x815 is outside authored admission. One refused
+The exceptional hero item 0x815 is outside authored admission: native admission
+refuses configured weapon 0x12fb for Defense and the seven summons, whose
+default step would otherwise emit the separate special-item spark burst.
+A neighboring ordinary-item positive control remains admitted. One refused
 ground request is counted per cast. No summoned actor is fabricated.
 
 Crescent Moon Slash draws six CRT words per step. The first two jitter x/y by
