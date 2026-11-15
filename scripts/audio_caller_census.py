@@ -133,6 +133,9 @@ def call_sites(text):
 def inventory(text, data, root=ROOT):
     starts = [BASE + m.start() for m in re.finditer(b'\x55\x8b\xec', text)]
     owners = dict(OWNERS)
+    from audio_owner_groups import semantic_owners
+    extra_owners, _ = semantic_owners(text, data)
+    for entry, owner in extra_owners.items():owners.setdefault(entry, owner)
     # Slot 0x70 is the class monster-sound selector. Static only: these
     # selectors have no corresponding migrated generic native consumer.
     coverage = json.loads((root/'docs/research/world-handler-coverage.json').read_text())
@@ -185,6 +188,10 @@ def inventory(text, data, root=ROOT):
     selected = {}
     for routine,model,action,site,sound,obj,loop in monster_rows:
         selected.setdefault(int(site,16), dict(routine=routine, id=int(sound), models=set()))['models'].add(int(model))
+    ext = (root/'reconstructed/audio/monster_audio_extended.inc').read_text()
+    extended_sites = {}
+    for m in re.finditer(r'MU_AUDIO_EXT_SOUND\(\d+, (0x[0-9a-f]+)u, (\d+),',ext):
+        extended_sites.setdefault(int(m[1],16),set()).add(int(m[2]))
     kubera = {0xe1a071:0x4f4, 0xe1a0a4:0x4f3, 0xe1a2ca:0x4f1, 0xe1a38d:0x4f2}
     from capstone import Cs, CS_ARCH_X86, CS_MODE_32
     md = Cs(CS_ARCH_X86, CS_MODE_32)
@@ -217,20 +224,22 @@ def inventory(text, data, root=ROOT):
             except ValueError: pass
         rows.append({'site': f'0x{site:08x}', 'anchor': f'0x{anchor:08x}',
                      'owner': domain, 'source': source,
-                     'native_reference': bool(selector) or site in kubera or bool(refs) or source.startswith(('reconstructed/', 'native/')),
+                     'native_reference': site in extended_sites or bool(selector) or site in kubera or bool(refs) or source.startswith(('reconstructed/', 'native/')),
                      'audio_adapter': site in delivered or anchor == 0x1851d39 or anchor == 0xdb3e26,
                      'audio_003_adapter': site in added,
                      'audio_004_adapter': command is not None,
                      'audio_005_selector': selector is not None,
+                     'audio_006_adapter': site in extended_sites,
                      'audio_005_adapter': wired005,
                      'audio_005_refused_models': sorted(m for m in selector['models'] if not 0x7a5 <= m < 0x9fe or m in (0x90a,0x90b,0x90c)) if selector else [],
                      'audio_005_limit': 'fixture-loaded actor; world/server-class construction remains separate' if selector and wired005 else 'effect model 0x356 has no native actor' if selector else 'complete Kubera move; ordered stop/play' if site in kubera else '',
                      'original_routine': command['routine'] if command else selector['routine'] if selector else '0x00e19ed0' if site in kubera else f'0x{anchor:08x}',
                      'routine_status': 'reviewed' if domain != 'unresolved' else 'prologue grouping only',
-                     'gate': 'instruction-compared owner; see AUDIO-004 gate table' if command else 'instruction-compared AUDIO-005 selector; fixture actor inputs' if selector else 'instruction-compared Kubera move and stop/play order' if site in kubera else 'not reviewed by AUDIO-004/005; retain prior disposition',
-                     'sound_id': command['id'] if command else selector['id'] if selector else kubera[site] if site in kubera else literal,
-                     'sound_id_status': 'compared' if command or selector or site in kubera else 'static push candidate' if literal is not None else 'unresolved',
-                     'native_owner': 'complete compared owner' if command or site in kubera else 'complete compared selector; fixture actor only' if selector else 'bounded reference only' if bool(refs) or source.startswith(('reconstructed/', 'native/')) else 'unresolved' if domain == 'unresolved' else 'no bounded native reference'})
+                     'gate': 'instruction-compared AUDIO-006 whole owner and RNG; fixture actor inputs' if site in extended_sites else 'instruction-compared owner; see AUDIO-004 gate table' if command else 'instruction-compared AUDIO-005 selector; fixture actor inputs' if selector else 'instruction-compared Kubera move and stop/play order' if site in kubera else 'not reviewed by AUDIO-004/005; retain prior disposition',
+                     'sound_ids': sorted(extended_sites.get(site,())),
+                     'sound_id': next(iter(extended_sites[site])) if site in extended_sites and len(extended_sites[site])==1 else None if site in extended_sites else command['id'] if command else selector['id'] if selector else kubera[site] if site in kubera else literal,
+                     'sound_id_status': 'compared' if site in extended_sites or command or selector or site in kubera else 'static push candidate' if literal is not None else 'unresolved',
+                     'native_owner': 'complete compared AUDIO-006 owner; fixture actor only' if site in extended_sites else 'complete compared owner' if command or site in kubera else 'complete compared selector; fixture actor only' if selector else 'bounded reference only' if bool(refs) or source.startswith(('reconstructed/', 'native/')) else 'unresolved' if domain == 'unresolved' else 'no bounded native reference'})
     counts = Counter((r['owner'], r['native_reference']) for r in rows)
     return {'method': 'direct E8 candidates; exact anchors with explicit unresolved remainder',
             'text_sha256': pins.TEXT.sha256, 'data_sha256': pins.DATA.sha256, 'total': len(rows),
@@ -240,6 +249,7 @@ def inventory(text, data, root=ROOT):
             'audio_005_selector_sites': sum(r['audio_005_selector'] for r in rows),
             'audio_005_sites': sum(r['audio_005_adapter'] for r in rows),
             'audio_005_stop_sites': 2,
+            'audio_006_sites': sum(r['audio_006_adapter'] for r in rows),
             'summary': [{'owner': owner, 'native_reference': native, 'sites': n}
                         for (owner, native), n in sorted(counts.items())], 'sites': rows}
 

@@ -3941,3 +3941,20 @@ note = "RENDER-ITEMS-002Z: fourteen early bodies, independent states and every f
 "families.parts.cases" = 288
 "families.exits.cases" = 896
 "mutants.*" = {truthy = true}
+
+[validate_audio_monsters6]
+test = "native/tests/test_audio_monsters6.py::Original.test_whole_table"
+pins = ["text", "data"]
+families = ["whole_owners", "dispatcher", "caller_tails"]
+cases_at = "cases"
+mutants = 12
+mutants_at = "mutants"
+build = ["reconstructed/audio"]
+args = ["--cases", "1000", "--mutations", "--report", "{report}"]
+note = "AUDIO-006: complete world/distance/random owners, every emitted leaf and ordered requests; missing fields/delegates remain refused"
+[validate_audio_monsters6.expect]
+mismatches = 0
+stops = 0
+sites = 182
+owners = 11
+"mutants.*" = {all_min = 1}
