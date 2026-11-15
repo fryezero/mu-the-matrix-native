@@ -18,7 +18,9 @@ import pins
 from survey_ui_routes import census, number, TEXT_BASE, DATA_BASE, MANAGER
 
 
-def indirect_routes(text, data, registry, direct, getters):
+def indirect_routes(text, data, registry, direct, getters, extra=None):
+    # extra: {slot: {vtable offset}} of proved self-opening virtual methods (third pass); default: +0x40/+0x44 only.
+    extra=extra or {}
     md=Cs(CS_ARCH_X86,CS_MODE_32);md.detail=True
     windows={r['slot']:r for r in registry}
     found={}
@@ -59,7 +61,7 @@ def indirect_routes(text, data, registry, direct, getters):
         base=state.get(m[1]);off=int(m[2] or '0',16)
         if base==('manager',0) and off in windows:return ('window',off)
         if base and base[0]=='window' and off==0:return ('vtable',base[1])
-        if base and base[0]=='vtable' and off in (0x40,0x44):return ('method',base[1],off)
+        if base and base[0]=='vtable' and (off in (0x40,0x44) or off in extra.get(base[1],())):return ('method',base[1],off)
         return None
     for start in direct.get(MANAGER,[]):
         # Path-local facts avoid merging an identity from one arm into another.
@@ -89,7 +91,7 @@ def indirect_routes(text, data, registry, direct, getters):
                 if receiver and receiver[0]=='window' and receiver[1] in windows:
                     slot=receiver[1]
                     if target==0xaae767:action='toggle'
-                    elif method and method[:2]==('method',slot):action='open' if method[2]==0x40 else 'close'
+                    elif method and method[:2]==('method',slot):action='close' if method[2]==0x44 else 'open'
                     elif target in windows[slot]['lifecycle']:
                         action='open' if target==windows[slot]['lifecycle'][0] else 'close'
                 if action:
