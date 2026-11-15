@@ -23,7 +23,7 @@ class Host(unittest.TestCase):
         p=subprocess.run([str(ROOT/'native/build/muun-mount-host'),str(root),str(lang),str(code)],
                          check=True,capture_output=True,text=True,cwd=ROOT)
         r=json.loads(p.stdout)
-        for key in ('poses','exact','controls','bones','retired'):self.assertEqual(r[key],1,(key,r))
+        for key in ('poses','exact','controls','bones','retired','rider_controls','style_controls','particle_controls'):self.assertEqual(r[key],1,(key,r))
         self.assertEqual(r['refused_bones'],0,r)
         return r
 
@@ -57,6 +57,7 @@ class Installed(Host):
 @unittest.skipUnless(PRIVATE,'requires pinned instructions and installed kind-1 mesh records')
 class BaseMeshes(unittest.TestCase):
     def test_kind1_base_mesh_callers(self):
+        subprocess.run(['make','-s','-C',str(ROOT/'reconstructed/data')],check=True,capture_output=True)
         sys.path.insert(0,str(ROOT/'scripts'))
         import validate_muun_passes as vp
         records=vp.decoded('MuunRenderInfo.bmd');meshes=vp.decoded('MuunMeshInfo.bmd')

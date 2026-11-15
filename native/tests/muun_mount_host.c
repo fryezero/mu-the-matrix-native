@@ -23,6 +23,24 @@ int main(int argc, char **argv)
             m->model.params.body_scale,expected);expected[2]+=30.0f;
         exact &= !memcmp(expected,m->attachment,sizeof expected) && !memcmp(m->model.params.origin,o.position,sizeof o.position);
     }
+    int rider_controls=1,style_controls=1;
+    float rider_position[3];
+    rider_controls &= mu_muun_mount_rider_position(m,0x26,o.position,rider_position);
+    for (int k=0;k<3;++k) rider_controls &= rider_position[k] == o.position[k]+m->attachment[k];
+    rider_controls &= !mu_muun_mount_rider_position(m,1,o.position,rider_position);
+    mu_muun_mount_style(m,2,1);
+    m->fade.alpha=m->fade.alpha_target=0.05f;
+    mu_muun_mount_step(m,v,0x26);mu_muun_mount_frame(m,v,&o,v->info.item,0,0,0,1);
+    style_controls &= m->render_mode==10 && m->fade.alpha==-0.05f && m->fade.blend_light==m->fade.alpha;
+    mu_muun_mount_style(m,1,0);m->fade.alpha=m->fade.alpha_target=1.0f;
+    mu_world_particles *particles=calloc(1,sizeof *particles);
+    if (!particles || mu_world_particles_open(particles,argv[1],NULL,0,123,1,error,sizeof error)) return 1;
+    for (int k=0;k<16;++k) mu_muun_mount_emit(m,particles);
+    long particle_requests=m->particle_requests,particle_created=m->particle_created,particle_refused=m->particle_refused;
+    int particle_controls=particle_requests==particle_created+particle_refused && particle_requests>0;
+    m->visible=0;mu_muun_mount_emit(m,particles);particle_controls &= particle_requests==m->particle_requests;
+    mu_muun_mount_frame(m,v,&o,v->info.item,0,0,0,1);
+    mu_world_particles_close(particles);free(particles);
     int bone=m->bone,bones=1;
     for (int bad=0;bad<3;++bad) {
         m->bone=bad==0 ? -1 : (bad==1 ? m->bmd.bone_count : bone);
@@ -49,7 +67,7 @@ int main(int argc, char **argv)
         retired &= !v->live && !m->visible;
         o.live=1;
     }
-    printf("{\"code\":%d,\"model\":%d,\"missing\":%d,\"bone\":%d,\"refused_bones\":%ld,\"poses\":%d,\"exact\":%d,\"controls\":%d,\"bones\":%d,\"retired\":%d}\n",
-        code,m->model_code,m->textures.missing,m->bone,m->refused_bones,poses,exact,controls,bones,retired);
+    printf("{\"rider_controls\":%d,\"style_controls\":%d,\"particle_controls\":%d,\"particle_requests\":%ld,\"particle_created\":%ld,\"particle_refused\":%ld,\"code\":%d,\"model\":%d,\"missing\":%d,\"bone\":%d,\"refused_bones\":%ld,\"poses\":%d,\"exact\":%d,\"controls\":%d,\"bones\":%d,\"retired\":%d}\n",
+        rider_controls,style_controls,particle_controls,particle_requests,particle_created,particle_refused,code,m->model_code,m->textures.missing,m->bone,m->refused_bones,poses,exact,controls,bones,retired);
     mu_muun_mount_close(m);mu_muun_visual_close(v);free(m);free(v);return 0;
 }

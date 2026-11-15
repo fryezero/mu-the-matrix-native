@@ -3802,6 +3802,7 @@ note = "INNER-004: complete Crywolf/Barracks leaves and bounded Kalima/tower inl
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
 
+<<<<<<< HEAD
 [validate_worlds_inner5]
 test = "reconstructed/objects/test_worlds_inner5.py::ClientComparison.test_original"
 pins = ["text", "data"]
@@ -3818,3 +3819,65 @@ note = "INNER-005: Kalima 15/29/32 including hero motion and authored water samp
 "families.*.stopped" = 0
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
+=======
+[validate_render_effects32]
+test = "native/tests/test_render_effects32.py::Original.test_original_remaining_callers"
+pins = ["text", "data"]
+families = ["step", "end", "start", "poses", "admission", "learned", "selector", "interleaving"]
+cases = 1723
+mutants = 31
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/combat"]
+args = ["--cases", "100", "--mutations", "--output", "{report}"]
+note = "RENDER-EFFECTS-032: ten remaining learned caller rows, exact requests/defaults/sounds, shield/mount and wing/kind poses; authored active learned admission; no new consumers"
+[validate_render_effects32.expect]
+all_equal = true
+all_mutants_caught = true
+"mutants.*.stopped" = 0
+
+[validate_actor_plain]
+test = "native/tests/test_actor_plain.py::ClientComparison.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["defaults", "constructor", "openers", "caller", "native", "render", "draw", "plans", "reproducible"]
+cases = 21437
+mutants = 9
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/actors", "reconstructed/renderchar", "native"]
+build_targets = { native = ["build/libmunative.a", "build/libmusession_world.a"] }
+args = ["--cases", "200", "--mutations", "--output", "{report}"]
+note = "RENDER-ACTORS-006: 550 instruction-checked generated single-body plans, 51 actual model/texture sets, per-row constructor/opener/28 caller contexts; sprite emitters execute and nonuniform rows stay incomplete"
+[validate_actor_plain.expect]
+all_equal = true
+all_mutants_caught = true
+"mutants.*.stopped" = 0
+
+[validate_muun_riding]
+test = "native/tests/test_muun_riding.py::Original.test_instruction_comparison"
+pins = ["text", "data"]
+families = ["lift", "placement", "fade", "render", "particles", "transition", "buff_mesh"]
+cases = 890
+mutants = 22
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/muun"]
+args = ["--cases", "200", "--mutations", "--output", "{report}"]
+[validate_muun_riding.expect]
+all_equal = true
+all_mutants_caught = true
+
+[validate_muun_special]
+test = "native/tests/test_muun_special.py::Original.test_instruction_comparison"
+pins = ["text", "data"]
+families = ["mesh", "refusal", "installed", "ordered"]
+cases = 452
+mutants = 17
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/muun"]
+args = ["--cases", "200", "--installed", "--mutations", "--output", "{report}"]
+[validate_muun_special.expect]
+all_equal = true
+all_mutants_caught = true
+>>>>>>> origin/main
