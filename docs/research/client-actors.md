@@ -664,6 +664,9 @@ mixed special/equipment contexts need joints and a right weapon; the four
 special/bitmap/equipment contexts also need bitmap consumers. Four bitmap and
 equipment contexts select both weapons. The four secondary contexts split into
 two type-226 death-effect lifetimes and two NPC secondary-model consumers.
+Classes 1/10 also need their sword-sprite caller after the right weapon; class 5
+needs that sprite after both weapons. The refined groups keep these three
+separate from the other weapon-only plans.
 These labels describe missing checked plans, not a claim that every associated
 native feature is absent. All 905 original rows occur exactly once in this
 refined grouping: 550 now checked, 355 still incomplete. The remaining eighty

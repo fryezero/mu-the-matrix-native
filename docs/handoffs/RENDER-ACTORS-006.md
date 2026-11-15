@@ -149,3 +149,14 @@ recheck only its affected compiled inputs, run the permitted portable delta,
 private 8d reduced, identity/proofs and final docs/audit, then publish/queue/clean.
 No PR or ready entry exists. The nine actor controls remain at `d3688570`; their
 target source is unchanged by the renderer integration.
+
+Checkpoint 2026-11-15 00:58: main through UI-WINDOWS-003 `a95880c4` is integrated
+as `04879bea`. Its nine affected validator rows pass, 128.15 s plus a
+120 s resource wait. The earlier 27-row integration replay also passes,
+390.73 s plus a 60 s wait. Final selected coverage is 29 rows / 138,721
+checks with zero failures/errors/skips. Per-row tested commits are retained.
+The refined census separates classes 1/5/10 sword-sprite work and partitions
+all 905 initial rows into thirty groups. Portable integration is waiting on
+load; the wrapper excludes temporary app packaging. Left: permitted portable
+integration, private 8d reduced, identity/proofs, final docs/audit and PR/ready
+publication and cleanup. No PR or ready entry exists yet.
