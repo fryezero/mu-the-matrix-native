@@ -3536,3 +3536,104 @@ Comparisons remain finite and context-bounded. Existing record, selected-item, b
 invalid-context, absolute random/counter-phase and consumer refusals remain. No original pose/pixel
 or whole-client equivalence is claimed. No original-client process, service, packet, protection,
 character-power or installed-app work is involved.
+
+## Part 41, packed helper levels and grouped remainder, RENDER-ITEMS-002AA
+
+Offline/static work over pinned text SHA-256
+`2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724` and data SHA-256
+`c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f`.
+[Handoff and checks](../handoffs/RENDER-ITEMS-002AA.md).
+
+The [194-row ledger](item-body-groups-002aa.tsv) preserves every inherited type, helper/draw address,
+stopped fixture address and refusal reason. Fifty bodies are admitted: 32 packed-level
+random programs, nine low-level callers, four clock falloffs and five complete pre-draw programs.
+The denominator remains 1,674. The total is 1,530; final checks, native proofs and remaining groups are recorded in the handoff.
+
+### Packed caller word
+
+The high helper callers push RenderObjDraw argument `+0x18` at `0x017e1f12` and `0x017e25ea`.
+It is the packed item-level word. For example, `0x01750a43` compares helper argument `+0x28`
+with signed nine; `0x01750a47` branches into the quantized colour draws. Other bodies use the
+inverse `jl` form and join their local vector cleanup, e.g. `0x0171a9c0..0x0171a9ca`.
+
+Quality and the effective glow level first select whether the caller supplies that word. The ordinary
+low path supplies `-1`. A kind-B record can force the high caller while the raw decoded level is seven;
+its packed value 56 passes the helper's comparison. Packed eight and nine both decode to level one,
+but only nine passes. The scalar remap function keeps its existing contract.
+
+Recipe `level_split=2` retains this signed packed-word predicate after the existing quality/effective
+helper gates. Mode 1 retains the earlier decoded-level form. The generator separates both base render
+flag phases before fitting the random programs and their phase masks. It does not enable random draws
+in a low phase to make a fit pass. The existing eight recipe phases, 24-scalar, twelve-operation,
+sixteen-draw and 512-KiB audit limits are unchanged.
+
+The complete 34-body screen fits 32. Two swords, `0x0b38/0x0b39`, still fail their scalar recipes and
+remain excluded. Twenty-four fitted shield bodies need the existing model-carry mechanism. Independent
+checks cover every low option bit, signed and overflow-domain packed words, both forcing records,
+qualities, random edges, clocks and final model fields. Original guard probes distinguish the packed
+word from both the decoded level and the effective glow level. Final results are in the handoff.
+
+### Low-level caller and clock forms
+
+The nine callers at `0x017de4c2..0x017deb61` set body light to the input or its binary32 0.9 product,
+then issue the body call followed by colour calls `(alpha, brightness)=(1.5,1.5)` and `(1,1)`, with
+flags `keep|0x240` and `keep|0x1040`. They preserve the entry model shade and level. The strict reader
+checks every dispatch, setter, operand, constant and call in the five shared blocks. Their independent
+model-exit comparisons pass in the final row.
+
+Clock operation 37 reads the complete checked default-one/reverse-subtraction/positive-zero-clamp form.
+The threshold and reverse-subtraction constant occupy the two halves of its existing 64-bit operand.
+Both branch joins, the binary32 divide by exactly one and the final comparison/store are checked before
+the reader follows the join. Unsupported neighbouring forms refuse. It admits `0x0b47`, `0x0b49`,
+`0x1323` and `0x154a`; their complete positive periods and directed negative clocks are compared.
+
+### Producers and remaining boundaries
+
+The five complete pre-draw producers are `0x0f22`, `0x0f23`, `0x0f25` and `0x24be/0x24bf`.
+They retain the original names, bone lookup, request order, scalar rounding, random use and refusals.
+No particle, joint or effect consumer is added. Invalid-bone/context refusals in the owned comparison
+are separate from missing native consumers and assets.
+
+The static request inventory resolves all bitmap expressions in these five programs. At main
+`8844d3e9`, eleven particle pairs are requested: three supported and eight missing. Requests retain
+their original order and arguments; RENDER-EFFECTS-033 owns the missing consumers.
+
+| Producer types | Supported particle pairs | Missing particle pairs |
+|---|---|---|
+| `0x0f22` | None | `0x855d/2`, `0x7fe0/0xa` |
+| `0x0f23` | `0x8081/9`, `0x8082/9`, `0x8083/9` | `0x8616/0` |
+| `0x0f25` | None | `0x84d1/2`, `0x850b/5` |
+| `0x24be`, `0x24bf` | None | `0x8080/0xe`, `0x807e/0xe`, `0x807f/0xe` |
+
+The 320 owned comparison cases count 2,834 deliberate invalid-bone/context refusals, 4,510 sprites,
+455 particle requests and 1,255 random draws. That refusal number does not measure missing native
+consumers. Native effect-enabled proof counts are recorded separately in the handoff.
+
+All fifty exact model paths resolve. The native proofs cover 63 states on each side: all old body
+refusal counters clear, and all raw pixel hashes change. Five effect-enabled states preserve eight
+consumer refusals and create/draw one supported particle. All 230 default artifacts from 46 saved
+views remain identical against explicitly rebuilt current main. These are native comparisons; an
+original-client pose/pixel score is not claimed.
+
+The remainder is 144: fifty producer/service programs, 24 unread scalar/colour programs,
+eighteen variable body draw counts, seventeen helper callers, twelve stopped original fixtures, ten
+matrix-stack programs, ten retained independent failures and three entry/helper model-state programs.
+The ledger retains more specific per-row causes inside these groups. `0x1710`, `0x10fd`, the four largest
+shield candidates and the four armour-overlay candidates remain refused. A failed independent fit is
+never replaced by a successful sample fit. No original-client process, network, protection, character-power
+feature, installed app or Native Data refresh is involved.
+
+
+### HERO-ITEMS-002 leads, research only
+
+The current loader in `native/world/world_rt.c` still starts ordinary body parts and item textures at
+slot one. In contrast, `mu_character_pose` iterates through slot zero and the world hero draw loop can
+draw any loaded slot. The existing `mu_he_head_type` computes the seventeen-helm class-head mapping.
+A future head-slot lane should trace the record-to-load boundary and head suppression before changing
+that adapter; this lane adds no head draw or actor behavior.
+
+The earlier `HERO-ITEMS-001` leads remain `0x009dadf1` for the castle-world weapon override selected by
+`0x009dacb8`, and the remaining `0x01394f6f` visual scale writes (`+0x32f4`, part floats `+0x288`).
+These are static source/research pointers, without a new original-instruction comparison in this lane.
+Do not copy the older handoff's superseded inventory/record-format limits into a new scope. The stat
+machine and service state remain excluded. No hero-equipment or native renderchar adapter code is changed here.

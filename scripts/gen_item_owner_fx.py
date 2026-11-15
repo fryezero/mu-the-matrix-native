@@ -85,6 +85,8 @@ LATER_READ_PROGRAM_TYPES = [0x0b4d, 0x1314, 0x230d, 0x23f0, 0x23f2, 0x2497]
 CYCLE_PROGRAM_TYPES = [0x0b51]  # RENDER-ITEMS-002Z: instruction-checked piecewise colour.
 READ_PROGRAM_TYPES += LATER_READ_PROGRAM_TYPES + CYCLE_PROGRAM_TYPES
 PRE_FX_TYPES += READ_PROGRAM_TYPES
+# RENDER-ITEMS-002AA: separately compared complete pre-draw programs.
+REMAINDER_PROGRAM_TYPES = [0x0f22, 0x0f23, 0x0f25, 0x24be, 0x24bf]
 
 # RENDER-ITEMS-002T: owner blocks after the draws in RenderPartObjectBody's case that use the pre-draw idioms
 # (post programs, run where the owner programs run): bow 0x130d (TransformPosition 0x012b6ef1 on the OBJECT's own
@@ -1646,7 +1648,7 @@ def render(programs, pre=None):
 def extract_pre_all(types=None):
     wa = tuple(pin.read() for pin in (pins.TEXT, pins.DATA, pins.FLAG, pins.FEATURE))
     out, refused = {}, {}
-    for t in PRE_FX_TYPES if types is None else types:
+    for t in PRE_FX_TYPES + REMAINDER_PROGRAM_TYPES if types is None else types:
         try:
             out[t] = extract_pre(wa, t)
         except Refused as e:

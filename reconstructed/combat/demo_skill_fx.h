@@ -48,4 +48,8 @@ int mu_skill32_action(int32_t skill, int32_t class_byte, const mu_skill32_contex
 int mu_skill32_plan_cast(mu_skill32_input *in, int end, mu_skill32_plan *out);
 /* Emit Crescent pairs before drawing the next pitch. Consumers share CRT RNG. */
 int mu_skill32_crescent_step(mu_skill32_input *in, const mu_sfx_env *env, mu_skill32_plan *out);
+/* Optional authored target presentation, 0x01256b8a..0x01256cc7. The enabled
+ * byte is fixture input. No movement, freeze/presence, or target stats are written.
+ * The second request includes the first constructor's proved source-light write. */
+void mu_skill33_target_ice(const mu_skill30_input *target, int enabled, mu_skill30_plan *out);
 #endif

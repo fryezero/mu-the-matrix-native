@@ -1,7 +1,7 @@
 #ifndef MU_MUUN_SPECIAL_H
 #define MU_MUUN_SPECIAL_H
 #include "passes.h"
-/* Ordinary rows on the five special models are admitted individually. Three bone-effect branches stay refused. */
+/* Mesh-only helper admission. The three bone-effect branches are handled separately by bone_fx.h. */
 int mu_mv_special_admit(int32_t model, int32_t mesh);
 /* Overlay the verified special mesh arguments on the ordinary row. c8 is persistent OBJECT +0xc8.
  * The caller supplies finite binary32 clocks/delta; UVs begin at OBJECT +0xac/+0xb0. */
