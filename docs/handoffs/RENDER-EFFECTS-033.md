@@ -219,3 +219,19 @@ entry exists. No installed app or Native Data work occurred.
 Next: inner_selections.py, inner_validators.py, then selected_tests.py in
 portable mode and private_tests.py with canonical private-env. The completed
 73-row results are in verify-runs/audio005. Keep source stable while checks run.
+
+## WIP checkpoint 9, 13:35 local
+
+Done: all 79 INNER-005 incoming-input validators pass, zero failures/errors/
+skips, 1,237.713 s execution plus 60 s resource wait. All prior selected sets
+remain covered with their input-aware carryforward. The current lane Steward
+selection is 86 rows. All 033 target functions and the 45 compiled controls
+remain unchanged; no passing control is repeated. The new world producer's
+own comparison passes, alongside the registered 033 replay.
+
+Left: portable affected (explicitly exclude native/tests/test_native_app.py),
+canonical-private reduced native modules, actual-asset renders for thirteen
+skills/aliases, explicit rebuilt final default identity and hashes, final
+main check, final handoff/status, PR, ready entry and cleanup. No PR or ready
+entry exists. Next: selected_tests.py with MU_RECOVERY_INTEGRATION=0, then
+private_tests.py under private-env.sh. Gate results are in verify-runs/inner005.
