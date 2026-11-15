@@ -67,3 +67,19 @@ Its wall was 100.47 s. Exclude `native/tests/test_native_app.py` from the portab
   proof images/inspection, after identity and attribution of imported main deltas, final docs/PR/cleanup.
 - Next: inspect resources, run `--list-affected origin/main` for both runners. Record their exact row
   lists, retain fallback rows, exclude app-packaging tests, use 8d reduced, then finish within scope.
+
+### WIP checkpoint during the affected run
+
+- Done: integrated transition comparison 400/400, all seven compiled controls caught, 11.82 s.
+  These controls target main's retained consumer; the removed duplicate is not the final implementation.
+  The unchanged bone helper retains 221 passing cases and all 21 compiled controls.
+- Done: final affected previews against origin/main select 42 validators in 37.48 s and 173 portable
+  work items in 116.07 s. All 42 validator rows are retained. The portable run will exclude only
+  `native/tests/test_native_app.py`, leaving 172 items. Native selection is 168 modules, so 8d reduced.
+- Running: the 42-row private, cached, no-optional-mutants validator batch at source commit `abf4654f`.
+  At least 24 rows have passed with no failure. The terrain row and later actor/effect/Muun rows remain.
+  Report prefix is local `scratch/muun-visual-005/lane-validators`; the log is `lane-validators.log`.
+- Left: complete that runner, integrated 25-test private Muun run, the 172-item portable run, proof
+  rendering/inspection, after identity, final docs/status/PR/ready entry and cleanup.
+- Next: wait on the current runner, inspect every row and wall time. Run no second heavy job concurrently.
+  This checkpoint changes documentation only; compiled inputs remain the audited `abf4654f` source.
