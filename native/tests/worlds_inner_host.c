@@ -19,7 +19,15 @@ static void joint(void *c, int32_t type, const float p[3], const float q[3], con
                    int32_t owner, float scale)
 {
     (void)c; (void)a;
-    if (type == 0x7f7c) {
+    if (type == 0x7f7c && sub == 19) {   /* RENDER-EFFECTS-034: tower type 0x36, unowned, width 10 * scale */
+        assert(owner == -1 && scale == 10.0f && memcmp(p,q,12) == 0);
+    } else if (type == 0x7f7d && sub == 11) {   /* tower types 0x2f / 0x4a, unowned, width 15 * scale */
+        assert(owner == -1 && scale == 15.0f && memcmp(p,q,12) == 0);
+    } else if (type == 0x7fd5) {   /* Barracks type 0x5a, owned, identical endpoints */
+        assert(sub == 4 && owner == 0 && memcmp(p,q,12) == 0);
+    } else if (type == 0x7f7c && sub == 8) {   /* Kanturu 37/40 type 0x69, unowned, width 40 */
+        assert(owner == -1 && scale == 40.0f && p[0] != q[0]);
+    } else if (type == 0x7f7c) {
         assert(sub == 18 && owner == -1 && (scale == 50.0f || scale == 40.0f) && p[0] != q[0]);
     } else if (type == 0x7f7d && sub >= 8 && sub <= 10) {
         assert(owner == -1 && scale >= 30.0f && scale < 40.0f && memcmp(p,q,12) == 0);
@@ -105,7 +113,7 @@ int main(int argc, char **argv)
         assert(pass(o) == &model && joints == 1 && o->rt.draw_unsupported == 0);
         reset(o, world, 0x69); o->rt.seed = seed_for(6, 20, 0);
         assert(pass(o) == &model && o->rt.sprite_count == 1 && o->rt.particle_count == 1);
-        assert(o->rt.draw_unsupported == 1);   /* joint 0x7f7c/8 has no existing native kind */
+        assert(joints == 1 && o->rt.draw_unsupported == 0);   /* EFFECTS-034 consumes joint 0x7f7c/8 */
         reset(o, world, 0x55); assert(pass(o) == &model);
         mu_object_mesh meshes[4];
         int32_t n = mu_objects_first_meshes(o, 0, NULL, &model, meshes, 4);
@@ -277,11 +285,11 @@ int main(int argc, char **argv)
         reset(o,world,6);o->models[6]=NULL;assert(pass(o)==NULL && o->rt.seed==1);
     }
     reset(o,39,0x2f);o->rt.seed=seed_for(2,5,0);(void)pass(o);
-    assert(joints==0 && o->rt.draw_unsupported==1); /* 0x7f7d/11 */
+    assert(joints==1 && o->rt.draw_unsupported==0); /* EFFECTS-034 consumes 0x7f7d/11 */
     reset(o,39,0x36);o->rt.seed=seed_for(2,3,0);(void)pass(o);
-    assert(joints==0 && o->rt.draw_unsupported==1); /* 0x7f7c/19 */
+    assert(joints==1 && o->rt.draw_unsupported==0); /* EFFECTS-034 consumes 0x7f7c/19 */
     reset(o,41,0x5a);o->rt.seed=seed_for(2,3,0);(void)pass(o);
-    assert(joints==0 && o->rt.draw_unsupported==1 && o->rt.particle_count==1); /* 0x7fd5/4 */
+    assert(joints==1 && o->rt.draw_unsupported==0 && o->rt.particle_count==1); /* EFFECTS-034 consumes 0x7fd5/4 */
     for(int world=46;world<=98;world+=52) {
         reset(o,world,1);(void)pass(o);assert(o->rt.draw_unsupported==1 && o->rt.seed==next(1));
         o->models[1]=NULL;o->rt.draw_unsupported=0;(void)pass(o);assert(o->rt.draw_unsupported==0);
