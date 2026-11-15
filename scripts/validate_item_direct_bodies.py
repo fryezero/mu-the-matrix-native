@@ -27,7 +27,8 @@ MUTANTS = {
         '        emit_parameter_body(&s, phase, it->render_type, it->alpha, it->a10, it->a11);',
         '        model->level_field = 0;\n'
         '        emit_parameter_body(&s, phase, it->render_type, it->alpha, it->a10, it->a11);'),
-    'white-branch': ('mu_rc_body_types[type_row].plain == 3 &&', 'mu_rc_body_types[type_row].plain == 4 &&'),
+    'white-branch': ('it->light[0] == 1.0f &&', 'it->light[0] == 2.0f &&'),
+    'part-selector': ('it->a12 == 6 ? 6 : 0;', 'it->a12 == 7 ? 6 : 0;'),
     'recipe-last-draw': ('i < recipe->count; ++i', 'i < recipe->count - 1; ++i'),
 }
 
@@ -78,6 +79,22 @@ def main():
                 raise AssertionError(('frames', hex(t), index, case, expected, detail))
             vectors.append((case, sequence, expected))
     families['frames'] = {'cases': len(vectors) - before, 'mismatches': 0}
+    before = len(vectors)
+    for t in gen.DIRECT_WHITE_TYPES:
+        rng = random.Random(0x20083 + t)
+        for part in (0, 3, 6, 7):
+            for light in LIGHTS:
+                for flags in (2, 0x102):
+                    case = v.random_case_any(rng, t)
+                    case.update(a12=part, light=tuple(map(v.f2u, light)), render_type=flags,
+                                item_level=13 << 3, quality=9, record=(6, 0x26, 0),
+                                a10=0xffffffff, a11=0xffffffff)
+                    sequence = quality.sequence_for(rng)
+                    ok, expected, detail = quality.compare(wa, lib, reset, case, sequence)
+                    if not ok:
+                        raise AssertionError(('parts', hex(t), part, light, flags, expected, detail))
+                    vectors.append((case, sequence, expected))
+    families['parts'] = {'cases': len(vectors) - before, 'mismatches': 0}
     report = {'text_sha256': pins.TEXT.sha256, 'data_sha256': pins.DATA.sha256, 'families': families}
     if args.mutations:
         groups.MUTANTS = MUTANTS

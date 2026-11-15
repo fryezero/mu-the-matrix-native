@@ -1530,7 +1530,7 @@ COUNTER_RANGE_TYPES += READ_PROGRAM_TYPES + OTHER_TYPES
 NAMED_NAMES = v.NAMED_MESH_NAMES
 _NAMED_VALUES = []
 
-def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=False, quality=9, record=(0, 0, 0), time_word=None, light_words=None):
+def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=False, quality=9, record=(0, 0, 0), time_word=None, light_words=None, part_selector=None):
     import math
     global _sample_state
     tags = []
@@ -1639,6 +1639,8 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=Fals
         case['time'] = time_word
     if light_words is not None:
         case['light'] = light_words
+    if part_selector is not None:
+        case['a12'] = part_selector
     case['object_hidden'] = (-1, 0, 2)[(seed // 3) % 3]
     if t in FRAME_TYPES or t in OTHER_TYPES or t in DIRECT_TYPES:
         # RENDER-ITEMS-002U: the rendered-frame counter varies in these types' probes (others keep the zero page).
@@ -1916,12 +1918,14 @@ def _fit(wa, lib, t, params, sites, carry=False, extended=False):
     if t in DIRECT_WHITE_TYPES:
         for seed in PROBE_SEEDS:
             for record in SUPPLEMENT_RECORDS:
-                stream = sample(wa, lib, t, 0, seed, params=params, sites=sites, carry=carry,
-                                record=record, light_words=(0x3f800000,) * 3)
-                ss.append(stream)
-                if stream is None:
-                    return None
-                phases[5].append(stream[0])
+                for light, part, phase in (((0x3f800000,) * 3, 3, 5),
+                                           ((0x3f800000,) * 3, 6, 5), (None, 6, 6)):
+                    stream = sample(wa, lib, t, 0, seed, params=params, sites=sites, carry=carry,
+                                    record=record, light_words=light, part_selector=part)
+                    ss.append(stream)
+                    if stream is None:
+                        return None
+                    phases[phase].append(stream[0])
     # Phases whose helper call draws each body-random site.
     _RAND['masks'] = {}
     for phase, pairs in enumerate(phases):
@@ -2028,7 +2032,7 @@ def render(types):
              ' * kind 3 = clock chain of op/k pairs, see gen_item_bodies.C_TIME_F..C_U2D (30..33: the rendered-frame counter);',
              ' * clock ops 34/35/36 are binary32 sin, conditional abs and CRT fabs (distinct signed-zero rules);',
              ' * kind 9 = wave(a, k[0] degrees), then ops 1..; scalar op 5 is k-value, 6 is a lower clamp;',
-             ' * plain 0 = glow chain, 1 = plain with tails, 2 = early complete body, 3 = early body with exact-white phase 5;',
+             ' * plain 0 = glow chain, 1 = plain with tails, 2 = early complete body, 3 = early body, exact-white phase 5, otherwise part-selector 6 phase 6;',
              ' * kind 10 = signed tick modulo a, split at k[0], binary32 affine colour per half, optional wave multiply;',
              ' * kind 8 = raw 0x012bd4a6 result for mu_rc_body_names[a], including -1;',
              ' * kind 4 = (float)(rand() % a) then binary32',

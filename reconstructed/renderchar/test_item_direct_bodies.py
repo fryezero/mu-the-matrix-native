@@ -38,6 +38,17 @@ class ItemDirectBodies(unittest.TestCase):
                 self.assertEqual(status, 0)
                 self.assertEqual(draws[-1][0], entry, (hex(t), hex(word)))
 
+    def test_part_six_is_red_only_on_the_mesh_branch(self):
+        lib = base.lib()
+        for t in gen.DIRECT_WHITE_TYPES:
+            case = v.classify_case(t, v.CLASSIFY[0])
+            status, draws = v.c_stream(lib, dict(case, a12=6))
+            self.assertEqual(status, 0)
+            self.assertEqual(draws[-1][2], tuple(map(v.f2u, (1.0, 0.1, 0.1))))
+            status, draws = v.c_stream(lib, dict(case, a12=6, light=(v.f2u(1.0),) * 3))
+            self.assertEqual((status, draws[-1][0]), (0, 'BODY'))
+            self.assertEqual(draws[-1][2], (v.f2u(1.0),) * 3)
+
     @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'original captures are opt-in')
     def test_original_instructions(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -49,6 +60,7 @@ class ItemDirectBodies(unittest.TestCase):
         self.assertEqual(report['families']['records']['cases'], 512*len(direct.TYPES))
         self.assertEqual(report['families']['lights']['cases'], 144*len(direct.TYPES))
         self.assertEqual(report['families']['frames']['cases'], 64*len(direct.TYPES))
+        self.assertEqual(report['families']['parts']['cases'], 288)
         self.assertTrue(all(f['mismatches'] == 0 for f in report['families'].values()))
         self.assertEqual(set(report['mutants']), set(direct.MUTANTS))
         self.assertTrue(all(report['mutants'].values()))

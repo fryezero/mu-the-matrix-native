@@ -3756,9 +3756,9 @@ note = "RENDER-ITEMS-002Z: signed piecewise colour, every tick of its positive p
 [validate_item_direct_bodies]
 test = "reconstructed/renderchar/test_item_direct_bodies.py::ItemDirectBodies.test_original_instructions"
 pins = ["text", "data", "flag", "feature"]
-families = ["bodies", "records", "lights", "frames"]
-cases = 14168
-mutants = 4
+families = ["bodies", "records", "lights", "frames", "parts"]
+cases = 14456
+mutants = 5
 cases_at = "families.*.cases"
 mutants_at = "mutants"
 build = ["reconstructed/renderchar"]
@@ -3770,4 +3770,5 @@ note = "RENDER-ITEMS-002Z: fourteen early bodies, independent states and every f
 "families.records.cases" = 7168
 "families.lights.cases" = 2016
 "families.frames.cases" = 896
+"families.parts.cases" = 288
 "mutants.*" = {truthy = true}

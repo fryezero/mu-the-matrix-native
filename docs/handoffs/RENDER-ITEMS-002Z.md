@@ -65,3 +65,10 @@ Checkpoint update, before full regeneration:
   `docs/research/item-body-refusals-002z.tsv`. No denominator is replaced by a diagnostic count.
 
 Next: full pinned body generation, then finish checks. Proposed counts remain provisional until those pass.
+
+Pre-generation source review also covers argument 12 equal to six on those three wing bodies.
+At `0x01775f6a..0x0177601a`, the non-white branch writes `(1, 0.1, 0.1)` instead of white before the mesh.
+Phase 6 models that branch; the exact-white whole-body branch still takes precedence.
+Directed part-selector cases and a compiled mutant are included in the final early-body validator.
+All 132 portable renderchar tests now pass or explicitly skip their private comparisons.
+Resource cooldowns delayed generation; the source checkpoint is saved before starting it.
