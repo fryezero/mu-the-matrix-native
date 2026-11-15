@@ -3732,7 +3732,7 @@ args = ["--cases", "200", "--mutations", "--output", "{report}"]
 all_equal = true
 all_mutants_caught = true
 
-<<<<<<< HEAD
+
 [validate_render_effects32]
 test = "native/tests/test_render_effects32.py::Original.test_original_remaining_callers"
 pins = ["text", "data"]
@@ -3747,7 +3747,8 @@ note = "RENDER-EFFECTS-032: ten remaining learned caller rows, exact requests/de
 [validate_render_effects32.expect]
 all_equal = true
 all_mutants_caught = true
-=======
+"mutants.*.stopped" = 0
+
 [validate_audio_objects4]
 test = "native/tests/test_audio_objects4.py::Original.test_original_commands"
 pins = ["text", "data"]
@@ -3765,5 +3766,5 @@ original_sites = 33
 "families.*.mismatch_count" = 0
 "families.*.stopped" = 0
 "mutants.*.detected" = {all_min = 1}
->>>>>>> origin/main
+
 "mutants.*.stopped" = 0
