@@ -128,3 +128,24 @@ rechecks are next. The earlier default baseline remains recorded at ACTORS-005;
 any incoming world/alpha changes must be distinguished from this actor lane's
 identity. Private 8d reduced, final identity/proofs, final documentation/audit,
 PR/ready entry and cleanup remain pending. No PR or ready line exists yet.
+
+Checkpoint 2026-11-15 00:44: main through `4babc900`, including merged #389 and
+INNER-004, is integrated as `71a6d23f`. Post-merge root build passes, 16.53 s
+plus 720 s of waits. Final actor selection has 29 rows; the input-delta selector
+keeps 27 for replay and retains audio-combat and viewport-monster passes from
+`d3688570`. The 27-row no-mutant replay is running. Current shared status files
+match main's order, and the registry diff adds only this lane's row.
+
+Scope exception: the first portable selection included `test_native_app.py`.
+It built/signed a temporary test bundle and passed eighteen synthetic tests;
+its installed-game test was skipped. The fixture's teardown removes the
+bundle. No installed Preview app was changed. This temporary packaging was
+outside the lane's no-packaging boundary and is not repeated. The local
+integration portable wrapper explicitly excludes that module.
+
+UI-WINDOWS-003 has since merged as `a95880c4`; do not merge it while the current
+validator processes read the tree. Next: finish the frozen replay, integrate UI,
+recheck only its affected compiled inputs, run the permitted portable delta,
+private 8d reduced, identity/proofs and final docs/audit, then publish/queue/clean.
+No PR or ready entry exists. The nine actor controls remain at `d3688570`; their
+target source is unchanged by the renderer integration.
