@@ -552,6 +552,12 @@ static void effect_object(mu_combat *c, const mu_sfx_effect *e)
         return;
     mu_sfx_object *o = &c->objects[MU_COMBAT_EFFECT_OBJECT(i)];
     memset(o, 0, sizeof *o);
+    /* RENDER-EFFECTS-031: Penetration charge owns its converging Spark03/2 children. */
+    if (e->type == 0x7fd0) {
+        o->live = o->visible = e->live; o->type = e->type;
+        memcpy(o->position,e->position,sizeof o->position);
+        return;
+    }
     if (!mu_sfx_is_arrow(e->type) && e->type != 0x70a && e->type != 0x10e6)
         return;   /* RENDER-EFFECTS-015: 0x70a owns the arrows of its rain (their CreateEffect reads its +0x158) */
     o->live = e->live;
@@ -634,6 +640,10 @@ static void create_particle(mu_combat *c, const mu_sfx_call *call, const mu_sfx_
             c->legacy_particles->combat_object) {
             effect_object(c, e);
             c->objects[MU_COMBAT_EFFECT_OBJECT(e - c->effects)].live = 1;   /* created, SetLive at the end */
+            owner = MU_WORLD_FX_COMBAT_BASE + MU_COMBAT_EFFECT_OBJECT((int32_t)(e - c->effects));
+        }
+        if (call->owner == -2 && e && e->type == 0x7fd0 && c->legacy_particles->combat_object) {
+            effect_object(c,e);
             owner = MU_WORLD_FX_COMBAT_BASE + MU_COMBAT_EFFECT_OBJECT((int32_t)(e - c->effects));
         }
         mu_world_particles_create_owned(c->legacy_particles, call->type, call->position, call->angle, call->light,
