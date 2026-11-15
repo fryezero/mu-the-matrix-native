@@ -254,3 +254,38 @@ remain unimplemented. At this branch base the native `mu_sfx_effect_create` visu
 consumer; routing requests through `mu_world_particles_effect` would count unsupported effects rather than
 draw a transition. This lane does not change particle consumers. No full original-scene, live-motion,
 installed-app or performance equivalence is claimed.
+
+## Rider and secondary request callers, MUUN-VISUAL-004
+
+WIP evidence uses the same pinned client identity above. All inputs are authored offline visual fixtures.
+`0x013639a7..0x01363a62` is the bounded RenderCharacter seat block: a positive secondary render counter
+and `0x009c046a` admit five action intervals, 0x26..0x31, 0x47..0x4e, 0x67..0x6e, 0x118..0x132 and
+0x13b..0x141. The block adds the stored offset at slot +0xe4 to OBJECT +0x158 and copies that result to
+model +0x78. `0x01094018` returns the offset address. The existing named Spine1 pose/scale/+30 consumer
+supplies that offset. Native requires a valid posed attachment, with no shared-bone fallback.
+
+`0x009bf31e` increments the secondary render counter after owner/selection/buff26/predicate admission,
+even outside the frustum. Values above 100 reset to 25. Its first value 1 requests the existing rider
+manager `0x0106c382(owner,0)`. Buff 0x12 on an owner OBJECT selects RenderObject mode 10. The local-owner
+consumer `0x017f746f` sets white model light and draws every mesh with flags 0x4040, alpha 0.5,
+Chrome02 bitmap 0x7fcf, OBJECT blend/light, and UV offsets multiplied by 8 and 2. Remote class/team
+visibility in that consumer is outside this local fixture. Missing Chrome02 is a counted refusal.
+
+The update `0x009bf225` calls the existing FadeAlpha consumer, then owner kind 2 subtracts 0.1 whenever
+alpha is nonzero. This is deliberately not clamped: negative nonzero values also subtract. It copies the
+result to blend light. The input alpha/target/mode belong to the authored fixture.
+
+The complete `0x009bfe13` producer groups the eight models into four pairs. It chooses a random posed
+bone through `0x0129f24f`, transforms zero with translation, and emits two particles at that point.
+The first is 0x8081 or 0x8082, subtype 1, scale 1; the second is 0x7ef7, subtype 19, scale 3.5. Colours
+vary by model pair. Native supplies its deterministic fixture phase and refuses dummy/unresolved bones.
+This establishes request parameters and placement, not the original process's global RNG phase.
+
+The remote part of `0x009c2371` advances the caller-supplied seconds delta while byte +0x44 equals 1.
+At elapsed >= period it clears that flag, resets elapsed, and requests 0x47a at OBJECT position plus
+its supplied offset, with OBJECT angle/light. Only this remote clock is reconstructed in the new helper;
+periodic command clocks and target lookup/rotation remain excluded. The native fixture supplies period
+3 and delta 0.04. Existing effect/particle consumers retain and count their own refusals.
+
+Final counts, compiled mutants, private render controls and remaining special-model limits are pending
+in [the handoff](../handoffs/MUUN-VISUAL-004.md).
