@@ -1,18 +1,17 @@
 # RENDER-ITEMS-002Z
 
-Branch `codex/render-items-002z`, based on `b7dfd2ed`; main `4babc900` integrated at `a9cc72d9` (earlier `2b0b2716` at `bd417573`).
+Branch `codex/render-items-002z`, based on `b7dfd2ed`; main `4480bf41` integrated at `f3c45e34` (earlier `4babc900` at `a9cc72d9`, `2b0b2716` at `bd417573`).
 GPT-6.1 Sol, no subagents. Offline/static only. Research is
 [part 40](../research/client-render-items.md#part-40-piecewise-colour-and-early-complete-bodies-render-items-002z).
 The merge steward owns the full gate and merge.
 
 ## WIP
 
-All 72 selected private validators pass with zero failures, errors or skips. Remaining: the
-latest-main integration refresh and the genuine-main default identity sweep. The first integration
-refresh passes: 173 work items, 1,793 tests (1,471 passed / 322 skipped), zero failures/errors,
-423.56 s wrapper wall (334.7 s runner wall), plus 33/33 private consumers in 14.03 s.
-Main has advanced to `4480bf41`; it is being integrated before the final sweep.
-No ready entry has been written. Integrated main is `4babc900`; its root build passes in 26.62 s.
+All 72 item-selected validator rows pass. The latest-main selector refreshes 22 rows at `f3c45e34`,
+including four merge-only rows; all pass with zero failures, errors or skips. The rebuilt tree passes
+in 12.82 s and the reduced private consumers pass 33/33 in 15.27 s. The final portable refresh passes 178 work items, 1,610 tests (1,306 passed / 304 skipped),
+zero failures/errors, 518.82 s wrapper wall (445.7 s runner wall). Remaining: the genuine-main
+default identity sweep. No ready entry has been written.
 
 ## Result
 
@@ -46,7 +45,7 @@ All tools/tests run from the repository root. Private commands source
 `~/Documents/MTM/mu-mac-tools/native/private-env.sh`. Heavy work uses nice 10, at most two validator
 workers, and builds use `make -j2` after resource cooldowns exceeded twenty minutes. Memory remains
 above the brief's floor. Cooldowns are outside the job timings. No full lane gate or hosted workflow ran.
-The native private selection is 160 work items, above the forty-item cap. This lane uses
+The initial native private selection is 160 work items, above the forty-item cap. This lane uses
 **8d reduced** and runs the manual 6b consumers `test_native_renderchar` and `test_app_polish8` privately.
 
 | Check | Result | Wall |
@@ -54,7 +53,7 @@ The native private selection is 160 work items, above the forty-item cap. This l
 | Complete pinned body extraction/table render | 1,461 rows, existing caps | 1,385.12 s |
 | Complete owner-table regeneration | Pass | 10.10 s |
 | Corrected portable renderchar suite | 133 tests, 104 passed / 29 private skips | 0.65 s |
-| Integrated root build | Pass at `a9cc72d9`, latest merged C inputs | 26.62 s |
+| First integrated root build | Pass at `a9cc72d9` | 26.62 s |
 | Early-body final instruction/compiled-mutant row at `bd417573` | 15,352 checks, zero mismatches; six mutants caught | 13.6 s |
 | Cycle original comparisons and replacement threshold control | 6,936 checks, zero mismatches; threshold shift caught in five cases | 50.56 s |
 | C-to-C admission delta versus genuine main `2b0b2716` | 216,448 states: 214,528 identical, 1,920 admissions on exactly fifteen types | 15.19 s |
@@ -63,12 +62,18 @@ The native private selection is 160 work items, above the forty-item cap. This l
 | Final affected validator selection | 72/241 rows, one retained fallback, nine symbol-pruned rows | 69.37 s |
 | Affected portable run at `9c541138` | 166 work items; 1,538 tests, 1,260 passed / 278 skipped, zero failures/errors | 433.24 s |
 | Selected private validators | 72/72 passed, 1,043,690 recorded cases; per-row sources and times below | Per-row table below |
+| Final portable refresh at `f3c45e34` | 178 work items, 1,610 tests; 1,306 passed / 304 skipped, zero failures/errors | 518.82 s |
+| Latest integrated root build at `f3c45e34` | Pass, main `4480bf41` | 12.82 s |
+| Latest private native consumers at `f3c45e34` | 33/33 passed, zero skips; 8d reduced | 15.27 s |
+| Final item validator selection | 72/241 rows, unchanged set | 53.14 s |
+| Latest-main validator selection since `4bb6348b` | 22/241 rows, including retained fallbacks | 64.47 s |
+| Latest-main selected validator refresh at `f3c45e34` | 22/22 passed; 65,103 recorded cases plus gfx3's uncounted checks | 233.09 s |
 | First integration portable refresh at `c7581b6c` | 173 work items, 1,793 tests; 1,471 passed / 322 skipped, zero failures/errors | 423.56 s |
 | First integration private consumer refresh at `c7581b6c` | 33/33 passed, zero skips; 8d reduced | 14.03 s |
 | Canonical private native consumers | 33/33 passed, zero skips; 8d reduced | 23.90 s |
 
 Extraction/rendering wall excludes the cache's final save. These are finite recorded cases,
-not a unique whole-client state count. The final affected validators are recorded below; consumer refresh and identity remain pending.
+not a unique whole-client state count. The final affected validators are recorded below; only the default identity remains pending.
 
 ## Default identity provenance
 
@@ -77,17 +82,21 @@ default draw and fixed time on the 46 existing captures. No original-client pixe
 
 ## Steward validators
 
-The final 72-row selector list, including its retained `validate_movement` fallback, is:
+The final item selector is exactly 72 rows, retaining `validate_movement` and pruning nine rows
+with no changed symbol. The UI-main refresh selects 22 rows, including four merge-only rows.
+The ready list is their **76-row union**, with all results covered below. Retained merge-selector
+fallbacks (including the fixture IR guard) were run, not dropped.
 
-Steward validators: validate_item_ranked,validate_item_continuation,validate_item_expansion,validate_item_clusters,validate_item_types,validate_fidelity,validate_meshdraw,validate_model_edge,validate_movement,validate_renderchar,validate_item_read_programs,validate_icarus_c2,validate_audio_callers,validate_item_gear,validate_item_next,validate_render_effects5,validate_render_effects7,validate_render_effects9,validate_render_effects10,validate_render_effects11,validate_render_effects12,validate_audio_domains,validate_audio_items,validate_item_coverage,validate_item_wings_next,validate_item_scalars,validate_item_chains,validate_item_carry,validate_item_quality,validate_item_product,validate_item_derived,validate_item_ownerfx,validate_item_predraw,validate_item_hiddenmesh,validate_app_polish1,validate_app_polish2,validate_app_polish4,validate_render_effects13,validate_render_effects14,validate_render_effects15,validate_render_effects16,validate_worlds_fog,validate_render_effects17,validate_item_callers,validate_inventory_fx,validate_render_effects18,validate_render_effects19,validate_render_effects20,validate_render_effects21,validate_item_cloak,validate_armour_cloak,validate_render_effects22,validate_item_named,validate_npc_cloak,validate_render_effects23,validate_render_effects24,validate_render_effects27,validate_item_groups,validate_render_effects25,validate_actor_recipes,validate_item_helper_groups,validate_item_other_bodies,validate_charsel_items,validate_render_effects26,validate_actor_composites,validate_audio_objects,validate_render_effects28,validate_items_ui,validate_item_cycle,validate_item_direct_bodies,validate_audio_objects4,validate_actor_monsters
+Steward validators: validate_item_ranked,validate_item_continuation,validate_item_expansion,validate_item_clusters,validate_item_types,validate_fidelity,validate_meshdraw,validate_model_edge,validate_movement,validate_renderchar,validate_item_read_programs,validate_icarus_c2,validate_audio_callers,validate_item_gear,validate_item_next,validate_render_effects5,validate_render_effects7,validate_render_effects9,validate_render_effects10,validate_render_effects11,validate_render_effects12,validate_audio_domains,validate_audio_items,validate_item_coverage,validate_item_wings_next,validate_item_scalars,validate_item_chains,validate_item_carry,validate_item_quality,validate_item_product,validate_item_derived,validate_item_ownerfx,validate_item_predraw,validate_item_hiddenmesh,validate_app_polish1,validate_app_polish2,validate_app_polish4,validate_render_effects13,validate_render_effects14,validate_render_effects15,validate_render_effects16,validate_worlds_fog,validate_render_effects17,validate_item_callers,validate_inventory_fx,validate_render_effects18,validate_render_effects19,validate_render_effects20,validate_render_effects21,validate_item_cloak,validate_armour_cloak,validate_render_effects22,validate_item_named,validate_npc_cloak,validate_render_effects23,validate_render_effects24,validate_render_effects27,validate_item_groups,validate_render_effects25,validate_actor_recipes,validate_item_helper_groups,validate_item_other_bodies,validate_charsel_items,validate_render_effects26,validate_actor_composites,validate_audio_objects,validate_render_effects28,validate_items_ui,validate_item_cycle,validate_item_direct_bodies,validate_audio_objects4,validate_actor_monsters,validate_app_polish7,validate_app_polish9,validate_gfx3,validate_map_polish
 
 Use canonical private environment and `--private --no-mutants --cache --jobs 2`.
-No steward mutants are requested. All 72 rows pass, totalling 1,043,690 recorded cases (overlapping finite
-families). `validate_item_carry` ran at `3fed7878`; the other 71 rows ran at
-`4bb6348b`. These source inputs include main through `4babc900`.
-The item compiled/generator inputs did not change between those tested commits. Per-row wall times are the runner's recorded `time.time` differences and
-include brief checkpoint pauses while a row was active. Canonical regeneration was cold for the carry
-row and reused its original-side cache thereafter.
+No steward mutants are requested. The 72 item rows total 1,043,690 recorded cases in overlapping
+finite families. Carry ran at `3fed7878`; the other initial rows at `4bb6348b`. The merge refresh
+updates eighteen of those results and adds four rows at `f3c45e34`, main through `4480bf41`.
+The item generator, renderchar, record-math and pins inputs are unchanged across these main merges.
+Per-row times are the runner's recorded `time.time` differences, including checkpoint pauses while
+a row was active. Canonical regeneration was cold for carry and reused its original-side cache thereafter.
+A dash means that row does not expose a case counter.
 
 | Validator | Cases | Wall (s) | Tested source |
 |---|---:|---:|---|
@@ -99,11 +108,11 @@ row and reused its original-side cache thereafter.
 | `validate_fidelity` | 991 | 70.1 | `4bb6348b` |
 | `validate_meshdraw` | 14619 | 79.4 | `4bb6348b` |
 | `validate_model_edge` | 954 | 159.6 | `4bb6348b` |
-| `validate_movement` | 6614 | 75.3 | `4bb6348b` |
+| `validate_movement` | 6614 | 84.5 | `f3c45e34` |
 | `validate_renderchar` | 1706 | 38.7 | `4bb6348b` |
 | `validate_item_read_programs` | 5352 | 18.7 | `4bb6348b` |
 | `validate_icarus_c2` | 8400 | 12.7 | `4bb6348b` |
-| `validate_audio_callers` | 5528 | 4.5 | `4bb6348b` |
+| `validate_audio_callers` | 5528 | 4.5 | `f3c45e34` |
 | `validate_item_gear` | 25256 | 218.6 | `4bb6348b` |
 | `validate_item_next` | 14992 | 273.1 | `4bb6348b` |
 | `validate_render_effects5` | 1190 | 12.7 | `4bb6348b` |
@@ -112,8 +121,8 @@ row and reused its original-side cache thereafter.
 | `validate_render_effects10` | 154 | 1.0 | `4bb6348b` |
 | `validate_render_effects11` | 176 | 0.6 | `4bb6348b` |
 | `validate_render_effects12` | 64 | 0.4 | `4bb6348b` |
-| `validate_audio_domains` | 2544 | 27.6 | `4bb6348b` |
-| `validate_audio_items` | 3000 | 5.1 | `4bb6348b` |
+| `validate_audio_domains` | 2544 | 25.9 | `f3c45e34` |
+| `validate_audio_items` | 3000 | 2.5 | `f3c45e34` |
 | `validate_item_coverage` | 31724 | 275.9 | `4bb6348b` |
 | `validate_item_wings_next` | 33622 | 290.2 | `4bb6348b` |
 | `validate_item_scalars` | 26274 | 250.0 | `4bb6348b` |
@@ -125,15 +134,15 @@ row and reused its original-side cache thereafter.
 | `validate_item_ownerfx` | 14964 | 164.8 | `4bb6348b` |
 | `validate_item_predraw` | 42540 | 466.3 | `4bb6348b` |
 | `validate_item_hiddenmesh` | 116281 | 592.8 | `4bb6348b` |
-| `validate_app_polish1` | 752 | 17.7 | `4bb6348b` |
-| `validate_app_polish2` | 1028 | 3.2 | `4bb6348b` |
-| `validate_app_polish4` | 10485 | 31.8 | `4bb6348b` |
+| `validate_app_polish1` | 752 | 18.5 | `f3c45e34` |
+| `validate_app_polish2` | 1028 | 3.2 | `f3c45e34` |
+| `validate_app_polish4` | 10485 | 37.3 | `f3c45e34` |
 | `validate_render_effects13` | 180 | 0.4 | `4bb6348b` |
 | `validate_render_effects14` | 660 | 1.8 | `4bb6348b` |
 | `validate_render_effects15` | 509 | 1.4 | `4bb6348b` |
-| `validate_render_effects16` | 424 | 2.8 | `4bb6348b` |
-| `validate_worlds_fog` | 4044 | 35.6 | `4bb6348b` |
-| `validate_render_effects17` | 618 | 8.1 | `4bb6348b` |
+| `validate_render_effects16` | 424 | 2.2 | `f3c45e34` |
+| `validate_worlds_fog` | 4044 | 8.9 | `f3c45e34` |
+| `validate_render_effects17` | 618 | 8.4 | `f3c45e34` |
 | `validate_item_callers` | 6013 | 1.6 | `4bb6348b` |
 | `validate_inventory_fx` | 8017 | 11.0 | `4bb6348b` |
 | `validate_render_effects18` | 540 | 1.2 | `4bb6348b` |
@@ -146,31 +155,35 @@ row and reused its original-side cache thereafter.
 | `validate_item_named` | 20057 | 220.6 | `4bb6348b` |
 | `validate_npc_cloak` | 2619 | 56.8 | `4bb6348b` |
 | `validate_render_effects23` | 1174 | 10.6 | `4bb6348b` |
-| `validate_render_effects24` | 226 | 3.3 | `4bb6348b` |
+| `validate_render_effects24` | 226 | 1.9 | `f3c45e34` |
 | `validate_render_effects27` | 424 | 3.0 | `4bb6348b` |
 | `validate_item_groups` | 4824 | 29.3 | `4bb6348b` |
-| `validate_render_effects25` | 202 | 13.0 | `4bb6348b` |
-| `validate_actor_recipes` | 1669 | 141.7 | `4bb6348b` |
+| `validate_render_effects25` | 202 | 8.2 | `f3c45e34` |
+| `validate_actor_recipes` | 1669 | 160.6 | `f3c45e34` |
 | `validate_item_helper_groups` | 6432 | 37.5 | `4bb6348b` |
 | `validate_item_other_bodies` | 24084 | 99.9 | `4bb6348b` |
 | `validate_charsel_items` | 8817 | 6.8 | `4bb6348b` |
-| `validate_render_effects26` | 348 | 8.9 | `4bb6348b` |
-| `validate_actor_composites` | 1427 | 8.1 | `4bb6348b` |
-| `validate_audio_objects` | 4000 | 2.5 | `4bb6348b` |
+| `validate_render_effects26` | 348 | 9.6 | `f3c45e34` |
+| `validate_actor_composites` | 1427 | 6.7 | `f3c45e34` |
+| `validate_audio_objects` | 4000 | 2.3 | `f3c45e34` |
 | `validate_render_effects28` | 630 | 1.4 | `4bb6348b` |
 | `validate_items_ui` | 8517 | 9.7 | `4bb6348b` |
 | `validate_item_cycle` | 6936 | 47.9 | `4bb6348b` |
 | `validate_item_direct_bodies` | 15352 | 13.6 | `4bb6348b` |
-| `validate_audio_objects4` | 10093 | 4.7 | `4bb6348b` |
-| `validate_actor_monsters` | 1437 | 39.2 | `4bb6348b` |
-
+| `validate_audio_objects4` | 10093 | 4.2 | `f3c45e34` |
+| `validate_actor_monsters` | 1437 | 62.5 | `f3c45e34` |
+| `validate_app_polish7` | 5120 | 1.9 | `f3c45e34` |
+| `validate_app_polish9` | 4668 | 4.5 | `f3c45e34` |
+| `validate_gfx3` | - | 5.4 | `f3c45e34` |
+| `validate_map_polish` | 876 | 0.5 | `f3c45e34` |
 
 ## History and limits
 
 The initial plain no-glow screen admits none of thirty candidates. Adding option/ancient states
 reproduces the exact forty historical helper-count candidates, including ten tail-only mismatches
-missed by the three-level diagnostic. All fourteen admissions belong to that cohort. All multi-type
-other shapes and additional singleton hypotheses refuse; the broader early-body screen tests 118
+missed by the three-level diagnostic. All fourteen admissions belong to that cohort. Other multi-type
+groups were screened largest first without admission. The ordinary-fit survey stopped partway and
+is not claimed as a completed independent comparison of all other bodies; the broader early-body screen tests 118
 clean candidates and adds only `0x2493` beyond the original thirteen, 488.39 s.
 `0x23f4` and `0x2701` retain independent-state failures. `0x1710` and `0x10fd` stay excluded, and
 the largest shield and armour candidates are still refused. No failed fit is promoted into an admission.
@@ -189,7 +202,8 @@ branch is relaxed to kill a control. The final canonical validator retains all s
 
 The first main merge preserves both item validator additions and AUDIO-004's independent appended row.
 Only the registry append conflicts; C sources merge cleanly. Main's compiled inputs are built and
-all affected lane rows pass on the integrated branch.
+all affected lane rows pass on the integrated branch. The final UI-main merge conflicts only in
+the two status summaries; both lane entries are preserved. Its 22 selected rows pass separately.
 
 These are finite instruction, draw-word, declared model-field, ordered request/refusal and scripted
 random comparisons within declared contexts. Existing record, selected-item, buff, pose/bone,
@@ -200,10 +214,3 @@ character-power or installed-app work is involved.
 All local reports, prototypes and render intermediates are disposable and will be removed at handoff,
 with the worktree and build outputs. No new private input is needed by the next lane.
 
-
-Checkpoint after the first affected-validator row: `validate_item_carry` passes 114,388 comparisons
-and complete canonical table regeneration at `3fed7878`, 2,230.6 s. Its original cache was cold after
-the final write-back metadata change. The wall includes a brief worker pause for the previous
-audit/commit checkpoint. Later rows reuse that canonical cache. No checks or budgets were reduced.
-Main through `4babc900` changes no renderchar, record-math, item generator or pins input, preserving
-this row and the earlier focused proofs. Remaining rows will run on the integrated branch.
