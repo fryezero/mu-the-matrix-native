@@ -69,3 +69,22 @@ Only the replacement is compiled on that rerun. The first aggregate is not repor
 No runtime behavior, comparison, tolerance or cap is changed by this control correction.
 Left: latest-main integration/build, affected portable/private checks, C-to-C, classifier,
 consumer inventory, native proofs/default identity, final docs/PR/ready line and cleanup.
+
+At the 11:55 checkpoint: main `8844d3e9` is integrated at `2b7d5cf1`; its root build passes
+(24.13 s). All 248 main registry rows are unchanged, plus four lane rows. The reviewed affected
+selector has 76/252 rows (66.43 s), including the movement fallback and nine symbol-pruned rows.
+Portable selection has 170/221 work items (80.54 s), with 165 native items, so this lane uses
+8d reduced and the two manual native consumers. The app-packaging module is excluded.
+C-to-C passes 216,448 states (210,048 identical, 6,400 admissions on exactly fifty types), 10.70 s.
+The full classifier passes 1,691 types / 798 shapes in 86.03 s. Exactly fifty memberships and forty
+shape totals change; complete shapes rise 649 -> 689, and all raw shapes/addresses/stops are unchanged.
+The portable affected run is active. Next: the remaining 73 selected private rows without mutants,
+33 manual native consumer tests, native item proofs/default identity, latest-main refresh, final docs/PR,
+ready entry and cleanup. The three completed new rows have unchanged compiled inputs across the main merge.
+
+The five new producers retain eleven resolved particle pairs. Eight native consumers are missing:
+`0x855d/2`, `0x7fe0/0xa` (0x0f22), `0x8616/0` (0x0f23), `0x84d1/2`, `0x850b/5`
+(0x0f25), and `0x8080/0xe`, `0x807e/0xe`, `0x807f/0xe` (0x24be/0x24bf).
+RENDER-EFFECTS-033 owns these consumers. Requests are preserved. The three supported pairs are
+`0x8081/9`, `0x8082/9`, `0x8083/9`. There are no unresolved bitmap expressions in these five programs.
+The 2,834 deliberate comparison-fixture refusals are invalid-bone/context checks, not this consumer census.
