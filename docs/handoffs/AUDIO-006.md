@@ -68,3 +68,17 @@ are still pending. A stricter write audit initially rejected a read-only push,
 Latest main is `d3ec9950`, including INNER-005. Merge it before the finish checks.
 The final identity control must include that incoming world code; the initial
 `8844d3e9` binary above is not the final identity control.
+
+
+Current WIP: main `d3ec9950` is merged at `f72ea742`. Root build passes at
+reduced parallelism, 19.49 s. Integrated census is 1,464 classified / 516
+unresolved; INNER-005 supplies the additional two visual-only owner references,
+which remain unwired. Production-reachable ids are separated from negative
+arithmetic controls: 182 sites / 142 registered ids. The original whole-owner,
+outer-dispatch and caller comparisons pass through the final mutation phase.
+Eighteen compiled controls are caught, then a test-helper edit accidentally
+replaced the final completion-control setup with an out-of-scope variable,
+80.34 s. Corrected setup is committed. Run only the outstanding completion
+control, then the native/decoded checks, affected tests/validators and default
+identity. Do not repeat the eighteen completed controls. The affected unmutated
+row still supplies the final complete machine-readable case report.

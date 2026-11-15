@@ -273,7 +273,7 @@ def main():
             completion=(ROOT/'native/core/mu_monster_audio.h').read_text()
             old=' || mu_monster_audio_extended_known(c->map->world)'
             assert old in completion
-            completion=completion.replace(chr(34)+include+chr(34),chr(34)+str((ROOT/'native/core'/include).resolve())+chr(34))
+            bad=build(folder/'death completion',completion=completion.replace(old,''))
             caught=False
             try:caller_corpus(text,data,bad,groups)
             except AssertionError:caught=True
