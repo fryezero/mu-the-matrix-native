@@ -915,3 +915,151 @@ with `scripts/actor_census.py --classes docs/research/actor-construction-census.
 --plain-ready --groups-ready`. The opener's new `checked_group_body_contexts`
 column counts verified callers, never complete opener/creature registrations.
 All original inputs use the same whole-input Pin.read digests as section 13.
+
+## 15. Caller-service groups, RENDER-ACTORS-008
+
+This lane takes the three uniform caller-service groups of ACTORS-007's 217
+incomplete selectors (109 rows) and publishes, for every constructed selector
+of the 355-row population, the exact requests its caller makes. The
+[request table](actor-caller-requests.csv) holds one line per ordered distinct
+request: service, bitmap or type id, subtype, call site, anchor, local offset,
+scale, light, light model, owner, rotation, blend, axes, how many of the
+recorded contexts send it, further rand call sites, and whether a native
+consumer exists today. The [per-row decisions](actor-group-decisions.csv) keep
+ACTORS-007's decision and reason in two frozen columns beside the new ones.
+The [handoff](../handoffs/RENDER-ACTORS-008.md) records counts and checks.
+Selectors include aliases and repeated defaults; nothing here is a spawn
+catalogue, an AI or a whole-client fidelity measure.
+
+### Request recorder
+
+`scripts/actor_caller_requests.py` wraps the published RenderCharacter harness.
+CreateSprite `0x01692eb7`, CreateParticle `0x0168fafd`, CreateJoint
+`0x0153b02c`, CreateEffect `0x013c0eaa` and the bone-effect helper `0x0150e746`
+are recorders with their complete arguments and return-address call sites.
+TransformPosition `0x012b6ef1` is a named recorder that returns a unique
+marker vector. A request position that equals a marker is therefore resolved
+to the matrix pointer, local offset and translate flag of that call: an OBJECT
+bone (`+0x318` array), a posed link bone (shared array `0x06fce398`) or
+another matrix. A position that is not a marker is an OBJECT field or a
+computed vector and is recorded as such. The clock `0x06fce370` and the value
+returned by the CRT rand `0x01989721` are authored per run, and every rand
+call site is recorded. Each constructed selector runs the 28 published
+world/action contexts; a selector with requests runs six further contexts at
+other clocks and rand values (34 in all). RenderLinkItem `0x012bd910` runs
+from entry per selected hand with the same recorders and a write watch on the
+OBJECT's bone array.
+
+All recorder boundaries are named services. No request executes its consumer,
+so the table states what the caller asks for and not what the consumer draws.
+
+### What the 109 rows ask for (verified by execution)
+
+The 66 "effect" rows fall into these request programs:
+
+| Program | Rows | Result |
+|---|---:|---|
+| Sprites at OBJECT bones, constant/flicker/pulse light, no further rand | 33 | admitted |
+| Same program, sprite bitmap `0x7f69` has no native slot | 1 (41) | incomplete, id recorded |
+| Same program, native RGB draw path lacks the alpha callback | 1 (70) | incomplete |
+| Same program, RenderLinkItem of item `0x0af4` takes a second rand value | 1 (40) | incomplete |
+| Requests vary with action, world, clock or rand (particles, random offsets, rotating sprites, bone-effect calls) | 27 | incomplete, ids recorded |
+| Sprites at computed positions | 2 (452, 453) | incomplete, ids recorded |
+
+The common light sources are original instructions, not fitted guesses:
+RenderCharacter draws one rand value per call at `0x0136ac06` and forms
+`(float)(rand % 30 + 70) * 0.01f`; the sword, staff and axe sprites multiply a
+constant colour by it (flicker). The helper `0x0139b93f..0x0139ba8c` forms
+`sin(clock * 0.002f) * 0.3f + 0.7f` through the CRT sine wrapper `0x009681bd`
+and multiplies (1, 0.6, 0.4); the eye helper uses the same wave with base 0.8
+(pulse). The verifier accepts a light only when a decimal colour reproduces
+every recorded sample bit for bit, and then compares the compiled function
+with the original again in every recorded context.
+
+Classes 1/5/10 belong to the first program. Their `0x7ef7` sprite, scale 1.4,
+is TransformPosition(OBJECT bone = the right link bone, (0, -110, 5) or
+(0, -110, 0), translate 1) with flicker colour 0.3. ACTORS-007 left them
+incomplete because its link recorder did not show where the position came
+from. The marker recorder shows the matrix is the OBJECT's own bone, and the
+RenderLinkItem write watch shows zero writes to that array in every admitted
+hand, so the weapon pose cannot move the sprite.
+
+The 25 "link" rows: RenderLinkItem passes its level argument shifted left by
+three to RenderObjDraw `0x0176ce74` (recorded: level bytes 1, 3, 5, 7 and 11
+arrive as 8, 24, 40, 56 and 88). ACTORS-007 expected the raw byte, which only
+matched at level 0. This is a correction of section 14's "raw level" reading:
+the monster caller passes the slot byte as the level argument, RenderLinkItem
+shifts it, and RenderObjDraw decodes the same level again. The native weapon
+level is therefore the slot byte. Fourteen rows carry item `0x10f0` at level
+7, whose RenderLinkItem sends eight `0x7ef7` sprites at its posed bones 1..8;
+the recorded list equals the renderchar link generator
+(`mu_rc_link_effects_time`) at four clock/rand fixtures, so the existing item
+link consumer serves them. Class 433 (item `0x14e6`, level 11) needs no
+request. Nine rows carry bow `0x12e9` at level 1 or 3; the reconstructed
+RenderObjDraw has no stream for that type, so they stay incomplete with the
+item recorded. Class 275 (item `0x14f1`) sends nine sprites outside the link
+generator and takes a second rand value.
+
+RenderLinkItem itself takes one rand value per call at `0x012c6aa1`. It is
+unused when the item sends no request and is the generator's random value
+otherwise.
+
+RenderCharacter's weapon selector `0x0136b6c4..` stores an animation speed in
+the weapon part for some item types (sword group `0x0ae6..0x0ce5`: action 0,
+the speed of Player action 1). The native attachment has no part animation.
+A row with a nonzero recorded part speed is admitted only when the native
+weapon file's action 0 has exactly one key, so the pose cannot depend on the
+frame; otherwise it stays incomplete.
+
+The 18 "opener" rows: sixteen open Monster71 or Monster72, whose OpenTexture
+directory is `Npc\` in worlds 18..23, 53 and 97 and `Monster\` elsewhere (all
+256 world bytes executed, original and compiled opener agree). `Data/Monster`
+does not hold their mesh bitmaps, so a world-0 fixture has two missing mesh
+textures and cannot certify the body. Their caller therefore runs in the
+Npc-directory worlds, where RenderCharacter adds a RenderPartObject of model
+`0x0a2a` in part slot 0 in every context. That part has no checked native
+plan, so all sixteen stay incomplete with this reason; eight of them also carry
+item `0x12f9`, whose ten link sprites equal the link generator. Classes
+595/635 open the type-226 death model and keep their lifetime refusal.
+
+### Admission and native consumers
+
+`validate_actor_groups.py --generate` writes
+`reconstructed/actors/caller_fx_table.h` and `group_body_table.h` (now with
+`link_effect_mask`) only from rows that pass every earlier ACTORS-007 check
+plus the request checks above and the native host. `mu_actor_caller_fx_plan`
+returns a class's ordered rows; `mu_actor_caller_fx_light` is the compiled
+light. `mu_world_actor_caller_fx` sends the requests of an actor whose model,
+scale and weapons match its body plan, with positions from the reconstructed
+TransformPosition on the actor's posed bones, and both render backends pass
+them to the particle module's CreateSprite. `mu_world_actor_weapon_effects`
+calls the item link consumer on the hand's own posed bones for the plan's
+`link_effect_mask`. The flicker value comes from the particle module's rand();
+the client's global rand position is not reproduced.
+
+The native host loads each admitted selector through the production loader,
+compares the production requests with the generated rows, recomputes each
+position independently from the posed bone matrix, body scale and origin,
+requires every request bitmap to be loaded by the production particle module
+from the game data, and requires that an actor whose model, scale, effect
+count or weapons differ sends nothing. The weapon host checks the decoded
+level, the one-key action and the link consumer's created sprite count.
+
+### Limits
+
+The plans certify bounded authored fixture contexts. Sprite draw order inside
+the frame's sprite pass, sprite depth and blending against the scene, the
+owner argument (stored by the client, read by no reconstructed sprite code),
+the client's rand stream position, and original pixels are not certified.
+The 27 varying programs, the two computed-position rows, bitmap `0x7f69`,
+item streams `0x12e9`, item `0x14f1` and item `0x0af4`'s second rand keep
+their recorded ids. Refusals 374/642, 378, 617, 546/918 and 22/866 are
+unchanged; class 70 joins 22/866's alpha boundary. No skill-to-actor mapping
+is added for summon candidates 10 and 151, whose bodies are among the
+admitted rows. No particle, joint or effect consumer file changes.
+
+Reproduce from the repository root with the canonical private-env.sh: build,
+run `scripts/validate_actor_groups.py --generate --output <local-report>`,
+rebuild, then run it without `--generate`. `--requests-only` records and
+writes only the request table. Compiled controls run once with `--mutations`.
+Regenerate both census files as in section 14.

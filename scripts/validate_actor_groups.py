@@ -688,6 +688,11 @@ def main():
                 if f['equal']!=f['cases']:
                     reasons[cl]='weapon RenderObjDraw stream unavailable or extra services: item %#x level %d'%(t,lv);rows.pop(cl,None)
         host=build_host(tmp,rows if opts.generate else None);checks=native_checks(host,rows)
+        failed={cl:rows[cl] for cl,(ok,detail) in checks.items() if not ok}
+        if failed and not opts.generate:
+            # The production tables hold no plan for a failing candidate. Name its failed
+            # native fact with the candidate plan compiled in, exactly as generation does.
+            checks.update(native_checks(build_host(tmp,failed),failed))
         for cl,(ok,detail) in checks.items():
             diagnostics[cl]['native']=detail
             if not ok:

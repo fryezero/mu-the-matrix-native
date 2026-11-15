@@ -40,8 +40,11 @@ int main(int argc, char **argv)
          * Reload it independently of actor storage, and compare upload bytes and sampler state. */
         mu_actor_group_body_plan plan = {0};
         if (!mu_actor_group_plan(cl, &plan)) {
+            /* Keep the failed native fact (texture slots, alpha path) nameable without a plan. */
+            const int missing = a->actor.textures.missing;
             mu_world_actors_free(&actors); free(map);
-            printf("{\"class\":%d,\"plan_unadmitted\":true}\n", cl);
+            printf("{\"class\":%d,\"plan_unadmitted\":true,\"missing\":%d,\"alpha\":[%.9g,%.9g]}\n", cl, missing,
+                   (double)low, (double)high);
             continue;
         }
         int plan_state_equal = options.select == plan.blend_mesh && options.skip_mesh == plan.hidden_mesh;
