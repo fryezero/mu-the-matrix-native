@@ -194,3 +194,29 @@ Next step: wait for the foreground final-validators command. Resume only
 unfinished rows if interrupted. Logs: scratch/ui-windows-005/final-validators.log;
 reports: verify-runs/final-validators. Do not rerun successful before baselines
 or the eleven unchanged compiled mutants.
+
+
+### WIP checkpoint: final validator and portable results
+
+Done: all 76 final selected validators pass at compiled source db6b0450 in
+1230.57 s, zero failures/errors/skips. Combined with 54 retained rows at
+340db5b3, 130 distinct rows are covered. The final scanner's eight controls
+pass in 0.10 s and exactly reproduce all 482 ledger rows in 8.35 s. The final
+classification remains 13/33/30/42 and the bound survey remains 28/134.
+
+Final portable merge selection passes: 196 work items after excluding only
+native/tests/test_native_app.py, 2024 tests, 1650 passed / 374 skipped, zero
+failures/errors. Command wall 610.39 s; runner execution wall 477.8 s.
+The reduced private run is active across fourteen changed modules and direct
+UI consumers. Actor instructions, audio and completed Muun checks pass so far.
+
+Left: finish private consumers, final integrated native journeys/after-only
+identity, final handoff/status/research/audit/docs-consumer checks, final push,
+PR/link/ready entry and cleanup. The finished handoff draft and timed 130-row
+steward table are in scratch/ui-windows-005/final-handoff-draft.md; final check
+placeholders are deliberately unfilled.
+
+Next step: wait for the foreground private run (scratch/ui-windows-005/
+private-merge.log). Then freshen mu-world, capture the four journeys, verify
+ten proofs with inspect-proofs.py, and run identity.py against the same before
+baseline. Do not rerender successful before maps or unchanged mutants.
