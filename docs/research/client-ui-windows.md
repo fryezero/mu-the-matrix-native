@@ -561,7 +561,14 @@ when hidden or malformed, before the older integer-cast handler. Twelve
 parent controls and a distinct compiled fallthrough mutant cover that limit.
 The route scanner also invalidates partial register writes and overlapping
 frame stores. Proved object-field writes preserve disjoint frame saves;
-unknown memory writes discard them. Seven synthetic provenance controls pass.
+unknown memory writes discard them. Eight synthetic provenance controls pass,
+including exchanged and implicit memory stores.
 This stricter pass withdraws one tentative ResistPopup opener and two close
 joins: 482 lifecycle sites / 67 additional, with 20 newly proved entry routes.
 The withdrawn candidate remains no-route; no binding is supplied.
+
+The final integrated four-window journeys reproduce all ten inspected proof
+frames byte for byte. The rebuilt final binary retains all 230 default
+artifacts against the single preserved baseline. The [005 handoff](../handoffs/UI-WINDOWS-005.md)
+records source commits, distinct binary hashes, private/portable results,
+compiled mutants and the complete timed steward-validator list.

@@ -1,5 +1,7 @@
 # Roadmap and work queue
 
+UI-WINDOWS-005 PR-ready: PersonalShop, ArtifactFrame, MUMix and DuelWatch have empty authored providers through proved original routes. Entry classifications change 9/17/30/62 -> 13/33/30/42 (complete/provider-missing/state-dependent/no-route); survey 24 -> 28 bound of 134. Twenty entry no-route rows gain proof; one tentative alias-unsafe route stays refused. Twelve compiled mutants, native journeys and rebuilt default identity are recorded with the final checks. [Evidence, timings and limits](handoffs/UI-WINDOWS-005.md).
+
 AUDIO-005 verified subset PR-ready: 245 fixture-bounded monster play sites plus four Kubera play/two stop sites; census 1,368 to 1,434 classified / 612 to 546 unresolved. All 23 new compiled controls, 82 latest-main validators, 1,844 portable tests and 105 reduced private tests pass; 92 PNGs, 92 dumps and 46 reports remain identical. [Counts, timings and limits](handoffs/AUDIO-005.md).
 
 RENDER-EFFECTS-032 PR-ready fixture subset: recovered summon, shield, mount and Crescent Moon Slash callers, plus authored bow-kind/wing actions. Defense and Crescent move M -> L; missing summon, fire and Crescent end consumers remain counted refusals. Original requests, sound/default words, frame gates and constructor RNG interleaving pass 4,433 checks and 31/31 compiled mutants. [Checks and limits](handoffs/RENDER-EFFECTS-032.md).
