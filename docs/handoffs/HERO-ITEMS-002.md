@@ -60,7 +60,7 @@ Later commits are docs.
 | `test_native_hero_items` + `tests.test_validators_manifest`, portable, at `2c032a80` | 41 tests OK (10 skipped) | 1.1 s |
 | `test_native_hero_items` (Library, HeroScene, HeroClassScene), private, at `5733b701` | 23 tests OK | 78.6 s |
 | Docs tests (6c) at the final docs: `tests.test_repository_policy`, `tests/test_world_captures_2.py`, `test_native_item_textures`, `test_native_data_manifest` | 9 + 4 + 23 tests OK (1 skipped) | 11.8 s |
-| `scripts/audit_repository.py` | 2,397 files, 0 rejected (after the merges) | 28.8 s |
+| `scripts/audit_repository.py` | 2,407 files, 0 rejected (final tree) | 28.8 s |
 
 8d reduced: the affected selection is 183 work items (a `native/core` header change), above the 40-item cap, so
 only the modules above ran with the private environment. `ClientComparison.test_original_instructions` was not
