@@ -19,3 +19,6 @@ clean:
 
 # RENDER-EFFECTS-026
 libclient_particles.$(SUFFIX): item_later_kinds.inc
+
+# RENDER-EFFECTS-031
+libclient_particles.$(SUFFIX): world_inner_kinds.inc

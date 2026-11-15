@@ -41,10 +41,14 @@ static float rand_range(const mu_pt_host *h, float lo, float hi, int32_t steps);
 #include "item_mace_kinds.inc"     /* RENDER-EFFECTS-023 */
 #include "ferea_clouds.inc"        /* RENDER-EFFECTS-025 */
 #include "item_later_kinds.inc"    /* RENDER-EFFECTS-026 */
+static void mu_pt_icarus_cloud_create(mu_pt_particle *, const mu_pt_host *, float);
+static void mu_pt_icarus_cloud_move(mu_pt_particle *, const mu_pt_host *);
+#include "world_inner_kinds.inc"
 #include "item_bow_kinds.inc"      /* RENDER-EFFECTS-025 */
 
 int mu_pt_kind_supported(int32_t type, int32_t subtype)
 {
+    if (mu_pt_world_inner_kind(type, subtype)) return 1;
     if (mu_pt_item_later_kind(type, subtype)) return 1;
     if (mu_pt_ferea_cloud_kind(type, subtype) || mu_pt_item_bow_kind(type, subtype)) return 1;
     if (mu_pt_item_mace_kind(type, subtype)) return 1;
@@ -197,7 +201,15 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
     owner_position(p, h);
     if (!mu_pt_kind_supported(type, subtype))
         return 0;
+    /* The new default clouds dereference their map OBJECT in MoveParticles. */
+    if (((type == 0x7f89 && (subtype == 7 || subtype == 26)) || (type == 0x7f26 && subtype == 2)) &&
+        owner == MU_PT_NO_OWNER)
+        return 0;
 
+    if (mu_pt_world_inner_kind(type, subtype)) {
+        mu_pt_world_inner_create(p, h, scale);
+        return 1;
+    }
     if (mu_pt_item_later_kind(type, subtype)) {
         mu_pt_item_later_create(p, h, scale);
         return 1;
@@ -684,7 +696,9 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
         owner_position(p, h);   /* 0x01616fee..0x01617071 */
     int supported = mu_pt_kind_supported(p->type, p->subtype);
     if (supported) {
-        if (mu_pt_item_later_kind(p->type, p->subtype))
+        if (mu_pt_world_inner_kind(p->type, p->subtype))
+            mu_pt_world_inner_move(p, h);
+        else if (mu_pt_item_later_kind(p->type, p->subtype))
             mu_pt_item_later_move(p, h);
         else if (mu_pt_item_bow_kind(p->type, p->subtype))
             mu_pt_item_bow_move(p, h);
@@ -1213,7 +1227,7 @@ int mu_pt_render_record(mu_pt_particle *p, const mu_pt_bitmap *b, uint8_t mode, 
     case MU_PT_BITMAP_CLOUDS:
         if (p->subtype == 18) { mu_pt_elbeland_render(p, world_time); s->rotation = p->rotation; break; }
         /* 0x01599675 (subtypes 8, 9, 0x14): the light times the record's alpha */
-        if (p->subtype == 0 || p->subtype == 3) {
+        if (p->subtype == 0 || p->subtype == 3 || p->subtype == 7 || p->subtype == 10 || p->subtype == 16) {
             float rate = p->subtype == 3 || ordinal % 2 == 0 ? 0.02f : -0.02f;
             s->rotation = (world_time * rate) * p->field_7c + p->start[1];
         }
@@ -1226,6 +1240,10 @@ int mu_pt_render_record(mu_pt_particle *p, const mu_pt_bitmap *b, uint8_t mode, 
     }
     if (p->type == 0x7ffd && p->subtype == 0xb)
         state(out, MU_PT_STATE_SUBTRACT, 0);         /* RENDER-EFFECTS-010, Clud64: 0x01594fe7 */
+    if (p->type == 0x7f89 && (p->subtype == 7 || p->subtype == 10 || p->subtype == 16))
+        state(out, MU_PT_STATE_SUBTRACT, 0);
+    if (p->type == 0x802a && p->subtype == 1)
+        state(out, MU_PT_STATE_ADD, 0);
     mu_pt_arrow_render(p, out, s);
     mu_pt_bow_render(p, s);
     mu_pt_worlds_m_render(p, s);

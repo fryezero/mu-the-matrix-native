@@ -6,7 +6,6 @@ import json
 from pathlib import Path
 import random
 import re
-import struct
 import subprocess
 
 import gen_item_bodies as gen
@@ -42,11 +41,23 @@ def caller_guards(wa):
     for at in (0x017e1f12, 0x017e25ea):
         assert gen._text(wa, at, 3) == bytes.fromhex('ff7518')
     addresses = []
-    for match in re.finditer(re.escape(bytes.fromhex('837d28097d05e9')), wa[0]):
+    import capstone
+    md = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_32)
+    for match in re.finditer(re.escape(bytes.fromhex('837d2809')), wa[0]):
         at = match.start() + 0x401000
         if not 0x016e036c <= at < 0x0176cb3b:
             continue
-        if at + 11 + struct.unpack_from('<i', wa[0], match.start()+7)[0] == 0x0176cb2d:
+        code = list(md.disasm(wa[0][match.start():match.start()+24], at))
+        if len(code) < 3 or (code[0].mnemonic, code[0].op_str) != ('cmp', 'dword ptr [ebp + 0x28], 9'):
+            continue
+        if code[1].mnemonic == 'jl':
+            # The lower-level path joins the enclosing vector restore/cleanup.
+            target = code[1].operands[0].imm if md.detail else int(code[1].op_str, 16)
+            if at < target < 0x0176cb3b:
+                addresses.append(at)
+        elif (code[1].mnemonic == 'jge' and code[2].mnemonic == 'jmp' and
+              int(code[1].op_str, 16) == code[2].address + code[2].size and
+              0x016e036c <= int(code[2].op_str, 16) < 0x0176cb3b):
             addresses.append(at)
     assert addresses
     seen = []

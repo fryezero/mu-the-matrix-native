@@ -118,8 +118,11 @@ static void normalize3(float v[3])
 static int wing_joint_kind(int32_t type, int32_t subtype);
 static void create_wing_streak(mu_jt_joint *j, float scale, const float target_position[3]);
 
+static int world_inner_joint_kind(int32_t, int32_t);
+
 int mu_jt_kind_supported(int32_t type, int32_t subtype)
 {
+    if (world_inner_joint_kind(type, subtype)) return 1;
     /* RENDER-EFFECTS-027: the two Death Stab requests, with existing admissions intact. */
     if ((type == 0x472 && subtype == 2) || (type == MU_JT_BITMAP_FLARE && subtype == 12))
         return 1;
@@ -240,6 +243,8 @@ static int create_thunder_bolt(mu_jt_joint *j, int32_t target, float scale, cons
 
 static int create_kanturu_bolt(mu_jt_joint *j, const float target_position[3], const mu_jt_env *env);
 
+#include "world_inner_joints.inc"
+
 int mu_jt_create(mu_jt_joint *j, int32_t type, const float position[3], const float target_position[3],
                  const float angle[3], int32_t subtype, int32_t target, float scale, uint16_t key, uint16_t skill,
                  uint8_t byte10, uint16_t word13, int32_t arg14, const mu_jt_env *env)
@@ -286,6 +291,10 @@ int mu_jt_create(mu_jt_joint *j, int32_t type, const float position[3], const fl
         joint_cross(j, m, 0);
     }
     int supported = mu_jt_kind_supported(type, subtype);
+    if (world_inner_joint_kind(type, subtype)) {
+        create_world_inner_joint(j, scale, target_position, env);
+        return 1;
+    }
     if (bow_joint_kind(type, subtype)) {
         create_bow_joint(j, scale, target_position, env);
         return 1;
@@ -757,6 +766,10 @@ int mu_jt_move(mu_jt_joint *j, const mu_jt_env *env, const mu_jt_move_inputs *in
         if (r == 1) return 1;
         if (r == 2) goto tail;
     }
+    if (world_inner_joint_kind(j->type, j->subtype)) {
+        move_world_inner_joint(j, env);
+        goto tail;
+    }
     switch (j->type) {
     case 0x472:
         if (j->subtype == 2) {   /* 0x01569e07..0x0156a15b */
@@ -1079,6 +1092,8 @@ int mu_jt_render(const mu_jt_joint *j, uint8_t mode, float world_time, const mu_
         gl_color(gl, j->light[0] * j->brightness, j->light[1] * j->brightness, j->light[2] * j->brightness);
     if (gl && gl->bind)
         gl->bind(gl->context, j->tex_type);
+    if (j->type == MU_JT_BITMAP_SPARK && j->subtype == 5 && gl && gl->bind)
+        gl->bind(gl->context, j->tex_type); /* 0x01589fe5 */
     const int bolt = j->type == MU_JT_BITMAP_THUNDER || j->type == MU_JT_TYPE_THUNDER_BOLT;
     int quads = 0;
     for (int32_t i = 0; i < j->num_tails && i + 1 < MU_JT_TAILS; ++i) {
