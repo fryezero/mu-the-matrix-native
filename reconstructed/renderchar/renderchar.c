@@ -520,6 +520,10 @@ static void emit_parameter_body(sink *s, int phase, uint32_t flags, float alpha,
             int32_t mesh = c && c->mesh_named ? c->mesh_named(c->mesh_context, mu_rc_body_names[p->a]) : -1;
             input[35 + k] = (uint32_t)mesh;
             continue;
+        } else if (p->kind == 11) {
+            /* 0x017506c4, 0x01758280: the helper's flag argument, masked and combined with a constant. */
+            input[35 + k] = (input[p->a] & (uint32_t)p->k[0]) | (uint32_t)p->k[1];
+            continue;
         } else if (p->kind == 4) {
             /* Body random: one CRT rand per program, in client call order, only in
              * the phases whose helper call draws it. */

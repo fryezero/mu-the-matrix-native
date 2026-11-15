@@ -252,12 +252,20 @@ MATRIX_CARRY = [0x16f5, 0x24f1]
 # Ordinary bodies whose only unread word was a scalar form: the ternary minimum (0x10f3, 0x1703), the upper clamp
 # after the constant operations (0x1101) and the six-column atlas, whose divisor is loaded by push 6; pop ecx
 # (0x0172aead: 0x0f19, 0x1578, 0x157a and the shields 0x1735, 0x1737, 0x1738, 0x1755).
-TAIL_TYPES = [0x0f19, 0x10f3, 0x1101, 0x1578, 0x157a, 0x1703, 0x1735, 0x1737, 0x1738, 0x1755]
+TAIL_TYPES = [0x0f19, 0x10f3, 0x1101, 0x1578, 0x157a, 0x1703, 0x1735, 0x1737, 0x1738, 0x1755,
+              # a binary32 local set before the block (0x0b21), the sine as a pushed argument (0x14f1) and
+              # k - value through xmm1 (0x0b41)
+              0x0b21, 0x0b41, 0x14f1,
+              # a saved wave used later with its own constants (0x155b) and a constant light scaled by a wave (0x0b54)
+              0x0b54, 0x155b]
+TAIL_CARRY = [0x155b]
+# Bodies whose own draws combine the helper's flag argument with constants (flag_programs(), recipe kind 11).
+FLAG_TYPES = [0x231b, 0x231c, 0x24e3]
 # Level-gated pre-draw producers (gen_item_owner_fx.GATED_PROGRAM_TYPES); their draws fit with the requests set aside.
 GATED_CARRY = [0x0b2b, 0x0b2d, 0x0b2e, 0x0b32]
-AB_TYPES = GUARD_TYPES + MATRIX_TYPES + TAIL_TYPES + GATED_PROGRAM_TYPES   # every 002AB type: the lane's reader forms apply to these only
-REMAINDER_TYPES += MATRIX_TYPES + TAIL_TYPES + GATED_PROGRAM_TYPES
-REMAINDER_CARRY += MATRIX_CARRY + GATED_CARRY
+AB_TYPES = GUARD_TYPES + MATRIX_TYPES + TAIL_TYPES + FLAG_TYPES + GATED_PROGRAM_TYPES   # every 002AB type: the lane's reader forms apply to these only
+REMAINDER_TYPES += MATRIX_TYPES + TAIL_TYPES + FLAG_TYPES + GATED_PROGRAM_TYPES
+REMAINDER_CARRY += MATRIX_CARRY + GATED_CARRY + TAIL_CARRY + FLAG_TYPES
 GUARD_CARRY = list(DECODED_GUARD_TYPES)
 LEVEL_SPLIT += GUARD_TYPES
 REMAINDER_TYPES += GUARD_TYPES
@@ -417,6 +425,8 @@ def parse_scalar(wa, helper, ret):
     at += len(pops)
     if _SAMPLE_TYPE[0] in AB_TYPES and _text(wa, at, 2) == b'\xd9\x5d':
         return short_scalar(wa, kind, a, phase if kind == 9 else None, at)
+    if _SAMPLE_TYPE[0] in AB_TYPES and kind == 2 and _text(wa, at, 4) == bytes.fromhex('51d91c24'):
+        return kind, a, ()   # 0x016f4199: push ecx; fstp dword [esp], the sine itself is the pushed draw argument
     fstp, reload = _text(wa, at, 6), _text(wa, at + 6, 8)
     double = fstp[:2] == b'\xdd\x9d'
     if fstp[:2] not in (b'\xd9\x9d', b'\xdd\x9d'):
@@ -512,6 +522,11 @@ def scalar_tail(wa, at, saved):
             return None
         clamp = clamp_tail(wa, at + 4, saved)
         return None if clamp is None else tuple(ops) + clamp
+    if (_text(wa, at, 4) == bytes.fromhex('f30f100d') and _text(wa, at + 8, 4) == bytes.fromhex('f30f5cc8') and
+            _text(wa, at + 12, 4) == bytes.fromhex('f30f118d')):
+        # 0x0171e578: movss xmm1, [k]; subss xmm1, xmm0; movss [L], xmm1 (k - value, one binary32 subtraction)
+        k = _word(wa, struct.unpack('<I', _text(wa, at + 4, 4))[0])
+        return None if k is None else ((5, k),)
     return clamp_tail(wa, at, saved)
 
 
@@ -803,6 +818,110 @@ def range_colour_programs(wa, ret, source):
         if len(words) == 2:
             out.append((6, source, tuple((1, word) for word in words)))
     return out
+
+
+def flag_programs(wa, t):
+    """RENDER-ITEMS-002AB: draw flags computed from the helper's flag argument inside the type's case:
+    mov eax, [ebp+0x18]; (and eax, m;) or eax, k; push eax (0x017506c4, 0x01758280). Kind 11 keeps the
+    mask (all ones without the and) and the constant; its input is the generic body draw's flag word."""
+    import capstone.x86 as X
+    try:
+        start, end = case_extent(wa, t)
+    except ValueError:
+        return []
+    listing = list(_capstone().disasm(_text(wa, start, end - start), start))
+    if not listing or listing[-1].address + listing[-1].size != end:
+        return []
+    out = []
+    for index, ins in enumerate(listing):
+        if (ins.mnemonic, ins.op_str) != ('mov', 'eax, dword ptr [ebp + 0x18]'):
+            continue
+        mask, at = 0xffffffff, index + 1
+        if at < len(listing) and listing[at].mnemonic == 'and' and listing[at].op_str.startswith('eax, ') and \
+                listing[at].operands[1].type == X.X86_OP_IMM:
+            mask, at = listing[at].operands[1].imm & 0xffffffff, at + 1
+        if (at + 1 < len(listing) and listing[at].mnemonic == 'or' and listing[at].op_str.startswith('eax, ') and
+                listing[at].operands[1].type == X.X86_OP_IMM and
+                (listing[at + 1].mnemonic, listing[at + 1].op_str) == ('push', 'eax')):
+            program = (11, 0, ((1, mask), (2, listing[at].operands[1].imm & 0xffffffff)))
+            if program not in out:
+                out.append(program)
+    return out
+
+
+def deferred_scalars(wa, program, ret):
+    """RENDER-ITEMS-002AB: later uses of a saved helper result (0x01764299..0x017642d6).
+
+    The result is stored by fstp dword [ebp+L] and not reloaded at once. Each later movss xmm0, [ebp+L] followed
+    by binary32 constant operations is one more program of the same helper call. The walk is linear inside the
+    next 0x300 bytes and stops at any other store to the local, at a jump or at the same helper's next call."""
+    import struct
+    import capstone.x86 as X
+    kind, a, ops = program
+    if ops or kind not in (1, 2):
+        return []
+    at = ret + (2 if kind == 1 else 1)
+    fstp = _text(wa, at, 6)
+    if fstp[:2] != b'\xd9\x9d' or _text(wa, at + 6, 4) == bytes.fromhex('f30f1085'):
+        return []
+    saved = struct.unpack('<i', fstp[2:])[0]
+    out = []
+    for ins in _capstone().disasm(_text(wa, at + 6, 0x300), at + 6):
+        if ins.mnemonic in ('jmp', 'ret') or (ins.mnemonic == 'call' and ins.operands[0].type == X.X86_OP_IMM and
+                                              ins.operands[0].imm in (WAVE_HELPER, SINE_WRAPPER)):
+            break
+        memory = [op for op in ins.operands if op.type == X.X86_OP_MEM and op.mem.base == X.X86_REG_EBP and
+                  op.mem.index == 0 and op.mem.disp == saved]
+        if not memory:
+            continue
+        if (ins.mnemonic, ins.op_str.split(',')[0]) != ('movss', 'xmm0'):
+            break     # the local is written or used in another way
+        here, later = ins.address + ins.size, []
+        while len(later) < 4:
+            code = _text(wa, here, 8)
+            if code[:2] != b'\xf3\x0f' or code[2] not in SCALAR_OPS or code[3] != 0x05:
+                break
+            word = _word(wa, struct.unpack_from('<I', code, 4)[0])
+            if word is None:
+                return []
+            later.append((SCALAR_OPS[code[2]], word))
+            here += 8
+        if later:
+            out.append((kind, a, tuple(later)))
+    return out
+
+
+def scaled_light_seeds(wa, t, programs):
+    """RENDER-ITEMS-002AB: a constant body light (vec3 set 0x00cfcead on model +0x54, three pushed binary32
+    constants) scaled by vec3 *= scalar (0x00cfcd74) inside the type's own case (0x0175ff21..0x0175ff69).
+    Each constant word seeds one kind-6 product of every helper scalar; the fit keeps only those the draws use."""
+    try:
+        start, end = case_extent(wa, t)
+    except ValueError:
+        return []
+    md, words = _capstone(), []
+    listing = list(md.disasm(_text(wa, start, end - start), start))
+    for index, ins in enumerate(listing):
+        if ins.mnemonic != 'call' or not ins.op_str.startswith('0x') or int(ins.op_str, 16) != VEC_SET:
+            continue
+        if _text(wa, ins.address - 6, 6) != MODEL_LIGHT_ECX:
+            continue
+        triple = []
+        for k in range(3):
+            at = ins.address - 6 - 14 * (k + 1)
+            word = _load(wa, at + 1) if _text(wa, at, 1) == b'\x51' and _text(wa, at + 9, 5) == MOVSS_ESP else None
+            if word is None:
+                triple = None
+                break
+            triple.append(word)
+        # The scale must follow before any other call: push ecx; movss xmm0, [local]; movss [esp], xmm0;
+        # mov ecx, [ebp+8]; add ecx, 0x54; call 0x00cfcd74.
+        after = ins.address + ins.size
+        if triple and _text(wa, after, 1) == b'\x51' and _text(wa, after + 1, 4) == bytes.fromhex('f30f1085') and \
+                _text(wa, after + 9, 5) == MOVSS_ESP and _text(wa, after + 14, 6) == MODEL_LIGHT_ECX and \
+                _calls(wa, after + 20, VEC_SCALE):
+            words.extend(word for word in triple if word not in words)
+    return [(6, 35 + i, ((1, word),)) for i, p in enumerate(programs) if p[0] in (1, 2) for word in words]
 
 
 def counter_colour_seeds(wa, t, programs):
@@ -1194,6 +1313,25 @@ def _local_stored(wa, offset, value):
     return b'\xc7\x85' + struct.pack('<i', offset) + imm in wa[0]
 
 
+_float_stores = None
+
+
+def _float_local_stored(wa, offset, word):
+    """movss xmm0, dword [k]; movss dword [ebp+offset], xmm0 exists in the pinned text with [k] == word."""
+    global _float_stores
+    import re
+    import struct
+    if _float_stores is None or _float_stores[0] is not wa:
+        found = set()
+        for m in re.finditer(rb'\xf3\x0f\x10\x05(....)\xf3\x0f\x11(?:\x85(....)|\x45(.))', wa[0], re.S):
+            k = _word(wa, struct.unpack('<I', m.group(1))[0])
+            off = struct.unpack('<i', m.group(2))[0] if m.group(2) else struct.unpack('<b', m.group(3))[0]
+            if k is not None:
+                found.add((off, k))
+        _float_stores = (wa, found)
+    return (offset, word & 0xffffffff) in _float_stores[1]
+
+
 def falloff_branch(wa, at, local, regs):
     """Read both joins of the reviewed default-one / reverse-subtract / zero-clamp form.
 
@@ -1517,6 +1655,8 @@ def slice_block(wa, block, frame=False, fold=False):
             def const(z):
                 if z is None or z == 'clock':
                     return None
+                if single and z[0] == 'e' and z[2:] == (1, 0) and fold:
+                    return ('fe', z[1])   # 002AB: a binary32 local set from a constant before this block
                 if single and z[0] in ('kf', 'kw'):
                     return ('w', z[1])
                 if not single and z[0] == 'kd':
@@ -1682,6 +1822,13 @@ def resolve_clock(wa, program, values):
     for op, k in program:
         if isinstance(k, tuple) and k[0] == 'w':
             ops.append((op, k[1]))
+        elif isinstance(k, tuple) and k[0] == 'fe':
+            # RENDER-ITEMS-002AB: the entry value of a binary32 local, accepted only when the text stores that
+            # constant into the local (movss xmm0, [k]; movss [ebp+off], xmm0).
+            word = values[k[1]] & 0xffffffff
+            if not _float_local_stored(wa, k[1], word):
+                return None
+            ops.append((op, word))
         elif isinstance(k, tuple):
             n = k[1]
             word = integer(n)
@@ -2063,6 +2210,9 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=Fals
     def program_input(program, tag, row):
         if program[0] == 8:
             return _NAMED_VALUES[program[1]] & 0xffffffff
+        if program[0] == 11:
+            # RENDER-ITEMS-002AB: the helper's flag argument, masked and combined (flag_programs()).
+            return (row[program[1]] & program[2][0][1] | program[2][1][1]) & 0xffffffff
         if program[0] == 7:
             a, b = row[program[1]], row[program[2][0][1]]
             return RAND_ABSENT if RAND_ABSENT in (a, b) else v.f2u(f(v.u2f(a) * v.u2f(b)))
@@ -2142,6 +2292,10 @@ def fit(wa, lib, t, scalars=False, carry=False, extended=False):
             program = (8, ret, ()) if helper == 'named' else (3, 0, ret) if helper == 'clock' else parse_scalar(wa, helper, ret)
             if program is not None and program not in programs:
                 programs.append(program)
+            if t in AB_TYPES and helper in (WAVE_HELPER, SINE_WRAPPER) and program is not None:
+                for later in deferred_scalars(wa, program, ret):
+                    if later not in programs:
+                        programs.append(later)
         for site in drawn:
             program = parse_random(wa, int(site, 16))
             if program is None:
@@ -2155,6 +2309,9 @@ def fit(wa, lib, t, scalars=False, carry=False, extended=False):
                 # Kind 5: the value of the kind-4 program at index a times one binary32 light constant.
                 programs.append((5, ref, ((1, word),)))
         programs.extend(counter_colour_seeds(wa, t, programs))
+        if t in AB_TYPES:
+            programs.extend(p for p in scaled_light_seeds(wa, t, programs) if p not in programs)
+            programs.extend(p for p in flag_programs(wa, t) if p not in programs)
         if t == 0x0b51:
             programs.extend(piecewise_colour(wa))
         if not programs and t not in DERIVED_TYPES and t not in OTHER_TYPES and t not in REMAINDER_TYPES:
@@ -2332,7 +2489,7 @@ LEVEL_DECODE = 0x016a78c9
 def case_extent(wa, t):
     """[start, end) of the body helper's case of one type.
 
-    Own case: cmp dword [ebp+0x10], t; jne end. Shared case: cmp t; je body, then only further cmp x; je body
+    Own case: cmp dword [ebp+0x10], t; jne end (or the same compare of OBJECT +0x5c). Shared case: cmp t; je body, then only further cmp x; je body
     members and one closing cmp y; jne end whose fall-through is body; the extent is then [body, end).
     Compares of the type inside its extent are sub-branches of that case. Ranges, tables and any other
     selection are refused."""
@@ -2340,8 +2497,10 @@ def case_extent(wa, t):
     text, pattern = wa[0], b'\x81\x7d\x10' + struct.pack('<I', t)
 
     def compare(at):
-        """(kind, target, next) of cmp dword [ebp+0x10], imm32; je/jne rel8/rel32 at a text offset."""
-        if text[at:at + 3] != b'\x81\x7d\x10':
+        """(kind, target, next) of cmp dword [ebp+0x10], imm32; je/jne rel8/rel32 at a text offset. The OBJECT
+        form mov eax, [ebp+0xc]; cmp dword [eax+0x5c], imm32 reads the same type (0x017505ce)."""
+        if text[at:at + 3] != b'\x81\x7d\x10' and (text[at:at + 3] != b'\x81\x78\x5c' or
+                                                    text[at - 3:at] != b'\x8b\x45\x0c'):
             return None
         code = text[at + 7:at + 13]
         if code[:2] in (b'\x0f\x84', b'\x0f\x85'):
@@ -2368,6 +2527,13 @@ def case_extent(wa, t):
                         found.append((body, member[1]))
                     break
                 walk = member[2]
+        at = text.find(pattern, at + 1)
+    pattern = b'\x8b\x45\x0c\x81\x78\x5c' + struct.pack('<I', t)
+    at = text.find(pattern, BODY_HELPER[0] - 0x401000)
+    while at != -1 and at < BODY_HELPER[1] - 0x401000:
+        first = compare(at + 3)
+        if first and first[0] == 'jne':
+            found.append((0x401000 + at, first[1]))
         at = text.find(pattern, at + 1)
     outer = [extent for extent in found
              if all(extent[0] <= other[0] and other[1] <= extent[1] for other in found)]
@@ -2507,6 +2673,10 @@ def render(types):
              ' * plain 0 = glow chain, 1 = plain with tails, 2 = early complete body, 3 = early body, exact-white phase 5, otherwise part-selector 6 phase 6;',
              ' * kind 10 = signed tick modulo a, split at k[0], binary32 affine colour per half, optional wave multiply;',
              ' * kind 8 = raw 0x012bd4a6 result for mu_rc_body_names[a], including -1;',
+             ' * kind 11 = (draw input word a & k[0]) | k[1], the helper flag argument combined in the case;',
+             ' * scalar op 7 = upper clamp, 17 = ternary minimum (k > value ? value : k); an op|8 run rounds once;',
+             ' * clock op 39 = integer ping-pong at k (a value >= k becomes 2k - 1 - value);',
+             ' * level_split 2 = packed helper word >= 9, 3 = word != -1 and decoded level >= 11;',
              ' * kind 4 = (float)(rand() % a) then binary32',
              ' * mul/add/sub/div, drawn once in each phase of its phases mask; kind 5 = the type\'s program a (kind 4)',
              ' * times the binary32 k[0], one channel of a scaled constant body light; kind 6 = input a (absolute index)',
@@ -2521,9 +2691,10 @@ def render(types):
         lines.append('    {%d, {' % len(rule))
         for entry, cells in rule:
             sources = ','.join(str(v + 1 if op == 'in' else 0) for op, v in cells)
-            values = ['0' if op == 'in' or not (v & 0xffffffff) else '0x%xu' % (v & 0xffffffff) for op, v in cells]
-            # RENDER-ITEMS-002AB: trailing zero values are omitted (C zero-fills them; the compiled table is
-            # unchanged), which keeps the table under the audit's size limit.
+            values = ['0' if op == 'in' or not (v & 0xffffffff) else '0x%x' % (v & 0xffffffff) for op, v in cells]
+            # RENDER-ITEMS-002AB: trailing zero values are omitted (C zero-fills them) and the hexadecimal words
+            # carry no suffix (each converts to uint32_t unchanged). The compiled table is the same, and the
+            # file stays under the audit's size limit.
             while len(values) > 1 and values[-1] == '0':
                 values.pop()
             values = ','.join(values)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""RENDER-ITEMS-002AB: bodies inside a bare glPushMatrix/glPopMatrix bracket, and helper scalar tails."""
+"""RENDER-ITEMS-002AB: bodies inside a bare glPushMatrix/glPopMatrix bracket, scalar forms and flag programs."""
 import argparse
 import ctypes as C
 import json
@@ -17,13 +17,18 @@ import validate_renderchar as v
 from item_body_machine import ResetWorld
 
 ROOT = Path(__file__).resolve().parents[1]
-TYPES = gen.MATRIX_TYPES + gen.TAIL_TYPES
+TYPES = gen.MATRIX_TYPES + gen.TAIL_TYPES + gen.FLAG_TYPES
 BRACKET = [('gl', 'glPushMatrix', []), ('gl', 'glPopMatrix', [])]
 MUTANTS = {
     'ternary-minimum': ('case 17: value = k > value ? value : k; break;', 'case 17: break;'),
     'ternary-direction': ('case 17: value = k > value ? value : k; break;', 'case 17: value = k > value ? k : value; break;'),
     'upper-clamp': ('case 7: if (value > k) value = k; break;', 'case 7: break;'),
     'random-source': ('random_program(p, rank5_random(s))', 'random_program(p, 0)'),
+    'reverse-tail': ('case 5: value = k - value; break;', 'case 5: value = value - k; break;'),
+    'scaled-light': ('value = derived_program(p, value);', '(void)derived_program(p, value);'),
+    'flag-mask': ('(input[p->a] & (uint32_t)p->k[0]) | (uint32_t)p->k[1];', 'input[p->a] | (uint32_t)p->k[1];'),
+    'flag-constant': ('(input[p->a] & (uint32_t)p->k[0]) | (uint32_t)p->k[1];', '(input[p->a] & (uint32_t)p->k[0]);'),
+    'flag-source': ('(input[p->a] & (uint32_t)p->k[0]) | (uint32_t)p->k[1];', '(input[p->a + 1] & (uint32_t)p->k[0]) | (uint32_t)p->k[1];'),
     'recipe-last-draw': ('i < recipe->count; ++i', 'i < recipe->count - 1; ++i'),
     'model-carry': ('mu_rc_body_types[type].carry)', '0)'),
 }
