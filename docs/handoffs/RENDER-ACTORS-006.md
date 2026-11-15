@@ -94,3 +94,20 @@ Next: finish the queued rebuild/census/focused test, audit and commit the
 consistent revised source, then run the selected validators and new-row
 controls once on that source. Portable affected, 8d reduced, proof renders,
 identity, final documentation/audit, PR and ready entry remain unfinished.
+
+Checkpoint 2026-11-14 23:50: consistent source is `d3688570`, with 550 admitted
+selector plans / 51 exact model files, 82 ordinary and 468 repeated-default
+contexts. Canonical CSV regeneration now confirms 589 checked / 355 incomplete /
+80 refused, 5.35 s plus a 60 s wait. Root rebuild: 10.53 s plus 420 s of waits.
+The focused census test passes, with one expected private skip, 0.08 s.
+Audit: 2,282 staged files, zero rejected, 29.25 s.
+
+The final new-row run passes all 21,437 checks and catches all nine compiled
+controls with zero unexpected stops, 197.2 s plus a 120 s wait. Final post-build
+selection has 31 rows, including AUDIO-004's new object-audio validator. The
+other thirty selected rows are running without mutants at the same source;
+no optional controls from unchanged validators are replayed. No code change
+has followed the new-row pass. Left: finish those rows, portable affected
+suites, 8d reduced, rebuilt-world identity and representative proof renders,
+latest-main check, final docs/audit, PR/ready entry and cleanup. No PR or ready
+entry exists yet. All earlier provisional admissions are superseded by 550.
