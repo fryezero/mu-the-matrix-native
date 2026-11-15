@@ -1003,3 +1003,17 @@ whole-client completion percentage. Guardian's three state-bound sites retain
 their fixture limit. The virtualised frame interval `0x01854279..0x018542c2`
 remains excluded and unfollowed. Final check counts and limits are in
 [AUDIO-005](../handoffs/AUDIO-005.md).
+
+### AUDIO-005 resume verification, 2026-11-15
+
+Main `6900914e` is integrated and the existing scope is now verified against
+EFFECTS-031. All 82 refreshed validators pass, 1,067,729 cases/checks, 891.54 s.
+Affected portable tests pass 1,507 with 337 explicit skips, zero failures/errors,
+416.42 s; reduced private delivery/decoded/census consumers pass 105/105, zero
+skips, 106.91 s. Both explicitly rebuilt world binaries have distinct recorded
+SHA-256s. All 92 default PNGs, 92 OBJECT/light dumps and 46 reports match main,
+140.33 s including the builds. The handoff records the initial path-setup stop
+and one unnecessary unchanged NPC mutant wrapper replay. No runtime source or
+admission changes during the resume. PR #396 remains unmerged at the final
+main check, so its actor-plan eligibility recheck stays with AUDIO-006. The
+19 whole-owner refusals, fixture limits and opaque interval remain unchanged.

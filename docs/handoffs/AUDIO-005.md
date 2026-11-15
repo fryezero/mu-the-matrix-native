@@ -1,8 +1,8 @@
-# AUDIO-005: WIP — latest-main verification pending
+# AUDIO-005: scalar monster owners and ordered Kubera stops
 
-Branch `codex/audio-005`, stacked on AUDIO-004 `30e4f275`, then integrated
-with main after PR #388. Offline pinned instructions and authored fixtures only.
-This is a bounded audio subset. **Not PR-ready.**
+Branch `codex/audio-005`, integrated with main `6900914e` through merge
+`6c0f973a`. Offline pinned instructions and authored fixtures only. This is a
+verified bounded subset, with fixture-loaded monster delivery. Ready for steward.
 
 ## Census
 
@@ -90,183 +90,211 @@ No music selector or mixer change. All 211 distinct sound ids used here resolve 
 smoke; the combined rendered PCM is nonzero. This establishes file availability and
 native delivery, not FMOD mixer parity.
 
-## Verification through UI-WINDOWS-004
+## Verification
 
-Last fully checked native C and validator source is
-`8b3658bfb71589047584264e3eaff49cbfd0115f` after UI-WINDOWS-004; the census-only correction is
-`2efa765c8a3660de002c65e22eed45db1eff7dbd`. The later RENDER-EFFECTS-031 merge is built but its affected checks are pending.
-The 70-row table records each row's tested source. The checked binary and identity below precede that latest merge; they are not
-verification of the new combined tree.
+The resume changes documentation only. Compiled C and validator inputs are
+`4a438364e3b3c374cc89bc5499c6feb5368671f1`; identity was run at documentation
+checkpoint `c30126a9`. Main was fetched again at finish on 2026-11-15 and remains
+`6900914e`. Its existing merge commit `6c0f973a` retains both lanes' combat
+additions and validator entries; a fresh merge reports up to date.
 
-- Latest root build passes, **15.64 s** (earlier guard build **22.38 s**). Final explicit world build **0.20 s**.
-- Monster original comparison: **38,315 cases**, all **245 sites**, zero
-  mismatches/stops. Includes 32,759 complete-owner, 2,748 outer-dispatch and
-  2,808 caller-tail cases. **15/15 compiled mutants, 27.93 s**, plus the later
-  action-count guard's **1/1, 2.004 s**. Total **16/16**; unchanged targets
-  were not repeated. Integrated unmutated results are in the table below.
-- Kubera full original move/native order: **1,000 cases**, all six sites,
-  zero mismatches/stops, **6/6 compiled mutants, 7.95 s**. Eight prefilled-log
-  boundary controls and the new annotation-guard mutant pass in **4.60 s**.
-  Total **7/7**. The controls preserve a prior borrowed event on silent,
-  out-of-range and unordered-frame paths; valid branches annotate only their
-  newly emitted event. OBJECT, AL, action records, RNG and all normalized
-  original calls remain compared.
-- After actor/world/UI integration, portable selection is **182 work items**,
-  including **173 native modules**; **120.30 s** selection. The refresh at
-  `cfdf3501` reports ten groups, **1,859 tests: 1,515 passed / 344 explicit
-  skips, zero failures/errors**, **416.4 s** runner / **550.82 s** command wall.
-  The subsequent annotation guard is covered by its dedicated controls,
-  55-row affected refresh and final private native tests.
-- **8d reduced**: 173 native modules exceed the 40-item cap. Canonical private
-  execution from repository root passes **64 native tests**, zero native
-  skips/failures/errors. The combined 66-test invocation takes **103.52 s**
-  and exposes one census-only failure, corrected below. It includes both added
-  modules and nine audio-consumer modules. Eight unchanged original-validator
-  wrappers are omitted because the 70-row run already covers them; no optional
-  mutants are repeated. Real rings/readers, once-only combat, active-id policy,
-  mute/drain/detach, ordered stops, actual synthetic object callbacks and equal
-  audio-on/off world pixels are covered. All 80 type models are attempted;
-  77 load and the three expected missing files stay refused. All 211 used sound
-  ids resolve/decode and the combined rendered PCM is nonzero.
-- Final UI/NPC integration: **24/24 validators**, **175.09 s**, zero failures/errors/skips; selection **66.70 s**. Final affected portable: 180 work items / 174 native modules, 1,615 tests, 1,310 passed / 305 explicit skips, zero failures/errors; 47.796 s selection + 287.864 s run, 336.82 s command wall. Final private NPC/UI/audio/census consumers: 47/47, zero skips/failures/errors, 27.81 s. Four unchanged mutant/validator wrappers are omitted; optional mutants are not repeated.
-- Census correction: INNER-004 names `0x00e8d888` only as a counted refusal.
-  Treating that mention as an owner reference wrongly classified two sites.
-  The reviewed non-owning reference is excluded, preserving **546 unresolved**;
-  both sites now have explicit unresolved/native-absent controls. The original
-  expectation was retained. Final census **2/2, zero skips/failures/errors**, included in the **47-test /
-  27.81 s** private run. Only its test module consumes this Python change.
-- All **70 affected validators** pass initially at `e4d1ce47`, **1,115,117
-  cases/checks**, **906.06 s**. Post-guard selection from `cfdf3501` retains
-  **55 rows**, including all ten fallback rows, and prunes 28 unused-symbol
-  consumers. Those **55 pass** at `34f228d9`, **977,846 cases/checks**,
-  **676.62 s**; selection **61.83 s**. Both runs have zero failures/errors/skips.
-- Repository audit: **2,312 staged files, zero rejected, 15.12 s**.
-  Source/spec self-review covers exact ownership/provenance, caller alias and
-  order, unchanged visual state/RNG, overflow/foreign events, borrowed lifetime,
-  once-only gates, cue cursors and added-lines scope. No independent reviewer
-  or full lane gate is claimed.
+- Clean root build passes, **27.80 s**.
+- Monster original comparison passes **38,315 cases**, all **245 sites**, zero
+  mismatches/stops. This includes 32,759 whole-owner, 2,748 whole-dispatch and
+  2,808 caller-tail cases. The final integrated unmutated row takes **22.4 s**.
+  Prior changed-target controls caught **15/15 in 27.93 s**, then the added
+  action-count guard caught **1/1 in 2.004 s**, for **16/16** total.
+- Kubera full original move/native command order passes **1,000 cases**, all
+  **six play/stop sites**, zero mismatches/stops, **1.5 s** integrated. The
+  prior changed-target run caught **6/6 in 7.95 s**; eight prefilled-log
+  controls plus its annotation-guard mutant pass in **4.60 s**, for **7/7**
+  total. AL, OBJECT/action records, RNG and full normalized order remain compared.
+- Post-build `--list-affected-since 8b3658bf` reproduces **82/242 validators**,
+  including all **four symbol fallbacks**, in **87.17 s**. All **82 pass**,
+  **1,067,729 cases/checks**, zero failures/errors/skips, **891.54 s** command
+  wall. Optional mutants are disabled. Unused-symbol consumers are pruned by
+  the selector; no selected fallback is dropped.
+- Affected portable selection uses the same base: **178 work items**, including
+  **167 native modules**, **51.824 s** selection. The owner's app-packaging
+  exclusion removes `test_native_app.py`; **177 items** run in 12 suite groups.
+  Result: **1,844 tests, 1,507 passed / 337 explicit skips**, zero failures/errors,
+  **363.1 s** runner / **416.42 s** command wall including selection.
+- **8d reduced:** 167 native modules exceed the 40-item cap. Canonical
+  `private-env.sh` from repository root runs eleven audio modules, native audio
+  and NPC consumers, changed particle/effect modules, the three changed world
+  hosts and census controls. **105/105 tests pass**, comprising 103 native tests
+  and two census tests, zero skips/failures/errors, **106.91 s** command wall.
+  Fourteen duplicate original wrappers are omitted. One generically named
+  unchanged NPC `test_validator` wrapper was mistakenly retained and reran its
+  mutants; it passed. No AUDIO-005 optional mutants were repeated in this resume.
+- Private coverage includes original provenance/order, independent readers,
+  once-only caller gates, active-id suppression, mute/disabled draining, detached
+  no replay, actual synthetic object delivery and equal audio-on/off world pixels.
+  All 80 referenced type models are attempted through BY_MONSTER; the documented
+  three absent files remain allowed refusals. All **211 distinct used ids** resolve
+  and decode, with nonzero combined PCM. The pinned census controls pass **2/2**
+  and preserve **546 unresolved**, including both refusal-only INNER-004 sites.
+- Repository audit passes: **2,312 staged files, zero rejected, 17.76 s**.
+- Source/spec self-review checks exact ownership/provenance, caller frame alias
+  and ordering, unchanged visual state/RNG, borrowed-event lifetime, overflow,
+  foreign commands and the added-lines-only shared-file scope. No independent
+  reviewer, lane full gate, live fidelity or FMOD mixer parity is claimed.
 
 ### Default identity
 
-A control binary was built from exact main `4babc900` compiled inputs in this
-lane's own worktree. Git checks those inputs; a finally block restores every
-committed lane byte. Main itself was never edited or built in. The earlier
-AUDIO-004 baseline was retired after main's intentional renderer changes;
-its results are not used here. The preserved control precedes the UI merge,
-which is included in the final production binary.
+A control binary uses exact main `6900914e` compiled inputs in this lane's own
+worktree. Only the lane's existing source differences are temporarily replaced
+with their main blobs; added lane-only headers remain unreferenced by main.
+A finally block restores every lane source byte before production is built.
+The main checkout is never edited or built in.
 
-Both control and production explicitly run `make -C native -j4 world`.
-Control build **6.37 s**; final production build **0.20 s**.
-Distinct SHA-256s, with production checked again after rendering:
+Both targets explicitly run `nice -n 10 make -C native -j4 world`. Control build
+**6.28 s**, production **6.74 s**. The distinct hashes are checked again after
+rendering:
 
-- Control, main `4babc900`:
-  `88e2708626a818ce09721422b9ea8d52a373b8eaad4d77750d27376eeebe5d35`.
-- Checked production before RENDER-EFFECTS-031, native inputs `8b3658bf`:
-  `45d9b390a39b69b05ce496155e5545557d160d6e90ed2a24c0f2497c10e2fbd5`.
+- Control: `1a7b20b52387fb7010574d45db4a7e99415ee3b06c7110da28bdc2877c25e484`.
+- Production: `712a65ae036d2753293a4b577d60a07736b07ee048c5433c8db4b1973fb2dea8`.
 
 Default draw, no draw_all/live_time, 640x400, 25 frames sampled at 0/24,
-demo name Preview. Only output directory prefixes are normalized; every JSON
-row/value is compared with no removed scene fields. All 46 renders exit 0.
+demo name Preview. Only output-directory prefixes are normalized in JSONL;
+every row/value is compared, with no removed scene fields. All control and
+production renders exit 0.
 
-| Dataset | PNG identity | OBJECT/light identity | Reports | Control / production render wall |
+| Dataset | PNG identity | OBJECT/light identity | Reports | Control / production wall seconds |
 |---|---:|---:|---:|---:|
-| October 22, 14 views | 28/28 | 28/28 | 14/14 | 15.812 / 14.381 s |
-| DATA-ACQ-002, 32 views | 64/64 | 64/64 | 32/32 | 47.262 / 33.807 s |
+| October 22, 14 views | 28/28 | 28/28 | 14/14 | 16.71 / 16.46 |
+| DATA-ACQ-002, 32 views | 64/64 | 64/64 | 32/32 | 43.84 / 49.27 |
 
-Totals: **92/92 PNGs, 92/92 dumps and 46/46 reports identical**.
-Control command wall **63.11 s**, final production **48.22 s**;
-comparison **0.158 s**. These are repeatability controls, not
-original-client visual equivalence.
+Totals: **92/92 PNGs, 92/92 dumps and 46/46 reports identical**. The corrected
+identity phase takes **140.33 s**, including both builds and comparison.
+An initial launcher stopped before rendering because the October manifest used
+obsolete tools paths, **132.49 s** including a 120-second load cooldown. Task-local
+path normalization and preflight checks for all 46 entries fix the setup; no
+input, expected image or scene field changes. The earlier pre-EFFECTS-031 sweep
+is superseded by this current-main comparison. These are repeatability controls,
+not original-client equivalence.
 
 ### Steward validators
 
-Rows labeled `8b3658bf` were refreshed after UI-WINDOWS-004; `34f228d9` labels
-the guard refresh and `e4d1ce47` the earlier unchanged inputs. The initial
-post-build selection takes **34.45 s**, retains its `validate_worlds_r2`
-fallback and prunes 21 unused-symbol consumers. All selected 6b/8b consumers
-and every fallback are retained. The 55-row guard refresh adds no rows; the 24-row UI refresh adds four.
-The final steward union has 74 rows, all passing at the source shown below.
-Use canonical `~/Documents/MTM/mu-mac-tools/native/private-env.sh` from repository
-root. No further optional mutants are needed.
+The union is **108 rows**: **82 refreshed at `4a438364`**, plus **26 earlier
+rows whose compiled inputs are unchanged** by the latest integration. Each
+row below retains its actual tested commit and wall time. The resume's later
+commits change documentation only. Use canonical
+`~/Documents/MTM/mu-mac-tools/native/private-env.sh` from repository root.
+No additional optional mutants are needed.
 
-Steward validators: validate_meshdraw,validate_model_edge,validate_model_light,validate_movement,validate_path,validate_terrain,validate_viewport_monsters,validate_terrain_remaining,validate_audio_events,validate_audio_music,validate_audio_voices,validate_worlds_b,validate_icarus_c2,validate_worlds_e,validate_worlds_f,validate_worlds_g,validate_audio_callers,validate_worlds_h,validate_audio_combat,validate_worlds_i,validate_audio_domains,validate_worlds_j,validate_audio_items,validate_session_party,validate_audio_charsel,validate_world_tile_folder,validate_world_light_name,validate_worlds_r2,validate_worlds_q,validate_worlds_q2,validate_worlds_after3,validate_worlds_after4,validate_worlds_after6,validate_app_polish2,validate_app_polish7,validate_app_polish4,validate_worlds_s,validate_worlds_s2,validate_worlds_s3,validate_worlds_slots,validate_worlds_slots2,validate_worlds_slots3,validate_worlds_121,validate_worlds_raklion,validate_worlds_karutan,validate_render_effects16,validate_worlds_fog,validate_render_effects17,validate_item_callers,validate_inventory_fx,validate_render_effects18,validate_render_effects19,validate_render_effects24,validate_worlds_inner,validate_render_effects25,validate_actor_recipes,validate_charsel_items,validate_audio_ui,validate_render_effects26,validate_actor_composites,validate_worlds_inner2,validate_audio_objects,validate_render_effects28,validate_worlds_inner3,validate_items_ui,validate_audio_objects4,validate_audio_monsters,validate_audio_kubera,validate_actor_monsters,validate_worlds_inner4,validate_app_polish1,validate_app_polish9,validate_gfx3,validate_map_polish
+Steward validators: validate_actor_composites,validate_actor_monsters,validate_actor_recipes,validate_app_polish1,validate_app_polish2,validate_app_polish4,validate_app_polish7,validate_app_polish9,validate_audio_callers,validate_audio_charsel,validate_audio_combat,validate_audio_domains,validate_audio_events,validate_audio_items,validate_audio_kubera,validate_audio_monsters,validate_audio_music,validate_audio_objects,validate_audio_objects4,validate_audio_ui,validate_audio_voices,validate_charsel_items,validate_gfx3,validate_icarus,validate_icarus_c2,validate_inventory_fx,validate_item_callers,validate_item_effects,validate_items_ui,validate_joints,validate_map_polish,validate_meshdraw,validate_model_edge,validate_model_light,validate_movement,validate_particles,validate_path,validate_render_effects,validate_render_effects10,validate_render_effects11,validate_render_effects12,validate_render_effects13,validate_render_effects14,validate_render_effects15,validate_render_effects16,validate_render_effects17,validate_render_effects18,validate_render_effects19,validate_render_effects20,validate_render_effects21,validate_render_effects22,validate_render_effects23,validate_render_effects24,validate_render_effects25,validate_render_effects26,validate_render_effects27,validate_render_effects28,validate_render_effects3,validate_render_effects30,validate_render_effects31,validate_render_effects4,validate_render_effects5,validate_render_effects6,validate_render_effects7,validate_render_effects9,validate_render_worlds_a,validate_session_party,validate_skill_fx,validate_terrain,validate_terrain_remaining,validate_viewport_monsters,validate_world_light_name,validate_world_particle_consumers,validate_world_tile_folder,validate_worlds_121,validate_worlds_after,validate_worlds_after2,validate_worlds_after3,validate_worlds_after4,validate_worlds_after5,validate_worlds_after6,validate_worlds_b,validate_worlds_d,validate_worlds_e,validate_worlds_f,validate_worlds_fog,validate_worlds_g,validate_worlds_g3,validate_worlds_h,validate_worlds_i,validate_worlds_inner,validate_worlds_inner2,validate_worlds_inner3,validate_worlds_inner4,validate_worlds_j,validate_worlds_karutan,validate_worlds_l,validate_worlds_m,validate_worlds_q,validate_worlds_q2,validate_worlds_r2,validate_worlds_raklion,validate_worlds_s,validate_worlds_s2,validate_worlds_s3,validate_worlds_slots,validate_worlds_slots2,validate_worlds_slots3
 
 | Validator | Cases/checks | Wall seconds | Tested source |
 |---|---:|---:|---|
-| `validate_actor_composites` | 1427 | 8.4 | `8b3658bf` |
-| `validate_actor_monsters` | 1437 | 51.6 | `8b3658bf` |
-| `validate_actor_recipes` | 1669 | 100.1 | `8b3658bf` |
-| `validate_app_polish1` | 752 | 15.9 | `8b3658bf` |
+| `validate_actor_composites` | 1427 | 9.4 | `4a438364` |
+| `validate_actor_monsters` | 1437 | 51.2 | `4a438364` |
+| `validate_actor_recipes` | 1669 | 114.8 | `4a438364` |
+| `validate_app_polish1` | 752 | 23.7 | `4a438364` |
 | `validate_app_polish2` | 1028 | 3.1 | `8b3658bf` |
-| `validate_app_polish4` | 10485 | 29.5 | `8b3658bf` |
+| `validate_app_polish4` | 10485 | 34.0 | `4a438364` |
 | `validate_app_polish7` | 5120 | 1.5 | `8b3658bf` |
 | `validate_app_polish9` | 4668 | 3.4 | `8b3658bf` |
-| `validate_audio_callers` | 5528 | 4.6 | `8b3658bf` |
+| `validate_audio_callers` | 5528 | 5.7 | `4a438364` |
 | `validate_audio_charsel` | 5968 | 4.1 | `e4d1ce47` |
-| `validate_audio_combat` | 19548 | 42.5 | `e4d1ce47` |
-| `validate_audio_domains` | 2544 | 19.4 | `8b3658bf` |
+| `validate_audio_combat` | 19548 | 19.9 | `4a438364` |
+| `validate_audio_domains` | 2544 | 21.2 | `4a438364` |
 | `validate_audio_events` | 70980 | 4.3 | `e4d1ce47` |
-| `validate_audio_items` | 3000 | 2.4 | `8b3658bf` |
-| `validate_audio_kubera` | 1000 | 0.9 | `8b3658bf` |
-| `validate_audio_monsters` | 38315 | 11.8 | `8b3658bf` |
+| `validate_audio_items` | 3000 | 3.4 | `4a438364` |
+| `validate_audio_kubera` | 1000 | 1.5 | `4a438364` |
+| `validate_audio_monsters` | 38315 | 22.4 | `4a438364` |
 | `validate_audio_music` | 4291 | 0.4 | `e4d1ce47` |
-| `validate_audio_objects` | 4000 | 2.7 | `8b3658bf` |
-| `validate_audio_objects4` | 10093 | 5.3 | `8b3658bf` |
+| `validate_audio_objects` | 4000 | 4.5 | `4a438364` |
+| `validate_audio_objects4` | 10093 | 9.4 | `4a438364` |
 | `validate_audio_ui` | 5803 | 33.8 | `e4d1ce47` |
 | `validate_audio_voices` | 2182 | 0.1 | `e4d1ce47` |
-| `validate_charsel_items` | 8817 | 7.5 | `34f228d9` |
+| `validate_charsel_items` | 8817 | 7.7 | `4a438364` |
 | `validate_gfx3` | - | 4.4 | `8b3658bf` |
-| `validate_icarus_c2` | 8400 | 17.8 | `34f228d9` |
-| `validate_inventory_fx` | 8017 | 8.6 | `34f228d9` |
-| `validate_item_callers` | 6013 | 1.9 | `34f228d9` |
-| `validate_items_ui` | 8517 | 11.5 | `34f228d9` |
+| `validate_icarus` | 5240 | 46.6 | `4a438364` |
+| `validate_icarus_c2` | 8400 | 21.1 | `4a438364` |
+| `validate_inventory_fx` | 8017 | 7.0 | `4a438364` |
+| `validate_item_callers` | 6013 | 1.3 | `4a438364` |
+| `validate_item_effects` | 1500 | 1.4 | `4a438364` |
+| `validate_items_ui` | 8517 | 11.0 | `4a438364` |
+| `validate_joints` | 180 | 2.4 | `4a438364` |
 | `validate_map_polish` | 876 | 0.5 | `8b3658bf` |
-| `validate_meshdraw` | 14619 | 52.7 | `34f228d9` |
-| `validate_model_edge` | 954 | 118.1 | `34f228d9` |
-| `validate_model_light` | 1433 | 4.5 | `34f228d9` |
-| `validate_movement` | 6614 | 49.7 | `8b3658bf` |
+| `validate_meshdraw` | 14619 | 59.6 | `4a438364` |
+| `validate_model_edge` | 954 | 120.4 | `4a438364` |
+| `validate_model_light` | 1433 | 5.0 | `4a438364` |
+| `validate_movement` | 6614 | 57.2 | `4a438364` |
+| `validate_particles` | 407 | 1.2 | `4a438364` |
 | `validate_path` | 4719 | 32.2 | `e4d1ce47` |
-| `validate_render_effects16` | 424 | 4.0 | `8b3658bf` |
-| `validate_render_effects17` | 618 | 6.1 | `8b3658bf` |
-| `validate_render_effects18` | 540 | 1.7 | `e4d1ce47` |
-| `validate_render_effects19` | 400 | 1.5 | `e4d1ce47` |
-| `validate_render_effects24` | 226 | 2.8 | `8b3658bf` |
-| `validate_render_effects25` | 202 | 7.7 | `8b3658bf` |
-| `validate_render_effects26` | 348 | 8.5 | `8b3658bf` |
-| `validate_render_effects28` | 630 | 1.8 | `34f228d9` |
+| `validate_render_effects` | 660 | 0.8 | `4a438364` |
+| `validate_render_effects10` | 154 | 0.3 | `4a438364` |
+| `validate_render_effects11` | 176 | 0.2 | `4a438364` |
+| `validate_render_effects12` | 64 | 0.3 | `4a438364` |
+| `validate_render_effects13` | 180 | 0.7 | `4a438364` |
+| `validate_render_effects14` | 660 | 1.5 | `4a438364` |
+| `validate_render_effects15` | 509 | 0.8 | `4a438364` |
+| `validate_render_effects16` | 424 | 3.7 | `4a438364` |
+| `validate_render_effects17` | 618 | 7.3 | `4a438364` |
+| `validate_render_effects18` | 540 | 1.4 | `4a438364` |
+| `validate_render_effects19` | 400 | 1.0 | `4a438364` |
+| `validate_render_effects20` | 148 | 0.3 | `4a438364` |
+| `validate_render_effects21` | 267 | 0.3 | `4a438364` |
+| `validate_render_effects22` | 202 | 6.5 | `4a438364` |
+| `validate_render_effects23` | 1174 | 8.9 | `4a438364` |
+| `validate_render_effects24` | 226 | 2.8 | `4a438364` |
+| `validate_render_effects25` | 202 | 10.3 | `4a438364` |
+| `validate_render_effects26` | 348 | 10.1 | `4a438364` |
+| `validate_render_effects27` | 424 | 1.4 | `4a438364` |
+| `validate_render_effects28` | 630 | 2.7 | `4a438364` |
+| `validate_render_effects3` | 720 | 0.7 | `4a438364` |
+| `validate_render_effects30` | 452 | 0.6 | `4a438364` |
+| `validate_render_effects31` | 66051 | 234.6 | `4a438364` |
+| `validate_render_effects4` | 1920 | 4.8 | `4a438364` |
+| `validate_render_effects5` | 1190 | 3.5 | `4a438364` |
+| `validate_render_effects6` | 1000 | 1.0 | `4a438364` |
+| `validate_render_effects7` | 596 | 1.2 | `4a438364` |
+| `validate_render_effects9` | 304 | 0.8 | `4a438364` |
+| `validate_render_worlds_a` | 9000 | 13.1 | `4a438364` |
 | `validate_session_party` | 200 | 1.2 | `e4d1ce47` |
-| `validate_terrain` | 583500 | 361.5 | `34f228d9` |
-| `validate_terrain_remaining` | 2147 | 3.9 | `34f228d9` |
+| `validate_skill_fx` | 660 | 1.5 | `4a438364` |
+| `validate_terrain` | 583500 | 383.4 | `4a438364` |
+| `validate_terrain_remaining` | 2147 | 12.4 | `4a438364` |
 | `validate_viewport_monsters` | 1963 | 7.2 | `e4d1ce47` |
 | `validate_world_light_name` | 304 | 0.4 | `34f228d9` |
+| `validate_world_particle_consumers` | 900 | 0.6 | `4a438364` |
 | `validate_world_tile_folder` | 5700 | 35.1 | `34f228d9` |
-| `validate_worlds_121` | 4000 | 3.4 | `34f228d9` |
-| `validate_worlds_after3` | 10212 | 7.8 | `34f228d9` |
-| `validate_worlds_after4` | 9181 | 11.4 | `34f228d9` |
-| `validate_worlds_after6` | 7300 | 48.0 | `34f228d9` |
+| `validate_worlds_121` | 4000 | 4.8 | `4a438364` |
+| `validate_worlds_after` | 13424 | 9.3 | `4a438364` |
+| `validate_worlds_after2` | 32216 | 29.0 | `4a438364` |
+| `validate_worlds_after3` | 10212 | 9.7 | `4a438364` |
+| `validate_worlds_after4` | 9181 | 15.3 | `4a438364` |
+| `validate_worlds_after5` | 6000 | 12.9 | `4a438364` |
+| `validate_worlds_after6` | 7300 | 69.1 | `4a438364` |
 | `validate_worlds_b` | 4000 | 3.7 | `34f228d9` |
-| `validate_worlds_e` | 4840 | 16.6 | `34f228d9` |
-| `validate_worlds_f` | 1818 | 0.5 | `34f228d9` |
-| `validate_worlds_fog` | 4044 | 5.3 | `8b3658bf` |
+| `validate_worlds_d` | 2400 | 3.6 | `4a438364` |
+| `validate_worlds_e` | 4840 | 15.5 | `4a438364` |
+| `validate_worlds_f` | 1818 | 0.6 | `4a438364` |
+| `validate_worlds_fog` | 4044 | 7.9 | `4a438364` |
 | `validate_worlds_g` | 6000 | 4.6 | `34f228d9` |
+| `validate_worlds_g3` | 4000 | 4.9 | `4a438364` |
 | `validate_worlds_h` | 6000 | 3.7 | `34f228d9` |
 | `validate_worlds_i` | 6000 | 4.2 | `34f228d9` |
-| `validate_worlds_inner` | 4000 | 3.0 | `34f228d9` |
-| `validate_worlds_inner2` | 5000 | 3.4 | `34f228d9` |
-| `validate_worlds_inner3` | 8000 | 15.6 | `34f228d9` |
-| `validate_worlds_inner4` | 8000 | 5.5 | `34f228d9` |
+| `validate_worlds_inner` | 4000 | 3.8 | `4a438364` |
+| `validate_worlds_inner2` | 5000 | 4.9 | `4a438364` |
+| `validate_worlds_inner3` | 8000 | 9.4 | `4a438364` |
+| `validate_worlds_inner4` | 8000 | 7.6 | `4a438364` |
 | `validate_worlds_j` | 6000 | 5.5 | `34f228d9` |
-| `validate_worlds_karutan` | 3000 | 5.0 | `34f228d9` |
+| `validate_worlds_karutan` | 3000 | 2.9 | `4a438364` |
+| `validate_worlds_l` | 1260 | 0.8 | `4a438364` |
+| `validate_worlds_m` | 1080 | 0.8 | `4a438364` |
 | `validate_worlds_q` | 11000 | 12.4 | `34f228d9` |
 | `validate_worlds_q2` | 4000 | 6.2 | `34f228d9` |
 | `validate_worlds_r2` | 9000 | 4.3 | `34f228d9` |
-| `validate_worlds_raklion` | 3000 | 4.2 | `34f228d9` |
+| `validate_worlds_raklion` | 3000 | 3.4 | `4a438364` |
 | `validate_worlds_s` | 11000 | 18.8 | `34f228d9` |
 | `validate_worlds_s2` | 10000 | 8.0 | `34f228d9` |
 | `validate_worlds_s3` | 22000 | 20.5 | `34f228d9` |
-| `validate_worlds_slots` | 18999 | 19.9 | `34f228d9` |
-| `validate_worlds_slots2` | 33000 | 23.3 | `34f228d9` |
-| `validate_worlds_slots3` | 36000 | 25.1 | `34f228d9` |
+| `validate_worlds_slots` | 18999 | 19.7 | `4a438364` |
+| `validate_worlds_slots2` | 33000 | 33.2 | `4a438364` |
+| `validate_worlds_slots3` | 36000 | 32.1 | `4a438364` |
 
 ## Next
 
@@ -280,107 +308,21 @@ sites retain their prior fixture limit. The virtualised frame interval remains
 excluded and unfollowed; event, pickup, transformed/buff and request inputs remain
 outside this lane.
 
-## Earlier WIP checkpoints
+PR #396 is still open at the final main check. Once RENDER-ACTORS-006 lands,
+recheck classes refused only for absent native actor plans; do not convert its
+550 body-plan additions into an audio admission without the whole sound owner
+and dispatch proof. No new owner is admitted during this verification resume.
 
-Pushed checkpoints `9d619c70`, `7f9fa0e9`, `58d578ff`, `1f5462e6`, `51db4cbd`,
-`e4d1ce47`, `cfdf3501`, `34f228d9`, `7ad4e89b` and `2efa765c` preserve source and done/left/
-next notes. Their earlier pending states are superseded by the scoped green results above.
-Resource guards pause new heavy work during shared-host spikes, including loads
-above 30. No subagents ran.
+## Delivery
 
-## WIP
+Pushed checkpoints `25946926` and `c30126a9` preserve this resume's done/left/next
+state; earlier checkpoints remain in branch history. Their pending sections are
+superseded by the final results above. Resource guards enforce 120-second
+cooldowns at high load. No subagents ran.
 
-**Done:** implemented the 245 fixture-bounded monster play sites, four Kubera
-play/two stop sites, and 66 semantic classifications. Corrected borrowed-log
-annotation and refusal-only census references. All 23 new compiled controls,
-74 validator rows across the recorded commits, 64 native delivery tests and the
-later 47 private consumers pass. Portable and rebuilt default identity results
-above are green through `8b3658bf`. Documentation retains exact source commits,
-limits and per-row wall times.
-
-**Latest integration:** main advanced again at the final check to
-`6900914e7f73ac9b36cad30893c7a5ffc4f2dc78` (RENDER-EFFECTS-031). It merges
-cleanly at `6c0f973a2adcb448bf0ecb36fc67099831046aed`, including both sides of
-combat additions and the validator append. Root build passes **11.96 s**.
-Post-build selection takes **68.73 s** and retains **82/242 validators**.
-Those 82 have **not run** on the new tree. Its portable/private refresh and
-identity are also unchecked. The owner requires WIP pushed by 02:15 and no new
-long check afterward; the lane stops without a ready-prs line.
-
-**Left:** run the latest merge's selected validators without optional mutants,
-affected portable suites and reduced private changed/consumer modules. Check
-whether the new reconstruction references change the census; do not lower an
-expectation without tracing the exact owner evidence. Rebuild the main control
-at the pinned latest main and production world targets, record distinct SHA-256s,
-and repeat the default comparison. The preserved earlier identity is historical,
-not a claim for RENDER-EFFECTS-031's intentional visual additions. Finish final
-status, PR description and audit, mark the draft ready, then append exactly one
-ready-prs line. Push every update before that line and none afterward.
-
-**Next step:** from this worktree root, source canonical
-`~/Documents/MTM/mu-mac-tools/native/private-env.sh`, build, then inspect
-`--list-affected-since 8b3658bf` and run the selected rows with
-`--private --no-mutants --cache --affected-since 8b3658bf --jobs 2`.
-Use the same base for affected portable and 8d selection; apply the >40 reduced
-cap and 6b consumers. No unchanged optional mutant target needs repeating.
-The common brief still prohibits a full lane gate.
-
-Pending validators: validate_item_effects,validate_joints,validate_meshdraw,validate_model_edge,validate_model_light,validate_movement,validate_particles,validate_skill_fx,validate_terrain,validate_terrain_remaining,validate_render_worlds_a,validate_icarus,validate_icarus_c2,validate_worlds_d,validate_worlds_e,validate_worlds_f,validate_audio_callers,validate_audio_combat,validate_render_effects,validate_render_effects3,validate_render_effects4,validate_render_effects5,validate_render_effects6,validate_render_effects7,validate_render_effects9,validate_render_effects10,validate_render_effects11,validate_render_effects12,validate_world_particle_consumers,validate_audio_domains,validate_audio_items,validate_worlds_l,validate_worlds_m,validate_worlds_after,validate_worlds_g3,validate_worlds_after2,validate_worlds_after3,validate_worlds_after4,validate_worlds_after5,validate_worlds_after6,validate_app_polish1,validate_app_polish4,validate_render_effects13,validate_render_effects14,validate_worlds_slots,validate_worlds_slots2,validate_worlds_slots3,validate_worlds_121,validate_worlds_raklion,validate_worlds_karutan,validate_render_effects15,validate_render_effects16,validate_worlds_fog,validate_render_effects17,validate_item_callers,validate_inventory_fx,validate_render_effects18,validate_render_effects19,validate_render_effects20,validate_render_effects21,validate_render_effects22,validate_render_effects23,validate_render_effects24,validate_worlds_inner,validate_render_effects27,validate_render_effects25,validate_actor_recipes,validate_charsel_items,validate_render_effects26,validate_actor_composites,validate_worlds_inner2,validate_audio_objects,validate_render_effects28,validate_render_effects30,validate_worlds_inner3,validate_items_ui,validate_render_effects31,validate_audio_objects4,validate_audio_monsters,validate_audio_kubera,validate_actor_monsters,validate_worlds_inner4
-
-Builds, reports, control binaries and task scratch are reproducible outputs,
-not future inputs; they are removed at the deadline. The worktree and local
-branch remain for WIP. Recreate ignored `tools/python`, `evidence` and `input`
-symlinks from the main checkout if needed. Existing shared capture manifests
-remain in `~/Documents/MTM/mu-mac-tools/native/scratch/fidelity2/` and
-`scratch/data-acq-002/`. No new private capture needs retaining. No subagents,
-live client work, installed-app changes, PR-ready claim or merge occurred.
-
-## Resume checkpoint, 2026-11-15 09:57
-
-**Done:** reread both resume briefs and owning evidence. Fetched main, still
-`6900914e`, already integrated by merge commit `6c0f973a`; `git merge --no-ff
-origin/main` reports up to date. Clean root build passes in **27.80 s**.
-Post-build `--list-affected-since 8b3658bf` reproduces **82 rows**, including
-all four symbol fallbacks, in **87.17 s**. The no-mutant private cached refresh
-is running at compiled source `4a438364`, with **75 rows passed so far** and
-no reported failure. The resource guard enforced a full 120-second cooldown
-before starting. Source/spec self-review found no additional runtime edit.
-
-**Left:** finish that 82-row run, affected portable suites with the app-packaging
-module excluded, reduced private audio/changed-consumer tests, current-main
-control/production world rebuilds and default identity. Recheck main and
-ACTORS-006 eligibility if merged, then finish audit/docs/PR and the ready line.
-The previous default comparison remains historical until the new run finishes.
-
-**Next step:** wait for the running validator command, inspect its summary,
-then run the prepared task-local portable/private/identity launchers in
-`verify-runs/audio005-resume/`, serially with the resource guard. No optional
-mutants need repeating. No ready line or PR-ready claim yet.
-
-## Resume checkpoint, 2026-11-15 10:17
-
-**Done:** the latest-main refresh passes **82/82 validators**, zero failures,
-errors or skips, **1,067,729 cases/checks, 891.54 s**. The 108-row steward union
-retains 26 unchanged earlier results with their tested commits. Portable
-selection is 178 items / 167 native modules; app packaging is excluded and
-177 items run: **1,844 tests, 1,507 passed / 337 explicit skips, zero failures
-or errors, 416.42 s** command wall, including 51.824 s selection.
-**8d reduced:** canonical private root run passes **105/105, zero skips,
-106.91 s**. Fourteen duplicate original wrappers are omitted. One unchanged
-NPC `test_validator` wrapper was mistakenly retained and reran its mutants;
-it passed. That extra work is recorded rather than claiming no unchanged
-mutants ran. All 80 type-model attempts, 211 decoded ids, native sound delivery,
-ordered stops, unchanged audio-on/off frames and census controls pass.
-
-Both world targets rebuild, source bytes are restored, and hashes are distinct:
-control main `6900914e` is `1a7b20b52387fb7010574d45db4a7e99415ee3b06c7110da28bdc2877c25e484`;
-production is `712a65ae036d2753293a4b577d60a07736b07ee048c5433c8db4b1973fb2dea8`.
-Main remains `6900914e`; PR #396 is still open, so its actor eligibility recheck
-belongs to AUDIO-006 if it is not merged before finish.
-
-**Left:** default identity renders/comparison, final audit and docs, PR-ready
-metadata and the single ready entry. Image identity remains pending.
-
-**Next step:** finish the guarded identity launcher in
-`verify-runs/audio005-resume/identity.py`, then publish all final evidence before
-the ready line. No runtime source changed during this resume.
+All documentation and PR metadata are finished before the single ready-prs entry;
+no push follows that entry. The steward owns merge and the combined gate.
+Task-local reports, renders, control binaries and builds are reproducible outputs,
+not future inputs. Remove them with this worktree and local branch; retain the
+remote branch for the steward. Shared existing capture inputs remain in their
+canonical tools directories. Ready for steward.
