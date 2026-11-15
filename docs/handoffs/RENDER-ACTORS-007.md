@@ -100,8 +100,9 @@ evidence. No item recipe/table or effect-consumer implementation changes.
 | Type-226 counter/request audit | 6 |
 
 All 21 compiled controls are caught, with zero stops. Thirteen C-plan
-controls retain their results at `d53c7df3`: the C source, header and generated
-table are unchanged. Eight native controls replay against the strengthened
+controls retain prior results against targets unchanged since `d53c7df3`:
+the C source, header and generated table are unchanged. Twelve results come
+from that run; C translation comes from the documented `b3edf825` replay. Eight native controls replay against the strengthened
 host at `fbee6e46`, 37.54 s command, including the new write-on-refusal control.
 
 Final consumer review finds that both render callers ignore the helper's
@@ -176,14 +177,13 @@ compiled inputs change.
 | Refreshed native controls | 8/8 caught, zero stops; 13 C-plan controls retained | 37.54 s command |
 | Guard-order affected positive replay | 15/15 pass, 119,976 checks; eighteen unchanged passes retained | 398.85 s command, zero wait |
 | Final compiled-control registry recheck | 8,451 positives / 21 distinct controls, pass | 0.10 s command |
-| Guard-order permitted portable delta | PENDING_RESULT | PENDING_WALL |
-| Guard-order private 8d reduced | PENDING_RESULT | PENDING_WALL |
+| Guard-order permitted portable delta | 1,226 pass / 291 expected skips, zero failures/errors | 301.9 s runner / 357.44 s command, zero wait |
+| Guard-order private 8d reduced | 4/4 pass, zero skips | 314.48 s runtime / 314.55 s command, zero wait |
 | Initial affected private validators | 31/31 pass, 213,223 checks | 602.78 s command |
 | Batch-115 affected private validators | 31/31 pass, 213,223 checks | 680.63 s command |
 | Batch-116 affected private replay | 32/32 pass, 251,786 checks; one unchanged pass retained | 740.31 s command |
 | INNER-005 affected private replay | 27/27 pass, 214,718 checks; six unchanged passes retained | 1,095.71 s command, 390 s wait |
 | INNER-005 permitted portable delta | 1,419 pass / 337 expected skips, zero failures/errors | 415.2 s runner / 549.30 s command, 60 s wait |
-| INNER-005 private 8d finish | PENDING_RESULT | PENDING_WALL |
 | Initial permitted portable selection | 1,525 pass / 339 expected skips, zero failures/errors | 390.1 s runner / 568.26 s command |
 | Initial private 8d reduced | 4/4 pass, zero skips | 448.08 s runtime / 568.19 s command, 120 s wait |
 | Batch-115 permitted portable delta | 1,541 pass / 347 expected skips, zero failures/errors | 371.3 s runner / 612.48 s command, 120 s wait |
@@ -191,10 +191,10 @@ compiled inputs change.
 | Post-INNER-005 default delta | 230/230 prior after-side hashes identical | 77.08 s runtime / 287.20 s command, 210 s wait |
 | Batch-116 permitted portable delta | 1,474 pass / 345 expected skips, zero failures/errors | 449.9 s runner / 784.21 s command, 270 s wait |
 | Batch-116 private 8d reduced | 4/4 pass, zero skips | 427.80 s runtime / 637.94 s command, 210 s wait |
-| Final canonical census reproduction | 727 / 217 / 80; both CSVs byte-identical | 8.94 s command, zero wait |
-| Final publication audit | PENDING_RESULT | PENDING_WALL |
+| Final canonical census reproduction | 727 / 217 / 80; both CSVs byte-identical | 5.72 s command, zero wait |
+| Final staged publication audit | pass; exact count and timing recorded in the PR | see PR |
 | Pre-INNER-005 documentation consumers | pass, one expected private skip | 9.11 s command |
-| Final documentation consumers | PENDING_RESULT | PENDING_WALL |
+| Final documentation consumers | 35 pass / 1 expected private skip, zero failures/errors | 8.15 s command, zero wait |
 
 Command walls include resource waiting and selection where stated. Heavy
 commands use nice 10, build jobs <=4 and validator/portable jobs 2. No full
@@ -210,6 +210,8 @@ runs explicitly exclude `native/tests/test_native_app.py`, leaving 180 and
 173 private native items, runs 180 after the same app-module exclusion, and
 also uses 8d reduced. INNER-005 selects 176 items / 169 private native items;
 175 run after the app-module exclusion, followed by the same reduced actor modules.
+The guard delta selects 174 / 169 private native items, runs 173 permitted
+items, and uses the same two-module 8d reduced finish.
 
 | Steward validator | Checks | Wall | Tested commit |
 |---|---:|---:|---|
@@ -345,33 +347,25 @@ Do not infer filenames, network/spawn state, statistics or opaque protection.
 
 ## WIP checkpoints and delivery
 
-Current WIP: 138 admissions, census, main-through-batch-117 builds,
-33 validator results and permitted portable work pass. Final consumer review
-finds group options written before model/scale/weapon mismatch rejection;
-the render callers ignore the return value. The strengthened host uses
-sentinel options and requires all bytes unchanged for model, scale, effect
-and attachment mismatch. Before the fix, classes 49/65 return four refusals
-but preserve options only for the effect guard: `[0,0,1,0]`, 2.70 s command.
-The production writes now follow all checks. Root build passes in 11.55 s;
-classes 13/49/65 pass all four untouched-option probes in 2.63 s command.
-All eight native controls pass in 37.54 s, zero stops; thirteen unchanged
-C-plan controls are retained. Left: post-build affected checks, rebuilt
-after-side identity and final publication. Next: select and run the affected
-delta with the stronger guard checks. The input-delta selector keeps fifteen
-rows (193.85 s including 120 s wait); the PR selector keeps the same 33 of
-250 rows (279.49 s including 210 s wait). The rebuilt default after side
-matches all 230 hashes, 97.75 s with zero wait. The fifteen-row replay passes 119,976 checks in 398.85 s; the registry
-recheck passes 8,451 positives and all 21 distinct controls in 0.10 s.
-Next: finish the portable/private delta and publication audit. The prior final-private wrapper run is stopped
-before source edits; it is not used as final evidence. No ready entry exists.
+All implementation and final selected checks pass. The last production
+change is `fbee6e46`, whose four refusal guards leave all draw-option bytes
+untouched. The following checkpoints and final delivery change documentation
+only. Final private 8d reduced passes four tests with zero skips, 314.55 s
+command; the post-test binary retains SHA-256
+`32575718b0dd19107e59aaca91946fbba37860c7f8ea998c638d7384e4889961`.
+Both census CSVs reproduce identically in 5.72 s. Documentation consumers
+pass 35 tests / one expected private skip in 8.15 s. The staged source audit's
+exact count and wall time are recorded in the PR. No new private input is
+needed by later lanes; canonical captures/data and the shared validator cache
+are retained.
 
 Pushed checkpoints include `99409933`, `5425914e`, `d53c7df3`, `b3edf825`,
 `967d83e4`, `73ccdc0d`, `e51eba07`, `4863ad70`, `9f096a80`,
 `9d9caf9a`, `ebcbb2da`, `74f5c2e6`, `9d088724`, `4e02b38e`,
-`48c2d9bc`, `acfeb704` and `fbee6e46`. Early provisional row
+`48c2d9bc`, `acfeb704`, `fbee6e46` and `a1eba04b`. Early provisional row
 counts are superseded by the final 138-row result. PR #396 was the initial
 stack; its merged main ancestry is retained. The final delivery changes
 only documentation after the tested source. Final push and PR precede the
 single ready entry; no push follows it. The steward owns merge and combined
 validation. Own scratch/renders/builds, worktree and local branch are removed
-at readiness; the remote branch remains. Publication pending final delta checks.
+at readiness; the remote branch remains. Ready for steward.
