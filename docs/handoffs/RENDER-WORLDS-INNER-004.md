@@ -65,10 +65,21 @@ Portable testing excludes only `native/tests/test_native_app.py`: its setup pack
 by this lane's owner brief. Other selected portable items remain in scope. A stale adapter comment about the
 former RGBA refusal was corrected after the validator run; no executable behavior changed.
 
+## Render/portable checkpoint
+
+Affected portable selection, excluding the owner-prohibited app-packaging module: 167 work items;
+1,720 tests, 1,407 passed / 313 expected skips, zero failures/errors. Total 507.38 s including selection,
+399.0 s runner wall. Explicit after-world build passes, 0.27 s; after SHA-256
+`fb8ede43c07ea4906b5acff406734068cac3bceaea28dc1289522b752e38e998`.
+All 65 after views pass in 116.59 s. Comparison takes 5.98 s. The default sweep retains 90/92 PNGs,
+92/92 OBJECT/light dumps and 45/46 reports. Only Kanturu 37 changes; the other 45 views are identical.
+Remain scores stay 6.190 default and 6.192 at captured clock. All existing scalar/object limits remain.
+Initial Kalima all-type grids show no changed pixels despite new requests; a verified-types-only proof is
+being prepared separately. No original capture or authoritative event context is acquired.
+
 ## WIP
 
 Done: producers/adapters, explicit refusals, 8,000 original cases, 42 producer and four alpha compiled mutants,
-alpha scene checks, before default/reference renders and affected selection. Left: affected portable
-checks, after/reference render analysis, final main integration and docs/PR/ready entry.
-Next: run the affected portable suites with jobs 2, then explicitly rebuild mu-world for after renders.
+alpha scene checks, before default/reference renders and affected selection. Left: verified-only Kalima proof, visual inspection, final docs/audit/PR/ready entry.
+Next: render the separate Kalima proof, finish docs and final audit, then open the PR and queue it.
 No PR-ready claim or ready-prs line yet.
