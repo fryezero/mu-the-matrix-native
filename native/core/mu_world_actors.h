@@ -20,6 +20,7 @@ typedef struct mu_world_actor {
     int32_t session_slot;
     int16_t session_key;
     mu_actor actor;
+    struct mu_world_actor_weapons *weapons;
     /* Assembled NPCs use their own skeleton or Player, with extracted parts. */
     mu_character *player;
     mu_renderchar_glow player_glow[MU_CHARACTER_ITEMS];
@@ -66,5 +67,10 @@ void mu_world_actors_frame(mu_world_actors *actors, float effect_dt);
 /* Ordinary RenderObjDraw pass for a recovered composite NPC part. */
 int mu_world_actor_npc_part_draw(const mu_world_actor *actor, int slot, float alpha,
     const mu_render_backend *backend, mu_draw_stats *stats);
+
+/* Recovered monster weapons, independently owned by this actor instance. */
+const mu_renderchar_attachment *mu_world_actor_weapon(const mu_world_actor *actor, int slot);
+int mu_world_actor_weapon_draw(const mu_world_actor *actor, int slot, float alpha,
+    const mu_renderchar_env *env, const mu_render_backend *backend, mu_draw_stats *stats);
 
 #endif
