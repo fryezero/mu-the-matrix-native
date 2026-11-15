@@ -153,3 +153,14 @@ tested in the working tree.
 Left: affected portable run, selected private validators, after identity,
 audit/docs consumers, latest-main freshness, final ledger, PR and ready-prs,
 cleanup. Next: finish the running portable selection/run, then validators.
+
+## Publication integration WIP
+
+Latest main 2b0b2716, AUDIO-004, merges cleanly at cb84ac02a86d1345a7e07a6c58ca9ed13ed04f2e.
+No lane controller source changes. The completed lane checks at fc1287df
+include 1,494 portable tests, 1,204 passed / 290 skipped, zero failures/errors,
+341.17 s command wall; 13 private validators pass in 177.49 s.
+The default after render passes 230 identities, 19.36 s + 38.38 s;
+the baseline above is retained once. This is pre-integration UI-lane identity.
+Left: build the integrated tree, select merge-affected checks, rerun only
+changed compiled inputs, then finish docs, PR, ready-prs and cleanup.
