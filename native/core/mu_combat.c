@@ -3,6 +3,7 @@
 #define _POSIX_C_SOURCE 200809L
 #include "mu_combat.h"
 #include "mu_combat_audio.h"
+#include "mu_monster_audio.h"
 #include "../session/mu_session.h"
 
 #include <math.h>
@@ -1390,6 +1391,7 @@ static void monster_hit(mu_combat *c, const mu_combat_event *e)
             int32_t used = mu_monster_shock(&v, a->server_class, mu_actor_action(&a->actor), r, 1, &act, &snd);
             if (!used)
                 c->crt_seed = saved;   /* rand() is called only on the slot path */
+            snd = mu_monster_audio_combat(c, i, v.field_3324, snd);
             if (snd >= 0) {
                 play(c, mu_combat_voice_sound(MU_COMBAT_AUDIO_SHOCK, 1, snd), a->session_key);
                 ++c->stats.monster_voices;
@@ -1763,6 +1765,7 @@ static void monster_step(mu_combat *c, int32_t i)
             mu_monster_voice v = monster_voice(c, i);
             int32_t r[1] = {0}, act, snd;
             mu_monster_die(&v, r, 0, &act, &snd);
+            snd = mu_monster_audio_combat(c, i, v.field_3324, snd);
             if (snd >= 0) {
                 play(c, mu_combat_voice_sound(MU_COMBAT_AUDIO_DIE, 1, snd), a->session_key);
                 ++c->stats.monster_voices;
@@ -1829,6 +1832,7 @@ void mu_combat_receive(mu_combat *c)
             int32_t action=mu_monster_attack_action(m->counter,0);m->counter=(uint8_t)(m->counter+2);
             if(action>=0)set_monster_action(c,i,action);m->attack_time=1;++c->stats.monster_attacks;
             mu_monster_voice voice=monster_voice(c,i);
+            voice.field_3324 = mu_monster_audio_attack(c, i, voice.field_3324);
             if ((!c->map || c->map->world!=0x49) && voice.field_3324==0.0f && voice.has_model && voice.slots[2]!=-1) {
                 c->audio_rng=c->audio_rng*214013u+2531011u;
                 int32_t id=mu_combat_monster_attack(c->map?c->map->world:0,voice.field_3324,voice.has_model,voice.object_kind,voice.slots[2],voice.slots[3],
