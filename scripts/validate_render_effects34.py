@@ -40,11 +40,13 @@ import validate_render_effects31 as re31  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 PLAIN = [(0x8016, 5), (0x7ef7, 11), (0x7f5a, 43), (0x7f5a, 47), (0x7f54, 1), (0x7efa, 3)]
+# requested by the actor caller services (RENDER-ACTORS-008's request table)
+ACTOR = [(0x7f26, 3), (0x7f5a, 50), (0x7ef7, 12), (0x7ef7, 13), (0x806e, 0), (0x807e, 0)]
 ITEM = [(0x8616, 0), (0x7fe0, 10), (0x84d1, 2), (0x850b, 5), (0x807e, 14), (0x807f, 14), (0x8080, 14)]
 FOLLOW = [(0x855d, 2)]
 PULSE = [(0x8081, 1), (0x8082, 1), (0x7ef7, 19)]
-KINDS = PLAIN + ITEM + FOLLOW + PULSE
-GROUPS = {'plain': PLAIN, 'item': ITEM, 'follow': FOLLOW, 'pulse': PULSE}
+KINDS = PLAIN + ITEM + FOLLOW + PULSE + ACTOR
+GROUPS = {'plain': PLAIN, 'item': ITEM, 'follow': FOLLOW, 'pulse': PULSE, 'actor': ACTOR}
 JOINTS = [(0x7f7c, 8), (0x7f7c, 19), (0x7fd5, 4), (0x7f7d, 11)]
 
 # Per-pair controls are compiled production changes at the group's three entry points.
@@ -54,7 +56,7 @@ for kind in KINDS:
     in_table = kind != (0x7f54, 1)
     create_anchor = ('static void mu_pt_consumer34_create(mu_pt_particle *p, const mu_pt_host *h, float scale)\n{'
                      if in_table else '    owner_position(p, h);\n    if (!mu_pt_kind_supported(type, subtype))')
-    move_anchor = ('static void mu_pt_consumer34_move(mu_pt_particle *p, const mu_pt_host *h)\n{\n    (void)h;'
+    move_anchor = ('static void mu_pt_consumer34_move(mu_pt_particle *p, const mu_pt_host *h)\n{'
                    if in_table else '            p->frame = (20 - p->lifetime) / 2;')
     for family, anchor, body, file in [
             ('create', create_anchor, 'p->lifetime = 0; return;' if in_table else 'p->rotation = 1.0f;',
@@ -122,8 +124,18 @@ MUTANTS += [('pt',) + m for m in [
     ('pulse_life', 'consumer34_kinds.inc', 'p->initial_lifetime = p->type == 0x7ef7 ? 7 : 5;',
      'p->initial_lifetime = p->type == 0x7ef7 ? 5 : 7;', 'create', (0x7ef7, 19)),
     ('pulse_floor', 'consumer34_kinds.inc', 'p->alpha = t * 0.9f + 0.1f;', 'p->alpha = t * 0.9f;', 'move', (0x8081, 1)),
-    ('pulse_colour', 'consumer34_kinds.inc', 'p->light[1] = p->field_80 * p->alpha;', 'p->light[1] = p->field_7c * p->alpha;',
-     'move', (0x8082, 1)),
+    ('pulse_colour', 'consumer34_kinds.inc', 'p->light[1] = p->field_80 * p->alpha;\n    p->light[2] = p->field_84 * p->alpha;\n}\n\n/* RenderParticles',
+     'p->light[1] = p->field_7c * p->alpha;\n    p->light[2] = p->field_84 * p->alpha;\n}\n\n/* RenderParticles', 'move', (0x8082, 1)),
+    ('actor_alpha_ceiling', 'consumer34_kinds.inc', 'mu_pt34_alpha_colour(p, h, 0.5f, 3);', 'mu_pt34_alpha_colour(p, h, 0.6f, 3);',
+     'move', (0x7f5a, 50)),
+    ('actor_alpha_fall', 'consumer34_kinds.inc', 'if (p->lifetime < 10)\n        p->alpha = p->alpha - 0.1f;',
+     'if (p->lifetime <= 10)\n        p->alpha = p->alpha - 0.1f;', 'move', (0x807e, 0)),
+    ('smoke0_world', 'consumer34_kinds.inc', 'h && h->world == 0x3f ? 25 : 35', 'h && h->world == 0x3f ? 35 : 35', 'create', (0x807e, 0)),
+    ('flare12_turn', 'consumer34_kinds.inc', 'if (p->lifetime > 80)', 'if (p->lifetime >= 80)', 'move', (0x7ef7, 12)),
+    ('flare13_drift', 'consumer34_kinds.inc', 'p->position[1] = p->position[1] - p->gravity;', 'p->position[1] = p->position[1] + p->gravity;',
+     'move', (0x7ef7, 13)),
+    ('fire0_rise', 'consumer34_kinds.inc', 'p->gravity * 10.0f + p->position[2]', 'p->gravity * 1.0f + p->position[2]', 'move', (0x806e, 0)),
+    ('glow3_shrink', 'consumer34_kinds.inc', 'p->scale = p->scale * 0.8f;', 'p->scale = p->scale * 0.9f;', 'move', (0x7f26, 3)),
 ]]
 
 
@@ -248,14 +260,30 @@ def particle_family(text, data, lib, name, cases, report, kinds=None):
             if kind == (0x7f5a, 47) and index % 3 == 0:
                 p.light[0] = pt.f32(rng.choice([0.05, 0.051, 0.0509, 0.0511, 0.0]))
             if kind == (0x7efa, 3): p.lifetime = rng.choice([9, 10, 11, 12, 1, 20])
+            if kind == (0x7ef7, 12): p.lifetime = rng.choice([81, 80, 79, 100, 50, 82, 2])
+            if kind in ((0x7f5a, 50), (0x807e, 0)):
+                p.lifetime = rng.choice([9, 10, 11, 20, 1, 30])
+                p.alpha = pt.f32(rng.choice([0.0, 0.05, 0.1, 0.15, 0.45, 0.5, 0.55, 0.65, 0.7, 0.75, 0.3]))
             if kind == (0x8016, 5) and index % 4 == 0: p.scale = pt.f32(rng.choice([0.02, 0.01, 0.0199, 0.0201]))
         return p
+    saved_world = pt.globals_region, pt.Case
+
+    # CreateParticle's 0x807e/0 case reads the world (0x3f): one of the family's six worlds stands in for it.
+    def globals_region(world=0, *a, **k):
+        return saved_world[0](0x3f if world == 0x5d else world, *a, **k)
+
+    class Case(saved_world[1]):
+        def host(self, world=0, *a, **k):
+            return super().host(0x3f if world == 0x5d else world, *a, **k)
     try:
         pt.KINDS, pt.OWNED_KINDS, pt.random_particle = kinds, set(), particle
+        if name == 'create':
+            pt.globals_region, pt.Case = globals_region, Case
         getattr(pt, 'family_'+name)(pt.PtMachine(text, data), lib, random.Random('effects34-'+name),
                                     cases * len(kinds), report, defaultdict(int))
     finally:
         pt.KINDS, pt.OWNED_KINDS, pt.random_particle = saved
+        pt.globals_region, pt.Case = saved_world
 
 
 def joint_family(text, data, lib, name, cases, report, kinds=None):
@@ -308,7 +336,8 @@ BITMAP_FILES = {
     'Effect/smokelines01.OZJ': 140, 'Effect/smokelines02.OZJ': 144, 'Effect/smokelines03.OZJ': 148,
     'Effect/pin_star03_red.OZJ': 152, 'Effect/lighting_mega01.OZJ': 156, 'Effect/lighting_mega02.OZJ': 160,
     'Effect/pin_star02_yellow.OZJ': 164, 'Effect/Hole.OZJ': 168, 'Effect/JointThunder01.OZJ': 172,
-    'Effect/Spark01.OZJ': 176, 'Effect/Magic_Ground2.OZJ': 180,
+    'Effect/Spark01.OZJ': 176, 'Effect/Magic_Ground2.OZJ': 180, 'Effect/Spark03.OZJ': 184, 'Effect/firehik01.OZJ': 188,
+    'Effect/firehik02.OZJ': 192, 'Effect/firehik03.OZJ': 196,
 }
 SPRITE_GREYS = {0x810d: 164, 0x8003: 168, 0x8616: 120, 0x850b: 136}
 

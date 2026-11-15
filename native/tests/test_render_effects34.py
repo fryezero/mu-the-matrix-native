@@ -29,7 +29,7 @@ class Native(unittest.TestCase):
     def test_group_table_names_each_pair_once(self):
         pairs = proof.KINDS + proof.JOINTS
         self.assertEqual(len(pairs), len(set(pairs)))
-        self.assertEqual((len(proof.KINDS), len(proof.JOINTS)), (17, 4))
+        self.assertEqual((len(proof.KINDS), len(proof.JOINTS)), (23, 4))
         self.assertEqual(sorted(sum(proof.GROUPS.values(), [])), sorted(proof.KINDS))
 
 
@@ -42,7 +42,7 @@ class ClientComparison(unittest.TestCase):
             subprocess.run(['make', '-s', '-C', str(ROOT/directory)], check=True, capture_output=True)
         result = proof.run(20)
         self.assertTrue(result['all_equal'], result['families'])
-        self.assertEqual(len(result['census']), 21)
+        self.assertEqual(len(result['census']), 27)
         self.assertTrue(all(row['supported'] for row in result['census']))
 
 
