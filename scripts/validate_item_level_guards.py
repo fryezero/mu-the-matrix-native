@@ -36,6 +36,9 @@ MUTANTS = {
     'wide-tail': ('case 2: wide = wide + k64; break;', 'case 2: wide = (double)((float)wide + (float)k64); break;'),
     'ping-pong': ('case 39: if (i >= ki) i = (int32_t)((uint32_t)ki * 2u - 1u - (uint32_t)i); break;', 'case 39: break;'),
     'ping-pong-edge': ('case 39: if (i >= ki) i', 'case 39: if (i > ki) i'),
+    'minimum-helper': ('case 38: f = kf > f ? f : kf; break;', 'case 38: break;'),
+    'minimum-order': ('case 38: f = kf > f ? f : kf; break;', 'case 38: f = kf > f ? kf : f; break;'),
+    'reverse-derived': ('x = c - x;   /* 0x0171945c', 'x = x - c;   /* 0x0171945c'),
     'model-carry': ('mu_rc_body_types[type].carry)', '0)'),
 }
 

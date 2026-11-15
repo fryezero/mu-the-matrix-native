@@ -109,7 +109,9 @@ def covered_types():
     import gen_item_bodies as gen
     import validate_item_types as old
     import item_pose_machine as pose
-    return set(gen.ALL_TYPES) | set(pose.TYPES) | set(old.BODY) | {0x3895, 0x3896, 0x389b, 0x389c, 0x389d, 0x389e}
+    import item_mesh_callers as mesh_callers
+    return (set(gen.ALL_TYPES) | set(pose.TYPES) | set(old.BODY) | set(mesh_callers.TYPES) | set(mesh_callers.HELPER_TYPES) |
+            {0x3895, 0x3896, 0x389b, 0x389c, 0x389d, 0x389e})
 
 
 def main():

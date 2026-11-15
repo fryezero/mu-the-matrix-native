@@ -240,15 +240,15 @@ REMAINDER_CARRY = REMAINDER_PROGRAM_TYPES + RANDOM_LEVEL_CARRY
 # packed-word form (cmp [ebp+0x28], 9). DECODED_GUARD_TYPES take the wing form at 0x016e226a..0x016e6627: the word
 # is not -1 and its decoded level (0x016a78c9: sar 3, and 0xf) is at least eleven. level_guards() reads every
 # instruction of both forms for every listed type before a recipe is fitted.
-PACKED_GUARD_TYPES = [0x0b34, 0x0b35, 0x0b36, 0x1103, 0x130e, 0x1524]
+PACKED_GUARD_TYPES = [0x0b34, 0x0b35, 0x0b36, 0x1103, 0x130e, 0x1523, 0x1524]
 DECODED_GUARD_TYPES = [0x239a, 0x239b, 0x239c, 0x239d, 0x239f, 0x23a0, 0x23a2, 0x23a3, 0x23a4, 0x23a6, 0x23a7]
 DECODED_GUARD_LEVEL = 11
 PACKED_LEVEL_TYPES = RANDOM_LEVEL_TYPES + PACKED_GUARD_TYPES
 GUARD_TYPES = PACKED_GUARD_TYPES + DECODED_GUARD_TYPES
 # Bodies that bracket their draws with 0x012b7e53 / 0x012b7e65, which are glPushMatrix and glPopMatrix and nothing
 # else (matrix_brackets() checks both helpers and each case). No matrix call lies between them.
-MATRIX_TYPES = [0x0ef4, 0x12fa, 0x12fb, 0x14f2, 0x16f5, 0x16f6, 0x1711, 0x24f1]
-MATRIX_CARRY = [0x16f5, 0x24f1]
+MATRIX_TYPES = [0x0b05, 0x0ef4, 0x12fa, 0x12fb, 0x14f2, 0x16f5, 0x16f6, 0x1711, 0x24f1]
+MATRIX_CARRY = [0x0b05, 0x16f5, 0x24f1]
 # Ordinary bodies whose only unread word was a scalar form: the ternary minimum (0x10f3, 0x1703), the upper clamp
 # after the constant operations (0x1101) and the six-column atlas, whose divisor is loaded by push 6; pop ecx
 # (0x0172aead: 0x0f19, 0x1578, 0x157a and the shields 0x1735, 0x1737, 0x1738, 0x1755).
@@ -257,7 +257,9 @@ TAIL_TYPES = [0x0f19, 0x10f3, 0x1101, 0x1578, 0x157a, 0x1703, 0x1735, 0x1737, 0x
               # k - value through xmm1 (0x0b41)
               0x0b21, 0x0b41, 0x14f1,
               # a saved wave used later with its own constants (0x155b) and a constant light scaled by a wave (0x0b54)
-              0x0b54, 0x155b]
+              0x0b54, 0x155b,
+              # a rate held as a binary32 constant and truncated for the remainder (0x01732a5b)
+              0x132f]
 TAIL_CARRY = [0x155b]
 # Bodies whose own draws combine the helper's flag argument with constants (flag_programs(), recipe kind 11).
 FLAG_TYPES = [0x231b, 0x231c, 0x24e3]
@@ -950,7 +952,8 @@ def derived_value(program, word):
     x = v.u2f(word)
     for op, k_word in program[2]:
         k = v.u2f(k_word)
-        x = f(x * k if op == 1 else x + k if op == 2 else x - k if op == 3 else math_div(x, k))
+        x = f(x * k if op == 1 else x + k if op == 2 else x - k if op == 3 else k - x if op == 5 else
+              math_div(x, k))
     return v.f2u(x)
 
 
@@ -976,7 +979,26 @@ def sse_operands(wa):
     return _operands[1]
 
 
-def derive(wa, phases, width, products=False):
+_reverse_operands = None
+
+
+def reverse_operands(wa):
+    """RENDER-ITEMS-002AB: constant words k of movss xmm0, [k]; subss xmm0, [ebp+d] in the text (k minus a
+    saved binary32 local, 0x0171945c)."""
+    global _reverse_operands
+    if _reverse_operands is None or _reverse_operands[0] is not wa:
+        import re
+        import struct
+        found = set()
+        for m in re.finditer(rb'\xf3\x0f\x10\x05(....)\xf3\x0f\x5c(?:\x85....|\x45.)', wa[0], re.S):
+            word = _word(wa, struct.unpack('<I', m.group(1))[0])
+            if word is not None:
+                found.add(word)
+        _reverse_operands = (wa, found)
+    return _reverse_operands[1]
+
+
+def derive(wa, phases, width, products=False, reverse=False):
     """Kind-6 candidates (6, a, ((op, k),)) for the words no input or constant explains: the same
     binary32 operation with one constant maps input a to the word in every probe of the phase, and
     the text holds that operation on that constant (sse_operands)."""
@@ -998,13 +1020,15 @@ def derive(wa, phases, width, products=False):
                         continue
                     y0, x0 = v.u2f(ys[0]), xs[0]
                     hit = None
-                    for op in (1, 2, 3, 4):
-                        guess = (y0 / x0 if x0 else None, y0 - x0, x0 - y0, x0 / y0 if y0 else None)[op - 1]
+                    for op in (1, 2, 3, 4) + ((5,) if reverse else ()):
+                        guess = (y0 / x0 if x0 else None, y0 - x0, x0 - y0, x0 / y0 if y0 else None,
+                                 y0 + x0)[op - 1]
                         if guess is None or math.isinf(guess) or math.isnan(guess) or abs(guess) > 3e38:
                             continue
                         for word in range(v.f2u(f(guess)) - 2, v.f2u(f(guess)) + 3):
                             word &= 0xffffffff
-                            if (op, word) not in sse_operands(wa):
+                            if (word not in reverse_operands(wa) if op == 5 else
+                                    (op, word) not in sse_operands(wa)):
                                 continue
                             program = (6, source, ((op, word),))
                             if all(derived_value(program, p[0][source]) == y for p, y in zip(pairs, ys)):
@@ -1516,6 +1540,8 @@ def slice_block(wa, block, frame=False, fold=False):
                     pushes[-1] and pushes[-1][0] == 'kf' and pushes[-2] and pushes[-2][0] == 'c' and
                     pushes[-2][1] == 'f'):
                 x87 = chain(pushes[-2], 'f', (C_F_MIN_K, ('w', pushes[-1][1])))
+                # The pushed chain is the helper's argument, not a value of the body: only the result is offered.
+                outputs[:] = [output for output in outputs if output != pushes[-2]]
                 regs, pushes = {}, []
                 at = nxt
                 continue
@@ -1629,7 +1655,7 @@ def slice_block(wa, block, frame=False, fold=False):
                 result = chain(x, 'f', (C_D2F, 0))
         elif name in ('cvttss2si', 'cvttsd2si') and dname in gpr:
             x = value(ins, src, 4 if name == 'cvttss2si' else 8)
-            if frame and name == 'cvttss2si' and x and x != 'frame' and x[0] in ('kf', 'kw'):
+            if (frame or fold) and name == 'cvttss2si' and x and x not in ('frame', 'clock') and x[0] in ('kf', 'kw'):
                 # RENDER-ITEMS-002U: a binary32 constant truncated to an integer constant
                 k = v.u2f(x[1])
                 result = ('k', int(k)) if -2147483648.0 <= k < 2147483648.0 else ('k', -2147483648)
@@ -2322,7 +2348,8 @@ def fit(wa, lib, t, scalars=False, carry=False, extended=False):
             if rules is not None:
                 break
             width = 35 + len(programs)
-            extra = [p for p in derive(wa, _PHASES, width, products=t in COUNTER_RANGE_TYPES) if p not in programs]
+            extra = [p for p in derive(wa, _PHASES, width, products=t in COUNTER_RANGE_TYPES, reverse=t in AB_TYPES)
+                     if p not in programs]
             if not extra:
                 break
             programs.extend(extra)

@@ -12,6 +12,7 @@
 #include "skin_glow.h"
 #include "item_bodies.h"
 #include "item_caller_groups.h"
+#include "item_mesh_callers.h"
 #include "skin_bodies.h"
 #include "item_links.h"
 #include "item_pulse_links.h"
@@ -398,6 +399,8 @@ static float derived_program(const mu_rc_body_scalar *p, float x)
             x = x + c;
         else if (p->op[i] == 3)
             x = x - c;
+        else if (p->op[i] == 5)
+            x = c - x;   /* 0x0171945c: movss k; subss [saved] */
         else
             x = x / c;
     }
@@ -834,10 +837,30 @@ int32_t mu_rc_item_hidden_mesh(int32_t type)
     }
 }
 
+/* RENDER-ITEMS-002AB: the second-draw texture of a low-level two-mesh caller (0x017deb61..0x017dee71), or 0. */
+static int32_t mesh_caller(int32_t type)
+{
+    for (size_t i = 0; i < sizeof mu_rc_mesh_callers / sizeof mu_rc_mesh_callers[0]; ++i)
+        if (type == mu_rc_mesh_callers[i].type)
+            return mu_rc_mesh_callers[i].texture;
+    return 0;
+}
+
+/* 0x017dee71, 0x017defc1: 1 + swap of a light/helper/two-mesh caller, or 0. */
+static int helper_mesh_caller(int32_t type)
+{
+    for (size_t i = 0; i < sizeof mu_rc_helper_mesh_callers / sizeof mu_rc_helper_mesh_callers[0]; ++i)
+        if (type == mu_rc_helper_mesh_callers[i].type)
+            return 1 + mu_rc_helper_mesh_callers[i].swap;
+    return 0;
+}
+
 int mu_rc_item_special(int32_t type)
 {
     if (mu_rc_item_rank5(type) || body_type(type) >= 0 || type == 0x3895 || type == 0x3896 ||
         (type >= 0x389b && type <= 0x389e))
+        return 0;
+    if (mesh_caller(type) || helper_mesh_caller(type))   /* ordinary helper chain from glow level three */
         return 0;
     /* RENDER-ITEMS-002b: complete body streams, not the link-effect switch. */
     if (type == 0x12ed || type == 0x12f5 || (type >= 0x22e6 && type <= 0x22eb) ||
@@ -997,6 +1020,33 @@ static int item_draws_impl(const mu_rc_item *it, mu_rc_model *model, mu_rc_draw 
         part_body(&s, it->alpha, rt, 3, -1);
         body_color(&s, 1.5f, keep | 0x240u, 1.5f, -1);
         body_color(&s, 1.0f, keep | 0x1040u, 1.0f, -1);
+    } else if (level < 3 && mesh_caller(it->type)) {       /* 0x017deb61..0x017dee71 */
+        /* Mesh 0 twice with OBJECT alpha, flags 2 and the entry model fields: first with the OBJECT blend
+         * mesh and zero u/v, then with blend mesh -2, the OBJECT u/v and the case's texture. */
+        for (int pass = 0; pass < 2; ++pass) {
+            emit(&s, MU_RC_ENTRY_MESH, 0, 2u, it->object_alpha, 0, pass ? mesh_caller(it->type) : -1);
+            if (s.count <= s.capacity) {
+                mu_rc_draw *d = &s.out[s.count - 1];
+                if (pass)
+                    d->blend_mesh = -2;
+                else
+                    d->u = d->v = 0.0f;
+            }
+        }
+    } else if (level < 3 && helper_mesh_caller(it->type)) {   /* 0x017dee71..0x017df111 */
+        /* The light argument becomes the model light, the body helper runs with flag argument 3, then mesh 0
+         * (flags 2, OBJECT alpha) and mesh 1 (flags 0x46, alpha 0.7) take the OBJECT hidden word as texture. */
+        for (int k = 0; k < 3; ++k)
+            model->body_light[k] = L[k];
+        part_body(&s, it->alpha, rt, 3, -1);
+        emit(&s, MU_RC_ENTRY_MESH, 0, 2u, it->object_alpha, 0, it->object_hidden);
+        emit(&s, MU_RC_ENTRY_MESH, 1, 0x46u, 0.7f, 0, it->object_hidden);
+        if (helper_mesh_caller(it->type) == 2 && s.count <= s.capacity) {
+            mu_rc_draw *d = &s.out[s.count - 1];
+            float u = d->u;
+            d->u = d->v;
+            d->v = u;
+        }
     } else if (level < 3) {                                /* default 0x017e161d..0x017e16fa */
         model->level_field = 0;
         for (int k = 0; k < 3; ++k) {

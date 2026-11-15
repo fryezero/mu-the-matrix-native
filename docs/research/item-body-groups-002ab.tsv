@@ -1,0 +1,145 @@
+type	group_002aa	group_002ab	decision	detail
+0x0afc	matrix-stack program missing	matrix bracket: light phase	refused	bracket reads, but a later helper phase keeps a 0.7 light that no carry rule explains
+0x0b05	unproved entry/helper model state	bare matrix bracket	admitted	0x012b7e53/0x012b7e65 are glPushMatrix/glPopMatrix only; no enclosed matrix call
+0x0b19	original fixture stop	fixture stop: mesh texture names	refused	BodyColor helpers read the model texture-name table (model +0x34, 32-byte names; compared with absolute02_sword.JPG) at 0x16ddc73/0x16df9a0; needs authored names and a C name predicate
+0x0b21	unread scalar/colour program	scalar form	admitted	binary32 local set from a constant before the clock block
+0x0b2b	producer/service program missing	level-gated pre-draw producer	admitted	decoded level local [ebp-0xac] >= 9 as effect op 51
+0x0b2c	producer/service program missing	level-gated pre-draw producer	admitted	decoded level local [ebp-0xac] >= 9 as effect op 51
+0x0b2d	producer/service program missing	level-gated pre-draw producer	admitted	decoded level local [ebp-0xac] >= 9 as effect op 51
+0x0b2e	producer/service program missing	level-gated pre-draw producer	admitted	decoded level local [ebp-0xac] >= 9 as effect op 51
+0x0b2f	producer/service program missing	producer: no pre-draw block	refused	effect services run only after body draws at every surveyed level; no gated pre-draw case to read
+0x0b30	producer/service program missing	producer: no pre-draw block	refused	effect services run only after body draws at every surveyed level; no gated pre-draw case to read
+0x0b31	producer/service program missing	producer: no pre-draw block	refused	effect services run only after body draws at every surveyed level; no gated pre-draw case to read
+0x0b32	producer/service program missing	level-gated pre-draw producer	admitted	decoded level local [ebp-0xac] >= 9 as effect op 51
+0x0b34	variable body draw count	packed helper level word	admitted	guard plus upper clamp at 0.8
+0x0b35	variable body draw count	packed helper level word	admitted	guard plus binary64 run and binary32 clamp
+0x0b36	variable body draw count	packed helper level word	admitted	cmp [ebp+0x28], 9 guard without body random; scalar tails where listed
+0x0b38	unread scalar/colour program	scalar/colour: name gate and random vector	refused	packed guard behind a name compare (0x0195a3d0 on the model, sword45.smd) and a random-scaled vector temporary; 0x0b39 also clamps in binary64
+0x0b39	unread scalar/colour program	scalar/colour: name gate and random vector	refused	packed guard behind a name compare (0x0195a3d0 on the model, sword45.smd) and a random-scaled vector temporary; 0x0b39 also clamps in binary64
+0x0b3b	unread scalar/colour program	scalar/colour: several programs	refused	clock-selected texture 0x8081..0x8083 plus three unread light and v words
+0x0b41	unread scalar/colour program	scalar form	admitted	k - value through xmm1 after the constant operations
+0x0b4e	producer/service program missing	producer: unread instruction	refused	gated pre reader refuses read ('mem', 'eax', 176)
+0x0b54	unread scalar/colour program	scalar form	admitted	constant body light scaled by a wave (vec3 set, vec3 *= scalar)
+0x0ef0	unproved entry/helper model state	matrix bracket: OBJECT field writes	refused	the case writes OBJECT +0x68/+0x74/+0xa8 before its draws; later phases read them
+0x0ef4	matrix-stack program missing	bare matrix bracket	admitted	0x012b7e53/0x012b7e65 are glPushMatrix/glPopMatrix only; no enclosed matrix call
+0x0eff	original fixture stop	fixture stop: mesh texture names	refused	BodyColor helpers read the model texture-name table (model +0x34, 32-byte names; compared with absolute02_sword.JPG) at 0x16ddc73/0x16df9a0; needs authored names and a C name predicate
+0x0f08	unread scalar/colour program	scalar/colour: integer blend light	refused	blend light takes integer values -1..7 from an unread program
+0x0f19	unread scalar/colour program	scalar form	admitted	six-column atlas: push 6; pop ecx; idiv ecx
+0x0f26	producer/service program missing	producer: unread instruction	refused	gated pre reader refuses call 0xcff0d3
+0x0f27	producer/service program missing	producer: unread instruction	refused	gated pre reader refuses cvtss2sd xmm0, [ebp+0x14] at 0x17d87e1
+0x10ef	unproved helper caller	helper caller: own RenderObjDraw draws	refused	draws issued by RenderObjDraw outside the low-level chain (level- and option-dependent counts); no admitted caller form
+0x10f3	unread scalar/colour program	scalar form	admitted	ternary minimum with the wave evaluated twice
+0x10fd	retained independent failure	retained independent failure	refused	mesh lights of a later phase stay unexplained; failure of state 17 retained
+0x1101	unread scalar/colour program	scalar form	admitted	upper clamp after the constant operations
+0x1103	variable body draw count	packed helper level word	admitted	cmp [ebp+0x28], 9 guard without body random; scalar tails where listed
+0x1106	unread scalar/colour program	scalar/colour: reversed frame	refused	a later block reverses the integer atlas frame held in a local (sub eax, [frame] at 0x1724a35)
+0x12e9	unread scalar/colour program	scalar/colour: body light program	refused	body light takes 21 values with a 0.1 floor; no read program matches
+0x12fa	matrix-stack program missing	bare matrix bracket	admitted	0x012b7e53/0x012b7e65 are glPushMatrix/glPopMatrix only; no enclosed matrix call
+0x12fb	matrix-stack program missing	bare matrix bracket	admitted	0x012b7e53/0x012b7e65 are glPushMatrix/glPopMatrix only; no enclosed matrix call
+0x1304	original fixture stop	fixture stop: mesh texture names	refused	BodyColor helpers read the model texture-name table (model +0x34, 32-byte names; compared with absolute02_sword.JPG) at 0x16ddc73/0x16df9a0; needs authored names and a C name predicate
+0x130b	unproved helper caller	helper caller: own clock scroll	refused	low-level caller saves the model light, draws two meshes and scrolls u by its own clock program (0x017df111)
+0x130e	variable body draw count	packed helper level word	admitted	guard plus widened binary64 tail
+0x1318	producer/service program missing	producer: no pre-draw block	refused	effect services run only after body draws at every surveyed level; no gated pre-draw case to read
+0x131a	producer/service program missing	producer: unread instruction	refused	gated pre reader refuses call 0x94afda
+0x131b	producer/service program missing	producer: unread instruction	refused	gated pre reader refuses call 0x94afda
+0x132f	unread scalar/colour program	scalar form	admitted	rate held as a binary32 constant and truncated for the remainder
+0x14f1	unread scalar/colour program	scalar form	admitted	sine pushed directly as a draw argument
+0x14f2	matrix-stack program missing	bare matrix bracket	admitted	0x012b7e53/0x012b7e65 are glPushMatrix/glPopMatrix only; no enclosed matrix call
+0x1517	original fixture stop	fixture stop: mesh texture names	refused	BodyColor helpers read the model texture-name table (model +0x34, 32-byte names; compared with absolute02_sword.JPG) at 0x16ddc73/0x16df9a0; needs authored names and a C name predicate
+0x1518	original fixture stop	fixture stop: mesh texture names	refused	BodyColor helpers read the model texture-name table (model +0x34, 32-byte names; compared with absolute02_sword.JPG) at 0x16ddc73/0x16df9a0; needs authored names and a C name predicate
+0x1523	variable body draw count	packed helper level word	admitted	guard plus 0x0184f927 minimum and 1.0 - saved
+0x1524	variable body draw count	packed helper level word	admitted	cmp [ebp+0x28], 9 guard without body random; scalar tails where listed
+0x155b	unread scalar/colour program	scalar form	admitted	saved wave reloaded later with its own constants
+0x1578	unread scalar/colour program	scalar form	admitted	six-column atlas: push 6; pop ecx; idiv ecx
+0x157a	unread scalar/colour program	scalar form	admitted	six-column atlas: push 6; pop ecx; idiv ecx
+0x16f5	unproved entry/helper model state	bare matrix bracket	admitted	0x012b7e53/0x012b7e65 are glPushMatrix/glPopMatrix only; no enclosed matrix call
+0x16f6	matrix-stack program missing	bare matrix bracket	admitted	0x012b7e53/0x012b7e65 are glPushMatrix/glPopMatrix only; no enclosed matrix call
+0x16f9	unread scalar/colour program	scalar/colour: OBJECT field write	refused	abs(sin(time * 0.001)) is stored into OBJECT +0xa8 (fstp [eax+0xa8] at 0x16ee8a8) and read back by the draws
+0x1703	unread scalar/colour program	scalar form	admitted	ternary minimum with the wave evaluated twice
+0x1710	retained independent failure	retained independent failure	refused	body lights of a later phase stay unexplained; failure of state 19 retained
+0x1711	matrix-stack program missing	bare matrix bracket	admitted	0x012b7e53/0x012b7e65 are glPushMatrix/glPopMatrix only; no enclosed matrix call
+0x1735	retained independent failure	scalar form	admitted	six-column atlas: push 6; pop ecx; idiv ecx
+0x1737	retained independent failure	scalar form	admitted	six-column atlas: push 6; pop ecx; idiv ecx
+0x1738	retained independent failure	scalar form	admitted	six-column atlas: push 6; pop ecx; idiv ecx
+0x174b	producer/service program missing	producer: unread instruction	refused	gated pre reader refuses movzx eax, byte [eax+4] at 0x17de0d8
+0x1755	retained independent failure	scalar form	admitted	six-column atlas: push 6; pop ecx; idiv ecx
+0x1d1b	unread scalar/colour program	scalar/colour: immediate colour	refused	glColor words take 19 values above 1.0; no read program matches
+0x2003	retained independent failure	armour overlay light	refused	the ancient mesh tail keeps the light argument; the retained-ancient rule of its siblings does not fit
+0x2007	retained independent failure	armour overlay light	refused	the ancient mesh tail keeps the light argument; the retained-ancient rule of its siblings does not fit
+0x2009	unread scalar/colour program	armour overlay light	refused	the ancient mesh tail keeps the light argument; the retained-ancient rule of its siblings does not fit
+0x200f	retained independent failure	armour overlay light	refused	the ancient mesh tail keeps the light argument; the retained-ancient rule of its siblings does not fit
+0x2010	retained independent failure	armour overlay light	refused	the ancient mesh tail keeps the light argument; the retained-ancient rule of its siblings does not fit
+0x231b	unread scalar/colour program	flag program	admitted	helper flag argument masked and combined in the case (kind 11)
+0x231c	unread scalar/colour program	flag program	admitted	helper flag argument masked and combined in the case (kind 11)
+0x237e	producer/service program missing	producer: unread instruction	refused	gated pre reader refuses imul eax, [edx+eax], 0x30 at 0x17b3dce (bone matrix index from a table)
+0x237f	producer/service program missing	producer: unread instruction	refused	gated pre reader refuses imul eax, [edx+eax], 0x30 at 0x17b3dce (bone matrix index from a table)
+0x2386	producer/service program missing	producer: model light write	refused	pre-draw case copies the light argument into model +0x54 (add ecx, 0x54 on the model; 0xcfc922); needs a model-field write op
+0x2387	producer/service program missing	producer: model light write	refused	pre-draw case copies the light argument into model +0x54 (add ecx, 0x54 on the model; 0xcfc922); needs a model-field write op
+0x2396	producer/service program missing	producer: services before and after draws	refused	effect services both before and after the body draws; one pre-draw program cannot hold them
+0x2397	producer/service program missing	producer: services before and after draws	refused	effect services both before and after the body draws; one pre-draw program cannot hold them
+0x2398	producer/service program missing	producer: unread instruction	refused	gated pre reader refuses add eax, 0x54 at 0x17b799e (model light pointer)
+0x2399	producer/service program missing	producer: unread instruction	refused	gated pre reader refuses add eax, 0x54 at 0x17b799e (model light pointer)
+0x239a	variable body draw count	decoded helper level word	admitted	guard plus wave saved in a disp8 frame local
+0x239b	variable body draw count	decoded helper level word	admitted	guard plus wave saved in a disp8 frame local
+0x239c	variable body draw count	decoded helper level word	admitted	word != -1 and decoded level >= 11 (0x016a78c9), recipe level_split=3
+0x239d	variable body draw count	decoded helper level word	admitted	guard plus folded 16.0f / (float)600 atlas rate
+0x239e	producer/service program missing	decoded-level wing with transform service	refused	decoded-level guard reads, but the high branch re-transforms the model (0x00966ea5) with per-draw scale words; needs a transform record and a native consumer
+0x239f	variable body draw count	decoded helper level word	admitted	word != -1 and decoded level >= 11 (0x016a78c9), recipe level_split=3
+0x23a0	variable body draw count	decoded helper level word	admitted	guard plus integer ping-pong atlas frame (clock op 39)
+0x23a1	producer/service program missing	decoded-level wing with transform service	refused	decoded-level guard reads, but the high branch re-transforms the model (0x00966ea5) with per-draw scale words; needs a transform record and a native consumer
+0x23a2	variable body draw count	decoded helper level word	admitted	word != -1 and decoded level >= 11 (0x016a78c9), recipe level_split=3
+0x23a3	variable body draw count	decoded helper level word	admitted	word != -1 and decoded level >= 11 (0x016a78c9), recipe level_split=3
+0x23a4	variable body draw count	decoded helper level word	admitted	word != -1 and decoded level >= 11 (0x016a78c9), recipe level_split=3
+0x23a5	producer/service program missing	decoded-level wing with transform service	refused	decoded-level guard reads, but the high branch re-transforms the model (0x00966ea5) with per-draw scale words; needs a transform record and a native consumer
+0x23a6	variable body draw count	decoded helper level word	admitted	word != -1 and decoded level >= 11 (0x016a78c9), recipe level_split=3
+0x23a7	variable body draw count	decoded helper level word	admitted	guard plus integer ping-pong atlas frame (clock op 39)
+0x23aa	producer/service program missing	producer: random table selects	refused	rand() % 16 selects a bone from a frame table, then nested selects (shl eax, 2 at 0x17ceb2d; bone array element at 0x1773001)
+0x23ab	producer/service program missing	producer: random table selects	refused	rand() % 16 selects a bone from a frame table, then nested selects (shl eax, 2 at 0x17ceb2d; bone array element at 0x1773001)
+0x23f1	original fixture stop	fixture stop: producer list	refused	producer stops at 0x95d4f1 inside a container helper after its effect services
+0x23f4	unproved helper caller	helper caller: own RenderObjDraw draws	refused	draws issued by RenderObjDraw outside the low-level chain (level- and option-dependent counts); no admitted caller form
+0x2401	original fixture stop	fixture stop: producer list	refused	producer stops at 0x95d4f1 inside a container helper after its effect services
+0x2406	unproved helper caller	low-level light, helper and two-mesh caller	admitted	light copy, body helper (flag argument 3), meshes 0 and 1 below glow level three
+0x2477	unproved helper caller	low-level light, helper and two-mesh caller	admitted	light copy, body helper (flag argument 3), meshes 0 and 1 below glow level three
+0x2484	producer/service program missing	producer: unread instruction	refused	gated pre reader refuses wave operands (2.0, 90.0): a wave with a constant phase
+0x2485	producer/service program missing	producer: unread instruction	refused	gated pre reader refuses call 0x8e80e0
+0x2486	producer/service program missing	producer: unread instruction	refused	gated pre reader refuses call 0x8e6d00
+0x2487	producer/service program missing	producer: unread instruction	refused	gated pre reader refuses read ('mem', 'eax', 844)
+0x2488	producer/service program missing	producer: model light write	refused	pre-draw case copies the light argument into model +0x54 (add ecx, 0x54 on the model; 0xcfc922); needs a model-field write op
+0x2489	producer/service program missing	producer: unread instruction	refused	gated pre survey finds no effect before the draws to bound the case (max() of an empty site list)
+0x248a	producer/service program missing	producer: model light write	refused	pre-draw case copies the light argument into model +0x54 (add ecx, 0x54 on the model; 0xcfc922); needs a model-field write op
+0x248b	producer/service program missing	producer: services before and after draws	refused	effect services both before and after the body draws; one pre-draw program cannot hold them
+0x249b	unproved helper caller	helper caller: own RenderObjDraw draws	refused	draws issued by RenderObjDraw outside the low-level chain (level- and option-dependent counts); no admitted caller form
+0x249c	producer/service program missing	producer: unread instruction	refused	gated pre reader refuses wave operands (2.0, 90.0): a wave with a constant phase
+0x249d	producer/service program missing	producer: unread instruction	refused	gated pre reader refuses call 0x8e80e0
+0x249e	producer/service program missing	producer: unread instruction	refused	gated pre reader refuses call 0x8e6d00
+0x249f	producer/service program missing	producer: unread instruction	refused	gated pre reader refuses read ('mem', 'eax', 844)
+0x24a0	producer/service program missing	producer: model light write	refused	pre-draw case copies the light argument into model +0x54 (add ecx, 0x54 on the model; 0xcfc922); needs a model-field write op
+0x24a1	producer/service program missing	producer: unread instruction	refused	gated pre survey finds no effect before the draws to bound the case (max() of an empty site list)
+0x24a2	producer/service program missing	producer: model light write	refused	pre-draw case copies the light argument into model +0x54 (add ecx, 0x54 on the model; 0xcfc922); needs a model-field write op
+0x24a3	producer/service program missing	producer: services before and after draws	refused	effect services both before and after the body draws; one pre-draw program cannot hold them
+0x24b9	producer/service program missing	producer: random table selects	refused	rand() % 16 selects a bone from a frame table, then nested selects (shl eax, 2 at 0x17ceb2d; bone array element at 0x1773001)
+0x24ba	producer/service program missing	producer: random table selects	refused	rand() % 16 selects a bone from a frame table, then nested selects (shl eax, 2 at 0x17ceb2d; bone array element at 0x1773001)
+0x24bb	producer/service program missing	producer: unread instruction	refused	gated pre reader refuses call 0x8e6d00
+0x24bc	producer/service program missing	producer: unread instruction	refused	gated pre reader refuses call 0x8e6d00
+0x24c0	original fixture stop	fixture stop: producer list	refused	producer stops at 0x95d4f1 inside a container helper after its effect services
+0x24c1	original fixture stop	fixture stop: producer list	refused	producer stops at 0x95d4f1 inside a container helper after its effect services
+0x24c6	original fixture stop	fixture stop: producer state	refused	producer stops at 0x1782fec reading unmapped state (0xd44)
+0x24d0	producer/service program missing	producer: unread instruction	refused	gated pre reader refuses inc edx at 0x17adfe6
+0x24d7	producer/service program missing	producer: unread instruction	refused	gated pre reader refuses inc edx at 0x17adfe6
+0x24e3	unread scalar/colour program	flag program	admitted	helper flag argument masked and combined in the case (kind 11)
+0x24ed	matrix-stack program missing	matrix bracket: skipped base	refused	bracket reads, but the base helper draws nothing in the probe states while the generic stream has a base draw
+0x24f1	matrix-stack program missing	bare matrix bracket	admitted	0x012b7e53/0x012b7e65 are glPushMatrix/glPopMatrix only; no enclosed matrix call
+0x24f5	unproved helper caller	helper caller: own RenderObjDraw draws	refused	draws issued by RenderObjDraw outside the low-level chain (level- and option-dependent counts); no admitted caller form
+0x2505	unproved helper caller	helper caller: own RenderObjDraw draws	refused	draws issued by RenderObjDraw outside the low-level chain (level- and option-dependent counts); no admitted caller form
+0x26ed	matrix-stack program missing	matrix bracket: skipped base	refused	bracket reads, but the base helper draws nothing in the probe states while the generic stream has a base draw
+0x2701	unproved helper caller	helper caller: own RenderObjDraw draws	refused	draws issued by RenderObjDraw outside the low-level chain (level- and option-dependent counts); no admitted caller form
+0x2726	original fixture stop	fixture stop: action play speed	refused	reads model +0x30 action record [OBJECT +0xa8 word] +4 at 0x16eef60; needs an authored action table and a C input
+0x27c5	original fixture stop	fixture stop: action play speed	refused	reads model +0x30 action record [OBJECT +0xa8 word] +4 at 0x16eef60; needs an authored action table and a C input
+0x27ef	unproved helper caller	low-level two-mesh caller	admitted	two 0x00966e4a draws below glow level three; ordinary chain above
+0x27f0	unproved helper caller	low-level two-mesh caller	admitted	two 0x00966e4a draws below glow level three; ordinary chain above
+0x27f1	unproved helper caller	low-level two-mesh caller	admitted	two 0x00966e4a draws below glow level three; ordinary chain above
+0x27f2	unproved helper caller	low-level two-mesh caller	admitted	two 0x00966e4a draws below glow level three; ordinary chain above
+0x286e	unproved helper caller	low-level two-mesh caller	admitted	two 0x00966e4a draws below glow level three; ordinary chain above
+0x286f	unproved helper caller	low-level two-mesh caller	admitted	two 0x00966e4a draws below glow level three; ordinary chain above
+0x2874	unproved helper caller	low-level two-mesh caller	admitted	two 0x00966e4a draws below glow level three; ordinary chain above
+0x2875	unproved helper caller	helper caller: own RenderObjDraw draws	refused	draws issued by RenderObjDraw outside the low-level chain (level- and option-dependent counts); no admitted caller form
