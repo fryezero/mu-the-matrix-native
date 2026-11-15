@@ -654,6 +654,21 @@ asset plan. The other groups also need the named attachment, appearance,
 bitmap-consumer or lifetime evidence. These are missing proofs, not a claim
 that every currently incomplete row has a known missing visual.
 
+The [missing-plan groups](actor-missing-plan-groups.csv) refine those tags into
+a disjoint partition with explicit selector lists. The grouping uses the
+original-checked class table's selected slots: the 107 equipment-only contexts
+are sixty right-weapon plans, 34 two-weapon plans and thirteen left-weapon plans.
+The eighteen special-only contexts are seven constructor-joint appearances,
+six EffectManager overrides and five cloth/world-selected appearances. The two
+mixed special/equipment contexts need joints and a right weapon; the four
+special/bitmap/equipment contexts also need bitmap consumers. Four bitmap and
+equipment contexts select both weapons. The four secondary contexts split into
+two type-226 death-effect lifetimes and two NPC secondary-model consumers.
+These labels describe missing checked plans, not a claim that every associated
+native feature is absent. All 905 original rows occur exactly once in this
+refined grouping: 550 now checked, 355 still incomplete. The remaining eighty
+loader refusals and 39 earlier checked plans are outside that before-population.
+
 Only the 676 plain monster/default candidates enter the uniform check. Each
 candidate executes its own constructor with the original world-0/rand-0 chain
 and the existing explicitly declining map processors. CreateCharacter's default
@@ -703,7 +718,7 @@ The initial draft incorrectly required a shadow at every alpha. Original
 executions showed that a valid single body can omit that separate shadow;
 the final check allows only that named optional shadow, never an extra part
 or link. Stateful map and effect-manager/helper services retain the published
-harness boundaries. The result is a checked selected body plan, not whole-world,
+harness boundaries, and the original RNG service returns zero in these fixtures. The result is a checked selected body plan, not whole-world,
 complete-buff, temporal or original-pixel equivalence.
 
 For every distinct accepted body model, eight original RenderObjDraw

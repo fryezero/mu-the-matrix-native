@@ -111,3 +111,20 @@ has followed the new-row pass. Left: finish those rows, portable affected
 suites, 8d reduced, rebuilt-world identity and representative proof renders,
 latest-main check, final docs/audit, PR/ready entry and cleanup. No PR or ready
 entry exists yet. All earlier provisional admissions are superseded by 550.
+
+Checkpoint 2026-11-15 00:13: the frozen actor source `d3688570` passes all
+31 selected rows: 154,294 checks, zero failures/errors/skips, with nine current
+compiled controls caught once. The other thirty rows take 403.89 s plus a
+120 s wait; the new row takes 197.2 s plus a 120 s wait. Portable affected:
+171 work items, 1,563 tests, 1,288 passed / 275 expected skips, zero failures or
+errors, 406.7 s runner / 479.69 s command. The new grouped summary partitions
+all 905 original rows and refines the 107 weapon plans into 60 right / 34 both /
+13 left; it also separates joints, EffectManager, cloth/world and secondary
+consumer gaps. These are missing checked plans, not a whole-client percentage.
+
+Latest main is now `4babc900`, including merged PR #389 and INNER-004's
+scene/raster alpha-reference changes. Main integration and affected-input
+rechecks are next. The earlier default baseline remains recorded at ACTORS-005;
+any incoming world/alpha changes must be distinguished from this actor lane's
+identity. Private 8d reduced, final identity/proofs, final documentation/audit,
+PR/ready entry and cleanup remain pending. No PR or ready line exists yet.
