@@ -88,3 +88,15 @@ The five new producers retain eleven resolved particle pairs. Eight native consu
 RENDER-EFFECTS-033 owns these consumers. Requests are preserved. The three supported pairs are
 `0x8081/9`, `0x8082/9`, `0x8083/9`. There are no unresolved bitmap expressions in these five programs.
 The 2,834 deliberate comparison-fixture refusals are invalid-bone/context checks, not this consumer census.
+
+At the 12:15 checkpoint: the affected portable run passes all 170 selected work items,
+1,513 tests / 1,227 passed / 286 expected skips, no failures or errors. Wall 465.83 s including
+selection, 373.1 s for execution. The remaining 73 private rows are active without mutants at
+`fd89b9fc`; ranked (221.1 s), continuation (270.1 s), expansion (439.3 s) and types (45.1 s) pass.
+The aggregate log is `scratch/render-items-002aa/selected-private.log` under the shared tools native
+folder, with per-row reports in `selected-private/`. After a successful aggregate the same foreground
+command runs the two private native consumer modules and writes `private-native.log`. Do not start
+a second validator run while this command is active. Source is unchanged; only research/handoff docs
+change at this checkpoint. Next: wait for that command, inspect every result, preflight exact asset
+paths for native proofs, integrate latest main and run only its affected refresh, then the one rebuilt
+default identity sweep plus item proofs, final docs/audit/PR/ready entry and cleanup. No ready entry exists.

@@ -3594,6 +3594,21 @@ They retain the original names, bone lookup, request order, scalar rounding, ran
 No particle, joint or effect consumer is added. Invalid-bone/context refusals in the owned comparison
 are separate from missing native consumers and assets.
 
+The static request inventory resolves all bitmap expressions in these five programs. At main
+`8844d3e9`, eleven particle pairs are requested: three supported and eight missing. Requests retain
+their original order and arguments; RENDER-EFFECTS-033 owns the missing consumers.
+
+| Producer types | Supported particle pairs | Missing particle pairs |
+|---|---|---|
+| `0x0f22` | None | `0x855d/2`, `0x7fe0/0xa` |
+| `0x0f23` | `0x8081/9`, `0x8082/9`, `0x8083/9` | `0x8616/0` |
+| `0x0f25` | None | `0x84d1/2`, `0x850b/5` |
+| `0x24be`, `0x24bf` | None | `0x8080/0xe`, `0x807e/0xe`, `0x807f/0xe` |
+
+The 320 owned comparison cases count 2,834 deliberate invalid-bone/context refusals, 4,510 sprites,
+455 particle requests and 1,255 random draws. That refusal number does not measure missing native
+consumers. Native effect-enabled proof counts are recorded separately in the handoff.
+
 The provisional remainder is 144: fifty producer/service programs, 24 unread scalar/colour programs,
 eighteen variable body draw counts, seventeen helper callers, twelve stopped original fixtures, ten
 matrix-stack programs, ten retained independent failures and three entry/helper model-state programs.
