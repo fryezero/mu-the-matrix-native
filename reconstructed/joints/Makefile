@@ -17,3 +17,6 @@ clean:
 .PHONY: all clean
 
 -include ../deps.mk   # optional: validators build copies of single directories
+
+# RENDER-EFFECTS-031
+libclient_joints.$(SUFFIX): world_inner_joints.inc

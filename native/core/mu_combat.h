@@ -45,6 +45,7 @@
 
 #include "../../reconstructed/combat/combat.h"
 #include "../../reconstructed/combat/skill_fx.h"
+#include "../../reconstructed/combat/demo_skill_fx.h"
 #include "mu_bmd.h"
 #include "mu_character.h"
 #include "mu_image.h"
@@ -180,6 +181,7 @@ typedef struct mu_combat_stats {
                                                            their terrain tiles, and tiles past the caller's buffer */
     uint32_t death_stab_steps, death_stab_requests, death_stab_refused, death_stab_context_refused;
     uint32_t skill30_requests, skill30_arrows, skill30_refused;
+    uint32_t skill32_casts, skill32_requests, skill32_refused;
 } mu_combat_stats;
 
 struct mu_world_particles;
@@ -219,6 +221,7 @@ typedef struct mu_combat {
     int32_t intent_skill;      /* -1 none, 0 normal attack, else the base skill */
     int32_t attack_target;     /* target of the running attack */
     uint16_t skill30_target_index;
+    mu_skill32_context skill32_context;
     int32_t attack_skill;      /* skill of the running attack */
     uint8_t hero_attack_time;  /* c + 0x21 */
     int32_t hero_hp;           /* session hero HP */
