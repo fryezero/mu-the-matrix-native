@@ -57,6 +57,7 @@ int main(int argc,char **argv)
         "onClickbtnRandomParty","onClickbtnInfoCheck","onClickbtnJoinState","onClickbtnShowInputPossible","onClickbtnEntryList"};
     int refused=0;
     for(int m=MU_GFX_MACRO;m<MU_GFX_MOVIES;m++) {
+        if(m>MU_GFX_PLAY_GUIDE) break; /* This host owns the eight UI-WINDOWS-002 adapters. */
         if(!L->mv[m].g || !*L->mv[m].path) fprintf(stderr,"missing %d %s path=%s\n",m,FILES[m],L->mv[m].path);
         assert(L->mv[m].g && *L->mv[m].path);
         assert(presentation_open(L,m,0));
