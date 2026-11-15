@@ -8,6 +8,8 @@
 #include "../../reconstructed/muun/special.h"
 #include "mu_muun_effects.h"
 #include "mu_effect_scene.h"
+#include "mu_particles.h"
+#include "../../reconstructed/muun/bone_fx.h"
 
 typedef struct mu_muun_visual {
     mu_mv_info info;
@@ -21,6 +23,8 @@ typedef struct mu_muun_visual {
     float shadow_alpha;
     float mesh_c8; /* Persistent per-object special mesh light, OBJECT +0xc8. */
     long mesh_draws, refused_meshes, command_draws, refused_commands;
+    mu_world_particles *particles; /* Borrowed for this authored fixture's render pass only. */
+    long bone_requests, bone_created, bone_refused, bone_points_refused;
     mu_bmd bmd;
     mu_model model;
     mu_textures textures;

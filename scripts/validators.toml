@@ -3839,6 +3839,51 @@ note = "INNER-004: complete Crywolf/Barracks leaves and bounded Kalima/tower inl
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
 
+[validate_muun_bones]
+test = "native/tests/test_muun_bones.py::Original.test_instruction_comparison"
+pins = ["text", "data"]
+needs = ["game_root", "clang"]
+families = ["synthetic", "installed", "ordered"]
+cases = 221
+mutants = 21
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/muun", "reconstructed/data"]
+args = ["--cases", "200", "--installed", "--mutations", "--output", "{report}"]
+[validate_muun_bones.expect]
+all_equal = true
+all_mutants_caught = true
+
+[validate_muun_transition]
+test = "native/tests/test_muun_transition.py::Original.test_instruction_comparison"
+pins = ["text", "data"]
+needs = ["clang"]
+families = ["fx_create", "fx_move"]
+cases = 400
+mutants = 7
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/combat"]
+args = ["--cases", "200", "--mutations", "--output", "{report}"]
+[validate_muun_transition.expect]
+all_equal = true
+all_mutants_caught = true
+
+[validate_muun_visibility]
+test = "native/tests/test_muun_visibility.py::Original.test_instruction_comparison"
+pins = ["text", "data"]
+needs = ["clang"]
+families = ["visibility", "seat_phase"]
+cases = 417
+mutants = 10
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/muun"]
+args = ["--mutations", "--output", "{report}"]
+[validate_muun_visibility.expect]
+all_equal = true
+all_mutants_caught = true
+
 [validate_worlds_inner5]
 test = "reconstructed/objects/test_worlds_inner5.py::ClientComparison.test_original"
 pins = ["text", "data"]

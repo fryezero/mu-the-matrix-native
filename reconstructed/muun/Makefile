@@ -4,9 +4,11 @@ SUFFIX = $(if $(filter Darwin,$(shell uname -s)),dylib,so)
 SRC = visual.c passes.c ../movement/client_movement.c ../record-math/record_math.c
 SRC += special.c
 SRC += riding.c
+SRC += bone_fx.c
 HDR = visual.h passes.h ../movement/client_movement.h ../record-math/record_math.h
 HDR += special.h
 HDR += riding.h
+HDR += bone_fx.h
 all: libmuun_visual.$(SUFFIX)
 libmuun_visual.$(SUFFIX): $(SRC) $(HDR)
 	$(CC) $(CFLAGS) -shared $(SRC) -lm -o $@
