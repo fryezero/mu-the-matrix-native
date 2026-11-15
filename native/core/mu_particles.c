@@ -119,6 +119,7 @@ static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
 /* The world objects' effect models (AccessModel, static readings of the loaders): the Tormenta handler's
  * hs_fieldtornado (0x00e4c4de). */
 static const struct { int32_t type, world; const char *file; } fx_model_files[MU_WORLD_FX_MODELS] = {
+    {0x47a, -1, "Data/Skill/DarkLordSkill.bmd"}, /* RENDER-EFFECTS-031, AccessModel 0x01833c6e */
     {MU_SFX_MODEL_TORNADO, 0x8d, "Data/Object142/hs_fieldtornado.bmd"},
     /* NATIVE-CHARSEL-003: the character select's sky dragon and its glint (AccessModel 0x018363e8/0x0183641d,
      * textures from Data\Effect\) */

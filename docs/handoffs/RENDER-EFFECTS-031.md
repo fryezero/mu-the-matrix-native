@@ -7,29 +7,31 @@ The steward owns the full gate and merge. This is a WIP checkpoint, not a ready 
 
 Done:
 
-- Read the lane/common briefs, resume, current scope/ownership and predecessor evidence.
 - Preserve an explicitly rebuilt starting-main `mu-world`, SHA-256
   `e341fc2000d2e7f035f1e1814ca5384231389c8e7409ed20557643b0485108d7`.
-- Add eight world particle consumers: `0x801c/3,4,7`, `0x7f89/7,10,26`, `0x7f42/7`, `0x802a/1`.
-  All 1,920 sampled create/move/render comparisons pass against the pinned original instructions.
-- Add original-loader Flame01/water bitmap registrations. Native pool/bitmap tests remain pending.
-- Add Remain joint `0x7f7d/8,9,10` and old spark `0x7fd5/5`. All sampled creates/renders pass.
-  Correct the /9 and /10 return-segment jitter axes/ranges from the instruction differences;
-  the final /9 correction still needs its sample rerun.
-- Capture default and Aida/Remain close-up before scenes using the preserved binary. The initial
-  scene driver failed after completing the default views and repeated those views while fixing
-  its close-up manifest selection. Final completed baseline is retained; no after result yet.
+- Implement eleven particle consumers (eight requested world pairs, clouds/16,
+  Flame01/12 and charge Spark03/2), six joints (Remain/8,9,10, spark/5,
+  Swell Life spirit/2 and its flare/2 child) and five effect pairs (ground/4,
+  charge/0, Flame01/6 and Muun transition 0x47a/0,1).
+- All 2,440 focused original-instruction create/move/render checks pass (40 per pair,
+  11.002 s script / 13.502 s including reconstruction builds). No mutants run yet.
+- Add original-loader Flame01/water bitmap registrations and DarkLordSkill model routing.
+- Capture default and Aida/Remain close-up before scenes and four before skill scenes.
+  Initial baseline driver errors repeated the default sweep while fixing manifest paths;
+  the completed baseline is retained. No after result yet.
+- Inspect Blood Storm 0x583/0 and child 0x584/0: the constructor is insufficient proof;
+  child mover reads an undeclared owner +0x3b field. Both remain refused. Penetration
+  child 0x46c/0 and optional target ice remain refused.
 
 Left:
 
-- Complete directed owners/clocks/boundaries, native pool/raster tests and compiled mutants.
-- Audit/implement the Swell Life, Penetration, Blood Storm, clouds/16, word4 and Muun transition leads.
-  No lifecycle or pixels claimed for those still-refused consumers.
-- Extend the census with explicit denominators, before/after refusal counts and fixture render QA.
-- Root build, post-build affected selection, selected portable/private validators, 8d reduced,
-  affected-world fidelity, after default identity, audit, latest-main integration and final docs/PR.
+- Complete directed boundaries, native pool/raster tests, original render dispatch
+  for effect pairs and compiled mutants.
+- Extend the census with explicit denominators, refusal counts and fixture render QA.
+- Root build, post-build affected selection, portable/private validators, 8d reduced,
+  affected-world fidelity, after identity, audit, latest-main integration and final PR.
 
-Next step: finish the joint sample and native coverage, then inspect the original skill-effect branches.
+Next step: finish native raster coverage and original render dispatch, then run the final checks.
 
 Private working files are in `~/Documents/MTM/mu-mac-tools/native/scratch/render-effects-031/` and
 `renders/render-effects-031/`. They contain no new client capture and are disposable at completion.

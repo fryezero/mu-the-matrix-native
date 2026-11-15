@@ -201,6 +201,10 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
     owner_position(p, h);
     if (!mu_pt_kind_supported(type, subtype))
         return 0;
+    /* The new default clouds dereference their map OBJECT in MoveParticles. */
+    if (((type == 0x7f89 && (subtype == 7 || subtype == 26)) || (type == 0x7f26 && subtype == 2)) &&
+        owner == MU_PT_NO_OWNER)
+        return 0;
 
     if (mu_pt_world_inner_kind(type, subtype)) {
         mu_pt_world_inner_create(p, h, scale);
@@ -1223,7 +1227,7 @@ int mu_pt_render_record(mu_pt_particle *p, const mu_pt_bitmap *b, uint8_t mode, 
     case MU_PT_BITMAP_CLOUDS:
         if (p->subtype == 18) { mu_pt_elbeland_render(p, world_time); s->rotation = p->rotation; break; }
         /* 0x01599675 (subtypes 8, 9, 0x14): the light times the record's alpha */
-        if (p->subtype == 0 || p->subtype == 3 || p->subtype == 7 || p->subtype == 10) {
+        if (p->subtype == 0 || p->subtype == 3 || p->subtype == 7 || p->subtype == 10 || p->subtype == 16) {
             float rate = p->subtype == 3 || ordinal % 2 == 0 ? 0.02f : -0.02f;
             s->rotation = (world_time * rate) * p->field_7c + p->start[1];
         }
@@ -1236,7 +1240,7 @@ int mu_pt_render_record(mu_pt_particle *p, const mu_pt_bitmap *b, uint8_t mode, 
     }
     if (p->type == 0x7ffd && p->subtype == 0xb)
         state(out, MU_PT_STATE_SUBTRACT, 0);         /* RENDER-EFFECTS-010, Clud64: 0x01594fe7 */
-    if (p->type == 0x7f89 && (p->subtype == 7 || p->subtype == 10))
+    if (p->type == 0x7f89 && (p->subtype == 7 || p->subtype == 10 || p->subtype == 16))
         state(out, MU_PT_STATE_SUBTRACT, 0);
     if (p->type == 0x802a && p->subtype == 1)
         state(out, MU_PT_STATE_ADD, 0);
