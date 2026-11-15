@@ -2,15 +2,22 @@
 
 ## WIP latest-main integration
 
-Main advanced to UI-WINDOWS-004 `4480bf41` during publication checks. The
-results below remain valid at their named commits, but this new main is not
-yet integrated. Current publication checks pass: 36 documentation tests,
-35 passed / one expected skip, 17.94 s; audit 2,294 files / zero rejected,
-25.40 s plus a 120 s wait. Left: merge this main, build and select/replay
-only changed compiled inputs, permitted portable delta, refreshed default
-identity, final documentation/audit, PR/ready entry and cleanup. No PR or
-ready entry exists yet. Production actor source and nine control targets
-remain unchanged.
+Checkpoint 2026-11-15 01:46: main through UI-WINDOWS-004 `4480bf41` is integrated
+as `f35c9e14`. Root build passes in 16.37 s. The final affected selection
+retains 29 rows and prunes twelve unused-library consumers. Its main-delta
+selection replays nineteen rows, all passing at `f35c9e14`, 338.63 s with
+zero waits/failures/errors/skips. This includes the full 21,437-check actor
+row. The other ten rows retain their named passes on unchanged inputs.
+
+Permitted portable integration is running, 178 work items, with the app
+packaging test excluded. Next: finish it, explicitly rebuild and refresh
+the default identity/proof renders, refresh this handoff/status/plan, run
+the final documentation checks and audit, then publish the PR/ready entry
+and clean up. No PR or ready entry exists yet. The tables below are the
+pre-UI-WINDOWS-004 snapshot and will be replaced by final per-row commits.
+Prior publication checks pass: 36 documentation tests, 35 passed / one
+expected skip in 17.94 s; audit 2,294 files / zero rejected in 25.40 s plus
+a 120 s wait. Production actor code and nine control targets are unchanged.
 
 ## Result and census
 
