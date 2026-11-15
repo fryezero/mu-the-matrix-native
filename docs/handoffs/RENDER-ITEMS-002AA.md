@@ -100,3 +100,11 @@ a second validator run while this command is active. Source is unchanged; only r
 change at this checkpoint. Next: wait for that command, inspect every result, preflight exact asset
 paths for native proofs, integrate latest main and run only its affected refresh, then the one rebuilt
 default identity sweep plus item proofs, final docs/audit/PR/ready entry and cleanup. No ready entry exists.
+
+At the 12:35 checkpoint: 25/73 rows in the continuing no-mutant private aggregate pass, no failures,
+errors or skips reported. Coverage (389.9 s), wings-next (406.6 s), meshdraw (148.0 s), model-edge
+(205.6 s), movement (95.2 s) and renderchar (55.3 s) are among the completed rows. The same active
+command and report paths from the prior checkpoint remain in use; it still queues the private native
+consumer modules on success. Runtime, generators and validators are unchanged. Left/next remain
+wait and inspect, native proof asset preflight, latest-main refresh as selected, one rebuilt default
+identity and item proofs, final docs/audit/PR/ready entry and cleanup. No ready entry exists.
