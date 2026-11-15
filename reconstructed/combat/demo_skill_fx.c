@@ -185,3 +185,16 @@ int mu_skill32_crescent_step(mu_skill32_input *s, const mu_sfx_env *env, mu_skil
     }
     return 1;
 }
+
+/* RENDER-EFFECTS-033, optional receive-visual slice only, with authored input. */
+void mu_skill33_target_ice(const mu_skill30_input *target, int enabled, mu_skill30_plan *p)
+{
+    memset(p, 0, sizeof *p);
+    if (!enabled) return;
+    mu_skill30_input s = *target;
+    request(p,&s,0x0142ec5c,0x412,1);
+    request(p,&s,MU_SFX_CALL_EFFECT,0x412,1);
+    s.angle[2] += 180.0f;
+    s.light[0] = 0.4f; s.light[1] = 0.3f; s.light[2] = 0.2f;
+    request(p,&s,MU_SFX_CALL_EFFECT,0x412,2);
+}

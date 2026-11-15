@@ -8,7 +8,7 @@ static int bow_joint_kind(int32_t type, int32_t sub)
     case 0x814c: case 0x8182: case 0x8185: return sub == 10;
     case 0x85cc: return sub == 0;
     case 0x828c: return sub == 2;
-    case 0x7f79: return sub == 12 || sub == 14 || sub == 15 || sub == 18 || sub == 22;
+    case 0x7f79: return (sub >= 0 && sub <= 3) || sub == 12 || sub == 14 || sub == 15 || sub == 18 || sub == 22;
     case 0x7f78: return sub == 11;   /* RENDER-EFFECTS-014: 0x459's guided flares */
     default: return 0;
     }
@@ -16,6 +16,7 @@ static int bow_joint_kind(int32_t type, int32_t sub)
 
 static void create_bow_joint(mu_jt_joint *j, float scale, const float target_position[3], const mu_jt_env *env)
 {
+    const float prior_scale = j->scale;
     j->scale = scale;
     j->lifetime = 20;
     j->max_tails = 8;
@@ -51,6 +52,20 @@ static void create_bow_joint(mu_jt_joint *j, float scale, const float target_pos
     case 0x7f79: /* 0x0154c119, 0x0154cd27, 0x0154d03b, 0x0154d26f */
         j->lifetime = (int16_t)j->key;
         j->key = 0;
+        if (j->subtype <= 3) { /* 0x0154c119..0x0154c334 */
+            j->max_tails = 50; j->velocity = j->subtype == 3 ? 240.0f : (float)j->subtype * 90.0f; j->scale = prior_scale;
+            j->jitter[0] = scale * 1.5f;
+            j->jitter[1] = j->jitter[2] = 0.0f;
+            copy3(j->target_position, target_position);
+            if (j->skill == 0) { j->scale = 20.0f; j->light[0] = j->light[1] = j->light[2] = 0.5f; }
+            else if (j->skill == 1) { j->scale = 40.0f; j->light[0] = 1.0f; j->light[1] = 0.5f; j->light[2] = 0.0f; }
+            else if (j->skill == 3) {
+                j->scale = 20.0f;
+                const mu_jt_object *t = jobject(env, j->target);
+                if (t) copy3(j->light, t->light);
+            }
+            break;
+        }
         j->max_tails = j->subtype == 12 ? 16 : j->subtype == 18 ? 7 : 9;
         if (j->subtype == 15) j->max_tails = 16;
         j->render_type = j->subtype == 12 ? 4 : 1;
@@ -180,6 +195,27 @@ static int move_bow_joint(mu_jt_joint *j, const mu_jt_env *env, int32_t index)
             }
         }
     } else if (j->type == 0x7f79) { /* 0x0157d2f5 */
+        if (j->subtype <= 3) { /* 0x0157df5c..0x0157e546 */
+            if (!t) return 2;
+            if (!t->live) {
+                j->lifetime = -1; copy3(j->position, j->target_position); j->position[2] += 50.0f;
+                return 2;
+            }
+            float delta[3], a[3], tail_matrix[12];
+            for (int k = 0; k < 3; ++k) delta[k] = (t->position[k] - t->impact[k]) / 3.0f;
+            copy3(j->target_position, t->impact); copy3(a, t->heading);
+            mu_angle_matrix(j->angle, tail_matrix);
+            a[1] = (j->velocity - 90.0f) + a[1];
+            for (int n = 0; n < 3; ++n) {
+                float m[12], v[3]; a[1] += 30.0f;
+                for (int k = 0; k < 3; ++k) j->target_position[k] += delta[k];
+                mu_angle_matrix(a, m); mu_vector_rotate(j->jitter, m, v);
+                for (int k = 0; k < 3; ++k) j->position[k] = j->target_position[k] + v[k];
+                if (j->num_tails < j->max_tails - 1 || j->skill != 0) mu_jt_tail_shift(j, tail_matrix);
+            }
+            if (j->lifetime < 15) for (int k = 0; k < 3; ++k) j->light[k] /= 1.5f;
+            return 2;
+        }
         if (!t) { j->live = 0; return 0; }
         if (!t->live) j->live = 0;
         if (j->subtype == 14 && j->live == 1) { /* 0x0157d395: Spark03 sprite, red smoke, sparks */

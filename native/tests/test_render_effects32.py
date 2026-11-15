@@ -47,11 +47,11 @@ class Native(unittest.TestCase):
         frames=[r for r in rows if 'combat_frame' in r]
         self.assertTrue(all(r['monsters'][0]['hp']==frames[0]['monsters'][0]['hp'] for r in frames))
         return frames
-    def test_seven_summons_keep_missing_ground_consumer_and_actor_explicit(self):
+    def test_seven_summons_keep_missing_actor_explicit(self):
         for skill in range(30,37):
             rows=self.cast(skill,2,'bow');self.assert_safe(rows)
             plan=next(r for r in rows if r.get('skill32'))
-            self.assertEqual((plan['casts'],plan['requests'],plan['refused']),(1,1,1))
+            self.assertEqual((plan['casts'],plan['requests'],plan['refused']),(1,1,0))
     def test_shield_pose_requires_authored_context(self):
         self.assertFalse(any(r.get('skill32') for r in self.cast(18)))
         rows=self.cast(18,context='0,-1,1,0');frames=self.assert_safe(rows)
