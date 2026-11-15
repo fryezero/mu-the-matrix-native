@@ -207,7 +207,7 @@ def inventory(text, data, root=ROOT):
             except ValueError: pass
         rows.append({'site': f'0x{site:08x}', 'anchor': f'0x{anchor:08x}',
                      'owner': domain, 'source': source,
-                     'native_reference': bool(refs) or source.startswith(('reconstructed/', 'native/')),
+                     'native_reference': bool(selector) or site in kubera or bool(refs) or source.startswith(('reconstructed/', 'native/')),
                      'audio_adapter': site in delivered or anchor == 0x1851d39 or anchor == 0xdb3e26,
                      'audio_003_adapter': site in added,
                      'audio_004_adapter': command is not None,
@@ -215,12 +215,12 @@ def inventory(text, data, root=ROOT):
                      'audio_005_adapter': wired005,
                      'audio_005_refused_models': sorted(m for m in selector['models'] if not 0x7a5 <= m < 0x9fe or m in (0x90a,0x90b,0x90c)) if selector else [],
                      'audio_005_limit': 'fixture-loaded actor; world/server-class construction remains separate' if selector and wired005 else 'effect model 0x356 has no native actor' if selector else 'complete Kubera move; ordered stop/play' if site in kubera else '',
-                     'original_routine': command['routine'] if command else f'0x{anchor:08x}',
+                     'original_routine': command['routine'] if command else selector['routine'] if selector else '0x00e19ed0' if site in kubera else f'0x{anchor:08x}',
                      'routine_status': 'reviewed' if domain != 'unresolved' else 'prologue grouping only',
-                     'gate': 'instruction-compared owner; see AUDIO-004 gate table' if command else 'not reviewed by AUDIO-004; retain prior disposition',
-                     'sound_id': command['id'] if command else literal,
-                     'sound_id_status': 'compared' if command else 'static push candidate' if literal is not None else 'unresolved',
-                     'native_owner': 'complete compared owner' if command else 'bounded reference only' if bool(refs) or source.startswith(('reconstructed/', 'native/')) else 'unresolved' if domain == 'unresolved' else 'no bounded native reference'})
+                     'gate': 'instruction-compared owner; see AUDIO-004 gate table' if command else 'instruction-compared AUDIO-005 selector; fixture actor inputs' if selector else 'instruction-compared Kubera move and stop/play order' if site in kubera else 'not reviewed by AUDIO-004/005; retain prior disposition',
+                     'sound_id': command['id'] if command else selector['id'] if selector else kubera[site] if site in kubera else literal,
+                     'sound_id_status': 'compared' if command or selector or site in kubera else 'static push candidate' if literal is not None else 'unresolved',
+                     'native_owner': 'complete compared owner' if command or site in kubera else 'complete compared selector; fixture actor only' if selector else 'bounded reference only' if bool(refs) or source.startswith(('reconstructed/', 'native/')) else 'unresolved' if domain == 'unresolved' else 'no bounded native reference'})
     counts = Counter((r['owner'], r['native_reference']) for r in rows)
     return {'method': 'direct E8 candidates; exact anchors with explicit unresolved remainder',
             'text_sha256': pins.TEXT.sha256, 'data_sha256': pins.DATA.sha256, 'total': len(rows),

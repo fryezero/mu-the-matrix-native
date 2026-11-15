@@ -68,6 +68,27 @@ class Native(unittest.TestCase):
  def test_disabled_drains_both_operations(self):self.assertEqual(self.rows('disabled'),[])
  def test_detached_drops_both_operations(self):self.assertEqual(self.rows('detached'),[])
 
+class World(unittest.TestCase):
+ def test_object_runtime_delivers_order_and_preserves_pixels(self):
+  from test_native_npc import write_npc_world,PLACE
+  from test_native_terrain import write_world
+  from test_native_objects import obj_plain,write_models
+  subprocess.run(['make','-s','-j4','-C',str(ROOT/'native'),'build/mu-walk'],check=True)
+  with tempfile.TemporaryDirectory(prefix='audio-kubera-world-') as tmp:
+   folder=Path(tmp);root=write_npc_world(folder/'game');write_world(root,124,rgb=True);write_models(root,124,['Object53.bmd'])
+   placement=folder/'placement.txt';placement.write_text(PLACE);objects=folder/'objects';objects.mkdir();(objects/'EncTerrain124.plain').write_bytes(obj_plain(124,[(52,12000.,12000.,0.,0.,1.)]))
+   wav=root/'kubera.wav';wav.write_bytes(constant_wav(.125,80000,rate=8000));table=folder/'table.tsv';table.write_text(''.join(f'sound\t{id}\t{wav.name}\t1\t0\t0\n' for id in (0x4f1,0x4f2)))
+   hashes=[]
+   for enabled in (True,False):
+    log=folder/f'{enabled}.jsonl';cmd=[str(ROOT/'native/build/mu-walk'),'--game-root',str(root),'--headless','--backend','soft','--world','123','--placement',str(placement),'--objects-dir',str(objects),'--width','64','--height','64','--frames','24','--every','12','--tile','120,120','--hero-name','Preview','--out-dir',str(folder/str(enabled)),'--sound-table',str(table)]
+    if not enabled:cmd+=['--no-audio']
+    r=subprocess.run(cmd,cwd=ROOT,capture_output=True,text=True,env=dict(os.environ,MU_AUDIO_CUE_LOG=str(log),MU_GFX_PUBLIC_DEMO='1'));self.assertEqual(r.returncode,0,r.stdout+r.stderr)
+    hashes.append([json.loads(line)['sha256'] for line in r.stdout.splitlines() if line.startswith('{') and 'sha256' in json.loads(line)])
+    if enabled:
+     rows=[json.loads(line) for line in log.read_text().splitlines() if json.loads(line)['handler']==0xe19ed0 and json.loads(line)['op'] in ('stop','play')]
+     self.assertTrue(rows);self.assertEqual([row['op'] for row in rows],['stop','play']*(len(rows)//2));self.assertEqual({row['site'] for row in rows},{0xe1a2ba,0xe1a2ca})
+   self.assertTrue(hashes[0]);self.assertEqual(hashes[0],hashes[1])
+
 class Original(unittest.TestCase):
  @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION')=='1','Pinned AUDIO-005 Kubera inputs are opt-in')
  def test_stop_play_commands(self):

@@ -38,6 +38,14 @@ int main(int argc,char **argv){
  assert(mu_monster_audio_combat(c,0,0,210)==210);mu_session_audio_drain(s,&cursor,host);
  if(disabled || detached)mu_session_audio_drain(s,&cursor,saved);
  if(!detached){mu_cue cues[8];uint32_t lost;assert(mu_session_cues(s,&other,cues,8,&lost)==2 && !lost);}
+ /* The real caller byte aliases OBJECT frame. Nonzero frame is not a fresh
+  * shock/attack/death trigger even if the native audio latch is still zero. */
+ float blocked=.001f;memcpy(actor.actor.object+0xd0,&blocked,4);
+ assert(mu_monster_audio_combat(c,0,0,210)==210);mu_session_audio_drain(s,&cursor,host);
+ blocked=0;memcpy(actor.actor.object+0xd0,&blocked,4);
+ actor.actor.object[0x2a]=6;c->monsters[0].voice_3324=0;mu_monster_audio_die_complete(c,0);
+ assert(c->monsters[0].voice_3324==.001f && mu_actor_frame(&actor.actor)==0.0f);
+ c->monsters[0].voice_3324=0;actor.actor.object[0x2a]=5;
  /* Distance consumes the class dispatch. Combat still continues to its shared
   * voice, because these callers discard the dispatch return value. */
  actor.position[0]=500.01f;assert(mu_monster_audio_combat(c,0,0,210)==210);
@@ -100,7 +108,7 @@ class Installed(unittest.TestCase):
  def test_all_admitted_models_load_and_sounds_decode(self):
   import re
   rows=re.findall(r'MU_AUDIO_MONSTER_SOUND\(0x[0-9a-f]+u, (\d+), .*?, 0x[0-9a-f]+u, (\d+), \d+, \d+\)',(ROOT/'reconstructed/audio/monster_audio_table.inc').read_text())
-  models=sorted({int(m) for m,_ in rows if 0x7a5<=int(m)<0x9fe});ids=sorted({int(i) for m,i in rows if 0x7a5<=int(m)<0x9fe})
+  models=sorted({int(m) for m,_ in rows if 0x7a5<=int(m)<0x9fe});ids=sorted({int(i) for m,i in rows if 0x7a5<=int(m)<0x9fe}|{0x4f1,0x4f2,0x4f3,0x4f4})
   self.assertGreater(len(models),57)
   # Use the existing BY_MONSTER loader. These later world models are not in
   # the generic world-0 server-class table, so no class construction is claimed.

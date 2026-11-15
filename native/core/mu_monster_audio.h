@@ -56,13 +56,14 @@ static inline void mu_monster_audio_tick(mu_session *session, const mu_walk *wal
 }
 /* These three caller seams are already gated by their owning combat services.
  * The dispatch precedes the shared model-slot voice. These callers discard its return value.
- * The original voice marker is read only. It is never replicated or rewritten. */
+ * Selection reads the caller marker. Death completion below updates only the
+ * existing native audio latch; it does not change a replicated record. */
 static inline int32_t mu_monster_audio_combat(mu_combat *c, int32_t index, float played, int32_t fallback)
 {
     if (!c->actors || !c->walk || !c->map || index < 0 || index >= c->actors->count || !(played == 0.0f))
         return fallback;
     const mu_world_actor *actor = &c->actors->list[index];
-    if (!actor->actor.loaded || actor->player) return fallback;
+    if (!actor->actor.loaded || actor->player || !(mu_actor_frame(&actor->actor) == 0.0f)) return fallback;
     mu_monster_sound_plan p = mu_monster_audio_plan(c->map->world, actor->actor.spec.model_index,
         mu_actor_action(&actor->actor), mu_actor_frame(&actor->actor), actor->position, c->walk->hero.position);
     mu_monster_audio_emit(c->session, &p, actor->session_key);
@@ -75,7 +76,9 @@ static inline float mu_monster_audio_attack(mu_combat *c, int32_t index, float p
     (void)mu_monster_audio_combat(c, index, played, 0);
     return played;
 }
-/* SetPlayerDie stores +0x3324 after both class and shared voices. A loaded
+/* CHARACTER +0x3324 aliases OBJECT frame +0xd0. SetPlayerDie stores 0.001
+ * after both voices. Native keeps that once-only latch separate from animation
+ * so adding audio cannot perturb its existing pixels. A loaded
  * native model exists even when it has no row in the legacy voice-slot table. */
 static inline void mu_monster_audio_die_complete(mu_combat *c, int32_t index)
 {

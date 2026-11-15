@@ -57,3 +57,29 @@ contexts remain excluded. Guardian's three state-bound sites stay fixture-only.
 
 The rebuilt-before default sweep completed: 14 October-22 and 32 DATA-ACQ-002
 views, 85.62 s. The after sweep and byte/report comparison remain pending.
+
+## Third WIP checkpoint
+
+The corrected small proof is green: 21,515 cases, including 2,748 complete
+outer-dispatch and 2,808 shock/attack/death/walk caller-tail cases, 245 sites,
+zero mismatches/stops, 8.624 s. The proof now preserves the actual alias
+CHARACTER +0x3324 = OBJECT +0xd0 instead of treating those bytes as independent
+inputs. Native combat uses the exact frame-zero gate and keeps its existing
+animation separate from the cosmetic death latch.
+
+Canonical private focused run is green: 14 tests, zero skips/failures/errors,
+22.10 s. It attempts all 80 type models, loads the 77 available ones and
+explicitly refuses 0x90a..0x90c. All 211 distinct new sound ids, including the
+Kubera ids, decode and resolve with nonzero PCM. Native delivery covers actual
+Kubera object-runtime callbacks, ordered stops, mute, silent/detached drains,
+independent readers and equal audio-on/off synthetic world pixels. Root build
+passes in 11.16 s. Main remains 2b0b2716.
+
+Left: final full-count comparisons with compiled mutants, affected portable and
+private checks, repository audit, rebuilt after identity, documentation/status
+and PR-ready queue. These remain pending; no final mutant run has begun.
+The new validator adds native-adapter mutant controls for the distance edge,
+ignored dispatch result, death completion, walking frame, combat frame-zero
+and refused model aliases. Resource guards continue to pause heavy work during
+shared-host spikes, including load above 30. Next step is the final mutant run
+when the guard permits it.
