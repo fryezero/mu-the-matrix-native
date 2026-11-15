@@ -113,13 +113,22 @@ file strings and publishes only after cleanup.
 ## Verification
 
 All 33 final affected validators pass, **252,538 checks**, zero failures,
-errors or skips. After AUDIO-005 batch 116, 32 rows replay at `ebcbb2da`:
-251,786 checks, 740.31 s command wall. App-polish1 retains its unchanged-input
-752-check pass at `e51eba07`. The final PR selector keeps 33 of 249 registry
-rows, 223.28 s command including 90 s wait. The input-delta selector keeps
-thirty prior rows, 82.63 s command including 30 s wait; the two newly selected
-audio rows also replay. Conservative movement/audio-combat/render-effects17
-fallbacks remain selected.
+errors or skips. After INNER-005 batch 117, 27 rows replay at `4e02b38e`:
+214,718 checks, 1,095.71 s command wall including 390 s resource waiting.
+Six results retain unchanged inputs: app-polish1 at `e51eba07`; app-polish2/4,
+audio-combat, viewport-monsters and worlds-fog at `ebcbb2da`.
+The input-delta selector takes 128.03 s including 30 s wait. Current PR
+selection remains 33 of 250 registry rows, 158.69 s including 60 s wait.
+The fixture party host's IR analysis lacks MU_SESSION_SEED, so conservative
+fallback selections remain in the replay rather than being discarded.
+
+After AUDIO-005 batch 116, 32 rows replay at `ebcbb2da`: 251,786 checks,
+740.31 s command wall. App-polish1 retains its unchanged-input 752-check pass.
+That PR selector keeps 33 of 249 rows, 223.28 s including 90 s wait; its
+input-delta selector keeps thirty prior rows, 82.63 s including 30 s wait.
+The two newly selected audio rows also replay. Conservative fallback rows
+remain selected in every wave. No prior result is retained where its used
+compiled inputs change.
 
 Before AUDIO-005, all 31 batch-115 rows pass at `e51eba07`, 213,223 checks,
 680.63 s command wall. The initial same selection passes at `b3edf825` in
@@ -142,7 +151,10 @@ compiled inputs change.
 | Corrected two-control replay | 2/2 caught, twenty distinct results; registry recheck passes | 3.05 s runtime / 243.20 s command, 240 s wait |
 | Initial affected private validators | 31/31 pass, 213,223 checks | 602.78 s command |
 | Batch-115 affected private validators | 31/31 pass, 213,223 checks | 680.63 s command |
-| Final batch-116 affected private replay | 32/32 pass, 251,786 checks; one unchanged pass retained | 740.31 s command |
+| Batch-116 affected private replay | 32/32 pass, 251,786 checks; one unchanged pass retained | 740.31 s command |
+| INNER-005 affected private replay | 27/27 pass, 214,718 checks; six unchanged passes retained | 1,095.71 s command, 390 s wait |
+| INNER-005 permitted portable delta | 1,419 pass / 337 expected skips, zero failures/errors | 415.2 s runner / 549.30 s command, 60 s wait |
+| INNER-005 private 8d finish | PENDING_RESULT | PENDING_WALL |
 | Initial permitted portable selection | 1,525 pass / 339 expected skips, zero failures/errors | 390.1 s runner / 568.26 s command |
 | Initial private 8d reduced | 4/4 pass, zero skips | 448.08 s runtime / 568.19 s command, 120 s wait |
 | Batch-115 permitted portable delta | 1,541 pass / 347 expected skips, zero failures/errors | 371.3 s runner / 612.48 s command, 120 s wait |
@@ -167,41 +179,42 @@ root with `. ~/Documents/MTM/mu-mac-tools/native/private-env.sh`. Portable
 runs explicitly exclude `native/tests/test_native_app.py`, leaving 180 and
 184 permitted items respectively. The AUDIO-005 delta selects 181 items /
 173 private native items, runs 180 after the same app-module exclusion, and
-also uses 8d reduced.
+also uses 8d reduced. INNER-005 selects 176 items / 169 private native items;
+175 run after the app-module exclusion, followed by the same reduced actor modules.
 
 | Steward validator | Checks | Wall | Tested commit |
 |---|---:|---:|---|
-| `validate_actor_composites` | 1,427 | 13.2 s | `ebcbb2da` |
-| `validate_actor_groups` | 8,451 | 274.2 s | `ebcbb2da` |
-| `validate_actor_monsters` | 1,437 | 43.0 s | `ebcbb2da` |
-| `validate_actor_plain` | 21,437 | 232.9 s | `ebcbb2da` |
-| `validate_actor_recipes` | 1,669 | 168.8 s | `ebcbb2da` |
+| `validate_actor_composites` | 1,427 | 8.7 s | `4e02b38e` |
+| `validate_actor_groups` | 8,451 | 253.7 s | `4e02b38e` |
+| `validate_actor_monsters` | 1,437 | 57.2 s | `4e02b38e` |
+| `validate_actor_plain` | 21,437 | 310.3 s | `4e02b38e` |
+| `validate_actor_recipes` | 1,669 | 177.5 s | `4e02b38e` |
 | `validate_app_polish1` | 752 | 30.1 s | `e51eba07` |
 | `validate_app_polish2` | 1,028 | 6.4 s | `ebcbb2da` |
 | `validate_app_polish4` | 10,485 | 39.6 s | `ebcbb2da` |
-| `validate_audio_callers` | 5,528 | 6.8 s | `ebcbb2da` |
+| `validate_audio_callers` | 5,528 | 5.9 s | `4e02b38e` |
 | `validate_audio_combat` | 19,548 | 38.8 s | `ebcbb2da` |
-| `validate_audio_domains` | 2,544 | 37.4 s | `ebcbb2da` |
-| `validate_audio_items` | 3,000 | 6.4 s | `ebcbb2da` |
-| `validate_audio_kubera` | 1,000 | 1.8 s | `ebcbb2da` |
-| `validate_audio_monsters` | 38,315 | 25.3 s | `ebcbb2da` |
-| `validate_audio_objects` | 4,000 | 8.9 s | `ebcbb2da` |
-| `validate_audio_objects4` | 10,093 | 13.4 s | `ebcbb2da` |
-| `validate_charsel_items` | 8,817 | 10.1 s | `ebcbb2da` |
-| `validate_icarus_c2` | 8,400 | 32.0 s | `ebcbb2da` |
-| `validate_inventory_fx` | 8,017 | 11.3 s | `ebcbb2da` |
-| `validate_item_callers` | 6,013 | 1.9 s | `ebcbb2da` |
-| `validate_items_ui` | 8,517 | 17.7 s | `ebcbb2da` |
-| `validate_movement` | 6,614 | 68.7 s | `ebcbb2da` |
-| `validate_render_effects16` | 424 | 8.4 s | `ebcbb2da` |
-| `validate_render_effects17` | 618 | 11.2 s | `ebcbb2da` |
-| `validate_render_effects18` | 540 | 2.1 s | `ebcbb2da` |
-| `validate_render_effects19` | 400 | 1.5 s | `ebcbb2da` |
-| `validate_render_effects24` | 226 | 5.3 s | `ebcbb2da` |
-| `validate_render_effects25` | 202 | 13.6 s | `ebcbb2da` |
-| `validate_render_effects26` | 348 | 15.9 s | `ebcbb2da` |
-| `validate_render_effects28` | 630 | 3.7 s | `ebcbb2da` |
-| `validate_render_effects31` | 66,051 | 331.8 s | `ebcbb2da` |
+| `validate_audio_domains` | 2,544 | 25.7 s | `4e02b38e` |
+| `validate_audio_items` | 3,000 | 3.3 s | `4e02b38e` |
+| `validate_audio_kubera` | 1,000 | 1.3 s | `4e02b38e` |
+| `validate_audio_monsters` | 38,315 | 17.8 s | `4e02b38e` |
+| `validate_audio_objects` | 4,000 | 5.7 s | `4e02b38e` |
+| `validate_audio_objects4` | 10,093 | 8.4 s | `4e02b38e` |
+| `validate_charsel_items` | 8,817 | 7.9 s | `4e02b38e` |
+| `validate_icarus_c2` | 8,400 | 18.3 s | `4e02b38e` |
+| `validate_inventory_fx` | 8,017 | 7.1 s | `4e02b38e` |
+| `validate_item_callers` | 6,013 | 1.2 s | `4e02b38e` |
+| `validate_items_ui` | 8,517 | 10.0 s | `4e02b38e` |
+| `validate_movement` | 6,614 | 110.0 s | `4e02b38e` |
+| `validate_render_effects16` | 424 | 4.8 s | `4e02b38e` |
+| `validate_render_effects17` | 618 | 7.4 s | `4e02b38e` |
+| `validate_render_effects18` | 540 | 1.2 s | `4e02b38e` |
+| `validate_render_effects19` | 400 | 0.8 s | `4e02b38e` |
+| `validate_render_effects24` | 226 | 2.6 s | `4e02b38e` |
+| `validate_render_effects25` | 202 | 9.7 s | `4e02b38e` |
+| `validate_render_effects26` | 348 | 8.9 s | `4e02b38e` |
+| `validate_render_effects28` | 630 | 1.7 s | `4e02b38e` |
+| `validate_render_effects31` | 66,051 | 343.3 s | `4e02b38e` |
 | `validate_viewport_monsters` | 1,963 | 16.7 s | `ebcbb2da` |
 | `validate_worlds_fog` | 4,044 | 10.8 s | `ebcbb2da` |
 
@@ -211,7 +224,8 @@ Mutants needed by steward: none. Use the canonical private environment from
 repo root. Every validator above runs privately with zero skips. Main through
 batch 115 `df57ab8b` is integrated at `1b194a04`; AUDIO-005 batch 116
 `8844d3e9` is integrated at `9d9caf9a`. The `ebcbb2da` checkpoint changes
-documentation only after that merged source.
+documentation only after that merged source. INNER-005 batch 117
+`d3ec9950` is integrated at `4e02b38e`; `48c2d9bc` changes documentation only.
 
 ## Identity and proof renders
 
@@ -306,8 +320,10 @@ Current PR selection remains 33 of 250 rows, 158.69 s including 60 s wait.
 Fixture party-host IR analysis has a missing MU_SESSION_SEED fallback, so
 its conservative selections are retained. Left: incoming compiled-input
 replays and final publication. The after-side refresh matches all 230 hashes, 287.20 s including 210 s
-wait. The 27-validator replay is running after 390 s resource waiting.
-Next: finish it, run the portable/private delta and publication checks.
+wait. The 27-validator replay passes 214,718 checks in 1,095.71 s command wall,
+including 390 s resource waiting. The portable delta passes 1,419 tests /
+337 expected skips, zero failures/errors, 549.30 s including 60 s waiting.
+Next: finish the private actor modules and publication checks.
 No ready entry exists.
 
 Pushed checkpoints include `99409933`, `5425914e`, `d53c7df3`, `b3edf825`,
