@@ -2,7 +2,9 @@
 
 ## Delivered scope
 
-Base main `c5b9d5ca` (PR #400 merged). The restored text/data pins are
+Base main `c5b9d5ca` (PR #400 merged). Main `c255e4dd`, batch 119, merges at
+`7283ead2`; the merge changes no UI controller and only the four status
+documents conflicted (both sides kept). The restored text/data pins are
 unchanged. The [research](../research/client-ui-windows.md), the
 [missing-piece ledger](../research/ui-window-missing-pieces.csv), the
 [trigger ledger](../research/ui-window-triggers.csv), the
@@ -178,8 +180,16 @@ draw_all or live_time. Before renders take 23.99 + 70.22 s, after renders
 16.51 + 52.55 s. Baselines were rendered once and never rerun. Reports compare
 after normalising the output folder name only; PNG pixels and dumps compare
 byte for byte. The tours run without the GFx layer, so the banner cannot
-appear in them. This is native regression identity, not original-image
-equivalence or performance acceptance.
+appear in them.
+
+After the merge of main `c255e4dd` the root/world builds take 16.32 / 7.13 s
+and the final integrated binary is
+`0ee516b20e3646035ff76da43abc5360924a14bad8306b23e96327cf764ac5a3`. Only the
+after renders are repeated on it (49.43 + 136.63 s): all 276 artifacts are
+again identical to the single preserved baseline, and the journey repeated on
+it (11.88 s) reproduces the six proof frames byte for byte. This is native
+regression identity, not original-image equivalence or performance
+acceptance.
 
 ## Checks and wall times
 
@@ -197,8 +207,12 @@ equivalence or performance acceptance.
 | Ledger reproduction: indirect and parameterised / triggers | 482 rows identical after line-ending normalisation, 7 rows identical / 136 sites identical | 12.60 / 0.26 |
 | Native journey | 496 frames, six inspected opaque proofs | 6.77 |
 | Default identity | 276 identical artifacts against the single baseline | 94.21 before; 69.06 after |
-| Staged repository audit | 2361 staged files, zero rejected | 28.25 |
-| Four documentation consumers | 36 tests: 35 passed / 1 skipped | 15.13 |
+| Merged root / world build at `7283ead2` | Pass | 16.32 / 7.13 |
+| Private UI modules after the merge, 12 modules | 84 tests: 80 passed / 4 optional mutant classes skipped | 72.47 |
+| Merge-affected validators | 12 rows pass | 284.79 |
+| Journey and after-only identity on the merged binary | six proof frames byte-identical; 276 identical artifacts | 11.88; 186.06 |
+| Final staged repository audit, after the merge | 2381 staged files, zero rejected | 33.54 |
+| Four documentation consumers, final content | 36 tests: 35 passed / 1 skipped | 13.25 |
 
 8d reduced: the affected native selection is far above the forty-item cap (a
 layer change selects 152 native modules). The reduced private run, from the
@@ -212,6 +226,13 @@ not report its path in time while the 1-minute load was above 14. It does not
 open the banner (the layer host has no arrival owner). Rerun alone at load 11
 it passes all 17 points. It is reported as a load timeout, not as a pass of
 the first run.
+
+After the merge only checks whose compiled inputs the merge changed are
+repeated: the twelve validator rows below, the lane's private UI modules (all
+of the first list except `test_app_polish9`, whose inputs the merge does not
+change), the journey and the after renders. The portable selection is not
+repeated; its UI modules ran again inside that private run, and the rest of
+it belongs to the steward's batch gate.
 
 The portable runner uses the normal affected selection and excludes only
 `native/tests/test_native_app.py`, as required, with the same wrapper as 005
@@ -249,59 +270,61 @@ summaries are committed. No new private input needs retaining.
 
 ## Steward validators
 
-All 43 affected rows pass in 307.76 s (408.1 s summed over two workers) with
-canonical `private-env.sh`, the cache, two jobs and no registry mutants. They
-ran on the final tree; its compiled inputs are those of `13553cab`, the last
-commit that changes compiled sources. The twelve rows marked "yes" compile the
-GFx layer and were also 005's lane rows. The other 31 are selected because
-they compile `native/world/world_rt.c` or `native/world/parts/combat.c`, each
-of which gains one or three added lines. No registry mutant target changed.
+All 43 affected rows pass in 307.76 s at `61f76b9a` with canonical
+`private-env.sh`, the cache, two jobs and no registry mutants. That tree's
+compiled inputs are those of `13553cab`, the last commit that changes compiled
+sources. The merge of main `c255e4dd` changes compiled inputs of twelve of the
+43 rows; those twelve pass again at `7283ead2` in 284.79 s. The other 31 keep
+unchanged inputs. The twelve rows marked "yes" compile the GFx layer and were
+also 005's lane rows. The other 31 are selected because they compile
+`native/world/world_rt.c` or `native/world/parts/combat.c`, which gain three
+added lines each. No registry mutant target changed.
 
-| Validator | Cases/contracts, zero mismatches | Wall seconds | Lane row |
-|---|---:|---:|---|
-| validate_app_polish1 | 752 | 18.7 | yes |
-| validate_app_polish2 | 1028 | 3.4 | yes |
-| validate_app_polish4 | 10485 | 40.3 | yes |
-| validate_app_polish7 | 5120 | 1.6 | yes |
-| validate_app_polish9 | 4668 | 4.6 | yes |
-| validate_audio_callers | 5528 | 5.1 | yes |
-| validate_audio_domains | 2544 | 21.8 | yes |
-| validate_audio_items | 3000 | 2.5 | yes |
-| validate_gfx3 | 6 skill / 18 window + loader/menu | 5.0 | yes |
-| validate_map_polish | 876 | 0.6 | yes |
-| validate_movement | 6614 | 46.2 |  |
-| validate_render_effects | 660 | 0.8 |  |
-| validate_render_effects10 | 154 | 0.3 |  |
-| validate_render_effects11 | 176 | 0.2 |  |
-| validate_render_effects12 | 64 | 0.3 |  |
-| validate_render_effects13 | 180 | 0.4 |  |
-| validate_render_effects14 | 660 | 1.0 |  |
-| validate_render_effects15 | 509 | 0.7 |  |
-| validate_render_effects16 | 424 | 3.8 | yes |
-| validate_render_effects17 | 618 | 7.7 |  |
-| validate_render_effects18 | 540 | 1.5 |  |
-| validate_render_effects19 | 400 | 1.0 |  |
-| validate_render_effects20 | 148 | 0.4 |  |
-| validate_render_effects21 | 267 | 0.5 |  |
-| validate_render_effects22 | 202 | 8.4 |  |
-| validate_render_effects23 | 1174 | 10.1 |  |
-| validate_render_effects24 | 226 | 2.4 |  |
-| validate_render_effects25 | 202 | 9.3 |  |
-| validate_render_effects26 | 348 | 10.1 |  |
-| validate_render_effects27 | 424 | 1.2 |  |
-| validate_render_effects3 | 720 | 0.7 |  |
-| validate_render_effects30 | 452 | 1.0 |  |
-| validate_render_effects31 | 66051 | 168.4 |  |
-| validate_render_effects32 | 1723 | 0.8 |  |
-| validate_render_effects4 | 1920 | 4.5 |  |
-| validate_render_effects5 | 1190 | 3.2 |  |
-| validate_render_effects6 | 1000 | 0.9 |  |
-| validate_render_effects7 | 596 | 1.3 |  |
-| validate_render_effects9 | 304 | 0.9 |  |
-| validate_world_particle_consumers | 900 | 0.6 |  |
-| validate_worlds_fog | 4044 | 14.2 | yes |
-| validate_worlds_l | 1260 | 0.9 |  |
-| validate_worlds_m | 1080 | 0.8 |  |
+| Validator | Cases/contracts, zero mismatches | Wall seconds | Last passing compiled source | Lane row |
+|---|---:|---:|---|---|
+| validate_app_polish1 | 752 | 18.7 | `61f76b9a` | yes |
+| validate_app_polish2 | 1028 | 3.4 | `61f76b9a` | yes |
+| validate_app_polish4 | 10485 | 40.3 | `61f76b9a` | yes |
+| validate_app_polish7 | 5120 | 1.6 | `61f76b9a` | yes |
+| validate_app_polish9 | 4668 | 4.6 | `61f76b9a` | yes |
+| validate_audio_callers | 5528 | 5.8 | `7283ead2` | yes |
+| validate_audio_domains | 2544 | 38.8 | `7283ead2` | yes |
+| validate_audio_items | 3000 | 3.7 | `7283ead2` | yes |
+| validate_gfx3 | 6 skill / 18 window + loader/menu | 5.0 | `61f76b9a` | yes |
+| validate_map_polish | 876 | 0.6 | `61f76b9a` | yes |
+| validate_movement | 6614 | 71.8 | `7283ead2` |  |
+| validate_render_effects | 660 | 0.8 | `61f76b9a` |  |
+| validate_render_effects10 | 154 | 0.3 | `61f76b9a` |  |
+| validate_render_effects11 | 176 | 0.2 | `61f76b9a` |  |
+| validate_render_effects12 | 64 | 0.3 | `61f76b9a` |  |
+| validate_render_effects13 | 180 | 0.4 | `61f76b9a` |  |
+| validate_render_effects14 | 660 | 1.0 | `61f76b9a` |  |
+| validate_render_effects15 | 509 | 0.7 | `61f76b9a` |  |
+| validate_render_effects16 | 424 | 3.8 | `7283ead2` | yes |
+| validate_render_effects17 | 618 | 10.6 | `7283ead2` |  |
+| validate_render_effects18 | 540 | 1.2 | `7283ead2` |  |
+| validate_render_effects19 | 400 | 0.9 | `7283ead2` |  |
+| validate_render_effects20 | 148 | 0.4 | `61f76b9a` |  |
+| validate_render_effects21 | 267 | 0.5 | `61f76b9a` |  |
+| validate_render_effects22 | 202 | 8.4 | `61f76b9a` |  |
+| validate_render_effects23 | 1174 | 10.1 | `61f76b9a` |  |
+| validate_render_effects24 | 226 | 2.8 | `7283ead2` |  |
+| validate_render_effects25 | 202 | 10.4 | `7283ead2` |  |
+| validate_render_effects26 | 348 | 12.4 | `7283ead2` |  |
+| validate_render_effects27 | 424 | 1.2 | `61f76b9a` |  |
+| validate_render_effects3 | 720 | 0.7 | `61f76b9a` |  |
+| validate_render_effects30 | 452 | 1.0 | `61f76b9a` |  |
+| validate_render_effects31 | 66051 | 284.7 | `7283ead2` |  |
+| validate_render_effects32 | 1723 | 0.8 | `61f76b9a` |  |
+| validate_render_effects4 | 1920 | 4.5 | `61f76b9a` |  |
+| validate_render_effects5 | 1190 | 3.2 | `61f76b9a` |  |
+| validate_render_effects6 | 1000 | 0.9 | `61f76b9a` |  |
+| validate_render_effects7 | 596 | 1.3 | `61f76b9a` |  |
+| validate_render_effects9 | 304 | 0.9 | `61f76b9a` |  |
+| validate_world_particle_consumers | 900 | 0.6 | `61f76b9a` |  |
+| validate_worlds_fog | 4044 | 14.2 | `61f76b9a` | yes |
+| validate_worlds_l | 1260 | 0.9 | `61f76b9a` |  |
+| validate_worlds_m | 1080 | 0.8 | `61f76b9a` |  |
 
 Steward validators: validate_app_polish1,validate_app_polish2,validate_app_polish4,validate_app_polish7,validate_app_polish9,validate_audio_callers,validate_audio_domains,validate_audio_items,validate_gfx3,validate_map_polish,validate_movement,validate_render_effects,validate_render_effects10,validate_render_effects11,validate_render_effects12,validate_render_effects13,validate_render_effects14,validate_render_effects15,validate_render_effects16,validate_render_effects17,validate_render_effects18,validate_render_effects19,validate_render_effects20,validate_render_effects21,validate_render_effects22,validate_render_effects23,validate_render_effects24,validate_render_effects25,validate_render_effects26,validate_render_effects27,validate_render_effects3,validate_render_effects30,validate_render_effects31,validate_render_effects32,validate_render_effects4,validate_render_effects5,validate_render_effects6,validate_render_effects7,validate_render_effects9,validate_world_particle_consumers,validate_worlds_fog,validate_worlds_l,validate_worlds_m
 
@@ -311,10 +334,11 @@ additional private input or mutant switch is required.
 
 ## Publication, checkpoints and cleanup
 
-Checkpoints `f560caf1`, `8e0c9713`, `13553cab` and `e15e9fa9` pushed the WIP
-history with done / left / next steps. Compiled runtime inputs are unchanged
-after `13553cab`; later commits add scripts, tests' pinned results, ledgers
-and documentation. The ready-prs line is written after the final push and PR
+Checkpoints `f560caf1`, `8e0c9713`, `13553cab`, `e15e9fa9` and `61f76b9a`
+pushed the WIP history with done / left / next steps. The lane's compiled
+runtime inputs are unchanged after `13553cab`; later commits add scripts,
+tests' pinned results, ledgers and documentation. Latest main `c255e4dd` is
+integrated at `7283ead2`. The ready-prs line is written after the final push and PR
 creation, then no further push. Cleanup removes this lane's scratch, renders,
 reports, build outputs, worktree and local branch. The remote branch stays for
 the steward. Ready for steward.
