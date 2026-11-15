@@ -25,6 +25,23 @@ int mu_actor_plain_plan(int32_t server_class, mu_actor_body_plan *out)
     return 1;
 }
 
+#include "group_body_table.h"
+
+int mu_actor_group_plan(int32_t server_class, mu_actor_group_body_plan *out)
+{
+    if (server_class < 0) return 0; /* group plan */
+    size_t lo = 0, hi = sizeof mu_actor_group_plans / sizeof mu_actor_group_plans[0];
+    while (lo < hi) {
+        size_t mid = lo + (hi - lo) / 2;
+        if (mu_actor_group_plans[mid].body.server_class < server_class) lo = mid + 1;
+        else hi = mid;
+    }
+    if (lo == sizeof mu_actor_group_plans / sizeof mu_actor_group_plans[0] ||
+        mu_actor_group_plans[lo].body.server_class != server_class) return 0;
+    if (out) *out = mu_actor_group_plans[lo];
+    return 1;
+}
+
 int mu_actor_monster_recipe(int32_t server_class, mu_monster_class *out)
 {
     /* Generic CreateMonster and RenderCharacter's ordinary RenderLinkItem

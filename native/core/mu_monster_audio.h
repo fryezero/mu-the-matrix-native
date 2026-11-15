@@ -2,6 +2,7 @@
 #ifndef MU_NATIVE_MONSTER_AUDIO_H
 #define MU_NATIVE_MONSTER_AUDIO_H
 #include "../../reconstructed/audio/monster_audio.h"
+#include "../../reconstructed/audio/monster_audio_extended.h"
 #include "mu_combat.h"
 #include "../session/mu_audio_cue.h"
 
@@ -88,6 +89,6 @@ static inline void mu_monster_audio_die_complete(mu_combat *c, int32_t index)
     if (!a->actor.loaded || a->player) return;
     mu_monster_sound_plan p = mu_monster_sound_select(c->map->world, a->actor.spec.model_index,
         mu_actor_action(&a->actor), mu_actor_frame(&a->actor));
-    if (p.known) c->monsters[index].voice_3324 = 0.001f;
+    if (p.known || mu_monster_audio_extended_known(c->map->world)) c->monsters[index].voice_3324 = 0.001f;
 }
 #endif

@@ -1017,3 +1017,152 @@ and one unnecessary unchanged NPC mutant wrapper replay. No runtime source or
 admission changes during the resume. PR #396 remains unmerged at the final
 main check, so its actor-plan eligibility recheck stays with AUDIO-006. The
 19 whole-owner refusals, fixture limits and opaque interval remain unchanged.
+
+## AUDIO-006 whole owners and grouped remainder, 2026-11-15
+
+The target and capture pins remain those at the opening of this document.
+This lane starts from main `8844d3e9`, with AUDIO-005 and ACTORS-006 merged.
+All work uses existing offline captures and authored fixture inputs.
+
+### Entry groups and actor recheck
+
+The 546 unresolved candidates occupy 359 prologue groups. The prologue remains
+only a grouping aid. `audio_owner_groups.py` keeps their semantic ownership,
+unknown ids and native eligibility separate, alongside the 279 refused class
+candidates and 66 earlier class-use candidates.
+
+| Historical class refusal | Candidates | Requirement |
+|---|---:|---|
+| Scalar world/distance/audio-RNG methods | 182 | Whole restricted owner and dispatcher comparison |
+| Delegated owners | 47 | Complete delegated owner/context |
+| Marker fields or other services | 47 | Original marker/lifetime or unsupported service |
+| Prior action and stop ordering | 3 | Prior-action state and ordered stop semantics |
+| Missing actor only | 0 | No whole AUDIO-005 owner had only this refusal |
+
+The actor-plan merge does not itself close a sound owner. AUDIO-005 already
+used BY_MONSTER fixture loading for its complete selectors. Its 19 whole-owner
+refusals failed on unsupported operations, not a missing actor alone. The
+three missing model files and effect alias remain separate earlier contexts.
+The new admission is based on whole-owner evidence and existing fixture-loaded
+actors. No server-class construction, canonical placement or spawn feed is added.
+
+### Whole-owner lift and native hooks
+
+Eight sounding methods contain 182 sites: Raklion `0x00e9e3d5` 28, Vulcanus
+`0x00e92b75` 21, world 82 `0x00e30389` 9, Guardian 69 `0x00dd2776` 46,
+Karutan `0x00e1829b` 32, world 115 `0x00e21d13` 13, world 134 `0x00d8aba2`
+26 and world 144 `0x00e4b1c3` 7. Three complete silent methods are
+`0x00e42a9e`, `0x00dc6b34` and `0x00e6dc49`.
+
+`monster_audio_extended.py` extends the restricted scalar interpreter. It
+checks every instruction and refuses writes outside stack temporaries, foreign
+fields/services, nonliteral random divisors and more than two random draws.
+The emitted table contains model/action/frame partitions and semantic decision
+nodes. Signed remainder classes preserve random gating, computed ids and
+conditional second draws. The least common multiple of the reviewed literal
+divisors partitions the random inputs; original checks cover each emitted edge.
+An outcome shared by all residues still consumes its original random call.
+Sound order and class AL remain explicit.
+
+World predicates, vector indexing and square root run as original instructions
+in the independent verifier. Original sound-call return addresses identify each
+site. All OBJECT fields are read-only under the strict machine. Original
+callee execution, native table output, RNG consumption and ordered sound
+arguments are compared for every admitted group. The outer dispatcher and
+shock/attack/death/walk tails are separate comparisons.
+
+The outer dispatch consumes distance strictly greater than 500 before class
+selection and before any RNG draw. Karutan's inner 600-unit gate is retained
+for whole-method comparison; it does not bypass the outer 500-unit gate.
+Existing native character and combat owners supply model/action/frame/position
+and audio-only MSVC RNG. Those hooks add only a sound-call line and its include
+in shared runtime files. They change no animation, visual RNG, OBJECT field or
+session/replicated record. Existing mute, disabled draining, detached delivery
+and active-id suppression retain their contracts. The cosmetic death latch
+extends to the new complete owners without changing animation frame.
+
+### Use-controller context audit
+
+The 66 earlier candidates remain 22 in `0x01080169`, eight in `0x0108988b`
+and 36 in their class-dispatched siblings. The exact class dispatch and context
+reads remain the AUDIO-005 evidence. Native `mu_skill_book_check_cast` and
+`mu_skill_book_cast` own the existing usability/delay fixture inputs.
+`mu_combat_cast` owns an authored actor target and the already reconstructed
+ordinary combat timeline. Viewport audio can inspect a known buff snapshot.
+None of these owns the original class-use context, its request completion or
+its timing state. Combining unrelated fixture values would not reconstruct
+that owner. All 66 therefore stay unwired; no new route or state feed is added.
+
+### Remaining limits
+
+The 97 class candidates in delegated, marker/service and prior-action/stop
+owners remain refused as whole methods. Guardian's earlier three handler-state
+sites retain their fixture limit. The 1,980 syntactic candidate denominator is
+unchanged. Semantic classifications are separate from admitted sound sites.
+No event feed, pickup answer, transformed/buff input, server state, new request
+route or FMOD mixer parity is introduced. The virtualised interval
+`0x01854279..0x018542c2` remains excluded and unfollowed.
+
+Verification and final census are recorded in [AUDIO-006](../handoffs/AUDIO-006.md).
+
+The remaining whole-owner refusals are `0x00dd852c` 19, `0x00dde1fb` 14,
+`0x00de51cf` 11 and `0x00d7ec63` 3 in the delegated group; `0x00dee2d1` 19,
+`0x00e0dac7` 12 and `0x00da9350` 16 in the marker/service group; and
+`0x00d5b688` 3 in the prior-action/stop group. A sound selected for an authored
+actor action does not add a production route that chooses that action. Existing
+native action selection and model loading retain their limits.
+
+
+The production MSVC RNG returns nonnegative 15-bit values. Negative scripted
+values are signed-arithmetic controls, not native production outcomes. The
+emitted production-id summary and installed smoke include only nonnegative
+rand paths: 182 sites and 142 distinct ids. The broader arithmetic controls
+include three additional id outcomes, including unregistered 155; none is
+reachable from the native MSVC stream. No file or registration is invented for
+those controls.
+
+### Semantic owner classifications
+
+Exact call `0x013a9051` from the already identified shared character timeline
+`0x013a85a9` names `0x013a09d7`, containing 15 sound sites. Its character,
+OBJECT and model argument calls at `0x013a0b13`, `0x013a0bc7` and `0x013a0be5`
+name `0x00df264e` six sites, `0x00e8cc72` four and `0x00db30cb` one. These
+26 sites acquire the shared timeline bucket, without acquiring native gates.
+The other largest 15-candidate group, `0x01237f00`, remains refused and its
+request-shaped input is not followed or implemented in this lane.
+
+The existing UI registry constructor identifies two close-slot methods through
+reviewed slot `+0x44`: ExchangeLuckCoin constructor `0x00b9f835`, vtable
+`0x01a90a58`, close `0x00b9fb63`, sound site `0x00b9fb78`; MiniGameHelpWindow
+constructor `0x00bc97e5`, vtable `0x01a92e90`, close `0x00bc994a`, sound site
+`0x00bc995f`. The two sites acquire UI ownership. Existing native presentation
+bindings are not the original whole close controllers, so neither gets a new
+sound route here. No adjacent prologue or literal-only classification is added.
+
+Census ownership becomes 1,462 classified / 518 unresolved. UI becomes 53 and
+skills/shared timelines 364; all other AUDIO-005 buckets stay unchanged.
+Production fixture boundaries advance 411 to 593 after the whole-owner,
+outer-dispatch, caller and delivery checks pass. The separate two stop sites are unchanged. The entry missing-id overlay
+is nine among unknown owners, eight in the recovered class group, four in the
+marker/service group and eleven among class-use candidates. These overlap the
+primary blockers and must not be added to their denominators.
+
+
+Main integration `d3ec9950` adds INNER-005's genuine visual reconstruction of
+`0x00e8d888`. Its two sites `0x00e8db8b` and `0x00e8e002` therefore acquire
+world ownership through that new source, unlike INNER-004's earlier refusal-only
+mention. INNER-005 explicitly omits audio delivery and compares the sounds only
+as visual boundaries. Both sites stay unwired and bounded-reference-only here.
+The integrated census is 1,464 classified / 516 unresolved, world bucket 137.
+Of the 30 classifications beyond the 546-entry remainder, this lane supplies 28
+and incoming INNER-005 supplies two. The 182 new fixture play boundaries are
+separate from both ownership deltas.
+
+
+The reviewed [entry grouping ledger](audio-006-entry-groups.csv) preserves all
+891 candidates in the three entry cohorts, 546 unresolved + 279 class refusals
++ 66 class-use sites. It contains authored addresses, source references and
+blockers, without client bytes or asset paths. `audio_owner_groups.py --report
+<local>` now uses this ledger by default, so a future lane needs no deleted
+private report to reproduce the grouping and compare current native ownership.
+Negative-rand control outcomes stay separate from its production-id summary.
