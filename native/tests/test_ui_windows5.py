@@ -64,6 +64,7 @@ class MutationSensitivity(unittest.TestCase):
             ('forged-action','return !strcmp(name,"TweenTimeSet")','return 1 || !strcmp(name,"TweenTimeSet")',False),
             ('hidden-parent','if(w->open) (void)presentation_slot5','if(1) (void)presentation_slot5',False),
             ('invented-sound','        if(r->toggle) mu_gfx_layer_toggle','        if(L->cfg.window_sound) L->cfg.window_sound(L->cfg.tooltip_user,25,0xc716f6);\n        if(r->toggle) mu_gfx_layer_toggle',False),
+            ('disabled-tabs','presentation_set(L,m,"btnItemList.enabled","true");','presentation_set(L,m,"btnItemList.enabled","false");',True),
             ('enabled-watch','[%d,\\"No match\\",true]','[%d,\\"No match\\",false]',True),
         ]
         with tempfile.TemporaryDirectory(prefix='mu-windows5-mutants-') as folder:
@@ -81,6 +82,7 @@ class MutationSensitivity(unittest.TestCase):
                     if item.is_dir():target.symlink_to(item,target_is_directory=True)
                     else:target.write_bytes(item.read_bytes())
             for name,old,new,real in mutants:
+                if os.environ.get('MU_UI_WINDOWS5_MUTANT_ONLY') and name!=os.environ['MU_UI_WINDOWS5_MUTANT_ONLY']:continue
                 with self.subTest(mutant=name):
                     self.assertEqual(normal.count(old),1)
                     (mirror/'native/gfx'/source.name).write_text(normal.replace(old,new))

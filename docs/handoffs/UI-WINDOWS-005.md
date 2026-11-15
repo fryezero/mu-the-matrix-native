@@ -8,11 +8,13 @@ Done: read both briefs and prior handoffs; created the owned branch from main
 485 lifecycle joins / 70 extra sites; 21 entry no-route rows gain route proof.
 Three production fixtures implemented: PersonalShop, ArtifactFrame, DuelWatch.
 Production/original-movie/original-route and synthetic provenance checks pass, six tests.
-All nine compiled controller mutants are caught after fixing the temporary
+All nine initial compiled controller mutants are caught after fixing the temporary
 mirror to copy the tested includes. The first symlinked-mirror run incorrectly
 compiled normal sources and is not mutant evidence. Native proofs exposed a
 clipped title; fixture labels were shortened before final journeys.
-Default before tours complete once, 14 + 32 maps.
+The 32-map baseline completed once. Seven October-22 maps completed; seven
+remain after a resource stop. The initial October-22 command had an obsolete
+input path and produced no usable baseline. Its manifest is repaired.
 
 Left: complete synthetic provenance tests and compiled mutants; final builds,
 portable/private affected checks, journeys/captures, after identity, publication
@@ -22,4 +24,7 @@ Next step: run final journeys, the affected portable selection and private
 validators. Focused final tests pass 12 with two optional mutant skips in
 17.27 s; the final static sweep reproduces all 485 ledger rows in 8.62 s.
 Root/world builds are current; default after identity remains to run.
+The physical tab journey exposed disabled local tabs. The production fixture
+now enables those two controls; normal original-movie tests pass and a new
+disabled-tab compiled mutant is checked separately. No old mutants rerun.
 No installed app, original/live client or protection work. No subagents.

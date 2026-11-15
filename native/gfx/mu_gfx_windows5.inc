@@ -16,6 +16,8 @@ static void presentation_fixture5(mu_gfx_layer *L, int m)
         invokef(L,m,w->path,"SetItemList","[[]]");
         invokef(L,m,w->path,"SetSearchItemList","[[]]");
         invokef(L,m,w->path,"SetSearchButtonEnabled","[false]");
+        presentation_set(L,m,"btnTitleList.enabled","true");
+        presentation_set(L,m,"btnItemList.enabled","true");
         presentation_set(L,m,"btnAllShopList.disabled","true");
         presentation_set(L,m,"mcSearchItem.tiSearchItem.disabled","true");
     } else if(m==MU_GFX_DUEL_WATCH) {

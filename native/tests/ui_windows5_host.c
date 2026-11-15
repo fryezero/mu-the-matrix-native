@@ -26,6 +26,8 @@ int main(int argc,char **argv)
   field(MU_GFX_DUEL_WATCH,"tfTitle.text","\"Duel watch\"");
   for(int i=0;i<4;i++){char f[80];snprintf(f,sizeof f,"m_aDuelWatch.%d.disabled",i);field(MU_GFX_DUEL_WATCH,f,"true");}
   field(MU_GFX_PERSONAL_CATALOG,"mcPersonalShop.taTitle.text","\"Personal shops - empty preview\"");
+  field(MU_GFX_PERSONAL_CATALOG,"btnTitleList.enabled","true");
+  field(MU_GFX_PERSONAL_CATALOG,"btnItemList.enabled","true");
   field(MU_GFX_PERSONAL_CATALOG,"btnAllShopList.disabled","true");
   field(MU_GFX_PERSONAL_CATALOG,"mcSearchItem.tiSearchItem.disabled","true");
   field(MU_GFX_PERSONAL_CATALOG,"mcShopList.slShopTitle.dataProvider.length","0.0");
