@@ -119,3 +119,15 @@ proofs for the five producer programs. No native proof or default identity sweep
 Next/left remain complete and inspect this aggregate/native consumers, asset-path preflight, latest-main
 affected refresh, one explicitly rebuilt before/after default sweep with item proofs, final docs/audit/PR,
 ready entry and cleanup. Do not start duplicate validators or report readiness from this checkpoint.
+
+At the 13:15 checkpoint: all 73 no-mutant private rows pass, zero failures/errors/skips,
+4,262.31 s wall. The corrected caller-group row passes at 35.6 s without repeating its controls.
+Together with the three completed new rows this covers all 76 selected rows. The queued reduced
+native consumer run passes all 33 tests with no skips, 20.52 s. Every exact model path for the fifty
+admissions resolves (lightweight inventory, 0.02 s); no proxy models are needed. The complete per-row
+table and ready-list candidate are in `scratch/render-items-002aa/validator-table.md` and
+`steward-validators.txt` under the shared tools native folder. All runtime/generator/verifier sources
+remain unchanged. Next: merge current main (batch 117 is now present), root build and inspect both
+affected-since selectors from tested `fd89b9fc`, run only that refresh and appropriate private native
+consumers, then one rebuilt default identity sweep plus fifty-type item proofs. Finish all docs/audit/PR
+and pushes before the ready entry, then cleanup. No ready entry exists.
