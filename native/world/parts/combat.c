@@ -30,6 +30,9 @@ int world_rt_combat_respawned(void *context)
     if (!a->quiet)
         printf("{\"respawn\": {\"world\": %d, \"tile\": [%d, %d], \"town\": %d}}\n", (int)world, (int)x, (int)y,
                placed);
+#ifndef MU_WORLD_NO_GL
+    world_gfx_map_arrival(a->gfx, MU_GFX_ARRIVAL_RESPAWN, 0, world);   /* respawn answer, 0x0127c567 */
+#endif
     return placed;
 }
 

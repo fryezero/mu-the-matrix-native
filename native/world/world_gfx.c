@@ -53,6 +53,7 @@ struct world_gfx {
     mu_dlg_tables dlg;
     int have_dlg, dlg_open, hide_contribute;
     int32_t world;                  /* the session's world (ItemValue reads the current world) */
+    int join_banner;                /* UI-WINDOWS-006: the join answer's MapName open was delivered */
     int has_equip;                  /* APP-POLISH-005: the hero's weapons for the skill checks, kept over rebinds */
     int32_t equip_code[2];
     uint8_t equip_kind[2];
@@ -1665,10 +1666,27 @@ void world_gfx_set_item_world(world_gfx *g, const struct wg_items_world *world)
         wg_items_set_world(g->items, world);
 }
 
+/* UI-WINDOWS-006: the MapName banner of the three arrival answers. The name is
+ * the map-name function 0x016baaa6 over the client's GlobalText; a world it
+ * names from runtime state, or absent tables, gets no banner. */
+void world_gfx_map_arrival(world_gfx *g, int kind, int number, int world)
+{
+    char name[64];
+    const char *map = g ? mu_lang_map_name(g->lang, world) : NULL;
+    if (!map)
+        return;
+    mu_lang_ascii(name, sizeof name, map);
+    mu_gfx_layer_map_arrival(g->layer, kind, number, world, name);
+}
+
 void world_gfx_set_location(world_gfx *g, int world, float x, float y)
 {
     if (!g)
         return;
+    if (!g->join_banner) {   /* the join answer 0x0124cc64 opens MapName at 0x0124e15e */
+        g->join_banner = 1;
+        world_gfx_map_arrival(g, MU_GFX_ARRIVAL_JOIN, 0, world);
+    }
     g->world = world;
     wg_skill_set_world(g->skill, world);
     /* The top menu's map name: the map-name function 0x016baaa6 over the

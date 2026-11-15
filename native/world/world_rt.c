@@ -551,6 +551,7 @@ int world_rt_travel(mu_world_rt *a, const mu_teleport *t)
         w->hero.angle[2] = angle;
 #ifndef MU_WORLD_NO_GL
         world_gfx_quest_travel_complete(a->gfx, 1);
+        world_gfx_map_arrival(a->gfx, MU_GFX_ARRIVAL_TELEPORT, t->number, a->world);   /* 0x01281e6e */
 #endif
         a->travels++;
         return 0;
@@ -604,6 +605,8 @@ int world_rt_travel(mu_world_rt *a, const mu_teleport *t)
         mu_world_rt_gl_setup(a);
     if (a->gfx) {
         world_gfx_quest_travel_complete(a->gfx, !failed);
+        if (!failed)
+            world_gfx_map_arrival(a->gfx, MU_GFX_ARRIVAL_TELEPORT, t->number, a->world);   /* 0x01281e6e */
         world_rt_names_gfx_attach(a, a->gfx_scale > 0 ? a->gfx_scale : 1.0);
         if (a->npc_demo)
             world_gfx_npc_storage(a->gfx, a->npc_demo->storage, a->npc_demo->storage_count);

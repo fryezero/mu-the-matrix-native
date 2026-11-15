@@ -446,6 +446,8 @@ void mugfx_start(MuGfx *g)
     } else if (is(g,"AutomaticMacro") || is(g,"ExtensionBagFrame") || is(g,"SkillTree5thItemViewer") || is(g,"BlockedChat")) {
         char args[96]; snprintf(args,sizeof args,"[\"g_%s\"]",g->name);
         call(g,"UIInit",args);
+    } else if (is(g,"MapName")) {   /* UI-WINDOWS-006 */
+        call(g,"UIInit","[\"g_MapName\"]");
     } else if (is(g,"HuntRecord")) {
         call(g,"HuntRecord","[]");
     } else if (is(g, "HelpWindow")) {
