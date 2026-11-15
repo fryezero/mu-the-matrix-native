@@ -236,6 +236,20 @@ LEVEL_SPLIT += RANDOM_LEVEL_TYPES
 REMAINDER_TYPES = list(CALLER_TYPES) + REMAINDER_PROGRAM_TYPES + FALLOFF_TYPES + RANDOM_LEVEL_TYPES
 RANDOM_LEVEL_CARRY = [0x1712, 0x1713, 0x1714, 0x1715, 0x1716, 0x1717, 0x1722, 0x1723, 0x1724, 0x1725, 0x1726, 0x1727, 0x172c, 0x172d, 0x172e, 0x172f, 0x1730, 0x1731, 0x174c, 0x174d, 0x174e, 0x174f, 0x1750, 0x1751]
 REMAINDER_CARRY = REMAINDER_PROGRAM_TYPES + RANDOM_LEVEL_CARRY
+# RENDER-ITEMS-002AB (part 42): helper level guards without body random. PACKED_GUARD_TYPES take the 002AA signed
+# packed-word form (cmp [ebp+0x28], 9). DECODED_GUARD_TYPES take the wing form at 0x016e226a..0x016e6627: the word
+# is not -1 and its decoded level (0x016a78c9: sar 3, and 0xf) is at least eleven. level_guards() reads every
+# instruction of both forms for every listed type before a recipe is fitted.
+PACKED_GUARD_TYPES = [0x0b34, 0x0b36, 0x1103, 0x130e, 0x1524]
+DECODED_GUARD_TYPES = [0x239a, 0x239b, 0x239c, 0x239d, 0x239f, 0x23a2, 0x23a3, 0x23a4, 0x23a6]
+DECODED_GUARD_LEVEL = 11
+PACKED_LEVEL_TYPES = RANDOM_LEVEL_TYPES + PACKED_GUARD_TYPES
+GUARD_TYPES = PACKED_GUARD_TYPES + DECODED_GUARD_TYPES
+AB_TYPES = GUARD_TYPES   # every 002AB type: the lane's reader forms apply to these lists only
+GUARD_CARRY = list(DECODED_GUARD_TYPES)
+LEVEL_SPLIT += GUARD_TYPES
+REMAINDER_TYPES += GUARD_TYPES
+REMAINDER_CARRY += GUARD_CARRY
 # Part 21 (RENDER-ITEMS-002T): owner blocks after the draws with the pre-draw idioms (gen_item_owner_fx.POST_FX_TYPES);
 # their draws fit the default probes with the effect requests set aside.
 from gen_item_owner_fx import POST_FX_TYPES, READ_PROGRAM_TYPES, LATER_READ_PROGRAM_TYPES, CYCLE_PROGRAM_TYPES
@@ -389,6 +403,8 @@ def parse_scalar(wa, helper, ret):
     if _text(wa, at, len(pops)) != pops:
         return None
     at += len(pops)
+    if _SAMPLE_TYPE[0] in AB_TYPES and _text(wa, at, 2) == b'\xd9\x5d':
+        return short_scalar(wa, kind, a, phase if kind == 9 else None, at)
     fstp, reload = _text(wa, at, 6), _text(wa, at + 6, 8)
     double = fstp[:2] == b'\xdd\x9d'
     if fstp[:2] not in (b'\xd9\x9d', b'\xdd\x9d'):
@@ -415,6 +431,13 @@ def parse_scalar(wa, helper, ret):
         at += 8
     if double and (not ops or _text(wa, at, 4) != bytes.fromhex('f20f5ac0')):
         return None
+    if not double and reloaded and _SAMPLE_TYPE[0] in AB_TYPES:
+        tail = scalar_tail(wa, at, struct.unpack('<i', fstp[2:])[0])
+        if tail is None:
+            return None
+        ops.extend(tail)
+        if tail:
+            return kind, a, tuple(ops)
     # A constant minus the saved helper result, each rounded to binary32.
     if not double and kind != 9 and not ops and _load(wa, at) is not None and \
             _text(wa, at + 8, 4) == bytes.fromhex('f30f5c85') and \
@@ -440,6 +463,79 @@ def parse_scalar(wa, helper, ret):
                 if k is not None:
                     ops.append((6, k))
     return kind, a, tuple(ops)
+
+
+def scalar_tail(wa, at, saved):
+    """RENDER-ITEMS-002AB: what follows the binary32 constant operations of a helper scalar.
+
+    Widening: cvtss2sd xmm0, xmm0; binary64 mulsd/addsd/subsd/divsd constants; cvtsd2ss xmm0, xmm0 (one final
+    rounding; ops carry |8). Upper clamp: movss [L], xmm0; movss xmm0, [L]; comiss xmm0, [k]; jbe T; movss xmm0, [k];
+    movss [L], xmm0; T: (op 7; an unordered compare keeps the value). Returns the further ops, () when neither
+    form starts here, None when a form starts and its instructions differ."""
+    import struct
+    import capstone.x86 as X
+    if _text(wa, at, 4) == bytes.fromhex('f30f5ac0'):
+        at, ops = at + 4, []
+        while len(ops) < 4:
+            code = _text(wa, at, 8)
+            if code[:2] != b'\xf2\x0f' or code[2] not in SCALAR_OPS or code[3] != 0x05:
+                break
+            address = struct.unpack_from('<I', code, 4)[0]
+            low, high = _word(wa, address), _word(wa, address + 4)
+            if low is None or high is None:
+                return None
+            ops.append((SCALAR_OPS[code[2]] | 8, low | high << 32))
+            at += 8
+        return tuple(ops) if ops and _text(wa, at, 4) == bytes.fromhex('f20f5ac0') else None
+    seq = list(_capstone().disasm(_text(wa, at, 48), at))[:6]
+    if len(seq) < 6 or [i.mnemonic for i in seq[:4]] != ['movss', 'movss', 'comiss', 'jbe']:
+        return ()
+    store, load, cmp, jump, again, back = seq
+
+    def local(op):
+        return op.type == X.X86_OP_MEM and op.mem.base == X.X86_REG_EBP and op.mem.index == 0 and op.mem.disp != saved
+
+    def absolute(op):
+        return op.type == X.X86_OP_MEM and op.mem.base == 0 and op.mem.index == 0
+
+    xmm0 = X.X86_REG_XMM0
+    if not (local(store.operands[0]) and store.operands[1].type == X.X86_OP_REG and store.operands[1].reg == xmm0 and
+            load.operands[0].type == X.X86_OP_REG and load.operands[0].reg == xmm0 and local(load.operands[1]) and
+            load.operands[1].mem.disp == store.operands[0].mem.disp and
+            cmp.operands[0].type == X.X86_OP_REG and cmp.operands[0].reg == xmm0 and absolute(cmp.operands[1])):
+        return ()
+    if not (again.mnemonic == back.mnemonic == 'movss' and again.operands[0].type == X.X86_OP_REG and
+            again.operands[0].reg == xmm0 and absolute(again.operands[1]) and
+            again.operands[1].mem.disp == cmp.operands[1].mem.disp and local(back.operands[0]) and
+            back.operands[0].mem.disp == store.operands[0].mem.disp and back.operands[1].type == X.X86_OP_REG and
+            back.operands[1].reg == xmm0 and jump.operands[0].imm == back.address + back.size):
+        return None
+    k = _word(wa, cmp.operands[1].mem.disp & 0xffffffff)
+    return None if k is None else ((7, k),)
+
+
+def short_scalar(wa, kind, a, phase, at):
+    """RENDER-ITEMS-002AB: the helper result saved in a disp8 frame local (the early wing cases):
+    fstp dword [ebp+d8]; movss xmm0, [ebp+d8]; binary32 constant operations; then scalar_tail()."""
+    import struct
+    fstp, reload = _text(wa, at, 3), _text(wa, at + 3, 5)
+    if fstp[:2] != b'\xd9\x5d' or reload != bytes.fromhex('f30f1045') + fstp[2:]:
+        return None
+    at += 8
+    ops = [(5, phase)] if kind == 9 else []
+    while len(ops) < 4:
+        code = _text(wa, at, 8)
+        if code[:2] != b'\xf3\x0f' or code[2] not in SCALAR_OPS or code[3] != 0x05:
+            break
+        word = _word(wa, struct.unpack_from('<I', code, 4)[0])
+        if word is None:
+            return None
+        ops.append((SCALAR_OPS[code[2]], word))
+        at += 8
+    tail = scalar_tail(wa, at, struct.unpack('<b', fstp[2:])[0])
+    if tail is None:
+        return None
+    return kind, a, tuple(ops) + tail
 
 
 # Part 14: body random. CRT rand 0x01989721, then at the return site
@@ -782,12 +878,14 @@ def scalar_value(program, time, frame=0):
     else:
         value = f(math.sin(f(time * v.u2f(a))))
     import struct
-    double = bool(ops) and ops[0][0] & 8
     for op, word in ops:
+        # RENDER-ITEMS-002AB: the width is per operation (binary32 operations may precede a widened tail).
+        double = bool(op & 8)
         k = struct.unpack('<d', struct.pack('<Q', word))[0] if double else v.u2f(word)
         op &= 7
         value = (value * k if op == 1 else value + k if op == 2 else value - k if op == 3 else
-                 k - value if op == 5 else max(value, k) if op == 6 else value / k)
+                 k - value if op == 5 else max(value, k) if op == 6 else
+                 (k if value > k else value) if op == 7 else value / k)
         if not double:
             value = f(value)
     return v.f2u(f(value))
@@ -1039,12 +1137,14 @@ def falloff_branch(wa, at, local, regs):
     return dst, ('c', 'f', value[2] + ((C_F_FALLOFF, ('w', threshold | top << 32)),)), code[12].address
 
 
-def slice_block(wa, block, frame=False):
+def slice_block(wa, block, frame=False, fold=False):
     """Static walk from one block start. Returns (entry locals read, outputs) where
     each output is a chain whose integer local reads are ('local', offset). frame (RENDER-ITEMS-002U): the block
-    reads the rendered-frame counter; only then the counter idioms apply (other blocks slice as before)."""
-    if (block, frame) in _slices:
-        return _slices[(block, frame)]
+    reads the rendered-frame counter; only then the counter idioms apply (other blocks slice as before).
+    fold (RENDER-ITEMS-002AB): two binary32 constants fold in any block of the listed types, including a
+    converted integer constant (16.0f / (float)600 at 0x016e30dd))."""
+    if (block, frame, fold) in _slices:
+        return _slices[(block, frame, fold)]
     import capstone.x86 as X
     md, text = _capstone(), wa[0]
     gpr = {'eax', 'ebx', 'ecx', 'edx', 'esi', 'edi'}
@@ -1272,7 +1372,19 @@ def slice_block(wa, block, frame=False):
                 if z[0] == 'kint' and z[1] == kind:
                     return ('i', z[2])
                 return None
-            if (frame and single and x and x != 'frame' and x[0] in ('kf', 'kw') and y and y not in ('clock', 'frame')
+            def folded_constant(z):
+                if z in (None, 'clock', 'frame'):
+                    return None
+                if z[0] in ('kf', 'kw'):
+                    return v.u2f(z[1])
+                if z[0] == 'kint' and z[1] == 'f' and z[2][0] == 'k':
+                    return _f32(float(z[2][1]))   # cvtsi2ss of an integer constant
+                return None
+            if fold and single and folded_constant(x) is not None and folded_constant(y) is not None:
+                a_, b_ = folded_constant(x), folded_constant(y)
+                folded = (a_ * b_ if base == 0 else math_div(a_, b_) if base == 1 else a_ + b_ if base == 2 else a_ - b_)
+                result = ('kf', v.f2u(_f32(folded)))
+            elif (frame and single and x and x != 'frame' and x[0] in ('kf', 'kw') and y and y not in ('clock', 'frame')
                     and y[0] in ('kf', 'kw')):
                 # RENDER-ITEMS-002U: two binary32 constants fold (one binary32 operation)
                 a_, b_ = v.u2f(x[1]), v.u2f(y[1])
@@ -1397,8 +1509,8 @@ def slice_block(wa, block, frame=False):
             if name in ('call',):
                 break
         at = nxt
-    _slices[(block, frame)] = (tuple(sorted(entry)), tuple(dict.fromkeys(outputs)))
-    return _slices[(block, frame)]
+    _slices[(block, frame, fold)] = (tuple(sorted(entry)), tuple(dict.fromkeys(outputs)))
+    return _slices[(block, frame, fold)]
 
 
 def resolve_clock(wa, program, values):
@@ -1624,7 +1736,7 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=Fals
                 k = bisect.bisect_left(clocks, address)
                 if not counter and (k == len(clocks) or clocks[k] >= address + size):
                     return
-                entry, outputs = slice_block(wa, address, counter)
+                entry, outputs = slice_block(wa, address, counter, _SAMPLE_TYPE[0] in AB_TYPES)
                 if not outputs:
                     return
                 m = self.m
@@ -1848,7 +1960,7 @@ def infer(samples):
 ALL_TYPES = (REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES + RANKED_TYPES + EXPANDED_TYPES +
              NEXT_TYPES + CLOCK_TYPES + CLUSTER_TYPES + WING_TYPES + VISIBLE_TYPES + SCALAR_TYPES +
              CHAIN_TYPES + LEVEL_TYPES + COLOUR_TYPES + CARRY_TYPES + QUALITY_TYPES + PRODUCT_TYPES + DERIVED_TYPES +
-             OWNER_FX_TYPES + PRE_FX_TYPES + POST_FX_TYPES + [0x1588] + list(NAMED_TYPES) + NO_GLOW_TYPES + HELPER_TYPES + DIRECT_TYPES + OTHER_TYPES + list(CALLER_TYPES) + FALLOFF_TYPES + RANDOM_LEVEL_TYPES)
+             OWNER_FX_TYPES + PRE_FX_TYPES + POST_FX_TYPES + [0x1588] + list(NAMED_TYPES) + NO_GLOW_TYPES + HELPER_TYPES + DIRECT_TYPES + OTHER_TYPES + list(CALLER_TYPES) + FALLOFF_TYPES + RANDOM_LEVEL_TYPES + GUARD_TYPES)
 
 
 def fit(wa, lib, t, scalars=False, carry=False, extended=False):
@@ -2028,7 +2140,8 @@ def supplement(wa, lib, t, params, sites, carry, ss, phases):
                         continue
                     phase = 0 if t in DIRECT_TYPES else 5 if seed % 3 == 2 else 0
                     if ((t in NAMED_TYPES and lv >= 9 and quality > 1) or
-                            (t in RANDOM_LEVEL_TYPES and (lv << 3) >= 9 and quality > 1 and
+                            ((t in PACKED_LEVEL_TYPES and (lv << 3) >= 9 or
+                              t in DECODED_GUARD_TYPES and lv >= DECODED_GUARD_LEVEL) and quality > 1 and
                              lib.mu_rc_item_glow_level(C.byref(v.CItem(type=t, item_level=lv << 3,
                                  quality=quality, has_record=1, kind_a=record[0], kind_b=record[1], item_kind=record[2]))) >= 9)):
                         phase = 7 if phase == 5 else 6
@@ -2056,9 +2169,84 @@ def supplement(wa, lib, t, params, sites, carry, ss, phases):
     return True
 
 
+BODY_HELPER = (0x016e036c, 0x0176cb3b)
+LEVEL_DECODE = 0x016a78c9
+
+
+def case_extent(wa, t):
+    """[start, end) of the body helper's own case of one type: cmp dword [ebp+0x10], t; jne end.
+    A type without exactly one such forward case (ranges, shared cases, tables) is refused."""
+    import struct
+    text, pattern = wa[0], b'\x81\x7d\x10' + struct.pack('<I', t)
+    found, at = [], text.find(pattern, BODY_HELPER[0] - 0x401000)
+    while at != -1 and at < BODY_HELPER[1] - 0x401000:
+        if text[at + 7:at + 9] == b'\x0f\x85':
+            start = 0x401000 + at
+            end = start + 13 + struct.unpack_from('<i', text, at + 9)[0]
+            found.append((start, end))
+        at = text.find(pattern, at + 1)
+    if len(found) != 1 or not found[0][0] < found[0][1] <= BODY_HELPER[1]:
+        raise ValueError(f'type {t:#06x} has no single body case')
+    return found[0]
+
+
+def level_guards(wa):
+    """RENDER-ITEMS-002AB: read the helper level guard of every GUARD_TYPES case, instruction by instruction.
+
+    Packed form (002AA): cmp dword [ebp+0x28], 9; then jl forward inside the case, or jge over a jmp.
+    Decoded form: cmp dword [ebp+0x28], -1; je low; push dword [ebp+0x28]; call 0x016a78c9; pop ecx;
+    cmp eax, 11; jge high; low: (the je target is the instruction after the jge), with 0x016a78c9 exactly
+    push ebp; mov ebp, esp; mov eax, [ebp+8]; sar eax, 3; and eax, 0xf; pop ebp; ret.
+    Each case holds exactly one guard, of its own list's form. Returns {type: (form, site)}."""
+    import re
+    md = _capstone()
+    if _text(wa, LEVEL_DECODE, 14) != bytes.fromhex('558bec8b4508c1f80383e00f5dc3'):
+        raise ValueError('level decode helper differs')
+    out = {}
+    for t in GUARD_TYPES:
+        start, end = case_extent(wa, t)
+        code = _text(wa, start, end - start)
+        sites = []
+        for match in re.finditer(re.escape(bytes.fromhex('837d28')), code, re.S):
+            at = start + match.start()
+            ins = list(md.disasm(code[match.start():match.start() + 40], at))
+            listing = [(i.mnemonic, i.op_str) for i in ins]
+            if listing[:1] == [('cmp', 'dword ptr [ebp + 0x28], 9')]:
+                jump = ins[1]
+                forward = (jump.mnemonic == 'jl' and at < jump.operands[0].imm <= end)
+                inverse = (jump.mnemonic == 'jge' and len(ins) > 2 and ins[2].mnemonic == 'jmp' and
+                           jump.operands[0].imm == ins[2].address + ins[2].size and
+                           at < ins[2].operands[0].imm <= end)
+                if not (forward or inverse):
+                    raise ValueError(f'type {t:#06x}: packed guard form differs at {at:#x}')
+                sites.append(('packed', at))
+            elif listing[:1] == [('cmp', 'dword ptr [ebp + 0x28], -1')]:
+                if (len(ins) < 7 or listing[1][0] != 'je' or
+                        listing[2:6] != [('push', 'dword ptr [ebp + 0x28]'), ('call', hex(LEVEL_DECODE)),
+                                         ('pop', 'ecx'), ('cmp', f'eax, {DECODED_GUARD_LEVEL:#x}')] or
+                        listing[6][0] != 'jge' or ins[1].operands[0].imm != ins[6].address + ins[6].size or
+                        not ins[6].address < ins[6].operands[0].imm < end):
+                    raise ValueError(f'type {t:#06x}: decoded guard form differs at {at:#x}')
+                sites.append(('decoded', at))
+            else:
+                raise ValueError(f'type {t:#06x}: unread level-word use at {at:#x}')
+        expected = 'packed' if t in PACKED_GUARD_TYPES else 'decoded'
+        if len(sites) != 1 or sites[0][0] != expected:
+            raise ValueError(f'type {t:#06x}: expected one {expected} guard, read {sites}')
+        # The whole case decodes to its end, and the level word has no use outside the guard.
+        listing = list(md.disasm(code, start))
+        uses = [i.address for i in listing if 'ebp + 0x28]' in i.op_str]
+        if (not listing or listing[-1].address + listing[-1].size != end or
+                len(uses) != (1 if expected == 'packed' else 2) or uses[0] != sites[0][1]):
+            raise ValueError(f'type {t:#06x}: level word used outside its guard')
+        out[t] = sites[0]
+    return out
+
+
 def extract():
     wa = tuple((pin.read() for pin in (pins.TEXT, pins.DATA, pins.FLAG, pins.FEATURE)))
     lib = C.CDLL(str(v.LIBRARY))
+    level_guards(wa)
     types = {}
     for t in ALL_TYPES:
         fitted = fit(wa, lib, t, scalars=True,
@@ -2110,7 +2298,12 @@ def render(types):
         lines.append('    {%d, {' % len(rule))
         for entry, cells in rule:
             sources = ','.join(str(v + 1 if op == 'in' else 0) for op, v in cells)
-            values = ','.join('0' if op == 'in' or not (v & 0xffffffff) else '0x%xu' % (v & 0xffffffff) for op, v in cells)
+            values = ['0' if op == 'in' or not (v & 0xffffffff) else '0x%xu' % (v & 0xffffffff) for op, v in cells]
+            # RENDER-ITEMS-002AB: trailing zero values are omitted (C zero-fills them; the compiled table is
+            # unchanged), which keeps the table under the audit's size limit.
+            while len(values) > 1 and values[-1] == '0':
+                values.pop()
+            values = ','.join(values)
             lines.append('        {%d, {%s}, {%s}},' % ({'BODY': 1, 'MESH': 2, 'COLOR': 3, 'EXIT': 4}[entry], sources, values))
         lines.append('    }},')
     lines += ['};', 'typedef struct { uint8_t kind, count; uint32_t a; uint8_t op[%d]; uint64_t k[%d]; uint8_t phases; } mu_rc_body_scalar;' % (CLOCK_OPS, CLOCK_OPS),
@@ -2130,7 +2323,7 @@ def render(types):
     for t, indices, first, count in rows:
         rules = types[t][0]
         lines.append('    {0x%04x, {%s}, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d},' %
-                     (t, ', '.join(map(str, indices)), (2 if t in RANDOM_LEVEL_TYPES else t in LEVEL_SPLIT), t in ATLAS_TYPES, t in DIM_TYPES, (2 + (t in DIRECT_WHITE_TYPES)) if t in DIRECT_TYPES else t in PLAIN_TYPES or t in NO_GLOW_TYPES, t in PULSE_TYPES,
+                     (t, ', '.join(map(str, indices)), (3 if t in DECODED_GUARD_TYPES else 2 if t in PACKED_LEVEL_TYPES else t in LEVEL_SPLIT), t in ATLAS_TYPES, t in DIM_TYPES, (2 + (t in DIRECT_WHITE_TYPES)) if t in DIRECT_TYPES else t in PLAIN_TYPES or t in NO_GLOW_TYPES, t in PULSE_TYPES,
                       any(op == 'in' and value == 20 for rule in rules for _, cells in rule for op, value in cells),
                       sum(1 << k for k in range(13) if any(op == 'in' and value == 21+k for rule in rules for _, cells in rule for op,value in cells)),
                       t in CARRY_TYPES or t in DERIVED_CARRY or t in PRE_CARRY or t in DIRECT_TYPES, first, count))

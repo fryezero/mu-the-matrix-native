@@ -331,6 +331,21 @@ static float body_scalar(const mu_rc_body_scalar *p, float time, uint32_t frame)
     for (int i = first; i < p->count; ++i) {
         float k;
         uint32_t bits = (uint32_t)p->k[i];
+        if (p->op[i] & 8) {
+            /* 0x01718e04: binary32 operations, then cvtss2sd, binary64 constants and one cvtsd2ss. */
+            double wide = value;
+            for (; i < p->count; ++i) {
+                double k64;
+                memcpy(&k64, &p->k[i], 8);
+                switch (p->op[i] & 7) {
+                case 1: wide = wide * k64; break;
+                case 2: wide = wide + k64; break;
+                case 3: wide = wide - k64; break;
+                default: wide = wide / k64; break;
+                }
+            }
+            return (float)wide;
+        }
         memcpy(&k, &bits, 4);
         switch (p->op[i]) {
         case 1: value = value * k; break;
@@ -338,6 +353,7 @@ static float body_scalar(const mu_rc_body_scalar *p, float time, uint32_t frame)
         case 3: value = value - k; break;
         case 5: value = k - value; break;
         case 6: if (k > value) value = k; break;
+        case 7: if (value > k) value = k; break;   /* 0x01719da4: comiss value, k; jbe */
         default: value = value / k; break;
         }
     }
@@ -499,7 +515,9 @@ static void emit_parameter_body(sink *s, int phase, uint32_t flags, float alpha,
     if (mu_rc_body_types[type].level_split && (phase == 0 || phase == 5) &&
         s->item->quality > 1 && mu_rc_item_glow_level(s->item) >= 9 &&
         (mu_rc_body_types[type].level_split == 2 ? s->item->item_level >= 9 :
-         (s->item->item_level != -1 && ((s->item->item_level >> 3) & 15) >= 9)))
+         /* 0x016e226a..: the wing guard decodes the word (0x016a78c9) and compares it with eleven. */
+         (s->item->item_level != -1 && ((s->item->item_level >> 3) & 15) >=
+          (mu_rc_body_types[type].level_split == 3 ? 11 : 9))))
         phase = phase == 5 ? 7 : 6;
     for (int k = 0; k < mu_rc_body_types[type].scalar_count; ++k) {
         const mu_rc_body_scalar *p = &mu_rc_body_scalars[mu_rc_body_types[type].scalar_first + k];
