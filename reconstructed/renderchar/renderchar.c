@@ -275,6 +275,26 @@ static float body_scalar(const mu_rc_body_scalar *p, float time, uint32_t frame)
     float a, value;
     if (p->kind == 3)
         return clock_program(p, time, frame);
+    if (p->kind == 10) {
+        int32_t rem = clock_trunc((double)time) % (int32_t)p->a;
+        int32_t half = (int32_t)p->k[0];
+        int first_branch = rem < half;
+        float x = (float)(first_branch ? rem : rem - half) / (float)half;
+        int at = first_branch ? 1 : 3;
+        uint32_t word = (uint32_t)p->k[at];
+        float mul, add;
+        memcpy(&mul, &word, 4);
+        word = (uint32_t)p->k[at + 1];
+        memcpy(&add, &word, 4);
+        value = mul * x;
+        value = p->op[at + 1] == 5 ? add - value : value + add;
+        if (p->count == 6) {
+            word = (uint32_t)p->k[5];
+            memcpy(&a, &word, 4);
+            value = value * client_wave(a, time);
+        }
+        return value;
+    }
     memcpy(&a, &p->a, 4);
     int first = 0;
     if (p->kind == 9) {
@@ -857,6 +877,16 @@ int mu_rc_item_draws_generic(const mu_rc_item *it, mu_rc_model *model, mu_rc_dra
     return item_draws_impl(it, model, out, capacity, count, 0, NULL);
 }
 
+/* Recipe probe for an early RenderObjDraw body. Preserve the entry model fields. */
+int mu_rc_item_draws_direct_generic(const mu_rc_item *it, mu_rc_model *model, mu_rc_draw *out, int32_t capacity,
+                                  int32_t *count)
+{
+    sink s = {out, capacity, 0, it, model, 0, NULL};
+    emit(&s, MU_RC_ENTRY_BODY, 0, it->render_type, it->alpha, it->a10, it->a11);
+    *count = s.count;
+    return s.count > capacity ? MU_RC_FULL : MU_RC_OK;
+}
+
 int mu_rc_item_draws_carry(const mu_rc_item *it, mu_rc_model *model, mu_rc_draw *out, int32_t capacity,
                            int32_t *count, const mu_rc_draw *carry, int32_t carry_count)
 {
@@ -893,6 +923,10 @@ static int item_draws_impl(const mu_rc_item *it, mu_rc_model *model, mu_rc_draw 
     if (it->type >= 0x26e6 && it->type <= 0x26ec && level > 0)
         level = 7;
     int type_row = body_type(it->type);
+    if (parameters && type_row >= 0 && mu_rc_body_types[type_row].direct) {
+        emit_parameter_body(&s, 0, it->render_type, it->alpha, it->a10, it->a11);
+        goto done;
+    }
     if (parameters && type_row >= 0 && mu_rc_body_types[type_row].plain)
         level = 0;
     if (parameters) {
