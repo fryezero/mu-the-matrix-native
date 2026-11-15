@@ -17,9 +17,16 @@ The final generator has 138 plans / 108 models and 7,228 checks. Both census
 CSVs reproduce 727 checked / 217 incomplete / 80 refused. Focused portable
 modules pass, two tests and two expected private skips. Root build passes.
 
-Left: run
-compiled controls and affected checks, produce representative renders and
-replay the rebuilt identity sweep. No final test/count claim yet.
+The full comparison passes 8,451 positive checks. All reported controls are
+caught with zero stops. The registry initially fails only its count because
+the two translation controls share a JSON key, leaving nineteen distinct
+results. The source gives them distinct names; a two-control replay is pending
+behind the resource guard, with the other eighteen results retained. The
+native host now publishes a controlled refusal before reading absent plan
+strings. These changes do not alter admitted rows or production code.
+
+Left: finish that bookkeeping replay, run the affected checks, produce proof
+renders and replay the rebuilt identity sweep. No readiness claim yet.
 
 Main through `6900914e` is integrated at `f8c9753a`; its EFFECTS-031
 changes are separate from actor identity changes.

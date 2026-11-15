@@ -34,7 +34,11 @@ int main(int argc, char **argv)
         /* Every mesh texture must be exactly the file in the opener's Monster directory.
          * Reload it independently of actor storage, and compare upload bytes and sampler state. */
         mu_actor_group_body_plan plan = {0};
-        mu_actor_group_plan(cl, &plan);
+        if (!mu_actor_group_plan(cl, &plan)) {
+            mu_world_actors_free(&actors); free(map);
+            printf("{\"class\":%d,\"plan_unadmitted\":true}\n", cl);
+            continue;
+        }
         int plan_state_equal = options.select == plan.blend_mesh && options.skip_mesh == plan.hidden_mesh;
         uint32_t blend_bits; memcpy(&blend_bits, &options.color_scale, 4);
         plan_state_equal = plan_state_equal && blend_bits == plan.blend_light_bits &&

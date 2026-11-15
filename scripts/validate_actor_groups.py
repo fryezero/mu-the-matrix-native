@@ -419,7 +419,7 @@ def main():
             sample_ids=[next(c for c,r in rows.items() if mask(r)),next(c for c,r in rows.items() if r['blend_mesh']!=-1),next(c for c,r in rows.items() if r['hidden_mesh']!=-1)]
             sample={cl:rows[cl] for cl in sample_ids}
             for name,old,new in [('load_links','if (!player && load_weapons','if (player && load_weapons'),
-                ('translate','p.transform_translate = (uint8_t)group_plan.body.translate;','p.transform_translate = 0;'),
+                ('native_translate','p.transform_translate = (uint8_t)group_plan.body.translate;','p.transform_translate = 0;'),
                 ('alpha','options->alpha = alpha; /* plain plan */','options->alpha = 1; /* plain plan */'),
                 ('native_flags','options->flags = plan.flags;','options->flags = 0;'),
                 ('native_blend','options->select = group.blend_mesh;','options->select = -1;'),
