@@ -2,6 +2,18 @@
 
 ## WIP late-main integration
 
+The actor/world merge validator delta now passes 93/93, zero failures/errors/
+skips, 1007.16 s. UI-WINDOWS-003 #391 subsequently merged at main `a95880c4`;
+it is integrated here as `28788cfc`, keeping both status entries. Its root build
+passes in 8.39 s. The UI-specific 13-row validator delta since `3e1a10d7` is
+selected and waiting on the resource guard. The just-started portable selection
+was deliberately stopped before tests when that main movement was discovered;
+its replacement will cover the combined delta since `5c0dec22`.
+
+Combined portable/private modules, after-only captures and staged audit remain
+pending. Earlier completed proof and check tables below remain historical until
+the late-merge ledger is finalized.
+
 Main advanced during final audit. ACTORS-005 #389 and INNER-004 #390 main
 `4babc900` are integrated as `fe83b2b9`. The combined root build passes, 21.13 s.
 A 93-row private validator delta since `5c0dec22` is selected and awaiting its
