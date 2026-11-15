@@ -521,3 +521,30 @@ authored WorldTime tick, as for Kanturu. No event state is read by this slot.
 - The singleton's create, move, custom-render and after-render slots are not ported. The census probe still
   counts create and move as unsupported in these worlds.
 - None of the eight worlds has a capture or a placement file in the two tours. Proofs are authored layouts.
+
+### PICK-001 hook 11 verification
+
+`scripts/validate_worlds_inner6.py --cases 1000 --mutations` (registered `validate_worlds_inner6`). The whole
+slot `0x00db7656` runs as client code with its world test and the sprite's default-argument constructor
+`0x00a0c1d0`; rand, CreateParticle, CreateSprite, CreateEffect and the imported clock are stubs. Compared: the
+ordered requests with every argument, all OBJECT and model bytes, the rand state and AL.
+
+| Family | Cases | Result |
+|---|---:|---|
+| `chain11`: any world and type, the model sometimes absent | 1,000 | equal (311 taken, 689 not) |
+| `chain11_focus`: the eight worlds, the eleven types, gates passed in half the gated cases, the clock placed around type 0x4e's window | 1,000 | equal, 1,570 requests; every type has cases with requests (0x4e: 22) |
+
+Two families pass 2,000 comparisons, zero mismatches/stops. All 37 compiled mutants are caught, minimum 6
+detections (the two window-edge mutants of type 0x4e), zero stopped. The mutants cover both world ranges at
+each end, the model guard, the default answer, and every type's gate, factor, colour, subtype, owner, count,
+position offset or scale.
+
+The synthetic production host (`worlds_inner_host.c`) runs all eight worlds: an unlisted type costs one outer
+roll and no refusal; type 0x4f yields five 0x7f89/17 requests; type 0x36 writes the 0.15 light and places
+two 0x8022 requests 100 below; type 0x4a follows its rand % 2 gate; type 0x4c yields the ember and its glow
+20 above at six times the scale; a missing model returns before any roll; worlds 44, 51 and 97 stay outside.
+
+Authored proofs in worlds 46 and 98 (the only two of the eight with terrain in the installed data): refused
+draws 440 -> 0, 25 particles and 80 sprites created, 430 particle and 15 effect requests refused by the pools
+(the ten missing pairs). The red and blue 0x7ef7 glows and the black 0x7f89/16 smoke are visible. The 46
+default capture views are unaffected. [Walls, binaries and the dump attribution](../handoffs/RENDER-WORLDS-PICK-001.md).

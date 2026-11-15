@@ -11,113 +11,113 @@ chain 1: 0x009db8b1,0x009db8b1,18,12,1,0x009dbd38,particle:0x7f89/7,refused,no n
 chain 1: 0x009db8b1,0x009db8b1,18,18-21,4,0x009dbdf7,,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
 chain 1: 0x009db8b1,0x009db8b1,18,24-29,6,0x009dbe27,,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
 chain 1: 0x009db8b1,0x009db8b1,18,30-35,6,0x009dbe63,,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,19,0-3,4,0x009dbe9f,bone joint:0x7f7d/2 sound:?,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported; variable request id (? = chosen at run time)
-chain 1: 0x009db8b1,0x009db8b1,19,"4-5,13-17",7,0x009dbfee,,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,19,6,1,0x009db906,particle:0x7f89/0,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,19,7,1,0x009db9b9,particle:0x7f89/1,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,19,8,1,0x009dba6c,particle:0x7f89/2,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,19,9,1,0x009dbb1f,particle:0x7f89/3,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,19,10,1,0x009dbbd2,particle:0x7f89/4,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,19,11,1,0x009dbc85,particle:0x7f89/5,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,19,12,1,0x009dbd38,particle:0x7f89/7,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,19,18-21,4,0x009dbdf7,,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,19,24-29,6,0x009dbe27,,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,19,30-35,6,0x009dbe63,,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,20,0-3,4,0x009dbe9f,bone joint:0x7f7d/2 sound:?,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported; variable request id (? = chosen at run time)
-chain 1: 0x009db8b1,0x009db8b1,20,"4-5,13-17",7,0x009dbfee,,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,20,6,1,0x009db906,particle:0x7f89/0,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,20,7,1,0x009db9b9,particle:0x7f89/1,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,20,8,1,0x009dba6c,particle:0x7f89/2,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,20,9,1,0x009dbb1f,particle:0x7f89/3,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,20,10,1,0x009dbbd2,particle:0x7f89/4,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,20,11,1,0x009dbc85,particle:0x7f89/5,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,20,12,1,0x009dbd38,particle:0x7f89/7,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,20,18-21,4,0x009dbdf7,,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,20,24-29,6,0x009dbe27,,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,20,30-35,6,0x009dbe63,,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,21,0-3,4,0x009dbe9f,bone joint:0x7f7d/2 sound:?,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported; variable request id (? = chosen at run time)
-chain 1: 0x009db8b1,0x009db8b1,21,"4-5,13-17",7,0x009dbfee,,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,21,6,1,0x009db906,particle:0x7f89/0,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,21,7,1,0x009db9b9,particle:0x7f89/1,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,21,8,1,0x009dba6c,particle:0x7f89/2,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,21,9,1,0x009dbb1f,particle:0x7f89/3,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,21,10,1,0x009dbbd2,particle:0x7f89/4,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,21,11,1,0x009dbc85,particle:0x7f89/5,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,21,12,1,0x009dbd38,particle:0x7f89/7,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,21,18-21,4,0x009dbdf7,,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,21,24-29,6,0x009dbe27,,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,21,30-35,6,0x009dbe63,,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,22,0-3,4,0x009dbe9f,bone joint:0x7f7d/2 sound:?,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported; variable request id (? = chosen at run time)
-chain 1: 0x009db8b1,0x009db8b1,22,"4-5,13-17",7,0x009dbfee,,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,22,6,1,0x009db906,particle:0x7f89/0,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,22,7,1,0x009db9b9,particle:0x7f89/1,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,22,8,1,0x009dba6c,particle:0x7f89/2,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,22,9,1,0x009dbb1f,particle:0x7f89/3,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,22,10,1,0x009dbbd2,particle:0x7f89/4,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,22,11,1,0x009dbc85,particle:0x7f89/5,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,22,12,1,0x009dbd38,particle:0x7f89/7,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,22,18-21,4,0x009dbdf7,,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,22,24-29,6,0x009dbe27,,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,22,30-35,6,0x009dbe63,,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,23,0-3,4,0x009dbe9f,bone joint:0x7f7d/2 sound:?,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported; variable request id (? = chosen at run time)
-chain 1: 0x009db8b1,0x009db8b1,23,"4-5,13-17",7,0x009dbfee,,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,23,6,1,0x009db906,particle:0x7f89/0,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,23,7,1,0x009db9b9,particle:0x7f89/1,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,23,8,1,0x009dba6c,particle:0x7f89/2,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,23,9,1,0x009dbb1f,particle:0x7f89/3,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,23,10,1,0x009dbbd2,particle:0x7f89/4,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,23,11,1,0x009dbc85,particle:0x7f89/5,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,23,12,1,0x009dbd38,particle:0x7f89/7,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,23,18-21,4,0x009dbdf7,,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,23,24-29,6,0x009dbe27,,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,23,30-35,6,0x009dbe63,,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,53,0-3,4,0x009dbe9f,bone joint:0x7f7d/2 sound:?,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported; variable request id (? = chosen at run time)
-chain 1: 0x009db8b1,0x009db8b1,53,"4-5,13-17",7,0x009dbfee,,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,53,6,1,0x009db906,particle:0x7f89/0,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,53,7,1,0x009db9b9,particle:0x7f89/1,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,53,8,1,0x009dba6c,particle:0x7f89/2,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,53,9,1,0x009dbb1f,particle:0x7f89/3,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,53,10,1,0x009dbbd2,particle:0x7f89/4,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,53,11,1,0x009dbc85,particle:0x7f89/5,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,53,12,1,0x009dbd38,particle:0x7f89/7,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,53,18-21,4,0x009dbdf7,,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,53,24-29,6,0x009dbe27,,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,53,30-35,6,0x009dbe63,,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,97,0-3,4,0x009dbe9f,bone joint:0x7f7d/2 sound:?,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported; variable request id (? = chosen at run time)
-chain 1: 0x009db8b1,0x009db8b1,97,"4-5,13-17",7,0x009dbfee,,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,97,6,1,0x009db906,particle:0x7f89/0,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,97,7,1,0x009db9b9,particle:0x7f89/1,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,97,8,1,0x009dba6c,particle:0x7f89/2,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,97,9,1,0x009dbb1f,particle:0x7f89/3,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,97,10,1,0x009dbbd2,particle:0x7f89/4,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,97,11,1,0x009dbc85,particle:0x7f89/5,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,97,12,1,0x009dbd38,particle:0x7f89/7,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,97,18-21,4,0x009dbdf7,,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,97,24-29,6,0x009dbe27,,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 1: 0x009db8b1,0x009db8b1,97,30-35,6,0x009dbe63,,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,19,0-3,4,0x009dbe9f,bone joint:0x7f7d/2 sound:?,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported; variable request id (? = chosen at run time)
+chain 1: 0x009db8b1,0x009db8b1,19,"4-5,13-17",7,0x009dbfee,,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,19,6,1,0x009db906,particle:0x7f89/0,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,19,7,1,0x009db9b9,particle:0x7f89/1,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,19,8,1,0x009dba6c,particle:0x7f89/2,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,19,9,1,0x009dbb1f,particle:0x7f89/3,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,19,10,1,0x009dbbd2,particle:0x7f89/4,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,19,11,1,0x009dbc85,particle:0x7f89/5,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,19,12,1,0x009dbd38,particle:0x7f89/7,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,19,18-21,4,0x009dbdf7,,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,19,24-29,6,0x009dbe27,,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,19,30-35,6,0x009dbe63,,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,20,0-3,4,0x009dbe9f,bone joint:0x7f7d/2 sound:?,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported; variable request id (? = chosen at run time)
+chain 1: 0x009db8b1,0x009db8b1,20,"4-5,13-17",7,0x009dbfee,,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,20,6,1,0x009db906,particle:0x7f89/0,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,20,7,1,0x009db9b9,particle:0x7f89/1,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,20,8,1,0x009dba6c,particle:0x7f89/2,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,20,9,1,0x009dbb1f,particle:0x7f89/3,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,20,10,1,0x009dbbd2,particle:0x7f89/4,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,20,11,1,0x009dbc85,particle:0x7f89/5,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,20,12,1,0x009dbd38,particle:0x7f89/7,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,20,18-21,4,0x009dbdf7,,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,20,24-29,6,0x009dbe27,,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,20,30-35,6,0x009dbe63,,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,21,0-3,4,0x009dbe9f,bone joint:0x7f7d/2 sound:?,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported; variable request id (? = chosen at run time)
+chain 1: 0x009db8b1,0x009db8b1,21,"4-5,13-17",7,0x009dbfee,,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,21,6,1,0x009db906,particle:0x7f89/0,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,21,7,1,0x009db9b9,particle:0x7f89/1,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,21,8,1,0x009dba6c,particle:0x7f89/2,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,21,9,1,0x009dbb1f,particle:0x7f89/3,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,21,10,1,0x009dbbd2,particle:0x7f89/4,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,21,11,1,0x009dbc85,particle:0x7f89/5,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,21,12,1,0x009dbd38,particle:0x7f89/7,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,21,18-21,4,0x009dbdf7,,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,21,24-29,6,0x009dbe27,,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,21,30-35,6,0x009dbe63,,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,22,0-3,4,0x009dbe9f,bone joint:0x7f7d/2 sound:?,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported; variable request id (? = chosen at run time)
+chain 1: 0x009db8b1,0x009db8b1,22,"4-5,13-17",7,0x009dbfee,,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,22,6,1,0x009db906,particle:0x7f89/0,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,22,7,1,0x009db9b9,particle:0x7f89/1,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,22,8,1,0x009dba6c,particle:0x7f89/2,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,22,9,1,0x009dbb1f,particle:0x7f89/3,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,22,10,1,0x009dbbd2,particle:0x7f89/4,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,22,11,1,0x009dbc85,particle:0x7f89/5,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,22,12,1,0x009dbd38,particle:0x7f89/7,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,22,18-21,4,0x009dbdf7,,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,22,24-29,6,0x009dbe27,,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,22,30-35,6,0x009dbe63,,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,23,0-3,4,0x009dbe9f,bone joint:0x7f7d/2 sound:?,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported; variable request id (? = chosen at run time)
+chain 1: 0x009db8b1,0x009db8b1,23,"4-5,13-17",7,0x009dbfee,,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,23,6,1,0x009db906,particle:0x7f89/0,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,23,7,1,0x009db9b9,particle:0x7f89/1,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,23,8,1,0x009dba6c,particle:0x7f89/2,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,23,9,1,0x009dbb1f,particle:0x7f89/3,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,23,10,1,0x009dbbd2,particle:0x7f89/4,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,23,11,1,0x009dbc85,particle:0x7f89/5,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,23,12,1,0x009dbd38,particle:0x7f89/7,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,23,18-21,4,0x009dbdf7,,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,23,24-29,6,0x009dbe27,,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,23,30-35,6,0x009dbe63,,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,53,0-3,4,0x009dbe9f,bone joint:0x7f7d/2 sound:?,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported; variable request id (? = chosen at run time)
+chain 1: 0x009db8b1,0x009db8b1,53,"4-5,13-17",7,0x009dbfee,,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,53,6,1,0x009db906,particle:0x7f89/0,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,53,7,1,0x009db9b9,particle:0x7f89/1,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,53,8,1,0x009dba6c,particle:0x7f89/2,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,53,9,1,0x009dbb1f,particle:0x7f89/3,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,53,10,1,0x009dbbd2,particle:0x7f89/4,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,53,11,1,0x009dbc85,particle:0x7f89/5,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,53,12,1,0x009dbd38,particle:0x7f89/7,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,53,18-21,4,0x009dbdf7,,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,53,24-29,6,0x009dbe27,,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,53,30-35,6,0x009dbe63,,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,97,0-3,4,0x009dbe9f,bone joint:0x7f7d/2 sound:?,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported; variable request id (? = chosen at run time)
+chain 1: 0x009db8b1,0x009db8b1,97,"4-5,13-17",7,0x009dbfee,,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,97,6,1,0x009db906,particle:0x7f89/0,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,97,7,1,0x009db9b9,particle:0x7f89/1,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,97,8,1,0x009dba6c,particle:0x7f89/2,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,97,9,1,0x009dbb1f,particle:0x7f89/3,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,97,10,1,0x009dbbd2,particle:0x7f89/4,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,97,11,1,0x009dbc85,particle:0x7f89/5,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,97,12,1,0x009dbd38,particle:0x7f89/7,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,97,18-21,4,0x009dbdf7,,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,97,24-29,6,0x009dbe27,,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
+chain 1: 0x009db8b1,0x009db8b1,97,30-35,6,0x009dbe63,,refused,no native producer: the routine is not ported and the runtime does not count it,none,probed in world 18 (same case; same object folder); create unsupported; move unsupported
 chain 10: Barracks / Refuge,0x00d5404b,41,2,1,0x00d54114,particle:0x7f5a/13,drawn,,observed,create unsupported; move unsupported
 chain 10: Barracks / Refuge,0x00d5404b,41,3,1,0x00d541ad,particle:0x8016/0,drawn,,observed,create unsupported; move unsupported
-chain 10: Barracks / Refuge,0x00d5404b,41,5,1,0x00d54246,particle:0x8001/0 particle:0x8000/0 particle:0x7f89/6 particle:0x8000/1,partial,"no consumer: particle 0x7f89/6, particle 0x8000/0, particle 0x8000/1, particle 0x8001/0; probe: particle requests refused 26 of 40",observed,create unsupported; move unsupported
+chain 10: Barracks / Refuge,0x00d5404b,41,5,1,0x00d54246,particle:0x8001/0 particle:0x8000/0 particle:0x7f89/6 particle:0x8000/1,partial,"no consumer: particle 0x7f89/6, particle 0x8000/0, particle 0x8000/1, particle 0x8001/0; probe (40 draws): 26 particle requests refused",observed,create unsupported; move unsupported
 chain 10: Barracks / Refuge,0x00d5404b,41,6,1,0x00d54454,particle:0x7f89/1 particle:0x7f89/2 particle:0x7f89/3 particle:0x7f89/4,drawn,,observed,create unsupported; move unsupported
 chain 10: Barracks / Refuge,0x00d5404b,41,58,1,0x00d54602,particle:0x801a/2,drawn,,observed,create unsupported; move unsupported
 chain 10: Barracks / Refuge,0x00d5404b,41,59,1,0x00d5469d,particle:0x801b/1,refused,no model file for the type in the world's object folder (dead in the installed data),none,create unsupported
 chain 10: Barracks / Refuge,0x00d5404b,41,60,1,0x00d54732,particle:0x801c/3,refused,no model file for the type in the world's object folder (dead in the installed data),none,create unsupported
-chain 10: Barracks / Refuge,0x00d5404b,41,85,1,0x00d547b8,particle:0x8001/1 particle:0x8000/2 particle:0x7f89/14 particle:0x8000/2,partial,"no consumer: particle 0x7f89/14, particle 0x8000/2, particle 0x8001/1; probe: particle requests refused 22 of 40",observed,create unsupported; move unsupported
+chain 10: Barracks / Refuge,0x00d5404b,41,85,1,0x00d547b8,particle:0x8001/1 particle:0x8000/2 particle:0x7f89/14 particle:0x8000/2,partial,"no consumer: particle 0x7f89/14, particle 0x8000/2, particle 0x8001/1; probe (40 draws): 22 particle requests refused",observed,create unsupported; move unsupported
 chain 10: Barracks / Refuge,0x00d5404b,41,88,1,0x00d54a56,particle:0x7f89/10,drawn,,observed,create unsupported; move unsupported
 chain 10: Barracks / Refuge,0x00d5404b,41,89,1,0x00d54af2,particle:0x7f89/11,drawn,,observed,create unsupported; move unsupported
-chain 10: Barracks / Refuge,0x00d5404b,41,90,1,0x00d54ba9,joint:0x7fd5/4 particle:0x7f25/9,partial,"no consumer: joint 0x7fd5/4, particle 0x7f25/9; probe: draws refused 16, particle requests refused 16 of 40",observed,create unsupported; move unsupported
+chain 10: Barracks / Refuge,0x00d5404b,41,90,1,0x00d54ba9,joint:0x7fd5/4 particle:0x7f25/9,partial,"no consumer: joint 0x7fd5/4, particle 0x7f25/9; probe (40 draws): 16 draws refused, 16 particle requests refused",observed,create unsupported; move unsupported
 chain 10: Barracks / Refuge,0x00d5404b,41,92,1,0x00d54d53,effect:0x806d/0,refused,no model file for the type in the world's object folder (dead in the installed data),none,create unsupported
 chain 10: Barracks / Refuge,0x00d5404b,42,2,1,0x00d54114,particle:0x7f5a/13,drawn,,observed,create unsupported; move unsupported
 chain 10: Barracks / Refuge,0x00d5404b,42,3,1,0x00d541ad,particle:0x8016/0,drawn,,observed,create unsupported; move unsupported
-chain 10: Barracks / Refuge,0x00d5404b,42,5,1,0x00d54246,particle:0x8001/0 particle:0x8000/0 particle:0x7f89/6 particle:0x8000/1,partial,"no consumer: particle 0x7f89/6, particle 0x8000/0, particle 0x8000/1, particle 0x8001/0; probe: particle requests refused 26 of 40",observed,create unsupported; move unsupported
+chain 10: Barracks / Refuge,0x00d5404b,42,5,1,0x00d54246,particle:0x8001/0 particle:0x8000/0 particle:0x7f89/6 particle:0x8000/1,partial,"no consumer: particle 0x7f89/6, particle 0x8000/0, particle 0x8000/1, particle 0x8001/0; probe (40 draws): 26 particle requests refused",observed,create unsupported; move unsupported
 chain 10: Barracks / Refuge,0x00d5404b,42,6,1,0x00d54454,particle:0x7f89/1 particle:0x7f89/2 particle:0x7f89/3 particle:0x7f89/4,refused,no model file for the type in the world's object folder (dead in the installed data),none,create unsupported
 chain 10: Barracks / Refuge,0x00d5404b,42,58,1,0x00d54602,particle:0x801a/2,refused,no model file for the type in the world's object folder (dead in the installed data),none,create unsupported
 chain 10: Barracks / Refuge,0x00d5404b,42,59,1,0x00d5469d,particle:0x801b/1,refused,no model file for the type in the world's object folder (dead in the installed data),none,create unsupported
 chain 10: Barracks / Refuge,0x00d5404b,42,60,1,0x00d54732,particle:0x801c/3,refused,no model file for the type in the world's object folder (dead in the installed data),none,create unsupported
-chain 10: Barracks / Refuge,0x00d5404b,42,85,1,0x00d547b8,particle:0x8001/1 particle:0x8000/2 particle:0x7f89/14 particle:0x8000/2,partial,"no consumer: particle 0x7f89/14, particle 0x8000/2, particle 0x8001/1; probe: particle requests refused 22 of 40",observed,create unsupported; move unsupported
+chain 10: Barracks / Refuge,0x00d5404b,42,85,1,0x00d547b8,particle:0x8001/1 particle:0x8000/2 particle:0x7f89/14 particle:0x8000/2,partial,"no consumer: particle 0x7f89/14, particle 0x8000/2, particle 0x8001/1; probe (40 draws): 22 particle requests refused",observed,create unsupported; move unsupported
 chain 10: Barracks / Refuge,0x00d5404b,42,88,1,0x00d54a56,particle:0x7f89/10,drawn,,observed,create unsupported; move unsupported
 chain 10: Barracks / Refuge,0x00d5404b,42,89,1,0x00d54af2,particle:0x7f89/11,drawn,,observed,create unsupported; move unsupported
-chain 10: Barracks / Refuge,0x00d5404b,42,90,1,0x00d54ba9,joint:0x7fd5/4 particle:0x7f25/9,partial,"no consumer: joint 0x7fd5/4, particle 0x7f25/9; probe: draws refused 16, particle requests refused 16 of 40",observed,create unsupported; move unsupported
+chain 10: Barracks / Refuge,0x00d5404b,42,90,1,0x00d54ba9,joint:0x7fd5/4 particle:0x7f25/9,partial,"no consumer: joint 0x7fd5/4, particle 0x7f25/9; probe (40 draws): 16 draws refused, 16 particle requests refused",observed,create unsupported; move unsupported
 chain 10: Barracks / Refuge,0x00d5404b,42,92,1,0x00d54d53,effect:0x806d/0,partial,no consumer: effect 0x806d/0,source,create unsupported; move unsupported
 class world-121 (World 121 class) slot +0x34,0x00d58888,121,70,1,0x00d588bc,particle:0x8086/2 particle:0x8087/6 particle:0x8089/2 particle:0x8086/2,drawn,,observed,
 class world-121 (World 121 class) slot +0x34,0x00d58888,121,80,1,0x00d58a4b,particle:0x8086/2 particle:0x8087/6 particle:0x8089/2 particle:0x8086/2,drawn,,observed,
@@ -138,20 +138,20 @@ chain 5: Aida,0x00d622dd,33,70,1,0x00d63241,effect:0x199/0,drawn,,observed,creat
 chain 5: Aida,0x00d622dd,33,71,1,0x00d63313,bone sprite:0x7f26 sprite:0x7f26 bone sprite:0x7f26 sprite:0x7f26 bone sprite:0x7f26 sprite:0x7f26 bone sprite:0x7f26 sprite:0x7f26 bone sprite:0x7f26 sprite:0x7f26 bone sprite:0x7f26 sprite:0x7f26,drawn,,observed,create unsupported
 chain 5: Aida,0x00d622dd,33,75,1,0x00d63b54,bone sprite:0x7f78,drawn,,observed,create unsupported
 chain 5: Aida,0x00d622dd,33,77-78,2,0x00d63cc2,mesh:0x0,drawn,,source,create unsupported
-chain 5: Aida,0x00d622dd,54,30,1,0x00d623d2,bone sprite:0x7f26 sprite:0x7f26 bone sprite:0x7f26 sprite:0x7f26 bone sprite:0x7f26 sprite:0x7f26 bone sprite:0x7f26 sprite:0x7f26 bone sprite:0x7f26 sprite:0x7f26 bone sprite:0x7f26 sprite:0x7f26,refused,the native world does not start for this probe,none,
-chain 5: Aida,0x00d622dd,54,56,1,0x00d62c88,particle:0x801a/2,refused,the native world does not start for this probe,none,
-chain 5: Aida,0x00d622dd,54,57,1,0x00d62d23,particle:0x801c/4,refused,the native world does not start for this probe,none,
-chain 5: Aida,0x00d622dd,54,58,1,0x00d62da9,particle:0x801b/2,refused,the native world does not start for this probe,none,
-chain 5: Aida,0x00d622dd,54,59,1,0x00d62e3e,particle:0x7f89/26,refused,the native world does not start for this probe,none,
-chain 5: Aida,0x00d622dd,54,60,1,0x00d62ee7,effect:0x193/3,refused,the native world does not start for this probe,none,
-chain 5: Aida,0x00d622dd,54,62,1,0x00d62fa2,particle:0x7f89/26,refused,the native world does not start for this probe,none,
-chain 5: Aida,0x00d622dd,54,63,1,0x00d6304b,particle:0x7f89/26,refused,the native world does not start for this probe,none,
-chain 5: Aida,0x00d622dd,54,65-66,2,0x00d630f4,mesh:0x0,refused,the native world does not start for this probe,none,
-chain 5: Aida,0x00d622dd,54,67,1,0x00d63197,particle:0x7f42/7,refused,the native world does not start for this probe,none,
-chain 5: Aida,0x00d622dd,54,70,1,0x00d63241,effect:0x199/0,refused,the native world does not start for this probe,none,
-chain 5: Aida,0x00d622dd,54,71,1,0x00d63313,bone sprite:0x7f26 sprite:0x7f26 bone sprite:0x7f26 sprite:0x7f26 bone sprite:0x7f26 sprite:0x7f26 bone sprite:0x7f26 sprite:0x7f26 bone sprite:0x7f26 sprite:0x7f26 bone sprite:0x7f26 sprite:0x7f26,refused,the native world does not start for this probe,none,
-chain 5: Aida,0x00d622dd,54,75,1,0x00d63b54,bone sprite:0x7f78,refused,the native world does not start for this probe,none,
-chain 5: Aida,0x00d622dd,54,77-78,2,0x00d63cc2,mesh:0x0,refused,the native world does not start for this probe,none,
+chain 5: Aida,0x00d622dd,54,30,1,0x00d623d2,bone sprite:0x7f26 sprite:0x7f26 bone sprite:0x7f26 sprite:0x7f26 bone sprite:0x7f26 sprite:0x7f26 bone sprite:0x7f26 sprite:0x7f26 bone sprite:0x7f26 sprite:0x7f26 bone sprite:0x7f26 sprite:0x7f26,drawn,,observed,probed in world 33 (same case; this world has no terrain in the installed data); create unsupported
+chain 5: Aida,0x00d622dd,54,56,1,0x00d62c88,particle:0x801a/2,drawn,,observed,probed in world 33 (same case; this world has no terrain in the installed data); create unsupported
+chain 5: Aida,0x00d622dd,54,57,1,0x00d62d23,particle:0x801c/4,drawn,,observed,probed in world 33 (same case; this world has no terrain in the installed data); create unsupported
+chain 5: Aida,0x00d622dd,54,58,1,0x00d62da9,particle:0x801b/2,drawn,,observed,probed in world 33 (same case; this world has no terrain in the installed data); create unsupported
+chain 5: Aida,0x00d622dd,54,59,1,0x00d62e3e,particle:0x7f89/26,drawn,,observed,probed in world 33 (same case; this world has no terrain in the installed data); create unsupported
+chain 5: Aida,0x00d622dd,54,60,1,0x00d62ee7,effect:0x193/3,partial,no consumer: effect 0x193/3,source,probed in world 33 (same case; this world has no terrain in the installed data); create unsupported
+chain 5: Aida,0x00d622dd,54,62,1,0x00d62fa2,particle:0x7f89/26,drawn,,observed,probed in world 33 (same case; this world has no terrain in the installed data); create unsupported
+chain 5: Aida,0x00d622dd,54,63,1,0x00d6304b,particle:0x7f89/26,drawn,,observed,probed in world 33 (same case; this world has no terrain in the installed data); create unsupported
+chain 5: Aida,0x00d622dd,54,65-66,2,0x00d630f4,mesh:0x0,drawn,,source,probed in world 33 (same case; this world has no terrain in the installed data); create unsupported
+chain 5: Aida,0x00d622dd,54,67,1,0x00d63197,particle:0x7f42/7,drawn,,observed,probed in world 33 (same case; this world has no terrain in the installed data); create unsupported
+chain 5: Aida,0x00d622dd,54,70,1,0x00d63241,effect:0x199/0,drawn,,observed,probed in world 33 (same case; this world has no terrain in the installed data); create unsupported
+chain 5: Aida,0x00d622dd,54,71,1,0x00d63313,bone sprite:0x7f26 sprite:0x7f26 bone sprite:0x7f26 sprite:0x7f26 bone sprite:0x7f26 sprite:0x7f26 bone sprite:0x7f26 sprite:0x7f26 bone sprite:0x7f26 sprite:0x7f26 bone sprite:0x7f26 sprite:0x7f26,drawn,,observed,probed in world 33 (same case; this world has no terrain in the installed data); create unsupported
+chain 5: Aida,0x00d622dd,54,75,1,0x00d63b54,bone sprite:0x7f78,drawn,,observed,probed in world 33 (same case; this world has no terrain in the installed data); create unsupported
+chain 5: Aida,0x00d622dd,54,77-78,2,0x00d63cc2,mesh:0x0,drawn,,source,probed in world 33 (same case; this world has no terrain in the installed data); create unsupported
 class world-91 (World 91 class) slot +0x34,0x00d6ae34,91,9,1,0x00d6afcd,bone sprite:0x8155 bone sprite:0x8155 bone sprite:0x8155,drawn,,observed,
 class world-91 (World 91 class) slot +0x34,0x00d6ae34,91,16,1,0x00d6b194,bone sprite:0x8155 bone sprite:0x8155 bone sprite:0x8155 bone sprite:0x8155,drawn,,observed,
 class world-91 (World 91 class) slot +0x34,0x00d6ae34,91,31,1,0x00d6b3b5,bone sprite:0x8155 bone sprite:0x8155 bone sprite:0x8155,drawn,,observed,
@@ -168,29 +168,29 @@ class world-91 (World 91 class) slot +0x34,0x00d6ae34,91,89,1,0x00d6be1b,bone sp
 class world-91 (World 91 class) slot +0x34,0x00d6ae34,91,93,1,0x00d6bf49,bone sprite:0x8155 bone sprite:0x8155,drawn,,observed,
 class world-91 (World 91 class) slot +0x34,0x00d6ae34,91,100,1,0x00d6c16b,bone sprite:0x8155 bone sprite:0x8155 bone sprite:0x8155 bone sprite:0x8155 bone sprite:0x8155 bone sprite:0x8155,drawn,,observed,
 class world-145 (Aquila's Temple) slot +0x34,0x00d77b3e,145,"136-140,142",6,0x00d77c0a,,drawn,,source,
-class world-92 (World 92 class) slot +0x34,0x00d7be80,92,1435,1,0x00d7bf3e,bone effect:0x413/11,refused,the native world does not start for this probe,none,request list may be incomplete (walk cut at the step limit)
-class world-92 (World 92 class) slot +0x34,0x00d7be80,96,1435,1,0x00d7bf3e,bone effect:0x413/11,refused,the native world does not start for this probe,none,request list may be incomplete (walk cut at the step limit)
-class world-92 (World 92 class) slot +0x34,0x00d7be80,101,1435,1,0x00d7bf3e,bone effect:0x413/11,refused,the native world does not start for this probe,none,request list may be incomplete (walk cut at the step limit)
-class world-92 (World 92 class) slot +0x34,0x00d7be80,111,1435,1,0x00d7bf3e,bone effect:0x413/11,refused,the native world does not start for this probe,none,request list may be incomplete (walk cut at the step limit)
+class world-92 (World 92 class) slot +0x34,0x00d7be80,92,1435,1,0x00d7bf3e,bone effect:0x413/11,refused,not probed: the world has no terrain in the installed data and no other world shares the case,none,request list may be incomplete (walk cut at the step limit)
+class world-92 (World 92 class) slot +0x34,0x00d7be80,96,1435,1,0x00d7bf3e,bone effect:0x413/11,refused,not probed: the world has no terrain in the installed data and no other world shares the case,none,request list may be incomplete (walk cut at the step limit)
+class world-92 (World 92 class) slot +0x34,0x00d7be80,101,1435,1,0x00d7bf3e,bone effect:0x413/11,refused,not probed: the world has no terrain in the installed data and no other world shares the case,none,request list may be incomplete (walk cut at the step limit)
+class world-92 (World 92 class) slot +0x34,0x00d7be80,111,1435,1,0x00d7bf3e,bone effect:0x413/11,refused,not probed: the world has no terrain in the installed data and no other world shares the case,none,request list may be incomplete (walk cut at the step limit)
 class world-134 (Gray Aida) slot +0x34,0x00d84dd8,134,30,1,0x00d84f26,bone sprite:0x7f26 sprite:0x7f26 bone sprite:0x7f26 sprite:0x7f26 bone sprite:0x7f26 sprite:0x7f26 bone sprite:0x7f26 sprite:0x7f26 bone sprite:0x7f26 sprite:0x7f26 bone sprite:0x7f26 sprite:0x7f26,drawn,,observed,
-class world-134 (Gray Aida) slot +0x34,0x00d84dd8,134,56,1,0x00d85809,particle:0x801f/2,partial,no consumer: particle 0x801f/2; probe: particle requests refused 23 of 40,observed,
+class world-134 (Gray Aida) slot +0x34,0x00d84dd8,134,56,1,0x00d85809,particle:0x801f/2,partial,no consumer: particle 0x801f/2; probe (40 draws): 23 particle requests refused,observed,
 class world-134 (Gray Aida) slot +0x34,0x00d84dd8,134,57,1,0x00d858b0,particle:0x801c/8,drawn,,observed,
 class world-134 (Gray Aida) slot +0x34,0x00d84dd8,134,58,1,0x00d85942,particle:0x801b/2,drawn,,observed,
 class world-134 (Gray Aida) slot +0x34,0x00d84dd8,134,59,1,0x00d859e3,particle:0x7f89/26,drawn,,observed,
 class world-134 (Gray Aida) slot +0x34,0x00d84dd8,134,60,1,0x00d85a96,effect:0x193/3,partial,no consumer: effect 0x193/3,source,
 class world-134 (Gray Aida) slot +0x34,0x00d84dd8,134,"62,92",2,0x00d85b64,particle:0x7f89/26,drawn,,observed,
 class world-134 (Gray Aida) slot +0x34,0x00d84dd8,134,"65-66,132-133",4,0x00d85c23,mesh:0x0,refused,the object runtime counts every draw unsupported,observed,
-class world-134 (Gray Aida) slot +0x34,0x00d84dd8,134,67,1,0x00d85ca7,particle:0x7f42/6,partial,no consumer: particle 0x7f42/6; probe: particle requests refused 40 of 40,observed,
+class world-134 (Gray Aida) slot +0x34,0x00d84dd8,134,67,1,0x00d85ca7,particle:0x7f42/6,partial,no consumer: particle 0x7f42/6; probe (40 draws): 40 particle requests refused,observed,
 class world-134 (Gray Aida) slot +0x34,0x00d84dd8,134,70,1,0x00d85d51,effect:0x199/0,drawn,,observed,
 class world-134 (Gray Aida) slot +0x34,0x00d84dd8,134,71,1,0x00d85e36,bone sprite:0x7f26 sprite:0x7f26 bone sprite:0x7f26 sprite:0x7f26 bone sprite:0x7f26 sprite:0x7f26 bone sprite:0x7f26 sprite:0x7f26 bone sprite:0x7f26 sprite:0x7f26 bone sprite:0x7f26 sprite:0x7f26,drawn,,observed,
-class world-134 (Gray Aida) slot +0x34,0x00d84dd8,134,73-74,2,0x00d866a1,particle:0x7f26/2,partial,probe: particle requests refused 40 of 40,observed,
+class world-134 (Gray Aida) slot +0x34,0x00d84dd8,134,73-74,2,0x00d866a1,particle:0x7f26/2,partial,probe (40 draws): 40 particle requests refused,observed,
 class world-134 (Gray Aida) slot +0x34,0x00d84dd8,134,77-78,2,0x00d86841,mesh:0x0,refused,the object runtime counts every draw unsupported,observed,
 chain 3: Crywolf,0x00d8e640,30,0,1,0x00d8e6b3,particle:0x8016/0,drawn,,observed,create unsupported; move unsupported
 chain 3: Crywolf,0x00d8e640,30,41,1,0x00d8e75c,,drawn,,source,create unsupported; move unsupported
 chain 3: Crywolf,0x00d8e640,30,42,1,0x00d8e7a0,particle:0x7f5a/21,drawn,,source,create unsupported; move unsupported
-chain 3: Crywolf,0x00d8e640,30,52,1,0x00d8e849,particle:0x801e/6,partial,no consumer: particle 0x801e/6; probe: particle requests refused 40 of 40,observed,create unsupported; move unsupported
+chain 3: Crywolf,0x00d8e640,30,52,1,0x00d8e849,particle:0x801e/6,partial,no consumer: particle 0x801e/6; probe (40 draws): 40 particle requests refused,observed,create unsupported; move unsupported
 chain 3: Crywolf,0x00d8e640,30,53,1,0x00d8e8df,particle:0x8016/0,drawn,,source,create unsupported; move unsupported
-chain 3: Crywolf,0x00d8e640,30,54,1,0x00d8e988,particle:?/0,partial,probe: particle requests refused 40 of 40,observed,create unsupported; move unsupported; variable request id (? = chosen at run time)
+chain 3: Crywolf,0x00d8e640,30,54,1,0x00d8e988,particle:?/0,partial,probe (40 draws): 40 particle requests refused,observed,create unsupported; move unsupported; variable request id (? = chosen at run time)
 class world-136 (Burning Kethotum) slot +0x34,0x00d97186,136,165,1,0x00d971b9,sprite:0x7ef7 particle:0x8084/0 particle:0x806e/4 particle:0x8085/0,drawn,,observed,
 class world-93 (CGMCharacterScene_Ex) slot +0x34,0x00daa9dd,93,31,1,0x00daab4a,bone sprite:0x8155 bone sprite:0x8155 bone sprite:0x8155,drawn,,observed,
 class world-93 (CGMCharacterScene_Ex) slot +0x34,0x00daa9dd,93,38,1,0x00daad11,particle:0x7f89/20,drawn,,observed,
@@ -205,197 +205,197 @@ class world-93 (CGMCharacterScene_Ex) slot +0x34,0x00daa9dd,93,73,1,0x00dab1df,b
 class world-93 (CGMCharacterScene_Ex) slot +0x34,0x00daa9dd,93,80,1,0x00dab431,particle:0x7f5a/69,drawn,,observed,
 chain 6: 0x00dac0a2,0x00dac0a2,34,41,1,0x00dac141,sprite:0x7f78 sprite:0x7f78,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
 chain 6: 0x00dac0a2,0x00dac0a2,34,84,1,0x00dac319,particle:0x7f5a/21,refused,no native producer: the routine is not ported and the runtime does not count it,none,create unsupported; move unsupported
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,45,54,1,0x00db7709,particle:0x8022/0 particle:0x8022/3,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,45,70,1,0x00db7859,particle:0x7f89/15,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,45,71,1,0x00db7926,particle:0x7f89/15,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,45,72,1,0x00db79f3,particle:0x7f89/15 particle:0x7f89/15,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,45,73,1,0x00db7b51,particle:0x7f89/15,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,45,74,1,0x00db7c1e,particle:0x7f89/16,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,45,75,1,0x00db7cab,particle:0x7dea/0,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,45,76,1,0x00db7d79,particle:0x7dec/0 sprite:0x7ef7,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,45,77,1,0x00db7f3d,particle:0x7dec/0 sprite:0x7ef7,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,45,78,1,0x00db8101,effect:0x4cc/0 effect:0x4cc/1 particle:?/2 particle:0x7f5a/0,refused,the native world does not start for this probe,none,variable request id (? = chosen at run time)
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,45,79,1,0x00db83de,particle:0x7f89/17,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,46,54,1,0x00db7709,particle:0x8022/0 particle:0x8022/3,refused,the object runtime counts every draw unsupported (no native producer),observed,create unsupported; move unsupported
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,46,70,1,0x00db7859,particle:0x7f89/15,refused,the object runtime counts every draw unsupported (no native producer),observed,create unsupported; move unsupported
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,46,71,1,0x00db7926,particle:0x7f89/15,refused,the object runtime counts every draw unsupported (no native producer),observed,create unsupported; move unsupported
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,46,72,1,0x00db79f3,particle:0x7f89/15 particle:0x7f89/15,refused,the object runtime counts every draw unsupported (no native producer),observed,create unsupported; move unsupported
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,46,73,1,0x00db7b51,particle:0x7f89/15,refused,the object runtime counts every draw unsupported (no native producer),observed,create unsupported; move unsupported
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,46,74,1,0x00db7c1e,particle:0x7f89/16,refused,the object runtime counts every draw unsupported (no native producer),observed,create unsupported; move unsupported
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,46,75,1,0x00db7cab,particle:0x7dea/0,refused,the object runtime counts every draw unsupported (no native producer),observed,create unsupported; move unsupported
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,46,76,1,0x00db7d79,particle:0x7dec/0 sprite:0x7ef7,refused,the object runtime counts every draw unsupported (no native producer),observed,create unsupported; move unsupported
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,46,77,1,0x00db7f3d,particle:0x7dec/0 sprite:0x7ef7,refused,the object runtime counts every draw unsupported (no native producer),observed,create unsupported; move unsupported
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,46,78,1,0x00db8101,effect:0x4cc/0 effect:0x4cc/1 particle:?/2 particle:0x7f5a/0,refused,the object runtime counts every draw unsupported (no native producer),observed,create unsupported; move unsupported; variable request id (? = chosen at run time)
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,46,79,1,0x00db83de,particle:0x7f89/17,refused,the object runtime counts every draw unsupported (no native producer),observed,create unsupported; move unsupported
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,47,54,1,0x00db7709,particle:0x8022/0 particle:0x8022/3,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,47,70,1,0x00db7859,particle:0x7f89/15,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,47,71,1,0x00db7926,particle:0x7f89/15,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,47,72,1,0x00db79f3,particle:0x7f89/15 particle:0x7f89/15,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,47,73,1,0x00db7b51,particle:0x7f89/15,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,47,74,1,0x00db7c1e,particle:0x7f89/16,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,47,75,1,0x00db7cab,particle:0x7dea/0,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,47,76,1,0x00db7d79,particle:0x7dec/0 sprite:0x7ef7,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,47,77,1,0x00db7f3d,particle:0x7dec/0 sprite:0x7ef7,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,47,78,1,0x00db8101,effect:0x4cc/0 effect:0x4cc/1 particle:?/2 particle:0x7f5a/0,refused,the native world does not start for this probe,none,variable request id (? = chosen at run time)
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,47,79,1,0x00db83de,particle:0x7f89/17,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,48,54,1,0x00db7709,particle:0x8022/0 particle:0x8022/3,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,48,70,1,0x00db7859,particle:0x7f89/15,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,48,71,1,0x00db7926,particle:0x7f89/15,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,48,72,1,0x00db79f3,particle:0x7f89/15 particle:0x7f89/15,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,48,73,1,0x00db7b51,particle:0x7f89/15,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,48,74,1,0x00db7c1e,particle:0x7f89/16,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,48,75,1,0x00db7cab,particle:0x7dea/0,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,48,76,1,0x00db7d79,particle:0x7dec/0 sprite:0x7ef7,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,48,77,1,0x00db7f3d,particle:0x7dec/0 sprite:0x7ef7,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,48,78,1,0x00db8101,effect:0x4cc/0 effect:0x4cc/1 particle:?/2 particle:0x7f5a/0,refused,the native world does not start for this probe,none,variable request id (? = chosen at run time)
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,48,79,1,0x00db83de,particle:0x7f89/17,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,49,54,1,0x00db7709,particle:0x8022/0 particle:0x8022/3,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,49,70,1,0x00db7859,particle:0x7f89/15,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,49,71,1,0x00db7926,particle:0x7f89/15,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,49,72,1,0x00db79f3,particle:0x7f89/15 particle:0x7f89/15,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,49,73,1,0x00db7b51,particle:0x7f89/15,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,49,74,1,0x00db7c1e,particle:0x7f89/16,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,49,75,1,0x00db7cab,particle:0x7dea/0,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,49,76,1,0x00db7d79,particle:0x7dec/0 sprite:0x7ef7,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,49,77,1,0x00db7f3d,particle:0x7dec/0 sprite:0x7ef7,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,49,78,1,0x00db8101,effect:0x4cc/0 effect:0x4cc/1 particle:?/2 particle:0x7f5a/0,refused,the native world does not start for this probe,none,variable request id (? = chosen at run time)
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,49,79,1,0x00db83de,particle:0x7f89/17,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,50,54,1,0x00db7709,particle:0x8022/0 particle:0x8022/3,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,50,70,1,0x00db7859,particle:0x7f89/15,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,50,71,1,0x00db7926,particle:0x7f89/15,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,50,72,1,0x00db79f3,particle:0x7f89/15 particle:0x7f89/15,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,50,73,1,0x00db7b51,particle:0x7f89/15,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,50,74,1,0x00db7c1e,particle:0x7f89/16,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,50,75,1,0x00db7cab,particle:0x7dea/0,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,50,76,1,0x00db7d79,particle:0x7dec/0 sprite:0x7ef7,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,50,77,1,0x00db7f3d,particle:0x7dec/0 sprite:0x7ef7,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,50,78,1,0x00db8101,effect:0x4cc/0 effect:0x4cc/1 particle:?/2 particle:0x7f5a/0,refused,the native world does not start for this probe,none,variable request id (? = chosen at run time)
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,50,79,1,0x00db83de,particle:0x7f89/17,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,98,54,1,0x00db7709,particle:0x8022/0 particle:0x8022/3,refused,the object runtime counts every draw unsupported (no native producer),observed,create unsupported; move unsupported
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,98,70,1,0x00db7859,particle:0x7f89/15,refused,the object runtime counts every draw unsupported (no native producer),observed,create unsupported; move unsupported
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,98,71,1,0x00db7926,particle:0x7f89/15,refused,the object runtime counts every draw unsupported (no native producer),observed,create unsupported; move unsupported
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,98,72,1,0x00db79f3,particle:0x7f89/15 particle:0x7f89/15,refused,the object runtime counts every draw unsupported (no native producer),observed,create unsupported; move unsupported
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,98,73,1,0x00db7b51,particle:0x7f89/15,refused,the object runtime counts every draw unsupported (no native producer),observed,create unsupported; move unsupported
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,98,74,1,0x00db7c1e,particle:0x7f89/16,refused,the object runtime counts every draw unsupported (no native producer),observed,create unsupported; move unsupported
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,98,75,1,0x00db7cab,particle:0x7dea/0,refused,the object runtime counts every draw unsupported (no native producer),observed,create unsupported; move unsupported
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,98,76,1,0x00db7d79,particle:0x7dec/0 sprite:0x7ef7,refused,the object runtime counts every draw unsupported (no native producer),observed,create unsupported; move unsupported
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,98,77,1,0x00db7f3d,particle:0x7dec/0 sprite:0x7ef7,refused,the object runtime counts every draw unsupported (no native producer),observed,create unsupported; move unsupported
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,98,78,1,0x00db8101,effect:0x4cc/0 effect:0x4cc/1 particle:?/2 particle:0x7f5a/0,refused,the object runtime counts every draw unsupported (no native producer),observed,create unsupported; move unsupported; variable request id (? = chosen at run time)
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,98,79,1,0x00db83de,particle:0x7f89/17,refused,the object runtime counts every draw unsupported (no native producer),observed,create unsupported; move unsupported
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,99,54,1,0x00db7709,particle:0x8022/0 particle:0x8022/3,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,99,70,1,0x00db7859,particle:0x7f89/15,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,99,71,1,0x00db7926,particle:0x7f89/15,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,99,72,1,0x00db79f3,particle:0x7f89/15 particle:0x7f89/15,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,99,73,1,0x00db7b51,particle:0x7f89/15,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,99,74,1,0x00db7c1e,particle:0x7f89/16,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,99,75,1,0x00db7cab,particle:0x7dea/0,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,99,76,1,0x00db7d79,particle:0x7dec/0 sprite:0x7ef7,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,99,77,1,0x00db7f3d,particle:0x7dec/0 sprite:0x7ef7,refused,the native world does not start for this probe,none,
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,99,78,1,0x00db8101,effect:0x4cc/0 effect:0x4cc/1 particle:?/2 particle:0x7f5a/0,refused,the native world does not start for this probe,none,variable request id (? = chosen at run time)
-chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,99,79,1,0x00db83de,particle:0x7f89/17,refused,the native world does not start for this probe,none,
-class world-95 (Debenter) slot +0x34,0x00dbd735,95,9,1,0x00dbd851,bone bone bone particle:0x7f5a/82 particle:0x7f5a/13 particle:0x8089/9 particle:0x8089/9 particle:0x8089/9 particle:0x8089/9,partial,"no consumer: particle 0x7f5a/82, particle 0x8089/9; probe: particle requests refused 167 of 40",observed,
-class world-95 (Debenter) slot +0x34,0x00dbd735,95,11,1,0x00dbdeea,bone particle:0x7f5a/83 particle:0x7f5a/13 particle:0x7efa/2 sprite:0x7ef7 particle:0x7f26/14,partial,no consumer: particle 0x7f5a/83; probe: particle requests refused 1 of 40,observed,
-class world-95 (Debenter) slot +0x34,0x00dbd735,95,21,1,0x00dbe1d2,bone sprite:0x8155 bone sprite:0x8155 bone particle:0x7f5a/81,partial,no consumer: particle 0x7f5a/81; probe: particle requests refused 40 of 40,observed,
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,45,54,1,0x00db7709,particle:0x8022/0 particle:0x8022/3,partial,"no consumer: particle 0x8022/0, particle 0x8022/3; probe (40 draws): 80 particle requests refused",observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,45,70,1,0x00db7859,particle:0x7f89/15,partial,no consumer: particle 0x7f89/15; probe (40 draws): 13 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,45,71,1,0x00db7926,particle:0x7f89/15,partial,no consumer: particle 0x7f89/15; probe (40 draws): 13 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,45,72,1,0x00db79f3,particle:0x7f89/15 particle:0x7f89/15,partial,no consumer: particle 0x7f89/15; probe (40 draws): 26 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,45,73,1,0x00db7b51,particle:0x7f89/15,partial,no consumer: particle 0x7f89/15; probe (40 draws): 13 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,45,74,1,0x00db7c1e,particle:0x7f89/16,drawn,,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,45,75,1,0x00db7cab,particle:0x7dea/0,partial,no consumer: particle 0x7dea/0; probe (40 draws): 1 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,45,76,1,0x00db7d79,particle:0x7dec/0 sprite:0x7ef7,partial,no consumer: particle 0x7dec/0; probe (40 draws): 40 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,45,77,1,0x00db7f3d,particle:0x7dec/0 sprite:0x7ef7,partial,no consumer: particle 0x7dec/0; probe (40 draws): 40 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,45,78,1,0x00db8101,effect:0x4cc/0 effect:0x4cc/1 particle:?/2 particle:0x7f5a/0,partial,"no consumer: effect 0x4cc/0, effect 0x4cc/1; probe (40 draws): 1 particle requests refused, 5 effect requests refused",observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported; variable request id (? = chosen at run time)
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,45,79,1,0x00db83de,particle:0x7f89/17,partial,no consumer: particle 0x7f89/17; probe (40 draws): 200 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,46,54,1,0x00db7709,particle:0x8022/0 particle:0x8022/3,partial,"no consumer: particle 0x8022/0, particle 0x8022/3; probe (40 draws): 80 particle requests refused",observed,create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,46,70,1,0x00db7859,particle:0x7f89/15,partial,no consumer: particle 0x7f89/15; probe (40 draws): 13 particle requests refused,observed,create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,46,71,1,0x00db7926,particle:0x7f89/15,partial,no consumer: particle 0x7f89/15; probe (40 draws): 13 particle requests refused,observed,create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,46,72,1,0x00db79f3,particle:0x7f89/15 particle:0x7f89/15,partial,no consumer: particle 0x7f89/15; probe (40 draws): 26 particle requests refused,observed,create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,46,73,1,0x00db7b51,particle:0x7f89/15,partial,no consumer: particle 0x7f89/15; probe (40 draws): 13 particle requests refused,observed,create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,46,74,1,0x00db7c1e,particle:0x7f89/16,drawn,,observed,create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,46,75,1,0x00db7cab,particle:0x7dea/0,partial,no consumer: particle 0x7dea/0; probe (40 draws): 1 particle requests refused,observed,create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,46,76,1,0x00db7d79,particle:0x7dec/0 sprite:0x7ef7,partial,no consumer: particle 0x7dec/0; probe (40 draws): 40 particle requests refused,observed,create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,46,77,1,0x00db7f3d,particle:0x7dec/0 sprite:0x7ef7,partial,no consumer: particle 0x7dec/0; probe (40 draws): 40 particle requests refused,observed,create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,46,78,1,0x00db8101,effect:0x4cc/0 effect:0x4cc/1 particle:?/2 particle:0x7f5a/0,partial,"no consumer: effect 0x4cc/0, effect 0x4cc/1; probe (40 draws): 1 particle requests refused, 5 effect requests refused",observed,create unsupported; move unsupported; variable request id (? = chosen at run time)
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,46,79,1,0x00db83de,particle:0x7f89/17,partial,no consumer: particle 0x7f89/17; probe (40 draws): 200 particle requests refused,observed,create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,47,54,1,0x00db7709,particle:0x8022/0 particle:0x8022/3,partial,"no consumer: particle 0x8022/0, particle 0x8022/3; probe (40 draws): 80 particle requests refused",observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,47,70,1,0x00db7859,particle:0x7f89/15,partial,no consumer: particle 0x7f89/15; probe (40 draws): 13 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,47,71,1,0x00db7926,particle:0x7f89/15,partial,no consumer: particle 0x7f89/15; probe (40 draws): 13 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,47,72,1,0x00db79f3,particle:0x7f89/15 particle:0x7f89/15,partial,no consumer: particle 0x7f89/15; probe (40 draws): 26 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,47,73,1,0x00db7b51,particle:0x7f89/15,partial,no consumer: particle 0x7f89/15; probe (40 draws): 13 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,47,74,1,0x00db7c1e,particle:0x7f89/16,drawn,,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,47,75,1,0x00db7cab,particle:0x7dea/0,partial,no consumer: particle 0x7dea/0; probe (40 draws): 1 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,47,76,1,0x00db7d79,particle:0x7dec/0 sprite:0x7ef7,partial,no consumer: particle 0x7dec/0; probe (40 draws): 40 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,47,77,1,0x00db7f3d,particle:0x7dec/0 sprite:0x7ef7,partial,no consumer: particle 0x7dec/0; probe (40 draws): 40 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,47,78,1,0x00db8101,effect:0x4cc/0 effect:0x4cc/1 particle:?/2 particle:0x7f5a/0,partial,"no consumer: effect 0x4cc/0, effect 0x4cc/1; probe (40 draws): 1 particle requests refused, 5 effect requests refused",observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported; variable request id (? = chosen at run time)
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,47,79,1,0x00db83de,particle:0x7f89/17,partial,no consumer: particle 0x7f89/17; probe (40 draws): 200 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,48,54,1,0x00db7709,particle:0x8022/0 particle:0x8022/3,partial,"no consumer: particle 0x8022/0, particle 0x8022/3; probe (40 draws): 80 particle requests refused",observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,48,70,1,0x00db7859,particle:0x7f89/15,partial,no consumer: particle 0x7f89/15; probe (40 draws): 13 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,48,71,1,0x00db7926,particle:0x7f89/15,partial,no consumer: particle 0x7f89/15; probe (40 draws): 13 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,48,72,1,0x00db79f3,particle:0x7f89/15 particle:0x7f89/15,partial,no consumer: particle 0x7f89/15; probe (40 draws): 26 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,48,73,1,0x00db7b51,particle:0x7f89/15,partial,no consumer: particle 0x7f89/15; probe (40 draws): 13 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,48,74,1,0x00db7c1e,particle:0x7f89/16,drawn,,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,48,75,1,0x00db7cab,particle:0x7dea/0,partial,no consumer: particle 0x7dea/0; probe (40 draws): 1 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,48,76,1,0x00db7d79,particle:0x7dec/0 sprite:0x7ef7,partial,no consumer: particle 0x7dec/0; probe (40 draws): 40 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,48,77,1,0x00db7f3d,particle:0x7dec/0 sprite:0x7ef7,partial,no consumer: particle 0x7dec/0; probe (40 draws): 40 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,48,78,1,0x00db8101,effect:0x4cc/0 effect:0x4cc/1 particle:?/2 particle:0x7f5a/0,partial,"no consumer: effect 0x4cc/0, effect 0x4cc/1; probe (40 draws): 1 particle requests refused, 5 effect requests refused",observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported; variable request id (? = chosen at run time)
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,48,79,1,0x00db83de,particle:0x7f89/17,partial,no consumer: particle 0x7f89/17; probe (40 draws): 200 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,49,54,1,0x00db7709,particle:0x8022/0 particle:0x8022/3,partial,"no consumer: particle 0x8022/0, particle 0x8022/3; probe (40 draws): 80 particle requests refused",observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,49,70,1,0x00db7859,particle:0x7f89/15,partial,no consumer: particle 0x7f89/15; probe (40 draws): 13 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,49,71,1,0x00db7926,particle:0x7f89/15,partial,no consumer: particle 0x7f89/15; probe (40 draws): 13 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,49,72,1,0x00db79f3,particle:0x7f89/15 particle:0x7f89/15,partial,no consumer: particle 0x7f89/15; probe (40 draws): 26 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,49,73,1,0x00db7b51,particle:0x7f89/15,partial,no consumer: particle 0x7f89/15; probe (40 draws): 13 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,49,74,1,0x00db7c1e,particle:0x7f89/16,drawn,,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,49,75,1,0x00db7cab,particle:0x7dea/0,partial,no consumer: particle 0x7dea/0; probe (40 draws): 1 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,49,76,1,0x00db7d79,particle:0x7dec/0 sprite:0x7ef7,partial,no consumer: particle 0x7dec/0; probe (40 draws): 40 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,49,77,1,0x00db7f3d,particle:0x7dec/0 sprite:0x7ef7,partial,no consumer: particle 0x7dec/0; probe (40 draws): 40 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,49,78,1,0x00db8101,effect:0x4cc/0 effect:0x4cc/1 particle:?/2 particle:0x7f5a/0,partial,"no consumer: effect 0x4cc/0, effect 0x4cc/1; probe (40 draws): 1 particle requests refused, 5 effect requests refused",observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported; variable request id (? = chosen at run time)
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,49,79,1,0x00db83de,particle:0x7f89/17,partial,no consumer: particle 0x7f89/17; probe (40 draws): 200 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,50,54,1,0x00db7709,particle:0x8022/0 particle:0x8022/3,partial,"no consumer: particle 0x8022/0, particle 0x8022/3; probe (40 draws): 80 particle requests refused",observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,50,70,1,0x00db7859,particle:0x7f89/15,partial,no consumer: particle 0x7f89/15; probe (40 draws): 13 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,50,71,1,0x00db7926,particle:0x7f89/15,partial,no consumer: particle 0x7f89/15; probe (40 draws): 13 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,50,72,1,0x00db79f3,particle:0x7f89/15 particle:0x7f89/15,partial,no consumer: particle 0x7f89/15; probe (40 draws): 26 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,50,73,1,0x00db7b51,particle:0x7f89/15,partial,no consumer: particle 0x7f89/15; probe (40 draws): 13 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,50,74,1,0x00db7c1e,particle:0x7f89/16,drawn,,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,50,75,1,0x00db7cab,particle:0x7dea/0,partial,no consumer: particle 0x7dea/0; probe (40 draws): 1 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,50,76,1,0x00db7d79,particle:0x7dec/0 sprite:0x7ef7,partial,no consumer: particle 0x7dec/0; probe (40 draws): 40 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,50,77,1,0x00db7f3d,particle:0x7dec/0 sprite:0x7ef7,partial,no consumer: particle 0x7dec/0; probe (40 draws): 40 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,50,78,1,0x00db8101,effect:0x4cc/0 effect:0x4cc/1 particle:?/2 particle:0x7f5a/0,partial,"no consumer: effect 0x4cc/0, effect 0x4cc/1; probe (40 draws): 1 particle requests refused, 5 effect requests refused",observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported; variable request id (? = chosen at run time)
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,50,79,1,0x00db83de,particle:0x7f89/17,partial,no consumer: particle 0x7f89/17; probe (40 draws): 200 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,98,54,1,0x00db7709,particle:0x8022/0 particle:0x8022/3,partial,"no consumer: particle 0x8022/0, particle 0x8022/3; probe (40 draws): 80 particle requests refused",observed,create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,98,70,1,0x00db7859,particle:0x7f89/15,partial,no consumer: particle 0x7f89/15; probe (40 draws): 13 particle requests refused,observed,create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,98,71,1,0x00db7926,particle:0x7f89/15,partial,no consumer: particle 0x7f89/15; probe (40 draws): 13 particle requests refused,observed,create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,98,72,1,0x00db79f3,particle:0x7f89/15 particle:0x7f89/15,partial,no consumer: particle 0x7f89/15; probe (40 draws): 26 particle requests refused,observed,create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,98,73,1,0x00db7b51,particle:0x7f89/15,partial,no consumer: particle 0x7f89/15; probe (40 draws): 13 particle requests refused,observed,create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,98,74,1,0x00db7c1e,particle:0x7f89/16,drawn,,observed,create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,98,75,1,0x00db7cab,particle:0x7dea/0,partial,no consumer: particle 0x7dea/0; probe (40 draws): 1 particle requests refused,observed,create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,98,76,1,0x00db7d79,particle:0x7dec/0 sprite:0x7ef7,partial,no consumer: particle 0x7dec/0; probe (40 draws): 40 particle requests refused,observed,create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,98,77,1,0x00db7f3d,particle:0x7dec/0 sprite:0x7ef7,partial,no consumer: particle 0x7dec/0; probe (40 draws): 40 particle requests refused,observed,create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,98,78,1,0x00db8101,effect:0x4cc/0 effect:0x4cc/1 particle:?/2 particle:0x7f5a/0,partial,"no consumer: effect 0x4cc/0, effect 0x4cc/1; probe (40 draws): 1 particle requests refused, 5 effect requests refused",observed,create unsupported; move unsupported; variable request id (? = chosen at run time)
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,98,79,1,0x00db83de,particle:0x7f89/17,partial,no consumer: particle 0x7f89/17; probe (40 draws): 200 particle requests refused,observed,create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,99,54,1,0x00db7709,particle:0x8022/0 particle:0x8022/3,partial,"no consumer: particle 0x8022/0, particle 0x8022/3; probe (40 draws): 80 particle requests refused",observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,99,70,1,0x00db7859,particle:0x7f89/15,partial,no consumer: particle 0x7f89/15; probe (40 draws): 13 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,99,71,1,0x00db7926,particle:0x7f89/15,partial,no consumer: particle 0x7f89/15; probe (40 draws): 13 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,99,72,1,0x00db79f3,particle:0x7f89/15 particle:0x7f89/15,partial,no consumer: particle 0x7f89/15; probe (40 draws): 26 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,99,73,1,0x00db7b51,particle:0x7f89/15,partial,no consumer: particle 0x7f89/15; probe (40 draws): 13 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,99,74,1,0x00db7c1e,particle:0x7f89/16,drawn,,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,99,75,1,0x00db7cab,particle:0x7dea/0,partial,no consumer: particle 0x7dea/0; probe (40 draws): 1 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,99,76,1,0x00db7d79,particle:0x7dec/0 sprite:0x7ef7,partial,no consumer: particle 0x7dec/0; probe (40 draws): 40 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,99,77,1,0x00db7f3d,particle:0x7dec/0 sprite:0x7ef7,partial,no consumer: particle 0x7dec/0; probe (40 draws): 40 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,99,78,1,0x00db8101,effect:0x4cc/0 effect:0x4cc/1 particle:?/2 particle:0x7f5a/0,partial,"no consumer: effect 0x4cc/0, effect 0x4cc/1; probe (40 draws): 1 particle requests refused, 5 effect requests refused",observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported; variable request id (? = chosen at run time)
+chain 11: singleton 0x01ec9118 slot +0x34,0x00db7656,99,79,1,0x00db83de,particle:0x7f89/17,partial,no consumer: particle 0x7f89/17; probe (40 draws): 200 particle requests refused,observed,probed in world 46 (same case; this world has no terrain in the installed data); create unsupported; move unsupported
+class world-95 (Debenter) slot +0x34,0x00dbd735,95,9,1,0x00dbd851,bone bone bone particle:0x7f5a/82 particle:0x7f5a/13 particle:0x8089/9 particle:0x8089/9 particle:0x8089/9 particle:0x8089/9,partial,"no consumer: particle 0x7f5a/82, particle 0x8089/9; probe (40 draws): 167 particle requests refused",observed,
+class world-95 (Debenter) slot +0x34,0x00dbd735,95,11,1,0x00dbdeea,bone particle:0x7f5a/83 particle:0x7f5a/13 particle:0x7efa/2 sprite:0x7ef7 particle:0x7f26/14,partial,no consumer: particle 0x7f5a/83; probe (40 draws): 1 particle requests refused,observed,
+class world-95 (Debenter) slot +0x34,0x00dbd735,95,21,1,0x00dbe1d2,bone sprite:0x8155 bone sprite:0x8155 bone particle:0x7f5a/81,partial,no consumer: particle 0x7f5a/81; probe (40 draws): 40 particle requests refused,observed,
 class world-95 (Debenter) slot +0x34,0x00dbd735,95,"27,31",2,0x00dbdcdb,bone sprite:0x7f6b sprite:0x7f6b,drawn,,observed,
-class world-95 (Debenter) slot +0x34,0x00dbd735,95,56,1,0x00dbe39b,particle:0x7f5a/33,partial,no consumer: particle 0x7f5a/33; probe: particle requests refused 3 of 40,observed,
-class world-95 (Debenter) slot +0x34,0x00dbd735,95,57,1,0x00dbe4c6,particle:0x7f89/9,partial,no consumer: particle 0x7f89/9; probe: particle requests refused 7 of 40,observed,
-class world-95 (Debenter) slot +0x34,0x00dbd735,95,58,1,0x00dbe560,particle:0x7f89/24,partial,no consumer: particle 0x7f89/24; probe: particle requests refused 9 of 40,observed,
-class world-95 (Debenter) slot +0x34,0x00dbd735,95,59,1,0x00dbe62d,particle:0x7f89/24,partial,no consumer: particle 0x7f89/24; probe: particle requests refused 9 of 40,observed,
-class world-95 (Debenter) slot +0x34,0x00dbd735,95,60,1,0x00dbd847,particle:0x7f89/24 particle:0x7f89/24,partial,no consumer: particle 0x7f89/24; probe: particle requests refused 18 of 40,observed,
-class world-95 (Debenter) slot +0x34,0x00dbd735,95,61,1,0x00dbd847,particle:0x7f89/24,partial,no consumer: particle 0x7f89/24; probe: particle requests refused 9 of 40,observed,
-class world-95 (Debenter) slot +0x34,0x00dbd735,95,62,1,0x00dbd847,particle:0x7dea/0,partial,no consumer: particle 0x7dea/0; probe: particle requests refused 1 of 40,observed,
-class world-95 (Debenter) slot +0x34,0x00dbd735,95,63,1,0x00dbd847,particle:0x8089/9 particle:0x8089/9,partial,no consumer: particle 0x8089/9; probe: particle requests refused 80 of 40,observed,
-class world-95 (Debenter) slot +0x34,0x00dbd735,95,64,1,0x00dbd847,particle:0x7f5a/83,partial,no consumer: particle 0x7f5a/83; probe: particle requests refused 2 of 40,observed,
+class world-95 (Debenter) slot +0x34,0x00dbd735,95,56,1,0x00dbe39b,particle:0x7f5a/33,partial,no consumer: particle 0x7f5a/33; probe (40 draws): 3 particle requests refused,observed,
+class world-95 (Debenter) slot +0x34,0x00dbd735,95,57,1,0x00dbe4c6,particle:0x7f89/9,partial,no consumer: particle 0x7f89/9; probe (40 draws): 7 particle requests refused,observed,
+class world-95 (Debenter) slot +0x34,0x00dbd735,95,58,1,0x00dbe560,particle:0x7f89/24,partial,no consumer: particle 0x7f89/24; probe (40 draws): 9 particle requests refused,observed,
+class world-95 (Debenter) slot +0x34,0x00dbd735,95,59,1,0x00dbe62d,particle:0x7f89/24,partial,no consumer: particle 0x7f89/24; probe (40 draws): 9 particle requests refused,observed,
+class world-95 (Debenter) slot +0x34,0x00dbd735,95,60,1,0x00dbd847,particle:0x7f89/24 particle:0x7f89/24,partial,no consumer: particle 0x7f89/24; probe (40 draws): 18 particle requests refused,observed,
+class world-95 (Debenter) slot +0x34,0x00dbd735,95,61,1,0x00dbd847,particle:0x7f89/24,partial,no consumer: particle 0x7f89/24; probe (40 draws): 9 particle requests refused,observed,
+class world-95 (Debenter) slot +0x34,0x00dbd735,95,62,1,0x00dbd847,particle:0x7dea/0,partial,no consumer: particle 0x7dea/0; probe (40 draws): 1 particle requests refused,observed,
+class world-95 (Debenter) slot +0x34,0x00dbd735,95,63,1,0x00dbd847,particle:0x8089/9 particle:0x8089/9,partial,no consumer: particle 0x8089/9; probe (40 draws): 80 particle requests refused,observed,
+class world-95 (Debenter) slot +0x34,0x00dbd735,95,64,1,0x00dbd847,particle:0x7f5a/83,partial,no consumer: particle 0x7f5a/83; probe (40 draws): 2 particle requests refused,observed,
 class world-95 (Debenter) slot +0x34,0x00dbd735,95,65,1,0x00dbd847,effect:0x199/0,drawn,,observed,
-class world-95 (Debenter) slot +0x34,0x00dbd735,95,66,1,0x00dbd847,particle:0x7f89/24,partial,no consumer: particle 0x7f89/24; probe: particle requests refused 9 of 40,observed,
-class world-95 (Debenter) slot +0x34,0x00dbd735,95,67,1,0x00dbd847,particle:?/8,partial,probe: particle requests refused 19 of 40,observed,variable request id (? = chosen at run time)
+class world-95 (Debenter) slot +0x34,0x00dbd735,95,66,1,0x00dbd847,particle:0x7f89/24,partial,no consumer: particle 0x7f89/24; probe (40 draws): 9 particle requests refused,observed,
+class world-95 (Debenter) slot +0x34,0x00dbd735,95,67,1,0x00dbd847,particle:?/8,partial,probe (40 draws): 19 particle requests refused,observed,variable request id (? = chosen at run time)
 class world-64 (Duel Arena) slot +0x34,0x00dc6790,64,35,1,0x00dc67c9,particle:0x7f5a/22,drawn,,observed,
 class world-64 (Duel Arena) slot +0x34,0x00dc6790,64,36,1,0x00dc6863,sprite:0x7ef7 particle:0x8084/0 particle:0x806e/4 particle:0x8085/0,drawn,,observed,
 class world-69 (World 69 class) slot +0x34,0x00dc73d0,69,12,1,0x00dc7538,bone sprite:0x7f6b sprite:0x7f6b bone sprite:0x7f6b sprite:0x7f6b,drawn,,observed,
-class world-69 (World 69 class) slot +0x34,0x00dc73d0,69,20,1,0x00dc7803,joint:0x7fd5/5 particle:0x7f25/11 joint:0x7fd5/5 particle:0x7f25/11,partial,no consumer: particle 0x7f25/11; probe: particle requests refused 4 of 40,observed,
+class world-69 (World 69 class) slot +0x34,0x00dc73d0,69,20,1,0x00dc7803,joint:0x7fd5/5 particle:0x7f25/11 joint:0x7fd5/5 particle:0x7f25/11,partial,no consumer: particle 0x7f25/11; probe (40 draws): 4 particle requests refused,observed,
 class world-69 (World 69 class) slot +0x34,0x00dc73d0,69,37,1,0x00dc7a8d,bone sprite:0x7f78,drawn,,observed,
 class world-69 (World 69 class) slot +0x34,0x00dc73d0,69,50,1,0x00dc7bbf,bone particle:0x8089/4 particle:0x8089/4,refused,the object runtime counts every draw unsupported,observed,
 class world-69 (World 69 class) slot +0x34,0x00dc73d0,69,51,1,0x00dc7dba,joint:0x7fd5/5 particle:0x7f25/11,partial,no consumer: particle 0x7f25/11,source,
-class world-69 (World 69 class) slot +0x34,0x00dc73d0,69,64,1,0x00dc7f06,particle:0x7f89/22,partial,no consumer: particle 0x7f89/22; probe: particle requests refused 12 of 40,observed,
+class world-69 (World 69 class) slot +0x34,0x00dc73d0,69,64,1,0x00dc7f06,particle:0x7f89/22,partial,no consumer: particle 0x7f89/22; probe (40 draws): 12 particle requests refused,observed,
 class world-69 (World 69 class) slot +0x34,0x00dc73d0,69,79,1,0x00dc8136,sprite:0x7ef7 particle:0x8084/0 particle:0x806e/4 particle:0x8085/0,drawn,,observed,
 class world-69 (World 69 class) slot +0x34,0x00dc73d0,69,80,1,0x00dc8323,sprite:0x7ef7,drawn,,observed,
-class world-69 (World 69 class) slot +0x34,0x00dc73d0,69,82,1,0x00dc8416,particle:0x801e/9,partial,no consumer: particle 0x801e/9; probe: particle requests refused 40 of 40,observed,
+class world-69 (World 69 class) slot +0x34,0x00dc73d0,69,82,1,0x00dc8416,particle:0x801e/9,partial,no consumer: particle 0x801e/9; probe (40 draws): 40 particle requests refused,observed,
 class world-69 (World 69 class) slot +0x34,0x00dc73d0,69,83,1,0x00dc8463,particle:0x801c/14,drawn,,observed,
 class world-69 (World 69 class) slot +0x34,0x00dc73d0,69,84,1,0x00dc84eb,particle:0x801b/4,drawn,,observed,
 class world-69 (World 69 class) slot +0x34,0x00dc73d0,69,85,1,0x00dc8588,effect:0x7f42/6,drawn,,observed,request list may be incomplete (walk cut at the step limit)
-class world-69 (World 69 class) slot +0x34,0x00dc73d0,69,86,1,0x00dc868e,particle:0x7f89/21,partial,no consumer: particle 0x7f89/21; probe: particle requests refused 7 of 40,observed,
-class world-69 (World 69 class) slot +0x34,0x00dc73d0,69,129,1,0x00dc872a,particle:0x7f89/21,partial,no consumer: particle 0x7f89/21; probe: particle requests refused 7 of 40,observed,
-class world-69 (World 69 class) slot +0x34,0x00dc73d0,69,130,1,0x00dc87c6,particle:0x7f89/21,partial,no consumer: particle 0x7f89/21; probe: particle requests refused 7 of 40,observed,
+class world-69 (World 69 class) slot +0x34,0x00dc73d0,69,86,1,0x00dc868e,particle:0x7f89/21,partial,no consumer: particle 0x7f89/21; probe (40 draws): 7 particle requests refused,observed,
+class world-69 (World 69 class) slot +0x34,0x00dc73d0,69,129,1,0x00dc872a,particle:0x7f89/21,partial,no consumer: particle 0x7f89/21; probe (40 draws): 7 particle requests refused,observed,
+class world-69 (World 69 class) slot +0x34,0x00dc73d0,69,130,1,0x00dc87c6,particle:0x7f89/21,partial,no consumer: particle 0x7f89/21; probe (40 draws): 7 particle requests refused,observed,
 class world-69 (World 69 class) slot +0x34,0x00dc73d0,69,131,1,0x00dc8862,particle:0x7f5a/22 particle:0x7f5a/21,drawn,,observed,
-class world-69 (World 69 class) slot +0x34,0x00dc73d0,69,132,1,0x00dc8987,particle:0x7f5a/60 particle:0x7f5a/60 particle:0x7f5a/21,partial,no consumer: particle 0x7f5a/60; probe: particle requests refused 32 of 40,observed,
+class world-69 (World 69 class) slot +0x34,0x00dc73d0,69,132,1,0x00dc8987,particle:0x7f5a/60 particle:0x7f5a/60 particle:0x7f5a/21,partial,no consumer: particle 0x7f5a/60; probe (40 draws): 32 particle requests refused,observed,
 class world-70 (World 70 class) slot +0x34,0x00dd4097,70,12,1,0x00dd41ff,bone sprite:0x7f6b sprite:0x7f6b bone sprite:0x7f6b sprite:0x7f6b,drawn,,observed,
-class world-70 (World 70 class) slot +0x34,0x00dd4097,70,20,1,0x00dd44ca,joint:0x7fd5/5 particle:0x7f25/11 joint:0x7fd5/5 particle:0x7f25/11,partial,no consumer: particle 0x7f25/11; probe: particle requests refused 4 of 40,observed,
+class world-70 (World 70 class) slot +0x34,0x00dd4097,70,20,1,0x00dd44ca,joint:0x7fd5/5 particle:0x7f25/11 joint:0x7fd5/5 particle:0x7f25/11,partial,no consumer: particle 0x7f25/11; probe (40 draws): 4 particle requests refused,observed,
 class world-70 (World 70 class) slot +0x34,0x00dd4097,70,37,1,0x00dd4754,bone sprite:0x7f78,drawn,,observed,
 class world-70 (World 70 class) slot +0x34,0x00dd4097,70,50,1,0x00dd4886,bone particle:0x8089/4 particle:0x8089/4,refused,the object runtime counts every draw unsupported,observed,
 class world-70 (World 70 class) slot +0x34,0x00dd4097,70,51,1,0x00dd4a81,joint:0x7fd5/5 particle:0x7f25/11,partial,no consumer: particle 0x7f25/11,source,
-class world-70 (World 70 class) slot +0x34,0x00dd4097,70,64,1,0x00dd4bcd,particle:0x7f89/22,partial,no consumer: particle 0x7f89/22; probe: particle requests refused 12 of 40,observed,
+class world-70 (World 70 class) slot +0x34,0x00dd4097,70,64,1,0x00dd4bcd,particle:0x7f89/22,partial,no consumer: particle 0x7f89/22; probe (40 draws): 12 particle requests refused,observed,
 class world-70 (World 70 class) slot +0x34,0x00dd4097,70,79,1,0x00dd4dfd,sprite:0x7ef7 particle:0x8084/0 particle:0x806e/4 particle:0x8085/0,drawn,,observed,
 class world-70 (World 70 class) slot +0x34,0x00dd4097,70,80,1,0x00dd4fea,sprite:0x7ef7,drawn,,observed,
-class world-70 (World 70 class) slot +0x34,0x00dd4097,70,82,1,0x00dd50dd,particle:0x801e/9,partial,no consumer: particle 0x801e/9; probe: particle requests refused 40 of 40,observed,
+class world-70 (World 70 class) slot +0x34,0x00dd4097,70,82,1,0x00dd50dd,particle:0x801e/9,partial,no consumer: particle 0x801e/9; probe (40 draws): 40 particle requests refused,observed,
 class world-70 (World 70 class) slot +0x34,0x00dd4097,70,83,1,0x00dd512a,particle:0x801c/14,drawn,,observed,
 class world-70 (World 70 class) slot +0x34,0x00dd4097,70,84,1,0x00dd51b2,particle:0x801b/4,drawn,,observed,
 class world-70 (World 70 class) slot +0x34,0x00dd4097,70,85,1,0x00dd524f,effect:0x7f42/6,drawn,,observed,request list may be incomplete (walk cut at the step limit)
-class world-70 (World 70 class) slot +0x34,0x00dd4097,70,86,1,0x00dd5355,particle:0x7f89/21,partial,no consumer: particle 0x7f89/21; probe: particle requests refused 7 of 40,observed,
-class world-70 (World 70 class) slot +0x34,0x00dd4097,70,129,1,0x00dd53f1,particle:0x7f89/21,partial,no consumer: particle 0x7f89/21; probe: particle requests refused 7 of 40,observed,
-class world-70 (World 70 class) slot +0x34,0x00dd4097,70,130,1,0x00dd548d,particle:0x7f89/21,partial,no consumer: particle 0x7f89/21; probe: particle requests refused 7 of 40,observed,
+class world-70 (World 70 class) slot +0x34,0x00dd4097,70,86,1,0x00dd5355,particle:0x7f89/21,partial,no consumer: particle 0x7f89/21; probe (40 draws): 7 particle requests refused,observed,
+class world-70 (World 70 class) slot +0x34,0x00dd4097,70,129,1,0x00dd53f1,particle:0x7f89/21,partial,no consumer: particle 0x7f89/21; probe (40 draws): 7 particle requests refused,observed,
+class world-70 (World 70 class) slot +0x34,0x00dd4097,70,130,1,0x00dd548d,particle:0x7f89/21,partial,no consumer: particle 0x7f89/21; probe (40 draws): 7 particle requests refused,observed,
 class world-70 (World 70 class) slot +0x34,0x00dd4097,70,131,1,0x00dd5529,particle:0x7f5a/22 particle:0x7f5a/21,drawn,,observed,
-class world-70 (World 70 class) slot +0x34,0x00dd4097,70,132,1,0x00dd564e,particle:0x7f5a/60 particle:0x7f5a/60 particle:0x7f5a/21,partial,no consumer: particle 0x7f5a/60; probe: particle requests refused 32 of 40,observed,
+class world-70 (World 70 class) slot +0x34,0x00dd4097,70,132,1,0x00dd564e,particle:0x7f5a/60 particle:0x7f5a/60 particle:0x7f5a/21,partial,no consumer: particle 0x7f5a/60; probe (40 draws): 32 particle requests refused,observed,
 class world-71 (World 71 class) slot +0x34,0x00dd9192,71,12,1,0x00dd92fa,bone sprite:0x7f6b sprite:0x7f6b bone sprite:0x7f6b sprite:0x7f6b,drawn,,observed,
-class world-71 (World 71 class) slot +0x34,0x00dd9192,71,20,1,0x00dd95c5,joint:0x7fd5/5 particle:0x7f25/11 joint:0x7fd5/5 particle:0x7f25/11,partial,no consumer: particle 0x7f25/11; probe: particle requests refused 4 of 40,observed,
+class world-71 (World 71 class) slot +0x34,0x00dd9192,71,20,1,0x00dd95c5,joint:0x7fd5/5 particle:0x7f25/11 joint:0x7fd5/5 particle:0x7f25/11,partial,no consumer: particle 0x7f25/11; probe (40 draws): 4 particle requests refused,observed,
 class world-71 (World 71 class) slot +0x34,0x00dd9192,71,37,1,0x00dd984f,bone sprite:0x7f78,drawn,,observed,
 class world-71 (World 71 class) slot +0x34,0x00dd9192,71,50,1,0x00dd9981,bone particle:0x8089/4 particle:0x8089/4,refused,the object runtime counts every draw unsupported,observed,
 class world-71 (World 71 class) slot +0x34,0x00dd9192,71,51,1,0x00dd9b7c,joint:0x7fd5/5 particle:0x7f25/11,partial,no consumer: particle 0x7f25/11,source,
-class world-71 (World 71 class) slot +0x34,0x00dd9192,71,64,1,0x00dd9cc8,particle:0x7f89/22,partial,no consumer: particle 0x7f89/22; probe: particle requests refused 12 of 40,observed,
+class world-71 (World 71 class) slot +0x34,0x00dd9192,71,64,1,0x00dd9cc8,particle:0x7f89/22,partial,no consumer: particle 0x7f89/22; probe (40 draws): 12 particle requests refused,observed,
 class world-71 (World 71 class) slot +0x34,0x00dd9192,71,79,1,0x00dd9ef8,sprite:0x7ef7 particle:0x8084/0 particle:0x806e/4 particle:0x8085/0,drawn,,observed,
 class world-71 (World 71 class) slot +0x34,0x00dd9192,71,80,1,0x00dda0e5,sprite:0x7ef7,drawn,,observed,
-class world-71 (World 71 class) slot +0x34,0x00dd9192,71,82,1,0x00dda1d8,particle:0x801e/9,partial,no consumer: particle 0x801e/9; probe: particle requests refused 40 of 40,observed,
+class world-71 (World 71 class) slot +0x34,0x00dd9192,71,82,1,0x00dda1d8,particle:0x801e/9,partial,no consumer: particle 0x801e/9; probe (40 draws): 40 particle requests refused,observed,
 class world-71 (World 71 class) slot +0x34,0x00dd9192,71,83,1,0x00dda225,particle:0x801c/14,drawn,,observed,
 class world-71 (World 71 class) slot +0x34,0x00dd9192,71,84,1,0x00dda2ad,particle:0x801b/4,drawn,,observed,
 class world-71 (World 71 class) slot +0x34,0x00dd9192,71,85,1,0x00dda34a,effect:0x7f42/6,drawn,,observed,request list may be incomplete (walk cut at the step limit)
-class world-71 (World 71 class) slot +0x34,0x00dd9192,71,86,1,0x00dda450,particle:0x7f89/21,partial,no consumer: particle 0x7f89/21; probe: particle requests refused 7 of 40,observed,
-class world-71 (World 71 class) slot +0x34,0x00dd9192,71,129,1,0x00dda4ec,particle:0x7f89/21,partial,no consumer: particle 0x7f89/21; probe: particle requests refused 7 of 40,observed,
-class world-71 (World 71 class) slot +0x34,0x00dd9192,71,130,1,0x00dda588,particle:0x7f89/21,partial,no consumer: particle 0x7f89/21; probe: particle requests refused 7 of 40,observed,
+class world-71 (World 71 class) slot +0x34,0x00dd9192,71,86,1,0x00dda450,particle:0x7f89/21,partial,no consumer: particle 0x7f89/21; probe (40 draws): 7 particle requests refused,observed,
+class world-71 (World 71 class) slot +0x34,0x00dd9192,71,129,1,0x00dda4ec,particle:0x7f89/21,partial,no consumer: particle 0x7f89/21; probe (40 draws): 7 particle requests refused,observed,
+class world-71 (World 71 class) slot +0x34,0x00dd9192,71,130,1,0x00dda588,particle:0x7f89/21,partial,no consumer: particle 0x7f89/21; probe (40 draws): 7 particle requests refused,observed,
 class world-71 (World 71 class) slot +0x34,0x00dd9192,71,131,1,0x00dda624,particle:0x7f5a/22 particle:0x7f5a/21,drawn,,observed,
-class world-71 (World 71 class) slot +0x34,0x00dd9192,71,132,1,0x00dda749,particle:0x7f5a/60 particle:0x7f5a/60 particle:0x7f5a/21,partial,no consumer: particle 0x7f5a/60; probe: particle requests refused 32 of 40,observed,
+class world-71 (World 71 class) slot +0x34,0x00dd9192,71,132,1,0x00dda749,particle:0x7f5a/60 particle:0x7f5a/60 particle:0x7f5a/21,partial,no consumer: particle 0x7f5a/60; probe (40 draws): 32 particle requests refused,observed,
 class world-72 (World 72 class) slot +0x34,0x00ddee5e,72,12,1,0x00ddefdf,bone sprite:0x7f6b sprite:0x7f6b bone sprite:0x7f6b sprite:0x7f6b,refused,no model file for the type in the world's object folder (dead in the installed data),none,
-class world-72 (World 72 class) slot +0x34,0x00ddee5e,72,20,1,0x00ddf2b0,joint:0x7fd5/5 particle:0x7f25/11 joint:0x7fd5/5 particle:0x7f25/11,partial,no consumer: particle 0x7f25/11; probe: particle requests refused 4 of 40,observed,
+class world-72 (World 72 class) slot +0x34,0x00ddee5e,72,20,1,0x00ddf2b0,joint:0x7fd5/5 particle:0x7f25/11 joint:0x7fd5/5 particle:0x7f25/11,partial,no consumer: particle 0x7f25/11; probe (40 draws): 4 particle requests refused,observed,
 class world-72 (World 72 class) slot +0x34,0x00ddee5e,72,37,1,0x00ddf53a,bone sprite:0x7f78,drawn,,observed,
 class world-72 (World 72 class) slot +0x34,0x00ddee5e,72,50,1,0x00ddf67e,bone particle:0x8089/4 particle:0x8089/4,refused,the object runtime counts every draw unsupported,observed,
-class world-72 (World 72 class) slot +0x34,0x00ddee5e,72,64,1,0x00ddf879,particle:0x7f89/22,partial,no consumer: particle 0x7f89/22; probe: particle requests refused 12 of 40,observed,
+class world-72 (World 72 class) slot +0x34,0x00ddee5e,72,64,1,0x00ddf879,particle:0x7f89/22,partial,no consumer: particle 0x7f89/22; probe (40 draws): 12 particle requests refused,observed,
 class world-72 (World 72 class) slot +0x34,0x00ddee5e,72,79,1,0x00ddfaa9,sprite:0x7ef7 particle:0x8084/0 particle:0x806e/4 particle:0x8085/0,drawn,,observed,
 class world-72 (World 72 class) slot +0x34,0x00ddee5e,72,80,1,0x00ddfc96,sprite:0x7ef7,refused,no model file for the type in the world's object folder (dead in the installed data),none,
-class world-72 (World 72 class) slot +0x34,0x00ddee5e,72,82,1,0x00ddfd8f,particle:0x801e/9,partial,no consumer: particle 0x801e/9; probe: particle requests refused 40 of 40,observed,
+class world-72 (World 72 class) slot +0x34,0x00ddee5e,72,82,1,0x00ddfd8f,particle:0x801e/9,partial,no consumer: particle 0x801e/9; probe (40 draws): 40 particle requests refused,observed,
 class world-72 (World 72 class) slot +0x34,0x00ddee5e,72,83,1,0x00ddfddc,particle:0x801c/14,drawn,,observed,
 class world-72 (World 72 class) slot +0x34,0x00ddee5e,72,84,1,0x00ddfe64,particle:0x801b/4,refused,no model file for the type in the world's object folder (dead in the installed data),none,
 class world-72 (World 72 class) slot +0x34,0x00ddee5e,72,85,1,0x00ddff01,effect:0x7f42/6,drawn,,observed,request list may be incomplete (walk cut at the step limit)
-class world-72 (World 72 class) slot +0x34,0x00ddee5e,72,86,1,0x00de000d,particle:0x7f89/21,partial,no consumer: particle 0x7f89/21; probe: particle requests refused 7 of 40,observed,
-class world-72 (World 72 class) slot +0x34,0x00ddee5e,72,129,1,0x00de00a9,particle:0x7f89/21,partial,no consumer: particle 0x7f89/21; probe: particle requests refused 7 of 40,observed,
-class world-72 (World 72 class) slot +0x34,0x00ddee5e,72,130,1,0x00de0145,particle:0x7f89/21,partial,no consumer: particle 0x7f89/21; probe: particle requests refused 7 of 40,observed,
+class world-72 (World 72 class) slot +0x34,0x00ddee5e,72,86,1,0x00de000d,particle:0x7f89/21,partial,no consumer: particle 0x7f89/21; probe (40 draws): 7 particle requests refused,observed,
+class world-72 (World 72 class) slot +0x34,0x00ddee5e,72,129,1,0x00de00a9,particle:0x7f89/21,partial,no consumer: particle 0x7f89/21; probe (40 draws): 7 particle requests refused,observed,
+class world-72 (World 72 class) slot +0x34,0x00ddee5e,72,130,1,0x00de0145,particle:0x7f89/21,partial,no consumer: particle 0x7f89/21; probe (40 draws): 7 particle requests refused,observed,
 class world-72 (World 72 class) slot +0x34,0x00ddee5e,72,131,1,0x00de01e1,particle:0x7f5a/22 particle:0x7f5a/21,drawn,,observed,
 class world-72 (World 72 class) slot +0x34,0x00ddee5e,72,132,1,0x00de0306,particle:0x7f5a/60 particle:0x7f5a/60 particle:0x7f5a/21,refused,no model file for the type in the world's object folder (dead in the installed data),none,
-class world-72 (World 72 class) slot +0x34,0x00ddee5e,72,157,1,0x00de04ae,bone particle:0x8089/3 particle:0x8089/3 bone particle:0x7f5a/65,partial,"no consumer: particle 0x7f5a/65, particle 0x8089/3; probe: particle requests refused 1680 of 40",observed,
-class world-72 (World 72 class) slot +0x34,0x00ddee5e,72,158,1,0x00de0878,particle:0x7f5a/64,partial,no consumer: particle 0x7f5a/64; probe: particle requests refused 40 of 40,observed,
+class world-72 (World 72 class) slot +0x34,0x00ddee5e,72,157,1,0x00de04ae,bone particle:0x8089/3 particle:0x8089/3 bone particle:0x7f5a/65,partial,"no consumer: particle 0x7f5a/65, particle 0x8089/3; probe (40 draws): 1680 particle requests refused",observed,
+class world-72 (World 72 class) slot +0x34,0x00ddee5e,72,158,1,0x00de0878,particle:0x7f5a/64,partial,no consumer: particle 0x7f5a/64; probe (40 draws): 40 particle requests refused,observed,
 class world-112 (World 112 class) slot +0x34,0x00de6405,112,9,1,0x00de6557,particle:0x7f89/28,drawn,,observed,
 class world-112 (World 112 class) slot +0x34,0x00de6405,112,17,1,0x00de6653,bone effect:0x413/10 sprite:0x7ef7 particle:0x7f5a/69,drawn,,observed,
-class world-112 (World 112 class) slot +0x34,0x00de6405,112,28,1,0x00de69c4,particle:0x7f89/27,partial,no consumer: particle 0x7f89/27; probe: particle requests refused 6 of 40,observed,
-class world-112 (World 112 class) slot +0x34,0x00de6405,112,32,1,0x00de6a9a,particle:0x7f89/27,partial,no consumer: particle 0x7f89/27; probe: particle requests refused 6 of 40,observed,
-class world-112 (World 112 class) slot +0x34,0x00de6405,112,33,1,0x00de6b75,particle:0x7f89/27,partial,no consumer: particle 0x7f89/27; probe: particle requests refused 6 of 40,observed,
+class world-112 (World 112 class) slot +0x34,0x00de6405,112,28,1,0x00de69c4,particle:0x7f89/27,partial,no consumer: particle 0x7f89/27; probe (40 draws): 6 particle requests refused,observed,
+class world-112 (World 112 class) slot +0x34,0x00de6405,112,32,1,0x00de6a9a,particle:0x7f89/27,partial,no consumer: particle 0x7f89/27; probe (40 draws): 6 particle requests refused,observed,
+class world-112 (World 112 class) slot +0x34,0x00de6405,112,33,1,0x00de6b75,particle:0x7f89/27,partial,no consumer: particle 0x7f89/27; probe (40 draws): 6 particle requests refused,observed,
 class world-112 (World 112 class) slot +0x34,0x00de6405,112,36,1,0x00de6c4b,bone sprite:0x7f26 sprite:0x7f26,drawn,,observed,
 class world-112 (World 112 class) slot +0x34,0x00de6405,112,71,1,0x00de701e,particle:0x7f5a/69,drawn,,observed,
 class world-112 (World 112 class) slot +0x34,0x00de6405,112,72,1,0x00de7150,effect:0x413/10 sprite:0x7ef7,drawn,,observed,
-class world-112 (World 112 class) slot +0x34,0x00de6405,112,75,1,0x00de727e,particle:0x7efa/6 bone sprite:0x7ef7,partial,no consumer: particle 0x7efa/6; probe: particle requests refused 17 of 40,observed,
-class world-112 (World 112 class) slot +0x34,0x00de6405,112,81,1,0x00de727e,particle:0x7efa/6 bone sprite:0x7ef7,partial,no consumer: particle 0x7efa/6; probe: particle requests refused 17 of 40,observed,
+class world-112 (World 112 class) slot +0x34,0x00de6405,112,75,1,0x00de727e,particle:0x7efa/6 bone sprite:0x7ef7,partial,no consumer: particle 0x7efa/6; probe (40 draws): 17 particle requests refused,observed,
+class world-112 (World 112 class) slot +0x34,0x00de6405,112,81,1,0x00de727e,particle:0x7efa/6 bone sprite:0x7ef7,partial,no consumer: particle 0x7efa/6; probe (40 draws): 17 particle requests refused,observed,
 class world-112 (World 112 class) slot +0x34,0x00de6405,112,87,1,0x00de75be,bone particle:0x801c/14 particle:0x801b/2 bone particle:0x801c/14 particle:0x801b/2,drawn,,observed,
 class world-112 (World 112 class) slot +0x34,0x00de6405,112,95,1,0x00de7937,bone particle:0x801c/14 particle:0x801b/2 bone particle:0x801c/14 particle:0x801b/2,drawn,,observed,
-class world-112 (World 112 class) slot +0x34,0x00de6405,112,123,1,0x00de7e34,bone effect:0x413/17 particle:0x7f5a/69,partial,no consumer: effect 0x413/17; probe: effect requests refused 40 of 40,observed,
+class world-112 (World 112 class) slot +0x34,0x00de6405,112,123,1,0x00de7e34,bone effect:0x413/17 particle:0x7f5a/69,partial,no consumer: effect 0x413/17; probe (40 draws): 40 effect requests refused,observed,
 class world-112 (World 112 class) slot +0x34,0x00de6405,112,128,1,0x00de8166,particle:0x7dea/0,partial,no consumer: particle 0x7dea/0,source,
-class world-112 (World 112 class) slot +0x34,0x00de6405,112,129,1,0x00de8256,bone sprite:0x8021,partial,probe: draws refused 39 of 40,observed,
-class world-112 (World 112 class) slot +0x34,0x00de6405,112,130,1,0x00de83f9,particle:0x7f89/27,partial,no consumer: particle 0x7f89/27; probe: particle requests refused 6 of 40,observed,
+class world-112 (World 112 class) slot +0x34,0x00de6405,112,129,1,0x00de8256,bone sprite:0x8021,partial,probe (40 draws): 39 draws refused,observed,
+class world-112 (World 112 class) slot +0x34,0x00de6405,112,130,1,0x00de83f9,particle:0x7f89/27,partial,no consumer: particle 0x7f89/27; probe (40 draws): 6 particle requests refused,observed,
 class world-112 (World 112 class) slot +0x34,0x00de6405,112,140,1,0x00de84d9,particle:0x801a/2,drawn,,observed,
 class world-112 (World 112 class) slot +0x34,0x00de6405,112,141,1,0x00de8598,particle:0x801c/4,drawn,,observed,
 class world-112 (World 112 class) slot +0x34,0x00de6405,112,142,1,0x00de861b,particle:0x801b/2,drawn,,observed,
@@ -403,66 +403,66 @@ class world-112 (World 112 class) slot +0x34,0x00de6405,112,148,1,0x00de86da,bon
 chain 2: Kalima,0x00def747,24,12,1,0x00def800,bone sprite:0x7ef7,drawn,,observed,create unsupported; move unsupported
 chain 2: Kalima,0x00def747,24,"15,29",2,0x00def928,,drawn,,source,create unsupported; move unsupported
 chain 2: Kalima,0x00def747,24,32,1,0x00def99f,bone sprite:0x7ef7,drawn,,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,24,35,1,0x00defb3c,particle:0x7ef7/6,partial,no consumer: particle 0x7ef7/6; probe: particle requests refused 40 of 40,observed,create unsupported; move unsupported
+chain 2: Kalima,0x00def747,24,35,1,0x00defb3c,particle:0x7ef7/6,partial,no consumer: particle 0x7ef7/6; probe (40 draws): 40 particle requests refused,observed,create unsupported; move unsupported
 chain 2: Kalima,0x00def747,24,36,1,0x00defbca,particle:0x8017/0,drawn,,observed,create unsupported; move unsupported
 chain 2: Kalima,0x00def747,24,37,1,0x00defc6a,particle:0x801e/0 sound:0x1d6,drawn,,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,24,38,1,0x00defd11,particle:0x801a/0 sound:0x1d6,partial,no consumer: particle 0x801a/0; probe: particle requests refused 23 of 40,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,24,39,1,0x00defdcd,particle:?/0,partial,probe: particle requests refused 40 of 40,observed,create unsupported; move unsupported; variable request id (? = chosen at run time)
-chain 2: Kalima,0x00def747,24,40,1,0x00defe75,particle:0x801b/0,partial,no consumer: particle 0x801b/0; probe: particle requests refused 12 of 40,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,25,12,1,0x00def800,bone sprite:0x7ef7,drawn,,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,25,"15,29",2,0x00def928,,drawn,,source,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,25,32,1,0x00def99f,bone sprite:0x7ef7,drawn,,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,25,35,1,0x00defb3c,particle:0x7ef7/6,partial,no consumer: particle 0x7ef7/6; probe: particle requests refused 40 of 40,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,25,36,1,0x00defbca,particle:0x8017/0,drawn,,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,25,37,1,0x00defc6a,particle:0x801e/0 sound:0x1d6,drawn,,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,25,38,1,0x00defd11,particle:0x801a/0 sound:0x1d6,partial,no consumer: particle 0x801a/0; probe: particle requests refused 23 of 40,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,25,39,1,0x00defdcd,particle:?/0,partial,probe: particle requests refused 40 of 40,observed,create unsupported; move unsupported; variable request id (? = chosen at run time)
-chain 2: Kalima,0x00def747,25,40,1,0x00defe75,particle:0x801b/0,partial,no consumer: particle 0x801b/0; probe: particle requests refused 12 of 40,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,26,12,1,0x00def800,bone sprite:0x7ef7,drawn,,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,26,"15,29",2,0x00def928,,drawn,,source,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,26,32,1,0x00def99f,bone sprite:0x7ef7,drawn,,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,26,35,1,0x00defb3c,particle:0x7ef7/6,partial,no consumer: particle 0x7ef7/6; probe: particle requests refused 40 of 40,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,26,36,1,0x00defbca,particle:0x8017/0,drawn,,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,26,37,1,0x00defc6a,particle:0x801e/0 sound:0x1d6,drawn,,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,26,38,1,0x00defd11,particle:0x801a/0 sound:0x1d6,partial,no consumer: particle 0x801a/0; probe: particle requests refused 23 of 40,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,26,39,1,0x00defdcd,particle:?/0,partial,probe: particle requests refused 40 of 40,observed,create unsupported; move unsupported; variable request id (? = chosen at run time)
-chain 2: Kalima,0x00def747,26,40,1,0x00defe75,particle:0x801b/0,partial,no consumer: particle 0x801b/0; probe: particle requests refused 12 of 40,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,27,12,1,0x00def800,bone sprite:0x7ef7,drawn,,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,27,"15,29",2,0x00def928,,drawn,,source,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,27,32,1,0x00def99f,bone sprite:0x7ef7,drawn,,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,27,35,1,0x00defb3c,particle:0x7ef7/6,partial,no consumer: particle 0x7ef7/6; probe: particle requests refused 40 of 40,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,27,36,1,0x00defbca,particle:0x8017/0,drawn,,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,27,37,1,0x00defc6a,particle:0x801e/0 sound:0x1d6,drawn,,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,27,38,1,0x00defd11,particle:0x801a/0 sound:0x1d6,partial,no consumer: particle 0x801a/0; probe: particle requests refused 23 of 40,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,27,39,1,0x00defdcd,particle:?/0,partial,probe: particle requests refused 40 of 40,observed,create unsupported; move unsupported; variable request id (? = chosen at run time)
-chain 2: Kalima,0x00def747,27,40,1,0x00defe75,particle:0x801b/0,partial,no consumer: particle 0x801b/0; probe: particle requests refused 12 of 40,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,28,12,1,0x00def800,bone sprite:0x7ef7,drawn,,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,28,"15,29",2,0x00def928,,drawn,,source,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,28,32,1,0x00def99f,bone sprite:0x7ef7,drawn,,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,28,35,1,0x00defb3c,particle:0x7ef7/6,partial,no consumer: particle 0x7ef7/6; probe: particle requests refused 40 of 40,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,28,36,1,0x00defbca,particle:0x8017/0,drawn,,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,28,37,1,0x00defc6a,particle:0x801e/0 sound:0x1d6,drawn,,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,28,38,1,0x00defd11,particle:0x801a/0 sound:0x1d6,partial,no consumer: particle 0x801a/0; probe: particle requests refused 23 of 40,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,28,39,1,0x00defdcd,particle:?/0,partial,probe: particle requests refused 40 of 40,observed,create unsupported; move unsupported; variable request id (? = chosen at run time)
-chain 2: Kalima,0x00def747,28,40,1,0x00defe75,particle:0x801b/0,partial,no consumer: particle 0x801b/0; probe: particle requests refused 12 of 40,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,29,12,1,0x00def800,bone sprite:0x7ef7,drawn,,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,29,"15,29",2,0x00def928,,drawn,,source,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,29,32,1,0x00def99f,bone sprite:0x7ef7,drawn,,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,29,35,1,0x00defb3c,particle:0x7ef7/6,partial,no consumer: particle 0x7ef7/6; probe: particle requests refused 40 of 40,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,29,36,1,0x00defbca,particle:0x8017/0,drawn,,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,29,37,1,0x00defc6a,particle:0x801e/0 sound:0x1d6,drawn,,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,29,38,1,0x00defd11,particle:0x801a/0 sound:0x1d6,partial,no consumer: particle 0x801a/0; probe: particle requests refused 23 of 40,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,29,39,1,0x00defdcd,particle:?/0,partial,probe: particle requests refused 40 of 40,observed,create unsupported; move unsupported; variable request id (? = chosen at run time)
-chain 2: Kalima,0x00def747,29,40,1,0x00defe75,particle:0x801b/0,partial,no consumer: particle 0x801b/0; probe: particle requests refused 12 of 40,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,36,12,1,0x00def800,bone sprite:0x7ef7,drawn,,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,36,"15,29",2,0x00def928,,drawn,,source,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,36,32,1,0x00def99f,bone sprite:0x7ef7,drawn,,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,36,35,1,0x00defb3c,particle:0x7ef7/6,partial,no consumer: particle 0x7ef7/6; probe: particle requests refused 40 of 40,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,36,36,1,0x00defbca,particle:0x8017/0,drawn,,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,36,37,1,0x00defc6a,particle:0x801e/0 sound:0x1d6,drawn,,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,36,38,1,0x00defd11,particle:0x801a/0 sound:0x1d6,partial,no consumer: particle 0x801a/0; probe: particle requests refused 23 of 40,observed,create unsupported; move unsupported
-chain 2: Kalima,0x00def747,36,39,1,0x00defdcd,particle:?/0,partial,probe: particle requests refused 40 of 40,observed,create unsupported; move unsupported; variable request id (? = chosen at run time)
-chain 2: Kalima,0x00def747,36,40,1,0x00defe75,particle:0x801b/0,partial,no consumer: particle 0x801b/0; probe: particle requests refused 12 of 40,observed,create unsupported; move unsupported
+chain 2: Kalima,0x00def747,24,38,1,0x00defd11,particle:0x801a/0 sound:0x1d6,partial,no consumer: particle 0x801a/0; probe (40 draws): 23 particle requests refused,observed,create unsupported; move unsupported
+chain 2: Kalima,0x00def747,24,39,1,0x00defdcd,particle:?/0,partial,probe (40 draws): 40 particle requests refused,observed,create unsupported; move unsupported; variable request id (? = chosen at run time)
+chain 2: Kalima,0x00def747,24,40,1,0x00defe75,particle:0x801b/0,partial,no consumer: particle 0x801b/0; probe (40 draws): 12 particle requests refused,observed,create unsupported; move unsupported
+chain 2: Kalima,0x00def747,25,12,1,0x00def800,bone sprite:0x7ef7,drawn,,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,25,"15,29",2,0x00def928,,drawn,,source,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,25,32,1,0x00def99f,bone sprite:0x7ef7,drawn,,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,25,35,1,0x00defb3c,particle:0x7ef7/6,partial,no consumer: particle 0x7ef7/6; probe (40 draws): 40 particle requests refused,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,25,36,1,0x00defbca,particle:0x8017/0,drawn,,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,25,37,1,0x00defc6a,particle:0x801e/0 sound:0x1d6,drawn,,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,25,38,1,0x00defd11,particle:0x801a/0 sound:0x1d6,partial,no consumer: particle 0x801a/0; probe (40 draws): 23 particle requests refused,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,25,39,1,0x00defdcd,particle:?/0,partial,probe (40 draws): 40 particle requests refused,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported; variable request id (? = chosen at run time)
+chain 2: Kalima,0x00def747,25,40,1,0x00defe75,particle:0x801b/0,partial,no consumer: particle 0x801b/0; probe (40 draws): 12 particle requests refused,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,26,12,1,0x00def800,bone sprite:0x7ef7,drawn,,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,26,"15,29",2,0x00def928,,drawn,,source,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,26,32,1,0x00def99f,bone sprite:0x7ef7,drawn,,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,26,35,1,0x00defb3c,particle:0x7ef7/6,partial,no consumer: particle 0x7ef7/6; probe (40 draws): 40 particle requests refused,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,26,36,1,0x00defbca,particle:0x8017/0,drawn,,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,26,37,1,0x00defc6a,particle:0x801e/0 sound:0x1d6,drawn,,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,26,38,1,0x00defd11,particle:0x801a/0 sound:0x1d6,partial,no consumer: particle 0x801a/0; probe (40 draws): 23 particle requests refused,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,26,39,1,0x00defdcd,particle:?/0,partial,probe (40 draws): 40 particle requests refused,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported; variable request id (? = chosen at run time)
+chain 2: Kalima,0x00def747,26,40,1,0x00defe75,particle:0x801b/0,partial,no consumer: particle 0x801b/0; probe (40 draws): 12 particle requests refused,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,27,12,1,0x00def800,bone sprite:0x7ef7,drawn,,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,27,"15,29",2,0x00def928,,drawn,,source,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,27,32,1,0x00def99f,bone sprite:0x7ef7,drawn,,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,27,35,1,0x00defb3c,particle:0x7ef7/6,partial,no consumer: particle 0x7ef7/6; probe (40 draws): 40 particle requests refused,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,27,36,1,0x00defbca,particle:0x8017/0,drawn,,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,27,37,1,0x00defc6a,particle:0x801e/0 sound:0x1d6,drawn,,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,27,38,1,0x00defd11,particle:0x801a/0 sound:0x1d6,partial,no consumer: particle 0x801a/0; probe (40 draws): 23 particle requests refused,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,27,39,1,0x00defdcd,particle:?/0,partial,probe (40 draws): 40 particle requests refused,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported; variable request id (? = chosen at run time)
+chain 2: Kalima,0x00def747,27,40,1,0x00defe75,particle:0x801b/0,partial,no consumer: particle 0x801b/0; probe (40 draws): 12 particle requests refused,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,28,12,1,0x00def800,bone sprite:0x7ef7,drawn,,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,28,"15,29",2,0x00def928,,drawn,,source,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,28,32,1,0x00def99f,bone sprite:0x7ef7,drawn,,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,28,35,1,0x00defb3c,particle:0x7ef7/6,partial,no consumer: particle 0x7ef7/6; probe (40 draws): 40 particle requests refused,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,28,36,1,0x00defbca,particle:0x8017/0,drawn,,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,28,37,1,0x00defc6a,particle:0x801e/0 sound:0x1d6,drawn,,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,28,38,1,0x00defd11,particle:0x801a/0 sound:0x1d6,partial,no consumer: particle 0x801a/0; probe (40 draws): 23 particle requests refused,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,28,39,1,0x00defdcd,particle:?/0,partial,probe (40 draws): 40 particle requests refused,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported; variable request id (? = chosen at run time)
+chain 2: Kalima,0x00def747,28,40,1,0x00defe75,particle:0x801b/0,partial,no consumer: particle 0x801b/0; probe (40 draws): 12 particle requests refused,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,29,12,1,0x00def800,bone sprite:0x7ef7,drawn,,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,29,"15,29",2,0x00def928,,drawn,,source,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,29,32,1,0x00def99f,bone sprite:0x7ef7,drawn,,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,29,35,1,0x00defb3c,particle:0x7ef7/6,partial,no consumer: particle 0x7ef7/6; probe (40 draws): 40 particle requests refused,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,29,36,1,0x00defbca,particle:0x8017/0,drawn,,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,29,37,1,0x00defc6a,particle:0x801e/0 sound:0x1d6,drawn,,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,29,38,1,0x00defd11,particle:0x801a/0 sound:0x1d6,partial,no consumer: particle 0x801a/0; probe (40 draws): 23 particle requests refused,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,29,39,1,0x00defdcd,particle:?/0,partial,probe (40 draws): 40 particle requests refused,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported; variable request id (? = chosen at run time)
+chain 2: Kalima,0x00def747,29,40,1,0x00defe75,particle:0x801b/0,partial,no consumer: particle 0x801b/0; probe (40 draws): 12 particle requests refused,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,36,12,1,0x00def800,bone sprite:0x7ef7,drawn,,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,36,"15,29",2,0x00def928,,drawn,,source,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,36,32,1,0x00def99f,bone sprite:0x7ef7,drawn,,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,36,35,1,0x00defb3c,particle:0x7ef7/6,partial,no consumer: particle 0x7ef7/6; probe (40 draws): 40 particle requests refused,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,36,36,1,0x00defbca,particle:0x8017/0,drawn,,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,36,37,1,0x00defc6a,particle:0x801e/0 sound:0x1d6,drawn,,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,36,38,1,0x00defd11,particle:0x801a/0 sound:0x1d6,partial,no consumer: particle 0x801a/0; probe (40 draws): 23 particle requests refused,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
+chain 2: Kalima,0x00def747,36,39,1,0x00defdcd,particle:?/0,partial,probe (40 draws): 40 particle requests refused,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported; variable request id (? = chosen at run time)
+chain 2: Kalima,0x00def747,36,40,1,0x00defe75,particle:0x801b/0,partial,no consumer: particle 0x801b/0; probe (40 draws): 12 particle requests refused,observed,probed in world 24 (same case; same object folder); create unsupported; move unsupported
 chain 4: Land of Trials,0x00dfc095,31,3,1,0x00dfc0d6,particle:0x801c/3,drawn,,observed,create unsupported; move unsupported
 chain 4: Land of Trials,0x00dfc095,31,49,1,0x00dfc208,bone sprite:0x7ef7 sprite:0x7ef7 sprite:0x7f67,drawn,,observed,create unsupported; move unsupported
 chain 4: Land of Trials,0x00dfc095,31,53,1,0x00dfc16f,particle:0x7f5a/22,drawn,,observed,create unsupported; move unsupported
@@ -488,10 +488,10 @@ class world-80 (Karutan) slot +0x34,0x00e13be4,81,115,1,0x00e1431e,particle:0x7f
 class world-80 (Karutan) slot +0x34,0x00e13be4,81,116,1,0x00e143d5,particle:0x7f5a/69 particle:0x7f5a/13,drawn,,observed,
 class world-80 (Karutan) slot +0x34,0x00e13be4,81,118,1,0x00e144dc,particle:0x7f89/0,drawn,,observed,
 class world-123 (World 123 class) slot +0x34,0x00e1b5fb,123,161,1,0x00e1b648,effect:0x195/0,drawn,,source,
-class world-123 (World 123 class) slot +0x34,0x00e1b5fb,124,161,1,0x00e1b648,effect:0x195/0,drawn,,source,
-class world-123 (World 123 class) slot +0x34,0x00e1b5fb,125,161,1,0x00e1b648,effect:0x195/0,drawn,,source,
-class world-123 (World 123 class) slot +0x34,0x00e1b5fb,126,161,1,0x00e1b648,effect:0x195/0,drawn,,source,
-class world-123 (World 123 class) slot +0x34,0x00e1b5fb,127,161,1,0x00e1b648,effect:0x195/0,drawn,,source,
+class world-123 (World 123 class) slot +0x34,0x00e1b5fb,124,161,1,0x00e1b648,effect:0x195/0,drawn,,source,probed in world 123 (same case; same object folder)
+class world-123 (World 123 class) slot +0x34,0x00e1b5fb,125,161,1,0x00e1b648,effect:0x195/0,drawn,,source,probed in world 123 (same case; same object folder)
+class world-123 (World 123 class) slot +0x34,0x00e1b5fb,126,161,1,0x00e1b648,effect:0x195/0,drawn,,source,probed in world 123 (same case; same object folder)
+class world-123 (World 123 class) slot +0x34,0x00e1b5fb,127,161,1,0x00e1b648,effect:0x195/0,drawn,,source,probed in world 123 (same case; same object folder)
 class world-114 (World 114 class) slot +0x34,0x00e1ef15,114,30,1,0x00e1f022,bone sprite:0x7f78,drawn,,observed,
 class world-114 (World 114 class) slot +0x34,0x00e1ef15,114,35,1,0x00e1f16b,bone sprite:0x7f78,drawn,,observed,
 class world-114 (World 114 class) slot +0x34,0x00e1ef15,114,54,1,0x00e1f296,particle:0x801e/0,drawn,,observed,
@@ -503,11 +503,11 @@ class world-94 (CGMLogInScene_Ex) slot +0x34,0x00e24be1,94,5,1,0x00e24cf3,bone s
 class world-94 (CGMLogInScene_Ex) slot +0x34,0x00e24be1,94,38,1,0x00e25383,particle:0x7f89/20,drawn,,observed,
 class world-94 (CGMLogInScene_Ex) slot +0x34,0x00e24be1,94,54,1,0x00e25419,particle:0x801a/2,drawn,,observed,
 class world-110 (World 110 class) slot +0x34,0x00e26ae7,110,4,1,0x00e26c10,bone effect:0x413/10 sprite:0x7ef7,drawn,,observed,
-class world-110 (World 110 class) slot +0x34,0x00e26ae7,110,10,1,0x00e26dd9,particle:0x822a/0,partial,no consumer: particle 0x822a/0; probe: particle requests refused 2 of 40,observed,
+class world-110 (World 110 class) slot +0x34,0x00e26ae7,110,10,1,0x00e26dd9,particle:0x822a/0,partial,no consumer: particle 0x822a/0; probe (40 draws): 2 particle requests refused,observed,
 class world-110 (World 110 class) slot +0x34,0x00e26ae7,110,11,1,0x00e26e83,bone sprite:0x7f6b sprite:0x7f6b bone sprite:0x7f6b sprite:0x7f6b,drawn,,observed,
 class world-110 (World 110 class) slot +0x34,0x00e26ae7,110,14,1,0x00e27137,particle:0x7f5a/69 particle:0x7f5a/21,drawn,,observed,
 class world-110 (World 110 class) slot +0x34,0x00e26ae7,110,15,1,0x00e27237,particle:0x7f89/25,drawn,,observed,
-class world-110 (World 110 class) slot +0x34,0x00e26ae7,110,25,1,0x00e272dd,particle:0x7fdd/3,partial,no consumer: particle 0x7fdd/3; probe: particle requests refused 7 of 40,observed,
+class world-110 (World 110 class) slot +0x34,0x00e26ae7,110,25,1,0x00e272dd,particle:0x7fdd/3,partial,no consumer: particle 0x7fdd/3; probe (40 draws): 7 particle requests refused,observed,
 class world-110 (World 110 class) slot +0x34,0x00e26ae7,110,26,1,0x00e2749f,particle:0x8184/2,drawn,,observed,
 class world-110 (World 110 class) slot +0x34,0x00e26ae7,110,29,1,0x00e276b5,particle:0x7f89/25,drawn,,observed,
 class world-110 (World 110 class) slot +0x34,0x00e26ae7,110,30,1,0x00e2775b,particle:0x7f5a/69,drawn,,observed,
@@ -526,11 +526,11 @@ class world-82 (World 82 class) slot +0x34,0x00e2c002,82,0,1,0x00e2c041,particle
 class world-82 (World 82 class) slot +0x34,0x00e2c002,82,1,1,0x00e2c041,particle:0x7f5a/69,drawn,,observed,
 class world-82 (World 82 class) slot +0x34,0x00e2c002,82,2,1,0x00e2c041,particle:0x7f89/16,drawn,,observed,
 class world-82 (World 82 class) slot +0x34,0x00e2c002,82,3,1,0x00e2c041,particle:0x7f89/11,drawn,,observed,
-class world-82 (World 82 class) slot +0x34,0x00e2c002,82,4,1,0x00e2c041,effect:0x7f42/7,partial,no consumer: effect 0x7f42/7; probe: effect requests refused 7 of 40,observed,request list may be incomplete (walk cut at the step limit)
+class world-82 (World 82 class) slot +0x34,0x00e2c002,82,4,1,0x00e2c041,effect:0x7f42/7,partial,no consumer: effect 0x7f42/7; probe (40 draws): 7 effect requests refused,observed,request list may be incomplete (walk cut at the step limit)
 class world-82 (World 82 class) slot +0x34,0x00e2c002,82,5,1,0x00e2c507,particle:0x7f5a/21,refused,no model file for the type in the world's object folder (dead in the installed data),none,
 class world-82 (World 82 class) slot +0x34,0x00e2c002,82,6,1,0x00e2c5d0,sprite:0x7ef7 particle:0x8084/0 particle:0x806e/4 particle:0x8085/0,drawn,,observed,
 class world-82 (World 82 class) slot +0x34,0x00e2c002,82,47,1,0x00e2c7b5,particle:0x8086/2 particle:0x8087/6 particle:0x8089/2 particle:0x8086/2,drawn,,observed,
-class world-82 (World 82 class) slot +0x34,0x00e2c002,82,48,1,0x00e2c93f,particle:0x7ef7/15,partial,no consumer: particle 0x7ef7/15; probe: particle requests refused 16 of 40,observed,
+class world-82 (World 82 class) slot +0x34,0x00e2c002,82,48,1,0x00e2c93f,particle:0x7ef7/15,partial,no consumer: particle 0x7ef7/15; probe (40 draws): 16 particle requests refused,observed,
 chain 12: Elbeland,0x00e3116a,51,0,1,0x00e31224,particle:0x8016/0,drawn,,observed,
 chain 12: Elbeland,0x00e3116a,51,54,1,0x00e312bd,particle:0x801b/4,drawn,,observed,
 chain 12: Elbeland,0x00e3116a,51,58,1,0x00e31358,particle:0x801e/0,refused,the object runtime counts every draw unsupported,observed,
@@ -538,7 +538,7 @@ chain 12: Elbeland,0x00e3116a,51,59,1,0x00e313a0,particle:0x801c/8,drawn,,observ
 chain 12: Elbeland,0x00e3116a,51,60,1,0x00e31426,particle:0x7f89/3,drawn,,observed,
 chain 12: Elbeland,0x00e3116a,51,61,1,0x00e314d9,particle:0x8017/0,drawn,,observed,
 chain 12: Elbeland,0x00e3116a,51,63,1,0x00e31572,bone sprite:0x7ef7,drawn,,observed,
-chain 12: Elbeland,0x00e3116a,51,110,1,0x00e316a1,bone particle:0x7ef7/11,partial,no consumer: particle 0x7ef7/11; probe: particle requests refused 23 of 40,observed,
+chain 12: Elbeland,0x00e3116a,51,110,1,0x00e316a1,bone particle:0x7ef7/11,partial,no consumer: particle 0x7ef7/11; probe (40 draws): 23 particle requests refused,observed,
 chain 12: Elbeland,0x00e3116a,51,121,1,0x00e31832,bone sprite:0x7ef7,drawn,,observed,
 class world-135 (Old Kethotum) slot +0x34,0x00e3c137,135,15,1,0x00e3c184,bone particle:0x7efa/2 sprite:0x7ef7 particle:0x7f26/14,drawn,,observed,
 class world-135 (Old Kethotum) slot +0x34,0x00e3c137,135,16,1,0x00e3c426,bone sprite:0x7f26 sprite:0x7f26,drawn,,observed,
@@ -562,9 +562,9 @@ class world-141 (Tormenta Island) slot +0x34,0x00e4ef4b,141,196,1,0x00e4f7b7,joi
 class world-141 (Tormenta Island) slot +0x34,0x00e4ef4b,141,197,1,0x00e4f883,joint:0x7f7d/23,drawn,,source,
 class world-122 (World 122 class) slot +0x34,0x00e5540e,122,83,1,0x00e55461,effect:0x59a/3,drawn,,observed,
 class world-122 (World 122 class) slot +0x34,0x00e5540e,122,176,1,0x00e554ff,effect:0x199/0,drawn,,observed,
-chain 13: Swamp of Calmness,0x00e5f94b,56,57,1,0x00e5f9f4,particle:0x8016/5 particle:0x7f5a/21,partial,no consumer: particle 0x8016/5; probe: particle requests refused 16 of 40,observed,create unsupported; move unsupported
-chain 13: Swamp of Calmness,0x00e5f94b,56,71,1,0x00e5fad3,particle:0x8016/5,partial,no consumer: particle 0x8016/5; probe: particle requests refused 16 of 40,observed,create unsupported; move unsupported
-chain 13: Swamp of Calmness,0x00e5f94b,56,72,1,0x00e5fb6c,particle:0x7f5a/49,partial,no consumer: particle 0x7f5a/49; probe: particle requests refused 7 of 40,observed,create unsupported; move unsupported
+chain 13: Swamp of Calmness,0x00e5f94b,56,57,1,0x00e5f9f4,particle:0x8016/5 particle:0x7f5a/21,partial,no consumer: particle 0x8016/5; probe (40 draws): 16 particle requests refused,observed,create unsupported; move unsupported
+chain 13: Swamp of Calmness,0x00e5f94b,56,71,1,0x00e5fad3,particle:0x8016/5,partial,no consumer: particle 0x8016/5; probe (40 draws): 16 particle requests refused,observed,create unsupported; move unsupported
+chain 13: Swamp of Calmness,0x00e5f94b,56,72,1,0x00e5fb6c,particle:0x7f5a/49,partial,no consumer: particle 0x7f5a/49; probe (40 draws): 7 particle requests refused,observed,create unsupported; move unsupported
 chain 13: Swamp of Calmness,0x00e5f94b,56,74,1,0x00e5fc70,particle:0x7f5a/21,drawn,,observed,create unsupported; move unsupported
 chain 13: Swamp of Calmness,0x00e5f94b,56,77,1,0x00e5fd11,particle:0x7f89/20,drawn,,observed,create unsupported; move unsupported
 chain 13: Swamp of Calmness,0x00e5f94b,56,78,1,0x00e5fdab,particle:0x7f89/20,drawn,,observed,create unsupported; move unsupported
@@ -576,7 +576,7 @@ chain 13: Swamp of Calmness,0x00e5f94b,56,103,1,0x00e60159,joint:0x7f7d/25,drawn
 class world-142 (Twisted Karutan) slot +0x34,0x00e6841f,142,72,1,0x00e684d3,bone sprite:0x7ef7 sprite:0x7f26 bone sprite:0x7f26 sprite:0x7f26,drawn,,observed,
 class world-142 (Twisted Karutan) slot +0x34,0x00e6841f,142,113,1,0x00e68733,sprite:0x7ef7 particle:0x8084/0 particle:0x806e/4 particle:0x8085/0,drawn,,observed,
 class world-142 (Twisted Karutan) slot +0x34,0x00e6841f,142,114,1,0x00e68900,particle:0x801c/16,drawn,,observed,
-class world-142 (Twisted Karutan) slot +0x34,0x00e6841f,142,115,1,0x00e689a5,particle:0x7f89/29,partial,no consumer: particle 0x7f89/29; probe: particle requests refused 20 of 40,observed,
+class world-142 (Twisted Karutan) slot +0x34,0x00e6841f,142,115,1,0x00e689a5,particle:0x7f89/29,partial,no consumer: particle 0x7f89/29; probe (40 draws): 20 particle requests refused,observed,
 class world-142 (Twisted Karutan) slot +0x34,0x00e6841f,142,116,1,0x00e68a64,particle:0x7f5a/69 particle:0x7f5a/21,drawn,,observed,
 class world-142 (Twisted Karutan) slot +0x34,0x00e6841f,142,118,1,0x00e68b69,,drawn,,source,
 class world-142 (Twisted Karutan) slot +0x34,0x00e6841f,142,196,1,0x00e68b78,effect:0x199/0,drawn,,observed,
@@ -597,7 +597,7 @@ class world-100 (Uruk Mountain) slot +0x34,0x00e6f3d5,100,91,1,0x00e6f940,partic
 class world-100 (Uruk Mountain) slot +0x34,0x00e6f3d5,100,92,1,0x00e6f9da,particle:0x801b/7,drawn,,observed,
 class world-100 (Uruk Mountain) slot +0x34,0x00e6f3d5,100,93,1,0x00e6fb33,particle:0x7f5a/69,drawn,,observed,
 class world-100 (Uruk Mountain) slot +0x34,0x00e6f3d5,100,94,1,0x00e6fbcd,particle:0x801b/2,drawn,,observed,
-class world-100 (Uruk Mountain) slot +0x34,0x00e6f3d5,100,105,1,0x00e6fc66,particle:0x7fdd/3,partial,no consumer: particle 0x7fdd/3; probe: particle requests refused 7 of 40,observed,
+class world-100 (Uruk Mountain) slot +0x34,0x00e6f3d5,100,105,1,0x00e6fc66,particle:0x7fdd/3,partial,no consumer: particle 0x7fdd/3; probe (40 draws): 7 particle requests refused,observed,
 class world-100 (Uruk Mountain) slot +0x34,0x00e6f3d5,100,106,1,0x00e6fe0d,particle:0x8184/2,drawn,,observed,
 class world-100 (Uruk Mountain) slot +0x34,0x00e6f3d5,100,108,1,0x00e70014,particle:0x7f5a/22 particle:0x7fd5/0 effect:0x806e/12,drawn,,source,
 class world-100 (Uruk Mountain) slot +0x34,0x00e6f3d5,100,109,1,0x00e7023c,joint:0x7f7d/13,drawn,,source,
@@ -612,15 +612,15 @@ chain 7: Kanturu,0x00e75089,37,83,1,0x00e75756,particle:0x801b/2,drawn,,observed
 chain 7: Kanturu,0x00e75089,37,85,1,0x00e757eb,mesh:0x3 mesh:0x3,drawn,,source,
 chain 7: Kanturu,0x00e75089,37,92,1,0x00e758cd,bone bone joint:0x7f7c/18,drawn,,observed,
 chain 7: Kanturu,0x00e75089,37,96,1,0x00e7599a,mesh:0x0,drawn,,source,
-chain 7: Kanturu,0x00e75089,37,98,1,0x00e75a48,bone particle:0x802a/2,partial,no consumer: particle 0x802a/2; probe: particle requests refused 16 of 40,observed,
-chain 7: Kanturu,0x00e75089,37,105,1,0x00e75b1e,bone particle:0x7f2b/0 sprite:0x7f26 joint:0x7f7c/8,partial,no consumer: joint 0x7f7c/8; probe: draws refused 1 of 40,observed,
+chain 7: Kanturu,0x00e75089,37,98,1,0x00e75a48,bone particle:0x802a/2,partial,no consumer: particle 0x802a/2; probe (40 draws): 16 particle requests refused,observed,
+chain 7: Kanturu,0x00e75089,37,105,1,0x00e75b1e,bone particle:0x7f2b/0 sprite:0x7f26 joint:0x7f7c/8,partial,no consumer: joint 0x7f7c/8; probe (40 draws): 1 draws refused,observed,
 chain 7: Kanturu,0x00e75089,37,107,1,0x00e75e22,particle:0x7f89/2,drawn,,observed,
 chain 7: Kanturu,0x00e75089,37,108,1,0x00e75ed7,particle:0x7f89/7,drawn,,observed,
 chain 7: Kanturu,0x00e75089,37,110,1,0x00e75f8c,bone sprite:0x7ef7,drawn,,observed,
 chain 7: Kanturu,0x00e75089,40,37,1,0x00e75176,effect:0x193/3,partial,no consumer: effect 0x193/3,source,create unsupported
 chain 7: Kanturu,0x00e75089,40,59,1,0x00e75231,particle:0x7f5a/21,drawn,,observed,create unsupported
 chain 7: Kanturu,0x00e75089,40,61,1,0x00e752ca,particle:0x8016/0,drawn,,observed,create unsupported
-chain 7: Kanturu,0x00e75089,40,62,1,0x00e75363,particle:0x7f89/12,partial,no consumer: particle 0x7f89/12; probe: particle requests refused 20 of 40,observed,create unsupported
+chain 7: Kanturu,0x00e75089,40,62,1,0x00e75363,particle:0x7f89/12,partial,no consumer: particle 0x7f89/12; probe (40 draws): 20 particle requests refused,observed,create unsupported
 chain 7: Kanturu,0x00e75089,40,70,1,0x00e754b7,bone sprite:0x7f26 sprite:0x7f26,refused,the object runtime counts every draw unsupported,observed,create unsupported
 chain 7: Kanturu,0x00e75089,40,81,1,0x00e75635,particle:0x801a/2,drawn,,observed,create unsupported
 chain 7: Kanturu,0x00e75089,40,82,1,0x00e756d0,particle:0x801c/4,drawn,,observed,create unsupported
@@ -628,7 +628,7 @@ chain 7: Kanturu,0x00e75089,40,83,1,0x00e75756,particle:0x801b/2,drawn,,observed
 chain 7: Kanturu,0x00e75089,40,85,1,0x00e757eb,mesh:0x3 mesh:0x3,drawn,,source,create unsupported
 chain 7: Kanturu,0x00e75089,40,92,1,0x00e758cd,bone bone joint:0x7f7c/18,drawn,,observed,create unsupported
 chain 7: Kanturu,0x00e75089,40,96,1,0x00e7599a,mesh:0x0,drawn,,source,create unsupported
-chain 7: Kanturu,0x00e75089,40,98,1,0x00e75a48,bone particle:0x802a/2,partial,no consumer: particle 0x802a/2; probe: draws refused 16 of 40,observed,create unsupported
+chain 7: Kanturu,0x00e75089,40,98,1,0x00e75a48,bone particle:0x802a/2,partial,no consumer: particle 0x802a/2; probe (40 draws): 16 draws refused,observed,create unsupported
 chain 7: Kanturu,0x00e75089,40,105,1,0x00e75b1e,bone particle:0x7f2b/0 sprite:0x7f26 joint:0x7f7c/8,refused,the object runtime counts every draw unsupported,observed,create unsupported
 chain 7: Kanturu,0x00e75089,40,107,1,0x00e75e22,particle:0x7f89/2,drawn,,observed,create unsupported
 chain 7: Kanturu,0x00e75089,40,108,1,0x00e75ed7,particle:0x7f89/7,drawn,,observed,create unsupported
@@ -645,28 +645,28 @@ chain 8: Kanturu Remain,0x00e7df87,38,50,1,0x00e7e970,particle:0x7f89/11,drawn,,
 chain 8: Kanturu Remain,0x00e7df87,38,52,1,0x00e7ea32,particle:0x801c/7,drawn,,observed,create unsupported; move unsupported
 chain 8: Kanturu Remain,0x00e7df87,38,53,1,0x00e7eacb,particle:0x802a/1,drawn,,observed,create unsupported; move unsupported
 chain 8: Kanturu Remain,0x00e7df87,38,54,1,0x00e7eb5d,joint:0x7f7d/8,drawn,,observed,create unsupported; move unsupported
-chain 8: Kanturu Remain,0x00e7df87,38,55,1,0x00e7ebda,effect:0x4ac/1,partial,no consumer: effect 0x4ac/1; probe: effect requests refused 6 of 40,observed,create unsupported; move unsupported
+chain 8: Kanturu Remain,0x00e7df87,38,55,1,0x00e7ebda,effect:0x4ac/1,partial,no consumer: effect 0x4ac/1; probe (40 draws): 6 effect requests refused,observed,create unsupported; move unsupported
 chain 8: Kanturu Remain,0x00e7df87,38,56,1,0x00e7ec78,joint:0x7f7d/9,drawn,,observed,create unsupported; move unsupported
 chain 8: Kanturu Remain,0x00e7df87,38,65,1,0x00e7ecf2,joint:0x7f7d/10,drawn,,observed,create unsupported; move unsupported
-chain 9: tower,0x00e84941,39,0,1,0x00e84a02,sound:0x2bf bone particle:0x7f5a/43 bone effect:0x4be/0 effect:?/2 sound:0x2c1 effect:?/0 effect:0x4c5/? bone particle:0x7f54/1 sound:0x2c0 bone effect:0x4bf/0 bone effect:0x4bf/0 bone effect:0x4bf/0 bone particle:0x7f54/1 bone particle:0x7f5a/47,partial,"no consumer: effect 0x4be/0, effect 0x4bf/0, particle 0x7f54/1, particle 0x7f5a/43, particle 0x7f5a/47; probe: particle requests refused 8 of 40",observed,create unsupported; move unsupported; variable request id (? = chosen at run time)
+chain 9: tower,0x00e84941,39,0,1,0x00e84a02,sound:0x2bf bone particle:0x7f5a/43 bone effect:0x4be/0 effect:?/2 sound:0x2c1 effect:?/0 effect:0x4c5/? bone particle:0x7f54/1 sound:0x2c0 bone effect:0x4bf/0 bone effect:0x4bf/0 bone effect:0x4bf/0 bone particle:0x7f54/1 bone particle:0x7f5a/47,partial,"no consumer: effect 0x4be/0, effect 0x4bf/0, particle 0x7f54/1, particle 0x7f5a/43, particle 0x7f5a/47; probe (40 draws): 8 particle requests refused",observed,create unsupported; move unsupported; variable request id (? = chosen at run time)
 chain 9: tower,0x00e84941,39,1,1,0x00e84c77,particle:0x7f89/1,drawn,,observed,create unsupported; move unsupported
 chain 9: tower,0x00e84941,39,5,1,0x00e84d25,bone sprite:0x7ef7 sprite:0x7f67 sprite:0x7f67,drawn,,observed,create unsupported; move unsupported
 chain 9: tower,0x00e84941,39,11,1,0x00e84f0f,particle:0x7f89/3,drawn,,observed,create unsupported; move unsupported
 chain 9: tower,0x00e84941,39,32,1,0x00e84fc2,particle:0x802a/1,drawn,,observed,create unsupported; move unsupported
 chain 9: tower,0x00e84941,39,46,1,0x00e85054,particle:0x7f89/7,drawn,,observed,create unsupported; move unsupported
-chain 9: tower,0x00e84941,39,47,1,0x00e851a3,joint:0x7f7d/11,partial,no consumer: joint 0x7f7d/11; probe: draws refused 6 of 40,observed,create unsupported; move unsupported
+chain 9: tower,0x00e84941,39,47,1,0x00e851a3,joint:0x7f7d/11,partial,no consumer: joint 0x7f7d/11; probe (40 draws): 6 draws refused,observed,create unsupported; move unsupported
 chain 9: tower,0x00e84941,39,48,1,0x00e8521c,particle:0x7f89/10,drawn,,observed,create unsupported; move unsupported
 chain 9: tower,0x00e84941,39,49,1,0x00e85282,particle:0x7f89/1,drawn,,observed,create unsupported; move unsupported
 chain 9: tower,0x00e84941,39,50,1,0x00e8533c,particle:0x7f89/4,drawn,,observed,create unsupported; move unsupported
-chain 9: tower,0x00e84941,39,52,1,0x00e853fb,particle:0x8017/1,partial,no consumer: particle 0x8017/1; probe: particle requests refused 16 of 40,observed,create unsupported; move unsupported
-chain 9: tower,0x00e84941,39,53,1,0x00e854b8,particle:0x7f5a/46,partial,no consumer: particle 0x7f5a/46; probe: particle requests refused 16 of 40,observed,create unsupported; move unsupported
-chain 9: tower,0x00e84941,39,54,1,0x00e85572,joint:0x7f7c/19,partial,no consumer: joint 0x7f7c/19; probe: draws refused 16 of 40,observed,create unsupported; move unsupported
-chain 9: tower,0x00e84941,39,74,1,0x00e85113,joint:0x7f7d/11,partial,no consumer: joint 0x7f7d/11; probe: draws refused 6 of 40,observed,create unsupported; move unsupported
-class world-63 (Vulcanus) slot +0x34,0x00e8ece1,63,0,1,0x00e8ed5b,particle:0x801b/6,partial,no consumer: particle 0x801b/6; probe: particle requests refused 60 of 40,observed,
-class world-63 (Vulcanus) slot +0x34,0x00e8ece1,63,1,1,0x00e8eec0,particle:0x7f5a/60,partial,no consumer: particle 0x7f5a/60; probe: particle requests refused 16 of 40,observed,
+chain 9: tower,0x00e84941,39,52,1,0x00e853fb,particle:0x8017/1,partial,no consumer: particle 0x8017/1; probe (40 draws): 16 particle requests refused,observed,create unsupported; move unsupported
+chain 9: tower,0x00e84941,39,53,1,0x00e854b8,particle:0x7f5a/46,partial,no consumer: particle 0x7f5a/46; probe (40 draws): 16 particle requests refused,observed,create unsupported; move unsupported
+chain 9: tower,0x00e84941,39,54,1,0x00e85572,joint:0x7f7c/19,partial,no consumer: joint 0x7f7c/19; probe (40 draws): 16 draws refused,observed,create unsupported; move unsupported
+chain 9: tower,0x00e84941,39,74,1,0x00e85113,joint:0x7f7d/11,partial,no consumer: joint 0x7f7d/11; probe (40 draws): 6 draws refused,observed,create unsupported; move unsupported
+class world-63 (Vulcanus) slot +0x34,0x00e8ece1,63,0,1,0x00e8ed5b,particle:0x801b/6,partial,no consumer: particle 0x801b/6; probe (40 draws): 60 particle requests refused,observed,
+class world-63 (Vulcanus) slot +0x34,0x00e8ece1,63,1,1,0x00e8eec0,particle:0x7f5a/60,partial,no consumer: particle 0x7f5a/60; probe (40 draws): 16 particle requests refused,observed,
 class world-63 (Vulcanus) slot +0x34,0x00e8ece1,63,2,1,0x00e8ef66,particle:0x7f89/16,drawn,,observed,
 class world-63 (Vulcanus) slot +0x34,0x00e8ece1,63,3,1,0x00e8eff9,particle:0x7f89/11,drawn,,observed,
-class world-63 (Vulcanus) slot +0x34,0x00e8ece1,63,4,1,0x00e8f0bc,joint:0x7fd5/4 particle:0x7f25/9,partial,"no consumer: joint 0x7fd5/4, particle 0x7f25/9; probe: particle requests refused 16, joint requests refused 16 of 40",observed,
+class world-63 (Vulcanus) slot +0x34,0x00e8ece1,63,4,1,0x00e8f0bc,joint:0x7fd5/4 particle:0x7f25/9,partial,"no consumer: joint 0x7fd5/4, particle 0x7f25/9; probe (40 draws): 16 particle requests refused, 16 joint requests refused",observed,
 class world-63 (Vulcanus) slot +0x34,0x00e8ece1,63,5,1,0x00e8f272,particle:0x7f5a/21,drawn,,observed,
 class world-63 (Vulcanus) slot +0x34,0x00e8ece1,63,6,1,0x00e8f33b,sprite:0x7ef7 particle:0x8084/0 particle:0x806e/4 particle:0x8085/0,drawn,,observed,
 class world-57 (Raklion) slot +0x34,0x00e946a8,57,70,1,0x00e946dc,particle:0x8086/2 particle:0x8087/6 particle:0x8089/2 particle:0x8086/2,drawn,,observed,
@@ -704,28 +704,28 @@ RenderObjectVisual world case,0x017f9758,10,5,1,0x017fbe69,particle:0x7f89/5,dra
 RenderObjectVisual world case,0x017f9758,10,10,1,0x017fbf34,bone particle:0x7ef7/0,drawn,,observed,create unsupported; move unsupported
 RenderObjectVisual world case,0x017f9758,11,11,1,0x017fc057,bone sprite:0x7ef7,drawn,,observed,create unsupported; move unsupported
 RenderObjectVisual world case,0x017f9758,11,13,1,0x017fc356,bone sprite:0x7f78,drawn,,observed,create unsupported; move unsupported
-RenderObjectVisual world case,0x017f9758,11,42,1,0x017fc487,particle:0x8001/0 particle:0x8000/0 particle:0x7f89/6 particle:0x8000/1 particle:0x7f78/4,partial,"no consumer: particle 0x7f78/4, particle 0x7f89/6, particle 0x8000/0, particle 0x8000/1, particle 0x8001/0; probe: particle requests refused 34 of 40",observed,create unsupported; move unsupported
-RenderObjectVisual world case,0x017f9758,12,11,1,0x017fc057,bone sprite:0x7ef7,drawn,,observed,create unsupported; move unsupported
-RenderObjectVisual world case,0x017f9758,12,13,1,0x017fc356,bone sprite:0x7f78,drawn,,observed,create unsupported; move unsupported
-RenderObjectVisual world case,0x017f9758,12,42,1,0x017fc487,particle:0x8001/0 particle:0x8000/0 particle:0x7f89/6 particle:0x8000/1 particle:0x7f78/4,partial,"no consumer: particle 0x7f78/4, particle 0x7f89/6, particle 0x8000/0, particle 0x8000/1, particle 0x8001/0; probe: particle requests refused 34 of 40",observed,create unsupported; move unsupported
-RenderObjectVisual world case,0x017f9758,13,11,1,0x017fc057,bone sprite:0x7ef7,drawn,,observed,create unsupported; move unsupported
-RenderObjectVisual world case,0x017f9758,13,13,1,0x017fc356,bone sprite:0x7f78,drawn,,observed,create unsupported; move unsupported
-RenderObjectVisual world case,0x017f9758,13,42,1,0x017fc487,particle:0x8001/0 particle:0x8000/0 particle:0x7f89/6 particle:0x8000/1 particle:0x7f78/4,partial,"no consumer: particle 0x7f78/4, particle 0x7f89/6, particle 0x8000/0, particle 0x8000/1, particle 0x8001/0; probe: particle requests refused 34 of 40",observed,create unsupported; move unsupported
-RenderObjectVisual world case,0x017f9758,14,11,1,0x017fc057,bone sprite:0x7ef7,drawn,,observed,create unsupported; move unsupported
-RenderObjectVisual world case,0x017f9758,14,13,1,0x017fc356,bone sprite:0x7f78,drawn,,observed,create unsupported; move unsupported
-RenderObjectVisual world case,0x017f9758,14,42,1,0x017fc487,particle:0x8001/0 particle:0x8000/0 particle:0x7f89/6 particle:0x8000/1 particle:0x7f78/4,partial,"no consumer: particle 0x7f78/4, particle 0x7f89/6, particle 0x8000/0, particle 0x8000/1, particle 0x8001/0; probe: particle requests refused 34 of 40",observed,create unsupported; move unsupported
-RenderObjectVisual world case,0x017f9758,15,11,1,0x017fc057,bone sprite:0x7ef7,drawn,,observed,create unsupported; move unsupported
-RenderObjectVisual world case,0x017f9758,15,13,1,0x017fc356,bone sprite:0x7f78,drawn,,observed,create unsupported; move unsupported
-RenderObjectVisual world case,0x017f9758,15,42,1,0x017fc487,particle:0x8001/0 particle:0x8000/0 particle:0x7f89/6 particle:0x8000/1 particle:0x7f78/4,partial,"no consumer: particle 0x7f78/4, particle 0x7f89/6, particle 0x8000/0, particle 0x8000/1, particle 0x8001/0; probe: particle requests refused 34 of 40",observed,create unsupported; move unsupported
-RenderObjectVisual world case,0x017f9758,16,11,1,0x017fc057,bone sprite:0x7ef7,drawn,,observed,create unsupported; move unsupported
-RenderObjectVisual world case,0x017f9758,16,13,1,0x017fc356,bone sprite:0x7f78,drawn,,observed,create unsupported; move unsupported
-RenderObjectVisual world case,0x017f9758,16,42,1,0x017fc487,particle:0x8001/0 particle:0x8000/0 particle:0x7f89/6 particle:0x8000/1 particle:0x7f78/4,partial,"no consumer: particle 0x7f78/4, particle 0x7f89/6, particle 0x8000/0, particle 0x8000/1, particle 0x8001/0; probe: particle requests refused 34 of 40",observed,create unsupported; move unsupported
-RenderObjectVisual world case,0x017f9758,17,11,1,0x017fc057,bone sprite:0x7ef7,drawn,,observed,create unsupported; move unsupported
-RenderObjectVisual world case,0x017f9758,17,13,1,0x017fc356,bone sprite:0x7f78,drawn,,observed,create unsupported; move unsupported
-RenderObjectVisual world case,0x017f9758,17,42,1,0x017fc487,particle:0x8001/0 particle:0x8000/0 particle:0x7f89/6 particle:0x8000/1 particle:0x7f78/4,partial,"no consumer: particle 0x7f78/4, particle 0x7f89/6, particle 0x8000/0, particle 0x8000/1, particle 0x8001/0; probe: particle requests refused 34 of 40",observed,create unsupported; move unsupported
-RenderObjectVisual world case,0x017f9758,52,11,1,0x017fc057,bone sprite:0x7ef7,drawn,,observed,create unsupported; move unsupported
-RenderObjectVisual world case,0x017f9758,52,13,1,0x017fc356,bone sprite:0x7f78,drawn,,observed,create unsupported; move unsupported
-RenderObjectVisual world case,0x017f9758,52,42,1,0x017fc487,particle:0x8001/0 particle:0x8000/0 particle:0x7f89/6 particle:0x8000/1 particle:0x7f78/4,partial,"no consumer: particle 0x7f78/4, particle 0x7f89/6, particle 0x8000/0, particle 0x8000/1, particle 0x8001/0; probe: particle requests refused 34 of 40",observed,create unsupported; move unsupported
-RenderObjectVisual world case,0x017f9758,55,61,1,0x017fc8fa,bone sprite:0x7f37 sprite:0x7f37 bone sprite:0x7f37 sprite:0x7f37 bone sprite:0x7f37 sprite:0x7f37,refused,the native world does not start for this probe,none,
-RenderObjectVisual world case,0x017f9758,55,84,1,0x017fc742,particle:0x7f89/10,refused,the native world does not start for this probe,none,
-RenderObjectVisual world case,0x017f9758,55,89,1,0x017fc7a2,effect:0x413/9,refused,the native world does not start for this probe,none,
+RenderObjectVisual world case,0x017f9758,11,42,1,0x017fc487,particle:0x8001/0 particle:0x8000/0 particle:0x7f89/6 particle:0x8000/1 particle:0x7f78/4,partial,"no consumer: particle 0x7f78/4, particle 0x7f89/6, particle 0x8000/0, particle 0x8000/1, particle 0x8001/0; probe (40 draws): 34 particle requests refused",observed,create unsupported; move unsupported
+RenderObjectVisual world case,0x017f9758,12,11,1,0x017fc057,bone sprite:0x7ef7,drawn,,observed,probed in world 11 (same case; same object folder); create unsupported; move unsupported
+RenderObjectVisual world case,0x017f9758,12,13,1,0x017fc356,bone sprite:0x7f78,drawn,,observed,probed in world 11 (same case; same object folder); create unsupported; move unsupported
+RenderObjectVisual world case,0x017f9758,12,42,1,0x017fc487,particle:0x8001/0 particle:0x8000/0 particle:0x7f89/6 particle:0x8000/1 particle:0x7f78/4,partial,"no consumer: particle 0x7f78/4, particle 0x7f89/6, particle 0x8000/0, particle 0x8000/1, particle 0x8001/0; probe (40 draws): 34 particle requests refused",observed,probed in world 11 (same case; same object folder); create unsupported; move unsupported
+RenderObjectVisual world case,0x017f9758,13,11,1,0x017fc057,bone sprite:0x7ef7,drawn,,observed,probed in world 11 (same case; same object folder); create unsupported; move unsupported
+RenderObjectVisual world case,0x017f9758,13,13,1,0x017fc356,bone sprite:0x7f78,drawn,,observed,probed in world 11 (same case; same object folder); create unsupported; move unsupported
+RenderObjectVisual world case,0x017f9758,13,42,1,0x017fc487,particle:0x8001/0 particle:0x8000/0 particle:0x7f89/6 particle:0x8000/1 particle:0x7f78/4,partial,"no consumer: particle 0x7f78/4, particle 0x7f89/6, particle 0x8000/0, particle 0x8000/1, particle 0x8001/0; probe (40 draws): 34 particle requests refused",observed,probed in world 11 (same case; same object folder); create unsupported; move unsupported
+RenderObjectVisual world case,0x017f9758,14,11,1,0x017fc057,bone sprite:0x7ef7,drawn,,observed,probed in world 11 (same case; same object folder); create unsupported; move unsupported
+RenderObjectVisual world case,0x017f9758,14,13,1,0x017fc356,bone sprite:0x7f78,drawn,,observed,probed in world 11 (same case; same object folder); create unsupported; move unsupported
+RenderObjectVisual world case,0x017f9758,14,42,1,0x017fc487,particle:0x8001/0 particle:0x8000/0 particle:0x7f89/6 particle:0x8000/1 particle:0x7f78/4,partial,"no consumer: particle 0x7f78/4, particle 0x7f89/6, particle 0x8000/0, particle 0x8000/1, particle 0x8001/0; probe (40 draws): 34 particle requests refused",observed,probed in world 11 (same case; same object folder); create unsupported; move unsupported
+RenderObjectVisual world case,0x017f9758,15,11,1,0x017fc057,bone sprite:0x7ef7,drawn,,observed,probed in world 11 (same case; same object folder); create unsupported; move unsupported
+RenderObjectVisual world case,0x017f9758,15,13,1,0x017fc356,bone sprite:0x7f78,drawn,,observed,probed in world 11 (same case; same object folder); create unsupported; move unsupported
+RenderObjectVisual world case,0x017f9758,15,42,1,0x017fc487,particle:0x8001/0 particle:0x8000/0 particle:0x7f89/6 particle:0x8000/1 particle:0x7f78/4,partial,"no consumer: particle 0x7f78/4, particle 0x7f89/6, particle 0x8000/0, particle 0x8000/1, particle 0x8001/0; probe (40 draws): 34 particle requests refused",observed,probed in world 11 (same case; same object folder); create unsupported; move unsupported
+RenderObjectVisual world case,0x017f9758,16,11,1,0x017fc057,bone sprite:0x7ef7,drawn,,observed,probed in world 11 (same case; same object folder); create unsupported; move unsupported
+RenderObjectVisual world case,0x017f9758,16,13,1,0x017fc356,bone sprite:0x7f78,drawn,,observed,probed in world 11 (same case; same object folder); create unsupported; move unsupported
+RenderObjectVisual world case,0x017f9758,16,42,1,0x017fc487,particle:0x8001/0 particle:0x8000/0 particle:0x7f89/6 particle:0x8000/1 particle:0x7f78/4,partial,"no consumer: particle 0x7f78/4, particle 0x7f89/6, particle 0x8000/0, particle 0x8000/1, particle 0x8001/0; probe (40 draws): 34 particle requests refused",observed,probed in world 11 (same case; same object folder); create unsupported; move unsupported
+RenderObjectVisual world case,0x017f9758,17,11,1,0x017fc057,bone sprite:0x7ef7,drawn,,observed,probed in world 11 (same case; same object folder); create unsupported; move unsupported
+RenderObjectVisual world case,0x017f9758,17,13,1,0x017fc356,bone sprite:0x7f78,drawn,,observed,probed in world 11 (same case; same object folder); create unsupported; move unsupported
+RenderObjectVisual world case,0x017f9758,17,42,1,0x017fc487,particle:0x8001/0 particle:0x8000/0 particle:0x7f89/6 particle:0x8000/1 particle:0x7f78/4,partial,"no consumer: particle 0x7f78/4, particle 0x7f89/6, particle 0x8000/0, particle 0x8000/1, particle 0x8001/0; probe (40 draws): 34 particle requests refused",observed,probed in world 11 (same case; same object folder); create unsupported; move unsupported
+RenderObjectVisual world case,0x017f9758,52,11,1,0x017fc057,bone sprite:0x7ef7,drawn,,observed,probed in world 11 (same case; same object folder); create unsupported; move unsupported
+RenderObjectVisual world case,0x017f9758,52,13,1,0x017fc356,bone sprite:0x7f78,drawn,,observed,probed in world 11 (same case; same object folder); create unsupported; move unsupported
+RenderObjectVisual world case,0x017f9758,52,42,1,0x017fc487,particle:0x8001/0 particle:0x8000/0 particle:0x7f89/6 particle:0x8000/1 particle:0x7f78/4,partial,"no consumer: particle 0x7f78/4, particle 0x7f89/6, particle 0x8000/0, particle 0x8000/1, particle 0x8001/0; probe (40 draws): 34 particle requests refused",observed,probed in world 11 (same case; same object folder); create unsupported; move unsupported
+RenderObjectVisual world case,0x017f9758,55,61,1,0x017fc8fa,bone sprite:0x7f37 sprite:0x7f37 bone sprite:0x7f37 sprite:0x7f37 bone sprite:0x7f37 sprite:0x7f37,drawn,,observed,probed in world 1 (same case; this world has no terrain in the installed data)
+RenderObjectVisual world case,0x017f9758,55,84,1,0x017fc742,particle:0x7f89/10,refused,not probed: the world has no terrain in the installed data and no other world shares the case,none,
+RenderObjectVisual world case,0x017f9758,55,89,1,0x017fc7a2,effect:0x413/9,refused,not probed: the world has no terrain in the installed data and no other world shares the case,none,

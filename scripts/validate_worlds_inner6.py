@@ -122,7 +122,7 @@ MUTATIONS = [
     ('world 99', 'world >= 0x62 && world <= 0x63', 'world >= 0x62 && world <= 0x62'),
     ('world 45', 'world >= 0x2d && world <= 0x32', 'world >= 0x2e && world <= 0x32'),
     ('world 50', 'world >= 0x2d && world <= 0x32', 'world >= 0x2d && world <= 0x31'),
-    ('model', 'if (!model || !mu_chain11_world(world))', 'if (!mu_chain11_world(world))'),
+    ('model', 'if (!model || !mu_chain11_world(world))', 'if ((model && 0) || !mu_chain11_world(world))'),
     ('default answer', '    default:\n        return 0;', '    default:\n        return 1;'),
     ('type 54 drop', 'position[2] = position[2] - 100.0f;', 'position[2] = position[2] - 10.0f;'),
     ('type 54 light write', 'mu_obj_set_f32(o, MU_OBJF_LIGHT + 4 * k, 0.15f);', 'mu_obj_set_f32(o, MU_OBJF_LIGHT + 4 * k, 0.25f);'),
