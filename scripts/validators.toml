@@ -3963,6 +3963,7 @@ note = "RENDER-ITEMS-002Z: fourteen early bodies, independent states and every f
 test = "native/tests/test_audio_monsters6.py::Original.test_whole_table"
 pins = ["text", "data"]
 families = ["whole_owners", "dispatcher", "caller_tails"]
+cases = 55392
 cases_at = "cases"
 mutants = 19
 mutants_at = "mutants"

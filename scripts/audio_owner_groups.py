@@ -6,6 +6,7 @@ never gates or native delivery. Prologue and sound-id guesses are excluded.
 """
 import argparse
 from collections import Counter
+import csv
 import json
 from pathlib import Path
 import re
@@ -65,8 +66,8 @@ def classify(before,after,text,data):
     import monster_audio_static as scalar
     slots=scalar.owners(data)
     # Historical 279 candidates are distinct sites in the 19 refused methods.
-    old_accepted,_=scalar.recover(text,data)
-    refused=set(slots)-set(old_accepted)
+    refused=EXTENDED|DELEGATED|MARKERS|STOP
+    assert refused<=set(slots)
     rows=[]
     for r in before['sites']:
         anchor=int(r['anchor'],16)
@@ -87,10 +88,15 @@ def classify(before,after,text,data):
 
 
 def main():
-    ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--before',type=Path,required=True);ap.add_argument('--report',type=Path,required=True);a=ap.parse_args()
+    ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--before',type=Path,default=ROOT/'docs/research/audio-006-entry-groups.csv');ap.add_argument('--report',type=Path,required=True);a=ap.parse_args()
     import audio_caller_census as census
     text,data=pins.TEXT.read(),pins.DATA.read();after=census.inventory(text,data)
-    report=classify(json.loads(a.before.read_text()),after,text,data)
+    if a.before.suffix=='.csv':
+        with a.before.open(newline='') as f:
+            entry=list(csv.DictReader(f))
+        before={'sites':[dict(site=r['site'],anchor=r['anchor'],owner=r['entry_owner'],source=r['entry_source'],sound_id_status=r['entry_sound_id_status']) for r in entry]}
+    else:before=json.loads(a.before.read_text())
+    report=classify(before,after,text,data)
     _,report['semantic_evidence']=semantic_owners(text,data)
     a.report.write_text(json.dumps(report,indent=2)+'\n');print(json.dumps({k:v for k,v in report.items() if k not in ('sites','semantic_evidence')},indent=2))
 if __name__=='__main__':main()

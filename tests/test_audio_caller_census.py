@@ -61,5 +61,24 @@ class AudioCensus(unittest.TestCase):
         self.assertFalse(any(row['audio_adapter'] for row in unknown))
 
 
+    @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'Pinned grouping ledger is opt-in')
+    def test_reviewed_entry_groups_reproduce_without_a_private_report(self):
+        import csv
+        import pins
+        import audio_owner_groups as groups
+        with (ROOT/'docs/research/audio-006-entry-groups.csv').open(newline='') as f:
+            rows=list(csv.DictReader(f))
+        self.assertEqual(len(rows),891)
+        self.assertEqual(len({r['site'] for r in rows}),891)
+        before={'sites':[dict(site=r['site'],anchor=r['anchor'],owner=r['entry_owner'],source=r['entry_source'],sound_id_status=r['entry_sound_id_status']) for r in rows]}
+        text,data=pins.TEXT.read(),pins.DATA.read()
+        result=groups.classify(before,census.inventory(text,data),text,data)
+        self.assertEqual(result['groups'],{'owner unknown':546,'scalar world/distance/audio RNG':182,
+            'delegated owner/context absent':47,'marker field or service absent':47,
+            'prior action and stop ordering':3,'use owner target/buff/request/timing context absent':66})
+        self.assertEqual(sum(r['wired'] for r in result['sites']),182)
+        self.assertEqual(sum(r['group']=='owner unknown' and r['owner_after']!='unresolved' for r in result['sites']),30)
+
+
 if __name__ == '__main__':
     unittest.main()

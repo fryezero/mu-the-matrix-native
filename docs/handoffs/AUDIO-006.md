@@ -106,3 +106,19 @@ No source change is pending. Complete that run, explicit two-binary current-main
 world identity, audit, final docs and PR metadata. The latest root build was
 19.49 s; no full lane gate or app packaging ran. Source is at `8970bb80` before
 this metadata checkpoint; runtime C has not changed since the successful build.
+
+
+Latest checkpoint: all 30 affected validators pass at `17da1ea0`, 339,112
+cases/checks, zero failures/errors/skips, 656.13 s including the 95.70 s
+selection. All ten symbol-fallback rows are retained. New whole-owner report:
+55,392 cases, 26,442 whole owner + 26,310 complete outer dispatcher + 2,640
+caller tails, all 182 sites, zero mismatches/stops, 77.1 s. Legacy scalar
+comparison retains 38,315 cases / 245 sites and passes in 25.1 s.
+
+A reviewed public entry ledger now retains the 891 scoped candidates as authored
+metadata, `docs/research/audio-006-entry-groups.csv`. The grouping tool defaults
+to it; no private before-report is needed later. The new ledger regression test
+and final audit remain pending, alongside the explicitly rebuilt identity sweep
+currently queued in `~/Documents/MTM/mu-mac-tools/native/scratch/audio-006/identity.log`.
+Main was fetched again and remains `d3ec9950`. All remaining changes are
+classification metadata, test controls and documentation; native C is unchanged.

@@ -1157,3 +1157,12 @@ The integrated census is 1,464 classified / 516 unresolved, world bucket 137.
 Of the 30 classifications beyond the 546-entry remainder, this lane supplies 28
 and incoming INNER-005 supplies two. The 182 new fixture play boundaries are
 separate from both ownership deltas.
+
+
+The reviewed [entry grouping ledger](audio-006-entry-groups.csv) preserves all
+891 candidates in the three entry cohorts, 546 unresolved + 279 class refusals
++ 66 class-use sites. It contains authored addresses, source references and
+blockers, without client bytes or asset paths. `audio_owner_groups.py --report
+<local>` now uses this ledger by default, so a future lane needs no deleted
+private report to reproduce the grouping and compare current native ownership.
+Negative-rand control outcomes stay separate from its production-id summary.
