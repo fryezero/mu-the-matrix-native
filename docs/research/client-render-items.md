@@ -3637,3 +3637,148 @@ The earlier `HERO-ITEMS-001` leads remain `0x009dadf1` for the castle-world weap
 These are static source/research pointers, without a new original-instruction comparison in this lane.
 Do not copy the older handoff's superseded inventory/record-format limits into a new scope. The stat
 machine and service state remain excluded. No hero-equipment or native renderchar adapter code is changed here.
+
+## Part 43, level guards, matrix brackets, scalar forms, gated producers and low-level callers, RENDER-ITEMS-002AB
+
+Offline/static work over pinned text SHA-256
+`2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724` and data SHA-256
+`c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f`.
+[Handoff and checks](../handoffs/RENDER-ITEMS-002AB.md). Part 42 belongs to HERO-ITEMS-002.
+
+The [144-row ledger](item-body-groups-002ab.tsv) keeps part 41's group for every remaining body and adds
+the form each one executes, the decision and the reason. Sixty bodies are admitted; the denominator
+stays 1,674 and the total becomes 1,590. Checks and timings are in the handoff.
+
+### How the remainder was classified
+
+Every remaining type ran the eleven classification states and one forced-record state with hooks on
+each comparison of the helper's level word (`[ebp+0x28]` of `0x016e036c`), each effect service and each
+OpenGL import. That splits part 41's groups by the instruction form a body executes:
+
+| Part 41 group | Bodies | Forms found |
+|---|---:|---|
+| Variable draw counts | 18 | packed level word 7, decoded level word 11 |
+| Matrix-stack programs, entry state | 13 | one bare matrix bracket form, 9 fit |
+| Scalar/colour programs | 24 | nine scalar forms 11, flag programs 3, others 10 |
+| Independent failures | 10 | six-column atlas 4, armour overlay 4, two retained |
+| Helper callers | 17 | low-level two-mesh callers 7, light/helper/two-mesh 2, own draws 8 |
+| Producer/service programs | 50 | level-gated pre-draw case 5, then one unread instruction form per pair |
+| Stopped fixtures | 12 | texture-name table 5, action speed 2, producer state 5 |
+
+### Helper level guards
+
+The body helper receives the caller's level word at `[ebp+0x28]`: `-1` from the low callers, the
+unshifted RenderObjDraw argument from the high callers (part 41). Its 85 comparisons with a constant
+have three forms: `cmp word, 9` (36 sites, part 41's packed form), `cmp word, -1; je; decode; cmp 9`
+(26 sites, the earlier decoded rule) and a wing form at 23 sites, for example
+`0x016e226a..0x016e227c`:
+
+```
+cmp dword [ebp+0x28], -1 ; je low ; push dword [ebp+0x28] ; call 0x016a78c9 ; pop ecx
+cmp eax, 0xb ; jge high ; low:
+```
+
+`0x016a78c9` is `mov eax, [ebp+8]; sar eax, 3; and eax, 0xf`. A wing below decoded level eleven draws
+one body; from eleven it draws its mesh program. Recipe `level_split=3` keeps the `-1` guard and the
+threshold eleven behind part 41's quality and glow-level caller gates. `level_guards()` reads the one
+guard of each listed case, checks that the level word has no other use in the case and that the case
+decodes to its end; `case_extent()` finds a case from its own `cmp [ebp+0x10], type; jne` (or the same
+compare of OBJECT `+0x5c`), or from a shared `cmp/je` chain closed by one `cmp/jne`.
+
+Seven weapons take the packed form without body random (`0x0b34..0x0b36`, `0x1103`, `0x130e`,
+`0x1523`, `0x1524`) and eleven wings the decoded form (`0x239a..0x239d`, `0x239f`, `0x23a0`,
+`0x23a2..0x23a4`, `0x23a6`, `0x23a7`). The wings `0x239e`, `0x23a1` and `0x23a5` read the same guard but
+re-transform the model through `0x00966ea5` between draws and stay refused.
+
+### Matrix brackets
+
+`0x012b7e53` is `call [glPushMatrix]; ret 4` and `0x012b7e65` is `call [glPopMatrix]; ret`. Thirteen
+remaining types reach ten cases that call them once each around their draws and call no other OpenGL
+import except the recorded glColor slots, so the pair encloses no matrix change. `matrix_brackets()` checks both helpers and each
+case; the comparison accepts exactly one push followed by one pop, or none when the helper leaves at
+its `0x40000` test. Nine bodies fit: `0x0b05`, `0x0ef4`, `0x12fa`, `0x12fb`, `0x14f2`, `0x16f5`,
+`0x16f6`, `0x1711`, `0x24f1`. `0x0afc` keeps an unexplained light in a later phase, `0x24ed`/`0x26ed`
+choose their base draw from OBJECT `+0x68` (0 or 1, none otherwise) and `0x0ef0` writes OBJECT fields
+that later phases read.
+
+### Scalar forms
+
+All are read from the instructions; a neighbouring form is refused and never fitted from samples.
+
+| Form | Example site | Representation |
+|---|---|---|
+| Upper clamp after the constant operations | `0x01719d9c` | scalar op 7 |
+| Binary64 run after binary32 operations, one rounding | `0x01718e04` | ops with the width bit, per operation |
+| Binary32 clamp after a binary64 run | `0x0171a102` | op 7 after the rounding |
+| Ternary minimum with the wave evaluated twice | `0x01706faa` | op 17, `k > x ? x : k` |
+| `k - value` through xmm1 | `0x0171e578` | op 5 |
+| Helper result in a disp8 frame local | `0x016e257b` | same program, short encodings |
+| Sine pushed directly as a draw argument | `0x016f4199` | program without operations |
+| Saved wave reloaded later with its own constants | `0x017642c6` | one program per reload |
+| Constant body light scaled by a wave | `0x0175ff21` | kind-6 products of the three constants |
+| Folded binary32 constants in a clock chain | `0x016e30dd` | `16.0f / (float)600` as one constant |
+| Divisor loaded by `push 6; pop ecx` | `0x0172aead` | six-column atlas remainder and quotient |
+| Rate held as a binary32 constant, truncated | `0x01732a5b` | integer constant of the remainder |
+| Binary32 local set before the clock block | `0x01704408` | constant accepted only with its store in the text |
+| `0x0184f927(k, value)` | `0x01719402` | clock op 38, the helper's own compare order |
+| Integer ping-pong | `0x016e4324` | clock op 39, a value `>= n` becomes `2n - 1 - value` |
+| `1.0 - saved` after a helper call | `0x0171945c` | kind-6 reverse subtraction, constant taken from the text |
+
+The four largest shields (`0x1735`, `0x1737`, `0x1738`, `0x1755`) had one unread word, the six-column
+atlas; with it they pass every independent family and leave the retained-failure group.
+`0x1523` showed why the independent comparison stays mandatory: its first fit took the clock chain
+before the minimum helper, which agrees with the helper's result on 34 of 36 frames; six of 292
+independent states differed. The reader now offers only the helper's result.
+
+### Flag programs
+
+Three bodies build draw flags from the helper's flag argument inside their case:
+`mov eax, [ebp+0x18]; or eax, 0x40; push eax` (`0x017506c4`, `0x231b`/`0x231c`) and
+`mov eax, [ebp+0x18]; and eax, 0x100; or eax, k; push eax` with `k` 0x240, 0x48 and 0x44
+(`0x01758280`, `0x24e3`). Recipe kind 11 is `(input word & mask) | constant`.
+
+### Level-gated producers
+
+RenderObjDraw stores `(level argument >> 3) & 15` in `[ebp-0xac]` at `0x0176cf4a..0x0176cf5f` and never
+writes or takes the address of that local again (`level_local()`). Five sword cases start with
+
+```
+movzx eax, byte [ebp-0xd] ; test eax, eax ; je next      (visibility)
+cmp dword [ebp-0xac], 9 ; jl end
+```
+
+and create bone sprites `0x0150e746` behind it (`0x0179f285`, `0x0179f508`, `0x0179fb3a`, `0x017a0021`,
+`0x017a1996`). The earlier survey ran four low levels, saw no service and refused them. The gated
+survey runs every second level; the interpreter reads the local as the runtime integer `level`
+(effect op 51) instead of a constant, so the gate is an ordinary runtime branch of the program, and any
+other level-dependent frame word still differs between survey states and refuses the type. The
+admitted bodies are `0x0b2b..0x0b2e` and `0x0b32`; every one has the single threshold nine in the
+original and in C at each packed level word.
+
+The other 45 producers stop at distinct points: no pre-draw block at any level (4), services before and
+after the draws (4), a model light write in the case (6), random table selects (4), three wings with a
+transform service, and single unread instructions or helpers for the rest. The ledger names each.
+
+### Low-level callers that draw meshes
+
+RenderObjDraw's low-level type chain (`cmp [ebp-0xa8], 3; jl` at `0x017de3e4`) continues after part
+41's nine callers. Four cases at `0x017deb61..0x017dee71` draw mesh 0 twice through `0x00966e4a` and
+join at `0x017e16fa`: first with the OBJECT blend mesh and zero u/v, then with blend mesh `-2`, the
+OBJECT u/v and a texture `0x81d4..0x81d7`. Both use flags 2 and the OBJECT alpha and leave the model
+fields untouched. Two more cases (`0x017dee71`, `0x017defc1`) copy the light argument into the model,
+call the body helper with flag argument 3 and level word `-1`, then draw mesh 0 (flags 2, OBJECT alpha)
+and mesh 1 (flags 0x46, alpha 0.7) with the OBJECT `+0x68` word as texture; `0x2477` swaps the second
+draw's u and v. From glow level three these nine types take the ordinary helper chain, whose default
+body they reach. `item_mesh_callers.py` checks every instruction of the six cases.
+
+### Remaining boundaries
+
+Eighty-four bodies remain: 45 producers, 12 stopped fixtures, 9 scalar/colour bodies, 8 helper callers,
+6 retained failures and 4 bracket bodies. The stopped fixtures read model data the fixture world does
+not hold: a texture-name table at model `+0x34` compared with `absolute02_sword.JPG`
+(`0x016ddc73`, `0x016df9a0`), an action record's play speed at model `+0x30` (`0x016eef60`) and
+producer container state. `0x1710` and `0x10fd` stay excluded. The four armour overlays and `0x2009`
+keep the light argument in their ancient mesh tail; the retained-ancient rule of their siblings does
+not fit them. Existing record, selected-item, buff, invalid-context, pose/bone, random-phase and
+consumer refusals remain. No original-client process, network, protection, character-power feature,
+installed app or Native Data refresh is involved, and no particle, joint or effect consumer is added.

@@ -4138,3 +4138,91 @@ note = "RENDER-ITEMS-002AA: 32 packed-level random bodies, original caller guard
 "families.exits.cases" = 2048
 "families.caller_guards.cases" = 96
 "mutants.*" = {truthy = true}
+
+[validate_item_level_guards]
+test = "reconstructed/renderchar/test_item_level_guards.py::ItemLevelGuards.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "records", "packed", "clocks", "ticks", "exits", "original_guards", "reader_refusals"]
+cases = 60234
+mutants = 16
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar"]
+args = ["--mutations", "--output", "{report}"]
+note = "RENDER-ITEMS-002AB: 18 bodies split by the helper level word (packed >= 9, guarded decoded >= 11), every packed word, clock ticks, model exits and the original guards"
+[validate_item_level_guards.expect]
+"families.*.mismatches" = 0
+"families.bodies.cases" = 5256
+"families.records.cases" = 9216
+"families.packed.cases" = 29592
+"families.clocks.cases" = 432
+"families.ticks.cases" = 14400
+"families.exits.cases" = 1152
+"families.original_guards.cases" = 180
+"families.reader_refusals.cases" = 6
+"mutants.*" = {truthy = true}
+
+[validate_item_brackets]
+test = "reconstructed/renderchar/test_item_brackets.py::ItemBrackets.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "records", "clocks", "ticks", "exits", "brackets", "reader_refusals"]
+cases = 54916
+mutants = 11
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar"]
+args = ["--mutations", "--output", "{report}"]
+note = "RENDER-ITEMS-002AB: 28 bodies: bare glPushMatrix/glPopMatrix brackets, scalar forms and flag programs; the brackets family counts observed push/pop pairs"
+[validate_item_brackets.expect]
+"families.*.mismatches" = 0
+"families.bodies.cases" = 8176
+"families.records.cases" = 14336
+"families.clocks.cases" = 672
+"families.ticks.cases" = 16800
+"families.exits.cases" = 1792
+"families.brackets.cases" = 13135
+"families.reader_refusals.cases" = 5
+"mutants.*" = {truthy = true}
+
+[validate_item_gated_programs]
+test = "reconstructed/renderchar/test_item_gated_programs.py::ItemGatedPrograms.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "records", "clocks", "owned", "levels", "exits", "reader_refusals"]
+cases = 5384
+mutants = 10
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar"]
+args = ["--mutations", "--output", "{report}"]
+note = "RENDER-ITEMS-002AB: five pre-draw producers behind RenderObjDraw's decoded level local, owned requests at every packed level word and model exits"
+[validate_item_gated_programs.expect]
+"families.*.mismatches" = 0
+"families.bodies.cases" = 1460
+"families.records.cases" = 2560
+"families.clocks.cases" = 120
+"families.owned.cases" = 320
+"families.levels.cases" = 600
+"families.exits.cases" = 320
+"families.reader_refusals.cases" = 4
+"mutants.*" = {truthy = true}
+
+[validate_item_mesh_callers]
+test = "reconstructed/renderchar/test_item_mesh_callers.py::ItemMeshCallers.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "records", "levels", "exits", "original_sites", "reader_refusals"]
+cases = 22698
+mutants = 15
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar"]
+args = ["--mutations", "--output", "{report}"]
+note = "RENDER-ITEMS-002AB: nine low-level callers that draw two meshes below glow level three, every packed level word, original draw sites and model exits"
+[validate_item_mesh_callers.expect]
+"families.*.mismatches" = 0
+"families.bodies.cases" = 2628
+"families.records.cases" = 4608
+"families.levels.cases" = 14796
+"families.exits.cases" = 576
+"families.original_sites.cases" = 81
+"families.reader_refusals.cases" = 9
+"mutants.*" = {truthy = true}
