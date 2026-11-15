@@ -83,3 +83,15 @@ ignored dispatch result, death completion, walking frame, combat frame-zero
 and refused model aliases. Resource guards continue to pause heavy work during
 shared-host spikes, including load above 30. Next step is the final mutant run
 when the guard permits it.
+
+## Final source checkpoint
+
+Full monster proof: 38,315 cases, 245 sites, zero mismatches/stops, 15/15
+compiled mutants caught, 27.93 s. Full Kubera proof: 1,000 cases, all six sites,
+zero mismatches/stops, 6/6 compiled mutants caught, 7.95 s. A final invalid-action
+review adds a native guard when a loaded actor has no action 2. Its dedicated
+compiled mutant is caught in 2.004 s; the earlier 15 unchanged mutant targets
+are not repeated. The new native unit control requires silence for that case.
+Post-build selection retains 68 validators and 171 portable work items. The
+8d selection exceeds the cap, so the final private run will be reduced.
+Portable/affected checks, audit and rebuilt after identity remain pending.

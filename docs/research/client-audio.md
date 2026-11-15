@@ -909,13 +909,16 @@ The calls at `0x0138fb9c`, `0x01393849` and `0x0139431c` discard the dispatcher
 return value. Class requests precede the shared shock/attack/death voice; a
 handled class must not suppress that later shared voice. The first adapter draft
 made that mistake. The caller-tail comparison and final adapter retain both
-streams in order. SetPlayerDie writes its voice marker after those requests.
+streams in order. CHARACTER `+0x3324` aliases OBJECT animation frame `+0xd0`. The caller-tail
+comparison uses the same bytes for both views. Combat requires exactly frame
+zero; SetPlayerDie stores 0.001 after those requests.
 The native completion updates only its existing cosmetic audio latch for a
 loaded model; it does not write a session/replicated character record.
 
 SetPlayerWalk calls at `0x01391c1f` after SetAction. The existing fixture motion
 adapter supplies action 2 and the preserved frame for an unchanged action, or
-frame zero for a new action. MoveCharacter's call at `0x013a77da` admits actions
+frame zero for a new action. An actor without action 2 is refused before a
+walking request can be invented. MoveCharacter's call at `0x013a77da` admits actions
 0/1 only after animation. Held frame windows intentionally request repeatedly;
 the existing one-active-id manager suppresses playback. No new debounce changes
 the original request stream. Combat uses its existing per-trigger caller gates.

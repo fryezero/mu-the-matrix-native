@@ -29,6 +29,9 @@ WRAPPER='''#include "monster_audio.h"
 #include <stdlib.h>
 #include <string.h>
 static mu_monster_sound_plan *sink;
+static int action_count=8;
+int32_t mu_actor_action_count(const mu_actor *a){(void)a;return action_count;}
+void fixture_action_count(int count){action_count=count;}
 uint16_t mu_actor_action(const mu_actor *a){uint16_t v;memcpy(&v,a->object+0x2a,2);return v;}
 float mu_actor_frame(const mu_actor *a){float v;memcpy(&v,a->object+0xd0,4);return v;}
 void mu_session_sound_emit(mu_session *s,uint32_t r,uint32_t site,int32_t id,int16_t key,int loop){
@@ -68,6 +71,7 @@ def build(folder,header=None,table=None,adapter=None):
     lib=folder/'host.dylib'
     subprocess.run(['clang','-std=c11','-O2','-Wall','-Wextra','-Werror','-I',str(ROOT/'native/build/gen'),'-I',str(ROOT/'native/session'),'-shared',str(folder/'host.c'),'-o',str(lib)],check=True,capture_output=True)
     dll=C.CDLL(str(lib));dll.select_sound.argtypes=[C.c_int,C.c_int,C.c_uint16,C.c_float,C.POINTER(Plan)]
+    dll.fixture_action_count.argtypes=[C.c_int]
     dll.caller_audio.argtypes=[C.c_int,C.c_int,C.c_int,C.c_uint16,C.c_float,C.c_float,C.c_int,C.c_float,C.POINTER(Plan)]
     dll.select_plan.argtypes=[C.c_int,C.c_int,C.c_uint16,C.c_float,C.POINTER(C.c_float),C.POINTER(C.c_float),C.POINTER(Plan)]
     return dll
@@ -223,11 +227,18 @@ ADAPTER_MUTANTS={
  'death completion':('if (p.known) c->monsters[index].voice_3324', 'if (0 && p.known) c->monsters[index].voice_3324'),
  'walk preserved frame':('mu_actor_action(&actor->actor) == 2 ? mu_actor_frame(&actor->actor) : 0.0f','0.0f'),
  'caller frame zero':(' || !(mu_actor_frame(&actor->actor) == 0.0f)', ''),
+ 'missing action':(' || mu_actor_action_count(&actor->actor) <= 2',''),
  'missing alias':(' || model == 0x90a || model == 0x90b || model == 0x90c',''),
 }
 
 
 def adapter_controls(dll):
+    p=Plan()
+    dll.fixture_action_count(2)
+    try:
+        dll.caller_audio(3,142,2400,2,1.5,0.,0,0.,C.byref(p))
+        assert not p.count
+    finally:dll.fixture_action_count(8)
     p=Plan();dll.caller_audio(0,138,2374,5,.001,0.,0,0.,C.byref(p))
     assert [(s.routine,s.site,s.id,s.object,s.loop) for s in p.sound[:p.count]]==[(0x138f92f,0x138fc68,221,1,0)]
     for model in (0x356,0x90a,0x90b,0x90c):

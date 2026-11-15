@@ -37,7 +37,7 @@ static inline void mu_monster_audio_motion(mu_session *session, const mu_walk *w
     const mu_world_actor *actor, const mu_rp_character *record)
 {
     if (!session || !walk || !walk->map || !actor->actor.loaded || actor->player ||
-        !record->live || !record->movement) return;
+        !record->live || !record->movement || mu_actor_action_count(&actor->actor) <= 2) return;
     mu_monster_sound_plan p = mu_monster_audio_plan(walk->map->world, actor->actor.spec.model_index,
         2, mu_actor_action(&actor->actor) == 2 ? mu_actor_frame(&actor->actor) : 0.0f,
         record->position, walk->hero.position);

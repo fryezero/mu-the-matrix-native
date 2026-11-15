@@ -28,7 +28,7 @@ int main(int argc,char **argv){
  mu_session *s=calloc(1,sizeof *s);assert(s);s->tick=17;mu_cue_cursor cursor={0},other={0};
  mu_combat *c=calloc(1,sizeof *c);mu_world_actors actors={0};mu_world_actor actor={0};mu_world map={0};mu_walk walk={0};
  c->session=detached?NULL:s;c->actors=&actors;c->walk=&walk;c->map=&map;actors.count=1;actors.list=&actor;
- map.world=138;walk.map=&map;actor.actor.loaded=1;actor.actor.spec.model_index=2374;actor.session_key=7;
+ map.world=138;walk.map=&map;actor.actor.loaded=1;actor.actor.bmd.action_count=8;actor.actor.spec.model_index=2374;actor.session_key=7;
  actor.actor.object[0x2a]=5;
  assert(mu_monster_audio_combat(c,0,0,210)==210);
  mu_session_audio_drain(s,&cursor,host);mu_session_audio_drain(s,&cursor,host);
@@ -56,6 +56,7 @@ int main(int argc,char **argv){
  map.world=142;actor.actor.spec.model_index=2400;actor.actor.object[0x2a]=2;
  float f=1.5f;memcpy(actor.actor.object+0xd0,&f,4);mu_rp_character record={0};record.live=1;record.movement=1;
  mu_monster_audio_motion(detached?NULL:s,&walk,&actor,&record);mu_session_audio_drain(s,&cursor,host);
+ actor.actor.bmd.action_count=2;mu_monster_audio_motion(detached?NULL:s,&walk,&actor,&record);mu_session_audio_drain(s,&cursor,host);
  record.movement=0;mu_monster_audio_motion(detached?NULL:s,&walk,&actor,&record);
  mu_monster_audio_tick(detached?NULL:s,&walk,&actor);mu_session_audio_drain(s,&cursor,host);
  float pcm[320];mu_audio_engine_mix(mu_audio_host_engine(saved),pcm,160);int nonzero=0;
