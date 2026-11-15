@@ -98,3 +98,18 @@ Its wall was 100.47 s. Exclude `native/tests/test_native_app.py` from the portab
   persistent proof inspection, after identity, final docs/PR/ready entry/cleanup.
 - Next: add a pure visibility helper and full original caller verifier. Keep byte +0x16/predicate
   meanings opaque; author their values explicitly. Do not alter actor/item files or production selection.
+
+### WIP after the bounded remainder
+
+- Done: supplied remote-buff values now control the exact four raw-byte visibility groups. No class,
+  team or predicate meaning is inferred. A guarded authored rider action reaches the fifth proved
+  seat interval; action 280 exists in the canonical player model and restores the hero pose.
+- Done: the complete caller comparison passes 388 visibility cases plus 29 fifth-interval boundary
+  cases. Eight visibility controls were caught in 39.96 s; the two new seat-boundary controls were
+  caught separately in 3.82 s. The combined baseline has 417 cases. New private fixture checks pass
+  4/4 in 25.63 s, including GL/software visibility, fifth pose, restoration and invalid flag contexts.
+  Source build passed in 13.72 s. None of the earlier bone/transition controls was repeated.
+- Left: integrate incoming AUDIO-005 main update, refresh checks whose compiled inputs changed,
+  inspect persistent proofs, run the rebuilt default after sweep, finish docs/PR/ready entry/cleanup.
+- Next: wait for the shared-host resource guard, audit this source checkpoint, merge origin/main
+  with both registry additions retained, then rebuild before the affected selectors.

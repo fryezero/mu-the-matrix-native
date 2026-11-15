@@ -82,3 +82,14 @@ int mu_mv_bone_effects(int32_t model, int32_t mesh, float time, float scale,
     }
     return 0;
 }
+
+int mu_mv_remote_buff_visible(int remote_found, uint8_t predicate, uint8_t buff18,
+                              uint8_t local_byte16, uint8_t remote_byte16)
+{
+    static const uint8_t groups[4][2] = {{6,9},{7,10},{8,11},{12,13}};
+    if (!remote_found || predicate != 1 || !buff18) return 1;
+    for (int i=0;i<4;++i)
+        if (local_byte16 == groups[i][0] || local_byte16 == groups[i][1])
+            return remote_byte16 == groups[i][0] || remote_byte16 == groups[i][1];
+    return 1; /* Unclassified local bytes do not hide the original pass. */
+}
