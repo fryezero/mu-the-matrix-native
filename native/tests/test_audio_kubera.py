@@ -41,7 +41,11 @@ int main(int argc,char **argv){
  }
  if(disabled||detached)mu_session_audio_drain(s,&cursor,saved);
  if(!detached){mu_cue cues[8];uint32_t lost;assert(mu_session_cues(s,&other,cues,8,&lost)==6 && !lost);for(int k=0;k<6;k+=2)assert(cues[k].kind==MU_CUE_SOUND_STOP && cues[k+1].kind==MU_CUE_SOUND);}
- mu_cue c;mu_obj_event bad=events[0];bad.count=3;assert(!mu_object_audio_command_cue(123,&bad,&c));bad=events[0];bad.args[15]=0;assert(!mu_object_audio_command_cue(123,&bad,&c));assert(!mu_object_audio_command_cue(122,&events[0],&c));
+ /* A silent type-47 branch cannot annotate an earlier, borrowed log entry. */
+ log.count=1;memset(events,0,sizeof events);events[0].call=MU_OBJ_CALL_SOUND;events[0].count=3;events[0].args[0]=0x4f4;
+ mu_obj_set_i32(object,MU_OBJF_TYPE,47);mu_obj_set_u16(object,MU_OBJF_ACTION,0);mu_obj_set_f32(object,MU_OBJF_FRAME,0);in.hero[0]=0;
+ assert(mu_kubera_move(object,0,&in,&log));assert(log.count==1 && !events[0].args[15]);
+ mu_cue c;mu_obj_event bad={0};bad.call=MU_Q_STOP_SOUND;bad.count=2;bad.args[0]=0x4f1;bad.args[1]=1;bad.args[13]=0xe19ed0;bad.args[14]=0xe1a37d;bad.args[15]=MU_AUDIO_OBJECT_TAG;mu_obj_event stop=bad;bad.count=3;assert(!mu_object_audio_command_cue(123,&bad,&c));bad=stop;bad.args[15]=0;assert(!mu_object_audio_command_cue(123,&bad,&c));assert(!mu_object_audio_command_cue(122,&stop,&c));
  if(!disabled&&!detached)assert(mu_audio_engine_active_voices(mu_audio_host_engine(saved))==1);
  mu_audio_system_update(mu_audio_host_client(saved));
  const mu_audio_entry *near=mu_audio_snd_find(mu_audio_host_client(saved),0x4f1),*far=mu_audio_snd_find(mu_audio_host_client(saved),0x4f2);

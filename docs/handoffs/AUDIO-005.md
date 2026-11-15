@@ -116,6 +116,16 @@ main integration was `1f5462e6`; integrations preserve AUDIO-005 source and chec
 - All **70 affected validators pass**, **1,115,117 cases/checks**, zero
   failures/errors/skips, **906.06 s** command wall. Optional mutants are disabled;
   no unchanged optional mutant run or full lane gate is repeated.
+- Integrated portable refresh at `cfdf3501`: **182 work items**, including
+  **173 native modules**, ten reported groups, **1,859 tests: 1,515 passed /
+  344 explicit skips, zero failures/errors**, **416.4 s** runner /
+  **550.82 s** command wall. Post-build selection takes **120.30 s**.
+- Source review found one annotation edge: type 47 could tag a prior log entry
+  when its sound branch emitted nothing. The annotation is now tied to the
+  exact action/frame sound gate. Root rebuild passes, **22.38 s**. Eight
+  prefilled-log boundary controls and a compiled guard mutant are added; their
+  run and affected refresh are pending. Earlier portable/source checks remain
+  recorded at their exact commits. No unchanged optional mutant target is rerun.
 - Repository audit and final self-review remain pending.
 
 ### Default identity

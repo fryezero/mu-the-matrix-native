@@ -971,6 +971,9 @@ do not subtract distinct sites from the 245-site denominator.
 Full move owner `0x00e19ed0` retains its existing model/action table, distance,
 frame and SetAction behavior. The new event annotations record only its already
 selected sound operations, preserving original argument count and call order.
+The type-47 annotation repeats the exact sound-emitting gate, so a silent
+branch cannot tag a pre-existing borrowed log entry. Prefilled-log controls
+cover action, frame, unordered frame and distance boundaries.
 
 | Original site | Operation | Existing caller gate |
 |---|---|---|

@@ -3774,13 +3774,14 @@ test = "native/tests/test_audio_kubera.py::Original.test_stop_play_commands"
 pins = ["text", "data"]
 families = ["kubera_move"]
 cases = 1000
-mutants = 6
+mutants = 7
 cases_at = "cases"
 mutants_at = "mutants"
 build = ["reconstructed/objects"]
 args = ["--cases", "1000", "--mutations", "--report", "{report}"]
 note = "AUDIO-005: full Kubera move, four play sites and two ordered stop commands"
 [validate_audio_kubera.expect]
+annotation_controls = 8
 mismatches = 0
 sites = 6
 "families.*.mismatch_count" = 0

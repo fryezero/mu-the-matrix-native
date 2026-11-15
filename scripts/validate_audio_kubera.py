@@ -4,6 +4,8 @@ import argparse
 import ctypes as C
 import json
 import shutil
+import struct
+import math
 from pathlib import Path
 import subprocess
 import tempfile
@@ -36,6 +38,23 @@ def commands(lib,world,events):
   c=Command()
   if lib.command_cue(world,C.byref(e),C.byref(c)):out.append(tuple(getattr(c,k) for k,_ in Command._fields_))
  return out
+def annotation_controls(dll):
+ table=C.create_string_buffer(64)
+ for n in range(4):struct.pack_into('<fh',table,16*n+4,0.,8)
+ def actions(ctx,typ,count):count[0]=4;return C.addressof(table)
+ callback=q.ACTIONS_FN(actions);inputs=q.Inputs();inputs.world=123;inputs.actions=callback
+ cases=[(0,0.,0.),(2,0.,0.),(1,2.001,0.),(3,2.001,0.),(1,math.nan,0.),(1,0.,900.01),(1,2.,0.),(3,2.,0.)]
+ for action,frame,distance in cases:
+  raw=bytearray(v.OBJ_SIZE);struct.pack_into('<i',raw,0x5c,47);struct.pack_into('<H',raw,0x2a,action);struct.pack_into('<f',raw,0xd0,frame)
+  obj=C.create_string_buffer(bytes(raw));inputs.hero[0]=distance;log=v.new_log(8);log.count=1
+  log.events[0].call=q.SOUND;log.events[0].count=3;log.events[0].args[0]=0x4f4;before=bytes(log.events[0])
+  assert dll.mu_kubera_move(obj,0,C.byref(inputs),C.byref(log))
+  assert bytes(log.events[0])==before,(action,frame,distance,'prior event changed')
+  sounding=action in (1,3) and frame<=2. and distance<=900.
+  assert log.count==1+int(sounding),(action,frame,distance,log.count)
+  if sounding:assert log.events[1].args[15] and log.events[1].args[14] in (0xe1a071,0xe1a0a4)
+ return len(cases)
+
 class Original(v.Machine):
  def execute(self,start,arguments,regions,stubs,**kwargs):
   self.commands=[];stubs=dict(stubs)
@@ -66,34 +85,46 @@ MUTANTS={
  'far play':('site == 0x00e1a38du && id == 0x4f2','site == 0x00e1a2cau && id == 0x4f2'),
  'world':('world >= 123 && world <= 127','world >= 124 && world <= 127'),
  'order':None,
+ 'annotation gate':None,
 }
 def main():
- ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--cases',type=int,default=1000);ap.add_argument('--mutations',action='store_true');ap.add_argument('--report',type=Path,required=True);a=ap.parse_args();start=time.monotonic()
+ ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--cases',type=int,default=1000);ap.add_argument('--mutations',action='store_true');ap.add_argument('--annotation-mutant-only',action='store_true');ap.add_argument('--report',type=Path,required=True);a=ap.parse_args();start=time.monotonic()
  subprocess.run(['make','-s','-j4','-C',str(ROOT/'reconstructed/objects')],check=True)
  machine=Original(pins.TEXT.read(),pins.DATA.read())
  with tempfile.TemporaryDirectory(prefix='audio-005-kubera-') as tmp:
   folder=Path(tmp);decoder=build(folder/'base');lib=q.bind(v.Library(ROOT/f'reconstructed/objects/libobjects.{v.SUFFIX}'));proxy=Proxy(lib.dll,machine,decoder);lib.dll=proxy
   family=q.family(machine,lib,'kubera_move',a.cases);assert not family['mismatch_count'] and not family['stopped'] and not proxy.errors,(family,proxy.errors[:2])
+  control_count=annotation_controls(proxy.dll)
   seen={c[2] for _,_,rows in proxy.corpus for c in rows};assert len(seen)==6,seen
   mutants={}
-  if a.mutations:
+  if a.mutations or a.annotation_mutant_only:
    source=old.HEADER.read_text()
    for name,pair in MUTANTS.items():
+    if a.annotation_mutant_only and name!='annotation gate':continue
     if pair:
      oldtext,newtext=pair;assert oldtext in source;bad=build(folder/name,source.replace(oldtext,newtext,1))
      n=sum(commands(bad,w,e)!=want for w,e,want in proxy.corpus)
     else:
-     dest=folder/'order-source'
+     dest=folder/(name+'-source')
      for directory in ('objects','terrain','model-codec','record-math','movement'):
       shutil.copytree(ROOT/'reconstructed'/directory,dest/directory,ignore=shutil.ignore_patterns('*.dylib','*.so','__pycache__'))
      target=dest/'objects/kubera.c';body=target.read_text()
-     first='stop_sound(log, index, 0x4f2);\n                wb_sound(log, index, 0x4f1, 0, 0);\n                mu_audio_kubera_request(log);'
-     swapped='wb_sound(log, index, 0x4f1, 0, 0);\n                mu_audio_kubera_request(log);\n                stop_sound(log, index, 0x4f2);'
+     if name=='order':
+      first='stop_sound(log, index, 0x4f2);\n                wb_sound(log, index, 0x4f1, 0, 0);\n                mu_audio_kubera_request(log);'
+      swapped='wb_sound(log, index, 0x4f1, 0, 0);\n                mu_audio_kubera_request(log);\n                stop_sound(log, index, 0x4f2);'
+     else:
+      first='if ((action == 1 || action == 3) && mu_obj_f32(o, MU_OBJF_FRAME) <= 2.0f) mu_audio_kubera_request(log);'
+      swapped='mu_audio_kubera_request(log);'
      assert body.count(first)==1;target.write_text(body.replace(first,swapped))
-     badlib=q.bind(v.Library(v.build_library(dest)));badproxy=Proxy(badlib.dll,machine,decoder);badlib.dll=badproxy
-     badfamily=q.family(machine,badlib,'kubera_move',a.cases);assert not badfamily['stopped']
-     n=badfamily['mismatch_count']+len(badproxy.errors)
+     badlib=q.bind(v.Library(v.build_library(dest)))
+     if name=='order':
+      badproxy=Proxy(badlib.dll,machine,decoder);badlib.dll=badproxy
+      badfamily=q.family(machine,badlib,'kubera_move',a.cases);assert not badfamily['stopped']
+      n=badfamily['mismatch_count']+len(badproxy.errors)
+     else:
+      try:annotation_controls(badlib.dll);n=0
+      except AssertionError:n=1
     assert n,name;mutants[name]=n
-  report=dict(cases=family['cases'],families={'kubera_move':family},sites=6,play_sites=4,stop_sites=2,mismatches=0,mutants=mutants,wall_seconds=round(time.monotonic()-start,3))
+  report=dict(cases=family['cases'],annotation_controls=control_count,families={'kubera_move':family},sites=6,play_sites=4,stop_sites=2,mismatches=0,mutants=mutants,wall_seconds=round(time.monotonic()-start,3))
   a.report.parent.mkdir(parents=True,exist_ok=True);a.report.write_text(json.dumps(report,indent=2)+'\n');print(json.dumps({k:v for k,v in report.items() if k!='families'},indent=2))
 if __name__=='__main__':main()

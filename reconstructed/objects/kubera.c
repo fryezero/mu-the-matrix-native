@@ -117,7 +117,7 @@ int mu_kubera_move(uint8_t *o, int32_t index, const mu_q_inputs *in, mu_obj_log 
                 wb_sound(log, index, 0x4f4, 0, 0);
             else if (action == 3 && mu_obj_f32(o, MU_OBJF_FRAME) <= 2.0f)
                 wb_sound(log, index, 0x4f3, 0, 0);
-            mu_audio_kubera_request(log);
+            if ((action == 1 || action == 3) && mu_obj_f32(o, MU_OBJF_FRAME) <= 2.0f) mu_audio_kubera_request(log);
         }
         step_actions(o, table, count, in);
         break;
