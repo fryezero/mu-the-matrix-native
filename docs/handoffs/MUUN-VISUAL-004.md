@@ -114,3 +114,17 @@ Both are now merged without conflict. No Muun source changes were authored for t
 Done: every AUDIO-004 merged source check and identity/proof control passed.
 Left: build/select and refresh only checks whose compiled inputs the new main changes; final proof/identity,
 audit and delivery. Next: build the integrated tree, inspect the exact affected selections, run the refresh.
+
+## Actor/world validator checkpoint
+
+At `88420149`, all 32 rows selected for the incoming actor/world compiled changes pass, zero failures,
+errors or skips: 621.77 s runner plus 134.32 s preview selection. The exact current-main diff selects
+43 steward rows (39.58 s preview), adding actor monsters. Eleven unchanged earlier rows retain passing
+results. No Muun C/checker source changed.
+
+The remote fixture test now checks one accounted created/refused result and adds a forced `--no-particles`
+refusal control, rather than requiring another lane's 0x47a consumer to remain absent. Current observed
+consumer results remain zero created/one refused. The new control still needs its final private run.
+Done: integrated build and all actor/world affected validator refreshes.
+Left: focused riding row for the test edit, portable/private checks, final proof/identity, audit and PR.
+Next: resource guard, focused row, then the selected portable refresh.

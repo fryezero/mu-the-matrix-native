@@ -30,7 +30,7 @@ class World(unittest.TestCase):
         cls.binary=cls.root/'mu-world';shutil.copy2(ROOT/'native/build/mu-world',cls.binary)
     @classmethod
     def tearDownClass(cls): cls.temp.cleanup()
-    def render(self,tag,code=16,backend='gl',frames=8,**flags):
+    def render(self,tag,code=16,backend='gl',frames=8,no_particles=False,**flags):
         env={k:v for k,v in os.environ.items() if not k.startswith('MU_MUUN_')}
         env.update(MU_MUUN_FIXTURE=str(code),MU_MUUN_MOUNT_FIXTURE='1',MU_SETTINGS_DIR=str(self.root/'settings'))
         env.update(flags)
@@ -38,7 +38,8 @@ class World(unittest.TestCase):
         p=subprocess.run([str(self.binary),'--game-root',os.environ['MU_GAME_ROOT'],'--world','0','--tile','128,124',
             '--headless','--frames',str(frames),'--every',str(min(frames-1,24)),'--time-series-every',str(min(frames-1,24)),
             '--out-dir',str(out),'--width','640','--height','400','--backend',backend,'--hero-name','DemoKnight',
-            '--no-names','--no-audio','--no-players','--no-env','--no-items','--no-helpers'],
+            '--no-names','--no-audio','--no-players','--no-env','--no-items','--no-helpers',
+            *(['--no-particles'] if no_particles else [])],
             env=env,cwd=ROOT,check=True,capture_output=True,text=True)
         rows=[json.loads(x) for x in p.stdout.splitlines() if x.startswith('{')]
         def last(name):return [r for r in rows if name in r][-1]
@@ -64,13 +65,17 @@ class World(unittest.TestCase):
             self.assertLess(last('muun_style')['alpha'],1.0)
             self.assertIsNotNone(ImageChops.difference(base,buff).getbbox())
             self.assertIsNotNone(ImageChops.difference(base,fade).getbbox())
-    def test_remote_expiry_requests_once_and_counts_unavailable_consumer(self):
+    def test_remote_expiry_requests_once_and_accounts_for_consumer_result(self):
         _,last,rows=self.render('remote',frames=90,MU_MUUN_REMOTE_FIXTURE='1',MU_MUUN_RIDER_FIXTURE='1')
         r=last('muun_transition');self.assertEqual((r['muun_transition'],r['pending']),(1,0),r)
         self.assertEqual(r['created']+r['refused'],1,r)
-        self.assertEqual((r['created'],r['refused']),(0,1),r)
         self.assertEqual({r['muun_rider'] for r in rows if 'muun_rider' in r},{38,71,103,315})
         rider=last('muun_rider');self.assertEqual((rider['draws'],rider['restored'],rider['refused']),(90,90,0),rider)
+        # Consumer admission belongs to the effect lane. An explicitly unavailable particle system
+        # gives a stable refusal control even after that lane adds the 0x47a consumer.
+        _,last,_=self.render('remote-refused',frames=90,no_particles=True,MU_MUUN_REMOTE_FIXTURE='1')
+        r=last('muun_transition')
+        self.assertEqual((r['muun_transition'],r['created'],r['refused'],r['pending']),(1,0,1,0),r)
     def test_rider_requires_mount_fixture(self):
         env=dict(os.environ,MU_MUUN_FIXTURE='16',MU_MUUN_RIDER_FIXTURE='1');env.pop('MU_MUUN_MOUNT_FIXTURE',None)
         p=subprocess.run([str(self.binary),'--game-root',os.environ['MU_GAME_ROOT'],'--headless','--frames','1',
