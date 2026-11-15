@@ -86,6 +86,7 @@ void mu_objects_worlds_p_move(mu_objects *o, int32_t i, const float hero[3])
         const mu_obj_event *e = &events[k];
         if (e->call == MU_OBJ_CALL_SOUND) {
             ++rt->sound_events;
+            if (o->sound_command && o->sound_command(o->sound_context, e)) continue;
             if (o->sound) o->sound(o->sound_context, (int32_t)e->args[0]);
         } else if (e->call == MU_OBJ_CALL_ADD_LIGHT && rt->light_count < MU_OBJECT_STEP_LIGHTS) {
             mu_object_light *l = &rt->lights[rt->light_count++];
