@@ -57,6 +57,8 @@ int main(int argc,char **argv)
     if(real) {
         field(L,MU_GFX_TREE5_VIEWER,"mc5thTreeItemViewer.mcViewTypeBook._visible","false");
         field(L,MU_GFX_TREE5_VIEWER,"mc5thTreeItemViewer.mcViewTypeList._visible","true");
+        field(L,MU_GFX_TREE5_VIEWER,"osPageSelect2.textField.text","\"1 / 1\"");
+        field(L,MU_GFX_TREE5_VIEWER,"btnNextPage2.disabled","true");
         for(int i=0;i<20;i++) {char p[160];snprintf(p,sizeof p,"m_arrCardList.%d.CardInfo._visible",i);field(L,MU_GFX_TREE5_VIEWER,p,"false");}
     }
     assert(!presentation_call(&L->mv[MU_GFX_TREE5_VIEWER],"onClickViewTypeToggle","[2]",NULL,0));

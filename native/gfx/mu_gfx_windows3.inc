@@ -26,6 +26,8 @@ static void presentation_fixture3(mu_gfx_layer *L, int m)
             invokef(L,m,w->path,"InitSlotDatas_ListView","[%d]",i);
             invokef(L,m,w->path,"SetVisibleCardView_ListView","[%d,false]",i);
         }
+        presentation_set(L,m,"btnPrevPage2.disabled","true");
+        presentation_set(L,m,"btnNextPage2.disabled","true");
         presentation_set(L,m,"mcSetting.cbMyItemView.disabled","true");
         presentation_set(L,m,"mcSetting.cbCanLevelUpView.disabled","true");
         for (int i=0;i<9;i++) {
@@ -33,7 +35,7 @@ static void presentation_fixture3(mu_gfx_layer *L, int m)
             presentation_set(L,m,field,"true");
         }
     } else if (m==MU_GFX_AUTOMATIC) {
-        invokef(L,m,w->path,"SetAutomaticMacroFixedText","[{\"tfLeaderMacroTitle\":\"Automatic helper - preview\",\"tfRole\":\"Role\",\"tfState\":\"State\",\"tfName\":\"Demo name\",\"bmMainPosition1\":\"Any\",\"bmMainPosition2\":\"Any\",\"strInputCharacterName\":\"Unavailable\",\"strPartyMatchingAutoJoin\":\"Unavailable\",\"tfPartyRunning\":\"Unavailable\",\"tfPartyRecruit\":\"Unavailable\",\"tfPartyMember\":\"Slot \",\"tfUnregister\":\"Empty\",\"tfImmediatelyRegister\":\"Unavailable\",\"tfPartyMatching\":\"Unavailable\",\"btnCharacterJoin\":\"Unavailable\",\"tfHuntingSettingTitle\":\"Empty offline fixture\",\"tfHuntingMap\":\"Map\",\"tfPosition\":\"Position\",\"tfAttribute\":\"Attribute\",\"tfPlaySettingTitle\":\"Activation unavailable\",\"tfPlayMent1\":\"No helper execution\",\"tfPlayMent2\":\"No saved configuration\",\"tfPlayMent3\":\"No matching requests\",\"rbLeaderWaitSafetyZone\":\"Unavailable\",\"rbLeaderAutoMatching\":\"Unavailable\",\"rbLeaderIntactlyPlay\":\"Unavailable\",\"btnAutoStart\":\"Unavailable\",\"btnImmediatelyStart\":\"Unavailable\",\"btnCancel\":\"Unavailable\",\"btnExit\":\"Close\",\"bmAttribute1\":\"Any\",\"bmAttribute2\":\"Any\",\"bmAttribute3\":\"Any\",\"bmAttribute4\":\"Any\",\"bmAttribute5\":\"Any\",\"bmAttribute6\":\"Any\"}]");
+        invokef(L,m,w->path,"SetAutomaticMacroFixedText","[{\"tfLeaderMacroTitle\":\"Automatic helper - preview\",\"tfRole\":\"Role\",\"tfState\":\"State\",\"tfName\":\"Demo name\",\"bmMainPosition1\":\"Any\",\"bmMainPosition2\":\"Any\",\"strInputCharacterName\":\"Unavailable\",\"strPartyMatchingAutoJoin\":\"Unavailable\",\"tfPartyRunning\":\"Unavailable\",\"tfPartyRecruit\":\"Unavailable\",\"tfPartyMember\":\"Slot \",\"tfUnregister\":\"Empty\",\"tfImmediatelyRegister\":\"Unavailable\",\"tfPartyMatching\":\"Unavailable\",\"btnCharacterJoin\":\"Unavailable\",\"tfHuntingSettingTitle\":\"Empty offline fixture\",\"tfHuntingMap\":\"Map\",\"tfPosition\":\"Position\",\"tfAttribute\":\"Attribute\",\"tfPlaySettingTitle\":\"Activation unavailable\",\"tfPlayMent1\":\"Preview only\",\"tfPlayMent2\":\"Not saved\",\"tfPlayMent3\":\"No requests\",\"rbLeaderWaitSafetyZone\":\"Locked\",\"rbLeaderAutoMatching\":\"Locked\",\"rbLeaderIntactlyPlay\":\"Locked\",\"btnAutoStart\":\"Locked\",\"btnImmediatelyStart\":\"Locked\",\"btnCancel\":\"Locked\",\"btnExit\":\"Close\",\"bmAttribute1\":\"Any\",\"bmAttribute2\":\"Any\",\"bmAttribute3\":\"Any\",\"bmAttribute4\":\"Any\",\"bmAttribute5\":\"Any\",\"bmAttribute6\":\"Any\"}]");
         invokef(L,m,w->path,"OpeningAutomaticMacro","[[]]");
         invokef(L,m,w->path,"VisibleLeaderMacro","[true]");
         static const char *const controls[]={"btnAutoStart","btnImmediatelyStart","btnCancel",
@@ -144,6 +146,7 @@ static int presentation_call3(movie *w, const char *name, const char *args)
         int list=!strcmp(args,"[false]");
         invokef(L,w->id,w->path,"SetViewTypeButtonText","[\"%s\"]",list ? "Book view" : "List view");
         invokef(L,w->id,w->path,"SetViewTypeToggleButtonSelected","[%s]",list ? "true" : "false");
+        invokef(L,w->id,w->path,"SetPageSelectText","[\"1 / 1\"]");
         return 1;
     }
     return 0;

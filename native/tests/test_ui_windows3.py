@@ -199,7 +199,7 @@ class MutationSensitivity(unittest.TestCase):
             ('requested-visibility','mu_gfx_layer_show(L,MU_GFX_BLOCKED_CHAT,(int)open);','mu_gfx_layer_toggle(L,MU_GFX_BLOCKED_CHAT);',False),
             ('guessed-sound','presentation_open(L,MU_GFX_AUTOMATIC,0);','presentation_open(L,MU_GFX_AUTOMATIC,0xc716f6);',False),
             ('lost-exit','L->automatic_leave_pending=1;','L->automatic_leave_pending=0;',True),
-            ('forged-action','    return 0;\\n}\\n\\nstatic int presentation_key3','    return 1;\\n}\\n\\nstatic int presentation_key3',False),
+            ('forged-action','    return 0;\n}\n\nstatic int presentation_key3','    return 1;\n}\n\nstatic int presentation_key3',False),
         ]
         with tempfile.TemporaryDirectory(prefix='mu-windows3-mutants-') as folder:
             mirror=Path(folder)/'repo';mirror.mkdir()
@@ -214,7 +214,10 @@ class MutationSensitivity(unittest.TestCase):
             shutil.copy2(ROOT/'native/tests/ui_windows3_host.c',mirror/'native/tests/ui_windows3_host.c')
             (mirror/'native/tests/gfx_stub_mugfx.c').symlink_to(ROOT/'native/tests/gfx_stub_mugfx.c')
             host=PresentationWindows('test_production_firewall_navigation_focus_and_sound_owner')
+            selected=os.environ.get('MU_UI_WINDOWS3_MUTANT_ONLY','').split(',')
             for name,old,new,real in mutants:
+                if selected!=[''] and name not in selected:
+                    continue
                 with self.subTest(mutant=name):
                     self.assertEqual(source.count(old),1)
                     (mirror/'native/gfx/mu_gfx_windows3.inc').write_text(source.replace(old,new))
