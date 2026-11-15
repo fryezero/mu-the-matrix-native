@@ -53,6 +53,55 @@ for _anchor in (0x13a04d6, 0xe33c95, 0xe669c9, 0xdfe9a6, 0xdb16a3,
                 0xd6654b, 0xe7bb9f, 0xe81b53, 0xd579e6):
     OWNERS[_anchor] = ('monsters', 'docs/research/client-audio.md:AUDIO-003-dispatch')
 
+# AUDIO-004 exact anchors cross-checked against existing owner evidence.
+# These identify an owner only. They do not certify an unported gate/body.
+for _anchor, _domain, _source in [
+    (0xefbfd0, 'ui', 'docs/research/client-camera-input.md'),
+    (0x1222b6d, 'skills', 'docs/research/client-combat.md'),
+    (0x139002a, 'hero', 'reconstructed/actors/actors.h'),
+    (0xe845d0, 'world', 'docs/research/client-worlds-s3.md'),
+    (0x137fbac, 'monsters', 'reconstructed/actors/actors.h'),
+    (0x128245c, 'ui', 'docs/research/client-npc-interaction.md'),
+    (0xb3771c, 'ui', 'reconstructed/skill/tree4.h'),
+    (0xda9685, 'monsters', 'docs/research/client-joints.md'),
+    (0xea165f, 'world', 'docs/research/client-worlds-raklion.md'),
+    (0x1219a94, 'monsters', 'scripts/validate_viewport_monsters.py'),
+    (0x16ad82c, 'world', 'reconstructed/world-order/world_order.c'),
+    (0x95bd05, 'ui', 'docs/research/client-social-original.md'),
+    (0x960420, 'items', 'reconstructed/mix/item_actions.h'),
+    (0xdee69a, 'world', 'docs/research/client-worlds-q2.md'),
+    (0xdef747, 'world', 'docs/research/client-worlds-slots.md'),
+    (0x11b6426, 'ui', 'docs/research/client-camera-input.md'),
+    (0x11e04c7, 'ui', 'docs/research/client-npc-interaction.md'),
+    (0x122c426, 'monsters', 'reconstructed/actors/viewport_monsters.h'),
+    (0x122e633, 'monsters', 'docs/research/client-remote-players.md'),
+    (0x128136d, 'world', 'reconstructed/map/map.h'),
+    (0x983bba, 'world', 'reconstructed/world-order/world_order.c'),
+    (0x9db8b1, 'world', 'docs/research/client-worlds-slots.md'),
+    (0x9ecfe9, 'skills', 'reconstructed/raven/raven.h'),
+    (0xad598b, 'items', 'docs/research/client-item-attributes.md'),
+    (0xb0fd9e, 'items', 'docs/research/client-ground-items.md'),
+    (0xc4599f, 'ui', 'scripts/validate_social.py'),
+    (0xc459e8, 'ui', 'scripts/validate_social.py'),
+    (0xc45b3e, 'ui', 'reconstructed/social/social.h'),
+    (0xc609b5, 'ui', 'reconstructed/social/social.h'),
+    (0xc617a2, 'ui', 'scripts/validate_social.py'),
+    (0xc714bd, 'ui', 'docs/research/client-input.md'),
+    (0xdfbc92, 'world', 'scripts/validate_worlds_after.py'),
+    (0xdfc787, 'monsters', 'scripts/validate_actors.py'),
+    (0xe84941, 'world', 'docs/research/client-worlds-slots.md'),
+    (0xeaeacf, 'skills', 'reconstructed/pets/pets.h'),
+    (0xf0736c, 'ui', 'docs/research/client-camera-input.md'),
+    (0xf24f38, 'ui', 'docs/research/client-camera-input.md'),
+    (0xf2fcd8, 'ui', 'reconstructed/audio/client_audio.h'),
+    (0x10a407d, 'ui', 'docs/research/client-skills.md'),
+    (0x12420a5, 'items', 'docs/research/client-ground-items.md'),
+    (0x1242ea8, 'items', 'docs/research/client-ground-items.md'),
+    (0x12506cd, 'ui', 'docs/research/client-social-original.md'),
+    (0x153b02c, 'skills', 'docs/research/client-render-effects-012.md'),
+]:
+    OWNERS[_anchor] = (_domain, _source)
+
 DOMAINS = {'ui': 'ui', 'quest': 'ui', 'npc': 'ui', 'items': 'items',
            'environment': 'world', 'objects': 'world', 'combat': 'skills',
            'charsel': 'ui', 'scene': 'ui', 'gfx': 'ui', 'progress': 'events'}
@@ -75,6 +124,12 @@ def inventory(text, data, root=ROOT):
         table = int(row['vtable'], 16)
         sound = struct.unpack_from('<I', data, table + 0x70 - 0x1a7c000)[0]
         owners.setdefault(sound, ('monsters', 'docs/research/world-handler-coverage.json:slot+0x70'))
+        # 0x4c/50/54/58 are monster presentation methods; 0x28 is the
+        # per-frame ambient owner. No implementation is inferred from a vtable.
+        for slot in (0x28, 0x4c, 0x50, 0x54, 0x58):
+            entry = struct.unpack_from('<I', data, table + slot - 0x1a7c000)[0]
+            owners.setdefault(entry, ('world' if slot == 0x28 else 'monsters',
+                                     f'docs/research/world-handler-coverage.json:slot+0x{slot:x}'))
         for handler in row['handlers'].values():
             owners.setdefault(int(handler['entry'], 16), ('world', handler['source']))
     # Exact anchor references only. This inventory deliberately leaves unknown
@@ -98,6 +153,14 @@ def inventory(text, data, root=ROOT):
     delivered.add(0x125104c)  # existing hero level-up boundary; no new answer route
     added = {int(m[1], 16) for m in re.finditer(r'0x([0-9a-fA-F]{6,8})[uU]?\b',
              (root/'native/core/mu_object_audio.h').read_text())}
+    site_rows = re.findall(r'MU_OBJECT_AUDIO_SITE\((\d+), (0x[0-9a-f]+)u, (0x[0-9a-f]+)u, (0x[0-9a-f]+), (\d+), (\d+)\)',
+                           (root/'reconstructed/audio/object_audio_sites.inc').read_text())
+    admitted = {int(site,16): {'world_group':int(world), 'routine':routine,
+                'id':int(sound,16), 'object':int(obj), 'loop':int(loop)}
+                for world,routine,site,sound,obj,loop in site_rows}
+    from capstone import Cs, CS_ARCH_X86, CS_MODE_32
+    md = Cs(CS_ARCH_X86, CS_MODE_32)
+    instructions = {}
     rows = []
     for site in call_sites(text):
         index = bisect.bisect_right(starts, site)
@@ -109,16 +172,37 @@ def inventory(text, data, root=ROOT):
         for lo, hi, category, cited in RANGES:
             if lo <= site < hi:
                 domain, source = category, cited
+        command = admitted.get(site)
+        if anchor not in instructions:
+            # Only decode up to the last candidate in this syntactic group.
+            limit = next((a for a in starts[index:] if a > anchor), BASE + len(text))
+            instructions[anchor] = {ins.address:ins for ins in md.disasm(text[anchor-BASE:limit-BASE],anchor)}
+        decoded = instructions[anchor]
+        instruction = decoded.get(site)
+        previous = [ins for addr,ins in decoded.items() if site-16 <= addr < site]
+        pushes = [ins for ins in previous if ins.mnemonic == 'push']
+        literal = None
+        if instruction and instruction.mnemonic == 'call' and pushes:
+            try: literal = int(pushes[-1].op_str,0)
+            except ValueError: pass
         rows.append({'site': f'0x{site:08x}', 'anchor': f'0x{anchor:08x}',
                      'owner': domain, 'source': source,
                      'native_reference': bool(refs) or source.startswith(('reconstructed/', 'native/')),
                      'audio_adapter': site in delivered or anchor == 0x1851d39 or anchor == 0xdb3e26,
-                     'audio_003_adapter': site in added})
+                     'audio_003_adapter': site in added,
+                     'audio_004_adapter': command is not None,
+                     'original_routine': command['routine'] if command else f'0x{anchor:08x}',
+                     'routine_status': 'reviewed' if domain != 'unresolved' else 'prologue grouping only',
+                     'gate': 'instruction-compared owner; see AUDIO-004 gate table' if command else 'not reviewed by AUDIO-004; retain prior disposition',
+                     'sound_id': command['id'] if command else literal,
+                     'sound_id_status': 'compared' if command else 'static push candidate' if literal is not None else 'unresolved',
+                     'native_owner': 'complete compared owner' if command else 'bounded reference only' if bool(refs) or source.startswith(('reconstructed/', 'native/')) else 'unresolved' if domain == 'unresolved' else 'no bounded native reference'})
     counts = Counter((r['owner'], r['native_reference']) for r in rows)
     return {'method': 'direct E8 candidates; exact anchors with explicit unresolved remainder',
             'text_sha256': pins.TEXT.sha256, 'data_sha256': pins.DATA.sha256, 'total': len(rows),
             'mapped_audio_sites': sum(r['audio_adapter'] for r in rows),
             'added_audio_sites': sum(r['audio_003_adapter'] for r in rows),
+            'audio_004_sites': sum(r['audio_004_adapter'] for r in rows),
             'summary': [{'owner': owner, 'native_reference': native, 'sites': n}
                         for (owner, native), n in sorted(counts.items())], 'sites': rows}
 

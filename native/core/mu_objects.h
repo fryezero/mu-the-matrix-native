@@ -227,6 +227,7 @@ typedef struct mu_objects {
     int32_t hidden_types;
     void (*sound)(void *context, int32_t id); /* selected object sound, in call order */
     void *sound_context;
+    int (*sound_command)(void *context, const mu_obj_event *event); /* borrowed immediate AUDIO-004 request */
     mu_objects_runtime rt;            /* NATIVE-OBJECTS-002 */
 } mu_objects;
 
