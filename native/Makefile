@@ -123,6 +123,7 @@ RECON_SRC += $(RECON)/objects/muun_effects.c
 # RENDER-WORLDS-AFTER5: the object action registry 0x01ec7d5c and its MapObjectAnimationInfo rows
 CORE_SRC += core/mu_objects_anim.c
 RECON_SRC += $(RECON)/objects/action_registry.c
+RECON_SRC += $(RECON)/objects/object_pick.c
 # RENDER-WORLDS-FOG: the render scene's fog tests (world 0x1e's box)
 RECON_SRC += $(RECON)/environment/env_fog.c
 # MUUN-VISUAL-001: fixture-only base slot and model/attachment owner
@@ -679,6 +680,11 @@ $(BUILD)/worlds-121-host: tests/worlds_121_host.c $(LIB) $(HEADERS)
 $(BUILD)/anim-host: tests/anim_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/anim-host.o
 	$(CXX) $(BUILD)/anim-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+
+# RENDER-WORLDS-PICK-001: the object box +0x31c and the mouse-over tick handlers in the production runtime
+$(BUILD)/pick-host: tests/pick_host.c $(LIB) $(HEADERS)
+	$(CC) $(CFLAGS) -c $< -o $(BUILD)/pick-host.o
+	$(CXX) $(BUILD)/pick-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
 
 $(BUILD)/worlds-e-host: tests/worlds_e_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-e-host.o

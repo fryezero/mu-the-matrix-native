@@ -149,6 +149,8 @@ void mu_objects_anim_tick(mu_objects *o, int32_t index, const float hero[3], con
     if (hero)
         memcpy(in.hero, hero, sizeof in.hero);
     in.camera = camera;   /* RENDER-WORLDS-AFTER6: tick handler 8 */
+    in.mouse_start = o->rt.mouse_start;   /* RENDER-WORLDS-PICK-001: tick handlers 4 and 6 */
+    in.mouse_end = o->rt.mouse_end;
     int found = 0;
     const int status = mu_action_tick(o->rt.images + (size_t)index * MU_OBJ_SIZE, &in, &found);
     o->rt.anim_ticks += found;

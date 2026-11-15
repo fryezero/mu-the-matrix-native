@@ -1,5 +1,6 @@
 /* RENDER-WORLDS-AFTER5: the object action registry 0x01ec7d5c (action_registry.h). */
 #include "action_registry.h"
+#include "object_pick.h"
 
 #include <math.h>
 #include <stddef.h>
@@ -238,6 +239,14 @@ static int hover(const uint8_t *o, const mu_anim_inputs *in)
     box b;
     memcpy(&b, o + MU_OBJF_OBB, sizeof b);
     return segment_box(in->mouse_start, in->mouse_end, &b);
+}
+
+/* RENDER-WORLDS-PICK-001 (object_pick.h): the same test for callers outside the tick. */
+int mu_obj_segment_obb(const uint8_t *o, const float p1[3], const float p2[3])
+{
+    box b;
+    memcpy(&b, o + MU_OBJF_OBB, sizeof b);
+    return segment_box(p1, p2, &b);
 }
 
 /* 0x0185c113(out, in, angles): in turned by the angles in degrees (x, y, z), the matrix terms in the client's

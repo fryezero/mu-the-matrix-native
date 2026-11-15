@@ -208,6 +208,11 @@ typedef struct mu_objects_runtime {
     /* RENDER-WORLDS-S3: the Imperial Guardian class static type 20 shares (0x01ec9164 + 4 * (world - 69), zero at
      * load). The client keeps it for the process; here it lives as long as the loaded world. */
     float imperial_frame;
+    /* RENDER-WORLDS-PICK-001: the mouse segment MousePosition 0x0bdc5984 -> MouseTarget 0x0bdc5990 of the last
+     * frame for the registry's tick handlers 4 and 6 (borrowed; NULL: their hover branches count unsupported),
+     * and the number of box writes OBJECT +0x31c by RenderObject's Transform call (mu_obj_obb_write). */
+    const float *mouse_start, *mouse_end;
+    long obb_writes;
 } mu_objects_runtime;
 
 typedef struct mu_objects {
@@ -289,8 +294,9 @@ int32_t mu_objects_animated(const mu_objects *objects);
 int32_t mu_objects_anim_load(mu_objects *objects, const char *dir);
 /* The world manager tails: SetAction(object, 0) after the create (0x00ea2ad6) and the registry tick after the
  * Animation tick (0x00ea2c2b). No-ops outside the factory class worlds or without rows. RENDER-WORLDS-AFTER6:
- * camera is CameraPosition (tick handler 8; NULL counts it unsupported). Map objects carry no OBB +0x31c
- * natively, so the mouse-over handlers 4 and 6 get no mouse segment (counted unsupported; no live row uses them). */
+ * camera is CameraPosition (tick handler 8; NULL counts it unsupported). RENDER-WORLDS-PICK-001: the mouse-over
+ * handlers 4 and 6 test rt.mouse_start -> rt.mouse_end against the object's box +0x31c, which the render pass
+ * writes (RenderObject's Transform call); without a segment they count unsupported. No live row uses them. */
 void mu_objects_anim_create(mu_objects *objects, int32_t index, mu_obj_rand_fn rand_fn, void *context);
 void mu_objects_anim_tick(mu_objects *objects, int32_t index, const float hero[3], const float *camera,
                           mu_obj_rand_fn rand_fn, void *context);

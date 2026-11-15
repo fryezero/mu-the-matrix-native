@@ -3958,3 +3958,24 @@ note = "RENDER-ITEMS-002Z: fourteen early bodies, independent states and every f
 "families.parts.cases" = 288
 "families.exits.cases" = 896
 "mutants.*" = {truthy = true}
+
+[validate_worlds_pick]
+test = "reconstructed/objects/test_worlds_pick.py::WorldsPickTests.test_original_instructions"
+pins = ["text", "data", "feature09"]
+families = ["box", "segment", "pick"]
+cases = 3000
+mutants = 23
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+note = "RENDER-WORLDS-PICK-001: Transform's box write OBJECT +0x31c through the wrapper 0x00966ea5 (modes 0, other, 2), 0x018500bf on written and unwritten boxes with hit/miss/boundary segments, and the chain into tick handlers 4/6; no live action row uses them"
+[validate_worlds_pick.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"families.box.cases" = 1000
+"families.segment.cases" = 1000
+"families.pick.cases" = 1000
+"bounds_mode_references.all_compares" = {truthy = true}
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0
