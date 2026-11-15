@@ -9,6 +9,7 @@ static int presentation_movie(int m)
 #include "mu_gfx_windows3.inc"
 #include "mu_gfx_windows4.inc"
 #include "mu_gfx_windows5.inc"
+#include "mu_gfx_windows6.inc"
 
 static void presentation_init(mu_gfx_layer *L)
 {
@@ -72,6 +73,8 @@ static void presentation_init(mu_gfx_layer *L)
 static int presentation_call(movie *w, const char *name, const char *args, const double *v, int n)
 {
     mu_gfx_layer *L = w->L;
+    int sixth = presentation_call6(w,name);
+    if (sixth >= 0) return sixth;
     int fifth = presentation_call5(w,name,v,n);
     if (fifth >= 0) return fifth;
     int fourth = presentation_call4(w,name);
@@ -130,7 +133,7 @@ static int presentation_key(mu_gfx_layer *L, int vk)
 {
     if (vk == 27) {
         for (int i = L->norder - 1; i >= 0; --i)
-            if (presentation_movie(L->order[i]) && L->mv[L->order[i]].open) {
+            if (presentation_movie(L->order[i]) && !presentation_overlay6(L->order[i]) && L->mv[L->order[i]].open) {
                 mu_gfx_layer_show(L,L->order[i],0);
                 return 1;
             }
