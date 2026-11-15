@@ -33,8 +33,17 @@ class AudioCensus(unittest.TestCase):
         self.assertEqual(result['mapped_audio_sites'], 113)
         self.assertEqual(result['added_audio_sites'], 16)
         unknown = [row for row in result['sites'] if row['owner']=='unresolved']
-        self.assertEqual(len(unknown), 612)
+        self.assertEqual(len(unknown), 546)
+        # INNER-004 names this callee as a refusal, not a native owner body.
+        refusal_only = [r for r in result['sites'] if r['anchor'] == '0x00e8d888']
+        self.assertEqual({r['site'] for r in refusal_only}, {'0x00e8db8b', '0x00e8e002'})
+        self.assertTrue(all(r['owner'] == 'unresolved' and not r['native_reference'] and
+                            r['native_owner'] == 'unresolved' and not r['audio_005_adapter']
+                            for r in refusal_only))
         self.assertEqual(result['audio_004_sites'], 33)
+        self.assertEqual(result['audio_005_selector_sites'], 245)
+        self.assertEqual(result['audio_005_sites'], 249)
+        self.assertEqual(result['audio_005_stop_sites'], 2)
         admitted = [r for r in result['sites'] if r['audio_004_adapter']]
         self.assertTrue(all(r['native_owner'] == 'complete compared owner' and r['sound_id_status'] == 'compared' for r in admitted))
         self.assertTrue(all(r['routine_status'] == 'prologue grouping only' for r in unknown))

@@ -3768,6 +3768,43 @@ original_sites = 33
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
 
+[validate_audio_monsters]
+test = "native/tests/test_audio_monsters.py::Original.test_whole_table"
+pins = ["text", "data"]
+families = ["scalar_owners", "dispatcher"]
+cases = 38315
+mutants = 16
+cases_at = "cases"
+mutants_at = "mutants"
+build = ["reconstructed/audio"]
+args = ["--cases", "1000", "--mutations", "--report", "{report}"]
+note = "AUDIO-005: complete scalar slot +0x70 owners, every row and whole preceding dispatcher; unsupported service owners refused"
+[validate_audio_monsters.expect]
+mismatches = 0
+stops = 0
+sites = 245
+owners = 21
+"mutants.*" = {all_min = 1}
+
+[validate_audio_kubera]
+test = "native/tests/test_audio_kubera.py::Original.test_stop_play_commands"
+pins = ["text", "data"]
+families = ["kubera_move"]
+cases = 1000
+mutants = 7
+cases_at = "cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "1000", "--mutations", "--report", "{report}"]
+note = "AUDIO-005: full Kubera move, four play sites and two ordered stop commands"
+[validate_audio_kubera.expect]
+annotation_controls = 8
+mismatches = 0
+sites = 6
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*" = {all_min = 1}
+
 [validate_actor_monsters]
 test = "native/tests/test_actor_monsters.py::ClientComparison.test_original_instructions"
 pins = ["text", "data", "flag", "feature"]
@@ -3879,3 +3916,45 @@ args = ["--cases", "200", "--installed", "--mutations", "--output", "{report}"]
 [validate_muun_special.expect]
 all_equal = true
 all_mutants_caught = true
+
+[validate_item_cycle]
+test = "reconstructed/renderchar/test_item_cycle.py::ItemCycle.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "records", "clocks", "owned", "cycle", "reader_refusals"]
+cases = 6936
+mutants = 7
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar", "reconstructed/particles"]
+args = ["--mutations", "--output", "{report}"]
+note = "RENDER-ITEMS-002Z: signed piecewise colour, every tick of its positive period, branch boundaries, forcing records and complete owned requests"
+[validate_item_cycle.expect]
+"families.*.mismatches" = 0
+"families.bodies.cases" = 292
+"families.records.cases" = 512
+"families.clocks.cases" = 64
+"families.owned.cases" = 64
+"families.cycle.cases" = 6000
+"families.reader_refusals.cases" = 4
+"mutants.*" = {truthy = true}
+
+[validate_item_direct_bodies]
+test = "reconstructed/renderchar/test_item_direct_bodies.py::ItemDirectBodies.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "records", "lights", "frames", "parts", "exits"]
+cases = 15352
+mutants = 6
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar"]
+args = ["--mutations", "--output", "{report}"]
+note = "RENDER-ITEMS-002Z: fourteen early bodies, independent states and every forcing record/level/quality"
+[validate_item_direct_bodies.expect]
+"families.*.mismatches" = 0
+"families.bodies.cases" = 4088
+"families.records.cases" = 7168
+"families.lights.cases" = 2016
+"families.frames.cases" = 896
+"families.parts.cases" = 288
+"families.exits.cases" = 896
+"mutants.*" = {truthy = true}
