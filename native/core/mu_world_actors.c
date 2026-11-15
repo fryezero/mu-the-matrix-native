@@ -553,14 +553,12 @@ int mu_world_actor_plain_options(const mu_world_actor *a, float alpha, mu_draw_o
     uint32_t scale_bits;
     if (!a || !options || a->player || a->effect_count) return 0;
     uint32_t expected_weapons = 0;
-    if (!mu_actor_plain_plan(a->server_class, &plan)) {
-        mu_actor_group_body_plan group;
+    mu_actor_group_body_plan group;
+    int plain = mu_actor_plain_plan(a->server_class, &plan);
+    if (!plain) {
         if (!mu_actor_group_plan(a->server_class, &group)) return 0;
         plan = group.body;
         expected_weapons = group.weapon_mask;
-        options->select = group.blend_mesh;
-        options->skip_mesh = group.hidden_mesh;
-        memcpy(&options->color_scale, &group.blend_light_bits, 4);
     }
     uint32_t actual_weapons = 0;
     for (int k = 0; k < 2; ++k)
@@ -568,9 +566,14 @@ int mu_world_actor_plain_options(const mu_world_actor *a, float alpha, mu_draw_o
     if (actual_weapons != expected_weapons || plan.model != a->actor.spec.model_index) return 0;
     memcpy(&scale_bits, &a->actor.spec.scale, sizeof scale_bits);
     if (scale_bits != plan.scale_bits) return 0;
+    /* Callers use this as an optional in-place override. Refusal must be a no-op. */
+    if (!plain) {
+        options->select = group.blend_mesh;
+        options->skip_mesh = group.hidden_mesh;
+        memcpy(&options->color_scale, &group.blend_light_bits, 4);
+    } else options->skip_mesh = -1;
     options->flags = plan.flags;
     options->alpha = alpha; /* plain plan */
-    if (mu_actor_plain_plan(a->server_class, NULL)) options->skip_mesh = -1;
     options->texture = -1;
     return 1;
 }

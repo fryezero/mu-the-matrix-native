@@ -310,21 +310,22 @@ Do not infer filenames, network/spawn state, statistics or opaque protection.
 
 ## WIP checkpoints and delivery
 
-Current WIP: actor implementation, batch-116 checks, reduced private actor
-modules, census reproduction and visual comparisons pass. INNER-005 batch
-117 `d3ec9950` is merged at `4e02b38e`. Root build passes in 19.28 s; explicit
-world rebuild passes in 35.56 s including 30 s wait. The input-delta selector
-keeps 27 prior rows, 128.03 s including 30 s wait. Six retain unchanged-input
-results: app-polish1/2/4, audio-combat, viewport-monsters and worlds-fog.
-Current PR selection remains 33 of 250 rows, 158.69 s including 60 s wait.
-Fixture party-host IR analysis has a missing MU_SESSION_SEED fallback, so
-its conservative selections are retained. Left: incoming compiled-input
-replays and final publication. The after-side refresh matches all 230 hashes, 287.20 s including 210 s
-wait. The 27-validator replay passes 214,718 checks in 1,095.71 s command wall,
-including 390 s resource waiting. The portable delta passes 1,419 tests /
-337 expected skips, zero failures/errors, 549.30 s including 60 s waiting.
-Next: finish the private actor modules and publication checks.
-No ready entry exists.
+Current WIP: 138 admissions, census, main-through-batch-117 builds,
+33 validator results and permitted portable work pass. Final consumer review
+finds group options written before model/scale/weapon mismatch rejection;
+the render callers ignore the return value. The strengthened host uses
+sentinel options and requires all bytes unchanged for model, scale, effect
+and attachment mismatch. Before the fix, classes 49/65 return four refusals
+but preserve options only for the effect guard: `[0,0,1,0]`, 2.70 s command.
+The production writes now follow all checks. Root build passes in 11.55 s;
+classes 13/49/65 pass all four untouched-option probes in 2.63 s command.
+A twenty-first compiled control
+targets writes on scale rejection. Left: green guard proof, eight native
+controls against the strengthened host (retain thirteen unchanged C-plan
+controls), post-build affected checks, rebuilt after-side identity and final
+publication. Next: rebuild, run the green/compiled-native guard checks and
+select the affected delta. The prior final-private wrapper run is stopped
+before source edits; it is not used as final evidence. No ready entry exists.
 
 Pushed checkpoints include `99409933`, `5425914e`, `d53c7df3`, `b3edf825`,
 `967d83e4`, `73ccdc0d`, `e51eba07`, `4863ad70`, `9f096a80`,

@@ -196,7 +196,7 @@ def native_checks(host,rows):
             v.get('file','').lower()==row['file'].lower() and v.get('missing')==0 and v.get('textures_equal')==1 and \
             v.get('meshes',0)>0 and v.get('vertices',0)>0 and v.get('status')==0 and v.get('refused')==0 and \
             v.get('alpha')==[.375,.375] and v.get('admitted')==1 and v.get('flags')==2 and v.get('attach')==mask(row) and \
-            v.get('transform_translate')==1 and v.get('guards')==[0,0,0] and v.get('plan_state_equal')==1
+            v.get('transform_translate')==1 and v.get('guards')==[0,0,0,0] and v.get('guard_options')==[1,1,1,1] and v.get('plan_state_equal')==1
         result[cl]=(ok,v)
     return result
 
@@ -424,7 +424,8 @@ def main():
                 ('native_flags','options->flags = plan.flags;','options->flags = 0;'),
                 ('native_blend','options->select = group.blend_mesh;','options->select = -1;'),
                 ('native_hidden','options->skip_mesh = group.hidden_mesh;','options->skip_mesh = -1;'),
-                ('native_subtype','memcpy(a->actor.object + 0x60, &group_plan.subtype, 4);','memset(a->actor.object + 0x60, 1, 4);')]:
+                ('native_subtype','memcpy(a->actor.object + 0x60, &group_plan.subtype, 4);','memset(a->actor.object + 0x60, 1, 4);'),
+                ('native_guard_options','if (scale_bits != plan.scale_bits) return 0;','if (scale_bits != plan.scale_bits) { options->select = -2; return 0; }')]:
                 assert src.count(old)==1;path=Path(tmp)/'mu_world_actors.c';path.write_text(src.replace(old,new))
                 result=native_checks(build_host(tmp,source=path),sample);stops=sum('native_exit' in d for ok,d in result.values())
                 mutants[name]=dict(caught=not stops and any(not ok for ok,d in result.values()),stopped=stops)

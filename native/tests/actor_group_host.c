@@ -31,7 +31,7 @@ int main(int argc, char **argv)
         backend.sink.color3 = color3; backend.sink.color4 = color4;
         vertices = 0; low = 2; high = -1; mu_draw_stats stats = {0};
         int status = mu_scene_draw_model(&a->actor.model, &options, &backend, &stats);
-        /* Every mesh texture must be exactly the file in the opener's Monster directory.
+        /* Every mesh texture must be exactly the file in the opener's registered directory.
          * Reload it independently of actor storage, and compare upload bytes and sampler state. */
         mu_actor_group_body_plan plan = {0};
         if (!mu_actor_group_plan(cl, &plan)) {
@@ -49,16 +49,36 @@ int main(int argc, char **argv)
         int textures_equal = a->actor.textures.model_count == a->actor.bmd.mesh_count;
         uint32_t attached = 0;
         for (int k=0;k<2;++k) if (mu_world_actor_weapon(a,k)) attached |= 1u << k;
-        int guards[3];
+        int guards[4], guard_options[4];
+        mu_draw_options refused, probe;
+        memset(&refused, 0, sizeof refused);
+        refused.select = 123; refused.skip_mesh = 456; refused.color_scale = .625f;
+        refused.alpha = .625f; refused.flags = 0x1234; refused.texture = 17;
+        memcpy(&probe, &refused, sizeof probe);
         a->actor.spec.model_index++;
-        guards[0] = mu_world_actor_plain_options(a, .375f, &options);
+        guards[0] = mu_world_actor_plain_options(a, .375f, &probe);
+        guard_options[0] = !memcmp(&probe, &refused, sizeof probe);
         a->actor.spec.model_index--;
+        memcpy(&probe, &refused, sizeof probe);
         float saved_scale = a->actor.spec.scale; a->actor.spec.scale += 1;
-        guards[1] = mu_world_actor_plain_options(a, .375f, &options);
+        guards[1] = mu_world_actor_plain_options(a, .375f, &probe);
+        guard_options[1] = !memcmp(&probe, &refused, sizeof probe);
         a->actor.spec.scale = saved_scale;
+        memcpy(&probe, &refused, sizeof probe);
         a->effect_count++;
-        guards[2] = mu_world_actor_plain_options(a, .375f, &options);
+        guards[2] = mu_world_actor_plain_options(a, .375f, &probe);
+        guard_options[2] = !memcmp(&probe, &refused, sizeof probe);
         a->effect_count--;
+        /* Invert one hand without loading or drawing a synthetic attachment. */
+        static mu_world_actor_weapons phantom;
+        mu_world_actor_weapons *saved_weapons = a->weapons;
+        phantom.slots[0].loaded = !(plan.weapon_mask & 1u);
+        phantom.slots[1].loaded = (plan.weapon_mask & 2u) != 0;
+        a->weapons = &phantom;
+        memcpy(&probe, &refused, sizeof probe);
+        guards[3] = mu_world_actor_plain_options(a, .375f, &probe);
+        guard_options[3] = !memcmp(&probe, &refused, sizeof probe);
+        a->weapons = saved_weapons;
 
         for (int i = 0; i < a->actor.bmd.mesh_count; ++i) {
             char path[4096], directory[4096]; mu_image image = {0}; int8_t components = 0;
@@ -77,11 +97,12 @@ int main(int argc, char **argv)
         char result[4096];
         snprintf(result, sizeof result, "{\"class\":%d,\"model\":%d,\"scale\":%.9g,\"frame\":%.9g,\"file\":\"%s\","
             "\"missing\":%d,\"textures_equal\":%d,\"meshes\":%d,\"vertices\":%u,\"status\":%d,\"refused\":%ld,"
-            "\"alpha\":[%.9g,%.9g],\"admitted\":%d,\"flags\":%u,\"attach\":%u,\"transform_translate\":%d,\"guards\":[%d,%d,%d],\"plan_state_equal\":%d}\n",
+            "\"alpha\":[%.9g,%.9g],\"admitted\":%d,\"flags\":%u,\"attach\":%u,\"transform_translate\":%d,\"guards\":[%d,%d,%d,%d],\"guard_options\":[%d,%d,%d,%d],\"plan_state_equal\":%d}\n",
             cl, a->actor.spec.model_index, (double)a->actor.spec.scale, (double)mu_actor_frame(&a->actor),
             a->actor.spec.path + strlen(argv[1]) + 1, a->actor.textures.missing, textures_equal,
             a->actor.bmd.mesh_count, vertices, status, stats.refused, (double)low, (double)high, admitted,
-            options.flags, attached, a->actor.model.params.transform_translate, guards[0], guards[1], guards[2], plan_state_equal);
+            options.flags, attached, a->actor.model.params.transform_translate, guards[0], guards[1], guards[2], guards[3],
+            guard_options[0], guard_options[1], guard_options[2], guard_options[3], plan_state_equal);
         mu_world_actors_free(&actors); free(map);
         /* A cleanup failure must leave this selector unreported to the batch. */
         fputs(result, stdout);
