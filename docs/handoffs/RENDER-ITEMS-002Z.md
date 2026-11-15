@@ -1,13 +1,13 @@
 # RENDER-ITEMS-002Z
 
-Branch `codex/render-items-002z`, based on `b7dfd2ed`; main `2b0b2716` integrated at `bd417573`.
+Branch `codex/render-items-002z`, based on `b7dfd2ed`; main `4babc900` integrated at `a9cc72d9` (earlier `2b0b2716` at `bd417573`).
 GPT-6.1 Sol, no subagents. Offline/static only. Research is
 [part 40](../research/client-render-items.md#part-40-piecewise-colour-and-early-complete-bodies-render-items-002z).
 The merge steward owns the full gate and merge.
 
 ## WIP
 
-The focused admission checks below pass. The lane is not PR-ready: the 71 affected private validators and the genuine-main default identity sweep remain.
+The focused admission checks below pass. The lane is not PR-ready: 70 of the initial 71 affected private validators and the genuine-main default identity sweep remain. The carry row passes, including canonical regeneration. The latest main is merged and its root build passes in 26.62 s; the selector is being refreshed.
 Affected portable checks and 8d reduced pass. No ready entry has been written.
 
 ## Result
@@ -113,9 +113,9 @@ All local reports, prototypes and render intermediates are disposable and will b
 with the worktree and build outputs. No new private input is needed by the next lane.
 
 
-Checkpoint during the affected-validator run: the first `validate_item_carry` row is still active.
-It compares the earlier carry bodies and then calls the complete canonical generator. The final
-write-back metadata change gives that generator a new original-cache key, so this first run is cold.
-No passing affected-validator row is claimed yet. Its worker is briefly paused for this audit/commit
-checkpoint and then resumed in the same process. Later rows will reuse the resulting canonical cache.
-All inputs remain frozen; no test tolerance, case count, cap or refusal is relaxed.
+Checkpoint after the first affected-validator row: `validate_item_carry` passes 114,388 comparisons
+and complete canonical table regeneration at `3fed7878`, 2,230.6 s. Its original cache was cold after
+the final write-back metadata change. The wall includes a brief worker pause for the previous
+audit/commit checkpoint. Later rows reuse that canonical cache. No checks or budgets were reduced.
+Main through `4babc900` changes no renderchar, record-math, item generator or pins input, preserving
+this row and the earlier focused proofs. Remaining rows will run on the integrated branch.
