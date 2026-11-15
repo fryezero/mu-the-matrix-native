@@ -87,3 +87,14 @@ Done: all Muun source, tests, original comparisons, mutants, final pre-merge pro
 Left: resource-guarded affected checks for incoming compiled audio inputs, merged proof/identity and final audit.
 Next: list the affected rows and modules after the merged build, run only that refresh, then replace WIP with
 the complete handoff, push, open PR, append ready queue and clean up.
+
+## Merged validator checkpoint
+
+The exact current-main diff selects 42 steward rows (46.36 s selection), including incoming AUDIO-004.
+The 28 rows with changed compiled inputs since `76f42724` pass at `fed9a7a4`: 567.78 s execution plus
+105.58 s selector preview, zero failures/errors/skips. The latest results for all 42 rows total 745,557
+reported cases; fourteen rows retain their unchanged earlier inputs and passing results.
+
+Done: merged root build and complete merged affected validator refresh.
+Left: merged portable/private Muun checks, after-only native proof/identity and final audit/delivery.
+Next: wait for resource load to fall, inspect and run the affected portable selection, then finish.
