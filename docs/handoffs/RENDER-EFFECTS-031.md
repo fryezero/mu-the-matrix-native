@@ -313,3 +313,16 @@ Incoming portable/private checks and the after-integrated render replay remain a
 | `validate_worlds_slots` | 18999 | 17.3 |
 | `validate_worlds_slots2` | 33000 | 35.4 |
 | `validate_worlds_slots3` | 36000 | 33.8 |
+
+
+AUDIO-004 integrated checks complete: incoming portable selection 168 work items / 1,764 tests,
+1,448 passed and 316 expected skips, zero failures/errors; 448.606 s execution plus 120.014 s resource
+wait, 392.3 s test wall. Thirteen private modules pass all 67 tests, 169.483 s execution plus 120.016 s
+resource wait. Replay takes 89.141 s and preserves all 120 prior after PNGs and 96 OBJECT/light dumps.
+Thus every prior refusal count and reference score remains valid at this integration.
+The final AUDIO-004 binary is `bd558fc4b3028a42a7f534f775d3854192beda69c6b8741a977aa8726ac34e94`.
+Audit passes, 2,278 staged files / zero rejected, 19.578 s. Refreshed lane selector still has 77 rows,
+97.474 s. The three fallbacks remain.
+
+The next fetch finds ACTORS-005 #389 and INNER-004 #390 at main `4babc900`. Merge those and repeat only
+the incoming compiled overlap before PR-ready. No successful control target has changed.
