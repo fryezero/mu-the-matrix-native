@@ -20,7 +20,7 @@ class Plans(unittest.TestCase):
         with v.DECISIONS.open() as f:decisions={int(r['server_class']):r for r in csv.DictReader(f)}
         self.assertEqual(set(decisions),{int(r['server_class']) for r in v.population()})
         admitted={cl for cl,r in decisions.items() if r['decision']=='checked group body plan'}
-        self.assertEqual(len(admitted),138)
+        self.assertEqual(len(admitted),172)
         with (ROOT/'docs/research/actor-construction-census.csv').open() as f:census={int(r['server_class']):r for r in csv.DictReader(f)}
         self.assertEqual(collections.Counter(r['native'] for r in census.values()),{
             'correct bounded body plan':589+len(admitted),'incomplete/unverified special passes':355-len(admitted),'refused':80})

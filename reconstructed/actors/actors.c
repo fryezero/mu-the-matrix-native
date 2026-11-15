@@ -1,5 +1,6 @@
 #include "actors.h"
 
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -40,6 +41,59 @@ int mu_actor_group_plan(int32_t server_class, mu_actor_group_body_plan *out)
         mu_actor_group_plans[lo].body.server_class != server_class) return 0;
     if (out) *out = mu_actor_group_plans[lo];
     return 1;
+}
+
+const char *mu_actor_group_textures(int32_t server_class, int32_t world)
+{
+    mu_actor_group_body_plan plan;
+    if (!mu_actor_group_plan(server_class, &plan)) return NULL;
+    if (plan.world_textures && world >= 0 && world < 256 &&
+        (plan.world_mask[world / 32] >> (world % 32) & 1u)) return plan.world_textures; /* world textures */
+    return plan.textures;
+}
+
+#include "caller_fx_table.h"
+
+int32_t mu_actor_caller_fx_plan(int32_t server_class, const mu_actor_caller_fx **first)
+{
+    /* The generated table ends with one class -1 sentinel row. */
+    const size_t rows = sizeof mu_actor_caller_fx_rows / sizeof mu_actor_caller_fx_rows[0] - 1;
+    if (server_class < 0) return 0; /* caller fx */
+    size_t lo = 0, hi = rows;
+    while (lo < hi) {
+        size_t mid = lo + (hi - lo) / 2;
+        if (mu_actor_caller_fx_rows[mid].server_class < server_class) lo = mid + 1;
+        else hi = mid;
+    }
+    int32_t count = 0;
+    while (lo + (size_t)count < rows && mu_actor_caller_fx_rows[lo + (size_t)count].server_class == server_class) ++count;
+    if (count && first) *first = &mu_actor_caller_fx_rows[lo];
+    return count;
+}
+
+int mu_actor_caller_fx_random(int32_t server_class)
+{
+    const mu_actor_caller_fx *fx = NULL;
+    const int32_t count = mu_actor_caller_fx_plan(server_class, &fx);
+    for (int32_t i = 0; i < count; ++i)
+        if (fx[i].light_kind == MU_ACTOR_FX_FLICKER) return 1;
+    return 0;
+}
+
+void mu_actor_caller_fx_light(const mu_actor_caller_fx *fx, float clock, int32_t random_value, float out[3])
+{
+    float factor = 1.0f, colour[3], base;
+    memcpy(colour, fx->colour_bits, sizeof colour);
+    memcpy(&base, &fx->base_bits, sizeof base);
+    if (fx->light_kind == MU_ACTOR_FX_FLICKER) {
+        factor = (float)(random_value % 30 + 70) * 0.01f; /* flicker */
+    } else if (fx->light_kind == MU_ACTOR_FX_PULSE) {
+        const float phase = clock * 0.002f;
+        const float wave = (float)sin((double)phase);
+        factor = wave * 0.3f + base; /* pulse */
+    }
+    for (int k = 0; k < 3; ++k)
+        out[k] = fx->light_kind == MU_ACTOR_FX_CONSTANT ? colour[k] : factor * colour[k];
 }
 
 int mu_actor_monster_recipe(int32_t server_class, mu_monster_class *out)

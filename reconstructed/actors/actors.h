@@ -261,7 +261,43 @@ typedef struct mu_actor_group_body_plan {
     uint32_t weapon_mask;
     int32_t blend_mesh, hidden_mesh;
     uint32_t blend_light_bits, subtype;
+    /* RENDER-ACTORS-008: the opener's OpenTexture directory in the worlds of
+     * world_mask (bit = world byte 0..255); NULL when it never changes. */
+    const char *world_textures;
+    uint32_t world_mask[8];
+    /* Hands (bit 0 right, bit 1 left) whose RenderLinkItem 0x012bd910 sends the
+     * item's own sprite requests; each recorded list equals the renderchar
+     * link generator for that item type. */
+    uint32_t link_effect_mask;
 } mu_actor_group_body_plan;
 int mu_actor_group_plan(int32_t server_class, mu_actor_group_body_plan *out);
+/* The plan's texture directory in one world; NULL without a plan. */
+const char *mu_actor_group_textures(int32_t server_class, int32_t world);
+
+/* RENDER-ACTORS-008: RenderCharacter's per-call sprite requests of a checked
+ * group plan. Each row is CreateSprite 0x01692eb7(bitmap, position, scale,
+ * light, owner, rotation, blend, axes) with position = TransformPosition
+ * 0x012b6ef1(OBJECT bone matrix, offset, translate 1). Rows keep the original
+ * call order. Rows with other services, computed positions, further random
+ * values or a missing consumer are absent and stay incomplete. */
+enum { MU_ACTOR_FX_CONSTANT = 0, MU_ACTOR_FX_FLICKER = 1, MU_ACTOR_FX_PULSE = 2 };
+typedef struct mu_actor_caller_fx {
+    int32_t server_class, bitmap, bone;
+    uint32_t offset_bits[3], scale_bits;
+    int32_t light_kind;
+    uint32_t colour_bits[3], base_bits;   /* base: the pulse's additive term */
+    int32_t owner;                        /* 1: the OBJECT, 0: NULL */
+    uint32_t rotation_bits;
+    int32_t blend, axes;
+} mu_actor_caller_fx;
+/* Number of requests and their first row; 0 without a plan. */
+int32_t mu_actor_caller_fx_plan(int32_t server_class, const mu_actor_caller_fx **first);
+/* 1 when any request of the class takes RenderCharacter's rand() value. */
+int mu_actor_caller_fx_random(int32_t server_class);
+/* The request's light. clock: 0x06fce370 in ms. random_value: the one rand()
+ * of RenderCharacter 0x0136ac06. Constant: colour. Flicker: (float)(random %
+ * 30 + 70) * 0.01f * colour. Pulse: (sin(clock * 0.002f) * 0.3f + base) *
+ * colour, the sine through the CRT wrapper 0x009681bd ((float)sin((double)x)). */
+void mu_actor_caller_fx_light(const mu_actor_caller_fx *fx, float clock, int32_t random_value, float out[3]);
 
 #endif

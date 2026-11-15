@@ -63,8 +63,28 @@ int main(int argc, char **argv)
                 (size_t)p->bmd.meshes[m].vertex_count * 12);
         mu_draw_stats stats = {0}; unsigned before = vertices;
         if (mu_world_actor_weapon_draw(a, k, .375f, &env, &backend, &stats)) return 9;
-        printf("%s{\"type\":%d,\"bone\":%d,\"missing\":%d,\"same_pose\":%d,\"body_pose_same\":%d,\"vertices\":%u,\"refused\":%ld,\"file\":\"%s\"}",
-            k ? "," : "", p->glow.type, p->bone, p->textures.missing, same, body_pose_same, vertices-before,
+        /* RENDER-ACTORS-008: the production link-effect call on loaded particle bitmaps. */
+        long link_fx = 0; int link_assets = 1;
+        {
+            mu_world_particles *particles = calloc(1, sizeof *particles);
+            char particle_error[512];
+            if (!particles || mu_world_particles_open(particles, argv[1], map, map->world, 0x2026u, 0, particle_error,
+                                                      sizeof particle_error)) link_assets = 0;
+            else {
+                const uint64_t first = particles->sprites->created;
+                link_fx = mu_world_actor_weapon_effects(a, k, particles);
+                if ((uint64_t)link_fx != particles->sprites->created - first) link_assets = 0;
+                for (int i = 0; i < MU_PT_SPRITES; ++i) {
+                    const mu_pt_sprite *sprite = &particles->sprites->records[i];
+                    const int slot = sprite->live ? mu_world_particles_bitmap_slot(sprite->type) : 0;
+                    if (sprite->live && (slot < 0 || !particles->bitmap_present[slot])) link_assets = 0;
+                }
+                mu_world_particles_close(particles);
+            }
+            free(particles);
+        }
+        printf("%s{\"type\":%d,\"level\":%d,\"keys\":%d,\"link_fx\":%ld,\"link_assets\":%d,\"bone\":%d,\"missing\":%d,\"same_pose\":%d,\"body_pose_same\":%d,\"vertices\":%u,\"refused\":%ld,\"file\":\"%s\"}",
+            k ? "," : "", p->glow.type, p->glow.level, p->bmd.action_count > 0 ? p->bmd.actions[0].keys : 0, link_fx, link_assets, p->bone, p->textures.missing, same, body_pose_same, vertices-before,
             stats.refused, path + strlen(argv[1]) + 1);
         mu_data_free(&table); mu_renderchar_attach_free(&ref); mu_actor_free(&body); mu_renderchar_host_free(&host);
     }

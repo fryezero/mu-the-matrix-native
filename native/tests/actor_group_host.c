@@ -1,4 +1,5 @@
-/* RENDER-ACTORS-007: batch actual asset, texture, plan and draw checks. */
+/* RENDER-ACTORS-007/008: batch actual asset, texture, plan, draw and caller-request checks.
+ * stdin: "<class> <world>" per line. */
 #include "../core/mu_world_actors.c"
 static unsigned vertices;
 static void texcoord(void *ctx, float u, float v) { (void)ctx; (void)u; (void)v; }
@@ -7,13 +8,17 @@ static void vertex(void *ctx, const float p[3]) { (void)ctx; (void)p; ++vertices
 static void color3(void *ctx, const float p[3]) { (void)ctx; (void)p; }
 static void color4(void *ctx, float r, float g, float b, float alpha)
 { (void)ctx; (void)r; (void)g; (void)b; if (alpha < low) low = alpha; if (alpha > high) high = alpha; }
+typedef struct fx_log { int count; mu_world_actor_fx rows[64]; } fx_log;
+static void fx_emit(void *ctx, const mu_world_actor_fx *request)
+{ fx_log *log = ctx; if (log->count < 64) log->rows[log->count] = *request; ++log->count; }
 int main(int argc, char **argv)
 {
     if (argc != 2) return 2;
     setvbuf(stdout, NULL, _IOLBF, 0);
-    int cl;
-    while (scanf("%d", &cl) == 1) {
+    int cl, world;
+    while (scanf("%d %d", &cl, &world) == 2) {
         mu_world *map = calloc(1, sizeof *map);
+        map->world = world;
         mu_world_actors actors = {0}; actors.map = map;
         actors.list = calloc(1, sizeof *actors.list);
         char error[1024] = {0};
@@ -82,7 +87,7 @@ int main(int argc, char **argv)
 
         for (int i = 0; i < a->actor.bmd.mesh_count; ++i) {
             char path[4096], directory[4096]; mu_image image = {0}; int8_t components = 0;
-            snprintf(directory, sizeof directory, "%s/%s", argv[1], plan.textures);
+            snprintf(directory, sizeof directory, "%s/%s", argv[1], mu_actor_group_textures(cl, world));
             const char *name = a->actor.bmd.meshes[i].texture;
             const char *dot = strrchr(name, '.'); char kind = dot ? (char)tolower((unsigned char)dot[1]) : 0;
             if (!mu_image_resolve(directory, name, path, sizeof path) ||
@@ -94,15 +99,76 @@ int main(int argc, char **argv)
                 a->actor.textures.filter[i] != 0x2600 || a->actor.textures.wrap[i] != 0x2901) textures_equal = 0;
             mu_image_free(&image);
         }
+        /* Caller requests: production emitter against the generated rows, an independent
+         * bone-point computation on the posed model, and refusal without any emission. */
+        const mu_actor_caller_fx *fx = NULL;
+        const int planned = mu_actor_caller_fx_plan(cl, &fx);
+        static fx_log log; memset(&log, 0, sizeof log);
+        const int sent = mu_world_actor_caller_fx(a, 777.0f, 12345, fx_emit, &log);
+        int fx_equal = sent == planned && log.count == planned && planned <= 64, fx_assets = 1;
+        const float *bone_matrices = mu_model_bone_matrices(&a->actor.model);
+        for (int i = 0; i < planned && fx_equal; ++i) {
+            const mu_world_actor_fx *r = &log.rows[i];
+            float offset[3], light[3], scale, rotation;
+            memcpy(offset, fx[i].offset_bits, sizeof offset);
+            memcpy(&scale, &fx[i].scale_bits, 4); memcpy(&rotation, &fx[i].rotation_bits, 4);
+            mu_actor_caller_fx_light(&fx[i], 777.0f, 12345, light);
+            const float *m = bone_matrices + 12 * fx[i].bone;
+            for (int c = 0; c < 3; ++c) {
+                const float point = (m[4*c]*offset[0] + m[4*c+1]*offset[1] + m[4*c+2]*offset[2] + m[4*c+3]) *
+                    a->actor.model.params.body_scale + a->actor.model.params.origin[c];
+                if (fabsf(point - r->position[c]) > 1e-3f * (1.0f + fabsf(point))) fx_equal = 0;
+            }
+            if (r->bitmap != fx[i].bitmap || memcmp(light, r->light, sizeof light) || r->scale != scale ||
+                r->rotation != rotation || r->blend != fx[i].blend || r->axes != fx[i].axes || r->owner != fx[i].owner)
+                fx_equal = 0;
+            if (mu_world_particles_bitmap_slot(r->bitmap) < 0) fx_assets = 0;
+        }
+        int fx_guards[4] = {0, 0, 0, 0};
+        if (planned) {
+            static fx_log none; memset(&none, 0, sizeof none);
+            a->actor.spec.model_index++;
+            fx_guards[0] = mu_world_actor_caller_fx(a, 777.0f, 12345, fx_emit, &none) + none.count;
+            a->actor.spec.model_index--;
+            a->actor.spec.scale += 1;
+            fx_guards[1] = mu_world_actor_caller_fx(a, 777.0f, 12345, fx_emit, &none) + none.count;
+            a->actor.spec.scale = saved_scale;
+            a->effect_count++;
+            fx_guards[2] = mu_world_actor_caller_fx(a, 777.0f, 12345, fx_emit, &none) + none.count;
+            a->effect_count--;
+            a->weapons = &phantom;
+            fx_guards[3] = mu_world_actor_caller_fx(a, 777.0f, 12345, fx_emit, &none) + none.count;
+            a->weapons = saved_weapons;
+        }
+        /* The request bitmaps must be loaded by the production particle module from the game data. */
+        if (planned && fx_assets) {
+            mu_world_particles *particles = calloc(1, sizeof *particles);
+            if (!particles || mu_world_particles_open(particles, argv[1], map, world, 0x2026u, 0, error, sizeof error)) fx_assets = 0;
+            else {
+                for (int i = 0; i < planned; ++i) {
+                    const int slot = mu_world_particles_bitmap_slot(fx[i].bitmap);
+                    if (slot < 0 || !particles->bitmap_present[slot]) fx_assets = 0;
+                }
+                const uint64_t before = particles->stats.sprites_created;
+                for (int i = 0; i < log.count && i < 64; ++i)
+                    mu_world_particles_sprite(particles, log.rows[i].bitmap, log.rows[i].position, log.rows[i].scale,
+                        log.rows[i].light, MU_PT_NO_OWNER, log.rows[i].rotation, log.rows[i].blend, log.rows[i].axes);
+                if (particles->stats.sprites_created - before != (uint64_t)planned) fx_assets = 0;
+                mu_world_particles_close(particles);
+            }
+            free(particles);
+        }
         char result[4096];
         snprintf(result, sizeof result, "{\"class\":%d,\"model\":%d,\"scale\":%.9g,\"frame\":%.9g,\"file\":\"%s\","
             "\"missing\":%d,\"textures_equal\":%d,\"meshes\":%d,\"vertices\":%u,\"status\":%d,\"refused\":%ld,"
-            "\"alpha\":[%.9g,%.9g],\"admitted\":%d,\"flags\":%u,\"attach\":%u,\"transform_translate\":%d,\"guards\":[%d,%d,%d,%d],\"guard_options\":[%d,%d,%d,%d],\"plan_state_equal\":%d}\n",
+            "\"alpha\":[%.9g,%.9g],\"admitted\":%d,\"flags\":%u,\"attach\":%u,\"transform_translate\":%d,\"guards\":[%d,%d,%d,%d],\"guard_options\":[%d,%d,%d,%d],\"plan_state_equal\":%d,"
+            "\"world\":%d,\"fx\":%d,\"fx_equal\":%d,\"fx_assets\":%d,\"fx_guards\":[%d,%d,%d,%d]}\n",
             cl, a->actor.spec.model_index, (double)a->actor.spec.scale, (double)mu_actor_frame(&a->actor),
             a->actor.spec.path + strlen(argv[1]) + 1, a->actor.textures.missing, textures_equal,
             a->actor.bmd.mesh_count, vertices, status, stats.refused, (double)low, (double)high, admitted,
             options.flags, attached, a->actor.model.params.transform_translate, guards[0], guards[1], guards[2], guards[3],
-            guard_options[0], guard_options[1], guard_options[2], guard_options[3], plan_state_equal);
+            guard_options[0], guard_options[1], guard_options[2], guard_options[3], plan_state_equal,
+            world, planned, fx_equal, fx_assets, fx_guards[0], fx_guards[1], fx_guards[2], fx_guards[3]);
         mu_world_actors_free(&actors); free(map);
         /* A cleanup failure must leave this selector unreported to the batch. */
         fputs(result, stdout);

@@ -214,6 +214,25 @@ static void npc_item_draw(mu_world_rt *a, const mu_world_actor *npc, int item, f
             npc->player_glow[item].type, &a->particles);
 }
 
+/* RENDER-ACTORS-008: RenderCharacter's checked per-frame sprite requests of a group plan (CreateSprite at the
+ * actor's posed bones, drawn and retired by this frame's sprite pass). Flicker rows take one value of the
+ * particle module's rand(); the client's global rand() position is not reproduced. */
+typedef struct actor_fx_context { mu_world_rt *a; int32_t owner; } actor_fx_context;
+static void actor_fx_emit(void *context, const mu_world_actor_fx *r)
+{
+    actor_fx_context *c = context;
+    mu_world_particles_sprite(&c->a->particles, r->bitmap, r->position, r->scale, r->light,
+                              r->owner ? c->owner : MU_PT_NO_OWNER, r->rotation, r->blend, r->axes);
+}
+static void actor_caller_fx(mu_world_rt *a, const mu_world_actor *actor, int32_t index)
+{
+    if (!a->has_particles || !mu_actor_caller_fx_plan(actor->server_class, NULL)) return;
+    actor_fx_context context = {a, (int32_t)MU_WORLD_ACTOR_FX_BASE + index};
+    const int32_t random_value = mu_actor_caller_fx_random(actor->server_class) ?
+        mu_world_particles_rand(&a->particles) : 0;
+    mu_world_actor_caller_fx(actor, a->map->time, random_value, actor_fx_emit, &context);
+}
+
 static void actors_draw_soft(struct mu_world_rt *a, void *self, mu_world_draw *d)
 {
     (void)self;
@@ -268,7 +287,9 @@ static void actors_draw_soft(struct mu_world_rt *a, void *self, mu_world_draw *d
             raster->texture_filter = part->textures.filter;
             raster->texture_wrap = part->textures.wrap;
             mu_world_actor_weapon_draw(actor, k, alpha, &env, &backend, &ds);
+            if (a->has_particles) mu_world_actor_weapon_effects(actor, k, &a->particles);
         }
+        actor_caller_fx(a, actor, i);
         world_cloak_actor_draw(a, i, alpha, raster, NULL);
     }
 }
@@ -395,7 +416,9 @@ static void actors_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *d)
             mu_render_backend weapon_backend;
             mu_gl_backend_bind(&p->weapon_gl[i][k], &weapon_backend);
             mu_world_actor_weapon_draw(actor, k, alpha, &env, &weapon_backend, &ds);
+            if (a->has_particles) mu_world_actor_weapon_effects(actor, k, &a->particles);
         }
+        actor_caller_fx(a, actor, i);
         world_cloak_actor_draw(a, i, alpha, NULL, a->batch);
     }
     if (a->batch)

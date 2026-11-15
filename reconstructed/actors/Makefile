@@ -13,7 +13,7 @@ $(LIB): actors.c actors.h plain_body_table.h monster_open_table.h monster_sound_
 	$(CC) $(CFLAGS) -ffp-contract=off -shared actors.c $(CODEC)/skinning.c $(CODEC)/pose_builder.c $(CODEC)/bone_tracks.c $(MATH)/record_math.c -lm -o $@
 	$(DEPS)
 
-$(LIB): group_body_table.h
+$(LIB): group_body_table.h caller_fx_table.h
 
 .PHONY: all
 
