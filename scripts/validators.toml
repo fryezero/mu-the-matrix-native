@@ -3834,3 +3834,31 @@ note = "RENDER-ACTORS-006: 550 instruction-checked generated single-body plans, 
 all_equal = true
 all_mutants_caught = true
 "mutants.*.stopped" = 0
+
+[validate_muun_riding]
+test = "native/tests/test_muun_riding.py::Original.test_instruction_comparison"
+pins = ["text", "data"]
+families = ["lift", "placement", "fade", "render", "particles", "transition", "buff_mesh"]
+cases = 890
+mutants = 22
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/muun"]
+args = ["--cases", "200", "--mutations", "--output", "{report}"]
+[validate_muun_riding.expect]
+all_equal = true
+all_mutants_caught = true
+
+[validate_muun_special]
+test = "native/tests/test_muun_special.py::Original.test_instruction_comparison"
+pins = ["text", "data"]
+families = ["mesh", "refusal", "installed", "ordered"]
+cases = 452
+mutants = 17
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/muun"]
+args = ["--cases", "200", "--installed", "--mutations", "--output", "{report}"]
+[validate_muun_special.expect]
+all_equal = true
+all_mutants_caught = true
