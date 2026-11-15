@@ -147,7 +147,7 @@ Twelve scenes, before/after/repeat, pass in 63.47 s. Each uses one cast at frame
 960x600 GL, 60 logic frames, save every 12 and draw every logic frame. Names
 are DemoKnight/DemoArcher. Items, other players and audio output are disabled.
 All 72 after/repeat PNG pairs are byte-identical. No cast sends a request,
-hits/kills stay zero and target HP remains constant. Models/bitmaps stay 29/39.
+hits/kills stay zero and target HP remains constant. Models/bitmaps are 29/39, except Penetration is 30/39 with its arrow model.
 An initial local invocation used the native-data directory as a game-root and
 failed before producing an image. The successful run uses canonical private-env
 with MU_GAME_ROOT, leaving MU_NATIVE_DATA_DIR as the separate read-only input.
@@ -172,7 +172,7 @@ pose were also inspected. This is native repeatability and caller/consumer
 proof, not original GPU-image equivalence.
 
 
-## Final replay and default identity
+## Post-correction checkpoint before later main merges
 
 Post-RNG-correction after/repeat refresh passes all 82 PNG pairs in 59.08 s.
 The baseline is not rerun. Request/refusal totals above remain unchanged; active
@@ -200,3 +200,41 @@ this session's owner brief. No committed test or expectation is changed to
 make that exclusion; a local driver filters its runner work item. No app bundle
 or installed-app journey is produced. The handoff records validator/audit timing
 and the final publication state.
+
+
+## Final combined-main verification
+
+Main AUDIO-004 #388, ACTORS-005 #389, INNER-004 #390 and UI-WINDOWS-003 #391
+are integrated through main a95880c4. Pure caller input 8965554f and its
+libcombat hash above remain unchanged. Native input 7e298c4d adds the explicit
+special-item admission refusal, verified with an adjacent ordinary-item positive
+control. Later commits update delivery documentation.
+
+All 54 reduced private tests pass with zero skips in 201.69 s. They cover this
+caller, the neighboring 030 requests, installed combat, merged actor recipes,
+INNER-004, item textures and UI presentation/original routes. The portable
+merge delta runs 180 work items across ten executed suites: 1,837 tests,
+1,496 passed, 341 expected skips, zero failures/errors. Command wall is
+541.36 s, runner wall 428.7 s, two workers. The single packaging module remains
+excluded by owner scope. The private selection exceeds 40 items, so this is
+8d reduced, with no repeated unchanged UI mutants.
+
+All 82 final fixture after/repeat pairs match in 90.52 s. All 164 after/repeat
+PNGs also match the saved pre-merge hashes. The twelve long scenes retain the
+request/refusal counts above; models/bitmaps are 29/39 except Penetration's
+arrow model, 30/39. No baseline is rerun.
+
+The final world binary is `d900e56b324e4b8d8441e97b83ba1e14f746bc7cc3f65291245511e3c56688c9`. It is explicitly rebuilt before
+the sweep and hash-checked afterward. After-only command wall is 89.38 s.
+Across the same 46 views, 90/92 PNGs, all 92 OBJECT/light dumps and 45/46
+normalized reports match the original baseline. All 45 unaffected views remain
+identical. Only the October-tour Kanturu 37 view changes, from INNER-004's
+restored extra RGBA mesh. Pixel measurements: oct/37-kanturu/frames/frame-0024.png: 7686 changed pixels, mean RGB 0.295926/255; oct/37-kanturu/frames/frame-0000.png: 7645 changed pixels, mean RGB 0.106052/255.
+These are native identity controls, with no original GPU or performance claim.
+
+The first artifact postprocessor stops on missing NumPy before comparison.
+The corrected Pillow-only comparison reuses the completed captures and passes.
+The final current-main selection is 24 validators; every row has a
+passing result. The handoff preserves all 98 distinct results across the
+original and merged-main delta selections, with case counts, command walls,
+tested commits and the final queue list. No full lane gate runs.

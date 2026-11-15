@@ -1,38 +1,14 @@
 # RENDER-EFFECTS-032
 
-## WIP late-main integration
-
-The actor/world merge validator delta now passes 93/93, zero failures/errors/
-skips, 1007.16 s. UI-WINDOWS-003 #391 subsequently merged at main `a95880c4`;
-it is integrated here as `28788cfc`, keeping both status entries. Its root build
-passes in 8.39 s. The UI-specific 13-row validator delta since `3e1a10d7` is
-selected and waiting on the resource guard. The just-started portable selection
-was deliberately stopped before tests when that main movement was discovered;
-its replacement will cover the combined delta since `5c0dec22`.
-
-Combined portable/private modules, after-only captures and staged audit remain
-pending. Earlier completed proof and check tables below remain historical until
-the late-merge ledger is finalized.
-
-Main advanced during final audit. ACTORS-005 #389 and INNER-004 #390 main
-`4babc900` are integrated as `fe83b2b9`. The combined root build passes, 21.13 s.
-A 93-row private validator delta since `5c0dec22` is selected and awaiting its
-resource guard. Portable merge delta, focused incoming private modules and
-after-only render/identity replay remain pending. The reconstructed skill
-module and comparator are unchanged, with the same dylib SHA-256, so no new
-skill mutants are needed. INNER-004 documents an expected Kanturu 37 extra
-RGBA mesh delta. Do not claim final readiness from the earlier tables below.
-
-The earlier 23-row refresh passes 23/23, 290.45 s; the first staged audit passes
-2,276 files, zero rejected, 33.10 s. Those checks precede this late merge.
-Baselines stay fixed. The existing foreground delta job/log must be checked
-before starting any duplicate on resume.
-
-Verification checkpoint. Final staged audit and PR delivery remain pending.
+WIP: main advanced after the staged audits. UI-WINDOWS-004 integration and its affected checks remain pending. The steward owns the combined gate and merge.
 
 Branch `codex/render-effects-032` starts at main `b7dfd2ed`. Main `2b0b2716`,
 AUDIO-004 #388, is integrated through `8187e8e3` / registry resolution `fb561cff`.
-Caller source inputs are `8965554f`, unchanged through the delivery metadata.
+Late main `4babc900`, ACTORS-005 #389 and INNER-004 #390, is integrated as
+`fe83b2b9`. UI-WINDOWS-003 #391 main `a95880c4` is integrated as `28788cfc`.
+The combined inputs pass the delta checks below.
+Pure caller inputs are `8965554f`; native exceptional-item admission is `7e298c4d`.
+Later commits contain delivery documentation only.
 No subagents or full lane gate. Work uses nice 10, make at most four jobs and
 two validator/test workers. Resource pauses are observed.
 
@@ -84,7 +60,10 @@ service answers. Default is configured bow kind, wing -1 and no shield/mount.
 Examples are `1,0,0,0` and `0,-1,1,0`. Wing zero is present, as in the original
 comparison against -1. This does not equip a body or grant eligibility. New
 callers require an active learned entry within min(count,150); stale capacity
-and skill 47 remain refused. Only authored class/weapon/tile context is used.
+and skill 47 remain refused. Default-step rows 18 and 30..36 also refuse
+configured weapon 0x12fb (hero item 0x815), whose separate spark burst is outside
+this subset. Native regression tests include an adjacent ordinary-item positive
+control. Only authored class/weapon/tile context is used.
 
 ## Original proof
 
@@ -120,7 +99,7 @@ Twelve installed-data GL scenes, one cast at frame 2 and stop at frame 3,
 Lorencia 182,127, target 184,127, 960x600, 60 frames saved every 12, draw every
 logic frame. Names DemoKnight/DemoArcher and authored DemoTarget. No audio output,
 other players or items. All after casts have zero sent / one unsent request,
-zero hits/kills and unchanged target HP. Loaded models/bitmaps stay 29/39.
+zero hits/kills and unchanged target HP. Loaded models/bitmaps are 29/39, except Penetration is 30/39 with its arrow model.
 
 | Scene | Visual requests | Refused | Result |
 |---|---:|---:|---|
@@ -134,9 +113,11 @@ zero hits/kills and unchanged target HP. Loaded models/bitmaps stay 29/39.
 Early wing scenes use target 187,127, frames 0..11 saved at 0/3/6/9/11.
 The initial before/after/repeat proof passes 72 long-scene and ten early PNG
 pairs, 63.47 s and 9.39 s. A root-path preflight
-fails before producing an image and is not counted. The **final after/repeat
-refresh passes all 82 PNG pairs, 59.08 s**, without repeating
-any baseline. Visual inspection confirms Crescent's spark scatter, Defense's
+fails before producing an image and is not counted. The post-RNG after/repeat
+refresh passes all 82 PNG pairs, 59.08 s, without repeating
+any baseline. The final combined-main refresh passes 82/82 pairs again in
+90.52 s; all 164 after/repeat PNGs also match the saved
+pre-merge hashes. Visual inspection confirms Crescent's spark scatter, Defense's
 pose, floating bow actions and the frame-6 Penetration projectile. The new RNG
 ordering changes the active Crescent scatter as intended. The long Penetration
 sample misses its short flight; the early scene covers it. These are native
@@ -151,20 +132,23 @@ The final script rebuilds/checks the binary hash immediately before its sweep
 and verifies the hash again afterward.
 
 - Before SHA-256: `e341fc2000d2e7f035f1e1814ca5384231389c8e7409ed20557643b0485108d7`.
-- After SHA-256: `bb5470bf11a199bc3d6a241da9206d2548e39ed28ef874dfcb779b99fa45368c`.
+- After SHA-256: `d900e56b324e4b8d8441e97b83ba1e14f746bc7cc3f65291245511e3c56688c9`.
 
 Default draw, no draw_all/live_time, 640x400, 25 frames sampled at 0/24:
 
 | Dataset | PNGs | OBJECT/light dumps | Normalized reports |
 |---|---:|---:|---:|
-| October 22, 14 views | 28/28 identical | 28/28 identical | 14/14 identical |
+| October 22, 14 views | 26/28 identical | 28/28 identical | 13/14 identical |
 | DATA-ACQ-002, 32 views | 64/64 identical | 64/64 identical | 32/32 identical |
 
-All **230 artifacts match**, normalizing only output-directory prefixes in JSON.
-No default view changes: the new skill callers are inactive there. Incoming
-AUDIO-004 also preserves these defaults. Before sweep 74.61 s; after command
-69.74 s. Two old-path preflights produced no baseline image;
-local manifest paths were rebased to the canonical MTM tools directory.
+Before the actor/world/UI merges, all 230 artifacts match (after 69.74 s).
+The final combined-main after-only sweep is 89.38 s:
+**227/230 artifacts match**. The two Kanturu37 PNGs and one report change because
+INNER-004 restores the original extra RGBA mesh. All 45 other views, all 92
+OBJECT/light dumps and the remaining reports stay identical. Pixel differences:
+oct/37-kanturu/frames/frame-0024.png: 7686 pixels, mean RGB 0.295926/255; oct/37-kanturu/frames/frame-0000.png: 7645 pixels, mean RGB 0.106052/255. The skill callers are inactive in these default views. Only output
+prefixes are normalized in reports. The successful baseline runs once (74.61 s).
+Two obsolete-path preflights produce no image; paths are rebased to canonical MTM.
 
 ## Completed checks and test budget
 
@@ -176,64 +160,211 @@ consumer mutant run is requested. Wall times exclude load-guard pauses.
 |---|---|---:|
 | Integrated root build | pass | 24.79 |
 | Post-RNG-correction root build | pass | 12.70 |
-| Final explicit world build | pass, up to date | 0.21 |
+| Final combined explicit world build | pass | 0.42 |
 | Final original proof | 4,433 checks, 31/31 mutants, no stops | 71.71 |
 | Initial focused native | 6/6 pass | 7.77 |
 | Reduced private native after correction | 15/15 pass, zero skips | 25.75 |
 | Portable affected | 170 items; 1,803 tests, 1,490 pass / 313 expected skips; zero failures/errors | 500.74 |
 | Initial private affected, pre-correction | 23/23 pass, no mutants, fb40a57e | 358.29 |
-| Final private affected refresh | all selected rows pass | 290.45 |
+| Pre-late-main private affected refresh | all selected rows pass | 290.45 |
+| Late-main validator delta | 93 rows since 5c0dec22, no mutants | 1007.16 |
+| Actor/world merge root build | pass | 21.13 |
+| UI merge root build | pass | 8.39 |
+| UI validator delta | 13/13 pass, no mutants | 168.14 |
+| Admission guard root build | pass | 14.39 |
+| Admission guard validator delta | 12/12 pass, no mutants | 266.30 |
+| Combined reduced private native | 54/54 pass, zero skips | 201.69 |
+| Combined portable delta since 5c0dec22 | 180 items, 1,837 tests; 1,496 pass / 341 expected skips, zero failures/errors | 541.36 |
 | Final fixture refresh | 82/82 after/repeat pairs | 59.08 |
-| Default after sweep | 230/230 artifacts identical | 69.74 |
-| Staged repository audit | pending | pending |
+| Combined fixtures | 82 pairs repeat, 164 PNGs unchanged from premerge | 90.52 |
+| Combined default after sweep | 227/230 identical; upstream Kanturu37 only | 89.38 |
+| Staged repository audit | pass, see delivery audit ledger | 21.68 |
 
 **8d reduced:** the private native selection is 174 work items, above the
 40-item cap. Private run covers the changed test_render_effects32 module,
 neighbouring test_render_effects30 caller/arrow cases and installed combat.
-All 15 tests pass with no skips. Portable private skips are not private proof.
+The pre-merge 15 tests pass with no skips. Combined refresh passes 54/54 tests
+with zero skips in 201.69 s and covers those callers
+plus the exceptional-item positive/negative controls, actor recipes, INNER-004,
+item textures and UI-WINDOWS-001/002/003 presentation/original routes.
+The UI mutant class is omitted because its source is unchanged in this lane.
+Portable private skips are not private proof.
 
-**Owner packaging exclusion:** the affected unit runner is used with --affected
-origin/main and MU_RECOVERY_INTEGRATION=0 / MU_GATE_JOBS=2. A task-local driver
+**Owner packaging exclusion:** the initial affected unit runner uses --affected
+origin/main, and the combined-main delta uses --affected-since 5c0dec22, both
+with MU_RECOVERY_INTEGRATION=0 / MU_GATE_JOBS=2. A task-local driver
 filters only native/tests/test_native_app.py from its work-item list, because
 that module packages Native Preview and this session's brief forbids packaging.
 It changes no committed test or expectation. That exclusion is separate from
-the 313 reported skips. No app bundle, install or installed-app journey occurs.
+the reported skips: 313 initially, 341 in the combined delta. The combined
+run executes ten suites in 428.7 s runner wall, 541.36 s command wall. No app bundle, install or installed-app journey occurs.
+
+## Command wall ledger
+
+This records selections, builds, superseded proof checkpoints and the failed
+root-path preflight as well as final checks. Exit 1 for the first render attempt
+produces no image and is followed by the corrected game-root invocation.
+The successful baseline sweep is 74.61 s, recorded separately before edits.
+The first combined artifact postprocessor stops on unavailable NumPy before
+comparing anything. The corrected Pillow-only postprocessor reuses the finished
+captures; it reruns no rendering.
+Resource wait time is excluded. An interrupted portable preflight, before any
+test execution, discovers the later UI merge and is replaced by the combined run.
+
+| Command label | Wall s | Exit |
+|---|---:|---:|
+| `focused-native` | 7.77 | 0 |
+| `original-mutants` | 31.32 | 0 |
+| `root-build` | 24.79 | 0 |
+| `world-build` | 6.20 | 0 |
+| `fixture-renders` | 1.30 | 1 |
+| `fixture-renders` | 63.47 | 0 |
+| `validator-selection` | 68.24 | 0 |
+| `early-arrow-renders` | 9.39 | 0 |
+| `private-validators` | 358.29 | 0 |
+| `stream-build` | 12.70 | 0 |
+| `stream-sample` | 1.59 | 0 |
+| `final-original-mutants` | 71.71 | 0 |
+| `native-selection` | 61.91 | 0 |
+| `private-native` | 25.75 | 0 |
+| `portable-affected` | 500.74 | 0 |
+| `final-world-build` | 0.21 | 0 |
+| `final-fixture-renders` | 59.08 | 0 |
+| `identity-after` | 69.74 | 0 |
+| `final-validator-selection` | 89.82 | 0 |
+| `final-private-validators` | 290.45 | 0 |
+| `repository-audit` | 33.10 | 0 |
+| `merge-root-build` | 21.13 | 0 |
+| `merge-validator-selection` | 169.85 | 0 |
+| `merge-private-validators` | 1007.16 | 0 |
+| `ui-root-build` | 8.39 | 0 |
+| `ui-validator-selection` | 46.71 | 0 |
+| `ui-private-validators` | 168.14 | 0 |
+| `admission-root-build` | 14.39 | 0 |
+| `combined-private-native` | 201.69 | 0 |
+| `admission-validator-selection` | 56.94 | 0 |
+| `admission-private-validators` | 266.30 | 0 |
+| `combined-portable` | 541.36 | 0 |
+| `combined-world-build` | 0.42 | 0 |
+| `combined-fixture-renders` | 90.52 | 0 |
+| `combined-identity-after` | 89.38 | 0 |
+| `combined-artifact-comparison` | 0.06 | 1 |
+| `combined-artifact-comparison` | 0.29 | 0 |
+| `delivery-validator-selection` | 70.12 | 0 |
+| `combined-repository-audit` | 21.68 | 0 |
 
 ## Steward validators
 
-Final results at `5c0dec228af414f129ce061f3a400cefdef07624`.
+Final results at `5c0dec228af414f129ce061f3a400cefdef07624 / 3e1a10d71591a1f692e6c7a2ca828dec6abaa607 / 45b13d855bc695d6076d61ffc8a1d8027c3b8ca1 / 7e298c4d39a1aef29d9be9e85d9cc8bda9750a52`.
 Canonical private-env supplies evidence, MU_SECTION3, MU_GAME_ROOT,
 MU_NATIVE_DATA_DIR, MU_LANG_DIR and snapshots. Run --private --no-mutants --cache
---jobs 2. **No further mutants needed.** Counts below mix original comparisons
+--jobs 2. **No further mutants needed.** The final current-main selection has 24 rows and is the queue list.
+All 98 rows below preserve the original and merged-main delta results, with
+PR rows marked. Counts below mix original comparisons
 and each row's native controls; they are not one original-instruction total.
 
-| Validator | Cases | Wall s | Status |
-|---|---:|---:|---|
-| `validate_actor_composites` | 1427 | 7.6 | pass |
-| `validate_actor_recipes` | 1669 | 99.4 | pass |
-| `validate_app_polish4` | 10485 | 45.5 | pass |
-| `validate_audio_callers` | 5528 | 4.6 | pass |
-| `validate_audio_combat` | 19548 | 39.8 | pass |
-| `validate_audio_domains` | 2544 | 20.8 | pass |
-| `validate_audio_items` | 3000 | 5.9 | pass |
-| `validate_audio_objects` | 4000 | 2.6 | pass |
-| `validate_audio_objects4` | 10093 | 5.4 | pass |
-| `validate_charsel_items` | 8817 | 7.2 | pass |
-| `validate_icarus_c2` | 8400 | 15.8 | pass |
-| `validate_inventory_fx` | 8017 | 7.4 | pass |
-| `validate_item_callers` | 6013 | 1.8 | pass |
-| `validate_items_ui` | 8517 | 9.5 | pass |
-| `validate_movement` | 6614 | 51.8 | pass |
-| `validate_render_effects16` | 424 | 4.8 | pass |
-| `validate_render_effects17` | 618 | 6.4 | pass |
-| `validate_render_effects24` | 226 | 2.5 | pass |
-| `validate_render_effects25` | 202 | 8.1 | pass |
-| `validate_render_effects26` | 348 | 8.7 | pass |
-| `validate_render_effects32` | 1723 | 0.8 | pass |
-| `validate_worlds_after6` | 7300 | 53.4 | pass |
-| `validate_worlds_fog` | 4044 | 4.4 | pass |
+| Validator | Cases | Wall s | Tested | Status | Role |
+|---|---:|---:|---|---|---|
+| `validate_actor_composites` | 1427 | 13.0 | `7e298c4d` | pass | PR |
+| `validate_actor_monsters` | 1437 | 69.6 | `7e298c4d` | pass | PR |
+| `validate_actor_recipes` | 1669 | 141.9 | `7e298c4d` | pass | PR |
+| `validate_app_polish1` | 752 | 26.4 | `45b13d85` | pass | merge delta |
+| `validate_app_polish2` | 1028 | 5.6 | `45b13d85` | pass | merge delta |
+| `validate_app_polish4` | 10485 | 47.6 | `45b13d85` | pass | PR |
+| `validate_app_polish7` | 5120 | 3.6 | `45b13d85` | pass | merge delta |
+| `validate_app_polish9` | 4668 | 7.8 | `45b13d85` | pass | merge delta |
+| `validate_audio_callers` | 5528 | 8.9 | `7e298c4d` | pass | PR |
+| `validate_audio_combat` | 19548 | 32.3 | `3e1a10d7` | pass | PR |
+| `validate_audio_domains` | 2544 | 35.9 | `7e298c4d` | pass | PR |
+| `validate_audio_items` | 3000 | 8.2 | `7e298c4d` | pass | PR |
+| `validate_audio_objects` | 4000 | 3.8 | `3e1a10d7` | pass | PR |
+| `validate_audio_objects4` | 10093 | 9.3 | `3e1a10d7` | pass | PR |
+| `validate_charsel_items` | 8817 | 9.6 | `3e1a10d7` | pass | PR |
+| `validate_charsel_world` | 1200 | 3.8 | `3e1a10d7` | pass | merge delta |
+| `validate_gfx3` | - | 8.9 | `45b13d85` | pass | merge delta |
+| `validate_icarus` | 5240 | 39.8 | `3e1a10d7` | pass | merge delta |
+| `validate_icarus_c2` | 8400 | 17.4 | `3e1a10d7` | pass | PR |
+| `validate_inventory_fx` | 8017 | 7.2 | `3e1a10d7` | pass | PR |
+| `validate_item_callers` | 6013 | 1.3 | `3e1a10d7` | pass | PR |
+| `validate_items_ui` | 8517 | 10.7 | `3e1a10d7` | pass | PR |
+| `validate_login_world` | 1200 | 4.0 | `3e1a10d7` | pass | merge delta |
+| `validate_map_polish` | 876 | 0.7 | `45b13d85` | pass | merge delta |
+| `validate_meshdraw` | 14619 | 79.0 | `3e1a10d7` | pass | merge delta |
+| `validate_model_edge` | 954 | 149.2 | `3e1a10d7` | pass | merge delta |
+| `validate_model_light` | 1433 | 7.5 | `3e1a10d7` | pass | merge delta |
+| `validate_movement` | 6614 | 77.3 | `7e298c4d` | pass | PR |
+| `validate_object_render` | 1984 | 4.0 | `3e1a10d7` | pass | merge delta |
+| `validate_path` | 4719 | 31.5 | `3e1a10d7` | pass | merge delta |
+| `validate_render_effects10` | 154 | 0.4 | `3e1a10d7` | pass | merge delta |
+| `validate_render_effects11` | 176 | 0.3 | `3e1a10d7` | pass | merge delta |
+| `validate_render_effects12` | 64 | 0.3 | `3e1a10d7` | pass | merge delta |
+| `validate_render_effects13` | 180 | 0.6 | `3e1a10d7` | pass | merge delta |
+| `validate_render_effects14` | 660 | 1.5 | `3e1a10d7` | pass | merge delta |
+| `validate_render_effects15` | 509 | 1.0 | `3e1a10d7` | pass | merge delta |
+| `validate_render_effects16` | 424 | 5.7 | `7e298c4d` | pass | PR |
+| `validate_render_effects17` | 618 | 11.7 | `7e298c4d` | pass | PR |
+| `validate_render_effects18` | 540 | 1.4 | `3e1a10d7` | pass | merge delta |
+| `validate_render_effects19` | 400 | 1.0 | `3e1a10d7` | pass | merge delta |
+| `validate_render_effects20` | 148 | 0.3 | `3e1a10d7` | pass | merge delta |
+| `validate_render_effects21` | 267 | 0.4 | `3e1a10d7` | pass | merge delta |
+| `validate_render_effects22` | 202 | 6.0 | `3e1a10d7` | pass | merge delta |
+| `validate_render_effects23` | 1174 | 7.0 | `3e1a10d7` | pass | merge delta |
+| `validate_render_effects24` | 226 | 3.2 | `7e298c4d` | pass | PR |
+| `validate_render_effects25` | 202 | 15.5 | `7e298c4d` | pass | PR |
+| `validate_render_effects26` | 348 | 12.3 | `7e298c4d` | pass | PR |
+| `validate_render_effects27` | 424 | 1.1 | `3e1a10d7` | pass | merge delta |
+| `validate_render_effects28` | 630 | 1.4 | `3e1a10d7` | pass | merge delta |
+| `validate_render_effects32` | 1723 | 0.8 | `5c0dec22` | pass | PR |
+| `validate_render_effects7` | 596 | 1.9 | `3e1a10d7` | pass | merge delta |
+| `validate_render_effects9` | 304 | 0.9 | `3e1a10d7` | pass | merge delta |
+| `validate_render_worlds_a` | 9000 | 13.6 | `3e1a10d7` | pass | merge delta |
+| `validate_terrain` | 583500 | 409.1 | `3e1a10d7` | pass | merge delta |
+| `validate_terrain_remaining` | 2147 | 4.7 | `3e1a10d7` | pass | merge delta |
+| `validate_viewport_monsters` | 1963 | 12.6 | `3e1a10d7` | pass | merge delta |
+| `validate_world_fidelity` | 200 | 0.2 | `3e1a10d7` | pass | merge delta |
+| `validate_world_light_name` | 304 | 0.3 | `3e1a10d7` | pass | merge delta |
+| `validate_world_tile_folder` | 5700 | 24.3 | `3e1a10d7` | pass | merge delta |
+| `validate_worlds_121` | 4000 | 5.4 | `3e1a10d7` | pass | merge delta |
+| `validate_worlds_after` | 13424 | 8.9 | `3e1a10d7` | pass | merge delta |
+| `validate_worlds_after2` | 32216 | 19.8 | `3e1a10d7` | pass | merge delta |
+| `validate_worlds_after3` | 10212 | 15.1 | `3e1a10d7` | pass | merge delta |
+| `validate_worlds_after4` | 9181 | 16.6 | `3e1a10d7` | pass | merge delta |
+| `validate_worlds_after5` | 6000 | 13.5 | `3e1a10d7` | pass | merge delta |
+| `validate_worlds_after6` | 7300 | 56.5 | `3e1a10d7` | pass | PR |
+| `validate_worlds_b` | 4000 | 4.6 | `3e1a10d7` | pass | merge delta |
+| `validate_worlds_d` | 2400 | 4.9 | `3e1a10d7` | pass | merge delta |
+| `validate_worlds_e` | 4840 | 21.2 | `3e1a10d7` | pass | merge delta |
+| `validate_worlds_f` | 1818 | 0.4 | `3e1a10d7` | pass | merge delta |
+| `validate_worlds_fog` | 4044 | 7.3 | `45b13d85` | pass | PR |
+| `validate_worlds_g` | 6000 | 7.7 | `3e1a10d7` | pass | merge delta |
+| `validate_worlds_g2` | 2657 | 4.5 | `3e1a10d7` | pass | merge delta |
+| `validate_worlds_g3` | 4000 | 3.3 | `3e1a10d7` | pass | merge delta |
+| `validate_worlds_h` | 6000 | 6.9 | `3e1a10d7` | pass | merge delta |
+| `validate_worlds_i` | 6000 | 7.7 | `3e1a10d7` | pass | merge delta |
+| `validate_worlds_inner` | 4000 | 2.9 | `3e1a10d7` | pass | merge delta |
+| `validate_worlds_inner2` | 5000 | 3.3 | `3e1a10d7` | pass | merge delta |
+| `validate_worlds_inner3` | 8000 | 6.8 | `3e1a10d7` | pass | merge delta |
+| `validate_worlds_inner4` | 8000 | 4.8 | `3e1a10d7` | pass | merge delta |
+| `validate_worlds_j` | 6000 | 3.9 | `3e1a10d7` | pass | merge delta |
+| `validate_worlds_k` | 6000 | 6.0 | `3e1a10d7` | pass | merge delta |
+| `validate_worlds_karutan` | 3000 | 3.7 | `3e1a10d7` | pass | merge delta |
+| `validate_worlds_n` | 13000 | 10.2 | `3e1a10d7` | pass | merge delta |
+| `validate_worlds_o` | - | 10.6 | `3e1a10d7` | pass | merge delta |
+| `validate_worlds_p` | 10000 | 5.0 | `3e1a10d7` | pass | merge delta |
+| `validate_worlds_p2` | 6000 | 3.1 | `3e1a10d7` | pass | merge delta |
+| `validate_worlds_q` | 11000 | 7.3 | `3e1a10d7` | pass | merge delta |
+| `validate_worlds_q2` | 4000 | 4.3 | `3e1a10d7` | pass | merge delta |
+| `validate_worlds_r` | 12000 | 5.1 | `3e1a10d7` | pass | merge delta |
+| `validate_worlds_r2` | 9000 | 4.3 | `3e1a10d7` | pass | merge delta |
+| `validate_worlds_raklion` | 3000 | 4.7 | `3e1a10d7` | pass | merge delta |
+| `validate_worlds_s` | 11000 | 9.3 | `3e1a10d7` | pass | merge delta |
+| `validate_worlds_s2` | 10000 | 12.3 | `3e1a10d7` | pass | merge delta |
+| `validate_worlds_s3` | 22000 | 25.1 | `3e1a10d7` | pass | merge delta |
+| `validate_worlds_slots` | 18999 | 30.2 | `3e1a10d7` | pass | merge delta |
+| `validate_worlds_slots2` | 33000 | 47.3 | `3e1a10d7` | pass | merge delta |
+| `validate_worlds_slots3` | 36000 | 40.0 | `3e1a10d7` | pass | merge delta |
 
-Steward validators: validate_actor_composites,validate_actor_recipes,validate_app_polish4,validate_audio_callers,validate_audio_combat,validate_audio_domains,validate_audio_items,validate_audio_objects,validate_audio_objects4,validate_charsel_items,validate_icarus_c2,validate_inventory_fx,validate_item_callers,validate_items_ui,validate_movement,validate_render_effects16,validate_render_effects17,validate_render_effects24,validate_render_effects25,validate_render_effects26,validate_render_effects32,validate_worlds_after6,validate_worlds_fog
+Steward validators: validate_actor_composites,validate_actor_monsters,validate_actor_recipes,validate_app_polish4,validate_audio_callers,validate_audio_combat,validate_audio_domains,validate_audio_items,validate_audio_objects,validate_audio_objects4,validate_charsel_items,validate_icarus_c2,validate_inventory_fx,validate_item_callers,validate_items_ui,validate_movement,validate_render_effects16,validate_render_effects17,validate_render_effects24,validate_render_effects25,validate_render_effects26,validate_render_effects32,validate_worlds_after6,validate_worlds_fog
 
 ## Limits and next lane
 
@@ -249,8 +380,9 @@ No protection, live client, owner Wine app, README or installed-app work occurs.
 
 ## Delivery
 
-Not PR-ready until the pending refresh/audit and publication finish.
-All source inputs remain `8965554f`; later commits update documentation only.
+Ready for steward after final publication and queue entry.
+Pure caller source inputs remain `8965554f`; native admission is `7e298c4d`.
+The row table names each tested commit; subsequent changes are documentation only.
 The PR targets main. Finish every doc/push before the one ready-prs entry, then
 push nothing more. Remove this lane's scratch, renders, ignored builds,
 worktree and local branch; retain the remote PR branch. No new private input
@@ -259,26 +391,9 @@ needs retaining. Local paths before cleanup are the matching
 `renders/render-effects-032/` directories.
 
 
-## WIP checkpoint 00:38, 2026-11-15
+## WIP after final fetch
 
-UI-WINDOWS-003 #391 main a95880c4 is integrated through 28788cfc.
-All 13 affected UI delta validators pass without mutant reruns (168.14 s).
-Final review found that the default-step special hero item 0x815 needed an
-explicit native admission refusal; configured weapon 0x12fb is now refused
-for Defense and summons, with neighboring ordinary-item positive controls.
-Combined portable/private checks, the small admission delta validators,
-after-only fixture/default replays and final audit remain pending.
-No new pure comparator mutant targets changed.
-
-
-## Late verification checkpoint, 2026-11-15
-
-At native admission inputs 7e298c4d, all 54 combined private tests pass with
-zero skips (201.69 s). The 12-row admission validator delta passes with no
-failures/errors/skips (266.30 s). Pure libcombat remains SHA-256
-62936052baf3718000d820c5060f981e2d6def34b127932f6b55e5348e57fbb7.
-The aggregate validator set is 98 rows across the earlier 23, actor/world 93,
-UI 13 and admission 12 selections. Latest results replace earlier rows.
-Portable delta since 5c0dec22 is running after a four-minute resource pause.
-Combined after-only render refresh, default identity replay, final audit and
-PR publication remain pending. Main is still a95880c4, already integrated.
+Both staged audits pass, 21.68 s and 26.60 s. Final fetch discovers main
+4480bf41 / UI-WINDOWS-004 #392. Preserve the completed a95880c4 checks above,
+then integrate the new main and run only its affected build/test/validator
+inputs plus an after-only identity refresh. No PR or queue entry exists yet.
