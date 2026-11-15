@@ -1,5 +1,21 @@
 # RENDER-EFFECTS-032
 
+## WIP late-main integration
+
+Main advanced during final audit. ACTORS-005 #389 and INNER-004 #390 main
+`4babc900` are integrated as `fe83b2b9`. The combined root build passes, 21.13 s.
+A 93-row private validator delta since `5c0dec22` is selected and awaiting its
+resource guard. Portable merge delta, focused incoming private modules and
+after-only render/identity replay remain pending. The reconstructed skill
+module and comparator are unchanged, with the same dylib SHA-256, so no new
+skill mutants are needed. INNER-004 documents an expected Kanturu 37 extra
+RGBA mesh delta. Do not claim final readiness from the earlier tables below.
+
+The earlier 23-row refresh passes 23/23, 290.45 s; the first staged audit passes
+2,276 files, zero rejected, 33.10 s. Those checks precede this late merge.
+Baselines stay fixed. The existing foreground delta job/log must be checked
+before starting any duplicate on resume.
+
 Verification checkpoint. Final staged audit and PR delivery remain pending.
 
 Branch `codex/render-effects-032` starts at main `b7dfd2ed`. Main `2b0b2716`,
