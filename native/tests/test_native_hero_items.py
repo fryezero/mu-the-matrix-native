@@ -378,6 +378,12 @@ class HeroClassScene(unittest.TestCase):
         row = hero_class('--world', '17', '--tile', '30,90', *worn)   # a neighbour of the world list
         self.assertIsNone(row)
 
+    def test_a_world_change_applies_and_drops_the_override(self):
+        worn = ('--hero-item', 'weapon0=Item/Sword04.bmd', '--hero-item', 'wing=Item/Wing02.bmd')
+        row = hero_class(*worn, '--travel-script', '3:to:18:30:90', frames=12)
+        self.assertEqual((row['castle'], row['weapons'], row['wing']), (1, [0x0af6, 0x0af6], -1))
+        self.assertIsNone(hero_class(*worn, '--travel-script', '3:to:18:30:90 9:to:0:128:124', frames=16))
+
     def test_class_scale_and_part_float(self):
         for class_byte, scale in ((2, 0.88), (3, 0.95), (4, 0.92), (6, 1.03), (0x0b, 0.99), (0x0e, 0.8), (0x0f, 1.1),
                                   (0x12, 0.88)):

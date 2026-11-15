@@ -3536,3 +3536,143 @@ Comparisons remain finite and context-bounded. Existing record, selected-item, b
 invalid-context, absolute random/counter-phase and consumer refusals remain. No original pose/pixel
 or whole-client equivalence is claimed. No original-client process, service, packet, protection,
 character-power or installed-app work is involved.
+
+## Part 43, the hero's head slot, castle-world weapons and scale writes, HERO-ITEMS-002
+
+Part 21 left the end of SetCharacterClass `0x01394870` stubbed: `0x009dadf1`, the scale writes of `0x01394f6f`
+and the draw of slot 0. This part reproduces them for the hero. Offline and static: the pinned text and data
+captures under Unicorn, fixture appearance records only. [Handoff](../handoffs/HERO-ITEMS-002.md).
+Part 42 is left for RENDER-ITEMS-002AB, which was running when this part was written.
+
+### The routine's end (verified, `validate_hero_items`)
+
+After the slot writes of part 21, `0x01394870` calls, in this order (`0x01394f37..0x01394f6b`):
+
+1. `0x009dadf1(c)`, with no test of `c + 0xe` (ChangeCharacterExt tests it for other players);
+2. `0x01394f6f(c)`;
+3. for the hero only `0x0137ad93`, then the stat machine `0x00a00fb7` (both omitted here, as in part 21).
+
+### Head slot: record, load and draw
+
+- **Record.** `0x01394f6f` reads the helm slot's type (`c + 0x1c4 + 0x3fc`). For the 17 helms of part 21 it
+  writes slot 0 = `0x3700 + skin` (`0x0139d6a2` of the class byte); for every other type, the class helm part
+  included, it writes −1. With `c + 0xe` set it returns before any write.
+- **Load.** Slot 0's type is a class part type, so GetModel `0x00eaa8cf` returns the model the player loader
+  opened for it: the class's own `HelmClass` file (`mu_character_part_file`), the same model an unhelmed
+  character has in slot 1. No other file is involved.
+- **Draw and suppression.** RenderCharacter's body-part loop `0x0136a374..0x0136a8ef` runs slots 5 down to 0. A
+  slot of type −1 is skipped (`0x0136a3b7`); every other slot reaches RenderPartObject `0x017e63f4` with the
+  OBJECT, the model type and the slot record. The only test of the slot index is `== 1` (class nibble 4's helm,
+  below), so slot 0 is drawn like the other parts, last. "Head suppression" is therefore only the −1 that
+  `0x01394f6f` writes: a helm outside the list is a closed model and the head is not drawn; a listed helm is open
+  and the class head is drawn inside it.
+- **Model types the loop substitutes** (found by the loop comparison, verified, not loaded natively):
+
+  | Class nibble | Slot | Slot type | Drawn model |
+  |---|---|---|---|
+  | 5 | any | groups 7..11, index 10 or 11 | `0x36ce + index + 2 · group` (`0x0136a41b`) |
+  | 6 | any | groups 7..11, index 5, 6, 8 or 9 (j = 0..3) | `0x36d4 + j + 4 · g`, g = group, 10 for group 11 (`0x00d2ae8c`) |
+  | 4 | 1 only | `0x18e6 + d`, d = 0, 5, 6, 8, 9 | `0x38f6 + d` (`0x0136a539`) |
+
+  A class head type (group 22) is never substituted.
+
+The table-driven check: each of the 17 helms × all 256 class bytes (4,352 rows), plus 23 control rows × 16 class
+bytes (the helms' 19 neighbours, an empty helm slot, `0x1900`, `0x1ae6`, `0x18d0`). Per row the client runs
+`0x01394870` complete and then the loop on the resulting record; the head slot and the ordered RenderPartObject
+calls are compared with the C. All 4,352 listed rows end with the head draw `(slot 0, 0x3700 + skin)`; none of
+the 368 control rows has a slot-0 draw.
+
+### Castle-world weapon override `0x009dadf1`
+
+World list `0x009dacb8([0x01cf15fc])`: worlds 18..23 (`0x12..0x17`), 53 (`0x35`) and 97 (`0x61`), the Chaos
+Castle worlds. In any other world the routine returns at once. In a listed world:
+
+1. `0x009dad3f(c)`: wing slot 8 and helper slot 10 take type −1 and level 0; both weapon slots take type −1,
+   level 0 and option 0; `c + 0x16` = 0. No ext byte is written.
+2. Three interface calls on the UI managers (`0x009dc2f0` and, for a found window, `0x009dc341(4, window, 0)`;
+   `0x011e042c(1)` and, when it answers, `0x009dc316` → `0x011f4019`). They write no slot.
+3. The class weapon by class nibble (`0x0095f5cc`), at level 0:
+
+   | Class nibbles | Right hand (slot 6) | Left hand (slot 7) | Item.bmd record |
+   |---|---|---|---|
+   | 1, 3, 4, 6, 7, 9, 10, 13, 15 | `0x0af6` | `0x0af6` | 0:16 Sword of Destruction, `sword17.bmd` |
+   | 2 | `0x12f9` | −1 | 4:19 Great Reign Crossbow, `Crossbow20.bmd` |
+   | 0, 5, 8, 11, 12, 14 | `0x14eb` | −1 | 5:5 Legendary Staff, `staff06.bmd` |
+
+The equipped ITEMs in CharacterMachine are not touched: the inventory still shows what the hero wears.
+
+### Scale writes of `0x01394f6f`, by branch
+
+`c + 0x32f4` is OBJECT `+0xa0` (the OBJECT sits at `c + 0x3254`): the body scale that the Player pose, every part
+and the linked items take. The six part floats `c + 0x288 + k · 0x3fc` are the slot records' `+0xc4`, which
+RenderPartObject passes as the transform's vertex scale (`0x017e6442` → `0x017e686a`): nonzero scales the
+vertex positions before the bone transform.
+
+| # | Write | Branch | Inputs | Native world |
+|---|---|---|---|---|
+| 1 | slot 0 type | `c + 0xe` = 0 | helm slot type, class byte | implemented (head model in item 0) |
+| 2 | part floats 0..5 = 0 | castle world | world | implemented |
+| 3 | OBJECT scale 0.88 (class nibble 2) or 0.9, jump table `0x013953f3` | castle world | world, class nibble | implemented |
+| 4 | part floats = 0, but 0.95 for class nibble 11's helm slot | other worlds | class nibble | implemented (`mu_character_params.part_scale`) |
+| 5 | OBJECT scale 1.7 | other worlds, scene `0x009b0bc1([0x01d1df70])` = 5 | scene | the character select's branch (`mu_charsel_character_scale`); never taken in the world scene |
+| 6 | OBJECT scale by class nibble, jump table `0x01395433`: 0.9, 0.9, 0.88, 0.95, 0.92, 0.9, 1.03, 0.9, 0.9, 0.9, 0.9, 0.99, 0.9, 0.9, 0.8, 1.1 | other worlds, scene ≠ 5 | class nibble | implemented |
+| 7 | OBJECT scale 1.1 | as 6, when `(c + 0x35ac).0x01295ade(0x1a8)` or, after it answers 0, `(0x1a9)` is set | the character's buff list | **refused**: the buff list is server state; the offline session has none, both answers are 0 |
+| 8 | nothing | `c + 0xe` set | — | not reachable for the offline hero (`c + 0xe` = 0) |
+
+In a castle world the routine returns after write 3: no scene test and no buff query.
+
+### Validation
+
+`scripts/validate_hero_items.py` (seed `0x4e20`; the five families of part 21 are unchanged). The new families
+run `0x009dadf1` and `0x01394f6f` unstubbed; only `0x0137ad93` and `0x00a00fb7` stay stubbed, and the interface
+calls and buff queries are answered by a scripted host and compared as a call log.
+
+| Family | Cases | Mismatches |
+|---|---:|---:|
+| head_rows: the helm table above (record and draw per row) | 4,720 | 0 |
+| castle: `0x01394870` complete over worlds −4..299 and 16 random words × 16 class nibbles (all 11 slots' five bytes, `c + 0x16`, the seven floats as bit patterns, the interface-call log, the buff queries); `0x009dadf1` alone on 3,000 random prior records | 8,120 | 0 |
+| scale: `0x01394f6f` alone, every class byte × castle / other world × scenes 3..6 × four buff answers, `c + 0xe` 0 and set, random prior floats | 8,192 | 0 |
+| part_loop: the body-part loop on 3,000 random records and 1,376 directed rows (the helms `0x18e6..0x18f1` in each slot of each class nibble; indices 0..15 of groups 6..12 for class nibbles 5 and 6) | 4,376 | 0 |
+| part_type: `0x00d2ae8c` on every type −`0x400`..`0x3fff` | 17,408 | 0 |
+
+33 new compiled mutants, all caught (51 with part 21's 18): the world list's bounds and members, each class
+weapon and hand, the cleared option, `c + 0x16`, the helper and wing clears, the call order, the model gate, both
+jump tables, the part float's class and slot, the scene test, the buff order and value, the castle return, the
+`c + 0xe` test, the loop order, the head slot, the −1 skip and the three substitution rules. Outside the loop's
+domain: class nibble 6 with action `0xdd`, where the loop draws the part a second time or calls `0x00d2d3f9`.
+
+### Native
+
+`world_rt_hero_slots` (every hero `set_item` passes through it) now runs the complete routine
+(`mu_he_set_character_class_world`) and makes the hero's models follow the slots:
+
+- **Head.** A head type loads the class head file into item 0 (the pose and draw loops already handle it) with
+  the class-part texture rule and the wearer's skin, as RenderCharacter writes it into every part model
+  (`0x0136a4bd`). Any other helm unloads it. A helm file without an Item.bmd record takes the head rule on its
+  file-name type, the type it is drawn with.
+- **Castle worlds.** In worlds 18..23, 53 and 97 both hand items and the wing take the model of their slot
+  type (the class weapon's Item.bmd record file, or none), with level 0 and option 0 and the worn weapon's ext
+  byte, as the routine leaves them. The worn ITEMs stay in the inventory equipment and in the skill-usability
+  codes. A world change loads a new character, so leaving the castle restores the worn items.
+- **Scales.** The OBJECT scale (writes 3 and 6) goes to the character's body and wing scale; the part floats go to
+  `mu_character_params.part_scale`, which the part transform passes as its vertex scale.
+- The summary prints a `hero_class` row only when the routine's end changed something (a head, a castle world, a
+  scale other than 0.9, a part float or a missing model).
+
+What changes on screen: a hero wearing a listed helm is no longer headless; in a Chaos Castle world the hero
+carries the class weapon and no wing; heroes of class nibbles 2, 3, 4, 6, 11, 14 and 15 take their class scale
+(the demo characters Windleaf 0.88, Spellblade 0.95 and Crownlord 0.92 among them). A class-nibble 0 or 1 hero in
+class parts outside the castle worlds, which every tour capture uses, is unchanged.
+
+### Limits
+
+- Write 7 (buffs `0x1a8`/`0x1a9` → 1.1) is refused; write 5 belongs to the character select.
+- In the castle worlds the interface calls, `c + 0x16` and the helper-slot clear are not applied: the native hero
+  has no consumer of `c + 0x16`, and the hero's demo helper belongs to the helpers part.
+- The substituted part models of class nibbles 4, 5 and 6 (table above) are verified as types only. Their model
+  files are not in a recovered loader table, so the hero draws the item's own model.
+- The installed Item.bmd has no record for three of the 17 helms (7:87..89, `0x193d..0x193f`); they have C and
+  instruction rows but no scene.
+- Other players: ChangeCharacterExt makes the same two calls (`0x009dadf1` only when `c + 0xe` is 0). The players
+  part still loads slots 1..8 at scale 0.9; applying this part's functions there is a follow-up.
+- `0x0137ad93` and the stat machine `0x00a00fb7` are omitted. No character power is read.

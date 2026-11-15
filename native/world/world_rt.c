@@ -438,6 +438,7 @@ static int hero_slot_model(mu_world_rt *a, const mu_data_table *items, int i, in
 void world_rt_hero_slots(mu_world_rt *a, const mu_data_table *items)
 {
     mu_he_item equipment[MU_HE_EQUIPMENT];
+    a->hero_class_refused = 0;   /* counted for the slots as they are after this call */
     for (int s = 0; s < MU_HE_EQUIPMENT; ++s)
         equipment[s] = (mu_he_item){.type = -1};
     for (int i = 0; i < MU_CHARACTER_ITEMS; ++i) {
