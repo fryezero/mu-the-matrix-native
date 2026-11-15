@@ -67,3 +67,16 @@ void mu_session_sound_missing(mu_session *s, uint32_t routine, uint32_t site, ui
     cue.u.sound.site = site;
     mu_session_cue(s, &cue);
 }
+
+/* AUDIO-005: an ordered cosmetic stop, independent of every other cue reader. */
+void mu_session_sound_stop_emit(mu_session *s, uint32_t routine, uint32_t site, int32_t id)
+{
+    if (!s) return;
+    mu_cue cue = {0};
+    cue.kind = MU_CUE_SOUND_STOP;
+    cue.handler = routine;
+    cue.u.sound.id = id;
+    cue.u.sound.at_key = -2;
+    cue.u.sound.site = site;
+    mu_session_cue(s, &cue);
+}

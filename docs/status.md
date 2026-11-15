@@ -1,5 +1,7 @@
 # Current status
 
+AUDIO-005 verified subset PR-ready: 245 fixture-bounded monster play sites plus four Kubera play/two stop sites; census 1,368 to 1,434 classified / 612 to 546 unresolved. All 23 new compiled controls, 82 latest-main validators, 1,844 portable tests and 105 reduced private tests pass; 92 PNGs, 92 dumps and 46 reports remain identical. [Counts, timings and limits](handoffs/AUDIO-005.md).
+
 RENDER-EFFECTS-032 PR-ready fixture subset: recovered summon, shield, mount and Crescent Moon Slash callers, plus authored bow-kind/wing actions. Defense and Crescent move M -> L; missing summon, fire and Crescent end consumers remain counted refusals. Original requests, sound/default words, frame gates and constructor RNG interleaving pass 4,433 checks and 31/31 compiled mutants. [Checks and limits](handoffs/RENDER-EFFECTS-032.md).
 
 RENDER-ACTORS-006 verified subset PR-ready: 550 generated single-body selector plans, 82 ordinary / 468 repeated defaults across 51 exact model files. Census: 589 checked / 355 incomplete / 80 refused. All 905 original incomplete rows have grouped decisions; appearance, attachment and lifetime gaps stay explicit. 21,437 focused checks, nine compiled controls and 29 affected validators pass. All 45 unaffected default views are identical; the only incoming delta is INNER-004 Kanturu. [Groups, evidence, timings and limits](handoffs/RENDER-ACTORS-006.md).
