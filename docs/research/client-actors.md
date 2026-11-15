@@ -858,8 +858,10 @@ The ordinary caller at `0x0136c428` passes a monster slot's level byte directly.
 It does not apply the Player caller's shift by three. The native attachment
 adapter decodes that byte for its existing draw API. For every admitted item
 and raw-byte pair, original RenderObjDraw receives the raw byte and must match
-the native stream produced from the decoded value. Low bits are therefore
-covered by comparison, rather than assumed irrelevant. The first trial used
+the native stream produced from the decoded value. All fifteen admitted
+assemblies currently have raw byte zero. Nonzero-byte candidates still fail
+their other named checks; no general low-bit or leveled-link equivalence is
+claimed. The first trial used
 the Player expectation and was rejected; it is not the delivery evidence.
 
 Fifteen assemblies pass: right-hand classes 13/26/28/29, and both-hand classes
@@ -882,6 +884,12 @@ six original counter/request controls from section 12. Their consumer lifetime
 and specialized idle mesh/sprite passes remain outside admission. Two consumer
 refusals are counted separately from the eighty loader refusals. EFFECTS-033
 owns the consumer work; this lane does not edit its files.
+
+The native asset/draw exclusions are also specific: class 546 has seven
+missing mesh textures and class 918 has two. Classes 22 and 866 take RGB
+draw paths without a color4 alpha callback in the generated candidate host;
+this host does not certify their effective alpha. Those two rows remain
+incomplete without weakening the alpha assertion.
 
 Extra bitmap groups retain their requested loads but lack a complete consumer
 plan. EffectManager, joints, secondary NPC assemblies, cloth/world appearances,

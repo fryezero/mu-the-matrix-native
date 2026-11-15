@@ -20,13 +20,17 @@ modules pass, two tests and two expected private skips. Root build passes.
 The full comparison passes 8,451 positive checks. All reported controls are
 caught with zero stops. The registry initially fails only its count because
 the two translation controls share a JSON key, leaving nineteen distinct
-results. The source gives them distinct names; a two-control replay is pending
-behind the resource guard, with the other eighteen results retained. The
+results. The source gives them distinct names; the two-control replay passes in 3.05 s, after 240 s of resource waiting.
+The other eighteen results are retained. The registry recheck passes with
+twenty distinct controls. The
 native host now publishes a controlled refusal before reading absent plan
 strings. These changes do not alter admitted rows or production code.
 
-Left: finish that bookkeeping replay, run the affected checks, produce proof
-renders and replay the rebuilt identity sweep. No readiness claim yet.
+All 31 final affected validators pass at `b3edf825`, zero failures/errors/skips,
+602.78 s command wall. The new row passes 8,451 checks in 211.7 s.
+
+Left: permitted portable suites, reduced private actor modules, proof renders,
+rebuilt identity replay, final publication audit and PR. No readiness claim yet.
 
 Main through `6900914e` is integrated at `f8c9753a`; its EFFECTS-031
 changes are separate from actor identity changes.
