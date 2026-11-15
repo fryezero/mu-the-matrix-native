@@ -3975,3 +3975,20 @@ note = "RENDER-EFFECTS-033: summon ground, Penetration child/trails, optional ta
 all_equal = true
 all_mutants_caught = true
 "mutants.*.stopped" = 0
+
+[validate_render_effects34]
+test = "native/tests/test_render_effects34.py::ClientComparison.test_original_instructions"
+pins = ["text", "data"]
+families = ["create", "move", "render", "joint_create", "joint_move", "joint_render", "native_particles", "native_joints", "native_sprites", "native_ledger", "census"]
+cases = 12647
+mutants = 91
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/particles", "reconstructed/joints", "native"]
+build_targets = { native = ["build/libmunative.a", "build/libmusession_world.a"] }
+args = ["--cases", "200", "--mutations", "--output", "{report}"]
+note = "RENDER-EFFECTS-034: seventeen particle and four joint pairs already requested by world, item and Muun producers, four bitmap bindings, per-pair refusal ledger"
+[validate_render_effects34.expect]
+all_equal = true
+all_mutants_caught = true
+"mutants.*.stopped" = 0

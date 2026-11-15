@@ -16,6 +16,9 @@ controls listed in MUTANTS; each must be detected without stopping the original 
 """
 import argparse
 import ctypes
+import io
+import re
+import subprocess
 from collections import defaultdict
 import json
 from pathlib import Path
@@ -297,6 +300,87 @@ def joint_family(text, data, lib, name, cases, report, kinds=None):
         jt.KINDS, jt.random_joint, jt.random_create_args = saved
 
 
+# Distinct greys per bitmap file: a swapped binding changes the uploaded image the host reports.
+BITMAP_FILES = {
+    'Effect/fantaF.OZJ': 100, 'Effect/flare01.OZJ': 104, 'Effect/smoke01.OZJ': 108, 'Effect/Clud64.OZJ': 112,
+    'Effect/Explotion01.OZJ': 116, 'Effect/FireSphere1.OZJ': 120, 'Effect/flareRed.OZJ': 124,
+    'Item/texture/smoke01_strong_red.OZJ': 132, 'Item/texture/smoke_line03_1.OZJ': 136,
+    'Effect/smokelines01.OZJ': 140, 'Effect/smokelines02.OZJ': 144, 'Effect/smokelines03.OZJ': 148,
+    'Effect/pin_star03_red.OZJ': 152, 'Effect/lighting_mega01.OZJ': 156, 'Effect/lighting_mega02.OZJ': 160,
+    'Effect/pin_star02_yellow.OZJ': 164, 'Effect/Hole.OZJ': 168, 'Effect/JointThunder01.OZJ': 172,
+    'Effect/Spark01.OZJ': 176, 'Effect/Magic_Ground2.OZJ': 180,
+}
+SPRITE_GREYS = {0x810d: 164, 0x8003: 168, 0x8616: 120, 0x850b: 136}
+
+
+def bitmap_fixture(directory):
+    from PIL import Image
+    root = Path(directory)/'game'
+    for name, grey in BITMAP_FILES.items():
+        path = root/'Data'/name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        buf = io.BytesIO()
+        Image.new('RGB', (32, 32), (grey, grey, grey)).save(buf, format='JPEG', quality=100)
+        path.write_bytes(bytes(24) + buf.getvalue())
+    return root
+
+
+def build_host(directory, mutation=None):
+    directory = Path(directory)
+    native = ROOT/'native'
+    obj, host = directory/'host.o', directory/'host'
+    source = native/'tests/effects34_host.c'
+    if mutation:
+        old, new = mutation
+        original = native/'core/mu_particles.c'
+        code = original.read_text()
+        if code.count(old) != 1:
+            raise ValueError(old)
+        code = code.replace(old, new)
+        code = re.sub(r'#include "(\.\./[^"\n]+)"', lambda m: '#include "'+str((original.parent/m[1]).resolve())+'"', code)
+        core = directory/'mutant.c'
+        core.write_text(code)
+        source = directory/'host.c'
+        source.write_text((native/'tests/effects34_host.c').read_text().replace('../core/mu_particles.c', str(core))
+                          .replace('../core/mu_png.h', str(native/'core/mu_png.h')))
+    subprocess.run(['clang', '-std=c11', '-O1', '-ffp-contract=off', '-I', str(native/'build/gen'),
+                    '-I', str(native/'session'), '-I', str(native/'core'), '-c', str(source), '-o', str(obj)],
+                   check=True, capture_output=True)
+    command = ['clang++', str(obj), str(native/'build/libmunative.a'), str(native/'build/libmusession_world.a'), '-lm',
+               '-o', str(host)]
+    if sys.platform == 'darwin':
+        command += ['-L/opt/homebrew/opt/cryptopp/lib', '-lcryptopp', '-L/opt/homebrew/opt/jpeg-turbo/lib', '-ljpeg',
+                    '-framework', 'CoreText', '-framework', 'CoreGraphics', '-framework', 'CoreFoundation']
+    else:
+        command += ['-lcryptopp', '-ljpeg']
+    subprocess.run(command, check=True, capture_output=True)
+    return host
+
+
+def native_checks(host, root, report, images=None):
+    run = subprocess.run([str(host), str(root)] + ([str(images)] if images else []), capture_output=True, text=True)
+    if run.returncode:
+        report.add('native_particles', False, dict(exit=run.returncode, stderr=run.stderr[-2000:]))
+        return
+    for line in run.stdout.splitlines():
+        row = json.loads(line)
+        equal = bool(row.get('equal'))
+        if row.get('sprite'):
+            equal = equal and abs(row['grey'] - SPRITE_GREYS[row['kind']]) <= 2
+        report.add('native_ledger' if row.get('ledger') else 'native_sprites' if row.get('sprite') else
+                   'native_joints' if row.get('joint') else 'native_particles', equal, row)
+
+
+NATIVE_MUTANTS = [
+    ('native_follow_hook', 'else if (follow34) mu_pt_consumer34_follow(record, point);', 'else if (follow34) (void)point;'),
+    ('native_sphere_file', '"Data/Effect/FireSphere1.OZJ", "Data/Item/texture/smoke_line03_1.OZJ",',
+     '"Data/Item/texture/smoke_line03_1.OZJ", "Data/Effect/FireSphere1.OZJ",'),
+    ('native_star_file', '"Data/Effect/pin_star02_yellow.OZJ", "Data/Effect/Hole.OZJ",',
+     '"Data/Effect/Hole.OZJ", "Data/Effect/pin_star02_yellow.OZJ",'),
+    ('native_ledger', "        refused_kind(p, 'p', type, subtype);", "        refused_kind(p, 'p', type, subtype + 1);"),
+]
+
+
 def census(lib, report):
     rows = []
     for group, kinds in GROUPS.items():
@@ -318,6 +402,8 @@ def run(cases, mutations=False, only_mutants=None):
     jlib = jt.load_library(ROOT/('reconstructed/joints/libclient_joints.'+pt.SUFFIX))
     for name in ('joint_create', 'joint_move', 'joint_render'):
         joint_family(text, data, jlib, name, cases, report)
+    with tempfile.TemporaryDirectory(prefix='effects34-native-') as tmp:
+        native_checks(build_host(tmp), bitmap_fixture(tmp), report)
     rows = census(lib, report)
     for kind in JOINTS:
         supported = bool(jlib.mu_jt_kind_supported(*kind))
@@ -344,7 +430,18 @@ def run(cases, mutations=False, only_mutants=None):
                            stopped=sum(bool(v.get('stopped') or v.get('error')) for v in f['first_failures']))
                 mutants.append(row)
                 print('mutant', json.dumps(row), flush=True)
-    expected = sum(not only_mutants or m[1] in only_mutants for m in MUTANTS)
+            for label, old, new in NATIVE_MUTANTS:
+                if only_mutants and label not in only_mutants:
+                    continue
+                directory = Path(tmp)/label
+                directory.mkdir()
+                r = pt.Report()
+                native_checks(build_host(directory, (old, new)), bitmap_fixture(directory), r)
+                row = dict(name=label, detected=sum(f['cases']-f['equal'] for f in r.families.values()), stopped=0)
+                mutants.append(row)
+                print('mutant', json.dumps(row), flush=True)
+    expected = sum(not only_mutants or m[1] in only_mutants for m in MUTANTS) + \
+        sum(not only_mutants or m[0] in only_mutants for m in NATIVE_MUTANTS)
     return dict(mutant_subset=sorted(only_mutants) if only_mutants else None, families=report.families,
                 coverage=report.coverage, census=rows,
                 all_equal=all(f['cases'] == f['equal'] for f in report.families.values()),
@@ -365,7 +462,7 @@ def main():
         p.error('--cases must be positive')
     if args.only_mutant and not args.mutations:
         p.error('--only-mutant requires --mutations')
-    if args.only_mutant and set(args.only_mutant) - {m[1] for m in MUTANTS}:
+    if args.only_mutant and set(args.only_mutant) - {m[1] for m in MUTANTS} - {m[0] for m in NATIVE_MUTANTS}:
         p.error('unknown mutant name')
     r = run(args.cases, args.mutations, set(args.only_mutant or []))
     if args.output:
