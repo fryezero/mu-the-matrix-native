@@ -188,6 +188,11 @@ actual diff, not this research document. No full lane gate.
 - Conflict: WORLDS-INNER and any object-runtime/step-input changes. Shared structs imply 6b consumers.
 - Checks: synthetic rotated/scaled bounds and hit/miss/boundary segments versus original; actual native
   step adapter with an authored action row; changed mutants, affected consumers and unchanged captures.
+- Status 2026-11-15: done by RENDER-WORLDS-PICK-001 ([finding](client-worlds-pick.md)). The box is
+  axis-aligned in the game (bounds mode 0), an unwritten box counts as "over", and no live row uses handlers 4/6.
+  The same lane publishes the all-world inner-object census ([CSV](world-inner-census.csv)) and identifies the
+  46/98 handler (chain hook 11). Next world work from the census: chain hook 1 (`0x009db8b1`, Chaos Castle worlds
+  18..23/53/97, needs the event byte `0x01cf0467`) and chain hook 6 (`0x00dac0a2`, world 34, process counters).
 
 ### 7. AUDIO-002G, M
 
