@@ -1111,3 +1111,38 @@ The remaining whole-owner refusals are `0x00dd852c` 19, `0x00dde1fb` 14,
 `0x00d5b688` 3 in the prior-action/stop group. A sound selected for an authored
 actor action does not add a production route that chooses that action. Existing
 native action selection and model loading retain their limits.
+
+
+The production MSVC RNG returns nonnegative 15-bit values. Negative scripted
+values are signed-arithmetic controls, not native production outcomes. The
+emitted production-id summary and installed smoke include only nonnegative
+rand paths: 182 sites and 142 distinct ids. The broader arithmetic controls
+include three additional id outcomes, including unregistered 155; none is
+reachable from the native MSVC stream. No file or registration is invented for
+those controls.
+
+### Semantic owner classifications
+
+Exact call `0x013a9051` from the already identified shared character timeline
+`0x013a85a9` names `0x013a09d7`, containing 15 sound sites. Its character,
+OBJECT and model argument calls at `0x013a0b13`, `0x013a0bc7` and `0x013a0be5`
+name `0x00df264e` six sites, `0x00e8cc72` four and `0x00db30cb` one. These
+26 sites acquire the shared timeline bucket, without acquiring native gates.
+The other largest 15-candidate group, `0x01237f00`, remains refused and its
+request-shaped input is not followed or implemented in this lane.
+
+The existing UI registry constructor identifies two close-slot methods through
+reviewed slot `+0x44`: ExchangeLuckCoin constructor `0x00b9f835`, vtable
+`0x01a90a58`, close `0x00b9fb63`, sound site `0x00b9fb78`; MiniGameHelpWindow
+constructor `0x00bc97e5`, vtable `0x01a92e90`, close `0x00bc994a`, sound site
+`0x00bc995f`. The two sites acquire UI ownership. Existing native presentation
+bindings are not the original whole close controllers, so neither gets a new
+sound route here. No adjacent prologue or literal-only classification is added.
+
+Census ownership becomes 1,462 classified / 518 unresolved. UI becomes 53 and
+skills/shared timelines 364; all other AUDIO-005 buckets stay unchanged.
+Production fixture boundaries advance 411 to 593 if the final admission checks
+pass. The separate two stop sites are unchanged. The entry missing-id overlay
+is nine among unknown owners, eight in the recovered class group, four in the
+marker/service group and eleven among class-use candidates. These overlap the
+primary blockers and must not be added to their denominators.

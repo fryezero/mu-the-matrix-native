@@ -6,6 +6,7 @@ typedef int32_t (*mu_monster_audio_random_fn)(void *);
 typedef struct { int period, handled, start, count; } mu_audio_ext_node;
 typedef struct { uint32_t site; int id, object, loop; } mu_audio_ext_sound;
 typedef struct { uint32_t owner; int model, action; float lo, hi; int lc, hc, nan, node; } mu_audio_ext_row;
+#define MU_AUDIO_EXT_PRODUCTION_ID(site,id)
 #define MU_AUDIO_EXT_NODE(n,p,h,s,c) {p,h,s,c},
 #define MU_AUDIO_EXT_EDGE(n,c)
 #define MU_AUDIO_EXT_SOUND(n,s,id,o,l)
@@ -83,4 +84,5 @@ static inline mu_monster_sound_plan mu_monster_sound_extended(int world,int mode
 #undef MU_AUDIO_EXT_EDGE
 #undef MU_AUDIO_EXT_SOUND
 #undef MU_AUDIO_EXT_ROW
+#undef MU_AUDIO_EXT_PRODUCTION_ID
 #endif

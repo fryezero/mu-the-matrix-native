@@ -42,7 +42,8 @@ class Installed(unittest.TestCase):
   import pins
   groups,nodes=lift.recover(pins.TEXT.read(),pins.DATA.read())
   models=sorted({r['model'] for g in groups.values() for r in g['rows'] if 0x7a5<=r['model']<0x9fe})
-  ids=sorted({s[1] for node in nodes if node[0]=='leaf' for s in node[2]})
+  sounds=lift.production_sounds(groups,nodes)
+  ids=sorted({s[1] for s in sounds})
   self.assertEqual(len({s[0] for node in nodes if node[0]=='leaf' for s in node[2]}),182)
   harness=r'''#include "core/mu_actor.h"
 #include <assert.h>

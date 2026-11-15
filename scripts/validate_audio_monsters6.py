@@ -279,6 +279,6 @@ def main():
             except AssertionError:caught=True
             assert caught,'death completion'
             mutants['death completion']=1
-        report=dict(cases=len(rows)+dispatch_cases+caller_cases,caller_cases=caller_cases,whole_owner_cases=len(rows),dispatcher_cases=dispatch_cases,sites=len(seen),owners=len(groups),families=families,mismatches=0,stops=0,mutants=mutants,wall_seconds=round(time.monotonic()-start,3))
+        report=dict(cases=len(rows)+dispatch_cases+caller_cases,caller_cases=caller_cases,whole_owner_cases=len(rows),dispatcher_cases=dispatch_cases,sites=len(seen),owners=len(groups),production_ids=len({s[1] for s in lift.production_sounds(groups,nodes)}),families=families,mismatches=0,stops=0,mutants=mutants,wall_seconds=round(time.monotonic()-start,3))
         a.report.parent.mkdir(parents=True,exist_ok=True);a.report.write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2))
 if __name__=='__main__':main()

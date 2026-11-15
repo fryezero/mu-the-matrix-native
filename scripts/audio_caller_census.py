@@ -190,7 +190,7 @@ def inventory(text, data, root=ROOT):
         selected.setdefault(int(site,16), dict(routine=routine, id=int(sound), models=set()))['models'].add(int(model))
     ext = (root/'reconstructed/audio/monster_audio_extended.inc').read_text()
     extended_sites = {}
-    for m in re.finditer(r'MU_AUDIO_EXT_SOUND\(\d+, (0x[0-9a-f]+)u, (\d+),',ext):
+    for m in re.finditer(r'MU_AUDIO_EXT_PRODUCTION_ID\((0x[0-9a-f]+)u, (\d+)\)',ext):
         extended_sites.setdefault(int(m[1],16),set()).add(int(m[2]))
     kubera = {0xe1a071:0x4f4, 0xe1a0a4:0x4f3, 0xe1a2ca:0x4f1, 0xe1a38d:0x4f2}
     from capstone import Cs, CS_ARCH_X86, CS_MODE_32

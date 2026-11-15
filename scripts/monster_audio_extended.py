@@ -71,6 +71,21 @@ def recover(text,data):
     return groups,nodes
 
 
+def production_sounds(groups,nodes):
+    """Nonnegative CRT-rand outcomes. Negative tapes are arithmetic controls."""
+    seen=set();sounds=set()
+    def visit(n):
+        if n in seen:return
+        seen.add(n);value=nodes[n]
+        if value[0]=='leaf':sounds.update(value[2])
+        else:
+            for child in set(value[2][value[1]-1:]):visit(child)
+    for group in groups.values():
+        visit(group['default'])
+        for row in group['rows']:visit(row['node'])
+    return sounds
+
+
 def emit(groups,nodes):
     out=['/* AUDIO-006: whole-owner semantic plans; monster_audio_extended.py. */']
     def f(x):return ('-INFINITY' if x<0 else 'INFINITY') if math.isinf(x) else float(x).hex()+'f'
@@ -91,6 +106,8 @@ def emit(groups,nodes):
         for world in g['worlds']:out.append(f'MU_AUDIO_EXT_WORLD({world}, 0x{entry:08x}u, {g["default"]}, {f(g["distance"])})')
         for r in g['rows']:
             out.append(f'MU_AUDIO_EXT_ROW(0x{entry:08x}u, {r["model"]}, {r["action"]}, {f(r["lo"])}, {f(r["hi"])}, {int(r["lc"])}, {int(r["hc"])}, {r["nan"]}, {r["node"]})')
+    for site,sound,obj,loop in sorted(production_sounds(groups,nodes)):
+        out.append(f'MU_AUDIO_EXT_PRODUCTION_ID(0x{site:08x}u, {sound})')
     return '\n'.join(out)+'\n'
 
 
