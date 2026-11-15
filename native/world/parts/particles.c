@@ -118,6 +118,13 @@ static void particles_report_summary(const struct mu_world_rt *a, const void *se
                (unsigned long long)p->joints_full, p->live_joints, p->max_joints, p->drawn_joint_quads,
                (unsigned long long)p->effects_created, (unsigned long long)p->effects_unsupported, p->live_effects,
                p->drawn_effect_models, (unsigned long long)p->sounds, (unsigned long long)p->decals_total);
+        /* RENDER-EFFECTS-034: the refused consumer pairs [routine, type, subtype, count] */
+        printf("{\"world_unsupported\": [");
+        for (int32_t i = 0; i < a->particles.refused_kind_count; ++i)
+            printf("%s[\"%c\", %d, %d, %llu]", i ? ", " : "", a->particles.refused_kinds[i].routine,
+                   a->particles.refused_kinds[i].type, a->particles.refused_kinds[i].subtype,
+                   (unsigned long long)a->particles.refused_kinds[i].count);
+        printf("], \"lost\": %llu}\n", (unsigned long long)a->particles.refused_kinds_lost);
         /* RENDER-EFFECTS-006: the objects' EffectManager requests */
         printf("{\"ein\": true, \"requests\": %llu, \"invalid\": %llu, \"attached\": %llu, \"updates\": %llu,"
                " \"unposed\": %llu, \"expired\": %llu, \"instances\": %u, \"visible_last_draw\": %u}\n",

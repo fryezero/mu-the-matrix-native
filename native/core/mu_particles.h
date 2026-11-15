@@ -87,6 +87,8 @@ typedef struct mu_world_fx_model {
     mu_textures textures;
 } mu_world_fx_model;
 
+enum { MU_WORLD_FX_REFUSED_KINDS = 96 };   /* RENDER-EFFECTS-034 */
+
 typedef struct mu_world_particles_stats {
     uint64_t created, dropped, unsupported, overflow;
     uint64_t sprites_created, sprites_full;
@@ -152,6 +154,12 @@ typedef struct mu_world_particles {
     void *combat_context;
     mu_world_item_owner item_owners[MU_WORLD_ITEM_OWNERS];   /* RENDER-EFFECTS-020 */
     uint64_t item_owners_full;
+    /* RENDER-EFFECTS-034: the refused consumer requests by pair (routine 'p' particle, 'j' joint, 'e' effect),
+     * reported as one {"world_unsupported": ...} line; the totals stay in stats. Pairs past the table's size are
+     * counted in refused_kinds_lost. */
+    struct { char routine; int32_t type, subtype; uint64_t count; } refused_kinds[MU_WORLD_FX_REFUSED_KINDS];
+    int32_t refused_kind_count;
+    uint64_t refused_kinds_lost;
 } mu_world_particles;
 
 enum { MU_WORLD_ACTOR_FX_BASE = 0x08000000, MU_WORLD_FX_COMBAT_BASE = 0x20000000 };
