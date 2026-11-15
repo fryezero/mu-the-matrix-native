@@ -155,3 +155,23 @@ Its wall was 100.47 s. Exclude `native/tests/test_native_app.py` from the portab
   rebuild world and compare the single default after sweep, then final docs/status/PR/ready entry/cleanup.
 - Next: inspect the portable summary, check resources, then build world and run the 29 private tests
   under canonical private-env.sh. `proof.py` and prepared after manifests are in task-local scratch.
+
+### WIP after proofs and the later main update
+
+- Done: portable refresh passes 1,827 tests, 1,472 passed / 355 expected skips, zero failures/errors,
+  458.75 s. All 29 private Muun tests pass, zero skips, 147.95 s. Persistent proof has 35 scene PNGs
+  plus an inspected contact sheet, 19.83 s; inspected 356/357 separately. All pixel controls pass.
+- Done: explicit world checks 0.37 / 0.38 s, binary SHA-256
+  `90991825c3fe21ee051c40ee66dfaca702a5bc49a5f3549523b8f9e6df1be52d`.
+  The default after sweep takes 21.11 + 50.66 s, compare 0.23 s: 91/92 PNGs, 92/92 dumps, 46/46 stderr
+  identical. All 46 reports gain the imported 97-to-99 bitmap vector. Only Remain frame 24 and its
+  particle counters also change: accepted/refused 4/3 -> 7/0, matching EFFECTS-031's documented result.
+  Every field is retained. No new live capture or second before sweep was made.
+- New main integration: batch 117 `d3ec9950` arrived during final verification. Merged at `78a336a5`,
+  retaining both registry appends and parsing all 252 rows. The integrated root build passes, 20.08 s.
+  Muun sources/checks are unchanged. This is the pinned finish-line base; later main belongs to the steward.
+- Left: selectors/checks whose inputs changed from `bee48677`, reduced private Muun plus world-host
+  consumer refresh, explicit world/proof/after-only refresh and comparison with the inspected outputs,
+  final handoff/status/PR/ready entry/cleanup. Earlier passing evidence is retained for unselected rows.
+- Next: wait for the resource guard after the build, preview affected-since `bee48677` for both runners,
+  retain fallback rows and exclude app packaging. Do not repeat any unchanged mutation controls.
