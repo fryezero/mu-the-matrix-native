@@ -326,3 +326,14 @@ Audit passes, 2,278 staged files / zero rejected, 19.578 s. Refreshed lane selec
 
 The next fetch finds ACTORS-005 #389 and INNER-004 #390 at main `4babc900`. Merge those and repeat only
 the incoming compiled overlap before PR-ready. No successful control target has changed.
+
+
+### ACTORS-005 / INNER-004 integration checkpoint
+
+Main `4babc900` merges cleanly as `bfb2a6bb`; the shared world host retains the new consumer checks
+and incoming producer checks. Registry shape passes, 240 rows. Root/world build plus current/overlap
+selectors pass in 300.738 s. The current lane selection grows to 80 rows: the prior 77 plus
+`validate_actor_monsters`, `validate_audio_objects4`, `validate_worlds_inner4`. Sixty-four prior rows
+have incoming compiled changes, so 67 rows run without mutants. Incoming portable tests, fifteen
+focused private modules, final replay and audit follow. Consumer C, bitmaps/models and the successful
+control targets remain unchanged.
