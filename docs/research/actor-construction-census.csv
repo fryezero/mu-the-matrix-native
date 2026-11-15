@@ -21,7 +21,7 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 19,generic,0x1382d10,,0x7b1,monster:12,plain body construction,correct bounded body plan,plain monster body,
 20,generic,0x1382c98,,0x7b2,monster:13,plain body construction,correct bounded body plan,plain monster body,
 21,generic,0x1382c20,,0x7b3,monster:14,plain body construction,correct bounded body plan,plain monster body,
-22,generic,0x1382b9e,,0x7b4,monster:15,plain body construction,correct bounded body plan,plain monster body,
+22,generic,0x1382b9e,,0x7b4,monster:15,plain body construction,incomplete/unverified special passes,plain monster body,"constructor render-state override: 0x74,0xa8"
 23,generic,0x1382af6,,0x7b5,monster:16,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
 24,generic,0x1382a91,,0x7b6,monster:17,plain body construction,correct bounded body plan,plain monster body,
 25,generic,0x13829ca,,0x7b7,monster:18,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
@@ -48,7 +48,7 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 46,generic,0x1381cd4,,0x7c7,monster:34,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: effect
 47,generic,0x1381c5d,,0x7c8,monster:35,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
 48,generic,0x1381c03,,0x7c9,monster:36,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
-49,generic,0x1381ba6,,0x7ca,monster:37,plain body construction,correct bounded body plan,plain monster body,
+49,generic,0x1381ba6,,0x7ca,monster:37,plain body construction,incomplete/unverified special passes,plain monster body,"constructor render-state override: 0x74,0xa8"
 50,generic,0x1381b64,,0x7cb,monster:38,plain body construction,correct bounded body plan,plain monster body,
 51,generic,0x1381b15,,0x7c6,monster:33,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: effect
 52,generic,0x1381abb,,0x7c8,monster:35,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
@@ -64,7 +64,7 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 62,generic,0x13814e4,,0x7d2,monster:45,special appearance hook,incomplete/unverified special passes,special appearance hook,special appearance hook
 63,generic,0x13815e7,,0x7d1,monster:44,special appearance hook,incomplete/unverified special passes,special appearance hook,special appearance hook
 64,generic,0x13811d9,,0x7d3,monster:46,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
-65,generic,0x13812dd,,0x7d4,monster:47,plain body construction,correct bounded body plan,plain monster body,
+65,generic,0x13812dd,,0x7d4,monster:47,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x68
 66,generic,0x138138b,,0x7d5,monster:48,plain body construction,correct bounded body plan,plain monster body,
 67,generic,0x1382149,,0x7c0,monster:27,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
 68,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
@@ -143,12 +143,12 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 141,generic,0x13807c3,,0x7df,monster:58,plain body construction,correct bounded body plan,plain monster body,
 142,generic,0x138083b,,0x7de,monster:57,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
 143,generic,0x138035d,,0x7e3,monster:62,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
-144,0xdf1b30,,,0x7e4,monster:63,plain body construction,correct bounded body plan,plain monster body,
+144,0xdf1b30,,,0x7e4,monster:63,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x74
 145,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
 146,0xdf1b30,,,0x7e6,monster:65,plain body construction,correct bounded body plan,plain monster body,
-147,0xdf1b30,,,0x7e7,monster:66,plain body construction,correct bounded body plan,plain monster body,
+147,0xdf1b30,,,0x7e7,monster:66,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x74
 148,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
-149,0xdf1b30,,,0x7e9,monster:68,plain body construction,correct bounded body plan,plain monster body,
+149,0xdf1b30,,,0x7e9,monster:68,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x74
 150,generic,0x1381d58,,0x7c5,monster:32,plain body construction,correct bounded body plan,plain monster body,
 151,generic,0x1383c48,,0x7cd,monster:40,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
 152,generic,0x13800ba,,0x416,no opener,no opener/startup model,refused,,
@@ -173,28 +173,28 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 171,generic,0x138023f,,0x7ec,monster:71,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
 172,generic,0x138019c,,0x7eb,monster:70,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
 173,generic,0x138023f,,0x7ec,monster:71,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
-174,0xdf1b30,,,0x7e4,monster:63,plain body construction,correct bounded body plan,plain monster body,
+174,0xdf1b30,,,0x7e4,monster:63,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x74
 175,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
 176,0xdf1b30,,,0x7e6,monster:65,plain body construction,correct bounded body plan,plain monster body,
-177,0xdf1b30,,,0x7e7,monster:66,plain body construction,correct bounded body plan,plain monster body,
+177,0xdf1b30,,,0x7e7,monster:66,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x74
 178,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
-179,0xdf1b30,,,0x7e9,monster:68,plain body construction,correct bounded body plan,plain monster body,
+179,0xdf1b30,,,0x7e9,monster:68,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x74
 180,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
 181,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
-182,0xdf1b30,,,0x7e4,monster:63,plain body construction,correct bounded body plan,plain monster body,
+182,0xdf1b30,,,0x7e4,monster:63,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x74
 183,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
 184,0xdf1b30,,,0x7e6,monster:65,plain body construction,correct bounded body plan,plain monster body,
-185,0xdf1b30,,,0x7e7,monster:66,plain body construction,correct bounded body plan,plain monster body,
+185,0xdf1b30,,,0x7e7,monster:66,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x74
 186,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
-187,0xdf1b30,,,0x7e9,monster:68,plain body construction,correct bounded body plan,plain monster body,
+187,0xdf1b30,,,0x7e9,monster:68,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x74
 188,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
 189,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
-190,0xdf1b30,,,0x7e4,monster:63,plain body construction,correct bounded body plan,plain monster body,
+190,0xdf1b30,,,0x7e4,monster:63,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x74
 191,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
 192,0xdf1b30,,,0x7e6,monster:65,plain body construction,correct bounded body plan,plain monster body,
-193,0xdf1b30,,,0x7e7,monster:66,plain body construction,correct bounded body plan,plain monster body,
+193,0xdf1b30,,,0x7e7,monster:66,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x74
 194,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
-195,0xdf1b30,,,0x7e9,monster:68,plain body construction,correct bounded body plan,plain monster body,
+195,0xdf1b30,,,0x7e9,monster:68,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x74
 196,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
 197,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
 198,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
@@ -259,20 +259,20 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 257,generic,0x1384539,,0xa91,no opener,special appearance hook; constructor equipment/parts; no opener/startup model,correct bounded body plan,,
 258,generic,0x138549e,,0xa91,no opener,special appearance hook; constructor equipment/parts; no opener/startup model,correct bounded body plan,,
 259,generic,0x138559e,,0xa2b,npc:2603,plain body construction,incomplete/unverified special passes,plain NPC body,plain NPC body
-260,0xdf1b30,,,0x7e4,monster:63,plain body construction,correct bounded body plan,plain monster body,
+260,0xdf1b30,,,0x7e4,monster:63,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x74
 261,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
 262,0xdf1b30,,,0x7e6,monster:65,plain body construction,correct bounded body plan,plain monster body,
-263,0xdf1b30,,,0x7e7,monster:66,plain body construction,correct bounded body plan,plain monster body,
+263,0xdf1b30,,,0x7e7,monster:66,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x74
 264,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
-265,0xdf1b30,,,0x7e9,monster:68,plain body construction,correct bounded body plan,plain monster body,
+265,0xdf1b30,,,0x7e9,monster:68,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x74
 266,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
 267,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
-268,0xdf1b30,,,0x7e4,monster:63,plain body construction,correct bounded body plan,plain monster body,
+268,0xdf1b30,,,0x7e4,monster:63,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x74
 269,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
 270,0xdf1b30,,,0x7e6,monster:65,plain body construction,correct bounded body plan,plain monster body,
-271,0xdf1b30,,,0x7e7,monster:66,plain body construction,correct bounded body plan,plain monster body,
+271,0xdf1b30,,,0x7e7,monster:66,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x74
 272,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
-273,0xdf1b30,,,0x7e9,monster:68,plain body construction,correct bounded body plan,plain monster body,
+273,0xdf1b30,,,0x7e9,monster:68,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x74
 274,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
 275,0xdf1b30,,,0x7e5,monster:64,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
 276,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
@@ -330,11 +330,11 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 328,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 329,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 330,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
-331,0xdf1b30,,,0x7e7,monster:66,plain body construction,correct bounded body plan,plain monster body,
+331,0xdf1b30,,,0x7e7,monster:66,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x74
 332,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
 333,0xdf1b30,,,0x7e6,monster:65,plain body construction,correct bounded body plan,plain monster body,
-334,0xdf1b30,,,0x7e4,monster:63,plain body construction,correct bounded body plan,plain monster body,
-335,0xdf1b30,,,0x7e9,monster:68,plain body construction,correct bounded body plan,plain monster body,
+334,0xdf1b30,,,0x7e4,monster:63,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x74
+335,0xdf1b30,,,0x7e9,monster:68,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x74
 336,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
 337,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
 338,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
@@ -462,7 +462,7 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 460,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 461,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 462,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
-463,0xa96ab8,,,0x83f,monster:154,plain body construction,correct bounded body plan,plain monster body,
+463,0xa96ab8,,,0x83f,monster:154,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x68
 464,generic,0x1386b11,,0xa91,no opener,special appearance hook; constructor equipment/parts; no opener/startup model,correct bounded body plan,,
 465,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 466,generic,0x13813d8,,0x841,monster:156,plain body construction,correct bounded body plan,plain monster body,
@@ -646,10 +646,10 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 644,generic,0x138019c,,0x7eb,monster:70,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
 645,generic,0x138023f,,0x7ec,monster:71,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
 646,generic,0x1386e5b,,0xa91,no opener,special appearance hook; no opener/startup model,correct bounded body plan,,
-647,0xa93a2e,,,0x8a1,monster:252,plain body construction,correct bounded body plan,plain monster body,
-648,0xa93a2e,,,0x8a2,monster:253,plain body construction,correct bounded body plan,plain monster body,
-649,0xa93a2e,,,0x8a3,monster:254,plain body construction,correct bounded body plan,plain monster body,
-650,0xa93a2e,,,0x8a4,monster:255,plain body construction,correct bounded body plan,plain monster body,
+647,0xa93a2e,,,0x8a1,monster:252,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
+648,0xa93a2e,,,0x8a2,monster:253,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
+649,0xa93a2e,,,0x8a3,monster:254,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
+650,0xa93a2e,,,0x8a4,monster:255,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
 651,generic,0x138919f,,0xa7a,npc:2682,plain body construction,incomplete/unverified special passes,plain NPC body,plain NPC body
 652,generic,0x1389992,,0x7b8,monster:19,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
 653,generic,0x1389839,,0x7cc,monster:39,special appearance hook,incomplete/unverified special passes,special appearance hook,special appearance hook
@@ -675,7 +675,7 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 673,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 674,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 675,0xa93a2e,,,0x81f,monster:122,plain body construction,correct bounded body plan,plain monster body,
-676,0xa96ab8,,,0x83f,monster:154,plain body construction,correct bounded body plan,plain monster body,
+676,0xa96ab8,,,0x83f,monster:154,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x68
 677,generic,0x1389992,,0x7b8,monster:19,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor equipment/parts
 678,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 679,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
@@ -690,10 +690,10 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 688,generic,0x1389d6f,,0xa83,npc:2691,plain body construction,incomplete/unverified special passes,plain NPC body,plain NPC body
 689,generic,0x1389e65,,0xa3f,npc:2623,plain body construction,incomplete/unverified special passes,plain NPC body,plain NPC body
 690,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
-691,0xa93a2e,,,0x8ae,monster:265,plain body construction,correct bounded body plan,plain monster body,
-692,0xa93a2e,,,0x8af,monster:266,plain body construction,correct bounded body plan,plain monster body,
-693,0xa93a2e,,,0x8b0,monster:267,plain body construction,correct bounded body plan,plain monster body,
-694,0xa93a2e,,,0x8b1,monster:268,plain body construction,correct bounded body plan,plain monster body,
+691,0xa93a2e,,,0x8ae,monster:265,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
+692,0xa93a2e,,,0x8af,monster:266,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
+693,0xa93a2e,,,0x8b0,monster:267,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
+694,0xa93a2e,,,0x8b1,monster:268,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
 695,generic,0x13890d1,,0xa84,npc:2692,plain body construction,incomplete/unverified special passes,plain NPC body,plain NPC body
 696,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 697,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
@@ -725,10 +725,10 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 723,generic,0x138a3d8,,0xa65,npc:2661,plain body construction,incomplete/unverified special passes,plain NPC body,plain NPC body
 724,generic,0x138a466,,0xa0b,npc:2571,plain body construction,incomplete/unverified special passes,plain NPC body,plain NPC body
 725,generic,0x138a4e3,,0xa86,npc:2694,plain body construction,incomplete/unverified special passes,plain NPC body,plain NPC body
-726,0xa93a2e,,,0x8ba,monster:277,plain body construction,correct bounded body plan,plain monster body,
-727,0xa93a2e,,,0x8bb,monster:278,plain body construction,correct bounded body plan,plain monster body,
-728,0xa93a2e,,,0x8bc,monster:279,plain body construction,correct bounded body plan,plain monster body,
-729,0xa93a2e,,,0x8bd,monster:280,plain body construction,correct bounded body plan,plain monster body,
+726,0xa93a2e,,,0x8ba,monster:277,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
+727,0xa93a2e,,,0x8bb,monster:278,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
+728,0xa93a2e,,,0x8bc,monster:279,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
+729,0xa93a2e,,,0x8bd,monster:280,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
 730,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 731,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 732,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
@@ -738,10 +738,10 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 736,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 737,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 738,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
-739,0xa93a2e,,,0x8cb,monster:294,plain body construction,correct bounded body plan,plain monster body,
-740,0xa93a2e,,,0x8cc,monster:295,plain body construction,correct bounded body plan,plain monster body,
-741,0xa93a2e,,,0x8cd,monster:296,plain body construction,correct bounded body plan,plain monster body,
-742,0xa93a2e,,,0x8ce,monster:297,plain body construction,correct bounded body plan,plain monster body,
+739,0xa93a2e,,,0x8cb,monster:294,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
+740,0xa93a2e,,,0x8cc,monster:295,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
+741,0xa93a2e,,,0x8cd,monster:296,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
+742,0xa93a2e,,,0x8ce,monster:297,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
 743,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 744,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 745,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
@@ -779,7 +779,7 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 777,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 778,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 779,generic,0x1386176,,0x7e6,monster:65,plain body construction,correct bounded body plan,plain monster body,
-780,generic,0x1386222,,0x7e9,monster:68,plain body construction,correct bounded body plan,plain monster body,
+780,generic,0x1386222,,0x7e9,monster:68,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x74
 781,generic,0x13862d8,,0x800,monster:91,plain body construction,correct bounded body plan,plain monster body,
 782,generic,0x1386346,,0x803,monster:94,plain body construction,correct bounded body plan,plain monster body,
 783,generic,0x13863b4,,0x86e,monster:201,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: effect
@@ -794,10 +794,10 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 792,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 793,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 794,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
-795,0xa93a2e,,,0x8f1,monster:332,plain body construction,correct bounded body plan,plain monster body,
-796,0xa93a2e,,,0x8f2,monster:333,plain body construction,correct bounded body plan,plain monster body,
-797,0xa93a2e,,,0x8f3,monster:334,plain body construction,correct bounded body plan,plain monster body,
-798,0xa93a2e,,,0x8f4,monster:335,plain body construction,correct bounded body plan,plain monster body,
+795,0xa93a2e,,,0x8f1,monster:332,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
+796,0xa93a2e,,,0x8f2,monster:333,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
+797,0xa93a2e,,,0x8f3,monster:334,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
+798,0xa93a2e,,,0x8f4,monster:335,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
 799,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 800,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 801,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
@@ -816,10 +816,10 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 814,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 815,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 816,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
-817,0xa93a2e,,,0x8fd,monster:344,plain body construction,correct bounded body plan,plain monster body,
-818,0xa93a2e,,,0x8fe,monster:345,plain body construction,correct bounded body plan,plain monster body,
-819,0xa93a2e,,,0x8ff,monster:346,plain body construction,correct bounded body plan,plain monster body,
-820,0xa93a2e,,,0x900,monster:347,plain body construction,correct bounded body plan,plain monster body,
+817,0xa93a2e,,,0x8fd,monster:344,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
+818,0xa93a2e,,,0x8fe,monster:345,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
+819,0xa93a2e,,,0x8ff,monster:346,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
+820,0xa93a2e,,,0x900,monster:347,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
 821,generic,,,,unresolved,unresolved construction,refused,,
 822,generic,,,,unresolved,unresolved construction,refused,,
 823,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
@@ -854,10 +854,10 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 852,generic,,,,unresolved,unresolved construction,refused,,
 853,generic,,,,unresolved,unresolved construction,refused,,
 854,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
-855,0xa93a2e,,,0x90d,monster:360,plain body construction,correct bounded body plan,plain monster body,
-856,0xa93a2e,,,0x90e,monster:361,plain body construction,correct bounded body plan,plain monster body,
-857,0xa93a2e,,,0x90f,monster:362,plain body construction,correct bounded body plan,plain monster body,
-858,0xa93a2e,,,0x910,monster:363,plain body construction,correct bounded body plan,plain monster body,
+855,0xa93a2e,,,0x90d,monster:360,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
+856,0xa93a2e,,,0x90e,monster:361,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
+857,0xa93a2e,,,0x90f,monster:362,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
+858,0xa93a2e,,,0x910,monster:363,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
 859,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 860,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 861,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
@@ -883,10 +883,10 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 881,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 882,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 883,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
-884,0xa93a2e,,,0x91c,monster:375,plain body construction,correct bounded body plan,plain monster body,
-885,0xa93a2e,,,0x91d,monster:376,plain body construction,correct bounded body plan,plain monster body,
-886,0xa93a2e,,,0x91e,monster:377,plain body construction,correct bounded body plan,plain monster body,
-887,0xa93a2e,,,0x91f,monster:378,plain body construction,correct bounded body plan,plain monster body,
+884,0xa93a2e,,,0x91c,monster:375,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
+885,0xa93a2e,,,0x91d,monster:376,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
+886,0xa93a2e,,,0x91e,monster:377,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
+887,0xa93a2e,,,0x91f,monster:378,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
 888,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 889,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 890,generic,,,,unresolved,unresolved construction,refused,,
@@ -900,10 +900,10 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 898,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 899,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 900,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
-901,0xa93a2e,,,0x934,monster:399,plain body construction,correct bounded body plan,plain monster body,
-902,0xa93a2e,,,0x935,monster:400,plain body construction,correct bounded body plan,plain monster body,
-903,0xa93a2e,,,0x936,monster:401,plain body construction,correct bounded body plan,plain monster body,
-904,0xa93a2e,,,0x937,monster:402,plain body construction,correct bounded body plan,plain monster body,
+901,0xa93a2e,,,0x934,monster:399,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
+902,0xa93a2e,,,0x935,monster:400,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
+903,0xa93a2e,,,0x936,monster:401,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
+904,0xa93a2e,,,0x937,monster:402,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
 905,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 906,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 907,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
@@ -932,10 +932,10 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 930,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 931,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 932,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
-933,0xa93a2e,,,0x949,monster:420,plain body construction,correct bounded body plan,plain monster body,
-934,0xa93a2e,,,0x94a,monster:421,plain body construction,correct bounded body plan,plain monster body,
-935,0xa93a2e,,,0x94b,monster:422,plain body construction,correct bounded body plan,plain monster body,
-936,0xa93a2e,,,0x94c,monster:423,plain body construction,correct bounded body plan,plain monster body,
+933,0xa93a2e,,,0x949,monster:420,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
+934,0xa93a2e,,,0x94a,monster:421,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
+935,0xa93a2e,,,0x94b,monster:422,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
+936,0xa93a2e,,,0x94c,monster:423,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
 937,generic,0x1382f2d,,0x7a5,monster:0,special appearance hook,incomplete/unverified special passes,special appearance hook,special appearance hook
 938,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 939,generic,0x138cb89,,0xa8b,npc:2699,special appearance hook,incomplete/unverified special passes,special appearance hook,special appearance hook
@@ -950,10 +950,10 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 948,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 949,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 950,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
-951,0xa93a2e,,,0x95c,monster:439,plain body construction,correct bounded body plan,plain monster body,
-952,0xa93a2e,,,0x95d,monster:440,plain body construction,correct bounded body plan,plain monster body,
-953,0xa93a2e,,,0x95e,monster:441,plain body construction,correct bounded body plan,plain monster body,
-954,0xa93a2e,,,0x95f,monster:442,plain body construction,correct bounded body plan,plain monster body,
+951,0xa93a2e,,,0x95c,monster:439,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
+952,0xa93a2e,,,0x95d,monster:440,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
+953,0xa93a2e,,,0x95e,monster:441,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
+954,0xa93a2e,,,0x95f,monster:442,plain body construction,incomplete/unverified special passes,plain monster body,constructor render-state override: 0x60
 955,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 956,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 957,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
