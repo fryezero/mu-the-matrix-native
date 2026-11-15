@@ -87,6 +87,14 @@ READ_PROGRAM_TYPES += LATER_READ_PROGRAM_TYPES + CYCLE_PROGRAM_TYPES
 PRE_FX_TYPES += READ_PROGRAM_TYPES
 # RENDER-ITEMS-002AA: separately compared complete pre-draw programs.
 REMAINDER_PROGRAM_TYPES = [0x0f22, 0x0f23, 0x0f25, 0x24be, 0x24bf]
+# RENDER-ITEMS-002AB (part 42): pre-draw programs behind RenderObjDraw's decoded item level. The case compares
+# the frame local [ebp-0xac] with a constant and skips its effects below it. level_local() reads the local's
+# only store ((level argument >> 3) & 15 at 0x0176cf4a..0x0176cf5f); the interpreter reads the local as the
+# runtime integer input `level` (op 51) instead of a survey constant. Their survey runs every second level,
+# so any other level-dependent frame word still refuses the type.
+GATED_PROGRAM_TYPES = [0x0b2b, 0x0b2c, 0x0b2d, 0x0b2e, 0x0b32]
+LEVEL_LOCAL = -0xac
+LEVEL_STORE = (0x0176cf4a, bytes.fromhex('8b4518c1f80383e00f898558ffffff8b8558ffffff898554ffffff'))
 
 # RENDER-ITEMS-002T: owner blocks after the draws in RenderPartObjectBody's case that use the pre-draw idioms
 # (post programs, run where the owner programs run): bow 0x130d (TransformPosition 0x012b6ef1 on the OBJECT's own
@@ -128,7 +136,9 @@ OP = dict(const=1, mov=2, mul=3, add=4, sub=5, div=6, neg=7, gate=8, range=9, tr
           # RENDER-ITEMS-002T: the frame counter, OBJECT-bone positions, the random vector, bounded array selects and
           # CreateParticle with a register bitmap and argument 8
           frame=42, object_transform=43, random_vector=44, select=45, particle_reg=46, particle_reg_owner=47,
-          bitmap=48, owner_item_transform=49, object_point=50)
+          bitmap=48, owner_item_transform=49, object_point=50,
+          # RENDER-ITEMS-002AB: RenderObjDraw's decoded item level [ebp-0xac]
+          level=51)
 OBJECT_BONE = 0x0129f12c    # OBJECT->bone matrix: +0x318 + 0x30 * bone, 0 without one (RENDER-ITEMS-002T)
 # Runtime branch conditions (op 34 e): the jcc index; +0x10 = float flags (comiss/ucomiss), else integer flags.
 CONDITIONS = ['je', 'jne', 'jl', 'jge', 'jg', 'jle', 'jb', 'jae', 'ja', 'jbe', 'jne_u', 'je_o']
@@ -234,6 +244,39 @@ def survey(wa, t, EFFECTS=EFFECTS):
     return first[0], first[1], frames
 
 
+def level_local(wa):
+    """RENDER-ITEMS-002AB: RenderObjDraw stores (argument +0x18 >> 3) & 15 in [ebp-0xac] once and never writes or
+    takes the address of that local again. Raises Refused otherwise."""
+    import capstone
+    text = wa[0]
+    address, payload = LEVEL_STORE
+    if text[address - 0x401000:address - 0x401000 + len(payload)] != payload:
+        raise Refused('level local store differs')
+    md = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_32)
+    store = address + len(payload) - 6
+    for match in re.finditer(re.escape(struct.pack('<i', LEVEL_LOCAL)), text[OBJDRAW[0] - 0x401000:OBJDRAW[1] - 0x401000]):
+        at = OBJDRAW[0] + match.start()
+        for back in (2, 3, 4):
+            ins = next(md.disasm(text[at - back - 0x401000:at - back - 0x401000 + 16], at - back), None)
+            if ins is None or f'[ebp - {-LEVEL_LOCAL:#x}]' not in ins.op_str or not ins.address < at + 4 <= ins.address + ins.size:
+                continue
+            first = ins.op_str.split(',')[0]
+            written = f'[ebp - {-LEVEL_LOCAL:#x}]' in first and ins.mnemonic not in ('cmp', 'test', 'push')
+            if ins.mnemonic == 'lea' or (written and ins.address != store):
+                raise Refused(f'level local written or addressed at {ins.address:#x}')
+            break
+    return store
+
+
+def gated_states():
+    """Survey states of a level-gated case: every second decoded level, with the option, time and render-type
+    variation of the ordinary survey."""
+    import validate_renderchar as v
+    return [dict(item_level=level << 3, option1=option, ext=0, quality=5, time=v.f2u(time), render_type=2)
+            for level, option, time in ((1, 0, 0.0), (3, 1, 700.0), (5, 0, 300.0), (7, 0, 900.0), (9, 0, 0.0),
+                                        (11, 1, 700.0), (13, 0, 300.0), (15, 0, 900.0))]
+
+
 def type_compare(md, text, block, size):
     """True when the basic block compares OBJECT +0x5c or the type argument with an immediate."""
     for i in md.disasm(text[block - 0x401000:block - 0x401000 + size], block):
@@ -286,13 +329,21 @@ def survey_pre(wa, t):
                 m.uc.hook_add(UC_HOOK_CODE, snapshot, begin=start[0], end=start[0])
 
     first = None
-    configs = v.CLASSIFY[:4]
+    gated = t in GATED_PROGRAM_TYPES
+    if gated:
+        level_local(wa)
+    configs = gated_states() if gated else v.CLASSIFY[:4]
     for config in configs:
         log.clear()
         result, _, _, _ = v.client_stream(wa, v.classify_case(t, config), World)
         if not result['ok']:
             raise Refused(f'client stops at {result["pc"]}')
         i = next((k for k, e in enumerate(log) if e[0] in PRE_EFFECTS), None)
+        j = next((k for k, e in enumerate(log) if e[0] in ('draw', BODY_HELPER)), len(log))
+        if gated and not any(e[0] in PRE_EFFECTS for e in log[:j]):
+            # Below the case's level constant: no service before the body draws (a body's own random draw
+            # may follow them). The frame snapshot below still covers this state.
+            continue
         if i is None:
             raise Refused('no effect service in the survey state')
         if any(e[0] in ('draw', BODY_HELPER) for e in log[:i]):
@@ -314,6 +365,8 @@ def survey_pre(wa, t):
             first = here
         elif first != here:
             raise Refused('the case bounds differ between states')
+    if first is None:
+        raise Refused('no effect service in any gated survey state')
     start[0] = first[0]
     for config in configs:
         v.client_stream(wa, v.classify_case(t, config), World)
@@ -477,9 +530,10 @@ JCC = {'je': lambda a, b: a == b, 'jne': lambda a, b: a != b,
 
 
 class Interpreter:
-    def __init__(self, wa, frames, start, last, pre=False, need=(), post=False):
+    def __init__(self, wa, frames, start, last, pre=False, need=(), post=False, gated=False):
         import capstone
         self.post = post        # RENDER-ITEMS-002T: RenderPartObjectBody's frame with the pre-draw idioms
+        self.gated = gated      # RENDER-ITEMS-002AB: [ebp-0xac] is the runtime level input
         self.owner_bones = []
         self.need = set(need)   # (branch target, slot) pairs joined into registers (RENDER-ITEMS-002S)
         self.pre, self.low = pre, PRE_FRAME_LOW if pre and not post else FRAME_LOW
@@ -640,6 +694,10 @@ class Interpreter:
                     return ('r', r)
                 if off == 0x10:
                     return ('lightptr', 0)      # RENDER-ITEMS-002S: the light argument (float[3])
+                if off == LEVEL_LOCAL and self.gated:
+                    r = self.p.reg()            # RENDER-ITEMS-002AB: (level argument >> 3) & 15, see level_local()
+                    self.p.emit('level', r)
+                    return ('i', r)
                 if off < 0:
                     return self.load(('frame', off))
             elif base == 'ebp':
@@ -1510,7 +1568,7 @@ def extract_pre(wa, t):
     start, last, frames = survey_pre(wa, t)
     need = set()
     while True:
-        it = Interpreter(wa, frames, start, last, pre=True, need=need)
+        it = Interpreter(wa, frames, start, last, pre=True, need=need, gated=t in GATED_PROGRAM_TYPES)
         try:
             end = it.run()
             break
@@ -1526,6 +1584,8 @@ def extract_pre(wa, t):
                             OP['sprite_rot'], OP['particle_reg'], OP['particle_reg_owner']) for op in it.p.ops)
     if not effects:
         raise Refused('no effect request')
+    if t in GATED_PROGRAM_TYPES and not any(op[0] == OP['level'] for op in it.p.ops):
+        raise Refused('a gated case that never reads its level local')
     return {'start': start, 'end': end, 'ops': it.p.ops, 'regs': it.p.regs, 'bones': it.bones, 'names': it.names}
 
 
@@ -1600,6 +1660,7 @@ def render(programs, pre=None):
              ' * 45 select r[a] = r[c + r[b] / 4] (r[b] a byte offset below 4d)   46/47 particle  as 14/25 with bitmap r[k], argument 8',
              ' *           r[k+1]   48 bitmap  the next request\'s bitmap is r[a]   49 owner item transform  r[a..a+2] =',
              ' *           0x012b6ef1(OBJECT bone k matrix (0x0129f12c), local r[c..c+2], translate e)',
+             ' * RENDER-ITEMS-002AB (part 42): 51 level  r[a] = (RenderObjDraw level argument >> 3) & 15, the local [ebp-0xac]',
              ' */',
              'typedef struct { uint8_t op; uint16_t a, b, c, d; uint8_t e; uint32_t k; } mu_rc_fx_op;',
              'static const mu_rc_fx_op mu_rc_fx_ops[] = {']
@@ -1648,7 +1709,7 @@ def render(programs, pre=None):
 def extract_pre_all(types=None):
     wa = tuple(pin.read() for pin in (pins.TEXT, pins.DATA, pins.FLAG, pins.FEATURE))
     out, refused = {}, {}
-    for t in PRE_FX_TYPES + REMAINDER_PROGRAM_TYPES if types is None else types:
+    for t in PRE_FX_TYPES + REMAINDER_PROGRAM_TYPES + GATED_PROGRAM_TYPES if types is None else types:
         try:
             out[t] = extract_pre(wa, t)
         except Refused as e:

@@ -385,6 +385,10 @@ static void run_fx(const mu_rc_fx_op *ops, int count, int regs, const mu_rc_item
             bad[o->a] = (uint8_t)(bad[o->b] | bad[o->c] | !y);
             break;
         }
+        case 51:   /* RenderObjDraw's decoded item level, the local [ebp-0xac] (0x0176cf4a..0x0176cf5f) */
+            fx_set_int(&r[o->a], (it->item_level >> 3) & 15);
+            bad[o->a] = 0;
+            break;
         case 42:   /* the rendered-frame counter [0x0bdc5ebc] (unsigned) */
             fx_set_int(&r[o->a], (int32_t)h->frame);
             bad[o->a] = !h->frame_known;

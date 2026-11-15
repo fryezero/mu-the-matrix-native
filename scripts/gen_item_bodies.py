@@ -227,9 +227,9 @@ DERIVED_CARRY = [
 from gen_item_owner_fx import OWNER_FX_TYPES
 # Part 18 (RENDER-ITEMS-002R): bodies whose RenderObjDraw case creates effects before the body draws (pre-draw
 # programs, gen_item_owner_fx.PRE_FX_TYPES); their draws fit with the effect requests set aside.
-from gen_item_owner_fx import PRE_FX_TYPES, OBJDRAW as PRE_DRAW_RAND, REMAINDER_PROGRAM_TYPES
+from gen_item_owner_fx import PRE_FX_TYPES, OBJDRAW as PRE_DRAW_RAND, REMAINDER_PROGRAM_TYPES, GATED_PROGRAM_TYPES
 from item_caller_groups import TYPES as CALLER_TYPES
-PRE_FX_TYPES = PRE_FX_TYPES + REMAINDER_PROGRAM_TYPES
+PRE_FX_TYPES = PRE_FX_TYPES + REMAINDER_PROGRAM_TYPES + GATED_PROGRAM_TYPES
 FALLOFF_TYPES = [0x0b47, 0x0b49, 0x1323, 0x154a]
 RANDOM_LEVEL_TYPES = [0x0b37, 0x0b3a, 0x0f10, 0x0f11, 0x1104, 0x131e, 0x1526, 0x1527, 0x1712, 0x1713, 0x1714, 0x1715, 0x1716, 0x1717, 0x1722, 0x1723, 0x1724, 0x1725, 0x1726, 0x1727, 0x172c, 0x172d, 0x172e, 0x172f, 0x1730, 0x1731, 0x174c, 0x174d, 0x174e, 0x174f, 0x1750, 0x1751]
 LEVEL_SPLIT += RANDOM_LEVEL_TYPES
@@ -252,9 +252,11 @@ MATRIX_CARRY = [0x16f5, 0x24f1]
 # Ordinary bodies whose only unread word was a helper scalar tail: the ternary minimum (0x10f3, 0x1703) and the
 # upper clamp after the constant operations (0x1101).
 TAIL_TYPES = [0x10f3, 0x1101, 0x1703]
-AB_TYPES = GUARD_TYPES + MATRIX_TYPES + TAIL_TYPES   # every 002AB type: the lane's reader forms apply to these only
-REMAINDER_TYPES += MATRIX_TYPES + TAIL_TYPES
-REMAINDER_CARRY += MATRIX_CARRY
+# Level-gated pre-draw producers (gen_item_owner_fx.GATED_PROGRAM_TYPES); their draws fit with the requests set aside.
+GATED_CARRY = [0x0b2b, 0x0b2d, 0x0b2e, 0x0b32]
+AB_TYPES = GUARD_TYPES + MATRIX_TYPES + TAIL_TYPES + GATED_PROGRAM_TYPES   # every 002AB type: the lane's reader forms apply to these only
+REMAINDER_TYPES += MATRIX_TYPES + TAIL_TYPES + GATED_PROGRAM_TYPES
+REMAINDER_CARRY += MATRIX_CARRY + GATED_CARRY
 GUARD_CARRY = list(DECODED_GUARD_TYPES)
 LEVEL_SPLIT += GUARD_TYPES
 REMAINDER_TYPES += GUARD_TYPES
