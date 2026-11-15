@@ -149,3 +149,18 @@ as declared in-hand fixtures. It records model hashes and diagnostics. No item p
 has run yet. Next: complete this refresh, inspect all results, latest-main check, the single explicitly
 rebuilt default sweep with item proofs, final handoff/status/research/PR and audit, all pushes, ready
 entry and cleanup. No ready entry exists.
+
+At the 13:55 checkpoint: batch-117 refresh passes all 78 rows (1,261.22 s), all 174 portable
+items (1,763 tests / 1,423 passed / 340 expected skips, 422.50 s including selection) and all 33
+reduced native consumer tests (15.20 s, no skips). Before the first capture, the latest-main check
+finds batch 118 UI-WINDOWS-005. Main `c5b9d5ca` merges cleanly at `2119d676`; item/particle/generator
+inputs remain unchanged. Root build passes (0.48 s). The UI-only validator selector since `6415870d`
+has twelve rows (22.01 s), all passing without mutants (52.52 s). The portable selector has 143/223
+items (51.04 s), 140 native, so 8d stays reduced. The active command is now running `ui-portable.log`;
+on success it runs the five changed/added native test modules plus the two shared consumers, logging
+`ui-native.log`. The script is `run-ui.py` under the lane scratch folder; do not start duplicate runs.
+The passing validator union is currently 134 rows; regenerate the helper again after any
+further integration. Per-row results and sources are retained. No capture has run yet, so before
+numbers have not been taken or repeated. Next/left: inspect this portable/private finish, final
+main check, one rebuilt default identity plus all fifty exact-model item proofs, final handoff/status/
+research/PR/audit, all pushes, ready entry and cleanup. No ready entry exists.
