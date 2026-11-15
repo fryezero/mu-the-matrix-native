@@ -11,6 +11,8 @@ HDR += aura_fx.h
 HDR += ../joints/world_inner_joints.inc
 SRC += catalogue_skill_fx.c
 HDR += catalogue_skill_fx.h
+SRC += link_selector.c
+HDR += link_selector.h
 
 all: libcombat.$(SUFFIX)
 

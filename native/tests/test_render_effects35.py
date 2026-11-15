@@ -156,6 +156,43 @@ class Native(unittest.TestCase):
         self.assertIsNone(self.plan(self.cast(77, 2, 'bow', frames=6, bow_item=0x12fb)))
         self.assertIsNotNone(self.plan(self.cast(77, 2, 'bow', frames=6, bow_item=0x12fa)))
 
+    def buff(self, skill, ticks=None, frames=140):
+        env = dict(os.environ)
+        env.pop('MU_AURA_FIXTURE_TICKS', None)
+        if ticks is not None:
+            env['MU_AURA_FIXTURE_TICKS'] = str(ticks)
+        with tempfile.TemporaryDirectory() as tmp:
+            p = subprocess.run([str(self.binary), '--game-root', str(self.root), '--headless', '--backend', 'soft',
+                                '--no-audio', '--no-items', '--no-players', '--tile', '120,120', '--placement',
+                                str(self.placement), '--combat', '--class', '2', '--combat-weapon', 'bow',
+                                '--combat-script', f'2:skill:{skill}:DemoTarget;3:stop', '--frames', str(frames),
+                                '--every', '1', '--width', '240', '--height', '160', '--out-dir', tmp],
+                               cwd=ROOT, env=env, capture_output=True, text=True)
+            self.assertEqual(p.returncode, 0, p.stderr[-2000:])
+        return [json.loads(line) for line in p.stdout.splitlines() if line.startswith('{')]
+
+    def test_learned_buff_end_bodies(self):
+        # 28 Greater Damage: 0x7f84/3 on the buffed hero, an existing consumer.
+        rows = self.buff(28)
+        frames = self.assert_safe(rows)
+        end = next(r for r in rows if r.get('buff_end'))
+        self.assertEqual((end['requests'], end['refused']), (1, 0))
+        self.assertTrue(any(0x7f84 in r['effect_types'] for r in frames))
+        self.assertEqual((frames[-1]['fx'], frames[-1]['joints']), (0, 0))
+        # 27 Greater Defense without the authored presence clock: ground 0x7f84/2 and five joints, all refused.
+        rows = self.buff(27)
+        self.assert_safe(rows)
+        end = next(r for r in rows if r.get('buff_end'))
+        self.assertEqual((end['requests'], end['refused']), (6, 6))
+        self.assertFalse(any(r.get('aura_fixture') for r in rows))
+        unsupported = next(r for r in rows if 'combat_unsupported' in r)['combat_unsupported']
+        self.assertIn(['e', 0x7f84, 2, 1], unsupported)
+        # With the presence clock the aura's own joints already exist at the end body: only the ground is asked.
+        rows = self.buff(27, ticks=60)
+        self.assert_safe(rows)
+        end = next(r for r in rows if r.get('buff_end'))
+        self.assertEqual((end['requests'], end['refused']), (1, 1))
+
     def test_default_lists_have_no_catalogue_row(self):
         text = (ROOT / 'native/client/demo-skills.txt').read_text() + (ROOT / 'native/fixture/skills_model.c').read_text()
         listed = set()

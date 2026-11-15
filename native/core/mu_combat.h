@@ -187,6 +187,7 @@ typedef struct mu_combat_stats {
     uint32_t skill32_casts, skill32_requests, skill32_refused;
     /* RENDER-EFFECTS-035: catalogue rows outside the learned demo set (authored fixtures only) */
     uint32_t skill35_casts, skill35_requests, skill35_refused, skill35_context_refused;
+    uint32_t buff_end_requests, buff_end_refused;   /* RENDER-EFFECTS-035: learned buffs 27 / 28, cast end bodies */
 } mu_combat_stats;
 
 struct mu_world_particles;

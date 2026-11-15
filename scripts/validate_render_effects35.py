@@ -53,6 +53,10 @@ ROWS = {
 }
 ENDS = {432: ('area', 0x013a9449, 0x013a94a4), 2026: ('target', 0x013b18a2, 0x013b1911),
         2027: ('target', 0x013b16c1, 0x013b18a2)}
+# Second group: the learned buffs' end bodies and the general link selector.
+BUFF_ENDS = {27: (0x013afb06, 0x013afcea), 28: (0x013afcea, 0x013afd5c)}
+LINK_SWITCH, LINK_END, LINK_HELPER, LINK_OTHER, LINK_INDEX = 0x0137eefc, 0x0137f5f6, 0x00df230b, 0x00d9013e, 0x013a5658
+LINK_OFFSET, LINK_STRIDE = 0x19b1, 0x3fc
 
 
 class Actor(C.Structure):
@@ -102,6 +106,9 @@ def load(path):
     lib.mu_skill35_learned.argtypes = [C.c_int32, C.POINTER(C.c_uint16), C.c_int32]
     lib.mu_skill35_action.argtypes = [C.c_int32, C.c_int32, C.c_int32, C.c_int32]
     lib.mu_skill35_step.argtypes = [C.c_int32, C.c_int32, C.c_int32, C.c_float, C.POINTER(C.c_uint8)]
+    lib.mu_skill35_buff_end.argtypes = [C.POINTER(Input), C.POINTER(Plan)]
+    lib.mu_link_bones.argtypes = [C.c_int32, C.POINTER(C.c_uint8)]
+    lib.mu_link_index.argtypes = [C.c_int32, C.c_int32]
     return lib
 
 
@@ -375,6 +382,58 @@ def steps(m, lib, cases, report):
                                            seen=seen, stopped=result['stopped'], machine_error=result['error']))
 
 
+def buff_ends(m, lib, cases, report):
+    """End bodies of the learned buffs 27 / 28 on the same authored records as group E's ends."""
+    rng = random.Random(2728)
+    for skill, (entry, _end) in BUFF_ENDS.items():
+        for n in range(cases):
+            s = case_input(rng, skill, n)
+            result, client = original(m, skill, s, 'target', entry)
+            plan = Plan()
+            supported = lib.mu_skill35_buff_end(C.byref(s), C.byref(plan))
+            mine = [normalized(plan.calls[i]) for i in range(plan.count)]
+            equal = bool(supported) and vc.ok(result) and vc._same_call(client, mine)
+            report.add('buff-end', equal, dict(skill=skill, case=n, client=client[:2], mine=mine[:2],
+                                               stopped=result['stopped'], machine_error=result['error']))
+
+
+def links(m, lib, report):
+    """The link selector's type switch 0x0137eefc..0x0137f5f4 for every model type of the model range,
+    and the slot index 0x013a5658. The fragment's routine has no SEH frame, so the frame harness's
+    restored-handler check does not apply to it; every other machine check does.
+
+    The first default helper 0x00df230b runs as client code. The second, 0x00d9013e, is a stub that
+    answers from its own two compares (static reading): it is a different setter, not recovered here."""
+    for model_type in list(range(0x700, 0xb40)) + [0, 1, 0x1a1, 0x412, 0xfff, 0x10e6, 0x7fffffff, -1]:
+        region = am.undefined_region('character', CHAR, 0x3670)
+        region.define(CHAR + LINK_OFFSET, b'\xee')
+        region.define(CHAR + LINK_OFFSET + LINK_STRIDE, b'\xee')
+        asked = []
+
+        def other(mm):
+            asked.append(mm.argument(1))
+            return int(mm.argument(1) in (0x7ee, 0xa2f))
+        result = m.execute(LINK_SWITCH, [CHAR, model_type & 0xffffffff], [region], {LINK_OTHER: other},
+                           frame=(0x40, {-4: CHAR + OBJ}))
+        ran = all(value for name, value in result['checks'].items() if name != 'seh_restored')
+        mine = (C.c_uint8 * 2)(0xee, 0xee)
+        mask = lib.mu_link_bones(model_type, mine)
+        data = result['regions']['character']
+        theirs = (data[LINK_OFFSET], data[LINK_OFFSET + LINK_STRIDE])
+        expected = 4 if asked and asked[0] in (0x7ee, 0xa2f) else (theirs[0] != 0xee) | ((theirs[1] != 0xee) << 1)
+        report.add('links', ran and tuple(mine) == theirs and mask == expected,
+                   dict(type=model_type, theirs=theirs, mine=tuple(mine), mask=mask, expected=expected,
+                        stopped=result['stopped'], machine_error=result['error']))
+    for model in (0xa91, 0xa90, 0x7b7, 0):
+        for action in (0, 0x72, 0x73, 0x74, 0x75, 0x9e, 0x173, 0xffff):
+            region = am.undefined_region('object', fx.OBJECTS, 0x400)
+            region.define(fx.OBJECTS + 0x5c, struct.pack('<i', model))
+            region.define(fx.OBJECTS + 0x2a, struct.pack('<H', action))
+            result = m.execute(LINK_INDEX, [fx.OBJECTS], [region], {})
+            report.add('link-index', vc.ok(result) and result['eax'] == lib.mu_link_index(model, action),
+                       dict(model=model, action=action, eax=result['eax'], stopped=result['stopped']))
+
+
 def controls(m, lib, report):
     """SkillAction's own selection and the authored admission controls."""
     for character in (CHAR, 0):
@@ -492,8 +551,20 @@ MUTANTS = [
     ('action >= 3 && action <= 4', 'action >= 3 && action <= 5'),
     ('else if (frame >= 5.0f &&', 'else if (frame > 5.0f &&'),
     ('return 15;   /* the cutoff', 'return 14;   /* the cutoff'),
+    ('s->skill == 27 ? 2027 : 2026', 's->skill == 27 ? 2026 : 2027'),
+    ('(s->skill != 27 && s->skill != 28)', '(s->skill != 27 && s->skill != 26)'),
 ]
-SOURCES = ['reconstructed/combat/catalogue_skill_fx.c', 'reconstructed/record-math/record_math.c']
+LINK_MUTANTS = [
+    ('{0x7a5, {42, 33}, 3}', '{0x7a5, {33, 42}, 3}'), ('{0x7ce, {23, 0}, 1}', '{0x7ce, {23, 0}, 3}'),
+    ('{0x950, {43, 0}, 1}', '{0x951, {43, 0}, 1}'), ('{0x7e9, {60, 60}, 3}', '{0x7e9, {60, 61}, 3}'),
+    ('{0x94f, {32, 68}, 3}', '{0x94f, {32, 67}, 3}'), ('type == 0x7ee || type == 0xa2f', 'type == 0x7ee'),
+    ('bones[0] = 33; bones[1] = 42;', 'bones[0] = 42; bones[1] = 33;'),
+    ('if (LINKS[i].mask & MU_LINK_SLOT1) bones[1]', 'if (LINKS[i].mask & MU_LINK_SLOT0) bones[1]'),
+    ('action == 0x73 || action == 0x74', 'action == 0x73 || action == 0x75'),
+    ('model == 0xa91 && (action', 'model != 0xa91 && (action'),
+]
+SOURCES = ['reconstructed/combat/catalogue_skill_fx.c', 'reconstructed/combat/link_selector.c',
+           'reconstructed/record-math/record_math.c']
 FLAGS = ['clang', '-std=c11', '-O2', '-shared', '-fPIC', '-ffp-contract=off', '-fno-fast-math', '-I',
          str(ROOT / 'reconstructed/combat')]
 
@@ -507,6 +578,8 @@ def run(cases, mutants, only=None, dump=0):
     report = compare(m, lib, cases, only, dump)
     if lib and not only:
         steps(m, lib, max(len(STEP_EDGES), cases // 4), report)
+        buff_ends(m, lib, cases, report)
+        links(m, lib, report)
         controls(m, lib, report)
     out = dict(families=report.families, mutants=[], text_sha256=pins.TEXT.sha256, data_sha256=pins.DATA.sha256,
                bodies={str(skill): dict(group=row[0], family=row[1], start=hex(row[2]), end=hex(row[3]),
@@ -514,28 +587,33 @@ def run(cases, mutants, only=None, dump=0):
                        for skill, row in ROWS.items()})
     out['all_equal'] = all(f['cases'] == f['equal'] for f in report.families.values())
     if mutants and out['all_equal']:
-        source = (ROOT / SOURCES[0]).read_text()
+        sources = [(ROOT / name).read_text().replace('"../record-math/record_math.h"',
+                                                     f'"{ROOT}/reconstructed/record-math/record_math.h"')
+                   for name in SOURCES[:2]]
         with tempfile.TemporaryDirectory() as tmp:
             tmp = Path(tmp)
             (tmp / 'combat').mkdir()
-            dest = tmp / 'combat' / 'catalogue_skill_fx.c'
-            for index, (old, new) in enumerate(MUTANTS):
-                assert source.count(old) == 1, old
-                dest.write_text(source.replace(old, new).replace('"../record-math/record_math.h"',
-                                                                   f'"{ROOT}/reconstructed/record-math/record_math.h"'))
+            dest = [tmp / 'combat' / Path(name).name for name in SOURCES[:2]]
+            planted = [(0, old, new) for old, new in MUTANTS] + [(1, old, new) for old, new in LINK_MUTANTS]
+            for index, (which, old, new) in enumerate(planted):
+                assert sources[which].count(old) == 1, old
+                for k in (0, 1):
+                    dest[k].write_text(sources[k].replace(old, new) if k == which else sources[k])
                 path = tmp / f'm{index}.{fx.SUFFIX}'
-                subprocess.run(FLAGS + [str(dest), str(ROOT / SOURCES[1]), '-lm', '-o', str(path)], check=True,
-                               capture_output=True)
+                subprocess.run(FLAGS + [str(dest[0]), str(dest[1]), str(ROOT / SOURCES[2]), '-lm', '-o', str(path)],
+                               check=True, capture_output=True)
                 mutant = load(path)
                 r = compare(m, mutant, min(cases, 40))
                 steps(m, mutant, len(STEP_EDGES), r)
+                buff_ends(m, mutant, min(cases, 40), r)
+                links(m, mutant, r)
                 controls(m, mutant, r)
                 failures = [f for f in r.families.values() if f['equal'] != f['cases']]
                 stops = sum(bool(e.get('stopped')) for f in failures for e in f['first_failures'])
                 out['mutants'].append(dict(index=index, detected=sum(f['cases'] - f['equal'] for f in failures),
                                            stopped=stops))
                 path.unlink()
-    out['all_mutants_caught'] = (not mutants or len(out['mutants']) == len(MUTANTS)) and all(
+    out['all_mutants_caught'] = (not mutants or len(out['mutants']) == len(MUTANTS) + len(LINK_MUTANTS)) and all(
         m['detected'] and not m['stopped'] for m in out['mutants'])
     out['cases'] = sum(f['cases'] for f in report.families.values())
     out['seconds'] = time.monotonic() - start

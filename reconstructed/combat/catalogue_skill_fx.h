@@ -71,4 +71,6 @@ int mu_skill35_step(int32_t skill, int32_t model, int32_t action, float frame, u
 /* Phase 0: receive case body. Phase 1: end body (group E only). Returns 0 for a
  * refused row, phase or service context (mounted bone-frame rows). */
 int mu_skill35_plan_cast(const mu_skill35_input *in, int phase, mu_skill35_plan *out);
+/* End body of the learned buffs 27 / 28 (same bodies as 2027 / 2026). */
+int mu_skill35_buff_end(const mu_skill35_input *in, mu_skill35_plan *out);
 #endif

@@ -267,3 +267,16 @@ int mu_skill35_plan_cast(const mu_skill35_input *s, int phase, mu_skill35_plan *
     if (s->source_is_hero) p->hero_attack_time = p->attack_time;   /* one CHARACTER */
     return 1;
 }
+
+/* The cast end bodies of the learned buffs 27 (0x013afb06) and 28 (0x013afcea).
+ * They are the bodies of 2027 and 2026 again, at other addresses: the presence
+ * tests, the ground effect on the target and, for 27, the five 0x472/4 joints. */
+int mu_skill35_buff_end(const mu_skill35_input *s, mu_skill35_plan *p)
+{
+    memset(p, 0, sizeof *p);
+    p->attack_time = s->attack_time; p->hero_attack_time = s->hero_attack_time;
+    p->target_index = -1;
+    if (s->base != s->skill || (s->skill != 27 && s->skill != 28)) return 0;
+    group_e_end(find(s->skill == 27 ? 2027 : 2026), s, p);
+    return 1;
+}

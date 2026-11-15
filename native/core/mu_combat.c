@@ -26,6 +26,7 @@
 
 #include "../../reconstructed/combat/demo_skill_fx.h"
 #include "../../reconstructed/combat/catalogue_skill_fx.h"
+#include "../../reconstructed/combat/link_selector.h"
 
 #define HERO_KEY 0x1234          /* any key: the hero's own key 0x06fca288 */
 #define MONSTER_KEY_BASE 0x100   /* demo keys of the placed actors */
@@ -1429,6 +1430,48 @@ static void inferno_ring(mu_combat *c, const float center[3])
     }
 }
 
+/* RENDER-EFFECTS-035: the cast end bodies of the learned buffs 27 (0x013afb06) and 28
+ * (0x013afcea). The aura fixture buffs the hero, so the record's target is the hero.
+ * Presence answers come from that fixture's authored clock; no buff state is read.
+ * The five 0x472/4 joints go to the aura's own joint records, as its draw plan does. */
+static uint32_t aura_presence(mu_combat *c);
+static void aura_call(void *ctx, const mu_jt_call *call);
+static void buff_end(mu_combat *c)
+{
+    mu_skill35_input in; mu_skill35_plan plan;
+    memset(&in, 0, sizeof in);
+    in.skill = in.base = c->attack_skill;
+    in.source.owner = MU_COMBAT_HERO_OBJECT;
+    in.source.key = (uint16_t)c->hero_key;
+    hero_frame(c, in.source.position, in.source.angle, in.source.light);
+    in.target = in.source;
+    in.source_is_hero = 1; in.flag_7 = 1;
+    const uint32_t buffs = aura_presence(c);
+    in.presence_18 = (buffs & MU_AURA_HIDDEN) != 0;
+    in.presence_2 = (buffs & MU_AURA_DEFENSE) != 0;
+    for (int i = 0; i < 5; ++i) in.joint_4 |= c->aura_joints[i].live;
+    if (!mu_skill35_buff_end(&in, &plan)) return;
+    for (int i = 0; i < plan.count; ++i) {
+        const mu_sfx_call *call = &plan.calls[i].visual;
+        uint32_t refused = c->stats.unsupported, aura_refused = c->aura_refused;
+        ++c->stats.buff_end_requests;
+        if (call->routine == MU_SFX_CALL_JOINT && c->aura_duration <= 0) {
+            ++c->stats.buff_end_refused;   /* no authored presence clock: the joint's mover has no owner state */
+        } else if (call->routine == MU_SFX_CALL_JOINT) {
+            mu_jt_call joint = {0};
+            joint.routine = MU_JT_CALL_JOINT;
+            memcpy(joint.position, call->position, sizeof joint.position);
+            memcpy(joint.angle, call->angle, sizeof joint.angle);
+            aura_call(c, &joint);
+        } else {
+            mu_sfx_info info = {0}; info.key = (uint16_t)call->range; info.field8 = (uint16_t)call->arg7;
+            create_effect_scaled(c, call->type, call->subtype, call->position, call->angle,
+                call->light, call->owner, &info, call->scale);
+        }
+        c->stats.buff_end_refused += (c->stats.unsupported - refused) + (c->aura_refused - aura_refused);
+    }
+}
+
 /* The end of the hero's attack: the area skills' switch 0x013a90c0 and the
  * end-of-attack switch 0x013af035 with the client's CreateEffect /
  * CreateJoint calls (static readings of the call sites; the effects
@@ -1447,6 +1490,7 @@ static void end_of_attack(mu_combat *c)
         angle[2] = mu_create_angle(pos[0], pos[1], c->actors->list[t].position[0], c->actors->list[t].position[1]);
     play(c, mu_combat_skill_sound(skill, 1, -1, 0), -1);   /* the end-of-attack blocks' sounds (0x42, 0x75, 0x77, 0x73, ...) */
     if (skill30_plan(c, 1) || skill32_plan(c, 1)) return;
+    if (skill == 27 || skill == 28) buff_end(c);
     /* RENDER-EFFECTS-035: group E has an end body; the other rows select both default ends,
      * whose only request is the bow-action arrow, and no admitted pose is a bow action. */
     if (skill35_admitted(c, skill)) { (void)skill35_plan(c, 1, NULL, NULL); return; }
@@ -2155,10 +2199,15 @@ static void death_stab_step(mu_combat *c)
         return;
     ++c->stats.death_stab_steps;
     mu_character *h = c->hero_character;
-    const int32_t bone = 33;   /* authored DK demo, default right-hand link at 0x0137f5d9 */
-    /* This is the authored base-DK demo context. No later-class or equipment
-     * selector is inferred from the client's CHARACTER +0x19b1 array. */
-    if (c->walk->hero.class_byte != 1 || !h || !h->player_loaded || c->config.weapon == MU_COMBAT_WEAPON_NONE ||
+    /* RENDER-EFFECTS-035: the general link selector. The link byte CHARACTER +0x19b1 +
+     * slot * 0x3fc depends on the model type alone (0x0137eefc), the slot on the
+     * action (0x013a5658): for the Player model and action 0x9e, slot 0 and bone 33.
+     * The DK family and a weapon stay the authored fixture admission. */
+    uint8_t links[2] = {0, 0};
+    const int written = mu_link_bones(0xa91, links);
+    const int slot = mu_link_index(0xa91, c->walk->hero.action);
+    const int32_t bone = written & (1 << slot) ? links[slot] : -1;
+    if ((c->walk->hero.class_byte & 15) != 1 || !h || !h->player_loaded || c->config.weapon == MU_COMBAT_WEAPON_NONE ||
         !h->player_bones || bone < 0 || bone >= h->player_bone_count || h->player_bmd.bones[bone].dummy) {
         ++c->stats.death_stab_context_refused;
         return;
@@ -2993,6 +3042,9 @@ void mu_combat_report_summary(const mu_combat *c, FILE *out, int quiet)
                 s->skill30_requests,s->skill30_arrows,s->skill30_refused,(unsigned)c->skill30_target_index,
                 target ? target->session_slot : -1,target ? target->session_key : -1);
     }
+    if (s->buff_end_requests)
+        fprintf(out, "{\"buff_end\": true, \"requests\": %u, \"refused\": %u}\n", s->buff_end_requests,
+                s->buff_end_refused);
     if (s->skill35_casts)
         fprintf(out, "{\"skill35\": true, \"casts\": %u, \"requests\": %u, \"refused\": %u,"
                 " \"context_refused\": %u, \"remote\": %d, \"self\": %d}\n", s->skill35_casts,
