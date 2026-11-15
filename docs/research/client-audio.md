@@ -793,7 +793,9 @@ The existing id-only AUDIO-003 path and its proven world/id mappings remain.
 
 ### Refused and remaining
 
-The slot +0x70 selectors are reviewed first for monster admission. Their whole
+The 48 reviewed classes have 40 distinct slot +0x70 entries, containing 524
+sound candidates and zero bounded native references in this inventory. The
+slot +0x70 selectors are reviewed first for monster admission. Their whole
 owner methods and dispatch are absent natively, while several shared combat
 services and bounded fragments already exist. A bounded source reference does
 not close a whole selector, so no generic monster sound callback is added.

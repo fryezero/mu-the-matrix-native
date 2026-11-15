@@ -32,16 +32,21 @@ with deterministic supplements ensuring all 33 sites are reached.
 
 ## WIP
 
-Done: baseline root/world builds and preserved SHA-256, 46-view default before
-sweep, census review, 33 command sites, full original comparison and compiled
-mutants. Focused portable native run passes 5 tests with two explicit private skips,
-5.71 s. The synthetic full-world check covers Karutan, Swamp and Kethotum
-command delivery, active-id suppression and equal audio-on/off frames. Its
-initial fixture format and missing Kethotum forwarding call were corrected.
+Done: baseline root/world builds and preserved SHA-256; the completed 46-view
+before sweep; the revised census and 33 command sites; 10,093 original cases
+and ten compiled mutants; focused native command/world checks. The root build
+passes in 13.08 s. Affected portable selection is 167 work items, including
+159 native modules. All nine reported suite groups pass: 1,761 tests, 1,445
+passed, 316 explicit skips, zero failures/errors; 458.71 s including selection.
+The 77 selected private validators are running without mutants, with jobs 2.
+The conservative fallback rows are retained. Main still equals `b7dfd2ed`.
 
-Left: full-world/installed smoke, post-build affected portable/private validators,
-8d reduced, final default identity, audit/self-review, main integration and PR.
-Next: finish the focused native test, then run affected selection after the build.
+The first native world fixture refused byte-height terrain in an RGB world.
+Correcting the fixture then exposed the separate Kethotum adapter's missing
+forwarding line. Both were repaired; the three synthetic world paths now pass
+with equal audio-on/off frames. No production terrain behavior changed.
 
-No PR-ready or full-gate claim. Reports are task-local and need no retention
-as future inputs. No installed app was touched.
+Left: finish the 77 rows; canonical private native module and installed 20-id
+smoke; 8d reduced; rebuilt after identity; audit/self-review; final integration,
+docs and PR. Next: inspect the validator summary and continue those final checks.
+No PR-ready or full-gate claim. Reports are task-local, not future inputs.
