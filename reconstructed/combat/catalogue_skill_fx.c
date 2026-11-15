@@ -95,6 +95,19 @@ int mu_skill35_action(int32_t action, int32_t alternative, int32_t mounted, int3
     return mounted && !flag_31e8 && alternative != -1 ? alternative : action;
 }
 
+/* The default attack-step body 0x0139b454 that every admitted row selects. The
+ * exceptional hero item 0x815 (its separate spark burst) is excluded by the
+ * adapter's admission, as for the EFFECTS-032 default-step rows. */
+int mu_skill35_step(int32_t skill, int32_t model, int32_t action, float frame, uint8_t *attack_time)
+{
+    if (!find(skill)) return 0;
+    if (model == 0xa91 && action == 0x8f && frame >= 1.0f) *attack_time = 15;
+    else if (frame >= 5.0f &&
+        ((model == 0xa91 && action >= 0x6f && action < 0x133) ||
+         (model >= 0x7a5 && model < 0x9fd && action >= 3 && action <= 4))) *attack_time = 15;
+    return 15;   /* the cutoff written at 0x01396738 */
+}
+
 static mu_sfx_call *request(mu_skill35_plan *p, int routine, int type, int sub)
 {
     mu_sfx_call *c = &p->calls[p->count++].visual;

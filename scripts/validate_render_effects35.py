@@ -101,6 +101,7 @@ def load(path):
     lib.mu_skill35_select.argtypes = [C.c_int32, C.c_int32]
     lib.mu_skill35_learned.argtypes = [C.c_int32, C.POINTER(C.c_uint16), C.c_int32]
     lib.mu_skill35_action.argtypes = [C.c_int32, C.c_int32, C.c_int32, C.c_int32]
+    lib.mu_skill35_step.argtypes = [C.c_int32, C.c_int32, C.c_int32, C.c_float, C.POINTER(C.c_uint8)]
     return lib
 
 
@@ -329,6 +330,51 @@ def compare(m, lib, cases, only=None, dump=False):
     return report
 
 
+STEP_EDGES = [(0xa91, 0x8f, 0.999), (0xa91, 0x8f, 1.0), (0xa91, 0x8f, 5.0), (0xa91, 0x6e, 5.0), (0xa91, 0x6f, 5.0),
+              (0xa91, 0x6f, 4.999), (0xa91, 0x132, 5.0), (0xa91, 0x133, 5.0), (0x7a5, 3, 5.0), (0x7a4, 3, 5.0),
+              (0x9fc, 4, 5.0), (0x9fd, 4, 5.0), (0x7b7, 2, 5.0), (0x7b7, 5, 5.0), (0x7b7, 4, 4.999),
+              (0xa91, 0x9a, float('nan')), (0xa91, 0x8f, float('nan')), (0xa91, 0x107, 6.0)]
+
+
+def steps(m, lib, cases, report):
+    """The attack-step dispatcher 0x013966ea for every admitted row: all select the default body."""
+    rng = random.Random(350)
+    for skill in ROWS:
+        for n in range(cases):
+            if n < len(STEP_EDGES):
+                model, action, frame = STEP_EDGES[n]
+            else:
+                model = rng.choice([0xa91, 0x7b7, 0x7a5, 0x9fc])
+                action = rng.choice([3, 4, 5, 0x6e, 0x6f, 0x8f, 0x9a, 0x9c, 0xd9, 0x106, 0x107, 0x132, 0x133])
+                frame = rng.choice([0.0, 0.999, 1.0, 4.999, 5.0, 5.001, 6.0])
+            time_in = n % 18
+            char = am.undefined_region('character', CHAR, 0x3670)
+            char.define(CHAR + 0x21, bytes([time_in]))
+            char.define(CHAR + 0x26, struct.pack('<H', skill))
+            char.define(CHAR + 0x146, bytes(2))
+            obj = am.undefined_region('object', fx.OBJECTS, 0x400)
+            for off, payload in [(0x5c, struct.pack('<i', model)), (0x2a, struct.pack('<H', action)),
+                                 (0xd0, struct.pack('<f', frame))]:
+                obj.define(fx.OBJECTS + off, payload)
+            regions = [char, obj, am.defined_region('cutoff', 0x1cf1050, struct.pack('<i', 0)),
+                       am.defined_region('hero', HERO_PTR, struct.pack('<I', CHAR)),
+                       am.defined_region('hero-ptr', HERO_DATA_PTR, struct.pack('<I', fx.HERO_DATA)),
+                       am.defined_region('hero-equipment', fx.HERO_DATA + 0x1c94, bytes(4))]
+            seen = []
+            record = lambda mm: seen.append(mm.argument(0)) or 0
+            stubs = {fx.CREATE_EFFECT_WRAPPER: record, fx.CREATE_JOINT: record, fx.CREATE_PARTICLE: record,
+                     fx.PLAY_BUFFER: record, 0x01989721: record, 0x013a5658: lambda mm: 0,
+                     0x00ac3bf7: lambda mm: (fx.CONTAINER, 4), 0x0095f998: lambda mm: fx.CONTAINER,
+                     0x00bb1c32: lambda mm: skill}
+            result = m.execute(0x013966ea, [CHAR, fx.OBJECTS], regions, stubs)
+            mine = C.c_uint8(time_in)
+            limit = lib.mu_skill35_step(skill, model, action, frame, C.byref(mine))
+            equal = vc.ok(result) and not seen and result['regions']['character'][0x21] == mine.value and \
+                struct.unpack('<i', result['regions']['cutoff'])[0] == limit
+            report.add('step', equal, dict(skill=skill, case=n, model=model, action=action, frame=str(frame),
+                                           seen=seen, stopped=result['stopped'], machine_error=result['error']))
+
+
 def controls(m, lib, report):
     """SkillAction's own selection and the authored admission controls."""
     for character in (CHAR, 0):
@@ -440,6 +486,12 @@ MUTANTS = [
     ('if (s->mounted) return 0;', ''),
     ('request(p, MU_SKILL35_KEY_LIST, (int16_t)s->target.key, 0)', 'request(p, MU_SKILL35_KEY_LIST, s->target.key, 0)'),
     ('if (s->source_is_hero) p->hero_attack_time = p->attack_time;', ''),
+    ('action == 0x8f && frame >= 1.0f', 'action == 0x8f && frame > 1.0f'),
+    ('action >= 0x6f && action < 0x133', 'action >= 0x6f && action < 0x132'),
+    ('model >= 0x7a5 && model < 0x9fd', 'model >= 0x7a5 && model < 0x9fc'),
+    ('action >= 3 && action <= 4', 'action >= 3 && action <= 5'),
+    ('else if (frame >= 5.0f &&', 'else if (frame > 5.0f &&'),
+    ('return 15;   /* the cutoff', 'return 14;   /* the cutoff'),
 ]
 SOURCES = ['reconstructed/combat/catalogue_skill_fx.c', 'reconstructed/record-math/record_math.c']
 FLAGS = ['clang', '-std=c11', '-O2', '-shared', '-fPIC', '-ffp-contract=off', '-fno-fast-math', '-I',
@@ -454,6 +506,7 @@ def run(cases, mutants, only=None, dump=0):
     m = Machine(text, data)
     report = compare(m, lib, cases, only, dump)
     if lib and not only:
+        steps(m, lib, max(len(STEP_EDGES), cases // 4), report)
         controls(m, lib, report)
     out = dict(families=report.families, mutants=[], text_sha256=pins.TEXT.sha256, data_sha256=pins.DATA.sha256,
                bodies={str(skill): dict(group=row[0], family=row[1], start=hex(row[2]), end=hex(row[3]),
@@ -475,6 +528,7 @@ def run(cases, mutants, only=None, dump=0):
                                capture_output=True)
                 mutant = load(path)
                 r = compare(m, mutant, min(cases, 40))
+                steps(m, mutant, len(STEP_EDGES), r)
                 controls(m, mutant, r)
                 failures = [f for f in r.families.values() if f['equal'] != f['cases']]
                 stops = sum(bool(e.get('stopped')) for f in failures for e in f['first_failures'])

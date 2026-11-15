@@ -65,6 +65,9 @@ int mu_skill35_position(int32_t skill);
 int mu_skill35_learned(int32_t skill, const uint16_t *skills, int32_t count);
 /* SkillAction's selection 0x012b0035..0x012b0087: the alternative is the mounted pose. */
 int mu_skill35_action(int32_t action, int32_t alternative, int32_t mounted, int32_t flag_31e8);
+/* The attack-step body of an admitted row (the default 0x0139b454). Returns the
+ * AttackTime cutoff (15), or 0 for a refused row. */
+int mu_skill35_step(int32_t skill, int32_t model, int32_t action, float frame, uint8_t *attack_time);
 /* Phase 0: receive case body. Phase 1: end body (group E only). Returns 0 for a
  * refused row, phase or service context (mounted bone-frame rows). */
 int mu_skill35_plan_cast(const mu_skill35_input *in, int phase, mu_skill35_plan *out);
