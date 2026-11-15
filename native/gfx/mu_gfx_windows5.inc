@@ -76,6 +76,7 @@ static int presentation_parent5(movie *w, const char *name, const double *v, int
             (void)mu_gfx_layer_mix_action(w->L,"mixopen",0,0);
             return 1;
         }
+        return 1; /* Goblin callbacks never reach the legacy int-cast branch. */
     }
     return 0;
 }

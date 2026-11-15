@@ -72,6 +72,7 @@ class MutationSensitivity(unittest.TestCase):
             ('invented-sound','        if(r->toggle) mu_gfx_layer_toggle','        if(L->cfg.window_sound) L->cfg.window_sound(L->cfg.tooltip_user,25,0xc716f6);\n        if(r->toggle) mu_gfx_layer_toggle',False),
             ('disabled-tabs','presentation_set(L,m,"btnItemList.enabled","true");','presentation_set(L,m,"btnItemList.enabled","false");',True),
             ('mix-branch','v[0]==1 && !w->L->mv[MU_GFX_MIX].open','v[0]==0 && !w->L->mv[MU_GFX_MIX].open',False),
+            ('parent-fallthrough','return 1; /* Goblin callbacks never reach the legacy int-cast branch. */','return 0; /* Goblin callbacks never reach the legacy int-cast branch. */',False),
             ('enabled-watch','[%d,\\"No match\\",true]','[%d,\\"No match\\",false]',True),
         ]
         with tempfile.TemporaryDirectory(prefix='mu-windows5-mutants-') as folder:

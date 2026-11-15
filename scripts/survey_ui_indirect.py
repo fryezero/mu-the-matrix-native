@@ -23,6 +23,32 @@ def indirect_routes(text, data, registry, direct, getters):
     windows={r['slot']:r for r in registry}
     found={}
     explored_helpers=set()
+    def kill_written(i, state):
+        _,written=i.regs_access()
+        for reg in written:
+            name=i.reg_name(reg)
+            if name=='ebp':
+                for key in list(state):
+                    if key.startswith('dword ptr [ebp'):state.pop(key,None)
+            for full,aliases in {'eax':('al','ah','ax'),'ebx':('bl','bh','bx'),'ecx':('cl','ch','cx'),'edx':('dl','dh','dx'),'esi':('si',),'edi':('di',)}.items():
+                if name==full or name in aliases:state.pop(full,None)
+    def kill_local_write(dst, state):
+        object_store=re.fullmatch(r'(?:byte|word|dword|qword) ptr \[(e[a-z]{2}) \+ (0x[0-9a-f]+|[0-9]+)\]',dst)
+        if object_store and int(object_store[2],0)>0 and state.get(object_store[1],('',))[0] in ('window','manager'):
+            return  # A proved object field does not alias the caller's frame.
+        store=re.fullmatch(r'(byte|word|dword|qword) ptr \[ebp(?: ([+-]) (0x[0-9a-f]+|[0-9]+))?\]',dst)
+        if not store:
+            # Non-frame memory aliases cannot preserve a saved local identity.
+            for key in list(state):
+                if key.startswith('dword ptr [ebp'):state.pop(key,None)
+            return
+        width={'byte':1,'word':2,'dword':4,'qword':8}[store[1]]
+        offset=int(store[3] or '0',0)*(-1 if store[2]=='-' else 1)
+        for key in list(state):
+            saved=re.fullmatch(r'dword ptr \[ebp(?: ([+-]) (0x[0-9a-f]+|[0-9]+))?\]',key)
+            if not saved:continue
+            other=int(saved[2] or '0',0)*(-1 if saved[1]=='-' else 1)
+            if offset<other+4 and other<offset+width:state.pop(key,None)
     def memory(src, state):
         absolute=re.fullmatch(r'dword ptr \[(0x[0-9a-f]+)\]',src)
         if absolute:
@@ -77,17 +103,16 @@ def indirect_routes(text, data, registry, direct, getters):
             elif i.mnemonic=='mov' and len(parts)==2:
                 dst,src=parts;value=state.get(src) or memory(src,state)
                 if value is None and number(src) is not None:value=('code',number(src))
+                kill_written(i,state)
+                if 'ptr [' in dst:kill_local_write(dst,state)
                 state.pop(dst,None)
-                if value:state[dst]=value
+                if value and (dst in ('eax','ebx','ecx','edx','esi','edi') or re.fullmatch(r'dword ptr \[ebp(?: [+-] (?:0x[0-9a-f]+|[0-9]+))?\]',dst)):
+                    state[dst]=value
             else:
-                # Capstone's written register list also kills subregister aliases.
-                _,written=i.regs_access()
-                for reg in written:
-                    name=i.reg_name(reg)
-                    for full in ('eax','ebx','ecx','edx','esi','edi'):
-                        if name==full or name in {'eax':('al','ah','ax'),'ebx':('bl','bh','bx'),'ecx':('cl','ch','cx'),'edx':('dl','dh','dx'),'esi':('si',),'edi':('di',)}[full]:state.pop(full,None)
-                # An unmodelled local write cannot leave a stale saved receiver.
-                if parts and parts[0].startswith('dword ptr [ebp') and i.mnemonic not in ('cmp','test','push'):state.pop(parts[0],None)
+                kill_written(i,state)
+                # Unknown or partial local stores invalidate saved identities.
+                if parts and 'ptr [' in parts[0] and i.mnemonic not in ('cmp','test','push'):
+                    kill_local_write(parts[0],state)
             work.append((nextpc,state,steps+1,scope,depth))
     return sorted(found.values(),key=lambda r:(r['site'],r['manager_slot'],r['action']))
 

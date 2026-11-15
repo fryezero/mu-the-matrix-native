@@ -73,6 +73,21 @@ int main(int argc,char **argv)
  mu_gfx_layer_presentation_close(L);mu_gfx_layer_show(L,MU_GFX_MIX_SELECT,1);mu_gfx_layer_show(L,MU_GFX_MIX,1);
  on_call(&L->mv[MU_GFX_MIX_SELECT],"onClickGoblinMenu","[1,0]");assert(!L->mv[MU_GFX_MU_MIX].open);
  mu_gfx_layer_show(L,MU_GFX_MIX,0);mu_gfx_layer_show(L,MU_GFX_MIX_SELECT,0);
+ const char *invalid_parent[]={"[1.5,0]","[1,0,99]","[]","[-1,0]","[0,0,99]"};
+ char note[160];snprintf(note,sizeof note,"%s",L->npc_last);
+ for(int visible=0;visible<2;visible++) {
+  mu_gfx_layer_show(L,MU_GFX_MIX_SELECT,visible);
+  for(size_t i=0;i<sizeof invalid_parent/sizeof *invalid_parent;i++) {
+   on_call(&L->mv[MU_GFX_MIX_SELECT],"onClickGoblinMenu",invalid_parent[i]);
+   assert(!L->mv[MU_GFX_MU_MIX].open && !L->mv[MU_GFX_MIX].open);
+   assert(!strcmp(note,L->npc_last));
+  }
+ }
+ mu_gfx_layer_show(L,MU_GFX_MIX_SELECT,0);
+ on_call(&L->mv[MU_GFX_MIX_SELECT],"onClickGoblinMenu","[0,0]");
+ on_call(&L->mv[MU_GFX_MIX_SELECT],"onClickGoblinMenu","[1,0]");
+ assert(!L->mv[MU_GFX_MU_MIX].open && !L->mv[MU_GFX_MIX].open && !strcmp(note,L->npc_last));
+ printf("12 inert parent callbacks\n");
  mu_walk walk={0};mu_world_actor actor={0};mu_world_actors actors={.list=&actor,.count=1};actor.server_class=251;actor.actor.spec.npc_index=0;
  mu_npc_demo demo={0};demo.count=1;demo.rows[0].server_class=251;demo.rows[0].result=0x30;
  mu_npc npc;mu_npc_init(&npc,&walk,&actors,&demo);npc.open=opened;npc.close_all=close_all;npc.sound=tail;npc.ordered_window_sounds=1;npc.pending_actor=0;answer(&npc);

@@ -148,3 +148,24 @@ the fixes, merge latest main and rebuild. Refresh only the selected changed
 inputs; run merge-affected portable and reduced private consumers, integrated
 proofs/identity, final audit/docs/status, then publish the PR/ready entry and
 clean up. Do not rerender any successful before-baseline map.
+
+
+### WIP checkpoint: final controls repaired
+
+Done: all 94 merge validators pass at 340db5b3 in 3422.95 s. Both newly
+added controls reproduced failures before repair (2.08 s). The strict Goblin
+parent fix passes; twelve hidden/malformed-parent controls are present. The
+scanner now kills partial-register and overlapping-frame writes and unknown
+memory aliases, retaining disjoint proved object fields. Seven controls pass
+in 0.08 s; the final ledger reproduces in 14.36 s. It retains 482 joins / 67
+additional. ResistPopup's tentative opener and two close joins are withdrawn.
+Final classifications are 13 complete / 33 provider-missing / 30 state-dependent
+/ 42 no-route; twenty entry rows gain routes, nineteen still lack providers.
+The four admitted movies and 28/134 bound survey are unchanged.
+
+Left: merge batch 116 main, rebuild, run the new compiled parent mutant,
+refresh affected validators and portable/reduced private consumers, integrated
+journeys/after-only identity, final docs/audit/publication and cleanup.
+
+Next step: merge latest origin/main, then root and explicit world builds.
+Keep the 94 frozen reports and rerun only changed compiled inputs.

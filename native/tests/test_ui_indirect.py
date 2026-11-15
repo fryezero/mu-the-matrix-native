@@ -39,3 +39,16 @@ class IndirectRoutes(unittest.TestCase):
         table=struct.pack('<II',0xac3bf7,0x111111)
         text=bytes.fromhex('ff 15 00 c0 a7 01 ff 15 04 c0 a7 01 b8 f7 3b ac 00 ff d0')
         self.assertEqual(indirect_manager_roots(text,table),[0x401000,0x401011])
+
+    def test_partial_register_and_local_writes_kill_identity(self):
+        for tail in ('8b c8 8b 00 b1 00 ff 50 40 c3',
+                     '89 45 fc c6 45 fc 00 8b 4d fc 8b 01 ff 50 40 c3',
+                     '89 45 fc 66 c7 45 fc 00 00 8b 4d fc 8b 01 ff 50 40 c3'):
+            self.assertEqual(self.scan(bytes.fromhex(tail)),[])
+
+    def test_object_field_write_preserves_disjoint_frame_save(self):
+        rows=self.scan(bytes.fromhex('89 45 fc c6 40 24 01 8b 4d fc 8b 01 ff 50 40 c3'))
+        self.assertEqual([(r['manager_slot'],r['action']) for r in rows],[('0xe0','open')])
+
+    def test_unknown_memory_write_kills_saved_receiver(self):
+        self.assertEqual(self.scan(bytes.fromhex('89 45 fc c6 42 24 01 8b 4d fc 8b 01 ff 50 40 c3')),[])

@@ -145,7 +145,6 @@ site,manager_slot,movie,action,manager_site,encoding
 0x00b97829,0xa4,ExtensionBagFrame.swf,toggle,0x00b9781b,memory/direct
 0x00b97edf,0x280,ArtifactFrame.swf,toggle,0x00b97ed1,memory/direct
 0x00b99bb3,0x258,KanturuEvent.swf,close,0x0118eb99,memory/direct
-0x00b9adf6,0x258,KanturuEvent.swf,close,0x0124ef20,memory/direct
 0x00b9b808,0x248,TimeCounter.swf,close,0x012504e4,memory/direct
 0x00b9bf33,0x248,TimeCounter.swf,close,0x01282f18,memory/direct
 0x00b9f429,0x19c,ListOfMatches.swf,toggle,0x01230bf5,memory/direct
@@ -198,7 +197,6 @@ site,manager_slot,movie,action,manager_site,encoding
 0x00bdf80c,0xa0,InventoryFrame.swf,close,0x00bdf7f5,memory/direct
 0x00be8547,0xf0,npcdialogue.swf,open,0x00b20df7,memory/direct
 0x00be8f84,0xbc,GensRanking.swf,close,0x0124207e,memory/direct
-0x00be8f9a,0xf0,npcdialogue.swf,close,0x0124207e,memory/direct
 0x00be9591,0xb8,MixInventoryFrame.swf,open,0x00be957a,memory/direct
 0x00bec3e8,0x108,NpcJobChangeQuest.swf,open,0x0127a15c,memory/direct
 0x00bf03f3,0xa0,InventoryFrame.swf,open,0x00bf03dc,memory/direct
@@ -237,7 +235,6 @@ site,manager_slot,movie,action,manager_site,encoding
 0x00c09a6e,0x1a4,ProgressFrame.swf,toggle,0x009fc8fc,memory/direct
 0x00c0a0da,0x118,QuestProgressInfo.swf,open,0x00d4b6da,memory/direct
 0x00c0a996,0xd8,QuickCommand.swf,open,0x00efbf55,memory/direct
-0x00c0c0ad,0x220,ResistPopup.swf,open,0x018567d3,memory/direct
 0x00c0c10c,0x220,ResistPopup.swf,close,0x018567d3,memory/direct
 0x00c0d3bb,0x28c,RewardItemExchange.swf,close,0x01288d99,memory/direct
 0x00c0d3da,0x28c,RewardItemExchange.swf,close,0x01288d99,memory/direct

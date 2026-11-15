@@ -506,10 +506,10 @@ and script routes without a captured controller join remain unresolved.
 
 The pass also checks captured absolute function-pointer and adjacent register-immediate manager calls. Dynamic table IDs remain unresolved.
 
-The pass starts at 6,708 direct manager calls. It finds 485 lifecycle sites,
-70 additional to 004. The [address ledger](ui-window-indirect.csv) records
+The pass starts at 6,708 direct manager calls. It finds 482 lifecycle sites,
+67 additional to 004. The [address ledger](ui-window-indirect.csv) records
 manager root, terminal site, movie, slot and action. These extra sites prove
-open/toggle routes for 21 entry no-route rows. Movie casing differs in some
+open/toggle routes for 20 entry no-route rows. Movie casing differs in some
 registrations, so the survey join uses the proved manager slot, never a guessed
 filename alias. Registration names alone still do not admit windows.
 The original 30 state-dependent rows retain their classification and refusals.
@@ -543,8 +543,8 @@ unowned nested GFx sounds remain outside the claim.
 ### Current classifications
 
 The 118 rows classified by 004 change from 9 complete / 17 provider-missing /
-30 state-dependent / 62 no-route to 13 / 34 / 30 / 41. Twenty newly proved
-rows remain provider-missing; DuelWatch is the twenty-first and is admitted.
+30 state-dependent / 62 no-route to 13 / 33 / 30 / 42. Nineteen newly proved
+rows remain provider-missing; DuelWatch is the twentieth and is admitted.
 The historical survey rises 24 -> 28 bound of 134, unresolved 110 -> 106.
 The separately withdrawn PlayGuide row remains no-route and unbound.
 Registry entries rise 57 -> 61; distinct filenames 56 -> 60.
@@ -555,3 +555,13 @@ catalogue, storage authority, guide content, transactions, stat formulas or
 power features are implemented. A proved lifecycle method is not proof of its
 upstream request/state, so the new route discoveries retain those missing
 providers instead of acquiring invented keys or native triggers.
+
+The final callback audit requires Goblin parent events to be consumed even
+when hidden or malformed, before the older integer-cast handler. Twelve
+parent controls and a distinct compiled fallthrough mutant cover that limit.
+The route scanner also invalidates partial register writes and overlapping
+frame stores. Proved object-field writes preserve disjoint frame saves;
+unknown memory writes discard them. Seven synthetic provenance controls pass.
+This stricter pass withdraws one tentative ResistPopup opener and two close
+joins: 482 lifecycle sites / 67 additional, with 20 newly proved entry routes.
+The withdrawn candidate remains no-route; no binding is supplied.
