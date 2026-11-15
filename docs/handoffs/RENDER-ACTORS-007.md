@@ -41,7 +41,21 @@ that main at `1b194a04`, preserving both appended registry sides. Registry
 parsing uses the repository Python. Incoming combat, Muun and item inputs
 require a post-build delta selection and only those replays.
 
-Left: integrated rebuild/delta checks, final proofs and identity replay,
+The batch-115 root build passes in 16.39 s. Explicit world build passes in
+7.50 s runtime / 487.50 s command, including 480 s resource waiting. Its
+SHA-256 is `1e855e5234feadb27b80a33682f7193b54c4c38a0ed7584949960353dd45ca12`.
+All 24 after proof scenes render in 26.34 s, inspected as two contact sheets.
+Every new weapon assembly changes pixels; empty control remains identical.
+The 46-view default replay takes 87.87 s: 90/92 PNGs and 92/92 dumps are
+identical. Only Remain's two PNGs differ. All 46 reports append the same two
+bitmap availability flags, 97 to 99, preserving their old prefixes. Only
+Remain also changes particle/counter/hash fields, matching incoming
+EFFECTS-031. There is no default actor-related image delta.
+
+The input-delta selector keeps all 31 prior rows, 62.19 s. The current
+PR-wide selector is pending behind the resource guard.
+
+Left: required merged-input validator/portable/private replays, final
 publication audit and PR. No readiness claim yet.
 
 Main through `6900914e` is integrated at `f8c9753a`; its EFFECTS-031
