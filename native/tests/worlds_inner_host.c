@@ -246,7 +246,9 @@ int main(int argc, char **argv)
         for(int t=15;t<=32;++t) {
             if(t!=15 && t!=29 && t!=32) continue;
             reset(o,world,t); (void)pass(o);
-            assert(o->rt.draw_unsupported==1 && o->rt.seed==next(1));
+            assert(o->rt.draw_unsupported==0 && o->rt.seed==next(1));
+            assert(mu_obj_f32(o->rt.images,MU_OBJF_POSITION+8)==180.0f);
+            assert(o->rt.sprite_count==(t==32?1:0));
         }
     }
     model.bmd.bones[2].name[0]='x';reset(o,24,12);(void)pass(o);
@@ -260,7 +262,10 @@ int main(int argc, char **argv)
     assert(o->rt.sprites[1].bitmap==0x7f67 && o->rt.sprites[1].scale==(float)(1.0/2.4));
     model.bmd.bone_count=1;reset(o,39,5);(void)pass(o);
     assert(o->rt.sprite_count==0 && o->rt.draw_unsupported==3);model.bmd.bone_count=7;
-    reset(o,39,0);(void)pass(o);assert(o->rt.draw_unsupported==1 && o->rt.seed==next(1));
+    reset(o,39,0);(void)pass(o);assert(o->rt.draw_unsupported==0 && o->rt.seed==next(next(next(1))));
+    assert(mu_obj_i32(o->rt.images,MU_OBJF_HIDDEN_MESH)==0);
+    reset(o,39,0);mu_obj_set_f32(o->rt.images,MU_OBJF_FRAME,6);(void)pass(o);
+    assert(o->rt.draw_unsupported==1); /* Synthetic model has no bone 34. */
     reset(o,39,1);(void)pass(o);assert(o->rt.particle_count==10 && mu_obj_i32(o->rt.images,MU_OBJF_HIDDEN_MESH)==-2);
     o->rt.particle_count=0;(void)pass(o);assert(o->rt.particle_count==0);
     for(int world=41;world<=42;++world) {

@@ -3801,3 +3801,20 @@ note = "INNER-004: complete Crywolf/Barracks leaves and bounded Kalima/tower inl
 "families.*.stopped" = 0
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
+
+[validate_worlds_inner5]
+test = "reconstructed/objects/test_worlds_inner5.py::ClientComparison.test_original"
+pins = ["text", "data"]
+families = ["kalima", "kalima_focus", "tower", "tower_focus"]
+cases = 4000
+mutants = 37
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+note = "INNER-005: Kalima 15/29/32 including hero motion and authored water sampler; tower 0 and nested sequence with authored singleton/timer inputs, visual-only sound boundaries; no authoritative event controller"
+[validate_worlds_inner5.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0
