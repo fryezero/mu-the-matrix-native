@@ -52,7 +52,8 @@ int main(int argc, char **argv)
                 a->actor.textures.filter[i] != 0x2600 || a->actor.textures.wrap[i] != 0x2901) textures_equal = 0;
             mu_image_free(&image);
         }
-        printf("{\"class\":%d,\"model\":%d,\"scale\":%.9g,\"frame\":%.9g,\"file\":\"%s\","
+        char result[4096];
+        snprintf(result, sizeof result, "{\"class\":%d,\"model\":%d,\"scale\":%.9g,\"frame\":%.9g,\"file\":\"%s\","
             "\"missing\":%d,\"textures_equal\":%d,\"meshes\":%d,\"vertices\":%u,\"status\":%d,\"refused\":%ld,"
             "\"alpha\":[%.9g,%.9g],\"admitted\":%d,\"flags\":%u,\"attach\":%d}\n",
             cl, a->actor.spec.model_index, (double)a->actor.spec.scale, (double)mu_actor_frame(&a->actor),
@@ -60,6 +61,8 @@ int main(int argc, char **argv)
             a->actor.bmd.mesh_count, vertices, status, stats.refused, (double)low, (double)high, admitted,
             options.flags, a->weapons != NULL || a->player != NULL || a->effect_count != 0);
         mu_world_actors_free(&actors); free(map);
+        /* A cleanup failure must leave this selector unreported to the batch. */
+        fputs(result, stdout);
     }
     return 0;
 }

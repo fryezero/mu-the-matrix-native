@@ -160,3 +160,17 @@ all 905 initial rows into thirty groups. Portable integration is waiting on
 load; the wrapper excludes temporary app packaging. Left: permitted portable
 integration, private 8d reduced, identity/proofs, final docs/audit and PR/ready
 publication and cleanup. No PR or ready entry exists yet.
+
+Checkpoint 2026-11-15 01:16: portable integration passes 1,792 tests, 1,454 passed /
+338 expected skips / zero failures or errors, 362.9 s runner and 850.37 s
+command including 360 s resource wait. Private 8d reduced passes both actor
+tests, zero skips, 165.64 s command. Explicitly rebuilt identity passes
+227/230 file hashes and all 45 unaffected views; the three differences are
+exactly INNER-004 Kanturu-37 PNGs/report. After binary is
+`0b9bcf21d7766ce6da790a63e96826e5cd432183ea2ae21c56a5817b2516133d`.
+Proof rendering is waiting on load. Final review moves the native test host
+result publication after resource cleanup, so a cleanup failure cannot leave
+a successful row in the batch. This output-only host correction needs the
+new-row positive replay; production code, checks and compiled-mutant targets
+are unchanged. Left: proof renders, focused positive replay, final docs/audit,
+PR/ready publication and cleanup. No PR or ready entry exists yet.

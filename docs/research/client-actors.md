@@ -754,7 +754,8 @@ textures in this environment and stays incomplete.
 
 The first draft native host omitted its texture-coordinate callback and
 crashed. That host error was fixed before admission. The batch isolates any
-remaining native failure by selector, records it, and excludes that row; an
+remaining native failure by selector, records it, and excludes that row. It
+publishes a row only after cleanup, so a cleanup failure cannot certify it; an
 unexpected native stop is not accepted as a compiled negative control.
 
 ### Reproduction and limits
