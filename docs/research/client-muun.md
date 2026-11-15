@@ -279,7 +279,8 @@ The complete `0x009bfe13` producer groups the eight models into four pairs. It c
 bone through `0x0129f24f`, transforms zero with translation, and emits two particles at that point.
 The first is 0x8081 or 0x8082, subtype 1, scale 1; the second is 0x7ef7, subtype 19, scale 3.5. Colours
 vary by model pair. Native supplies its deterministic fixture phase and refuses dummy/unresolved bones.
-This establishes request parameters and placement, not the original process's global RNG phase.
+The caller comparison supplies the random-bone transform service. Native chooses a bounded fixture bone;
+the original RangedRandom service and its process-wide RNG distribution/phase are not reimplemented here.
 
 The remote part of `0x009c2371` advances the caller-supplied seconds delta while byte +0x44 equals 1.
 At elapsed >= period it clears that flag, resets elapsed, and requests 0x47a at OBJECT position plus
@@ -306,3 +307,26 @@ explicit refusals. This lane does not synthesize or remap missing actions.
 The mounted-rider fixture authors its initial ride pose and clock. The comparisons verify the bounded seat
 addition, lift gate, counter decisions and first-action request, not the whole original creation/render order.
 The original first-render callback is recorded by the checker; the fixture supplies its pose inputs directly.
+
+### Verified special mesh-only subset
+
+The initial thirty-row refusal census above is reduced by a per-row comparison of the whole mesh caller.
+The helper admits ordinary rows on all five models, the 0x2b7a/b mesh-2 branch and 0x2b8e meshes 5/6.
+The first branch updates persistent OBJECT +0xc8 every rendered row: action 2 subtracts delta * 2.5 and
+clamps at zero; other actions add delta * 0.35 and clamp at the row's +0x114. It draws alpha 1 using that
+persistent value as blend light. This is render-time state, not a logic-step or process-clock inference.
+
+The atlas rows select frame = (trunc(WorldTime) % (20 * count)) / 20, with count 13 for mesh 5 and 15 for
+mesh 6. The four-column coordinates multiply signed frame remainder/quotient by 0.25. Both use flags
+0x42, their own mesh as blend mesh, OBJECT alpha/light and no texture override. Native matches x86
+CVTTSS2SI's INT32_MIN result for invalid/out-of-range clocks. The ordered installed-row comparison also
+checks restored model colour and persistent +0xc8 after the complete caller returns.
+
+Four installed rows enter three further bone-effect branches: 375 mesh 1, two rows on 376 mesh 2, and
+377 mesh 4. The checker observes and refuses those branch entries rather than replacing them with ordinary
+passes. They remain outside this subset. Full comparisons run only for admitted rows.
+
+Native renders 25/30 rows: ids 356/357/375/376/377 admit 3/3/7/8/4. Besides those four effect rows,
+357's mesh-3 row is refused because its actual model has only meshes 0..2. Its texture exists; no filename
+normalization or substitute mesh was used. Private original and GL/software pixel controls pass; final
+mutants/refresh counts belong in the handoff. No additional mesh-associated effect consumer was authored.

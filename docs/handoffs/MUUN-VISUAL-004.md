@@ -16,6 +16,10 @@ local-owner mode-10 mesh pass. Both require the mount fixture. Secondary model-s
 existing particle entry points; missing consumers are counted. `MU_MUUN_REMOTE_FIXTURE=1` supplies an
 authored 3-second remote expiry and one 0x47a request. Consumer refusal remains explicit.
 
+Appearances 356/357/375/376/377 now admit 3/3/7/8/4 mesh rows respectively through the same appearance
+fixture flag. Two render-time light rows and two atlas rows are instruction-compared. The three bone-effect
+branches, four actual rows, remain refused. Appearance 357 additionally refuses its unavailable mesh 3.
+
 ## Checks so far
 
 - Root build passes. Focused secondary module: 5/5 pass after adding its missing data-decoder build dependency.
@@ -35,16 +39,23 @@ The optional unchanged mutant switches were disabled. New rider mutants passed o
 
 Affected portable tests, 8d reduced,
 default after identity, audit, latest-main integration and PR-ready docs remain pending.
-The five special mesh models retain thirty refused rows; code 363 still has three actions and cannot supply 3/4.
+The five special models now draw 25/30 rows. Four bone-effect rows and appearance 357 mesh 3 remain refused.
+The installed 357 skeleton has only meshes 0..2. Code 363 still cannot supply actions 3/4.
 The fixture authors its initial ride pose and clock. Full original creation/render ordering is not compared.
 No production selection, inventory, power, packets, authoritative targets, process-clock or live-scene parity.
+
+The first portable batch passes: 1,543 tests, 1,269 passed, 274 skips, zero failures/errors, 460.08 s.
+It predates the final special-row integration. The special-row root build passes in 11.70 s; its private
+module passes 3/3 in 16.03 s, with 450 original cases and GL/software controls for all five models.
+The new special-row mutant set and affected refresh remain pending.
 
 ## WIP
 
 Done: recovered rider gate/placement, secondary request producer, owner-kind-2 subtraction, buff mode and
 remote expiry. Native integration builds; focused prior secondary tests pass. New tests and mutant row added.
-Left: final checks listed above, precise special-model audit, research/status text and PR delivery.
-Next: run the affected portable batch and reduced private modules, then final proof/identity and delivery.
+Left: special-row mutants, final affected refresh, reduced private Muun modules, identity/proof checks,
+research/status text and PR delivery.
+Next: run the new special-row mutants once, then refresh the affected validators/tests and finish delivery.
 
 Scratch and proof renders are under `~/Documents/MTM/mu-mac-tools/native/{scratch,renders}/muun-visual-004`.
 No new future-lane input has been created. No ready queue entry exists yet.

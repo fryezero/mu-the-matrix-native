@@ -1,6 +1,7 @@
 #include "mu_muun_visual.h"
 #include "mu_data.h"
 #include "mu_objects.h"
+#include "mu_frame_time.h"
 #include "../../reconstructed/movement/client_movement.h"
 #include <math.h>
 #include <stdio.h>
@@ -121,10 +122,8 @@ int mu_muun_visual_open(mu_muun_visual *v, const char *root, const char *lang, i
             const uint8_t *r = meshes.bytes + meshes.result.records_offset + (size_t)k * 300;
             if (i32_at(r, 0) != v->info.item) continue;
             int32_t mesh = i32_at(r, 4);
-            /* These later special models need their own caller branches, never this fallback. */
-            if (v->info.item + MU_ITEM_MODEL_BASE == 0x2b7a || v->info.item + MU_ITEM_MODEL_BASE == 0x2b7b ||
-                v->info.item + MU_ITEM_MODEL_BASE == 0x2b8d || v->info.item + MU_ITEM_MODEL_BASE == 0x2b8e ||
-                v->info.item + MU_ITEM_MODEL_BASE == 0x2b90 || mesh < 0 || mesh >= v->bmd.mesh_count) {
+            /* Keep the three unproved bone-effect rows explicit; ordinary/special mesh-only rows admit. */
+            if (!mu_mv_special_admit(v->info.item + MU_ITEM_MODEL_BASE, mesh) || mesh < 0 || mesh >= v->bmd.mesh_count) {
                 ++v->refused_meshes; continue;
             }
             int valid = 1;
@@ -266,6 +265,9 @@ void mu_muun_visual_draw(mu_muun_visual *v, float time, const mu_render_backend 
         mu_mv_pass pass;
         mu_mv_mesh_pass(v->mesh_records + (size_t)k * 300, v->model.params.color, 1.0f, -1,
                        1.0f, v->mesh_textures[k], time, &pass);
+        float uv[2] = {0.0f, 0.0f};
+        mu_mv_special_pass(v->state.model, v->state.action, v->mesh_records + (size_t)k * 300,
+            mu_frame_time_value(), time, 1.0f, 1.0f, &v->mesh_c8, &pass, uv);
         mu_draw_model_fields fields = {0};
         memcpy(fields.color, pass.color, sizeof fields.color);
         o.fields = &fields;
@@ -275,6 +277,7 @@ void mu_muun_visual_draw(mu_muun_visual *v, float time, const mu_render_backend 
         o.select = pass.blend;
         o.color_scale = pass.light;
         o.texture = pass.texture;
+        o.u_offset = uv[0]; o.v_offset = uv[1];
         mu_scene_draw_model(&v->model, &o, backend, stats);
         ++v->mesh_draws;
     }
