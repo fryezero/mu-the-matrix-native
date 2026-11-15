@@ -140,6 +140,7 @@ static void mu_pt_world_inner_move(mu_pt_particle *p, const mu_pt_host *h)
                 p->rotation = (((h ? h->world_time : 0.0f) * 0.02f) * p->field_7c) + p->start[1];
             return;
         }
+        if (p->subtype == 16 && p->lifetime <= 10) p->live = 0; /* 0x0165fe20 */
         for (int k = 0; k < 3; ++k) p->position[k] = p->position[k] + p->velocity[k];
         if (p->subtype == 10) p->field_7c = 1.5f;
         float d[3];
@@ -148,8 +149,8 @@ static void mu_pt_world_inner_move(mu_pt_particle *p, const mu_pt_host *h)
         if (p->subtype == 16) {
             p->rotation = ((float)(mu_pt_rand(h) % 2) + 0.5f) + p->rotation;
             if (50.0f >= distance) {
-                for (int k = 0; k < 3; ++k) p->light[k] = p->light[k] + 0.03f;
-                if (p->light[0] >= 0.3f) p->light[0] = p->light[1] = p->light[2] = 0.3f;
+                for (int k = 0; k < 3; ++k) p->light[k] = p->light[k] + 0.01f;
+                if (p->light[0] >= 0.2f) p->light[0] = p->light[1] = p->light[2] = 0.2f;
             } else {
                 for (int k = 0; k < 3; ++k) p->light[k] = p->light[k] / 1.05f;
                 if (0.001f > p->light[0]) p->live = 0;

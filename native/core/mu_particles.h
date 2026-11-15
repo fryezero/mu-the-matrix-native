@@ -18,6 +18,8 @@
 /* RENDER-EFFECTS-020: item OBJECTs (RenderLinkItem's link OBJECT, RenderPartObject's ground item) as particle
  * owners: MU_WORLD_FX_ITEM_BASE + (generation << 8) + slot of mu_world_particles.item_owners. */
 #define MU_WORLD_FX_ITEM_BASE 0x40000000
+/* RENDER-EFFECTS-031: charge children read their world-effect OBJECT slot. */
+#define MU_WORLD_FX_SELF_BASE 0x07000000
 #include "../../reconstructed/particles/particles.h"
 #include "../../reconstructed/combat/skill_fx.h"
 

@@ -511,6 +511,13 @@ static mu_jt_object hero_view(const mu_world_particles *p)
 static const mu_jt_object *fx_object(mu_world_particles *p, int32_t index)
 {
     mu_jt_object *o = &p->object_scratch[p->object_next++ & 3];
+    if (index >= MU_WORLD_FX_SELF_BASE && index < MU_WORLD_FX_SELF_BASE + MU_WORLD_FX_EFFECTS) {
+        if (!p->effects) return NULL;
+        const mu_sfx_effect *e = &p->effects[index - MU_WORLD_FX_SELF_BASE];
+        memset(o, 0, sizeof *o); o->live = o->visible = e->live; o->type = e->type;
+        memcpy(o->position, e->position, sizeof o->position);
+        return o;
+    }
     if (index == MU_WORLD_FX_HERO_OBJECT) {
         if (!p->has_hero)
             return NULL;
@@ -686,6 +693,13 @@ static int fx_call(mu_world_particles *p, const mu_jt_call *call, mu_sfx_effect 
                                   call->subtype, call->range);
         return 0;
     case MU_JT_CALL_PARTICLE:
+        /* RENDER-EFFECTS-031: keep the charge's self owner instead of dropping its Spark03/2 children. */
+        if (e && e->type == 0x7fd0 && call->owner == -2) {
+            const int32_t owner = MU_WORLD_FX_SELF_BASE + (int32_t)(e - p->effects);
+            mu_world_particles_create_owned(p,call->type,call->position,call->angle,call->light,
+                                            call->subtype,call->scale,owner);
+            return 0;
+        }
         mu_world_particles_create_owned(p, call->type, call->position, call->angle, call->light, call->subtype,
                                         call->scale, call->owner >= 0 ? call->owner : MU_PT_NO_OWNER);
         return 0;

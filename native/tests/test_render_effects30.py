@@ -58,11 +58,19 @@ class Native(unittest.TestCase):
             try:_,off=self.cast(51,cls)
             finally:hidden.rename(arrow)
             self.assertNotEqual(on,off)
-    def test_missing_consumers_are_counted_and_never_change_target_hp(self):
-        for skill,cls,weapon,refused in [(52,2,'bow',1),(48,1,'sword',0),(344,1,'sword',1)]:
+    def test_consumers_and_remaining_refusals_preserve_target_hp(self):
+        for skill,cls,weapon,refused in [(52,2,'bow',1),(416,2,'bow',1),(48,1,'sword',0),(344,1,'sword',1)]:
             rows,_=self.cast(skill,cls,weapon)
             plan=next(r for r in rows if r.get('skill30'))
             self.assertEqual(plan['refused'],refused,(skill,plan))
+            if skill in (52,416):
+                particles=next(r for r in rows if r.get('particles') is True)
+                self.assertGreater(particles['created'],0)
+                self.assertEqual(particles['unsupported'],0)
+            if skill==48:
+                summary=next(r for r in rows if r.get('combat') is True)
+                self.assertEqual(summary['joints_created'],72)
+                self.assertGreater(summary['sprites'],0)
             frames=[r for r in rows if 'combat_frame' in r]
             self.assertTrue(all(r['monsters'][0]['hp']==frames[0]['monsters'][0]['hp'] for r in frames))
     def test_wrong_class_weapon_and_stale_skill_have_no_new_visuals(self):

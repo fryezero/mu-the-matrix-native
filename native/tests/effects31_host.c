@@ -91,5 +91,67 @@ int main(int argc, char **argv)
         assert(!mu_world_particles_live_joints(p));
         mu_raster_free(&raster); mu_world_particles_close(p); free(p);
     }
+    const int effects[][2] = {{0x47a,0},{0x47a,1},{0x7f84,4},{0x7fd0,0},{0x7f42,6}};
+    for (unsigned k = 0; k < sizeof effects / sizeof effects[0]; ++k) {
+        mu_world_particles *p = calloc(1,sizeof *p);
+        char error[128],path[2048];
+        assert(p && !mu_world_particles_open(p,argv[1],NULL,38,1,0,error,sizeof error));
+        mu_sfx_info info={0}; info.word4=4;
+        assert(mu_world_particles_effect(p,effects[k][0],effects[k][1],zero,zero,light,-1,1,&info));
+        mu_world_particles_step(p,40);
+        if (effects[k][0]==0x7fd0) {
+            assert(p->list.created==3 && p->list.unsupported==0);
+            for (int n=0;n<3;++n) assert(p->list.records[n].owner==MU_WORLD_FX_SELF_BASE);
+        }
+        if (effects[k][0]==0x7f42) assert(p->list.created==1 && p->list.unsupported==0);
+        mu_raster raster; assert(!mu_raster_init(&raster,128,128));
+        mu_raster_clear(&raster,background);
+        memcpy(raster.view,view,sizeof view); memcpy(raster.projection,view,sizeof view);
+        raster.projection[0]=raster.projection[5]=raster.projection[10]=0.02f;
+        const int draws=mu_world_particles_draw_models_raster(p,&raster);
+        const int model=effects[k][0]==0x47a;
+        assert(draws==model && (!model || raster.fragments>0));
+        if (argc>2 && model) {
+            snprintf(path,sizeof path,"%s/e%x-%d.png",argv[2],(unsigned)effects[k][0],effects[k][1]);
+            assert(!mu_png_write(path,raster.color,128,128));
+        }
+        printf("{\"effect\":true,\"kind\":%d,\"subtype\":%d,\"draws\":%d,\"fragments\":%ld,\"equal\":true}\n",
+               effects[k][0],effects[k][1],draws,raster.fragments);
+        for (int n=0;n<60;++n) mu_world_particles_step(p,(float)(80+40*n));
+        assert(!mu_world_particles_live_effects(p) && !p->list.count);
+        /* Pool exhaustion retains the fixed caps; particle constructors still consume their RNG before overflow. */
+        p->list.count=p->list.capacity;
+        const uint64_t rand_before=p->rand_calls;
+        assert(!mu_world_particles_create(p,0x801c,zero,zero,light,3,1));
+        assert(p->list.overflow==1 && p->list.count==MU_WORLD_PT_CAPACITY && p->rand_calls>rand_before);
+        for (int n=0;n<MU_WORLD_FX_EFFECTS;++n) p->effects[n].live=1;
+        assert(!mu_world_particles_effect(p,0x47a,0,zero,zero,light,-1,1,NULL) && p->stats.effects_full==1);
+        for (int n=0;n<MU_JT_JOINTS;++n) p->joints[n].live=1;
+        assert(mu_world_particles_joint(p,0x7f7d,zero,zero,zero,8,-1,1,0,0,0,0,0,NULL)<0);
+        assert(p->stats.joints_full==1);
+        mu_raster_free(&raster); mu_world_particles_close(p); free(p);
+    }
+    if (argc > 3) { /* Optional installed-data proof; synthetic fixture remains portable. */
+        mu_world_particles *p=calloc(1,sizeof *p); char error[128],path[2048];
+        assert(p && !mu_world_particles_open(p,argv[3],NULL,38,1,0,error,sizeof error));
+        int loaded=0;
+        for (int n=0;n<MU_WORLD_FX_MODELS;++n) if (p->models[n].type==0x47a) loaded=p->models[n].loaded;
+        assert(loaded);
+        for (int sub=0;sub<2;++sub) {
+            assert(mu_world_particles_effect(p,0x47a,sub,zero,zero,light,-1,1,NULL));
+            mu_world_particles_step(p,40);
+            mu_raster raster; assert(!mu_raster_init(&raster,256,256));
+            mu_raster_clear(&raster,background);
+            memcpy(raster.view,view,sizeof view); memcpy(raster.projection,view,sizeof view);
+            raster.projection[0]=raster.projection[5]=raster.projection[10]=0.005f;
+            assert(mu_world_particles_draw_models_raster(p,&raster)==1 && raster.fragments>0);
+            snprintf(path,sizeof path,"%s/installed-47a-%d.png",argv[2],sub);
+            assert(!mu_png_write(path,raster.color,256,256));
+            printf("{\"effect\":true,\"installed\":true,\"subtype\":%d,\"fragments\":%ld,\"equal\":true}\n",sub,raster.fragments);
+            for (int n=0;n<15;++n) mu_world_particles_step(p,80);
+            assert(!mu_world_particles_live_effects(p)); mu_raster_free(&raster);
+        }
+        mu_world_particles_close(p); free(p);
+    }
     return 0;
 }

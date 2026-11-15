@@ -351,3 +351,48 @@ are registered with their verified LINEAR/CLAMP loader arguments. See the
 [finding](client-render-effects-003.md) for counts, provenance, native dispatch,
 wind input and remaining producer/visual limits. The historical particle corpus
 and mount-breath rounding behavior are unchanged.
+
+
+## RENDER-EFFECTS-031: consumers already requested by worlds and skills
+
+`world_inner_kinds.inc` admits eleven additional particle pairs. The full pool, common
+movement, lifetime tail, private MSVC RNG and counters remain shared. The original
+wrapper still runs before allocation and constructors still consume RNG before a full-list
+refusal. The native list cap remains 4,096; joints 500, effect records 200 and sprites 1,000.
+
+| Pair | Original create | Original move / draw path |
+|---|---|---|
+| `0x801c/3` | `0x015f3751` | WATERFALL3 subtype branch; scale rise, downward acceleration, light times .97 |
+| `0x801c/4` | `0x015f4466`, common jitter `0x015f5079` | WATERFALL3 subtype branch; gravity −2.5, light divided by 1.1 |
+| `0x801c/7` | `0x015f4466` | WATERFALL3 subtype branch; preserve overwritten random scale and second rotation |
+| `0x7f89/7` | `0x015ee424` | default owner-visibility cloud branch, sine clock; parity-dependent draw rotation and subtract blend |
+| `0x7f89/26` | `0x015edc04` | same owner branch; random scale times supplied scale and explicit clock rotation |
+| `0x7f89/10` | `0x015eaf56` | `0x0165ecb5` branch; second velocity advance, 300/500 distance thresholds, subtract draw |
+| `0x7f89/16` | `0x015ebca4` | `0x0165fe0b`; live clears at lifetime ≤10, 50/100 distance thresholds, .01 rise capped at .2, subtract draw |
+| `0x7f42/7` | `0x015bc141` | flame branch: saved x, signed rotation, gravity/95 shrink and light/1.007 |
+| `0x802a/1` | `0x015c4627`, tail `0x015c4b6d` | water branch: .013 shrink, vertical gravity, alpha −.05 and extra additive wrapper |
+| `0x7f42/12` | `0x015bd15b` | `0x0162b8cd`: common advance only; word4 emitter child |
+| `0x7f26/2` | `0x015dd610` | `0x01650cc6`: converge on charge OBJECT, owner death limits life to 5, light=life/5 |
+
+Create/move comparisons execute the complete original dispatcher with only declared
+external services stubbed. Draw comparisons execute RenderParticles through the existing
+sprite service, checking ordered wrappers, bitmap, dimensions, rotation, UVs and light.
+The threshold sample explicitly covers both sides of 50, 100, 300 and 500, owner live/dead,
+visibility, lifetimes and varying clocks. No tolerance or defined-byte mask was weakened.
+
+Clouds/7,26 and Spark03/2 require a valid native owner; missing/out-of-range owners count as
+refused. The charge uses its effect pool slot as the child owner. Combat publishes a view of
+that slot through its existing object callback; world effects use a distinct bounded handle
+range. This preserves slot reuse semantics and does not allocate another RNG or counter.
+
+Original LoadBitmap calls `0x01821539` (Flame01) and `0x01823025` (water) supply flags 0/1,
+LINEAR and CLAMP. Native registration adds those two files before the existing rain tail;
+existing bitmap slots retain their indices. The bitmap count is 97→99. Raster fixtures use
+distinct grayscale textures to detect swapped files. Geometry is recentered for the particle
+camera control; those fixture positions are not claimed as original-world placement.
+
+The frozen item census stays **110 programs / 37 particle pairs**. A separate world/skill
+extension has **25 pairs: 22 admitted, 3 refused** (11 particles, 6 joints, 8 effects including
+refusals). This is a selected-consumer inventory, not a census of every client switch case.
+The [handoff](../handoffs/RENDER-EFFECTS-031.md) records compiled controls, scene counts,
+identity and remaining limits.
