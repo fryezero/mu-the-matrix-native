@@ -52,7 +52,7 @@ than OBJECT Light, caster owner and default key/word8 -1. Its consumer is absent
 
 ## Authored admission and limits
 
-`MU_SKILL32_CONTEXT=bow_kind,wing,shield,mount` supplies appearance-service
+`MU_SKILL32_CONTEXT=bow_kind,wing,shield,mount` supplies decimal appearance-service
 answers, for example `1,0,0,0` or `0,-1,1,0`. Default is the configured weapon's
 kind, wing -1, shield/mount false. Invalid strings leave the default. A wing
 value of zero is present, as in the original comparison with -1. This does not
@@ -167,3 +167,33 @@ projectile has retired and therefore has no changed saved PNG; the early scene
 covers the omitted interval. Crescent's frame-12 sparks and Defense's frame-12
 pose were also inspected. This is native repeatability and caller/consumer
 proof, not original GPU-image equivalence.
+
+
+## Final replay and default identity
+
+Post-RNG-correction after/repeat refresh passes all 82 PNG pairs in 59.08 s.
+The baseline is not rerun. Request/refusal totals above remain unchanged; active
+Crescent scatter changes as intended. The final frame-12 Crescent proof is
+visually inspected again after the correction.
+
+Both world versions are explicitly rebuilt. Baseline main b7dfd2ed has SHA-256
+`e341fc2000d2e7f035f1e1814ca5384231389c8e7409ed20557643b0485108d7`.
+The final binary is
+`bb5470bf11a199bc3d6a241da9206d2548e39ed28ef874dfcb779b99fa45368c`.
+The final script rebuilds before its sweep and checks the hash again afterward.
+Across 14 October and 32 DATA-ACQ-002 default views, all 92 PNGs, 92 OBJECT/light
+dumps and 46 reports match. Only output-directory prefixes are normalized in
+JSON. No default view changes because the new callers are inactive. Incoming
+AUDIO-004 likewise preserves these defaults. Before 74.61 s; after 69.74 s.
+No whole-client GPU or performance equivalence follows.
+
+Final reduced private checks pass 15/15, zero skips, 25.75 s. The native-only
+selection is 174 work items, requiring 8d reduced under the 40-item cap.
+Portable affected execution passes 1,803 tests, 1,490 passed / 313 expected
+skips, zero failures/errors, 500.74 s command wall and 412.7 s runner wall.
+It runs 170 affected items with two workers. The only excluded module is
+native/tests/test_native_app.py, whose packaging is explicitly forbidden by
+this session's owner brief. No committed test or expectation is changed to
+make that exclusion; a local driver filters its runner work item. No app bundle
+or installed-app journey is produced. The handoff records validator/audit timing
+and the final publication state.
