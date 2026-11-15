@@ -342,6 +342,8 @@ int mu_scene_draw_model(const mu_model *model, const mu_draw_options *o, const m
     mu_meshdraw_scratch scratch = {colours, table, &edge, edge_tables};
     mu_meshdraw_env env = {&in.model, &in.globals, &in.cache, &sink, mu_scene_bitmap, &in, &scratch,
                            !old_alloc && !backend->gl ? &backend->sink : NULL};
+    if (o->alpha_reference_set && backend->alpha_reference)
+        backend->alpha_reference(backend->context, o->alpha_reference);
     mu_meshdraw_counts counts = {0, 0, 0, 0, 0};
     if (o->mesh_plus_one > 0) {
         long corners = 0;
@@ -362,6 +364,8 @@ int mu_scene_draw_model(const mu_model *model, const mu_draw_options *o, const m
      * for the backend (the client issues no glEnd). */
     if (a.open && backend->end)
         backend->end(backend->context);
+    if (o->alpha_reference_set && backend->alpha_reference)
+        backend->alpha_reference(backend->context, 0.25f); /* original caller restores GREATER 0.25 */
     if (stats) {
         stats->meshes += counts.drawn + counts.returned + counts.refused + counts.faulted;
         stats->corners += counts.corners;

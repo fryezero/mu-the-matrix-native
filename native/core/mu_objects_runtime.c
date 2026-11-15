@@ -1,6 +1,7 @@
 #include "../../reconstructed/objects/world_visual.h"
 #include "../../reconstructed/objects/world_inner_visual.h"
 #include "../../reconstructed/objects/world_inner3_visual.h"
+#include "../../reconstructed/objects/world_inner4_visual.h"
 #include "../../reconstructed/objects/world_visual_slots2.h"
 #include "mu_frame_time.h"
 /* The client's world-object lifecycle in the native session (NATIVE-OBJECTS-002,
@@ -1416,7 +1417,9 @@ static int world_inner(mu_objects *o, int32_t i, uint8_t *img, const mu_object_m
     const int kanturu = o->world == 37 || o->world == 40;
     const int blood = (o->world >= 11 && o->world <= 17) || o->world == 52;
     if (!m || !m->loaded || (!kanturu && !blood && o->world != 51 && o->world != 56 && o->world != 33 &&
-                             o->world != 54 && o->world != 38 && o->world != 31 && o->world != 9)) return 0;
+                             o->world != 54 && o->world != 38 && o->world != 31 && o->world != 9 &&
+                             o->world != 30 && o->world != 41 && o->world != 42 && o->world != 39 &&
+                             !((o->world >= 24 && o->world <= 29) || o->world == 36))) return 0;
     visual_context c = {o, m};
     mu_obj_event events[64];
     mu_obj_log log = {0, 64, 0, events};
@@ -1429,6 +1432,18 @@ static int world_inner(mu_objects *o, int32_t i, uint8_t *img, const mu_object_m
                          posed ? test_area_bone : NULL, &c, &log);
     } else if (blood) {
         mu_blood_castle_inner(img, i, o->world, time, visual_rand, posed ? inner_named_bone : NULL, &c, &log);
+    } else if ((o->world >= 24 && o->world <= 29) || o->world == 36) {
+        mu_kalima_inner(img, i, o->world, time, visual_rand,
+                         posed ? inner_named_bone : inner_missing_named_bone, &c, &log);
+    } else if (o->world == 39) {
+        /* Fixed authored hidden byte 0. Type 0's tower context is refused by the producer. */
+        mu_tower_inner(img, i, o->world, time, 0, visual_rand,
+                        posed ? test_area_bone : inner_missing_bone, &c, &log);
+    } else if (o->world == 30) {
+        /* Fixed authored event byte 0, matching the offline fixture. No event authority. */
+        mu_crywolf_inner(img, i, o->world, 1, time, 0, visual_rand, &c, &log);
+    } else if (o->world == 41 || o->world == 42) {
+        mu_barracks_inner(img, i, o->world, 1, time, visual_rand, &c, &log);
     } else if (o->world == 9) {
         mu_devil_square_inner(img, i, o->world, visual_rand,
                                posed ? inner_named_bone : inner_missing_named_bone, &c, &log);
@@ -1447,18 +1462,11 @@ static int world_inner(mu_objects *o, int32_t i, uint8_t *img, const mu_object_m
     }
     o->rt.stream[mu_obj_i32(img, MU_OBJF_TYPE)] = o->rt.model_fields[0x94];
     int has_draws = 0, requests = 0;
-    const int32_t texture_slot = m->bmd.mesh_count > 0 ? m->bmd.meshes[0].texture_index : -1;
     for (int32_t k = 0; k < log.count; ++k) {
         mu_obj_event e = events[k];
-        if (kanturu && mu_obj_i32(img, MU_OBJF_TYPE) == 0x60 && e.call == MU_OBJ_CALL_MESH &&
-            texture_slot >= 0 && texture_slot < m->textures.model_count && m->textures.components &&
-            m->textures.components[texture_slot] == 4) {
-            ++o->rt.draw_unsupported;   /* fixed GREATER 0.25 cannot serve this GREATER 0 RGBA pass */
-            continue;
-        }
-        if (e.call == MU_INNER_UNWRITTEN_LIGHT) {
+        if (e.call == MU_INNER_UNWRITTEN_LIGHT || e.call == MU_INNER4_CONTEXT_REFUSED) {
             ++o->rt.draw_unsupported;
-        } else if (e.call == MU_OBJ_CALL_MESH || e.call == MU_OBJ_CALL_MODEL_STREAM) {
+        } else if (e.call == MU_OBJ_CALL_MESH || e.call == MU_OBJ_CALL_MODEL_STREAM || e.call == MU_INNER_ALPHA_FUNC) {
             if (!has_draws) {
                 memcpy(o->rt.slot_color, o->rt.model_fields + MU_MDL_COLOR, 12);
                 o->rt.slot_stream = stream;
@@ -1469,8 +1477,8 @@ static int world_inner(mu_objects *o, int32_t i, uint8_t *img, const mu_object_m
             }
             if (draws->count < draws->capacity) draws->events[draws->count++] = e;
             else draws->overflow = 1;
-        } else if (e.call == MU_INNER_PUSH_MATRIX || e.call == MU_INNER_POP_MATRIX || e.call == MU_INNER_ALPHA_FUNC) {
-            /* Push/PopMatrix have no intervening matrix writes. Type 0x60's alpha reference is checked below. */
+        } else if (e.call == MU_INNER_PUSH_MATRIX || e.call == MU_INNER_POP_MATRIX) {
+            /* Push/PopMatrix have no intervening matrix writes. */
         } else if (e.call == MU_ICARUS_JOINT &&
                    (!o->rt.joint || !mu_jt_kind_supported((int32_t)e.args[0], (int32_t)e.args[10]))) {
             ++o->rt.draw_unsupported;
@@ -1491,7 +1499,7 @@ static int world_inner(mu_objects *o, int32_t i, uint8_t *img, const mu_object_m
     if (log.overflow) ++o->rt.draw_unsupported;
     const mu_obj_log req = {requests, requests, 0, events};
     consume_visual(o, &req);
-    /* StreamMesh writes alone are not a draw, in particular when the RGBA pass was refused. */
+    /* StreamMesh/alpha state writes alone are not a draw. */
     for (int32_t k = 0; k < draws->count; ++k)
         if (draws->events[k].call == MU_OBJ_CALL_BODY || draws->events[k].call == MU_OBJ_CALL_MESH)
             return 1;
@@ -1612,13 +1620,18 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
     int inner_draws = 0;
     const int inner_world = o->world == 37 || o->world == 40 || (o->world >= 11 && o->world <= 17) ||
                             o->world == 52 || o->world == 51 || o->world == 56 || o->world == 33 ||
-                            o->world == 54 || o->world == 38 || o->world == 31 || o->world == 9;
+                            o->world == 54 || o->world == 38 || o->world == 31 || o->world == 9 ||
+                            o->world == 30 || o->world == 41 || o->world == 42 || o->world == 39 ||
+                            (o->world >= 24 && o->world <= 29) || o->world == 36;
     if (!login && !charsel &&
         inner_world) {
         if (m && m->loaded && !posed)
             posed = pose_object(o, img, m, &log);
         inner_draws = world_inner(o, i, img, m, in.light.time, posed, &log, &sc.log);
     }
+    /* INNER-004: no registered handler for these IDs in factory 0x00ea488e. Dynamic context is unverified. */
+    if ((o->world == 46 || o->world == 98) && m && m->loaded)
+        ++rt->draw_unsupported;
     const int hook = rt->visual && !login && !charsel && !inner_world && !primary_visual, has_model = m && m->loaded;
     const int effects = !login && !charsel && !primary_visual;   /* RENDER-EFFECTS-008 */
     if (deferred) {
@@ -1722,12 +1735,17 @@ static int32_t slot_meshes(mu_objects *o, const mu_obj_event *events, int32_t n,
     mu_objects_runtime *rt = &o->rt;
     float current[3];
     memcpy(current, color, sizeof current);
+    float alpha_reference = 0.25f;
     int32_t count = 0;
     for (int32_t e = 0; e < n; ++e) {
         const mu_obj_event *ev = &events[e];
         if (ev->call == MU_OBJ_CALL_COLOR) {
             for (int q = 0; q < 3; ++q)
                 current[q] = fbits(ev->args[q]);
+            continue;
+        }
+        if (ev->call == MU_INNER_ALPHA_FUNC) {
+            alpha_reference = fbits(ev->args[1]);
             continue;
         }
         if (ev->call == MU_OBJ_CALL_MODEL_STREAM) {
@@ -1749,6 +1767,10 @@ static int32_t slot_meshes(mu_objects *o, const mu_obj_event *events, int32_t n,
             body_options(ev, m, map, &mesh->options);
         else
             mesh_options(ev, m, map, &mesh->options);
+        if (alpha_reference != 0.25f) {
+            mesh->options.alpha_reference_set = 1;
+            mesh->options.alpha_reference = alpha_reference;
+        }
         memset(&mesh->fields, 0, sizeof mesh->fields);
         memcpy(mesh->fields.color, current, sizeof current);
         mesh->fields.light_mesh_set = 1;

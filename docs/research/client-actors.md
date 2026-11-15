@@ -527,3 +527,110 @@ ordinary opener executions in this census registers model `0x5ba`. This narrows
 the next search to startup or another registration path. Eight NPC openers
 remain unresolved, so this is not a whole-client absence claim. No filename
 was proved and class 617 remains refused.
+
+## 12. Secondary consumers and ordinary monster weapons, RENDER-ACTORS-005
+
+Offline/static only, using the same pinned text/data, flag and feature captures
+as sections 9..11. The new [handoff](../handoffs/RENDER-ACTORS-005.md) records
+checks, timings, census totals and limits. No server placement, AI or character
+power is inferred from these authored fixture selectors.
+
+### Secondary models are separate lifetime work
+
+The nine monster openers still register fifteen secondary files. Executing each
+opener again reproduces all fifteen model/file pairs in section 10. The new
+`secondary_role`, `consumer_evidence` and `secondary_native` columns in the
+[opener census](actor-opener-census.csv) distinguish those registrations from
+native assemblies. None of these nine openers gains composite admission.
+
+| Type | Secondary model | Consumer evidence | Remaining boundary |
+|---|---|---|---|
+| 147 | `0x507..0x50c` | Six debris requests in each of `0x00e9bb36..0x00e9bd71` and `0x00e9d355..0x00e9d590`, bone-point service `0x012b678d`, effect creation `0x013c0eaa` | Complete action gate, debris update/draw and termination |
+| 226 | `0x5af` | Death caller `0x01393fd6..0x013942be`; counter increment, threshold 25, effect request, reset and live-state service | Effect lifetime and its further particle/debris requests |
+| 229 | `0x59f` | Effect constructor prefix `0x013f408c..0x013f41af`, primary model `0x88a` action 0 | Owner follow, animation/render and retirement |
+| 230 | `0x5a0` | Same prefix, zero-velocity fallthrough | Same lifetime boundary; zero is not a missing file |
+| 231 | `0x5a1` | Same prefix, primary model `0x88c` action 0 | Owner follow, animation/render and retirement |
+| 232 | `0x5a2` | Same prefix, primary model `0x88d` action 0 | Owner follow, animation/render and retirement |
+| 233 | `0x5a3` | Same prefix, primary model `0x88e` action 0 | Owner follow, animation/render and retirement |
+| 245 | `0x5ae` | Action-6/frame gate `0x00dc2dd6..0x00dc2e66`, effect creation then live-state service | Complete replacement effect and further requests |
+| 289 | `0x603`, `0x605` | Owned attack-effect requests `0x013ff8d4..0x013ffc8b`, including an opposite-angle spin copy | Owner/action transitions and child effect lifetime |
+
+These are **static** consumer identifications, with two **extracted** caller
+families. They are not C-to-original equivalence for those effects. The numeric
+model indices also occur as sound identifiers. A sound load/play with the same
+number is not a geometry consumer.
+
+Six executed type-226 prefix controls start with counters 0, 23, 24, 25, 26 and
+100. The caller requests action 6, increments OBJECT `+0x6c`, and emits model
+`0x5af` only once the value exceeds 25. It passes position, angle, light and
+scale 0.81, resets the counter, and invokes `0x0129f4a5` with zero. The audit
+stops at `0x0139406e` before the forty-iteration particle/debris loop, or at
+`0x013942be` for the non-emitting path. SetAction, effect allocation and the
+live-state service are named recorders. The downstream effect is not ported.
+Classes 595/635 therefore remain incomplete rather than acquiring an extra
+persistent body that the original does not attach.
+
+Six executed effect-prefix controls cover `0x59f..0x5a3` and a neighbour.
+The prefix sets OBJECT `+0x6c` to 311, `+0x64` and alpha target `+0xd8` to zero,
+and requests action zero. Four models take 0.7 times the primary model's
+binary32 action-0 speed. `0x5a0` and the neighbour take zero. The action lookup
+is a named service over an authored 0.25-speed action. This ends before owner
+updates, rendering and destruction, so these observations do not admit a
+summon, transformation or composite actor.
+
+### Six complete selected body/weapon plans
+
+The next visible ordinary group uses existing monster bodies with weapons
+that the native world had omitted. The new `mu_actor_monster_recipe` admits
+only the following constructor contexts:
+
+| Class | Constructor | Body file/model | Scale | Right/left bones | Selected weapon models |
+|---|---|---|---:|---|---|
+| 0 | `0x01382f2d` | Monster01 / `0x7a5` | 0.8 | 42 / 33 | `0x0cec`, empty |
+| 4 | `0x01382f2d` | Monster01 / `0x7a5` | 1.15 | 42 / 33 | `0x10ed`, empty |
+| 6 | `0x013834bc` | Monster05 / `0x7a9` | 0.85 | 41 / 32 | `0x14e8`, empty |
+| 7 | `0x013835c2` | Monster06 / `0x7aa` | 1.6 | 41 / 32 | `0x0ce8`, `0x0ce8` |
+| 9 | `0x013834bc` | Monster05 / `0x7a9` | 1.1 | 41 / 32 | `0x14e9`, empty |
+| 17 | `0x01382eb0` | Monster11 / `0x7af` | 0.9 | 41 / 32 | `0x0cee`, empty |
+
+Body paths are `Data/Monster/<name>.bmd`. Weapon paths come from the selected
+model's ItemModelFile record in `Data/Local/Item.bmd`; existing item texture
+rules resolve their bitmaps. No item body table or recipe is regenerated.
+The constructor retains default kind 1 and class byte zero. All selected
+levels/options/ext are zero. Link bones execute CreateCharacter's original
+`0x0137eefc..0x0137f5f4` switch rather than using Player's default hand bones.
+
+**Verified bounded plans:** RenderCharacter executes from entry across worlds
+0/3/2/51, actions 0/2/3/4/6, authored frames and alpha. Its ordinary body call
+has translate 1, select 0 and both final mesh arguments -1. The later
+RenderLinkItem call at `0x0136c428` uses zero offset/link mode, translate 1,
+flags 2 and the constructor's item and bone. It emits no additional appearance
+request in the admitted contexts. RenderObject is the same named base/pose
+recorder used in ACTORS-004. Stateful map services explicitly decline.
+
+Separate RenderLinkItem runs check the hand rotation service, frame/prior zero,
+keep-root pose, cleared lighting, transform arguments 0.4/0.8/0.2 and the exact
+RenderObjDraw request at four alphas. The ordinary body and seven selected
+weapon instances use separately compared RenderObjDraw streams at eight
+clocks/alphas/lights. These comparisons establish the bounded selected assembly,
+not original pixels, complete buff state, walking or fade/shadow parity.
+
+The native host checks actual body files, selected textures, nonempty draws,
+scale, recovered bones, advancing actor frames and alpha. Both hands replay
+against isolated body poses and require byte-identical transformed vertices.
+A shared pose must be restored before each hand because the first weapon's
+pose overwrites the bone array. Actor failure and cache cleanup free both
+attachments and their shared pose storage. GL weapons use the body's ordered
+batch; software weapons select their own texture arrays.
+
+The class census moves 33 to 39 checked bounded plans, 911 to 905
+incomplete/unverified, and retains 80 refusals. Its 1,024 selectors still include
+repeated/default contexts. The 477 repeated default selectors are not upgraded
+merely because they share Monster01. Classes 1/5/10 emit an additional sprite
+from the character caller and remain incomplete. Classes 374/642 still need
+companion lifetime, 378 needs cloth/aura, and 617 needs an exact startup file.
+No guessed file or body-only substitute relaxes those refusals.
+
+Reproduce both census CSVs with the canonical private environment and
+`scripts/actor_census.py --classes docs/research/actor-construction-census.csv
+--openers docs/research/actor-opener-census.csv --composite-ready --monster-ready`.

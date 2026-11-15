@@ -821,3 +821,12 @@ $(BUILD)/worlds-inner-host: tests/worlds_inner_host.c $(LIB) $(HEADERS)
 $(BUILD)/muun-mount-host: tests/muun_mount_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/muun-mount-host.o
 	$(CXX) $(BUILD)/muun-mount-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+
+# INNER-004: GREATER reference on the shared scene and both production backends.
+$(BUILD)/worlds-inner4-alpha-host: tests/worlds_inner4_alpha_host.c viewer/gl_backend.c viewer/gl_batch.c viewer/gl_headless.c $(LIB)
+	@mkdir -p $(BUILD)/worlds-inner4-alpha
+	for f in tests/worlds_inner4_alpha_host.c viewer/gl_backend.c viewer/gl_batch.c viewer/gl_headless.c; do \
+	  $(CC) $(CFLAGS) $(JPEG_CFLAGS) -DGL_SILENCE_DEPRECATION -c $$f -o $(BUILD)/worlds-inner4-alpha/$$(basename $$f .c).o || exit 1; \
+	done
+	$(CXX) $(BUILD)/worlds-inner4-alpha/*.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(GL_LIBS) -lm -o $@
+	$(call MULTI_DEPS,$(CFLAGS) $(JPEG_CFLAGS) -DGL_SILENCE_DEPRECATION)
