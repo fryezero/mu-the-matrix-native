@@ -122,3 +122,18 @@ and final audit remain pending, alongside the explicitly rebuilt identity sweep
 currently queued in `~/Documents/MTM/mu-mac-tools/native/scratch/audio-006/identity.log`.
 Main was fetched again and remains `d3ec9950`. All remaining changes are
 classification metadata, test controls and documentation; native C is unchanged.
+
+
+Main integration update: PR #400, UI-WINDOWS-005, advances main to `c5b9d5ca`.
+The frozen-control ancestry guard caught the new unmerged main before overwriting
+any source. It is merged at `2ffecb3e`. The new root build passes in 14.76 s.
+Only that merge's changed paths select the integration reruns; completed audio
+mutants are not repeated. The merge runner records its validator and portable
+selections in the task-local `merge-checks.log`. Reduced private coverage of
+its five changed UI modules runs before the identity source overlay.
+
+The entry ledger regression and standalone CLI pass: 3/3 tests, 4.90 s, and
+1.84 s grouping command. Rejudging the 30 saved reports against current metadata
+passes in 0.08 s. The identity preflight's earlier stop was an unused original
+PNG path; all 138 referenced scene snapshot files exist. No accepted identity
+render preceded that setup stop, and no original-image fidelity is inferred.
