@@ -344,3 +344,17 @@ no optional mutants. This includes all three new rows and the full 66,051-check 
 288.6 s. The thirteen earlier rows excluded by the overlap selector have unchanged compiled inputs.
 Incoming portable/private checks, final replay and audit are still active. No consumer source or
 successful compiled-control target changed in this integration.
+
+
+Latest-core integration results: portable selection 174 work items / 1,789 tests, 1,467 passed and
+322 expected skips, zero failures/errors; 537.788 s execution plus 120.008 s resource wait,
+413.1 s test wall. Fifteen focused private modules pass all 70 tests, 240.257 s. Replay takes
+88.754 s execution plus 120.008 s resource wait. All 96 prior after dumps and all 24 skill PNGs
+match. Only the two Kanturu-37 default PNGs change, matching incoming INNER-004's alpha seam;
+its handoff records that isolated delta. The consumer scenes and Remain reference scores stay valid.
+Current binary: `147fecd58d9fe512d28d8a846f1afe27dedcf758b9dd64acdc3cda7ec9fc9a41`.
+Audit passes, 2,289 staged files / zero rejected, 47.615 s. The final selector is still active.
+
+The shared origin ref now contains UI-WINDOWS-003 #391 at `a95880c4`. Its changes are confined to
+UI/gfx/input and tests/docs. Merge it after the active selector; run only its selected overlap and
+focused UI checks. No consumer target source changes are involved.
