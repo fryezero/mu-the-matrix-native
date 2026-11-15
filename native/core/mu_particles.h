@@ -18,6 +18,8 @@
 /* RENDER-EFFECTS-020: item OBJECTs (RenderLinkItem's link OBJECT, RenderPartObject's ground item) as particle
  * owners: MU_WORLD_FX_ITEM_BASE + (generation << 8) + slot of mu_world_particles.item_owners. */
 #define MU_WORLD_FX_ITEM_BASE 0x40000000
+/* RENDER-EFFECTS-031: charge children read their world-effect OBJECT slot. */
+#define MU_WORLD_FX_SELF_BASE 0x07000000
 #include "../../reconstructed/particles/particles.h"
 #include "../../reconstructed/combat/skill_fx.h"
 
@@ -54,16 +56,12 @@
  * MoveParticles in that order each step; the effect models before the joints, the joints before the sprite
  * section. Viewer choices: these pools are the module's own (the skills keep theirs in mu_combat), the effect
  * models play their first action (frame += speed, looping) and the tornado's PlayBuffer is counted, not played. */
-enum { MU_WORLD_PT_BITMAPS = 97, MU_WORLD_PT_CAPACITY = 4096, MU_WORLD_PT_SHADOW_MESHES = 64,
-       MU_WORLD_FX_EFFECTS = MU_SFX_EFFECTS, MU_WORLD_FX_MODELS = 18, MU_WORLD_EIN_LINKS = 4096, MU_WORLD_FX_QUADS = 8192,
+enum { MU_WORLD_PT_BITMAPS = 99, MU_WORLD_PT_CAPACITY = 4096, MU_WORLD_PT_SHADOW_MESHES = 64,
+       MU_WORLD_FX_EFFECTS = MU_SFX_EFFECTS, MU_WORLD_FX_MODELS = 19, MU_WORLD_EIN_LINKS = 4096, MU_WORLD_FX_QUADS = 8192,
        MU_WORLD_FX_LIGHTS = MU_JT_JOINTS + MU_SFX_EFFECTS,
        /* RENDER-EFFECTS-020: item owner slots, and the logic steps an unrefreshed slot is kept before reuse (longer
         * than every item-owned particle lives: 0x810a/0x11 30 steps, 0x81cf/0 20) */
        MU_WORLD_ITEM_OWNERS = 256, MU_WORLD_ITEM_OWNER_HOLD = 64 };
-
-/* MUUN-VISUAL-005: additive model slot, retaining the shared base count for other lanes. */
-enum { MU_WORLD_FX_MODELS_WITH_MUUN = MU_WORLD_FX_MODELS + 1 };
-#define MU_WORLD_FX_MODELS MU_WORLD_FX_MODELS_WITH_MUUN
 
 /* RENDER-EFFECTS-020: one item OBJECT a particle may own. The client's owner is a pointer into the character or
  * ground-item arrays, never NULL while the particle lives; the slot keeps the OBJECT's last +0x158 until it is

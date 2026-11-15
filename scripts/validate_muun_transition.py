@@ -11,13 +11,17 @@ import validate_render_effects as base
 import validate_render_effects7 as re7
 import validate_render_effects11 as re11
 ROOT=Path(__file__).resolve().parents[1]
-MUTANTS=[('life','e->lifetime = 10;\n        e->scale = 0.2f','e->lifetime = 11;\n        e->scale = 0.2f','create'),
- ('scale','e->scale = 0.2f;\n        e->velocity = 0.1f','e->scale = 0.3f;\n        e->velocity = 0.1f','create'),
- ('rand','(void)env_rand(env);     /* original consumes','(void)0;     /* original consumes','create'),
- ('angle','45.0f, 45.0f, 0.0f','45.0f, -45.0f, 0.0f','create'),
+MUTANTS=[('life','e->lifetime = 10; e->scale = 0.2f; e->velocity = 0.1f;',
+                   'e->lifetime = 11; e->scale = 0.2f; e->velocity = 0.1f;','create'),
+ ('scale','e->lifetime = 10; e->scale = 0.2f; e->velocity = 0.1f;',
+          'e->lifetime = 10; e->scale = 0.3f; e->velocity = 0.1f;','create'),
+ ('rand','(void)env_rand(env); /* 0x013db373:', '(void)0; /* 0x013db373:','create'),
+ ('angle','const float y = (float)subtype * -90.0f + 45.0f;',
+          'const float y = (float)subtype * -90.0f + 40.0f;','create'),
  ('growth','e->velocity = e->velocity + 0.02f','e->velocity = e->velocity + 0.03f','move'),
  ('dim_gate','e->lifetime < 7','e->lifetime <= 7','move'),
  ('dim','e->blend_light / 1.8f','e->blend_light / 1.7f','move')]
+
 def compare(text,data,lib,name,count):
     saved=re11.random_effect
     ordinal=0

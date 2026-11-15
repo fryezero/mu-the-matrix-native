@@ -6,7 +6,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
-static int sprites, particles, joints, effects;
+static int sprites, particles, joints, effects, spark_joints;
 static long guardian_effects;
 static void sprite(void *ctx, int32_t type, const float p[3], float scale, const float l[3], int32_t owner,
                    float rotation, int32_t a, int32_t b)
@@ -28,6 +28,10 @@ static void joint(void *ctx, int32_t type, const float p[3], const float t[3], c
                   int32_t owner, float scale)
 {
     (void)ctx; (void)type; (void)p; (void)t; (void)a; (void)sub; (void)owner; (void)scale;
+    if (type == 0x7fd5 && sub == 5) {
+        assert(owner >= 0 && scale == 10 && memcmp(p,t,12) == 0);
+        ++spark_joints;
+    }
     ++joints;
 }
 static void effect(void *ctx, int32_t type, int32_t sub, const float p[3], const float a[3], const float l[3],
@@ -100,7 +104,7 @@ int main(int argc, char **argv)
         assert(memcmp(img(o, 8) + MU_OBJF_HEAD_ANGLE, img(o, 8) + MU_OBJF_ANGLE, 12) == 0);
         assert(memcmp(img(o, 8) + MU_OBJF_POSITION_COPY, img(o, 8) + MU_OBJF_POSITION, 12) == 0);
         mu_obj_set_f32(img(o, 2), MU_OBJF_FRAME, 3.0f);   /* the second type-20 object leads */
-        sprites = particles = joints = effects = 0;
+        sprites = particles = joints = effects = spark_joints = 0;
         long refused = o->rt.draw_unsupported;
         for (int k = 0; k < STEPS; ++k) {
             in.time = 37.0f * (float)k;
@@ -115,8 +119,8 @@ int main(int argc, char **argv)
         assert(o->rt.imperial_frame != 0.0f && o->rt.move_unsupported == 0);
         assert(fabsf(mu_obj_f32(img(o, 9), MU_OBJF_BLEND_V) - 0.015f * (float)STEPS) < 1e-3f);   /* 0x51 */
         /* per frame: 12 four sprites, 37 and 79 one each; 50 twelve particles, 79 one */
-        assert(sprites == 6 * STEPS && particles >= 13 * STEPS && joints == 0);
-        /* refused: the 0x7fd5 subtype-5 joints of type 20 and type 85's word4 effects (no word4 hook) */
+        assert(sprites == 6 * STEPS && particles >= 13 * STEPS && joints == spark_joints && spark_joints > 0 && spark_joints % 4 == 0);
+        /* EFFECTS-031 admits type 20's spark joints. Type 85 still has no word4 hook. */
         assert(o->rt.draw_unsupported > refused && effects == 0);
         m->bmd.bone_count = 2;   /* types 12 (bone 3) and 50 (bone 7) are refused; 37 (bone 1) still draws */
         refused = o->rt.draw_unsupported;

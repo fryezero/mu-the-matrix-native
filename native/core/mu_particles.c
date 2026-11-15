@@ -48,6 +48,7 @@ static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     0x8549, 0x82f2, 0x810b, 0x807e, 0x807f, 0x8080,
     0x81ec, 0x854a,   /* RENDER-EFFECTS-024: mace bone sprites */
     0x8500, 0x8569,   /* RENDER-EFFECTS-026 */
+    0x7f42, 0x802a,   /* RENDER-EFFECTS-031: Flame01 and water */
     MU_PT_BITMAP_FIRE06,
     MU_PT_BITMAP_RAIN_SPLASH,
     MU_PT_BITMAP_RAIN_RING};
@@ -109,6 +110,8 @@ static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     /* RENDER-EFFECTS-024: LoadBitmap 0x01823365 / 0x0182ec0d, both LINEAR/CLAMP. */
     "Data/Effect/lightmarks_red.OZJ", "Data/Effect/light_blue.OZJ",
     "Data/Skill/wing_hetachi2.OZJ", "Data/Effect/Damage_ring_2.OZJ",
+    /* RENDER-EFFECTS-031, LoadBitmap 0x01821539 / 0x01823025, LINEAR/CLAMP. */
+    "Data/Effect/Flame01.OZJ", "Data/Effect/water.OZJ",
     /* RENDER-EFFECTS-016: Fire06 0x7f40, 0x70c's stone particle (LoadBitmap 0x018229e5 in 0x0182049e,
      * LINEAR/CLAMP) */
     "Data/Effect/Fire06.OZJ"};
@@ -116,8 +119,7 @@ static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
 /* The world objects' effect models (AccessModel, static readings of the loaders): the Tormenta handler's
  * hs_fieldtornado (0x00e4c4de). */
 static const struct { int32_t type, world; const char *file; } fx_model_files[MU_WORLD_FX_MODELS] = {
-    /* MUUN-VISUAL-005: AccessModel 0x01833c69. */
-    {0x47a, -1, "Data/Skill/DarkLordSkill.bmd"},
+    {0x47a, -1, "Data/Skill/DarkLordSkill.bmd"}, /* RENDER-EFFECTS-031, AccessModel 0x01833c6e */
     {MU_SFX_MODEL_TORNADO, 0x8d, "Data/Object142/hs_fieldtornado.bmd"},
     /* NATIVE-CHARSEL-003: the character select's sky dragon and its glint (AccessModel 0x018363e8/0x0183641d,
      * textures from Data\Effect\) */
@@ -325,8 +327,6 @@ int mu_world_particles_open(mu_world_particles *p, const char *root, const mu_wo
     for (int i = 0; i < MU_WORLD_FX_MODELS; ++i) {
         mu_world_fx_model *m = &p->models[i];
         m->type = fx_model_files[i].type;
-        /* This lane exposes the consumer only to the explicit offline transition fixture. */
-        if (m->type == 0x47a && !getenv("MU_MUUN_REMOTE_FIXTURE")) continue;
         if (mu_world_warp_type(m->type) && world != 2 && world != 3 && world != 57 && world != 58)
             continue;
         if (m->type == MU_SFX_MODEL_DUNGEON_STONE && (world < 116 || world > 120))
@@ -511,6 +511,13 @@ static mu_jt_object hero_view(const mu_world_particles *p)
 static const mu_jt_object *fx_object(mu_world_particles *p, int32_t index)
 {
     mu_jt_object *o = &p->object_scratch[p->object_next++ & 3];
+    if (index >= MU_WORLD_FX_SELF_BASE && index < MU_WORLD_FX_SELF_BASE + MU_WORLD_FX_EFFECTS) {
+        if (!p->effects) return NULL;
+        const mu_sfx_effect *e = &p->effects[index - MU_WORLD_FX_SELF_BASE];
+        memset(o, 0, sizeof *o); o->live = o->visible = e->live; o->type = e->type;
+        memcpy(o->position, e->position, sizeof o->position);
+        return o;
+    }
     if (index == MU_WORLD_FX_HERO_OBJECT) {
         if (!p->has_hero)
             return NULL;
@@ -686,6 +693,13 @@ static int fx_call(mu_world_particles *p, const mu_jt_call *call, mu_sfx_effect 
                                   call->subtype, call->range);
         return 0;
     case MU_JT_CALL_PARTICLE:
+        /* RENDER-EFFECTS-031: keep the charge's self owner instead of dropping its Spark03/2 children. */
+        if (e && e->type == 0x7fd0 && call->owner == -2) {
+            const int32_t owner = MU_WORLD_FX_SELF_BASE + (int32_t)(e - p->effects);
+            mu_world_particles_create_owned(p,call->type,call->position,call->angle,call->light,
+                                            call->subtype,call->scale,owner);
+            return 0;
+        }
         mu_world_particles_create_owned(p, call->type, call->position, call->angle, call->light, call->subtype,
                                         call->scale, call->owner >= 0 ? call->owner : MU_PT_NO_OWNER);
         return 0;

@@ -288,8 +288,6 @@ static void check(const mu_sfx_env *env, mu_sfx_effect *e, int32_t routine);
 
 static int effect_supported(int32_t type, int32_t sub)
 {
-    /* MUUN-VISUAL-005: authored remote transition, no other subtype admitted. */
-    if (type == 0x47a) return sub == 0;
     if (mu_world_warp_type(type))
         return 1;
     if (type == MU_SFX_MODEL_ARROW || arrow_kind(type))
@@ -301,11 +299,14 @@ static int effect_supported(int32_t type, int32_t sub)
     if (uruk_effect_kind(type, sub))
         return 1;   /* RENDER-EFFECTS-018 */
     switch (type) {
+    case 0x7fd0: return sub == 0; /* RENDER-EFFECTS-031, Penetration charge */
+    case 0x7f42: return sub == 6; /* RENDER-EFFECTS-031, word4 world emitter */
+    case 0x47a: return sub == 0 || sub == 1; /* RENDER-EFFECTS-031 */
     case 0x10e6: return sub == 1;   /* RENDER-EFFECTS-027: Death Stab's trail emitter */
     case MU_SFX_MODEL_FIRE: return sub == 0 || sub == 1 || sub == 10;
     case MU_SFX_MODEL_ICE: case MU_SFX_MODEL_POISON: case MU_SFX_MODEL_ICE_DEBRIS: case MU_SFX_MODEL_WAVE: return sub == 0;
     case 0x7f4e: case MU_SFX_BITMAP_THUNDER: return sub == 0;
-    case MU_SFX_BITMAP_MAGIC_GROUND2: return sub == 0 || sub == 1;   /* sub 0: the level-up ground (NATIVE-PROGRESS-001) */
+    case MU_SFX_BITMAP_MAGIC_GROUND2: return sub == 0 || sub == 1 || sub == 4;   /* sub 0: the level-up ground (NATIVE-PROGRESS-001) */
     case MU_SFX_MODEL_CIRCLE: case MU_SFX_MODEL_CIRCLE_LIGHT: case MU_SFX_MODEL_INFERNO:
     case MU_SFX_MODEL_LASER: case MU_SFX_TWISTING_SLASH: case MU_SFX_TWISTING_SWIRL:
         return sub == 0;
@@ -441,13 +442,6 @@ int mu_sfx_effect_create(mu_sfx_effect *e, int32_t type, int32_t subtype, const 
     if (uruk_effect_kind(type, subtype))
         return uruk_effect_create(e);   /* RENDER-EFFECTS-018 */
     switch (type) {
-    case 0x47a:                  /* 0x013db316, subtype 0 */
-        e->lifetime = 10;
-        e->scale = 0.2f;
-        e->velocity = 0.1f;
-        (void)env_rand(env);     /* original consumes rand % 2 even though subtype 0 keeps 45 */
-        set3(e->angle, 45.0f, 45.0f, 0.0f);
-        break;
     case 0x10e6:                 /* 0x013c465a, subtype 1's marker, no model draw */
         e->lifetime = 10;
         break;
@@ -607,9 +601,31 @@ int mu_sfx_effect_create(mu_sfx_effect *e, int32_t type, int32_t subtype, const 
         e->direction[2] = 0.0f;
         e->position[2] = e->position[2] + 100.0f;
         break;
+    case 0x7fd0: { /* 0x013c8b62 */
+        e->lifetime = 10;
+        const float offset[3] = {0.0f, -100.0f, 0.0f};
+        float m[12], rotated[3];
+        mu_angle_matrix(e->angle, m); mu_vector_rotate(offset, m, rotated);
+        for (int k = 0; k < 3; ++k) e->position[k] = e->position[k] + rotated[k];
+        e->position[2] = e->position[2] + 150.0f;
+        break;
+    }
+    case 0x7f42: e->lifetime = 40; break; /* 0x013c7627, subtype 6 */
+    case 0x47a: { /* 0x013db316: DarkLordSkill, remote transition */
+        e->lifetime = 10; e->scale = 0.2f; e->velocity = 0.1f;
+        const float y = (float)subtype * -90.0f + 45.0f;
+        (void)env_rand(env); /* 0x013db373: both branches leave the same y for subtypes 0/1. */
+        e->angle[0] = 45.0f;
+        e->angle[1] = y; e->angle[2] = 0.0f;
+        break;
+    }
     case MU_SFX_BITMAP_MAGIC_GROUND2:
-        /* 0x013c80a3 */
+        /* 0x013c80a3, subtype 4 0x013c80bf: an emitter with no own draw. */
         e->lifetime = 20;
+        if (subtype == 4) {
+            e->lifetime = 40;
+            e->scale = ((float)(env_rand(env) % 50 + 50) / 100.0f) * 4.0f;
+        }
         break;
     case MU_SFX_MODEL_CIRCLE:
         /* 0x013cff78 */
@@ -1095,11 +1111,6 @@ int mu_sfx_effect_move(mu_sfx_effect *e, const mu_sfx_env *env)
     if (uruk_effect_kind(type, sub))
         uruk_effect_move(e, env);   /* RENDER-EFFECTS-018 */
     switch (type) {
-    case 0x47a:                  /* 0x01473b22, subtype 0; common lifetime tail follows */
-        e->scale = e->scale + e->velocity;
-        e->velocity = e->velocity + 0.02f;
-        if (e->lifetime < 7) e->blend_light = e->blend_light / 1.8f;
-        break;
     case 0x10e6: { /* 0x014374f6: the stationary marker emits one Flare/12 per step */
         mu_sfx_call c = {0};
         c.routine = MU_SFX_CALL_JOINT; c.type = 0x7f78; c.subtype = 12;
@@ -1246,9 +1257,41 @@ int mu_sfx_effect_move(mu_sfx_effect *e, const mu_sfx_env *env)
         call_terrain_light(env, e, light, 2);
         check(env, e, MU_SFX_CALL_CHECK_MAGIC);
         break;
+    case 0x7fd0: { /* 0x01442645..0x01442b67, subtype 0 */
+        for (int n = 0; n < 3; ++n) {
+            const float offset[3] = {0.0f, 120.0f, 0.0f};
+            float a[3], m[12], at[3];
+            a[0] = (float)(env_rand(env) % 360); a[1] = 0.0f; a[2] = (float)(env_rand(env) % 360);
+            mu_angle_matrix(a, m); mu_vector_rotate(offset, m, at);
+            for (int k = 0; k < 3; ++k) at[k] = e->position[k] + at[k];
+            mu_sfx_call flash = {0};
+            flash.routine = MU_SFX_CALL_SPRITE; flash.type = 0x7f67; flash.range = 4; flash.owner = -2;
+            flash.angle[0] = (float)(env_rand(env) % 360);
+            flash.scale = (float)(env_rand(env) % 8 + 8) * F_0_3;
+            copy3(flash.position, e->position); copy3(flash.light, e->light);
+            env_call(env, &flash, e);
+            const float size = (float)(env_rand(env) % 50 + 10) / 100.0f;
+            call_particle(env, e, 0x7f26, at, a, light, 2, size, -2);
+        }
+        break;
+    }
+    case 0x7f42: { /* 0x01445566, subtype 6 */
+        float at[3];
+        at[0] = (float)(env_rand(env) % 32 - 16);
+        at[1] = (float)(env_rand(env) % 32 - 16); at[2] = 0.0f;
+        for (int k = 0; k < 3; ++k) at[k] = at[k] + e->position[k];
+        call_particle(env,e,0x7f42,at,e->angle,e->light,12,e->scale,-1);
+        break;
+    }
+    case 0x47a: /* 0x01473b22, subtypes 0/1 */
+        e->scale = e->scale + e->velocity;
+        e->velocity = e->velocity + 0.02f;
+        if (e->lifetime < 7) e->blend_light = e->blend_light / 1.8f;
+        break;
     case MU_SFX_BITMAP_MAGIC_GROUND2:
         /* 0x0143fbda, subtypes >= 1 except 4, 6..13, 19; subtype 0 (the level-up ground, NATIVE-PROGRESS-001)
          * has no case */
+        if (sub == 4) break; /* 0x0143fc23: skips the Heal joints */
         if (sub >= 1)
             heal_joints(e, env);
         break;

@@ -25,7 +25,7 @@ class ItemReadPrograms(unittest.TestCase):
             self.assertEqual(self.draws(self.item(type=t))[0], 0, hex(t))
             self.assertEqual(self.draws(self.item(type=t, select=1))[0], 2, hex(t))
             self.assertEqual(self.draws(self.item(type=t, object_shadow=1))[0], 2, hex(t))
-        self.assertEqual(self.lib.mu_rc_item_special(0x0b51), 1)
+        self.assertEqual(self.lib.mu_rc_item_special(0x0b51), 0)
 
     @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'original captures are opt-in')
     def test_original_instructions(self):

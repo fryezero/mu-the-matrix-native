@@ -361,3 +361,47 @@ and compiled controls in 004. Remaining consumer ids are particles `0x8081/1`, `
 and effect `0x47a/0`. This lane may add only the last consumer. The earlier seated-rider, four-action,
 owner-kind-2 fade and local buff-0x12 rows have no newly demonstrated missing implementation; original
 RNG/process phase, remote class/team visibility and authoritative target/selection inputs remain excluded.
+
+### Verified bone-effect rows and integrated transition proof
+
+`validate_muun_bones` executes the complete `0x017f76ec..0x017f919e` caller for all four previously
+blocked rows and for the complete ordered row lists of models 0x2b8d/e/0x2b90. It compares body/mesh,
+particle and sprite arguments, colours, bone lookup order, translated zero-point transforms and restored
+model colour. Named services supply posed own-bone points, RangedRandom values and CRT sine/cosine/sqrt;
+vector constructors/operators, normalization, atlas and the bone-sprite helper `0x01533712` execute as
+original code. Body SHA-256 is `3504e24095f6d5d0f858f3b96ea13e5f2ba0ec3e4af19efc1685789045688237`.
+The client identity remains `3cf91f3c203d305a771b04d00b271871f7ce1c6779b22e30fbae8c4f35b5527a`.
+
+| Appearance / branch | Admitted behavior | Retained consumer boundary |
+|---|---|---|
+| 375 mesh 1, 0x017f7caa | 13-frame atlas, colour 1/0.2/0.15; three particle requests along own bones 11/18 with normalized random jitter | particle 0x8084/28 |
+| 376 both mesh-2 rows, 0x017f815d | Ordinary mesh arguments and eight bone sprites per row, paired scales 0.15 +/- sin(time * 0.001 * 2) * 0.07 at bones 12/13/22/23 | sprite bitmap 0x810d unavailable in the world bitmap table; 0x80ba draws |
+| 377 mesh 4, 0x017f8872 | No mesh call; own bone 52 supplies three rotating/pulsed sprite requests and a conditional particle | sprite bitmap 0x8003 unavailable; particle 0x7efa/3 unavailable; 0x7ef7 glows draw |
+
+Normalization uses the original reciprocal product and strict epsilon boundary. The fixture supplies
+its own deterministic random fractions/integers, not the original RangedRandom distribution or process
+phase. Native refuses missing/dummy/unresolved bones, missing sprite bitmaps and unsupported particle
+subtypes, and accounts every emitted request. Sprite success uses the pool's created counter because
+sprite index zero is valid. No new consumer for these missing ids was added.
+
+This admits 29 of the five special appearances' 30 record branches. Of those, 28 draw meshes and one
+is effect-only. The sole remaining record refusal is 357 `lalaUp.bmd` mesh 3. Across the whole census,
+551 extra rows are admitted and nine out-of-range mesh rows remain. Their exact unavailable indices are
+276 `king.bmd` 1; 292 `superpandaUp.bmd` 1; 305 `poodle.bmd` 1/2; 306 `poodleUp.bmd` 2/3;
+357 `lalaUp.bmd` 3; 368 `Snowboarder.bmd` 1; 369 `SnowboarderUp.bmd` 2. All are under `Data/Item`.
+The table requests a base-body draw on 335 of 386 rows; the row CSV distinguishes the other 51.
+
+While this lane was based on 004, main had already gained the `0x47a/0,1` consumer and DarkLordSkill model
+binding in RENDER-EFFECTS-031. Main `df57ab8b` was merged, that implementation was retained unchanged,
+and this lane's duplicate subtype-0 consumer/model slot was removed. The new focused consumer checker
+runs full original CreateEffect/MoveEffect instructions for subtype 0, including the consumed random draw
+and common animation/motion/lifetime tails. Creation is `0x013db316`, movement `0x01473b22`, the generic
+RenderEffects body route is `0x015324cf`, and AccessModel is `0x01833c69..0x01833c6e`.
+
+The authored 3-second clock now reaches that existing consumer. Separate 81- and 90-frame native runs
+prove one live drawn model and later expiry on GL and software; enabled/disabled controls differ during
+its life and match after expiry. The detailed effect-model report is emitted at shutdown, so a final
+zero at frame 89 is not evidence that the effect never drew. Full read-only game assets supply
+`Data/Skill/DarkLordSkill.bmd`; the frozen Native Data copy lacks that asset. No refresh or copying into
+Native Data was performed. These are full-data fixture proofs, not a claim that the frozen installed
+Preview can draw the transition.

@@ -53,3 +53,17 @@ still needs its integrated run. Do not call that prior 24/25 batch a pass.
 #397 merged during this work. Next checkpoint must merge `origin/main` `df57ab8b` and preserve its
 consumer additions. The initial portable selector chose 179 items, 168 native modules, above the 8d cap.
 Its wall was 100.47 s. Exclude `native/tests/test_native_app.py` from the portable run as instructed.
+
+### Integrated WIP checkpoint
+
+- Done: resolved main integration by keeping RENDER-EFFECTS-031's already verified `0x47a/0,1` consumer
+  and its single model slot, removing this lane's duplicate consumer and slot. Consumer files now match
+  origin/main exactly. Both validator registry additions survive. Main's other additions remain intact.
+- Done: integrated root build 20.16 s, explicit world build 7.79 s, focused transition private tests
+  2/2 pass in 16.52 s. The live 81-frame scene draws one effect model; the 90-frame scene expires it.
+  Both GL and software pass the enabled/disabled pixel and post-expiry identity controls.
+- Left: final affected selection/run against integrated main, one unchanged-bone mutant result carry,
+  new transition verifier controls against main's consumer source, all 25 private Muun tests, persistent
+  proof images/inspection, after identity and attribution of imported main deltas, final docs/PR/cleanup.
+- Next: inspect resources, run `--list-affected origin/main` for both runners. Record their exact row
+  lists, retain fallback rows, exclude app-packaging tests, use 8d reduced, then finish within scope.
