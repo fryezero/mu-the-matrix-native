@@ -127,3 +127,24 @@ Then reproduce the new control failure, apply the strict parent fix, run the
 new mutant and affected UI checks, the merge portable selection, integrated
 proof/identity, final documentation/audit and PR/ready publication. Retain
 merge rows whose compiled inputs the UI-only fix does not change.
+
+
+### WIP checkpoint: final audit controls and batch 116
+
+Done: the immutable 94-row merge refresh is still running at source
+340db5b3. Completed reports pass without failures/errors/skips. The original
+12-row lane checks and default identity remain preserved separately.
+
+Left: apply and demonstrate the prepared strict Goblin parent-event fix.
+A second audit control also targets partial register/local writes in the
+bounded route scanner; its prepared source/tests are survey-hardened.py
+and survey-hardened-test.py in scratch/ui-windows-005. Regenerate the ledger
+after those controls pass, retaining only routes the conservative pass proves.
+Neither prepared runtime/scanner replacement has been applied yet. Main
+8844d3e9 (AUDIO-005, batch 116) landed during this run and still needs merging.
+
+Next step: finish the frozen runner, reproduce both negative controls, apply
+the fixes, merge latest main and rebuild. Refresh only the selected changed
+inputs; run merge-affected portable and reduced private consumers, integrated
+proofs/identity, final audit/docs/status, then publish the PR/ready entry and
+clean up. Do not rerender any successful before-baseline map.
