@@ -358,3 +358,7 @@ automatic-window toggle before its inactive boundary. These callers add no
 direct sound call. Native hosts assert zero guessed sound deliveries. Exact
 class/world predicates, nested unowned GFx sound queries and whole-client
 sound parity remain unproved.
+
+The production hosts check 132 forged callbacks per synthetic/real host;
+all eight distinct compiled controller mutants are caught. Final proof,
+validator rows, timings and limits are in [UI-WINDOWS-003](../handoffs/UI-WINDOWS-003.md).
