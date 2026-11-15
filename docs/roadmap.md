@@ -1,5 +1,7 @@
 # Roadmap and work queue
 
+NEXT-GAPS-002 PR-ready, docs only: the ranked gap list is rewritten on main c5b9d5ca plus the running lanes' pushed branches. Fourteen ranked lanes, a six-lane parallel plan, 39 refused consumer ids in one table, missing assets listed separately and the lanes at diminishing returns; every count cites a file and line range. No runtime change. [Research](research/next-gaps.md), [method and limits](handoffs/NEXT-GAPS-002.md).
+
 RENDER-EFFECTS-033 verified subset PR-ready: twelve consumer pairs add summon ground, Penetration child/trails, target ice and the Blood Storm sword subset. Learned presentation moves 11 P / 7 L / 11 M to 14 P / 6 L / 9 M; summon bodies, held Defense and named downstream consumers remain refused. 32,010 full checks, 45 new compiled controls plus three refreshed anchors, all 86 current selected validators, thirteen demo asset scenes and 92 PNG / 92 dump identity pairs pass. [Scope, per-skill limits and timings](handoffs/RENDER-EFFECTS-033.md).
 
 RENDER-ACTORS-007 verified subset PR-ready: 138 more bounded fixture plans (53 NPCs, fifteen weapon assemblies, seventy constructor-state selectors), spanning 108 model indices / 99 files. Census: 727 checked / 217 incomplete / 80 refused. Group sizes and every remaining reason are published; sword sprites, type-226 lifetimes and prior loader refusal boundaries stay excluded. 8,451 focused checks, 21 compiled controls and 33 affected validators pass. [Evidence, timings, identity and limits](handoffs/RENDER-ACTORS-007.md).

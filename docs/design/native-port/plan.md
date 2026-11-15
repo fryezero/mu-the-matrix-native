@@ -1,5 +1,7 @@
 # Plan: the rest of the native macOS port
 
+NEXT-GAPS-002 PR-ready, docs only: the ranked gap list is rewritten on main c5b9d5ca plus the running lanes' pushed branches. Fourteen ranked lanes, a six-lane parallel plan, 39 refused consumer ids in one table, missing assets listed separately and the lanes at diminishing returns; every count cites a file and line range. No runtime change. [Research](../../research/next-gaps.md), [method and limits](../../handoffs/NEXT-GAPS-002.md).
+
 RENDER-EFFECTS-033 verified subset PR-ready: twelve consumer pairs add summon ground, Penetration child/trails, target ice and the Blood Storm sword subset. Learned presentation moves 11 P / 7 L / 11 M to 14 P / 6 L / 9 M; summon bodies, held Defense and named downstream consumers remain refused. 32,010 full checks, 45 new compiled controls plus three refreshed anchors, all 86 current selected validators, thirteen demo asset scenes and 92 PNG / 92 dump identity pairs pass. [Scope, per-skill limits and timings](../../handoffs/RENDER-EFFECTS-033.md).
 
 AUDIO-006 verified fixture subset PR-ready: 182 new monster play sites advance 411 to 593 boundaries. The 279 class refusals partition 182 admitted / 47 delegated / 47 marker-service / three prior-action-stop; 97 remain refused, as do all 66 class-use sites. Census 1,434/546 becomes 1,464/516 classified/unresolved, including two incoming INNER-005 classifications. Twenty compiled controls, 38 selected validator rows and rebuilt 230-artifact default identity pass. [Counts, timings and limits](../../handoffs/AUDIO-006.md).
