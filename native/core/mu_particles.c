@@ -116,6 +116,8 @@ static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
 /* The world objects' effect models (AccessModel, static readings of the loaders): the Tormenta handler's
  * hs_fieldtornado (0x00e4c4de). */
 static const struct { int32_t type, world; const char *file; } fx_model_files[MU_WORLD_FX_MODELS] = {
+    /* MUUN-VISUAL-005: AccessModel 0x01833c69. */
+    {0x47a, -1, "Data/Skill/DarkLordSkill.bmd"},
     {MU_SFX_MODEL_TORNADO, 0x8d, "Data/Object142/hs_fieldtornado.bmd"},
     /* NATIVE-CHARSEL-003: the character select's sky dragon and its glint (AccessModel 0x018363e8/0x0183641d,
      * textures from Data\Effect\) */
@@ -323,6 +325,8 @@ int mu_world_particles_open(mu_world_particles *p, const char *root, const mu_wo
     for (int i = 0; i < MU_WORLD_FX_MODELS; ++i) {
         mu_world_fx_model *m = &p->models[i];
         m->type = fx_model_files[i].type;
+        /* This lane exposes the consumer only to the explicit offline transition fixture. */
+        if (m->type == 0x47a && !getenv("MU_MUUN_REMOTE_FIXTURE")) continue;
         if (mu_world_warp_type(m->type) && world != 2 && world != 3 && world != 57 && world != 58)
             continue;
         if (m->type == MU_SFX_MODEL_DUNGEON_STONE && (world < 116 || world > 120))

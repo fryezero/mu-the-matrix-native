@@ -122,8 +122,8 @@ int mu_muun_visual_open(mu_muun_visual *v, const char *root, const char *lang, i
             const uint8_t *r = meshes.bytes + meshes.result.records_offset + (size_t)k * 300;
             if (i32_at(r, 0) != v->info.item) continue;
             int32_t mesh = i32_at(r, 4);
-            /* Keep the three unproved bone-effect rows explicit; ordinary/special mesh-only rows admit. */
-            if (!mu_mv_special_admit(v->info.item + MU_ITEM_MODEL_BASE, mesh) || mesh < 0 || mesh >= v->bmd.mesh_count) {
+            if ((!mu_mv_special_admit(v->info.item + MU_ITEM_MODEL_BASE, mesh) &&
+                 !mu_mv_bone_row(v->info.item + MU_ITEM_MODEL_BASE, mesh)) || mesh < 0 || mesh >= v->bmd.mesh_count) {
                 ++v->refused_meshes; continue;
             }
             int valid = 1;
@@ -253,6 +253,44 @@ int mu_muun_visual_command(mu_muun_visual *v, int32_t category, const float targ
     return 1;
 }
 
+static void bone_effects(mu_muun_visual *v, int32_t mesh, float time)
+{
+    static const int32_t bones[] = {11,18,12,13,22,23,52};
+    float points[7][3] = {{0}}, fractions[12] = {0};
+    int first = v->state.model == 0x2b8d ? 0 : v->state.model == 0x2b8e ? 2 : 6;
+    int end = first == 0 ? 2 : first == 2 ? 6 : 7;
+    for (int i=first;i<end;++i) {
+        int32_t b = bones[i];
+        if (b >= v->bmd.bone_count || v->bmd.bones[b].dummy || v->bmd.bones[b].unresolved) {
+            ++v->bone_points_refused; return;
+        }
+        const float *matrix = mu_model_bone_matrices(&v->model) + 12*b;
+        for (int k=0;k<3;++k)
+            points[i][k] = matrix[4*k+3]*v->state.scale + v->state.position[k];
+    }
+    /* A deterministic private RNG for the fixture, not the process-wide original RNG phase. */
+    int32_t randoms[14];
+    for (int i=0;i<14;++i) {
+        v->rng = v->rng*214013u+2531011u;
+        randoms[i] = (int32_t)((v->rng>>16)&0x7fffu);
+        if (i<12) fractions[i] = (float)randoms[i]/32767.0f;
+    }
+    mu_mv_bone_op ops[MU_MV_BONE_OPS];
+    int count = mu_mv_bone_effects(v->state.model,mesh,time,v->state.scale,points,fractions,
+                                  randoms[12],randoms[13],ops);
+    for (int i=0;i<count;++i) {
+        mu_mv_bone_op *op = ops+i; ++v->bone_requests;
+        int accepted = 0;
+        if (v->particles) {
+            if (op->particle) accepted = mu_world_particles_create(v->particles,op->type,op->position,
+                v->state.angle,op->light,op->subtype,op->scale);
+            else accepted = mu_world_particles_sprite(v->particles,op->type,op->position,op->scale,
+                op->light,-1,op->rotation,0,4);
+        }
+        if (accepted) ++v->bone_created; else ++v->bone_refused;
+    }
+}
+
 void mu_muun_visual_draw(mu_muun_visual *v, float time, const mu_render_backend *backend, mu_draw_stats *stats)
 {
     if (!v->visible || !v->posed) return;
@@ -268,6 +306,8 @@ void mu_muun_visual_draw(mu_muun_visual *v, float time, const mu_render_backend 
         float uv[2] = {0.0f, 0.0f};
         mu_mv_special_pass(v->state.model, v->state.action, v->mesh_records + (size_t)k * 300,
             mu_frame_time_value(), time, 1.0f, 1.0f, &v->mesh_c8, &pass, uv);
+        int bone_row = mu_mv_bone_row(v->state.model,pass.mesh);
+        int draw_mesh = !bone_row || mu_mv_bone_mesh(v->state.model,pass.mesh,time,1.0f,1.0f,&pass,uv);
         mu_draw_model_fields fields = {0};
         memcpy(fields.color, pass.color, sizeof fields.color);
         o.fields = &fields;
@@ -278,7 +318,10 @@ void mu_muun_visual_draw(mu_muun_visual *v, float time, const mu_render_backend 
         o.color_scale = pass.light;
         o.texture = pass.texture;
         o.u_offset = uv[0]; o.v_offset = uv[1];
-        mu_scene_draw_model(&v->model, &o, backend, stats);
-        ++v->mesh_draws;
+        if (draw_mesh) {
+            mu_scene_draw_model(&v->model, &o, backend, stats);
+            ++v->mesh_draws;
+        }
+        if (bone_row) bone_effects(v,pass.mesh,time);
     }
 }

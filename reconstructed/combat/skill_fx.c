@@ -288,6 +288,8 @@ static void check(const mu_sfx_env *env, mu_sfx_effect *e, int32_t routine);
 
 static int effect_supported(int32_t type, int32_t sub)
 {
+    /* MUUN-VISUAL-005: authored remote transition, no other subtype admitted. */
+    if (type == 0x47a) return sub == 0;
     if (mu_world_warp_type(type))
         return 1;
     if (type == MU_SFX_MODEL_ARROW || arrow_kind(type))
@@ -439,6 +441,13 @@ int mu_sfx_effect_create(mu_sfx_effect *e, int32_t type, int32_t subtype, const 
     if (uruk_effect_kind(type, subtype))
         return uruk_effect_create(e);   /* RENDER-EFFECTS-018 */
     switch (type) {
+    case 0x47a:                  /* 0x013db316, subtype 0 */
+        e->lifetime = 10;
+        e->scale = 0.2f;
+        e->velocity = 0.1f;
+        (void)env_rand(env);     /* original consumes rand % 2 even though subtype 0 keeps 45 */
+        set3(e->angle, 45.0f, 45.0f, 0.0f);
+        break;
     case 0x10e6:                 /* 0x013c465a, subtype 1's marker, no model draw */
         e->lifetime = 10;
         break;
@@ -1086,6 +1095,11 @@ int mu_sfx_effect_move(mu_sfx_effect *e, const mu_sfx_env *env)
     if (uruk_effect_kind(type, sub))
         uruk_effect_move(e, env);   /* RENDER-EFFECTS-018 */
     switch (type) {
+    case 0x47a:                  /* 0x01473b22, subtype 0; common lifetime tail follows */
+        e->scale = e->scale + e->velocity;
+        e->velocity = e->velocity + 0.02f;
+        if (e->lifetime < 7) e->blend_light = e->blend_light / 1.8f;
+        break;
     case 0x10e6: { /* 0x014374f6: the stationary marker emits one Flare/12 per step */
         mu_sfx_call c = {0};
         c.routine = MU_SFX_CALL_JOINT; c.type = 0x7f78; c.subtype = 12;

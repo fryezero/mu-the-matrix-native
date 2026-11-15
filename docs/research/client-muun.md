@@ -329,3 +329,35 @@ Native renders 25/30 rows: ids 356/357/375/376/377 admit 3/3/7/8/4. Besides thos
 357's mesh-3 row is refused because its actual model has only meshes 0..2. Its texture exists; no filename
 normalization or substitute mesh was used. Private original and GL/software pixel controls pass; final
 mutants/refresh counts belong in the handoff. No additional mesh-associated effect consumer was authored.
+
+## Initial complete appearance census, MUUN-VISUAL-005
+
+Before behavior changes, the frozen read-only inputs were joined across all 386 render-info rows.
+The [row table](muun-appearance-census.csv) records each appearance/model, exact asset request, current
+adapter admission and missing behavior. These are adapter/asset classifications, not 386 pixel-equivalence
+claims. Native Data remains APP-REFRESH-006; model BMDs are read from the canonical game root because
+Native Data contains converted tables/objects/GFx, not a second model tree. No refresh is performed.
+
+| Initial group | Rows | What draws / what is missing |
+|---|---:|---|
+| Kind 0 | 378 | Base/pose adapter; row-specific exceptions are in the CSV |
+| Kind 1 | 8 | Existing secondary body, seat, four rider phases, fade and local buff mode; secondary particle and remote effect consumer gaps |
+| Loadable base models | 379 | 547 admitted extra rows, 16 attachment records, zero attachment-bone or texture-load refusals |
+| Missing asset | 6 | `shogunpet.bmd`, `shogunpet_evol.bmd`, `ninjapet.bmd`, `ninjapet_evol.bmd`, `samouraipet.bmd`, `samouraipet_evol.bmd`, all under `Data/Item` |
+| Missing item binding | 1 | Appearance 193; no Item.bmd model-path binding |
+| Loadable models with actions 0..2 | 126 | Command actions 3/4 unavailable, including 363 `Data/Item/dandelionUp.bmd` |
+| Loadable models with actions 0..3 | 8 | Command action 4 unavailable |
+| Loadable models with actions 0..4 | 245 | Command action slots exist; production command selection remains excluded |
+
+The 13 initially refused extra rows comprise four bone-effect rows and nine out-of-range mesh rows.
+The latter affect appearances 276, 292, 305, 306, 357, 368 and 369. This includes the prior lane's exact
+`Data/Item/lalaUp.bmd` mesh 3 request, whose file has only meshes 0..2. The four bone-effect rows have
+available assets: 375 `illusionmuun.bmd` mesh 1, both 376 `ragefightermuun.bmd` mesh 2 rows, and 377
+`dark_muun.bmd` mesh 4. Bones 11/18 on 375 and bone 52 on 377 exist, are non-dummy and have resolved
+parent chains. A missing mesh or action is refused; no replacement asset or action is inferred.
+
+Secondary `0x009bfe13` request callers and remote timer arithmetic already have original comparisons
+and compiled controls in 004. Remaining consumer ids are particles `0x8081/1`, `0x8082/1`, `0x7ef7/19`
+and effect `0x47a/0`. This lane may add only the last consumer. The earlier seated-rider, four-action,
+owner-kind-2 fade and local buff-0x12 rows have no newly demonstrated missing implementation; original
+RNG/process phase, remote class/team visibility and authoritative target/selection inputs remain excluded.

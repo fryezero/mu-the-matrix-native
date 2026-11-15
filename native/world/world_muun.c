@@ -160,6 +160,7 @@ void mu_world_muun_tick(mu_world_rt *a, mu_world_muun *m)
 
 static void frame(mu_world_rt *a, mu_world_muun *m)
 {
+    m->visual.particles = a->has_particles ? &a->particles : NULL;
     if (m->prepared_frame == a->rendered_frames) return;
     m->prepared_frame = a->rendered_frames;
     mu_muun_visual *v = &m->visual;
@@ -276,6 +277,8 @@ void mu_world_muun_report(const mu_world_muun *m, FILE *out)
         "\"attached\":%d,\"missing\":%d,\"refused_actions\":%ld,\"refused_bones\":%ld,\"draws\":%ld}\n",
         m->mount.model_code, m->mount.visible, mu_model_action(&m->mount.model), m->mount.attached,
         m->mount.textures.missing, m->mount.refused_actions, m->mount.refused_bones, m->mount.draws);
+    fprintf(out, "{\"muun_bone_requests\":%ld,\"created\":%ld,\"refused\":%ld,\"invalid_points\":%ld}\n",
+        v->bone_requests,v->bone_created,v->bone_refused,v->bone_points_refused);
     fprintf(out, "{\"muun_fixture\":%d,\"model\":%d,\"live\":%d,\"visible\":%d,\"state\":%d,"
         "\"position\":[%.3f,%.3f,%.3f],\"action\":%u,\"frame\":%.3f,\"textures_missing\":%d,"
         "\"mesh_passes\":%d,\"mesh_draws\":%ld,\"refused_meshes\":%ld,\"commands\":%ld,\"refused_commands\":%ld,\"attachments\":%d,\"invalid\":%ld,\"refused_bones\":%ld,\"updates\":%ld,\"vertices\":%u}\n",

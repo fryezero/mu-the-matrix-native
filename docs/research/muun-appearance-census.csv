@@ -1,0 +1,387 @@
+appearance,model,slot,asset,draws_before_005,missing_before_005
+0,0x2bba,0,Data\Item\dragonpet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+1,0x2bbb,0,Data\Item\dragonpet_evol.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+2,0x2bbc,0,Data\Item\stonepet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+3,0x2bbd,0,Data\Item\stonepet_evol.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+4,0x2bbe,0,Data\Item\mermaidpet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+5,0x2bbf,0,Data\Item\mermaidpet_evol.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+6,0x2bc0,0,Data\Item\satanpet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+7,0x2bc1,0,Data\Item\satanpet_evol.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+8,0x2bc5,0,Data\Item\williumpet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+9,0x2bc6,0,Data\Item\williumpet_evol.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+10,0x2bc7,0,Data\Item\Polpet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+11,0x2bc8,0,Data\Item\Polpet_evol.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+12,0x2bc9,0,Data\Item\Kironpet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+13,0x2bca,0,Data\Item\Kironpet_evol.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+14,0x2bcb,0,Data\Item\wooparoopet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+15,0x2bcc,0,Data\Item\wooparoopet_evol.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+16,0x2bcd,1,Data\Item\wolfpet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,secondary 0x8081/1 or 0x8082/1 and 0x7ef7/19 consumers; remote 0x47a consumer
+17,0x2bce,1,Data\Item\wolfpet_evol.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,secondary 0x8081/1 or 0x8082/1 and 0x7ef7/19 consumers; remote 0x47a consumer
+18,0x2bcf,0,Data\Item\Witchpet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+19,0x2bd0,0,Data\Item\Witchpet_evol.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+20,0x2bd1,0,Data\Item\Skullpet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+21,0x2bd2,0,Data\Item\Skullpet_evol.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+22,0x2bd3,0,Data\Item\pumpipet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+23,0x2bd4,0,Data\Item\pumpipet_evol.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+24,0x2bd7,0,Data\Item\sabatpet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+25,0x2bd8,0,Data\Item\sabatpet_evol.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+26,0x2bd9,0,Data\Item\Lycanpet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+27,0x2bda,0,Data\Item\Lycanpet_evol.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+28,0x2bdb,0,Data\Item\tobypet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+29,0x2bdc,0,Data\Item\tobypet_evol.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+30,0x2be2,0,Data\Item\seirenpet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+31,0x2be3,0,Data\Item\seirenpet_evol.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+32,0x2be4,0,Data\Item\Behemothpet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+33,0x2be5,0,Data\Item\Behemothpet_evol.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+34,0x2be6,0,Data\Item\loglepet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+35,0x2be7,0,Data\Item\loglepet_evol.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+36,0x2be8,0,Data\Item\minopet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+37,0x2be9,0,Data\Item\minopet_evol.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+38,0x2bea,0,Data\Item\houndpet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+39,0x2beb,0,Data\Item\houndpet_evol.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+40,0x2bec,0,Data\Item\tribepet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+41,0x2bed,0,Data\Item\tribepet_evol.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+42,0x2bee,0,Data\Item\bogeonpet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+43,0x2bef,0,Data\Item\bogeonpet_evol.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+44,0x2bf0,0,Data\Item\cyclopspet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+45,0x2bf1,0,Data\Item\cyclopspet_evol.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+46,0x2bf4,0,Data\Item\Bonpeupet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+47,0x2bf5,0,Data\Item\Bonpeupet_evol.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+48,0x2bf6,0,Data\Item\hawkpet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+49,0x2bf7,0,Data\Item\hawkpet_evol.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+50,0x2bf8,0,Data\Item\MuTpet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+51,0x2bf9,0,Data\Item\MuTpet_evol.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+52,0x2bfc,0,Data\Item\mantispet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+53,0x2bfd,0,Data\Item\mantispet_evol.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+54,0x2bfe,0,Data\Item\scolpipet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+55,0x2bff,0,Data\Item\scolpipet_evol.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+56,0x2c00,0,Data\Item\chaferpet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+57,0x2c01,0,Data\Item\chaferpet_evol.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+58,0x2c02,0,Data\Item\shogunpet.bmd,refused,frozen asset absent
+59,0x2c03,0,Data\Item\shogunpet_evol.bmd,refused,frozen asset absent
+60,0x2c04,0,Data\Item\ninjapet.bmd,refused,frozen asset absent
+61,0x2c05,0,Data\Item\ninjapet_evol.bmd,refused,frozen asset absent
+62,0x2c06,0,Data\Item\samouraipet.bmd,refused,frozen asset absent
+63,0x2c07,0,Data\Item\samouraipet_evol.bmd,refused,frozen asset absent
+64,0x2c08,0,Data\Item\cosgirlpet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+65,0x2c09,0,Data\Item\cosgirlpet_evol.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+66,0x2c0a,0,Data\Item\taegeukgirlpet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+67,0x2c0b,0,Data\Item\taegeukgirlpet_evol.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+68,0x2c0c,0,Data\Item\SportyGirlpet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+69,0x2c0d,0,Data\Item\SportyGirlpet_evol.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+70,0x2c0e,0,Data\Item\baelpet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+71,0x2c0f,0,Data\Item\baelpet_evol.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+72,0x2c10,0,Data\Item\gapppet.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+73,0x2c11,0,Data\Item\gapppet_evol.bmd,base/pose adapter; 4 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+74,0x2c12,0,Data\Item\tapppet.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+75,0x2c13,0,Data\Item\tapppet_evol.bmd,base/pose adapter; 4 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+76,0x2c18,0,Data\Item\persilpet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+77,0x2c19,0,Data\Item\persilpet_evol.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+78,0x2c16,0,Data\Item\lurepet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+79,0x2c17,0,Data\Item\lurepet_evol.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+80,0x2c14,0,Data\Item\Frozenpet.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+81,0x2c15,0,Data\Item\Frozenpet_evol.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+82,0x2c1a,0,Data\Item\luckyrabbit.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+83,0x2c1b,0,Data\Item\luckyrabbit_evol.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+84,0x2c1c,0,Data\Item\songrabbit.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+85,0x2c1d,0,Data\Item\songrabbit_evol.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+86,0x2c1e,0,Data\Item\stonemortarrabbit.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+87,0x2c1f,0,Data\Item\stonemortarrabbit_evol.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+88,0x2c20,0,Data\Item\polarispet.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+89,0x2c21,0,Data\Item\polarispet_evol.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+90,0x2c22,0,Data\Item\reynerpet.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+91,0x2c23,0,Data\Item\reynerpet_evol.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+92,0x2c24,0,Data\Item\alcamopet.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+93,0x2c25,0,Data\Item\alcamopet_evol.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+94,0x2c26,0,Data\Item\gracchuspet.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+95,0x2c27,0,Data\Item\gracchuspet_evol.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+96,0x2c28,0,Data\Item\kenturionpet.bmd,base/pose adapter; 5 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+97,0x2c29,0,Data\Item\kenturionpet_evol.bmd,base/pose adapter; 5 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+98,0x2c2a,0,Data\Item\rockapet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+99,0x2c2b,0,Data\Item\rockapet_evol.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+100,0x2c2c,1,Data\Item\rippenpet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,secondary 0x8081/1 or 0x8082/1 and 0x7ef7/19 consumers; remote 0x47a consumer
+101,0x2c2d,1,Data\Item\rippenpet_evol.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,secondary 0x8081/1 or 0x8082/1 and 0x7ef7/19 consumers; remote 0x47a consumer
+102,0x2c2e,1,Data\Item\ponpet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,secondary 0x8081/1 or 0x8082/1 and 0x7ef7/19 consumers; remote 0x47a consumer
+103,0x2c2f,1,Data\Item\ponpet_evol.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,secondary 0x8081/1 or 0x8082/1 and 0x7ef7/19 consumers; remote 0x47a consumer
+104,0x2c30,1,Data\Item\griffspet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,secondary 0x8081/1 or 0x8082/1 and 0x7ef7/19 consumers; remote 0x47a consumer
+105,0x2c31,1,Data\Item\griffspet_evol.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,secondary 0x8081/1 or 0x8082/1 and 0x7ef7/19 consumers; remote 0x47a consumer
+106,0x2c32,0,Data\Item\polarbearpet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+107,0x2c33,0,Data\Item\polarbearpet_evol.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+108,0x2c34,0,Data\Item\presentpet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+109,0x2c35,0,Data\Item\presentpet_evol.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+110,0x2c36,0,Data\Item\rockinghorsepet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+111,0x2c37,0,Data\Item\rockinghorsepet_evol.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+112,0x2c38,0,Data\Item\orrispet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+113,0x2c39,0,Data\Item\orrispet_evol.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+114,0x2c3a,0,Data\Item\Leicesterpet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+115,0x2c3b,0,Data\Item\Leicesterpet_evol.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+116,0x2c3c,0,Data\Item\merinopet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+117,0x2c3d,0,Data\Item\merinopet_evol.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+118,0x2c3e,0,Data\Item\splinterpet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+119,0x2c3f,0,Data\Item\splinterpet_evol.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+120,0x2c40,0,Data\Item\mutationpet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+121,0x2c41,0,Data\Item\mutationpet_evol.bmd,base/pose adapter; 5 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+122,0x2c42,0,Data\Item\fighterpet.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+123,0x2c43,0,Data\Item\fighterpet_evol.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+124,0x2c7f,0,Data\Item\heywoodpet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+125,0x2c80,0,Data\Item\heywoodpet_evol.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+126,0x2c81,0,Data\Item\branchpet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+127,0x2c82,0,Data\Item\branchpet_evol.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+128,0x2c83,0,Data\Item\hookpet.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+129,0x2c84,0,Data\Item\hookpet_evol.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+130,0x2cc3,0,Data\Item\orrispet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+131,0x2c85,0,Data\Item\caniflepet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+132,0x2c86,0,Data\Item\caniflepet_evol.bmd,base/pose adapter; 5 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+133,0x2c87,0,Data\Item\mandorapet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+134,0x2c88,0,Data\Item\mandorapet_evol.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+135,0x2c89,0,Data\Item\treatpet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+136,0x2c8a,0,Data\Item\treatpet_evol.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+137,0x2c8b,0,Data\Item\rosepet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+138,0x2c8c,0,Data\Item\rosepet_evol.bmd,base/pose adapter; 5 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+139,0x2c8d,0,Data\Item\rapeflowerpet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+140,0x2c8e,0,Data\Item\rapeflowerpet_evol.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+141,0x2c8f,0,Data\Item\cherryblossompet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+142,0x2c90,0,Data\Item\cherryblossompet_evol.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+143,0x2c91,0,Data\Item\gigantespet.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+144,0x2c92,0,Data\Item\gigantespet_evol.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+145,0x2c93,0,Data\Item\mommothpet.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+146,0x2c94,0,Data\Item\mommothpet_evol.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+147,0x2c95,0,Data\Item\walkerpet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+148,0x2c96,0,Data\Item\walkerpet_evol.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+149,0x2c97,0,Data\Item\surfinggirl.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+150,0x2c98,0,Data\Item\surfinggirlUp.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+151,0x2c99,0,Data\Item\tubegirl.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+152,0x2c9a,0,Data\Item\tubegirlUP.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+153,0x2c9b,0,Data\Item\coolinggirlpet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+154,0x2c9c,0,Data\Item\coolinggirlpet_evol.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+155,0x2c9d,0,Data\Item\commander.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+156,0x2c9e,0,Data\Item\CommanderUp.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+157,0x2c9f,0,Data\Item\LanceSoldier.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+158,0x2ca0,0,Data\Item\LanceSoldierUp.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+159,0x2ca1,0,Data\Item\bowsoldier.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+160,0x2ca2,0,Data\Item\bowsoldierUp.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+161,0x2ca3,0,Data\Item\hammer.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+162,0x2ca4,0,Data\Item\hammerUp.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+163,0x2ca5,0,Data\Item\ripieo.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+164,0x2ca6,0,Data\Item\ripieoUp.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+165,0x2ca7,0,Data\Item\xer.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+166,0x2ca8,0,Data\Item\xerUp.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+167,0x2ca9,0,Data\Item\pumpkingirl.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+168,0x2caa,0,Data\Item\pumpkingirlUp.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+169,0x2cab,0,Data\Item\ghost.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+170,0x2cac,0,Data\Item\ghostUp.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+171,0x2cad,0,Data\Item\mummyboy.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+172,0x2cae,0,Data\Item\mummyboyUp.bmd,base/pose adapter; 4 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+173,0x2caf,0,Data\Item\chrysanthemum.bmd,base/pose adapter; 0 admitted extra rows; 1 attachments,no known row-specific gap; per-row render equivalence unverified
+174,0x2cb0,0,Data\Item\chrysanthemumUp.bmd,base/pose adapter; 1 admitted extra rows; 1 attachments,no known row-specific gap; per-row render equivalence unverified
+175,0x2cb1,0,Data\Item\maple.bmd,base/pose adapter; 0 admitted extra rows; 1 attachments,no known row-specific gap; per-row render equivalence unverified
+176,0x2cb2,0,Data\Item\mapleUp.bmd,base/pose adapter; 2 admitted extra rows; 1 attachments,no known row-specific gap; per-row render equivalence unverified
+177,0x2cb3,0,Data\Item\ginkgo.bmd,base/pose adapter; 0 admitted extra rows; 1 attachments,no known row-specific gap; per-row render equivalence unverified
+178,0x2cb4,0,Data\Item\ginkgoUp.bmd,base/pose adapter; 1 admitted extra rows; 1 attachments,no known row-specific gap; per-row render equivalence unverified
+179,0x2cb5,0,Data\Item\ghostUp.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+180,0x2cb6,0,Data\Item\mummyboyUp.bmd,base/pose adapter; 4 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+181,0x2cc6,0,Data\Item\toysoldier.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+182,0x2cc7,0,Data\Item\toysoldierUp.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+183,0x2cc8,0,Data\Item\xmastree.bmd,base/pose adapter; 0 admitted extra rows; 1 attachments,no known row-specific gap; per-row render equivalence unverified
+184,0x2cc9,0,Data\Item\xmastreeUp.bmd,base/pose adapter; 1 admitted extra rows; 1 attachments,no known row-specific gap; per-row render equivalence unverified
+185,0x2cca,0,Data\Item\snowman.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+186,0x2ccb,0,Data\Item\snowmanUp.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+187,0x2ccc,0,Data\Item\buskermonkey.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+188,0x2ccd,0,Data\Item\buskermonkeyUp.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+189,0x2cce,0,Data\Item\djmonkey.bmd,base/pose adapter; 0 admitted extra rows; 1 attachments,no known row-specific gap; per-row render equivalence unverified
+190,0x2ccf,0,Data\Item\djmonkeyUp.bmd,base/pose adapter; 0 admitted extra rows; 1 attachments,no known row-specific gap; per-row render equivalence unverified
+191,0x2cd0,0,Data\Item\spacemonkey.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+192,0x2cd1,0,Data\Item\spacemonkeyUp.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+193,0x2cb7,0,,refused,item binding absent
+194,0x2cd2,0,Data\Item\littlecupid.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+195,0x2cd3,0,Data\Item\littlecupidUp.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+196,0x2cd4,0,Data\Item\chococookie.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+197,0x2cd5,0,Data\Item\chococookieUp.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+198,0x2cd6,0,Data\Item\heartgirl.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+199,0x2cd7,0,Data\Item\heartgirlUp.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+200,0x2cd8,0,Data\Item\candygril.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+201,0x2cd9,0,Data\Item\candygrilUp.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+202,0x2cda,0,Data\Item\lollipopmama.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+203,0x2cdb,0,Data\Item\lollipopmamaUp.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+204,0x2cdc,0,Data\Item\sweetmuscleman.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+205,0x2cdd,0,Data\Item\SweetMuscleManUp.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+206,0x2ae6,0,Data\Item\pinocchio.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+207,0x2ae7,0,Data\Item\pinocchioUp.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+208,0x2ae8,0,Data\Item\geppetoo.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+209,0x2ae9,0,Data\Item\geppetooUp.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+210,0x2aea,0,Data\Item\bluefairy.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+211,0x2aeb,0,Data\Item\bluefairyUp.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+212,0x2aec,0,Data\Item\daddybear.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+213,0x2aed,0,Data\Item\daddybearUp.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+214,0x2aee,0,Data\Item\babybear.bmd,base/pose adapter; 0 admitted extra rows; 1 attachments,no known row-specific gap; per-row render equivalence unverified
+215,0x2aef,0,Data\Item\babybearUp.bmd,base/pose adapter; 0 admitted extra rows; 1 attachments,no known row-specific gap; per-row render equivalence unverified
+216,0x2af0,0,Data\Item\mommybear.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+217,0x2af1,0,Data\Item\mommybearUp.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+218,0x2af2,0,Data\Item\indio.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+219,0x2af3,0,Data\Item\indioUp.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+220,0x2af4,0,Data\Item\treasure.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+221,0x2af5,0,Data\Item\treasureUp.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+222,0x2af6,0,Data\Item\treasurehunter.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+223,0x2af7,0,Data\Item\treasurehunterUp.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+224,0x2af8,0,Data\Item\treeelf.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+225,0x2af9,0,Data\Item\treeelfUp.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+226,0x2afa,0,Data\Item\grassfairy.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+227,0x2afb,0,Data\Item\grassfairyUp.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+228,0x2afc,0,Data\Item\leafsorcerer.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+229,0x2afd,0,Data\Item\leafsorcererUp.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+230,0x2afe,0,Data\Item\sambagirl.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+231,0x2aff,0,Data\Item\sambagirlUp.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+232,0x2b00,0,Data\Item\rio.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+233,0x2b01,0,Data\Item\rioUp.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+234,0x2b02,0,Data\Item\bateria.bmd,base/pose adapter; 0 admitted extra rows; 1 attachments,no known row-specific gap; per-row render equivalence unverified
+235,0x2b03,0,Data\Item\bateriaUp.bmd,base/pose adapter; 0 admitted extra rows; 1 attachments,no known row-specific gap; per-row render equivalence unverified
+236,0x2b04,0,Data\Item\presscorps.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+237,0x2b05,0,Data\Item\DragonKnight.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+238,0x2b06,0,Data\Item\Tiger.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+239,0x2b07,0,Data\Item\tigerUp.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+240,0x2b08,0,Data\Item\Libra.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+241,0x2b09,0,Data\Item\LibraUp.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,command actions 3/4
+242,0x2b0a,0,Data\Item\scorpio.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+243,0x2b0b,0,Data\Item\scorpioUp.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+244,0x2b0c,0,Data\Item\rabbit.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+245,0x2b0d,0,Data\Item\rabbitUp.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+246,0x2b0e,0,Data\Item\doto.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+247,0x2b0f,0,Data\Item\Chefchicken.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+248,0x2b10,0,Data\Item\ChefchickenUp.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+249,0x2b11,0,Data\Item\chick.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+250,0x2b12,0,Data\Item\chickUp.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,command actions 3/4
+251,0x2b13,0,Data\Item\angrychicken.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 4
+252,0x2b14,0,Data\Item\angrychickenUp.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 4
+253,0x2b15,0,Data\Item\lionmask.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+254,0x2b16,0,Data\Item\lionmaskUp.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+255,0x2b17,0,Data\Item\knightinstructor.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+256,0x2b18,0,Data\Item\knightinstructorUP.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,command actions 3/4
+257,0x2b19,0,Data\Item\blackleopard.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+258,0x2b1a,0,Data\Item\blackleopardUp.bmd,base/pose adapter; 4 admitted extra rows; 0 attachments,command actions 3/4
+259,0x2b1b,0,Data\Item\toyrobot.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,command actions 3/4
+260,0x2b1c,0,Data\Item\toyrobotUp.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,command actions 3/4
+261,0x2b1d,0,Data\Item\adventurecat.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,command actions 3/4
+262,0x2b1e,0,Data\Item\adventurecatUp.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,command actions 3/4
+263,0x2b1f,0,Data\Item\dike.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,command actions 3/4
+264,0x2b20,0,Data\Item\dikeUp.bmd,base/pose adapter; 5 admitted extra rows; 0 attachments,command actions 3/4
+265,0x2b21,0,Data\Item\raincoatGirl.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+266,0x2b22,0,Data\Item\raincoatGirlUp.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,command actions 3/4
+267,0x2b23,0,Data\Item\scarecrow.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+268,0x2b24,0,Data\Item\scarecrowUp.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,command actions 3/4
+269,0x2b25,0,Data\Item\knightZombie.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+270,0x2b26,0,Data\Item\knightZombieUp.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+271,0x2b27,0,Data\Item\mrAngler.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+272,0x2b28,0,Data\Item\mrAnglerUp.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,command actions 3/4
+273,0x2b29,0,Data\Item\snowFairy.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,command actions 3/4
+274,0x2b2a,0,Data\Item\snowFairyUp.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,command actions 3/4
+275,0x2b2b,0,Data\Item\prince.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,command actions 3/4
+276,0x2b2c,0,Data\Item\king.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,1 extra rows refused at unavailable mesh; command actions 3/4
+277,0x2b2d,0,Data\Item\poodle.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+278,0x2b2e,0,Data\Item\poodleUp.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,command actions 3/4
+279,0x2b2f,0,Data\Item\beagle.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,command actions 3/4
+280,0x2b30,0,Data\Item\beagleUp.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+281,0x2b31,0,Data\Item\bulldog.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,command actions 4
+282,0x2b32,0,Data\Item\bulldogUp.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,command actions 4
+283,0x2b33,0,Data\Item\tigerSki.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+284,0x2b34,0,Data\Item\tigerSkiUp.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,command actions 3/4
+285,0x2b35,0,Data\Item\figure.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,command actions 3/4
+286,0x2b36,0,Data\Item\figureUp.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,command actions 3/4
+287,0x2b37,0,Data\Item\bearhockey.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,command actions 4
+288,0x2b38,0,Data\Item\bearhockeyUp.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,command actions 4
+289,0x2b39,0,Data\Item\pilot.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,command actions 3/4
+290,0x2b3a,0,Data\Item\pilotUp.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,command actions 3/4
+291,0x2b3b,0,Data\Item\superpanda.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+292,0x2b3c,0,Data\Item\superpandaUp.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,1 extra rows refused at unavailable mesh; command actions 3/4
+293,0x2b3d,0,Data\Item\bellydancer.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+294,0x2b3e,0,Data\Item\bellydancerUp.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,command actions 3/4
+295,0x2b3f,0,Data\Item\bestcaptain.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,command actions 3/4
+296,0x2b40,0,Data\Item\bestcaptainUp.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,command actions 3/4
+297,0x2b41,0,Data\Item\goalkeeper.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,command actions 3/4
+298,0x2b42,0,Data\Item\goalkeeperUp.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,command actions 3/4
+299,0x2b43,0,Data\Item\referee.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,command actions 4
+300,0x2b44,0,Data\Item\refereeUp.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,command actions 4
+301,0x2b45,0,Data\Item\hiphopdino.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+302,0x2b46,0,Data\Item\hiphopdinoUp.bmd,base/pose adapter; 4 admitted extra rows; 0 attachments,command actions 3/4
+303,0x2b47,0,Data\Item\beachgirl.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,command actions 3/4
+304,0x2b48,0,Data\Item\beachgirlUp.bmd,base/pose adapter; 4 admitted extra rows; 0 attachments,command actions 3/4
+305,0x2b49,0,Data\Item\poodle.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,2 extra rows refused at unavailable mesh; command actions 3/4
+306,0x2b4a,0,Data\Item\poodleUp.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,2 extra rows refused at unavailable mesh; command actions 3/4
+307,0x2b4b,0,Data\Item\kingofhangeul.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+308,0x2b4c,0,Data\Item\kingofhangeulUp.bmd,base/pose adapter; 5 admitted extra rows; 0 attachments,command actions 3/4
+309,0x2b4d,0,Data\Item\applemagician.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+310,0x2b4e,0,Data\Item\applemagicianUp.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,command actions 3/4
+311,0x2b4f,0,Data\Item\flyingbread.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+312,0x2b50,0,Data\Item\flyingbreadUp.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+313,0x2b51,0,Data\Item\karafairy.bmd,base/pose adapter; 5 admitted extra rows; 0 attachments,command actions 3/4
+314,0x2b52,0,Data\Item\magician.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,command actions 3/4
+315,0x2b53,0,Data\Item\runemuun.bmd,base/pose adapter; 9 admitted extra rows; 0 attachments,command actions 3/4
+316,0x2b54,0,Data\Item\rapa.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+317,0x2b55,0,Data\Item\rapaUp.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+318,0x2b56,0,Data\Item\nix.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+319,0x2b57,0,Data\Item\nixUp.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,command actions 3/4
+320,0x2b58,0,Data\Item\selupan.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+321,0x2b59,0,Data\Item\selupanUp.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,command actions 3/4
+322,0x2b5a,0,Data\Item\medusa.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,command actions 3/4
+323,0x2b5b,0,Data\Item\medusaUp.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,command actions 3/4
+324,0x2b5c,0,Data\Item\balrog.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+325,0x2b5d,0,Data\Item\balrogUp.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,command actions 3/4
+326,0x2b5e,0,Data\Item\hellmaine.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+327,0x2b5f,0,Data\Item\hellmaineUp.bmd,base/pose adapter; 4 admitted extra rows; 0 attachments,command actions 3/4
+328,0x2b60,0,Data\Item\kundun.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+329,0x2b61,0,Data\Item\kundunUp.bmd,base/pose adapter; 5 admitted extra rows; 0 attachments,command actions 3/4
+330,0x2b62,0,Data\Item\hydra.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,command actions 3/4
+331,0x2b63,0,Data\Item\hydraUp.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,command actions 3/4
+332,0x2b64,0,Data\Item\lordsilvester.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+333,0x2b65,0,Data\Item\lordsilvesterUp.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,command actions 3/4
+334,0x2b66,0,Data\Item\nightmare.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,command actions 3/4
+335,0x2b67,0,Data\Item\nightmareUp.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,command actions 3/4
+336,0x2b68,0,Data\Item\phoenixofdarkness.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,command actions 3/4
+337,0x2b69,0,Data\Item\phoenixofdarknessUp.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,command actions 3/4
+338,0x2b6a,0,Data\Item\kairuku.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+339,0x2b6b,0,Data\Item\kairukuUp.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,command actions 3/4
+340,0x2b6c,0,Data\Item\magicianmuun.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,command actions 3/4
+341,0x2b6d,0,Data\Item\elfmuun.bmd,base/pose adapter; 4 admitted extra rows; 0 attachments,command actions 3/4
+342,0x2b6e,0,Data\Item\Desmodus.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+343,0x2b6f,0,Data\Item\Desmodus_evol.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+346,0x2b70,0,Data\Item\elfqueen.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,command actions 3/4
+347,0x2b72,0,Data\Item\mousemuun.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+348,0x2b73,0,Data\Item\mousemuunUp.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,command actions 3/4
+349,0x2b74,0,Data\Item\leah.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+350,0x2b75,0,Data\Item\leahUp.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,command actions 3/4
+351,0x2b71,0,Data\Item\gaionkharein.bmd,base/pose adapter; 4 admitted extra rows; 0 attachments,command actions 3/4
+352,0x2b76,0,Data\Item\shadowphantom.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,command actions 3/4
+353,0x2b77,0,Data\Item\shadowphantomUp.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,command actions 3/4
+354,0x2b78,0,Data\Item\guardian.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+355,0x2b79,0,Data\Item\guardianUp.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,command actions 3/4
+356,0x2b7a,0,Data\Item\lala.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,command actions 3/4
+357,0x2b7b,0,Data\Item\lalaUp.bmd,base/pose adapter; 3 admitted extra rows; 0 attachments,1 extra rows refused at unavailable mesh; command actions 3/4
+358,0x2b7c,0,Data\Item\elpise.bmd,base/pose adapter; 6 admitted extra rows; 0 attachments,command actions 3/4
+359,0x2b7d,0,Data\Item\Mulen.bmd,base/pose adapter; 6 admitted extra rows; 0 attachments,command actions 3/4
+360,0x2b7e,0,Data\Item\kingcow.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+361,0x2b7f,0,Data\Item\kingcowUp.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,command actions 3/4
+362,0x2b80,0,Data\Item\dandelion.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+363,0x2b81,0,Data\Item\dandelionUp.bmd,base/pose adapter; 3 admitted extra rows; 2 attachments,command actions 3/4
+364,0x2b82,0,Data\Item\Lifeguard.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+365,0x2b83,0,Data\Item\LifeguardUp.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,command actions 3/4
+366,0x2b84,0,Data\Item\chestnut.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+367,0x2b85,0,Data\Item\chestnutUp.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+368,0x2b86,0,Data\Item\Snowboarder.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,1 extra rows refused at unavailable mesh; command actions 3/4
+369,0x2b87,0,Data\Item\SnowboarderUp.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,1 extra rows refused at unavailable mesh; command actions 3/4
+370,0x2b88,0,Data\Item\emphasizer.bmd,base/pose adapter; 2 admitted extra rows; 0 attachments,command actions 3/4
+371,0x2b89,0,Data\Item\gargoyle.bmd,base/pose adapter; 4 admitted extra rows; 0 attachments,command actions 3/4
+372,0x2b8b,0,Data\Item\tsingtao.bmd,base/pose adapter; 6 admitted extra rows; 0 attachments,command actions 3/4
+373,0x2b8a,0,Data\Item\kunremu.bmd,base/pose adapter; 21 admitted extra rows; 0 attachments,command actions 3/4
+374,0x2b8c,0,Data\Item\ellimentalelf.bmd,base/pose adapter; 4 admitted extra rows; 0 attachments,command actions 3/4
+375,0x2b8d,0,Data\Item\illusionmuun.bmd,base/pose adapter; 7 admitted extra rows; 0 attachments,1 extra rows refused at bone-effect branch; command actions 3/4
+376,0x2b8e,0,Data\Item\ragefightermuun.bmd,base/pose adapter; 8 admitted extra rows; 0 attachments,2 extra rows refused at bone-effect branch; command actions 3/4
+377,0x2b90,0,Data\Item\dark_muun.bmd,base/pose adapter; 4 admitted extra rows; 0 attachments,1 extra rows refused at bone-effect branch; command actions 3/4
+378,0x2b8f,0,Data\Item\growmuun.bmd,base/pose adapter; 4 admitted extra rows; 0 attachments,command actions 3/4
+382,0x2cde,0,Data\Item\lionmask.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+383,0x2cdf,0,Data\Item\lionmaskUp.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+384,0x2ce0,0,Data\Item\baelpet.bmd,base/pose adapter; 0 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+385,0x2ce1,0,Data\Item\baelpet_evol.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+386,0x2ce2,0,Data\Item\snowFairy.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+387,0x2ce3,0,Data\Item\snowFairyUp.bmd,base/pose adapter; 1 admitted extra rows; 0 attachments,command actions 3/4
+388,0x2b91,0,Data\Item\Alchemistmuun.bmd,base/pose adapter; 4 admitted extra rows; 0 attachments,command actions 3/4
+389,0x2b92,0,Data\Item\rune_muun.bmd,base/pose adapter; 6 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified
+390,0x2b93,0,Data\Item\Crusader_muun.bmd,base/pose adapter; 7 admitted extra rows; 0 attachments,no known row-specific gap; per-row render equivalence unverified

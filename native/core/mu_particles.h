@@ -61,6 +61,10 @@ enum { MU_WORLD_PT_BITMAPS = 97, MU_WORLD_PT_CAPACITY = 4096, MU_WORLD_PT_SHADOW
         * than every item-owned particle lives: 0x810a/0x11 30 steps, 0x81cf/0 20) */
        MU_WORLD_ITEM_OWNERS = 256, MU_WORLD_ITEM_OWNER_HOLD = 64 };
 
+/* MUUN-VISUAL-005: additive model slot, retaining the shared base count for other lanes. */
+enum { MU_WORLD_FX_MODELS_WITH_MUUN = MU_WORLD_FX_MODELS + 1 };
+#define MU_WORLD_FX_MODELS MU_WORLD_FX_MODELS_WITH_MUUN
+
 /* RENDER-EFFECTS-020: one item OBJECT a particle may own. The client's owner is a pointer into the character or
  * ground-item arrays, never NULL while the particle lives; the slot keeps the OBJECT's last +0x158 until it is
  * reused, which happens only after MU_WORLD_ITEM_OWNER_HOLD steps without a refresh (then generation + 1). */
