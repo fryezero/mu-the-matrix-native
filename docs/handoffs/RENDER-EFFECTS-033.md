@@ -104,3 +104,26 @@ the fourteen successful original results. Execution walls are 44.426 s initial
 plus 73.402 s resume; no successful compiled control was repeated. The default
 verifier still runs all 45 from a fresh invocation. All production inputs are
 unchanged between the two runs. Remaining checks and publication are pending.
+
+## WIP checkpoint 4, 11:12 local
+
+Done: affected selection retained 82 rows, including all four symbol fallbacks.
+Eighty-one official rows pass at 1359566c. The remaining row, EFFECTS-016,
+stopped before comparison because the added Fire03 labels interrupted three
+old Fire06 mutant anchors. Those anchors now preserve Fire03 and remove only
+Fire06. Its complete default baseline and all three changed compiled controls
+pass in 6.282 s, with no stops; no expected result changed. The initial 82-row
+command took 1,027.312 s. All 82 selected rows are now covered, with no
+unresolved failure. The 033 registered replay passes 6,410 checks in 20.8 s.
+
+The private native selection is 181 items, so 8d reduced will run the three
+changed/added modules. Portable packaging exclusion stays only
+native/tests/test_native_app.py. PR #394 is now merged; main df57ab8b also
+contains #395, #396 and #397 from batch 115. Merge is next, after this pushed
+checkpoint; no files changed during the running validator set.
+
+Left: integrate latest main, build and run the actual incoming-input delta,
+portable affected and reduced private native modules, fixture renders, final
+rebuilt default identity, final docs/PR/ready entry and cleanup. Only the
+three changed EFFECTS-016 controls ran in addition to 033's 45; no successful
+control was repeated.
