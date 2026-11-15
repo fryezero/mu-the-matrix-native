@@ -119,10 +119,19 @@ static void b_color4(void *context, float r, float g, float b, float a)
 }
 static void b_vertex(void *context, const float v[3]) { mu_gl_batch_vertex(((mu_gl_backend *)context)->batch, v); }
 
+static void alpha_reference(void *context, float reference)
+{
+    mu_gl_backend *gl = context;
+    /* Both capture and immediate batches must submit the previous reference's primitives first. */
+    if (gl->batch) mu_gl_batch_flush(gl->batch);
+    glAlphaFunc(GL_GREATER, reference);
+}
+
 void mu_gl_backend_bind(mu_gl_backend *gl, mu_render_backend *backend)
 {
     memset(backend, 0, sizeof *backend);
     backend->context = gl;
+    backend->alpha_reference = alpha_reference;
     backend->sink.context = gl;
     if (gl->batch) {
         backend->prepare = b_prepare;
