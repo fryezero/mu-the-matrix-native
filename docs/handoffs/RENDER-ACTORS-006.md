@@ -58,3 +58,18 @@ plan API and both native backend call sites build in 20.88 s. The expanded
 remain provisional until that run and the final compiled controls pass.
 The construction/opener CSVs have not yet been regenerated. All final checks,
 proofs, identity replay, main integration, audit and publication remain pending.
+
+Checkpoint 2026-11-14 23:08: source commit `55535150` supersedes the provisional
+622-row result. The expanded run verifies 621 plans / 101 model files with
+23,366 positive checks, 223.99 s plus a 60 s resource wait. Both census CSVs
+reproduce 660 checked / 284 incomplete / 80 refused, 5.56 s plus a 120 s wait.
+Accepted groups are 153 ordinary monster and 468 repeated-default contexts;
+five repeated-default selectors fail independently. Source audit: 2,276 files,
+zero rejected, 19.53 s. Portable new-module check: one passed and one expected
+private skip, 0.08 s. The 30-row affected validator run is in progress at
+`55535150`; three symbol fallbacks remain selected. Portable selection is
+170 work items / 162 native modules, so the private finish uses 8d reduced.
+Left: finish validators, constructor appearance-state audit, compiled controls,
+portable affected suites, reduced private modules, proof renders, identity,
+latest-main integration, final audit/docs and PR/ready publication. No ready
+entry and no completion claim.
