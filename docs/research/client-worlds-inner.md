@@ -467,3 +467,57 @@ no puff, and no particle gain is claimed. All models load in the scoped proof la
 do not establish original placement, active event/water authority or temporal equivalence.
 
 [Exact walls, source commits, fixture layouts, consumer IDs and cleanup](../handoffs/RENDER-WORLDS-INNER-005.md).
+
+## RENDER-WORLDS-PICK-001: chain hook 11, the visual of worlds 45..50 and 98..99
+
+Same executable/text/data pins and offline method as INNER-001. Authored producer `world_inner6_visual.c`,
+existing object-runtime adapter. This closes the 46/98 boundary INNER-004 and INNER-005 recorded: the handler
+is identified statically, and it is not a factory class.
+
+### The handler (static, then verified)
+
+RenderObjectVisual's common chain `0x017fcb5c..0x017fccbc` holds thirteen hooks before the class manager.
+The eleventh, at `0x017fcc58..0x017fcc77`, is not a direct call:
+
+1. `call 0x00db747f` returns the singleton `0x01ec9118`. Its guarded first use runs the constructor
+   `0x00db73f3`, which installs vtable `0x01aa7a08`.
+2. `call [vtable + 0x34]` with (object, model). Slot +0x34 holds `0x00db7656`.
+
+The vtable has the factory classes' layout (create +0x2c `0x00dbba0c`, move +0x30 `0x00dbba8c`, visual +0x34
+`0x00db7656`, custom render +0x38 `0x00dba13d`, after render +0x3c `0x00dbc1b1`), but the factory
+`0x00ea488e` never constructs or registers it. That is why the direct-call census of INNER-005 found no 46/98
+handler: both statements hold.
+
+The visual's world test is the thiscall `0x0095fba9`: world 98..99 or 45..50. It reads no instance field.
+The validator runs it as client code for worlds 0..160 and requires exactly 45, 46, 47, 48, 49, 50, 98, 99.
+
+### The visual `0x00db7656..0x00db84d2`
+
+Model absence returns 0 before the world test. An unlisted type returns 0; the eleven below return 1.
+
+| Type | Inline behavior |
+|---|---|
+| 0x36 | Object light becomes 0.15 grey. Two unowned 0x8022 particles, subtypes 0 and 3, 100 below the position, scale 1 |
+| 0x46 / 0x47 | rand % 3 == 0, then f = (rand % 10) * 0.007 + 0.03: one owned 0x7f89/15 at object scale. Light f times 0.2109375/0.69140625/0.5859375 (0x46) or 0.86328125/0.47265625/0.78515625 (0x47) |
+| 0x48 | The same gate and f: both of those smokes, the first colour first |
+| 0x49 | rand % 3 == 0, f = (rand % 10) * 0.002 + 0.03: owned 0x7f89/15, light 1.2 f grey |
+| 0x4a | rand % 2 == 0: owned 0x7f89/16, black light, object scale |
+| 0x4b | rand % 35 == 5, f = (rand % 10) * 0.05 + 0.03: owned 0x7dea/0, light f grey, object scale |
+| 0x4c | r = binary64 (rand % 100) * 0.01 rounded to binary32. Light (0.7058824 + r, 0.2784314, 0.2156863). One owned 0x7dec/0 at the position, then an owned 0x7ef7 sprite 20 above it, scale 6 times object scale |
+| 0x4d | r = binary64 (rand % 100) * 0.005. Light (0.21484375, 0.27734375, 0.703125 + r). The same two requests |
+| 0x4e | phase = clock % 500 (unsigned); start = rand % 485. Nothing unless start + rand % 5 <= phase < start + rand % 10 + 5. Then four 0x4cc/0 and one 0x4cc/1 effects, light 1/0.8/0.8, no owner; an unowned 0x801c or 0x801d (rand % 2) subtype 2 at the position plus (rand % 80 - 40) in x and y, light 0.7/0.7/0.8, scale 1; an unowned 0x7f5a/0, light 0.9/0/0, scale 1.5 |
+| 0x4f | One rand % 1 (always 0; the call is made). Five owned 0x7f89/17, each f = (rand % 10) * 0.03 + 0.008, light f times 0.390625/0.4296875/0.625 |
+
+The clock of 0x4e is the imported clock call `[0x01a7c9a4]`, an explicit input here. Production passes the
+authored WorldTime tick, as for Kanturu. No event state is read by this slot.
+
+### Native state and limits
+
+- The runtime routes worlds 45..50 and 98..99 through `mu_chain11_inner`. The per-draw refusal that INNER-004
+  counted for worlds 46 and 98 is removed: an unlisted type there now costs nothing, as in the original.
+- Producer only. Consumers that exist (`mu_pt_kind_supported`): 0x7f89/16, 0x7f5a/0, and the 0x7ef7 sprite.
+  Missing, counted by the pools and left to the effects lane: eight particle pairs 0x8022/0, 0x8022/3,
+  0x7f89/15, 0x7f89/17, 0x7dea/0, 0x7dec/0, 0x801c/2, 0x801d/2; two effect pairs 0x4cc/0, 0x4cc/1.
+- The singleton's create, move, custom-render and after-render slots are not ported. The census probe still
+  counts create and move as unsupported in these worlds.
+- None of the eight worlds has a capture or a placement file in the two tours. Proofs are authored layouts.

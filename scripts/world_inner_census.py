@@ -52,10 +52,18 @@ HANDLER_CODE = (0x00d50000, 0x00eb0000)   # the world handlers' code (classes an
 SENTINEL = 100000            # an object type no routine names
 MAX_STEPS = 300000
 VISUAL = 0x017f9758
-CHAIN = [0x009db8b1, 0x00def747, 0x00d8e640, 0x00dfc095, 0x00d622dd, 0x00dac0a2, 0x00e75089, 0x00e7df87,
-         0x00e84941, 0x00d5404b, 0x00e3116a, 0x00e5f94b]
+# The common chain 0x017fcb5c..0x017fccbc in call order: (entry, label). Each hook tests the world itself and
+# returns whether it took the object. 0x00d5404b is a thiscall on the instance of 0x00d53c8f; 0x00db7656 is slot
+# +0x34 of the singleton 0x01ec9118 (getter 0x00db747f, constructor 0x00db73f3, vtable 0x01aa7a08), a handler
+# shaped like the factory's classes but not registered by the factory.
+CHAIN = [(0x009db8b1, 'chain 1: 0x009db8b1'), (0x00def747, 'chain 2: Kalima'), (0x00d8e640, 'chain 3: Crywolf'),
+         (0x00dfc095, 'chain 4: Land of Trials'), (0x00d622dd, 'chain 5: Aida'), (0x00dac0a2, 'chain 6: 0x00dac0a2'),
+         (0x00e75089, 'chain 7: Kanturu'), (0x00e7df87, 'chain 8: Kanturu Remain'), (0x00e84941, 'chain 9: tower'),
+         (0x00d5404b, 'chain 10: Barracks / Refuge'), (0x00db7656, 'chain 11: singleton 0x01ec9118 slot +0x34'),
+         (0x00e3116a, 'chain 12: Elbeland'), (0x00e5f94b, 'chain 13: Swamp of Calmness')]
+CHAIN_STOPS = {e for e, _ in CHAIN} | {0x00d53c8f, 0x00db747f, 0x00ea594b, 0x00ea2dc1}
 MANAGER = 0x00ea2dc1
-SINGLETON_GETTER = 0x00db747f
+WORLDS = range(0, 161)
 REQUESTS = {
     0x0168fafd: ('particle', 0, 4), 0x015ae7b0: ('particle', 0, 4),
     0x01692eb7: ('sprite', 0, None),
@@ -224,8 +232,8 @@ class State:
 class Run:
     """One exploration of a routine with a concrete world and type."""
 
-    def __init__(self, text, entry, world, kind, this=None):
-        self.t, self.entry, self.world, self.kind = text, entry, world, kind
+    def __init__(self, text, entry, world, kind, this=None, stop=()):
+        self.t, self.entry, self.world, self.kind, self.stop = text, entry, world, kind, stop
         self.reached = set()
         self.events = {}        # call site -> (target, args)
         self.bounds = set()     # type values a type-derived value was compared with
@@ -287,6 +295,7 @@ class Run:
             iv = s.regs.get(REG32.get(index))
             if isinstance(iv, Typed) and not base and self.t.inside(disp & 0xffffffff):
                 self.table = True
+                self.bounds.add(-iv.off)   # the type of the table's first entry
             i = conc(iv)
             if i is None:
                 return None
@@ -389,7 +398,7 @@ class Run:
                 'ae': True, 'b': False, 'be': r == 0, 's': sr < 0, 'ns': sr >= 0}[cc]
 
     def follow(self, target):
-        if target in SKIP or not self.t.inside(target):
+        if target in SKIP or target in self.stop or not self.t.inside(target):
             return False
         return HANDLER_CODE[0] <= target < HANDLER_CODE[1] or self.t.simple(target)
 
@@ -444,6 +453,7 @@ class Run:
                 a = ops[1][1]
                 if not a[1] and a[2] and isinstance(s.regs.get(REG32.get(a[2])), Typed):
                     self.table = True
+                    self.bounds.add(-s.regs[REG32[a[2]]].off)
             self.assign(s, ops[0], v)
         elif mnem == 'lea':
             a = self.address(s, ops[1][1])
@@ -563,7 +573,7 @@ class Run:
         return after
 
 
-def analyse(text, entry, world, this=None):
+def analyse(text, entry, world, this=None, stop=()):
     """{type: Run} for the candidate types of routine entry in world, the SENTINEL run, and the candidates."""
     runs = {}
     todo = [SENTINEL, 0, 1]
@@ -572,7 +582,7 @@ def analyse(text, entry, world, this=None):
         kind = todo.pop()
         if kind in runs or kind < 0 or kind > 4096 and kind != SENTINEL:
             continue
-        r = Run(text, entry, world, kind, this)
+        r = Run(text, entry, world, kind, this, stop)
         r.explore()
         runs[kind] = r
         new = r.bounds - bounds
@@ -654,11 +664,11 @@ def requests(events):
     return out
 
 
-def world_groups(text, entry, worlds, this=None):
+def world_groups(text, entry, worlds, this=None, stop=()):
     """Worlds grouped by the code an unlisted type reaches."""
     groups = {}
     for w in worlds:
-        r = Run(text, entry, w, SENTINEL, this)
+        r = Run(text, entry, w, SENTINEL, this, stop)
         r.explore()
         groups.setdefault(frozenset(r.reached), []).append(w)
     return sorted(groups.values(), key=lambda g: -len(g))
@@ -688,6 +698,8 @@ def oracles():
     out = Path(tmp) / ('effect_shim.' + suffix)
     subprocess.run(['clang', '-std=c11', '-O1', '-fPIC', '-w', '-shared', '-I', str(recon / 'combat'), str(shim),
                     '-Wl,-undefined,dynamic_lookup', '-o', str(out)], check=True)
+    # the shim's other references (vector helpers) resolve against the combat library, loaded globally first
+    ctypes.CDLL(str(recon / 'combat' / ('libcombat.' + suffix)), mode=ctypes.RTLD_GLOBAL)
     effects = ctypes.CDLL(str(out))
     effects.census_effect_supported.argtypes = [ctypes.c_int, ctypes.c_int]
     return {'particle': lambda k, s: bool(particles.mu_pt_kind_supported(k, s)),
@@ -695,9 +707,284 @@ def oracles():
             'effect': lambda k, s: bool(effects.census_effect_supported(k, s))}, tmp
 
 
+def type_ranges(kinds):
+    """'3,5-7,12' for a sorted list of ints."""
+    out, i = [], 0
+    while i < len(kinds):
+        j = i
+        while j + 1 < len(kinds) and kinds[j + 1] == kinds[j] + 1:
+            j += 1
+        out.append(str(kinds[i]) if i == j else '%d-%d' % (kinds[i], kinds[j]))
+        i = j + 1
+    return ','.join(out)
+
+
+def routine_rows(text, label, entry, worlds, stop=(), source=None):
+    """Census rows of one routine for the given worlds: one row per (world, case)."""
+    rows = []
+    for world in worlds:
+        runs = analyse(text, entry, world, None, stop)
+        for kinds, start, events, truncated in cases(text, entry, runs):
+            rows.append({'routine': label, 'entry': '0x%08x' % entry, 'world': world, 'types': kinds,
+                         'address': '0x%08x' % start, 'requests': requests(events), 'truncated': bool(truncated),
+                         'calls': sorted({'0x%08x' % e[0] for e in events.values()
+                                          if e[0] is not None and e[0] not in REQUESTS}), 'source': source})
+    return rows
+
+
+def census(text, progress=None):
+    """Every routine's rows, plus per routine the worlds it accepts."""
+    say = progress or (lambda *_: None)
+    rows, routines = [], []
+    # RenderObjectVisual's own world cases: the worlds whose unlisted type walks code of their own
+    groups = world_groups(text, VISUAL, WORLDS, None, CHAIN_STOPS)
+    common = groups[0]
+    own = sorted(w for g in groups[1:] for w in g)
+    found = routine_rows(text, 'RenderObjectVisual world case', VISUAL, own, CHAIN_STOPS)
+    extra = routine_rows(text, 'RenderObjectVisual world case', VISUAL, common[:1], CHAIN_STOPS)
+    routines.append({'routine': 'RenderObjectVisual world cases', 'entry': '0x%08x' % VISUAL, 'worlds': own,
+                     'cases': len(found), 'note': 'other worlds go straight to the chain' +
+                     ('; UNEXPECTED cases in the common group' if extra else '')})
+    rows += found
+    say('RenderObjectVisual', len(found))
+    for entry, label in CHAIN:
+        groups = world_groups(text, entry, WORLDS)
+        accepted = sorted(w for g in groups[1:] for w in g)
+        found = routine_rows(text, label, entry, accepted)
+        rejected = routine_rows(text, label, entry, groups[0][:1])
+        if rejected:   # the largest group has cases too: the hook takes those worlds as well
+            accepted = sorted(accepted + groups[0])
+            found += routine_rows(text, label, entry, groups[0][1:]) + rejected
+        routines.append({'routine': label, 'entry': '0x%08x' % entry, 'worlds': accepted, 'cases': len(found),
+                         'note': ''})
+        rows += found
+        say(label, len(found))
+    coverage = json.loads((ROOT / 'docs/research/world-handler-coverage.json').read_text())
+    for c in coverage['classes']:
+        visual = c['handlers']['visual']
+        entry = int(visual['entry'], 16)
+        label = 'class %s (%s) slot +0x34' % (c['class_id'], c['label'])
+        found = routine_rows(text, label, entry, c['worlds'], (), visual.get('source'))
+        routines.append({'routine': label, 'entry': '0x%08x' % entry, 'worlds': c['worlds'], 'cases': len(found),
+                         'note': 'vtable %s' % c['vtable']})
+        rows += found
+        say(label, len(found))
+    return rows, routines
+
+
+# ---------------------------------------------------------------- the native probe and the status
+
+def world_folder(w):
+    """mu_world_folder (native/core/mu_terrain.c): the Object<n> / World<n> folder of a world."""
+    if 0x0b <= w <= 0x11 or w == 0x34:
+        return 12
+    if 0x18 <= w <= 0x1d or w == 0x24:
+        return 25
+    if 0x12 <= w <= 0x17 or w in (0x35, 0x61):
+        return 19
+    if w == 0x66:
+        return 0x67
+    if 0x52 <= w <= 0x5a:
+        return 0x53
+    if 0x7b <= w <= 0x7f:
+        return 0x7c
+    return w + 1
+
+
+PROBE_FRAMES = 40
+
+
+def native_probe(binary, game_root, world, kind):
+    """mu-world's own counters for one authored object of the type at the hero's tile (128, 128), every step drawn:
+    the object runtime's refusals and the particle / sprite / joint / effect pools' created and unsupported
+    counts. An authored context (position (12650, 12750, 500), idle hero, default clock), not a placement."""
+    import shutil
+    import subprocess
+    import tempfile
+    import live_objects_to_plain as plain
+    td = Path(tempfile.mkdtemp(prefix='inner-census-probe-'))
+    try:
+        record = {'type': kind, 'position': (12650.0, 12750.0, 500.0), 'angle': (0.0, 0.0, 0.0), 'scale': 1.0,
+                  'flags': (1, 1, 1), 'light': (0.0, 0.0, 0.0), 'state_68': -1, 'value_e4': 0.8, 'value_e8': 0.2}
+        folder = world_folder(world)
+        (td / ('EncTerrain%d.plain' % folder)).write_bytes(plain.to_plain(folder, [record]))
+        (td / 'frames').mkdir()
+        run = subprocess.run([binary, '--game-root', game_root, '--world', str(world), '--tile', '128,128',
+                              '--headless', '--backend', 'gl', '--frames', str(PROBE_FRAMES), '--every',
+                              str(PROBE_FRAMES - 1), '--width', '320', '--height', '200', '--out-dir',
+                              str(td / 'frames'), '--no-audio', '--objects-dir', str(td), '--time-series-every',
+                              str(PROBE_FRAMES)], capture_output=True, text=True)
+        out = {'exit': run.returncode}
+        for line in run.stdout.splitlines():
+            if not line.startswith('{'):
+                continue
+            try:
+                j = json.loads(line)
+            except ValueError:
+                continue
+            if 'objects' in j and 'object_models' in j:
+                out.update({k: j[k] for k in ('object_models', 'object_models_missing', 'objects_drawn',
+                                              'objects_create_unsupported', 'objects_draw_unsupported',
+                                              'objects_move_unsupported')})
+            elif j.get('particles') is True:
+                out.update({'particles_created': j['created'], 'particles_unsupported': j['unsupported'],
+                            'sprites_created': j['sprites_created']})
+            elif j.get('joints') is True:
+                out.update({'joints_created': j['created'], 'joints_unsupported': j['unsupported'],
+                            'effects_created': j['effects_created'], 'effects_unsupported': j['effects_unsupported']})
+        return out
+    finally:
+        shutil.rmtree(td, ignore_errors=True)
+
+
+def cited_sources():
+    """Lower-cased text of the reconstructed and native sources: a routine whose entry they never cite has no
+    native producer."""
+    chunks = []
+    for pattern in ('reconstructed/*/*.c', 'reconstructed/*/*.h', 'reconstructed/*/*.inc', 'native/core/*.c',
+                    'native/core/*.h'):
+        for path in sorted(ROOT.glob(pattern)):
+            chunks.append(path.read_text(errors='replace').lower())
+    return '\n'.join(chunks)
+
+
+def cited(sources, entry):
+    return any(form in sources for form in ('0x%08x' % entry, '0x%x' % entry, '%08x' % entry))
+
+
+def started(probe):
+    return probe.get('exit') == 0 and 'object_models' in probe
+
+
+def judge(row, probe, is_cited, oracle):
+    """(status, missing, evidence) of one (world, type) pair of a census row."""
+    if not started(probe):
+        return 'refused', 'not probed: the world has no terrain in the installed data and no other world shares ' \
+            'the case', 'none'
+    if probe['object_models_missing'] or not probe['object_models']:
+        return 'refused', 'no model file for the type in the world\'s object folder (dead in the installed data)', \
+            'none'
+    missing = []
+    for item in row['requests']:
+        name, _, rest = item.partition(':')
+        if name not in oracle or '?' in rest:
+            continue
+        kind, _, sub = rest.partition('/')
+        if not oracle[name](int(kind, 16), int(sub)):
+            missing.append('%s %s/%s' % (name, kind, sub))
+    activity = sum(probe.get(k, 0) for k in ('particles_created', 'particles_unsupported', 'sprites_created',
+                                             'joints_created', 'joints_unsupported', 'effects_created',
+                                             'effects_unsupported'))
+    refusals = probe['objects_draw_unsupported']
+    evidence = 'observed' if activity or refusals else ('source' if is_cited else 'none')
+    if refusals >= PROBE_FRAMES - 1 and not (probe.get('particles_created') or probe.get('sprites_created') or
+                                             probe.get('joints_created') or probe.get('effects_created')):
+        return 'refused', 'the object runtime counts every draw unsupported' + \
+            ('' if is_cited else ' (no native producer)'), evidence
+    if evidence == 'none':
+        return 'refused', 'no native producer: the routine is not ported and the runtime does not count it', evidence
+    counters = ['%d %s' % (probe[key], label) for key, label in (
+        ('objects_draw_unsupported', 'draws refused'), ('particles_unsupported', 'particle requests refused'),
+        ('joints_unsupported', 'joint requests refused'), ('effects_unsupported', 'effect requests refused'))
+        if probe.get(key)]
+    missing = sorted(set(missing))
+    if missing or counters:
+        text = '; '.join((['no consumer: ' + ', '.join(missing)] if missing else []) +
+                         (['probe (%d draws): ' % PROBE_FRAMES + ', '.join(counters)] if counters else []))
+        return 'partial', text, evidence
+    return 'drawn', '', evidence
+
+
+def with_status(rows, binary, game_root, progress=None):
+    """Census rows split by the status of their types: [{..., types, status, missing, evidence, notes}]."""
+    oracle, scratch = oracles()
+    sources = cited_sources()
+    probes, out = {}, []
+    try:
+        for n, row in enumerate(rows):   # one probe per (case, object folder, type)
+            for kind in row['types']:
+                key = (row['entry'], row['address'], world_folder(row['world']), row['world'], kind)
+                shared = (row['entry'], row['address'], world_folder(row['world']), kind)
+                if shared not in probes or not started(probes[shared][1]):
+                    probes[shared] = (row['world'], native_probe(binary, game_root, row['world'], kind))
+                probes[key] = probes[shared]
+            if progress and n % 25 == 0:
+                progress(n, len(rows), len(probes))
+        siblings = {}   # a world without terrain borrows the probe of a world that runs the same case
+        for (entry, address, _, world, kind), (_, probe) in [(k, v) for k, v in probes.items() if len(k) == 5]:
+            if started(probe):
+                siblings.setdefault((entry, address, kind), (world, probe))
+        for row in rows:
+            is_cited = cited(sources, int(row['entry'], 16))
+            groups = {}
+            for kind in row['types']:
+                world, probe = probes[(row['entry'], row['address'], world_folder(row['world']), row['world'], kind)]
+                notes = []
+                if not started(probe) and (row['entry'], row['address'], kind) in siblings:
+                    world, probe = siblings[(row['entry'], row['address'], kind)]
+                if started(probe) and world != row['world']:
+                    notes.append('probed in world %d (same case; %s)' % (
+                        world, 'same object folder' if world_folder(world) == world_folder(row['world']) else
+                        'this world has no terrain in the installed data'))
+                verdict = judge(row, probe, is_cited, oracle)
+                if probe.get('objects_create_unsupported'):
+                    notes.append('create unsupported')
+                if probe.get('objects_move_unsupported'):
+                    notes.append('move unsupported')
+                groups.setdefault(verdict + ('; '.join(notes),), []).append(kind)
+            for (status, missing, evidence, notes), kinds in groups.items():
+                extra = [notes] if notes else []
+                if row['truncated']:
+                    extra.append('request list may be incomplete (walk cut at the step limit)')
+                if any('?' in item for item in row['requests']):
+                    extra.append('variable request id (? = chosen at run time)')
+                out.append(dict(row, types=kinds, status=status, missing=missing, evidence=evidence,
+                                notes='; '.join(extra)))
+    finally:
+        import shutil
+        shutil.rmtree(scratch, ignore_errors=True)
+    return out
+
+
+COLUMNS = ('routine', 'entry', 'world', 'types', 'type_count', 'address', 'requests', 'status', 'missing', 'evidence',
+           'notes')
+
+
+def write_csv(path, rows):
+    with open(path, 'w', newline='') as handle:
+        w = csv.writer(handle, lineterminator='\n')
+        w.writerow(COLUMNS)
+        for r in sorted(rows, key=lambda r: (int(r['entry'], 16), r['world'], r['types'][0])):
+            w.writerow([r['routine'], r['entry'], r['world'], type_ranges(r['types']), len(r['types']), r['address'],
+                        ' '.join(r['requests']), r['status'], r['missing'], r['evidence'], r['notes']])
+
+
+def summary(rows, routines):
+    def tally(items):
+        out = {'drawn': 0, 'partial': 0, 'refused': 0}
+        for r in items:
+            out[r['status']] += len(r['types'])
+        return out
+    total = tally(rows)
+    dead = sum(len(r['types']) for r in rows if r['status'] == 'refused' and r['missing'].startswith('no model'))
+    per = {}
+    for r in rows:
+        per.setdefault((r['routine'], r['entry']), []).append(r)
+    return {'pairs': sum(total.values()), 'rows': len(rows), 'status': total, 'refused_dead_no_model': dead,
+            'routines': [{'routine': name, 'entry': entry, 'worlds': type_ranges(sorted({r['world'] for r in items})),
+                          **tally(items)} for (name, entry), items in per.items()],
+            'routines_without_cases': [r['routine'] for r in routines if not r['cases']]}
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument('--probe', help='entry[,world]: print the cases of one routine')
+    p.add_argument('--json', help='write the raw census (rows and routines) here, or reuse it with --reuse')
+    p.add_argument('--reuse', action='store_true', help='read --json instead of walking the text again')
+    p.add_argument('--csv', help='write the census with the native status here')
+    p.add_argument('--summary', help='write the totals (JSON) here')
+    p.add_argument('--binary', default=str(ROOT / 'native/build/mu-world'))
+    p.add_argument('--game-root', default=None, help='default: MU_GAME_ROOT')
     a = p.parse_args(argv)
     text = Text(pins.TEXT.read())
     if a.probe:
@@ -705,9 +992,34 @@ def main(argv=None):
         entry, world = int(parts[0], 16), int(parts[1]) if len(parts) > 1 else 0
         runs = analyse(text, entry, world)
         print('candidates', len(runs), 'sentinel reach', len(runs[SENTINEL].reached),
-              'truncated', runs[SENTINEL].truncated)
+              'truncated', runs[SENTINEL].truncated, runs[SENTINEL].why)
         for kinds, start, events, truncated in cases(text, entry, runs):
-            print(kinds, hex(start), requests(events), 'TRUNCATED' if truncated else '')
+            print(type_ranges(kinds), hex(start), requests(events), 'TRUNCATED' if truncated else '')
+        return 0
+    if a.reuse and a.json:
+        raw = json.loads(Path(a.json).read_text())
+        if raw['text_sha256'] != pins.TEXT.sha256:
+            raise SystemExit('the raw census was made from another text')
+        rows, routines = raw['rows'], raw['routines']
+    else:
+        rows, routines = census(text, lambda label, n: print('%-60s %d' % (label, n), file=sys.stderr, flush=True))
+        if a.json:
+            Path(a.json).write_text(json.dumps({'text_sha256': pins.TEXT.sha256, 'rows': rows,
+                                                'routines': routines}, indent=1))
+    print(json.dumps({'rows': len(rows), 'routines': len(routines),
+                      'truncated': sum(1 for r in rows if r['truncated'])}))
+    if a.csv:
+        import os
+        root = a.game_root or os.environ.get('MU_GAME_ROOT')
+        if not root:
+            raise SystemExit('--game-root or MU_GAME_ROOT needed for the native probe')
+        judged = with_status(rows, a.binary, root, lambda n, total, probes: print(
+            'status %d/%d rows, %d probes' % (n, total, probes), file=sys.stderr, flush=True))
+        write_csv(a.csv, judged)
+        totals = summary(judged, routines)
+        if a.summary:
+            Path(a.summary).write_text(json.dumps(totals, indent=1))
+        print(json.dumps({k: totals[k] for k in ('pairs', 'rows', 'status', 'refused_dead_no_model')}))
     return 0
 
 

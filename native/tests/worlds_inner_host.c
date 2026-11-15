@@ -282,10 +282,29 @@ int main(int argc, char **argv)
     assert(joints==0 && o->rt.draw_unsupported==1); /* 0x7f7c/19 */
     reset(o,41,0x5a);o->rt.seed=seed_for(2,3,0);(void)pass(o);
     assert(joints==0 && o->rt.draw_unsupported==1 && o->rt.particle_count==1); /* 0x7fd5/4 */
-    for(int world=46;world<=98;world+=52) {
-        reset(o,world,1);(void)pass(o);assert(o->rt.draw_unsupported==1 && o->rt.seed==next(1));
-        o->models[1]=NULL;o->rt.draw_unsupported=0;(void)pass(o);assert(o->rt.draw_unsupported==0);
+    /* RENDER-WORLDS-PICK-001: chain hook 11 serves worlds 45..50 and 98..99 (46 / 98 were counted refusals). */
+    static const int hook11[] = {45, 46, 47, 48, 49, 50, 98, 99};
+    for (unsigned k = 0; k < sizeof hook11 / sizeof hook11[0]; ++k) {
+        const int world = hook11[k];
+        reset(o,world,1);(void)pass(o);   /* a type the hook does not name: the outer roll only, no refusal */
+        assert(o->rt.draw_unsupported==0 && o->rt.seed==next(1) && o->rt.particle_count==0);
+        reset(o,world,0x4f);(void)pass(o);   /* five owned 0x7f89/17 smokes after its rand % 1 roll */
+        assert(o->rt.particle_count==5 && o->rt.particles[4].bitmap==0x7f89 && o->rt.particles[4].sub==17);
+        assert(o->rt.draw_unsupported==0);
+        reset(o,world,0x36);(void)pass(o);   /* two 0x8022 particles 100 below; the object's light becomes 0.15 */
+        assert(o->rt.particle_count==2 && o->rt.particles[0].bitmap==0x8022 && o->rt.particles[1].sub==3);
+        assert(o->rt.particles[0].position[2]==-100.0f && mu_obj_f32(o->rt.images,MU_OBJF_LIGHT)==0.15f);
+        reset(o,world,0x4a);o->rt.seed=seed_for(2,2,0);(void)pass(o);
+        assert(o->rt.particle_count==1 && o->rt.particles[0].sub==16);
+        reset(o,world,0x4a);o->rt.seed=seed_for(2,2,1);(void)pass(o);assert(o->rt.particle_count==0);
+        reset(o,world,0x4c);(void)pass(o);   /* the ember and its glow 20 above */
+        assert(o->rt.particle_count==1 && o->rt.particles[0].bitmap==0x7dec && o->rt.sprite_count==1);
+        assert(o->rt.sprites[0].bitmap==0x7ef7 && o->rt.sprites[0].position[2]==20.0f && o->rt.sprites[0].scale==6.0f);
+        reset(o,world,0x4f);o->models[0x4f]=NULL;assert(pass(o)==NULL && o->rt.seed==1 && o->rt.particle_count==0);
     }
+    reset(o,44,0x4f);(void)pass(o);assert(o->rt.particle_count==0);   /* the neighbours stay outside the hook */
+    reset(o,51,0x4f);(void)pass(o);assert(o->rt.particle_count==0);
+    reset(o,97,0x4f);(void)pass(o);assert(o->rt.particle_count==0);
     free(o->rt.images); free(o); mu_model_free(&model.model); mu_bmd_free(&model.bmd);
     puts("classless inline host: Blood Castle gates/bones/counter, Kanturu effects/joints/meshes/refusals OK");
     return 0;

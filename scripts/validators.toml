@@ -3979,3 +3979,22 @@ note = "RENDER-WORLDS-PICK-001: Transform's box write OBJECT +0x31c through the 
 "bounds_mode_references.all_compares" = {truthy = true}
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
+
+[validate_worlds_inner6]
+test = "reconstructed/objects/test_worlds_inner6.py::ClientComparison.test_original"
+pins = ["text", "data"]
+families = ["chain11", "chain11_focus"]
+cases = 2000
+mutants = 37
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+note = "RENDER-WORLDS-PICK-001 step 3: chain hook 11, the singleton 0x01ec9118's visual slot 0x00db7656 for worlds 45..50 and 98..99 (the 46/98 handler), with its world test and the imported clock as an authored input; producer only, missing consumers stay counted"
+[validate_worlds_inner6.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"families.chain11.cases" = 1000
+"families.chain11_focus.cases" = 1000
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0
