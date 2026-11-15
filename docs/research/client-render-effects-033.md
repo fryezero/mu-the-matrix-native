@@ -146,3 +146,50 @@ argument dispatch error; only the remaining 31 resumed. The native controls
 include self owner, key, heading and same-step owner refresh. No passing
 control was repeated. Final affected replay, assets and identity results are
 recorded in the handoff.
+
+
+## Updated learned-skill table
+
+The verified fixture boundary moves **11 P / 7 L / 11 M to 14 P / 6 L / 9 M**.
+P is bounded primary presentation, L a visible subset, M missing primary
+presentation. It is not a whole-client fidelity score or an eligibility claim.
+Swell Life is a reassessment of the combined 031 consumers and 030/032 callers,
+not a newly authored consumer in this lane.
+
+| Skill | Before -> after | Current boundary |
+|---|---|---|
+| 0 ordinary attack | P -> P | Unchanged |
+| 19 Falling Slash | P -> P | Unchanged |
+| 20 Lunge | P -> P | Unchanged |
+| 21 Uppercut | P -> P | Unchanged |
+| 22 Cyclone | P -> P | Unchanged |
+| 23 Slash | P -> P | Unchanged |
+| 41 Twisting Slash | P -> P | Unchanged |
+| 42 Anger Strike | P -> P | Unchanged |
+| 43 Death Stab | L -> L | General equipment/link selection remains open |
+| 44 Crescent Moon Slash | L -> L | End consumer 0x49e/0 remains refused |
+| 18 Defense | L -> L | Finite pose; held-input renewal/release and shield body context unproved |
+| 47 stale entry | M -> M | Always refused; no invented record |
+| 48 Swell Life | M -> P | Combined bounded cast: 36 initial ribbons, 36 children and two ground effects; zero unsupported requests |
+| 49 Fire Breath | M -> M | Primary 0x8001/0 and mount body/lifetime remain missing |
+| 344 Blood Storm | M -> L | Parent and sword body work; downstream burst, particle and blur consumers remain counted refusals |
+| 24 Triple Shot | P -> P | Unchanged bounded caller/context |
+| 26 Heal | P -> P | Unchanged |
+| 27 Greater Defense | L -> L | General equipment links and authoritative presence remain open |
+| 28 Greater Damage | L -> L | Same bounded aura boundary |
+| 30 Summon Goblin | M -> M | Ground supported; matching-name candidate 26 has a body/weapon plan on ACTORS-007; spawn/lifetime input unproved |
+| 31 Summon Stone Golem | M -> M | Ground supported; matching-name candidate 32 has checked body; spawn/lifetime input unproved |
+| 32 Summon Assassin | M -> M | Ground supported; candidate 21 has checked body; spawn/lifetime input unproved |
+| 33 Summon Elite Yeti | M -> M | Ground supported; candidate 20 has checked body; spawn/lifetime input unproved |
+| 34 Summon Dark Knight | M -> M | Ground supported; candidate 10 also lacks actor effect/sword-sprite services |
+| 35 Summon Bali | M -> M | Ground supported; candidate 150 has checked body; spawn/lifetime input unproved |
+| 36 Summon Soldier | M -> M | Ground supported; candidate 151 also lacks actor effect services |
+| 51 Ice Arrow | L -> P | Existing arrow plus separately authored target ice; no freeze or damage input inferred |
+| 52 Penetration | L -> P | Existing charge/arrow plus the owned child and four trails |
+| 2044 Raining Arrow of Saturation | P -> P | Unchanged |
+
+Explicit synthetic aliases 416/52 and 424/51 move L -> P outside those 29 rows.
+All other aliases keep their prior refusal/inventory state. Candidate actor
+names match the existing read-only language snapshot; that is not proof of a
+skill spawn selector. Main's ACTORS-006 body plans are used only as read-only
+census evidence, and no ground request is converted into actor creation.

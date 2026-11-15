@@ -137,3 +137,29 @@ particle and native callback source is byte-identical to 5904caf9. The root
 build passes in 16.676 s. Incoming actor/item/Muun changes are main-owned;
 no actor, item or Muun producer was authored by this lane. Delta checks and
 portable/private native checks are next, followed by the final renders.
+
+## WIP checkpoint 5, 11:36 local
+
+Done: batch 115 merged and pushed at 63752052; build 16.676 s and full merge
+repository audit 40.190 s pass (2,334 files, zero rejected). All 246 main
+validator rows are retained, plus 033. Our consumer/caller/native callback
+source remains identical to 5904caf9. The research note now includes the full
+29-row after table: 14 P / 6 L / 9 M, with explicit per-skill limits. The
+thirteen final actual-asset skill renders are still pending.
+
+The exact incoming-input delta since 1359566c retains 93 validators; fourteen
+have passed at this checkpoint, no failure. This includes long item, helper,
+pet and raven comparisons. No mutant is repeated. The current lane-only
+Steward selection after integration is 83 rows. The new native tests and
+private incoming actor/Muun modules are queued after the running validator
+command. No production source changed while the checks ran.
+
+Left: finish the 93-row delta; portable affected (only packaging module
+excluded), reduced private native modules, actual-asset skill renders,
+explicit rebuilt final default identity, latest-main check, final handoff and
+status entries, PR, ready line and cleanup.
+
+Next step: inspect verify-runs/delta115 and merge115-validators.log. The task
+scripts selected_tests.py, private_tests.py, fixtures.py and identity.py are
+ready in the lane scratch directory. Keep source fixed unless a check finds a
+real issue. Do not repeat completed compiled controls.
