@@ -185,3 +185,18 @@ MU_RECOVERY_INTEGRATION=0 and private_tests.py with canonical private-env.
 The latter includes changed incoming actor/Muun modules and their changed-host
 reader, alongside the three owned native test modules. Recheck current main
 before the final renders; no installed app action is authorized.
+
+## WIP checkpoint 7, 12:26 local
+
+Done: all 93 incoming-input validators pass at the batch-115 source tree,
+zero failures/errors/skips, 3,554.113 s execution. This includes the corrected
+EFFECTS-016 replay. The first 82 selected rows remain covered as recorded.
+AUDIO-005 main 8844d3e9 merged cleanly at 5ce2d9ce. Its combat include and
+five hook additions are retained; no 033 consumer/caller/callback target
+function changed. No successful compiled control is repeated.
+
+The post-audio root build passes in 22.078 s after a 90 s resource wait. Next is the
+actual audio incoming-input selector since 63752052 and its checks, then the
+prepared portable affected run, private reduced native modules, actual-asset
+skill renders, final explicit rebuilt identity, docs/PR/ready line and cleanup.
+No PR or ready line exists. All outputs remain disposable and lane-scoped.
