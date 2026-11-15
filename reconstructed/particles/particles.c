@@ -45,9 +45,11 @@ static void mu_pt_icarus_cloud_create(mu_pt_particle *, const mu_pt_host *, floa
 static void mu_pt_icarus_cloud_move(mu_pt_particle *, const mu_pt_host *);
 #include "world_inner_kinds.inc"
 #include "item_bow_kinds.inc"      /* RENDER-EFFECTS-025 */
+#include "consumer34_kinds.inc"    /* RENDER-EFFECTS-034 */
 
 int mu_pt_kind_supported(int32_t type, int32_t subtype)
 {
+    if (mu_pt_consumer34_kind(type, subtype)) return 1;   /* RENDER-EFFECTS-034 */
     if (mu_pt_world_inner_kind(type, subtype)) return 1;
     if (mu_pt_item_later_kind(type, subtype)) return 1;
     if (mu_pt_ferea_cloud_kind(type, subtype) || mu_pt_item_bow_kind(type, subtype)) return 1;
@@ -79,7 +81,7 @@ int mu_pt_kind_supported(int32_t type, int32_t subtype)
                subtype == 0x22 || subtype == 0x23;   /* RENDER-EFFECTS-014: Flare02/e's red smoke */
     case MU_PT_BITMAP_SPARK2:
         return subtype == 0 || subtype == 1 || subtype == 2;   /* 2: Inferno; 1: NATIVE-HELPERS-002 (the angel's sparkles) */
-    case 0x7f54: return subtype == 0;          /* Explosion01, Meteorite and Inferno */
+    case 0x7f54: return subtype == 0 || subtype == 1;   /* Explosion01, Meteorite and Inferno; 1: RENDER-EFFECTS-034 */
     case MU_PT_BITMAP_SMOKE5:
     case MU_PT_BITMAP_SMOKE2:
         return subtype == 0;                   /* NATIVE-HELPERS-002 (the mounts' dust) */
@@ -207,6 +209,10 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
         owner == MU_PT_NO_OWNER)
         return 0;
 
+    if (mu_pt_consumer34_kind(type, subtype)) {   /* RENDER-EFFECTS-034 */
+        mu_pt_consumer34_create(p, h, scale);
+        return 1;
+    }
     if (mu_pt_world_inner_kind(type, subtype)) {
         mu_pt_world_inner_create(p, h, scale);
         return 1;
@@ -702,7 +708,9 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
         owner_position(p, h);   /* 0x01616fee..0x01617071 */
     int supported = mu_pt_kind_supported(p->type, p->subtype);
     if (supported) {
-        if (mu_pt_world_inner_kind(p->type, p->subtype))
+        if (mu_pt_consumer34_kind(p->type, p->subtype))
+            mu_pt_consumer34_move(p, h);
+        else if (mu_pt_world_inner_kind(p->type, p->subtype))
             mu_pt_world_inner_move(p, h);
         else if (mu_pt_item_later_kind(p->type, p->subtype))
             mu_pt_item_later_move(p, h);
@@ -897,6 +905,7 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
         }
         case 0x7f54: {                            /* 0x01622ea1..0x01623c2e */
             p->frame = (20 - p->lifetime) / 2;
+            if (p->subtype == 1) break;           /* RENDER-EFFECTS-034, 0x01623b56: no terrain light */
             float l = (float)p->lifetime / 20.0f;
             const float light[3] = {l * 0.5f, l * 0.3f, l * 0.1f};
             if (h && h->light) h->light(h->context, p->position[0], p->position[1], light, 4);
@@ -1271,6 +1280,12 @@ int mu_pt_render_record(mu_pt_particle *p, const mu_pt_bitmap *b, uint8_t mode, 
         return 1;   /* RENDER-EFFECTS-021: shiny06/5 draws no sprite */
     mu_pt_item_later_render(p, s);
     mu_pt_item_mace_render(p, s);
+    if (p->type == 0x855d && p->subtype == 2 && p->owner == MU_PT_NO_OWNER) {
+        p->live = 0;   /* RENDER-EFFECTS-034, 0x015aa817 */
+        return 1;
+    }
+    if (!mu_pt_consumer34_render(p, s))
+        return 1;   /* RENDER-EFFECTS-034: 0x7efa/3 draws no sprite */
     out->sprites = 1;
     return 1;
 }

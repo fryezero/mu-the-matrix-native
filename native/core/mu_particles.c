@@ -49,6 +49,9 @@ static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     0x81ec, 0x854a,   /* RENDER-EFFECTS-024: mace bone sprites */
     0x8500, 0x8569,   /* RENDER-EFFECTS-026 */
     0x7f42, 0x802a,   /* RENDER-EFFECTS-031: Flame01 and water */
+    /* RENDER-EFFECTS-034: FireSphere1, smoke_line03_1 (item particles) and the Muun sprites' pin_star02_yellow
+     * and Hole (before Fire03: keeps the later anchors) */
+    0x8616, 0x850b, 0x810d, 0x8003,
     0x7f3e, /* RENDER-EFFECTS-033, Fire03 */
     MU_PT_BITMAP_FIRE06,
     MU_PT_BITMAP_RAIN_SPLASH,
@@ -115,6 +118,9 @@ static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     "Data/Effect/Flame01.OZJ", "Data/Effect/water.OZJ",
     /* RENDER-EFFECTS-016: Fire06 0x7f40, 0x70c's stone particle (LoadBitmap 0x018229e5 in 0x0182049e,
      * LINEAR/CLAMP) */
+    /* RENDER-EFFECTS-034: startup LoadBitmap 0x01826fc9, 0x01827bc3, 0x0182e29f, 0x01822a25; all LINEAR/CLAMP. */
+    "Data/Effect/FireSphere1.OZJ", "Data/Item/texture/smoke_line03_1.OZJ",
+    "Data/Effect/pin_star02_yellow.OZJ", "Data/Effect/Hole.OZJ",
     "Data/Effect/Fire03.OZJ",
     "Data/Effect/Fire06.OZJ"};
 
@@ -1294,12 +1300,14 @@ long mu_world_particles_draw(mu_world_particles *p, const float modelview[16], c
         const int direct = (record->type == 0x7ffb && record->subtype == 0) ||
                            (record->type == 0x85fc && (record->subtype == 1 || record->subtype == 2));
         const int later = record->type == 0x8569 && record->subtype == 0;
-        if (!record->live || (!spark && !direct && !later))
+        const int follow34 = record->type == 0x855d && record->subtype == 2;   /* RENDER-EFFECTS-034 */
+        if (!record->live || (!spark && !direct && !later && !follow34))
             continue;
         mu_world_item_owner *it = item_owner_slot(p, record->owner);
         const int32_t point_count = later ? 4 : 3;
         const float *point = it && record->arg8 >= 0 && record->arg8 < point_count ? it->points[record->arg8] : NULL;
         if (spark) mu_pt_item_counter_follow(record, point);
+        else if (follow34) mu_pt_consumer34_follow(record, point);
         else if (record->owner != MU_PT_NO_OWNER && !point) record->live = 0; /* stale/unknown native owner */
         else if (later) mu_pt_item_later_follow(record, point);
         else mu_pt_item_mace_follow(record, point);
