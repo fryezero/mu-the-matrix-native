@@ -21,14 +21,14 @@ class PresentationWindows(unittest.TestCase):
             subprocess.run([cc,'-std=c11','-O1','-shared','-fPIC',
                             str(ROOT/'native/tests/gfx_stub_mugfx.c'),'-o',str(lib)],check=True,capture_output=True)
             host=tmp/'host'
-            sources=['native/tests/ui_windows4_host.c','reconstructed/hud/tooltip_html.c',
+            sources=[getattr(self,'HOST','native/tests/ui_windows4_host.c'),'reconstructed/hud/tooltip_html.c',
                      'reconstructed/hud/inv_grid.c','reconstructed/hud/item_slots.c']
             subprocess.run([cc,'-std=c11','-O1','-I',str(build_root/'reconstructed/hud'),
                             *[str(build_root/p) for p in sources],str(ROOT/'native/build/libmunative.a'),
                             '-lm',* ([] if sys.platform=='darwin' else ['-ldl']),'-o',str(host)],
                            check=True,capture_output=True)
             movies=tmp/'movies';movies.mkdir()
-            for name in ('main','InventoryFrame','InfoPopup','CharacterInfoFrame','chat',*MOVIES):
+            for name in ('main','InventoryFrame','InfoPopup','CharacterInfoFrame','chat',*getattr(self,'MOVIES',MOVIES)):
                 (movies/(name+'.swf')).write_bytes(b'authored stub fixture')
             if real:
                 movies=Path(os.environ['MU_NATIVE_DATA_DIR'])/'gfx';lib=Path(os.environ['MU_GFX_LIB'])
@@ -37,7 +37,7 @@ class PresentationWindows(unittest.TestCase):
             if failing:
                 self.assertNotEqual(run.returncode,0,'compiled mutant survived');return
             self.assertEqual(run.returncode,0,run.stdout+run.stderr)
-            self.assertIn('153 inert callbacks',run.stdout)
+            self.assertIn(getattr(self,'EXPECTED','153 inert callbacks'),run.stdout)
             return {int(l.split()[1],16):l.split()[2] for l in run.stdout.splitlines() if l.startswith('route ')}
 
     @classmethod

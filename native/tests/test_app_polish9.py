@@ -138,7 +138,10 @@ class LayoutSweep(unittest.TestCase):
                     self.assertEqual(p.returncode,0,p.stderr[-2000:]+p.stdout[-2000:])
                     rows = [json.loads(l) for l in p.stdout.splitlines() if l.startswith('{"layout_movie"')]
                     opened = [r for r in rows if r['open'] and r['layout_movie'] not in (0,4)]
-                    self.assertEqual({r['layout_movie'] for r in opened}, {self.ids[n] for n in NAMES})
+                    # UI-WINDOWS-003 auto-opens the fixture bag with Inventory.
+                    # Keep it in the exact set and measure its bounds below.
+                    expected = {self.ids[n] for n in NAMES} | {self.ids['BAG']}
+                    self.assertEqual({r['layout_movie'] for r in opened}, expected)
                     main = next(r for r in rows if r['layout_movie'] == 0)
                     bottom = main['_y']
                     self.assertGreaterEqual(main['_x'], -0.06)
