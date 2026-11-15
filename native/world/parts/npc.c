@@ -90,6 +90,7 @@ static int npc_open(struct mu_world_rt *a, void *self)
         a->npc->open = npc_window_open;
         a->npc->close_all = npc_close_all;
         a->npc->sound = npc_sound;
+        a->npc->ordered_window_sounds = 1;
         a->npc->context = a;
     }
     return 0;

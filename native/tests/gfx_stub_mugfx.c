@@ -438,6 +438,11 @@ void mugfx_start(MuGfx *g)
                is(g,"MatchingParty") || is(g,"MatchingGuild") || is(g,"Guildmatching_2024") || is(g,"PlayGuide")) {
         char args[96]; snprintf(args, sizeof args, "[\"g_%s\"]", g->name);
         call(g, "UIInit", args);
+    } else if (is(g,"ElementalMix") || is(g,"SocketMix") || is(g,"GuardianMix") || is(g,"HarmonyMix") ||
+               is(g,"ExchangeLuckCoin") || is(g,"MuunExchange") || is(g,"RuudShopFrame") ||
+               is(g,"MixSel") || is(g,"MixAttributeScalp")) {
+        char args[96];snprintf(args,sizeof args,"[\"g_%s\"]",g->name);
+        call(g,"UIInit",args);
     } else if (is(g,"AutomaticMacro") || is(g,"ExtensionBagFrame") || is(g,"SkillTree5thItemViewer") || is(g,"BlockedChat")) {
         char args[96]; snprintf(args,sizeof args,"[\"g_%s\"]",g->name);
         call(g,"UIInit",args);

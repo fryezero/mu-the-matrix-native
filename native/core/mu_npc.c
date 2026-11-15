@@ -436,12 +436,18 @@ static void answer(mu_npc *n)
             open.close_all = 1;
         if (e->callee == MU_TALK_SND_PLAY) {
             ++n->stats.sounds;
+            if (!n->ordered_window_sounds)
             if (n->sound)
                 n->sound(n->context, (int32_t)e->args[0]);
         }
     }
+    if (!n->ordered_window_sounds)
     if (open.close_all && n->close_all)
         n->close_all(n->context);
+    if (n->ordered_window_sounds && n->close_all)
+        for (int k = 0; k < out.count; k++)
+            if (out.events[k].callee == MU_TALK_CLOSE_ALL)
+                n->close_all(n->context);
     switch (open.window.kind) {
     case MU_TALK_KIND_DIALOGUE: open.kind = MU_NPC_WINDOW_DIALOG; break;
     case MU_TALK_KIND_OPEN:
@@ -464,6 +470,12 @@ static void answer(mu_npc *n)
     }
     if (n->open)
         n->open(n->context, &open);
+    /* UI-WINDOWS-004: the graphical owner needs the original event order.
+     * The legacy recording host retains its existing callback contract. */
+    if (n->ordered_window_sounds && n->sound)
+        for (int k = 0; k < out.count; k++)
+            if (out.events[k].callee == MU_TALK_SND_PLAY)
+                n->sound(n->context, (int32_t)out.events[k].args[0]);
 }
 
 void mu_npc_step(mu_npc *n)
