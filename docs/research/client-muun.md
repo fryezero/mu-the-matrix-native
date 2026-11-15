@@ -257,7 +257,7 @@ installed-app or performance equivalence is claimed.
 
 ## Rider and secondary request callers, MUUN-VISUAL-004
 
-WIP evidence uses the same pinned client identity above. All inputs are authored offline visual fixtures.
+This evidence uses the same pinned client identity above. All inputs are authored offline visual fixtures.
 `0x013639a7..0x01363a62` is the bounded RenderCharacter seat block: a positive secondary render counter
 and `0x009c046a` admit five action intervals, 0x26..0x31, 0x47..0x4e, 0x67..0x6e, 0x118..0x132 and
 0x13b..0x141. The block adds the stored offset at slot +0xe4 to OBJECT +0x158 and copies that result to
@@ -289,3 +289,20 @@ periodic command clocks and target lookup/rotation remain excluded. The native f
 
 Final counts, compiled mutants, private render controls and remaining special-model limits are pending
 in [the handoff](../handoffs/MUUN-VISUAL-004.md).
+
+### Retained special-row and action refusals
+
+The private table join finds appearances 356/357 at models 0x2b7a/b with 3/4 mesh rows, 375/376 at
+0x2b8d/e with 8/10 rows, and 377 at 0x2b90 with five rows. All thirty remain refused by the native extra-row
+adapter. Static branches are at 0x017f7b36, 0x017f7c7d, 0x017f8130 and 0x017f8845. The first pair's mesh 2
+changes persistent OBJECT +0xc8 on each render according to action and frame delta; the later branches
+also include atlas and bone-effect requests. These have not received full original call-stream comparisons,
+compiled mutants and installed-fixture proofs in this lane. The ordinary MuunMeshInfo implementation is
+not a substitute for them. The newly verified secondary effects at 0x009bfe13 are a different producer.
+
+Code 363's installed skeleton still has actions 0..2. Its authored command requests for 3/4 remain
+explicit refusals. This lane does not synthesize or remap missing actions.
+
+The mounted-rider fixture authors its initial ride pose and clock. The comparisons verify the bounded seat
+addition, lift gate, counter decisions and first-action request, not the whole original creation/render order.
+The original first-render callback is recorded by the checker; the fixture supplies its pose inputs directly.

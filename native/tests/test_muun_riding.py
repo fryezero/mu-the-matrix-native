@@ -36,7 +36,7 @@ class World(unittest.TestCase):
         env.update(flags)
         out=self.root/tag
         p=subprocess.run([str(self.binary),'--game-root',os.environ['MU_GAME_ROOT'],'--world','0','--tile','128,124',
-            '--headless','--frames',str(frames),'--every',str(frames-1),'--time-series-every',str(frames-1),
+            '--headless','--frames',str(frames),'--every',str(min(frames-1,24)),'--time-series-every',str(min(frames-1,24)),
             '--out-dir',str(out),'--width','640','--height','400','--backend',backend,'--hero-name','DemoKnight',
             '--no-names','--no-audio','--no-players','--no-env','--no-items','--no-helpers'],
             env=env,cwd=ROOT,check=True,capture_output=True,text=True)
@@ -65,10 +65,12 @@ class World(unittest.TestCase):
             self.assertIsNotNone(ImageChops.difference(base,buff).getbbox())
             self.assertIsNotNone(ImageChops.difference(base,fade).getbbox())
     def test_remote_expiry_requests_once_and_counts_unavailable_consumer(self):
-        _,last,_=self.render('remote',frames=90,MU_MUUN_REMOTE_FIXTURE='1',MU_MUUN_RIDER_FIXTURE='1')
+        _,last,rows=self.render('remote',frames=90,MU_MUUN_REMOTE_FIXTURE='1',MU_MUUN_RIDER_FIXTURE='1')
         r=last('muun_transition');self.assertEqual((r['muun_transition'],r['pending']),(1,0),r)
         self.assertEqual(r['created']+r['refused'],1,r)
         self.assertEqual((r['created'],r['refused']),(0,1),r)
+        self.assertEqual({r['muun_rider'] for r in rows if 'muun_rider' in r},{38,71,103,315})
+        rider=last('muun_rider');self.assertEqual((rider['draws'],rider['restored'],rider['refused']),(90,90,0),rider)
     def test_rider_requires_mount_fixture(self):
         env=dict(os.environ,MU_MUUN_FIXTURE='16',MU_MUUN_RIDER_FIXTURE='1');env.pop('MU_MUUN_MOUNT_FIXTURE',None)
         p=subprocess.run([str(self.binary),'--game-root',os.environ['MU_GAME_ROOT'],'--headless','--frames','1',

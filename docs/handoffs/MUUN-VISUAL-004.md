@@ -19,7 +19,7 @@ authored 3-second remote expiry and one 0x47a request. Consumer refusal remains 
 ## Checks so far
 
 - Root build passes. Focused secondary module: 5/5 pass after adding its missing data-decoder build dependency.
-- New original comparison: 890 cases, zero mismatches. Compiled mutants pending.
+- New original comparison: 890 cases, zero mismatches. All 22 compiled mutants caught, 9.61 s.
 - The GL rider proof is visible. New private module 5/5 passes, 33.75 s, including all eight riders,
   exact renderer restoration, GL/software buff/fade pixels and one remote expiry/refusal.
 - Eight actual skeletons pass the extended native host. All 32 secondary requests per host are refused by
@@ -28,11 +28,15 @@ authored 3-second remote expiry and one 0x47a request. Consumer refusal remains 
 - Before identity baseline exists for 46 required views plus five exploratory views. Binary SHA-256
   `e341fc2000d2e7f035f1e1814ca5384231389c8e7409ed20557643b0485108d7`.
 
+Affected private validators: 40/40 pass at `8e992004`, 813.48 s including selection, no skipped rows.
+The optional unchanged mutant switches were disabled. New rider mutants passed once separately.
+
 ## Limits and next
 
-Compiled mutants, affected tests/validators, 8d reduced,
+Affected portable tests, 8d reduced,
 default after identity, audit, latest-main integration and PR-ready docs remain pending.
-The five special mesh models remain refused; code 363 still has three actions and cannot supply 3/4.
+The five special mesh models retain thirty refused rows; code 363 still has three actions and cannot supply 3/4.
+The fixture authors its initial ride pose and clock. Full original creation/render ordering is not compared.
 No production selection, inventory, power, packets, authoritative targets, process-clock or live-scene parity.
 
 ## WIP
@@ -40,7 +44,7 @@ No production selection, inventory, power, packets, authoritative targets, proce
 Done: recovered rider gate/placement, secondary request producer, owner-kind-2 subtraction, buff mode and
 remote expiry. Native integration builds; focused prior secondary tests pass. New tests and mutant row added.
 Left: final checks listed above, precise special-model audit, research/status text and PR delivery.
-Next: finish affected selection, compiled mutants, special-model audit and the default after sweep once.
+Next: run the affected portable batch and reduced private modules, then final proof/identity and delivery.
 
 Scratch and proof renders are under `~/Documents/MTM/mu-mac-tools/native/{scratch,renders}/muun-visual-004`.
 No new future-lane input has been created. No ready queue entry exists yet.
