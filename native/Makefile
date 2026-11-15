@@ -129,6 +129,7 @@ RECON_SRC += $(RECON)/environment/env_fog.c
 # MUUN-VISUAL-001: fixture-only base slot and model/attachment owner
 CORE_SRC += core/mu_muun_visual.c core/mu_muun_mount.c
 RECON_SRC += $(RECON)/muun/special.c
+RECON_SRC += $(RECON)/muun/bone_fx.c
 RECON_SRC += $(RECON)/muun/riding.c
 RECON_SRC += $(RECON)/muun/visual.c $(RECON)/muun/passes.c $(RECON)/muun/secondary.c
 # RENDER-EFFECTS-028: isolated fixture aura reconstruction.
@@ -836,3 +837,8 @@ $(BUILD)/worlds-inner4-alpha-host: tests/worlds_inner4_alpha_host.c viewer/gl_ba
 	done
 	$(CXX) $(BUILD)/worlds-inner4-alpha/*.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(GL_LIBS) -lm -o $@
 	$(call MULTI_DEPS,$(CFLAGS) $(JPEG_CFLAGS) -DGL_SILENCE_DEPRECATION)
+
+# MUUN-VISUAL-005 frozen appearance metadata census.
+$(BUILD)/muun-census-host: tests/muun_census_host.c $(LIB) $(HEADERS)
+	$(CC) $(CFLAGS) -c $< -o $(BUILD)/muun-census-host.o
+	$(CXX) $(BUILD)/muun-census-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
