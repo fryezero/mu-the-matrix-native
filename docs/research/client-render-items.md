@@ -3545,9 +3545,9 @@ Offline/static work over pinned text SHA-256
 [Handoff and checks](../handoffs/RENDER-ITEMS-002AA.md).
 
 The [194-row ledger](item-body-groups-002aa.tsv) preserves every inherited type, helper/draw address,
-stopped fixture address and refusal reason. Fifty candidate admissions are being verified: 32 packed-level
+stopped fixture address and refusal reason. Fifty bodies are admitted: 32 packed-level
 random programs, nine low-level callers, four clock falloffs and five complete pre-draw programs.
-The denominator remains 1,674. Full finish checks are pending; the provisional total is 1,530.
+The denominator remains 1,674. The total is 1,530; final checks, native proofs and remaining groups are recorded in the handoff.
 
 ### Packed caller word
 
@@ -3579,7 +3579,7 @@ The nine callers at `0x017de4c2..0x017deb61` set body light to the input or its 
 then issue the body call followed by colour calls `(alpha, brightness)=(1.5,1.5)` and `(1,1)`, with
 flags `keep|0x240` and `keep|0x1040`. They preserve the entry model shade and level. The strict reader
 checks every dispatch, setter, operand, constant and call in the five shared blocks. Their independent
-model-exit comparisons pass in the preflight.
+model-exit comparisons pass in the final row.
 
 Clock operation 37 reads the complete checked default-one/reverse-subtraction/positive-zero-clamp form.
 The threshold and reverse-subtraction constant occupy the two halves of its existing 64-bit operand.
@@ -3609,7 +3609,13 @@ The 320 owned comparison cases count 2,834 deliberate invalid-bone/context refus
 455 particle requests and 1,255 random draws. That refusal number does not measure missing native
 consumers. Native effect-enabled proof counts are recorded separately in the handoff.
 
-The provisional remainder is 144: fifty producer/service programs, 24 unread scalar/colour programs,
+All fifty exact model paths resolve. The native proofs cover 63 states on each side: all old body
+refusal counters clear, and all raw pixel hashes change. Five effect-enabled states preserve eight
+consumer refusals and create/draw one supported particle. All 230 default artifacts from 46 saved
+views remain identical against explicitly rebuilt current main. These are native comparisons; an
+original-client pose/pixel score is not claimed.
+
+The remainder is 144: fifty producer/service programs, 24 unread scalar/colour programs,
 eighteen variable body draw counts, seventeen helper callers, twelve stopped original fixtures, ten
 matrix-stack programs, ten retained independent failures and three entry/helper model-state programs.
 The ledger retains more specific per-row causes inside these groups. `0x1710`, `0x10fd`, the four largest
