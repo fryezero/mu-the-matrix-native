@@ -3974,4 +3974,5 @@ mismatches = 0
 stops = 0
 sites = 182
 owners = 11
+production_ids = 142
 "mutants.*" = {all_min = 1}

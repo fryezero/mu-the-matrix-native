@@ -82,3 +82,27 @@ replaced the final completion-control setup with an out-of-scope variable,
 control, then the native/decoded checks, affected tests/validators and default
 identity. Do not repeat the eighteen completed controls. The affected unmutated
 row still supplies the final complete machine-readable case report.
+
+
+Checkpoint after portable checks: all 20 focused compiled controls are caught,
+18 in the first mutation phase, the new completion control in 10.84 s and the
+updated legacy completion control in 4.56 s. No completed control was repeated.
+All fifteen native private checks pass, including 48 loaded models and 142
+decoded ids. The seventeen-test combined run takes 23.80 s; its only failure
+was the historical census mask, which omitted INNER-005's new header reference.
+The corrected two-test census module passes in 3.41 s. Final integrated census
+stays 1,464 classified / 516 unresolved, 593 play boundaries and two earlier
+stop sites.
+
+Portable affected selection has 176 work items, 170 native modules. Excluding
+`test_native_app.py` leaves 175 items / 169 native modules. All 1,563 tests pass
+with 1,263 passed and 300 explicit skips, zero failures/errors. Selection takes
+81.06 s; runner 458.1 s; command wall 541.53 s. This exceeds the private 8d cap,
+so the focused fifteen native checks plus census controls are 8d reduced.
+
+Current next step: affected validator selection/run is active in
+`~/Documents/MTM/mu-mac-tools/native/scratch/audio-006/validators.log`.
+No source change is pending. Complete that run, explicit two-binary current-main
+world identity, audit, final docs and PR metadata. The latest root build was
+19.49 s; no full lane gate or app packaging ran. Source is at `8970bb80` before
+this metadata checkpoint; runtime C has not changed since the successful build.
