@@ -21,6 +21,8 @@ static void joint(void *c, int32_t type, const float p[3], const float q[3], con
     (void)c; (void)a;
     if (type == 0x7f7c) {
         assert(sub == 18 && owner == -1 && (scale == 50.0f || scale == 40.0f) && p[0] != q[0]);
+    } else if (type == 0x7f7d && sub >= 8 && sub <= 10) {
+        assert(owner == -1 && scale >= 30.0f && scale < 40.0f && memcmp(p,q,12) == 0);
     } else {
         assert(type == 0x7f7d && (sub == 26 || sub == 16 || sub == 17 || sub == 24 || sub == 25));
         assert(owner == 0 && scale == 1.0f && memcmp(p, q, 12) == 0);
@@ -204,10 +206,13 @@ int main(int argc, char **argv)
     assert(o->rt.particle_count == 1 && o->rt.particles[0].position[2] == 410);
     reset(o,38,0x31); (void)pass(o); assert(o->rt.particle_count == 5);
     assert(o->rt.particles[0].sub == 1 && o->rt.particles[0].light[0] == 0);
-    const int refused_types[] = {0x36,0x38,0x41};
+    const int remain_types[] = {0x36,0x38,0x41};
     for (int k = 0; k < 3; ++k) {
-        reset(o,38,refused_types[k]); o->rt.seed = seed_for(2,k == 0 ? 20 : 10,0); (void)pass(o);
-        assert(joints == 0 && o->rt.draw_unsupported == 1); /* 0x7f7d/8,9,10 have no native consumer */
+        reset(o,38,remain_types[k]); o->rt.seed = seed_for(2,k == 0 ? 20 : 10,0); (void)pass(o);
+        assert(joints == 1 && o->rt.draw_unsupported == 0); /* EFFECTS-031 consumes 0x7f7d/8,9,10. */
+        o->rt.joint = NULL; o->rt.seed = seed_for(2,k == 0 ? 20 : 10,0); (void)pass(o);
+        assert(o->rt.draw_unsupported == 1); /* Missing callback remains a refusal. */
+        o->rt.joint = joint;
     }
     reset(o,38,0x35); o->rt.seed = seed_for(2,3,0); (void)pass(o);
     assert(o->rt.particle_count == 1 && o->rt.particles[0].sub == 1 && o->rt.particles[0].scale == 1);

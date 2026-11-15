@@ -221,6 +221,15 @@ Steward validators: validate_item_effects,validate_joints,validate_meshdraw,vali
 
 Done: implementation, original/native fixtures, scene/fidelity measurements, 69 controls across the full run and focused recheck, and 76 affected private validators.
 
-Left: portable run, 8d reduced, audit, final new-row baseline, latest-main integration, final documentation, PR, ready line and cleanup.
+Left: focused portable repair rerun, 8d reduced, audit, final new-row baseline, latest-main integration, final documentation, PR, ready line and cleanup.
+
+The first portable run completes 1,822 tests: 1,498 passed, 319 skipped, four failures and one error,
+406.540 s command / 353.2 s test wall. All five are old admission expectations: particle Spark03/2,
+joint spark/5, the Remain callback whitelist, worlds-M clouds/26 and Imperial Guardian's spark count.
+Update the two admission tests with all new positive pairs and adjacent unsupported subtypes.
+The Remain host checks original owner/scale/position arguments and keeps its missing-hook refusal;
+the Guardian host requires positive groups of four spark joints with the original callback arguments.
+Production code and validator targets are unchanged. The five affected suites are queued for rerun.
+The reduced private run grows from nine to twelve modules to include these three changed world hosts.
 
 Next: wait for the existing foreground check queue, then run the corrected new-row baseline without mutants.
