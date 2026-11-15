@@ -305,6 +305,7 @@ struct mu_gfx_layer {
     int order[MU_GFX_MOVIES];   /* window z-order, bottom first */
     int norder;
     unsigned presentation_ready;
+    int automatic_leave_pending;
     int macro_tab, macro_sub_type, guild_tab, hunt_mini;
     int pet_page;
     int help_ready;             /* SYS-MISC-001b: installed provider loaded */
@@ -2891,6 +2892,7 @@ void mu_gfx_layer_advance(mu_gfx_layer *L, double dt)
         if (L->mv[m].g && !L->mv[m].alias && (visible(L, m) || m == MU_GFX_CHAT || m == MU_GFX_TOOLTIP))
             L->api.advance(L->mv[m].g, dt);
     pump(L);
+    presentation_sync3(L);
     fit_windows(L);
     /* The chat view fills itself with test lines once its CLIK components
      * initialise (ChatView.testChatType); clear them, then greet (layer choice). */

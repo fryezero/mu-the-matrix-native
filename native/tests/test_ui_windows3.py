@@ -10,18 +10,18 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class PresentationWindows(unittest.TestCase):
-    def run_host(self, real=False):
+    def run_host(self, real=False, build_root=ROOT, failing=False):
         with tempfile.TemporaryDirectory(prefix='mu-ui-windows-') as folder:
             tmp = Path(folder)
             cc = os.environ.get('CC', 'cc')
             lib = tmp / ('libmugfx.dylib' if sys.platform == 'darwin' else 'libmugfx.so')
             subprocess.run([cc, '-std=c11', '-O1', '-shared', '-fPIC',
-                            str(ROOT/'native/tests/gfx_stub_mugfx.c'), '-o', str(lib)], check=True, capture_output=True)
+                            str(build_root/'native/tests/gfx_stub_mugfx.c'), '-o', str(lib)], check=True, capture_output=True)
             sources = ['native/tests/ui_windows3_host.c', 'reconstructed/hud/tooltip_html.c',
                        'reconstructed/hud/inv_grid.c', 'reconstructed/hud/item_slots.c']
             host = tmp/'host'
-            build = subprocess.run([cc, '-std=c11', '-O1', '-I', str(ROOT/'reconstructed/hud'),
-                                    *[str(ROOT/p) for p in sources], '-lm',
+            build = subprocess.run([cc, '-std=c11', '-O1', '-I', str(build_root/'reconstructed/hud'),
+                                    *[str(build_root/p) for p in sources], '-lm',
                                     *([] if sys.platform == 'darwin' else ['-ldl']), '-o', str(host)],
                                    capture_output=True, text=True)
             self.assertEqual(build.returncode, 0, build.stderr)
@@ -35,6 +35,9 @@ class PresentationWindows(unittest.TestCase):
                 lib = Path(os.environ['MU_GFX_LIB'])
             run = subprocess.run([str(host), str(movies), str(lib)], capture_output=True, text=True,
                                  env={**os.environ,"MU_WINDOWS3_REAL":"1" if real else "0"})
+            if failing:
+                self.assertNotEqual(run.returncode,0,"compiled mutant survived")
+                return
             self.assertEqual(run.returncode, 0, run.stdout+run.stderr)
             self.assertIn('132 inert callbacks', run.stdout)
 
@@ -182,3 +185,37 @@ class OriginalRoutes(unittest.TestCase):
                 0xac3bf7:const(0x10000700),0xbc07fa:const(0x10000100),0xaae6f9:const(opened),
                 0x10002000:event('open'),0x10002010:event('close'),0xc8ddb8:inactive})
             self.assertEqual(trace,['close' if opened else 'open','inactive-hud-and-service-boundary'])
+
+@unittest.skipUnless(os.environ.get('MU_UI_WINDOWS3_MUTANTS') == '1', 'run changed-controller mutants once at lane finish')
+class MutationSensitivity(unittest.TestCase):
+    def test_compiled_production_mutants(self):
+        import shutil
+        source=(ROOT/'native/gfx/mu_gfx_windows3.inc').read_text()
+        mutants=[
+            ('orphan-bag','mu_gfx_layer_show(L,MU_GFX_BAG,open);','if (open) mu_gfx_layer_show(L,MU_GFX_BAG,open);',False),
+            ('hidden-parent','if (w->open) (void)presentation_open','(void)presentation_open',False),
+            ('pair-mismatch','L->mv[MU_GFX_TREE5].open && L->mv[MU_GFX_TREE5_VIEWER].open','L->mv[MU_GFX_TREE5].open || L->mv[MU_GFX_TREE5_VIEWER].open',False),
+            ('view-inversion','int list=!strcmp(args,"[false]");','int list=!strcmp(args,"[true]");',True),
+            ('requested-visibility','mu_gfx_layer_show(L,MU_GFX_BLOCKED_CHAT,(int)open);','mu_gfx_layer_toggle(L,MU_GFX_BLOCKED_CHAT);',False),
+            ('guessed-sound','presentation_open(L,MU_GFX_AUTOMATIC,0);','presentation_open(L,MU_GFX_AUTOMATIC,0xc716f6);',False),
+            ('lost-exit','L->automatic_leave_pending=1;','L->automatic_leave_pending=0;',True),
+            ('forged-action','    return 0;\\n}\\n\\nstatic int presentation_key3','    return 1;\\n}\\n\\nstatic int presentation_key3',False),
+        ]
+        with tempfile.TemporaryDirectory(prefix='mu-windows3-mutants-') as folder:
+            mirror=Path(folder)/'repo';mirror.mkdir()
+            for item in ROOT.iterdir():
+                if item.name!='native':(mirror/item.name).symlink_to(item,target_is_directory=item.is_dir())
+            (mirror/'native').mkdir()
+            for item in (ROOT/'native').iterdir():
+                if item.name not in ('gfx','tests'):(mirror/'native'/item.name).symlink_to(item,target_is_directory=item.is_dir())
+            (mirror/'native/gfx').mkdir();(mirror/'native/tests').mkdir()
+            for item in (ROOT/'native/gfx').iterdir():
+                if item.name!='mu_gfx_windows3.inc':(mirror/'native/gfx'/item.name).symlink_to(item,target_is_directory=item.is_dir())
+            shutil.copy2(ROOT/'native/tests/ui_windows3_host.c',mirror/'native/tests/ui_windows3_host.c')
+            (mirror/'native/tests/gfx_stub_mugfx.c').symlink_to(ROOT/'native/tests/gfx_stub_mugfx.c')
+            host=PresentationWindows('test_production_firewall_navigation_focus_and_sound_owner')
+            for name,old,new,real in mutants:
+                with self.subTest(mutant=name):
+                    self.assertEqual(source.count(old),1)
+                    (mirror/'native/gfx/mu_gfx_windows3.inc').write_text(source.replace(old,new))
+                    host.run_host(real=real,build_root=mirror,failing=True)

@@ -128,9 +128,8 @@ static int presentation_call3(movie *w, const char *name, const char *args)
     if (w->id<MU_GFX_BAG) return -1;
     mu_gfx_layer *L=w->L;
     if (w->id==MU_GFX_AUTOMATIC && !strcmp(name,"LeaveComplete")) {
-        char path[192];snprintf(path,sizeof path,"%s.m_bVisibleState",w->path);
-        const char *visible=L->api.get_variable(w->g,path);
-        if (visible && !strcmp(visible,"false")) mu_gfx_layer_show(L,w->id,0);
+        /* Readback cannot run reentrantly inside the player's callback. */
+        L->automatic_leave_pending=1;
         return 1;
     }
     if (!strcmp(name,"CloseWindow")) {
@@ -162,4 +161,15 @@ static int presentation_key3(mu_gfx_layer *L, int vk, int mods)
     mu_gfx_layer_show(L,MU_GFX_TREE5,open);
     mu_gfx_layer_show(L,MU_GFX_TREE5_VIEWER,open);
     return 1;
+}
+
+/* Drain the local Exit notification after pump; a stale animation cannot close a reopened view. */
+static void presentation_sync3(mu_gfx_layer *L)
+{
+    if (!L->automatic_leave_pending) return;
+    L->automatic_leave_pending=0;
+    movie *w=&L->mv[MU_GFX_AUTOMATIC];
+    char path[192];snprintf(path,sizeof path,"%s.m_bVisibleState",w->path);
+    const char *visible=L->api.get_variable(w->g,path);
+    if (visible && !strcmp(visible,"false")) mu_gfx_layer_show(L,w->id,0);
 }

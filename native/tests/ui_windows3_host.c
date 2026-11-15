@@ -76,6 +76,7 @@ int main(int argc,char **argv)
     if(real) {
         on_call(&L->mv[MU_GFX_MAIN],"topmenu","[\"MacroMenu\",\"AutomaticMacroStart\"]");
         assert(L->mv[MU_GFX_AUTOMATIC].open);
+        for(int i=0;i<10;i++) mu_gfx_layer_advance(L,40);
         L->api.invoke(L->mv[MU_GFX_AUTOMATIC].g,L->mv[MU_GFX_AUTOMATIC].path,"onClickExit","[]");
         for(int i=0;i<10;i++) mu_gfx_layer_advance(L,40);
         assert(!L->mv[MU_GFX_AUTOMATIC].open);
