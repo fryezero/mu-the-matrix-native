@@ -106,3 +106,24 @@ same preserved baseline, final audit/docs/status/PR/ready entry and cleanup.
 Next step: wait for the current foreground validator command. Its private
 log is scratch/ui-windows-005/merge-validators.log. Resume only unfinished
 rows if interrupted. Do not rerun the before baseline or unchanged mutants.
+
+
+### WIP checkpoint: immutable merge run and final callback audit
+
+Done: the 94-row merge refresh continues at immutable runtime source
+340db5b3, with no failed/error/skipped rows so far. Completed row reports
+and the summary are preserved under verify-runs/merge-validators.
+
+Left: a final audit found that malformed Goblin parent callbacks can fall
+through the new exact-value interceptor to the old integer-cast legacy
+branch. Do not publish before fixing this. Prepared replacements are in
+scratch/ui-windows-005/windows5-hardened.inc, windows5-hardened-host.c and
+windows5-hardened-test.py. They add full parent-event consumption, twelve
+hidden/malformed-parent controls and a distinct compiled fallthrough mutant.
+They have not been applied to the runtime source or tested yet.
+
+Next step: finish the current validator run without mutating its inputs.
+Then reproduce the new control failure, apply the strict parent fix, run the
+new mutant and affected UI checks, the merge portable selection, integrated
+proof/identity, final documentation/audit and PR/ready publication. Retain
+merge rows whose compiled inputs the UI-only fix does not change.
