@@ -227,7 +227,15 @@ DERIVED_CARRY = [
 from gen_item_owner_fx import OWNER_FX_TYPES
 # Part 18 (RENDER-ITEMS-002R): bodies whose RenderObjDraw case creates effects before the body draws (pre-draw
 # programs, gen_item_owner_fx.PRE_FX_TYPES); their draws fit with the effect requests set aside.
-from gen_item_owner_fx import PRE_FX_TYPES, OBJDRAW as PRE_DRAW_RAND
+from gen_item_owner_fx import PRE_FX_TYPES, OBJDRAW as PRE_DRAW_RAND, REMAINDER_PROGRAM_TYPES
+from item_caller_groups import TYPES as CALLER_TYPES
+PRE_FX_TYPES = PRE_FX_TYPES + REMAINDER_PROGRAM_TYPES
+FALLOFF_TYPES = [0x0b47, 0x0b49, 0x1323, 0x154a]
+RANDOM_LEVEL_TYPES = [0x0b37, 0x0b3a, 0x0f10, 0x0f11, 0x1104, 0x131e, 0x1526, 0x1527, 0x1712, 0x1713, 0x1714, 0x1715, 0x1716, 0x1717, 0x1722, 0x1723, 0x1724, 0x1725, 0x1726, 0x1727, 0x172c, 0x172d, 0x172e, 0x172f, 0x1730, 0x1731, 0x174c, 0x174d, 0x174e, 0x174f, 0x1750, 0x1751]
+LEVEL_SPLIT += RANDOM_LEVEL_TYPES
+REMAINDER_TYPES = list(CALLER_TYPES) + REMAINDER_PROGRAM_TYPES + FALLOFF_TYPES + RANDOM_LEVEL_TYPES
+RANDOM_LEVEL_CARRY = [0x1712, 0x1713, 0x1714, 0x1715, 0x1716, 0x1717, 0x1722, 0x1723, 0x1724, 0x1725, 0x1726, 0x1727, 0x172c, 0x172d, 0x172e, 0x172f, 0x1730, 0x1731, 0x174c, 0x174d, 0x174e, 0x174f, 0x1750, 0x1751]
+REMAINDER_CARRY = REMAINDER_PROGRAM_TYPES + RANDOM_LEVEL_CARRY
 # Part 21 (RENDER-ITEMS-002T): owner blocks after the draws with the pre-draw idioms (gen_item_owner_fx.POST_FX_TYPES);
 # their draws fit the default probes with the effect requests set aside.
 from gen_item_owner_fx import POST_FX_TYPES, READ_PROGRAM_TYPES, LATER_READ_PROGRAM_TYPES, CYCLE_PROGRAM_TYPES
@@ -282,7 +290,7 @@ OTHER_TYPES = [0x0b09, 0x0b0b, 0x0b28, 0x0b40, 0x0b42, 0x0b43, 0x0b45, 0x0b61,
 OTHER_CARRY = [0x0b09, 0x0b0b, 0x0eed, 0x0efa, 0x0f0b, 0x10f2, 0x1506, 0x1509,
                0x2568, 0x2569, 0x256a, 0x256b]
 OTHER_EXIT = []
-PRE_CARRY += OTHER_CARRY
+PRE_CARRY += OTHER_CARRY + REMAINDER_CARRY
 EXIT_TYPES += OTHER_EXIT
 
 
@@ -914,7 +922,7 @@ CLOCK = 0x06fce370
 # unsigned remainder/quotient (xor edx, edx; div) and the unsigned binary64 conversion (cvtsi2sd, then
 # shr r, 31; addsd [r*8 + 0x01bd3050] with the table {0.0, 2^32}).
 C_FRAME, C_U_MOD, C_U_DIV, C_U2D = range(30, 34)
-C_F_SIN, C_F_ABS, C_F_FABS = 34, 35, 36
+C_F_SIN, C_F_ABS, C_F_FABS, C_F_FALLOFF = 34, 35, 36, 37
 FRAME_COUNTER, U32_FIX = 0x0bdc5ebc, 0x01bd3050
 COUNTER_RANGE_TYPES = [0x0f24, 0x0f28, 0x0f29, 0x0f2b, 0x0f2c, 0x1588]
 VECTOR_SETTERS = (0x00cfcead, 0x00cfcede)   # (this)[0..2] = (a, b, c) / (a, a, a); ret 0xc / ret 4
@@ -991,6 +999,44 @@ def _local_stored(wa, offset, value):
         if b'\xc7\x45' + struct.pack('<b', offset) + imm in wa[0]:
             return True
     return b'\xc7\x85' + struct.pack('<i', offset) + imm in wa[0]
+
+
+def falloff_branch(wa, at, local, regs):
+    """Read both joins of the reviewed default-one / reverse-subtract / zero-clamp form.
+
+    The threshold and reverse-subtraction constant are packed into one operand.
+    The divide is exactly by binary32 one; no arbitrary branch is followed.
+    """
+    md = _capstone()
+    code = list(md.disasm(wa[0][at - 0x401000:at - 0x401000 + 160], at))[:13]
+    if len(code) != 13:
+        return None
+    import re
+    first = re.fullmatch(r'xmm0, dword ptr \[(0x[0-9a-f]+)\]', code[0].op_str)
+    store = re.fullmatch(r'dword ptr \[ebp - (0x[0-9a-f]+)\], xmm0', code[5].op_str)
+    source = re.fullmatch(r'xmm0, dword ptr \[ebp - (0x[0-9a-f]+)\]', code[3].op_str)
+    reverse = re.fullmatch(r'xmm0, dword ptr \[(0x[0-9a-f]+)\]', code[2].op_str)
+    divide = re.fullmatch(r'xmm0, dword ptr \[(0x[0-9a-f]+)\]', code[4].op_str)
+    if not all((first, store, source, reverse, divide)):
+        return None
+    dst, src = -int(store[1], 16), -int(source[1], 16)
+    value = regs.get('xmm0')
+    if (not value or value[0:2] != ('c', 'f') or local.get(src) != value or
+            local.get(dst) != ('kf', 0x3f800000) or _word(wa, int(divide[1], 16)) != 0x3f800000):
+        return None
+    expected = [
+        ('comiss', code[0].op_str), ('jb', hex(code[6].address)), ('movss', code[2].op_str),
+        ('subss', code[3].op_str), ('divss', code[4].op_str), ('movss', code[5].op_str),
+        ('cvtss2sd', f'xmm0, dword ptr [ebp - {-dst:#x}]'), ('xorps', 'xmm1, xmm1'),
+        ('comisd', 'xmm1, xmm0'), ('jb', hex(code[12].address)),
+        ('xorps', 'xmm0, xmm0'), ('movss', f'dword ptr [ebp - {-dst:#x}], xmm0')]
+    # Twelve instructions; the thirteenth establishes the instruction boundary of the second join.
+    if [(i.mnemonic, i.op_str) for i in code[:12]] != expected:
+        return None
+    threshold, top = _word(wa, int(first[1], 16)), _word(wa, int(reverse[1], 16))
+    if threshold is None or top is None:
+        return None
+    return dst, ('c', 'f', value[2] + ((C_F_FALLOFF, ('w', threshold | top << 32)),)), code[12].address
 
 
 def slice_block(wa, block, frame=False):
@@ -1097,6 +1143,14 @@ def slice_block(wa, block, frame=False):
             x87 = None
             at = nxt
             continue
+        if name == 'comiss':
+            branch = falloff_branch(wa, at, local, regs)
+            if branch is not None:
+                target, program, at = branch
+                local[target] = program
+                outputs.append(program)
+                regs['xmm0'] = regs['xmm1'] = None
+                continue
         if name.startswith('j') or name in ('call', 'ret', 'retn', 'int3', 'leave'):
             break
         if name in ('push', 'pop'):
@@ -1403,6 +1457,9 @@ def clock_value(ops, time, frame=0):
         elif op == C_F_SIN: f = _f32(math.sin(f))
         elif op == C_F_ABS: f = -f if 0 > f else f
         elif op == C_F_FABS: f = abs(f)
+        elif op == C_F_FALLOFF:
+            f = _f32(v.u2f(k >> 32) - f) if f >= kf else 1.0
+            if f <= 0.0: f = 0.0
         elif op == C_D_MUL: d = d * kd
         elif op == C_D_DIV: d = math_div(d, kd)
         elif op == C_D_ADD: d = d + kd
@@ -1526,7 +1583,7 @@ PRE_EXTENDED += [0x1313, 0x1317, 0x1319] + READ_PROGRAM_TYPES
 # RENDER-ITEMS-002X: carry the last draw into later helpers, with full supplementary probes.
 PRE_CARRY += [t for t in READ_PROGRAM_TYPES if t not in (0x0b29, 0x0b4d, 0x0b52, 0x1314)]
 # These probes retain alpha/wave products and attribute nested pre-program ranges correctly.
-COUNTER_RANGE_TYPES += READ_PROGRAM_TYPES + OTHER_TYPES
+COUNTER_RANGE_TYPES += READ_PROGRAM_TYPES + OTHER_TYPES + REMAINDER_TYPES
 NAMED_NAMES = v.NAMED_MESH_NAMES
 _NAMED_VALUES = []
 
@@ -1563,7 +1620,7 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=Fals
                     return
                 # RENDER-ITEMS-002U: blocks that read the rendered-frame counter, for FRAME_TYPES only
                 f = bisect.bisect_left(frames, address)
-                counter = (_SAMPLE_TYPE[0] in FRAME_TYPES or _SAMPLE_TYPE[0] in OTHER_TYPES or _SAMPLE_TYPE[0] in DIRECT_TYPES) and f < len(frames) and frames[f] + 4 <= address + size
+                counter = (_SAMPLE_TYPE[0] in FRAME_TYPES or _SAMPLE_TYPE[0] in OTHER_TYPES or _SAMPLE_TYPE[0] in DIRECT_TYPES or _SAMPLE_TYPE[0] in REMAINDER_TYPES) and f < len(frames) and frames[f] + 4 <= address + size
                 k = bisect.bisect_left(clocks, address)
                 if not counter and (k == len(clocks) or clocks[k] >= address + size):
                     return
@@ -1642,7 +1699,7 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=Fals
     if part_selector is not None:
         case['a12'] = part_selector
     case['object_hidden'] = (-1, 0, 2)[(seed // 3) % 3]
-    if t in FRAME_TYPES or t in OTHER_TYPES or t in DIRECT_TYPES:
+    if t in FRAME_TYPES or t in OTHER_TYPES or t in DIRECT_TYPES or t in REMAINDER_TYPES:
         # RENDER-ITEMS-002U: the rendered-frame counter varies in these types' probes (others keep the zero page).
         draw = random.Random(seed * 7919 + lv * 104729 + quality * 31 + opt * 3 + ext * 5 + (record[1] & 0xff))
         case['frame'] = draw.choice((0, 1, 2, 3, 15, 59, 60, 61, 0x7fffffff, 0x80000000, 0xffffffff,
@@ -1791,7 +1848,7 @@ def infer(samples):
 ALL_TYPES = (REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES + RANKED_TYPES + EXPANDED_TYPES +
              NEXT_TYPES + CLOCK_TYPES + CLUSTER_TYPES + WING_TYPES + VISIBLE_TYPES + SCALAR_TYPES +
              CHAIN_TYPES + LEVEL_TYPES + COLOUR_TYPES + CARRY_TYPES + QUALITY_TYPES + PRODUCT_TYPES + DERIVED_TYPES +
-             OWNER_FX_TYPES + PRE_FX_TYPES + POST_FX_TYPES + [0x1588] + list(NAMED_TYPES) + NO_GLOW_TYPES + HELPER_TYPES + DIRECT_TYPES + OTHER_TYPES)
+             OWNER_FX_TYPES + PRE_FX_TYPES + POST_FX_TYPES + [0x1588] + list(NAMED_TYPES) + NO_GLOW_TYPES + HELPER_TYPES + DIRECT_TYPES + OTHER_TYPES + list(CALLER_TYPES) + FALLOFF_TYPES + RANDOM_LEVEL_TYPES)
 
 
 def fit(wa, lib, t, scalars=False, carry=False, extended=False):
@@ -1832,7 +1889,7 @@ def fit(wa, lib, t, scalars=False, carry=False, extended=False):
         programs.extend(counter_colour_seeds(wa, t, programs))
         if t == 0x0b51:
             programs.extend(piecewise_colour(wa))
-        if not programs and t not in DERIVED_TYPES and t not in OTHER_TYPES:
+        if not programs and t not in DERIVED_TYPES and t not in OTHER_TYPES and t not in REMAINDER_TYPES:
             return None
         rules = _fit(wa, lib, t, tuple(programs), None, carry, extended)
         # Part 16: words one binary32 operation away from an input become kind-6 programs.
@@ -1954,7 +2011,7 @@ def supplement(wa, lib, t, params, sites, carry, ss, phases):
     binary32 programs from the shared binary64 pulse. Later clock bodies also keep negative-zero probes:
     a saved product and that product plus positive zero must remain distinct. False when a probe is unusable."""
     probes = [(seed, None) for seed in SUPPLEMENT_SEEDS]
-    if t in LATER_READ_PROGRAM_TYPES or t in CYCLE_PROGRAM_TYPES or t in OTHER_TYPES:
+    if t in LATER_READ_PROGRAM_TYPES or t in CYCLE_PROGRAM_TYPES or t in OTHER_TYPES or t in REMAINDER_TYPES:
         # Both base phases, in addition to every existing probe. The actual xorps/addss
         # chain is already parsed; these inputs prevent fitting its pre-add intermediate.
         probes += [(seed, 0x80000000) for seed in SUPPLEMENT_SEEDS[:2]]
@@ -1970,7 +2027,10 @@ def supplement(wa, lib, t, params, sites, carry, ss, phases):
                             return False
                         continue
                     phase = 0 if t in DIRECT_TYPES else 5 if seed % 3 == 2 else 0
-                    if t in NAMED_TYPES and lv >= 9 and quality > 1:
+                    if ((t in NAMED_TYPES and lv >= 9 and quality > 1) or
+                            (t in RANDOM_LEVEL_TYPES and (lv << 3) >= 9 and quality > 1 and
+                             lib.mu_rc_item_glow_level(C.byref(v.CItem(type=t, item_level=lv << 3,
+                                 quality=quality, has_record=1, kind_a=record[0], kind_b=record[1], item_kind=record[2]))) >= 9)):
                         phase = 7 if phase == 5 else 6
                     phases[phase].append(stream[0])
                     for pair in stream[1:]:
@@ -2003,7 +2063,7 @@ def extract():
     for t in ALL_TYPES:
         fitted = fit(wa, lib, t, scalars=True,
                      carry='exit' if t in EXIT_TYPES else t in CARRY_TYPES or t in DERIVED_CARRY or t in PRE_CARRY,
-                     extended=t in QUALITY_TYPES or t in PRODUCT_TYPES or t in PRE_EXTENDED or t in NAMED_TYPES or t in NO_GLOW_TYPES or t in HELPER_TYPES or t in DIRECT_TYPES or t in OTHER_TYPES)
+                     extended=t in QUALITY_TYPES or t in PRODUCT_TYPES or t in PRE_EXTENDED or t in NAMED_TYPES or t in NO_GLOW_TYPES or t in HELPER_TYPES or t in DIRECT_TYPES or t in OTHER_TYPES or t in REMAINDER_TYPES)
         if fitted is not None:
             types[t] = fitted
     if set(types) != set(ALL_TYPES):
@@ -2031,6 +2091,7 @@ def render(types):
              ' * source=36.. selects the type\'s own scalar program (kind 1 = wave 0x0185bdc4(a,0), 2 = sin(time*a), then mul/add/sub/div, binary32 or op|8 binary64 with one final rounding;',
              ' * kind 3 = clock chain of op/k pairs, see gen_item_bodies.C_TIME_F..C_U2D (30..33: the rendered-frame counter);',
              ' * clock ops 34/35/36 are binary32 sin, conditional abs and CRT fabs (distinct signed-zero rules);',
+             ' * clock op 37 selects default one or reverse subtraction at a checked threshold, then clamps to positive zero;',
              ' * kind 9 = wave(a, k[0] degrees), then ops 1..; scalar op 5 is k-value, 6 is a lower clamp;',
              ' * plain 0 = glow chain, 1 = plain with tails, 2 = early complete body, 3 = early body, exact-white phase 5, otherwise part-selector 6 phase 6;',
              ' * kind 10 = signed tick modulo a, split at k[0], binary32 affine colour per half, optional wave multiply;',
@@ -2069,7 +2130,7 @@ def render(types):
     for t, indices, first, count in rows:
         rules = types[t][0]
         lines.append('    {0x%04x, {%s}, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d},' %
-                     (t, ', '.join(map(str, indices)), t in LEVEL_SPLIT, t in ATLAS_TYPES, t in DIM_TYPES, (2 + (t in DIRECT_WHITE_TYPES)) if t in DIRECT_TYPES else t in PLAIN_TYPES or t in NO_GLOW_TYPES, t in PULSE_TYPES,
+                     (t, ', '.join(map(str, indices)), (2 if t in RANDOM_LEVEL_TYPES else t in LEVEL_SPLIT), t in ATLAS_TYPES, t in DIM_TYPES, (2 + (t in DIRECT_WHITE_TYPES)) if t in DIRECT_TYPES else t in PLAIN_TYPES or t in NO_GLOW_TYPES, t in PULSE_TYPES,
                       any(op == 'in' and value == 20 for rule in rules for _, cells in rule for op, value in cells),
                       sum(1 << k for k in range(13) if any(op == 'in' and value == 21+k for rule in rules for _, cells in rule for op,value in cells)),
                       t in CARRY_TYPES or t in DERIVED_CARRY or t in PRE_CARRY or t in DIRECT_TYPES, first, count))

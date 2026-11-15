@@ -1,5 +1,7 @@
 # Current status
 
+RENDER-ITEMS-002AA verified subset PR-ready: fifty bodies added, 1,530/1,674, leaving 144 in eight recorded groups. Four instruction-checked forms, 116,090 focused checks and 26 meaningful compiled controls; 134 validator rows covered. All 230 default artifacts match rebuilt main; all fifty exact models have native proofs. Eight particle pairs remain refused. [Checks, groups and limits](handoffs/RENDER-ITEMS-002AA.md).
+
 RENDER-EFFECTS-033 verified subset PR-ready: twelve consumer pairs add summon ground, Penetration child/trails, target ice and the Blood Storm sword subset. Learned presentation moves 11 P / 7 L / 11 M to 14 P / 6 L / 9 M; summon bodies, held Defense and named downstream consumers remain refused. 32,010 full checks, 45 new compiled controls plus three refreshed anchors, all 86 current selected validators, thirteen demo asset scenes and 92 PNG / 92 dump identity pairs pass. [Scope, per-skill limits and timings](handoffs/RENDER-EFFECTS-033.md).
 
 RENDER-ACTORS-007 verified subset PR-ready: 138 more bounded fixture plans (53 NPCs, fifteen weapon assemblies, seventy constructor-state selectors), spanning 108 model indices / 99 files. Census: 727 checked / 217 incomplete / 80 refused. Group sizes and every remaining reason are published; sword sprites, type-226 lifetimes and prior loader refusal boundaries stay excluded. 8,451 focused checks, 21 compiled controls and 33 affected validators pass. [Evidence, timings, identity and limits](handoffs/RENDER-ACTORS-007.md).
