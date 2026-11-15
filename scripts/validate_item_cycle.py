@@ -23,7 +23,7 @@ CLOCKS += tuple(base + delta for base in (-12000, -9000, -6000, -3000, 3000, 600
 MUTANTS = {
     'cycle-signed-remainder': ('int32_t rem = clock_trunc((double)time) % (int32_t)p->a;',
                                'int32_t rem = (int32_t)((uint32_t)clock_trunc((double)time) % p->a);'),
-    'cycle-half-boundary': ('int first_branch = rem < half;', 'int first_branch = rem <= half;'),
+    'cycle-half-threshold': ('int first_branch = rem < half;', 'int first_branch = rem < half - 1;'),
     'cycle-upper-offset': ('first_branch ? rem : rem - half', 'first_branch ? rem : rem'),
     'cycle-reverse-subtract': ('add - value : value + add', 'value - add : value + add'),
     'cycle-wave': ('value = value * client_wave(a, time);', 'value = value * a;'),
@@ -71,6 +71,7 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--cases', type=int, default=292)
     parser.add_argument('--mutations', action='store_true')
+    parser.add_argument('--mutant-only', choices=tuple(MUTANTS), help='iteration: compile only this changed control')
     args = parser.parse_args()
     if not 1 <= args.cases <= 292:
         parser.error('--cases must be in 1..292')
@@ -79,7 +80,7 @@ def main():
     families, vectors, particles = compare(wa, C.CDLL(str(v.LIBRARY)), args.cases)
     report = {'text_sha256': pins.TEXT.sha256, 'data_sha256': pins.DATA.sha256, 'families': families}
     if args.mutations:
-        pre.MUTANTS = MUTANTS
+        pre.MUTANTS = {args.mutant_only: MUTANTS[args.mutant_only]} if args.mutant_only else MUTANTS
         report['mutants'] = pre.mutations(vectors, particles)
     args.output.write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps(report))

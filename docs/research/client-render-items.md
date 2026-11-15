@@ -3483,7 +3483,7 @@ semantics. This adds no scalar, operation or draw capacity.
 
 The body's two used colour channels retain their different coefficients and subtraction direction.
 The remaining channel is positive zero. The complete pre-program goes through the existing item
-host and consumer refusals. Its nonzero scripted owned stream is compared separately from the
+host and consumer refusals. Complete owned fixtures, including scripted input sequences, are compared separately from the
 host-free zero-random body sample.
 
 ### Fourteen historical helper-count types
