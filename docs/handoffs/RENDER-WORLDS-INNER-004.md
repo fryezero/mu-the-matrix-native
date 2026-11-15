@@ -58,10 +58,17 @@ Private native selection is 173 work items, 72.17 s. **8d reduced** applies; foc
 Modules: test_native_worlds_inner, test_native_worlds_inner4, test_native_item_textures and test_worlds_inner4.
 This includes 1,600 small instruction cases, registry absence, the installed texture survey and new joint refusals.
 
+## Broad validation checkpoint
+
+All 89 selected validators pass at `e262633e2895d8457d4423da7daa2f21d4e46276`, zero failures/errors/skips.
+Portable testing excludes only `native/tests/test_native_app.py`: its setup packages an app bundle, prohibited
+by this lane's owner brief. Other selected portable items remain in scope. A stale adapter comment about the
+former RGBA refusal was corrected after the validator run; no executable behavior changed.
+
 ## WIP
 
 Done: producers/adapters, explicit refusals, 8,000 original cases, 42 producer and four alpha compiled mutants,
-alpha scene checks, before default/reference renders and affected selection. Left: affected validators/portable
+alpha scene checks, before default/reference renders and affected selection. Left: affected portable
 checks, after/reference render analysis, final main integration and docs/PR/ready entry.
-Next: run the 89 selected validators without mutants and the affected portable suites with jobs 2.
+Next: run the affected portable suites with jobs 2, then explicitly rebuild mu-world for after renders.
 No PR-ready claim or ready-prs line yet.
