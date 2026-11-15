@@ -1,6 +1,6 @@
 # UI-WINDOWS-006
 
-## WIP (checkpoint 1, 2026-11-15 16:25)
+## WIP (checkpoint 2, 2026-11-15 14:35)
 
 Base main `c5b9d5ca` (PR #400 merged). Branch `claude/ui-windows-006`,
 worktree `~/Documents/MTM/worktrees/ui-windows-006`. Text/data pins unchanged.
@@ -45,8 +45,19 @@ worktree `~/Documents/MTM/worktrees/ui-windows-006`. Text/data pins unchanged.
   `0x0126f12c`, `0x0126f203` (server response). The control finds the known
   NpcQuestProgress openers.
 
+- MapName controller compiled: `native/gfx/mu_gfx_windows6.inc`, movie id
+  `MU_GFX_MAP_NAME`, `mu_gfx_layer_map_arrival`, host `world_gfx_map_arrival`
+  with the join (first location feed), respawn (`parts/combat.c`) and numbered
+  teleport (`world_rt.c`) hooks. A private probe journey shows the Lorencia
+  banner on join, its close after 5 s and the Noria banner after a travel.
+  Baseline mu-world SHA-256 at untouched main:
+  `0b67fc1e9ec614d2c318fb51d31f1205c7f8d5fd4921aa34834b969a23519c8a`; the 46
+  default baseline maps are rendered once (private renders folder).
+
 ### Left
 
+- Tests for the banner (synthetic host, real movie, original instructions,
+  compiled mutants); none exist yet.
 - Commit the self-open detection and the trigger-root classifier as scripts
   with synthetic tests; publish the 33-row ledger, the 30 one-line state needs,
   the updated survey and the 42 (then 40) no-route list.
