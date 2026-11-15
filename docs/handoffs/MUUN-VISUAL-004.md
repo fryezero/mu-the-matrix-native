@@ -62,3 +62,16 @@ Next: refresh the affected validators/tests for the special-row source, then fin
 
 Scratch and proof renders are under `~/Documents/MTM/mu-mac-tools/native/{scratch,renders}/muun-visual-004`.
 No new future-lane input has been created. No ready queue entry exists yet.
+
+## Final source verification checkpoint
+
+At source/checker commit `76f42724`, the 36 rows selected since `8e992004` pass in 628.46 s,
+zero failures/errors/skips. Five earlier rows have unchanged inputs and retain their passing results:
+helpers, mount visuals, pets, raven and world fog. The steward union is 41 rows.
+
+The final affected portable refresh since `59822bfc` passes 1,478 tests: 1,208 passed, 270 explicit
+skips, zero failures/errors, 434.60 s including selection, 163 work items. The first batch covers the
+unchanged work items. Main remains `b7dfd2ed` at the 22:40 check.
+
+Only the combined reduced private Muun run, final native proof/default identity, delivery docs/audit and
+PR/cleanup remain. No further production C change has been made since the verified special-row source.
