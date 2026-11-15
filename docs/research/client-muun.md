@@ -288,18 +288,17 @@ its supplied offset, with OBJECT angle/light. Only this remote clock is reconstr
 periodic command clocks and target lookup/rotation remain excluded. The native fixture supplies period
 3 and delta 0.04. Existing effect/particle consumers retain and count their own refusals.
 
-Final counts, compiled mutants, private render controls and remaining special-model limits are pending
+Final counts, compiled mutants, private render controls and remaining special-model limits are recorded
 in [the handoff](../handoffs/MUUN-VISUAL-004.md).
 
-### Retained special-row and action refusals
+### Initial special-row census and retained action refusals
 
 The private table join finds appearances 356/357 at models 0x2b7a/b with 3/4 mesh rows, 375/376 at
-0x2b8d/e with 8/10 rows, and 377 at 0x2b90 with five rows. All thirty remain refused by the native extra-row
-adapter. Static branches are at 0x017f7b36, 0x017f7c7d, 0x017f8130 and 0x017f8845. The first pair's mesh 2
+0x2b8d/e with 8/10 rows, and 377 at 0x2b90 with five rows. Before MUUN-VISUAL-004 all thirty were refused.
+Static branches are at 0x017f7b36, 0x017f7c7d, 0x017f8130 and 0x017f8845. The first pair's mesh 2
 changes persistent OBJECT +0xc8 on each render according to action and frame delta; the later branches
-also include atlas and bone-effect requests. These have not received full original call-stream comparisons,
-compiled mutants and installed-fixture proofs in this lane. The ordinary MuunMeshInfo implementation is
-not a substitute for them. The newly verified secondary effects at 0x009bfe13 are a different producer.
+also include atlas and bone-effect requests. The verified mesh-only subset below admits 25 rows and retains
+five explicit refusals. The secondary effects at 0x009bfe13 are a different producer.
 
 Code 363's installed skeleton still has actions 0..2. Its authored command requests for 3/4 remain
 explicit refusals. This lane does not synthesize or remap missing actions.

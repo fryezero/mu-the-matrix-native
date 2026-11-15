@@ -75,3 +75,15 @@ unchanged work items. Main remains `b7dfd2ed` at the 22:40 check.
 
 Only the combined reduced private Muun run, final native proof/default identity, delivery docs/audit and
 PR/cleanup remain. No further production C change has been made since the verified special-row source.
+
+## Main integration checkpoint
+
+Main AUDIO-004 at `2b0b2716` is integrated; the registry conflict keeps both new Muun rows and the incoming
+audio row. The merged root build passes in 21.20 s. The final pre-merge private Muun run passes 19/19 in
+60.40 s; the 35 inspected GL proof images pass in 24.12 s. Pre-merge default identity passes all 230 required
+files plus 46 stderr logs with different before/after binary hashes.
+
+Done: all Muun source, tests, original comparisons, mutants, final pre-merge proof/identity and status lines.
+Left: resource-guarded affected checks for incoming compiled audio inputs, merged proof/identity and final audit.
+Next: list the affected rows and modules after the merged build, run only that refresh, then replace WIP with
+the complete handoff, push, open PR, append ready queue and clean up.
