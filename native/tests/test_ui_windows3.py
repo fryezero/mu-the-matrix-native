@@ -28,7 +28,7 @@ class PresentationWindows(unittest.TestCase):
             movies = tmp/'movies'
             movies.mkdir()
             for name in ('main', 'InventoryFrame', 'InfoPopup', 'CharacterInfoFrame', 'chat',
-                         'CommandWindow', 'MatchingSelect', 'GensRanking', 'PetInventoryFrame', 'GremoryCase', 'SkillTree5th', 'ExtensionBagFrame', 'SkillTree5thItemViewer', 'BlockedChat'):
+                         'CommandWindow', 'MatchingSelect', 'GensRanking', 'PetInventoryFrame', 'GremoryCase', 'SkillTree5th', 'ExtensionBagFrame', 'SkillTree5thItemViewer', 'BlockedChat', 'AutomaticMacro'):
                 (movies/(name+'.swf')).write_bytes(b'authored stub fixture')
             if real:
                 movies = Path(os.environ['MU_NATIVE_DATA_DIR'])/'gfx'
@@ -36,7 +36,7 @@ class PresentationWindows(unittest.TestCase):
             run = subprocess.run([str(host), str(movies), str(lib)], capture_output=True, text=True,
                                  env={**os.environ,"MU_WINDOWS3_REAL":"1" if real else "0"})
             self.assertEqual(run.returncode, 0, run.stdout+run.stderr)
-            self.assertIn('57 inert callbacks', run.stdout)
+            self.assertIn('132 inert callbacks', run.stdout)
 
     def test_production_firewall_navigation_focus_and_sound_owner(self):
         self.run_host()
@@ -144,3 +144,41 @@ class OriginalRoutes(unittest.TestCase):
         callers=[0x401000+i for i in range(len(self.text)-5) if self.text[i]==0xe8 and
                  0x401000+i+5+struct.unpack_from('<i',self.text,i+1)[0]==target]
         self.assertEqual(callers,[0xb6b744])
+
+    def test_original_view_type_inversion_and_invoke_order(self):
+        import struct
+        from unicorn.x86_const import UC_X86_REG_ESP,UC_X86_REG_ECX
+        def const(v,pop=0):return lambda u,c:(v,pop)
+        for selected in (0,1):
+            def text(u,c):
+                sp=u.reg_read(UC_X86_REG_ESP)
+                c.append(('label',struct.unpack('<I',u.mem_read(sp+4,4))[0]))
+                return (0x10003000,4)
+            def invoke(u,c):
+                sp=u.reg_read(UC_X86_REG_ESP)
+                _,owner,method,fmt,value=struct.unpack('<5I',u.mem_read(sp,20))
+                if method==0x1a88784:c.append(('selected',value))
+                else:self.assertIn(method,(0x1a8874c,0x1a88768))
+                return (0,0)
+            def refresh(u,c):c.append(('refresh',0));return (0,0)
+            trace=self.machine(0xb1602a,0xb16141,{
+                0x95f027:text,0x94997e:const(0x10003000,4),0xa99d93:const(0),
+                0x8e7940:const(0x10003000),0x8e83a0:const(0),0xaae7e0:invoke,0xb17210:refresh},
+                [(0x1000eff0,0x10000100),(0x1000f008,selected)])
+            self.assertEqual(trace,[('label',0x1935 if selected else 0x1936),('selected',1-selected),('refresh',0)])
+
+    def test_original_automatic_menu_is_window_then_inactive_hud(self):
+        import struct
+        from unicorn.x86_const import UC_X86_REG_ESP
+        def const(v):return lambda u,c:(v,0)
+        def event(s):return lambda u,c:(c.append(s) or 0,0)
+        for opened in (0,1):
+            def inactive(u,c):
+                sp=u.reg_read(UC_X86_REG_ESP)
+                self.assertEqual(struct.unpack('<I',u.mem_read(sp+4,4))[0],0)
+                c.append('inactive-hud-and-service-boundary')
+                return (0,4)
+            trace=self.machine(0xc8dc85,0xc8dcea,{
+                0xac3bf7:const(0x10000700),0xbc07fa:const(0x10000100),0xaae6f9:const(opened),
+                0x10002000:event('open'),0x10002010:event('close'),0xc8ddb8:inactive})
+            self.assertEqual(trace,['close' if opened else 'open','inactive-hud-and-service-boundary'])

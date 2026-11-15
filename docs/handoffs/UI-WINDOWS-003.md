@@ -6,10 +6,10 @@ Base main `b7dfd2ed`. Work is on `codex/ui-windows-003`, in its own worktree.
 
 Done: read the lane/common briefs, prior handoffs and survey; built baseline
 root and explicit world, preserved the binary, ran one 46-map default baseline.
-Three new adapters and a production C host cover expanded inventory, the
-separate fifth-tree item viewer and BlockedChat. Bounded original routes execute
+Four new adapters and a production C host cover expanded inventory, the
+separate fifth-tree item viewer BlockedChat and AutomaticMacro through the original top-menu event. Bounded original routes execute
 under Unicorn. Labels and eligibility are authored fixtures; all mutation
-callbacks refuse. The synthetic host passes; real-movie checks are being refined.
+callbacks refuse. Both hosts pass; the worktree client reached scene 6 and supplied inspected opaque bag/viewer/block-list/closed frames. View-type inversion was corrected from the original controller.
 
 Left: finish controller checks, native window journeys and visual inspection,
 refusal research and survey, affected checks/validators and default after-sweep,

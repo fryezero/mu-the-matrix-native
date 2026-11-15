@@ -31,6 +31,10 @@ int main(int argc,char **argv)
         field(L,MU_GFX_TREE5_VIEWER,"mc5thTreeItemViewer.mcViewTypeBook._visible","true");
         field(L,MU_GFX_TREE5_VIEWER,"mc5thTreeItemViewer.mcViewTypeList._visible","false");
     }
+    if(real) {
+        field(L,MU_GFX_AUTOMATIC,"btnAutoStart.disabled","true");
+        field(L,MU_GFX_AUTOMATIC,"dmLeaderHuntingMap.dataProvider.length","0.0");
+    }
     foreign=sounds=0;
     mu_gfx_hero hero=*mu_gfx_layer_hero(L);int held=L->held,potions=L->potions;
     on_call(&L->mv[MU_GFX_INVENTORY],"onClickbtnExtensionBag","[]");assert(!L->mv[MU_GFX_BAG].open);
@@ -49,26 +53,44 @@ int main(int argc,char **argv)
     assert(mu_gfx_layer_key(L,1,'I',0,2) && L->mv[MU_GFX_TREE5_VIEWER].open);
     assert(!L->mv[MU_GFX_TREE5].open);
     (void)mu_gfx_layer_key(L,0,'I',0,2);assert(L->mv[MU_GFX_TREE5_VIEWER].open);
-    assert(presentation_call(&L->mv[MU_GFX_TREE5_VIEWER],"onClickViewTypeToggle","[true]",NULL,0));
+    assert(presentation_call(&L->mv[MU_GFX_TREE5_VIEWER],"onClickViewTypeToggle","[false]",NULL,0));
     if(real) {
         field(L,MU_GFX_TREE5_VIEWER,"mc5thTreeItemViewer.mcViewTypeBook._visible","false");
         field(L,MU_GFX_TREE5_VIEWER,"mc5thTreeItemViewer.mcViewTypeList._visible","true");
         for(int i=0;i<20;i++) {char p[160];snprintf(p,sizeof p,"m_arrCardList.%d.CardInfo._visible",i);field(L,MU_GFX_TREE5_VIEWER,p,"false");}
     }
     assert(!presentation_call(&L->mv[MU_GFX_TREE5_VIEWER],"onClickViewTypeToggle","[2]",NULL,0));
-    assert(presentation_call(&L->mv[MU_GFX_TREE5_VIEWER],"onClickViewTypeToggle","[false]",NULL,0));
+    assert(presentation_call(&L->mv[MU_GFX_TREE5_VIEWER],"onClickViewTypeToggle","[true]",NULL,0));
     mu_gfx_layer_show(L,MU_GFX_TREE5_VIEWER,0);
     on_call(&L->mv[MU_GFX_CHAT],"chat","[\"BlockedUser\",{\"open\":true}]");assert(L->mv[MU_GFX_BLOCKED_CHAT].open);
     on_call(&L->mv[MU_GFX_CHAT],"chat","[\"BlockedUser\",{\"open\":true}]");assert(L->mv[MU_GFX_BLOCKED_CHAT].open);
     on_call(&L->mv[MU_GFX_CHAT],"chat","[\"BlockedUser\",{}]");assert(L->mv[MU_GFX_BLOCKED_CHAT].open);
     on_call(&L->mv[MU_GFX_CHAT],"chat","[\"BlockedUser\",{\"open\":trueish}]");assert(L->mv[MU_GFX_BLOCKED_CHAT].open);
     on_call(&L->mv[MU_GFX_CHAT],"chat","[\"BlockedUser\",{\"open\":false}]");assert(!L->mv[MU_GFX_BLOCKED_CHAT].open);
+    assert(mu_gfx_layer_key(L,1,113,0,0) && L->mv[MU_GFX_BLOCKED_CHAT].open);
+    assert(mu_gfx_layer_key(L,1,27,0,0) && !L->mv[MU_GFX_BLOCKED_CHAT].open);
+    on_call(&L->mv[MU_GFX_MAIN],"topmenu","[\"MacroMenu\",\"AutomaticMacroStart\"]");
+    assert(L->mv[MU_GFX_AUTOMATIC].open);
+    on_call(&L->mv[MU_GFX_MAIN],"topmenu","[\"MacroMenu\",\"AutomaticMacroStart\"]");
+    assert(!L->mv[MU_GFX_AUTOMATIC].open);
+    if(real) {
+        on_call(&L->mv[MU_GFX_MAIN],"topmenu","[\"MacroMenu\",\"AutomaticMacroStart\"]");
+        assert(L->mv[MU_GFX_AUTOMATIC].open);
+        L->api.invoke(L->mv[MU_GFX_AUTOMATIC].g,L->mv[MU_GFX_AUTOMATIC].path,"onClickExit","[]");
+        for(int i=0;i<10;i++) mu_gfx_layer_advance(L,40);
+        assert(!L->mv[MU_GFX_AUTOMATIC].open);
+    }
+    assert(!presentation_key3(L,36,0)); /* Home activation is still unavailable. */
     /* Cross-window forged actions must never reach session/NPC/item/social owners. */
     const char *blocked[]={"requestItemSlotClick","requestItemSlotClickR","requestItemSlotDoubleClick",
         "requestItemSlotDragBegin","requestItemSlotDragEnd","SetViewType","SetVisibleOnlyMyItem",
         "SetVisibleItemCanLevelUp","onClickLevelUpAll","onClickRegistUser","onClicDeleteUser",
         "onClickBlockIDInputText","onOverSandGlass","OnSandglassRelease","SaveAutomaticConfig",
-        "onClickImmediatelyStart","onClickbtnJoin","onDepositBtnClick","unknown"};
+        "onClickImmediatelyStart","onClickbtnJoin","onDepositBtnClick","unknown",
+        "onClickAutoStart","onClickAutoPlayCancel","CancelAutoStart","VisibleLeaderMacro",
+        "SelectedLeaderHuntingMap","onClickDirectRegistUserValid","UpdateCharacterInput",
+        "InputReadyRelease","onClickLeaderDieCount","onClickCharacterNameInput","setCheckBox",
+        "onClickprevBtn","onClicknextBtn","onClickLevelup"};
     assert(sounds==0); /* These original direct routes have no guessed click sound. */
     foreign=0;
     int refused=0;
@@ -89,5 +111,5 @@ int main(int argc,char **argv)
     assert(!memcmp(&hero,mu_gfx_layer_hero(L),sizeof hero) && L->held==held && L->potions==potions);
     assert(foreign==0 && sounds==0);
     mu_gfx_layer_close(L);
-    printf("three empty windows, %d inert callbacks, routes and sound silence ok\n",refused);
+    printf("four empty windows, %d inert callbacks, routes and sound silence ok\n",refused);
 }

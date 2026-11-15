@@ -9,7 +9,7 @@ static void presentation_fixture3(mu_gfx_layer *L, int m)
 {
     movie *w=&L->mv[m];
     if (m==MU_GFX_BAG) {
-        invokef(L,m,w->path,"InitText","[\"Expanded inventory - preview\"]");
+        invokef(L,m,w->path,"InitText","[\"Expanded inventory\"]");
         /* Authored eligibility, never the character's purchased/period state. */
         invokef(L,m,w->path,"SetExtensionBagNumber","[2]");
     } else if (m==MU_GFX_TREE5_VIEWER) {
@@ -32,8 +32,29 @@ static void presentation_fixture3(mu_gfx_layer *L, int m)
             char field[96];snprintf(field,sizeof field,"mcSetting.cbView%d.disabled",i);
             presentation_set(L,m,field,"true");
         }
+    } else if (m==MU_GFX_AUTOMATIC) {
+        invokef(L,m,w->path,"SetAutomaticMacroFixedText","[{\"tfLeaderMacroTitle\":\"Automatic helper - preview\",\"tfRole\":\"Role\",\"tfState\":\"State\",\"tfName\":\"Demo name\",\"bmMainPosition1\":\"Any\",\"bmMainPosition2\":\"Any\",\"strInputCharacterName\":\"Unavailable\",\"strPartyMatchingAutoJoin\":\"Unavailable\",\"tfPartyRunning\":\"Unavailable\",\"tfPartyRecruit\":\"Unavailable\",\"tfPartyMember\":\"Slot \",\"tfUnregister\":\"Empty\",\"tfImmediatelyRegister\":\"Unavailable\",\"tfPartyMatching\":\"Unavailable\",\"btnCharacterJoin\":\"Unavailable\",\"tfHuntingSettingTitle\":\"Empty offline fixture\",\"tfHuntingMap\":\"Map\",\"tfPosition\":\"Position\",\"tfAttribute\":\"Attribute\",\"tfPlaySettingTitle\":\"Activation unavailable\",\"tfPlayMent1\":\"No helper execution\",\"tfPlayMent2\":\"No saved configuration\",\"tfPlayMent3\":\"No matching requests\",\"rbLeaderWaitSafetyZone\":\"Unavailable\",\"rbLeaderAutoMatching\":\"Unavailable\",\"rbLeaderIntactlyPlay\":\"Unavailable\",\"btnAutoStart\":\"Unavailable\",\"btnImmediatelyStart\":\"Unavailable\",\"btnCancel\":\"Unavailable\",\"btnExit\":\"Close\",\"bmAttribute1\":\"Any\",\"bmAttribute2\":\"Any\",\"bmAttribute3\":\"Any\",\"bmAttribute4\":\"Any\",\"bmAttribute5\":\"Any\",\"bmAttribute6\":\"Any\"}]");
+        invokef(L,m,w->path,"OpeningAutomaticMacro","[[]]");
+        invokef(L,m,w->path,"VisibleLeaderMacro","[true]");
+        static const char *const controls[]={"btnAutoStart","btnImmediatelyStart","btnCancel",
+            "dmLeaderHuntingMap","dmLeaderPosition","dmLeaderAttribute","tiLeaderDieCount",
+            "rbLeaderWaitSafetyZone","rbLeaderAutoMatching","rbLeaderIntactlyPlay"};
+        for (size_t i=0;i<sizeof controls/sizeof *controls;i++) {
+            char field[128];snprintf(field,sizeof field,"%s.disabled",controls[i]);
+            presentation_set(L,m,field,"true");
+        }
+        presentation_set(L,m,"tiLeaderDieCount.text", "\"\"");
+        for (int i=1;i<=4;i++) {
+            char field[128];
+            snprintf(field,sizeof field,"mcLeaderMacro.mcPartyMember%d.dmPartyState.disabled",i);
+            presentation_set(L,m,field,"true");
+            snprintf(field,sizeof field,"mcLeaderMacro.mcPartyMember%d.tiCharacterName.disabled",i);
+            presentation_set(L,m,field,"true");
+            snprintf(field,sizeof field,"mcLeaderMacro.mcPartyMember%d.btnCharacterJoin.disabled",i);
+            presentation_set(L,m,field,"true");
+        }
     } else if (m==MU_GFX_BLOCKED_CHAT) {
-        invokef(L,m,w->path,"InitBlockedChatText","[\"Blocked chat - empty preview\",\"No saved users\",\"Unavailable\",\"Unavailable\"]");
+        invokef(L,m,w->path,"InitBlockedChatText","[\"Blocked chat - empty preview\",\"No saved users\",\"Locked\",\"Locked\"]");
         invokef(L,m,w->path,"ClearScrollListData","[]");
         presentation_set(L,m,"btnRegistUser.disabled","true");
         presentation_set(L,m,"btnUnRegistUser.disabled","true");
@@ -46,6 +67,10 @@ static void presentation_shown3(mu_gfx_layer *L, int m, int open)
     /* 0x00b91950 auto-opens eligible bags; 0x00b919d5 closes them with inventory. */
     if (m==MU_GFX_INVENTORY && presentation_available3(L,MU_GFX_BAG))
         mu_gfx_layer_show(L,MU_GFX_BAG,open);
+    if (m==MU_GFX_AUTOMATIC) {
+        const char *top=channel(L,"topmenu");
+        if (*top) invokef(L,MU_GFX_MAIN,top,"setPlayAutomaticMacro","[false]");
+    }
     if (m==MU_GFX_BLOCKED_CHAT) {
         const char *path=channel(L,"chat");
         if (!*path) path=L->mv[MU_GFX_CHAT].path;
@@ -77,6 +102,14 @@ static int presentation_parent3(movie *w, const char *name, const char *args)
         if (w->open) (void)presentation_open(L,MU_GFX_BAG,0);
         return 1;
     }
+    if (w->id==MU_GFX_MAIN && !strcmp(name,"topmenu")) {
+        char event[64],action[64];
+        if (json_string(args,0,event,sizeof event) && !strcmp(event,"MacroMenu") &&
+            json_string(args,1,action,sizeof action) && !strcmp(action,"AutomaticMacroStart")) {
+            (void)presentation_open(L,MU_GFX_AUTOMATIC,0);
+            return 1;
+        }
+    }
     if ((w->id==MU_GFX_CHAT || (L->base_mode && w->id==MU_GFX_MAIN)) && !strcmp(name,"chat")) {
         char event[64];
         if (json_string(args,0,event,sizeof event) && !strcmp(event,"BlockedUser")) {
@@ -94,6 +127,12 @@ static int presentation_call3(movie *w, const char *name, const char *args)
 {
     if (w->id<MU_GFX_BAG) return -1;
     mu_gfx_layer *L=w->L;
+    if (w->id==MU_GFX_AUTOMATIC && !strcmp(name,"LeaveComplete")) {
+        char path[192];snprintf(path,sizeof path,"%s.m_bVisibleState",w->path);
+        const char *visible=L->api.get_variable(w->g,path);
+        if (visible && !strcmp(visible,"false")) mu_gfx_layer_show(L,w->id,0);
+        return 1;
+    }
     if (!strcmp(name,"CloseWindow")) {
         mu_gfx_layer_show(L,w->id,0);
         return 1;
@@ -102,7 +141,10 @@ static int presentation_call3(movie *w, const char *name, const char *args)
         return 1;
     if (w->open && w->id==MU_GFX_TREE5_VIEWER && !strcmp(name,"onClickViewTypeToggle") &&
         (!strcmp(args,"[true]") || !strcmp(args,"[false]"))) {
-        invokef(L,w->id,w->path,"SetViewTypeToggleButtonSelected","%s",args);
+        /* 0x00b1602a inverts the movie-reported selection before applying it. */
+        int list=!strcmp(args,"[false]");
+        invokef(L,w->id,w->path,"SetViewTypeButtonText","[\"%s\"]",list ? "Book view" : "List view");
+        invokef(L,w->id,w->path,"SetViewTypeToggleButtonSelected","[%s]",list ? "true" : "false");
         return 1;
     }
     return 0;
@@ -110,6 +152,7 @@ static int presentation_call3(movie *w, const char *name, const char *args)
 
 static int presentation_key3(mu_gfx_layer *L, int vk, int mods)
 {
+    if (!mods && vk==113) return presentation_open(L,MU_GFX_BLOCKED_CHAT,0);
     if (mods!=2 || (vk!='J' && vk!='I')) return 0;
     if (!presentation_available3(L,MU_GFX_TREE5_VIEWER)) return 0;
     if (vk=='I') return presentation_open(L,MU_GFX_TREE5_VIEWER,0);
