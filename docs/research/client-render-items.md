@@ -3515,7 +3515,7 @@ Both branches finish with `0x0177608b -> 0x017e6304` and skip the ordinary tails
 Directed light vectors include every zero/one corner, negative zero, the adjacent binary32 values
 below and above one and negative light. Independent counters and part selectors supplement all
 292 randomized body states and all 512 forcing-record states per type. Compiled mutant results,
-full regeneration and final admission counts are recorded in the handoff when complete.
+full regeneration and final admission counts are recorded in the handoff.
 
 ### Refusals and limits
 
@@ -3528,7 +3528,9 @@ The plain no-glow hypothesis admits none of its thirty diagnostic candidates.
 The [remaining-body ledger](item-body-refusals-002z.tsv) lists every remaining type, its historical
 helper-count or other group, source helper/draw addresses, stopped fixture addresses and refusal
 reason. The forty-type cohort has 26 remaining candidates; all 168 other bodies remain.
-The proposed count is 1,480/1,674, pending the final checks in the handoff. Skins and links are unchanged.
+The verified count is 1,480/1,674. The ordinary-fit survey of other bodies stopped partway; it is
+not a completed independent comparison of all 168. Final checks and the partial-survey boundary
+are recorded in the handoff. Skins and links are unchanged.
 
 Comparisons remain finite and context-bounded. Existing record, selected-item, buff, pose/bone,
 invalid-context, absolute random/counter-phase and consumer refusals remain. No original pose/pixel

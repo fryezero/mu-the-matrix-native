@@ -5,13 +5,12 @@ GPT-6.1 Sol, no subagents. Offline/static only. Research is
 [part 40](../research/client-render-items.md#part-40-piecewise-colour-and-early-complete-bodies-render-items-002z).
 The merge steward owns the full gate and merge.
 
-## WIP
+## PR-ready
 
-All 72 item-selected validator rows pass. The latest-main selector refreshes 22 rows at `f3c45e34`,
-including four merge-only rows; all pass with zero failures, errors or skips. The rebuilt tree passes
-in 12.82 s and the reduced private consumers pass 33/33 in 15.27 s. The final portable refresh passes 178 work items, 1,610 tests (1,306 passed / 304 skipped),
-zero failures/errors, 518.82 s wrapper wall (445.7 s runner wall). Remaining: the genuine-main
-default identity sweep. No ready entry has been written.
+All 72 item-selected validator rows and four merge-only rows have passing results; the 22-row
+latest-main refresh passes with zero failures, errors or skips. The final affected portable run,
+33 private native consumers and the rebuilt genuine-main default identity sweep pass. The merge
+steward owns the full gate and merge. The ready entry is written after the final docs/source push.
 
 ## Result
 
@@ -44,7 +43,7 @@ The survey denominator 1,691 includes seventeen skins; the body denominator rema
 All tools/tests run from the repository root. Private commands source
 `~/Documents/MTM/mu-mac-tools/native/private-env.sh`. Heavy work uses nice 10, at most two validator
 workers, and builds use `make -j2` after resource cooldowns exceeded twenty minutes. Memory remains
-above the brief's floor. Cooldowns are outside the job timings. No full lane gate or hosted workflow ran.
+above the brief's floor. Cooldowns are outside the job timings. No full lane gate or hosted workflow ran. The final source audit is recorded in the PR body.
 The initial native private selection is 160 work items, above the forty-item cap. This lane uses
 **8d reduced** and runs the manual 6b consumers `test_native_renderchar` and `test_app_polish8` privately.
 
@@ -53,15 +52,16 @@ The initial native private selection is 160 work items, above the forty-item cap
 | Complete pinned body extraction/table render | 1,461 rows, existing caps | 1,385.12 s |
 | Complete owner-table regeneration | Pass | 10.10 s |
 | Corrected portable renderchar suite | 133 tests, 104 passed / 29 private skips | 0.65 s |
-| First integrated root build | Pass at `a9cc72d9` | 26.62 s |
+| Main-4b root build | Pass at `a9cc72d9` | 26.62 s |
 | Early-body final instruction/compiled-mutant row at `bd417573` | 15,352 checks, zero mismatches; six mutants caught | 13.6 s |
 | Cycle original comparisons and replacement threshold control | 6,936 checks, zero mismatches; threshold shift caught in five cases | 50.56 s |
 | C-to-C admission delta versus genuine main `2b0b2716` | 216,448 states: 214,528 identical, 1,920 admissions on exactly fifteen types | 15.19 s |
 | Full classifier export | 1,691 types / 798 shapes, exactly fifteen membership and nine shape changes | 118.03 s |
 | Affected portable selection | 166/210 work items | 58.42 s |
-| Final affected validator selection | 72/241 rows, one retained fallback, nine symbol-pruned rows | 69.37 s |
+| First 72-row validator selection | 72/241 rows, one retained fallback, nine symbol-pruned rows | 69.37 s |
 | Affected portable run at `9c541138` | 166 work items; 1,538 tests, 1,260 passed / 278 skipped, zero failures/errors | 433.24 s |
 | Selected private validators | 72/72 passed, 1,043,690 recorded cases; per-row sources and times below | Per-row table below |
+| Rebuilt default identity sweep | 46 saved views; all 230 artifacts identical, distinct binaries | 158.45 s |
 | Final portable refresh at `f3c45e34` | 178 work items, 1,610 tests; 1,306 passed / 304 skipped, zero failures/errors | 518.82 s |
 | Latest integrated root build at `f3c45e34` | Pass, main `4480bf41` | 12.82 s |
 | Latest private native consumers at `f3c45e34` | 33/33 passed, zero skips; 8d reduced | 15.27 s |
@@ -73,12 +73,33 @@ The initial native private selection is 160 work items, above the forty-item cap
 | Canonical private native consumers | 33/33 passed, zero skips; 8d reduced | 23.90 s |
 
 Extraction/rendering wall excludes the cache's final save. These are finite recorded cases,
-not a unique whole-client state count. The final affected validators are recorded below; only the default identity remains pending.
+not a unique whole-client state count. The final affected validators are recorded below; all required lane checks are complete.
 
 ## Default identity provenance
 
-Pending. Both sides will explicitly rebuild `native/build/mu-world`, with distinct SHA-256s,
-default draw and fixed time on the 46 existing captures. No original-client pixel equivalence is claimed.
+Genuine main `4480bf410c4775ce5554472d3161e75c64d59679` and branch `4218310d20681575a1bfba48b7ca86e79c65dd12` are built in this lane's
+worktree. Only the four differing runtime files (`renderchar.c`, `renderchar.h`, `item_bodies.h`,
+`item_owner_fx.h`) are temporarily overlaid from main. Their branch bytes are saved and restored
+in `finally`; the index stays on the branch. A final byte check confirms restoration. Main and other
+worktrees are untouched. Each side explicitly runs `make -C native -j2 world` under nice 10.
+
+| Binary | SHA-256 | World build | Captures |
+|---|---|---:|---:|
+| Genuine main | `98ebed1527e6f36566b38dc5230994a499116536f63b3f580a013572d0c06c3f` | 7.61 s | 75.18 s |
+| Restored branch | `9cf078c607b57120242a6e03d5b44d2e9e95659e23f4a9244f419f9618dcee32` | 7.63 s | 67.76 s |
+
+The hashes differ. Both sides use the canonical private data root, public demo names, 640 x 400,
+25 frames sampled at 0/24, default draw (`draw_all=false`) and fixed time (`live_time=false`).
+The fourteen October 22 and 32 DATA-ACQ-002 saved views use their existing manifests. Stale October
+manifest paths are rebased from `~/Documents/mu-mac-tools` to `~/Documents/MTM/mu-mac-tools` in the
+lane-local helper; shared manifests are unchanged. Their raw manifest SHA-256s are:
+
+- October 22: `3f453cbcf0f21b2bffdb0dbcc0a8a08a2c2141132defb317eb4c5af0f634d198`
+- DATA-ACQ-002: `fe7b56da6063c6fad5ff896fd20aac877f5773cd0c71a00402c3753c95d5d524`
+
+All **92 PNGs, 92 mesh dumps and 46 reports** match. Reports normalize only the output-directory
+prefix; every other field and byte is compared. **No saved view changes.** The whole command is
+158.45 s. This is native-to-native identity; original-client pose/pixel equivalence remains unverified.
 
 ## Steward validators
 
@@ -96,6 +117,7 @@ updates eighteen of those results and adds four rows at `f3c45e34`, main through
 The item generator, renderchar, record-math and pins inputs are unchanged across these main merges.
 Per-row times are the runner's recorded `time.time` differences, including checkpoint pauses while
 a row was active. Canonical regeneration was cold for carry and reused its original-side cache thereafter.
+Full tested source hashes: `3fed78789e88ab6cd842d73012b010105ba0884a`, `4bb6348bdac70c2091b65b6fe426a01dfdda50e6`, `f3c45e3406c052de9a082330dbd9279b02d33ada`.
 A dash means that row does not expose a case counter.
 
 | Validator | Cases | Wall (s) | Tested source |
@@ -211,6 +233,7 @@ invalid-context, absolute random/counter phase and consumer refusals remain. No 
 whole-client equivalence is claimed. No original-client process, service, packet, protection,
 character-power or installed-app work is involved.
 
-All local reports, prototypes and render intermediates are disposable and will be removed at handoff,
-with the worktree and build outputs. No new private input is needed by the next lane.
+The ready-entry cleanup removes this lane's reports, prototypes, render intermediates, build outputs,
+worktree and local branch. The remote PR branch and shared original-side cache remain. No new
+private input is needed by the next lane.
 

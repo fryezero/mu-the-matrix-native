@@ -1,6 +1,6 @@
 # Current status
 
-RENDER-ITEMS-002Z implementation checkpoint: fifteen bounded bodies added, 1,465 -> 1,480 of 1,674; one signed piecewise colour body and fourteen early complete bodies. Remaining: 26 historical helper-count bodies and 168 others. Focused instruction and compiled-control checks pass; final affected checks and default identity are in progress. [Evidence, timings and limits](handoffs/RENDER-ITEMS-002Z.md).
+RENDER-ITEMS-002Z verified subset PR-ready: fifteen bounded bodies added, 1,465 -> 1,480 of 1,674; one signed piecewise colour body and fourteen early complete bodies. Remaining: 26 historical helper-count bodies and 168 others. 22,288 focused checks and thirteen meaningful compiled controls; 72 item-selected and four merge-only validator rows covered. All 230 default artifacts match rebuilt genuine main. [Evidence, timings and limits](handoffs/RENDER-ITEMS-002Z.md).
 
 UI-WINDOWS-004 PR-ready: nine more empty NPC movies use ten proved manager slots. The 118 entry-unresolved rows classify 9 provider-complete, 17 provider-missing, 30 state-dependent and 62 no route found. The inherited PlayGuide key/menu route is withdrawn after the registry proves it selects EventMapEntranceUI. Survey 16/134 bound -> 24/134, unresolved 118 -> 110. Thirteen original route decisions, eight compiled mutants, nine captured native layouts, 22 affected validators and 230 default identities pass. [Scope and checks](handoffs/UI-WINDOWS-004.md).
 
