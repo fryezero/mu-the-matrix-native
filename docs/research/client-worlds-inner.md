@@ -449,3 +449,21 @@ nonempty shared object and enabled flag, then invokes that object's vtable +0x34
 There is no statically identified 46/98 handler object or vtable to name. Indirect registration or
 runtime-created context is not disproved by the direct-call census. Both rows therefore stay counted
 refusals. The private registry test checks the factory inventory and both whole-text caller sets.
+
+### INNER-005 final verification
+
+Four families pass 4,000 original comparisons, zero mismatches/stops. All 37 compiled mutants are caught,
+minimum 18 detections, zero stopped controls. The final 76 selected validator rows pass; 31 overlaps
+are refreshed after batch-115 main integration. Portable checks finish with 1,554 passed / 344 expected
+skips, zero failures/errors; 25 incoming/focused private checks pass without skips, using reduced 8d.
+The app-packaging module is excluded as required.
+
+All 46 default capture views preserve 92 PNGs, 92 OBJECT/light dumps and 46 normalized reports. The
+integrated 55-view after replay preserves all 220 PNG/dump hashes and 55 reports. Remain stays 6.190,
+share-off 0.0568. Every Kalima alias's helper proof creates 25 sprites and draws one last-frame Bone02
+glow, with context refusals 75 -> 0 and 2,174 changed last-frame pixels. Tower's fixed inactive hidden
+mesh 0 changes 220,412 last-frame pixels, context refusals 25 -> 0; its sampled animation range emits
+no puff, and no particle gain is claimed. All models load in the scoped proof layouts. Fixed fixtures
+do not establish original placement, active event/water authority or temporal equivalence.
+
+[Exact walls, source commits, fixture layouts, consumer IDs and cleanup](../handoffs/RENDER-WORLDS-INNER-005.md).
