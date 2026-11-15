@@ -76,6 +76,7 @@ MUTANTS += [
 def particle_family(text, data, lib, name, cases, report, kinds=None):
     saved = pt.KINDS, pt.OWNED_KINDS, pt.random_particle, pt.Case, pt.globals_region
     current_case,original=[None],[None]
+    seen=defaultdict(int)
     class Machine(pt.PtMachine):
         def execute(self,*args,**kwargs):
             result=super().execute(*args,**kwargs); original[0]=result; return result
@@ -88,6 +89,7 @@ def particle_family(text, data, lib, name, cases, report, kinds=None):
             report.add(family,equal,failure)
         def cover(self,*args): report.cover(*args)
     def particle(rng, kind):
+        index=seen[kind]; seen[kind]+=1
         p = saved[2](rng, kind)
         if kind in ((0x7f89, 7), (0x7f89, 26), (0x7f26, 2)): p.owner = 0
         if name == 'move':
@@ -95,6 +97,10 @@ def particle_family(text, data, lib, name, cases, report, kinds=None):
                 distance = rng.choice([0,49.999,50,50.001,99.999,100,100.001,299.999,300,300.001,499.999,500,500.001])
                 p.start[:] = [0,0,0]; p.position[:] = [distance,0,0]; p.velocity[:] = [0,0,0]
                 p.light[:] = [rng.choice([0,0.0009,0.001,0.149,0.15,0.29,0.3]),0.1,0.2]
+            if kind == (0x7f89,16) and index%5==0:
+                # Keep distance/fade deaths from hiding the lifetime-10 boundary control.
+                p.live=1; p.moving=0; p.lifetime=10
+                p.start[:]=p.position[:]=[0,0,0]; p.light[:]=[0.15,0.1,0.2]
             if kind == (0x7f26,2): p.lifetime = rng.choice([0,1,4,5,6,7,15])
         return p
     class Case(re11.OwnerCase):
@@ -262,7 +268,7 @@ def compile_mutant(directory, category, label, file, old, new):
     return lib
 
 
-def run(cases, mutations=False):
+def run(cases, mutations=False, only_mutants=None):
     start = time.monotonic()
     text, data = pins.TEXT.read(), pins.DATA.read()
     lib = pt.load_library(ROOT/('reconstructed/particles/libclient_particles.'+pt.SUFFIX))
@@ -283,6 +289,7 @@ def run(cases, mutations=False):
     if mutations and all(f['cases'] == f['equal'] for f in report.families.values()):
         with tempfile.TemporaryDirectory(prefix='effects31-mutants-') as tmp:
             for category,label,file,old,new,family,kind in MUTANTS:
+                if only_mutants and label not in only_mutants: continue
                 mutant=compile_mutant(tmp,category,label,file,old,new)
                 r=pt.Report()
                 (particle_family if category=='pt' else joint_family if category=='jt' else effect_family)(
@@ -299,14 +306,16 @@ def run(cases, mutations=False):
                 ('native_charge_owner','if (e && e->type == 0x7fd0 && call->owner == -2)',
                                        'if (0 && e && e->type == 0x7fd0 && call->owner == -2)'),
             ]:
+                if only_mutants and label not in only_mutants: continue
                 directory=Path(tmp)/label; directory.mkdir()
                 host=build_host(directory,(old,new)); r=pt.Report()
                 native_checks(host,bitmap_fixture(directory),r)
                 mutants.append(dict(name=label,detected=sum(f['cases']-f['equal'] for f in r.families.values()),stopped=0))
-    return dict(families=report.families, coverage=report.coverage, census=census,
+    expected=sum(not only_mutants or m[1] in only_mutants for m in MUTANTS)+sum(not only_mutants or n in only_mutants for n in ['native_flame','native_water','native_transition','native_charge_owner'])
+    return dict(mutant_subset=sorted(only_mutants) if only_mutants else None, families=report.families, coverage=report.coverage, census=census,
         all_equal=all(f['cases'] == f['equal'] for f in report.families.values()),
         cases=sum(f['cases'] for f in report.families.values()), mutants=mutants,
-        all_mutants_caught=(not mutations or len(mutants)==len(MUTANTS)+4) and all(m['detected'] and not m['stopped'] for m in mutants),
+        all_mutants_caught=(not mutations or len(mutants)==expected) and all(m['detected'] and not m['stopped'] for m in mutants),
         seconds=round(time.monotonic()-start,3), text_sha256=am.TEXT_SHA256, data_sha256=am.DATA_SHA256)
 
 
@@ -315,9 +324,13 @@ def main():
     p.add_argument('--cases',type=int,default=1000)
     p.add_argument('--mutations',action='store_true')
     p.add_argument('--output')
+    p.add_argument('--only-mutant',action='append',help='rerun a failed control without recompiling successful controls')
     args=p.parse_args()
     if args.cases < 1: p.error('--cases must be positive')
-    r=run(args.cases,args.mutations)
+    if args.only_mutant and not args.mutations: p.error('--only-mutant requires --mutations')
+    known={m[1] for m in MUTANTS}|{'native_flame','native_water','native_transition','native_charge_owner'}
+    if args.only_mutant and set(args.only_mutant)-known: p.error('unknown mutant name')
+    r=run(args.cases,args.mutations,set(args.only_mutant or []))
     if args.output: Path(args.output).write_text(json.dumps(r,indent=2))
     print(json.dumps(r,indent=2))
     return 0 if r['all_equal'] and r['all_mutants_caught'] else 1

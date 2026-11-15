@@ -18,7 +18,12 @@ Done:
   Directed clouds/16 boundaries corrected its live-at-10 cutoff and .01 light rise/.2 cap.
   The final 1,371-check sample includes both bitmap loaders, the original model loader,
   frozen census and extended census, all passing in 5.105 s. The installed transition-model
-  test also passes, 1.917 s. No mutants run yet.
+  test also passes, 1.917 s.
+- At `d7aaa0d5`, all 66,051 full-sample checks pass. The initial 69-control run detects
+  68 controls in 284.976 s, with zero original stops. The life-10 control survives because
+  its sample lacks a live in-range record at exactly life 10. Add that deterministic case;
+  the 1,371-check / one-control follow-up passes in 6.348 s and detects the remaining control.
+  No successful mutant is rerun and production C is unchanged.
 - Add original-loader Flame01/water bitmap registrations and DarkLordSkill model routing.
 - Capture default and Aida/Remain close-up before scenes and four before skill scenes.
   Initial baseline driver errors repeated the default sweep while fixing manifest paths.
@@ -37,13 +42,14 @@ Done:
 
 Left:
 
-- Run the full new proof and its 69 compiled mutants.
+- Complete the other 76 selected private validators, portable work items and 8d reduced.
 - Extend the census with explicit denominators, refusal counts and fixture render QA.
 - Root build, post-build affected selection, portable/private validators, 8d reduced,
   affected-world fidelity, after identity, audit, latest-main integration and final PR.
 
-Next step: run the full new proof/mutants, 77 selected validators including three fallbacks,
-171 selected portable work items, 8d reduced and the extra fidelity/Trials fixtures.
+Next step: run extra fidelity/Trials fixtures, the other 76 selected validators, 171 portable
+work items and 8d reduced for nine focused modules. The private native selection is 160
+work items, exceeding the 40-item cost cap. Retain all three validator fallbacks.
 
 The frozen Native Data copy has none of DarkLordSkill.bmd, Flame01.OZJ or water.OZJ.
 Full read-only game data supplies all three for these proofs. A later data-refresh lane must
