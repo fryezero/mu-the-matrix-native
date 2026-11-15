@@ -6,6 +6,7 @@ static int presentation_movie(int m)
 }
 
 #include "mu_gfx_windows2.inc"
+#include "mu_gfx_windows3.inc"
 
 static void presentation_init(mu_gfx_layer *L)
 {
@@ -13,6 +14,7 @@ static void presentation_init(mu_gfx_layer *L)
         movie *w = &L->mv[m];
         if (!w->g || !w->path[0]) continue;
         if (m > MU_GFX_GREMORY) presentation_fixture(L,m);
+        presentation_fixture3(L,m);
         switch (m) {
         case MU_GFX_COMMAND:
             invokef(L,m,w->path,"InitTitle","[\"Command\"]");
@@ -66,6 +68,8 @@ static void presentation_init(mu_gfx_layer *L)
 static int presentation_call(movie *w, const char *name, const char *args, const double *v, int n)
 {
     mu_gfx_layer *L = w->L;
+    int third = presentation_call3(w,name,args);
+    if (third >= 0) return third;
     int extra = presentation_call2(w,name,args,v,n);
     if (extra >= 0) return extra;
     if (!strcmp(name,"CloseWindow") ||
