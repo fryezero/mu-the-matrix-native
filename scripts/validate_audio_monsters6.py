@@ -213,6 +213,9 @@ def adapter_controls(dll):
     finally:dll.fixture_action_count(8)
     dll.caller_audio(0,80,2166,5,.001,0.,0,0.,C.byref(p))
     assert p.count==1 and p.sound[0].site==0x138fc68
+    # Native retains a separate death latch while animation can stay at zero.
+    dll.caller_audio(1,80,2166,6,0.,.001,0,0.,C.byref(p))
+    assert not p.count
     assert native(dll,80,2166,3,0.,500.,(0,0),1)[2]
     assert native(dll,80,0x356,3,0.,0.,(0,0),1)==(0,0,[],0)
 
