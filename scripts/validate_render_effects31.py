@@ -216,12 +216,20 @@ def census_and_bitmaps(text,data,plib,jlib,flib,report):
     saved=previous.BITMAPS
     try:
         previous.BITMAPS=[(0x01821539,0x7f42,'Effect\\Flame01.jpg'),
-                          (0x01823025,0x802a,'Effect\\water.jpg')]
+                          (0x01823025,0x802a,'effect\\water.jpg')]
         previous.bitmap_checks(text,data,report)
     finally: previous.BITMAPS=saved
+    from capstone import Cs,CS_ARCH_X86,CS_MODE_32
+    ins=list(Cs(CS_ARCH_X86,CS_MODE_32).disasm(text[0x01833c5d-am.TEXT_BASE:0x01833c73-am.TEXT_BASE],0x01833c5d))
+    pushes=[int(i.op_str,0) for i in ins if i.mnemonic=='push']
+    strings=[data[p-am.DATA_BASE:].split(b'\0')[0] for p in pushes[1:3]]
+    report.add('model_loader',pushes[0]==-1 and pushes[3]==0x47a
+               and strings==[b'DarkLordSkill',b'Data\\Skill\\'] and ins[-1].op_str=='0x18202b4',
+               dict(pushes=pushes,strings=[str(s) for s in strings]))
     old=previous.request_census(plib)
     report.add('frozen_item_census',old['programs']==110 and old['particle_pairs']==37
-               and not old['unresolved'] and not old['missing_programs'],
+               and not old['unresolved'] and not old['missing_programs']
+               and all(r['supported'] for r in old['pairs'].values()),
                dict(programs=old['programs'],pairs=old['particle_pairs']))
     rows=[]
     for category,kinds in [('particle',KINDS),('joint',JOINTS),('effect',EFFECTS+[(0x46c,0),(0x583,0),(0x584,0)])]:
@@ -230,7 +238,7 @@ def census_and_bitmaps(text,data,plib,jlib,flib,report):
             if category=='particle': supported=plib.mu_pt_kind_supported(*kind)
             elif category=='joint': supported=jlib.mu_jt_kind_supported(*kind)
             else:
-                e=fx.Effect(); info=fx.Info(); env=fx.Env(); z=fx.F3(0,0,0); light=fx.F3(1,1,1)
+                e=fx.Effect(); info=fx.Info(); env=fx.Env(); z=pt.F3(0,0,0); light=pt.F3(1,1,1)
                 supported=flib.mu_sfx_effect_create(C.byref(e),*kind,z,z,light,-1,1,C.byref(info),C.byref(env))
             row=dict(category=category,type=hex(kind[0]),subtype=kind[1],supported=bool(supported))
             rows.append(row); report.add('world_skill_census',bool(supported)==expected,row)

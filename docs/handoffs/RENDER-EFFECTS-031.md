@@ -16,7 +16,9 @@ Done:
 - All 5,302 focused checks pass at 80 per pair, including original effect draw dispatch
   and native raster fixtures, 25.124 s script / 34.206 s with reconstruction/world builds.
   Directed clouds/16 boundaries corrected its live-at-10 cutoff and .01 light rise/.2 cap.
-  The later frozen/extended census additions are queued for a sample. No mutants run yet.
+  The final 1,371-check sample includes both bitmap loaders, the original model loader,
+  frozen census and extended census, all passing in 5.105 s. The installed transition-model
+  test also passes, 1.917 s. No mutants run yet.
 - Add original-loader Flame01/water bitmap registrations and DarkLordSkill model routing.
 - Capture default and Aida/Remain close-up before scenes and four before skill scenes.
   Initial baseline driver errors repeated the default sweep while fixing manifest paths.
@@ -35,12 +37,17 @@ Done:
 
 Left:
 
-- Finish the census sample, installed transition model proof and compiled mutants.
+- Run the full new proof and its 69 compiled mutants.
 - Extend the census with explicit denominators, refusal counts and fixture render QA.
 - Root build, post-build affected selection, portable/private validators, 8d reduced,
   affected-world fidelity, after identity, audit, latest-main integration and final PR.
 
-Next step: the resource-guarded build/affected selection/sample is waiting for shared load ≤14; then run the final selected checks and extra fidelity/Trials fixtures.
+Next step: run the full new proof/mutants, 77 selected validators including three fallbacks,
+171 selected portable work items, 8d reduced and the extra fidelity/Trials fixtures.
+
+The frozen Native Data copy has none of DarkLordSkill.bmd, Flame01.OZJ or water.OZJ.
+Full read-only game data supplies all three for these proofs. A later data-refresh lane must
+include them; no installed bundle/data copy was changed.
 
 Private working files are in `~/Documents/MTM/mu-mac-tools/native/scratch/render-effects-031/` and
 `renders/render-effects-031/`. They contain no new client capture and are disposable at completion.

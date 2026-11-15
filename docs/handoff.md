@@ -1,5 +1,7 @@
 # Continue from here
 
+RENDER-EFFECTS-031 WIP: eleven particle, six joint and five effect pairs implemented. Remain close-up refusals 64 to zero, Swell Life 38 to zero, Penetration/416 two to one; Blood Storm remains refused. Focused instruction and native raster checks pass; selected final checks and mutants pending. [Evidence and remaining work](handoffs/RENDER-EFFECTS-031.md).
+
 RENDER-EFFECTS-026 PR-ready: five later item particle pairs now draw, including all four saved wing points. The frozen 110-program / 37-pair inventory is supported; the 109 installed-model scene reduces pre-draw refusals 122 to zero, and the fourteen-program longer fixture reduces 485 to zero at both clocks. 17,008 focused checks, 37/37 compiled mutants and all 90 selected lane validators are covered, with overlapping rows refreshed after main integration. Final default captures: 44 unaffected views byte-identical; incoming INNER-002 accounts for the Elbeland PNG and two dump changes. One exact model path remains unavailable. [Census, checks and limits](handoffs/RENDER-EFFECTS-026.md).
 
 RENDER-ITEMS-002Y PR-ready: 41 bounded bodies added, 1,424 -> 1,465 of 1,674; six read programs, eight helper-count bodies and 27 others. All twenty changed-row mutants and 62 affected validators pass; default captures are identical against a rebuilt genuine-main baseline. [Checks, source commits and remaining 209 bodies](handoffs/RENDER-ITEMS-002Y.md).

@@ -41,12 +41,12 @@ class ClientComparison(unittest.TestCase):
         self.assertEqual(result['census']['frozen_items'],dict(programs=110,particle_pairs=37))
         self.assertEqual(result['census']['world_skill']['supported'],22)
 
-    @unittest.skipUnless(os.environ.get('MU_NATIVE_DATA_DIR'),'requires installed read-only native data')
+    @unittest.skipUnless(os.environ.get('MU_GAME_ROOT'),'requires read-only installed game data')
     def test_installed_transition_model(self):
         with tempfile.TemporaryDirectory() as tmp:
             images=Path(tmp)/'images'; images.mkdir()
             host=proof.build_host(tmp); root=proof.bitmap_fixture(tmp)
-            result=subprocess.run([str(host),str(root),str(images),os.environ['MU_NATIVE_DATA_DIR']],
+            result=subprocess.run([str(host),str(root),str(images),os.environ['MU_GAME_ROOT']],
                                   capture_output=True,text=True)
             self.assertEqual(result.returncode,0,result.stderr[-2000:])
             rows=[json.loads(s) for s in result.stdout.splitlines()]

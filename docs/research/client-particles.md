@@ -387,7 +387,8 @@ range. This preserves slot reuse semantics and does not allocate another RNG or 
 
 Original LoadBitmap calls `0x01821539` (Flame01) and `0x01823025` (water) supply flags 0/1,
 LINEAR and CLAMP. Native registration adds those two files before the existing rain tail;
-existing bitmap slots retain their indices. The bitmap count is 97→99. Raster fixtures use
+the leading slots retain their indices, while Fire06 and the rain tail shift by two.
+The bitmap count is 97→99. Raster fixtures use
 distinct grayscale textures to detect swapped files. Geometry is recentered for the particle
 camera control; those fixture positions are not claimed as original-world placement.
 
