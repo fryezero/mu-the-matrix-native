@@ -54,6 +54,8 @@ int world_gfx_event(world_gfx *g, const SDL_Event *e, double scale);
 void world_gfx_frame(world_gfx *g, double dt_ms, int draw);
 /* Hero location for the top menu (world index, world position). */
 void world_gfx_set_location(world_gfx *g, int world, float x, float y);
+/* UI-WINDOWS-006: MapName banner; kind is MU_GFX_ARRIVAL_*, number the teleport answer's word [4]. */
+void world_gfx_map_arrival(world_gfx *g, int kind, int number, int world);
 /* One summary line (JSON object body) for the run report. */
 void world_gfx_report(world_gfx *g, char *out, size_t cap);
 

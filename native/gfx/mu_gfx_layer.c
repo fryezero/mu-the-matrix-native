@@ -305,6 +305,9 @@ struct mu_gfx_layer {
     int order[MU_GFX_MOVIES];   /* window z-order, bottom first */
     int norder;
     unsigned presentation_ready;
+    int map_banner_pending;     /* UI-WINDOWS-006 */
+    double map_banner_start_ms;
+    char map_banner_name[64];
     int automatic_leave_pending;
     int macro_tab, macro_sub_type, guild_tab, hunt_mini;
     int pet_page;
@@ -408,7 +411,9 @@ static const char *const FILES[MU_GFX_MOVIES] = {"main", "InventoryFrame", "Info
                                                  "MatchingParty", "MatchingGuild", "Guildmatching_2024", "PlayGuide",
                                                  "ExtensionBagFrame", "SkillTree5thItemViewer", "BlockedChat", "AutomaticMacro",
                                                  "ElementalMix", "SocketMix", "GuardianMix", "HarmonyMix",
-                                                 "ExchangeLuckCoin", "MuunExchange", "RuudShopFrame", "MixSel", "MixAttributeScalp"};
+                                                 "ExchangeLuckCoin", "MuunExchange", "RuudShopFrame", "MixSel", "MixAttributeScalp",
+                                                 "PersonalShop", "ArtifactFrame", "DuelWatch", "MUMix",
+                                                 "MapName"};
 
 static void presentation_shown(mu_gfx_layer *, int, int);
 static void presentation_shown3(mu_gfx_layer *, int, int);
@@ -1477,6 +1482,7 @@ static const char *on_call_(movie *mv, const char *name, const char *args)
             L->cfg.quest_call(L->cfg.tooltip_user, mv->id, name, args);   /* NATIVE-QUEST-001: the handler's OnLoad */
         return NULL;
     }
+    if (presentation_parent5(mv,name,v,n)) return NULL;
     if (presentation_parent3(mv,name,args)) return NULL;
     if (presentation_movie(mv->id)) {
         presentation_call(mv, name, args, v, n);
@@ -1774,6 +1780,8 @@ static const int WINDOW_ALIGN[MU_GFX_MOVIES] = {
     [MU_GFX_ELEMENTAL_MIX] = 9, [MU_GFX_SOCKET_MIX] = 9, [MU_GFX_GUARDIAN_MIX] = 9,
     [MU_GFX_HARMONY_MIX] = 9, [MU_GFX_LUCK_COIN] = 9, [MU_GFX_MUUN_EXCHANGE] = 9,
     [MU_GFX_RUUD_SHOP] = 9, [MU_GFX_MIX_SELECTOR] = 9, [MU_GFX_ATTRIBUTE_SELECTOR] = 9,
+    [MU_GFX_PERSONAL_CATALOG] = 9, [MU_GFX_ARTIFACT] = 9, [MU_GFX_DUEL_WATCH] = 9, [MU_GFX_MU_MIX] = 9,
+    [MU_GFX_MAP_NAME] = 9,   /* registration 0x00ac8ac7 pushes 9 */
     [MU_GFX_OPTION] = 9, [MU_GFX_SYSTEM_MENU] = 9, [MU_GFX_HELP] = 9
 };
 
@@ -2612,7 +2620,7 @@ int mu_gfx_layer_mouse(mu_gfx_layer *L, int kind, int button, double x, double y
             /* Every visible movie sees the move (roll-outs), outside ones
              * at their own coordinates. */
             L->api.mouse(mv->g, 0, 0, lx, ly);
-            if (inside && !over && L->api.hit_test(mv->g, lx, ly))
+            if (inside && !over && !presentation_overlay6(stack[i]) && L->api.hit_test(mv->g, lx, ly))
                 over = 1;
         }
         return equipment_hover(L) || over || L->capture >= 0;
@@ -2629,6 +2637,8 @@ int mu_gfx_layer_mouse(mu_gfx_layer *L, int kind, int button, double x, double y
     }
     for (int i = 0; i < n; i++) {
         movie *mv = &L->mv[stack[i]];
+        if (presentation_overlay6(stack[i]))
+            continue;
         if (!local(L, mv, x, y, &lx, &ly) || !L->api.hit_test(mv->g, lx, ly))
             continue;
         if (kind == 1) {
@@ -2900,6 +2910,7 @@ void mu_gfx_layer_advance(mu_gfx_layer *L, double dt)
             L->api.advance(L->mv[m].g, dt);
     pump(L);
     presentation_sync3(L);
+    presentation_tick6(L);
     fit_windows(L);
     /* The chat view fills itself with test lines once its CLIK components
      * initialise (ChatView.testChatType); clear them, then greet (layer choice). */
@@ -4279,6 +4290,9 @@ int mu_gfx_layer_mix_action(mu_gfx_layer *L,const char *verb,int a,int b)
                 "[{\"Title\":\"Chaos Goblin\",\"btnCloseLabel\":\"Close\",\"mixExplain\":\"Offline demo\",\"ChanceInfo\":\"Mix\"}]");
         invokef(L,MU_GFX_MIX_SELECT,mv->path,"initButtonInfo",
                 "[[{\"Label\":\"Regular combination\",\"MixSystem\":1,\"MixType\":-1},{\"Label\":\"Chaos weapon (unavailable)\",\"MixSystem\":0,\"MixType\":0}]]");
+        if(presentation_available3(L,MU_GFX_MU_MIX))
+            invokef(L,MU_GFX_MIX_SELECT,mv->path,"initButtonInfo",
+                    "[[{\"Label\":\"MU mix preview\",\"MixSystem\":1,\"MixType\":-1},{\"Label\":\"Legacy mix\",\"MixSystem\":0,\"MixType\":0}]]");
         invokef(L,MU_GFX_MIX_SELECT,mv->path,"setBtnYPos","[2]");
         mu_gfx_layer_show(L,MU_GFX_MIX_SELECT,1);npc_last(L,"Chaos Goblin (offline demo)");return 1;
     }

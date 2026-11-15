@@ -3839,6 +3839,51 @@ note = "INNER-004: complete Crywolf/Barracks leaves and bounded Kalima/tower inl
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
 
+[validate_muun_bones]
+test = "native/tests/test_muun_bones.py::Original.test_instruction_comparison"
+pins = ["text", "data"]
+needs = ["game_root", "clang"]
+families = ["synthetic", "installed", "ordered"]
+cases = 221
+mutants = 21
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/muun", "reconstructed/data"]
+args = ["--cases", "200", "--installed", "--mutations", "--output", "{report}"]
+[validate_muun_bones.expect]
+all_equal = true
+all_mutants_caught = true
+
+[validate_muun_transition]
+test = "native/tests/test_muun_transition.py::Original.test_instruction_comparison"
+pins = ["text", "data"]
+needs = ["clang"]
+families = ["fx_create", "fx_move"]
+cases = 400
+mutants = 7
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/combat"]
+args = ["--cases", "200", "--mutations", "--output", "{report}"]
+[validate_muun_transition.expect]
+all_equal = true
+all_mutants_caught = true
+
+[validate_muun_visibility]
+test = "native/tests/test_muun_visibility.py::Original.test_instruction_comparison"
+pins = ["text", "data"]
+needs = ["clang"]
+families = ["visibility", "seat_phase"]
+cases = 417
+mutants = 10
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/muun"]
+args = ["--mutations", "--output", "{report}"]
+[validate_muun_visibility.expect]
+all_equal = true
+all_mutants_caught = true
+
 [validate_worlds_inner5]
 test = "reconstructed/objects/test_worlds_inner5.py::ClientComparison.test_original"
 pins = ["text", "data"]
@@ -3974,4 +4019,122 @@ note = "RENDER-ITEMS-002Z: fourteen early bodies, independent states and every f
 "families.frames.cases" = 896
 "families.parts.cases" = 288
 "families.exits.cases" = 896
+"mutants.*" = {truthy = true}
+
+[validate_audio_monsters6]
+test = "native/tests/test_audio_monsters6.py::Original.test_whole_table"
+pins = ["text", "data"]
+families = ["whole_owners", "dispatcher", "caller_tails"]
+cases = 55392
+cases_at = "cases"
+mutants = 19
+mutants_at = "mutants"
+build = ["reconstructed/audio"]
+args = ["--cases", "1000", "--mutations", "--report", "{report}"]
+note = "AUDIO-006: complete world/distance/random owners, every emitted leaf and ordered requests; missing fields/delegates remain refused"
+[validate_audio_monsters6.expect]
+mismatches = 0
+stops = 0
+sites = 182
+owners = 11
+production_ids = 142
+"mutants.*" = {all_min = 1}
+
+[validate_render_effects33]
+test = "native/tests/test_render_effects33.py::Original.test_original_consumer_group"
+pins = ["text", "data"]
+families = ["effect_create", "effect_move", "target_ice", "joint_create", "joint_move", "joint_render", "create", "move", "render", "effect_render_dispatch", "native_callbacks", "bitmaps", "model_loaders"]
+cases = 6410
+mutants = 45
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/combat", "reconstructed/joints", "reconstructed/particles", "native"]
+build_targets = { native = ["build/libmunative.a", "build/libmusession_world.a"] }
+args = ["--cases", "200", "--mutations", "--output", "{report}"]
+note = "RENDER-EFFECTS-033: summon ground, Penetration child/trails, optional target ice, Blood Storm parent/body requests; downstream blur/burst consumers remain refused"
+[validate_render_effects33.expect]
+all_equal = true
+all_mutants_caught = true
+"mutants.*.stopped" = 0
+
+[validate_item_caller_groups]
+test = "reconstructed/renderchar/test_item_caller_groups.py::ItemCallerGroups.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "records", "clocks", "exits", "reader_refusals"]
+cases = 8393
+mutants = 7
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar"]
+args = ["--mutations", "--output", "{report}"]
+note = "RENDER-ITEMS-002AA: nine instruction-checked low-level callers, all forcing records, clock and model exit states"
+[validate_item_caller_groups.expect]
+"families.*.mismatches" = 0
+"families.bodies.cases" = 2628
+"families.records.cases" = 4608
+"families.clocks.cases" = 576
+"families.exits.cases" = 576
+"families.reader_refusals.cases" = 5
+"mutants.*" = {truthy = true}
+
+[validate_item_remainder_programs]
+test = "reconstructed/renderchar/test_item_remainder_programs.py::ItemRemainderPrograms.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "records", "clocks", "owned"]
+cases = 4460
+mutants = 7
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar", "reconstructed/particles"]
+args = ["--mutations", "--output", "{report}"]
+note = "RENDER-ITEMS-002AA: five complete pre-draw programs, independent bodies, records, clocks and ordered owned requests"
+[validate_item_remainder_programs.expect]
+"families.*.mismatches" = 0
+"families.bodies.cases" = 1460
+"families.records.cases" = 2560
+"families.clocks.cases" = 120
+"families.owned.cases" = 320
+"mutants.*" = {truthy = true}
+
+[validate_item_falloff]
+test = "reconstructed/renderchar/test_item_falloff.py::ItemFalloff.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "records", "clocks", "ticks", "exits", "reader_refusals"]
+cases = 19877
+mutants = 4
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar"]
+args = ["--mutations", "--output", "{report}"]
+note = "RENDER-ITEMS-002AA: four checked clock falloffs, every positive period tick, directed negative clocks and model exits"
+[validate_item_falloff.expect]
+"families.*.mismatches" = 0
+"families.bodies.cases" = 1168
+"families.records.cases" = 2048
+"families.clocks.cases" = 96
+"families.ticks.cases" = 16304
+"families.exits.cases" = 256
+"families.reader_refusals.cases" = 5
+"mutants.*" = {truthy = true}
+
+[validate_item_random_levels]
+test = "reconstructed/renderchar/test_item_random_levels.py::ItemRandomLevels.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "records", "packed", "random", "clocks", "exits", "caller_guards"]
+cases = 83360
+mutants = 8
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar"]
+args = ["--mutations", "--output", "{report}"]
+note = "RENDER-ITEMS-002AA: 32 packed-level random bodies, original caller guards, every low option bit, forcing records, random edges and model exits"
+[validate_item_random_levels.expect]
+"families.*.mismatches" = 0
+"families.bodies.cases" = 9344
+"families.records.cases" = 16384
+"families.packed.cases" = 52608
+"families.random.cases" = 2112
+"families.clocks.cases" = 768
+"families.exits.cases" = 2048
+"families.caller_guards.cases" = 96
 "mutants.*" = {truthy = true}

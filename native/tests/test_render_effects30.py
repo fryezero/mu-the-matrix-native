@@ -59,7 +59,7 @@ class Native(unittest.TestCase):
             finally:hidden.rename(arrow)
             self.assertNotEqual(on,off)
     def test_consumers_and_remaining_refusals_preserve_target_hp(self):
-        for skill,cls,weapon,refused in [(52,2,'bow',1),(416,2,'bow',1),(48,1,'sword',0),(344,1,'sword',1)]:
+        for skill,cls,weapon,refused in [(52,2,'bow',0),(416,2,'bow',0),(48,1,'sword',0),(344,1,'sword',1)]:
             rows,_=self.cast(skill,cls,weapon)
             plan=next(r for r in rows if r.get('skill30'))
             self.assertEqual(plan['refused'],refused,(skill,plan))

@@ -130,7 +130,7 @@ int mu_jt_kind_supported(int32_t type, int32_t subtype)
     switch (type) {
     case 0x472: return subtype == 1;
     case MU_JT_BITMAP_ENERGY:
-        return subtype == 1;
+        return subtype == 1 || subtype == 3;
     case MU_JT_BITMAP_SPIRIT:
         return subtype == 0;
     case MU_JT_BITMAP_SPARK:
@@ -338,7 +338,7 @@ int mu_jt_create(mu_jt_joint *j, int32_t type, const float position[3], const fl
         break;
     }
     case MU_JT_BITMAP_ENERGY:
-        if (subtype != 1)
+        if (subtype != 1 && subtype != 3)
             break;
         /* 0x0153e28e */
         j->lifetime = 12;
@@ -803,9 +803,9 @@ int mu_jt_move(mu_jt_joint *j, const mu_jt_env *env, const mu_jt_move_inputs *in
         goal[2] = goal[2] + 120.0f;
         move_humming(j->position, j->angle, goal, 10.0f);
         float l = (float)(12 - j->lifetime) * F_0_1;
-        j->light[0] = l * F_0_4;
+        j->light[0] = l * (j->subtype == 3 ? 1.0f : F_0_4);
         j->light[1] = l * F_0_6;
-        j->light[2] = l * 1.0f;
+        j->light[2] = l * (j->subtype == 3 ? F_0_4 : 1.0f);
         if (j->lifetime == 1) {
             /* the arrival flash: CreateSprite(Shiny02 0x7f67, goal, (rand % 8 + 8) * 0.2, light, target, rand % 360) */
             mu_jt_call c;

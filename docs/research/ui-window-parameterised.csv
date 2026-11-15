@@ -1,0 +1,8 @@
+kind,manager_slot,movie,action,site,vtable_offset_or_manager_site,method
+self-open method,0x124,EventMapHelper.swf,open,0x00b6b6c3,+0x4c,0x00b6b656
+self-open method,0x17c,MiniGameRummy.swf,open,0x00bca194,+0x4c,0x00bca125
+virtual caller,0x124,EventMapHelper.swf,open,0x00b04ba3,0x00b04b8a,
+virtual caller,0x124,EventMapHelper.swf,open,0x00be5405,0x00be53ec,
+virtual caller,0x124,EventMapHelper.swf,open,0x00be5453,0x00be543a,
+virtual caller,0x17c,MiniGameRummy.swf,open,0x0126f12c,0x0126f0fa,
+virtual caller,0x17c,MiniGameRummy.swf,open,0x0126f203,0x0126f1d7,

@@ -127,6 +127,7 @@ void mu_muun_mount_draw(mu_muun_mount *m, float time, const mu_render_backend *b
     o.alpha = m->fade.alpha;
     o.color_scale = m->fade.blend_light;
     if (m->render_mode == 10) {
+        if (m->buff_hidden) { ++m->hidden_modes; return; }
         if (!m->textures.slots[m->textures.model_count]) { ++m->refused_modes; return; }
         mu_mv_pass pass; float uv[2];
         mu_mv_mount_buff_pass(-1, m->fade.blend_light, 0.0f, 0.0f, &pass, uv);

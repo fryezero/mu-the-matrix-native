@@ -17,6 +17,8 @@ struct mu_world_muun {
     mu_muun_visual visual;
     int32_t command_category;
     int mount_fixture, rider_fixture, remote_fixture, remote, borrowed;
+    int remote_buff_fixture;
+    int32_t rider_override;
     float remote_elapsed;
     long transition_requests, transition_created, transition_refused, rider_draws, rider_refused, rider_restored;
     uint64_t prepared_frame;
@@ -50,6 +52,7 @@ int mu_world_muun_open(mu_world_rt *a, mu_world_muun **out)
     }
     mu_world_muun *m = calloc(1, sizeof *m);
     if (!m) return 1;
+    m->rider_override = -1;
     char error[512], fallback[2048];
     const char *lang = getenv("MU_LANG_DIR");
     if (getenv("MU_NATIVE_DATA_DIR")) {
@@ -93,6 +96,29 @@ int mu_world_muun_open(mu_world_rt *a, mu_world_muun **out)
         mu_world_muun_close(m); return 1;
     }
     m->rider_fixture = rider != NULL;
+    const char *raw_buff = getenv("MU_MUUN_REMOTE_BUFF_FIXTURE");
+    if (raw_buff) {
+        unsigned local_byte, remote_byte, predicate; char tail;
+        if (!m->mount_fixture || !buff18 ||
+            sscanf(raw_buff,"%u,%u,%u%c",&local_byte,&remote_byte,&predicate,&tail) != 3 ||
+            local_byte > 255 || remote_byte > 255 || predicate > 1) {
+            fprintf(stderr,"MU_MUUN_REMOTE_BUFF_FIXTURE needs mount, buff18 and local-byte,remote-byte,predicate\n");
+            mu_world_muun_close(m); return 1;
+        }
+        m->remote_buff_fixture = 1;
+        m->mount.buff_hidden = !mu_mv_remote_buff_visible(1,(uint8_t)predicate,1,
+            (uint8_t)local_byte,(uint8_t)remote_byte);
+    }
+    const char *pose = getenv("MU_MUUN_RIDER_ACTION_FIXTURE");
+    if (pose) {
+        errno = 0; long action = strtol(pose,&end,10);
+        if (errno || *end || !m->rider_fixture || action < 0 || action > UINT16_MAX ||
+            !mu_mv_rider_lifts((uint16_t)action)) {
+            fprintf(stderr,"MU_MUUN_RIDER_ACTION_FIXTURE needs a rider and an admitted seat action\n");
+            mu_world_muun_close(m); return 1;
+        }
+        m->rider_override = (int32_t)action;
+    }
     m->remote_fixture = m->remote = remote != NULL;
     m->prepared_frame = UINT64_MAX;
     mu_muun_mount_style(&m->mount, owner_kind && !strcmp(owner_kind, "2") ? 2 : 1, buff18 != NULL);
@@ -136,6 +162,7 @@ void mu_world_muun_tick(mu_world_rt *a, mu_world_muun *m)
         mu_hp_owner fixture = {.weapon = {-1, -1}};
         mu_helpers helpers = {.owners = &fixture, .owner_count = 1};
         int32_t action = mu_hp_rider_action(&helpers, 0, how[(m->visual.steps / 25) % 4]);
+        if (m->rider_override >= 0) action = m->rider_override;
         if (action < 0 || action >= a->ch.player_bmd.action_count || a->ch.player_bmd.actions[action].keys <= 0) {
             ++m->rider_refused; return;
         }
@@ -160,6 +187,7 @@ void mu_world_muun_tick(mu_world_rt *a, mu_world_muun *m)
 
 static void frame(mu_world_rt *a, mu_world_muun *m)
 {
+    m->visual.particles = a->has_particles ? &a->particles : NULL;
     if (m->prepared_frame == a->rendered_frames) return;
     m->prepared_frame = a->rendered_frames;
     mu_muun_visual *v = &m->visual;
@@ -264,6 +292,8 @@ void mu_world_muun_report(const mu_world_muun *m, FILE *out)
 {
     if (!m) return;
     const mu_muun_visual *v = &m->visual;
+    if (m->remote_buff_fixture) fprintf(out,"{\"muun_buff_hidden\":%d,\"hidden_draws\":%ld}\n",
+        m->mount.buff_hidden,m->mount.hidden_modes);
     if (m->remote_fixture) fprintf(out, "{\"muun_transition\":%ld,\"created\":%ld,\"refused\":%ld,\"pending\":%d}\n",
         m->transition_requests, m->transition_created, m->transition_refused, m->remote);
     if (m->rider_fixture) fprintf(out, "{\"muun_rider\":%u,\"draws\":%ld,\"refused\":%ld,\"restored\":%ld}\n",
@@ -276,6 +306,8 @@ void mu_world_muun_report(const mu_world_muun *m, FILE *out)
         "\"attached\":%d,\"missing\":%d,\"refused_actions\":%ld,\"refused_bones\":%ld,\"draws\":%ld}\n",
         m->mount.model_code, m->mount.visible, mu_model_action(&m->mount.model), m->mount.attached,
         m->mount.textures.missing, m->mount.refused_actions, m->mount.refused_bones, m->mount.draws);
+    fprintf(out, "{\"muun_bone_requests\":%ld,\"created\":%ld,\"refused\":%ld,\"invalid_points\":%ld}\n",
+        v->bone_requests,v->bone_created,v->bone_refused,v->bone_points_refused);
     fprintf(out, "{\"muun_fixture\":%d,\"model\":%d,\"live\":%d,\"visible\":%d,\"state\":%d,"
         "\"position\":[%.3f,%.3f,%.3f],\"action\":%u,\"frame\":%.3f,\"textures_missing\":%d,"
         "\"mesh_passes\":%d,\"mesh_draws\":%ld,\"refused_meshes\":%ld,\"commands\":%ld,\"refused_commands\":%ld,\"attachments\":%d,\"invalid\":%ld,\"refused_bones\":%ld,\"updates\":%ld,\"vertices\":%u}\n",

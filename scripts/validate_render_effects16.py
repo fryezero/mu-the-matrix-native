@@ -66,12 +66,12 @@ PT_MUTANTS = [
     # (name, file, old, new, family, kind) on reconstructed/particles
     ('fire06_admit', 'particles.c', 'return subtype >= 1 && subtype <= 3;', 'return subtype >= 1 && subtype <= 2;',
      'create', (0x7f40, 3)),
-    ('fire06_create_case', 'particles.c', '    case MU_PT_BITMAP_FIRE06:\n        /* 0x015ba585',
-     '        /* 0x015ba585', 'create', (0x7f40, 1)),
-    ('fire06_move_case', 'particles.c', '        case MU_PT_BITMAP_FIRE06:\n            /* 0x016282c9',
-     '            /* 0x016282c9', 'move', (0x7f40, 2)),
-    ('fire06_render_case', 'particles.c', '    case MU_PT_BITMAP_FIRE06:\n        /* 0x015978bb',
-     '        /* 0x015978bb', 'render', (0x7f40, 1)),
+    ('fire06_create_case', 'particles.c', '    case MU_PT_BITMAP_FIRE06:\n    case 0x7f3e:\n        /* 0x015ba585',
+     '    case 0x7f3e:\n        /* 0x015ba585', 'create', (0x7f40, 1)),
+    ('fire06_move_case', 'particles.c', '        case MU_PT_BITMAP_FIRE06:\n        case 0x7f3e:\n            /* 0x016282c9',
+     '        case 0x7f3e:\n            /* 0x016282c9', 'move', (0x7f40, 2)),
+    ('fire06_render_case', 'particles.c', '    case MU_PT_BITMAP_FIRE06:\n    case 0x7f3e:\n        /* 0x015978bb',
+     '    case 0x7f3e:\n        /* 0x015978bb', 'render', (0x7f40, 1)),
 ]
 STATE_MUTANTS = [
     # (name, old, new) on reconstructed/combat/bow_fx.inc

@@ -11,6 +11,7 @@
 #include "item_glow.h"
 #include "skin_glow.h"
 #include "item_bodies.h"
+#include "item_caller_groups.h"
 #include "skin_bodies.h"
 #include "item_links.h"
 #include "item_pulse_links.h"
@@ -262,6 +263,14 @@ static float clock_program(const mu_rc_body_scalar *p, float time, uint32_t fram
         case 34: f = client_sin(f); break;
         case 35: if (0.0f > f) f = -f; break;
         case 36: f = fabsf(f); break;
+        case 37: {
+            uint32_t high = (uint32_t)(p->k[n] >> 32);
+            float top;
+            memcpy(&top, &high, 4);
+            f = f >= kf ? top - f : 1.0f;
+            if (f <= 0.0f) f = 0.0f;
+            break;
+        }
         default: i = (int32_t)(word - (uint32_t)i); break;
         }
     }
@@ -489,8 +498,8 @@ static void emit_parameter_body(sink *s, int phase, uint32_t flags, float alpha,
     /* The helper's optional level word is supplied only above the +7 quality cap. */
     if (mu_rc_body_types[type].level_split && (phase == 0 || phase == 5) &&
         s->item->quality > 1 && mu_rc_item_glow_level(s->item) >= 9 &&
-        s->item->item_level != -1 &&
-        ((s->item->item_level >> 3) & 15) >= 9)
+        (mu_rc_body_types[type].level_split == 2 ? s->item->item_level >= 9 :
+         (s->item->item_level != -1 && ((s->item->item_level >> 3) & 15) >= 9)))
         phase = phase == 5 ? 7 : 6;
     for (int k = 0; k < mu_rc_body_types[type].scalar_count; ++k) {
         const mu_rc_body_scalar *p = &mu_rc_body_scalars[mu_rc_body_types[type].scalar_first + k];
@@ -964,7 +973,17 @@ static int item_draws_impl(const mu_rc_item *it, mu_rc_model *model, mu_rc_draw 
     uint32_t rt = it->render_type;
     uint32_t keep = rt & 0x100u;
 
-    if (level < 3) {                                       /* default 0x017e161d..0x017e16fa */
+    float caller_light = 0.0f;
+    for (size_t i = 0; i < sizeof mu_rc_low_callers / sizeof mu_rc_low_callers[0]; ++i)
+        if (it->type == mu_rc_low_callers[i].type)
+            caller_light = mu_rc_low_callers[i].light;
+    if (level < 3 && caller_light != 0.0f) {                /* 0x017de4c2..0x017deb61 */
+        for (int k = 0; k < 3; ++k)
+            model->body_light[k] = caller_light == 1.0f ? L[k] : L[k] * caller_light;
+        part_body(&s, it->alpha, rt, 3, -1);
+        body_color(&s, 1.5f, keep | 0x240u, 1.5f, -1);
+        body_color(&s, 1.0f, keep | 0x1040u, 1.0f, -1);
+    } else if (level < 3) {                                /* default 0x017e161d..0x017e16fa */
         model->level_field = 0;
         for (int k = 0; k < 3; ++k) {
             model->shade[k] = L[k];

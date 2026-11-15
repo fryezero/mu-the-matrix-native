@@ -1,0 +1,892 @@
+site,anchor,entry_owner,entry_source,entry_sound_id_status,entry_blocker
+0x009845b0,0x00984586,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00985214,0x009851ea,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00985460,0x00985436,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0099c287,0x0099bfa1,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0099c29d,0x0099bfa1,unresolved,unrecovered owner,static push candidate,owner unknown
+0x009ecad0,0x009ec914,unresolved,unrecovered owner,static push candidate,owner unknown
+0x009ecaf2,0x009ec914,unresolved,unrecovered owner,static push candidate,owner unknown
+0x009f3393,0x009f0631,unresolved,unrecovered owner,static push candidate,owner unknown
+0x009fa54e,0x009fa4d1,unresolved,unrecovered owner,static push candidate,owner unknown
+0x009fa5d8,0x009fa4d1,unresolved,unrecovered owner,static push candidate,owner unknown
+0x009fa669,0x009fa4d1,unresolved,unrecovered owner,static push candidate,owner unknown
+0x009fa6ff,0x009fa4d1,unresolved,unrecovered owner,static push candidate,owner unknown
+0x009fa82a,0x009fa4d1,unresolved,unrecovered owner,static push candidate,owner unknown
+0x009fabd0,0x009faa8b,unresolved,unrecovered owner,static push candidate,owner unknown
+0x009fc62c,0x009fc5e1,unresolved,unrecovered owner,static push candidate,owner unknown
+0x009fc74a,0x009fc5e1,unresolved,unrecovered owner,static push candidate,owner unknown
+0x009fc75b,0x009fc5e1,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00a19107,0x00a190c4,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00a19303,0x00a192e1,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00a24d5e,0x00a24cfc,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00a253b4,0x00a24cfc,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00a43ed6,0x00a43e3c,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00a44329,0x00a43e3c,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00a9615c,0x00a958f9,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00a962d4,0x00a958f9,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00a9670f,0x00a958f9,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00a96ddf,0x00a96b82,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00a96dfc,0x00a96b82,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00a96e41,0x00a96b82,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00a970b1,0x00a96b82,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00a97378,0x00a97293,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00a973b5,0x00a97293,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00a97a2c,0x00a97970,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00a97a3f,0x00a97970,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00a97a5c,0x00a97970,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00a97a8a,0x00a97970,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00a9ce5e,0x00a9caec,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00a9cea3,0x00a9caec,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00a9ceec,0x00a9caec,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00a9d66e,0x00a9caec,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00a9d6ab,0x00a9caec,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00a9e5d1,0x00a9e4bd,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00a9e5e4,0x00a9e4bd,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00a9e62a,0x00a9e4bd,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00a9e99c,0x00a9e4bd,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00a9f08d,0x00a9e4bd,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00a9f354,0x00a9e4bd,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00b10418,0x00b10360,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00b2508e,0x00b24fcc,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00b32ab3,0x00b32aa3,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00b32ae4,0x00b32ad7,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00b33137,0x00b3310d,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00b33176,0x00b3314c,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00b6fd80,0x00b6fd42,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00b8f887,0x00b8f68f,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00b917e3,0x00b915fd,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00b9fb78,0x00b9fb63,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00bc2af1,0x00bc2a3a,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00bc3345,0x00bc31f2,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00bc995f,0x00bc994a,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00bcb4b1,0x00bcb158,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00bcb572,0x00bcb158,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00bd614b,0x00bd6120,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00c0d237,0x00c0d222,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00c0d863,0x00c0d845,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00c1c5f5,0x00c1c5a5,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00c1c638,0x00c1c5a5,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00c45358,0x00c45327,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00c64021,0x00c63fef,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00c6402f,0x00c63fef,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00c8d322,0x00c8cfd0,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00cdc9e3,0x00cdc963,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00cdca11,0x00cdc963,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d2d1d3,0x00d2d120,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d2f4b5,0x00d2f233,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d2f542,0x00d2f233,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d2f5b0,0x00d2f233,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d30a71,0x00d2f233,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d30b95,0x00d2f233,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d30cbf,0x00d2f233,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d30eb6,0x00d2f233,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d315eb,0x00d2f233,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d31814,0x00d2f233,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d3cf75,0x00d3ce66,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d3cfa6,0x00d3cf9d,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d3e154,0x00d3e08a,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d3e1f9,0x00d3e17c,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d3e220,0x00d3e217,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d3fa93,0x00d3f9b6,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d3fb4e,0x00d3fabb,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d3fb75,0x00d3fb6c,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d40dce,0x00d40dc5,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d4177c,0x00d416a8,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d417ad,0x00d417a4,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d42554,0x00d424a1,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d42585,0x00d4257c,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d435a1,0x00d433dd,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d435d2,0x00d435c9,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d44469,0x00d44318,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d4449a,0x00d44491,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d451c5,0x00d45112,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d451f6,0x00d451ed,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d45c01,0x00d45ac4,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d45c32,0x00d45c29,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d46c84,0x00d465fa,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d46ca9,0x00d465fa,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d46dca,0x00d465fa,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d46ef8,0x00d46eef,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d489eb,0x00d489b8,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d48a10,0x00d489b8,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d48a49,0x00d489b8,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d48a6e,0x00d489b8,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d52448,0x00d523f3,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d53160,0x00d530e0,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d531d4,0x00d530e0,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d531e5,0x00d530e0,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d53274,0x00d530e0,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d53304,0x00d530e0,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d53394,0x00d530e0,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d55736,0x00d556ec,unresolved,unrecovered owner,unresolved,owner unknown
+0x00d55749,0x00d556ec,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d557a3,0x00d556ec,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d5b6f2,0x00d5b688,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,prior action and stop ordering
+0x00d5b707,0x00d5b688,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,prior action and stop ordering
+0x00d5b72a,0x00d5b688,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,prior action and stop ordering
+0x00d7ecea,0x00d7ec63,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00d7ecfd,0x00d7ec63,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00d7ed1c,0x00d7ec63,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00d8ac51,0x00d8aba2,monsters,docs/research/world-handler-coverage.json:slot+0x70,unresolved,scalar world/distance/audio RNG
+0x00d8ac70,0x00d8aba2,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00d8ac8f,0x00d8aba2,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00d8acae,0x00d8aba2,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00d8acfd,0x00d8aba2,monsters,docs/research/world-handler-coverage.json:slot+0x70,unresolved,scalar world/distance/audio RNG
+0x00d8ad1c,0x00d8aba2,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00d8ad3b,0x00d8aba2,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00d8ad5a,0x00d8aba2,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00d8ada9,0x00d8aba2,monsters,docs/research/world-handler-coverage.json:slot+0x70,unresolved,scalar world/distance/audio RNG
+0x00d8adc8,0x00d8aba2,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00d8ade7,0x00d8aba2,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00d8ae06,0x00d8aba2,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00d8ae55,0x00d8aba2,monsters,docs/research/world-handler-coverage.json:slot+0x70,unresolved,scalar world/distance/audio RNG
+0x00d8ae74,0x00d8aba2,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00d8aea5,0x00d8aba2,monsters,docs/research/world-handler-coverage.json:slot+0x70,unresolved,scalar world/distance/audio RNG
+0x00d8aeb6,0x00d8aba2,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00d8aed5,0x00d8aba2,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00d8af24,0x00d8aba2,monsters,docs/research/world-handler-coverage.json:slot+0x70,unresolved,scalar world/distance/audio RNG
+0x00d8af43,0x00d8aba2,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00d8af62,0x00d8aba2,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00d8af81,0x00d8aba2,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00d8afd0,0x00d8aba2,monsters,docs/research/world-handler-coverage.json:slot+0x70,unresolved,scalar world/distance/audio RNG
+0x00d8afef,0x00d8aba2,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00d8b020,0x00d8aba2,monsters,docs/research/world-handler-coverage.json:slot+0x70,unresolved,scalar world/distance/audio RNG
+0x00d8b031,0x00d8aba2,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00d8b050,0x00d8aba2,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00d8d53e,0x00d8d35a,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d8d581,0x00d8d35a,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d8d5a1,0x00d8d35a,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d8d5c1,0x00d8d35a,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d8d5e1,0x00d8d35a,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d8d601,0x00d8d35a,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d8e0b4,0x00d8df28,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d8e173,0x00d8df28,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d919fa,0x00d9131c,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d91acb,0x00d9131c,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00d9bbfe,0x00d9b9a1,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00da9403,0x00da9350,monsters,docs/research/world-handler-coverage.json:slot+0x70,unresolved,marker field or service absent
+0x00da9438,0x00da9350,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00da946d,0x00da9350,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00da94a2,0x00da9350,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00da94d4,0x00da9350,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00da9506,0x00da9350,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00da953d,0x00da9350,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00da955c,0x00da9350,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00da957b,0x00da9350,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00da95ab,0x00da9350,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00da95be,0x00da9350,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00da9600,0x00da9350,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00da9613,0x00da9350,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00da9626,0x00da9350,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00da9639,0x00da9350,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00da964c,0x00da9350,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00db34b2,0x00db30cb,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00dbc12a,0x00dbbf7a,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00dbc31e,0x00dbc278,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00dbc36d,0x00dbc278,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00dbc3b9,0x00dbc278,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00dbc403,0x00dbc278,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00dbc452,0x00dbc278,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00dbc49e,0x00dbc278,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00dbc4e8,0x00dbc278,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00dd1ad2,0x00dceefa,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00dd28f7,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2930,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2943,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2956,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2969,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd297c,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd298f,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd29f3,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2a06,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2a19,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2a2c,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2a3f,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2a52,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2a65,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2aec,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2b25,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2b38,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2b4b,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2b5e,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2b71,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2b84,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2bcc,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2bdf,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2bf2,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2c05,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2c18,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2c95,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2cce,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2ce1,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2cf4,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2d07,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2d84,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2dbd,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2dd0,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2de3,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2df6,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2e09,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2e7c,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2eb5,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2ec8,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2edb,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2eee,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2f2d,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2f3d,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2f50,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd2f63,0x00dd2776,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00dd817d,0x00dd7102,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00dd851a,0x00dd7102,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00dd8697,0x00dd852c,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00dd86aa,0x00dd852c,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00dd86bd,0x00dd852c,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00dd86d0,0x00dd852c,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00dd86e3,0x00dd852c,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00dd86f6,0x00dd852c,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00dd8709,0x00dd852c,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00dd8763,0x00dd852c,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00dd8776,0x00dd852c,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00dd8789,0x00dd852c,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00dd879c,0x00dd852c,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00dd87af,0x00dd852c,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00dd87c2,0x00dd852c,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00dd8804,0x00dd852c,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00dd8814,0x00dd852c,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00dd8822,0x00dd852c,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00dd8835,0x00dd852c,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00dd8845,0x00dd852c,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00dd8858,0x00dd852c,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00dde34a,0x00dde1fb,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00dde35d,0x00dde1fb,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00dde370,0x00dde1fb,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00dde383,0x00dde1fb,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00dde396,0x00dde1fb,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00dde3d8,0x00dde1fb,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00dde3eb,0x00dde1fb,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00dde3fe,0x00dde1fb,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00dde411,0x00dde1fb,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00dde498,0x00dde1fb,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00dde4d1,0x00dde1fb,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00dde4e4,0x00dde1fb,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00dde4f7,0x00dde1fb,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00dde50a,0x00dde1fb,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00de52fb,0x00de51cf,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00de5313,0x00de51cf,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00de532b,0x00de51cf,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00de539a,0x00de51cf,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00de53ad,0x00de51cf,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00de53c5,0x00de51cf,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00de53da,0x00de51cf,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00de53ef,0x00de51cf,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00de5400,0x00de51cf,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00de5415,0x00de51cf,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00de542a,0x00de51cf,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,delegated owner/context absent
+0x00dee1e5,0x00dee0b2,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00dee240,0x00dee0b2,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00dee36b,0x00dee2d1,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00dee393,0x00dee2d1,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00dee3bb,0x00dee2d1,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00dee3e9,0x00dee2d1,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00dee3fc,0x00dee2d1,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00dee47a,0x00dee2d1,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00dee4cd,0x00dee2d1,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00dee4e0,0x00dee2d1,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00dee4f3,0x00dee2d1,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00dee506,0x00dee2d1,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00dee519,0x00dee2d1,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00dee52c,0x00dee2d1,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00dee53f,0x00dee2d1,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00dee552,0x00dee2d1,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00dee565,0x00dee2d1,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00dee5d3,0x00dee2d1,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00dee5e6,0x00dee2d1,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00dee5f9,0x00dee2d1,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00dee60c,0x00dee2d1,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00def3e7,0x00def3bd,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00def419,0x00def3bd,unresolved,unrecovered owner,unresolved,owner unknown
+0x00def4a4,0x00def3bd,unresolved,unrecovered owner,unresolved,owner unknown
+0x00def69d,0x00def3bd,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00df174e,0x00df15ec,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00df1938,0x00df1758,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00df1aeb,0x00df1aab,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00df1b26,0x00df1aab,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00df2940,0x00df264e,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00df2978,0x00df264e,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00df31cb,0x00df264e,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00df3203,0x00df264e,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00df3416,0x00df264e,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00df344e,0x00df264e,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00df3f5c,0x00df3de1,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00df45bb,0x00df3de1,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00df788a,0x00df606b,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00e0db59,0x00e0dac7,monsters,docs/research/world-handler-coverage.json:slot+0x70,unresolved,marker field or service absent
+0x00e0db8e,0x00e0dac7,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00e0dbc0,0x00e0dac7,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00e0dbe6,0x00e0dac7,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00e0dc45,0x00e0dac7,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00e0dc7a,0x00e0dac7,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00e0dca3,0x00e0dac7,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00e0dcd4,0x00e0dac7,monsters,docs/research/world-handler-coverage.json:slot+0x70,unresolved,marker field or service absent
+0x00e0dd41,0x00e0dac7,monsters,docs/research/world-handler-coverage.json:slot+0x70,unresolved,marker field or service absent
+0x00e0dd76,0x00e0dac7,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00e0ddc7,0x00e0dac7,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00e0ddf0,0x00e0dac7,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,marker field or service absent
+0x00e183cd,0x00e1829b,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e183ec,0x00e1829b,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e1840b,0x00e1829b,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e1843b,0x00e1829b,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e1845a,0x00e1829b,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e18479,0x00e1829b,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e184c5,0x00e1829b,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e184fe,0x00e1829b,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e1851d,0x00e1829b,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e1853c,0x00e1829b,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e1855b,0x00e1829b,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e185a7,0x00e1829b,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e185e0,0x00e1829b,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e1860b,0x00e1829b,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e1862a,0x00e1829b,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e18676,0x00e1829b,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e186af,0x00e1829b,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e186da,0x00e1829b,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e186f9,0x00e1829b,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e18745,0x00e1829b,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e1877e,0x00e1829b,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e1879d,0x00e1829b,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e187bc,0x00e1829b,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e187db,0x00e1829b,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e18827,0x00e1829b,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e18860,0x00e1829b,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e1888b,0x00e1829b,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e188aa,0x00e1829b,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e188f6,0x00e1829b,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e1892f,0x00e1829b,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e1895a,0x00e1829b,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e18979,0x00e1829b,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e1d986,0x00e1d938,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00e21dbe,0x00e21d13,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e21df7,0x00e21d13,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e21e0a,0x00e21d13,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e21e1d,0x00e21d13,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e21e30,0x00e21d13,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e21e6a,0x00e21d13,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e21e7d,0x00e21d13,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e21e90,0x00e21d13,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e21ea3,0x00e21d13,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e21ef2,0x00e21d13,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e21f05,0x00e21d13,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e21f18,0x00e21d13,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e21f2b,0x00e21d13,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e304a5,0x00e30389,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e304d3,0x00e30389,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e304f2,0x00e30389,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e30522,0x00e30389,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e30541,0x00e30389,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e30571,0x00e30389,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e30590,0x00e30389,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e305b1,0x00e30389,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e305d0,0x00e30389,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e4b226,0x00e4b1c3,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e4b245,0x00e4b1c3,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e4b278,0x00e4b1c3,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e4b2a3,0x00e4b1c3,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e4b2c2,0x00e4b1c3,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e4b2fe,0x00e4b1c3,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e4b32c,0x00e4b1c3,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e8441d,0x00e84410,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00e84457,0x00e84410,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00e8446a,0x00e84410,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00e88d0d,0x00e88c5b,unresolved,unrecovered owner,unresolved,owner unknown
+0x00e88d42,0x00e88c5b,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00e88d77,0x00e88c5b,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00e88dac,0x00e88c5b,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00e88dde,0x00e88c5b,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00e88e10,0x00e88c5b,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00e8d23e,0x00e8cc72,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00e8d3fb,0x00e8cc72,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00e8d4cb,0x00e8cc72,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00e8d688,0x00e8cc72,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00e8d7f3,0x00e8d76a,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00e8db8b,0x00e8d888,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00e8e002,0x00e8d888,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00e92cb8,0x00e92b75,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e92cd7,0x00e92b75,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e92d05,0x00e92b75,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e92d24,0x00e92b75,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e92d54,0x00e92b75,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e92d73,0x00e92b75,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e92da1,0x00e92b75,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e92dc0,0x00e92b75,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e92df0,0x00e92b75,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e92e0f,0x00e92b75,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e92e3d,0x00e92b75,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e92e5c,0x00e92b75,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e92e8c,0x00e92b75,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e92eab,0x00e92b75,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e92ed9,0x00e92b75,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e92ef8,0x00e92b75,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e92f1c,0x00e92b75,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e92f3e,0x00e92b75,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e92f5d,0x00e92b75,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e92f8b,0x00e92b75,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e92faa,0x00e92b75,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e9e54d,0x00e9e3d5,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e9e57b,0x00e9e3d5,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e9e59a,0x00e9e3d5,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e9e5ca,0x00e9e3d5,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e9e5f8,0x00e9e3d5,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e9e617,0x00e9e3d5,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e9e64a,0x00e9e3d5,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e9e669,0x00e9e3d5,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e9e699,0x00e9e3d5,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e9e6c7,0x00e9e3d5,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e9e6e6,0x00e9e3d5,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e9e716,0x00e9e3d5,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e9e74c,0x00e9e3d5,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e9e76b,0x00e9e3d5,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e9e79b,0x00e9e3d5,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e9e7ba,0x00e9e3d5,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e9e7d9,0x00e9e3d5,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e9e809,0x00e9e3d5,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e9e837,0x00e9e3d5,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e9e856,0x00e9e3d5,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e9e889,0x00e9e3d5,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e9e8a8,0x00e9e3d5,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e9e8d8,0x00e9e3d5,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e9e90e,0x00e9e3d5,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e9e92d,0x00e9e3d5,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e9e95a,0x00e9e3d5,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e9e988,0x00e9e3d5,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00e9e9a7,0x00e9e3d5,monsters,docs/research/world-handler-coverage.json:slot+0x70,static push candidate,scalar world/distance/audio RNG
+0x00ea0ec5,0x00ea0d9c,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ea0ef7,0x00ea0d9c,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ea1199,0x00ea0d9c,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00eb7cef,0x00eb7cae,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ebd1ff,0x00ebd1be,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ebd4ca,0x00ebd4b3,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ec2ca8,0x00ec2c67,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ec3141,0x00ec2f63,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ec3339,0x00ec314d,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ec6279,0x00ec6270,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ec78bd,0x00ec78b4,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ec880e,0x00ec87f3,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ec8938,0x00ec88a0,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ec89f8,0x00ec8960,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ec8a98,0x00ec8a85,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ec8e7f,0x00ec8dad,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ec9172,0x00ec90fa,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ec92c1,0x00ec92b0,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ec92f0,0x00ec92df,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ec948b,0x00ec9412,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ec952c,0x00ec94b3,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ec96e7,0x00ec96a3,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ec970e,0x00ec9705,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ec98d3,0x00ec984a,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ec9989,0x00ec98fb,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ec9b58,0x00ec9acf,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ec9c0e,0x00ec9b80,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ec9ceb,0x00ec9ce2,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ec9e91,0x00ec9dca,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ec9ed6,0x00ec9ecd,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00eca029,0x00ec9fcd,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00eca063,0x00eca047,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00eca260,0x00eca19c,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00eca298,0x00eca288,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00eca498,0x00eca3d4,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00eca4d0,0x00eca4c0,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00eca6d0,0x00eca60c,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00eca708,0x00eca6f8,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00eca908,0x00eca844,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00eca940,0x00eca930,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecab40,0x00ecaa7c,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecab78,0x00ecab68,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecacde,0x00ecac0a,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecad0f,0x00ecad06,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecae81,0x00ecae09,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecaeb2,0x00ecaea9,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecb024,0x00ecafac,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecb055,0x00ecb04c,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecb1c7,0x00ecb14f,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecb1f8,0x00ecb1ef,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecb673,0x00ecb5af,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecb6a4,0x00ecb69b,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecb7af,0x00ecb783,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecb7d6,0x00ecb7cd,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecb921,0x00ecb918,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecba9d,0x00ecba94,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecbb17,0x00ecbb0e,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecbcd9,0x00ecbc1e,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecbd2b,0x00ecbd22,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecbe76,0x00ecbe6d,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecbff5,0x00ecbf70,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecc026,0x00ecc01d,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecc171,0x00ecc168,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecc262,0x00ecc259,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecc437,0x00ecc42e,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecc50a,0x00ecc501,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecc5dd,0x00ecc5d4,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecc7a0,0x00ecc784,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00eccb94,0x00ecca6f,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00eccbbb,0x00eccbb2,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00eccd64,0x00eccd34,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00eccfdc,0x00ecceef,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecd05a,0x00ecd004,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecd1c2,0x00ecd1b9,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecd295,0x00ecd28c,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecd368,0x00ecd35f,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecd47d,0x00ecd474,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecd550,0x00ecd547,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecd623,0x00ecd61a,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecd6f6,0x00ecd6ed,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecdc4c,0x00ecdc43,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecdd5d,0x00ecdd2b,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecdd84,0x00ecdd7b,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecde7f,0x00ecde07,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecdeb0,0x00ecdea7,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ecdfc5,0x00ecdfbc,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ece098,0x00ece08f,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ece1ad,0x00ece1a4,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ece280,0x00ece277,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ece3d6,0x00ece38e,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ece3fd,0x00ece3f4,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ece477,0x00ece46e,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ece4f1,0x00ece4e8,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ece52b,0x00ece522,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ece6d4,0x00ece60a,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ece724,0x00ece6fc,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ed7141,0x00ed7061,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ed71b0,0x00ed7061,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ed7225,0x00ed7061,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ed7297,0x00ed7061,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00edbc41,0x00edbc0e,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00edbc92,0x00edbc5f,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00edbcb9,0x00edbcb0,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00edc8a9,0x00edc7f9,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00edc9e9,0x00edc8d1,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00edcb29,0x00edca11,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00edcb68,0x00edcb51,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00edcb8f,0x00edcb86,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00edd3c4,0x00edd3bb,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00edd86f,0x00edd866,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00eddffd,0x00eddff4,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ede55c,0x00ede547,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ede58f,0x00ede57a,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ede5c2,0x00ede5ad,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ede60e,0x00ede5e0,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00edf278,0x00edf22c,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00edf2d0,0x00edf2a0,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00edf356,0x00edf2ee,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00edfd56,0x00edfce6,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00edfdee,0x00edfd7e,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00edfe7e,0x00edfe16,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee08fb,0x00ee08c1,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee0942,0x00ee0908,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee097f,0x00ee094f,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee09ab,0x00ee099d,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee153b,0x00ee1532,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee21da,0x00ee21d1,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee2e3a,0x00ee2e31,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee2e99,0x00ee2e57,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee3be4,0x00ee3bbc,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee3c18,0x00ee3bf0,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee4409,0x00ee43ef,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee4d2e,0x00ee4d25,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee4d54,0x00ee4d4b,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee4d7a,0x00ee4d71,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee4da0,0x00ee4d97,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee5734,0x00ee5726,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee6052,0x00ee6044,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee69a0,0x00ee6992,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee72b1,0x00ee7289,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee747c,0x00ee7473,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee7d40,0x00ee7d29,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee7d93,0x00ee7d85,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee857c,0x00ee8573,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee8630,0x00ee859a,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee8752,0x00ee8749,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee8844,0x00ee8770,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee8966,0x00ee895d,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee8a7b,0x00ee8984,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee8cab,0x00ee8ca2,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee8dec,0x00ee8cc9,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee8fb7,0x00ee8f2a,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee9062,0x00ee8fd5,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee9089,0x00ee9080,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee9222,0x00ee9219,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee933d,0x00ee9240,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee9598,0x00ee94a5,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee95ca,0x00ee95c1,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee97e1,0x00ee96dc,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee9814,0x00ee980b,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee9971,0x00ee9926,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee9a6d,0x00ee9a64,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee9bca,0x00ee9b7f,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee9d38,0x00ee9d2f,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee9ea0,0x00ee9e4e,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ee9f84,0x00ee9f7b,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00eea17f,0x00eea09a,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00eea1b1,0x00eea1a8,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00eef743,0x00eef702,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ef0eb5,0x00ef0e74,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ef1569,0x00ef14c0,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ef2337,0x00ef22f6,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ef3811,0x00ef37c3,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ef3829,0x00ef381b,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ef4107,0x00ef40c6,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ef4ebc,0x00ef4e7b,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ef6440,0x00ef63ff,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00ef855e,0x00ef851d,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00eff353,0x00eff346,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00eff3af,0x00eff3a2,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00f08053,0x00f08046,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00f172ef,0x00f17104,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00f1769f,0x00f17104,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00f17a8d,0x00f17104,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00f17c3f,0x00f17104,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00f21fe0,0x00f21fa5,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00f2dd00,0x00f2dcbf,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00f2ebff,0x00f2ebb7,unresolved,unrecovered owner,static push candidate,owner unknown
+0x00f2ec4d,0x00f2ec09,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0107e3a0,0x0107e32d,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0107ff94,0x0107f639,unresolved,unrecovered owner,static push candidate,owner unknown
+0x010806a6,0x01080169,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x0108083a,0x01080169,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x010809ce,0x01080169,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x01080b75,0x01080169,skills,docs/research/client-audio.md:AUDIO-005-use-controller,unresolved,use owner target/buff/request/timing context absent
+0x01080ea7,0x01080169,skills,docs/research/client-audio.md:AUDIO-005-use-controller,unresolved,use owner target/buff/request/timing context absent
+0x01081810,0x01080169,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x01081ef8,0x01080169,skills,docs/research/client-audio.md:AUDIO-005-use-controller,unresolved,use owner target/buff/request/timing context absent
+0x010820f7,0x01080169,skills,docs/research/client-audio.md:AUDIO-005-use-controller,unresolved,use owner target/buff/request/timing context absent
+0x010822f6,0x01080169,skills,docs/research/client-audio.md:AUDIO-005-use-controller,unresolved,use owner target/buff/request/timing context absent
+0x010824f5,0x01080169,skills,docs/research/client-audio.md:AUDIO-005-use-controller,unresolved,use owner target/buff/request/timing context absent
+0x0108285c,0x01080169,skills,docs/research/client-audio.md:AUDIO-005-use-controller,unresolved,use owner target/buff/request/timing context absent
+0x01082d1b,0x01080169,skills,docs/research/client-audio.md:AUDIO-005-use-controller,unresolved,use owner target/buff/request/timing context absent
+0x01082f0a,0x01080169,skills,docs/research/client-audio.md:AUDIO-005-use-controller,unresolved,use owner target/buff/request/timing context absent
+0x010830f9,0x01080169,skills,docs/research/client-audio.md:AUDIO-005-use-controller,unresolved,use owner target/buff/request/timing context absent
+0x01083221,0x01080169,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x010839e1,0x01080169,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x01083aa2,0x01080169,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x01083c37,0x01080169,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x01083dd5,0x01080169,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x010840c4,0x01080169,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x010845dd,0x01080169,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x010846ee,0x01080169,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x0108507a,0x010848df,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x01085952,0x010848df,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x010876fc,0x01085bc3,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x01087de9,0x01085bc3,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x01087e97,0x01085bc3,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x01088a49,0x0108803b,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x0108977f,0x01088ae7,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x010897af,0x01088ae7,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x01089d36,0x0108988b,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x0108a098,0x0108988b,skills,docs/research/client-audio.md:AUDIO-005-use-controller,unresolved,use owner target/buff/request/timing context absent
+0x0108a6cd,0x0108988b,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x0108a736,0x0108988b,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x0108a9b2,0x0108988b,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x0108ab47,0x0108988b,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x0108acdc,0x0108988b,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x0108b384,0x0108988b,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x0108bd82,0x0108b39b,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x0108be99,0x0108b39b,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x0108bfca,0x0108b39b,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x0108c09f,0x0108b39b,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x0108c4ef,0x0108b39b,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x0108c564,0x0108b39b,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x0108c75c,0x0108c57a,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x0108c8b6,0x0108c57a,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x0108ca42,0x0108c57a,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x0108cbd4,0x0108c57a,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x0108cc57,0x0108c57a,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x0108cde3,0x0108c57a,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x0108ceb1,0x0108c57a,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x0108d327,0x0108cf1f,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x0108d42d,0x0108cf1f,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x0108d533,0x0108cf1f,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x0108d624,0x0108cf1f,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x0108d637,0x0108cf1f,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x0108d7aa,0x0108cf1f,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x0108defc,0x0108d932,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x0108e1e9,0x0108df12,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x0108e4d5,0x0108df12,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x0108e67c,0x0108df12,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x0108f4b8,0x0108ec09,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x0108f863,0x0108ec09,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x010901c0,0x0108ec09,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x01090419,0x0108ec09,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x010909b5,0x010906ff,skills,docs/research/client-audio.md:AUDIO-005-use-controller,static push candidate,use owner target/buff/request/timing context absent
+0x01092b0c,0x0109282d,unresolved,unrecovered owner,static push candidate,owner unknown
+0x010938ee,0x01093565,unresolved,unrecovered owner,static push candidate,owner unknown
+0x010b1f5a,0x010b1c2f,unresolved,unrecovered owner,static push candidate,owner unknown
+0x010b20f8,0x010b1c2f,unresolved,unrecovered owner,static push candidate,owner unknown
+0x010b2298,0x010b1c2f,unresolved,unrecovered owner,static push candidate,owner unknown
+0x010b2498,0x010b1c2f,unresolved,unrecovered owner,static push candidate,owner unknown
+0x010b2652,0x010b2584,unresolved,unrecovered owner,unresolved,owner unknown
+0x010b4319,0x010b40d6,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011946d1,0x0119460b,unresolved,unrecovered owner,static push candidate,owner unknown
+0x01195ba9,0x011959cf,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0119f640,0x0119f5ad,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011b7827,0x011b72d5,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011b7900,0x011b72d5,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011b86d6,0x011b8184,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011b87af,0x011b8184,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011b9585,0x011b9033,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011b965e,0x011b9033,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011ba434,0x011b9ee2,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011ba50d,0x011b9ee2,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011bb2e3,0x011bad91,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011bb3bc,0x011bad91,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011bc192,0x011bbc40,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011bc26b,0x011bbc40,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011bd041,0x011bcaef,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011bd11a,0x011bcaef,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011bdef0,0x011bd99e,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011bdfc9,0x011bd99e,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011bed9f,0x011be84d,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011bee78,0x011be84d,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011bfc4e,0x011bf6fc,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011bfd27,0x011bf6fc,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011c0afd,0x011c05ab,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011c0bd6,0x011c05ab,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011c19ac,0x011c145a,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011c1a85,0x011c145a,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011c285b,0x011c2309,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011c2934,0x011c2309,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011c370a,0x011c31b8,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011c37e3,0x011c31b8,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011c45b9,0x011c4067,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011c4692,0x011c4067,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011db949,0x011db89a,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011dc727,0x011dc6f5,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011de41d,0x011de278,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011defc4,0x011def65,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011df278,0x011df095,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011e09fc,0x011e07a9,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011e0a0a,0x011e07a9,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011e9dc6,0x011e9d7c,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011f06f7,0x011f06c2,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011f0d2d,0x011f0cae,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011f0dc1,0x011f0cae,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011f1a28,0x011f19ac,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011f33e7,0x011f33b2,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011f3add,0x011f3a7a,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011f3af8,0x011f3a7a,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011f3b71,0x011f3a7a,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011f3c05,0x011f3a7a,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011f3c99,0x011f3a7a,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011f3d2d,0x011f3a7a,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011f4bbc,0x011f4b23,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011f4c59,0x011f4b23,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011f4cf9,0x011f4b23,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011f4ded,0x011f4b23,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011f7144,0x011f7020,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011f7152,0x011f7020,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011f71e2,0x011f7020,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011f71f0,0x011f7020,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011f72bb,0x011f7020,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011f72c9,0x011f7020,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011f788a,0x011f76da,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011f79b7,0x011f76da,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011f79d7,0x011f76da,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011f8103,0x011f8075,unresolved,unrecovered owner,static push candidate,owner unknown
+0x011f95d6,0x011f93f1,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0121d09a,0x0121ced2,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0121efc3,0x0121ea20,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0121f354,0x0121ea20,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0122000a,0x0121ea20,unresolved,unrecovered owner,static push candidate,owner unknown
+0x01221168,0x0121ea20,unresolved,unrecovered owner,static push candidate,owner unknown
+0x01221533,0x0121ea20,unresolved,unrecovered owner,static push candidate,owner unknown
+0x012216c5,0x0121ea20,unresolved,unrecovered owner,static push candidate,owner unknown
+0x01230f7e,0x01230f18,unresolved,unrecovered owner,static push candidate,owner unknown
+0x01231331,0x012312e8,unresolved,unrecovered owner,static push candidate,owner unknown
+0x01231430,0x012313f3,unresolved,unrecovered owner,static push candidate,owner unknown
+0x012358a8,0x01235649,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0123597f,0x01235649,unresolved,unrecovered owner,static push candidate,owner unknown
+0x01235be0,0x01235baf,unresolved,unrecovered owner,static push candidate,owner unknown
+0x01236778,0x012366cc,unresolved,unrecovered owner,static push candidate,owner unknown
+0x01236862,0x01236782,unresolved,unrecovered owner,static push candidate,owner unknown
+0x01236ab9,0x01236999,unresolved,unrecovered owner,static push candidate,owner unknown
+0x01239452,0x01237f00,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0123971c,0x01237f00,unresolved,unrecovered owner,static push candidate,owner unknown
+0x01239b42,0x01237f00,unresolved,unrecovered owner,unresolved,owner unknown
+0x01239d50,0x01237f00,unresolved,unrecovered owner,unresolved,owner unknown
+0x01239e92,0x01237f00,unresolved,unrecovered owner,static push candidate,owner unknown
+0x01239f5c,0x01237f00,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0123a177,0x01237f00,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0123a46e,0x01237f00,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0123a547,0x01237f00,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0123b4cc,0x01237f00,unresolved,unrecovered owner,unresolved,owner unknown
+0x0123b5a8,0x01237f00,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0123b765,0x01237f00,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0123baa3,0x01237f00,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0123c412,0x01237f00,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0123c5b4,0x01237f00,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0123f221,0x0123d716,unresolved,unrecovered owner,static push candidate,owner unknown
+0x01250393,0x01250366,unresolved,unrecovered owner,static push candidate,owner unknown
+0x012504bb,0x0125039d,unresolved,unrecovered owner,static push candidate,owner unknown
+0x01261c81,0x01261bec,unresolved,unrecovered owner,static push candidate,owner unknown
+0x01263bb7,0x01262af0,unresolved,unrecovered owner,static push candidate,owner unknown
+0x01263c89,0x01262af0,unresolved,unrecovered owner,static push candidate,owner unknown
+0x01263c97,0x01262af0,unresolved,unrecovered owner,static push candidate,owner unknown
+0x012645d6,0x01264428,unresolved,unrecovered owner,static push candidate,owner unknown
+0x01264c63,0x01264621,unresolved,unrecovered owner,static push candidate,owner unknown
+0x01264c94,0x01264621,unresolved,unrecovered owner,static push candidate,owner unknown
+0x01264fa3,0x01264df6,unresolved,unrecovered owner,static push candidate,owner unknown
+0x01265684,0x01265625,unresolved,unrecovered owner,static push candidate,owner unknown
+0x01266a0d,0x0126691d,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0126ccb6,0x0126ca63,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0126cec5,0x0126ca63,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0126d01b,0x0126ca63,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0126dd66,0x0126da1c,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0126dfcb,0x0126da1c,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0126e138,0x0126dfdf,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0126e18b,0x0126dfdf,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0126e64c,0x0126e520,unresolved,unrecovered owner,static push candidate,owner unknown
+0x012720b0,0x01271df7,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0127814a,0x0127811b,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0127815a,0x0127811b,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0127816a,0x0127811b,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0127918f,0x01278f8c,unresolved,unrecovered owner,static push candidate,owner unknown
+0x012793c5,0x01278f8c,unresolved,unrecovered owner,static push candidate,owner unknown
+0x012795dc,0x01278f8c,unresolved,unrecovered owner,static push candidate,owner unknown
+0x012797c7,0x01278f8c,unresolved,unrecovered owner,static push candidate,owner unknown
+0x01279a15,0x01278f8c,unresolved,unrecovered owner,static push candidate,owner unknown
+0x01279d39,0x01278f8c,unresolved,unrecovered owner,static push candidate,owner unknown
+0x01279fe3,0x01278f8c,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0127acbd,0x0127ac76,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0127ad57,0x0127acc7,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0127b026,0x0127aeac,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0127d164,0x0127c938,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0127d3f6,0x0127d306,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0127d5b2,0x0127d464,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0127e853,0x0127d464,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0127ea55,0x0127d464,unresolved,unrecovered owner,static push candidate,owner unknown
+0x012845e0,0x0128405f,unresolved,unrecovered owner,static push candidate,owner unknown
+0x01284b05,0x0128405f,unresolved,unrecovered owner,static push candidate,owner unknown
+0x01284e52,0x0128405f,unresolved,unrecovered owner,static push candidate,owner unknown
+0x01285114,0x0128405f,unresolved,unrecovered owner,static push candidate,owner unknown
+0x012855ba,0x0128405f,unresolved,unrecovered owner,static push candidate,owner unknown
+0x012a2e65,0x012a2e36,unresolved,unrecovered owner,static push candidate,owner unknown
+0x012a4d2c,0x012a4cfd,unresolved,unrecovered owner,static push candidate,owner unknown
+0x013a0ff1,0x013a09d7,unresolved,unrecovered owner,static push candidate,owner unknown
+0x013a1797,0x013a09d7,unresolved,unrecovered owner,static push candidate,owner unknown
+0x013a26ac,0x013a09d7,unresolved,unrecovered owner,static push candidate,owner unknown
+0x013a27a1,0x013a09d7,unresolved,unrecovered owner,static push candidate,owner unknown
+0x013a2880,0x013a09d7,unresolved,unrecovered owner,static push candidate,owner unknown
+0x013a295d,0x013a09d7,unresolved,unrecovered owner,static push candidate,owner unknown
+0x013a2a52,0x013a09d7,unresolved,unrecovered owner,static push candidate,owner unknown
+0x013a2b5c,0x013a09d7,unresolved,unrecovered owner,static push candidate,owner unknown
+0x013a3221,0x013a09d7,unresolved,unrecovered owner,static push candidate,owner unknown
+0x013a3eb7,0x013a09d7,unresolved,unrecovered owner,static push candidate,owner unknown
+0x013a404e,0x013a09d7,unresolved,unrecovered owner,static push candidate,owner unknown
+0x013a41d8,0x013a09d7,unresolved,unrecovered owner,static push candidate,owner unknown
+0x013a4337,0x013a09d7,unresolved,unrecovered owner,static push candidate,owner unknown
+0x013a464c,0x013a09d7,unresolved,unrecovered owner,static push candidate,owner unknown
+0x013a493d,0x013a09d7,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0158cd3b,0x0158cc91,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0158ce07,0x0158cd45,unresolved,unrecovered owner,static push candidate,owner unknown
+0x016a250c,0x0169ee63,unresolved,unrecovered owner,unresolved,owner unknown
+0x016a2618,0x0169ee63,unresolved,unrecovered owner,static push candidate,owner unknown
+0x016a41af,0x016a264c,unresolved,unrecovered owner,static push candidate,owner unknown
+0x0185152f,0x018514df,unresolved,unrecovered owner,static push candidate,owner unknown

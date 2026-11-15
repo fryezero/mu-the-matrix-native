@@ -24,7 +24,7 @@ static void open_window(void *unused,const mu_npc_open *o)
     (void)unused;char s[64];
     assert(mu_gfx_layer_presentation_slot(layer,o->window.slot));
     int found=0;
-    for(int m=MU_GFX_ELEMENTAL_MIX;m<MU_GFX_MOVIES;m++)
+    for(int m=MU_GFX_ELEMENTAL_MIX;m<=MU_GFX_ATTRIBUTE_SELECTOR;m++)
         if(!strcmp(FILES[m],o->window.movie)) {assert(layer->mv[m].open);++found;}
     assert(found==1);
     snprintf(s,sizeof s,"%x:%s,",o->window.slot,o->window.method==MU_TALK_TOGGLE?"toggle":"open");strcat(trace,s);
@@ -60,7 +60,7 @@ int main(int argc,char **argv)
         "requestItemSlotClick","requestItemSlotClickR","requestItemSlotDragBegin","requestItemSlotDragEnd",
         "onDepositBtnClick","onClickLevelup","SaveAutomaticConfig","unknown"};
     int refused=0;
-    for(int m=MU_GFX_ELEMENTAL_MIX;m<MU_GFX_MOVIES;m++) {
+    for(int m=MU_GFX_ELEMENTAL_MIX;m<=MU_GFX_ATTRIBUTE_SELECTOR;m++) {
         assert(presentation_available3(layer,m));
         mu_gfx_layer_show(layer,m,1);
         for(size_t i=0;i<sizeof blocked/sizeof *blocked;i++) {
@@ -97,7 +97,7 @@ int main(int argc,char **argv)
     assert(mu_gfx_layer_presentation_slot(layer,0x204) && layer->mv[MU_GFX_ELEMENTAL_MIX].open);
     assert(mu_gfx_layer_presentation_slot(layer,0x204) && layer->mv[MU_GFX_ELEMENTAL_MIX].open);
     mu_gfx_layer_presentation_close(layer);
-    for(int m=MU_GFX_ELEMENTAL_MIX;m<MU_GFX_MOVIES;m++) assert(!layer->mv[m].open);
+    for(int m=MU_GFX_ELEMENTAL_MIX;m<=MU_GFX_ATTRIBUTE_SELECTOR;m++) assert(!layer->mv[m].open);
     assert(!memcmp(&hero,mu_gfx_layer_hero(layer),sizeof hero));
     assert(layer->held==held && layer->potions==potions && foreign==0 && sounds==0);
     printf("nine fixture windows, %d inert callbacks, ordered controller and sound tail ok\n",refused);

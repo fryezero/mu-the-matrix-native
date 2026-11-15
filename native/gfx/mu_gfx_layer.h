@@ -72,7 +72,8 @@ enum { MU_GFX_MAIN, MU_GFX_INVENTORY, MU_GFX_TOOLTIP, MU_GFX_CHARACTER, MU_GFX_C
        MU_GFX_BAG, MU_GFX_TREE5_VIEWER, MU_GFX_BLOCKED_CHAT, MU_GFX_AUTOMATIC,
        MU_GFX_ELEMENTAL_MIX, MU_GFX_SOCKET_MIX, MU_GFX_GUARDIAN_MIX, MU_GFX_HARMONY_MIX,
        MU_GFX_LUCK_COIN, MU_GFX_MUUN_EXCHANGE, MU_GFX_RUUD_SHOP, MU_GFX_MIX_SELECTOR,
-       MU_GFX_ATTRIBUTE_SELECTOR, MU_GFX_MOVIES };
+       MU_GFX_ATTRIBUTE_SELECTOR, MU_GFX_PERSONAL_CATALOG, MU_GFX_ARTIFACT, MU_GFX_DUEL_WATCH, MU_GFX_MU_MIX,
+       MU_GFX_MAP_NAME, MU_GFX_MOVIES };
 /* NATIVE-PROGRESS-001 adds winOption and winSystemMenu (optional KeyWindows): their channel calls, O and the
  * Esc that no other window takes go to cfg.progress_call. */
 /* NATIVE-MAP-001 adds MoveCommand (the Move window, optional); its callbacks and the base movie's other channels
@@ -87,6 +88,15 @@ enum { MU_GFX_MAIN, MU_GFX_INVENTORY, MU_GFX_TOOLTIP, MU_GFX_CHARACTER, MU_GFX_C
 /* Empty presentation for proved NPC manager slots. Returns zero if unavailable. */
 int mu_gfx_layer_presentation_slot(mu_gfx_layer *, unsigned slot);
 void mu_gfx_layer_presentation_close(mu_gfx_layer *);
+
+/* UI-WINDOWS-006: the MapName banner (manager +0x128). The three original
+ * openers are the join answer 0x0124cc64, the respawn answer 0x0127bd9e and
+ * the teleport answer 0x0128136d, which opens it only for a non-zero packet
+ * number. `number` is that word for MU_GFX_ARRIVAL_TELEPORT and ignored for
+ * the other two. Returns 1 when the banner opened or is held until its movie
+ * is ready, 0 when the original would not open it (or no movie is loaded). */
+enum { MU_GFX_ARRIVAL_JOIN, MU_GFX_ARRIVAL_RESPAWN, MU_GFX_ARRIVAL_TELEPORT };
+int mu_gfx_layer_map_arrival(mu_gfx_layer *, int kind, int number, int world, const char *name);
 
 /* Character values the windows show (demo values until a game feeds them). */
 typedef struct mu_gfx_hero {
