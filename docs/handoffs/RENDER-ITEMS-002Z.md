@@ -7,8 +7,8 @@ The merge steward owns the full gate and merge.
 
 ## WIP
 
-The focused admission checks below pass. The lane is not PR-ready: affected portable/private checks,
-8d reduced and the genuine-main default identity sweep remain. No ready entry has been written.
+The focused admission checks below pass. The lane is not PR-ready: the 71 affected private validators and the genuine-main default identity sweep remain.
+Affected portable checks and 8d reduced pass. No ready entry has been written.
 
 ## Result
 
@@ -42,8 +42,8 @@ All tools/tests run from the repository root. Private commands source
 `~/Documents/MTM/mu-mac-tools/native/private-env.sh`. Heavy work uses nice 10, at most two validator
 workers, and builds use `make -j2` after resource cooldowns exceeded twenty minutes. Memory remains
 above the brief's floor. Cooldowns are outside the job timings. No full lane gate or hosted workflow ran.
-The native private selection exceeds forty work items, so this lane uses **8d reduced** and will run
-the manual 6b consumers `test_native_renderchar` and `test_app_polish8` privately.
+The native private selection is 160 work items, above the forty-item cap. This lane uses
+**8d reduced** and runs the manual 6b consumers `test_native_renderchar` and `test_app_polish8` privately.
 
 | Check | Result | Wall |
 |---|---|---:|
@@ -57,6 +57,8 @@ the manual 6b consumers `test_native_renderchar` and `test_app_polish8` privatel
 | Full classifier export | 1,691 types / 798 shapes, exactly fifteen membership and nine shape changes | 118.03 s |
 | Affected portable selection | 166/210 work items | 58.42 s |
 | Affected validator selection | 71/239 rows, one retained fallback, nine symbol-pruned rows | 52.70 s |
+| Affected portable run at `9c541138` | 166 work items; 1,538 tests, 1,260 passed / 278 skipped, zero failures/errors | 433.24 s |
+| Canonical private native consumers | 33/33 passed, zero skips; 8d reduced | 23.90 s |
 
 Extraction/rendering wall excludes the cache's final save. These are finite recorded cases,
 not a unique whole-client state count. The final affected checks are recorded below when complete.
