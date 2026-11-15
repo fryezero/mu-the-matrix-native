@@ -6,6 +6,7 @@
  * slots read is b +0xac (the Animation frame argument), the action b +0xa8. Addresses per class in
  * docs/research/client-worlds-after2.md. */
 #include "world_visual_internal.h"
+#include "audio_request.h"
 #include <math.h>
 #include <stdio.h>
 
@@ -1647,6 +1648,7 @@ int mu_class_premove(int32_t cls, const uint8_t *o, int32_t i, int32_t world, in
             play(l, i, 0x38f, 0);
         else if (state >= 1 && state <= 3)
             play(l, i, (uint32_t)(0x38b + state), 0);
+        mu_audio_premove_request(l, cls, o);
         return 1;
     case 79:
         return 1;
@@ -1654,6 +1656,7 @@ int mu_class_premove(int32_t cls, const uint8_t *o, int32_t i, int32_t world, in
         const int32_t t = mu_obj_i32(o, MU_OBJF_TYPE);
         if (t == 0x3a || t == 0x42)
             play(l, i, 0x3db, 1);
+        mu_audio_premove_request(l, cls, o);
         return 1;
     }
     case 122: {
@@ -1685,6 +1688,7 @@ int mu_class_premove(int32_t cls, const uint8_t *o, int32_t i, int32_t world, in
         default:
             break;
         }
+        mu_audio_premove_request(l, cls, o);
         return 1;
     }
     default:

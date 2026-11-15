@@ -713,3 +713,112 @@ checks also cover loop PCM, safe refusal, active-id suppression, mute, disabled
 and detached delivery, no replay and independent readers. Read-only installed
 inputs decode all 16 ids, and eleven world/zone segments resolve the expected
 music and PCM. [Final counts, wall times and steward rows](../handoffs/AUDIO-003.md).
+
+## AUDIO-004 owner review and explicit object commands, 2026-11-14
+
+The target and capture pins remain those at the start of this document. Offline
+captures and authored fixtures only. `scripts/audio_caller_census.py --report
+<local-path>` reproduces the updated inventory, including per-candidate routine,
+gate disposition, sound-id status and native-owner status. No client bytes or
+asset paths are exported. The 1,980 denominator remains a syntactic E8 scan.
+
+### Revised census
+
+| Bucket | AUDIO-003 | AUDIO-004 |
+|---|---:|---:|
+| UI | 20 | 51 |
+| Hero/shared actions | 37 | 43 |
+| Skills/effect timelines | 263 | 272 |
+| Monsters/NPC voices | 781 | 848 |
+| World objects/ambient | 111 | 135 |
+| Items | 9 | 15 |
+| Events/progression | 4 | 4 |
+| Unresolved owner | 755 | 612 |
+| Total | 1,980 | 1,980 |
+
+143 formerly unresolved candidates acquire a bucket through exact existing
+owner references or reviewed world-class vtable slots 0x28/0x4c/0x50/0x54/0x58.
+This yields 1,368 classified candidates, with 612 still unresolved. A reference
+in a validator stub alone was rejected as insufficient owner evidence.
+The script's explicit anchor/source table is the reproducible review ledger.
+Vtable membership identifies a method, not its complete gates or native delivery.
+For every non-admitted candidate, unrecovered gates and ids stay explicit. A
+literal preceding push is labelled a static candidate, not a proved argument.
+An unknown prologue remains a grouping aid, never a recovered symbol.
+
+The three boundary generations remain separate: 113 baseline, 16 AUDIO-003,
+33 AUDIO-004, for 162 enumerated sites. These are distinct original sites, not
+162 different sounds or a whole-client completion percentage. No formerly
+unresolved candidate is wired solely because this review found its bucket.
+
+### Wired owner gates and source sites
+
+All new sites already have complete, instruction-compared native owning
+methods. `reconstructed/audio/object_audio_sites.inc` is the exact 33-row
+allowlist of world group, routine, site, id, object-present and loop. Shared
+owners appear once. The gate descriptions below supplement that per-site table.
+
+| Owner | Sites | Gate and sound ordering |
+|---|---:|---|
+| Imperial Guardian pre-move 0x00dd2fae, reused by 70/71/72 | 4 | Non-null object, world 69..74; worlds 72..74 request 0x38f; otherwise known handler state 1/2/3 requests 0x38c/0x38d/0x38e. Native runtime still supplies its existing state 0, so only the world-only branch currently delivers. No event state is invented |
+| Karutan pre-move 0x00e189af, worlds 80/81 | 1 | Types 0x3a/0x42 request 0x3db with OBJECT. The original method discards its world predicate result. The native dispatch remains world-owned |
+| Swamp of Darkness pre-move 0x00e5e1a4 | 5 | Type 0x1a rand remainder 50 equals zero -> 0x4d4; 0x83/0x84 action 1 -> 0x4d2; 0x85 rand remainder 150 equals zero -> distinct 0x4d2 site; 0xa1 -> 0x4d3; 0xa8 outside original tile rectangle -> 0x4d5 |
+| Old Kethotum move 0x00e3a719 | 9 | Existing type/distance/frame/model gates. Near sounds 0x557/0x54c/0x54b; swing 0x549 and narrow 0x548 frame interval; closing 0x55c has distinct action-1 and action-2 sites; opening 0x55b has distinct action-0 and action-3 sites |
+| Burning Kethotum move 0x00d93b31 | 12 | The same swing/gate template, near sound 0x558, 0x54c, two distinct 0x54b sites for type 0xa0 and brazier 0xa5; type 0xb5 retains its known model/effect/frame/distance inputs and 0x559/0x55a cycle sites. Attached effects remain the existing owner inputs |
+| Ignis move 0x00e05d76 | 2 | World 138/type 177; action 1/frame strictly below 8 -> 0x00e05edd; action 3/frame strictly above 28 -> 0x00e05f09. Both request 0x570 with OBJECT |
+
+Every request retains loop 0. The audio annotations occur before SetAction can
+change Kethotum's action. They add no gate, debounce, RNG draw or object/model
+write. Held ambient gates intentionally request repeatedly; the existing SND
+manager suppresses an already-playing id. Gate transitions, rather than a new
+once-only filter, retain the original trigger behavior.
+
+### Command boundary and native delivery
+
+`reconstructed/objects/audio_request.h` is an audio adapter kept next to the
+object log ABI so existing isolated owning-validator builds copy it too.
+It marks only a selected three-argument sound event, using the unused tail
+words 13..15 for original routine, site and a tag. `count` and the original
+argument stream do not change. Overflow cannot annotate an earlier event, and
+an already-tagged event cannot be re-attributed. There is no global pending
+context or separately queued metadata.
+
+`mu_object_audio_command_cue` validates event operation, tag, world group,
+routine, site and all original arguments against the explicit allowlist. The
+world object callback receives a borrowed event synchronously, forwards it to
+the session's independent audio reader or immediate standalone host, and marks
+it consumed so the old id-only callback cannot duplicate it. Disabled readers
+drain now; detached requests have no backlog. No original pointer enters a cue.
+The existing id-only AUDIO-003 path and its proven world/id mappings remain.
+
+### Refused and remaining
+
+The slot +0x70 selectors are reviewed first for monster admission. Their whole
+owner methods and dispatch are absent natively, while several shared combat
+services and bounded fragments already exist. A bounded source reference does
+not close a whole selector, so no generic monster sound callback is added.
+The revised census has 848 monster/NPC candidates, 823 without a bounded body
+reference and 25 with references of varying scope. None is newly admitted.
+
+Kubera's type-52 original sequence is stop(0x4f2) then play(0x4f1), or
+stop(0x4f1) then play(0x4f2). An id-only play consumer is insufficient. This
+lane's command operation admits play only; all Kubera play/stop sequences stay
+refused until a separately compared stop command and ordered delivery exist.
+
+612 candidates still lack reviewed semantic ownership, including the large
+0x01080169 and 0x0108988b groups. Their gates/whole-native-owner status remain
+unresolved. No event feed, pickup answer, transformed/buff input, server state,
+new request route, FMOD mixer parity or opaque instruction is admitted.
+The virtualised interval 0x01854279..0x018542c2 remains excluded and unfollowed.
+
+### Verification
+
+The new comparison executes 10,093 cases across ten existing complete owner
+families and 93 deterministic boundary/site cases. It independently records
+original SND_Play return addresses and arguments, reaches all 33 sites, and
+compares exact native commands. Existing families still compare AL where
+applicable, OBJECT/action records, normalized call order and RNG. Zero
+mismatches/stops; ten compiled mutants caught in one 65.52 s run. Gate and
+site controls distinguish the identical-id Kethotum, Ignis and Swamp branches.
+Native delivery, decoded input smoke, affected checks and rebuilt default
+identity results are recorded in [AUDIO-004](../handoffs/AUDIO-004.md).
