@@ -203,3 +203,11 @@ unchanged target HP. Blood Storm records 1,883 downstream refusals; other new
 skill fixtures record zero. Each summon ground emits 63 ribbons across its
 native life-20 schedule, with a sampled peak of 36 live joints; no actor is
 created. Exact per-skill counts and final identity results are in the handoff.
+
+
+The corrected default identity pair uses explicit demo labels and separately
+rebuilt world binaries. All 92 PNGs, 92 OBJECT/light dumps and 46 logs match.
+Each of the 46 reports differs only by the loaded Fire03 entry at bitmap slot
+96, growing 99 to 100; all other report fields match after output-prefix
+normalization. The handoff records both binary SHA-256s and why initial
+non-demo-label captures were discarded.
