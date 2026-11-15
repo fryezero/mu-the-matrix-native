@@ -1,6 +1,6 @@
 # Roadmap and work queue
 
-UI-WINDOWS-004 verification in progress: nine more empty NPC movies use ten proved manager slots. The 118 entry-unresolved rows classify 9 provider-complete, 17 provider-missing, 30 state-dependent and 62 no route found. The inherited PlayGuide key/menu route is withdrawn after the registry proves it selects EventMapEntranceUI. Survey 16/134 bound -> 24/134, unresolved 118 -> 110. [Scope and checks](handoffs/UI-WINDOWS-004.md).
+UI-WINDOWS-004 PR-ready: nine more empty NPC movies use ten proved manager slots. The 118 entry-unresolved rows classify 9 provider-complete, 17 provider-missing, 30 state-dependent and 62 no route found. The inherited PlayGuide key/menu route is withdrawn after the registry proves it selects EventMapEntranceUI. Survey 16/134 bound -> 24/134, unresolved 118 -> 110. Thirteen original route decisions, eight compiled mutants, nine captured native layouts, 22 affected validators and 230 default identities pass. [Scope and checks](handoffs/UI-WINDOWS-004.md).
 
 
 UI-WINDOWS-003 PR-ready: expanded inventory, the separate fifth-tree item viewer, BlockedChat and AutomaticMacro open through proved presentation routes. All actions that change game state remain inert; Home activation and the original Help route remain refused. Survey bindings 12 -> 16 of 134, unresolved 122 -> 118. Native journeys, 26 original route/controller decisions, eight compiled mutants and thirteen selected validators are verified. [Checks, timings and limits](handoffs/UI-WINDOWS-003.md).

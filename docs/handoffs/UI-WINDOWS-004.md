@@ -167,6 +167,8 @@ workflow, installed app journey or app-packaging test runs in this lane.
 | Final normal + original + eight compiled mutants | four tests pass, all mutants caught | 20.86 |
 | Affected portable selection, app packaging excluded | 177 work items; 1,584 tests, 1,281 passed / 303 optional skips, zero failures/errors | 485.28 command / 394.9 execution |
 | Reduced private consumer checks | 22/22 pass, including 5,803 original UI audio comparisons and offline NPC consumers | 36.55 |
+| Selected private validators | 22/22 pass, zero fail/error/skip, no registry mutants | 230.75 |
+| Validator selection | 22 rows, conservative fallbacks retained | 55.84 |
 | Nine actual native journeys | 288 frames, 18 inspected proof frames | 48.50 |
 | Default before / after sweep | 230 identities match | 93.59 / 78.42 |
 
@@ -188,25 +190,66 @@ staged Wine app or installed Native Preview was touched. No README work,
 subagent or hosted workflow. Only authored code, synthetic fixtures and
 reviewed address summaries are committed. No new private input needs retaining.
 
-## WIP
+## Steward validators
 
-Done: implemented scope, original comparison, eight mutants, static census,
-all nine native layouts and the default identity sweep pass. Main through
-#391 is integrated, with no compiled input changes.
-Left: selected validator execution, staged audit, final status/PR publication
-and cleanup. Portable and reduced private consumers pass. The 55.84 s selector
-chooses 22 rows, including the native-library seed-header IR fallbacks;
-none is dropped. Their no-mutant, cached, two-job run is in progress.
+All 22 rows pass at 36aabe4d88fa0905266a4e6328d86ece5506941d, confirmed
+by the runner's environment.commit. Later commits change documentation only.
+Use canonical `~/Documents/MTM/mu-mac-tools/native/private-env.sh` from the
+repository root, cache enabled, two jobs and no mutants. The native-library
+seed-header IR fallbacks, including actor/effect rows, are retained. No
+existing row's original checks or mutant targets changed; only the eight
+new controller mutants ran, once, as recorded above.
 
-8d reduced: the portable affected selection has 177 work items, over forty
-native modules. The changed UI hosts, census and original instruction checks
-ran privately above. UI-WINDOWS-001, UI audio, and the existing NPC Session,
-Windows and offline game-data class ran as 22 additional private consumer
-tests in 36.55 s. The old NPC validator's unchanged mutants were not rerun.
-The affected portable command excludes only native/tests/test_native_app.py,
-per the lane's explicit app-packaging prohibition. No full gate ran.
-Next step: inspect the affected run, run its selected validators with no
-mutants, then replace this WIP section with the completed check ledger.
-Checkpoint pushes ed6c81b9 and 6c40aed5 preserve the earlier done / left / next
-state. No ready-prs entry exists yet. Stop by 02:30 on 2026-11-15; push WIP
-by 02:15 if final verification remains unfinished.
+| Validator | Cases / contracts, zero mismatches | Wall seconds |
+|---|---:|---:|
+| validate_gfx3 | 6 skill / 18 window + loader/menu | 7.2 |
+| validate_map_polish | 876 | 0.8 |
+| validate_movement | 6614 | 66.2 |
+| validate_audio_callers | 5528 | 7.1 |
+| validate_audio_domains | 2544 | 28.5 |
+| validate_audio_items | 3000 | 4.1 |
+| validate_app_polish1 | 752 | 25.6 |
+| validate_app_polish2 | 1028 | 4.7 |
+| validate_app_polish7 | 5120 | 2.4 |
+| validate_app_polish4 | 10485 | 43.6 |
+| validate_render_effects16 | 424 | 4.1 |
+| validate_worlds_fog | 4044 | 8.1 |
+| validate_render_effects17 | 618 | 8.6 |
+| validate_render_effects24 | 226 | 3.2 |
+| validate_render_effects25 | 202 | 11.2 |
+| validate_actor_recipes | 1669 | 121.3 |
+| validate_render_effects26 | 348 | 19.5 |
+| validate_actor_composites | 1427 | 10.0 |
+| validate_audio_objects | 4000 | 4.2 |
+| validate_app_polish9 | 4668 | 5.0 |
+| validate_audio_objects4 | 10093 | 8.2 |
+| validate_actor_monsters | 1437 | 43.2 |
+
+Steward validators: validate_gfx3,validate_map_polish,validate_movement,validate_audio_callers,validate_audio_domains,validate_audio_items,validate_app_polish1,validate_app_polish2,validate_app_polish7,validate_app_polish4,validate_render_effects16,validate_worlds_fog,validate_render_effects17,validate_render_effects24,validate_render_effects25,validate_actor_recipes,validate_render_effects26,validate_actor_composites,validate_audio_objects,validate_app_polish9,validate_audio_objects4,validate_actor_monsters.
+
+## Publication and cleanup
+
+8d reduced: the affected portable selection has 177 work items, exceeding
+forty native modules. Changed UI hosts, the census and original comparisons
+ran privately, followed by the 22 UI/audio/NPC consumer tests. The unchanged
+NPC validator's old mutants were not rerun. The portable command runs the
+normal affected selector and excludes only native/tests/test_native_app.py,
+per the explicit app-packaging prohibition. No full gate ran.
+
+Main a95880c4, including the stacked #391, is integrated. The merge changes
+no compiled input from this lane's checked source. WIP checkpoints ed6c81b9,
+6c40aed5 and 1700a83b preserve the done / left / next-step history. All
+compiled inputs remain unchanged during final publication checks.
+
+After the final push and PR creation, append ready-prs once and push nothing
+further. Cleanup removes this lane's renders, scratch, reports and build
+outputs, worktree and local branch. The remote PR branch stays for the
+steward. No new private input is retained. This is PR-ready for the merge
+steward, not merged.
+
+Final staged audit passes 2,297 files with zero rejected in 43.44 s.
+Final documentation consumers pass 36 tests, one optional skip, zero failures
+or errors, in 9.97 s. Subsequent ledger edits only record those results and
+pass the audit's per-file policy checks. Final main is still a95880c4.
+The ready-prs entry is written only after the final push and PR creation;
+no later push is allowed. All required checks pass. Ready for steward.
