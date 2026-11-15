@@ -1,176 +1,260 @@
 # RENDER-ACTORS-006
 
-## WIP
+## WIP latest-main integration
 
-This lane is stacked on ACTORS-005, PR #389 at `e3347dd7`. The assigned
-worktree and branch are `render-actors-006` and `codex/render-actors-006`.
-No subagents, live process, network/service acquisition or installed app work.
+Main advanced to UI-WINDOWS-004 `4480bf41` during publication checks. The
+results below remain valid at their named commits, but this new main is not
+yet integrated. Current publication checks pass: 36 documentation tests,
+35 passed / one expected skip, 17.94 s; audit 2,294 files / zero rejected,
+25.40 s plus a 120 s wait. Left: merge this main, build and select/replay
+only changed compiled inputs, permitted portable delta, refreshed default
+identity, final documentation/audit, PR/ready entry and cleanup. No PR or
+ready entry exists yet. Production actor source and nine control targets
+remain unchanged.
 
-Done: read the full lane/common brief, resume, actor handoffs and research;
-classify all 905 initially incomplete selectors into disjoint groups; build
-the base; rebuild `mu-world` and capture the 230-file default identity baseline.
-The baseline binary SHA-256 is
-`f58907ce03d1fb3658445cdcfa3a9eaa86772f8738012769ecb756ba474f4fb5`.
-Baseline sweep takes 79.36 s; the initial root build takes 26.64 s.
-A failed first tour used stale local capture paths and produced no baseline;
-only the corrected lane-local manifest contributes to these counts.
+## Result and census
 
-The draft verifier/generator checks each selector's constructor, original
-opener arguments and action/model bytes, whole RenderCharacter caller, actual
-native files, complete texture uploads and draw/alpha. It executes both
-character sprite emitters that the shared character verifier normally skips.
-Rows failing any uniform check will stay incomplete with a recorded reason.
-Generation is currently queued behind the load guard. No admission is claimed.
+The native world actor renderer now consumes generated, instruction-checked
+single-body plans for 550 previously incomplete fixture selectors. Each row
+has its own constructor, opener, caller, native file/texture and pass checks.
+There are 82 ordinary monster selectors and 468 repeated-default selectors,
+covering 51 distinct exact model files. Existing generic bodies retain their
+geometry; this lane certifies and consumes their bounded draw plans.
 
-Left: finish generation and inspect rejected rows; integrate the generated
-native plan API and both backends; compiled mutants; affected checks; private
-8d reduced; representative proof renders; final identity replay; main
-integration, audit, final documentation, PR and ready entry. No ready entry.
-Next: inspect the generation report under the lane's external scratch folder.
+| Native body classification | Before | After |
+|---|---:|---:|
+| Checked bounded body plan | 39 | 589 |
+| Incomplete/unverified special passes | 905 | 355 |
+| Refused by the loader | 80 | 80 |
+| Fixture selector contexts | 1,024 | 1,024 |
 
-## Initial groups
+Selectors include repeated defaults. These counts are neither unique creatures
+nor a whole-client fidelity percentage. The constructor and opener inventories
+retain their earlier meaning; an opener alone never establishes an actor plan.
+The opener CSV's new `checked_plain_body_contexts` column counts callers that
+passed this lane separately from opener extraction.
 
-| Missing checked plan | Rows |
+## Implemented group and evidence
+
+The frozen before-population contains these disjoint groups:
+
+| Initially missing checked plan | Rows |
 |---|---:|
 | Plain monster body | 203 |
 | Repeated default body | 473 |
-| Plain NPC body | 84 |
-| Constructor equipment/parts | 107 |
+| NPC whole-body plan | 84 |
+| Equipment/part constructor | 107 |
 | Special appearance | 18 |
 | Extra bitmap | 6 |
-| Special appearance, extra bitmap and equipment | 4 |
-| Extra bitmap and equipment | 4 |
-| Secondary model with auxiliary/action lifetime | 4 |
+| Special appearance, bitmap and equipment | 4 |
+| Bitmap and equipment | 4 |
+| Secondary-model consumer/lifetime | 4 |
 | Special appearance and equipment | 2 |
 | Total initially incomplete | 905 |
 
-These are fixture selectors, including repeats. Construction labels identify
-which checked body/attachment/appearance proof is missing, rather than
-asserting a known missing visual for every row. Plain construction alone does
-not certify later rendering. The detailed before-population and per-row
-outcomes are in `docs/research/actor-admission-groups.csv`.
+The [per-row decisions](../research/actor-admission-groups.csv) preserve this
+population. The [refined missing-plan groups](../research/actor-missing-plan-groups.csv)
+partition all 905 selectors into thirty groups with explicit selector lists.
+Equipment-only construction selects sixty right, 34 both and thirteen left
+weapons. Classes 1/10 and 5 also need the sword-sprite caller and have separate
+refined groups. Special-only construction splits into seven joint appearances,
+six EffectManager overrides and five cloth/world appearances. Secondary paths
+split into two type-226 death-effect lifetimes and two NPC model consumers.
 
-Checkpoint 2026-11-14 22:48: the initial uniform run verifies 622 rows and 102
-models, 8,482 positive checks, 45.00 s. It rejects 54 monster/default candidates
-with explicit reasons, including class 918's two missing textures. The generated
-plan API and both native backend call sites build in 20.88 s. The expanded
-28-context-per-row run is queued behind the load guard. The table and counts
-remain provisional until that run and the final compiled controls pass.
-The construction/opener CSVs have not yet been regenerated. All final checks,
-proofs, identity replay, main integration, audit and publication remain pending.
+Of the 676 plain candidates, 550 pass. The remaining 126 split into 27 extra
+effect callers, four links, four body-plus-effect callers, eight extra body
+passes, seven changed/suppressed body callers, 22 blend-mesh, two blend/light,
+three hidden-mesh, 44 subtype overrides, one multiple-opener constructor,
+one missing-texture body and three unresolved callers. The other 229 original
+rows need their named attachment, appearance, bitmap or lifetime proof.
+These labels identify missing checked plans, not absent native features.
 
-Checkpoint 2026-11-14 23:08: source commit `55535150` supersedes the provisional
-622-row result. The expanded run verifies 621 plans / 101 model files with
-23,366 positive checks, 223.99 s plus a 60 s resource wait. Both census CSVs
-reproduce 660 checked / 284 incomplete / 80 refused, 5.56 s plus a 120 s wait.
-Accepted groups are 153 ordinary monster and 468 repeated-default contexts;
-five repeated-default selectors fail independently. Source audit: 2,276 files,
-zero rejected, 19.53 s. Portable new-module check: one passed and one expected
-private skip, 0.08 s. The 30-row affected validator run is in progress at
-`55535150`; three symbol fallbacks remain selected. Portable selection is
-170 work items / 162 native modules, so the private finish uses 8d reduced.
-Left: finish validators, constructor appearance-state audit, compiled controls,
-portable affected suites, reduced private modules, proof renders, identity,
-latest-main integration, final audit/docs and PR/ready publication. No ready
-entry and no completion claim.
+[Research section 13](../research/client-actors.md#13-table-driven-single-body-admission-render-actors-006)
+records the original addresses, boundaries, generator and limits. The generator
+checks world-0/rand-0 constructor instructions, exact model/scale/empty slots,
+and constructor writes to appearance fields. That write audit excludes 27
+hidden/blend-mesh and 44 subtype contexts which the provisional 621-row table
+had missed. Only the final 550-row source and results are authoritative.
 
-Checkpoint 2026-11-14 23:30: the 621-row source/result is provisional and is
-superseded by the constructor write audit. It found 27 hidden/blend-mesh
-contexts and 44 subtype contexts that the earlier constructor recorder had
-not checked. These 71 rows are excluded, with explicit offsets in the decision
-CSV. The revised generator verifies 550 plans / 51 actual model files,
-20,410 positive checks, 212.21 s plus a 60 s resource wait. The final API replay
-will have 21,437 checks and nine compiled controls, still pending. Latest main
-through AUDIO-004 (`2b0b2716`) is merged; both lanes' status/validator entries
-are retained. The merge-resolution follow-up removes all markers and parses
-the registry with the repository Python. PR #389 remains unmerged.
+Each admitted opener executes in worlds 0/3/2/51/18/30 and agrees with the
+compiled opener's complete synthetic model/action bytes and ordered AccessModel
+and OpenTexture arguments. Each admitted full RenderCharacter entry runs
+28 contexts across worlds 0/3/2/51 and actions 0..6. Both character sprite
+emitters execute, rather than inheriting the shared harness's skip boundaries.
+Extra parts, links, sprites, effects and unresolved caller state reject a row.
+RenderObject remains the named base-body/pose boundary from ACTORS-004/005;
+its arguments must be exactly `(OBJECT, 1, 0, 0, -1, -1)`. Optional recorded
+ordinary shadows do not certify shadow/fade parity. Stateful map/helper
+boundaries and deterministic RNG remain explicit.
 
-The rebuilt 550-row library, canonical census regeneration and final checks
-are queued behind the resource guard. Until that command finishes, the class
-and opener CSVs in this WIP checkpoint still contain the old 621-row counts.
-Expected final census is 589 checked / 355 incomplete / 80 refused. Do not use
-the earlier 30-row/147,157-check result as validation of this revised table.
-Next: finish the queued rebuild/census/focused test, audit and commit the
-consistent revised source, then run the selected validators and new-row
-controls once on that source. Portable affected, 8d reduced, proof renders,
-identity, final documentation/audit, PR and ready entry remain unfinished.
+Eight original RenderObjDraw streams per distinct model independently require
+exactly one ordinary textured BODY pass, flags 2, requested alpha and no extra
+service. The native host uses the production world loader, exact relative file,
+binary32 scale, positive geometry, no attachments and complete texture slots.
+It independently resolves and decodes every mesh bitmap and compares pixels,
+dimensions, components and sampler state. Both world render backends consume
+the generated options only for the matching model/scale and empty attachments.
+No existing ABI, item recipe or effect consumer changes.
 
-Checkpoint 2026-11-14 23:50: consistent source is `d3688570`, with 550 admitted
-selector plans / 51 exact model files, 82 ordinary and 468 repeated-default
-contexts. Canonical CSV regeneration now confirms 589 checked / 355 incomplete /
-80 refused, 5.35 s plus a 60 s wait. Root rebuild: 10.53 s plus 420 s of waits.
-The focused census test passes, with one expected private skip, 0.08 s.
-Audit: 2,282 staged files, zero rejected, 29.25 s.
+`validate_actor_plain` verifies 21,437 positive checks:
 
-The final new-row run passes all 21,437 checks and catches all nine compiled
-controls with zero unexpected stops, 197.2 s plus a 120 s wait. Final post-build
-selection has 31 rows, including AUDIO-004's new object-audio validator. The
-other thirty selected rows are running without mutants at the same source;
-no optional controls from unchanged validators are replayed. No code change
-has followed the new-row pass. Left: finish those rows, portable affected
-suites, 8d reduced, rebuilt-world identity and representative proof renders,
-latest-main check, final docs/audit, PR/ready entry and cleanup. No PR or ready
-entry exists yet. All earlier provisional admissions are superseded by 550.
+| Family | Checks |
+|---|---:|
+| Original kind/class defaults | 2 |
+| Constructors | 550 |
+| Openers | 3,300 |
+| Whole caller contexts | 15,400 |
+| Native assets/textures/geometry/alpha | 550 |
+| Additional varied caller contexts | 200 |
+| Distinct-model draw streams | 408 |
+| Exact plan admission and exclusions | 1,026 |
+| Table and decision reproduction | 1 |
 
-Checkpoint 2026-11-15 00:13: the frozen actor source `d3688570` passes all
-31 selected rows: 154,294 checks, zero failures/errors/skips, with nine current
-compiled controls caught once. The other thirty rows take 403.89 s plus a
-120 s wait; the new row takes 197.2 s plus a 120 s wait. Portable affected:
-171 work items, 1,563 tests, 1,288 passed / 275 expected skips, zero failures or
-errors, 406.7 s runner / 479.69 s command. The new grouped summary partitions
-all 905 original rows and refines the 107 weapon plans into 60 right / 34 both /
-13 left; it also separates joints, EffectManager, cloth/world and secondary
-consumer gaps. These are missing checked plans, not a whole-client percentage.
+Nine compiled controls are caught with zero emulator/native stops: admission,
+over-admission of class 22, opener, model, scale, passes, translate, native flags
+and native alpha. They ran once at `d3688570`; their target source is unchanged
+by the main merges. Later positive replays use no mutants.
 
-Latest main is now `4babc900`, including merged PR #389 and INNER-004's
-scene/raster alpha-reference changes. Main integration and affected-input
-rechecks are next. The earlier default baseline remains recorded at ACTORS-005;
-any incoming world/alpha changes must be distinguished from this actor lane's
-identity. Private 8d reduced, final identity/proofs, final documentation/audit,
-PR/ready entry and cleanup remain pending. No PR or ready line exists yet.
+## Verification
 
-Checkpoint 2026-11-15 00:44: main through `4babc900`, including merged #389 and
-INNER-004, is integrated as `71a6d23f`. Post-merge root build passes, 16.53 s
-plus 720 s of waits. Final actor selection has 29 rows; the input-delta selector
-keeps 27 for replay and retains audio-combat and viewport-monster passes from
-`d3688570`. The 27-row no-mutant replay is running. Current shared status files
-match main's order, and the registry diff adds only this lane's row.
+All 29 final affected validators pass, **138,721 checks**, zero failures,
+errors or skips. The per-row table below identifies the tested source commits.
+Initial source `d3688570` passed 31 rows / 154,294 checks. After PR #389 merged,
+the final selection pruned meshdraw/model-edge and retained 29 rows. The main
+input-delta selector replayed 27 at `71a6d23f`, then nine UI-affected rows at
+`04879bea`; audio-combat and viewport-monster retain their unchanged-input
+passes at `d3688570`. The cleanup-publication correction in the test host has
+the full 21,437-check positive replay at `4f9f92bb`.
+Its output timing changes no check predicate or compiled-mutant target.
 
-Scope exception: the first portable selection included `test_native_app.py`.
-It built/signed a temporary test bundle and passed eighteen synthetic tests;
-its installed-game test was skipped. The fixture's teardown removes the
-bundle. No installed Preview app was changed. This temporary packaging was
-outside the lane's no-packaging boundary and is not repeated. The local
-integration portable wrapper explicitly excludes that module.
+| Check | Result | Measured wall |
+|---|---|---:|
+| Final root build at `04879bea` | pass | 7.34 s runtime / 67.34 s command, 60 s wait |
+| Final 550-row generation | 20,410 checks, 550 plans / 51 files | 212.21 s runtime, 60 s wait |
+| Canonical census regeneration | 589 checked / 355 incomplete / 80 refused | 5.35 s runtime / 65.35 s command, 60 s wait |
+| New-row comparison and compiled controls at `d3688570` | 21,437 checks; 9/9 caught, zero stops | 197.2 s row / 317.34 s command, 120 s wait |
+| Other thirty initial affected rows | 132,857 checks, 30/30 pass | 403.89 s runtime / 523.89 s command, 120 s wait |
+| Main integration replay at `71a6d23f` | 27/27 pass | 390.73 s runtime / 450.73 s command, 60 s wait |
+| UI integration replay at `04879bea` | 9/9 pass | 128.15 s runtime / 248.15 s command, 120 s wait |
+| Corrected host positive replay | 21,437 checks, pass | 168.8 s row / 168.88 s command, 0 s wait |
+| Initial portable affected | 1,563 tests, 1,288 passed / 275 expected skips, zero failures/errors | 406.7 s runner / 479.69 s command |
+| Permitted portable integration | 1,792 tests, 1,454 passed / 338 expected skips, zero failures/errors | 362.9 s runner / 850.37 s command, 360 s wait |
+| Private 8d reduced at `0c7c2223` | 2/2 pass, zero skips | 165.64 s command, 0 s wait |
+| Explicit rebuilt-world identity replay | 227/230 hashes, all 45 unaffected views identical | 70.93 s command, 0 s wait |
+| Seven GL proof scenes | six actor representatives plus empty control, inspected | 6.37 s render / 126.45 s command, 120 s wait |
+| Earlier staged source audit | 2,282 files, zero rejected | 29.25 s |
 
-UI-WINDOWS-003 has since merged as `a95880c4`; do not merge it while the current
-validator processes read the tree. Next: finish the frozen replay, integrate UI,
-recheck only its affected compiled inputs, run the permitted portable delta,
-private 8d reduced, identity/proofs and final docs/audit, then publish/queue/clean.
-No PR or ready entry exists. The nine actor controls remain at `d3688570`; their
-target source is unchanged by the renderer integration.
+Command walls include the stated resource waits and selection where applicable.
+Final publication audit and documentation-consumer results are recorded in the PR.
 
-Checkpoint 2026-11-15 00:58: main through UI-WINDOWS-003 `a95880c4` is integrated
-as `04879bea`. Its nine affected validator rows pass, 128.15 s plus a
-120 s resource wait. The earlier 27-row integration replay also passes,
-390.73 s plus a 60 s wait. Final selected coverage is 29 rows / 138,721
-checks with zero failures/errors/skips. Per-row tested commits are retained.
-The refined census separates classes 1/5/10 sword-sprite work and partitions
-all 905 initial rows into thirty groups. Portable integration is waiting on
-load; the wrapper excludes temporary app packaging. Left: permitted portable
-integration, private 8d reduced, identity/proofs, final docs/audit and PR/ready
-publication and cleanup. No PR or ready entry exists yet.
 
-Checkpoint 2026-11-15 01:16: portable integration passes 1,792 tests, 1,454 passed /
-338 expected skips / zero failures or errors, 362.9 s runner and 850.37 s
-command including 360 s resource wait. Private 8d reduced passes both actor
-tests, zero skips, 165.64 s command. Explicitly rebuilt identity passes
-227/230 file hashes and all 45 unaffected views; the three differences are
-exactly INNER-004 Kanturu-37 PNGs/report. After binary is
-`0b9bcf21d7766ce6da790a63e96826e5cd432183ea2ae21c56a5817b2516133d`.
-Proof rendering is waiting on load. Final review moves the native test host
-result publication after resource cleanup, so a cleanup failure cannot leave
-a successful row in the batch. This output-only host correction needs the
-new-row positive replay; production code, checks and compiled-mutant targets
-are unchanged. Left: proof renders, focused positive replay, final docs/audit,
-PR/ready publication and cleanup. No PR or ready entry exists yet.
+**8d reduced:** portable selection exceeds forty work items, so the private
+finish runs the only native test module added by this lane,
+`native.tests.test_actor_plain`, from repo root with
+`. ~/Documents/MTM/mu-mac-tools/native/private-env.sh`. The broader portable
+selection covers direct actor consumers, including world parts. No full lane
+gate ran. The steward owns the combined gate.
+
+The first portable run accidentally selected `test_native_app.py`. Its fixture
+built and signed a temporary test bundle, ran eighteen synthetic tests and
+skipped the installed-game test. Its teardown removed that bundle; no installed
+Preview app changed. This was outside the brief's no-packaging scope. The
+integration portable run explicitly excludes that module and performs no
+further packaging.
+
+| Steward validator | Checks | Wall | Tested commit |
+|---|---:|---:|---|
+| `validate_actor_composites` | 1,427 | 11.9 s | `71a6d23f` |
+| `validate_actor_monsters` | 1,437 | 67.3 s | `71a6d23f` |
+| `validate_actor_plain` | 21,437 | 168.8 s | `4f9f92bb` |
+| `validate_actor_recipes` | 1,669 | 118.3 s | `71a6d23f` |
+| `validate_app_polish1` | 752 | 26.0 s | `04879bea` |
+| `validate_app_polish2` | 1,028 | 6.5 s | `04879bea` |
+| `validate_app_polish4` | 10,485 | 54.5 s | `04879bea` |
+| `validate_audio_callers` | 5,528 | 7.2 s | `04879bea` |
+| `validate_audio_combat` | 19,548 | 45.3 s | `d3688570` |
+| `validate_audio_domains` | 2,544 | 41.0 s | `04879bea` |
+| `validate_audio_items` | 3,000 | 4.9 s | `04879bea` |
+| `validate_audio_objects` | 4,000 | 5.1 s | `71a6d23f` |
+| `validate_audio_objects4` | 10,093 | 8.4 s | `71a6d23f` |
+| `validate_charsel_items` | 8,817 | 10.1 s | `71a6d23f` |
+| `validate_icarus_c2` | 8,400 | 26.9 s | `71a6d23f` |
+| `validate_inventory_fx` | 8,017 | 8.9 s | `71a6d23f` |
+| `validate_item_callers` | 6,013 | 1.3 s | `71a6d23f` |
+| `validate_items_ui` | 8,517 | 12.4 s | `71a6d23f` |
+| `validate_movement` | 6,614 | 97.1 s | `04879bea` |
+| `validate_render_effects16` | 424 | 5.5 s | `04879bea` |
+| `validate_render_effects17` | 618 | 12.1 s | `71a6d23f` |
+| `validate_render_effects18` | 540 | 1.4 s | `71a6d23f` |
+| `validate_render_effects19` | 400 | 1.0 s | `71a6d23f` |
+| `validate_render_effects24` | 226 | 3.0 s | `71a6d23f` |
+| `validate_render_effects25` | 202 | 11.3 s | `71a6d23f` |
+| `validate_render_effects26` | 348 | 10.6 s | `71a6d23f` |
+| `validate_render_effects28` | 630 | 2.7 s | `71a6d23f` |
+| `validate_viewport_monsters` | 1,963 | 13.4 s | `d3688570` |
+| `validate_worlds_fog` | 4,044 | 12.9 s | `04879bea` |
+
+Steward validators: validate_movement, validate_viewport_monsters, validate_icarus_c2, validate_audio_callers, validate_audio_combat, validate_audio_domains, validate_audio_items, validate_app_polish1, validate_app_polish2, validate_app_polish4, validate_render_effects16, validate_worlds_fog, validate_render_effects17, validate_item_callers, validate_inventory_fx, validate_render_effects18, validate_render_effects19, validate_render_effects24, validate_render_effects25, validate_actor_recipes, validate_charsel_items, validate_render_effects26, validate_actor_composites, validate_audio_objects, validate_render_effects28, validate_items_ui, validate_actor_monsters, validate_actor_plain, validate_audio_objects4
+
+Mutants needed by steward: none. Use the canonical private environment from
+repo root. Every validator result above is private with zero skips. The table
+names the source commit for each retained or replayed result, so unchanged
+compiled inputs need no redundant run.
+
+## Identity and proof renders
+
+The baseline at ACTORS-005 `e3347dd7` covers 46 views, 92 PNGs, 92 geometry
+dumps and 46 normalized reports, 230 files, 79.36 s. Both sides explicitly run
+`make -C native -j4 world` before hashing. Only report output-directory prefixes
+are normalized.
+
+- Before SHA-256: `f58907ce03d1fb3658445cdcfa3a9eaa86772f8738012769ecb756ba474f4fb5`.
+- After SHA-256: `0b9bcf21d7766ce6da790a63e96826e5cd432183ea2ae21c56a5817b2516133d`.
+
+The rebuilt binary hashes differ. Exactly 227/230 file hashes are unchanged:
+90/92 PNGs, 92/92 geometry dumps and 45/46 normalized reports. All 45
+unaffected views are identical. The only differences are world-37 Kanturu's
+two PNGs and report, exactly the incoming INNER-004 RGBA seam change. The
+comparison asserts that precise three-file set, not a general exclusion.
+No default capture gains a change from the actor plan integration. The final
+replay takes 70.88 s including the explicit world rebuild.
+
+The seven GL proof scenes use world 0, DemoKnight at 128,124 and DemoActor
+at 129,125, direction 5, 640x480, two frames, fixed clock 123456 ms, hidden
+names and no extra players/environment/particles/helpers/audio. Ordinary
+classes 2/3/308 and repeated-default classes 68/405/572 are visibly textured.
+Against the empty control, changed pixels are 2 = 599, 3 = 859, 68 = 3,792, 308 = 4,980, 405 = 3,792, 572 = 3,792. The empty
+control has zero changed pixels. All six bodies were visually inspected.
+The render work takes 6.37 s. Temporary images/reports are removed
+at cleanup; no new private input is needed by a later lane.
+
+## Limits and next work
+
+The plans certify selected fixture body contexts, not whole-world, buff,
+motion, shadow/fade, temporal or original-pixel equivalence. Constructor state
+outside the uniform group remains incomplete. Class 918's exact Monster411
+body has two missing mesh textures; no substitute filename is guessed.
+
+Classes 1/5/10 still need the sword sprite after the ordinary weapon caller.
+Classes 595/635 still need the type-226 effect's move/draw/retirement path;
+gnomedie is an owned death-effect lifetime, not a persistent attached body.
+Classes 374/642 still require companion lifetime, 378 cloth/aura and 617 its
+exact startup file. These four refusal boundaries stay unchanged. No hard
+case beyond the uniform group was admitted.
+
+Next work can batch another uniform missing-plan group using the published
+selector lists, or complete one of those caller/lifetime paths. Preserve the
+constructor state and missing-asset exclusions until their own proof passes.
+
+## WIP checkpoints and delivery
+
+Pushed checkpoints include `fabfdf96`, `a41224f5`, `ea62a672`, `e18e919a`,
+`33f20c82`, `c936b407`, `0c7c2223` and `4f9f92bb`. Earlier provisional
+admissions are superseded by the final 550-row result. The initial stack was PR #389 at `e3347dd7`; its merged
+history is retained. Main through `a95880c4` is integrated at `04879bea`.
+The test-host output correction is committed at `4f9f92bb`; its positive
+replay passes. Later delivery changes are documentation only. All implementation
+and source checks above pass. The final push and PR precede the ready entry;
+no push follows it. The steward owns merge and the combined gate. Temporary
+renders/reports/builds, this worktree and its local branch are removed at
+readiness. The remote branch remains for the steward. Ready for steward.
