@@ -200,3 +200,22 @@ actual audio incoming-input selector since 63752052 and its checks, then the
 prepared portable affected run, private reduced native modules, actual-asset
 skill renders, final explicit rebuilt identity, docs/PR/ready line and cleanup.
 No PR or ready line exists. All outputs remain disposable and lane-scoped.
+
+## WIP checkpoint 8, 13:05 local
+
+Done: all 73 AUDIO-005 incoming-input validators pass, zero failures/errors/
+skips, 1,099.376 s. Registered 033 still passes all 6,410 checks on that tree.
+The canonical main advanced to INNER-005 d3ec9950; it merged cleanly at
+ ef6f7e20. Root build passes in 20.570 s. Consumer/caller/native callback source
+is unchanged from 264248c6, and all incoming producer lines are retained.
+No compiled control is repeated. The prior current Steward selection was 85
+rows; the inner-world merge selector is next.
+
+Left: validate the actual INNER-005 input delta, then run the prepared portable
+and private native checks, final actual-asset skill renders, explicit rebuilt
+identity, latest-main check and final docs/PR/ready entry/cleanup. No PR or ready
+entry exists. No installed app or Native Data work occurred.
+
+Next: inner_selections.py, inner_validators.py, then selected_tests.py in
+portable mode and private_tests.py with canonical private-env. The completed
+73-row results are in verify-runs/audio005. Keep source stable while checks run.
