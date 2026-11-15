@@ -15,18 +15,13 @@ static int presentation_overlay6(int m)
     return m==MU_GFX_MAP_NAME;
 }
 
-static void presentation_fixture6(mu_gfx_layer *L, int m)
-{
-    if(m==MU_GFX_MAP_NAME) invokef(L,m,L->mv[m].path,"InitText","[]");
-}
-
-static int map_banner_open(mu_gfx_layer *L, int world, const char *name)
+static int map_banner_open(mu_gfx_layer *L, const char *name)
 {
     movie *w=&L->mv[MU_GFX_MAP_NAME];
     char q[160];
-    if(world==0x28) return 0;                     /* 0x00baee6b */
     invokef(L,w->id,w->path,"InitText","[]");
     L->map_banner_start_ms=L->time_ms;            /* 0x00baee94 */
+    logf_(L,"%s lifetime timer start",w->file);
     json_quote(q,sizeof q,name);
     invokef(L,w->id,w->path,"SetMapName","[%s]",q);
     mu_gfx_layer_show(L,w->id,1);                 /* 0x00baf0e2 */
@@ -39,17 +34,16 @@ int mu_gfx_layer_map_arrival(mu_gfx_layer *L, int kind, int number, int world, c
     if(kind!=MU_GFX_ARRIVAL_JOIN && kind!=MU_GFX_ARRIVAL_RESPAWN && kind!=MU_GFX_ARRIVAL_TELEPORT) return 0;
     /* Teleport tail 0x01281e6e..0x01281eab: numbered answers only. */
     if(kind==MU_GFX_ARRIVAL_TELEPORT && !number) return 0;
-    if(world==0x28) return 0;
+    if(world==0x28) return 0;                     /* open method, 0x00baee6b */
     if(!presentation_available3(L,MU_GFX_MAP_NAME)) {
         /* Native load order: the offline join precedes the movie's UIInit.
          * The latest arrival is held and opens on the first ready frame. */
         L->map_banner_pending=1;
-        L->map_banner_world=world;
         snprintf(L->map_banner_name,sizeof L->map_banner_name,"%s",name);
         return 1;
     }
     L->map_banner_pending=0;
-    return map_banner_open(L,world,name);
+    return map_banner_open(L,name);
 }
 
 static void presentation_tick6(mu_gfx_layer *L)
@@ -57,7 +51,7 @@ static void presentation_tick6(mu_gfx_layer *L)
     movie *w=&L->mv[MU_GFX_MAP_NAME];
     if(L->map_banner_pending && presentation_available3(L,MU_GFX_MAP_NAME)) {
         L->map_banner_pending=0;
-        map_banner_open(L,L->map_banner_world,L->map_banner_name);
+        map_banner_open(L,L->map_banner_name);
         return;
     }
     /* 0x00baf120: loaded and open, elapsed >= 5000 ms: restart, close. */

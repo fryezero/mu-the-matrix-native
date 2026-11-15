@@ -20,7 +20,6 @@ static void presentation_init(mu_gfx_layer *L)
         presentation_fixture3(L,m);
         presentation_fixture4(L,m);
         presentation_fixture5(L,m);
-        presentation_fixture6(L,m);
         switch (m) {
         case MU_GFX_COMMAND:
             invokef(L,m,w->path,"InitTitle","[\"Command\"]");

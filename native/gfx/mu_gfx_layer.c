@@ -305,7 +305,7 @@ struct mu_gfx_layer {
     int order[MU_GFX_MOVIES];   /* window z-order, bottom first */
     int norder;
     unsigned presentation_ready;
-    int map_banner_pending, map_banner_world;   /* UI-WINDOWS-006 */
+    int map_banner_pending;     /* UI-WINDOWS-006 */
     double map_banner_start_ms;
     char map_banner_name[64];
     int automatic_leave_pending;
