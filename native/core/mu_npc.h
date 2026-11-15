@@ -130,6 +130,7 @@ typedef struct mu_npc {
     void (*open)(void *context, const mu_npc_open *open);
     void (*close_all)(void *context);
     void (*sound)(void *context, int32_t id);
+    int ordered_window_sounds;  /* UI host: close/open before ReceiveTalk sound tail */
     void *context;
     mu_npc_stats stats;
     char log[32][112];
