@@ -47,15 +47,18 @@ No production selection, inventory, power, packets, authoritative targets, proce
 The first portable batch passes: 1,543 tests, 1,269 passed, 274 skips, zero failures/errors, 460.08 s.
 It predates the final special-row integration. The special-row root build passes in 11.70 s; its private
 module passes 3/3 in 16.03 s, with 450 original cases and GL/software controls for all five models.
-The new special-row mutant set and affected refresh remain pending.
+Special mutants: 16/17 caught in 6.77 s. The fade-speed mutant was initially hidden by clamping.
+Two deterministic unsaturated cases were added; its focused retry compiles and catches it.
+All 17 distinct special mutants are now caught, with the other sixteen not repeated. Full baseline now 452 cases.
+Affected refresh remains pending.
 
 ## WIP
 
 Done: recovered rider gate/placement, secondary request producer, owner-kind-2 subtraction, buff mode and
 remote expiry. Native integration builds; focused prior secondary tests pass. New tests and mutant row added.
-Left: special-row mutants, final affected refresh, reduced private Muun modules, identity/proof checks,
+Left: final affected refresh, reduced private Muun modules, identity/proof checks,
 research/status text and PR delivery.
-Next: run the new special-row mutants once, then refresh the affected validators/tests and finish delivery.
+Next: refresh the affected validators/tests for the special-row source, then finish private/proof/identity and delivery.
 
 Scratch and proof renders are under `~/Documents/MTM/mu-mac-tools/native/{scratch,renders}/muun-visual-004`.
 No new future-lane input has been created. No ready queue entry exists yet.

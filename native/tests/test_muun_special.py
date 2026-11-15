@@ -40,7 +40,7 @@ class Original(unittest.TestCase):
             subprocess.run([sys.executable,str(ROOT/'scripts/validate_muun_special.py'),'--installed','--output',str(out)],
                            check=True,capture_output=True,cwd=ROOT)
             r=json.loads(out.read_text())
-        self.assertTrue(r['all_equal'],r);self.assertEqual(r['cases'],450)
+        self.assertTrue(r['all_equal'],r);self.assertEqual(r['cases'],452)
         self.assertGreater(r['families']['installed']['cases'],0)
         self.assertGreater(r['families']['ordered']['cases'],0)
         self.assertGreater(r['families']['refusal']['cases'],0)

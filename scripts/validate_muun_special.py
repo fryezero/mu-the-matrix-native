@@ -57,6 +57,10 @@ def samples(count,installed):
         for clock in (2147483648.0,-2147483904.0,float('nan'),float('inf'),-float('inf')):
             r=bytearray(300);struct.pack_into('<ii',r,0,8347,mesh);struct.pack_into('<I',r,0x124,2)
             yield 0x2b8e,[bytes(r)],0,clock,1.0,0.0,'synthetic'
+    for model in (0x2b7a,0x2b7b):
+        r=bytearray(300);struct.pack_into('<ii',r,0,8347,2);struct.pack_into('<f',r,0x114,.9)
+        struct.pack_into('<I',r,0x124,2)
+        yield model,[bytes(r)],2,0,.04,1.0,'synthetic'
     if installed:
         records=vp.decoded('MuunRenderInfo.bmd');meshes=vp.decoded('MuunMeshInfo.bmd')
         for model in MODELS:
@@ -128,7 +132,9 @@ MUTANTS=[('clock_guard','? INT32_MIN :','? 0 :'),('bone1','model == 0x2b8d && me
  ('atlas_period','(20 * frames)) / 20','(20 * frames)) / 10'),('atlas_u','frame % 4','frame % 3'),
  ('atlas_v','frame / 4','frame / 3'),('atlas_flags','pass->flags = 0x42','pass->flags = 2'),
  ('atlas_blend','pass->blend = pass->mesh','pass->blend = -1'),('atlas_texture','pass->texture = -1','pass->texture = 0')]
-def run(count,mutations,installed):
+def run(count,mutations,installed,only_mutants=None):
+    if only_mutants is not None and not only_mutants <= {m[0] for m in MUTANTS}:
+        raise ValueError('unknown mutant name in focused selection')
     start=time.monotonic();text=pins.load_pinned(pins.TEXT.default_str(),pins.TEXT.size,pins.TEXT.sha256,'text')
     data=pins.load_pinned(pins.DATA.default_str(),pins.DATA.size,pins.DATA.sha256,'data');machine=vc.Combat(text,data)
     source=(ROOT/'reconstructed/muun/special.c').read_text()
@@ -136,6 +142,7 @@ def run(count,mutations,installed):
         p=Path(td);(p/'base').mkdir();families=compare(build(p/'base',source),machine,count,installed);mutants={}
         if mutations:
             for name,old,new in MUTANTS:
+                if only_mutants is not None and name not in only_mutants:continue
                 if source.count(old)!=1:raise ValueError(name+' ambiguous anchor')
                 (p/name).mkdir();rows=compare(build(p/name,source.replace(old,new)),machine,min(count,40),False)
                 mutants[name]={'caught':sum(r['mismatches'] for r in rows.values())}
@@ -145,7 +152,8 @@ def run(count,mutations,installed):
         'wall_seconds':time.monotonic()-start}
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--cases',type=int,default=200);p.add_argument('--installed',action='store_true')
-    p.add_argument('--mutations',action='store_true');p.add_argument('--output',type=Path);a=p.parse_args()
-    r=run(a.cases,a.mutations,a.installed)
+    p.add_argument('--mutations',action='store_true');p.add_argument('--only-mutants',help='focused retry of named comma-separated mutants')
+    p.add_argument('--output',type=Path);a=p.parse_args()
+    r=run(a.cases,a.mutations or bool(a.only_mutants),a.installed,set(a.only_mutants.split(',')) if a.only_mutants else None)
     if a.output:a.output.parent.mkdir(parents=True,exist_ok=True);a.output.write_text(json.dumps(r,indent=2)+'\n')
     print(json.dumps(r,indent=2));sys.exit(0 if r['all_equal'] and r['all_mutants_caught'] else 1)
