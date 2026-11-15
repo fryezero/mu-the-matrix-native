@@ -67,6 +67,7 @@ int mu_pt_kind_supported(int32_t type, int32_t subtype)
     switch (type) {
     case MU_PT_BITMAP_FIRE:
         return (subtype >= 0 && subtype <= 6) || subtype == 17;
+    case 0x7f3e: return subtype == 10; /* RENDER-EFFECTS-033, Fire03 */
     case MU_PT_BITMAP_FIRE06:
         /* RENDER-EFFECTS-016: the stones' one-in-ten particle (subtype rand % 3 + 1). CreateParticle's jump table
          * 0x01615f68 (byte 1, 0x015ba585), MoveParticles' 0x0168eee0 (byte 0, 0x016282c9) and RenderParticles'
@@ -289,8 +290,13 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
     switch (type) {
     case MU_PT_BITMAP_FIRE:
     case MU_PT_BITMAP_FIRE06:
+    case 0x7f3e:
         /* 0x015ba585, subtype table 0x01616318 */
-        if (subtype == 0) {                         /* 0x015ba5b3 */
+        if (subtype == 10) { /* 0x015bac73, Fire03 target-ice child */
+            p->lifetime = 24;
+            p->velocity[1] = -(float)(mu_pt_rand(h) % 16 + 32) * 0.1f;
+            p->rotation = (float)(mu_pt_rand(h) % 360);
+        } else if (subtype == 0) {                         /* 0x015ba5b3 */
             p->lifetime = 24;
             p->velocity[0] = 0.0f;
             p->velocity[1] = -(float)(mu_pt_rand(h) % 16 + 32) * 0.1f;
@@ -739,9 +745,11 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
         else switch (p->type) {
         case MU_PT_BITMAP_FIRE:
         case MU_PT_BITMAP_FIRE06:
+        case 0x7f3e:
             /* 0x016282c9, subtype table 0x0168f278 */
             p->gravity = p->gravity + 0.004f;
-            if (p->subtype == 0 || p->subtype == 5 || p->subtype == 6 || p->subtype == 17) {
+            if (p->subtype == 10) p->scale *= 0.95f; /* 0x01628b03 */
+            else if (p->subtype == 0 || p->subtype == 5 || p->subtype == 6 || p->subtype == 17) {
                 p->scale = p->scale - 0.04f;                 /* 0x016282f7 / 0x016283eb */
                 if (p->subtype != 0)
                     p->rotation = p->rotation + 5.0f;
@@ -1179,6 +1187,7 @@ int mu_pt_render_record(mu_pt_particle *p, const mu_pt_bitmap *b, uint8_t mode, 
     switch (p->type) {
     case MU_PT_BITMAP_FIRE:
     case MU_PT_BITMAP_FIRE06:
+    case 0x7f3e:
         /* 0x015978bb (subtypes 5, 17: the record's rotation) / 0x01597adf (the angle's x) */
         s->width = width * 0.25f;
         s->rotation = (p->subtype == 5 || p->subtype == 17) ? p->rotation : p->angle[0];
