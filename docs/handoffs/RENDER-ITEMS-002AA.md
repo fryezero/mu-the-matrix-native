@@ -131,3 +131,21 @@ remain unchanged. Next: merge current main (batch 117 is now present), root buil
 affected-since selectors from tested `fd89b9fc`, run only that refresh and appropriate private native
 consumers, then one rebuilt default identity sweep plus fifty-type item proofs. Finish all docs/audit/PR
 and pushes before the ready entry, then cleanup. No ready entry exists.
+
+At the 13:35 checkpoint: batch 117 main `d3ec9950` is integrated at `6415870d`. Root build passes
+(22.66 s); all 249 main registry entries are unchanged plus the four lane additions. Item/particle
+sources, generators and the renderchar verifier are unchanged across this merge. The reviewed
+validator selector since `fd89b9fc` has 78/253 rows (94.28 s), including every conservative fallback;
+none of the four new item rows is selected. It adds fifty names to the old 76-row set, for a final
+126-row union. The portable selector has 174/221 items (85.83 s), 167 native, so 8d remains reduced.
+Currently 51/78 main-refresh rows pass without mutants, no failures/errors/skips. The active foreground
+command logs to `refresh-private.log`, with per-row reports in `refresh-private/`; after success it
+runs the portable affected-since pass (`refresh-portable.log`) and private native consumers
+(`refresh-native.log`). Do not start duplicates. After all pass, rerun the local `evidence-table.py`
+helper to produce the full 126-row table/list; the earlier 76-row list alone is not the final ready list.
+Fifty exact model paths resolve with no missing asset and no proxies. The proof helper uses wings
+and shields in their native viewer slots, weapons in weapon0, and the nine miscellaneous callers
+as declared in-hand fixtures. It records model hashes and diagnostics. No item proof/default sweep
+has run yet. Next: complete this refresh, inspect all results, latest-main check, the single explicitly
+rebuilt default sweep with item proofs, final handoff/status/research/PR and audit, all pushes, ready
+entry and cleanup. No ready entry exists.
