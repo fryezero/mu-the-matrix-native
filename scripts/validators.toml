@@ -3731,3 +3731,20 @@ args = ["--cases", "200", "--mutations", "--output", "{report}"]
 [validate_muun_secondary.expect]
 all_equal = true
 all_mutants_caught = true
+
+[validate_worlds_inner4]
+test = "reconstructed/objects/test_worlds_inner4.py::ClientComparison.test_original"
+pins = ["text", "data"]
+families = ["barracks", "barracks_focus", "crywolf", "crywolf_focus", "kalima", "kalima_focus", "tower", "tower_focus"]
+cases = 8000
+mutants = 42
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+note = "INNER-004: complete Crywolf/Barracks leaves and bounded Kalima/tower inline branches; Kalima 15/29/32 and tower 0 explicitly excluded and refused, visual-only sound boundary"
+[validate_worlds_inner4.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0
