@@ -1,0 +1,137 @@
+movie,classification,site,function,roots,chains
+ArkaBattleNotice.swf,state-dependent,0x00d7b6e7,0x00d7b65c,table,table: 0x00d7b6e7 <- 0x01aa6174
+ArkaBattleProgress.swf,state-dependent,0x00d7b6cd,0x00d7b65c,table,table: 0x00d7b6cd <- 0x01aa6174
+ArkaBattleRegister.swf,state-dependent,0x0128ae88,0x01287ead,server-response,server-response: 0x0128ae88
+ArkaResultInfo.swf,route proved + provider missing,0x00b2475e,0x00b243a2,server-response,server-response: 0x00b2475e <- 0x0128aa22
+ArtifactFrame.swf,route proved + provider complete,0x00b97edf,0x00b97754,table,table: 0x00b97edf <- 0x01a903a8
+ArtifactInfoPopup.swf,route proved + provider missing,0x00b2ae8f,0x00b2ad8e,table,table: 0x00b2ae8f <- 0x00cda3fc <- 0x00c70a77 <- 0x01a86368
+BattleCoreDialog.swf,state-dependent,0x00b2ea3e,0x00b2e9c1,table,table: 0x00b2ea3e <- 0x01a89928
+BattleCoreDialog.swf,state-dependent,0x00b2ea90,0x00b2e9c1,table,table: 0x00b2ea90 <- 0x01a89928
+BattleCoreDialog.swf,state-dependent,0x00b2eadf,0x00b2e9c1,table,table: 0x00b2eadf <- 0x01a89928
+BattleCoreEnter.swf,state-dependent,0x00c59e48,0x00c59cd4,table,table: 0x00c59e48 <- 0x00c58d46 <- 0x01a86568
+BattleCoreEnter.swf,state-dependent,0x0169a6fc,0x01697c17,table;uncalled,table: 0x0169a6fc <- 0x00efdbae <- 0x00efc51d <- 0x01ab04a0 | uncalled: 0x0169a6fc <- 0x016a9ba7 <- 0x01856d3a <- 0x01851ea1 <- 0x01859e4b <- 0x0120ef38 <- 0x0191cca4 <- 0x0191c81e
+BombHunt.swf,state-dependent,0x0122707f,0x01226e6f,server-response,server-response: 0x0122707f <- 0x012890c7
+BossHpUI.swf,route proved + provider missing,0x00984a73,0x00984a2a,uncalled,uncalled: 0x00984a73 <- 0x009848b1 <- 0x01856d57 <- 0x01851ea1 <- 0x01859e4b <- 0x0120ef38 <- 0x0191cca4 <- 0x0191c81e
+BoxOfBlessEvent.swf,state-dependent,0x012277a9,0x01227596,server-response,server-response: 0x012277a9 <- 0x0128926f
+CursedTempleEnter.swf,state-dependent,0x0169a4b3,0x01697c17,table;uncalled,table: 0x0169a4b3 <- 0x00efdbae <- 0x00efc51d <- 0x01ab04a0 | uncalled: 0x0169a4b3 <- 0x016a9ba7 <- 0x01856d3a <- 0x01851ea1 <- 0x01859e4b <- 0x0120ef38 <- 0x0191cca4 <- 0x0191c81e
+CursedTempleinfo.swf,state-dependent,0x009faa76,0x009fa4d1,server-response,server-response: 0x009faa76 <- 0x01230e81 <- 0x0128bfe8
+CursedTempleinfo.swf,state-dependent,0x009fae13,0x009faa8b,server-response,server-response: 0x009fae13 <- 0x01230eab <- 0x0128c1c4
+CursedTempleinfo.swf,state-dependent,0x009fc684,0x009fc5e1,server-response,server-response: 0x009fc684 <- 0x01231343 <- 0x0128c1a8
+CursedTempleinfo.swf,state-dependent,0x009fc7d6,0x009fc5e1,server-response,server-response: 0x009fc7d6 <- 0x01231343 <- 0x0128c1a8
+CursedTempleMatchMenu.swf,state-dependent,0x012312cb,0x01230f9d,server-response,server-response: 0x012312cb <- 0x0128c17e
+CursedTempleResult.swf,route proved + provider missing,0x00b4fb04,0x00b4f971,server-response,server-response: 0x00b4fb04 <- 0x01230d38 <- 0x0128c012
+CursedTempleResult.swf,route proved + provider missing,0x00b4fb90,0x00b4fb31,server-response,server-response: 0x00b4fb90 <- 0x01230f70 <- 0x0128c1e0
+CursedTempleScore.swf,route proved + provider missing,0x00b5023d,0x00b50209,server-response,server-response: 0x00b5023d <- 0x009fa5b2 <- 0x01230e81 <- 0x0128bfe8
+DeathPenaltyExpRecovery.swf,route proved + provider missing,0x00c5a4cd,0x00c5a254,table,table: 0x00c5a4cd <- 0x00c58d80 <- 0x01a86568
+DivideWindow.swf,route proved + provider missing,0x00ab8781,0x00ab83e4,table,table: 0x00ab8781 <- 0x01a83c38
+Duel.swf,route proved + provider missing,0x00b54176,0x00b53f4b,server-response,server-response: 0x00b54176 <- 0x0123676a <- 0x0128b29e
+DuelWatch.swf,route proved + provider complete,0x00b548f2,0x00b54793,server-response,server-response: 0x00b548f2 <- 0x01280c93 <- 0x01288786
+ElementalMix.swf,route proved + provider complete,0x01280f44,0x01280659,server-response,server-response: 0x01280f44 <- 0x01288786
+EnterEmpireGuardian.swf,state-dependent,0x0169aafd,0x01697c17,table;uncalled,table: 0x0169aafd <- 0x00efdbae <- 0x00efc51d <- 0x01ab04a0 | uncalled: 0x0169aafd <- 0x016a9ba7 <- 0x01856d3a <- 0x01851ea1 <- 0x01859e4b <- 0x0120ef38 <- 0x0191cca4 <- 0x0191c81e
+EventInfo.swf,state-dependent,0x00b4f3e8,0x00b4f1b7,table,table: 0x00b4f3e8 <- 0x01a8bac0
+EventInfo.swf,state-dependent,0x00b51670,0x00b51608,table,table: 0x00b51670 <- 0x01a8be50
+EventInfo.swf,state-dependent,0x0123128b,0x01230f9d,server-response,server-response: 0x0123128b <- 0x0128c17e
+EventInfo.swf,state-dependent,0x012343bf,0x01233f4b,server-response,server-response: 0x012343bf <- 0x0128d711
+EventInfo.swf,state-dependent,0x01266c14,0x01266b3f,server-response,server-response: 0x01266c14 <- 0x0128c162
+EventInfo.swf,state-dependent,0x01268060,0x01267f7f,server-response,server-response: 0x01268060 <- 0x0128c239
+EventInfo.swf,state-dependent,0x012697a2,0x012696df,server-response,server-response: 0x012697a2 <- 0x0128d71c
+EventInfo.swf,state-dependent,0x0126a47c,0x0126a433,server-response,server-response: 0x0126a47c <- 0x0128d727
+EventInfo.swf,state-dependent,0x012803cb,0x012801a9,server-response,server-response: 0x012803cb <- 0x0128b4f1
+EventInfo.swf,state-dependent,0x0169a0fe,0x01697c17,table;uncalled,table: 0x0169a0fe <- 0x00efdbae <- 0x00efc51d <- 0x01ab04a0 | uncalled: 0x0169a0fe <- 0x016a9ba7 <- 0x01856d3a <- 0x01851ea1 <- 0x01859e4b <- 0x0120ef38 <- 0x0191cca4 <- 0x0191c81e
+EventInventoryFrame.swf,state-dependent,0x0107e047,0x0107dd9d,table,table: 0x0107e047 <- 0x0107d5d5 <- 0x00c1e3cc <- 0x01a98f98
+EventInventoryFrame.swf,state-dependent,0x0126f146,0x0126f089,server-response,server-response: 0x0126f146 <- 0x01289003
+EventInventoryFrame.swf,state-dependent,0x0126f168,0x0126f089,server-response,server-response: 0x0126f168 <- 0x01289003
+EventInventoryFrame.swf,state-dependent,0x0126f21d,0x0126f089,server-response,server-response: 0x0126f21d <- 0x01289003
+EventMapEntranceUI.swf,state-dependent,0x00c71584,0x00c714bd,table;uncalled,table: 0x00c71584 <- 0x00c1add1 <- 0x01a98a70 | uncalled: 0x00c71584 <- 0x00c714b5 <- 0x01851e69 <- 0x01859e4b <- 0x0120ef38 <- 0x0191cca4 <- 0x0191c81e
+EventMapEntranceUI.swf,state-dependent,0x00efc0f8,0x00efbfd0,table,table: 0x00efc0f8 <- 0x01ab04a0
+EventMapHelper.swf,route proved + provider missing,0x00b04ba3,0x00b04b0f,table,table: 0x00b04ba3 <- 0x00b057e8 <- 0x01a87778
+EventMapHelper.swf,route proved + provider missing,0x00be5405,0x00be4b89,table,table: 0x00be5405 <- 0x01a94fc4
+EventMapHelper.swf,route proved + provider missing,0x00be5453,0x00be4b89,table,table: 0x00be5453 <- 0x01a94fc4
+EventMapRoundCount.swf,route proved + provider missing,0x00b6d2a5,0x00b6d27c,server-response;table,server-response: 0x00b6d2a5 <- 0x009d3852 <- 0x0128d94b | table: 0x00b6d2a5 <- 0x00b502c3 <- 0x01a8bc98
+EventMapRoundCount.swf,route proved + provider missing,0x00b6d2fb,0x00b6d2e2,server-response,server-response: 0x00b6d2fb <- 0x00a0dd91 <- 0x00a0d4f5 <- 0x01234426 <- 0x0128d748
+EventMapRoundCount.swf,route proved + provider missing,0x00b6d336,0x00b6d31d,server-response,server-response: 0x00b6d336 <- 0x00a0dd47 <- 0x00a0d4f5 <- 0x01234426 <- 0x0128d748
+ExchangeLuckCoin.swf,route proved + provider complete,0x01280c67,0x01280659,server-response,server-response: 0x01280c67 <- 0x01288786
+GoldArcher.swf,route proved + provider missing,0x00b7c086,0x00b7bfe5,server-response,server-response: 0x00b7c086 <- 0x0123fea8 <- 0x0128a35b
+GuardianMix.swf,route proved + provider complete,0x01280931,0x01280659,server-response,server-response: 0x01280931 <- 0x01288786
+GuildCreateFrame.swf,route proved + provider missing,0x0122becc,0x0122bea4,server-response,server-response: 0x0122becc <- 0x01289b38
+GuildPosition.swf,route proved + provider missing,0x00b87b96,0x00b87b6c,table,table: 0x00b87b96 <- 0x00b86a28 <- 0x01a8ee7c
+HarmonyMix.swf,route proved + provider complete,0x01280a96,0x01280659,server-response,server-response: 0x01280a96 <- 0x01288786
+HarmonyMix.swf,route proved + provider complete,0x01280ad2,0x01280659,server-response,server-response: 0x01280ad2 <- 0x01288786
+ImageNotice.swf,route proved + provider missing,0x00b8c00c,0x00b8be17,server-response,server-response: 0x00b8c00c <- 0x0124ae81 <- 0x01288302
+IngameShop.swf,route proved + provider missing,0x01249ab9,0x01249934,server-response,server-response: 0x01249ab9 <- 0x0128cefc
+JewelBingo.swf,state-dependent,0x0124cafc,0x0124ca17,server-response,server-response: 0x0124cafc <- 0x012890f1
+JewelBingo.swf,state-dependent,0x0124cb4b,0x0124ca17,server-response,server-response: 0x0124cb4b <- 0x012890f1
+KanturuEvent.swf,state-dependent,0x0124f02e,0x0124ef61,server-response,server-response: 0x0124f02e <- 0x0128bc35
+LabyrinthInfo.swf,state-dependent,0x00f2b416,0x00f2b13e,server-response;table;uncalled,server-response: 0x00f2b416 <- 0x00f2b58e <- 0x0128c475 | table: 0x00f2b416 <- 0x00d523eb <- 0x01aa4ff0 | uncalled: 0x00f2b416 <- 0x00ec9e78 <- 0x00ec9dca
+LabyrinthInfo.swf,state-dependent,0x012665e1,0x01265d79,server-response,server-response: 0x012665e1 <- 0x0128de8a
+LabyrinthMinimap.swf,state-dependent,0x00bdda47,0x00bdd9b4,table,table: 0x00bdda47 <- 0x01a949a8
+LabyrinthMinimap.swf,state-dependent,0x00efd134,0x00efbfd0,table,table: 0x00efd134 <- 0x01ab04a0
+LabyrinthMinimap.swf,state-dependent,0x0107dab6,0x0107da4a,table,table: 0x0107dab6 <- 0x0107d63f <- 0x00c1e3cc <- 0x01a98f98
+LabyrinthMinimap.swf,state-dependent,0x0126649c,0x01265d79,server-response,server-response: 0x0126649c <- 0x0128de8a
+LabyrinthZoneName.swf,state-dependent,0x0123d652,0x0123d568,server-response,server-response: 0x0123d652 <- 0x0128deea
+LabyrinthZoneName.swf,state-dependent,0x01266713,0x01265d79,server-response,server-response: 0x01266713 <- 0x0128de8a
+LabyrinthZoneName.swf,state-dependent,0x012667d0,0x01265d79,server-response,server-response: 0x012667d0 <- 0x0128de8a
+ListofMatches.swf,route proved + provider missing,0x00b9f429,0x00b9f3f7,server-response,server-response: 0x00b9f429 <- 0x01230c17 <- 0x0128c19a
+MapName.swf,route proved + provider complete,0x0124e15e,0x0124cc64,server-response,server-response: 0x0124e15e <- 0x0126687a <- 0x01288246
+MapName.swf,route proved + provider complete,0x0127c567,0x0127bd9e,server-response,server-response: 0x0127c567 <- 0x01266893 <- 0x01288246
+MapName.swf,route proved + provider complete,0x01281ea7,0x0128136d,server-response,server-response: 0x01281ea7 <- 0x0126685d <- 0x01288246
+MiniGameHelpWindow.swf,route proved + provider missing,0x00bcc99e,0x00bcc5c4,table,table: 0x00bcc99e <- 0x01a935f8
+MiniGameRummy.swf,route proved + provider missing,0x0126f12c,0x0126f089,server-response,server-response: 0x0126f12c <- 0x01289003
+MiniGameRummy.swf,route proved + provider missing,0x0126f203,0x0126f089,server-response,server-response: 0x0126f203 <- 0x01289003
+MixAttributeScalp.swf,route proved + provider complete,0x012809e8,0x01280659,server-response,server-response: 0x012809e8 <- 0x01288786
+MonsterCompensation.swf,state-dependent,0x01253033,0x01253005,server-response,server-response: 0x01253033 <- 0x01288974
+MonsterSoulReward.swf,route proved + provider missing,0x00abca4d,0x00ab8d26,table,table: 0x00abca4d <- 0x01a83c40
+MUMix.swf,route proved + provider complete,0x00bd07ff,0x00bd06ae,table,table: 0x00bd07ff <- 0x00bd0abb <- 0x01a93808
+MuunExchange.swf,route proved + provider complete,0x01280fe8,0x01280659,server-response,server-response: 0x01280fe8 <- 0x01288786
+NpcGateKeeper.swf,route proved + provider missing,0x00f2ad7d,0x00f2abcd,server-response;table;uncalled,server-response: 0x00f2ad7d <- 0x012263e0 <- 0x0128b638 | table: 0x00f2ad7d <- 0x00d5238c <- 0x01aa4ff0 | uncalled: 0x00f2ad7d <- 0x00edcb5d <- 0x00edcb51
+OrdealSquareBattleCnt.swf,state-dependent,0x009d3700,0x009d36d2,server-response,server-response: 0x009d3700 <- 0x0128d915
+OrdealSquareBattleEnter.swf,state-dependent,0x01281016,0x01280659,server-response,server-response: 0x01281016 <- 0x01288786
+OrdealSquareEnterMenu.swf,state-dependent,0x01234411,0x01233f4b,server-response,server-response: 0x01234411 <- 0x0128d711
+OrdealSquareResult.swf,state-dependent,0x009d3c6a,0x009d3a42,server-response,server-response: 0x009d3c6a <- 0x0128d95d
+OrdealSquareResult.swf,state-dependent,0x00a0db8a,0x00a0d9b2,server-response,server-response: 0x00a0db8a <- 0x0126f9f8 <- 0x0128d753
+OrdealSquareScore.swf,state-dependent,0x00984abc,0x00984a2a,uncalled,uncalled: 0x00984abc <- 0x009848b1 <- 0x01856d57 <- 0x01851ea1 <- 0x01859e4b <- 0x0120ef38 <- 0x0191cca4 <- 0x0191c81e
+OrdealSquareScore.swf,state-dependent,0x00985300,0x009852b3,server-response,server-response: 0x00985300 <- 0x009840a6 <- 0x01233f18 <- 0x0128a25c
+OrdealSquareScore.swf,state-dependent,0x009d2d32,0x009d2c5c,server-response,server-response: 0x009d2d32 <- 0x009d378c <- 0x0128d939
+OrdealSquareScore.swf,state-dependent,0x009d2d9b,0x009d2c5c,server-response,server-response: 0x009d2d9b <- 0x009d378c <- 0x0128d939
+OrdealSquareScore.swf,state-dependent,0x009d2dcd,0x009d2c5c,server-response,server-response: 0x009d2dcd <- 0x009d378c <- 0x0128d939
+OrdealSquareScore.swf,state-dependent,0x00a0db5c,0x00a0d9b2,server-response,server-response: 0x00a0db5c <- 0x0126f9f8 <- 0x0128d753
+Pentagram.swf,route proved + provider missing,0x00ab8ebd,0x00ab8d26,table,table: 0x00ab8ebd <- 0x01a83c40
+Pentagram.swf,route proved + provider missing,0x00ab8f3d,0x00ab8d26,table,table: 0x00ab8f3d <- 0x01a83c40
+Pentagram.swf,route proved + provider missing,0x00b92e9c,0x00b92dec,table,table: 0x00b92e9c <- 0x00b97fd2 <- 0x01a903a8
+Pentagram.swf,route proved + provider missing,0x00bfd5e2,0x00bfd543,table,table: 0x00bfd5e2 <- 0x00bfda02 <- 0x01a96694
+Pentagram.swf,route proved + provider missing,0x00bfd63e,0x00bfd543,table,table: 0x00bfd63e <- 0x00bfda02 <- 0x01a96694
+Pentagram.swf,route proved + provider missing,0x00c01685,0x00c015e6,table,table: 0x00c01685 <- 0x00c01e33 <- 0x01a969cc
+Pentagram.swf,route proved + provider missing,0x00c016e1,0x00c015e6,table,table: 0x00c016e1 <- 0x00c01e33 <- 0x01a969cc
+PersonalShop.swf,route proved + provider complete,0x00c73688,0x00c73603,table;uncalled,table: 0x00c73688 <- 0x00c71617 <- 0x00c1add1 <- 0x01a98a70 | uncalled: 0x00c73688 <- 0x00c71617 <- 0x00c714b5 <- 0x01851e69 <- 0x01859e4b <- 0x0120ef38 <- 0x0191cca4 <- 0x0191c81e
+PersonalShop.swf,route proved + provider complete,0x01280f70,0x01280659,server-response,server-response: 0x01280f70 <- 0x01288786
+PersonalShopCaution.swf,route proved + provider missing,0x00c0185f,0x00c017f8,table,table: 0x00c0185f <- 0x00c01c63 <- 0x01a969cc
+PetInfoPopup.swf,route proved + provider missing,0x00c042b5,0x00c041ca,table,table: 0x00c042b5 <- 0x00cda3b3 <- 0x00c70a77 <- 0x01a86368
+PlayTimeEvent.swf,state-dependent,0x012781d4,0x01278174,server-response,server-response: 0x012781d4 <- 0x01289cc2
+ProgressFrame.swf,route proved + provider missing,0x00c09a6e,0x00c098e1,server-response,server-response: 0x00c09a6e <- 0x009fc90a <- 0x012313eb <- 0x0128c218
+QuickCommand.swf,route proved + provider missing,0x00c0a996,0x00c0a5f8,table,table: 0x00c0a996 <- 0x00efbf63 <- 0x01ab049c
+RebuyList.swf,route proved + provider missing,0x0127a519,0x0127a4d1,server-response,server-response: 0x0127a519 <- 0x0128da1b
+RebuyList.swf,route proved + provider missing,0x0127a61e,0x0127a5ab,server-response,server-response: 0x0127a61e <- 0x0128da4c
+RewardItemExchange.swf,route proved + provider missing,0x00c0d478,0x00c0d39a,server-response,server-response: 0x00c0d478 <- 0x01288dbf
+RuudShopFrame.swf,route proved + provider complete,0x01281058,0x01280659,server-response,server-response: 0x01281058 <- 0x01288786
+SeasonalEvent.swf,state-dependent,0x00c59f79,0x00c59cd4,table,table: 0x00c59f79 <- 0x00c58d46 <- 0x01a86568
+SeasonPass.swf,state-dependent,0x0106f8df,0x0106f80d,server-response,server-response: 0x0106f8df <- 0x01288c80
+SeasonPass.swf,state-dependent,0x0106f9a1,0x0106f8fd,server-response,server-response: 0x0106f9a1 <- 0x01288c95
+SeasonPass.swf,state-dependent,0x0106fee1,0x0106feb5,server-response,server-response: 0x0106fee1 <- 0x01288d52
+SeasonPass.swf,state-dependent,0x0106ffc8,0x0106feb5,server-response,server-response: 0x0106ffc8 <- 0x01288d52
+SkillTree5thLevelUpPopup.swf,route proved + provider missing,0x00b0d06c,0x00b0cdce,table,table: 0x00b0d06c <- 0x00b17a28 <- 0x00b18010 <- 0x01a888a4
+SkillTree5thSlotClickPopup.swf,route proved + provider missing,0x00c37aae,0x00c37956,table,table: 0x00c37aae <- 0x00c356d7 <- 0x00c335ee <- 0x00c35936 <- 0x01a9a2a4
+SlottedWingInfo.swf,route proved + provider missing,0x00ab9012,0x00ab8d26,table,table: 0x00ab9012 <- 0x01a83c40
+SlottedWingInfo.swf,route proved + provider missing,0x00ab90a8,0x00ab8d26,table,table: 0x00ab90a8 <- 0x01a83c40
+SlottedWingInfo.swf,route proved + provider missing,0x00b92f52,0x00b92dec,table,table: 0x00b92f52 <- 0x00b97fd2 <- 0x01a903a8
+SlottedWingInfo.swf,route proved + provider missing,0x00b92fc1,0x00b92dec,table,table: 0x00b92fc1 <- 0x00b97fd2 <- 0x01a903a8
+SlottedWingInfo.swf,route proved + provider missing,0x00bfd6aa,0x00bfd543,table,table: 0x00bfd6aa <- 0x00bfda02 <- 0x01a96694
+SlottedWingInfo.swf,route proved + provider missing,0x00bfd719,0x00bfd543,table,table: 0x00bfd719 <- 0x00bfda02 <- 0x01a96694
+SlottedWingInfo.swf,route proved + provider missing,0x00c0174d,0x00c015e6,table,table: 0x00c0174d <- 0x00c01e33 <- 0x01a969cc
+SlottedWingInfo.swf,route proved + provider missing,0x00c017bc,0x00c015e6,table,table: 0x00c017bc <- 0x00c01e33 <- 0x01a969cc
+SocketMix.swf,route proved + provider complete,0x01280b8b,0x01280659,server-response,server-response: 0x01280b8b <- 0x01288786
+SpeedserverPlus.swf,state-dependent,0x00c5a4ea,0x00c5a254,table,table: 0x00c5a4ea <- 0x00c58d80 <- 0x01a86568
+StrongestMatchMenu.swf,state-dependent,0x0128040b,0x012801a9,server-response,server-response: 0x0128040b <- 0x0128b4f1
+StrongestMatchRank.swf,route proved + provider missing,0x00c41cb2,0x00c41a12,server-response,server-response: 0x00c41cb2 <- 0x0127a349 <- 0x0128b507
+StrongestMatchResult.swf,route proved + provider missing,0x00c42275,0x00c41ffd,server-response,server-response: 0x00c42275 <- 0x012801a1 <- 0x0128b512
+SwitchMode.swf,route proved + provider missing,0x012805f4,0x012805a0,server-response,server-response: 0x012805f4 <- 0x012883da
+TimeCounter.swf,route proved + provider missing,0x00c43cdd,0x00c43b78,server-response,server-response: 0x00c43cdd <- 0x00c6ee4f <- 0x0128df3d
