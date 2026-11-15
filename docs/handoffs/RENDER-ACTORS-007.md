@@ -99,21 +99,41 @@ evidence. No item recipe/table or effect-consumer implementation changes.
 | Sword request audit | 12 |
 | Type-226 counter/request audit | 6 |
 
-All twenty compiled controls are caught, with zero stops. The first run had
-twenty successful controls but serialized the C and native translation
-controls under the same key, so the registry correctly rejected nineteen
-distinct results. The source gives them different names. A 3.05 s two-control
-replay (243.20 s command including 240 s resource wait) catches both; the
-other eighteen results are retained against unchanged production target
-sources. Registry `--recheck` passes with twenty distinct controls. The later
-full positive replays use no mutants. No assertion or expected control count
-was weakened. The native host also reports absent plans before reading their
-file strings and publishes only after cleanup.
+All 21 compiled controls are caught, with zero stops. Thirteen C-plan
+controls retain their results at `d53c7df3`: the C source, header and generated
+table are unchanged. Eight native controls replay against the strengthened
+host at `fbee6e46`, 37.54 s command, including the new write-on-refusal control.
+
+Final consumer review finds that both render callers ignore the helper's
+return value. The old helper writes group options before model/scale/weapon
+rejection, so a false return alone does not exclude the plan. Sentinel probes
+on classes 49/65 reproduce this: all four guards return zero, but only the
+effect guard leaves options untouched, 2.70 s command. The fix moves every
+option write after all context checks. Classes 13/49/65 then pass all four
+byte-for-byte unchanged-option probes, 2.63 s command. The full per-row host
+now verifies model, scale, effect and attachment rejection this way. Its
+synthetic attachment changes only the loaded-mask bit and is never drawn.
+
+The earlier twenty-control run serialized the C and native translation
+controls under one key; the registry correctly rejected nineteen distinct
+results. Distinct names and a 3.05 s two-control replay (243.20 s command,
+240 s wait) restored twenty results. The final twenty-first control targets
+option mutation on scale refusal. No assertion or expected control count is
+weakened. Later positive replays run without mutants. Native output is still
+published only after cleanup, and absent plans are refused before file reads.
 
 ## Verification
 
 All 33 final affected validators pass, **252,538 checks**, zero failures,
-errors or skips. After INNER-005 batch 117, 27 rows replay at `4e02b38e`:
+errors or skips. The guard correction replays fifteen rows at `fbee6e46`:
+119,976 checks, 398.85 s command with zero resource wait. Eighteen results
+retain unchanged used inputs from the commits in the table. The full 8,451
+new-row checks now include four untouched-option probes per admitted selector.
+The registry recheck passes 8,451 positives / 21 distinct controls in 0.10 s.
+Guard-delta selection takes 193.85 s including 120 s wait. Current PR selection
+remains 33 of 250 rows, 279.49 s including 210 s wait.
+
+After INNER-005 batch 117, 27 rows replay at `4e02b38e`:
 214,718 checks, 1,095.71 s command wall including 390 s resource waiting.
 Six results retain unchanged inputs: app-polish1 at `e51eba07`; app-polish2/4,
 audio-combat, viewport-monsters and worlds-fog at `ebcbb2da`.
@@ -149,6 +169,15 @@ compiled inputs change.
 | Focused portable actor modules | 2 pass / 2 expected private skips | 0.032 s |
 | New-row comparison and controls before key correction | 8,451 positives; controls caught, registry count rejected | 251.2 s row / 251.34 s command |
 | Corrected two-control replay | 2/2 caught, twenty distinct results; registry recheck passes | 3.05 s runtime / 243.20 s command, 240 s wait |
+| Guard-order root build at `fbee6e46` | pass | 11.55 s command |
+| Guard-order explicit world rebuild | pass | 6.46 s runtime / 96.46 s command, 90 s wait |
+| Guard-order default after-side refresh | 230/230 preceding hashes identical | 97.70 s runtime / 97.75 s command, zero wait |
+| Guard-order red/green probes | rejected writes reproduced, then all four no-op guards pass | 2.70 s red / 2.63 s green command |
+| Refreshed native controls | 8/8 caught, zero stops; 13 C-plan controls retained | 37.54 s command |
+| Guard-order affected positive replay | 15/15 pass, 119,976 checks; eighteen unchanged passes retained | 398.85 s command, zero wait |
+| Final compiled-control registry recheck | 8,451 positives / 21 distinct controls, pass | 0.10 s command |
+| Guard-order permitted portable delta | PENDING_RESULT | PENDING_WALL |
+| Guard-order private 8d reduced | PENDING_RESULT | PENDING_WALL |
 | Initial affected private validators | 31/31 pass, 213,223 checks | 602.78 s command |
 | Batch-115 affected private validators | 31/31 pass, 213,223 checks | 680.63 s command |
 | Batch-116 affected private replay | 32/32 pass, 251,786 checks; one unchanged pass retained | 740.31 s command |
@@ -184,18 +213,18 @@ also uses 8d reduced. INNER-005 selects 176 items / 169 private native items;
 
 | Steward validator | Checks | Wall | Tested commit |
 |---|---:|---:|---|
-| `validate_actor_composites` | 1,427 | 8.7 s | `4e02b38e` |
-| `validate_actor_groups` | 8,451 | 253.7 s | `4e02b38e` |
-| `validate_actor_monsters` | 1,437 | 57.2 s | `4e02b38e` |
-| `validate_actor_plain` | 21,437 | 310.3 s | `4e02b38e` |
-| `validate_actor_recipes` | 1,669 | 177.5 s | `4e02b38e` |
+| `validate_actor_composites` | 1,427 | 8.8 s | `fbee6e46` |
+| `validate_actor_groups` | 8,451 | 192.9 s | `fbee6e46` |
+| `validate_actor_monsters` | 1,437 | 40.2 s | `fbee6e46` |
+| `validate_actor_plain` | 21,437 | 154.5 s | `fbee6e46` |
+| `validate_actor_recipes` | 1,669 | 108.6 s | `fbee6e46` |
 | `validate_app_polish1` | 752 | 30.1 s | `e51eba07` |
 | `validate_app_polish2` | 1,028 | 6.4 s | `ebcbb2da` |
 | `validate_app_polish4` | 10,485 | 39.6 s | `ebcbb2da` |
-| `validate_audio_callers` | 5,528 | 5.9 s | `4e02b38e` |
+| `validate_audio_callers` | 5,528 | 4.8 s | `fbee6e46` |
 | `validate_audio_combat` | 19,548 | 38.8 s | `ebcbb2da` |
-| `validate_audio_domains` | 2,544 | 25.7 s | `4e02b38e` |
-| `validate_audio_items` | 3,000 | 3.3 s | `4e02b38e` |
+| `validate_audio_domains` | 2,544 | 23.3 s | `fbee6e46` |
+| `validate_audio_items` | 3,000 | 4.3 s | `fbee6e46` |
 | `validate_audio_kubera` | 1,000 | 1.3 s | `4e02b38e` |
 | `validate_audio_monsters` | 38,315 | 17.8 s | `4e02b38e` |
 | `validate_audio_objects` | 4,000 | 5.7 s | `4e02b38e` |
@@ -205,16 +234,16 @@ also uses 8d reduced. INNER-005 selects 176 items / 169 private native items;
 | `validate_inventory_fx` | 8,017 | 7.1 s | `4e02b38e` |
 | `validate_item_callers` | 6,013 | 1.2 s | `4e02b38e` |
 | `validate_items_ui` | 8,517 | 10.0 s | `4e02b38e` |
-| `validate_movement` | 6,614 | 110.0 s | `4e02b38e` |
-| `validate_render_effects16` | 424 | 4.8 s | `4e02b38e` |
-| `validate_render_effects17` | 618 | 7.4 s | `4e02b38e` |
+| `validate_movement` | 6,614 | 45.7 s | `fbee6e46` |
+| `validate_render_effects16` | 424 | 4.1 s | `fbee6e46` |
+| `validate_render_effects17` | 618 | 6.9 s | `fbee6e46` |
 | `validate_render_effects18` | 540 | 1.2 s | `4e02b38e` |
 | `validate_render_effects19` | 400 | 0.8 s | `4e02b38e` |
-| `validate_render_effects24` | 226 | 2.6 s | `4e02b38e` |
-| `validate_render_effects25` | 202 | 9.7 s | `4e02b38e` |
-| `validate_render_effects26` | 348 | 8.9 s | `4e02b38e` |
+| `validate_render_effects24` | 226 | 2.3 s | `fbee6e46` |
+| `validate_render_effects25` | 202 | 8.5 s | `fbee6e46` |
+| `validate_render_effects26` | 348 | 10.1 s | `fbee6e46` |
 | `validate_render_effects28` | 630 | 1.7 s | `4e02b38e` |
-| `validate_render_effects31` | 66,051 | 343.3 s | `4e02b38e` |
+| `validate_render_effects31` | 66,051 | 180.8 s | `fbee6e46` |
 | `validate_viewport_monsters` | 1,963 | 16.7 s | `ebcbb2da` |
 | `validate_worlds_fog` | 4,044 | 10.8 s | `ebcbb2da` |
 
@@ -261,6 +290,12 @@ INNER-005 advances the rebuilt world SHA-256 to
 Its compiled-input after-side refresh also matches all 230 preceding hashes,
 77.08 s runtime / 287.20 s command including 210 s wait. The actor sources
 remain unchanged; the single saved before baseline is reused.
+
+The guard correction rebuilds the world at SHA-256
+`32575718b0dd19107e59aaca91946fbba37860c7f8ea998c638d7384e4889961`.
+Its after-side refresh preserves all 230 preceding hashes, 97.70 s runtime /
+97.75 s command with zero wait. Valid admitted render contexts keep their
+output; rejected contexts now leave caller options untouched.
 
 The proof after side uses the batch-115 binary `1e855e52`; its actor sources
 are unchanged by AUDIO-005. Twenty-four before and twenty-four after GL
@@ -319,17 +354,21 @@ and attachment mismatch. Before the fix, classes 49/65 return four refusals
 but preserve options only for the effect guard: `[0,0,1,0]`, 2.70 s command.
 The production writes now follow all checks. Root build passes in 11.55 s;
 classes 13/49/65 pass all four untouched-option probes in 2.63 s command.
-A twenty-first compiled control
-targets writes on scale rejection. Left: green guard proof, eight native
-controls against the strengthened host (retain thirteen unchanged C-plan
-controls), post-build affected checks, rebuilt after-side identity and final
-publication. Next: rebuild, run the green/compiled-native guard checks and
-select the affected delta. The prior final-private wrapper run is stopped
+All eight native controls pass in 37.54 s, zero stops; thirteen unchanged
+C-plan controls are retained. Left: post-build affected checks, rebuilt
+after-side identity and final publication. Next: select and run the affected
+delta with the stronger guard checks. The input-delta selector keeps fifteen
+rows (193.85 s including 120 s wait); the PR selector keeps the same 33 of
+250 rows (279.49 s including 210 s wait). The rebuilt default after side
+matches all 230 hashes, 97.75 s with zero wait. The fifteen-row replay passes 119,976 checks in 398.85 s; the registry
+recheck passes 8,451 positives and all 21 distinct controls in 0.10 s.
+Next: finish the portable/private delta and publication audit. The prior final-private wrapper run is stopped
 before source edits; it is not used as final evidence. No ready entry exists.
 
 Pushed checkpoints include `99409933`, `5425914e`, `d53c7df3`, `b3edf825`,
 `967d83e4`, `73ccdc0d`, `e51eba07`, `4863ad70`, `9f096a80`,
-`9d9caf9a`, `ebcbb2da`, `74f5c2e6`, `9d088724` and `4e02b38e`. Early provisional row
+`9d9caf9a`, `ebcbb2da`, `74f5c2e6`, `9d088724`, `4e02b38e`,
+`48c2d9bc`, `acfeb704` and `fbee6e46`. Early provisional row
 counts are superseded by the final 138-row result. PR #396 was the initial
 stack; its merged main ancestry is retained. The final delivery changes
 only documentation after the tested source. Final push and PR precede the

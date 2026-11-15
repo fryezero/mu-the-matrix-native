@@ -839,6 +839,13 @@ Initial blend mesh -1, blend light 1 and zero UV are authored fresh-body
 fixture inputs. Original CreateCharacter's hidden-mesh -1 and subtype-zero
 stores are statically visible at `0x0137dbae` and `0x0137dbe5`.
 No pooled-object reuse or inherited appearance-state parity is claimed.
+
+The native options helper is an optional in-place override; both render
+callers ignore its return. All option writes therefore follow model, scale,
+effect and attachment checks. Four sentinel probes per admitted row require
+a refused call to leave every options byte unchanged. A compiled write on
+scale rejection is the twenty-first control; the earlier host checked only
+the return value and would miss that side effect.
 Animation, body-light input, buff tint `0x017f9375`, after-visual
 `0x017f919e`, custom/registry handlers and shadow behavior retain named harness
 boundaries. The reader proves the selected body arguments; it does not certify
