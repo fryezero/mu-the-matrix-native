@@ -31,6 +31,9 @@ import pins  # noqa: E402
 import validate_combat as vc  # noqa: E402
 import validate_particles as pt  # noqa: E402
 import validate_render_effects11 as re11  # noqa: E402
+import validate_joints as jt  # noqa: E402
+import validate_skill_fx as fx  # noqa: E402
+import validate_render_effects31 as re31  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 PLAIN = [(0x8016, 5), (0x7ef7, 11), (0x7f5a, 43), (0x7f5a, 47), (0x7f54, 1), (0x7efa, 3)]
@@ -39,6 +42,7 @@ FOLLOW = [(0x855d, 2)]
 PULSE = [(0x8081, 1), (0x8082, 1), (0x7ef7, 19)]
 KINDS = PLAIN + ITEM + FOLLOW + PULSE
 GROUPS = {'plain': PLAIN, 'item': ITEM, 'follow': FOLLOW, 'pulse': PULSE}
+JOINTS = [(0x7f7c, 8), (0x7f7c, 19), (0x7fd5, 4), (0x7f7d, 11)]
 
 # Per-pair controls are compiled production changes at the group's three entry points.
 MUTANTS = []
@@ -60,7 +64,36 @@ for kind in KINDS:
         else:
             new = f'    owner_position(p, h);\n    if ({cond}) {{ {body} }}\n    if (!mu_pt_kind_supported(type, subtype))'
         MUTANTS.append((f'p{kind[0]:x}_{kind[1]}_{family}', file, anchor, new, family, kind))
-MUTANTS += [
+MUTANTS = [('pt',) + m for m in MUTANTS]
+for kind in JOINTS:
+    cond = f'j->type == {kind[0]} && j->subtype == {kind[1]}'
+    for family, anchor, body, file in [
+            ('joint_create', 'static void create_consumer34_joint(mu_jt_joint *j, float scale, const float target_position[3], const mu_jt_env *env)\n{',
+             'j->lifetime = 0; return;', 'consumer34_joints.inc'),
+            ('joint_move', 'static void move_consumer34_joint(mu_jt_joint *j, const mu_jt_env *env)\n{\n    float m[12];',
+             'j->scale = j->scale + 1.0f; return;', 'consumer34_joints.inc'),
+            ('joint_render', 'int mu_jt_render(const mu_jt_joint *j, uint8_t mode, float world_time, const mu_jt_gl *gl)\n{',
+             'return 0;', 'joints.c')]:
+        MUTANTS.append(('jt', f'j{kind[0]:x}_{kind[1]}_{family[6:]}', file, anchor,
+                        anchor + f'\n    if ({cond}) {{ {body} }}', family, kind))
+MUTANTS += [('jt',) + m for m in [
+    ('spark4_width', 'consumer34_joints.inc', 'j->scale = scale * 2.0f + 4.0f;', 'j->scale = scale * 2.0f;', 'joint_create', (0x7fd5, 4)),
+    ('spark4_colour', 'consumer34_joints.inc', 'j->light[1] = j->light[2] = F_0_2;\n        return;',
+     'j->light[1] = j->light[2] = 1.0f;\n        return;', 'joint_create', (0x7fd5, 4)),
+    ('bolt11_far_end', 'consumer34_joints.inc', '            mu_jt_tail_shift(j, m);\n            copy3(j->target_position, j->position);',
+     '            mu_jt_tail_shift(j, m);', 'joint_move', (0x7f7d, 11)),
+    ('bolt11_jitter', 'consumer34_joints.inc', 'const int32_t a = trunc_i32(j->scale / 8.0f);', 'const int32_t a = trunc_i32(j->scale / 4.0f);',
+     'joint_move', (0x7f7d, 11)),
+    ('bolt11_blue', 'consumer34_joints.inc', 'j->light[2] = j->light[2] + F_0_2;', 'j->light[2] = j->light[2] + F_0_1;',
+     'joint_create', (0x7f7d, 11)),
+    ('arc19_turn', 'consumer34_joints.inc', '25.0f + j->scale);', '110.0f);', 'joint_move', (0x7f7c, 19)),
+    ('arc19_jitter_axis', 'consumer34_joints.inc', 'for (int k = 0; k < 3; ++k)\n            j->jitter[k] = (float)(imod(jrand(env), 1024) - 512) / j->scale;',
+     'for (int k = 0; k < 3; k += 2)\n            j->jitter[k] = (float)(imod(jrand(env), 1024) - 512) / j->scale;', 'joint_move', (0x7f7c, 19)),
+    ('arc19_speed', 'consumer34_joints.inc', 'j->velocity = j->scale * 3.0f;', 'j->velocity = j->scale * 2.0f;', 'joint_create', (0x7f7c, 19)),
+    ('thunder8_tails', 'consumer34_joints.inc', 'j->lifetime = jrand(env) % 8 + 8;\n        j->max_tails = 2;\n        j->light[0] = j->light[1] = j->light[2] = 1.0f;',
+     'j->lifetime = jrand(env) % 8 + 8;\n        j->max_tails = 3;\n        j->light[0] = j->light[1] = j->light[2] = 1.0f;', 'joint_create', (0x7f7c, 8)),
+]]
+MUTANTS += [('pt',) + m for m in [
     ('swamp_life', 'consumer34_kinds.inc', 'p->lifetime = 20;\n        p->velocity[0] = (float)(mu_pt_rand(h) % 10 - 5) * 0.4f;',
      'p->lifetime = 24;\n        p->velocity[0] = (float)(mu_pt_rand(h) % 10 - 5) * 0.4f;', 'create', (0x8016, 5)),
     ('flare11_rise', 'consumer34_kinds.inc', 'p->position[2] = p->position[2] + p->gravity;\n            p->scale = p->scale - 0.0005f;',
@@ -88,7 +121,7 @@ MUTANTS += [
     ('pulse_floor', 'consumer34_kinds.inc', 'p->alpha = t * 0.9f + 0.1f;', 'p->alpha = t * 0.9f;', 'move', (0x8081, 1)),
     ('pulse_colour', 'consumer34_kinds.inc', 'p->light[1] = p->field_80 * p->alpha;', 'p->light[1] = p->field_7c * p->alpha;',
      'move', (0x8082, 1)),
-]
+]]
 
 
 def load_library(path):
@@ -222,6 +255,48 @@ def particle_family(text, data, lib, name, cases, report, kinds=None):
         pt.KINDS, pt.OWNED_KINDS, pt.random_particle = saved
 
 
+def joint_family(text, data, lib, name, cases, report, kinds=None):
+    kinds = kinds or JOINTS
+    saved = jt.KINDS, jt.random_joint, jt.random_create_args
+
+    def joint(rng, kind):
+        j = saved[1](rng, kind)
+        if kind == (0x7f7d, 11):
+            # MoveJoint divides rand() by 2 * (int)(width / 8): the client faults below 8; the producers pass 15 * scale
+            j.scale = pt.f32(rng.choice([15.0, 8.0, 16.0, 9.5, 40.0, rng.uniform(8.0, 60.0)]))
+            j.max_tails = rng.choice([30, 30, 30, rng.randrange(6, 51)])
+            j.lifetime = rng.choice([5, 4, 3, 1, 0])
+        elif kind == (0x7f7c, 19):
+            j.scale = pt.f32(rng.choice([10.0, 50.0, 49.5, 60.0, 5.0, rng.uniform(1.0, 80.0)]))
+            j.max_tails = rng.choice([30, 30, rng.randrange(2, 51)])
+            j.lifetime = rng.choice([2, 1, 0])
+            j.velocity = pt.f32(j.scale * pt.f32(3.0))
+        elif kind == (0x7f7c, 8):
+            j.scale = pt.f32(5.0)
+            j.max_tails = 2
+            j.num_tails = rng.randrange(0, 2)
+            j.lifetime = rng.randrange(-1, 16)
+            j.velocity = pt.f32(rng.choice([6.0, 15.0, 0.0, rng.uniform(6.0, 15.0)]))
+        elif kind == (0x7fd5, 4):
+            j.max_tails = 4
+            j.num_tails = rng.randrange(0, 4)
+            j.scale = pt.f32(rng.choice([6.0, 5.0, 8.0]))
+            j.velocity = pt.f32(rng.choice([4.0, 8.0, rng.uniform(4.0, 8.0)]))
+        return j
+
+    def create_args(rng, kind):
+        pos, target, angle, scale = saved[2](rng, kind)
+        if kind == (0x7f7d, 11):
+            scale = pt.f32(rng.choice([15.0, 8.0, 30.0, rng.uniform(8.0, 60.0)]))
+        return pos, target, angle, scale
+    try:
+        jt.KINDS, jt.random_joint, jt.random_create_args = kinds, joint, create_args
+        getattr(jt, 'family_'+name)(fx.FxMachine(text, data), lib, random.Random('effects34-'+name),
+                                    cases * len(kinds), report, defaultdict(int))
+    finally:
+        jt.KINDS, jt.random_joint, jt.random_create_args = saved
+
+
 def census(lib, report):
     rows = []
     for group, kinds in GROUPS.items():
@@ -240,24 +315,36 @@ def run(cases, mutations=False, only_mutants=None):
     report = pt.Report()
     for name in ('create', 'move', 'render'):
         particle_family(text, data, lib, name, cases, report)
+    jlib = jt.load_library(ROOT/('reconstructed/joints/libclient_joints.'+pt.SUFFIX))
+    for name in ('joint_create', 'joint_move', 'joint_render'):
+        joint_family(text, data, jlib, name, cases, report)
     rows = census(lib, report)
+    for kind in JOINTS:
+        supported = bool(jlib.mu_jt_kind_supported(*kind))
+        row = dict(category='joint', group='joint', type=hex(kind[0]), subtype=kind[1], supported=supported)
+        rows.append(row)
+        report.add('census', supported, row)
     mutants = []
     if mutations and all(f['cases'] == f['equal'] for f in report.families.values()):
         with tempfile.TemporaryDirectory(prefix='effects34-mutants-') as tmp:
-            for label, file, old, new, family, kind in MUTANTS:
+            for category, label, file, old, new, family, kind in MUTANTS:
                 if only_mutants and label not in only_mutants:
                     continue
-                mutant = re11.compile_pt_mutant(tmp, label, file, old, new)
-                mutant.mu_pt_consumer34_follow.argtypes = [pt.P(pt.Particle), pt.FP]
-                mutant.mu_pt_consumer34_follow.restype = ctypes.c_int
                 r = pt.Report()
-                particle_family(text, data, mutant, family, 120, r, [kind])
+                if category == 'pt':
+                    mutant = re11.compile_pt_mutant(tmp, label, file, old, new)
+                    mutant.mu_pt_consumer34_follow.argtypes = [pt.P(pt.Particle), pt.FP]
+                    mutant.mu_pt_consumer34_follow.restype = ctypes.c_int
+                    particle_family(text, data, mutant, family, 120, r, [kind])
+                else:
+                    mutant = re31.compile_mutant(tmp, 'jt', label, file, old, new)
+                    joint_family(text, data, mutant, family, 120, r, [kind])
                 f = r.families[family]
                 row = dict(name=label, detected=f['cases']-f['equal'],
                            stopped=sum(bool(v.get('stopped') or v.get('error')) for v in f['first_failures']))
                 mutants.append(row)
                 print('mutant', json.dumps(row), flush=True)
-    expected = sum(not only_mutants or m[0] in only_mutants for m in MUTANTS)
+    expected = sum(not only_mutants or m[1] in only_mutants for m in MUTANTS)
     return dict(mutant_subset=sorted(only_mutants) if only_mutants else None, families=report.families,
                 coverage=report.coverage, census=rows,
                 all_equal=all(f['cases'] == f['equal'] for f in report.families.values()),
@@ -278,7 +365,7 @@ def main():
         p.error('--cases must be positive')
     if args.only_mutant and not args.mutations:
         p.error('--only-mutant requires --mutations')
-    if args.only_mutant and set(args.only_mutant) - {m[0] for m in MUTANTS}:
+    if args.only_mutant and set(args.only_mutant) - {m[1] for m in MUTANTS}:
         p.error('unknown mutant name')
     r = run(args.cases, args.mutations, set(args.only_mutant or []))
     if args.output:
