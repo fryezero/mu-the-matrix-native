@@ -86,15 +86,16 @@ unfollowed.
 
 ## Music
 
-No music selector or mixer change. Read-only decoded smoke covers all 211
-distinct new sound ids with nonzero PCM. This establishes file availability and
+No music selector or mixer change. Read-only decoded smoke covers the 211
+distinct sound ids used here, with nonzero PCM. This establishes file availability and
 native delivery, not FMOD mixer parity.
 
 ## Verification
 
-Final checks at integrated source `c8440b0afff7865851bf7a950705e0020d3c7e67`
-are pending. Source before main integration was `1f5462e6`; integrations preserve
-all AUDIO-005 source and validator inputs.
+Integrated build and all 70 private validators pass at
+`e4d1ce478380c0acff4f3f5f1391de6d3293230a`. Portable refresh, reduced private
+native tests, audit and the post-UI identity refresh remain pending. Source before
+main integration was `1f5462e6`; integrations preserve AUDIO-005 source and checks.
 
 - Monster original comparison: **38,315 cases**, all **245 sites**, zero
   mismatches/stops. Includes 32,759 complete-owner, 2,748 outer-dispatch and
@@ -111,8 +112,11 @@ all AUDIO-005 source and validator inputs.
   zero failures/errors**. **443.4 s** runner / **507.55 s** command wall.
   Main added actor, world and UI inputs; their affected refresh is pending.
 - Checked source root build **13.96 s**; actor/world integration root build
-  **23.08 s**. Latest UI integration root build **22.17 s**. Private affected validators,
-  repository audit and final self-review remain pending.
+  **23.08 s**. Latest UI integration root build **22.17 s**.
+- All **70 affected validators pass**, **1,115,117 cases/checks**, zero
+  failures/errors/skips, **906.06 s** command wall. Optional mutants are disabled;
+  no unchanged optional mutant run or full lane gate is repeated.
+- Repository audit and final self-review remain pending.
 
 ### Default identity
 
@@ -146,10 +150,90 @@ repeatability controls, not original-client visual equivalence.
 
 ### Steward validators
 
-Post-build selection and final per-row results are pending. Retain every
-fallback and all shared-library consumers selected under 6b/8b. No unchanged
-optional mutants or full lane gate are run. Use canonical
-`~/Documents/MTM/mu-mac-tools/native/private-env.sh` from repository root.
+All 70 post-build selected rows pass at
+`e4d1ce478380c0acff4f3f5f1391de6d3293230a`, **906.06 s** command wall,
+**1,115,117 cases/checks**, zero failures/errors/skips.
+Selection takes **34.45 s** and retains the `validate_worlds_r2` symbol fallback;
+21 changed-library rows use no changed symbol and are pruned. Shared-library
+consumers under 6b/8b and the two incoming actor/world rows are retained.
+Use canonical `~/Documents/MTM/mu-mac-tools/native/private-env.sh` from repository
+root. No optional mutants need repeating; no full lane gate ran.
+
+Steward validators: validate_meshdraw,validate_model_edge,validate_model_light,validate_movement,validate_path,validate_terrain,validate_viewport_monsters,validate_terrain_remaining,validate_audio_events,validate_audio_music,validate_audio_voices,validate_worlds_b,validate_icarus_c2,validate_worlds_e,validate_worlds_f,validate_worlds_g,validate_audio_callers,validate_worlds_h,validate_audio_combat,validate_worlds_i,validate_audio_domains,validate_worlds_j,validate_audio_items,validate_session_party,validate_audio_charsel,validate_world_tile_folder,validate_world_light_name,validate_worlds_r2,validate_worlds_q,validate_worlds_q2,validate_worlds_after3,validate_worlds_after4,validate_worlds_after6,validate_app_polish2,validate_app_polish7,validate_app_polish4,validate_worlds_s,validate_worlds_s2,validate_worlds_s3,validate_worlds_slots,validate_worlds_slots2,validate_worlds_slots3,validate_worlds_121,validate_worlds_raklion,validate_worlds_karutan,validate_render_effects16,validate_worlds_fog,validate_render_effects17,validate_item_callers,validate_inventory_fx,validate_render_effects18,validate_render_effects19,validate_render_effects24,validate_worlds_inner,validate_render_effects25,validate_actor_recipes,validate_charsel_items,validate_audio_ui,validate_render_effects26,validate_actor_composites,validate_worlds_inner2,validate_audio_objects,validate_render_effects28,validate_worlds_inner3,validate_items_ui,validate_audio_objects4,validate_audio_monsters,validate_audio_kubera,validate_actor_monsters,validate_worlds_inner4
+
+| Validator | Cases/checks | Wall seconds |
+|---|---:|---:|
+| `validate_actor_composites` | 1427 | 11.1 |
+| `validate_actor_monsters` | 1437 | 43.9 |
+| `validate_actor_recipes` | 1669 | 147.8 |
+| `validate_app_polish2` | 1028 | 4.4 |
+| `validate_app_polish4` | 10485 | 37.8 |
+| `validate_app_polish7` | 5120 | 2.3 |
+| `validate_audio_callers` | 5528 | 6.8 |
+| `validate_audio_charsel` | 5968 | 4.1 |
+| `validate_audio_combat` | 19548 | 42.5 |
+| `validate_audio_domains` | 2544 | 27.0 |
+| `validate_audio_events` | 70980 | 4.3 |
+| `validate_audio_items` | 3000 | 4.1 |
+| `validate_audio_kubera` | 1000 | 1.5 |
+| `validate_audio_monsters` | 38315 | 27.3 |
+| `validate_audio_music` | 4291 | 0.4 |
+| `validate_audio_objects` | 4000 | 4.8 |
+| `validate_audio_objects4` | 10093 | 8.2 |
+| `validate_audio_ui` | 5803 | 33.8 |
+| `validate_audio_voices` | 2182 | 0.1 |
+| `validate_charsel_items` | 8817 | 12.7 |
+| `validate_icarus_c2` | 8400 | 14.0 |
+| `validate_inventory_fx` | 8017 | 12.4 |
+| `validate_item_callers` | 6013 | 1.7 |
+| `validate_items_ui` | 8517 | 15.5 |
+| `validate_meshdraw` | 14619 | 73.8 |
+| `validate_model_edge` | 954 | 162.4 |
+| `validate_model_light` | 1433 | 7.0 |
+| `validate_movement` | 6614 | 76.3 |
+| `validate_path` | 4719 | 32.2 |
+| `validate_render_effects16` | 424 | 5.7 |
+| `validate_render_effects17` | 618 | 10.0 |
+| `validate_render_effects18` | 540 | 1.7 |
+| `validate_render_effects19` | 400 | 1.5 |
+| `validate_render_effects24` | 226 | 4.4 |
+| `validate_render_effects25` | 202 | 17.6 |
+| `validate_render_effects26` | 348 | 14.6 |
+| `validate_render_effects28` | 630 | 2.6 |
+| `validate_session_party` | 200 | 1.2 |
+| `validate_terrain` | 583500 | 396.0 |
+| `validate_terrain_remaining` | 2147 | 3.7 |
+| `validate_viewport_monsters` | 1963 | 7.2 |
+| `validate_world_light_name` | 304 | 0.5 |
+| `validate_world_tile_folder` | 5700 | 37.6 |
+| `validate_worlds_121` | 4000 | 7.2 |
+| `validate_worlds_after3` | 10212 | 9.9 |
+| `validate_worlds_after4` | 9181 | 13.7 |
+| `validate_worlds_after6` | 7300 | 67.1 |
+| `validate_worlds_b` | 4000 | 2.2 |
+| `validate_worlds_e` | 4840 | 14.8 |
+| `validate_worlds_f` | 1818 | 0.4 |
+| `validate_worlds_fog` | 4044 | 11.1 |
+| `validate_worlds_g` | 6000 | 4.0 |
+| `validate_worlds_h` | 6000 | 4.5 |
+| `validate_worlds_i` | 6000 | 5.4 |
+| `validate_worlds_inner` | 4000 | 5.1 |
+| `validate_worlds_inner2` | 5000 | 7.4 |
+| `validate_worlds_inner3` | 8000 | 10.4 |
+| `validate_worlds_inner4` | 8000 | 8.0 |
+| `validate_worlds_j` | 6000 | 4.8 |
+| `validate_worlds_karutan` | 3000 | 5.0 |
+| `validate_worlds_q` | 11000 | 17.7 |
+| `validate_worlds_q2` | 4000 | 7.6 |
+| `validate_worlds_r2` | 9000 | 7.1 |
+| `validate_worlds_raklion` | 3000 | 5.8 |
+| `validate_worlds_s` | 11000 | 10.2 |
+| `validate_worlds_s2` | 10000 | 11.0 |
+| `validate_worlds_s3` | 22000 | 25.2 |
+| `validate_worlds_slots` | 18999 | 23.9 |
+| `validate_worlds_slots2` | 33000 | 44.9 |
+| `validate_worlds_slots3` | 36000 | 45.4 |
+
 
 ## Next
 
@@ -164,13 +248,14 @@ sites retain their prior fixture limit.
 ## WIP checkpoints
 
 Pushed checkpoints `9d619c70`, `7f9fa0e9`, `58d578ff`, `1f5462e6` and
-`51db4cbd` preserve implementation and done/left/next notes. The first main
+`51db4cbd` and `e4d1ce47` preserve implementation and done/left/next notes. The first main
 integration is `a1d94d8d`, the UI integration `c8440b0a`. Resource guards pause
 new heavy work during shared-host load spikes, including values above 30.
 No subagents, full lane gate, live client or installed-app work ran.
 
 Done: complete source, original/mutant proofs, decoded smoke and default identity
-before the UI merge. Left: integrated checks, final identity refresh, audit,
-status lines and PR-ready queue. Next: finish the guarded root build, select/run
-affected checks, then document and publish. Task-local reports are resumable WIP
+before the UI merge, and all 70 integrated private validators. Left: portable
+refresh, reduced private tests, final identity refresh, audit,
+status lines and PR-ready queue. Next: finish the guarded affected suite refresh,
+then document and publish. Task-local reports are resumable WIP
 in `~/Documents/MTM/mu-mac-tools/native/scratch/audio-005/`.
