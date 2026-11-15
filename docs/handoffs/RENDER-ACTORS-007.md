@@ -126,7 +126,11 @@ remain selected. Twelve unrelated rows were pruned.
 | Canonical census regeneration | 727 / 217 / 80 | 8.21 s runtime / 128.21 s command, 120 s wait |
 | Initial root build | pass | 14.27 s |
 | Batch-115 root build | pass | 16.39 s |
+| Batch-116 root build at `9d9caf9a` | pass | 22.40 s |
+| Batch-116 explicit world rebuild | pass; new binary SHA recorded below | 8.68 s runtime / 188.68 s command, 180 s wait |
 | Focused portable actor modules | 2 pass / 2 expected private skips | 0.032 s |
+| New-row comparison and controls before key correction | 8,451 positives; controls caught, registry count rejected | 251.2 s row / 251.34 s command |
+| Corrected two-control replay | 2/2 caught, twenty distinct results; registry recheck passes | 3.05 s runtime / 243.20 s command, 240 s wait |
 | Initial affected private validators | 31/31 pass, 213,223 checks | 602.78 s command |
 | Merged-input affected private validators | 31/31 pass, 213,223 checks | 680.63 s command |
 | Initial permitted portable selection | 1,525 pass / 339 expected skips, zero failures/errors | 390.1 s runner / 568.26 s command |
@@ -192,7 +196,7 @@ remain selected. Twelve unrelated rows were pruned.
 | `validate_render_effects31` | 66,051 | 312.9 s | `e51eba07` |
 | `validate_viewport_monsters` | 1,963 | 20.0 s | `e51eba07` |
 | `validate_worlds_fog` | 4,044 | 9.3 s | `e51eba07` |_WALL |
-| Merged-input private 8d reduced | PENDING_PRIVATE | PENDING_PRIVATE_WALL |
+| Batch-116 private 8d reduced | PENDING_PRIVATE | PENDING_PRIVATE_WALL |
 | Final publication audit | PENDING_AUDIT | PENDING_AUDIT_WALL |
 | Final documentation consumers | PENDING_DOCS | PENDING_DOCS_WALL |
 
@@ -317,6 +321,20 @@ Do not infer filenames, network/spawn state, statistics or opaque protection.
 
 ## WIP checkpoints and delivery
 
+Current WIP: 138 plans, grouped census, controls, proofs and batch-115
+validator/portable checks are done. AUDIO-005 batch-116 main `8844d3e9` is
+merged at `9d9caf9a`, preserving all audio lines and both status-note sides.
+Root build passes in 22.40 s; explicit world rebuild passes in 8.68 s runtime /
+188.68 s command, 180 s wait. Its SHA-256 is
+`e4f3d72c8d9c439fc7a14e2c0166fac20baa43891013aa2e158755bc06151d8c`.
+The input-delta selector keeps 30 prior rows (82.63 s command, 30 s wait);
+app-polish1 retains its unchanged-input pass. Current PR-wide selection is
+running. The overlapping private run passes four tests in 401.24 s runtime /
+521.36 s command but is excluded from final evidence.
+Left: selected compiled-input replay, portable/private delta, final audit and
+publication. Next: refresh the after side of the default identity comparison
+against the saved baseline, then run the selected checks. No ready entry exists.
+
 Pushed checkpoints include `99409933`, `5425914e`, `d53c7df3`, `b3edf825`,
 `967d83e4`, `73ccdc0d`, `e51eba07` and `4863ad70`. Early provisional row
 counts are superseded by the final 138-row result. PR #396 was the initial
@@ -324,4 +342,4 @@ stack; its merged main ancestry is retained. The final delivery changes
 only documentation after the tested source. Final push and PR precede the
 single ready entry; no push follows it. The steward owns merge and combined
 validation. Own scratch/renders/builds, worktree and local branch are removed
-at readiness; the remote branch remains. Ready for steward.
+at readiness; the remote branch remains. Publication pending final checks.
