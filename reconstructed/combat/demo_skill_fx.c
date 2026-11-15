@@ -79,6 +79,14 @@ int mu_skill32_select(int32_t skill, int32_t base)
     return skill == base && (base == 18 || (base >= 30 && base <= 36) || base == 44 || base == 49);
 }
 
+int mu_skill32_learned(int32_t skill, const uint16_t *skills, int32_t count)
+{
+    if (!mu_skill32_select(skill, skill)) return 0;
+    for (int i = 0; skills && i < count && i < 150; ++i)
+        if (skills[i] == skill) return 1;
+    return 0;
+}
+
 int mu_skill32_action(int32_t skill, int32_t class_byte, const mu_skill32_context *c)
 {
     int cls = class_byte & 15;
@@ -116,6 +124,15 @@ int mu_skill32_plan_cast(mu_skill32_input *s, int end, mu_skill32_plan *p)
             p->calls[p->count-1].call.site = skill == 18 ? 0x01222fa3 : skill == 44 ? 0x01256d18 : 0x01255962;
         }
     } else if (!end) {
+        /* Default step body, with the exceptional hero item 0x815 excluded. */
+        if (skill == 18 || (skill >= 30 && skill <= 36)) {
+            if (s->cast.model == 0xa91 && s->cast.action == 0x8f && s->cast.frame >= 1.0f)
+                s->cast.attack_time = 15;
+            else if (s->cast.frame >= 5.0f &&
+                ((s->cast.model == 0xa91 && s->cast.action >= 0x6f && s->cast.action < 0x133) ||
+                 (s->cast.model >= 0x7a5 && s->cast.model < 0x9fd && s->cast.action >= 3 && s->cast.action <= 4)))
+                s->cast.attack_time = 15;
+        }
         if (skill == 49 && s->cast.model == 0xa91 && s->cast.action == 0xf9 && s->cast.frame >= 5.0f)
             s->cast.attack_time = 15;
         if (skill == 44) {

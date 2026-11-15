@@ -712,9 +712,7 @@ static int skill32_admitted(const mu_combat *c, int32_t skill)
     if (!mu_skill32_select(skill, skill) ||
         mu_skill32_action(skill, c->walk->hero.class_byte, &c->skill32_context) < 0) return 0;
     const mu_skill_hero *hero = c->session ? mu_skill_book_hero(mu_session_skills(c->session)) : NULL;
-    for (int i = 0; hero && i < hero->count && i < 150; ++i)
-        if (hero->skills[i] == skill) return 1;
-    return 0;
+    return hero && mu_skill32_learned(skill, hero->skills, hero->count);
 }
 
 static void hero_archer(const mu_combat *c, mu_sfx_archer *a)

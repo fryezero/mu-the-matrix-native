@@ -50,6 +50,7 @@ class Machine(r30.Machine):
 def load(path):
     lib=C.CDLL(str(path));lib.mu_skill32_plan_cast.argtypes=[C.POINTER(Input),C.c_int,C.POINTER(Plan)]
     lib.mu_skill32_select.argtypes=[C.c_int32,C.c_int32]
+    lib.mu_skill32_learned.argtypes=[C.c_int32,C.POINTER(C.c_uint16),C.c_int32]
     lib.mu_skill32_action.argtypes=[C.c_int32,C.c_int32,C.POINTER(Context)]
     return lib
 
@@ -67,8 +68,14 @@ def compare(text,data,lib,cases):
     for phase in [0,1,2]:
         for n in range(cases):
             skill=SKILLS[n%len(SKILLS)];s=Input();s.cast.skill=s.cast.base=skill;s.cast.owner=0
-            s.cast.model=rng.choice([0xa91,0x7b7]);s.cast.action=rng.choice([0xf8,0xf9,0xfa,0x98])
-            s.cast.attack_time=n%18;s.cast.frame=rng.choice([0.,4.999,5.,5.001,6.,float('nan')])
+            s.cast.model=rng.choice([0xa91,0x7b7]);s.cast.action=rng.choice([3,4,5,0x6e,0x6f,0x8f,0x98,0xf8,0xf9,0xfa,0x132,0x133])
+            s.cast.attack_time=n%18;s.cast.frame=rng.choice([0.,0.999,1.,4.999,5.,5.001,6.,float('nan')])
+            edges=[(0xa91,0x8f,0.999),(0xa91,0x8f,1.),(0xa91,0x8f,5.),
+                (0xa91,0xf9,4.999),(0xa91,0xf9,5.),(0xa91,0xf9,5.001),(0xa91,0xf8,5.),
+                (0xa91,0x132,5.),(0xa91,0x133,5.),(0xa91,0x6f,5.),(0xa91,0x6e,5.),
+                (0x7b7,3,5.),(0x7b7,4,5.),(0x7b7,5,5.),(0x7a4,3,5.),(0x9fc,4,5.),
+                (0x9fd,4,5.),(0xa91,0x98,5.),(0xa91,0x98,5.001),(0xa91,0xf9,float('nan'))]
+            if n<200:s.cast.model,s.cast.action,s.cast.frame=edges[n//len(SKILLS)]
             s.object_key=rng.randrange(65536);s.skill_word=rng.randrange(65536)
             s.random[:]=[rng.randrange(32768) for _ in range(6)]
             for k in range(3):
@@ -83,7 +90,9 @@ def compare(text,data,lib,cases):
                 (0xec,struct.pack('<3f',*s.cast.light))]:obj.define(fx.OBJECTS+off,b)
             regions=[char,obj,am.defined_region('cutoff',0x1cf1050,struct.pack('<i',15)),
                 am.defined_region('skill-word',0x6fca278,struct.pack('<H',s.skill_word)),
-                am.defined_region('hero',0xa39d754,struct.pack('<I',r30.CHAR))]
+                am.defined_region('hero',0xa39d754,struct.pack('<I',r30.CHAR)),
+                am.defined_region('hero-ptr',0x1d1df18,struct.pack('<I',fx.HERO_DATA)),
+                am.defined_region('hero-equipment',fx.HERO_DATA+0x1c94,bytes(4))]
             client=[];rand_used=0;pose=[]
             def effect(mm):
                 client.append(['effect',mm.argument(0),mm.floats(mm.argument(1),3),mm.floats(mm.argument(2),3),
@@ -115,7 +124,7 @@ def compare(text,data,lib,cases):
             else:
                 if skill==49:continue # mount helper is exercised by poses()
                 entry=0x1222f89 if skill==18 else 0x1256cf6 if skill==44 else 0x125594d
-                kw={'frame':(0x2000,{-0x18:r30.CHAR,-0x10:fx.OBJECTS,-0x1c:skill})}
+                kw={'frame':(0x2000,{-0x18:r30.CHAR,-0x10:r30.CHAR if skill==18 else fx.OBJECTS,-0x1c:skill})}
             result=m.execute(entry,args,regions,stubs,**kw)
             plan=Plan();supported=lib.mu_skill32_plan_cast(C.byref(s),phase,C.byref(plan))
             mine=[normalized(plan.calls[i]) for i in range(plan.count)]
@@ -127,7 +136,7 @@ def compare(text,data,lib,cases):
                 if not vc._same_call(client,mine):error=('calls',client,mine)
                 if phase==0 and rand_used!=plan.random_used:error=('rng',rand_used,plan.random_used)
                 if phase==0 and plan.limit!=struct.unpack('<i',result['regions']['cutoff'])[0]:error=('limit',plan.limit)
-                expected_pose=[] if phase!=2 or skill not in [18,44] else [[r30.CHAR,skill,0xd7 if skill==18 else 0x98,0xffffffff]]
+                expected_pose=[] if phase!=2 or skill not in [18,44] else [[r30.CHAR,skill,lib.mu_skill32_action(skill,1,C.byref(Context(0,-1,1,1))),0xffffffff]]
                 if pose!=expected_pose:error=('pose',pose,expected_pose)
             rep.add(['step','end','start'][phase],supported and vc.ok(result) and error is None,
                 dict(case=n,skill=skill,error=error,stopped=result['stopped'],machine_error=result['error']))
@@ -135,7 +144,7 @@ def compare(text,data,lib,cases):
 
 def poses(text,data,lib,rep):
     m=Machine(text,data)
-    for skill in [24,51,52,416,424,49]:
+    for skill in [24,51,52,416,424,49,30,31,32,33,34,35,36]:
         for kind in [0,1,2]:
             for wing in [-1,0,0x2301]:
                 char=am.undefined_region('character',r30.CHAR,0x3670);obj=r30.CHAR+0x3254
@@ -145,11 +154,11 @@ def poses(text,data,lib,rep):
                 def action(mm):
                     actions.append(mm.argument(1));return 0
                 def skillaction(mm):
-                    assert [mm.argument(i) for i in [0,1,3]]==[r30.CHAR,skill,0xffffffff]
+                    assert [mm.argument(i) for i in [0,1,3]]==[r30.CHAR,skill,0x11a if 30<=skill<=36 else 0xffffffff]
                     actions.append(mm.argument(2));return 0
                 stubs={0x12affa4:action,0x12b001a:skillaction,0x138d9cf:lambda mm:0,0x1392afd:lambda mm:0,
-                    0x139d8f8:lambda mm:kind,0x95f5cc:lambda mm:2,0x95fb27:lambda mm:0}
-                entry=0x106c453 if skill==49 else 0x13947d8 if skill in [52,416] else 0x13946ee
+                    0x139d8f8:lambda mm:kind,0x95f5cc:lambda mm:2,0x95fb27:lambda mm:0,0xb99205:lambda mm:1}
+                entry=0x13944d9 if 30<=skill<=36 else 0x106c453 if skill==49 else 0x13947d8 if skill in [52,416] else 0x13946ee
                 result=m.execute(entry,[r30.CHAR,skill],[char],stubs)
                 ctx=Context(kind,wing,0,1);mine=lib.mu_skill32_action(skill,1 if skill==49 else 2,C.byref(ctx))
                 rep.add('poses',vc.ok(result) and actions==([] if mine<0 else [mine]),
@@ -162,11 +171,22 @@ def poses(text,data,lib,rep):
                     c=cls&15
                     expected=0xd7 if skill==18 and c==1 and shield else 0x98 if skill==44 and c==1 else 0xf9 if skill==49 and c==1 and mount else 0xa5 if 30<=skill<=36 and c==2 else (0x93 if skill in [52,416] else 0x7e)+(kind-1) if skill in [24,51,52,416,424] and c==2 and kind in [1,2] else -1
                     rep.add('admission',action==expected,dict(skill=skill,cls=cls,kind=kind,shield=shield,mount=mount))
+    for skill in SKILLS+[47]:
+        for index in [0,13,149,150,159]:
+            entries=(C.c_uint16*160)();entries[index]=skill
+            for count in [-1,0,index,index+1,160]:
+                actual=bool(lib.mu_skill32_learned(skill,entries,count))
+                rep.add('learned',actual==(skill in SKILLS and index<min(count,150)),dict(skill=skill,index=index,count=count))
+    rep.add('learned',not lib.mu_skill32_learned(30,None,150),dict(null_list=True))
     for raw in SKILLS+[47,432,9999]:
         for base in SKILLS:
             rep.add('selector',bool(lib.mu_skill32_select(raw,base))==(raw==base and raw in SKILLS),dict(raw=raw,base=base))
 
 MUTANTS=[
+ ('s->cast.frame >= 1.0f','s->cast.frame > 1.0f'),
+ ('s->cast.action < 0x133','s->cast.action < 0x132'),
+ ('i < count && i < 150', 'i <= count && i < 150'),
+ ('i < count && i < 150', 'i < count && i < 151'),
  ('base >= 30 && base <= 36','base >= 30 && base < 36'),
  ('base == 18 ||','base == 47 ||'),
  ('&& c->shield ?','&& !c->shield ?'),('&& c->mount ?','&& !c->mount ?'),
