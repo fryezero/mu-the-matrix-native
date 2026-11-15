@@ -113,3 +113,19 @@ Its wall was 100.47 s. Exclude `native/tests/test_native_app.py` from the portab
   inspect persistent proofs, run the rebuilt default after sweep, finish docs/PR/ready entry/cleanup.
 - Next: wait for the shared-host resource guard, audit this source checkpoint, merge origin/main
   with both registry additions retained, then rebuild before the affected selectors.
+
+### WIP during the final source refresh
+
+- Done: audited 2,340 staged files, zero rejected, 50.00 s. Pushed the final bounded implementation
+  at `819f2caf`. Merged AUDIO-005 main `8844d3e9` cleanly at `bee48677`; both registry additions survive.
+  The integrated root build passed in 22.62 s. No source changes follow that merge.
+- Done: affected-since preview from the previously tested `abf4654f` selected 74 rows in 51.72 s,
+  including the worlds-r2 symbol fallback. All are retained. Thirty-eight rows have passed so far,
+  including the new 417-case visibility row and both incoming audio rows; shared native rows remain.
+  Six unchanged earlier Muun rows retain their passing results, giving an 80-row evidence union.
+- Running: cached, no-optional-mutants refresh at `bee48677`, two workers, local report prefix
+  `scratch/muun-visual-005/validators-refresh`. Terrain and render-effects31 are currently active.
+- Left: finish the refresh, portable refresh selection/run without app packaging, all 29 private Muun
+  tests, explicit world build, persistent proof inspection and default after identity, final docs/PR/queue
+  and cleanup. A complete final handoff draft and render/comparison drivers are in task-local scratch.
+- Next: inspect all refresh row outcomes, then recheck resources before the next heavy command.

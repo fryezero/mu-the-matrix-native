@@ -417,5 +417,22 @@ raw-byte/predicate fixture can compare this whole caller without an authoritativ
 
 The four existing rider categories emit 38/71/103/315. Their selector does not emit the fifth proved
 seat interval 0x118..0x132. A separate authored action in that interval can test the existing seat and
-secondary-action consumers, provided the frozen player model actually has that action and positive keys.
+secondary-action consumers, provided the canonical player model actually has that action and positive keys.
 Absent keys must remain refused. This is a raw pose fixture, not a new command/action selection feed.
+
+### Verified supplied remote gate and fifth rider interval
+
+`MU_MUUN_REMOTE_BUFF_FIXTURE=9,0,1` supplies local byte, remote byte and predicate to the existing mount
+buff fixture. It requires `MU_MUUN_MOUNT_FIXTURE=1` and `MU_MUUN_BUFF18_FIXTURE=1`. The native gate
+intentionally hides a mismatched group without counting it as an unsupported render mode. Matching 9/6
+draws, and predicate zero bypasses the gate. `validate_muun_visibility` compares the complete 400-slot
+caller, including lookup order, local-owner bypass, predicate/buff values, mesh arguments and colour
+restoration: 388 cases and eight compiled mutation controls. Its original body SHA-256 is
+`cba17edf9d1e0a300ad736c2e4208a16f1896e3c72a446283ca0a6111da38d52`.
+
+`MU_MUUN_RIDER_ACTION_FIXTURE=280` requires the existing rider fixture and a value in an admitted
+seat interval. The original gate `0x009c046a` agrees for all 29 actions 279..307, with two additional
+compiled boundary controls. Canonical action 280 has keys; the native fixture draws and restores that
+pose on both backends. The combined checker has 417 cases and ten distinct controls. This does not
+add production action selection, infer equipment, or supply an authoritative owner lookup. The original
+lookup/predicate/buff services remain explicitly supplied in the checker; native uses only authored inputs.
