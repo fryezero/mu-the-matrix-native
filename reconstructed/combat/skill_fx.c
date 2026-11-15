@@ -628,7 +628,8 @@ int mu_sfx_effect_create(mu_sfx_effect *e, int32_t type, int32_t subtype, const 
         copy3(c.position,e->position); copy3(c.angle,o->angle);
         c.light[0] = c.light[1] = c.light[2] = 1.0f;
         env_call(env,&c,e);
-        call_sound(env,e,0x2b0);
+        c = (mu_sfx_call){0}; c.routine = MU_SFX_CALL_SOUND; c.type = 0x2b0;
+        c.owner = -1; c.arg8 = 0x013f2c46; env_call(env,&c,e);
         break;
     }
     case 0x584: {
@@ -1358,7 +1359,7 @@ int mu_sfx_effect_move(mu_sfx_effect *e, const mu_sfx_env *env)
         c.owner = -2; c.scale = 0.35f; env_call(env,&c,e);
         if (e->lifetime == 35) {
             c.routine = MU_SFX_CALL_POSE; c.arg7 = 0; env_call(env,&c,e);
-            c.routine = MU_SFX_CALL_BONE; c.range = 0; env_call(env,&c,e);
+            c.routine = MU_SFX_CALL_BONE; c.range = 0; c.arg7 = 1; env_call(env,&c,e);
             float p[3]; copy3(p,e->position);
             if (env && env->bone) env->bone(env->context,e,0,p);
             c.routine = MU_SFX_CALL_EFFECT; c.type = 0x4b7; c.subtype = 1; c.owner = -1;

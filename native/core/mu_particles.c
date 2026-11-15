@@ -727,7 +727,7 @@ static int fx_call(mu_world_particles *p, const mu_jt_call *call, mu_sfx_effect 
         return 0;
     case MU_JT_CALL_EFFECT:
         if (e && call->type == 0x46c && call->owner == -2) {
-            mu_sfx_info info = {0}; info.key = (uint16_t)call->range;
+            mu_sfx_info info = {0}; info.key = (uint16_t)call->range; info.field8 = (uint16_t)call->arg7;
             mu_world_particles_effect(p,call->type,call->subtype,call->position,call->angle,call->light,
                 MU_WORLD_FX_SELF_BASE+(int32_t)(e-p->effects),call->scale,&info);
             return 0;

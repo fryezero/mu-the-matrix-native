@@ -50,8 +50,9 @@ static void call_effect_ks(const mu_sfx_env *env, mu_sfx_effect *e, int32_t type
     c.type = type;
     c.subtype = subtype;
     c.owner = owner;
-    c.range = key;
+    c.range = type == 0x46c ? (int16_t)key : (int32_t)key;
     c.scale = scale;
+    if (type == 0x46c) c.arg7 = -1; /* wrapper default info word8 */
     copy3(c.position, position);
     copy3(c.angle, angle);
     copy3(c.light, light);

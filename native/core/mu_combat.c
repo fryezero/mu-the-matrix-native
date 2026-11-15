@@ -827,6 +827,7 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
             effect_object(c,e);
             owner = MU_COMBAT_EFFECT_OBJECT((int32_t)(e - c->effects));
             info.key = (uint16_t)call->range;
+            info.field8 = (uint16_t)call->arg7;
         }
         if (e && e->type == MU_SFX_RAGEFUL_BLOW) {
             /* RENDER-EFFECTS-004: the pieces' info key (scale = key / 100). EarthQuake01..03 are owned by
@@ -903,6 +904,8 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
         return 0;
     case MU_SFX_CALL_SOUND: {
         mu_combat_audio d = mu_combat_effect_sound(call->type);
+        if (e && (e->type == 0x46c || e->type == 0x583))
+            d = (mu_combat_audio){0x013c0f19u,(uint32_t)call->arg8,call->type};
         if (!d.site)   /* RENDER-EFFECTS-015: the reconstructed routines' other PlayBuffer sites */
             d.site = mu_sfx_sound_site(call->type, &d.routine);
         play(c, d, -3);
@@ -1448,8 +1451,8 @@ static void move_pools(mu_combat *c)
     for (int i = 0; i < MU_SFX_EFFECTS; ++i) {
         if (c->effects[i].live && !mu_sfx_effect_move(&c->effects[i], &c->env))
             c->effects[i].live = 0;   /* an unsupported kind ends at once */
-        if (c->effects[i].type == 0x70a)
-            effect_object(c, &c->effects[i]);   /* RENDER-EFFECTS-015: its arrows read it later in this pass */
+        if (c->effects[i].type == 0x70a || mu_sfx_is_arrow(c->effects[i].type))
+            effect_object(c, &c->effects[i]);   /* Later effects read the moved arrow, not the cleared view. */
     }
     for (int i = 0; i < MU_SFX_EFFECTS; ++i)
         effect_object(c, &c->effects[i]);   /* MoveJoints reads the arrows after MoveEffects (RENDER-EFFECTS-009) */

@@ -66,3 +66,41 @@ PR-ready delivery. No rating has been promoted yet. PR #394 remains open as of
 
 Next step: inspect blood-sample.json after its resource wait, correct only
 instruction-evidenced differences, then add the missing consumer controls.
+
+## WIP checkpoint 3, 10:48 local
+
+Done since checkpoint 2:
+- All five focused native fixture tests pass in 5.826 s, including seven
+  summons, Penetration and alias, optional target ice, Blood Storm owner flag,
+  retirement, and combined Swell Life. No hits, kills, target-HP changes or
+  sent requests in these fixtures.
+- The exact 20-case dispatch/loader preflight passes: six effect draw routes,
+  two model loader paths, Fire03 bitmap loader, native callback owner/capacity
+  host, all consumer records, calls and draw streams.
+- Native tests exposed a cleared same-step arrow owner view; it is now
+  refreshed immediately after moving the arrow. A compiled control removes
+  the refresh and must fail. The parent arrow's nested request now preserves
+  sign-extended key and default word8; the added original comparison is queued.
+- Defense input and pushed ACTORS-006/007 plans audited read-only; Defense
+  stays limited and all summon primary bodies stay missing. Adjacent ITEMS-AA
+  and INNER-005 WIPs provide no extra statically complete small consumer pair.
+- Added the 033 validator registration and 45 controls. Its final private
+  run is in progress; no mutant result claimed yet. Root builds pass, latest
+  defaults build 12.707 s.
+
+Left: inspect the final grouped proof, complete affected portable/private
+validators, reduced private 8d, per-skill renders and final default identity,
+latest-main integration, final docs/PR/ready line and cleanup. #394 remains open
+and main remains 6900914e. No installed app or Native Data action occurred.
+
+Next step: inspect verify-runs/focused33 and focused-final.log, then run the
+prepared selection driver. Do not repeat successful compiled controls.
+
+Checkpoint 3 completion: 6,410/6,410 focused checks and all 45 compiled
+controls pass, zero original stops. The first 14 controls ran once before an
+argument-count bug stopped the target-ice mutant dispatcher. That harness call
+is fixed; only the 31 uncompleted controls resumed. The combined reports retain
+the fourteen successful original results. Execution walls are 44.426 s initial
+plus 73.402 s resume; no successful compiled control was repeated. The default
+verifier still runs all 45 from a fresh invocation. All production inputs are
+unchanged between the two runs. Remaining checks and publication are pending.

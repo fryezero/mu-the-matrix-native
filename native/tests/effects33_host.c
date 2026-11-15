@@ -14,15 +14,15 @@ int main(void)
     arrow->position[0] = 100; arrow->position[1] = 200; arrow->position[2] = 50;
     arrow->angle[2] = 90;
     mu_sfx_call child = {0}; child.routine = MU_SFX_CALL_EFFECT;
-    child.type = 0x46c; child.owner = -2; child.range = -1;
+    child.type = 0x46c; child.owner = -2; child.range = -1; child.arg7 = -1;
     memcpy(child.position,arrow->position,sizeof child.position);
     memcpy(child.angle,arrow->angle,sizeof child.angle);
     child.light[0] = child.light[1] = child.light[2] = 1;
     env_call(c,&child,arrow);
     mu_sfx_effect *e = &c->effects[1];
     assert(e->live && e->type == 0x46c && e->owner == MU_COMBAT_EFFECT_OBJECT(0));
-    assert(e->key == 0xffff && e->scale == 1 && e->lifetime == 100);
-    assert(c->stats.joints_created == 4 && c->stats.unsupported == 0);
+    assert(e->key == 0xffff && e->field_364 == 0xffff && e->scale == 1 && e->lifetime == 100);
+    assert(c->stats.joints_created == 4 && c->stats.unsupported == 0 && c->sounds_played == 1);
     for (int n = 0; n < 4; ++n) {
         const mu_jt_joint *j = &c->joints[n];
         assert(j->live && j->type == 0x7f79 && j->subtype == n && j->lifetime == 30);
@@ -34,6 +34,9 @@ int main(void)
     const mu_sfx_object *o = &c->objects[MU_COMBAT_EFFECT_OBJECT(1)];
     assert(o->heading[0] == 11 && o->heading[1] == 22 && o->heading[2] == 33 && o->impact[0] == 44);
     c->env.model = NULL; /* synthetic action table, no asset needed */
+    arrow->lifetime = 100; c->time_step = 0.1f;
+    move_pools(c);
+    assert(arrow->live && e->live && e->lifetime == 99);
     arrow->live = 0; effect_object(c,arrow);
     assert(mu_sfx_effect_move(e,&c->env) && !e->live);
     for (int n = 0; n < MU_SFX_EFFECTS; ++n) c->effects[n].live = 1;

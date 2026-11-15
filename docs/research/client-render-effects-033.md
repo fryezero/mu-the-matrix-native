@@ -42,3 +42,107 @@ Frozen Native Data lacks exact names DarkLordSkill.bmd, Flame01.OZJ and water.OZ
 No refresh is permitted. Rows requiring these assets stay refused with frozen
 input even if separate full read-only game data can demonstrate a component.
 Effect 0x47a is reserved for MUUN-VISUAL-005 and is not changed here.
+
+## Recovered consumer contracts
+
+The original target is `3cf91f3c203d305a771b04d00b271871f7ce1c6779b22e30fbae8c4f35b5527a`.
+The pinned text hash is
+`2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724`;
+data hash is
+`c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f`.
+These are offline original-instruction comparisons over authored records and
+named services. Animation/bone service outputs are fixture inputs; draw-stream
+checks compare ordered GL calls. Native asset appearance is separate proof.
+
+| Consumer | Original boundary | Recovered behavior |
+|---|---|---|
+| Effect 0x7f84/3 | create 0x013c80a3; move 0x0143fbda | Twenty-step ground emitter, three JointEnergy01/3 children per step; exact default key -1 |
+| Joint 0x7fd8/3 | Existing Energy01 dispatch | Same homing/lifetime as subtype 1, orange (L, .6L, .4L) palette |
+| Effect 0x46c/0 | 0x013ca40b..0x013ca7ec; 0x01463c5e..0x0146409b | Owner live/position/angle, saved prior position, heading spin; four Flare02 trails, key 30, skill 0; sound 0x7a |
+| Joint 0x7f79/0..3 | Flare02 dispatch | Caller width/radius, three substeps, owner heading/impact; 50-tail capacity, closing tail, fade and owner death |
+| Effect 0x412/1,2 | 0x013d01f8..0x013d04e1; 0x0146bbb8..0x0146bfef | Target presence ID 0x39; action-dependent hidden-all flag; frame hold, fade, subtype-1 orbit/Fire03; source-light mutation |
+| Particle 0x7f3e/10 | Fire03 uses Fire01 cases | Life 24, ordered velocity/rotation RNG, shrink .95, vertical gravity, four-frame strip and full GL stream |
+| Effect 0x583/0 | 0x013f2b83; 0x014a18fc | Life 70, caster-owned 0x584, sound 0x2b0; ten jittered 0x585 requests and central 0x586 |
+| Effect 0x584/0 | 0x013f2c53; 0x014a1b1c..0x014a2131 | Owner +0x3b must equal 1; life 36, .35 animation; bone-zero 0x4b7/1, 55 blur calls over eleven exact bones, brightness ramp |
+
+The Blood Storm loop poses once at frame minus action speed, then reuses that
+pose in all five outer samples. The loop computes speed / 35 and increments a
+local frame, but does not pose again. No interpolated intermediate poses are
+invented. The constructor-reachable action is 0; other actions and out-of-range
+parent scale indices are refused. Downstream 0x585/0, 0x586/0, 0x4b7/1,
+particle 0x8145/1 and blur 0x814b remain counted refusals, so the body is a
+visible subset. Piercing.bmd and blood_storm_sword.bmd use the exact static
+AccessModel paths (0x0183461a and 0x01836133); action-0 speed is set at
+0x0183616a. Fire03.jpg uses the original LINEAR/CLAMP loader entry.
+
+`MU_SKILL33_TARGET_ICE` is an authored positive tick count (maximum 10,000),
+default zero. The original target visual slice 0x01256b8a..0x01256cc7 deletes
+subtype 1 and creates both ice effects only when its input byte is nonzero.
+The first constructor mutates the supplied light; the second request sees
+(.4, .3, .2), not a fabricated white reset. The following target freeze/movement
+writes are excluded. The fixture owns a separate visual-presence expiry; it
+never writes actor state or derives a freeze from hitting with an arrow.
+
+`MU_SKILL33_BLOOD_OWNER=1` supplies the body owner's +0x3b view explicitly.
+Zero, absent and invalid values leave the body disabled. This is separate from
+the skill request and does not write an actor or infer live hit state.
+
+Defense remains finite. The action fragment 0x01222f89..0x01222fb0 only invokes
+SkillAction and sound. SkillAction 0x012b001a..0x012b0088 selects the action;
+the recovered default MoveCharacter cutoff ends at frame 5. None establishes
+a held-button renewal/release rule. No arbitrary hold duration is admitted as
+original behavior. Shield geometry and the held-input rule remain the exact
+missing dependencies.
+
+## Actor and adjacent-lane audit
+
+The summon end request contains a ground effect and no actor selector or actor
+lifetime. An actor body's existence therefore cannot turn that ground request
+into actor creation. Main still has ACTORS-005; the pushed ACTORS-006/007 plans
+were inspected read-only. Candidate ordinary fixture selectors 20, 21, 32 and
+150 have checked plain bodies on 006; 26 has a checked body/weapon group on
+007. Selectors 10 and 151 still need effect caller services on 007. The
+skill-to-actor mapping and separate spawn/lifetime input remain unproved for
+all seven summon rows; they stay M. These selector numbers are actor-lane
+follow-up candidates, not a new skill admission table. No actor file changed.
+
+Late inspection of ITEMS-002AA and INNER-005 pushed WIP handoffs found no
+complete small refused-consumer ID contract suitable for admission here.
+Their new producers retain named missing dependencies; no extra pair is
+admitted from an incomplete WIP statement.
+
+## Verification method and corrections
+
+The single grouped verifier checks every pair against original instructions,
+including full particle/joint draw streams, ordered RNG, optional target caller,
+Blood Storm pose frame/angles and all blur arguments. Existing 030/032 callers
+supply per-skill original checks for aliases and seven summon rows; native
+fixtures exercise each affected skill independently. There is no blanket alias
+admission. Forty-five compiled controls cover records, calls, draw streams,
+owner mapping and native callback defaults. Final counts/timings follow in the
+handoff after those controls run.
+
+Exploratory failures found a mutable ctypes callback reference, the wrong
+Energy01 dispatch branch, a missing fourth trail, lost native self ownership,
+a fragment exit hook registration, and a zero-vector bone argument represented
+as an address. Each was corrected from the pinned instructions or a native
+boundary assertion; failed runs are not proof. The old 031 null-owner census
+still refuses 0x46c and 0x583. Only 0x584's obsolete missing-kind expectation is
+updated; the new positive owner contexts are checked here.
+
+A native lifecycle test also exposed the per-step object-view reset: the arrow
+view was cleared before its owned effect moved. The native now refreshes an
+arrow view immediately after moving that arrow, so its later 0x46c child reads
+the moved live record. A compiled native control removes that refresh and must
+fail the live-child assertion. This changes no actor record.
+
+The parent Arrow01/2 constructor is also compared with all fourteen nested
+CreateEffect arguments, including the default info word8 of -1. Native combat
+and world adapters preserve that word along with self ownership and key.
+
+Final grouped proof: 6,410 checks equal, 45 compiled controls detected, no
+original stops. Fourteen controls completed before a harness-only target-ice
+argument dispatch error; only the remaining 31 resumed. The native controls
+include self owner, key, heading and same-step owner refresh. No passing
+control was repeated. Final affected replay, assets and identity results are
+recorded in the handoff.
