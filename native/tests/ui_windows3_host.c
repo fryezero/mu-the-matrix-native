@@ -22,7 +22,7 @@ int main(int argc,char **argv)
     char error[512];mu_gfx_layer *L=mu_gfx_layer_open(&cfg,error,sizeof error);
     if (!L) {fprintf(stderr,"%s\n",error);return 1;}
     for(int i=0;i<10;i++) mu_gfx_layer_advance(L,40);
-    for(int m=MU_GFX_BAG;m<MU_GFX_MOVIES;m++) assert(presentation_available3(L,m));
+    for(int m=MU_GFX_BAG;m<=MU_GFX_AUTOMATIC;m++) assert(presentation_available3(L,m));
     int real=getenv("MU_WINDOWS3_REAL") && !strcmp(getenv("MU_WINDOWS3_REAL"),"1");
     if(real) {
         field(L,MU_GFX_BLOCKED_CHAT,"btnRegistUser.disabled","true");
@@ -97,7 +97,7 @@ int main(int argc,char **argv)
     assert(sounds==0); /* These original direct routes have no guessed click sound. */
     foreign=0;
     int refused=0;
-    for(int m=MU_GFX_BAG;m<MU_GFX_MOVIES;m++) {
+    for(int m=MU_GFX_BAG;m<=MU_GFX_AUTOMATIC;m++) {
         mu_gfx_layer_show(L,m,1);
         for(size_t i=0;i<sizeof blocked/sizeof *blocked;i++) {
             assert(!presentation_call(&L->mv[m],blocked[i],"[0]",(double[]){0},1));

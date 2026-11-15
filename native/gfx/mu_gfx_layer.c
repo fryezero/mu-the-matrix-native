@@ -406,7 +406,9 @@ static const char *const FILES[MU_GFX_MOVIES] = {"main", "InventoryFrame", "Info
                                                  "CommandWindow", "MatchingSelect", "GensRanking", "PetInventoryFrame", "GremoryCase",
                                                  "MacroMain", "MacroSub", "HuntRecord", "StorageInven",
                                                  "MatchingParty", "MatchingGuild", "Guildmatching_2024", "PlayGuide",
-                                                 "ExtensionBagFrame", "SkillTree5thItemViewer", "BlockedChat", "AutomaticMacro"};
+                                                 "ExtensionBagFrame", "SkillTree5thItemViewer", "BlockedChat", "AutomaticMacro",
+                                                 "ElementalMix", "SocketMix", "GuardianMix", "HarmonyMix",
+                                                 "ExchangeLuckCoin", "MuunExchange", "RuudShopFrame", "MixSel", "MixAttributeScalp"};
 
 static void presentation_shown(mu_gfx_layer *, int, int);
 static void presentation_shown3(mu_gfx_layer *, int, int);
@@ -1769,6 +1771,9 @@ static const int WINDOW_ALIGN[MU_GFX_MOVIES] = {
     [MU_GFX_STORAGE_EXT] = 9, [MU_GFX_MATCH_PARTY] = 9, [MU_GFX_MATCH_GUILD] = 9,
     [MU_GFX_GUILD_MATCH] = 9, [MU_GFX_PLAY_GUIDE] = 9,
     [MU_GFX_BAG] = 0, [MU_GFX_TREE5_VIEWER] = 4, [MU_GFX_BLOCKED_CHAT] = 9, [MU_GFX_AUTOMATIC] = 14,
+    [MU_GFX_ELEMENTAL_MIX] = 9, [MU_GFX_SOCKET_MIX] = 9, [MU_GFX_GUARDIAN_MIX] = 9,
+    [MU_GFX_HARMONY_MIX] = 9, [MU_GFX_LUCK_COIN] = 9, [MU_GFX_MUUN_EXCHANGE] = 9,
+    [MU_GFX_RUUD_SHOP] = 9, [MU_GFX_MIX_SELECTOR] = 9, [MU_GFX_ATTRIBUTE_SELECTOR] = 9,
     [MU_GFX_OPTION] = 9, [MU_GFX_SYSTEM_MENU] = 9, [MU_GFX_HELP] = 9
 };
 
