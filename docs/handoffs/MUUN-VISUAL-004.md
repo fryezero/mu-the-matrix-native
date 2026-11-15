@@ -139,3 +139,16 @@ repeated. All 43 steward rows pass, 746,994 reported cases, with per-row source 
 Done: integrated source and portable/validator verification, including the revised remote test import.
 Left: reduced private Muun run for the new control/current binary, proof/default replay, final audit and PR.
 Next: resource guard, explicit world rebuild/hash, private Muun modules, then finish delivery.
+
+## UI integration checkpoint
+
+Main `a95880c4` (UI-WINDOWS-003) is integrated at `8ee7eaa0`; the root build passes in 6.26 s.
+The exact lane selection remains 43 rows (54.25 s preview). Six rows whose inputs the UI merge changes
+pass in 69.45 s, zero failures/errors/skips, after a 32.29 s selector preview. All 43 latest row results
+pass and total 746,994 reported cases. No Muun C/checker changes were authored.
+
+The UI portable preview selects 147 work items in 74.72 s. The runner is still active; its repository
+suite passes 277 tests with 43 skips in 105.4 s, and no completed native module has failed.
+Done: UI merge, build, exact validator refresh and current portable selection.
+Left: portable batch completion, reduced private Muun checks, final proof/default replay, audit and PR.
+Next: finish the active runner, then check resources and the current world binary.
