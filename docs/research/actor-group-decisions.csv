@@ -1,0 +1,356 @@
+server_class,group,before_group,previous_reason,decision,reason
+1,constructor equipment/parts,sword sprite caller and right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional caller services: effect
+5,constructor equipment/parts,sword sprite caller and both weapon/link plans unchecked,constructor equipment/parts,incomplete,additional caller services: effect
+10,constructor equipment/parts,sword sprite caller and right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional caller services: effect
+13,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,checked group body plan,
+18,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional caller services: effect
+22,plain monster body,constructor blend-mesh/light plan unchecked,"constructor render-state override: 0x74,0xa8",incomplete,native file/texture/geometry/plan check failed
+23,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,checked group body plan,
+25,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,"constructor render-state override: 0x5,0x74,0xa8"
+26,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,checked group body plan,
+28,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,checked group body plan,
+29,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,checked group body plan,
+31,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,additional caller services: effect
+33,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,checked group body plan,
+35,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,checked group body plan,
+36,plain monster body,unresolved caller at 0x1377aef,unresolved caller at 0x1377aef,incomplete,unresolved caller at 0x1377aef
+38,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,opener StreamMesh override
+39,plain monster body,unresolved caller at 0x1377aef,unresolved caller at 0x1377aef,incomplete,unresolved caller at 0x1377aef
+40,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional caller services: effect
+41,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional caller services: effect
+42,plain monster body,additional caller link plan unchecked,additional caller services: LINK,incomplete,caller body/link/pass arguments differ
+43,plain monster body,additional caller mesh/body passes unchecked,additional caller services: BODY,incomplete,additional caller services: BODY
+45,plain monster body,additional caller effect requests unchecked,additional caller services: effect,incomplete,additional caller services: effect
+46,plain monster body,additional caller effect requests unchecked,additional caller services: effect,incomplete,additional caller services: effect
+47,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional caller services: effect
+48,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional caller services: effect
+49,plain monster body,constructor blend-mesh/light plan unchecked,"constructor render-state override: 0x74,0xa8",checked group body plan,
+51,plain monster body,additional caller effect requests unchecked,additional caller services: effect,incomplete,additional caller services: effect
+52,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,"additional caller services: BODY,effect"
+53,special appearance hook,constructor joint consumer/appearance plan unchecked,special appearance hook,incomplete,constructor needs appearance/part/secondary proof; special appearance hook
+54,constructor equipment/parts,left weapon/link plan unchecked,constructor equipment/parts,incomplete,"additional caller services: BODY,effect"
+57,special appearance hook; constructor equipment/parts,constructor joints and right weapon/link plan unchecked,special appearance hook; constructor equipment/parts,incomplete,constructor needs appearance/part/secondary proof; special appearance hook; constructor equipment/parts
+58,special appearance hook; extra bitmap load; constructor equipment/parts,"constructor joints, bitmap consumers and right weapon/link unchecked",special appearance hook; extra bitmap load; constructor equipment/parts,incomplete,constructor needs appearance/part/secondary proof; special appearance hook; extra bitmap load; constructor equipment/parts
+59,special appearance hook; extra bitmap load; constructor equipment/parts,"constructor joints, bitmap consumers and right weapon/link unchecked",special appearance hook; extra bitmap load; constructor equipment/parts,incomplete,constructor needs appearance/part/secondary proof; special appearance hook; extra bitmap load; constructor equipment/parts
+60,special appearance hook,constructor joint consumer/appearance plan unchecked,special appearance hook,incomplete,constructor needs appearance/part/secondary proof; special appearance hook
+61,special appearance hook,constructor joint consumer/appearance plan unchecked,special appearance hook,incomplete,constructor needs appearance/part/secondary proof; special appearance hook
+62,special appearance hook,constructor joint consumer/appearance plan unchecked,special appearance hook,incomplete,constructor needs appearance/part/secondary proof; special appearance hook
+63,special appearance hook,constructor joint consumer/appearance plan unchecked,special appearance hook,incomplete,constructor needs appearance/part/secondary proof; special appearance hook
+64,constructor equipment/parts,left weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services
+65,plain monster body,constructor hidden-mesh plan unchecked,constructor render-state override: 0x68,checked group body plan,
+67,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,opener StreamMesh override
+69,plain monster body,additional caller effect requests unchecked,additional caller services: effect,incomplete,additional caller services: effect
+70,plain monster body,additional caller effect requests unchecked,additional caller services: effect,incomplete,additional caller services: effect
+71,extra bitmap load; constructor equipment/parts,bitmap consumers and both weapon/link plans unchecked,extra bitmap load; constructor equipment/parts,incomplete,extra bitmap consumer remains unchecked
+72,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,caller body/link/pass arguments differ
+73,plain monster body,additional caller mesh/body and effect requests unchecked,"additional caller services: BODY,effect",incomplete,"additional caller services: BODY,effect"
+74,extra bitmap load; constructor equipment/parts,bitmap consumers and both weapon/link plans unchecked,extra bitmap load; constructor equipment/parts,incomplete,extra bitmap consumer remains unchecked
+75,plain monster body,additional caller mesh/body and effect requests unchecked,"additional caller services: BODY,effect",incomplete,"additional caller services: BODY,effect"
+77,plain monster body,multiple constructor opener/model selection unchecked,multiple constructor opener requests,incomplete,constructor needs appearance/part/secondary proof; multiple constructor opener requests
+78,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional caller services: BODY
+79,plain monster body,additional caller mesh/body passes unchecked,additional caller services: BODY,incomplete,additional caller services: BODY
+80,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,"additional caller services: BODY,effect"
+81,plain monster body,additional caller mesh/body and effect requests unchecked,"additional caller services: BODY,effect",incomplete,"additional caller services: BODY,effect"
+82,special appearance hook; extra bitmap load; constructor equipment/parts,"constructor joints, bitmap consumers and right weapon/link unchecked",special appearance hook; extra bitmap load; constructor equipment/parts,incomplete,constructor needs appearance/part/secondary proof; special appearance hook; extra bitmap load; constructor equipment/parts
+83,special appearance hook; constructor equipment/parts,constructor joints and right weapon/link plan unchecked,special appearance hook; constructor equipment/parts,incomplete,constructor needs appearance/part/secondary proof; special appearance hook; constructor equipment/parts
+85,constructor equipment/parts,left weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services
+86,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,checked group body plan,
+88,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional caller services: effect
+89,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,unresolved caller at 0xfdab58
+91,constructor equipment/parts,left weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services
+92,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,checked group body plan,
+94,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional caller services: effect
+95,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,unresolved caller at 0xfdab58
+97,constructor equipment/parts,left weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services
+98,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,checked group body plan,
+105,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,incomplete,additional caller services: effect
+111,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional caller services: effect
+112,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,unresolved caller at 0xfdab58
+114,constructor equipment/parts,left weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services
+115,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,checked group body plan,
+117,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional caller services: effect
+118,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,unresolved caller at 0xfdab58
+120,constructor equipment/parts,left weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services
+121,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,checked group body plan,
+123,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional caller services: effect
+124,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,unresolved caller at 0xfdab58
+126,constructor equipment/parts,left weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services
+127,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,checked group body plan,
+129,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional caller services: effect
+130,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,unresolved caller at 0xfdab58
+132,plain monster body,additional caller link plan unchecked,additional caller services: LINK,incomplete,caller body/link/pass arguments differ
+133,plain monster body,additional caller link plan unchecked,additional caller services: LINK,incomplete,caller body/link/pass arguments differ
+134,plain monster body,additional caller link plan unchecked,additional caller services: LINK,incomplete,caller body/link/pass arguments differ
+135,plain monster body,additional caller mesh/body passes unchecked,additional caller services: BODY,incomplete,additional caller services: BODY
+136,plain monster body,caller changes or suppresses the ordinary body plan,body call arguments/count differ,incomplete,caller body/link/pass arguments differ
+137,constructor equipment/parts,left weapon/link plan unchecked,constructor equipment/parts,incomplete,caller body/link/pass arguments differ
+139,constructor equipment/parts,left weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services
+140,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,checked group body plan,
+142,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional caller services: effect
+143,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,unresolved caller at 0xfdab58
+144,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,
+145,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services
+147,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,
+148,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services
+149,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,
+151,constructor equipment/parts,left weapon/link plan unchecked,constructor equipment/parts,incomplete,additional caller services: effect
+160,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,additional caller services: effect
+161,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,additional caller services: effect
+162,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context
+163,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context
+164,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context
+165,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context
+166,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context
+167,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context
+168,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context
+169,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context
+170,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context
+171,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context
+172,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context
+173,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context
+174,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,
+175,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services
+177,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,
+178,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services
+179,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,
+180,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,additional caller services: effect
+181,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,additional caller services: effect
+182,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,
+183,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services
+185,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,
+186,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services
+187,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,
+188,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,additional caller services: effect
+189,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,additional caller services: effect
+190,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,
+191,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services
+193,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,
+194,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services
+195,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,
+196,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,additional caller services: effect
+197,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,additional caller services: effect
+205,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,incomplete,NPC opener file/texture/action/model state differs
+206,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,incomplete,NPC opener file/texture/action/model state differs
+207,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,incomplete,NPC opener file/texture/action/model state differs
+208,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,incomplete,NPC opener file/texture/action/model state differs
+209,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,incomplete,NPC opener file/texture/action/model state differs
+224,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+226,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+231,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+232,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,incomplete,constructor render-state override: 0x3b
+233,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,incomplete,constructor render-state override: 0x3b
+234,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,constructor render-state override: 0x3b
+235,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,incomplete,constructor render-state override: 0x3b
+237,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,incomplete,additional caller services: effect
+238,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,incomplete,additional caller services: effect
+239,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+240,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+241,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+243,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+244,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+245,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+246,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+251,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+254,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+256,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+259,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+260,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,
+261,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services
+263,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,
+264,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services
+265,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,
+266,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,additional caller services: effect
+267,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,additional caller services: effect
+268,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,
+269,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services
+271,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,
+272,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services
+273,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,
+274,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,additional caller services: effect
+275,constructor equipment/parts,left weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services
+300,special appearance hook,constructor joint consumer/appearance plan unchecked,special appearance hook,incomplete,constructor needs appearance/part/secondary proof; special appearance hook
+301,extra bitmap load; constructor equipment/parts,bitmap consumers and both weapon/link plans unchecked,extra bitmap load; constructor equipment/parts,incomplete,extra bitmap consumer remains unchecked
+314,repeated default body,caller changes or suppresses the ordinary body plan,body call arguments/count differ,incomplete,caller body/link/pass arguments differ
+315,repeated default body,caller changes or suppresses the ordinary body plan,body call arguments/count differ,incomplete,caller body/link/pass arguments differ
+316,plain monster body,caller changes or suppresses the ordinary body plan,body call arguments/count differ,incomplete,caller body/link/pass arguments differ
+317,plain monster body,caller changes or suppresses the ordinary body plan,body call arguments/count differ,incomplete,caller body/link/pass arguments differ
+318,repeated default body,caller changes or suppresses the ordinary body plan,body call arguments/count differ,incomplete,caller body/link/pass arguments differ
+319,repeated default body,caller changes or suppresses the ordinary body plan,body call arguments/count differ,incomplete,caller body/link/pass arguments differ
+331,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,
+332,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services
+334,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,
+335,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,
+336,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services
+337,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,additional caller services: effect
+338,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,additional caller services: effect
+356,plain monster body,additional caller effect requests unchecked,additional caller services: effect,incomplete,additional caller services: effect
+361,special appearance hook,cloth/world-selected appearance plan unchecked,special appearance hook,incomplete,cloth/world-selected appearance remains unchecked
+368,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+369,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+370,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+379,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+406,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+407,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,incomplete,NPC opener file/texture/action/model state differs
+415,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+416,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,incomplete,additional caller services: effect
+417,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+422,plain monster body,additional caller effect requests unchecked,additional caller services: effect,incomplete,additional caller services: effect
+423,plain monster body,additional caller effect requests unchecked,additional caller services: effect,incomplete,additional caller services: effect
+426,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context
+427,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context
+429,constructor equipment/parts,left weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services
+430,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,checked group body plan,
+432,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional caller services: effect
+433,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services
+439,plain monster body,additional caller effect requests unchecked,additional caller services: effect,incomplete,additional caller services: effect
+440,plain monster body,additional caller effect requests unchecked,additional caller services: effect,incomplete,additional caller services: effect
+441,plain monster body,additional caller effect requests unchecked,additional caller services: effect,incomplete,additional caller services: effect
+442,plain monster body,additional caller effect requests unchecked,additional caller services: effect,incomplete,additional caller services: effect
+443,plain monster body,additional caller effect requests unchecked,additional caller services: effect,incomplete,additional caller services: effect
+444,plain monster body,additional caller effect requests unchecked,additional caller services: effect,incomplete,additional caller services: effect
+445,plain monster body,additional caller effect requests unchecked,additional caller services: effect,incomplete,additional caller services: effect
+446,plain monster body,additional caller effect requests unchecked,additional caller services: effect,incomplete,additional caller services: effect
+447,plain monster body,additional caller effect requests unchecked,additional caller services: effect,incomplete,additional caller services: effect
+448,plain monster body,additional caller effect requests unchecked,additional caller services: effect,incomplete,additional caller services: effect
+449,plain monster body,additional caller effect requests unchecked,additional caller services: effect,incomplete,additional caller services: effect
+451,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,incomplete,NPC opener file/texture/action/model state differs
+452,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,incomplete,additional caller services: effect
+453,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,incomplete,additional caller services: effect
+463,plain monster body,constructor hidden-mesh plan unchecked,constructor render-state override: 0x68,checked group body plan,
+477,sub-model/extra-load; action-dependent or auxiliary hook,NPC secondary-model consumer/assembly unchecked,sub-model/extra-load; action-dependent or auxiliary hook,incomplete,NPC opener file/texture/action/model state differs
+478,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+479,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+492,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+493,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,"additional caller services: BODY,effect"
+494,plain monster body,additional caller mesh/body passes unchecked,additional caller services: BODY,incomplete,additional caller services: BODY
+496,extra bitmap load; constructor equipment/parts,bitmap consumers and both weapon/link plans unchecked,extra bitmap load; constructor equipment/parts,incomplete,extra bitmap consumer remains unchecked
+497,plain monster body,additional caller mesh/body passes unchecked,additional caller services: BODY,incomplete,additional caller services: BODY
+499,plain monster body,additional caller mesh/body passes unchecked,additional caller services: BODY,incomplete,additional caller services: BODY
+500,plain monster body,additional caller mesh/body and effect requests unchecked,"additional caller services: BODY,effect",incomplete,"additional caller services: BODY,effect"
+501,plain monster body,additional caller effect requests unchecked,additional caller services: effect,incomplete,additional caller services: effect
+502,plain monster body,additional caller mesh/body passes unchecked,additional caller services: BODY,incomplete,additional caller services: BODY
+540,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+541,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+542,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+543,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+544,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+545,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+546,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,incomplete,native file/texture/geometry/plan check failed
+547,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+555,plain monster body,additional caller effect requests unchecked,additional caller services: effect,incomplete,additional caller services: effect
+557,plain monster body,additional caller effect requests unchecked,additional caller services: effect,incomplete,additional caller services: effect
+558,plain monster body,additional caller effect requests unchecked,additional caller services: effect,incomplete,additional caller services: effect
+559,plain monster body,additional caller effect requests unchecked,additional caller services: effect,incomplete,additional caller services: effect
+560,plain monster body,additional caller effect requests unchecked,additional caller services: effect,incomplete,additional caller services: effect
+561,plain monster body,unresolved caller at 0x95d4f1,unresolved caller at 0x95d4f1,incomplete,unresolved caller at 0x95d4f1
+566,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+567,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+568,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+577,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+578,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+579,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,incomplete,NPC opener file/texture/action/model state differs
+580,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,incomplete,NPC opener file/texture/action/model state differs
+581,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,incomplete,NPC opener file/texture/action/model state differs
+582,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+583,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,incomplete,NPC opener file/texture/action/model state differs
+584,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,incomplete,NPC opener file/texture/action/model state differs
+595,sub-model/extra-load; action-dependent or auxiliary hook,type-226 death effect lifetime unchecked,sub-model/extra-load; action-dependent or auxiliary hook,incomplete,monster opener has extra load or different texture context
+596,extra bitmap load,extra-bitmap consumer plan unchecked,extra bitmap load,incomplete,extra bitmap consumer remains unchecked
+604,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,incomplete,NPC opener file/texture/action/model state differs
+635,sub-model/extra-load; action-dependent or auxiliary hook,type-226 death effect lifetime unchecked,sub-model/extra-load; action-dependent or auxiliary hook,incomplete,monster opener has extra load or different texture context
+636,extra bitmap load,extra-bitmap consumer plan unchecked,extra bitmap load,incomplete,extra bitmap consumer remains unchecked
+643,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+644,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context
+645,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context
+647,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+648,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+649,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+650,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+651,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+652,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional caller services: BODY
+653,special appearance hook,constructor joint consumer/appearance plan unchecked,special appearance hook,incomplete,constructor needs appearance/part/secondary proof; special appearance hook
+654,special appearance hook; extra bitmap load; constructor equipment/parts,"constructor joints, bitmap consumers and right weapon/link unchecked",special appearance hook; extra bitmap load; constructor equipment/parts,incomplete,constructor needs appearance/part/secondary proof; special appearance hook; extra bitmap load; constructor equipment/parts
+669,sub-model/extra-load; action-dependent or auxiliary hook,NPC secondary-model consumer/assembly unchecked,sub-model/extra-load; action-dependent or auxiliary hook,incomplete,NPC opener file/texture/action/model state differs
+676,plain monster body,constructor hidden-mesh plan unchecked,constructor render-state override: 0x68,checked group body plan,
+677,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional caller services: BODY
+682,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+683,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+684,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+685,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+686,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+687,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+688,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+689,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,incomplete,unresolved caller at 0x95d4f1
+691,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+692,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+693,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+694,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+695,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+709,extra bitmap load,extra-bitmap consumer plan unchecked,extra bitmap load,incomplete,extra bitmap consumer remains unchecked
+710,extra bitmap load,extra-bitmap consumer plan unchecked,extra bitmap load,incomplete,extra bitmap consumer remains unchecked
+711,extra bitmap load,extra-bitmap consumer plan unchecked,extra bitmap load,incomplete,extra bitmap consumer remains unchecked
+712,extra bitmap load,extra-bitmap consumer plan unchecked,extra bitmap load,incomplete,extra bitmap consumer remains unchecked
+719,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+720,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,incomplete,additional caller services: effect
+722,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+723,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+724,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,incomplete,additional caller services: effect
+725,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+726,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+727,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+728,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+729,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+739,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+740,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+741,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+742,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+748,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,incomplete,constructor render-state override: 0x6
+750,special appearance hook,EffectManager body/attachment plan unchecked,special appearance hook,incomplete,constructor unresolved; special appearance hook
+751,special appearance hook,EffectManager body/attachment plan unchecked,special appearance hook,incomplete,constructor unresolved; special appearance hook
+752,special appearance hook,EffectManager body/attachment plan unchecked,special appearance hook,incomplete,constructor unresolved; special appearance hook
+753,special appearance hook,EffectManager body/attachment plan unchecked,special appearance hook,incomplete,constructor unresolved; special appearance hook
+758,special appearance hook,EffectManager body/attachment plan unchecked,special appearance hook,incomplete,constructor unresolved; special appearance hook
+764,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,incomplete,NPC opener file/texture/action/model state differs
+765,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,incomplete,NPC opener file/texture/action/model state differs
+766,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,incomplete,NPC opener file/texture/action/model state differs
+780,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,
+783,plain monster body,additional caller effect requests unchecked,additional caller services: effect,incomplete,additional caller services: effect
+784,plain monster body,additional caller effect requests unchecked,additional caller services: effect,incomplete,additional caller services: effect
+795,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+796,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+797,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+798,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+817,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+818,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+819,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+820,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+835,repeated default body,additional caller mesh/body passes unchecked,additional caller services: BODY,incomplete,additional caller services: BODY
+855,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+856,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+857,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+858,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+866,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,incomplete,native file/texture/geometry/plan check failed
+873,special appearance hook,EffectManager body/attachment plan unchecked,special appearance hook,incomplete,constructor unresolved; special appearance hook
+874,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+884,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+885,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+886,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+887,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+891,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,
+901,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+902,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+903,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+904,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+918,plain monster body,native mesh textures missing,missing native mesh textures,incomplete,native file/texture/geometry/plan check failed
+933,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+934,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+935,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+936,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+937,special appearance hook,cloth/world-selected appearance plan unchecked,special appearance hook,incomplete,cloth/world-selected appearance remains unchecked
+939,special appearance hook,cloth/world-selected appearance plan unchecked,special appearance hook,incomplete,cloth/world-selected appearance remains unchecked
+940,special appearance hook,cloth/world-selected appearance plan unchecked,special appearance hook,incomplete,cloth/world-selected appearance remains unchecked
+941,special appearance hook,cloth/world-selected appearance plan unchecked,special appearance hook,incomplete,cloth/world-selected appearance remains unchecked
+951,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+952,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+953,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
+954,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,
