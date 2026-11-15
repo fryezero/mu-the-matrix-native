@@ -8,6 +8,7 @@ static int presentation_movie(int m)
 #include "mu_gfx_windows2.inc"
 #include "mu_gfx_windows3.inc"
 #include "mu_gfx_windows4.inc"
+#include "mu_gfx_windows5.inc"
 
 static void presentation_init(mu_gfx_layer *L)
 {
@@ -17,6 +18,7 @@ static void presentation_init(mu_gfx_layer *L)
         if (m > MU_GFX_GREMORY) presentation_fixture(L,m);
         presentation_fixture3(L,m);
         presentation_fixture4(L,m);
+        presentation_fixture5(L,m);
         switch (m) {
         case MU_GFX_COMMAND:
             invokef(L,m,w->path,"InitTitle","[\"Command\"]");
@@ -70,6 +72,8 @@ static void presentation_init(mu_gfx_layer *L)
 static int presentation_call(movie *w, const char *name, const char *args, const double *v, int n)
 {
     mu_gfx_layer *L = w->L;
+    int fifth = presentation_call5(w,name,v,n);
+    if (fifth >= 0) return fifth;
     int fourth = presentation_call4(w,name);
     if (fourth >= 0) return fourth;
     int third = presentation_call3(w,name,args);
@@ -115,6 +119,7 @@ static int presentation_open(mu_gfx_layer *L, int m, int menu)
 static int presentation_menu(mu_gfx_layer *L, int id)
 {
     /* Registry join: 22 selects EventMapEntranceUI +0x2ac, not PlayGuide +0x1f0. */
+    if (id == 7) return presentation_open(L,MU_GFX_PERSONAL_CATALOG,0x00c716f6);
     if (id == 22) return 0;
     int m = id == 10 ? MU_GFX_GUILD_MATCH : id == 11 ? MU_GFX_GENS : id == 12 ? MU_GFX_MATCHING :
             id == 13 ? MU_GFX_PET_INVENTORY : id == 15 ? MU_GFX_GREMORY : id == 22 ? MU_GFX_PLAY_GUIDE : -1;
