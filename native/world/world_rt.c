@@ -23,6 +23,7 @@
 #include "world_cloak.h"
 #include "../../reconstructed/environment/env_fog.h"
 #include "../../reconstructed/hero-equipment/hero_equipment.h"
+#include "../../reconstructed/model-codec/character.h"   /* HERO-ITEMS-002: the class part files */
 
 const int mu_world_draw_order[MU_CHARACTER_ITEMS] = {5, 4, 3, 2, 1, 0, 6, 7, 8};
 static const uint8_t sky[4] = {0, 0, 0, 255};
@@ -142,8 +143,12 @@ int world_rt_load(mu_world_rt *a)
         return 1;
     }
     a->has_character = 1;
-    for (int i = 0; i < MU_CHARACTER_ITEMS; ++i)
+    for (int i = 0; i < MU_CHARACTER_ITEMS; ++i) {
         a->hero_record[i] = -1;
+        a->hero_castle[i] = 0;   /* HERO-ITEMS-002: a new character holds no override model */
+    }
+    a->hero_head_type = -1;
+    a->hero_items_set = 0;
     for (int slot = 1; slot < MU_CHARACTER_PART_SLOTS; ++slot) {
         char path[4096];
         if (mu_character_part_path(a->root, slot, a->class_byte, path, sizeof path)) {
@@ -213,6 +218,18 @@ static int32_t hero_item_type(const mu_world_rt *a, const mu_data_table *items, 
     return r ? r->code + MU_ITEM_MODEL_BASE : mu_item_textures_type_of_path(items, a->root, a->ch.items[i].path);
 }
 
+/* HERO-ITEMS-002: the worn item behind item i (-1 none). In a castle world the item holds the override's model
+ * (hero_castle); what the hero wears is the ITEM SetCharacterClass read (hero_items), which the override does not
+ * change. */
+static int32_t hero_worn_type(const mu_world_rt *a, const mu_data_table *items, int i)
+{
+    if (a->hero_castle[i]) {
+        const int32_t s = mu_he_equipment_of_slot(i);
+        return s < 0 || a->hero_items[s][0] < 0 ? -1 : a->hero_items[s][0] + MU_ITEM_MODEL_BASE;
+    }
+    return a->ch.items[i].loaded ? hero_item_type(a, items, i) : -1;
+}
+
 /* The front end's equipment (the chosen character's items), after load() equipped the class parts: with combat
  * its weapons replace the stand-in weapon. */
 /* APP-POLISH-005: the chosen character's weapons as the skill usability check reads them: each loaded weapon
@@ -231,9 +248,8 @@ static void world_rt_equipment_codes(mu_world_rt *a)
         have = mu_data_load(path, NULL, &items) == 0 && items.result.status == 0;
     }
     for (int slot = 0; have && slot < MU_CHARACTER_WEAPON_SLOTS; ++slot) {
-        const mu_character_item *it = &a->ch.items[MU_CHARACTER_WEAPON_ITEM(slot)];
         mu_item record;
-        int32_t type = it->loaded ? hero_item_type(a, &items, MU_CHARACTER_WEAPON_ITEM(slot)) : -1;
+        int32_t type = hero_worn_type(a, &items, MU_CHARACTER_WEAPON_ITEM(slot));
         if (type < 0 || mu_item_model(&items, type, &record) != 1 || record.attributes.slot > 1 ||
             a->equip_code[record.attributes.slot] >= 0)
             continue;
@@ -247,6 +263,8 @@ static void world_rt_equipment_codes(mu_world_rt *a)
 #endif
 }
 
+static void hero_item_refresh(mu_world_rt *a, int first, int last, uint32_t changed);
+
 int world_rt_apply_equipment(mu_world_rt *a, char *error, size_t error_size)
 {
     if (!a->equip_set)
@@ -254,19 +272,28 @@ int world_rt_apply_equipment(mu_world_rt *a, char *error, size_t error_size)
     int has_weapon = 0;
     for (int slot = 0; slot < MU_CHARACTER_WEAPON_SLOTS; ++slot)
         has_weapon |= a->equip[MU_CHARACTER_WEAPON_ITEM(slot)] && a->equip[MU_CHARACTER_WEAPON_ITEM(slot)][0];
+    uint32_t changed = 0;   /* HERO-ITEMS-002: the items set here; an untouched item keeps a castle override */
     if (a->equip_combat && has_weapon)
-        for (int slot = 0; slot < MU_CHARACTER_WEAPON_SLOTS; ++slot)
+        for (int slot = 0; slot < MU_CHARACTER_WEAPON_SLOTS; ++slot) {
             mu_character_set_item(&a->ch, MU_CHARACTER_WEAPON_ITEM(slot), NULL, 0, error, error_size);
+            changed |= 1u << MU_CHARACTER_WEAPON_ITEM(slot);
+        }
     for (int i = 1; i < MU_CHARACTER_ITEMS; ++i)
-        if (a->equip[i] && a->equip[i][0] && mu_character_set_item(&a->ch, i, a->equip[i], 0, error, error_size))
-            return 1;
-    world_rt_hero_item_textures(a, 1, MU_CHARACTER_ITEMS);
+        if (a->equip[i] && a->equip[i][0]) {
+            if (mu_character_set_item(&a->ch, i, a->equip[i], 0, error, error_size))
+                return 1;
+            changed |= 1u << i;
+        }
+    hero_item_refresh(a, 1, MU_CHARACTER_ITEMS, changed);
     world_rt_equipment_codes(a);
     mu_walk_place(&a->walk, &a->ch);
     return 0;
 }
 
-void world_rt_hero_item_textures(mu_world_rt *a, int first, int last)
+/* Items first..last - 1 after a caller's set_item: `changed` has a bit per item the caller set (bit i). A changed
+ * item is a worn item again (HERO-ITEMS-002: it drops a castle override, which SetCharacterClass then repeats);
+ * an unchanged item that holds an override's model keeps it and its record. */
+static void hero_item_refresh(mu_world_rt *a, int first, int last, uint32_t changed)
 {
     mu_data_table items = {0};
     char path[4096];
@@ -277,6 +304,10 @@ void world_rt_hero_item_textures(mu_world_rt *a, int first, int last)
         have = mu_data_load(path, NULL, &items) == 0 && items.result.status == 0;
     }
     for (int i = first; i < last && i < MU_CHARACTER_ITEMS; ++i) {
+        if (changed & (1u << i))
+            a->hero_castle[i] = 0;
+        else if (a->hero_castle[i])
+            continue;
         a->hero_record[i] = -1;
         if (!a->ch.items[i].loaded)
             continue;
@@ -288,6 +319,11 @@ void world_rt_hero_item_textures(mu_world_rt *a, int first, int last)
     }
     world_rt_hero_slots(a, have ? &items : NULL);
     mu_data_free(&items);
+}
+
+void world_rt_hero_item_textures(mu_world_rt *a, int first, int last)
+{
+    hero_item_refresh(a, first, last, ~0u);   /* the caller set every item of the range */
 }
 
 /* INVENTORY-FX: the inventory window draws the hero's equipment ITEMs in its equipment slots (0x00b913a2); slots
@@ -326,20 +362,97 @@ void world_rt_hero_items_gfx(mu_world_rt *a)
 #endif
 }
 
+/* HERO-ITEMS-002: the model file of a slot type, as the client's GetModel 0x00eaa8cf finds it: a class part
+ * (0x3700 + part * 0x50 + n) is the player loader's file (mu_character_part_file), an item model is its Item.bmd
+ * record's folder and file. Returns 1 with the path when the file exists. */
+static int hero_slot_file(const mu_world_rt *a, const mu_data_table *items, int32_t type, char *path, size_t size)
+{
+    if (type >= MU_HE_PART_BASE && type < MU_HE_PART_BASE + 5 * MU_HE_PART_STRIDE) {
+        char name[64];
+        if (!mu_character_part_file((uint32_t)type, name, sizeof name))
+            return 0;
+        snprintf(path, size, "%s/Data/Player/%s", a->root, name);
+    } else {
+        mu_item record;
+        if (!items || mu_item_model(items, type, &record) != 1)
+            return 0;
+        snprintf(path, size, "%s/%s%s", a->root, record.folder, record.file);
+        for (char *c = path; *c; ++c)
+            if (*c == '\\')
+                *c = '/';
+    }
+    FILE *f = fopen(path, "rb");
+    if (!f)
+        return 0;
+    fclose(f);
+    return 1;
+}
+
+/* HERO-ITEMS-002: item i takes the model of slot type `type` (-1: none). Returns 1 when the item now holds that
+ * model (or nothing, for -1), 0 when the data has no model for the type (the item is emptied and counted). */
+static int hero_slot_model(mu_world_rt *a, const mu_data_table *items, int i, int32_t type)
+{
+    char path[4096], error[1024];
+    mu_character_item *item = &a->ch.items[i];
+    if (type == -1) {
+        if (item->loaded)
+            mu_character_set_item(&a->ch, i, NULL, 0, error, sizeof error);
+        return 1;
+    }
+    if (!hero_slot_file(a, items, type, path, sizeof path)) {
+        if (item->loaded)
+            mu_character_set_item(&a->ch, i, NULL, 0, error, sizeof error);
+        ++a->hero_class_refused;
+        return 0;
+    }
+    if (item->loaded && !strcmp(item->path, path))
+        return 1;
+    if (mu_character_set_item(&a->ch, i, path, 0, error, sizeof error)) {
+        fprintf(stderr, "hero slot %d: %s (continuing without it)\n", i, error);
+        ++a->hero_class_refused;
+        return 0;
+    }
+    /* the client's texture rule for the type; RenderCharacter writes the wearer's skin into every part model it
+     * draws (0x0136a4bd), the head slot included */
+    mu_item_textures_reload(&item->textures, &item->bmd, items, a->root, type, item->path);
+    if (i < MU_CHARACTER_PART_SLOTS)
+        mu_item_textures_wear(&item->textures, a->root, a->class_byte);
+    return 1;
+}
+
 /* HERO-ITEMS-001: the hero's equipment records -> its part slots, as the client's SetCharacterClass 0x01394870
  * writes them from CharacterMachine's ITEMs. The offline session's records are the front end's items. APP-POLISH-008:
  * an item with a session record (FILE@GROUP:INDEX:LEVEL:OPTION:EXT) fills the ITEM's code, level word, +0x98 and
  * +0x3b from it (mu_he_item_of_record); a file-only item is the file's first Item.bmd record with the level word,
  * +0x3b and +0x98 0, as before. An item without a record (a class part, a file outside Item.bmd, no Item.bmd)
- * keeps the file-name inference in parts/hero.c. Item.bmd's kind bytes as for the players. */
+ * keeps the file-name inference in parts/hero.c. Item.bmd's kind bytes as for the players.
+ *
+ * HERO-ITEMS-002: the routine's end is reproduced too (mu_he_set_character_class_world):
+ * - 0x009dadf1: in a Chaos Castle world (0x009dacb8) the wing and both weapons are cleared and the class weapon
+ *   takes the hand slots; the hero's models follow those slots (the worn ITEMs stay the inventory's);
+ * - 0x01394f6f: the head slot 0 is the class head while a listed helm is worn, and RenderCharacter's body-part
+ *   loop draws it like every other part, so its model loads into item 0; the body scale and the six part floats
+ *   go to the character. The scene is the main scene (not 5, the character select's 1.7). The buff list is
+ *   server state the offline session does not have: both buff answers are 0, so the branch that replaces the
+ *   class scale by 1.1 under buff 0x1a8 / 0x1a9 is never taken (refused). */
 void world_rt_hero_slots(mu_world_rt *a, const mu_data_table *items)
 {
     mu_he_item equipment[MU_HE_EQUIPMENT];
+    a->hero_class_refused = 0;   /* counted for the slots as they are after this call */
     for (int s = 0; s < MU_HE_EQUIPMENT; ++s)
         equipment[s] = (mu_he_item){.type = -1};
     for (int i = 0; i < MU_CHARACTER_ITEMS; ++i) {
         const int32_t s = mu_he_equipment_of_slot(i);   /* item index i is the CHARACTER slot i (0..8) */
-        if (s < 0 || !a->ch.items[i].loaded || a->hero_record[i] < 0)
+        if (s < 0)
+            continue;
+        if (a->hero_castle[i]) {   /* the item is the override's: the worn ITEM is the one read before it */
+            if (a->hero_items_set)
+                equipment[s] = (mu_he_item){.type = a->hero_items[s][0], .level = a->hero_items[s][1],
+                                            .ancient = (uint8_t)a->hero_items[s][3],
+                                            .flag_98 = (uint8_t)a->hero_items[s][2]};
+            continue;
+        }
+        if (!a->ch.items[i].loaded || a->hero_record[i] < 0)
             continue;
         const mu_charsel_item_record *r = hero_session_record(a, i);
         if (r)
@@ -353,7 +466,10 @@ void world_rt_hero_slots(mu_world_rt *a, const mu_data_table *items)
     c.class_byte = a->class_byte;
     for (int k = 0; k < MU_RP_SLOTS; ++k)
         c.slots[k].type = -1;
-    mu_he_set_character_class(&c, equipment);
+    const mu_he_scale_in scale_in = {.world = a->world, .scene = 6, .buff_1a8 = 0, .buff_1a9 = 0};
+    mu_he_scale scale = {.object = a->ch.params.scale};
+    memcpy(scale.part, a->ch.params.part_scale, sizeof scale.part);
+    mu_he_set_character_class_world(&c, equipment, &scale_in, &scale);
     for (int s = 0; s < MU_HE_EQUIPMENT; ++s) {
         a->hero_items[s][0] = equipment[s].type;
         a->hero_items[s][1] = equipment[s].level;
@@ -362,9 +478,30 @@ void world_rt_hero_slots(mu_world_rt *a, const mu_data_table *items)
     }
     a->hero_items_set = 1;
     world_rt_hero_items_gfx(a);
+    /* HERO-ITEMS-002: the models follow the slots the end of the routine wrote */
+    if (mu_he_castle_world(a->world))
+        for (int i = MU_CHARACTER_PART_SLOTS; i < MU_CHARACTER_ITEMS; ++i) {   /* both hands and the wing */
+            const int32_t type = c.slots[i].type;
+            a->hero_castle[i] = 1;
+            a->hero_castle_type[i] = type;
+            a->hero_record[i] = hero_slot_model(a, items, i, type) && type != -1 ? type : -1;
+        }
+    int32_t head = c.slots[MU_RP_SLOT_HEAD].type;
+    const mu_character_item *helm = &a->ch.items[MU_RP_SLOT_HELM];
+    if (helm->loaded && a->hero_record[MU_RP_SLOT_HELM] < 0) {
+        /* a helm file without a record draws with its file-name type (parts/hero.c): the head follows that type */
+        const int32_t named = mu_renderchar_type_from_path(helm->path);
+        head = named >= 0 ? mu_he_head_type((int16_t)named, a->class_byte) : -1;
+    }
+    a->hero_head_type = hero_slot_model(a, items, MU_RP_SLOT_HEAD, head) ? head : -1;
+    a->hero_scale_branch = scale.branch;
+    a->ch.params.scale = a->ch.params.wing_scale = scale.object;   /* OBJECT +0xa0: one field for body and wing */
+    memcpy(a->ch.params.part_scale, scale.part, sizeof scale.part);
     for (int i = 0; i < MU_CHARACTER_ITEMS; ++i) {
         mu_renderchar_glow *g = &a->hero_glow[i];
         memset(g, 0, sizeof *g);
+        /* the head (item 0) has no record: like the class parts it draws with its file's type and level 0 (slot 0's
+         * level, option and ext are never written) */
         a->hero_glow_set[i] = a->ch.items[i].loaded && a->hero_record[i] >= 0;
         if (!a->hero_glow_set[i])
             continue;
@@ -1203,6 +1340,32 @@ static void report_hero_records(const mu_world_rt *a)
         printf("]}\n");
 }
 
+/* HERO-ITEMS-002: what the end of SetCharacterClass changed on the hero; printed only when it changed something
+ * (a head slot, a castle world, a body scale other than the creation default 0.9, a part scale or a missing model),
+ * so every other report is unchanged. */
+static void report_hero_class(const mu_world_rt *a)
+{
+    const mu_character_params *p = &a->ch.params;
+    const int castle = mu_he_castle_world(a->world);
+    int parts = 0;
+    for (int k = 0; k < MU_CHARACTER_PART_SLOTS; ++k)
+        parts |= p->part_scale[k] != 0.0f;
+    if (!a->has_character || (a->hero_head_type < 0 && !castle && p->scale == 0.9f && !parts && !a->hero_class_refused))
+        return;
+    const mu_character_item *head = &a->ch.items[0];
+    const char *file = head->loaded && strrchr(head->path, '/') ? strrchr(head->path, '/') + 1 : "";
+    printf("{\"hero_class\": true, \"class\": %d, \"head\": %d, \"head_file\": \"%s\", \"head_passes\": %ld,"
+           " \"castle\": %d,"
+           " \"weapons\": [%d, %d], \"wing\": %d, \"scale\": %.4f, \"branch\": %d,"
+           " \"part_scale\": [%.4f, %.4f, %.4f, %.4f, %.4f, %.4f], \"refused\": %u}\n",
+           a->class_byte, a->hero_head_type, file, a->hero_passes[0], castle,
+           castle ? a->hero_castle_type[MU_CHARACTER_WEAPON_ITEM(0)] : -1,
+           castle ? a->hero_castle_type[MU_CHARACTER_WEAPON_ITEM(1)] : -1,
+           castle ? a->hero_castle_type[MU_CHARACTER_WING_ITEM] : -1, (double)p->scale, a->hero_scale_branch,
+           (double)p->part_scale[0], (double)p->part_scale[1], (double)p->part_scale[2], (double)p->part_scale[3],
+           (double)p->part_scale[4], (double)p->part_scale[5], a->hero_class_refused);
+}
+
 void world_rt_report_summary(const mu_world_rt *a, const char *renderer)
 {
 #ifndef MU_WORLD_NO_GL
@@ -1241,6 +1404,7 @@ void world_rt_report_summary(const mu_world_rt *a, const char *renderer)
     report_item_pre(a);
     report_item_owner_fx(a);
     report_hero_records(a);
+    report_hero_class(a);
     if (!a->quiet)
         for (int32_t k = 0; k < w->log_count; ++k)
             printf("{\"log\": \"%s\"}\n", w->log[k]);
