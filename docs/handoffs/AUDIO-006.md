@@ -53,3 +53,18 @@ First original comparison reached all whole-owner and outer-dispatch assertions,
 then stopped in the caller test setup on a misspelled module-qualified constant,
 70.21 s. No mismatch was reported. The hook spelling is corrected; the caller
 portion and final integrated run remain pending.
+
+
+Second checkpoint: the corrected caller comparison passes 2,640 cases; the
+census/group command passes, 19.17 s combined. Census is now 1,462 classified /
+518 unresolved, with 26 exact shared-timeline and two registered UI lifecycle
+classifications. These 28 ownership classifications add no delivery admission.
+The 182 proposed new play boundaries would advance 411 to 593. The table and
+adapter mutation run, actual model/delivery smoke and remaining finish checks
+are still pending. A stricter write audit initially rejected a read-only push,
+3.98 s; a copied unqualified Plan name then stopped the isolated caller check,
+14.16 s. Both setup errors are corrected.
+
+Latest main is `d3ec9950`, including INNER-005. Merge it before the finish checks.
+The final identity control must include that incoming world code; the initial
+`8844d3e9` binary above is not the final identity control.

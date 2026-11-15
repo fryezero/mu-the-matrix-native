@@ -33,7 +33,16 @@ class AudioCensus(unittest.TestCase):
         self.assertEqual(result['mapped_audio_sites'], 113)
         self.assertEqual(result['added_audio_sites'], 16)
         unknown = [row for row in result['sites'] if row['owner']=='unresolved']
-        self.assertEqual(len(unknown), 546)
+        with patch('audio_owner_groups.semantic_owners', return_value=({}, [])):
+            entry = census.inventory(pins.TEXT.read(), pins.DATA.read())
+        self.assertEqual(sum(r['owner']=='unresolved' for r in entry['sites']),546)
+        self.assertEqual(len(unknown),518)
+        self.assertEqual(result['audio_006_sites'],182)
+        self.assertEqual(result['enumerated_play_boundaries'],593)
+        extended=[r for r in result['sites'] if r['audio_006_adapter']]
+        self.assertTrue(all(r['owner']=='monsters' and r['native_reference'] and
+                            r['sound_id_status']=='compared' and r['sound_ids'] for r in extended))
+        self.assertTrue(all(not r['audio_005_adapter'] for r in extended))
         # INNER-004 names this callee as a refusal, not a native owner body.
         refusal_only = [r for r in result['sites'] if r['anchor'] == '0x00e8d888']
         self.assertEqual({r['site'] for r in refusal_only}, {'0x00e8db8b', '0x00e8e002'})

@@ -82,7 +82,7 @@ class Body:
                 self.period=math.lcm(self.period,2)
             for mem in re.findall(r'\[([^]]+)\]',o):
                 if extended and (mem in ('esi','eax') or mem in ('0xa39d754','0x1cf15fc')):
-                    if o.startswith(('dword ptr [','word ptr [','byte ptr [')):raise Unsupported('non-stack write')
+                    if m in ('mov','movss','and','or','add','sub') and o.split(', ')[0] in (f'dword ptr [{mem}]',f'word ptr [{mem}]',f'byte ptr [{mem}]'):raise Unsupported('non-stack write')
                     continue
                 if mem.startswith('ebp ') or mem=='esp': continue
                 if re.fullmatch(r'(eax|ecx) \+ 0x[0-9a-f]+',mem):

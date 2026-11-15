@@ -40,14 +40,20 @@ void extended(int w,int m,unsigned short a,float f,float distance,int r0,int r1,
 '''
 
 
-def build(folder,header=None,adapter=None):
+def build(folder,header=None,adapter=None,completion=None):
     folder.mkdir(parents=True)
     ext=folder/'extended.h'
     source=header or (ROOT/'reconstructed/audio/monster_audio_extended.h').read_text()
     source=source.replace('"monster_audio.h"','"'+str(ROOT/'reconstructed/audio/monster_audio.h')+'"').replace('"monster_audio_extended.inc"','"'+str(ROOT/'reconstructed/audio/monster_audio_extended.inc')+'"')
     ext.write_text(source)
+    ordinary=ROOT/'native/core/mu_monster_audio.h'
+    if completion is not None:
+        ordinary=folder/'ordinary.h'
+        for include in ('../../reconstructed/audio/monster_audio.h','../../reconstructed/audio/monster_audio_extended.h','mu_combat.h','../session/mu_audio_cue.h'):
+            completion=completion.replace(chr(34)+include+chr(34),chr(34)+str((ROOT/'native/core'/include).resolve())+chr(34))
+        ordinary.write_text(completion)
     extra=folder/'extra.h';source=adapter or (ROOT/'native/core/mu_monster_audio_extra.h').read_text()
-    source=source.replace('"mu_monster_audio.h"','"'+str(ROOT/'native/core/mu_monster_audio.h')+'"').replace('"../../reconstructed/audio/monster_audio_extended.h"','"'+str(ext)+'"')
+    source=source.replace('"mu_monster_audio.h"','"'+str(ordinary)+'"').replace('"../../reconstructed/audio/monster_audio_extended.h"','"'+str(ext)+'"')
     # Include the mutated extension before the ordinary adapter's guarded include.
     extra.write_text('#include "'+str(ext)+'"\n'+source)
     host=folder/'host.c';host.write_text(WRAPPER.replace('"monster_audio.h"','"'+str(ROOT/'reconstructed/audio/monster_audio.h')+'"').replace('NATIVE_HEADER',str(extra)).replace('EXTRA_HEADER',str(extra)))
@@ -149,7 +155,7 @@ def caller_corpus(text,data,dll,accepted):
         seen=set()
         for row in group['rows']:
             action=row['action'];typ=row['model']
-            if typ<0x7a5 or typ in (0x90a,0x90b,0x90c) or action not in (2,3,4,5,6):continue
+            if typ<0x7a5 or typ in (0x90a,0x90b,0x90c) or action not in range(2,32):continue
             frame=math.nan if row['nan'] else row['lo'] if math.isfinite(row['lo']) else 0.
             cell=(typ,action,struct.pack('<f',frame) if action==2 else b'caller-frame')
             if cell in seen:continue
@@ -165,7 +171,7 @@ def caller_corpus(text,data,dll,accepted):
                         m.write(char+0x3324,struct.pack('<f',caller_frame));m.write(model+0xba,struct.pack('<hhh',11,12,13))
                         m.run(start,end,ebp=ebp,esp=ebp-0x1000)
                         assert m.reg('eip')==end
-                        want=list(sounds);p=Plan();dll.caller_audio(kind,world,typ,action,caller_frame,played,random_value,distance,C.byref(p))
+                        want=list(sounds);p=base.Plan();dll.caller_audio(kind,world,typ,action,caller_frame,played,random_value,distance,C.byref(p))
                         got=[(s.routine,s.site,s.id,s.object,s.loop) for s in p.sound[:p.count]]
                         assert got==want,(hex(entry),kind,typ,action,frame,played,distance,want,got)
                         if kind==1:assert p.handled==int(struct.unpack('<f',m.uc.mem_read(char+0x3324,4))[0]!=0)
@@ -182,11 +188,33 @@ MUTANTS={
  'world':('world==(w)','world!=(w)'),
  'frame':('frame>=r->lo','frame>r->lo'),
  'distance':('distance > limit','distance >= limit'),
- 'random':('random(context)%leaf->period','(random(context)+1)%leaf->period'),
+ 'random':('random(context)%leaf->period','(random(context)^1)%leaf->period'),
  'random consumption':('p.handled=leaf->handled;','if(random)random(context);p.handled=leaf->handled;'),
  'order':('leaf->start+n','leaf->start+leaf->count-1-n'),
  'handled':('p.handled=leaf->handled;','p.handled=!leaf->handled;'),
 }
+
+
+ADAPTER_MUTANTS={
+ 'outer distance':('distance>500.0f','distance>=500.0f'),
+ 'caller frame zero':(' || !(mu_actor_frame(&a->actor)==0.0f)',''),
+ 'caller played':(' || !(played==0.0f)',' || (played!=played)'),
+ 'walk preserved frame':('mu_actor_action(&a->actor)==2?mu_actor_frame(&a->actor):0.0f','0.0f'),
+ 'walk missing action':(' ||\n        !record->movement || mu_actor_action_count(&a->actor)<=2',' ||\n        !record->movement'),
+ 'foreign model':('model<0x7a5 || ','')}
+
+
+def adapter_controls(dll):
+    p=base.Plan()
+    dll.fixture_action_count(2)
+    try:
+        dll.caller_audio(3,80,2168,2,1.5,0.,0,0.,C.byref(p))
+        assert not p.count
+    finally:dll.fixture_action_count(8)
+    dll.caller_audio(0,80,2166,5,.001,0.,0,0.,C.byref(p))
+    assert p.count==1 and p.sound[0].site==0x138fc68
+    assert native(dll,80,2166,3,0.,500.,(0,0),1)[2]
+    assert native(dll,80,0x356,3,0.,0.,(0,0),1)==(0,0,[],0)
 
 
 def main():
@@ -215,6 +243,7 @@ def main():
                             dispatch_cases+=1
         assert seen=={s for g in groups.values() for s in g['sites']}
         caller_cases=caller_corpus(text,data,dll,groups)
+        adapter_controls(dll)
         mutants={}
         if a.mutations:
             header=(ROOT/'reconstructed/audio/monster_audio_extended.h').read_text()
@@ -227,6 +256,26 @@ def main():
                     hits+=native(bad,w,m,ac,f,d,tape)!=want
                 assert hits,name
                 mutants[name]=hits
+            adapter=(ROOT/'native/core/mu_monster_audio_extra.h').read_text()
+            for name,(old,new) in ADAPTER_MUTANTS.items():
+                assert old in adapter,name
+                bad=build(folder/name,adapter=adapter.replace(old,new,1))
+                caught=False
+                try:
+                    adapter_controls(bad)
+                    caller_corpus(text,data,bad,groups)
+                except AssertionError:caught=True
+                assert caught,name
+                mutants[name]=1
+            completion=(ROOT/'native/core/mu_monster_audio.h').read_text()
+            old=' || mu_monster_audio_extended_known(c->map->world)'
+            assert old in completion
+            completion=completion.replace(chr(34)+include+chr(34),chr(34)+str((ROOT/'native/core'/include).resolve())+chr(34))
+            caught=False
+            try:caller_corpus(text,data,bad,groups)
+            except AssertionError:caught=True
+            assert caught,'death completion'
+            mutants['death completion']=1
         report=dict(cases=len(rows)+dispatch_cases+caller_cases,caller_cases=caller_cases,whole_owner_cases=len(rows),dispatcher_cases=dispatch_cases,sites=len(seen),owners=len(groups),families=families,mismatches=0,stops=0,mutants=mutants,wall_seconds=round(time.monotonic()-start,3))
         a.report.parent.mkdir(parents=True,exist_ok=True);a.report.write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2))
 if __name__=='__main__':main()

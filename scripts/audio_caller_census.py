@@ -250,6 +250,7 @@ def inventory(text, data, root=ROOT):
             'audio_005_sites': sum(r['audio_005_adapter'] for r in rows),
             'audio_005_stop_sites': 2,
             'audio_006_sites': sum(r['audio_006_adapter'] for r in rows),
+            'enumerated_play_boundaries': sum(any(r[k] for k in ('audio_adapter','audio_003_adapter','audio_004_adapter','audio_005_adapter','audio_006_adapter')) for r in rows),
             'summary': [{'owner': owner, 'native_reference': native, 'sites': n}
                         for (owner, native), n in sorted(counts.items())], 'sites': rows}
 
