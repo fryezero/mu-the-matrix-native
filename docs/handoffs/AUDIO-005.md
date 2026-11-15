@@ -334,3 +334,25 @@ symlinks from the main checkout if needed. Existing shared capture manifests
 remain in `~/Documents/MTM/mu-mac-tools/native/scratch/fidelity2/` and
 `scratch/data-acq-002/`. No new private capture needs retaining. No subagents,
 live client work, installed-app changes, PR-ready claim or merge occurred.
+
+## Resume checkpoint, 2026-11-15 09:57
+
+**Done:** reread both resume briefs and owning evidence. Fetched main, still
+`6900914e`, already integrated by merge commit `6c0f973a`; `git merge --no-ff
+origin/main` reports up to date. Clean root build passes in **27.80 s**.
+Post-build `--list-affected-since 8b3658bf` reproduces **82 rows**, including
+all four symbol fallbacks, in **87.17 s**. The no-mutant private cached refresh
+is running at compiled source `4a438364`, with **75 rows passed so far** and
+no reported failure. The resource guard enforced a full 120-second cooldown
+before starting. Source/spec self-review found no additional runtime edit.
+
+**Left:** finish that 82-row run, affected portable suites with the app-packaging
+module excluded, reduced private audio/changed-consumer tests, current-main
+control/production world rebuilds and default identity. Recheck main and
+ACTORS-006 eligibility if merged, then finish audit/docs/PR and the ready line.
+The previous default comparison remains historical until the new run finishes.
+
+**Next step:** wait for the running validator command, inspect its summary,
+then run the prepared task-local portable/private/identity launchers in
+`verify-runs/audio005-resume/`, serially with the resource guard. No optional
+mutants need repeating. No ready line or PR-ready claim yet.
