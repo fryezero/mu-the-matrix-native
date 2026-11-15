@@ -42,6 +42,8 @@ typedef struct mu_render_backend {
     mu_meshdraw_sink sink;
     /* Optional: every GL call as recorded (state calls included). */
     const mu_gl_sink *gl;
+    /* Optional caller-owned GREATER reference. Flush pending draws before changing it. */
+    void (*alpha_reference)(void *context, float reference);
 } mu_render_backend;
 
 typedef struct mu_draw_options {
@@ -64,6 +66,8 @@ typedef struct mu_draw_options {
      * model parameters' colour, other fields zero). */
     int32_t mesh_plus_one;
     const struct mu_draw_model_fields *fields;
+    uint8_t alpha_reference_set; /* caller override, otherwise retain scene state */
+    float alpha_reference;
 } mu_draw_options;
 
 /* Model fields of one world-render pass (renderchar.h mu_rc_draw). */
