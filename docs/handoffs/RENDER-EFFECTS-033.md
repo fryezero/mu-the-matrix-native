@@ -127,3 +127,13 @@ portable affected and reduced private native modules, fixture renders, final
 rebuilt default identity, final docs/PR/ready entry and cleanup. Only the
 three changed EFFECTS-016 controls ran in addition to 033's 45; no successful
 control was repeated.
+
+## Batch 115 integration
+
+Merged main df57ab8b after #394/#395/#396/#397. Additive status conflicts
+retain both entries once; the registry retains all 246 main rows plus 033.
+The relocated 032 row is present exactly once. Consumer, caller, joint,
+particle and native callback source is byte-identical to 5904caf9. The root
+build passes in 16.676 s. Incoming actor/item/Muun changes are main-owned;
+no actor, item or Muun producer was authored by this lane. Delta checks and
+portable/private native checks are next, followed by the final renders.

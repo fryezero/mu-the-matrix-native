@@ -230,7 +230,7 @@ from gen_item_owner_fx import OWNER_FX_TYPES
 from gen_item_owner_fx import PRE_FX_TYPES, OBJDRAW as PRE_DRAW_RAND
 # Part 21 (RENDER-ITEMS-002T): owner blocks after the draws with the pre-draw idioms (gen_item_owner_fx.POST_FX_TYPES);
 # their draws fit the default probes with the effect requests set aside.
-from gen_item_owner_fx import POST_FX_TYPES, READ_PROGRAM_TYPES, LATER_READ_PROGRAM_TYPES
+from gen_item_owner_fx import POST_FX_TYPES, READ_PROGRAM_TYPES, LATER_READ_PROGRAM_TYPES, CYCLE_PROGRAM_TYPES
 _SAMPLE_TYPE = [None]
 # Their probes, chosen by the 292-state comparison: the part-14 supplementary probes (records 0x26/0x5b,
 # qualities 0-2) and the part-13 carry rule. The rand sites of the pre-draw block itself belong to the effect
@@ -271,6 +271,10 @@ NO_GLOW_TYPES = [0x232c, 0x232d, 0x232e, 0x232f, 0x2330, 0x26f5]
 OMITTED_BASE_TYPES = [0x2368]
 LATE_GLOW_TYPES = list(range(0x26e6, 0x26ed))
 HELPER_TYPES = OMITTED_BASE_TYPES + LATE_GLOW_TYPES
+DIRECT_WHITE_TYPES = [0x23f3, 0x23fc, 0x2493]
+# Early complete bodies bypass both the level chain and its option/ancient tail.
+DIRECT_TYPES = [0x23f3, 0x23fc, 0x2493, 0x24f7, 0x24f8, 0x271a, 0x2725,
+                0x27b8, 0x27b9, 0x27ba, 0x27bb, 0x289f, 0x28b0, 0x28d7]
 OTHER_TYPES = [0x0b09, 0x0b0b, 0x0b28, 0x0b40, 0x0b42, 0x0b43, 0x0b45, 0x0b61,
                0x0eed, 0x0efa, 0x0f0b, 0x10f2, 0x1102, 0x1505, 0x1506, 0x1509,
                0x1576, 0x1577, 0x1736, 0x1746, 0x192f, 0x1b2f, 0x212f,
@@ -749,6 +753,18 @@ def scalar_value(program, time, frame=0):
     import math
     f = lambda x: v.u2f(v.f2u(x))
     kind, a, ops = program
+    if kind == 10:
+        tick = int(time) if -2147483648 <= time < 2147483648 else -2147483648
+        rem = tick - (abs(tick) // a * (-1 if tick < 0 else 1)) * a
+        half = ops[0][1]
+        first = rem < half
+        x = f(f(float(rem if first else rem - half)) / f(float(half)))
+        mul, add = ops[1:3] if first else ops[3:5]
+        value = f(v.u2f(mul[1]) * x)
+        value = f(v.u2f(add[1]) - value if add[0] == 5 else value + v.u2f(add[1]))
+        if len(ops) == 6:
+            value = f(value * wave_helper(v.u2f(ops[5][1]), time))
+        return v.f2u(value)
     if kind == 3:
         return clock_value(ops, time, frame)
     if kind in (1, 9):
@@ -767,6 +783,118 @@ def scalar_value(program, time, frame=0):
         if not double:
             value = f(value)
     return v.f2u(f(value))
+
+
+def piecewise_colour(wa):
+    """Read the complete signed-tick two-branch colour at 0x0175f2e6.
+
+    This narrow reader checks both branches, their join and the wave multiply.
+    A nearby instruction form is refused, never inferred from sampled colours.
+    """
+    start, end = 0x0175f2e6, 0x0175f469
+    expected = '''mov dword ptr [ebp - 0x2560], 0x1770
+cvttss2si eax, dword ptr [0x6fce370]
+cdq
+idiv dword ptr [ebp - 0x2560]
+mov dword ptr [ebp - 0x2564], edx
+movss xmm0, dword ptr [0x1a7dd48]
+movss dword ptr [ebp - 0x2568], xmm0
+mov eax, dword ptr [ebp - 0x2560]
+cdq
+sub eax, edx
+sar eax, 1
+cmp dword ptr [ebp - 0x2564], eax
+jge 0x175f3a5
+cvtsi2ss xmm0, dword ptr [ebp - 0x2564]
+mov eax, dword ptr [ebp - 0x2560]
+cdq
+sub eax, edx
+sar eax, 1
+cvtsi2ss xmm1, eax
+divss xmm0, xmm1
+movss dword ptr [ebp - 0x2568], xmm0
+movss xmm0, dword ptr [0x1a80264]
+mulss xmm0, dword ptr [ebp - 0x2568]
+addss xmm0, dword ptr [0x1a802a4]
+push ecx
+movss dword ptr [esp], xmm0
+movss xmm0, dword ptr [0x1acd5d0]
+mulss xmm0, dword ptr [ebp - 0x2568]
+movss xmm1, dword ptr [0x1acd5e4]
+subss xmm1, xmm0
+push ecx
+movss dword ptr [esp], xmm1
+push ecx
+xorps xmm0, xmm0
+movss dword ptr [esp], xmm0
+mov ecx, dword ptr [ebp + 8]
+add ecx, 0x54
+call 0xcfcead
+nop
+jmp 0x175f42c
+mov eax, dword ptr [ebp - 0x2560]
+cdq
+sub eax, edx
+sar eax, 1
+mov ecx, dword ptr [ebp - 0x2564]
+sub ecx, eax
+cvtsi2ss xmm0, ecx
+mov eax, dword ptr [ebp - 0x2560]
+cdq
+sub eax, edx
+sar eax, 1
+cvtsi2ss xmm1, eax
+divss xmm0, xmm1
+movss dword ptr [ebp - 0x2568], xmm0
+movss xmm0, dword ptr [0x1a80264]
+mulss xmm0, dword ptr [ebp - 0x2568]
+movss xmm1, dword ptr [0x1a7dd48]
+subss xmm1, xmm0
+push ecx
+movss dword ptr [esp], xmm1
+movss xmm0, dword ptr [0x1acd5d0]
+mulss xmm0, dword ptr [ebp - 0x2568]
+addss xmm0, dword ptr [0x1a80284]
+push ecx
+movss dword ptr [esp], xmm0
+push ecx
+xorps xmm0, xmm0
+movss dword ptr [esp], xmm0
+mov ecx, dword ptr [ebp + 8]
+add ecx, 0x54
+call 0xcfcead
+nop
+push ecx
+xorps xmm0, xmm0
+movss dword ptr [esp], xmm0
+push ecx
+movss xmm0, dword ptr [0x1a80120]
+movss dword ptr [esp], xmm0
+call 0x185bdc4
+pop ecx
+pop ecx
+fstp dword ptr [ebp - 0x256c]
+push ecx
+movss xmm0, dword ptr [ebp - 0x256c]
+movss dword ptr [esp], xmm0
+mov ecx, dword ptr [ebp + 8]
+add ecx, 0x54
+call 0xcfcd74'''.splitlines()
+    instructions = list(_capstone().disasm(_text(wa, start, end - start), start))
+    sites = {(i.address, i.mnemonic) for i in instructions}
+    if ([f'{i.mnemonic} {i.op_str}'.strip() for i in instructions] != expected or
+            not {(0x0175f320, 'cmp'), (0x0175f326, 'jge'), (0x0175f3a5, 'mov'),
+                 (0x0175f42c, 'push'), (0x0175f464, 'call')} <= sites or
+            not instructions or instructions[-1].address + instructions[-1].size != end):
+        return ()
+    word = lambda address: _word(wa, address)
+    # Vector setter arguments are pushed z, y, x. The x channel is literal zero.
+    y = ((1, 3000), (1, word(0x1acd5d0)), (5, word(0x1acd5e4)),
+         (1, word(0x1acd5d0)), (2, word(0x1a80284)))
+    z = ((1, 3000), (1, word(0x1a80264)), (2, word(0x1a802a4)),
+         (1, word(0x1a80264)), (5, word(0x1a7dd48)))
+    return tuple((10, 6000, ops + tail) for ops in (y, z)
+                 for tail in ((), ((1, word(0x1a80120)),)))
 
 
 # Part 12: straight-line clock programs. The probes record every executed basic
@@ -1402,7 +1530,7 @@ COUNTER_RANGE_TYPES += READ_PROGRAM_TYPES + OTHER_TYPES
 NAMED_NAMES = v.NAMED_MESH_NAMES
 _NAMED_VALUES = []
 
-def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=False, quality=9, record=(0, 0, 0), time_word=None):
+def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=False, quality=9, record=(0, 0, 0), time_word=None, light_words=None, part_selector=None):
     import math
     global _sample_state
     tags = []
@@ -1435,7 +1563,7 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=Fals
                     return
                 # RENDER-ITEMS-002U: blocks that read the rendered-frame counter, for FRAME_TYPES only
                 f = bisect.bisect_left(frames, address)
-                counter = (_SAMPLE_TYPE[0] in FRAME_TYPES or _SAMPLE_TYPE[0] in OTHER_TYPES) and f < len(frames) and frames[f] + 4 <= address + size
+                counter = (_SAMPLE_TYPE[0] in FRAME_TYPES or _SAMPLE_TYPE[0] in OTHER_TYPES or _SAMPLE_TYPE[0] in DIRECT_TYPES) and f < len(frames) and frames[f] + 4 <= address + size
                 k = bisect.bisect_left(clocks, address)
                 if not counter and (k == len(clocks) or clocks[k] >= address + size):
                     return
@@ -1509,8 +1637,12 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=Fals
     case.update(item_level=lv << 3, quality=quality, option1=opt, ext=ext, record=record, a10=0xffffffff, a11=0xffffffff, render_type=(2, 0x102, 0x40042)[seed % 3])
     if time_word is not None:
         case['time'] = time_word
+    if light_words is not None:
+        case['light'] = light_words
+    if part_selector is not None:
+        case['a12'] = part_selector
     case['object_hidden'] = (-1, 0, 2)[(seed // 3) % 3]
-    if t in FRAME_TYPES or t in OTHER_TYPES:
+    if t in FRAME_TYPES or t in OTHER_TYPES or t in DIRECT_TYPES:
         # RENDER-ITEMS-002U: the rendered-frame counter varies in these types' probes (others keep the zero page).
         draw = random.Random(seed * 7919 + lv * 104729 + quality * 31 + opt * 3 + ext * 5 + (record[1] & 0xff))
         case['frame'] = draw.choice((0, 1, 2, 3, 15, 59, 60, 61, 0x7fffffff, 0x80000000, 0xffffffff,
@@ -1527,12 +1659,20 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None, carry=Fals
     if t in NO_GLOW_TYPES and generic_case['record'] is not None:
         a, b, kind = generic_case['record']
         generic_case['record'] = (a, 0 if b in (0x26, 0x5b) else b, kind)
-    (_, generic) = v.c_stream(lib, generic_case, True)
+    if t in DIRECT_TYPES:
+        class DirectProbe:
+            mu_rc_item_draws_generic = lib.mu_rc_item_draws_direct_generic
+        generic_lib = DirectProbe()
+    else:
+        generic_lib = lib
+    (_, generic) = v.c_stream(generic_lib, generic_case, True)
     groups = []
     for (d, tag) in zip(st, tags):
         if not groups or tag != groups[-1][0]:
             groups.append((tag, []))
         groups[-1][1].append(d)
+    if t in DIRECT_TYPES:
+        groups = [('direct-body', [draw for _, draws in groups for draw in draws])]
     if t in OMITTED_BASE_TYPES:
         groups.insert(0, ('empty', []))
     if len(groups) == 3 and len(generic) == 5:
@@ -1651,7 +1791,7 @@ def infer(samples):
 ALL_TYPES = (REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES + RANKED_TYPES + EXPANDED_TYPES +
              NEXT_TYPES + CLOCK_TYPES + CLUSTER_TYPES + WING_TYPES + VISIBLE_TYPES + SCALAR_TYPES +
              CHAIN_TYPES + LEVEL_TYPES + COLOUR_TYPES + CARRY_TYPES + QUALITY_TYPES + PRODUCT_TYPES + DERIVED_TYPES +
-             OWNER_FX_TYPES + PRE_FX_TYPES + POST_FX_TYPES + [0x1588] + list(NAMED_TYPES) + NO_GLOW_TYPES + HELPER_TYPES + OTHER_TYPES)
+             OWNER_FX_TYPES + PRE_FX_TYPES + POST_FX_TYPES + [0x1588] + list(NAMED_TYPES) + NO_GLOW_TYPES + HELPER_TYPES + DIRECT_TYPES + OTHER_TYPES)
 
 
 def fit(wa, lib, t, scalars=False, carry=False, extended=False):
@@ -1690,6 +1830,8 @@ def fit(wa, lib, t, scalars=False, carry=False, extended=False):
                 # Kind 5: the value of the kind-4 program at index a times one binary32 light constant.
                 programs.append((5, ref, ((1, word),)))
         programs.extend(counter_colour_seeds(wa, t, programs))
+        if t == 0x0b51:
+            programs.extend(piecewise_colour(wa))
         if not programs and t not in DERIVED_TYPES and t not in OTHER_TYPES:
             return None
         rules = _fit(wa, lib, t, tuple(programs), None, carry, extended)
@@ -1748,7 +1890,7 @@ def _fit(wa, lib, t, params, sites, carry=False, extended=False):
     for index, stream in enumerate(ss):
         if stream is None:
             continue
-        phase = 5 if index % 3 == 0 else 0
+        phase = 0 if t in DIRECT_TYPES else 5 if index % 3 == 0 else 0
         if t in LEVEL_SPLIT and index // len(PROBE_SEEDS) == 2:
             phase = 7 if phase == 5 else 6
         phases[phase].append(stream[0])
@@ -1773,6 +1915,17 @@ def _fit(wa, lib, t, params, sites, carry=False, extended=False):
         return None
     if any(s is None for s in ss):
         return None
+    if t in DIRECT_WHITE_TYPES:
+        for seed in PROBE_SEEDS:
+            for record in SUPPLEMENT_RECORDS:
+                for light, part, phase in (((0x3f800000,) * 3, 3, 5),
+                                           ((0x3f800000,) * 3, 6, 5), (None, 6, 6)):
+                    stream = sample(wa, lib, t, 0, seed, params=params, sites=sites, carry=carry,
+                                    record=record, light_words=light, part_selector=part)
+                    ss.append(stream)
+                    if stream is None:
+                        return None
+                    phases[phase].append(stream[0])
     # Phases whose helper call draws each body-random site.
     _RAND['masks'] = {}
     for phase, pairs in enumerate(phases):
@@ -1801,7 +1954,7 @@ def supplement(wa, lib, t, params, sites, carry, ss, phases):
     binary32 programs from the shared binary64 pulse. Later clock bodies also keep negative-zero probes:
     a saved product and that product plus positive zero must remain distinct. False when a probe is unusable."""
     probes = [(seed, None) for seed in SUPPLEMENT_SEEDS]
-    if t in LATER_READ_PROGRAM_TYPES or t in OTHER_TYPES:
+    if t in LATER_READ_PROGRAM_TYPES or t in CYCLE_PROGRAM_TYPES or t in OTHER_TYPES:
         # Both base phases, in addition to every existing probe. The actual xorps/addss
         # chain is already parsed; these inputs prevent fitting its pre-add intermediate.
         probes += [(seed, 0x80000000) for seed in SUPPLEMENT_SEEDS[:2]]
@@ -1816,7 +1969,7 @@ def supplement(wa, lib, t, params, sites, carry, ss, phases):
                         if sites is None:
                             return False
                         continue
-                    phase = 5 if seed % 3 == 2 else 0
+                    phase = 0 if t in DIRECT_TYPES else 5 if seed % 3 == 2 else 0
                     if t in NAMED_TYPES and lv >= 9 and quality > 1:
                         phase = 7 if phase == 5 else 6
                     phases[phase].append(stream[0])
@@ -1850,7 +2003,7 @@ def extract():
     for t in ALL_TYPES:
         fitted = fit(wa, lib, t, scalars=True,
                      carry='exit' if t in EXIT_TYPES else t in CARRY_TYPES or t in DERIVED_CARRY or t in PRE_CARRY,
-                     extended=t in QUALITY_TYPES or t in PRODUCT_TYPES or t in PRE_EXTENDED or t in NAMED_TYPES or t in NO_GLOW_TYPES or t in HELPER_TYPES or t in OTHER_TYPES)
+                     extended=t in QUALITY_TYPES or t in PRODUCT_TYPES or t in PRE_EXTENDED or t in NAMED_TYPES or t in NO_GLOW_TYPES or t in HELPER_TYPES or t in DIRECT_TYPES or t in OTHER_TYPES)
         if fitted is not None:
             types[t] = fitted
     if set(types) != set(ALL_TYPES):
@@ -1879,6 +2032,8 @@ def render(types):
              ' * kind 3 = clock chain of op/k pairs, see gen_item_bodies.C_TIME_F..C_U2D (30..33: the rendered-frame counter);',
              ' * clock ops 34/35/36 are binary32 sin, conditional abs and CRT fabs (distinct signed-zero rules);',
              ' * kind 9 = wave(a, k[0] degrees), then ops 1..; scalar op 5 is k-value, 6 is a lower clamp;',
+             ' * plain 0 = glow chain, 1 = plain with tails, 2 = early complete body, 3 = early body, exact-white phase 5, otherwise part-selector 6 phase 6;',
+             ' * kind 10 = signed tick modulo a, split at k[0], binary32 affine colour per half, optional wave multiply;',
              ' * kind 8 = raw 0x012bd4a6 result for mu_rc_body_names[a], including -1;',
              ' * kind 4 = (float)(rand() % a) then binary32',
              ' * mul/add/sub/div, drawn once in each phase of its phases mask; kind 5 = the type\'s program a (kind 4)',
@@ -1893,8 +2048,8 @@ def render(types):
     for rule in recipes:
         lines.append('    {%d, {' % len(rule))
         for entry, cells in rule:
-            sources = ', '.join(str(v + 1 if op == 'in' else 0) for op, v in cells)
-            values = ', '.join('0' if op == 'in' or not (v & 0xffffffff) else '0x%xu' % (v & 0xffffffff) for op, v in cells)
+            sources = ','.join(str(v + 1 if op == 'in' else 0) for op, v in cells)
+            values = ','.join('0' if op == 'in' or not (v & 0xffffffff) else '0x%xu' % (v & 0xffffffff) for op, v in cells)
             lines.append('        {%d, {%s}, {%s}},' % ({'BODY': 1, 'MESH': 2, 'COLOR': 3, 'EXIT': 4}[entry], sources, values))
         lines.append('    }},')
     lines += ['};', 'typedef struct { uint8_t kind, count; uint32_t a; uint8_t op[%d]; uint64_t k[%d]; uint8_t phases; } mu_rc_body_scalar;' % (CLOCK_OPS, CLOCK_OPS),
@@ -1914,10 +2069,10 @@ def render(types):
     for t, indices, first, count in rows:
         rules = types[t][0]
         lines.append('    {0x%04x, {%s}, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d},' %
-                     (t, ', '.join(map(str, indices)), t in LEVEL_SPLIT, t in ATLAS_TYPES, t in DIM_TYPES, t in PLAIN_TYPES or t in NO_GLOW_TYPES, t in PULSE_TYPES,
+                     (t, ', '.join(map(str, indices)), t in LEVEL_SPLIT, t in ATLAS_TYPES, t in DIM_TYPES, (2 + (t in DIRECT_WHITE_TYPES)) if t in DIRECT_TYPES else t in PLAIN_TYPES or t in NO_GLOW_TYPES, t in PULSE_TYPES,
                       any(op == 'in' and value == 20 for rule in rules for _, cells in rule for op, value in cells),
                       sum(1 << k for k in range(13) if any(op == 'in' and value == 21+k for rule in rules for _, cells in rule for op,value in cells)),
-                      t in CARRY_TYPES or t in DERIVED_CARRY or t in PRE_CARRY, first, count))
+                      t in CARRY_TYPES or t in DERIVED_CARRY or t in PRE_CARRY or t in DIRECT_TYPES, first, count))
     return '\n'.join(lines + ['};', 'static const char *const mu_rc_body_names[] = {'] +
                      ['    ' + json.dumps(name) + ',' for name in NAMED_NAMES] + ['};', ''])
 

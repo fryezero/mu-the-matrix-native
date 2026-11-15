@@ -98,8 +98,8 @@ missing dependencies.
 
 The summon end request contains a ground effect and no actor selector or actor
 lifetime. An actor body's existence therefore cannot turn that ground request
-into actor creation. Main still has ACTORS-005; the pushed ACTORS-006/007 plans
-were inspected read-only. Candidate ordinary fixture selectors 20, 21, 32 and
+into actor creation. The baseline had ACTORS-005; pushed ACTORS-006/007 plans were inspected
+read-only. ACTORS-006 is now integrated from batch 115 main. Candidate ordinary fixture selectors 20, 21, 32 and
 150 have checked plain bodies on 006; 26 has a checked body/weapon group on
 007. Selectors 10 and 151 still need effect caller services on 007. The
 skill-to-actor mapping and separate spawn/lifetime input remain unproved for
