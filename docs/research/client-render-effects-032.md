@@ -1,6 +1,6 @@
 # Remaining learned-skill callers, RENDER-EFFECTS-032
 
-Work in progress. This lane owns combat callers and requests. EFFECTS-031 owns
+Verified fixture subset. This lane owns combat callers and requests. EFFECTS-031 owns
 charge/child, target-ice, Swell Life and Blood Storm consumers. No consumer file
 is changed here. The base is main `b7dfd2ed`.
 
@@ -74,8 +74,8 @@ Storm remain entirely with EFFECTS-031. Target ice is also that lane's work.
 
 ## Learned inventory after this lane
 
-The original caller/mutant proof and focused native tests pass. Final affected
-checks and rendered evidence are pending. The 29 rows are the same denominator
+The original caller/mutant proof, native tests and fixture renders pass.
+The 29 rows are the same denominator
 as EFFECTS-030, 28 learned entries plus ordinary attack. P means a bounded primary
 visual, L a visible subset with a named missing context, and M missing primary
 visuals. Request recovery alone does not promote an M row.

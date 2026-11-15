@@ -269,3 +269,16 @@ for Defense and summons, with neighboring ordinary-item positive controls.
 Combined portable/private checks, the small admission delta validators,
 after-only fixture/default replays and final audit remain pending.
 No new pure comparator mutant targets changed.
+
+
+## Late verification checkpoint, 2026-11-15
+
+At native admission inputs 7e298c4d, all 54 combined private tests pass with
+zero skips (201.69 s). The 12-row admission validator delta passes with no
+failures/errors/skips (266.30 s). Pure libcombat remains SHA-256
+62936052baf3718000d820c5060f981e2d6def34b127932f6b55e5348e57fbb7.
+The aggregate validator set is 98 rows across the earlier 23, actor/world 93,
+UI 13 and admission 12 selections. Latest results replace earlier rows.
+Portable delta since 5c0dec22 is running after a four-minute resource pause.
+Combined after-only render refresh, default identity replay, final audit and
+PR publication remain pending. Main is still a95880c4, already integrated.
