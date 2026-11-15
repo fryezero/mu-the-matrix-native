@@ -243,4 +243,14 @@ int mu_actor_monster_recipe(int32_t server_class, mu_monster_class *out);
 int mu_actor_npc_recipe(int32_t server_class, mu_monster_class *out);
 const char *mu_actor_npc_part_file(int32_t model);
 
+/* RENDER-ACTORS-006: generated, instruction-checked single-body plans.
+ * Only authored class/world contexts in plain_body_table.h are certified.
+ * Missing rows return 0 and retain the previous incomplete/refused status. */
+typedef struct mu_actor_body_plan {
+    int32_t server_class, model, opened;
+    uint32_t scale_bits, flags;
+    int32_t translate;
+} mu_actor_body_plan;
+int mu_actor_plain_plan(int32_t server_class, mu_actor_body_plan *out);
+
 #endif
