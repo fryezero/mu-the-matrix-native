@@ -243,3 +243,14 @@ Main has advanced to AUDIO-004 `2b0b2716`, #388. Merge and rerun only the incomi
 all production consumer code, bitmap/model registrations and previously successful control targets remain unchanged.
 
 Next: wait for the existing foreground check queue, then run the corrected new-row baseline without mutants.
+
+
+### AUDIO-004 integration checkpoint
+
+Main `2b0b2716`, #388, merges as `ae0374dd`. Shared status conflicts retain both lane paragraphs;
+the TOML conflict retains both complete validator rows and their stopped controls. Registry shape
+checks pass, 238 rows. No authored particle/joint/effect or native consumer/adapter source changes
+between `99c213e6` and this merge. The root/world build and overlapping selector pass in 130.085 s.
+The selector retains 50 of this lane's 77 rows, with conservative fallbacks retained. Those rows run
+without mutants; incoming portable checks, thirteen focused private modules including AUDIO-004,
+and the after render replay are queued. Successful compiled controls are not repeated.
