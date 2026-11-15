@@ -3748,3 +3748,20 @@ note = "RENDER-ACTORS-005: six ordinary monster body/weapon assemblies; original
 all_equal = true
 all_mutants_caught = true
 "mutants.*.stopped" = 0
+
+[validate_actor_plain]
+test = "native/tests/test_actor_plain.py::ClientComparison.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["defaults", "constructor", "openers", "caller", "native", "render", "draw", "plans", "reproducible"]
+cases = 24393
+mutants = 7
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/actors", "reconstructed/renderchar", "native"]
+build_targets = { native = ["build/libmunative.a", "build/libmusession_world.a"] }
+args = ["--cases", "200", "--mutations", "--output", "{report}"]
+note = "RENDER-ACTORS-006: 621 instruction-checked generated single-body plans, 101 actual model/texture sets, per-row constructor/opener/28 caller contexts; sprite emitters execute and nonuniform rows stay incomplete"
+[validate_actor_plain.expect]
+all_equal = true
+all_mutants_caught = true
+"mutants.*.stopped" = 0

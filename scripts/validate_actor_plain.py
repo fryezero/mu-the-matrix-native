@@ -207,7 +207,10 @@ def main():
             all(t in (0, 65535) for t, lv in r['slots']) and r['opens'] == [('monster', table.opened)] and \
             r['model'] == table.opened+0x7a5
         recipes.note(constructor_fam, ok, dict(cl=cl, kind=r['object_kind'], creates=r['creates'], class_byte=r['class_byte']))
-        if not ok: reasons[cl] = 'constructor outside kind-1/class-0/single-create empty-slot group'; continue
+        if not ok:
+            reasons[cl] = 'multiple constructor opener requests' if len(r['opens']) != 1 else \
+                'constructor outside kind-1/class-0/single-create empty-slot group'
+            continue
         ok, detail = opener(machine, authored, r)
         recipes.note(open_fam, ok, detail)
         if not ok: reasons[cl] = 'opener texture/model context differs'; continue
@@ -248,7 +251,9 @@ def main():
         else:
             families['plans'] = check_plans(library(), rows)
             families['reproducible'] = recipes.family()
-            recipes.note(families['reproducible'], TABLE.read_text() == emit(rows), {'rows':len(rows)})
+            decisions_match = all(item['decision'] == ('checked plain body plan' if int(item['server_class']) in rows else 'incomplete') and
+                item['reason'] == ('' if int(item['server_class']) in rows else reasons[int(item['server_class'])]) for item in population)
+            recipes.note(families['reproducible'], TABLE.read_text() == emit(rows) and decisions_match, {'rows':len(rows)})
         # Failed uniform candidates are refusals with reasons, not false positive verifier failures.
         # Recheck the admitted rows; candidate diagnostics above remain visible separately.
         accepted = recipes.family()

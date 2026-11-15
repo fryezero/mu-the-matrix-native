@@ -634,3 +634,116 @@ No guessed file or body-only substitute relaxes those refusals.
 Reproduce both census CSVs with the canonical private environment and
 `scripts/actor_census.py --classes docs/research/actor-construction-census.csv
 --openers docs/research/actor-opener-census.csv --composite-ready --monster-ready`.
+
+## 13. Table-driven single-body admission, RENDER-ACTORS-006
+
+This lane checks the largest uniform group in ACTORS-005's 905 incomplete
+fixture selectors. It does not infer a complete actor from an opener. The
+[before-population and decisions](actor-admission-groups.csv) preserve all 905
+rows even after the [construction census](actor-construction-census.csv) changes.
+The [handoff](../handoffs/RENDER-ACTORS-006.md) records final counts and checks.
+
+### Classification and admission boundary
+
+The initial disjoint groups are 203 plain monster bodies, 473 repeated default
+bodies, 84 plain NPC bodies, 107 equipment/part constructors, eighteen special
+appearances, six extra-bitmap paths, four special/bitmap/equipment paths, four
+bitmap/equipment paths, four secondary-model auxiliary/action paths and two
+special/equipment paths. The plain groups lack a checked caller/pass/native
+asset plan. The other groups also need the named attachment, appearance,
+bitmap-consumer or lifetime evidence. These are missing proofs, not a claim
+that every currently incomplete row has a known missing visual.
+
+Only the 676 plain monster/default candidates enter the uniform check. Each
+candidate executes its own constructor with the original world-0/rand-0 chain
+and the existing explicitly declining map processors. CreateCharacter's default
+kind and class stores are checked as original instructions, as in ACTORS-005;
+the constructor recorder supplies that kind before executing the constructor.
+The accepted constructor must create one kind-1/class-byte-0 body, have no
+selected equipment or joints, and agree with the compiled class table's model,
+scale and opener. A zero scale store retains the proved 0.9 constructor default.
+Repeated default selectors get these checks individually, not by aliasing one
+passing Monster01 row.
+
+For every candidate, OpenMonsterModel executes from `0x0180b0f4` in worlds
+0/3/2/51/18/30. Its complete model/action bytes and ordered primary AccessModel
+and OpenTexture arguments must match the compiled opener. The own-model request
+must be the exact `Data/Monster/MonsterNN.bmd` registration, with the constructor's
+model index and the ordinary Monster texture directory, repeat wrap and nearest
+filter. A different directory, extra primary/secondary request or incomplete
+execution fails the uniform check. Sounds remain named loader services.
+
+### Caller and pass evidence
+
+The full RenderCharacter entry `0x01363260` runs for each candidate across
+worlds 0/3/2/51 and actions 0..6, with authored frames and four alphas. Unlike
+the shared whole-character harness, this verifier executes both character
+sprite emitters `0x01362f24` and `0x01363098`. Any extra body, link, part,
+effect, sprite/GL or loader request rejects the row. Unresolved engine state
+also rejects it; the CSV records the stopping instruction address. No new
+stub is added to make a failing candidate pass.
+
+RenderObject `0x016d4fe4` remains the named base-body/pose boundary used in
+ACTORS-004/005. Its selected call must be exactly `(OBJECT, 1, 0, 0, -1, -1)`.
+Original shadow calls are recorded and may be absent or present; shadows,
+fading and their downstream parity are outside the generated body plan.
+The initial draft incorrectly required a shadow at every alpha. Original
+executions showed that a valid single body can omit that separate shadow;
+the final check allows only that named optional shadow, never an extra part
+or link. Stateful map and effect-manager/helper services retain the published
+harness boundaries. The result is a checked selected body plan, not whole-world,
+complete-buff, temporal or original-pixel equivalence.
+
+For every distinct accepted body model, eight original RenderObjDraw
+`0x0176ce74` streams must match the compiled generic stream. They must also be
+exactly one ordinary textured BODY request, flags 2, requested alpha, no hidden
+mesh, no bitmap override and no extra service. A matching multi-pass stream
+would still fail this single-body admission. This is separate from the caller
+recording boundary and from the native geometry/texture check.
+
+### Generated native plan and assets
+
+`scripts/validate_actor_plain.py --generate` emits the sorted
+`reconstructed/actors/plain_body_table.h` only from candidates that pass those
+checks and the native host. Each plan records its selector, original model,
+opener, binary32 scale, flags and translate argument. `mu_actor_plain_plan`
+performs an exact binary search and returns zero outside that table. Native
+placement consumes the generated translate value. Both render backends apply
+the generated body options only when the actor's model/scale and empty
+attachment state match the plan. The earlier fallback remains separate for
+unchecked rows. Existing generic bodies do not gain invented geometry.
+
+The batch native host loads every accepted selector through the production
+world actor loader. It checks exact relative model file, scale, positive
+geometry, no attachments, complete mesh texture slots, zero draw refusals and
+requested alpha. Every mesh bitmap is separately resolved from the original
+Monster directory and decoded again; pixels, dimensions, components, wrap and
+filter must agree with the actor's uploads. An absent texture rejects the row
+without guessing a substitute. Class 918, Monster411, has two missing mesh
+textures in this environment and stays incomplete.
+
+The first draft native host omitted its texture-coordinate callback and
+crashed. That host error was fixed before admission. The batch isolates any
+remaining native failure by selector, records it, and excludes that row; an
+unexpected native stop is not accepted as a compiled negative control.
+
+### Reproduction and limits
+
+From repo root with the canonical private environment, build first, then run
+`scripts/validate_actor_plain.py --generate --output <local-report>` to derive
+plans and decisions. Rebuild after generation and run the validator without
+`--generate` to compare the compiled plans and table bytes. Its `--mutations`
+mode compiles admission/model/scale/pass/translate and native option controls.
+Regenerate both census CSVs with `scripts/actor_census.py --classes
+ docs/research/actor-construction-census.csv --openers
+ docs/research/actor-opener-census.csv --composite-ready --monster-ready
+ --plain-ready`. The opener's `checked_plain_body_contexts` column counts
+separately verified callers, not opener completeness.
+
+The pins are the same whole text/data/flag/feature hashes recorded in the
+validator report and preceding sections. No original bytes, decoded assets,
+private renders or client state are committed. Fixture selectors include
+repeats and are not a spawn catalogue or a whole-client completion percentage.
+Classes 1/5/10, 595/635 and the four refusal boundaries 374/378/617/642 remain
+outside this admission unless their missing behavior is separately recovered.
+No filename or secondary lifetime is inferred from an opener alone.

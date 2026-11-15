@@ -20,7 +20,7 @@ class Plans(unittest.TestCase):
         self.assertEqual(len(groups), 905)
         self.assertEqual(len({int(r['server_class']) for r in groups}), 905)
         admitted = {int(r['server_class']) for r in groups if r['decision'] == 'checked plain body plan'}
-        self.assertGreater(len(admitted), 100)
+        self.assertEqual(len(admitted), 621)
         with (ROOT/'docs/research/actor-construction-census.csv').open() as f:
             census = {int(r['server_class']): r for r in csv.DictReader(f)}
         for cl in range(-1, 1025):
@@ -47,4 +47,4 @@ class ClientComparison(unittest.TestCase):
             self.assertEqual(run.returncode, 0, run.stdout[-4000:]+run.stderr[-3000:])
             value = json.loads(path.read_text())
             self.assertTrue(value['all_equal'])
-            self.assertGreater(value['admitted'], 100)
+            self.assertEqual(value['admitted'], 621)

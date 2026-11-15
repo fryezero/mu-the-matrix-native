@@ -63,7 +63,7 @@ server_class,group,decision,reason
 74,extra bitmap load; constructor equipment/parts,incomplete,extra bitmap load; constructor equipment/parts
 75,plain monster body,incomplete,"additional caller services: BODY,effect"
 76,repeated default body,checked plain body plan,
-77,plain monster body,incomplete,constructor outside kind-1/class-0/single-create empty-slot group
+77,plain monster body,incomplete,multiple constructor opener requests
 78,constructor equipment/parts,incomplete,constructor equipment/parts
 79,plain monster body,incomplete,additional caller services: BODY
 80,constructor equipment/parts,incomplete,constructor equipment/parts
@@ -354,7 +354,7 @@ server_class,group,decision,reason
 420,plain monster body,checked plain body plan,
 421,plain monster body,checked plain body plan,
 422,plain monster body,incomplete,additional caller services: effect
-423,plain monster body,checked plain body plan,
+423,plain monster body,incomplete,additional caller services: effect
 424,plain monster body,checked plain body plan,
 425,plain monster body,checked plain body plan,
 426,constructor equipment/parts,incomplete,constructor equipment/parts
