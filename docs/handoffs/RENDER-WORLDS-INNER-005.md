@@ -182,3 +182,20 @@ This animation sample emits no puff and no new particle, joint or effect pixel g
 The synthetic production host covers frame 6 and counted missing bone 34. All proof light dumps are
 identical; OBJECT dumps differ through the intended position/hidden writes. Kalima frame 0 and tower
 frame 24 were visually inspected. These are authored contexts, not original placements or event fidelity.
+
+## Integration validation complete, final replay pending
+
+All 31 selected integration validators pass at 2fe33f74 in 855.29 s, 778,723 reported cases, zero
+failures/errors/skips. The final 76-row result consists of these 31 refreshed rows and 45 unchanged rows
+from 607adef6. No new mutants run. Post-merge portable checks pass 1,898 tests, 1,554 passed / 344
+expected skips, zero failures/errors, 520.47 s including selection, 404.2 s runner. There are 185 selected
+work items and 184 permitted after excluding the same app-packaging module. The private native count is
+170, so 8d reduced applies. Incoming actor-plain, skill32, Muun riding/special/secondary and the world
+host pass all 25 private tests, no skips, in 289.36 s.
+
+Remaining: the guard held the final explicit world target at load 16.42. After cooldown, run
+`make -C native -j4 world`, save its SHA-256 into the prepared final-hashes JSON, replay `render.py after`
+under the render-only public-demo environment, then run `final_analysis.py`. The saved 220-file hash
+ledger / 55 reports allow overwrite of the old after outputs. `finalize_docs.py` is prepared but must
+only run after the replay succeeds. Finish status lines, documentation consumers/audit, PR, ready line
+and cleanup. No source/test failure remains, and no render is claimed for the integrated binary yet.
