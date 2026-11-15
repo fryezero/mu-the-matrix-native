@@ -43,11 +43,11 @@ Left: compare and admit complete uniform groups, complete table regeneration, in
 checks, C-to-C admission delta, full classifier, native proofs, affected portable/private validators,
 8d reduced, explicit rebuilt default identity, latest main integration, final docs/PR/ready line and cleanup.
 
-Next: wait for the complete pinned body extraction already running at the 11:15 checkpoint
-(the output is `scratch/render-items-002aa/item_bodies-full.h` beneath the shared tools native folder;
-log `full-generation.log`). Do not start a duplicate extraction. Its source is frozen. Compare/install
-that result, finish the four new rows with mutants once, build/select/run affected checks, then proofs,
-latest-main refresh, docs, PR and ready entry.
+Next: complete pinned extraction passes in 1,991.84 s, including the cache save, and its 1,511-row /
+500,314-byte output is byte-identical to the provisional header. Root build is running at the 11:38
+checkpoint. Finish the four new rows with mutants once, select/run affected checks, then C-to-C,
+classifier, consumer inventory, native proofs/default identity, latest-main refresh, final docs, PR and
+ready entry. No final admission or readiness claim is made yet.
 
 Main `df57ab8b` (#395, batch 115) is integrated through merge `7f953d87`; registry resolution is fixed
 at `a4539fc7`. All 246 main registry entries are unchanged and four lane rows are appended. An older
