@@ -104,26 +104,38 @@ none are admitted by their icon, class nibble or shared consumer.
 
 ## Completed focused comparison
 
-At compiled caller inputs `cce2bca6`, the full new proof passes 4,233 checks,
-zero mismatches, with 28/28 compiled production-C mutants caught and zero
-original-machine stops, 31.32 s command wall. It includes 1,000 step, 1,000 end,
-900 start and 117 original pose cases, plus 810 authored admission controls,
-276 active-count/cap controls and 130 exact-selector controls. Thus 3,017
-checks execute original instructions; 1,216 are native policy controls.
+At compiled caller inputs `8965554f`, the final proof passes 4,433 checks,
+zero mismatches, with 31/31 compiled production-C mutants caught and zero
+original-machine stops, 71.71 s command wall. It includes 1,000 step, 1,000 end,
+900 start, 117 original pose and 200 interleaving cases, plus 810 authored
+admission controls, 276 active-count/cap controls and 130 exact-selector controls.
+Thus 3,217 checks execute original instructions; 1,216 are native policy controls.
 The combat dylib SHA-256 is
-`e706c154dcbb4b8af8e9e743ea2c8275ecf945e644cc29d5d75f1c8aedb1a3a9`.
+`62936052baf3718000d820c5060f981e2d6def34b127932f6b55e5348e57fbb7`.
 AUDIO-004 main integration changes no compiled inputs of this caller comparator.
 
-The first small comparison exposed the default step's frame cutoff and a missing
-synthetic hero-item region in the harness. The completed proof supplies an
-ordinary item service and implements the recovered cutoff. No stopped case from
-that exploratory run counts as evidence or as a caught mutant. Deterministic
-edge cases cover frame 1/5, both sides of every action/model range and NaN.
+The interleaving family gives each joint/particle service a varying declared
+number of CRT draws. Original and C share the same independently maintained
+input sequence. It compares the resulting ordered requests and total RNG use.
+The production streaming adapter emits each pair before drawing the next pitch.
+It reuses the compared scalar planner for that pair, without duplicating its
+jitter/angle arithmetic. The legacy particle constructor borrows the combat
+CRT state and returns its resulting state; the world pool's separate native
+movement stream is restored. This fixes constructor/caller order without
+claiming a whole-client shared RNG phase, pool allocation phase or time alignment.
 
-The first native run passes all six initial fixture tests, 7.77 s. It covers all
-seven summons, shield/mount context gates, Crescent sparks and retirement, wing
-poses, wrong classes, stale/unlearned IDs, unsent casts and unchanged target HP.
-An additional malformed-context test is included in the final affected run.
+An initial 4,233-check/28-mutant proof covered caller stubs without consumer RNG.
+Self-review found the integration gap after that run. The final proof above
+supersedes it and adds three streaming mutants. The repeat mutant run is due
+to this changed production path and new check, not a rerun of unchanged consumers.
+The first small comparison also exposed the default frame cutoff and a missing
+synthetic hero-item region in the harness. No stopped exploratory case counts
+as evidence or a caught mutant. Deterministic edges cover frame 1/5, both sides
+of each action/model range and NaN.
+
+The first native run passes six initial fixture tests, 7.77 s. The final private
+run additionally includes malformed-context admission and the original stream
+family. Portable skips are not private evidence.
 
 ## Installed-data fixture proof
 

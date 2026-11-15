@@ -7,23 +7,28 @@ Main `2b0b2716`, AUDIO-004 #388, is integrated as `8187e8e3` with the registry
 resolved at `fb561cff`. Both independent validator entries parse through the
 repository loader. No subagents or full lane gate.
 
-Done: seven summon callers, Defense and Fire Breath poses, Crescent Moon Slash
-step/end requests, bow/wing action context, active learned admission, original
-comparisons and new mutants. Full proof passes 4,233 checks, 28/28 compiled
-mutants, zero original stops, 31.32 s. Six initial native tests pass, 7.77 s.
-Root build on integrated main passes, 24.79 s; explicit world build 6.20 s.
+Done: summon, Defense, Fire Breath and Crescent callers; authored bow/wing actions;
+active learned admission; the constructor/caller RNG interleaving correction.
+Final proof at `8965554f` passes 4,433 checks, 31/31 compiled mutants, zero original
+stops, 71.71 s. The post-fix root build passes in 12.70 s. Reduced private native
+checks pass 15/15, zero skips/failures, 25.75 s. The unmodified native selection
+is 174 items, so the brief's 40-item cap requires 8d reduced.
 
-The first affected private run passes all 23 selected rows without mutants,
-358.29 s at fb40a57e. Twelve installed scenes pass 72 image pairs, plus ten
-early-arrow pairs. Self-review then found a native RNG integration gap: Crescent
-must emit a joint/particle pair before drawing its next pitch. The pending fix
-streams those pairs and borrows CRT state for the legacy particle constructor,
-restoring the separate world-pool movement stream afterward. A new original
-interleaving family and three compiled mutants cover it. Earlier proof/render
-results above predate this fix and will be refreshed where affected.
+The first private affected validator run passed all 23 rows, 358.29 s at
+`fb40a57e`, before the interleaving correction. Those affected inputs still need
+refreshing. Initial twelve installed scenes pass 72 image pairs, plus ten early
+arrow pairs. Final after/repeat renders must be refreshed without repeating the
+baseline. Default after sweep and final world SHA-256 remain pending.
 
-Next: guarded stream-fix build, small comparison, final new proof, refreshed
-fixtures, affected checks, default after sweep and final audit/status/PR. New 0x7f84/3, 0x8001/0,
+Portable validation is running 170 affected work items with two workers. The
+local driver calls the repository runner with --affected origin/main and filters
+only native/tests/test_native_app.py. That module packages Native Preview, which
+the owner forbids this session. No app bundle is produced. Check the existing
+foreground job/log before starting a duplicate on resume.
+
+Next: finish portable validation, explicit world build, final after/repeat and
+default identity, affected private validator refresh, audit, final docs/PR/queue.
+New 0x7f84/3, 0x8001/0,
 0x49e/0 requests remain refused. Defense and Crescent are L, all summons and
 Fire Breath M. Coverage is 11 P / 5 L / 13 M -> 11 P / 7 L / 11 M for this
 lane alone. EFFECTS-031's separate consumer work is excluded from that delta.
