@@ -1,24 +1,5 @@
 # RENDER-ACTORS-006
 
-## WIP latest-main integration
-
-Checkpoint 2026-11-15 01:46: main through UI-WINDOWS-004 `4480bf41` is integrated
-as `f35c9e14`. Root build passes in 16.37 s. The final affected selection
-retains 29 rows and prunes twelve unused-library consumers. Its main-delta
-selection replays nineteen rows, all passing at `f35c9e14`, 338.63 s with
-zero waits/failures/errors/skips. This includes the full 21,437-check actor
-row. The other ten rows retain their named passes on unchanged inputs.
-
-Permitted portable integration is running, 178 work items, with the app
-packaging test excluded. Next: finish it, explicitly rebuild and refresh
-the default identity/proof renders, refresh this handoff/status/plan, run
-the final documentation checks and audit, then publish the PR/ready entry
-and clean up. No PR or ready entry exists yet. The tables below are the
-pre-UI-WINDOWS-004 snapshot and will be replaced by final per-row commits.
-Prior publication checks pass: 36 documentation tests, 35 passed / one
-expected skip in 17.94 s; audit 2,294 files / zero rejected in 25.40 s plus
-a 120 s wait. Production actor code and nine control targets are unchanged.
-
 ## Result and census
 
 The native world actor renderer now consumes generated, instruction-checked
@@ -133,6 +114,9 @@ input-delta selector replayed 27 at `71a6d23f`, then nine UI-affected rows at
 passes at `d3688570`. The cleanup-publication correction in the test host has
 the full 21,437-check positive replay at `4f9f92bb`.
 Its output timing changes no check predicate or compiled-mutant target.
+UI-WINDOWS-004 then advanced main to `4480bf41`; its input-delta selection
+replayed 19 rows at `f35c9e14` without mutants. Earlier
+rows retain their passes only where compiled inputs did not change.
 
 | Check | Result | Measured wall |
 |---|---|---:|
@@ -143,12 +127,15 @@ Its output timing changes no check predicate or compiled-mutant target.
 | Other thirty initial affected rows | 132,857 checks, 30/30 pass | 403.89 s runtime / 523.89 s command, 120 s wait |
 | Main integration replay at `71a6d23f` | 27/27 pass | 390.73 s runtime / 450.73 s command, 60 s wait |
 | UI integration replay at `04879bea` | 9/9 pass | 128.15 s runtime / 248.15 s command, 120 s wait |
+| UI-WINDOWS-004 root build | pass | 16.37 s runtime / 16.37 s command, 0 s wait |
+| UI-WINDOWS-004 selected replay | 19/19 pass | 338.63 s runtime / 338.63 s command, 0 s wait |
 | Corrected host positive replay | 21,437 checks, pass | 168.8 s row / 168.88 s command, 0 s wait |
 | Initial portable affected | 1,563 tests, 1,288 passed / 275 expected skips, zero failures/errors | 406.7 s runner / 479.69 s command |
 | Permitted portable integration | 1,792 tests, 1,454 passed / 338 expected skips, zero failures/errors | 362.9 s runner / 850.37 s command, 360 s wait |
+| Final permitted portable delta | 1586 tests, 1284 passed / 302 expected skips, zero failures/errors | 365.7 s runner / 655.98 s command, 240 s wait |
 | Private 8d reduced at `0c7c2223` | 2/2 pass, zero skips | 165.64 s command, 0 s wait |
-| Explicit rebuilt-world identity replay | 227/230 hashes, all 45 unaffected views identical | 70.93 s command, 0 s wait |
-| Seven GL proof scenes | six actor representatives plus empty control, inspected | 6.37 s render / 126.45 s command, 120 s wait |
+| Explicit rebuilt-world identity replay | 227/230 hashes, all 45 unaffected views identical | 196.24 s command, 120 s wait |
+| Seven GL proof scenes | six actor representatives plus empty control, inspected | 9.28 s render / 9.33 s command, 0 s wait |
 | Earlier staged source audit | 2,282 files, zero rejected | 29.25 s |
 
 Command walls include the stated resource waits and selection where applicable.
@@ -171,37 +158,37 @@ further packaging.
 
 | Steward validator | Checks | Wall | Tested commit |
 |---|---:|---:|---|
-| `validate_actor_composites` | 1,427 | 11.9 s | `71a6d23f` |
-| `validate_actor_monsters` | 1,437 | 67.3 s | `71a6d23f` |
-| `validate_actor_plain` | 21,437 | 168.8 s | `4f9f92bb` |
-| `validate_actor_recipes` | 1,669 | 118.3 s | `71a6d23f` |
-| `validate_app_polish1` | 752 | 26.0 s | `04879bea` |
-| `validate_app_polish2` | 1,028 | 6.5 s | `04879bea` |
-| `validate_app_polish4` | 10,485 | 54.5 s | `04879bea` |
-| `validate_audio_callers` | 5,528 | 7.2 s | `04879bea` |
+| `validate_actor_composites` | 1,427 | 10.6 s | `f35c9e14` |
+| `validate_actor_monsters` | 1,437 | 55.7 s | `f35c9e14` |
+| `validate_actor_plain` | 21,437 | 220.0 s | `f35c9e14` |
+| `validate_actor_recipes` | 1,669 | 125.2 s | `f35c9e14` |
+| `validate_app_polish1` | 752 | 25.0 s | `f35c9e14` |
+| `validate_app_polish2` | 1,028 | 5.2 s | `f35c9e14` |
+| `validate_app_polish4` | 10,485 | 47.9 s | `f35c9e14` |
+| `validate_audio_callers` | 5,528 | 6.9 s | `f35c9e14` |
 | `validate_audio_combat` | 19,548 | 45.3 s | `d3688570` |
-| `validate_audio_domains` | 2,544 | 41.0 s | `04879bea` |
-| `validate_audio_items` | 3,000 | 4.9 s | `04879bea` |
-| `validate_audio_objects` | 4,000 | 5.1 s | `71a6d23f` |
-| `validate_audio_objects4` | 10,093 | 8.4 s | `71a6d23f` |
+| `validate_audio_domains` | 2,544 | 31.1 s | `f35c9e14` |
+| `validate_audio_items` | 3,000 | 4.4 s | `f35c9e14` |
+| `validate_audio_objects` | 4,000 | 5.2 s | `f35c9e14` |
+| `validate_audio_objects4` | 10,093 | 9.8 s | `f35c9e14` |
 | `validate_charsel_items` | 8,817 | 10.1 s | `71a6d23f` |
 | `validate_icarus_c2` | 8,400 | 26.9 s | `71a6d23f` |
 | `validate_inventory_fx` | 8,017 | 8.9 s | `71a6d23f` |
 | `validate_item_callers` | 6,013 | 1.3 s | `71a6d23f` |
 | `validate_items_ui` | 8,517 | 12.4 s | `71a6d23f` |
-| `validate_movement` | 6,614 | 97.1 s | `04879bea` |
-| `validate_render_effects16` | 424 | 5.5 s | `04879bea` |
-| `validate_render_effects17` | 618 | 12.1 s | `71a6d23f` |
+| `validate_movement` | 6,614 | 69.3 s | `f35c9e14` |
+| `validate_render_effects16` | 424 | 4.1 s | `f35c9e14` |
+| `validate_render_effects17` | 618 | 11.4 s | `f35c9e14` |
 | `validate_render_effects18` | 540 | 1.4 s | `71a6d23f` |
 | `validate_render_effects19` | 400 | 1.0 s | `71a6d23f` |
-| `validate_render_effects24` | 226 | 3.0 s | `71a6d23f` |
-| `validate_render_effects25` | 202 | 11.3 s | `71a6d23f` |
-| `validate_render_effects26` | 348 | 10.6 s | `71a6d23f` |
+| `validate_render_effects24` | 226 | 3.3 s | `f35c9e14` |
+| `validate_render_effects25` | 202 | 14.2 s | `f35c9e14` |
+| `validate_render_effects26` | 348 | 15.3 s | `f35c9e14` |
 | `validate_render_effects28` | 630 | 2.7 s | `71a6d23f` |
 | `validate_viewport_monsters` | 1,963 | 13.4 s | `d3688570` |
-| `validate_worlds_fog` | 4,044 | 12.9 s | `04879bea` |
+| `validate_worlds_fog` | 4,044 | 9.8 s | `f35c9e14` |
 
-Steward validators: validate_movement, validate_viewport_monsters, validate_icarus_c2, validate_audio_callers, validate_audio_combat, validate_audio_domains, validate_audio_items, validate_app_polish1, validate_app_polish2, validate_app_polish4, validate_render_effects16, validate_worlds_fog, validate_render_effects17, validate_item_callers, validate_inventory_fx, validate_render_effects18, validate_render_effects19, validate_render_effects24, validate_render_effects25, validate_actor_recipes, validate_charsel_items, validate_render_effects26, validate_actor_composites, validate_audio_objects, validate_render_effects28, validate_items_ui, validate_actor_monsters, validate_actor_plain, validate_audio_objects4
+Steward validators: validate_movement, validate_viewport_monsters, validate_icarus_c2, validate_audio_callers, validate_audio_combat, validate_audio_domains, validate_audio_items, validate_app_polish1, validate_app_polish2, validate_app_polish4, validate_render_effects16, validate_worlds_fog, validate_render_effects17, validate_item_callers, validate_inventory_fx, validate_render_effects18, validate_render_effects19, validate_render_effects24, validate_render_effects25, validate_actor_recipes, validate_charsel_items, validate_render_effects26, validate_actor_composites, validate_audio_objects, validate_render_effects28, validate_items_ui, validate_audio_objects4, validate_actor_monsters, validate_actor_plain
 
 Mutants needed by steward: none. Use the canonical private environment from
 repo root. Every validator result above is private with zero skips. The table
@@ -216,7 +203,7 @@ dumps and 46 normalized reports, 230 files, 79.36 s. Both sides explicitly run
 are normalized.
 
 - Before SHA-256: `f58907ce03d1fb3658445cdcfa3a9eaa86772f8738012769ecb756ba474f4fb5`.
-- After SHA-256: `0b9bcf21d7766ce6da790a63e96826e5cd432183ea2ae21c56a5817b2516133d`.
+- After SHA-256: `935d306d28ab496e0683fce3ab1ceece4c9cdb5f6a9e7be14035ec997549c490`.
 
 The rebuilt binary hashes differ. Exactly 227/230 file hashes are unchanged:
 90/92 PNGs, 92/92 geometry dumps and 45/46 normalized reports. All 45
@@ -224,7 +211,7 @@ unaffected views are identical. The only differences are world-37 Kanturu's
 two PNGs and report, exactly the incoming INNER-004 RGBA seam change. The
 comparison asserts that precise three-file set, not a general exclusion.
 No default capture gains a change from the actor plan integration. The final
-replay takes 70.88 s including the explicit world rebuild.
+replay takes 76.18 s including the explicit world rebuild.
 
 The seven GL proof scenes use world 0, DemoKnight at 128,124 and DemoActor
 at 129,125, direction 5, 640x480, two frames, fixed clock 123456 ms, hidden
@@ -232,7 +219,7 @@ names and no extra players/environment/particles/helpers/audio. Ordinary
 classes 2/3/308 and repeated-default classes 68/405/572 are visibly textured.
 Against the empty control, changed pixels are 2 = 599, 3 = 859, 68 = 3,792, 308 = 4,980, 405 = 3,792, 572 = 3,792. The empty
 control has zero changed pixels. All six bodies were visually inspected.
-The render work takes 6.37 s. Temporary images/reports are removed
+The render work takes 9.28 s. Temporary images/reports are removed
 at cleanup; no new private input is needed by a later lane.
 
 ## Limits and next work
@@ -256,11 +243,12 @@ constructor state and missing-asset exclusions until their own proof passes.
 ## WIP checkpoints and delivery
 
 Pushed checkpoints include `fabfdf96`, `a41224f5`, `ea62a672`, `e18e919a`,
-`33f20c82`, `c936b407`, `0c7c2223` and `4f9f92bb`. Earlier provisional
+`33f20c82`, `c936b407`, `0c7c2223`, `4f9f92bb`, `bcc1d3e6` and `baa5cb32`. Earlier provisional
 admissions are superseded by the final 550-row result. The initial stack was PR #389 at `e3347dd7`; its merged
-history is retained. Main through `a95880c4` is integrated at `04879bea`.
+history is retained. Main through `4480bf41` is integrated at `f35c9e14`.
 The test-host output correction is committed at `4f9f92bb`; its positive
-replay passes. Later delivery changes are documentation only. All implementation
+replay passes. After the final integrated checks, the delivery commit changes
+documentation only. All implementation
 and source checks above pass. The final push and PR precede the ready entry;
 no push follows it. The steward owns merge and the combined gate. Temporary
 renders/reports/builds, this worktree and its local branch are removed at

@@ -1,5 +1,7 @@
 # Continue from here
 
+RENDER-ACTORS-006 verified subset PR-ready: 550 generated single-body selector plans, 82 ordinary / 468 repeated defaults across 51 exact model files. Census: 589 checked / 355 incomplete / 80 refused. All 905 original incomplete rows have grouped decisions; appearance, attachment and lifetime gaps stay explicit. 21,437 focused checks, nine compiled controls and 29 affected validators pass. All 45 unaffected default views are identical; the only incoming delta is INNER-004 Kanturu. [Groups, evidence, timings and limits](handoffs/RENDER-ACTORS-006.md).
+
 UI-WINDOWS-004 PR-ready: nine more empty NPC movies use ten proved manager slots. The 118 entry-unresolved rows classify 9 provider-complete, 17 provider-missing, 30 state-dependent and 62 no route found. The inherited PlayGuide key/menu route is withdrawn after the registry proves it selects EventMapEntranceUI. Survey 16/134 bound -> 24/134, unresolved 118 -> 110. Thirteen original route decisions, eight compiled mutants, nine captured native layouts, 22 affected validators and 230 default identities pass. [Scope and checks](handoffs/UI-WINDOWS-004.md).
 
 
