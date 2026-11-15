@@ -16,6 +16,12 @@ particle,0x855d,2,follow,0x0161113b,0x01689b2d,0x015aa801,item producer 0x0f22,R
 particle,0x8081,1,pulse,0x015d2f7e,0x01644f6a,0x015a006f,Muun mount style (secondary particles),MUUN-VISUAL-005,1,Muun 16 + mount: 180 with 0x8082/1,0,admitted,life 5
 particle,0x8082,1,pulse,0x015d2f7e,0x01644f6a,0x015a006f,Muun mount style (secondary particles),MUUN-VISUAL-005,1,(counted with 0x8081/1),0,admitted,life 5
 particle,0x7ef7,19,pulse,0x015ef979,0x01664f41,0x0159d474,Muun secondary particles,MUUN-VISUAL-005,1,not requested in the sampled mode,0,admitted,life 7
+particle,0x7f26,3,plain,0x015dd87b,0x01650ff2,0x015a534f,actor caller services (7 rows),RENDER-ACTORS-008 request table (WIP branch),7,producer not on main,n/a,admitted,"life 5, scale * 0.8"
+particle,0x7f5a,50,plain,0x015c7fe1,0x0163881c,0x01596eda,actor caller services (6 rows),RENDER-ACTORS-008 request table (WIP branch),6,producer not on main,n/a,admitted,"saved colour, alpha rises to 0.5 and falls below life 10"
+particle,0x807e,0,plain,0x015cde02,0x0164079e,0x0159acf3,actor caller services (6 rows),RENDER-ACTORS-008 request table (WIP branch),6,producer not on main,n/a,admitted,"life 35 (25 in world 0x3f), alpha ceiling 0.7"
+particle,0x806e,0,plain,0x015b85bf,0x016251cd,0x01597757,actor caller services (2 rows),RENDER-ACTORS-008 request table (WIP branch),2,producer not on main,n/a,admitted,"shrinks by a random step, rises 10 * gravity"
+particle,0x7ef7,12,plain,0x015ef168,0x016641bb,0x0159d4a4,actor caller services (1 row),RENDER-ACTORS-008 request table (WIP branch),1,producer not on main,n/a,admitted,"grows above life 80, then shrinks"
+particle,0x7ef7,13,plain,0x015ef221,0x0166423f,0x0159d4a4,actor caller services (1 row),RENDER-ACTORS-008 request table (WIP branch),1,producer not on main,n/a,admitted,drifts -y and +z by its gravity
 joint,0x7f7c,8,joint,0x0154473a,0x0156d3a9 (no case),RenderJoints 0x01589b56,Kanturu 37/40 type 0x69,RENDER-WORLDS-INNER-001,1,INNER host: 1,0,admitted,"width 5, two tails"
 joint,0x7f7c,19,joint,0x0154574f,0x0156d601 loop 0x0156d9ef,RenderJoints 0x01589b56,tower 39 type 0x36,RENDER-WORLDS-INNER-004,1,INNER host: 1,0,admitted,"/18 arc, turn 25 + width, no terrain light"
 joint,0x7fd5,4,joint,0x015434ea,0x015698f0,RenderJoints 0x01589b56,Barracks 41 / Refuge 42 type 0x5a,RENDER-WORLDS-INNER-004,1,INNER host: 1,0,admitted,"red spark, four tails"
@@ -42,3 +48,17 @@ effect,0x4c5,0x4c0,effect side,,,,tower 39 nested sequence,RENDER-WORLDS-INNER-0
 effect,0x4c5,0x4c1,effect side,,,,tower 39 nested sequence,RENDER-WORLDS-INNER-005,1,event-gated,n/a,refused,RENDER-EFFECTS-036
 effect,0x4c5,0x4c2,effect side,,,,tower 39 nested sequence,RENDER-WORLDS-INNER-005,1,event-gated,n/a,refused,RENDER-EFFECTS-036
 effect,type 226,,effect side,,,,actor classes 595/635 death effect,RENDER-ACTORS-006,2,no fixture scene,n/a,refused,needs move/draw/retirement path; actor lane or RENDER-EFFECTS-036
+particle,0x807e,1,owner position,0x015ce0d7,0x01640ddf,0x0159acf3,actor caller services,RENDER-ACTORS-008 request table (WIP branch),1,producer not on main,n/a,refused,"create and move read the owner OBJECT position +0x158 (follows the owner); not taken: left with 0x807f/1, 0x8080/1 and 0x7ffd/6 as one owner-position form"
+particle,0x807f,1,owner position,0x015ce0d7,0x01640ddf,0x0159acf3,actor caller services,RENDER-ACTORS-008 request table (WIP branch),1,producer not on main,n/a,refused,same form as 0x807e/1
+particle,0x8080,1,owner position,0x015ce0d7,0x01640ddf,0x0159acf3,actor caller services,RENDER-ACTORS-008 request table (WIP branch),1,producer not on main,n/a,refused,same form as 0x807e/1
+particle,0x7ffd,6,owner position,0x015c0fcd,0x0162f448,0x01595161,actor caller services,RENDER-ACTORS-008 request table (WIP branch),1,producer not on main,n/a,refused,"same owner-position form, life 25"
+joint,0x7f7c,10,joint,,,,actor caller services (72 rows),RENDER-ACTORS-008 request table (WIP branch),72,producer not on main,n/a,refused,not traced here; the largest actor-side joint group
+joint,0x7f79,4,joint,,,,actor caller services (12 rows),RENDER-ACTORS-008 request table (WIP branch),12,producer not on main,n/a,refused,not traced here
+joint,0x7f7c,7,joint,,,,actor caller services (4 rows),RENDER-ACTORS-008 request table (WIP branch),4,producer not on main,n/a,refused,not traced here
+joint,0x7fd6,"6,55,56,57",joint,,,,actor caller services (6 rows),RENDER-ACTORS-008 request table (WIP branch),6,producer not on main,n/a,refused,not traced here
+effect,0x801d,0,effect side,,,,actor caller services,RENDER-ACTORS-008 request table (WIP branch),1,producer not on main,n/a,refused,RENDER-EFFECTS-036
+effect,0x413,10,effect side,,,,actor caller services,RENDER-ACTORS-008 request table (WIP branch),1,producer not on main,n/a,refused,RENDER-EFFECTS-036
+joint,0x472,0x12; 4,joint,,,,"catalogue skills DK 723, Elf 2027",RENDER-EFFECTS-035 CSV (WIP branch),2,producer not on main,n/a,refused,skill-side joints; not traced here
+joint,0x7f78,0x2f,joint,,,,catalogue skill Elf 234,RENDER-EFFECTS-035 CSV (WIP branch),1,producer not on main,n/a,refused,not traced here
+joint,0x4ae; 0x7fde,variable,joint,,,,"catalogue skill 76 (DK, Elf)",RENDER-EFFECTS-035 CSV (WIP branch),2,producer not on main,n/a,refused,subtype is variable in the request: not statically complete
+effect,34 pairs,,effect side,,,,catalogue skills outside the learned set,RENDER-EFFECTS-035 CSV (WIP branch),34,producer not on main,n/a,refused,listed in docs/research/skill-catalogue-missing-consumers.csv of that lane; RENDER-EFFECTS-036

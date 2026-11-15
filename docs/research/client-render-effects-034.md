@@ -19,13 +19,19 @@ it, the lane that reported it, and refusal counts in the fixture scenes before a
 
 | Status | Pairs | What |
 |---|---:|---|
-| Admitted, verified | 21 | 17 particle pairs and 4 joint pairs |
+| Admitted, verified | 27 | 23 particle pairs and 4 joint pairs |
 | Bound | 2 | sprite bitmaps `0x810d`, `0x8003` (plus the two new particle bitmaps) |
-| Refused, particle | 2 | `0x8084/28` (owner bones), `0x8145/1` (combat pool bitmap row) |
-| Refused, effect side | 18 rows | the 17 ids of the RENDER-EFFECTS-036 list, effect `0x454/-1,1..4` found here, and the actors' type 226 |
+| Refused, particle | 6 | `0x8084/28` (owner bones), `0x8145/1` (combat pool bitmap row), the owner-position form `0x807e/1`, `0x807f/1`, `0x8080/1`, `0x7ffd/6` |
+| Refused, joint | 7 rows | actor joints `0x7f7c/10`, `0x7f79/4`, `0x7f7c/7`, `0x7fd6/6,55,56,57`; skill joints `0x472/0x12,4`, `0x7f78/0x2f`, and the variable-subtype `0x4ae`, `0x7fde` |
+| Refused, effect side | 21 rows | the 17 ids of the RENDER-EFFECTS-036 list, effect `0x454/-1,1..4` found here, the actors' type 226, `0x801d/0`, `0x413/10`, and the 34 catalogue-skill effect pairs of RENDER-EFFECTS-035 (one row) |
+
+The table has 63 rows; some rows stand for several ids (the blur's eleven bones, the four `0x7fd6`
+subtypes, the 34 catalogue effects).
 
 Sources: the handoffs of RENDER-WORLDS-INNER-001/004/005, MUUN-VISUAL-005, RENDER-ITEMS-002AA,
-RENDER-EFFECTS-032/033 and RENDER-ACTORS-006, the orchestrator's NEXT-GAPS-002 id list (each id
+RENDER-EFFECTS-032/033 and RENDER-ACTORS-006, the two CSVs that RENDER-ACTORS-008
+(`actor-caller-requests.csv`) and RENDER-EFFECTS-035 (`skill-catalogue-missing-consumers.csv`) pushed on
+their WIP branches during this run, the orchestrator's NEXT-GAPS-002 id list (each id
 checked against those handoffs), and a new native ledger: the world particle module now records each
 refused request by pair (`{"world_unsupported": [[routine, type, subtype, count], ...]}`), as the combat
 module already did.
@@ -64,6 +70,18 @@ pairs fall into five particle forms and one joint group, each written once as a 
 | `0x7f5a/47` | draws `0x7f84`; life 5, scale + `rand % 50 * 0.01`, rotation `rand % 360` | light / 1.02; life 0 when `0.05 >= light[0]`; scale + 1 |
 | `0x7f54/1` | subtype 0's constructor (life 20, sound 0x40 unless scene 3) | frame `(20 - life) / 2` only: no terrain light (`0x01623b56`) |
 | `0x7efa/3` | life 20, velocity `rand % 4 - 2` per axis | scale + 0.02 above life 10, else - 0.021; **no sprite**: the draw's subtype table `0x015ae4bf` sends 3 to the exit after the blend state |
+
+**Plain, requested by the actor caller services** (RENDER-ACTORS-008's request table; six pairs that
+were small and fully read):
+
+| Pair | Create | Move |
+|---|---|---|
+| `0x7f26/3` | life 5 | scale * 0.8 |
+| `0x7f5a/50` | life 20, scale `(rand % 32 + 32) * 0.01 * scale`, rotation `rand % 360`, gravity `(rand % 16 + 16) * 0.1`, alpha 0, colour saved, light 0 | alpha - 0.1 below life 10, else + `(rand % 3 + 2) * 0.1` up to 0.5; dies below 0.1; light = saved colour * alpha; scale + 0.02; z + gravity |
+| `0x807e/0` | life 35 (25 in world 0x3f), scale `(rand % 96 + 96) * 0.01 * scale`, rotation, gravity `(rand % 16 + 12) * 0.1`, alpha 0, colour saved | the same alpha program with `rand % 5` and ceiling 0.7; scale + `(rand % 3 + 6) * 0.01`; z + gravity |
+| `0x806e/0` | life `rand % 12 + 8`, velocity 0, scale `(rand % 30 + 20) * 0.01`, rotation, gravity `(rand % 15 + 15) * 0.01` | scale - `(rand % 20 + 10) * 0.001`; z + 10 * gravity |
+| `0x7ef7/12` | life `rand % 10 + 100`, gravity and scale as `/11` | scale + 0.02 above life 80, else - 0.005 |
+| `0x7ef7/13` | as `/12` | y - gravity, z + gravity, scale - 0.001 |
 
 **Item** (initial lifetime/scale words +0x4c/+0x1c, alpha +0x44, the light times alpha at draw; ranges
 are the client's quantised `0x011ff622`):
@@ -121,6 +139,14 @@ refresh is involved.
 - **`0x8145/1`** (Blood Storm body). Static form: life 14, scale 0 then + 0.2 per step, alpha - 0.0714,
   light = saved colour * alpha, plain sprite. The combat pool has no bitmap row for `0x8145`, and
   `native/core/mu_combat.c` belongs to RENDER-EFFECTS-035. Left with the Blood Storm rest.
+- **Owner-position form** `0x807e/1`, `0x807f/1`, `0x8080/1` (create `0x015ce0d7`, move `0x01640ddf`)
+  and `0x7ffd/6` (`0x015c0fcd`, `0x0162f448`). Static: both read the owner OBJECT's position +0x158
+  directly in create and move and carry the particle with the owner (position - start, start = owner
+  position, position + start), with scale and alpha branches that were not all read. Requested only by
+  actor callers that are not on main; left as one form for the next consumer lane.
+- **Joints** from the two late CSVs: actor joints `0x7f7c/10` (72 request rows), `0x7f79/4`, `0x7f7c/7`,
+  `0x7fd6/6,55,56,57`; skill joints `0x472/0x12`, `0x472/4`, `0x7f78/0x2f`; `0x4ae` and `0x7fde` have a
+  variable subtype in the request and are not statically complete. None was traced here.
 - **Effect side** (RENDER-EFFECTS-036): Blood Storm `0x585/0`, `0x586/0`, `0x4b7/1`, blur `0x814b`;
   Crescent `0x49e/0`; Fire Breath `0x8001/0`; the ten tower effects `0x4be/0`, `0x4bf/0`, `0x419/2`,
   `0x41a/2`, `0x4c0/0`, `0x4c1/0`, `0x4c2/0`, `0x4c5/0x4c0`, `0x4c5/0x4c1`, `0x4c5/0x4c2`; effect `0x454`
@@ -134,7 +160,7 @@ and draw against the original instructions (record fields, ordered calls, `rand(
 the follow pair also compares the owner-point position write of the draw), the joint families of
 `validate_joints.py`, a native host (`native/tests/effects34_host.c`: pool admission, bitmap routing,
 the item-owner point, raster output, retirement, the refusal ledger) and an admission census. At 200
-cases per pair: **12,647 checks, 0 mismatches**, no original-machine stop. **91 compiled mutants** (three
+cases per pair: **16,259 checks, 0 mismatches**, no original-machine stop. **116 compiled mutants** (three
 per pair plus form and native controls), all detected.
 
 The comparison covers the stated instruction slices and the native adapter contracts. It does not claim

@@ -2,15 +2,16 @@
 
 PR-ready verified fixture subset. The steward owns the combined gate and merge.
 
-Branch `claude/render-effects-034` starts from RENDER-EFFECTS-033 `35ae89fe` (PR #403, open when this lane
-finished; it already contained main `c5b9d5ca`) and merges main `c255e4dd` (batch 119: MUUN-VISUAL-005,
-AUDIO-006) at `7ae65313`. Implementation by Claude Fable 5.2, no subagents, no full lane gate. Heavy work
-ran at nice 10, make at most four jobs, two validator/test workers, with load waits.
+Branch `claude/render-effects-034` starts from RENDER-EFFECTS-033 `35ae89fe` (PR #403, merged during the
+run in batch 120) and merges main twice: `c255e4dd` (batch 119: MUUN-VISUAL-005, AUDIO-006) at `7ae65313`
+and `bb86bbf7` (batch 120: #403, RENDER-ITEMS-002AA, NEXT-GAPS-002) at `4965314e`. Implementation by
+Claude Fable 5.2, no subagents, no full lane gate. Heavy work ran at nice 10, make at most four jobs,
+two validator/test workers, with load waits.
 
 Orchestrator order during the run: finish the particle/joint/sprite ids as one PR-ready unit; stay out of
 `reconstructed/combat` and `native/core/mu_combat.c` (RENDER-EFFECTS-035 owns them); the effect-side ids
-go to RENDER-EFFECTS-036 unless time remains. Effect consumers live in `reconstructed/combat`, so none
-was taken here.
+go to RENDER-EFFECTS-036 unless time remains; check the CSVs of RENDER-ACTORS-008 and RENDER-EFFECTS-035
+once, late. Effect consumers live in `reconstructed/combat`, so none was taken here.
 
 ## Consumer table
 
@@ -18,30 +19,32 @@ was taken here.
 [research note](../research/client-render-effects-034.md): every refused consumer pair known on this
 base, with original addresses, requesting producers and refusal counts per fixture scene.
 
-| | Pairs / rows |
+| | Rows |
 |---|---:|
-| Refused before (table rows) | 43 |
-| Admitted here, verified against the original | 21 (17 particles, 4 joints) |
+| Refused before (all table rows) | 63 |
+| Admitted here, verified against the original | 27 (23 particles, 4 joints) |
 | Sprite bitmaps bound | 2 (`0x810d`, `0x8003`) |
-| Refused after | 20 rows: 2 particles, 18 effect-side rows |
+| Refused after | 34 rows: 6 particles, 7 joint rows, 21 effect-side rows |
 
-The orchestrator's 22-id list (three world particles, four world joints, eight item particles, five
-Muun particles, two sprite bitmaps) was checked id by id against the lanes' handoffs: 21 are done, and
-Muun particle `0x8084/28` stays refused. The new native ledger added two pairs refused in **default**
-world views, `0x8016/5` and `0x7ef7/11`; both are done.
+Some rows stand for several ids (the blur's eleven bones, four `0x7fd6` subtypes, the 34 catalogue-skill
+effects of RENDER-EFFECTS-035). The orchestrator's 22-id list was checked id by id against the lanes'
+handoffs: 21 are done, and Muun particle `0x8084/28` stays refused. The new native ledger added two pairs
+refused in **default** world views, `0x8016/5` and `0x7ef7/11`; both are done. Of the ids in the two late
+CSVs, six actor-requested particle pairs were small and fully read and are done; the rest are listed.
 
 ## Pairs added, by group
 
 | Group | Pairs | Requested by |
 |---|---|---|
 | Plain particles (6) | `0x8016/5`, `0x7ef7/11`, `0x7f5a/43`, `0x7f5a/47`, `0x7f54/1`, `0x7efa/3` | Swamp of Calmness, Elbeland, tower 39, Muun 377 |
-| Item particles (7) | `0x8616/0`, `0x7fe0/10`, `0x84d1/2`, `0x850b/5`, `0x807e/14`, `0x807f/14`, `0x8080/14` | ITEMS-002AA producers `0x0f22`, `0x0f23`, `0x0f25`, `0x24be/0x24bf` |
-| Follow particle (1) | `0x855d/2` | ITEMS-002AA producer `0x0f22` |
+| Item particles (7) | `0x8616/0`, `0x7fe0/10`, `0x84d1/2`, `0x850b/5`, `0x807e/14`, `0x807f/14`, `0x8080/14` | item producers `0x0f22`, `0x0f23`, `0x0f25`, `0x24be/0x24bf` |
+| Follow particle (1) | `0x855d/2` | item producer `0x0f22` |
 | Pulse particles (3) | `0x8081/1`, `0x8082/1`, `0x7ef7/19` | Muun mount style and secondary particles |
+| Actor-requested plain particles (6) | `0x7f26/3`, `0x7f5a/50`, `0x807e/0`, `0x806e/0`, `0x7ef7/12`, `0x7ef7/13` | actor caller services (RENDER-ACTORS-008 request table, 23 request rows) |
 | Joints (4) | `0x7f7c/8`, `0x7f7c/19`, `0x7fd5/4`, `0x7f7d/11` | Kanturu 37/40, tower 39, Barracks 41 / Refuge 42 |
 | Bitmap bindings (4) | sprites `0x810d`, `0x8003`; particle bitmaps `0x8616`, `0x850b` | Muun 376/377; the two new item particles |
 
-One table-driven consumer per group: `reconstructed/particles/consumer34_kinds.inc` (a row per pair with
+One table-driven consumer per kind: `reconstructed/particles/consumer34_kinds.inc` (a row per pair with
 its form) and `reconstructed/joints/consumer34_joints.inc`; `0x7f54/1` is one line in the existing
 Explosion case. `0x7efa/3` sets its blend state and draws no sprite, as the original's subtype table
 does. `0x855d/2` follows the retained item-owner point at draw, like the existing `0x810a/0x25`. The world
@@ -54,9 +57,9 @@ joint summary line. Totals in `stats` are unchanged.
 
 ## Scenes: refusals before and after
 
-Installed read-only game data, demo names only. "Before" is this tree with the lane's consumer files
-reverted to `35ae89fe` (main did not touch them); for the world and skill scenes the pre-change ledger
-gave the pairs.
+Installed read-only game data, demo names only. "Before" is the same tree with the lane's six consumer
+source files reverted to `35ae89fe` (main did not touch them) and the two new include files removed. The
+world and skill pairs come from the ledger on the pre-change tree.
 
 | Scene | Refused before | Refused after |
 |---|---:|---:|
@@ -65,6 +68,10 @@ gave the pairs.
 | Swamp of Calmness default view, 25 steps | 1 (`0x8016/5`) | **0** |
 | Swamp of Calmness, draw-all, 61 steps | 64 | **0** |
 | Other 44 views, default and draw-all (88 runs) | 0 | 0 |
+| Item `0xf22` in hand, 60 steps | 80 (`0x855d/2`, `0x7fe0/10`) | **0** |
+| Item `0xf23` in hand, 60 steps | 60 (`0x8616/0`) | **0** |
+| Item `0xf25` in hand, 60 steps | 36 (`0x84d1/2`, `0x850b/5`) | **0** |
+| Wings `0x24be` and `0x24bf`, 60 steps | 120 each (`0x807e/14`, `0x807f/14`, `0x8080/14`) | **0** each |
 | Muun 16 with the mount style, 90 steps | 180 (`0x8081/1`, `0x8082/1`) | **0** |
 | Muun appearance 376, 90 steps | 720 (sprite `0x810d`) | **0** |
 | Muun appearance 377, 90 steps | 102 (90 sprite `0x8003`, 12 particle `0x7efa/3`) | **0** |
@@ -74,32 +81,37 @@ gave the pairs.
 | Skills 44, 49, 41 (real sword model) | 1, 1, 5 | 1, 1, 5 |
 | Other 27 skill scenes | 0 | 0 |
 
-**Scenes whose refusals reached zero:** Elbeland and Swamp of Calmness (default and draw-all), so all 92
-world-view runs are at zero; Muun 16 mount style, Muun 376 and Muun 377; the four inline world joint
-cases. The item producers of RENDER-ITEMS-002AA are not on main, so their eight pairs have no scene here;
-they are covered by the original comparison and the native fixture. The tower particles are event-gated
-(production fixes the sequence inactive) and have no refusals in the sampled scenes.
+**Scenes whose refusals reached zero (16):** Elbeland and Swamp of Calmness, default and draw-all (so all
+92 world-view runs are at zero); the five item scenes; Muun 16 mount style, Muun 376 and Muun 377; and
+the four inline world joint cases. The tower particles are event-gated (production fixes the sequence
+inactive) and the six actor-requested pairs wait for RENDER-ACTORS-008's producers; both are covered by
+the original comparison and the native fixture only.
 
-Proof renders (local, not committed, deleted with the lane's scratch): 17 particle, 4 joint and 4 sprite
-fixture images from the native host; the Swamp of Calmness brazier before/after (the flame now draws);
-Muun 16 mount, 376 and 377 before/after. All were looked at. The joint fixtures use a uniform test
-bitmap, so they show geometry, not the game texture.
+Proof renders (local, not committed, deleted with the lane's scratch): before/after frames of the Swamp
+of Calmness brazier (the flame now draws), the five item scenes (red stars, sphere glow, red smoke, wing
+smoke lines) and Muun 16 mount, 376 and 377; and the native host's images for every admitted pair and
+binding, with the test bitmaps and again with the installed textures. All were looked at. The host images
+are camera-space raster controls (a quad over the frame, or the joint's ribbon): they show that a pair
+reaches the raster with its bitmap, colour and alpha, not a world placement.
 
 ## Original proof
 
 `scripts/validate_render_effects34.py`, registry row `validate_render_effects34`, 200 cases per pair and
-family: **12,647 checks, 0 mismatches, no original-machine stop**. Create, move and draw of every particle
+family: **16,259 checks, 0 mismatches, no original-machine stop**. Create, move and draw of every particle
 pair (record fields, ordered calls, `rand()` counts, draw calls; the follow pair also compares the draw's
 owner-point position write); `CreateJoint`, `MoveJoint` and `RenderJoints` for the four joints (record,
-ordered calls, full GL stream); 26 native host rows (17 particles, 4 joints, 4 bitmap bindings, the
-ledger); a 21-row admission census.
+ordered calls, full GL stream); 32 native host rows (23 particles, 4 joints, 4 bitmap bindings, the
+ledger); a 27-row admission census.
 
-**91 compiled mutants, all detected, zero original stops**: three per pair (removed create, changed move,
-removed draw), 24 form controls (lifetimes, thresholds, the pulse floor and colour, the follow start and
-NULL owner, the arc's turn/jitter/speed, the bolt's far end and jitter) and four native controls (follow
-hook, two swapped bitmap files, the ledger). One control was first aimed at the wrong family
-(`clud_texture`, draw instead of create) and was corrected and rerun alone; one native control needed a
-ledger fixture in the host before it could be detected. No successful control was repeated.
+**116 compiled mutants, all detected, zero original stops**: three per pair (removed create, changed move,
+removed draw), 31 form controls (lifetimes, thresholds, the pulse floor and colour, the follow start and
+NULL owner, the alpha ceiling and fall, the world-0x3f lifetime, the arc's turn/jitter/speed, the bolt's
+far end and jitter) and four native controls (follow hook, two swapped bitmap files, the ledger). The
+complete set ran once through the registry in 178.6 s. Before that, during development: one control was
+aimed at the wrong family (`clud_texture`, draw instead of create) and was corrected and rerun alone; one
+native control needed a ledger fixture in the host before it could be detected; the first registry run
+was judged failed only because the row declared 115 controls instead of 116, and the same report was
+re-judged after the count was corrected.
 
 Target SHA-256 `3cf91f3c203d305a771b04d00b271871f7ce1c6779b22e30fbae8c4f35b5527a`, text
 `2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724`, data
@@ -114,18 +126,13 @@ issues.
 Both trees ran `make -C native -j4 world` right before their sweep; hashes were read again after
 rendering.
 
-- Before (consumer files at `35ae89fe`): `d9783e95d396df78393d23ad1d00f62be39d321fbaf9d0cfd054b71820862274`.
+- Before (consumer files at `35ae89fe`): `@@BEFORE_SHA@@`.
 - After: `@@AFTER_SHA@@`.
 
 Default world draw, DemoKnight, no draw-all, default clock, 640x400, 25 steps sampled at 0 and 24; the
 14-view October tour and the 32-view DATA-ACQ-002 tour.
 
-| | Identical |
-|---|---:|
-| PNGs | 91 of 92 |
-| OBJECT/light dumps | 92 of 92 |
-| Logs | 46 of 46 |
-| Reports | 0 of 46 raw; 44 differ only by the ledger line and the four bitmap slots |
+@@IDENTITY@@
 
 **Views that change, and why.** Swamp of Calmness frame 24: the brazier's `0x8016/5` particle was refused
 and now draws (2,667 pixels inside x 24..95, y 0..48; mean RGB difference 0.183 of 255). Its report gains
@@ -180,15 +187,18 @@ MU_NATIVE_DATA_DIR, MU_LANG_DIR and the row-specific paths. Run
 - `0x8145/1` (Blood Storm) stays refused: the particle form is recovered (research note), but the combat
   pool has no `0x8145` bitmap row and `native/core/mu_combat.c` was out of bounds. One row plus the pair's
   admission closes it.
-- RENDER-EFFECTS-036 list, unchanged: Blood Storm `0x585/0`, `0x586/0`, `0x4b7/1`, blur `0x814b`;
-  Crescent `0x49e/0`; Fire Breath `0x8001/0`; tower effects `0x4be/0`, `0x4bf/0`, `0x419/2`, `0x41a/2`,
-  `0x4c0/0`, `0x4c1/0`, `0x4c2/0`, `0x4c5/0x4c0`, `0x4c5/0x4c1`, `0x4c5/0x4c2`. New from the ledger: effect
-  `0x454` subtypes -1, 1, 2, 3, 4 (Twisting Slash with the installed sword model). The actors' type 226
-  effect (classes 595/635) also needs its move/draw/retirement path.
+- The owner-position form `0x807e/1`, `0x807f/1`, `0x8080/1`, `0x7ffd/6` (actor callers) reads the owner
+  position in create and move; its branches were not all read. One form, four pairs, for the next
+  consumer lane.
+- Joints not traced: actor `0x7f7c/10` (72 request rows), `0x7f79/4`, `0x7f7c/7`, `0x7fd6/6,55,56,57`;
+  skill `0x472/0x12`, `0x472/4`, `0x7f78/0x2f`. `0x4ae` and `0x7fde` have a variable subtype in the request.
+- RENDER-EFFECTS-036 list: Blood Storm `0x585/0`, `0x586/0`, `0x4b7/1`, blur `0x814b`; Crescent `0x49e/0`;
+  Fire Breath `0x8001/0`; tower effects `0x4be/0`, `0x4bf/0`, `0x419/2`, `0x41a/2`, `0x4c0/0`, `0x4c1/0`,
+  `0x4c2/0`, `0x4c5/0x4c0`, `0x4c5/0x4c1`, `0x4c5/0x4c2`. New: effect `0x454` subtypes -1, 1, 2, 3, 4
+  (Twisting Slash with the installed sword model, from the ledger); the actors' type 226, `0x801d/0` and
+  `0x413/10`; the 34 catalogue-skill effect pairs of RENDER-EFFECTS-035's CSV.
 - `0x7f7d/11` with a width below 8 divides by zero in the client; the native modulo helper returns 0
   there. Producers pass 15 times the object scale.
-- The item pairs draw once RENDER-ITEMS-002AA's producers merge; recount their scenes then.
-- The CSVs that RENDER-ACTORS-008 and RENDER-EFFECTS-035 were to push were checked @@CSV_CHECK@@.
 - Eligibility, damage, mana, cooldowns, server keys, packets, protection, live client state and owner
   apps are outside this fixture subset.
 

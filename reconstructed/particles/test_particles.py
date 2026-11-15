@@ -114,7 +114,14 @@ class ParticleTests(unittest.TestCase):
         for kind in [(0x801c,3),(0x801c,4),(0x801c,7),(0x7f89,7),(0x7f89,10),
                      (0x7f89,16),(0x7f89,26),(0x7f42,7),(0x7f42,12),(0x802a,1),(0x7f26,2)]:
             self.assertEqual(sup(*kind), 1, kind)
-        for kind in [(0x7f3c, 7), (0x7f3c, 18), (0x7f5a, 5), (0x771c, 1), (0x7ef7, 2), (0x7f26, 3)]:
+        # RENDER-EFFECTS-034: the table-driven pairs that producers already request
+        for kind in [(0x8016, 5), (0x7ef7, 11), (0x7f5a, 43), (0x7f5a, 47), (0x7f54, 1), (0x7efa, 3), (0x8616, 0),
+                     (0x7fe0, 10), (0x84d1, 2), (0x850b, 5), (0x807e, 14), (0x807f, 14), (0x8080, 14), (0x855d, 2),
+                     (0x8081, 1), (0x8082, 1), (0x7ef7, 19), (0x7f26, 3), (0x7f5a, 50), (0x7ef7, 12), (0x7ef7, 13),
+                     (0x806e, 0), (0x807e, 0)]:
+            self.assertEqual(sup(*kind), 1, kind)
+        for kind in [(0x7f3c, 7), (0x7f3c, 18), (0x7f5a, 5), (0x771c, 1), (0x7ef7, 2), (0x7f26, 4), (0x8084, 28),
+                     (0x8145, 1), (0x807e, 1), (0x7ffd, 6), (0x7f5a, 44), (0x807f, 0)]:
             self.assertEqual(sup(*kind), 0, kind)
 
     def test_common_initialisation(self):
