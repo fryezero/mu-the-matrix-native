@@ -263,6 +263,14 @@ static float clock_program(const mu_rc_body_scalar *p, float time, uint32_t fram
         case 34: f = client_sin(f); break;
         case 35: if (0.0f > f) f = -f; break;
         case 36: f = fabsf(f); break;
+        case 37: {
+            uint32_t high = (uint32_t)(p->k[n] >> 32);
+            float top;
+            memcpy(&top, &high, 4);
+            f = f >= kf ? top - f : 1.0f;
+            if (f <= 0.0f) f = 0.0f;
+            break;
+        }
         default: i = (int32_t)(word - (uint32_t)i); break;
         }
     }

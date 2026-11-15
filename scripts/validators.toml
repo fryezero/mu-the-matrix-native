@@ -3826,3 +3826,63 @@ note = "INNER-004: complete Crywolf/Barracks leaves and bounded Kalima/tower inl
 "families.*.stopped" = 0
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
+
+[validate_item_caller_groups]
+test = "reconstructed/renderchar/test_item_caller_groups.py::ItemCallerGroups.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "records", "clocks", "exits", "reader_refusals"]
+cases = 8393
+mutants = 7
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar"]
+args = ["--mutations", "--output", "{report}"]
+note = "RENDER-ITEMS-002AA: nine instruction-checked low-level callers, all forcing records, clock and model exit states"
+[validate_item_caller_groups.expect]
+"families.*.mismatches" = 0
+"families.bodies.cases" = 2628
+"families.records.cases" = 4608
+"families.clocks.cases" = 576
+"families.exits.cases" = 576
+"families.reader_refusals.cases" = 5
+"mutants.*" = {truthy = true}
+
+[validate_item_remainder_programs]
+test = "reconstructed/renderchar/test_item_remainder_programs.py::ItemRemainderPrograms.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "records", "clocks", "owned"]
+cases = 4460
+mutants = 7
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar", "reconstructed/particles"]
+args = ["--mutations", "--output", "{report}"]
+note = "RENDER-ITEMS-002AA: five complete pre-draw programs, independent bodies, records, clocks and ordered owned requests"
+[validate_item_remainder_programs.expect]
+"families.*.mismatches" = 0
+"families.bodies.cases" = 1460
+"families.records.cases" = 2560
+"families.clocks.cases" = 120
+"families.owned.cases" = 320
+"mutants.*" = {truthy = true}
+
+[validate_item_falloff]
+test = "reconstructed/renderchar/test_item_falloff.py::ItemFalloff.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "records", "clocks", "ticks", "exits", "reader_refusals"]
+cases = 19877
+mutants = 4
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar"]
+args = ["--mutations", "--output", "{report}"]
+note = "RENDER-ITEMS-002AA: four checked clock falloffs, every positive period tick, directed negative clocks and model exits"
+[validate_item_falloff.expect]
+"families.*.mismatches" = 0
+"families.bodies.cases" = 1168
+"families.records.cases" = 2048
+"families.clocks.cases" = 96
+"families.ticks.cases" = 16304
+"families.exits.cases" = 256
+"families.reader_refusals.cases" = 5
+"mutants.*" = {truthy = true}
