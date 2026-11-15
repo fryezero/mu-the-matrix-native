@@ -367,3 +367,9 @@ They remain counted refusals, alongside the existing INNER-003 missing pairs.
 
 INNER-004 original comparisons pass 8,000 cases across eight families, zero mismatches/stops. All 42 compiled
 producer mutants are detected, minimum two cases, and four compiled alpha-seam mutants are detected.
+
+INNER-004 renders preserve all 45 unaffected tour views byte-for-byte. Kanturu 37 changes only through the
+admitted extra RGBA pass; Remain 38 remains 6.190 at default clock and 6.192 at captured clock. The low
+Kalima grids are water-occluded with no changed pixels; a separate seven-type proof at authored Z=500
+visibly shows the glow/plume/spray and changes 46,966 pixels per alias. Crywolf, tower, Barracks and Refuge
+have visible authored proof deltas. These layouts do not establish original placement or event fidelity.
