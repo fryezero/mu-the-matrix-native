@@ -128,3 +128,14 @@ consumer results remain zero created/one refused. The new control still needs it
 Done: integrated build and all actor/world affected validator refreshes.
 Left: focused riding row for the test edit, portable/private checks, final proof/identity, audit and PR.
 Next: resource guard, focused row, then the selected portable refresh.
+
+## Final integrated portable checkpoint
+
+The actor/world portable refresh at `6270622e` passes 1,794 tests: 1,465 passed, 329 explicit skips,
+zero failures/errors, 175 selected work items. Runner wall is 500.59 s (including its selection);
+the preceding selector preview is 125.10 s. The focused riding row passes 890 cases in 0.79 s, no mutants
+repeated. All 43 steward rows pass, 746,994 reported cases, with per-row source checkpoints retained.
+
+Done: integrated source and portable/validator verification, including the revised remote test import.
+Left: reduced private Muun run for the new control/current binary, proof/default replay, final audit and PR.
+Next: resource guard, explicit world rebuild/hash, private Muun modules, then finish delivery.
