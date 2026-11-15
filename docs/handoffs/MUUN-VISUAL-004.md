@@ -225,3 +225,15 @@ Done: all Muun implementation, original comparisons/mutants, private controls, p
 Kanturu identity comparison; repository audit is green for the preceding integrated candidate.
 Left: integrate the new UI source, refresh only affected checks, update final binary/proof/audit results,
 then push, open PR, append the ready entry and clean up. Next: inspect/merge UI-WINDOWS-004 and build.
+
+## UI-WINDOWS-004 finish-line checkpoint
+
+Finish-line base `4480bf41` is integrated at `2eb3d97f`. Build passes in 15.88 s. Exact lane selection
+remains 43 rows (31.71 s preview). Its 15 changed-input rows pass in 197.83 s after a 68.28 s preview,
+zero failures/errors/skips; all 43 latest rows total 746,994 reported cases. Muun C/checker sources
+are unchanged. The portable preview selects 180 items in 84.20 s; its two-worker runner is active.
+Done: final-base integration/build and exact validator refresh.
+Left: active portable completion, private Muun runtime controls, proof/default replay and final audit.
+Next: complete the active runner, then verify the final executable and publish the PR/ready entry.
+Later main changes belong to the steward's combined-tree validation; this run is finishing the explicit
+merge/build/check/push sequence at the integrated `4480bf41` base. No ready queue line exists yet.
