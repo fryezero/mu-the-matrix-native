@@ -97,6 +97,8 @@ static int panel(mu_world_rt *a, int vk, int mods)
         else return mu_gfx_layer_service_action(l, "store", 0, 0) ? 1 : -1;
         return 1;
     }
+    if (l && mods == 2 && (vk == 'J' || vk == 'I'))
+        return mu_gfx_layer_key(l,1,vk,(uint32_t)vk,mods) ? 1 : -1;
     if (l && mods == 2 && (vk == 'A' || vk == 'J')) {
         int movie = vk == 'A' ? MU_GFX_TREE4 : MU_GFX_TREE5;
         if (*mu_gfx_layer_path(l, movie)) {

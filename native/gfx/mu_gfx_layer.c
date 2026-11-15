@@ -404,9 +404,11 @@ static const char *const FILES[MU_GFX_MOVIES] = {"main", "InventoryFrame", "Info
                                                  "winOption", "winSystemMenu", "HelpWindow",
                                                  "CommandWindow", "MatchingSelect", "GensRanking", "PetInventoryFrame", "GremoryCase",
                                                  "MacroMain", "MacroSub", "HuntRecord", "StorageInven",
-                                                 "MatchingParty", "MatchingGuild", "Guildmatching_2024", "PlayGuide"};
+                                                 "MatchingParty", "MatchingGuild", "Guildmatching_2024", "PlayGuide",
+                                                 "ExtensionBagFrame", "SkillTree5thItemViewer", "BlockedChat"};
 
 static void presentation_shown(mu_gfx_layer *, int, int);
+static void presentation_shown3(mu_gfx_layer *, int, int);
 
 static int service_reserved(const mu_gfx_layer *L,int index);
 static int service_inventory(mu_gfx_layer *L,int cell);
@@ -1155,6 +1157,7 @@ void mu_gfx_layer_show(mu_gfx_layer *L, int m, int open)
     if (open && m == MU_GFX_CHARACTER)
         feed_character(L);
     presentation_shown(L,m,open);
+    presentation_shown3(L,m,open);
     if (m == MU_GFX_HUNT_RECORD)
         invokef(L,m,mv->path,open ? "open" : "close",open ? "[{\"mine\":true,\"curMapIndex\":0}]" : "[]");
     else if (m == MU_GFX_PARTY || m == MU_GFX_QUEST_SUMMARY)
@@ -1471,6 +1474,7 @@ static const char *on_call_(movie *mv, const char *name, const char *args)
             L->cfg.quest_call(L->cfg.tooltip_user, mv->id, name, args);   /* NATIVE-QUEST-001: the handler's OnLoad */
         return NULL;
     }
+    if (presentation_parent3(mv,name,args)) return NULL;
     if (presentation_movie(mv->id)) {
         presentation_call(mv, name, args, v, n);
         return NULL;
@@ -1763,6 +1767,7 @@ static const int WINDOW_ALIGN[MU_GFX_MOVIES] = {
     [MU_GFX_MACRO] = 9, [MU_GFX_MACRO_SUB] = 9, [MU_GFX_HUNT_RECORD] = 9,
     [MU_GFX_STORAGE_EXT] = 9, [MU_GFX_MATCH_PARTY] = 9, [MU_GFX_MATCH_GUILD] = 9,
     [MU_GFX_GUILD_MATCH] = 9, [MU_GFX_PLAY_GUIDE] = 9,
+    [MU_GFX_BAG] = 0, [MU_GFX_TREE5_VIEWER] = 4, [MU_GFX_BLOCKED_CHAT] = 9,
     [MU_GFX_OPTION] = 9, [MU_GFX_SYSTEM_MENU] = 9, [MU_GFX_HELP] = 9
 };
 
@@ -2721,6 +2726,7 @@ int mu_gfx_layer_key(mu_gfx_layer *L, int down, int vk, uint32_t codepoint, int 
             chat_open(L, 1);
         return 1;
     }
+    if (down && presentation_key3(L,vk,mods)) return 1;
     if (down && vk == 'T' && mods == 2 && presentation_open(L,MU_GFX_PLAY_GUIDE,0)) return 1;
     if (down && vk == 'H' && mods == 2) {
         if (!L->help_ready || !L->mv[MU_GFX_HELP].g || !L->mv[MU_GFX_HELP].path[0]) return 0;

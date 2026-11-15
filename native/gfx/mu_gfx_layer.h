@@ -68,7 +68,8 @@ enum { MU_GFX_MAIN, MU_GFX_INVENTORY, MU_GFX_TOOLTIP, MU_GFX_CHARACTER, MU_GFX_C
        MU_GFX_OPTION, MU_GFX_SYSTEM_MENU, MU_GFX_HELP,
        MU_GFX_COMMAND, MU_GFX_MATCHING, MU_GFX_GENS, MU_GFX_PET_INVENTORY, MU_GFX_GREMORY,
        MU_GFX_MACRO, MU_GFX_MACRO_SUB, MU_GFX_HUNT_RECORD, MU_GFX_STORAGE_EXT,
-       MU_GFX_MATCH_PARTY, MU_GFX_MATCH_GUILD, MU_GFX_GUILD_MATCH, MU_GFX_PLAY_GUIDE, MU_GFX_MOVIES };
+       MU_GFX_MATCH_PARTY, MU_GFX_MATCH_GUILD, MU_GFX_GUILD_MATCH, MU_GFX_PLAY_GUIDE,
+       MU_GFX_BAG, MU_GFX_TREE5_VIEWER, MU_GFX_BLOCKED_CHAT, MU_GFX_MOVIES };
 /* NATIVE-PROGRESS-001 adds winOption and winSystemMenu (optional KeyWindows): their channel calls, O and the
  * Esc that no other window takes go to cfg.progress_call. */
 /* NATIVE-MAP-001 adds MoveCommand (the Move window, optional); its callbacks and the base movie's other channels

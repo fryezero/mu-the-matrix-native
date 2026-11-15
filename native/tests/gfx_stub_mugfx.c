@@ -438,6 +438,9 @@ void mugfx_start(MuGfx *g)
                is(g,"MatchingParty") || is(g,"MatchingGuild") || is(g,"Guildmatching_2024") || is(g,"PlayGuide")) {
         char args[96]; snprintf(args, sizeof args, "[\"g_%s\"]", g->name);
         call(g, "UIInit", args);
+    } else if (is(g,"ExtensionBagFrame") || is(g,"SkillTree5thItemViewer") || is(g,"BlockedChat")) {
+        char args[96]; snprintf(args,sizeof args,"[\"g_%s\"]",g->name);
+        call(g,"UIInit",args);
     } else if (is(g,"HuntRecord")) {
         call(g,"HuntRecord","[]");
     } else if (is(g, "HelpWindow")) {
