@@ -12,8 +12,8 @@ import json
 import re
 import struct
 from pathlib import Path
-from capstone import Cs, CS_ARCH_X86, CS_MODE_32
-from capstone.x86 import X86_OP_REG
+from capstone import Cs, CS_ARCH_X86, CS_MODE_32, CS_AC_WRITE
+from capstone.x86 import X86_OP_MEM
 import pins
 from survey_ui_routes import census, number, TEXT_BASE, DATA_BASE, MANAGER
 
@@ -110,9 +110,10 @@ def indirect_routes(text, data, registry, direct, getters):
                     state[dst]=value
             else:
                 kill_written(i,state)
-                # Unknown or partial local stores invalidate saved identities.
-                if parts and 'ptr [' in parts[0] and i.mnemonic not in ('cmp','test','push'):
-                    kill_local_write(parts[0],state)
+                # Include exchanged and implicit memory destinations, not only operand zero.
+                for index,operand in enumerate(i.operands):
+                    if operand.type==X86_OP_MEM and operand.access & CS_AC_WRITE:
+                        kill_local_write(parts[index] if index<len(parts) else '',state)
             work.append((nextpc,state,steps+1,scope,depth))
     return sorted(found.values(),key=lambda r:(r['site'],r['manager_slot'],r['action']))
 

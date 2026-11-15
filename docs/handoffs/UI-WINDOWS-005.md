@@ -169,3 +169,28 @@ journeys/after-only identity, final docs/audit/publication and cleanup.
 
 Next step: merge latest origin/main, then root and explicit world builds.
 Keep the 94 frozen reports and rerun only changed compiled inputs.
+
+
+### WIP checkpoint: final integrated validator run
+
+Done: main 8844d3e9 merges cleanly at db6b04508badab6785c0c0347a1c3dea0c2ba913.
+Root/world build passes in 23.18 / 6.34 s; world SHA-256 is
+3eabc633b0def6f904e3f07a7ae1bd31c830497a12efe77b72688915c6ccddf4.
+The new parent-fallthrough compiled mutant is caught in 1.32 s (twelve distinct
+controller mutants total). Final own selection is 12 rows; the final delta
+from 340db5b3 selects 76, including all twelve. The 76-row run is in progress,
+with no failures/errors/skips so far. The earlier 94-row pass remains intact.
+
+The scanner now also handles exchanged and implicit memory destinations. All
+eight lightweight provenance controls pass in 0.10 s. These Python-only edits
+are not inputs of the running compiled validators. The 482-row ledger predates
+this last control addition and still needs one final regeneration afterward.
+
+Left: finish the immutable 76-row run, regenerate/reconcile the ledger, run
+merge-affected portable and reduced private consumers, final integrated
+journeys/after-only identity, final docs/audit/status/PR/ready entry and cleanup.
+
+Next step: wait for the foreground final-validators command. Resume only
+unfinished rows if interrupted. Logs: scratch/ui-windows-005/final-validators.log;
+reports: verify-runs/final-validators. Do not rerun successful before baselines
+or the eleven unchanged compiled mutants.

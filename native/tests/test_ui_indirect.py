@@ -52,3 +52,8 @@ class IndirectRoutes(unittest.TestCase):
 
     def test_unknown_memory_write_kills_saved_receiver(self):
         self.assertEqual(self.scan(bytes.fromhex('89 45 fc c6 42 24 01 8b 4d fc 8b 01 ff 50 40 c3')),[])
+
+    def test_exchanged_and_implicit_memory_writes_kill_saved_receiver(self):
+        for tail in ('89 45 fc 87 4d fc 8b 4d fc 8b 01 ff 50 40 c3',
+                     '89 45 fc ab 8b 4d fc 8b 01 ff 50 40 c3'):
+            self.assertEqual(self.scan(bytes.fromhex(tail)),[])
