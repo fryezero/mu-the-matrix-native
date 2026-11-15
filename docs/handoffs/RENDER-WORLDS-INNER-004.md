@@ -45,10 +45,23 @@ initializers, which now explicitly initialize the new callback. No unresolved fa
 No new original input/capture. The private tools/python, evidence and input symlinks are never staged.
 Lane scratch/renders stay under the matching `~/Documents/MTM/mu-mac-tools/native/` folders until checks finish.
 
+## Full producer and alpha checks
+
+All eight families pass 8,000 cases, zero mismatches/stops. All 42 compiled producer mutants are detected,
+minimum two cases, zero stopped mutants. Initial full run 11.52 s, remaining mutants 162.99 s. The initial
+run compiled the world-42 mutant successfully, then the model-gate mutant made its parameter unused under
+-Werror. Its replacement now retains a dummy use, and the remaining 41 variants ran once; the already
+completed baseline and first mutant were retained. No production target changed.
+Four compiled scene/raster/GL mutants are detected in 2.05 s, including the missing batch barrier.
+The after-root-build validator selector retains 89 rows, including conservative fallbacks, 72.16 s.
+Private native selection is 173 work items, 72.17 s. **8d reduced** applies; focused private modules pass 15/15 with no skips, 81.61 s.
+Modules: test_native_worlds_inner, test_native_worlds_inner4, test_native_item_textures and test_worlds_inner4.
+This includes 1,600 small instruction cases, registry absence, the installed texture survey and new joint refusals.
+
 ## WIP
 
-Done: producers/adapters, explicit refusal boundaries, small original comparisons, alpha scene implementation
-and synthetic render checks, before default renders. Left: full original/mutant run, affected selection/checks,
-8d reduced, after/reference render analysis, final main integration and docs/PR/ready entry.
-Next: complete the affected selection after the root build, then execute the selected checks with jobs 2.
+Done: producers/adapters, explicit refusals, 8,000 original cases, 42 producer and four alpha compiled mutants,
+alpha scene checks, before default/reference renders and affected selection. Left: affected validators/portable
+checks, after/reference render analysis, final main integration and docs/PR/ready entry.
+Next: run the 89 selected validators without mutants and the affected portable suites with jobs 2.
 No PR-ready claim or ready-prs line yet.

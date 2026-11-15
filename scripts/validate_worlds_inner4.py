@@ -125,7 +125,7 @@ FAMILIES={'barracks':lambda m,l,g,n:compare(m,l,g,n),'barracks_focus':lambda m,l
           'tower_focus':lambda m,l,g,n:compare(m,l,g,n,focused=True,tower=True)}
 MUTATIONS=[
     ('Barracks world42','world != 41 && world != 42','world != 41','barracks_focus'),
-    ('Barracks model','!model || (world','0 || (world','barracks'),
+    ('Barracks model','!model || (world','(model && 0) || (world','barracks'),
     ('Barracks type2 gate','rnd(c) % 3 == 0) particle(o,i,t == 2','rnd(c) % 4 == 0) particle(o,i,t == 2','barracks_focus'),
     ('Barracks type3 bitmap','t == 2 ? 0x7f5a : 0x8016','t == 2 ? 0x7f5a : 0x8017','barracks_focus'),
     ('Counter offset','prior + (float)offset','prior + (float)offset + 1.0f','barracks_focus'),

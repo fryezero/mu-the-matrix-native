@@ -266,6 +266,12 @@ int main(int argc, char **argv)
         reset(o,world,0x3c);(void)pass(o);assert(o->rt.particle_count==1 && o->rt.particles[0].sub==3);
         reset(o,world,6);o->models[6]=NULL;assert(pass(o)==NULL && o->rt.seed==1);
     }
+    reset(o,39,0x2f);o->rt.seed=seed_for(2,5,0);(void)pass(o);
+    assert(joints==0 && o->rt.draw_unsupported==1); /* 0x7f7d/11 */
+    reset(o,39,0x36);o->rt.seed=seed_for(2,3,0);(void)pass(o);
+    assert(joints==0 && o->rt.draw_unsupported==1); /* 0x7f7c/19 */
+    reset(o,41,0x5a);o->rt.seed=seed_for(2,3,0);(void)pass(o);
+    assert(joints==0 && o->rt.draw_unsupported==1 && o->rt.particle_count==1); /* 0x7fd5/4 */
     for(int world=46;world<=98;world+=52) {
         reset(o,world,1);(void)pass(o);assert(o->rt.draw_unsupported==1 && o->rt.seed==next(1));
         o->models[1]=NULL;o->rt.draw_unsupported=0;(void)pass(o);assert(o->rt.draw_unsupported==0);

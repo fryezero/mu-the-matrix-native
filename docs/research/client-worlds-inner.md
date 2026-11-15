@@ -251,3 +251,119 @@ tests with zero failures/errors. The default sweep preserves all 44 unaffected v
 change. All 92 OBJECT/light dumps stay identical. Aida's close-up glows, Remain's core, Trials' lamp and Devil Square's arm particles are visible in
 demo-labelled outputs. Remain also creates four joints and draws sixteen quads in the last frame. Original Remain image
 scores increase slightly; its earlier object/placement/state residuals remain explicit in the handoff.
+
+## RENDER-WORLDS-INNER-004: remaining inline leaves and alpha reference
+
+Same executable/text/data pins and offline method as INNER-001. Authored producer
+`world_inner4_visual.c`, existing object-runtime adapter. No remaining target world has a placement/reference
+capture in the October 22 or DATA-ACQ-002 tours. Proof layouts are authored, with demo names only.
+The first implemented leaf was shared Barracks/Refuge, with twelve active visual types and up to four requests
+per smoke object, followed by the small Crywolf leaf, Kalima's bounded branches and the tower's bounded branches.
+These are branch counts used to order work, not a measured world-population ranking.
+
+### Crywolf 30
+
+Complete visual producer `0x00d8e640..0x00d8ea2c`. Guard `0x0095fb7c`, event-byte getter `0x00d8b3e3`
+reads `0x01ec8ee7`. The original getter executes in comparisons, with authored bytes 0/1/2/255.
+Production fixes the input at authored byte 0. This does not establish the authoritative event state.
+
+| Type | Inline behavior |
+|---|---|
+| 0 | Event byte zero, then rand % 3 == 0: white 0x8016/0, object scale |
+| 0x29 | Blend light becomes sin(time * 0.002) * 0.3 + 0.7 |
+| 0x2a | Event byte nonzero, then rand % 3 == 0: white 0x7f5a/21, object scale |
+| 0x34 | Event byte zero: white 0x801e/6, object scale |
+| 0x35 | Event byte nonzero, then rand % 3 == 0: white 0x8016/0, object scale |
+| 0x36 | Event byte zero: white 0x801c or 0x801d, selected by another rand % 2, subtype 0, scale 1 |
+
+All particles here have no owner. Model absence returns before the world test and random calls.
+
+### Barracks 41 and Refuge 42
+
+Complete visual producer `0x00d5404b..0x00d54e48`, thiscall instance from `0x00d53c8f`.
+Tests `0x00d53d11`/`0x00d53d32` read the world, not event-instance fields. The comparator runs both tests
+and the real static constructor for its authored instance. No getter initialization state is inferred.
+
+| Type | Inline behavior |
+|---|---|
+| 2 / 3 | rand % 3 == 0: white 0x7f5a/13 or 0x8016/0, object scale |
+| 5 | Two rand % 2 gates. First tests trunc(prior + 2) % 4 then increments OBJECT +0xb4, emits 0x8001/0 and 0x8000/0 on zero. Second tests trunc(current) % 4 then increments it, emits 0x7f89/6 and 0x8000/1 on zero. White, scale 1 |
+| 6 | Unless hidden -2: four owned 0x7f89 requests, subtypes 1..4, grey 0.2, object scale. Set hidden -2 regardless |
+| 0x3a / 0x3b | rand % 2 / % 3 == 0: white 0x801a/2 or 0x801b/1, object scale |
+| 0x3c | White 0x801c/3, object scale |
+| 0x55 | Two counter gates as type 5. First has an additional rand % 2 for black 0x8001/1, then red 0x8000/2. Second emits red 0x7f89/14 and 0x8000/2 at twice object scale. Other scales equal object scale |
+| 0x58 | rand % 4 == 0: owned white 0x7f89/10, object scale |
+| 0x59 | rand % 4 == 0: owned 0x7f89/11, red = rand % 3 * 0.01 + 0.015, other channels zero, object scale |
+| 0x5a | rand % 3 == 0: angle = object angle + (rand % 40 + 120, 0, rand % 30). Owned 0x7fd5/4 joint at identical object-position endpoints, then unowned red 0x7f25/9 particle at that angle, object scale |
+| 0x5c | (sin(time * 0.0005) + 1) * 0.5 > 0.9: two unowned 0x806d/0 effect requests, word4 = low 16 bits of truncated object scale |
+
+Red is 1/0.4/0.4. Particles without an explicit owner above are unowned. The counter is +0xb4, not the
+animation frame at +0xd0. Nonfinite/out-of-range truncation follows cvttss2si. The keyed-effect adapter already
+carries word4, including zero; an absent hook is counted.
+
+### Kalima 24..29 and 36, bounded subset
+
+Parent `0x00def747..0x00deff29`, real world guard `0x009b0418`. Seven visual types are reconstructed.
+Three helper-dependent types remain refused without changing their object or consuming inner RNG.
+
+| Type | Inline behavior or refusal |
+|---|---|
+| 0x0c | Named Bone02, local zero: owned 0x7ef7 sprite, light 0.6/0.6/1, scale sin(time * 0.001) * 0.3 + 0.7 + 0.2 |
+| 0x0f / 0x1d / 0x20 | Counted context refusal. Original `0x00dfa988` reads hero action/position and changes motion; `0x00deeb4e` samples a separate water manager. Type 0x20 also requests Bone02. No synthetic no-op or guessed water height is substituted |
+| 0x23 | Owned 0x7ef7/6, light 0.3/0.6/1, scale 1; hidden -2 |
+| 0x24 / 0x25 | White 0x8017/0 or 0x801e/0, scale 1; object scale becomes 0.5 afterward. Only 0x24 sets hidden -2 |
+| 0x26 | rand % 2 == 0: white 0x801a/0, scale 1. Object scale becomes 0.5 regardless |
+| 0x27 | White 0x801c or 0x801d, selected by rand % 2, subtype 0, scale 1. Object scale becomes 0.5 |
+| 0x28 | rand % 4 == 0: white 0x801b/0, scale 1. Object scale becomes 0.5 regardless |
+
+Particle requests not marked owned are unowned. The comparison excludes 0x0f/0x1d/0x20 explicitly rather than
+claiming equality for their refusal. Sound calls `0x00a6ac96(0x1d6,0,0)` in types 0x25/0x26 are recorded at a
+visual-only boundary; this lane does not reconstruct sound side effects. AUDIO-004 owns sound integration.
+
+### Tower 39, bounded subset
+
+Parent `0x00e84941..0x00e855f1`, real world guard `0x00e84513`. The byte at `0x01ec91ac` is authored as
+0/1/2/255 in the comparator and fixed at 0 in production. Type 0 is a counted refusal. Its singleton +0x78
+state and nested sequence `0x00e8d888` remain unreconstructed here. That helper also reaches hero
+positions, sequence globals and many effect requests. No event model or guessed sequence is added.
+
+| Type | Verified inline behavior |
+|---|---|
+| 1 / 0x0b / 0x2e / 0x31 / 0x32 | Unless hidden -2: owned 0x7f89 smoke, respectively 10/10/20/10/10 requests and subtypes 1/3/7/1/4. Colours 0/0.03/0.04, grey 0.1, grey 0.25, 0/0.06/0.1, grey 0.1. Object scale. Set hidden -2 regardless |
+| 5 | Bone 1, local -1/0/0, p = (sin(time * 0.002) + 2) * 0.5. Owned 0x7ef7 and two 0x7f67 sprites, scale binary64 p / 2.4 rounded to binary32, light p*0.3/p*0.5/p. Second/third rotations trunc(time / 2) % 360 and trunc(time / 4) % 360 |
+| 0x20 | rand % 3 == 0: unowned 0x802a/1, light 0.4/0.6/0.7, scale 1 |
+| 0x2f / 0x4a | rand % 5 == 0: unowned 0x7f7d/11 joint, identical position endpoints, object angle, scale object scale * 15. For 0x4a, a nonzero authored hidden byte sets hidden -2 and bypasses RNG/request |
+| 0x30 | rand % 3 == 0: owned 0x7f89/10, current object light and object scale |
+| 0x34 / 0x35 | rand % 3 == 0: object light becomes 0.5/1/0.7 or grey 0.3, then unowned 0x8017/1 or 0x7f5a/46 at object scale |
+| 0x36 | rand % 3 == 0: hidden becomes -1, then unowned 0x7f7c/19 joint with identical position endpoints, object angle, scale object scale * 10 |
+
+### Worlds 46/98 registry boundary
+
+Static factory `0x00ea488e..0x00ea5629` yields 48 concrete classes and 57 world registrations. Neither 46 nor 98
+appears. This is rechecked from pinned instructions by a private test, not inferred from native support tables.
+Manager `0x00ea2dc1..0x00ea2f07` checks the current world's registry entry and its enabled flag, then invokes
+slot 0x34 at `0x00ea2eba`. The common inline chain has no dedicated 46/98 leaf. Dynamic registration/context
+coverage is unverified. Each loaded object in these worlds gets one visual refusal; model absence does not.
+
+### Alpha-reference seam
+
+Kanturu type 0x60's original ordered GREATER 0, mesh, GREATER 0.25 calls were already instruction-compared
+in INNER-001. The adapter now retains those state events alongside meshes. `slot_meshes` attaches the
+reference to the extra mesh only; the base body uses its existing state. The scene driver calls the production
+backend's reference callback around the draw and restores 0.25 even on a refused/faulted mesh.
+Software updates its existing reference field. GL flushes pending batches before `glAlphaFunc`, including
+captured/streamed batches. Defaults issue no new reference call. This adds no particle/joint consumer.
+
+The synthetic host renders five alpha values 0/32/63/64/255 with default, zero-reference, restored-default
+passes, across software, immediate GL and batched GL. Zero alpha stays rejected; low nonzero alpha draws only
+with reference zero; the two GL images agree exactly and all three backends restore 0.25.
+
+Full counts, compiled-mutant detections, render changes and reference scores belong in
+[the lane handoff](../handoffs/RENDER-WORLDS-INNER-004.md). No whole-world or original/native temporal equivalence
+is claimed for these authored contexts.
+
+The new requested joint pairs 0x7fd5/4, 0x7f7d/11 and 0x7f7c/19 also have no native consumer on this base.
+They remain counted refusals, alongside the existing INNER-003 missing pairs.
+
+INNER-004 original comparisons pass 8,000 cases across eight families, zero mismatches/stops. All 42 compiled
+producer mutants are detected, minimum two cases, and four compiled alpha-seam mutants are detected.
