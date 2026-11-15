@@ -261,18 +261,12 @@ typedef struct mu_actor_group_body_plan {
     uint32_t weapon_mask;
     int32_t blend_mesh, hidden_mesh;
     uint32_t blend_light_bits, subtype;
-    /* RENDER-ACTORS-008: the opener's OpenTexture directory in the worlds of
-     * world_mask (bit = world byte 0..255); NULL when it never changes. */
-    const char *world_textures;
-    uint32_t world_mask[8];
     /* Hands (bit 0 right, bit 1 left) whose RenderLinkItem 0x012bd910 sends the
      * item's own sprite requests; each recorded list equals the renderchar
      * link generator for that item type. */
     uint32_t link_effect_mask;
 } mu_actor_group_body_plan;
 int mu_actor_group_plan(int32_t server_class, mu_actor_group_body_plan *out);
-/* The plan's texture directory in one world; NULL without a plan. */
-const char *mu_actor_group_textures(int32_t server_class, int32_t world);
 
 /* RENDER-ACTORS-008: RenderCharacter's per-call sprite requests of a checked
  * group plan. Each row is CreateSprite 0x01692eb7(bitmap, position, scale,

@@ -87,7 +87,7 @@ int main(int argc, char **argv)
 
         for (int i = 0; i < a->actor.bmd.mesh_count; ++i) {
             char path[4096], directory[4096]; mu_image image = {0}; int8_t components = 0;
-            snprintf(directory, sizeof directory, "%s/%s", argv[1], mu_actor_group_textures(cl, world));
+            snprintf(directory, sizeof directory, "%s/%s", argv[1], plan.textures);
             const char *name = a->actor.bmd.meshes[i].texture;
             const char *dot = strrchr(name, '.'); char kind = dot ? (char)tolower((unsigned char)dot[1]) : 0;
             if (!mu_image_resolve(directory, name, path, sizeof path) ||

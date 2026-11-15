@@ -327,9 +327,7 @@ static int load_actor(mu_world_actors *s, mu_world_actor *a, const char *root, i
     mu_actor_group_body_plan group_plan;
     if (!player && !no_textures && mu_actor_group_plan(server_class, &group_plan)) {
         char directory[4096];
-        /* The opener's directory for this world (Npc in the worlds of world_mask). */
-        snprintf(directory, sizeof directory, "%s/%s", root,
-                 mu_actor_group_textures(server_class, s->map->world));
+        snprintf(directory, sizeof directory, "%s/%s", root, group_plan.textures);
         mu_textures_free(&a->actor.textures);
         mu_textures_load(&a->actor.textures, &a->actor.bmd, directory);
     }

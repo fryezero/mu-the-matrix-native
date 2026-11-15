@@ -1,15 +1,15 @@
 server_class,constructor,constructor_case,native_override,model,opener,construction,native,admission_group,remaining_reason
 0,generic,0x1382f2d,,0x7a5,monster:0,constructor equipment/parts,correct bounded body plan,,
-1,generic,0x138326a,,0x7a6,monster:1,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller services: effect
+1,generic,0x138326a,,0x7a6,monster:1,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
 2,generic,0x13833a7,,0x7a7,monster:2,plain body construction,correct bounded body plan,plain monster body,
 3,generic,0x1382e38,,0x7ae,monster:9,plain body construction,correct bounded body plan,plain monster body,
 4,generic,0x1382f2d,,0x7a5,monster:0,constructor equipment/parts,correct bounded body plan,,
-5,generic,0x138326a,,0x7a6,monster:1,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller services: effect
+5,generic,0x138326a,,0x7a6,monster:1,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
 6,generic,0x13834bc,,0x7a9,monster:4,constructor equipment/parts,correct bounded body plan,,
 7,generic,0x13835c2,,0x7aa,monster:5,constructor equipment/parts,correct bounded body plan,,
 8,generic,,,,unresolved,unresolved construction,refused,,
 9,generic,0x13834bc,,0x7a9,monster:4,constructor equipment/parts,correct bounded body plan,,
-10,generic,0x138341f,,0x7a8,monster:3,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller services: effect
+10,generic,0x138341f,,0x7a8,monster:3,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
 11,generic,0x13830d6,,0x7ac,monster:7,plain body construction,correct bounded body plan,plain monster body,
 12,generic,0x1383162,,0x7ab,monster:6,plain body construction,correct bounded body plan,plain monster body,
 13,generic,0x13831da,,0x7ad,monster:8,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
@@ -17,11 +17,11 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 15,generic,0x1383791,,0xa91,no opener,special appearance hook; constructor equipment/parts; no opener/startup model,correct bounded body plan,,
 16,generic,0x138383a,,0xa91,no opener,special appearance hook; constructor equipment/parts; no opener/startup model,correct bounded body plan,,
 17,generic,0x1382eb0,,0x7af,monster:10,constructor equipment/parts,correct bounded body plan,,
-18,generic,0x1382d88,,0x7b0,monster:11,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller services: effect
+18,generic,0x1382d88,,0x7b0,monster:11,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
 19,generic,0x1382d10,,0x7b1,monster:12,plain body construction,correct bounded body plan,plain monster body,
 20,generic,0x1382c98,,0x7b2,monster:13,plain body construction,correct bounded body plan,plain monster body,
 21,generic,0x1382c20,,0x7b3,monster:14,plain body construction,correct bounded body plan,plain monster body,
-22,generic,0x1382b9e,,0x7b4,monster:15,plain body construction,incomplete/unverified special passes,plain monster body,native file/texture/geometry/plan check failed
+22,generic,0x1382b9e,,0x7b4,monster:15,plain body construction,incomplete/unverified special passes,plain monster body,native draw takes the RGB path without the alpha callback
 23,generic,0x1382af6,,0x7b5,monster:16,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
 24,generic,0x1382a91,,0x7b6,monster:17,plain body construction,correct bounded body plan,plain monster body,
 25,generic,0x13829ca,,0x7b7,monster:18,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,"constructor render-state override: 0x5,0x74,0xa8"
@@ -30,7 +30,7 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 28,generic,0x1382825,,0x7ba,monster:21,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
 29,generic,0x1382795,,0x7bb,monster:22,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
 30,generic,0x138271d,,0x7bc,monster:23,plain body construction,correct bounded body plan,plain monster body,
-31,generic,0x1382675,,0x7bd,monster:24,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller services: effect
+31,generic,0x1382675,,0x7bd,monster:24,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
 32,generic,0x1382610,,0x7be,monster:25,plain body construction,correct bounded body plan,plain monster body,
 33,generic,0x138255b,,0x7b8,monster:19,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
 34,generic,0x13823b1,,0xa91,no opener,special appearance hook; constructor equipment/parts; no opener/startup model,correct bounded body plan,,
@@ -39,21 +39,21 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 37,generic,0x13821ec,,0x7bf,monster:26,plain body construction,correct bounded body plan,plain monster body,
 38,generic,0x1382149,,0x7c0,monster:27,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,opener StreamMesh override
 39,generic,0x13820c4,,0x7c1,monster:28,plain body construction,incomplete/unverified special passes,plain monster body,unresolved caller at 0x1377aef
-40,generic,0x138201c,,0x7c2,monster:29,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller services: effect
-41,generic,0x1381f8c,,0x7c3,monster:30,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller services: effect
+40,generic,0x138201c,,0x7c2,monster:29,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,RenderLinkItem consumes further random values: item 0xaf4
+41,generic,0x1381f8c,,0x7c3,monster:30,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,missing native consumer: sprite 0x7f69
 42,generic,0x1381ec0,,0x7c4,monster:31,plain body construction,incomplete/unverified special passes,plain monster body,caller body/link/pass arguments differ
 43,generic,0x1381e48,,0x7a7,monster:2,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: BODY
 44,generic,0x1381dd0,,0x7c4,monster:31,plain body construction,correct bounded body plan,plain monster body,
-45,generic,0x1381d16,,0x7c6,monster:33,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: effect
-46,generic,0x1381cd4,,0x7c7,monster:34,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: effect
-47,generic,0x1381c5d,,0x7c8,monster:35,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller services: effect
-48,generic,0x1381c03,,0x7c9,monster:36,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller services: effect
+45,generic,0x1381d16,,0x7c6,monster:33,plain body construction,correct bounded body plan,plain monster body,
+46,generic,0x1381cd4,,0x7c7,monster:34,plain body construction,correct bounded body plan,plain monster body,
+47,generic,0x1381c5d,,0x7c8,monster:35,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
+48,generic,0x1381c03,,0x7c9,monster:36,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,"caller requests vary with action, world, clock or random value"
 49,generic,0x1381ba6,,0x7ca,monster:37,plain body construction,correct bounded body plan,plain monster body,
 50,generic,0x1381b64,,0x7cb,monster:38,plain body construction,correct bounded body plan,plain monster body,
-51,generic,0x1381b15,,0x7c6,monster:33,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: effect
-52,generic,0x1381abb,,0x7c8,monster:35,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,"additional caller services: BODY,effect"
+51,generic,0x1381b15,,0x7c6,monster:33,plain body construction,correct bounded body plan,plain monster body,
+52,generic,0x1381abb,,0x7c8,monster:35,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller services: BODY
 53,generic,0x1383aef,,0x7cc,monster:39,special appearance hook,incomplete/unverified special passes,special appearance hook,constructor needs appearance/part/secondary proof; special appearance hook
-54,generic,0x1383c48,,0x7cd,monster:40,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,"additional caller services: BODY,effect"
+54,generic,0x1383c48,,0x7cd,monster:40,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller services: BODY
 55,generic,0x138366a,,0xa91,no opener,special appearance hook; constructor equipment/parts; no opener/startup model,correct bounded body plan,,
 56,generic,0x138366a,,0xa91,no opener,special appearance hook; constructor equipment/parts; no opener/startup model,correct bounded body plan,,
 57,generic,0x13819a0,,0x7ce,monster:41,special appearance hook; constructor equipment/parts,incomplete/unverified special passes,special appearance hook; constructor equipment/parts,constructor needs appearance/part/secondary proof; special appearance hook; constructor equipment/parts
@@ -63,40 +63,40 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 61,generic,0x13815e7,,0x7d1,monster:44,special appearance hook,incomplete/unverified special passes,special appearance hook,constructor needs appearance/part/secondary proof; special appearance hook
 62,generic,0x13814e4,,0x7d2,monster:45,special appearance hook,incomplete/unverified special passes,special appearance hook,constructor needs appearance/part/secondary proof; special appearance hook
 63,generic,0x13815e7,,0x7d1,monster:44,special appearance hook,incomplete/unverified special passes,special appearance hook,constructor needs appearance/part/secondary proof; special appearance hook
-64,generic,0x13811d9,,0x7d3,monster:46,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional or different RenderLinkItem services
+64,generic,0x13811d9,,0x7d3,monster:46,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,weapon RenderObjDraw stream unavailable or extra services: item 0x12e9 level 3
 65,generic,0x13812dd,,0x7d4,monster:47,plain body construction,correct bounded body plan,plain monster body,
 66,generic,0x138138b,,0x7d5,monster:48,plain body construction,correct bounded body plan,plain monster body,
 67,generic,0x1382149,,0x7c0,monster:27,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,opener StreamMesh override
 68,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
-69,generic,0x1380d4b,,0x7d7,monster:50,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: effect
-70,generic,0x1380d97,,0x7d8,monster:51,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: effect
+69,generic,0x1380d4b,,0x7d7,monster:50,plain body construction,incomplete/unverified special passes,plain monster body,"caller requests vary with action, world, clock or random value"
+70,generic,0x1380d97,,0x7d8,monster:51,plain body construction,incomplete/unverified special passes,plain monster body,native draw takes the RGB path without the alpha callback
 71,generic,0x1380e03,,0x7d9,monster:52,extra bitmap load; constructor equipment/parts,incomplete/unverified special passes,extra bitmap load; constructor equipment/parts,extra bitmap consumer remains unchecked
-72,generic,0x1380f2c,,0x7da,monster:53,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,caller body/link/pass arguments differ
-73,generic,0x1380f99,,0x7db,monster:54,plain body construction,incomplete/unverified special passes,plain monster body,"additional caller services: BODY,effect"
+72,generic,0x1380f2c,,0x7da,monster:53,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,"caller requests vary with action, world, clock or random value"
+73,generic,0x1380f99,,0x7db,monster:54,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: BODY
 74,generic,0x1380e03,,0x7d9,monster:52,extra bitmap load; constructor equipment/parts,incomplete/unverified special passes,extra bitmap load; constructor equipment/parts,extra bitmap consumer remains unchecked
-75,generic,0x1380f99,,0x7db,monster:54,plain body construction,incomplete/unverified special passes,plain monster body,"additional caller services: BODY,effect"
+75,generic,0x1380f99,,0x7db,monster:54,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: BODY
 76,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 77,generic,0x1381151,,0x7dc,monster:55+monster:56,plain body construction,incomplete/unverified special passes,plain monster body,constructor needs appearance/part/secondary proof; multiple constructor opener requests
 78,generic,0x1380905,,0x7b8,monster:19,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller services: BODY
 79,generic,0x13809a8,,0x7c4,monster:31,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: BODY
-80,generic,0x1380a20,,0x7c9,monster:36,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,"additional caller services: BODY,effect"
-81,generic,0x1380a8d,,0x7c7,monster:34,plain body construction,incomplete/unverified special passes,plain monster body,"additional caller services: BODY,effect"
+80,generic,0x1380a20,,0x7c9,monster:36,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller services: BODY
+81,generic,0x1380a8d,,0x7c7,monster:34,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: BODY
 82,generic,0x1380acf,,0x7cf,monster:42,special appearance hook; extra bitmap load; constructor equipment/parts,incomplete/unverified special passes,special appearance hook; extra bitmap load; constructor equipment/parts,constructor needs appearance/part/secondary proof; special appearance hook; extra bitmap load; constructor equipment/parts
 83,generic,0x1380c1d,,0x7ce,monster:41,special appearance hook; constructor equipment/parts,incomplete/unverified special passes,special appearance hook; constructor equipment/parts,constructor needs appearance/part/secondary proof; special appearance hook; constructor equipment/parts
 84,generic,0x1380630,,0x7d4,monster:47,plain body construction,correct bounded body plan,plain monster body,
-85,generic,0x138067d,,0x7d3,monster:46,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional or different RenderLinkItem services
+85,generic,0x138067d,,0x7d3,monster:46,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,weapon RenderObjDraw stream unavailable or extra services: item 0x12e9 level 1
 86,generic,0x13806f5,,0x7e0,monster:59,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
 87,generic,0x13807c3,,0x7df,monster:58,plain body construction,correct bounded body plan,plain monster body,
-88,generic,0x138083b,,0x7de,monster:57,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller services: effect
+88,generic,0x138083b,,0x7de,monster:57,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,"caller requests vary with action, world, clock or random value"
 89,generic,0x138035d,,0x7e3,monster:62,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,unresolved caller at 0xfdab58
 90,generic,0x1380630,,0x7d4,monster:47,plain body construction,correct bounded body plan,plain monster body,
-91,generic,0x138067d,,0x7d3,monster:46,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional or different RenderLinkItem services
+91,generic,0x138067d,,0x7d3,monster:46,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,weapon RenderObjDraw stream unavailable or extra services: item 0x12e9 level 1
 92,generic,0x13806f5,,0x7e0,monster:59,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
 93,generic,0x13807c3,,0x7df,monster:58,plain body construction,correct bounded body plan,plain monster body,
-94,generic,0x138083b,,0x7de,monster:57,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller services: effect
+94,generic,0x138083b,,0x7de,monster:57,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,"caller requests vary with action, world, clock or random value"
 95,generic,0x138035d,,0x7e3,monster:62,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,unresolved caller at 0xfdab58
 96,generic,0x1380630,,0x7d4,monster:47,plain body construction,correct bounded body plan,plain monster body,
-97,generic,0x138067d,,0x7d3,monster:46,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional or different RenderLinkItem services
+97,generic,0x138067d,,0x7d3,monster:46,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,weapon RenderObjDraw stream unavailable or extra services: item 0x12e9 level 1
 98,generic,0x13806f5,,0x7e0,monster:59,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
 99,generic,0x13807c3,,0x7df,monster:58,plain body construction,correct bounded body plan,plain monster body,
 100,generic,0x1383cf3,,0x27,no opener,no opener/startup model,refused,,
@@ -104,31 +104,31 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 102,generic,0x1383d3b,,0x33,no opener,no opener/startup model,refused,,
 103,generic,0x1383d5f,,0x19,no opener,no opener/startup model,refused,,
 104,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
-105,generic,0x1389dea,,0xa3f,npc:2623,plain body construction,incomplete/unverified special passes,plain NPC body,additional caller services: effect
+105,generic,0x1389dea,,0xa3f,npc:2623,plain body construction,incomplete/unverified special passes,plain NPC body,"caller requests vary with action, world, clock or random value"
 106,generic,0x1383d83,,0x33,no opener,no opener/startup model,refused,,
 107,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 108,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 109,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 110,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
-111,generic,0x138083b,,0x7de,monster:57,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller services: effect
+111,generic,0x138083b,,0x7de,monster:57,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,"caller requests vary with action, world, clock or random value"
 112,generic,0x138035d,,0x7e3,monster:62,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,unresolved caller at 0xfdab58
 113,generic,0x1380630,,0x7d4,monster:47,plain body construction,correct bounded body plan,plain monster body,
-114,generic,0x138067d,,0x7d3,monster:46,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional or different RenderLinkItem services
+114,generic,0x138067d,,0x7d3,monster:46,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,weapon RenderObjDraw stream unavailable or extra services: item 0x12e9 level 1
 115,generic,0x13806f5,,0x7e0,monster:59,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
 116,generic,0x13807c3,,0x7df,monster:58,plain body construction,correct bounded body plan,plain monster body,
-117,generic,0x138083b,,0x7de,monster:57,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller services: effect
+117,generic,0x138083b,,0x7de,monster:57,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,"caller requests vary with action, world, clock or random value"
 118,generic,0x138035d,,0x7e3,monster:62,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,unresolved caller at 0xfdab58
 119,generic,0x1380630,,0x7d4,monster:47,plain body construction,correct bounded body plan,plain monster body,
-120,generic,0x138067d,,0x7d3,monster:46,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional or different RenderLinkItem services
+120,generic,0x138067d,,0x7d3,monster:46,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,weapon RenderObjDraw stream unavailable or extra services: item 0x12e9 level 1
 121,generic,0x13806f5,,0x7e0,monster:59,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
 122,generic,0x13807c3,,0x7df,monster:58,plain body construction,correct bounded body plan,plain monster body,
-123,generic,0x138083b,,0x7de,monster:57,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller services: effect
+123,generic,0x138083b,,0x7de,monster:57,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,"caller requests vary with action, world, clock or random value"
 124,generic,0x138035d,,0x7e3,monster:62,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,unresolved caller at 0xfdab58
 125,generic,0x1380630,,0x7d4,monster:47,plain body construction,correct bounded body plan,plain monster body,
-126,generic,0x138067d,,0x7d3,monster:46,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional or different RenderLinkItem services
+126,generic,0x138067d,,0x7d3,monster:46,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,weapon RenderObjDraw stream unavailable or extra services: item 0x12e9 level 1
 127,generic,0x13806f5,,0x7e0,monster:59,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
 128,generic,0x13807c3,,0x7df,monster:58,plain body construction,correct bounded body plan,plain monster body,
-129,generic,0x138083b,,0x7de,monster:57,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller services: effect
+129,generic,0x138083b,,0x7de,monster:57,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,"caller requests vary with action, world, clock or random value"
 130,generic,0x138035d,,0x7e3,monster:62,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,unresolved caller at 0xfdab58
 131,generic,0x1380400,,0x7e2,monster:61,plain body construction,correct bounded body plan,plain monster body,
 132,generic,0x138048c,,0x7e1,monster:60,plain body construction,incomplete/unverified special passes,plain monster body,caller body/link/pass arguments differ
@@ -138,19 +138,19 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 136,generic,0x1381334,,0x7d4,monster:47,plain body construction,incomplete/unverified special passes,plain monster body,caller body/link/pass arguments differ
 137,generic,0x138125b,,0x7d3,monster:46,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,caller body/link/pass arguments differ
 138,generic,0x1380630,,0x7d4,monster:47,plain body construction,correct bounded body plan,plain monster body,
-139,generic,0x138067d,,0x7d3,monster:46,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional or different RenderLinkItem services
+139,generic,0x138067d,,0x7d3,monster:46,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,weapon RenderObjDraw stream unavailable or extra services: item 0x12e9 level 1
 140,generic,0x13806f5,,0x7e0,monster:59,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
 141,generic,0x13807c3,,0x7df,monster:58,plain body construction,correct bounded body plan,plain monster body,
-142,generic,0x138083b,,0x7de,monster:57,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller services: effect
+142,generic,0x138083b,,0x7de,monster:57,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,"caller requests vary with action, world, clock or random value"
 143,generic,0x138035d,,0x7e3,monster:62,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,unresolved caller at 0xfdab58
 144,0xdf1b30,,,0x7e4,monster:63,plain body construction,correct bounded body plan,plain monster body,
-145,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional or different RenderLinkItem services
+145,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
 146,0xdf1b30,,,0x7e6,monster:65,plain body construction,correct bounded body plan,plain monster body,
 147,0xdf1b30,,,0x7e7,monster:66,plain body construction,correct bounded body plan,plain monster body,
-148,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional or different RenderLinkItem services
+148,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
 149,0xdf1b30,,,0x7e9,monster:68,plain body construction,correct bounded body plan,plain monster body,
 150,generic,0x1381d58,,0x7c5,monster:32,plain body construction,correct bounded body plan,plain monster body,
-151,generic,0x1383c48,,0x7cd,monster:40,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller services: effect
+151,generic,0x1383c48,,0x7cd,monster:40,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
 152,generic,0x13800ba,,0x416,no opener,no opener/startup model,refused,,
 153,generic,0x13800ba,,0x416,no opener,no opener/startup model,refused,,
 154,generic,0x13800ba,,0x416,no opener,no opener/startup model,refused,,
@@ -159,44 +159,44 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 157,generic,0x13800ba,,0x416,no opener,no opener/startup model,refused,,
 158,generic,0x13800ba,,0x416,no opener,no opener/startup model,refused,,
 159,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
-160,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller services: effect
-161,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller services: effect
-162,generic,0x138019c,,0x7eb,monster:70,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,monster opener has extra load or different texture context
-163,generic,0x138023f,,0x7ec,monster:71,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,monster opener has extra load or different texture context
-164,generic,0x138019c,,0x7eb,monster:70,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,monster opener has extra load or different texture context
-165,generic,0x138023f,,0x7ec,monster:71,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,monster opener has extra load or different texture context
-166,generic,0x138019c,,0x7eb,monster:70,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,monster opener has extra load or different texture context
-167,generic,0x138023f,,0x7ec,monster:71,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,monster opener has extra load or different texture context
-168,generic,0x138019c,,0x7eb,monster:70,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,monster opener has extra load or different texture context
-169,generic,0x138023f,,0x7ec,monster:71,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,monster opener has extra load or different texture context
-170,generic,0x138019c,,0x7eb,monster:70,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,monster opener has extra load or different texture context
-171,generic,0x138023f,,0x7ec,monster:71,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,monster opener has extra load or different texture context
-172,generic,0x138019c,,0x7eb,monster:70,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,monster opener has extra load or different texture context
-173,generic,0x138023f,,0x7ec,monster:71,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,monster opener has extra load or different texture context
+160,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
+161,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
+162,generic,0x138019c,,0x7eb,monster:70,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller RenderPartObject in world 18: model 0xa2a slot 0
+163,generic,0x138023f,,0x7ec,monster:71,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller RenderPartObject in world 18: model 0xa2a slot 0
+164,generic,0x138019c,,0x7eb,monster:70,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller RenderPartObject in world 18: model 0xa2a slot 0
+165,generic,0x138023f,,0x7ec,monster:71,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller RenderPartObject in world 18: model 0xa2a slot 0
+166,generic,0x138019c,,0x7eb,monster:70,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller RenderPartObject in world 18: model 0xa2a slot 0
+167,generic,0x138023f,,0x7ec,monster:71,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller RenderPartObject in world 18: model 0xa2a slot 0
+168,generic,0x138019c,,0x7eb,monster:70,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller RenderPartObject in world 18: model 0xa2a slot 0
+169,generic,0x138023f,,0x7ec,monster:71,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller RenderPartObject in world 18: model 0xa2a slot 0
+170,generic,0x138019c,,0x7eb,monster:70,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller RenderPartObject in world 18: model 0xa2a slot 0
+171,generic,0x138023f,,0x7ec,monster:71,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller RenderPartObject in world 18: model 0xa2a slot 0
+172,generic,0x138019c,,0x7eb,monster:70,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller RenderPartObject in world 18: model 0xa2a slot 0
+173,generic,0x138023f,,0x7ec,monster:71,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller RenderPartObject in world 18: model 0xa2a slot 0
 174,0xdf1b30,,,0x7e4,monster:63,plain body construction,correct bounded body plan,plain monster body,
-175,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional or different RenderLinkItem services
+175,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
 176,0xdf1b30,,,0x7e6,monster:65,plain body construction,correct bounded body plan,plain monster body,
 177,0xdf1b30,,,0x7e7,monster:66,plain body construction,correct bounded body plan,plain monster body,
-178,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional or different RenderLinkItem services
+178,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
 179,0xdf1b30,,,0x7e9,monster:68,plain body construction,correct bounded body plan,plain monster body,
-180,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller services: effect
-181,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller services: effect
+180,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
+181,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
 182,0xdf1b30,,,0x7e4,monster:63,plain body construction,correct bounded body plan,plain monster body,
-183,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional or different RenderLinkItem services
+183,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
 184,0xdf1b30,,,0x7e6,monster:65,plain body construction,correct bounded body plan,plain monster body,
 185,0xdf1b30,,,0x7e7,monster:66,plain body construction,correct bounded body plan,plain monster body,
-186,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional or different RenderLinkItem services
+186,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
 187,0xdf1b30,,,0x7e9,monster:68,plain body construction,correct bounded body plan,plain monster body,
-188,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller services: effect
-189,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller services: effect
+188,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
+189,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
 190,0xdf1b30,,,0x7e4,monster:63,plain body construction,correct bounded body plan,plain monster body,
-191,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional or different RenderLinkItem services
+191,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
 192,0xdf1b30,,,0x7e6,monster:65,plain body construction,correct bounded body plan,plain monster body,
 193,0xdf1b30,,,0x7e7,monster:66,plain body construction,correct bounded body plan,plain monster body,
-194,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional or different RenderLinkItem services
+194,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
 195,0xdf1b30,,,0x7e9,monster:68,plain body construction,correct bounded body plan,plain monster body,
-196,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller services: effect
-197,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller services: effect
+196,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
+197,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
 198,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 199,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 200,generic,0x1383da7,,0x451,no opener,no opener/startup model,refused,,
@@ -236,8 +236,8 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 234,generic,0x13841c4,,0x7b8,monster:19,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,constructor render-state override: 0x3b
 235,generic,0x138424d,,0xa25,npc:2597,plain body construction,incomplete/unverified special passes,plain NPC body,constructor render-state override: 0x3b
 236,generic,0x13842a4,,0xa91,npc:2705,special appearance hook,correct bounded body plan,,
-237,generic,0x1384312,,0xa0c,npc:2572,plain body construction,incomplete/unverified special passes,plain NPC body,additional caller services: effect
-238,generic,0x13843be,,0xa0b,npc:2571,plain body construction,incomplete/unverified special passes,plain NPC body,additional caller services: effect
+237,generic,0x1384312,,0xa0c,npc:2572,plain body construction,incomplete/unverified special passes,plain NPC body,"caller requests vary with action, world, clock or random value"
+238,generic,0x13843be,,0xa0b,npc:2571,plain body construction,correct bounded body plan,plain NPC body,
 239,generic,0x1384405,,0xa0a,npc:2570,plain body construction,correct bounded body plan,plain NPC body,
 240,generic,0x1384437,,0xa09,npc:2569,plain body construction,correct bounded body plan,plain NPC body,
 241,generic,0x1384469,,0xa08,npc:2568,plain body construction,correct bounded body plan,plain NPC body,
@@ -260,21 +260,21 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 258,generic,0x138549e,,0xa91,no opener,special appearance hook; constructor equipment/parts; no opener/startup model,correct bounded body plan,,
 259,generic,0x138559e,,0xa2b,npc:2603,plain body construction,correct bounded body plan,plain NPC body,
 260,0xdf1b30,,,0x7e4,monster:63,plain body construction,correct bounded body plan,plain monster body,
-261,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional or different RenderLinkItem services
+261,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
 262,0xdf1b30,,,0x7e6,monster:65,plain body construction,correct bounded body plan,plain monster body,
 263,0xdf1b30,,,0x7e7,monster:66,plain body construction,correct bounded body plan,plain monster body,
-264,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional or different RenderLinkItem services
+264,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
 265,0xdf1b30,,,0x7e9,monster:68,plain body construction,correct bounded body plan,plain monster body,
-266,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller services: effect
-267,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller services: effect
+266,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
+267,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
 268,0xdf1b30,,,0x7e4,monster:63,plain body construction,correct bounded body plan,plain monster body,
-269,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional or different RenderLinkItem services
+269,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
 270,0xdf1b30,,,0x7e6,monster:65,plain body construction,correct bounded body plan,plain monster body,
 271,0xdf1b30,,,0x7e7,monster:66,plain body construction,correct bounded body plan,plain monster body,
-272,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional or different RenderLinkItem services
+272,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
 273,0xdf1b30,,,0x7e9,monster:68,plain body construction,correct bounded body plan,plain monster body,
-274,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller services: effect
-275,0xdf1b30,,,0x7e5,monster:64,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional or different RenderLinkItem services
+274,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
+275,0xdf1b30,,,0x7e5,monster:64,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,RenderLinkItem requests without a checked link consumer: item 0x14f1: 9 sprite 0x7ef7/sprite 0x7f67
 276,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 277,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 278,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
@@ -331,13 +331,13 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 329,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 330,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 331,0xdf1b30,,,0x7e7,monster:66,plain body construction,correct bounded body plan,plain monster body,
-332,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional or different RenderLinkItem services
+332,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
 333,0xdf1b30,,,0x7e6,monster:65,plain body construction,correct bounded body plan,plain monster body,
 334,0xdf1b30,,,0x7e4,monster:63,plain body construction,correct bounded body plan,plain monster body,
 335,0xdf1b30,,,0x7e9,monster:68,plain body construction,correct bounded body plan,plain monster body,
-336,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional or different RenderLinkItem services
-337,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller services: effect
-338,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller services: effect
+336,0xdf1b30,,,0x7e8,monster:67,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
+337,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
+338,0xdf1b30,,,0x7ea,monster:69,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
 339,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 340,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 341,generic,0x138530e,,0x803,monster:94,plain body construction,correct bounded body plan,plain monster body,
@@ -355,7 +355,7 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 353,0xe76c0a,,,0x812,monster:109,plain body construction,correct bounded body plan,plain monster body,
 354,0xe76c0a,,,,unresolved,unresolved construction,refused,,
 355,0xe76c0a,,,,unresolved,unresolved construction,refused,,
-356,0xe76c0a,,,0x815,monster:112,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: effect
+356,0xe76c0a,,,0x815,monster:112,plain body construction,incomplete/unverified special passes,plain monster body,"caller requests vary with action, world, clock or random value"
 357,0xe76c0a,,,,unresolved,unresolved construction,refused,,
 358,0xe7ff85,,,,unresolved,unresolved construction,refused,,
 359,0xe7ff85,,,,unresolved,unresolved construction,refused,,
@@ -415,44 +415,44 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 413,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 414,generic,0x138549e,,0xa91,no opener,special appearance hook; constructor equipment/parts; no opener/startup model,correct bounded body plan,,
 415,0xe326cd,,,0xa4d,npc:2637,plain body construction,correct bounded body plan,plain NPC body,
-416,0xe326cd,,,0xa4e,npc:2638,plain body construction,incomplete/unverified special passes,plain NPC body,additional caller services: effect
+416,0xe326cd,,,0xa4e,npc:2638,plain body construction,incomplete/unverified special passes,plain NPC body,"caller requests vary with action, world, clock or random value"
 417,0xe326cd,,,0xa4f,npc:2639,plain body construction,correct bounded body plan,plain NPC body,
 418,0xe326cd,,,0x825,monster:128,plain body construction,correct bounded body plan,plain monster body,
 419,0xe326cd,,,0x826,monster:129,plain body construction,correct bounded body plan,plain monster body,
 420,0xe326cd,,,0x827,monster:130,plain body construction,correct bounded body plan,plain monster body,
 421,0xe326cd,,,0x828,monster:131,plain body construction,correct bounded body plan,plain monster body,
-422,0xe326cd,,,0x829,monster:132,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: effect
-423,0xe326cd,,,0x82a,monster:133,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: effect
+422,0xe326cd,,,0x829,monster:132,plain body construction,incomplete/unverified special passes,plain monster body,"caller requests vary with action, world, clock or random value"
+423,0xe326cd,,,0x82a,monster:133,plain body construction,incomplete/unverified special passes,plain monster body,"caller requests vary with action, world, clock or random value"
 424,0xe326cd,,,0x82b,monster:134,plain body construction,correct bounded body plan,plain monster body,
 425,0xe326cd,,,0x82c,monster:135,plain body construction,correct bounded body plan,plain monster body,
-426,generic,0x138019c,,0x7eb,monster:70,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,monster opener has extra load or different texture context
-427,generic,0x138023f,,0x7ec,monster:71,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,monster opener has extra load or different texture context
+426,generic,0x138019c,,0x7eb,monster:70,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller RenderPartObject in world 18: model 0xa2a slot 0
+427,generic,0x138023f,,0x7ec,monster:71,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller RenderPartObject in world 18: model 0xa2a slot 0
 428,generic,0x1380630,,0x7d4,monster:47,plain body construction,correct bounded body plan,plain monster body,
-429,generic,0x138067d,,0x7d3,monster:46,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional or different RenderLinkItem services
+429,generic,0x138067d,,0x7d3,monster:46,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,weapon RenderObjDraw stream unavailable or extra services: item 0x12e9 level 1
 430,generic,0x13806f5,,0x7e0,monster:59,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
 431,generic,0x13807c3,,0x7df,monster:58,plain body construction,correct bounded body plan,plain monster body,
-432,generic,0x138083b,,0x7de,monster:57,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller services: effect
-433,generic,0x138035d,,0x7e3,monster:62,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional or different RenderLinkItem services
+432,generic,0x138083b,,0x7de,monster:57,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,"caller requests vary with action, world, clock or random value"
+433,generic,0x138035d,,0x7e3,monster:62,constructor equipment/parts,correct bounded body plan,constructor equipment/parts,
 434,generic,0x1385bb6,,0x87a,monster:213,plain body construction,correct bounded body plan,plain monster body,
 435,generic,0x1385c31,,0x87b,monster:214,plain body construction,correct bounded body plan,plain monster body,
 436,generic,,,,unresolved,unresolved construction,refused,,
 437,generic,,,,unresolved,unresolved construction,refused,,
 438,generic,,,,unresolved,unresolved construction,refused,,
-439,generic,0x138601b,,0x86e,monster:201,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: effect
-440,generic,0x13860c2,,0x870,monster:203,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: effect
-441,0xe60ac8,,,0x82d,monster:136,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: effect
-442,0xe60ac8,,,0x82e,monster:137,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: effect
-443,0xe60ac8,,,0x82f,monster:138,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: effect
-444,0xe60ac8,,,0x830,monster:139,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: effect
-445,0xe60ac8,,,0x831,monster:140,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: effect
-446,0xe60ac8,,,0x832,monster:141,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: effect
-447,0xe60ac8,,,0x833,monster:142,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: effect
-448,0xe60ac8,,,0x834,monster:143,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: effect
-449,0xe60ac8,,,0x835,monster:144,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: effect
+439,generic,0x138601b,,0x86e,monster:201,plain body construction,correct bounded body plan,plain monster body,
+440,generic,0x13860c2,,0x870,monster:203,plain body construction,incomplete/unverified special passes,plain monster body,"caller requests vary with action, world, clock or random value"
+441,0xe60ac8,,,0x82d,monster:136,plain body construction,correct bounded body plan,plain monster body,
+442,0xe60ac8,,,0x82e,monster:137,plain body construction,correct bounded body plan,plain monster body,
+443,0xe60ac8,,,0x82f,monster:138,plain body construction,correct bounded body plan,plain monster body,
+444,0xe60ac8,,,0x830,monster:139,plain body construction,incomplete/unverified special passes,plain monster body,"caller requests vary with action, world, clock or random value"
+445,0xe60ac8,,,0x831,monster:140,plain body construction,incomplete/unverified special passes,plain monster body,"caller requests vary with action, world, clock or random value"
+446,0xe60ac8,,,0x832,monster:141,plain body construction,incomplete/unverified special passes,plain monster body,"caller requests vary with action, world, clock or random value"
+447,0xe60ac8,,,0x833,monster:142,plain body construction,incomplete/unverified special passes,plain monster body,"caller requests vary with action, world, clock or random value"
+448,0xe60ac8,,,0x834,monster:143,plain body construction,incomplete/unverified special passes,plain monster body,"caller requests vary with action, world, clock or random value"
+449,0xe60ac8,,,0x835,monster:144,plain body construction,incomplete/unverified special passes,plain monster body,"caller requests vary with action, world, clock or random value"
 450,generic,,,,unresolved,unresolved construction,refused,,
 451,generic,0x13866bc,,0xa51,npc:2641,plain body construction,incomplete/unverified special passes,plain NPC body,NPC opener file/texture/action/model state differs
-452,generic,0x13869f5,,0xa54,npc:2644,plain body construction,incomplete/unverified special passes,plain NPC body,additional caller services: effect
-453,generic,0x1386a83,,0xa55,npc:2645,plain body construction,incomplete/unverified special passes,plain NPC body,additional caller services: effect
+452,generic,0x13869f5,,0xa54,npc:2644,plain body construction,incomplete/unverified special passes,plain NPC body,caller requests outside the object-bone sprite program: computed-position sprite
+453,generic,0x1386a83,,0xa55,npc:2645,plain body construction,incomplete/unverified special passes,plain NPC body,caller requests outside the object-bone sprite program: computed-position sprite
 454,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 455,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 456,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
@@ -492,15 +492,15 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 490,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 491,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 492,generic,0x1387364,,0xa64,npc:2660,plain body construction,correct bounded body plan,plain NPC body,
-493,generic,0x13874dc,,0x7a8,monster:3,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,"additional caller services: BODY,effect"
+493,generic,0x13874dc,,0x7a8,monster:3,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller services: BODY
 494,generic,0x138757e,,0x7bf,monster:26,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: BODY
 495,generic,,,,unresolved,unresolved construction,refused,,
 496,generic,0x1387715,,0x7d9,monster:52,extra bitmap load; constructor equipment/parts,incomplete/unverified special passes,extra bitmap load; constructor equipment/parts,extra bitmap consumer remains unchecked
 497,generic,0x13877cd,,0x812,monster:109,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: BODY
 498,generic,,,,unresolved,unresolved construction,refused,,
 499,generic,0x138799c,,0x83a,monster:149,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: BODY
-500,generic,0x1387a43,,0x833,monster:142,plain body construction,incomplete/unverified special passes,plain monster body,"additional caller services: BODY,effect"
-501,generic,0x1387aea,,0x7c4,monster:31,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: effect
+500,generic,0x1387a43,,0x833,monster:142,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: BODY
+501,generic,0x1387aea,,0x7c4,monster:31,plain body construction,correct bounded body plan,plain monster body,
 502,generic,0x1387435,,0x825,monster:128,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: BODY
 503,generic,0x1386cb9,,0xa91,no opener,special appearance hook; no opener/startup model,correct bounded body plan,,
 504,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
@@ -545,7 +545,7 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 543,generic,0x1387d38,,0xa68,npc:2664,plain body construction,correct bounded body plan,plain NPC body,
 544,generic,0x1387db3,,0xa69,npc:2665,plain body construction,correct bounded body plan,plain NPC body,
 545,generic,0x1387e2e,,0xa6a,npc:2666,plain body construction,correct bounded body plan,plain NPC body,
-546,generic,0x1387ebc,,0xa6b,npc:2667,plain body construction,incomplete/unverified special passes,plain NPC body,native file/texture/geometry/plan check failed
+546,generic,0x1387ebc,,0xa6b,npc:2667,plain body construction,incomplete/unverified special passes,plain NPC body,native mesh textures missing: 7
 547,generic,0x1387f4a,,0xa6c,npc:2668,plain body construction,correct bounded body plan,plain NPC body,
 548,generic,0x1386d23,,0xa91,no opener,special appearance hook; no opener/startup model,correct bounded body plan,,
 549,0xd640ce,,,0x866,monster:193,plain body construction,correct bounded body plan,plain monster body,
@@ -554,13 +554,13 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 552,0xd640ce,,,0x869,monster:196,plain body construction,correct bounded body plan,plain monster body,
 553,0xe76c0a,,,,unresolved,unresolved construction,refused,,
 554,0xe76c0a,,,,unresolved,unresolved construction,refused,,
-555,0xe76c0a,,,0x86c,monster:199,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: effect
+555,0xe76c0a,,,0x86c,monster:199,plain body construction,incomplete/unverified special passes,plain monster body,"caller requests vary with action, world, clock or random value"
 556,0xe76c0a,,,,unresolved,unresolved construction,refused,,
-557,0xe60ac8,,,0x86e,monster:201,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: effect
-558,0xe60ac8,,,0x86f,monster:202,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: effect
-559,0xe60ac8,,,0x870,monster:203,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: effect
-560,0xe60ac8,,,0x86e,monster:201,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: effect
-561,0xe60ac8,,,0x865,monster:192,plain body construction,incomplete/unverified special passes,plain monster body,unresolved caller at 0x95d4f1
+557,0xe60ac8,,,0x86e,monster:201,plain body construction,correct bounded body plan,plain monster body,
+558,0xe60ac8,,,0x86f,monster:202,plain body construction,incomplete/unverified special passes,plain monster body,"caller requests vary with action, world, clock or random value"
+559,0xe60ac8,,,0x870,monster:203,plain body construction,incomplete/unverified special passes,plain monster body,"caller requests vary with action, world, clock or random value"
+560,0xe60ac8,,,0x86e,monster:201,plain body construction,correct bounded body plan,plain monster body,
+561,0xe60ac8,,,0x865,monster:192,plain body construction,incomplete/unverified special passes,plain monster body,"caller requests vary with action, world, clock or random value"
 562,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 563,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 564,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
@@ -643,8 +643,8 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 641,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 642,generic,0x1387029,,0xa91,no opener,companion; special appearance hook; no opener/startup model,refused,,
 643,generic,0x1389003,,0xa79,npc:2681,plain body construction,correct bounded body plan,plain NPC body,
-644,generic,0x138019c,,0x7eb,monster:70,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,monster opener has extra load or different texture context
-645,generic,0x138023f,,0x7ec,monster:71,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,monster opener has extra load or different texture context
+644,generic,0x138019c,,0x7eb,monster:70,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller RenderPartObject in world 18: model 0xa2a slot 0
+645,generic,0x138023f,,0x7ec,monster:71,constructor equipment/parts,incomplete/unverified special passes,constructor equipment/parts,additional caller RenderPartObject in world 18: model 0xa2a slot 0
 646,generic,0x1386e5b,,0xa91,no opener,special appearance hook; no opener/startup model,correct bounded body plan,,
 647,0xa93a2e,,,0x8a1,monster:252,plain body construction,correct bounded body plan,plain monster body,
 648,0xa93a2e,,,0x8a2,monster:253,plain body construction,correct bounded body plan,plain monster body,
@@ -688,7 +688,7 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 686,generic,0x1389c79,,0xa81,npc:2689,plain body construction,correct bounded body plan,plain NPC body,
 687,generic,0x1389cf4,,0xa82,npc:2690,plain body construction,correct bounded body plan,plain NPC body,
 688,generic,0x1389d6f,,0xa83,npc:2691,plain body construction,correct bounded body plan,plain NPC body,
-689,generic,0x1389e65,,0xa3f,npc:2623,plain body construction,incomplete/unverified special passes,plain NPC body,unresolved caller at 0x95d4f1
+689,generic,0x1389e65,,0xa3f,npc:2623,plain body construction,incomplete/unverified special passes,plain NPC body,caller requests outside the object-bone sprite program: effect
 690,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 691,0xa93a2e,,,0x8ae,monster:265,plain body construction,correct bounded body plan,plain monster body,
 692,0xa93a2e,,,0x8af,monster:266,plain body construction,correct bounded body plan,plain monster body,
@@ -719,11 +719,11 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 717,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 718,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 719,generic,0x138a23a,,0xa27,npc:2599,plain body construction,correct bounded body plan,plain NPC body,
-720,generic,0x138a28a,,0xa0c,npc:2572,plain body construction,incomplete/unverified special passes,plain NPC body,additional caller services: effect
+720,generic,0x138a28a,,0xa0c,npc:2572,plain body construction,incomplete/unverified special passes,plain NPC body,"caller requests vary with action, world, clock or random value"
 721,generic,0x138a2cf,,0x84a,monster:165,plain body construction,correct bounded body plan,plain monster body,
 722,generic,0x138a34a,,0xa47,npc:2631,plain body construction,correct bounded body plan,plain NPC body,
 723,generic,0x138a3d8,,0xa65,npc:2661,plain body construction,correct bounded body plan,plain NPC body,
-724,generic,0x138a466,,0xa0b,npc:2571,plain body construction,incomplete/unverified special passes,plain NPC body,additional caller services: effect
+724,generic,0x138a466,,0xa0b,npc:2571,plain body construction,correct bounded body plan,plain NPC body,
 725,generic,0x138a4e3,,0xa86,npc:2694,plain body construction,correct bounded body plan,plain NPC body,
 726,0xa93a2e,,,0x8ba,monster:277,plain body construction,correct bounded body plan,plain monster body,
 727,0xa93a2e,,,0x8bb,monster:278,plain body construction,correct bounded body plan,plain monster body,
@@ -782,8 +782,8 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 780,generic,0x1386222,,0x7e9,monster:68,plain body construction,correct bounded body plan,plain monster body,
 781,generic,0x13862d8,,0x800,monster:91,plain body construction,correct bounded body plan,plain monster body,
 782,generic,0x1386346,,0x803,monster:94,plain body construction,correct bounded body plan,plain monster body,
-783,generic,0x13863b4,,0x86e,monster:201,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: effect
-784,generic,0x138645b,,0x86f,monster:202,plain body construction,incomplete/unverified special passes,plain monster body,additional caller services: effect
+783,generic,0x13863b4,,0x86e,monster:201,plain body construction,correct bounded body plan,plain monster body,
+784,generic,0x138645b,,0x86f,monster:202,plain body construction,incomplete/unverified special passes,plain monster body,"caller requests vary with action, world, clock or random value"
 785,generic,0x1386507,,0x875,monster:208,plain body construction,correct bounded body plan,plain monster body,
 786,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 787,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
@@ -865,7 +865,7 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 863,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 864,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 865,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
-866,generic,0x138bd01,,0xa8d,npc:2701,plain body construction,incomplete/unverified special passes,plain NPC body,native file/texture/geometry/plan check failed
+866,generic,0x138bd01,,0xa8d,npc:2701,plain body construction,incomplete/unverified special passes,plain NPC body,native draw takes the RGB path without the alpha callback
 867,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 868,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 869,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
@@ -917,7 +917,7 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 915,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 916,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 917,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
-918,generic,0x138bfde,,0x93f,monster:410,plain body construction,incomplete/unverified special passes,plain monster body,native file/texture/geometry/plan check failed
+918,generic,0x138bfde,,0x93f,monster:410,plain body construction,incomplete/unverified special passes,plain monster body,native mesh textures missing: 2
 919,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 920,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,
 921,generic,0x1382f2d,,0x7a5,monster:0,plain body construction,correct bounded body plan,repeated default body,

@@ -17,7 +17,7 @@ checked group: constructor blend-mesh/light plan unchecked,checked bounded body 
 checked group: constructor hidden-mesh plan unchecked,checked bounded body plan,3,65;463;676
 checked group: constructor subtype appearance unchecked,checked bounded body plan,44,647;648;649;650;691;692;693;694;726;727;728;729;739;740;741;742;795;796;797;798;817;818;819;820;855;856;857;858;884;885;886;887;901;902;903;904;933;934;935;936;951;952;953;954
 checked group: left weapon/link plan unchecked,checked bounded body plan,1,151
-checked group: right weapon/link plan unchecked,checked bounded body plan,7,13;18;26;28;29;47;433
+checked group: right weapon/link plan unchecked,checked bounded body plan,21,13;18;26;28;29;47;145;148;175;178;183;186;191;194;261;264;269;272;332;336;433
 checked group: sword sprite caller and both weapon/link plans unchecked,checked bounded body plan,1,5
 checked group: sword sprite caller and right weapon/link plan unchecked,checked bounded body plan,2,1;10
 checked ordinary monster body,checked bounded body plan,82,2;3;11;12;19;20;21;24;27;30;32;37;44;50;66;84;87;90;93;96;99;113;116;119;122;125;128;131;138;141;146;150;176;184;192;262;270;304;305;306;307;308;309;333;341;344;353;365;418;419;420;421;424;425;428;431;434;435;466;476;549;550;551;552;587;588;592;597;618;619;620;621;622;623;624;632;675;721;779;781;782;785
@@ -31,7 +31,7 @@ extra-bitmap consumer plan unchecked,incomplete,6,596;636;709;710;711;712
 left weapon/link plan unchecked,incomplete,12,54;64;85;91;97;114;120;126;137;139;275;429
 multiple constructor opener/model selection unchecked,incomplete,1,77
 native mesh textures missing,incomplete,1,918
-right weapon/link plan unchecked,incomplete,51,25;38;40;41;48;52;67;72;78;80;88;89;94;95;111;112;117;118;123;124;129;130;142;143;145;148;163;165;167;169;171;173;175;178;183;186;191;194;234;261;264;269;272;332;336;427;432;493;645;652;677
+right weapon/link plan unchecked,incomplete,37,25;38;40;41;48;52;67;72;78;80;88;89;94;95;111;112;117;118;123;124;129;130;142;143;163;165;167;169;171;173;234;427;432;493;645;652;677
 type-226 death effect lifetime unchecked,incomplete,2,595;635
 unresolved caller at 0x1377aef,incomplete,2,36;39
 unresolved caller at 0x95d4f1,incomplete,1,561

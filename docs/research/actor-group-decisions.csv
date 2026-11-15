@@ -4,7 +4,7 @@ server_class,group,before_group,previous_reason,actors007_decision,actors007_rea
 10,constructor equipment/parts,sword sprite caller and right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional caller services: effect,checked group body plan,
 13,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,checked group body plan,,checked group body plan,
 18,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional caller services: effect,checked group body plan,
-22,plain monster body,constructor blend-mesh/light plan unchecked,"constructor render-state override: 0x74,0xa8",incomplete,native file/texture/geometry/plan check failed,incomplete,native file/texture/geometry/plan check failed
+22,plain monster body,constructor blend-mesh/light plan unchecked,"constructor render-state override: 0x74,0xa8",incomplete,native file/texture/geometry/plan check failed,incomplete,native draw takes the RGB path without the alpha callback
 23,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,checked group body plan,,checked group body plan,
 25,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,"constructor render-state override: 0x5,0x74,0xa8",incomplete,"constructor render-state override: 0x5,0x74,0xa8"
 26,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,checked group body plan,,checked group body plan,
@@ -16,7 +16,7 @@ server_class,group,before_group,previous_reason,actors007_decision,actors007_rea
 36,plain monster body,unresolved caller at 0x1377aef,unresolved caller at 0x1377aef,incomplete,unresolved caller at 0x1377aef,incomplete,unresolved caller at 0x1377aef
 38,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,opener StreamMesh override,incomplete,opener StreamMesh override
 39,plain monster body,unresolved caller at 0x1377aef,unresolved caller at 0x1377aef,incomplete,unresolved caller at 0x1377aef,incomplete,unresolved caller at 0x1377aef
-40,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional caller services: effect,incomplete,additional or different RenderLinkItem services
+40,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional caller services: effect,incomplete,RenderLinkItem consumes further random values: item 0xaf4
 41,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional caller services: effect,incomplete,missing native consumer: sprite 0x7f69
 42,plain monster body,additional caller link plan unchecked,additional caller services: LINK,incomplete,caller body/link/pass arguments differ,incomplete,caller body/link/pass arguments differ
 43,plain monster body,additional caller mesh/body passes unchecked,additional caller services: BODY,incomplete,additional caller services: BODY,incomplete,additional caller services: BODY
@@ -36,11 +36,11 @@ server_class,group,before_group,previous_reason,actors007_decision,actors007_rea
 61,special appearance hook,constructor joint consumer/appearance plan unchecked,special appearance hook,incomplete,constructor needs appearance/part/secondary proof; special appearance hook,incomplete,constructor needs appearance/part/secondary proof; special appearance hook
 62,special appearance hook,constructor joint consumer/appearance plan unchecked,special appearance hook,incomplete,constructor needs appearance/part/secondary proof; special appearance hook,incomplete,constructor needs appearance/part/secondary proof; special appearance hook
 63,special appearance hook,constructor joint consumer/appearance plan unchecked,special appearance hook,incomplete,constructor needs appearance/part/secondary proof; special appearance hook,incomplete,constructor needs appearance/part/secondary proof; special appearance hook
-64,constructor equipment/parts,left weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,incomplete,weapon RenderObjDraw stream unavailable or extra services
+64,constructor equipment/parts,left weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,incomplete,weapon RenderObjDraw stream unavailable or extra services: item 0x12e9 level 3
 65,plain monster body,constructor hidden-mesh plan unchecked,constructor render-state override: 0x68,checked group body plan,,checked group body plan,
 67,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,opener StreamMesh override,incomplete,opener StreamMesh override
 69,plain monster body,additional caller effect requests unchecked,additional caller services: effect,incomplete,additional caller services: effect,incomplete,"caller requests vary with action, world, clock or random value"
-70,plain monster body,additional caller effect requests unchecked,additional caller services: effect,incomplete,additional caller services: effect,incomplete,native file/texture/geometry/plan check failed
+70,plain monster body,additional caller effect requests unchecked,additional caller services: effect,incomplete,additional caller services: effect,incomplete,native draw takes the RGB path without the alpha callback
 71,extra bitmap load; constructor equipment/parts,bitmap consumers and both weapon/link plans unchecked,extra bitmap load; constructor equipment/parts,incomplete,extra bitmap consumer remains unchecked,incomplete,extra bitmap consumer remains unchecked
 72,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,caller body/link/pass arguments differ,incomplete,"caller requests vary with action, world, clock or random value"
 73,plain monster body,additional caller mesh/body and effect requests unchecked,"additional caller services: BODY,effect",incomplete,"additional caller services: BODY,effect",incomplete,additional caller services: BODY
@@ -53,28 +53,28 @@ server_class,group,before_group,previous_reason,actors007_decision,actors007_rea
 81,plain monster body,additional caller mesh/body and effect requests unchecked,"additional caller services: BODY,effect",incomplete,"additional caller services: BODY,effect",incomplete,additional caller services: BODY
 82,special appearance hook; extra bitmap load; constructor equipment/parts,"constructor joints, bitmap consumers and right weapon/link unchecked",special appearance hook; extra bitmap load; constructor equipment/parts,incomplete,constructor needs appearance/part/secondary proof; special appearance hook; extra bitmap load; constructor equipment/parts,incomplete,constructor needs appearance/part/secondary proof; special appearance hook; extra bitmap load; constructor equipment/parts
 83,special appearance hook; constructor equipment/parts,constructor joints and right weapon/link plan unchecked,special appearance hook; constructor equipment/parts,incomplete,constructor needs appearance/part/secondary proof; special appearance hook; constructor equipment/parts,incomplete,constructor needs appearance/part/secondary proof; special appearance hook; constructor equipment/parts
-85,constructor equipment/parts,left weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,incomplete,weapon RenderObjDraw stream unavailable or extra services
+85,constructor equipment/parts,left weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,incomplete,weapon RenderObjDraw stream unavailable or extra services: item 0x12e9 level 1
 86,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,checked group body plan,,checked group body plan,
 88,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional caller services: effect,incomplete,"caller requests vary with action, world, clock or random value"
 89,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,unresolved caller at 0xfdab58,incomplete,unresolved caller at 0xfdab58
-91,constructor equipment/parts,left weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,incomplete,weapon RenderObjDraw stream unavailable or extra services
+91,constructor equipment/parts,left weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,incomplete,weapon RenderObjDraw stream unavailable or extra services: item 0x12e9 level 1
 92,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,checked group body plan,,checked group body plan,
 94,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional caller services: effect,incomplete,"caller requests vary with action, world, clock or random value"
 95,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,unresolved caller at 0xfdab58,incomplete,unresolved caller at 0xfdab58
-97,constructor equipment/parts,left weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,incomplete,weapon RenderObjDraw stream unavailable or extra services
+97,constructor equipment/parts,left weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,incomplete,weapon RenderObjDraw stream unavailable or extra services: item 0x12e9 level 1
 98,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,checked group body plan,,checked group body plan,
 105,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,incomplete,additional caller services: effect,incomplete,"caller requests vary with action, world, clock or random value"
 111,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional caller services: effect,incomplete,"caller requests vary with action, world, clock or random value"
 112,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,unresolved caller at 0xfdab58,incomplete,unresolved caller at 0xfdab58
-114,constructor equipment/parts,left weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,incomplete,weapon RenderObjDraw stream unavailable or extra services
+114,constructor equipment/parts,left weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,incomplete,weapon RenderObjDraw stream unavailable or extra services: item 0x12e9 level 1
 115,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,checked group body plan,,checked group body plan,
 117,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional caller services: effect,incomplete,"caller requests vary with action, world, clock or random value"
 118,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,unresolved caller at 0xfdab58,incomplete,unresolved caller at 0xfdab58
-120,constructor equipment/parts,left weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,incomplete,weapon RenderObjDraw stream unavailable or extra services
+120,constructor equipment/parts,left weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,incomplete,weapon RenderObjDraw stream unavailable or extra services: item 0x12e9 level 1
 121,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,checked group body plan,,checked group body plan,
 123,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional caller services: effect,incomplete,"caller requests vary with action, world, clock or random value"
 124,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,unresolved caller at 0xfdab58,incomplete,unresolved caller at 0xfdab58
-126,constructor equipment/parts,left weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,incomplete,weapon RenderObjDraw stream unavailable or extra services
+126,constructor equipment/parts,left weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,incomplete,weapon RenderObjDraw stream unavailable or extra services: item 0x12e9 level 1
 127,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,checked group body plan,,checked group body plan,
 129,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional caller services: effect,incomplete,"caller requests vary with action, world, clock or random value"
 130,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,unresolved caller at 0xfdab58,incomplete,unresolved caller at 0xfdab58
@@ -84,48 +84,48 @@ server_class,group,before_group,previous_reason,actors007_decision,actors007_rea
 135,plain monster body,additional caller mesh/body passes unchecked,additional caller services: BODY,incomplete,additional caller services: BODY,incomplete,additional caller services: BODY
 136,plain monster body,caller changes or suppresses the ordinary body plan,body call arguments/count differ,incomplete,caller body/link/pass arguments differ,incomplete,caller body/link/pass arguments differ
 137,constructor equipment/parts,left weapon/link plan unchecked,constructor equipment/parts,incomplete,caller body/link/pass arguments differ,incomplete,caller body/link/pass arguments differ
-139,constructor equipment/parts,left weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,incomplete,weapon RenderObjDraw stream unavailable or extra services
+139,constructor equipment/parts,left weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,incomplete,weapon RenderObjDraw stream unavailable or extra services: item 0x12e9 level 1
 140,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,checked group body plan,,checked group body plan,
 142,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional caller services: effect,incomplete,"caller requests vary with action, world, clock or random value"
 143,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,unresolved caller at 0xfdab58,incomplete,unresolved caller at 0xfdab58
 144,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,,checked group body plan,
-145,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,incomplete,RenderLinkItem requests without a checked monster-weapon consumer: item 0x10f0: 8 sprite 0x7ef7
+145,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,checked group body plan,
 147,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,,checked group body plan,
-148,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,incomplete,RenderLinkItem requests without a checked monster-weapon consumer: item 0x10f0: 8 sprite 0x7ef7
+148,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,checked group body plan,
 149,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,,checked group body plan,
 151,constructor equipment/parts,left weapon/link plan unchecked,constructor equipment/parts,incomplete,additional caller services: effect,checked group body plan,
 160,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,additional caller services: effect,checked group body plan,
 161,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,additional caller services: effect,checked group body plan,
-162,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context,incomplete,native file/texture/geometry/plan check failed
-163,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context,incomplete,RenderLinkItem requests without a checked monster-weapon consumer: item 0x12f9: 10 sprite 0x7ef7/sprite 0x7f67
-164,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context,incomplete,native file/texture/geometry/plan check failed
-165,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context,incomplete,RenderLinkItem requests without a checked monster-weapon consumer: item 0x12f9: 10 sprite 0x7ef7/sprite 0x7f67
-166,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context,incomplete,native file/texture/geometry/plan check failed
-167,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context,incomplete,RenderLinkItem requests without a checked monster-weapon consumer: item 0x12f9: 10 sprite 0x7ef7/sprite 0x7f67
-168,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context,incomplete,native file/texture/geometry/plan check failed
-169,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context,incomplete,RenderLinkItem requests without a checked monster-weapon consumer: item 0x12f9: 10 sprite 0x7ef7/sprite 0x7f67
-170,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context,incomplete,native file/texture/geometry/plan check failed
-171,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context,incomplete,RenderLinkItem requests without a checked monster-weapon consumer: item 0x12f9: 10 sprite 0x7ef7/sprite 0x7f67
-172,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context,incomplete,native file/texture/geometry/plan check failed
-173,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context,incomplete,RenderLinkItem requests without a checked monster-weapon consumer: item 0x12f9: 10 sprite 0x7ef7/sprite 0x7f67
+162,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context,incomplete,additional caller RenderPartObject in world 18: model 0xa2a slot 0
+163,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context,incomplete,additional caller RenderPartObject in world 18: model 0xa2a slot 0
+164,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context,incomplete,additional caller RenderPartObject in world 18: model 0xa2a slot 0
+165,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context,incomplete,additional caller RenderPartObject in world 18: model 0xa2a slot 0
+166,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context,incomplete,additional caller RenderPartObject in world 18: model 0xa2a slot 0
+167,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context,incomplete,additional caller RenderPartObject in world 18: model 0xa2a slot 0
+168,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context,incomplete,additional caller RenderPartObject in world 18: model 0xa2a slot 0
+169,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context,incomplete,additional caller RenderPartObject in world 18: model 0xa2a slot 0
+170,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context,incomplete,additional caller RenderPartObject in world 18: model 0xa2a slot 0
+171,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context,incomplete,additional caller RenderPartObject in world 18: model 0xa2a slot 0
+172,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context,incomplete,additional caller RenderPartObject in world 18: model 0xa2a slot 0
+173,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context,incomplete,additional caller RenderPartObject in world 18: model 0xa2a slot 0
 174,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,,checked group body plan,
-175,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,incomplete,RenderLinkItem requests without a checked monster-weapon consumer: item 0x10f0: 8 sprite 0x7ef7
+175,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,checked group body plan,
 177,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,,checked group body plan,
-178,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,incomplete,RenderLinkItem requests without a checked monster-weapon consumer: item 0x10f0: 8 sprite 0x7ef7
+178,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,checked group body plan,
 179,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,,checked group body plan,
 180,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,additional caller services: effect,checked group body plan,
 181,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,additional caller services: effect,checked group body plan,
 182,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,,checked group body plan,
-183,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,incomplete,RenderLinkItem requests without a checked monster-weapon consumer: item 0x10f0: 8 sprite 0x7ef7
+183,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,checked group body plan,
 185,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,,checked group body plan,
-186,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,incomplete,RenderLinkItem requests without a checked monster-weapon consumer: item 0x10f0: 8 sprite 0x7ef7
+186,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,checked group body plan,
 187,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,,checked group body plan,
 188,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,additional caller services: effect,checked group body plan,
 189,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,additional caller services: effect,checked group body plan,
 190,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,,checked group body plan,
-191,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,incomplete,RenderLinkItem requests without a checked monster-weapon consumer: item 0x10f0: 8 sprite 0x7ef7
+191,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,checked group body plan,
 193,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,,checked group body plan,
-194,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,incomplete,RenderLinkItem requests without a checked monster-weapon consumer: item 0x10f0: 8 sprite 0x7ef7
+194,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,checked group body plan,
 195,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,,checked group body plan,
 196,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,additional caller services: effect,checked group body plan,
 197,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,additional caller services: effect,checked group body plan,
@@ -155,19 +155,19 @@ server_class,group,before_group,previous_reason,actors007_decision,actors007_rea
 256,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,,checked group body plan,
 259,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,,checked group body plan,
 260,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,,checked group body plan,
-261,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,incomplete,RenderLinkItem requests without a checked monster-weapon consumer: item 0x10f0: 8 sprite 0x7ef7
+261,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,checked group body plan,
 263,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,,checked group body plan,
-264,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,incomplete,RenderLinkItem requests without a checked monster-weapon consumer: item 0x10f0: 8 sprite 0x7ef7
+264,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,checked group body plan,
 265,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,,checked group body plan,
 266,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,additional caller services: effect,checked group body plan,
 267,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,additional caller services: effect,checked group body plan,
 268,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,,checked group body plan,
-269,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,incomplete,RenderLinkItem requests without a checked monster-weapon consumer: item 0x10f0: 8 sprite 0x7ef7
+269,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,checked group body plan,
 271,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,,checked group body plan,
-272,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,incomplete,RenderLinkItem requests without a checked monster-weapon consumer: item 0x10f0: 8 sprite 0x7ef7
+272,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,checked group body plan,
 273,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,,checked group body plan,
 274,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,additional caller services: effect,checked group body plan,
-275,constructor equipment/parts,left weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,incomplete,RenderLinkItem requests without a checked monster-weapon consumer: item 0x14f1: 9 sprite 0x7ef7/sprite 0x7f67
+275,constructor equipment/parts,left weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,incomplete,RenderLinkItem requests without a checked link consumer: item 0x14f1: 9 sprite 0x7ef7/sprite 0x7f67
 300,special appearance hook,constructor joint consumer/appearance plan unchecked,special appearance hook,incomplete,constructor needs appearance/part/secondary proof; special appearance hook,incomplete,constructor needs appearance/part/secondary proof; special appearance hook
 301,extra bitmap load; constructor equipment/parts,bitmap consumers and both weapon/link plans unchecked,extra bitmap load; constructor equipment/parts,incomplete,extra bitmap consumer remains unchecked,incomplete,extra bitmap consumer remains unchecked
 314,repeated default body,caller changes or suppresses the ordinary body plan,body call arguments/count differ,incomplete,caller body/link/pass arguments differ,incomplete,caller body/link/pass arguments differ
@@ -177,10 +177,10 @@ server_class,group,before_group,previous_reason,actors007_decision,actors007_rea
 318,repeated default body,caller changes or suppresses the ordinary body plan,body call arguments/count differ,incomplete,caller body/link/pass arguments differ,incomplete,caller body/link/pass arguments differ
 319,repeated default body,caller changes or suppresses the ordinary body plan,body call arguments/count differ,incomplete,caller body/link/pass arguments differ,incomplete,caller body/link/pass arguments differ
 331,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,,checked group body plan,
-332,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,incomplete,RenderLinkItem requests without a checked monster-weapon consumer: item 0x10f0: 8 sprite 0x7ef7
+332,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,checked group body plan,
 334,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,,checked group body plan,
 335,plain monster body,constructor blend-mesh plan unchecked,constructor render-state override: 0x74,checked group body plan,,checked group body plan,
-336,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,incomplete,RenderLinkItem requests without a checked monster-weapon consumer: item 0x10f0: 8 sprite 0x7ef7
+336,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,checked group body plan,
 337,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,additional caller services: effect,checked group body plan,
 338,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,additional caller services: effect,checked group body plan,
 356,plain monster body,additional caller effect requests unchecked,additional caller services: effect,incomplete,additional caller services: effect,incomplete,"caller requests vary with action, world, clock or random value"
@@ -196,9 +196,9 @@ server_class,group,before_group,previous_reason,actors007_decision,actors007_rea
 417,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,,checked group body plan,
 422,plain monster body,additional caller effect requests unchecked,additional caller services: effect,incomplete,additional caller services: effect,incomplete,"caller requests vary with action, world, clock or random value"
 423,plain monster body,additional caller effect requests unchecked,additional caller services: effect,incomplete,additional caller services: effect,incomplete,"caller requests vary with action, world, clock or random value"
-426,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context,incomplete,native file/texture/geometry/plan check failed
-427,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context,incomplete,RenderLinkItem requests without a checked monster-weapon consumer: item 0x12f9: 10 sprite 0x7ef7/sprite 0x7f67
-429,constructor equipment/parts,left weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,incomplete,weapon RenderObjDraw stream unavailable or extra services
+426,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context,incomplete,additional caller RenderPartObject in world 18: model 0xa2a slot 0
+427,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context,incomplete,additional caller RenderPartObject in world 18: model 0xa2a slot 0
+429,constructor equipment/parts,left weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,incomplete,weapon RenderObjDraw stream unavailable or extra services: item 0x12e9 level 1
 430,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,checked group body plan,,checked group body plan,
 432,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional caller services: effect,incomplete,"caller requests vary with action, world, clock or random value"
 433,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,additional or different RenderLinkItem services,checked group body plan,
@@ -235,7 +235,7 @@ server_class,group,before_group,previous_reason,actors007_decision,actors007_rea
 543,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,,checked group body plan,
 544,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,,checked group body plan,
 545,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,,checked group body plan,
-546,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,incomplete,native file/texture/geometry/plan check failed,incomplete,native file/texture/geometry/plan check failed
+546,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,incomplete,native file/texture/geometry/plan check failed,incomplete,native mesh textures missing: 7
 547,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,,checked group body plan,
 555,plain monster body,additional caller effect requests unchecked,additional caller services: effect,incomplete,additional caller services: effect,incomplete,"caller requests vary with action, world, clock or random value"
 557,plain monster body,additional caller effect requests unchecked,additional caller services: effect,incomplete,additional caller services: effect,checked group body plan,
@@ -260,8 +260,8 @@ server_class,group,before_group,previous_reason,actors007_decision,actors007_rea
 635,sub-model/extra-load; action-dependent or auxiliary hook,type-226 death effect lifetime unchecked,sub-model/extra-load; action-dependent or auxiliary hook,incomplete,monster opener has extra load or different texture context,incomplete,monster opener has extra load or different texture context
 636,extra bitmap load,extra-bitmap consumer plan unchecked,extra bitmap load,incomplete,extra bitmap consumer remains unchecked,incomplete,extra bitmap consumer remains unchecked
 643,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,,checked group body plan,
-644,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context,incomplete,native file/texture/geometry/plan check failed
-645,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context,incomplete,RenderLinkItem requests without a checked monster-weapon consumer: item 0x12f9: 10 sprite 0x7ef7/sprite 0x7f67
+644,constructor equipment/parts,both weapon/link plans unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context,incomplete,additional caller RenderPartObject in world 18: model 0xa2a slot 0
+645,constructor equipment/parts,right weapon/link plan unchecked,constructor equipment/parts,incomplete,monster opener has extra load or different texture context,incomplete,additional caller RenderPartObject in world 18: model 0xa2a slot 0
 647,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,,checked group body plan,
 648,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,,checked group body plan,
 649,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,,checked group body plan,
@@ -329,7 +329,7 @@ server_class,group,before_group,previous_reason,actors007_decision,actors007_rea
 856,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,,checked group body plan,
 857,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,,checked group body plan,
 858,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,,checked group body plan,
-866,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,incomplete,native file/texture/geometry/plan check failed,incomplete,native file/texture/geometry/plan check failed
+866,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,incomplete,native file/texture/geometry/plan check failed,incomplete,native draw takes the RGB path without the alpha callback
 873,special appearance hook,EffectManager body/attachment plan unchecked,special appearance hook,incomplete,constructor unresolved; special appearance hook,incomplete,constructor unresolved; special appearance hook
 874,plain NPC body,NPC whole-body caller/pass/native plan unchecked,plain NPC body,checked group body plan,,checked group body plan,
 884,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,,checked group body plan,
@@ -341,7 +341,7 @@ server_class,group,before_group,previous_reason,actors007_decision,actors007_rea
 902,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,,checked group body plan,
 903,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,,checked group body plan,
 904,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,,checked group body plan,
-918,plain monster body,native mesh textures missing,missing native mesh textures,incomplete,native file/texture/geometry/plan check failed,incomplete,native file/texture/geometry/plan check failed
+918,plain monster body,native mesh textures missing,missing native mesh textures,incomplete,native file/texture/geometry/plan check failed,incomplete,native mesh textures missing: 2
 933,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,,checked group body plan,
 934,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,,checked group body plan,
 935,plain monster body,constructor subtype appearance unchecked,constructor render-state override: 0x60,checked group body plan,,checked group body plan,

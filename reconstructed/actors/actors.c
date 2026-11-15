@@ -43,15 +43,6 @@ int mu_actor_group_plan(int32_t server_class, mu_actor_group_body_plan *out)
     return 1;
 }
 
-const char *mu_actor_group_textures(int32_t server_class, int32_t world)
-{
-    mu_actor_group_body_plan plan;
-    if (!mu_actor_group_plan(server_class, &plan)) return NULL;
-    if (plan.world_textures && world >= 0 && world < 256 &&
-        (plan.world_mask[world / 32] >> (world % 32) & 1u)) return plan.world_textures; /* world textures */
-    return plan.textures;
-}
-
 #include "caller_fx_table.h"
 
 int32_t mu_actor_caller_fx_plan(int32_t server_class, const mu_actor_caller_fx **first)
