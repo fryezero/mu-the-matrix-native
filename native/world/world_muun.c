@@ -5,6 +5,7 @@
 #include "../core/mu_muun_mount.h"
 #include "../core/mu_frame_time.h"
 #include "../../reconstructed/environment/env.h"
+#include "../../reconstructed/movement/client_movement.h"
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,7 +16,13 @@
 struct mu_world_muun {
     mu_muun_visual visual;
     int32_t command_category;
-    int mount_fixture;
+    int mount_fixture, rider_fixture, remote_fixture, remote, borrowed;
+    float remote_elapsed;
+    long transition_requests, transition_created, transition_refused, rider_draws, rider_refused, rider_restored;
+    uint64_t prepared_frame;
+    uint16_t rider_action, rider_prior, saved_action, saved_prior;
+    float rider_frame, rider_prior_frame, saved_frame, saved_prior_frame;
+    mu_character_params saved_params;
     mu_muun_mount mount;
 #ifndef MU_WORLD_NO_GL
     mu_gl_backend gl, mount_gl;
@@ -74,6 +81,22 @@ int mu_world_muun_open(mu_world_rt *a, mu_world_muun **out)
         }
         m->mount_fixture = 1;
     }
+    const char *rider = getenv("MU_MUUN_RIDER_FIXTURE");
+    const char *owner_kind = getenv("MU_MUUN_OWNER_KIND_FIXTURE");
+    const char *buff18 = getenv("MU_MUUN_BUFF18_FIXTURE");
+    const char *remote = getenv("MU_MUUN_REMOTE_FIXTURE");
+    if ((rider && strcmp(rider, "1")) || (rider && !m->mount_fixture) ||
+        (owner_kind && strcmp(owner_kind, "1") && strcmp(owner_kind, "2")) ||
+        (buff18 && strcmp(buff18, "1")) || ((owner_kind || buff18) && !m->mount_fixture) ||
+        (remote && strcmp(remote, "1"))) {
+        fprintf(stderr, "Muun visual flags require an explicit compatible fixture\n");
+        mu_world_muun_close(m); return 1;
+    }
+    m->rider_fixture = rider != NULL;
+    m->remote_fixture = m->remote = remote != NULL;
+    m->prepared_frame = UINT64_MAX;
+    mu_muun_mount_style(&m->mount, owner_kind && !strcmp(owner_kind, "2") ? 2 : 1, buff18 != NULL);
+    a->muun_fixture = m;
     m->visual.model.params.world = a->map->world;
     if (m->mount.loaded) m->mount.model.params.world = a->map->world;
     mu_effect_scene_set_world(&m->visual.scene, a->map);
@@ -99,6 +122,37 @@ void mu_world_muun_tick(mu_world_rt *a, mu_world_muun *m)
         mu_muun_visual_command(&m->visual, m->command_category, target);
     }
     mu_muun_visual_step(&m->visual, &owner, 1);
+    if (m->remote_fixture && m->visual.live && mu_mv_transition_step(&m->remote, &m->remote_elapsed, 3.0f, 0.04f)) {
+        float position[3];
+        mu_mv_rider_position(m->visual.state.position, m->visual.info.offset, position);
+        ++m->transition_requests;
+        if (a->has_particles && mu_world_particles_effect(&a->particles, 0x47a, 0, position,
+            m->visual.state.angle, m->visual.model.params.color, -1, 0.0f, NULL)) ++m->transition_created;
+        else ++m->transition_refused;
+    }
+    if (m->rider_fixture) {
+        /* Four explicit unarmed appearance inputs, independent of equipment or gameplay actions. */
+        const int32_t how[] = {0, 1, 2, 6};
+        mu_hp_owner fixture = {.weapon = {-1, -1}};
+        mu_helpers helpers = {.owners = &fixture, .owner_count = 1};
+        int32_t action = mu_hp_rider_action(&helpers, 0, how[(m->visual.steps / 25) % 4]);
+        if (action < 0 || action >= a->ch.player_bmd.action_count || a->ch.player_bmd.actions[action].keys <= 0) {
+            ++m->rider_refused; return;
+        }
+        mu_move_set_action(&m->rider_action, &m->rider_prior, &m->rider_frame, &m->rider_prior_frame,
+            a->ch.player_bmd.action_count, action);
+        /* Tick the authored animation through the existing model consumer, then restore the logical hero. */
+        uint16_t saved_action = mu_model_action(&a->ch.player), saved_prior = mu_model_prior_action(&a->ch.player);
+        float saved_frame = mu_model_frame(&a->ch.player), saved_prior_frame = mu_model_prior_frame(&a->ch.player);
+        mu_character_set_state(&a->ch, m->rider_action, m->rider_frame, m->rider_prior_frame, m->rider_prior);
+        uint8_t loop = 0;
+        mu_character_tick(&a->ch, mu_character_action_speed(&a->ch, m->rider_action), &loop);
+        m->rider_frame = mu_model_frame(&a->ch.player); m->rider_prior_frame = mu_model_prior_frame(&a->ch.player);
+        m->rider_prior = mu_model_prior_action(&a->ch.player);
+        mu_character_set_state(&a->ch, saved_action, saved_frame, saved_prior_frame, saved_prior);
+        mu_muun_mount_step(&m->mount, &m->visual, m->rider_action);
+        return;
+    }
     /* Authored rider actions, independent of hero combat or authoritative mount state. */
     const int32_t actions[] = {1, 65, 248};
     mu_muun_mount_step(&m->mount, &m->visual, actions[(m->visual.steps / 25) % 3]);
@@ -106,6 +160,8 @@ void mu_world_muun_tick(mu_world_rt *a, mu_world_muun *m)
 
 static void frame(mu_world_rt *a, mu_world_muun *m)
 {
+    if (m->prepared_frame == a->rendered_frames) return;
+    m->prepared_frame = a->rendered_frames;
     mu_muun_visual *v = &m->visual;
     const int frustum = a->legacy_box || mu_terrain_test_frustum_2d(a->frustum.x2d, a->frustum.y2d, 6,
         v->state.position[0] * 0.01f, v->state.position[1] * 0.01f, -20.0f);
@@ -159,6 +215,7 @@ void mu_world_muun_soft(mu_world_rt *a, mu_world_muun *m, mu_world_draw *draw)
     r->textures = m->mount.textures.slots; r->texture_count = m->mount.textures.count;
     r->texture_filter = m->mount.textures.filter; r->texture_wrap = m->mount.textures.wrap;
     mu_muun_mount_draw(&m->mount, a->map->time, &backend, &stats);
+    mu_muun_mount_emit(&m->mount, a->has_particles ? &a->particles : NULL);
     r->textures = NULL; r->texture_count = 0; r->texture_filter = NULL; r->texture_wrap = NULL;
     float eye[3], at[3];
     world_rt_effect_camera(a, eye, at);
@@ -190,6 +247,7 @@ void mu_world_muun_gl(mu_world_rt *a, mu_world_muun *m, mu_world_draw *draw)
         if (!m->mount_gl.textures) mu_gl_upload(&m->mount_gl, &m->mount.textures, 0);
         mu_gl_backend_bind(&m->mount_gl, &backend);
         mu_muun_mount_draw(&m->mount, a->map->time, &backend, &stats);
+        mu_muun_mount_emit(&m->mount, a->has_particles ? &a->particles : NULL);
     }
     float eye[3], at[3];
     world_rt_effect_camera(a, eye, at);
@@ -206,6 +264,14 @@ void mu_world_muun_report(const mu_world_muun *m, FILE *out)
 {
     if (!m) return;
     const mu_muun_visual *v = &m->visual;
+    if (m->remote_fixture) fprintf(out, "{\"muun_transition\":%ld,\"created\":%ld,\"refused\":%ld,\"pending\":%d}\n",
+        m->transition_requests, m->transition_created, m->transition_refused, m->remote);
+    if (m->rider_fixture) fprintf(out, "{\"muun_rider\":%u,\"draws\":%ld,\"refused\":%ld,\"restored\":%ld}\n",
+        m->rider_action, m->rider_draws, m->rider_refused, m->rider_restored);
+    if (m->mount_fixture) fprintf(out, "{\"muun_style\":%d,\"mode\":%d,\"alpha\":%.6f,\"particle_requests\":%ld,"
+        "\"particle_created\":%ld,\"particle_refused\":%ld,\"particle_bones_refused\":%ld,\"refused_modes\":%ld}\n",
+        m->mount.owner_kind, m->mount.render_mode, (double)m->mount.fade.alpha, m->mount.particle_requests,
+        m->mount.particle_created, m->mount.particle_refused, m->mount.particle_bones_refused, m->mount.refused_modes);
     if (m->mount_fixture) fprintf(out, "{\"muun_mount\":%d,\"visible\":%d,\"action\":%u,"
         "\"attached\":%d,\"missing\":%d,\"refused_actions\":%ld,\"refused_bones\":%ld,\"draws\":%ld}\n",
         m->mount.model_code, m->mount.visible, mu_model_action(&m->mount.model), m->mount.attached,
@@ -217,4 +283,33 @@ void mu_world_muun_report(const mu_world_muun *m, FILE *out)
         (double)v->state.position[0], (double)v->state.position[1], (double)v->state.position[2],
         v->state.action, (double)v->state.frame, v->textures.missing, v->mesh_count, v->mesh_draws, v->refused_meshes, v->command_draws, v->refused_commands, v->effects.count, v->effects.invalid,
         v->refused_bones, v->effects.updates, v->scene.vertices_drawn);
+}
+
+void mu_world_muun_rider_begin(mu_world_rt *a)
+{
+    mu_world_muun *m = a->muun_fixture;
+    if (!m || !m->rider_fixture || !a->has_character) return;
+    frame(a, m);
+    float position[3];
+    if (!mu_muun_mount_rider_position(&m->mount, m->rider_action, a->walk.hero.position, position)) return;
+    m->saved_params = a->ch.params;
+    m->saved_action = mu_model_action(&a->ch.player); m->saved_prior = mu_model_prior_action(&a->ch.player);
+    m->saved_frame = mu_model_frame(&a->ch.player); m->saved_prior_frame = mu_model_prior_frame(&a->ch.player);
+    memcpy(a->ch.params.position, position, sizeof position);
+    mu_character_set_state(&a->ch, m->rider_action, m->rider_frame, m->rider_prior_frame, m->rider_prior);
+    if (mu_character_update(&a->ch) == MU_MODEL_OK) ++m->rider_draws;
+    else ++m->rider_refused;
+    m->borrowed = 1;
+}
+void mu_world_muun_rider_end(mu_world_rt *a)
+{
+    mu_world_muun *m = a->muun_fixture;
+    if (!m || !m->borrowed) return;
+    a->ch.params = m->saved_params;
+    mu_character_set_state(&a->ch, m->saved_action, m->saved_frame, m->saved_prior_frame, m->saved_prior);
+    mu_character_update(&a->ch);
+    if (mu_model_action(&a->ch.player) == m->saved_action && mu_model_prior_action(&a->ch.player) == m->saved_prior &&
+        mu_model_frame(&a->ch.player) == m->saved_frame && mu_model_prior_frame(&a->ch.player) == m->saved_prior_frame &&
+        !memcmp(&a->ch.params, &m->saved_params, sizeof m->saved_params)) ++m->rider_restored;
+    m->borrowed = 0;
 }
