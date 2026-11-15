@@ -11,10 +11,15 @@ Four original families pass 4,000 cases with no mismatches/stops. All 37 compile
 The expanded 46/98 registry trace identifies all direct registrations in the static factory; neither
 world has an identified handler object/vtable, so both remain refused.
 
-Left: post-build affected selections and checks,
+Post-build selection retains 75 validator rows, including conservative fallbacks. At this checkpoint,
+74 pass and validate_render_effects31 is still running, without mutants. The audit passed 2,303 files,
+zero rejected, in 38.74 s. The code under validation is 607adef6.
+
+Left: finish the last validator and affected portable checks,
 before/after world proofs, one default identity sweep, latest-main integration, final docs/PR/queue/cleanup.
 
-Next step: select and run the affected validator/portable rows, then renders. One ambiguous loop-count
+Next step: finish the running effect row, run the prepared portable selection excluding
+`native/tests/test_native_app.py`, then render. One ambiguous loop-count
 anchor matched both 10 and 100; it was narrowed and only uncompleted mutants resumed. No successful
 baseline or mutant repeated. The combined comparison/mutant wall is 225.29 s.
 
