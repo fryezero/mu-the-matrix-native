@@ -582,6 +582,7 @@ void mu_objects_step(mu_objects *o, const mu_objects_step_inputs *in)
         if (mu_class_premove(o->world, image(o, i), i, o->world, 0, step_rand, &c, &pre_log))
             for (int32_t j = 0; j < pre_log.count; ++j) {
                 ++rt->sound_events;
+                if (o->sound_command && o->sound_command(o->sound_context, &pre[j])) continue;
                 if (o->sound) o->sound(o->sound_context, (int32_t)pre[j].args[0]);
             }
         for (int pass = 0; pass <= q_move; ++pass) {
@@ -649,6 +650,7 @@ void mu_objects_step(mu_objects *o, const mu_objects_step_inputs *in)
                     ++rt->particle_events;
                 } else if (m->call == MU_OBJ_CALL_SOUND) {
                     ++rt->sound_events;
+                    if (o->sound_command && o->sound_command(o->sound_context, m)) continue;
                     if (o->sound) o->sound(o->sound_context, (int32_t)m->args[0]);
                 } else if (m->call == MU_Q_STOP_SOUND) {
                     ++rt->move_unsupported;   /* StopBuffer has no native consumer; refused and counted */
@@ -1141,6 +1143,7 @@ static void consume_visual(mu_objects *o, const mu_obj_log *log)
             ++rt->draw_unsupported; /* No colour-joint hook; preserve the refusal. */
         } else if (e->call == MU_OBJ_CALL_SOUND) {
             ++rt->sound_events;
+            if (o->sound_command && o->sound_command(o->sound_context, e)) continue;
             if (o->sound) o->sound(o->sound_context, (int32_t)e->args[0]);
         } else if (e->call == MU_OBJ_CALL_PARTICLE) {
             spawn(rt, e);
@@ -1652,6 +1655,7 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
             ++rt->draw_unsupported;   /* another action's PlaySpeed: no per-action table outside 135/136 */
         } else if (e->call == MU_OBJ_CALL_SOUND) {   /* RENDER-WORLDS-AFTER3: 145 type 0x99 */
             ++rt->sound_events;
+            if (o->sound_command && o->sound_command(o->sound_context, e)) continue;
             if (o->sound) o->sound(o->sound_context, (int32_t)e->args[0]);
         }
     }

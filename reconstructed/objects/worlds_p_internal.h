@@ -3,6 +3,7 @@
 #define MU_WORLDS_P_INTERNAL_H
 #include "worlds_p.h"
 #include "worlds_b_internal.h"
+#include "audio_request.h"
 static inline float wp_bits(uint32_t u)
 {
     float f;
@@ -50,6 +51,7 @@ static inline int wp_swing(uint8_t *o, int32_t i, const mu_wp_move_inputs *in, m
         else if (t == 0x5c && f > 0.85f && 1.0f > f)
             wp_sound(log, i, 0x548);
     }
+    mu_audio_keth_request(log, in->world, t, mu_obj_u16(o, MU_OBJF_ACTION));
     const mu_wp_model *m = in->model;
     if (!m)
         return 0;
@@ -81,17 +83,20 @@ static inline int wp_gate(uint8_t *o, int32_t i, const mu_wp_move_inputs *in, mu
     if (d >= 300.0f) {
         if ((a == 1 && ended) || a == 2) {
             wp_sound(log, i, 0x55c);
+            mu_audio_keth_request(log, in->world, mu_obj_i32(o, MU_OBJF_TYPE), a);
             wp_set_action(o, m, 3);
         } else if (a == 3 && ended) {
             wp_set_action(o, m, 0);
         }
     } else if (a == 0) {
         wp_sound(log, i, 0x55b);
+        mu_audio_keth_request(log, in->world, mu_obj_i32(o, MU_OBJF_TYPE), a);
         wp_set_action(o, m, 1);
     } else if (a == 1 && ended) {
         wp_set_action(o, m, 2);
     } else if (a == 3 && ended) {
         wp_sound(log, i, 0x55b);
+        mu_audio_keth_request(log, in->world, mu_obj_i32(o, MU_OBJF_TYPE), a);
         wp_set_action(o, m, 1);
     }
     return 1;
@@ -101,6 +106,7 @@ static inline int wp_near_sound(const uint8_t *o, int32_t i, const mu_wp_move_in
 {
     if (limit >= wp_distance(o, in))
         wp_sound(log, i, id);
+    mu_audio_keth_request(log, in->world, mu_obj_i32(o, MU_OBJF_TYPE), mu_obj_u16(o, MU_OBJF_ACTION));
     return 1;
 }
 #endif
