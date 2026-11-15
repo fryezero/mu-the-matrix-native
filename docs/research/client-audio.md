@@ -824,3 +824,196 @@ mismatches/stops; ten compiled mutants caught in one 65.52 s run. Gate and
 site controls distinguish the identical-id Kethotum, Ignis and Swamp branches.
 Native delivery, decoded input smoke, affected checks and rebuilt default
 identity results are recorded in [AUDIO-004](../handoffs/AUDIO-004.md).
+
+## AUDIO-005 scalar monster owners and ordered stops, 2026-11-14
+
+Target/capture identities remain those at the opening of this document. This is
+an offline reconstruction from the pinned text/data and authored fixture state.
+No new event, request, pickup, buff or transformed-context input is admitted.
+
+### Use-controller ownership
+
+Static, exact caller evidence: `0x0107f3ed` reads its character at context `+0`,
+normalizes class byte `+0x12` through `0x0095f5cc`, then calls the physical-class
+handler `0x01080169` at `0x0107f48e` for classes 1/3/4/6/9/10/13/15. Class 7
+calls `0x0108988b` at `0x0107f53e`. The class identities are those already
+recorded in `client-skill-visual-coverage.md`, not names inferred from sound ids.
+The remaining exact sibling calls through `0x0107f612` identify the other class
+use handlers listed in `audio_caller_census.py`. Their context holds character,
+OBJECT and use/target identifiers, and their branches mix action/effect selection
+with target, buff and timing checks. This establishes the skill-use owner, not
+complete branch eligibility. Request boundaries are left opaque and unimplemented.
+
+The two requested groups contribute 22 and 8 candidates. Their reviewed siblings
+add 36, for 66 newly bucket-classified candidates. Census: 1,368 -> 1,434
+classified, 612 -> 546 unresolved, total 1,980. Skill-use buckets rise 272 -> 338;
+other owner buckets keep their AUDIO-004 counts. None of these 66 sites acquires
+a delivery admission from a literal id or its proximity to a prologue.
+
+The INNER-004 source names nested `0x00e8d888` only as a counted refusal;
+it does not implement that controller. That non-owning mention is explicitly
+excluded from reference-based classification. Its sites `0x00e8db8b` and
+`0x00e8e002` retain unresolved owner/native status and no delivery admission.
+The pinned census control checks this boundary; the 546 expectation is retained.
+
+### Complete scalar class owners
+
+The reviewed class registry selects slot `+0x70` by world. It is not a switch on
+the server monster class. `monster_audio_static.py` interprets the supported
+whole methods with only model, action and constant frame-comparison inputs.
+Stack temporaries, integer branches and bounded switch targets are checked;
+unknown fields, services, random choices and stores refuse the whole owner.
+The emitted `monster_audio_table.inc` contains semantic model/action/frame
+partitions, ordered sound arguments and class AL results, never instruction bytes.
+The independent verifier executes the original methods for every emitted row,
+edge, silent action, model control, world alias and unordered-frame control.
+
+Three fixed-world owners also execute their original world predicates. In world
+91/95 the first predicate short-circuits the alternate registry query. World 110
+uses its existing predicate. The table does not admit a neighboring class merely
+because the predicate also recognizes its world.
+
+| Owner entry | Registry worlds | Original play sites |
+|---|---|---:|
+| `0x00d733e1` | 91 | 47 |
+| `0x00dc4773` | 95 | 36 |
+| `0x00e2b963` | 110 | 13 |
+| `0x00e3960c` | 113 | 12 |
+| `0x00e5dddc` | 122 | 29 |
+| `0x00e1d4a2` | 123..127 | 23 |
+| `0x00e454b6` | 131 | 9 |
+| `0x00d83122` | 133 | 9 |
+| `0x00e3dad7` | 135 | 9 |
+| `0x00d99363` | 136 | 9 |
+| `0x00e08003` | 138 | 7 |
+| `0x00e535fa` | 141 | 8 |
+| `0x00e6b29b` | 142 | 13 |
+| `0x00e133b8` | 143 | 12 |
+| `0x00d79a29` | 145 | 9 |
+| Six complete silent methods | Registry aliases in the table | 0 |
+| Total | 21 distinct methods | 245 |
+
+The historical class-slot group has 524 candidates. Its other 279 candidates,
+in 19 distinct owners, stay outside this proof. The reproducible static report
+names each refused method and first unsupported operation. This is a proof limit,
+not a claim that all their semantics are inherently unavailable. They include
+random choices, subtype/marker `+0x60`, prior action `+0x2c`, ordered stops and
+world/handler/delegated service contexts. Shared hit/attack/death services remain
+separate from these class selectors.
+
+The complete refusal list records the first unsupported operation in each owner.
+Later branches are not partially admitted.
+
+| Owner | Registry worlds | First refusal |
+|---|---|---|
+| `0xe9e3d5` | 57, 58 | `0xe9e3df: service 0xea233c` |
+| `0xe42a9e` | 62 | `0xe42aaf: service 0xe42f6d` |
+| `0xe92b75` | 63 | `0xe92b7f: service 0xe94004` |
+| `0xdc6b34` | 64 | `0xdc6b45: service 0xdc6bfa` |
+| `0xe30389` | 82 | `0xe30393: service 0xe3068f` |
+| `0xdd2776` | 69 | `0xdd2780: service 0xdd38c5` |
+| `0xdd852c` | 70 | `0xdd8536: service 0xdd897d` |
+| `0xdde1fb` | 71 | `0xdde205: service 0xdde62f` |
+| `0xde51cf` | 72 | `0xde51d9: service 0xde5519` |
+| `0xe6dc49` | 79 | `0xe6dc53: service 0xe6eccc` |
+| `0xe1829b` | 80, 81 | `0xe182a5: service 0xe18ae9` |
+| `0xd7ec63` | 92, 96, 101, 111 | `0xd7ec6c: memory 0x1cf15fc` |
+| `0xdee2d1` | 112 | `0xdee2ea: object field 0x2c` |
+| `0xe21d13` | 115 | `0xe21ed4: service 0x1989721` |
+| `0xd5b688` | 121 | `0xd5b6a1: object field 0x2c` |
+| `0xd8aba2` | 134 | `0xd8ac27: service 0x1989721` |
+| `0xe0dac7` | 137 | `0xe0db2f: service 0x1989721` |
+| `0xda9350` | 139 | `0xda93d9: service 0x1989721` |
+| `0xe4b1c3` | 144 | `0xe4b260: service 0x1989721` |
+
+### Dispatch, callers and native limits
+
+`0x013a084d` first calls shared selector `0x013a04d6`. Its distance strictly
+above 500 returns handled before the class slot. Its six special model cases
+remain outside this table. World 51 and 56 precede the registry slot too; this
+lane adds no competing admission for them. The verifier executes this whole
+outer dispatcher with the original predicates and the original class method.
+The final external manager is an explicit recorded boundary when the class
+returns false; it is not reconstructed as another sound owner.
+
+The calls at `0x0138fb9c`, `0x01393849` and `0x0139431c` discard the dispatcher
+return value. Class requests precede the shared shock/attack/death voice; a
+handled class must not suppress that later shared voice. The first adapter draft
+made that mistake. The caller-tail comparison and final adapter retain both
+streams in order. CHARACTER `+0x3324` aliases OBJECT animation frame `+0xd0`. The caller-tail
+comparison uses the same bytes for both views. Combat requires exactly frame
+zero; SetPlayerDie stores 0.001 after those requests.
+The native completion updates only its existing cosmetic audio latch for a
+loaded model; it does not write a session/replicated character record.
+
+SetPlayerWalk calls at `0x01391c1f` after SetAction. The existing fixture motion
+adapter supplies action 2 and the preserved frame for an unchanged action, or
+frame zero for a new action. An actor without action 2 is refused before a
+walking request can be invented. MoveCharacter's call at `0x013a77da` admits actions
+0/1 only after animation. Held frame windows intentionally request repeatedly;
+the existing one-active-id manager suppresses playback. No new debounce changes
+the original request stream. Combat uses its existing per-trigger caller gates.
+
+The native hooks are single added sound-call lines and includes in shared
+routines. The adapter neither steps animation again nor changes visual RNG.
+OBJECT requests retain their session key; NULL retains key -2. Disabled readers
+drain, detached calls have no backlog, and the other cue readers keep their own
+cursors. Sound decoding/mixing, Effect-group volume and active-id policy remain
+with the existing audio engine.
+
+These later models can be presented through the existing native BY_MONSTER
+loader. Their world-specific server-class construction is separate from the
+world-0 generic class table and is not added by this audio lane. Thus the table
+and its direct native actor-host delivery are fixture-bounded; the world hooks
+operate only when an actor is already loaded with the matching model. No class
+mapping or production spawn feed is invented to make the hooks run. Model
+`0x356` is an effect-model alias with no actor. Models `0x90a..0x90c` have no
+matching files in the canonical read-only inputs and remain refused contexts.
+Those aliases share original call sites with supported models, so model refusals
+do not subtract distinct sites from the 245-site denominator.
+
+### Kubera commands
+
+Full move owner `0x00e19ed0` retains its existing model/action table, distance,
+frame and SetAction behavior. The new event annotations record only its already
+selected sound operations, preserving original argument count and call order.
+The type-47 annotation repeats the exact sound-emitting gate, so a silent
+branch cannot tag a pre-existing borrowed log entry. Prefilled-log controls
+cover action, frame, unordered frame and distance boundaries.
+
+| Original site | Operation | Existing caller gate |
+|---|---|---|
+| `0x00e1a071` | play 0x4f4, NULL, loop 0 | Type 47, distance <=900, action 1, frame <=2 |
+| `0x00e1a0a4` | play 0x4f3, NULL, loop 0 | Type 47, distance <=900, action 3, frame <=2 |
+| `0x00e1a2ba` then `0x00e1a2ca` | stop 0x4f2 then play 0x4f1 | Type 52, distance <=500, action !=2, before SetAction(1) |
+| `0x00e1a37d` then `0x00e1a38d` | stop 0x4f1 then play 0x4f2 | Type 52, distance >500, action !=0, after SetAction(3), frame >= half its keys |
+
+The new `MU_CUE_SOUND_STOP` is appended to the cue enum without renumbering old
+kinds or changing the cue layout. It carries the same routine/site/id provenance.
+The audio reader calls the existing instruction-proved SND_Stop. It does not
+load an absent sound or disguise a stop as a play. The existing native end
+callback remains deferred until System::update; the channel stops immediately.
+The full original move comparison retains OBJECT, AL, action records, RNG and
+all normalized calls, then independently compares the ordered native commands.
+
+Four play sites advance enumerated boundaries 407 -> 411 after the 245 monster
+selector boundaries. The two stop sites are listed separately, because the
+historical 1,980 denominator scans SND_Play only. This is not an interactive
+whole-client completion percentage. Guardian's three state-bound sites retain
+their fixture limit. The virtualised frame interval `0x01854279..0x018542c2`
+remains excluded and unfollowed. Final check counts and limits are in
+[AUDIO-005](../handoffs/AUDIO-005.md).
+
+### AUDIO-005 resume verification, 2026-11-15
+
+Main `6900914e` is integrated and the existing scope is now verified against
+EFFECTS-031. All 82 refreshed validators pass, 1,067,729 cases/checks, 891.54 s.
+Affected portable tests pass 1,507 with 337 explicit skips, zero failures/errors,
+416.42 s; reduced private delivery/decoded/census consumers pass 105/105, zero
+skips, 106.91 s. Both explicitly rebuilt world binaries have distinct recorded
+SHA-256s. All 92 default PNGs, 92 OBJECT/light dumps and 46 reports match main,
+140.33 s including the builds. The handoff records the initial path-setup stop
+and one unnecessary unchanged NPC mutant wrapper replay. No runtime source or
+admission changes during the resume. PR #396 remains unmerged at the final
+main check, so its actor-plan eligibility recheck stays with AUDIO-006. The
+19 whole-owner refusals, fixture limits and opaque interval remain unchanged.
