@@ -95,3 +95,20 @@ are not repeated. The new native unit control requires silence for that case.
 Post-build selection retains 68 validators and 171 portable work items. The
 8d selection exceeds the cap, so the final private run will be reduced.
 Portable/affected checks, audit and rebuilt after identity remain pending.
+
+## Main integration WIP
+
+Main advanced to `4babc900` with ACTORS-005 and WORLDS-INNER-004. Integrated at
+`a1d94d8d`; the validator append conflict preserves both audio rows and both
+incoming rows, 241 total. The integrated root build passes, 23.08 s. The
+pre-integration portable run passed 1,785 tests, 1,465 passed / 320 explicit
+skips, zero failures/errors, 507.55 s including selection. Its 171 selected
+items include 163 native modules. The corresponding integrated refresh remains
+pending, along with private affected validators and reduced private native tests.
+
+The earlier 46-view before sweep is retired because main gained intentional
+renderer changes. To isolate audio, the final identity control will compile
+exact `4babc900` inputs in this same lane worktree and restore the committed
+lane inputs in a finally block, then explicitly rebuild production mu-world.
+No build or edit is performed in the main checkout. Both binary hashes and
+control-input checks will be recorded. Shared-host load has paused these steps.
