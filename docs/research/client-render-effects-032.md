@@ -24,7 +24,7 @@ separate checks. No stopped original case is accepted as a caught mutant.
 | Skill | Original presentation slices | Recovered request or pose |
 |---|---|---|
 | 30..36 summons | Start `0x0125594d`, area selector `0x013a90c0`, end `0x013a9449` | Start sound 0x6f at 0x01255962, null owner; generic Elf magic pose; one caster-owned 0x7f84/3 effect, key/default word8 -1, other words and scale zero |
-| 18 Defense | Action fragment `0x01222f89..0x01222fb0` | SkillAction(character,18,0xd7,-1), sound 0x6f at 0x01222fa3 with null owner; default step and end, no effect request |
+| 18 Defense | Action fragment `0x01222f89..0x01222fb0` | SkillAction(character,18,0xd7,-1), sound 0x6f at 0x01222fa3 with null owner; default step cutoff and end, no effect request |
 | 49 Fire Breath | Pose helper `0x0106c453`, step `0x0139a6f8`, end `0x013aba0c` | Mount pose 0xf9; Player + action 0xf9 + frame >=5 sets AttackTime 15; 0x8001/0 owned by caster, OBJECT key +0x54 and authored global word 0x06fca278, word8 -1; sound 0x72 at 0x013aba74, null owner |
 | 44 Crescent Moon Slash | Pose `0x01256cf6`, step `0x0139a76f`, end `0x013ad798` | Pose 0x98, start sound 0x71; frame >5 sets AttackTime 15; four ordered joint/particle pairs every active step; final 0x49e/0 plus sound 0x2ad |
 | 24 / 51 / 424 | Bow pose `0x013946ee` | Kind 1/2 selects 0x7e/0x7f, wing word != -1 adds two |
@@ -38,13 +38,16 @@ the bounded native fixture schedules a finite pose with its existing timeline.
 Summons' seven learned IDs all select the same end body. Actor construction,
 which would give the summon its primary body and lifetime, belongs to the actor
 lane. The ground subtype 3 is also absent from the native effect consumer.
-One refused ground request is counted per cast. No summoned actor is fabricated.
+The default step ends AttackTime at frame >=5 for Player actions 0x6f..0x132.
+The exceptional hero item 0x815 is outside authored admission. One refused
+ground request is counted per cast. No summoned actor is fabricated.
 
 Crescent Moon Slash draws six CRT words per step. The first two jitter x/y by
 rand%30 - 15, then z increases by 20. Each of four pairs draws one rand%60 +150
 pitch, zero yaw and caster heading. The null-owned joint is 0x7fd5/0, width 10,
 key -1, skill 0 and original remaining defaults. The null-owned particle is
-0x7f3c/2 at scale 1.5. End 0x49e/0 uses the white MoveCharacter local rather
+0x7f3c/2 at scale 1.5. The ordinary Player context initializes the white MoveCharacter local at
+0x013a8847..0x013a887a, static evidence. End 0x49e/0 uses that local rather
 than OBJECT Light, caster owner and default key/word8 -1. Its consumer is absent.
 
 ## Authored admission and limits
@@ -68,7 +71,8 @@ Storm remain entirely with EFFECTS-031. Target ice is also that lane's work.
 
 ## Learned inventory after this lane
 
-Provisional until the pending checks pass. The 29 rows are the same denominator
+The original caller/mutant proof and focused native tests pass. Final affected
+checks and rendered evidence are pending. The 29 rows are the same denominator
 as EFFECTS-030, 28 learned entries plus ordinary attack. P means a bounded primary
 visual, L a visible subset with a named missing context, and M missing primary
 visuals. Request recovery alone does not promote an M row.
@@ -97,3 +101,26 @@ This lane alone moves 11 P / 5 L / 13 M to 11 P / 7 L / 11 M. Individual
 synthetic 416/424 aliases remain L, outside the 29-row denominator. Unlearned
 catalogue and other aliases retain the complete separate inventory in 030;
 none are admitted by their icon, class nibble or shared consumer.
+
+## Completed focused comparison
+
+At compiled caller inputs `cce2bca6`, the full new proof passes 4,233 checks,
+zero mismatches, with 28/28 compiled production-C mutants caught and zero
+original-machine stops, 31.32 s command wall. It includes 1,000 step, 1,000 end,
+900 start and 117 original pose cases, plus 810 authored admission controls,
+276 active-count/cap controls and 130 exact-selector controls. Thus 3,017
+checks execute original instructions; 1,216 are native policy controls.
+The combat dylib SHA-256 is
+`e706c154dcbb4b8af8e9e743ea2c8275ecf945e644cc29d5d75f1c8aedb1a3a9`.
+AUDIO-004 main integration changes no compiled inputs of this caller comparator.
+
+The first small comparison exposed the default step's frame cutoff and a missing
+synthetic hero-item region in the harness. The completed proof supplies an
+ordinary item service and implements the recovered cutoff. No stopped case from
+that exploratory run counts as evidence or as a caught mutant. Deterministic
+edge cases cover frame 1/5, both sides of every action/model range and NaN.
+
+The first native run passes all six initial fixture tests, 7.77 s. It covers all
+seven summons, shield/mount context gates, Crescent sparks and retirement, wing
+poses, wrong classes, stale/unlearned IDs, unsent casts and unchanged target HP.
+An additional malformed-context test is included in the final affected run.

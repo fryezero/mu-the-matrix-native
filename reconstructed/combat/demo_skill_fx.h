@@ -44,5 +44,6 @@ int mu_skill32_select(int32_t skill, int32_t base);
 int mu_skill32_learned(int32_t skill, const uint16_t *skills, int32_t count);
 /* -1 means no admitted pose. The bow-kind service and wing word are explicit. */
 int mu_skill32_action(int32_t skill, int32_t class_byte, const mu_skill32_context *context);
+/* Phase 0 is step, 1 is end, 2 is the bounded start sound. */
 int mu_skill32_plan_cast(mu_skill32_input *in, int end, mu_skill32_plan *out);
 #endif

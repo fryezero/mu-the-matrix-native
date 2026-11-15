@@ -1,5 +1,4 @@
 """Fixture-only remaining learned skill requests and equipment action context."""
-import ctypes as C
 import json
 import os
 from pathlib import Path
@@ -75,6 +74,10 @@ class Native(unittest.TestCase):
         for skill,weapon,kind,action in [(24,'bow',1,0x80),(51,'crossbow',2,0x81),(52,'bow',1,0x95),(416,'crossbow',2,0x96)]:
             rows=self.cast(skill,2,weapon,f'{kind},0,0,0');frames=self.assert_safe(rows)
             self.assertTrue(any(r['hero_action']==action for r in frames),(skill,frames))
+    def test_invalid_context_does_not_enable_special_poses(self):
+        for context in ['0,-1,1,0x', '0,-1,2,1', '3,-1,1,1', '0,-2,1,1']:
+            self.assertFalse(any(r.get('skill32') for r in self.cast(18,context=context,frames=6)))
+
     def test_wrong_class_stale_and_unlearned_ids_remain_refused(self):
         for skill,cls in [(47,1),(432,2),(30,1),(44,2),(18,2),(49,2)]:
             self.assertFalse(any(r.get('skill32') for r in self.cast(skill,cls,context='1,-1,1,1',frames=6)))
