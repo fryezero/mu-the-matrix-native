@@ -153,18 +153,74 @@ def census(text, data):
     return registry, sites, direct, getters
 
 
+def menu_routes(text):
+    """Every constant entry in the original 23-entry main-menu jump table."""
+    md = Cs(CS_ARCH_X86, CS_MODE_32)
+    table = 0xc7170d-TEXT_BASE
+    if len(text) < table+23*4:
+        return []
+    rows = []
+    for menu in range(23):
+        entry = struct.unpack_from('<I',text,table+4*menu)[0]
+        calls = []
+        for i in md.disasm(text[entry-TEXT_BASE:entry-TEXT_BASE+160],entry):
+            if i.address == 0xc716f0 or i.mnemonic == 'jmp':
+                break
+            if i.mnemonic == 'call':
+                calls.append(i.op_str)
+        rows.append(dict(menu=menu,entry=f'0x{entry:08x}',calls=';'.join(calls),
+                         sound_site='0x00c716f6'))
+    return rows
+
+
+def legacy_routes(text, direct):
+    """Direct legacy manager calls, with only straight-line immediate IDs joined.
+
+    A dynamic argument is left unknown. Close-all iterates IDs 1..105 in the
+    original, subject to its visibility and exclusion predicates.
+    """
+    md = Cs(CS_ARCH_X86, CS_MODE_32)
+    rows = []
+    for target, action in ((0xf2abcd,'open'),(0xf2b13e,'close'),(0xf2b53d,'close-all')):
+        for a in direct.get(target, []):
+            constants = set()
+            if action != 'close-all':
+                # Try instruction boundaries at immediate pushes only. Accept
+                # the argument only when exactly one push reaches this call,
+                # with no branch/stack adjustment/intervening argument push.
+                for start in range(max(TEXT_BASE,a-32),a):
+                    p=start-TEXT_BASE
+                    if text[p] not in (0x6a,0x68):continue
+                    seq=list(md.disasm(text[p:a-TEXT_BASE+5],start))
+                    if not seq or seq[-1].address!=a:continue
+                    value=number(seq[0].op_str)
+                    if value is None or not 0<=value<=0x100:continue
+                    if all(i.mnemonic not in ('push','pop','ret','leave') and not i.mnemonic.startswith('j') and
+                           not (i.mnemonic in ('add','sub') and i.op_str.startswith('esp')) and
+                           (i.mnemonic!='call' or number(i.op_str)==0xf2bb92) for i in seq[1:-1]):
+                        constants.add(value)
+            value=next(iter(constants)) if len(constants)==1 else None
+            rows.append(dict(site=f'0x{a:08x}',action=action,service=f'0x{target:08x}',
+                             window_id=f'0x{value:x}' if value is not None else '',
+                             id_status='constant' if value is not None else 'dynamic/unresolved' if action!='close-all' else 'loop 1..105 with predicates'))
+    return sorted(rows,key=lambda r:r['site'])
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--out', type=Path, required=True, help='private report directory')
     args = ap.parse_args()
-    registry, sites, direct, getters = census(pins.TEXT.read(), pins.DATA.read())
+    text = pins.TEXT.read()
+    registry, sites, direct, getters = census(text, pins.DATA.read())
     args.out.mkdir(parents=True, exist_ok=True)
-    for name, rows in [('registry',registry), ('services',sites)]:
+    for name, rows in [('registry',registry), ('services',sites), ('menus',menu_routes(text)), ('legacy',legacy_routes(text,direct))]:
         with (args.out/(name+'.csv')).open('w') as f:
             w = csv.DictWriter(f,fieldnames=list(rows[0])); w.writeheader(); w.writerows(rows)
     summary = dict(registrations=len(registry), services=len(sites),
                    manager_receivers=sum(s['receiver']=='manager-window' for s in sites),
                    direct_toggle_calls=len(direct.get(0xaae767, [])),
+                   legacy_calls=len(legacy_routes(text,direct)),
+                   legacy_constant_ids=sorted({r['window_id'] for r in legacy_routes(text,direct) if r['window_id']}),
                    unresolved_receivers=sum(s['receiver']=='unresolved' for s in sites),
                    text_sha256=pins.TEXT.sha256,data_sha256=pins.DATA.sha256)
     (args.out/'summary.json').write_text(json.dumps(summary,indent=2)+'\n')

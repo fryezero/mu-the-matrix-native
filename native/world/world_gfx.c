@@ -1829,7 +1829,6 @@ void world_gfx_npc_close_all(world_gfx *g)
     if (!g)
         return;
     mu_gfx_layer_npc_close(g->layer);
-    mu_gfx_layer_presentation_close(g->layer);
     g->dlg_open = 0;
     quest_dialog_visible(g, 0);
     /* NATIVE-QUEST-001: ReceiveTalk's close-all closes every GFx window, the quest windows by their handlers */

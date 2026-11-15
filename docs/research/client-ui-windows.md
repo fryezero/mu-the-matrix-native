@@ -362,3 +362,101 @@ sound parity remain unproved.
 The production hosts check 132 forged callbacks per synthetic/real host;
 all eight distinct compiled controller mutants are caught. Final proof,
 validator rows, timings and limits are in [UI-WINDOWS-003](../handoffs/UI-WINDOWS-003.md).
+
+## UI-WINDOWS-004: bulk lifecycle census and empty NPC frames
+
+This section supersedes the earlier route claims and remaining-row counts.
+The same verified text/data pins above are used. The base is UI-WINDOWS-003
+c3b29c40 plus main 4babc900, merged at d14d3a67. No live client, protected
+module, server, installed app or new data acquisition is involved.
+
+### Census method and limits
+
+`scripts/survey_ui_routes.py` scans the full pinned text for direct relative
+calls to toggle, close-all and the open/close targets in the registered
+controller vtables. It also lists every register-based virtual call encoding
+at +0x40/+0x44, keeping untyped receivers as candidates. Receiver joins start
+at a manager getter, follow register/local moves and exact field getters,
+and stop at branches or unrelated calls. A matching field offset in an
+unrelated object does not establish a manager/window identity.
+
+The registration constructor has 137 entries, including duplicate instances,
+front-end resources and aliases. The scan finds 103 direct toggle calls and
+1,042 lifecycle sites/candidates, 415 with manager-window receivers and 627
+unresolved. Those are scan counts, not whole-client window counts. Dynamic
+receivers, other virtual slot encodings, indirect calls through registers,
+uncaptured vtables, and paths outside these services remain unresolved.
+A no-route-found row means no opener was joined by this bounded scan, not
+proof that the original has none. Close and visibility queries are not
+openers. No binding is admitted from a registration/name reference alone.
+The 23 main-menu constants and legacy manager calls/constant IDs are listed
+separately, with dynamic arguments explicitly unresolved. No old NewUI movie
+alias or guessed key is promoted into a GFx binding.
+
+The machine-readable [survey](ui-window-route-survey.csv) keeps all 134
+historical rows, marks the 118 unresolved on entry and gives each a route /
+provider classification and reason. Its classifications apply to empty,
+authored presentation only, never original service completeness.
+The supplemental lifecycle ledger records addresses and receiver status;
+private reports contain no committed client bytes or movie content.
+
+### Corrected PlayGuide route
+
+The fresh registry join proves PlayGuide is +0x1f0, registration 0x00ac548a.
+Getter 0x00b3b39e returns +0x2ac, registered as EventMapEntranceUI at
+0x00ac883e. Thus Ctrl+T at 0x00efc0da and main-menu 22 at 0x00c71576 do
+not establish a PlayGuide opener. The prior lane checked the caller's toggle
+and sound instructions but failed to join the getter to the actual movie.
+The unsupported native PlayGuide key/menu routing is now refused. It remains
+a registered optional movie with no proved original opener. No event entry
+or external guide provider replaces it. This withdraws one historical binding.
+
+### Nine admitted movies, ten manager slots
+
+The existing offline NPC result callback supplies the proved manager slot.
+One table admits the following movies, with two Harmony registrations sharing
+one empty presentation. No new packet parsing or service path is added.
+
+| Movie | Manager slot | Existing original route | Empty fixture |
+|---|---|---|---|
+| GuardianMix | +0x20c | NPC presentation result 7, virtual open | No tabs, recipes, materials or result |
+| MixAttributeScalp | +0xb4 | Results 8/9, virtual open after flag | Labels, disabled item action, Close |
+| HarmonyMix | +0x264 / +0x260 | Results 0x11 / 0x13, virtual open | Empty recipe list, no options or formulas |
+| SocketMix | +0x208 | Result 0x17, virtual open | Empty list and default frame |
+| MixSel | +0xac | Results 0x18 / 0x26 / 0x27, presentation methods | Empty selector, all recipe buttons disabled |
+| ExchangeLuckCoin | +0x270 | Result 0x20, virtual open | No coins, rate, exchange or result |
+| ElementalMix | +0x204 | Result 0x29, virtual open | Empty list, materials and result |
+| MuunExchange | +0x1ac | Result 0x33, toggle | Empty one-page exchange list |
+| RuudShopFrame | +0x1fc | Result 0x35, virtual open | Empty one-page catalogue, no purchases |
+
+Original route owner is 0x01280659. Its existing instruction harness supplies
+the oracle, with manager/window and GFx services stubbed explicitly. The
+thirteen relevant result paths are compared with the compiled production
+adapter. The comparison includes repeated close-all for 8/9, open versus
+toggle and the common sound order. Selector-specific helpers are recorded
+at their boundary; their recipe and transaction internals are not executed.
+The native selector deliberately supplies an inert common first page.
+
+The graphical offline NPC host now opts into close-all, presentation open,
+then existing sound 25 followed by 28. The older headless recording callback
+contract remains available. Sound counts retain the existing core owner;
+new window controllers add no sound. The UI host previously delivered the
+sound callbacks before opening the movie. No sound sites outside this UI
+ordering correction are changed. Core `not_played` accounting still uses
+its historical OTHER-kind classification, so it is not a visible-window
+census for the new presentation adapters.
+
+Every movie has an exclusive callback allowlist. Item movement, recipes,
+exchange, purchases, paging requests, configuration, stats and unknown
+callbacks refuse before foreign NPC/item/social/command owners. Close and
+layout metadata stay local. NPC teardown and Esc close the views. English
+labels and empty providers are authored fixtures; no authoritative item,
+catalogue, currency, reward, option or eligibility data is reconstructed.
+
+Best remaining small-provider leads were reviewed conservatively.
+MiniGameHelpWindow needs its original page/content owner, and guide content
+is excluded. DivideWindow needs the selected item/count and transaction
+owner. GuildCreateFrame needs the emblem/form and create owner. These are
+left with precise missing providers rather than invented empty openers.
+Help's indirect opener, Home activation, fifth-tree inventory and event
+inventory remain refused for the reasons recorded by UI-WINDOWS-003.

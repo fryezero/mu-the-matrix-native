@@ -2733,6 +2733,8 @@ int mu_gfx_layer_key(mu_gfx_layer *L, int down, int vk, uint32_t codepoint, int 
         return 1;
     }
     if (down && presentation_key3(L,vk,mods)) return 1;
+    /* UI-WINDOWS-004: original Ctrl+T owns state-dependent EventMapEntranceUI. */
+    if (vk == 'T' && mods == 2) return 0;
     if (down && vk == 'T' && mods == 2 && presentation_open(L,MU_GFX_PLAY_GUIDE,0)) return 1;
     if (down && vk == 'H' && mods == 2) {
         if (!L->help_ready || !L->mv[MU_GFX_HELP].g || !L->mv[MU_GFX_HELP].path[0]) return 0;
@@ -3828,10 +3830,13 @@ void mu_gfx_layer_npc_close(mu_gfx_layer *L)
         mu_gfx_layer_show(L, k, 0);
     mu_gfx_layer_show(L, MU_GFX_MIX_SELECT, 0);
     mu_gfx_layer_show(L, MU_GFX_MIX, 0);
+    mu_gfx_layer_presentation_close(L);
 }
 
 int mu_gfx_layer_npc_window(const mu_gfx_layer *L)
 {
+    for (int m=MU_GFX_ELEMENTAL_MIX; L && m<MU_GFX_MOVIES; m++)
+        if (L->mv[m].g && L->mv[m].open) return m;
     if (L && L->mv[MU_GFX_MIX].open) return MU_GFX_MIX;
     if (L && L->mv[MU_GFX_MIX_SELECT].open) return MU_GFX_MIX_SELECT;
     for (int k = MU_GFX_NPC_DIALOG; L && k <= MU_GFX_STORAGE; k++)

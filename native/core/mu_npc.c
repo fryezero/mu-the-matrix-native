@@ -441,8 +441,13 @@ static void answer(mu_npc *n)
                 n->sound(n->context, (int32_t)e->args[0]);
         }
     }
+    if (!n->ordered_window_sounds)
     if (open.close_all && n->close_all)
         n->close_all(n->context);
+    if (n->ordered_window_sounds && n->close_all)
+        for (int k = 0; k < out.count; k++)
+            if (out.events[k].callee == MU_TALK_CLOSE_ALL)
+                n->close_all(n->context);
     switch (open.window.kind) {
     case MU_TALK_KIND_DIALOGUE: open.kind = MU_NPC_WINDOW_DIALOG; break;
     case MU_TALK_KIND_OPEN:

@@ -23,6 +23,10 @@ static void open_window(void *unused,const mu_npc_open *o)
 {
     (void)unused;char s[64];
     assert(mu_gfx_layer_presentation_slot(layer,o->window.slot));
+    int found=0;
+    for(int m=MU_GFX_ELEMENTAL_MIX;m<MU_GFX_MOVIES;m++)
+        if(!strcmp(FILES[m],o->window.movie)) {assert(layer->mv[m].open);++found;}
+    assert(found==1);
     snprintf(s,sizeof s,"%x:%s,",o->window.slot,o->window.method==MU_TALK_TOGGLE?"toggle":"open");strcat(trace,s);
 }
 static void npc_tail_sound(void *unused,int32_t id)

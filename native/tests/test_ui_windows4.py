@@ -84,12 +84,13 @@ class MutationSensitivity(unittest.TestCase):
         npc=(ROOT/'native/core/mu_npc.c').read_text()
         mutants=[
             ('wrong-slot','{0x204,MU_GFX_ELEMENTAL_MIX,0}','{0x184,MU_GFX_ELEMENTAL_MIX,0}',False),
+            ('wrong-movie','{0x204,MU_GFX_ELEMENTAL_MIX,0}','{0x204,MU_GFX_SOCKET_MIX,0}',False),
             ('lost-toggle','{0x1ac,MU_GFX_MUUN_EXCHANGE,1}','{0x1ac,MU_GFX_MUUN_EXCHANGE,0}',False),
             ('unready-open','if(!presentation_available3(L,r->movie)) return 0;','if(0) return 0;',False),
             ('forged-action','return !strcmp(name,"TweenTimeSet")','return 1 || !strcmp(name,"TweenTimeSet")',False),
             ('lost-close','mu_gfx_layer_show(w->L,w->id,0);','mu_gfx_layer_show(w->L,w->id,1);',False),
             ('enabled-exchange','presentation_set(L,m,"btnExchange.disabled","true");','presentation_set(L,m,"btnExchange.disabled","false");',True),
-            ('sound-before-open','if (!n->ordered_window_sounds)','if (1)',False),
+            ('sound-before-open','if (!n->ordered_window_sounds)\n            if (n->sound)','if (1)\n            if (n->sound)',False),
         ]
         with tempfile.TemporaryDirectory(prefix='mu-windows4-mutants-') as folder:
             mirror=Path(folder)/'repo';mirror.mkdir()
