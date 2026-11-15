@@ -1,6 +1,7 @@
 /* UI-WINDOWS-004. Original NPC window routes over empty local providers.
  * No inventory, recipe, currency or request owner is attached to these movies. */
 static int presentation_slot5(mu_gfx_layer *, unsigned);
+static int presentation_overlay6(int);
 typedef struct { unsigned slot; int movie, toggle; } presentation_route4;
 static const presentation_route4 PRESENTATION_ROUTES4[] = {
     {0x204,MU_GFX_ELEMENTAL_MIX,0}, {0x208,MU_GFX_SOCKET_MIX,0},
@@ -112,5 +113,5 @@ void mu_gfx_layer_presentation_close(mu_gfx_layer *L)
 {
     if(!L) return;
     for(int m=MU_GFX_ELEMENTAL_MIX;m<MU_GFX_MOVIES;m++)
-        mu_gfx_layer_show(L,m,0);
+        if(!presentation_overlay6(m)) mu_gfx_layer_show(L,m,0);
 }
