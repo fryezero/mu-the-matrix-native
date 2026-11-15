@@ -168,3 +168,20 @@ int mu_skill32_plan_cast(mu_skill32_input *s, int end, mu_skill32_plan *p)
     }
     return 1;
 }
+
+
+int mu_skill32_crescent_step(mu_skill32_input *s, const mu_sfx_env *env, mu_skill32_plan *p)
+{
+    if (!env || !env->rand || !env->call || s->cast.skill != 44 || s->cast.base != 44) return 0;
+    s->random[0] = env->rand(env->context);
+    s->random[1] = env->rand(env->context);
+    for (int pair = 0; pair < 4; ++pair) {
+        s->random[pair+2] = env->rand(env->context);
+        /* Reuse the compared scalar plan without duplicating jitter/angle math.
+         * Only this pair is emitted. Its consumers run before the next rand. */
+        mu_skill32_plan_cast(s, 0, p);
+        for (int i = pair * 2; i < pair * 2 + 2; ++i)
+            env->call(env->context, &p->calls[i].call.visual, NULL);
+    }
+    return 1;
+}

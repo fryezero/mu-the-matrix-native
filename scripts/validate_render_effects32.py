@@ -49,6 +49,7 @@ class Machine(r30.Machine):
         super().stub_entry(uc,address,size,ignored)
 def load(path):
     lib=C.CDLL(str(path));lib.mu_skill32_plan_cast.argtypes=[C.POINTER(Input),C.c_int,C.POINTER(Plan)]
+    lib.mu_skill32_crescent_step.argtypes=[C.POINTER(Input),C.POINTER(fx.Env),C.POINTER(Plan)]
     lib.mu_skill32_select.argtypes=[C.c_int32,C.c_int32]
     lib.mu_skill32_learned.argtypes=[C.c_int32,C.POINTER(C.c_uint16),C.c_int32]
     lib.mu_skill32_action.argtypes=[C.c_int32,C.c_int32,C.POINTER(Context)]
@@ -62,12 +63,12 @@ def normalized(call):
     if result[0]=='effect':result[-1][1]=call.skill
     return result
 
-def compare(text,data,lib,cases):
+def compare(text,data,lib,cases,interleave=False):
     rep=pt.Report();rng=random.Random(20261114)
     m=Machine(text,data)
-    for phase in [0,1,2]:
+    for phase in ([0] if interleave else [0,1,2]):
         for n in range(cases):
-            skill=SKILLS[n%len(SKILLS)];s=Input();s.cast.skill=s.cast.base=skill;s.cast.owner=0
+            skill=44 if interleave else SKILLS[n%len(SKILLS)];s=Input();s.cast.skill=s.cast.base=skill;s.cast.owner=0
             s.cast.model=rng.choice([0xa91,0x7b7]);s.cast.action=rng.choice([3,4,5,0x6e,0x6f,0x8f,0x98,0xf8,0xf9,0xfa,0x132,0x133])
             s.cast.attack_time=n%18;s.cast.frame=rng.choice([0.,0.999,1.,4.999,5.,5.001,6.,float('nan')])
             edges=[(0xa91,0x8f,0.999),(0xa91,0x8f,1.),(0xa91,0x8f,5.),
@@ -93,6 +94,7 @@ def compare(text,data,lib,cases):
                 am.defined_region('hero',0xa39d754,struct.pack('<I',r30.CHAR)),
                 am.defined_region('hero-ptr',0x1d1df18,struct.pack('<I',fx.HERO_DATA)),
                 am.defined_region('hero-equipment',fx.HERO_DATA+0x1c94,bytes(4))]
+            values=list(s.random)+[rng.randrange(32768) for _ in range(100)]
             client=[];rand_used=0;pose=[]
             def effect(mm):
                 client.append(['effect',mm.argument(0),mm.floats(mm.argument(1),3),mm.floats(mm.argument(2),3),
@@ -100,16 +102,22 @@ def compare(text,data,lib,cases):
             def joint(mm):
                 client.append(['joint',mm.argument(0),mm.floats(mm.argument(1),3),mm.floats(mm.argument(2),3),
                     mm.floats(mm.argument(3),3),mm.argument(4),mm.argument(5),mm.float_argument(6),
-                    [mm.argument(i) for i in range(7,14)]]);return 0
+                    [mm.argument(i) for i in range(7,14)]])
+                if interleave:
+                    for _ in range((n+len(client))%4):rand(mm)
+                return 0
             def particle(mm):
                 client.append(['particle',mm.argument(0),mm.floats(mm.argument(1),3),mm.floats(mm.argument(2),3),
-                    mm.floats(mm.argument(3),3),mm.argument(4),mm.float_argument(5),mm.argument(6),mm.argument(7)]);return 0
+                    mm.floats(mm.argument(3),3),mm.argument(4),mm.float_argument(5),mm.argument(6),mm.argument(7)])
+                if interleave:
+                    for _ in range((n+len(client))%4):rand(mm)
+                return 0
             def sound(mm):
                 ret=struct.unpack('<I',mm.uc.mem_read(mm.uc.reg_read(mm.x86.UC_X86_REG_ESP),4))[0]
                 client.append(['sound',mm.argument(0),mm.argument(1),mm.argument(2),ret-5]);return 0
             def rand(mm):
                 nonlocal rand_used
-                v=s.random[rand_used];rand_used+=1;return v
+                v=values[rand_used];rand_used+=1;return v
             def action(mm):
                 pose.append([mm.argument(i) for i in range(4)]);return 0
             stubs={fx.CREATE_EFFECT_WRAPPER:effect,fx.CREATE_JOINT:joint,fx.CREATE_PARTICLE:particle,fx.PLAY_BUFFER:sound,
@@ -126,19 +134,34 @@ def compare(text,data,lib,cases):
                 entry=0x1222f89 if skill==18 else 0x1256cf6 if skill==44 else 0x125594d
                 kw={'frame':(0x2000,{-0x18:r30.CHAR,-0x10:r30.CHAR if skill==18 else fx.OBJECTS,-0x1c:skill})}
             result=m.execute(entry,args,regions,stubs,**kw)
-            plan=Plan();supported=lib.mu_skill32_plan_cast(C.byref(s),phase,C.byref(plan))
-            mine=[normalized(plan.calls[i]) for i in range(plan.count)]
+            plan=Plan();c_used=0
+            if interleave:
+                mine=[]
+                @fx.RAND_FN
+                def c_rand(_):
+                    nonlocal c_used
+                    value=values[c_used];c_used+=1;return value
+                @fx.CALL_FN
+                def c_emit(_,pointer,effect):
+                    call=Call();call.call.visual=pointer.contents;mine.append(normalized(call))
+                    for _ in range((n+len(mine))%4):c_rand(None)
+                    return 0
+                env=fx.Env();env.rand=c_rand;env.call=c_emit
+                supported=lib.mu_skill32_crescent_step(C.byref(s),C.byref(env),C.byref(plan))
+            else:
+                supported=lib.mu_skill32_plan_cast(C.byref(s),phase,C.byref(plan))
+                mine=[normalized(plan.calls[i]) for i in range(plan.count)]
             error=None
             if vc.ok(result):
                 actual=result['regions']['character'][0x21]
                 expected=1 if phase==2 and skill!=18 else s.cast.attack_time
                 if actual!=expected:error=('time',actual,expected)
                 if not vc._same_call(client,mine):error=('calls',client,mine)
-                if phase==0 and rand_used!=plan.random_used:error=('rng',rand_used,plan.random_used)
+                if phase==0 and rand_used!=(c_used if interleave else plan.random_used):error=('rng',rand_used,c_used if interleave else plan.random_used)
                 if phase==0 and plan.limit!=struct.unpack('<i',result['regions']['cutoff'])[0]:error=('limit',plan.limit)
                 expected_pose=[] if phase!=2 or skill not in [18,44] else [[r30.CHAR,skill,lib.mu_skill32_action(skill,1,C.byref(Context(0,-1,1,1))),0xffffffff]]
                 if pose!=expected_pose:error=('pose',pose,expected_pose)
-            rep.add(['step','end','start'][phase],supported and vc.ok(result) and error is None,
+            rep.add('interleaving' if interleave else ['step','end','start'][phase],supported and vc.ok(result) and error is None,
                 dict(case=n,skill=skill,error=error,stopped=result['stopped'],machine_error=result['error']))
     return rep
 
@@ -183,6 +206,9 @@ def poses(text,data,lib,rep):
             rep.add('selector',bool(lib.mu_skill32_select(raw,base))==(raw==base and raw in SKILLS),dict(raw=raw,base=base))
 
 MUTANTS=[
+ ('pair < 4;','pair < 3;'),
+ ('s->random[pair+2] = env->rand(env->context);','s->random[pair+2] = s->random[0];'),
+ ('i < pair * 2 + 2;','i < pair * 2 + 1;'),
  ('s->cast.frame >= 1.0f','s->cast.frame > 1.0f'),
  ('s->cast.action < 0x133','s->cast.action < 0x132'),
  ('i < count && i < 150', 'i <= count && i < 150'),
@@ -206,6 +232,7 @@ MUTANTS=[
 def run(cases,mutants):
     start=time.monotonic();text=pins.TEXT.read();data=pins.DATA.read()
     lib=load(ROOT/f'reconstructed/combat/libcombat.{fx.SUFFIX}');rep=compare(text,data,lib,cases);poses(text,data,lib,rep)
+    rep.families.update(compare(text,data,lib,min(cases,200),True).families)
     out=dict(families=rep.families,mutants=[],text_sha256=pins.TEXT.sha256,data_sha256=pins.DATA.sha256,
         bodies={name:dict(start=hex(a),end=hex(b),sha256=hashlib.sha256(text[a-0x401000:b-0x401000]).hexdigest()) for name,(a,b) in BODIES.items()})
     out['all_equal']=all(f['cases']==f['equal'] for f in rep.families.values())
@@ -218,6 +245,7 @@ def run(cases,mutants):
                 dest.write_text(source.replace(old,new));path=tmp/f'm{i}.{fx.SUFFIX}'
                 subprocess.run(['clang','-std=c11','-O2','-shared','-fPIC','-ffp-contract=off','-fno-fast-math','-I',str(ROOT/'reconstructed/combat'),str(dest),'-o',str(path)],check=True,capture_output=True)
                 ml=load(path);r=compare(text,data,ml,200);poses(text,data,ml,r)
+                r.families.update(compare(text,data,ml,200,True).families)
                 failures=[f for f in r.families.values() if f['equal']!=f['cases']]
                 stops=sum(bool(e.get('stopped')) for f in failures for e in f['first_failures'])
                 out['mutants'].append(dict(index=i,detected=sum(f['cases']-f['equal'] for f in failures),stopped=stops))

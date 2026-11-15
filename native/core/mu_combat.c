@@ -1151,6 +1151,48 @@ static int skill30_plan(mu_combat *c, int end)
 }
 
 /* Caller requests only. No actor creation, mount state or consumer is invented. */
+static void skill32_emit(mu_combat *c, const mu_skill32_call *request, int phase)
+{
+    const mu_sfx_call *call = &request->call.visual;
+    uint32_t refused = c->stats.unsupported;
+    if (call->routine == MU_SFX_CALL_SOUND) {
+        uint32_t routine = phase == 2 ? (c->attack_skill == 18 ? 0x01222b6du : 0x01253a92u) : 0x013a763eu;
+        play(c, (mu_combat_audio){routine, request->call.site, call->type}, -1);
+    } else {
+        ++c->stats.skill32_requests;
+        if (call->routine == MU_SFX_CALL_JOINT)
+            create_joint(c, call->type, call->position, call->target, call->angle, call->subtype,
+                call->owner, call->scale, (uint16_t)call->arg7, (uint16_t)call->arg8);
+        else if (call->routine == MU_SFX_CALL_PARTICLE) create_particle(c, call, NULL);
+        else {
+            mu_sfx_info info = {0}; info.key = (uint16_t)call->range;
+            info.skill = (uint16_t)request->skill; info.field8 = (uint16_t)call->arg7;
+            create_effect_scaled(c, call->type, call->subtype, call->position, call->angle,
+                call->light, call->owner, &info, call->scale);
+        }
+    }
+    c->stats.skill32_refused += c->stats.unsupported - refused;
+}
+static int skill32_crescent_emit(void *context, const mu_sfx_call *call, mu_sfx_effect *effect)
+{
+    (void)effect;
+    mu_combat *c = context;
+    mu_skill32_call request = {0}; request.call.visual = *call;
+    if (call->routine == MU_SFX_CALL_PARTICLE && c->legacy_particles) {
+        /* This constructor shares the caller CRT stream. Preserve the world
+         * pool's separate native movement stream outside this request. */
+        mu_world_particles *particles = c->legacy_particles;
+        uint32_t saved = particles->rand_state;
+        uint64_t calls = particles->rand_calls;
+        particles->rand_state = c->crt_seed;
+        skill32_emit(c, &request, 0);
+        if (particles->rand_calls != calls) c->crt_seed = particles->rand_state;
+        particles->rand_state = saved;
+    } else skill32_emit(c, &request, 0);
+    return 0;
+}
+static int32_t skill32_rand(void *context) { return crt_rand(context); }
+
 static int skill32_plan(mu_combat *c, int phase)
 {
     if (!skill32_admitted(c, c->attack_skill)) return 0;
@@ -1162,30 +1204,14 @@ static int skill32_plan(mu_combat *c, int phase)
     in.object_key = (uint16_t)c->hero_key;
     /* The original global skill word is an authored visual input here. */
     in.skill_word = (uint16_t)c->attack_skill;
-    if (phase == 0 && c->attack_skill == 44)
-        for (int i = 0; i < 6; ++i) in.random[i] = crt_rand(c);
-    mu_skill32_plan_cast(&in, phase, &plan); c->hero_attack_time = in.cast.attack_time;
-    for (int i = 0; i < plan.count; ++i) {
-        const mu_sfx_call *call = &plan.calls[i].call.visual;
-        uint32_t refused = c->stats.unsupported;
-        if (call->routine == MU_SFX_CALL_SOUND) {
-            uint32_t routine = phase == 2 ? (c->attack_skill == 18 ? 0x01222b6du : 0x01253a92u) : 0x013a763eu;
-            play(c, (mu_combat_audio){routine, plan.calls[i].call.site, call->type}, -1);
-        } else {
-            ++c->stats.skill32_requests;
-            if (call->routine == MU_SFX_CALL_JOINT)
-                create_joint(c, call->type, call->position, call->target, call->angle, call->subtype,
-                    call->owner, call->scale, (uint16_t)call->arg7, (uint16_t)call->arg8);
-            else if (call->routine == MU_SFX_CALL_PARTICLE) create_particle(c, call, NULL);
-            else {
-                mu_sfx_info info = {0}; info.key = (uint16_t)call->range;
-                info.skill = (uint16_t)plan.calls[i].skill; info.field8 = (uint16_t)call->arg7;
-                create_effect_scaled(c, call->type, call->subtype, call->position, call->angle,
-                    call->light, call->owner, &info, call->scale);
-            }
-        }
-        c->stats.skill32_refused += c->stats.unsupported - refused;
+    if (phase == 0 && c->attack_skill == 44) {
+        mu_sfx_env env = {0}; env.context = c; env.rand = skill32_rand; env.call = skill32_crescent_emit;
+        mu_skill32_crescent_step(&in, &env, &plan);
+    } else {
+        mu_skill32_plan_cast(&in, phase, &plan);
+        for (int i = 0; i < plan.count; ++i) skill32_emit(c, &plan.calls[i], phase);
     }
+    c->hero_attack_time = in.cast.attack_time;
     return plan.limit;
 }
 

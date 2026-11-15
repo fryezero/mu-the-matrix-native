@@ -46,4 +46,6 @@ int mu_skill32_learned(int32_t skill, const uint16_t *skills, int32_t count);
 int mu_skill32_action(int32_t skill, int32_t class_byte, const mu_skill32_context *context);
 /* Phase 0 is step, 1 is end, 2 is the bounded start sound. */
 int mu_skill32_plan_cast(mu_skill32_input *in, int end, mu_skill32_plan *out);
+/* Emit Crescent pairs before drawing the next pitch. Consumers share CRT RNG. */
+int mu_skill32_crescent_step(mu_skill32_input *in, const mu_sfx_env *env, mu_skill32_plan *out);
 #endif

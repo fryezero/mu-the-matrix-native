@@ -3736,9 +3736,9 @@ all_mutants_caught = true
 [validate_render_effects32]
 test = "native/tests/test_render_effects32.py::Original.test_original_remaining_callers"
 pins = ["text", "data"]
-families = ["step", "end", "start", "poses", "admission", "learned", "selector"]
-cases = 1623
-mutants = 28
+families = ["step", "end", "start", "poses", "admission", "learned", "selector", "interleaving"]
+cases = 1723
+mutants = 31
 cases_at = "families.*.cases"
 mutants_at = "mutants"
 build = ["reconstructed/combat"]

@@ -124,3 +124,34 @@ The first native run passes all six initial fixture tests, 7.77 s. It covers all
 seven summons, shield/mount context gates, Crescent sparks and retirement, wing
 poses, wrong classes, stale/unlearned IDs, unsent casts and unchanged target HP.
 An additional malformed-context test is included in the final affected run.
+
+## Installed-data fixture proof
+
+Twelve scenes, before/after/repeat, pass in 63.47 s. Each uses one cast at frame
+2, stop at frame 3, Lorencia tile 182,127, a DemoTarget placement at 184,127,
+960x600 GL, 60 logic frames, save every 12 and draw every logic frame. Names
+are DemoKnight/DemoArcher. Items, other players and audio output are disabled.
+All 72 after/repeat PNG pairs are byte-identical. No cast sends a request,
+hits/kills stay zero and target HP remains constant. Models/bitmaps stay 29/39.
+An initial local invocation used the native-data directory as a game-root and
+failed before producing an image. The successful run uses canonical private-env
+with MU_GAME_ROOT, leaving MU_NATIVE_DATA_DIR as the separate read-only input.
+
+| Scene | Visual requests | Refused | Native result |
+|---|---:|---:|---|
+| Each of 30,31,32,33,34,35,36 | 1 | 1 | Caster magic pose and start sound, no summon body or ground effect |
+| 18, shield context | 0 | 0 | Recovered defense pose and sound |
+| 44 | 89 | 1 | Eleven steps of four spark joints plus four particles, then refused 0x49e/0; two sounds |
+| 49, mount context | 1 | 1 | Recovered mount action/cutoff and end sound, no fire body |
+| 51, wing/kind context | One arrow caller | 0 | Existing Ice Arrow projectile |
+| 52, wing/kind context | Charge plus one arrow caller | 2 | Existing Penetration arrow; charge and child still refused |
+
+Early-flight wing-context scenes for 51 and 52 use target 187,127 and frames
+0..11, saved at 0/3/6/9/11. All ten after/repeat PNG pairs match, 9.39 s.
+Four Ice Arrow captures and two Penetration captures change from the unwinged
+baseline. Visual inspection confirms the floating bow pose and frame-6
+projectile. The longer Penetration sample captures its idle pose after the
+projectile has retired and therefore has no changed saved PNG; the early scene
+covers the omitted interval. Crescent's frame-12 sparks and Defense's frame-12
+pose were also inspected. This is native repeatability and caller/consumer
+proof, not original GPU-image equivalence.
