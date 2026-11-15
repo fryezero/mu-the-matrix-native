@@ -58,3 +58,14 @@ validators two workers, with memory/disk floors preserved. No full lane gate or 
 Local disposable prototypes/reports live under
 `~/Documents/MTM/mu-mac-tools/native/scratch/render-items-002aa/`.
 No ready entry is written. Do not interpret this checkpoint as ready for steward.
+
+At the 11:50 checkpoint: complete extraction is byte-identical (1,991.84 s), root build passes
+(50.06 s), the 32-body row passes 83,360 checks and eight controls (577.5 s), the producer row passes
+4,460 checks and seven controls (47.1 s), and falloff passes 19,877 checks and four controls (121.2 s).
+The caller comparisons pass but the first aggregate fails on an ineffective carry control: none of
+these nine callers carries model state. The six earlier controls are caught. A replacement that clears
+the preserved entry model level is caught in 1,029 cases, with all 8,393 checks passing (28.41 s).
+Only the replacement is compiled on that rerun. The first aggregate is not reported as passing.
+No runtime behavior, comparison, tolerance or cap is changed by this control correction.
+Left: latest-main integration/build, affected portable/private checks, C-to-C, classifier,
+consumer inventory, native proofs/default identity, final docs/PR/ready line and cleanup.

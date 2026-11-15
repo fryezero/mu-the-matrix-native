@@ -3549,7 +3549,7 @@ stopped fixture address and refusal reason. Fifty candidate admissions are being
 random programs, nine low-level callers, four clock falloffs and five complete pre-draw programs.
 The denominator remains 1,674. Full finish checks are pending; the provisional total is 1,530.
 
-### Packed caller word, not a decoded-level test
+### Packed caller word
 
 The high helper callers push RenderObjDraw argument `+0x18` at `0x017e1f12` and `0x017e25ea`.
 It is the packed item-level word. For example, `0x01750a43` compares helper argument `+0x28`
@@ -3615,4 +3615,4 @@ The earlier `HERO-ITEMS-001` leads remain `0x009dadf1` for the castle-world weap
 `0x009dacb8`, and the remaining `0x01394f6f` visual scale writes (`+0x32f4`, part floats `+0x288`).
 These are static source/research pointers, without a new original-instruction comparison in this lane.
 Do not copy the older handoff's superseded inventory/record-format limits into a new scope. The stat
-machine and service state remain excluded. No hero-equipment or renderchar adapter code is changed here.
+machine and service state remain excluded. No hero-equipment or native renderchar adapter code is changed here.

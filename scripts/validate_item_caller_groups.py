@@ -26,7 +26,7 @@ MUTANTS = {
     'caller-first-bright': ('body_color(&s, 1.5f, keep | 0x240u, 1.5f, -1);', 'body_color(&s, 1.5f, keep | 0x240u, 1.0f, -1);'),
     'caller-flags': ('body_color(&s, 1.0f, keep | 0x1040u, 1.0f, -1);', 'body_color(&s, 1.0f, 0x1040u, 1.0f, -1);'),
     'caller-order': ('body_color(&s, 1.0f, keep | 0x1040u, 1.0f, -1);', ''),
-    'helper-carry': ('mu_rc_body_types[type].carry)', '0)'),
+    'caller-entry-level': ('if (level < 3 && caller_light != 0.0f) {', 'if (level < 3 && caller_light != 0.0f) { model->level_field = 0;'),
 }
 
 
