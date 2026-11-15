@@ -229,7 +229,17 @@ joint spark/5, the Remain callback whitelist, worlds-M clouds/26 and Imperial Gu
 Update the two admission tests with all new positive pairs and adjacent unsupported subtypes.
 The Remain host checks original owner/scale/position arguments and keeps its missing-hook refusal;
 the Guardian host requires positive groups of four spark joints with the original callback arguments.
-Production code and validator targets are unchanged. The five affected suites are queued for rerun.
-The reduced private run grows from nine to twelve modules to include these three changed world hosts.
+Production code and validator targets are unchanged. The five affected suites pass on focused rerun: 43 tests, 39 passed/four expected skips, 3.836 s.
+The reduced private run grows to twelve real modules to include these three changed world hosts.
+The first private attempt reports 37 entries in 165.330 s: 35 passed, one stale 97-slot bitmap assertion,
+and a mistaken `test_native_renderer` module path. Update the exact vector to 99 slots while retaining
+Map_Smoke1's world-specific zero; run the corrected fires assertion and actual `test_native_renderchar`.
+Those 25 tests pass in 13.052 s. Across the twelve real modules, all 60 unique tests pass.
+The corrected full new-validator baseline passes 66,051 checks at `26abb75d`, 255.993 s without mutants.
+Its revised sample contains 62,185 original executions and 3,815 C head-removal checks, plus the same
+51 native/census/loader checks.
+
+Main has advanced to AUDIO-004 `2b0b2716`, #388. Merge and rerun only the incoming compiled-input overlap;
+all production consumer code, bitmap/model registrations and previously successful control targets remain unchanged.
 
 Next: wait for the existing foreground check queue, then run the corrected new-row baseline without mutants.
