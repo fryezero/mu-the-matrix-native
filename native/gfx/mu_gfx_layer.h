@@ -69,7 +69,10 @@ enum { MU_GFX_MAIN, MU_GFX_INVENTORY, MU_GFX_TOOLTIP, MU_GFX_CHARACTER, MU_GFX_C
        MU_GFX_COMMAND, MU_GFX_MATCHING, MU_GFX_GENS, MU_GFX_PET_INVENTORY, MU_GFX_GREMORY,
        MU_GFX_MACRO, MU_GFX_MACRO_SUB, MU_GFX_HUNT_RECORD, MU_GFX_STORAGE_EXT,
        MU_GFX_MATCH_PARTY, MU_GFX_MATCH_GUILD, MU_GFX_GUILD_MATCH, MU_GFX_PLAY_GUIDE,
-       MU_GFX_BAG, MU_GFX_TREE5_VIEWER, MU_GFX_BLOCKED_CHAT, MU_GFX_AUTOMATIC, MU_GFX_MOVIES };
+       MU_GFX_BAG, MU_GFX_TREE5_VIEWER, MU_GFX_BLOCKED_CHAT, MU_GFX_AUTOMATIC,
+       MU_GFX_ELEMENTAL_MIX, MU_GFX_SOCKET_MIX, MU_GFX_GUARDIAN_MIX, MU_GFX_HARMONY_MIX,
+       MU_GFX_LUCK_COIN, MU_GFX_MUUN_EXCHANGE, MU_GFX_RUUD_SHOP, MU_GFX_MIX_SELECTOR,
+       MU_GFX_ATTRIBUTE_SELECTOR, MU_GFX_MOVIES };
 /* NATIVE-PROGRESS-001 adds winOption and winSystemMenu (optional KeyWindows): their channel calls, O and the
  * Esc that no other window takes go to cfg.progress_call. */
 /* NATIVE-MAP-001 adds MoveCommand (the Move window, optional); its callbacks and the base movie's other channels
@@ -80,6 +83,10 @@ enum { MU_GFX_MAIN, MU_GFX_INVENTORY, MU_GFX_TOOLTIP, MU_GFX_CHARACTER, MU_GFX_C
  * like the NPC windows.  The layer does not drive them itself: the host runs the client's window code
  * (reconstructed/quest) and passes its invokes through mu_gfx_layer_invoke / mu_gfx_layer_show; the movies'
  * callbacks go to cfg.quest_call. */
+
+/* Empty presentation for proved NPC manager slots. Returns zero if unavailable. */
+int mu_gfx_layer_presentation_slot(mu_gfx_layer *, unsigned slot);
+void mu_gfx_layer_presentation_close(mu_gfx_layer *);
 
 /* Character values the windows show (demo values until a game feeds them). */
 typedef struct mu_gfx_hero {
