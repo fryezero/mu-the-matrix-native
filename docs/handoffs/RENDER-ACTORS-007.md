@@ -145,10 +145,11 @@ compiled inputs change.
 | Initial private 8d reduced | 4/4 pass, zero skips | 448.08 s runtime / 568.19 s command, 120 s wait |
 | Batch-115 permitted portable delta | 1,541 pass / 347 expected skips, zero failures/errors | 371.3 s runner / 612.48 s command, 120 s wait |
 | Post-audio default delta | 230/230 prior after-side hashes identical | 71.26 s runtime / 161.34 s command, 90 s wait |
-| Batch-116 permitted portable delta | PENDING_RESULT | PENDING_WALL |
-| Batch-116 private 8d reduced | PENDING_RESULT | PENDING_WALL |
-| Final canonical census reproduction | PENDING_RESULT | PENDING_WALL |
+| Batch-116 permitted portable delta | 1,474 pass / 345 expected skips, zero failures/errors | 449.9 s runner / 784.21 s command, 270 s wait |
+| Batch-116 private 8d reduced | 4/4 pass, zero skips | 427.80 s runtime / 637.94 s command, 210 s wait |
+| Final canonical census reproduction | 727 / 217 / 80; both CSVs byte-identical | 8.94 s command, zero wait |
 | Final publication audit | PENDING_RESULT | PENDING_WALL |
+| Pre-INNER-005 documentation consumers | pass, one expected private skip | 9.11 s command |
 | Final documentation consumers | PENDING_RESULT | PENDING_WALL |
 
 Command walls include resource waiting and selection where stated. Heavy
@@ -161,7 +162,9 @@ so private finish runs the only native modules changed/added by this lane,
 `native.tests.test_actor_groups` and `native.tests.test_actor_plain`, from repo
 root with `. ~/Documents/MTM/mu-mac-tools/native/private-env.sh`. Portable
 runs explicitly exclude `native/tests/test_native_app.py`, leaving 180 and
-184 permitted items respectively.
+184 permitted items respectively. The AUDIO-005 delta selects 181 items /
+173 private native items, runs 180 after the same app-module exclusion, and
+also uses 8d reduced.
 
 | Steward validator | Checks | Wall | Tested commit |
 |---|---:|---:|---|
@@ -236,7 +239,9 @@ After its explicit rebuild, the same default after side is refreshed once:
 230/230 hashes match the batch-115 after side exactly, 71.26 s runtime /
 161.34 s command including 90 s wait. The saved before baseline is not rerun.
 
-Twenty-four before and twenty-four after GL proof scenes use world 0,
+The proof after side uses the batch-115 binary `1e855e52`; its actor sources
+are unchanged by AUDIO-005. Twenty-four before and twenty-four after GL
+proof scenes use world 0,
 DemoKnight at 128,124, DemoActor at 129,125, direction 5, 640x480, two frames,
 fixed clock 123456 ms, hidden names and no extra players/environment/particles/
 helpers/audio. They cover every new weapon assembly, unique constructor-state
@@ -282,27 +287,19 @@ Do not infer filenames, network/spawn state, statistics or opaque protection.
 
 ## WIP checkpoints and delivery
 
-Current WIP: 138 plans, grouped census, controls, proofs and batch-115
-validator/portable checks are done. AUDIO-005 batch-116 main `8844d3e9` is
-merged at `9d9caf9a`, preserving all audio lines and both status-note sides.
-Root build passes in 22.40 s; explicit world rebuild passes in 8.68 s runtime /
-188.68 s command, 180 s wait. Its SHA-256 is
-`e4f3d72c8d9c439fc7a14e2c0166fac20baa43891013aa2e158755bc06151d8c`.
-The input-delta selector keeps 30 prior rows (82.63 s command, 30 s wait);
-app-polish1 retains its unchanged-input pass. The current PR-wide selection keeps 33 of 249 registry rows, adding the two
-AUDIO-005 validators (223.28 s command, 90 s wait). The final replay selects
-32 rows and retains app-polish1 at its earlier unchanged-input commit. The overlapping private run passes four tests in 401.24 s runtime /
-521.36 s command but is excluded from final evidence.
-Left: portable/private delta, final audit and publication. The default after-side refresh is identical in all 230 hashes. All 32 selected rows pass (251,786 checks, 740.31 s), with one unchanged
-app-polish1 pass retained. The portable delta is waiting on the resource guard.
-Next: finish portable/private and publication checks. No ready entry exists.
+Current WIP: all actor implementation, 33 selected validators, portable work,
+reduced private actor modules, census reproduction and visual comparisons
+pass. The post-test world binary retains the identity SHA-256. Main advances
+to INNER-005 batch 117 `d3ec9950` during publication. Left: merge that main,
+build and select only incoming compiled-input deltas, then final publication.
+Next: merge and run the post-build selector. No ready entry exists.
 
 Pushed checkpoints include `99409933`, `5425914e`, `d53c7df3`, `b3edf825`,
 `967d83e4`, `73ccdc0d`, `e51eba07`, `4863ad70`, `9f096a80`,
-`9d9caf9a` and `ebcbb2da`. Early provisional row
+`9d9caf9a`, `ebcbb2da` and `74f5c2e6`. Early provisional row
 counts are superseded by the final 138-row result. PR #396 was the initial
 stack; its merged main ancestry is retained. The final delivery changes
 only documentation after the tested source. Final push and PR precede the
 single ready entry; no push follows it. The steward owns merge and combined
 validation. Own scratch/renders/builds, worktree and local branch are removed
-at readiness; the remote branch remains. Publication pending final checks.
+at readiness; the remote branch remains. Publication pending final delta checks.
