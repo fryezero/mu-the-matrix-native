@@ -758,9 +758,12 @@ static int skill32_admitted(const mu_combat *c, int32_t skill)
  * fixture has to supply the active learned entry; no default list has one. */
 static int skill35_admitted(const mu_combat *c, int32_t skill)
 {
-    if (!mu_skill35_select(skill, c->walk->hero.class_byte)) return 0;
+    const int group = mu_skill35_select(skill, c->walk->hero.class_byte);
+    if (!group) return 0;
     /* Every admitted row selects the default step body: same exceptional-item exclusion as 032. */
     if (c->weapon_item[0] == 0x12fb) return 0;
+    /* The arrow rows pose through the bow helpers: they need the authored bow kind, as 24/51/52 do. */
+    if (group == 6 && mu_skill32_action(24, c->walk->hero.class_byte, &c->skill32_context) < 0) return 0;
     const mu_skill_hero *hero = c->session ? mu_skill_book_hero(mu_session_skills(c->session)) : NULL;
     return hero && mu_skill35_learned(skill, hero->skills, hero->count);
 }
@@ -1338,6 +1341,11 @@ static int skill35_input(mu_combat *c, mu_skill35_input *in)
     in->target_word = in->target.index;
     in->model_present = 1; in->flag_7 = 1;
     in->attack_time = in->hero_attack_time = 1;   /* after the attack start that precedes the switch */
+    if (c->session) {   /* the learned-list lookup 0x016a782e, as skill30_plan answers it */
+        const mu_skill_hero *hero = mu_skill_book_hero(mu_session_skills(c->session));
+        for (int i = 0; hero && i < hero->count && i < 150; ++i)
+            if (hero->skills[i] == in->skill) { in->learned_index = i; break; }
+    }
     if (mu_skill35_select(c->attack_skill, c->walk->hero.class_byte) == 2) {
         /* Bone 17 of the hero's Player model. Only the hero's own bones are available:
          * a bone-frame row whose bone owner is another actor stays refused. */
@@ -1386,13 +1394,17 @@ static int32_t skill35_emit(mu_combat *c, const mu_skill35_plan *plan, int phase
             action = mu_player_magic_action(h->class_byte, mu_class_check(h->class_byte), rands ? rands[0] : 0);
         } else if (call->routine == MU_SKILL35_ATTACK_POSE) {
             action = hero_attack_pose(c, rands);
+        } else if (call->routine == MU_SKILL35_BOW_POSE || call->routine == MU_SKILL35_PENETRATION_POSE) {
+            /* The two bow pose helpers 0x013946ee / 0x013947d8, compared by EFFECTS-032 for 24 and 52. */
+            action = mu_skill32_action(call->routine == MU_SKILL35_BOW_POSE ? 24 : 52, c->walk->hero.class_byte,
+                                       &c->skill32_context);
         } else if (call->routine == MU_SFX_CALL_BONE || call->routine == MU_SKILL35_KEY_LIST ||
                    call->routine == MU_SKILL35_RAND) {
             continue;   /* services: bones and draws were answered in skill35_input; the key list has no native reader */
         } else if (call->routine == MU_SKILL35_ARROWS) {
             /* CreateArrows for this skill word is not a compared arrow caller: keep the request, refuse it. */
             ++c->stats.skill35_requests;
-            unsupported(c, 'a', c->weapon_item[0], call->range);
+            unsupported(c, 'a', c->weapon_item[0], call->type ? call->type : call->range);
         } else if (call->routine == MU_SFX_CALL_JOINT) {
             ++c->stats.skill35_requests;
             create_joint(c, call->type, call->position, call->target, call->angle, call->subtype,

@@ -5,10 +5,10 @@
 /* RENDER-EFFECTS-035: one table for the uniform groups. Each row is the case
  * body selected for that base skill; scripts/validate_render_effects35.py runs
  * the same body on the same authored records and compares every request. */
-enum { GROUP_A = 1, GROUP_B, GROUP_C, GROUP_D, GROUP_E };
+enum { GROUP_A = 1, GROUP_B, GROUP_C, GROUP_D, GROUP_E, GROUP_F };
 enum { DK = 1, ELF = 2, BOTH = 3 };
 enum { GUARD_NONE, GUARD_NOT_HERO, GUARD_KEYS };
-enum { POSE_NONE, POSE_ACTION, POSE_MAGIC, POSE_ATTACK };
+enum { POSE_NONE, POSE_ACTION, POSE_MAGIC, POSE_ATTACK, POSE_BOW, POSE_PENETRATION };
 enum { KEY_DEFAULT, KEY_SOURCE, KEY_TARGET, KEY_PACKET };
 typedef struct row35 {
     uint16_t skill;
@@ -61,6 +61,10 @@ static const row35 ROWS[] = {
     {432, GROUP_E, ELF, 0, GUARD_NOT_HERO, POSE_MAGIC, 0, 0, 0x7f84, 3, KEY_DEFAULT, 0, 0x6f, 0x01255962, 0},
     {2026, GROUP_E, ELF, 0, GUARD_NOT_HERO, POSE_MAGIC, 0, 0, 0x7f84, 3, KEY_DEFAULT, 0, 0x6f, 0x01255962, 0},
     {2027, GROUP_E, ELF, 0, GUARD_NOT_HERO, POSE_MAGIC, 0, 0, 0x7f84, 2, KEY_DEFAULT, 0, 0x6f, 0x01255962, 0},
+    /* F arrows: Starfall's pose and arrow end; the shared volley block of Multi-Shot and Poison Arrow */
+    {46, GROUP_F, ELF, 0, GUARD_NONE, POSE_PENETRATION, 0, 0, 0, 0, KEY_DEFAULT, 0, 0x2af, 0x013afa9e, F_TIME},
+    {235, GROUP_F, ELF, 1, GUARD_NONE, POSE_BOW, 0, 0, 0x4ba, 1, KEY_DEFAULT, 0, 0x34f, 0x01261522, 0},
+    {427, GROUP_F, ELF, 0, GUARD_NONE, POSE_BOW, 0, 0, 0x4ba, 2, KEY_DEFAULT, 0x591, 0, 0, 0},
 };
 
 static const row35 *find(int32_t skill)
@@ -137,6 +141,8 @@ static void pose(mu_skill35_plan *p, const row35 *r)
     if (r->pose == POSE_ACTION) request(p, MU_SKILL35_ACTION, r->action, r->alternative);
     else if (r->pose == POSE_MAGIC) request(p, MU_SKILL35_MAGIC_POSE, 0, 0);
     else if (r->pose == POSE_ATTACK) request(p, MU_SKILL35_ATTACK_POSE, 0, 0);
+    else if (r->pose == POSE_BOW) request(p, MU_SKILL35_BOW_POSE, 0, 0);
+    else if (r->pose == POSE_PENETRATION) request(p, MU_SKILL35_PENETRATION_POSE, 0, 0);
 }
 
 static int guarded(const row35 *r, const mu_skill35_input *s)
@@ -170,6 +176,7 @@ static void group_a(const row35 *r, const mu_skill35_input *s, mu_skill35_plan *
     if (r->second) {                                           /* 0x0125f80e: CreateArrows(c, o, 0, 0x7ff, 1, 0) */
         mu_sfx_call *c = request(p, MU_SKILL35_ARROWS, 0, 1);
         c->range = r->second; c->owner = s->source.owner;
+        p->calls[p->count-1].skill = MU_SKILL35_NO_OWNER;      /* no target OBJECT */
     }
 }
 
@@ -253,6 +260,40 @@ static void group_d(const row35 *r, const mu_skill35_input *s, mu_skill35_plan *
     effect_at(p, r->second, 0, r->flags & F_ACTION_FIRST ? &s->source : &s->target);
 }
 
+/* The volley block shared by 0x01260e6e..0x01261511 (235) and 0x01258577..0x01258c26
+ * (427): seven unowned effects on three points in front of the archer, then one
+ * owned effect that carries the archer's own client-table index. */
+static void group_f(const row35 *r, const mu_skill35_input *s, mu_skill35_plan *p)
+{
+    pose(p, r);
+    if (r->flags & F_TIME) { p->attack_time = 1; return; }     /* 46, 0x01256da0 */
+    if (r->second) p->target_link = 1;                         /* 427: source OBJECT +0x34c = target OBJECT */
+    static const struct { float offset[3]; uint16_t type; uint8_t count; } points[4] = {
+        {{0.0f, 20.0f, 0.0f}, 0x38b6, 2}, {{0.0f, 0.0f, 0.0f}, 0x38b4, 3},   /* (0, -20, 0) is overwritten with zero */
+        {{0.0f, 20.0f, 0.0f}, 0x38b5, 2}, {{0.0f, -120.0f, 145.0f}, 0, 1}};
+    const int32_t index = s->source.index < 400 ? s->source.index : 0xffff;   /* the 400-slot search */
+    float matrix[12], rotated[3];
+    for (int n = 0; n < 4; ++n) {
+        mu_angle_matrix(s->source.angle, matrix);
+        mu_vector_rotate(points[n].offset, matrix, rotated);
+        for (int k = 0; k < points[n].count; ++k) {
+            mu_sfx_call *c = effect_at(p, points[n].type ? points[n].type : r->effect,
+                                       points[n].type ? 0 : r->subtype, &s->source);
+            for (int i = 0; i < 3; ++i) c->position[i] = rotated[i] + s->source.position[i];
+            c->light[0] = 0.8f; c->light[1] = 0.9f; c->light[2] = 1.6f;
+            if (points[n].type) c->owner = MU_SKILL35_NO_OWNER;
+            else c->range = index;
+        }
+    }
+    if (r->sound) sound(p, r);
+    if (r->second) {                                           /* 0x01258c2e..0x01258d69 */
+        mu_sfx_call *c = effect_at(p, r->second, 0, &s->source);
+        c->position[2] = 145.0f + s->source.position[2];
+        c->light[0] = 0.3f; c->light[1] = 1.0f; c->light[2] = 0.1f;
+        c->range = index; c->scale = 1.0f;
+    }
+}
+
 static void group_e_start(const row35 *r, const mu_skill35_input *s, mu_skill35_plan *p)
 {
     if (s->source.class_word != 0x4d) sound(p, r);             /* 0x0125594d */
@@ -291,6 +332,13 @@ int mu_skill35_plan_cast(const mu_skill35_input *s, int phase, mu_skill35_plan *
         return 1;
     }
     if (phase == 1) {
+        if (r->skill == 46) {                                  /* 0x013afa6b */
+            mu_sfx_call *c = request(p, MU_SKILL35_ARROWS, s->skill, 0);
+            c->range = s->learned_index; c->owner = s->source.owner;
+            p->calls[p->count-1].skill = s->target.owner;
+            sound(p, r);
+            return 1;
+        }
         if (r->group != GROUP_E) return 0;
         group_e_end(r, s, p);
         return 1;
@@ -302,6 +350,7 @@ int mu_skill35_plan_cast(const mu_skill35_input *s, int phase, mu_skill35_plan *
         break;
     case GROUP_C: group_c(r, s, p); break;
     case GROUP_D: group_d(r, s, p); break;
+    case GROUP_F: group_f(r, s, p); break;
     default: group_e_start(r, s, p); break;
     }
     if (s->source_is_hero) p->hero_attack_time = p->attack_time;   /* one CHARACTER */

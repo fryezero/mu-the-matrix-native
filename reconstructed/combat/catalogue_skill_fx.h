@@ -15,7 +15,9 @@ enum {
     MU_SKILL35_MAGIC_POSE = 0x013944d9,    /* SetPlayerMagic(c, skill) */
     MU_SKILL35_ATTACK_POSE = 0x01392bde,   /* SetPlayerAttack(c) */
     MU_SKILL35_KEY_LIST = 0x009fd745,      /* push_back(type) on the owner OBJECT's +0x1dc list */
-    MU_SKILL35_ARROWS = 0x0158d5bd,        /* CreateArrows(c, o, 0, range, subtype, type) */
+    MU_SKILL35_BOW_POSE = 0x013946ee,      /* bow pose helper (c) */
+    MU_SKILL35_PENETRATION_POSE = 0x013947d8,   /* penetration pose helper (c, skill) */
+    MU_SKILL35_ARROWS = 0x0158d5bd,        /* CreateArrows(c, o, target, range, subtype, type): target = call skill word */
     MU_SKILL35_RAND = 0x01989721,          /* one CRT rand() draw at this point of the body */
     MU_SKILL35_MAX_CALLS = 40
 };
@@ -45,11 +47,12 @@ typedef struct mu_skill35_input {
     int32_t random[2];           /* the body's CRT draws, in order */
     int32_t bone_count;          /* model bone count word (+0x22) */
     float bones[2][3];           /* answers for the random-bone transforms, in order */
+    int32_t learned_index;       /* learned-list lookup 0x016a782e for the skill */
 } mu_skill35_input;
 typedef struct mu_skill35_call {
     mu_sfx_call visual;
     uint32_t site;               /* sound provenance, zero otherwise */
-    int32_t skill;               /* effect: second word; joint: fourth word after the key */
+    int32_t skill;               /* effect: second word; joint: fourth word after the key; arrows: target handle */
 } mu_skill35_call;
 typedef struct mu_skill35_plan {
     int32_t count;
@@ -57,10 +60,11 @@ typedef struct mu_skill35_plan {
     int32_t target_index;        /* target OBJECT +0x364 when written, else -1 */
     int32_t hero_byte;           /* hero data +0x2ded when written, else 0 */
     int32_t frame_reset;         /* source OBJECT +0xd0 = 0 */
+    int32_t target_link;         /* source OBJECT +0x34c = the target OBJECT */
     mu_skill35_call calls[MU_SKILL35_MAX_CALLS];
 } mu_skill35_plan;
 /* Group of an admitted row for this class byte: 1 A caster-frame, 2 B bone-frame
- * buff, 3 C triple storm, 4 D heal family, 5 E existing end body; 0 refused.
+ * buff, 3 C triple storm, 4 D heal family, 5 E existing end body, 6 F arrows; 0 refused.
  * Only exact catalogue ids are accepted: no alias, no masked brand. */
 int mu_skill35_select(int32_t skill, int32_t class_byte);
 /* 1 when the row's visual is in the position-skill receive switch. */
@@ -72,7 +76,7 @@ int mu_skill35_action(int32_t action, int32_t alternative, int32_t mounted, int3
 /* The attack-step body of an admitted row (the default 0x0139b454). Returns the
  * AttackTime cutoff (15), or 0 for a refused row. */
 int mu_skill35_step(int32_t skill, int32_t model, int32_t action, float frame, uint8_t *attack_time);
-/* Phase 0: receive case body. Phase 1: end body (group E only). Phase 2: the
+/* Phase 0: receive case body. Phase 1: end body (group E and 46). Phase 2: the
  * position-skill receive case of a row that also has a magic case (234).
  * Returns 0 for a refused row, phase or service context (mounted bone-frame rows). */
 int mu_skill35_plan_cast(const mu_skill35_input *in, int phase, mu_skill35_plan *out);

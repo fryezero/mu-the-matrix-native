@@ -24,6 +24,7 @@ ROWS = {
     425: (2, 'bow', 1, 1, 2, 2, 0xd9), 430: (2, 'bow', 1, 1, 2, 2, 0xd9), 2024: (2, 'bow', 2, 2, 2, 2, 0x106),
     432: (2, 'bow', 1, 0, 1, 0, 'magic'), 2026: (2, 'bow', 1, 0, 1, 0, 'magic'),
     2027: (2, 'bow', 6, 6, 6, 6, 'magic'),
+    46: (2, 'bow', 1, 1, 1, 1, 0x93), 235: (2, 'bow', 8, 8, 8, 8, 0x7e), 427: (2, 'bow', 9, 9, 9, 9, 0x7e),
 }
 BONE_ROWS = (1500, 1502, 1503)
 
@@ -138,6 +139,15 @@ class Native(unittest.TestCase):
             if expected[3] == 0:
                 self.assertTrue(any(r['hero_action'] == 0x9c for r in frames), skill)
 
+    def test_arrow_rows_need_the_bow_kind_and_pose_for_the_hero_too(self):
+        for skill, action in [(46, 0x93), (235, 0x7e), (427, 0x7e)]:
+            frames = self.assert_safe(self.cast(skill, 2, 'bow'))
+            self.assertTrue(any(r['hero_action'] == action for r in frames), skill)
+            self.assertIsNone(self.plan(self.cast(skill, 2, 'sword', frames=6)), skill)
+        unsupported = next(r for r in self.cast(46, 2, 'bow') if 'combat_unsupported' in r)['combat_unsupported']
+        self.assertEqual([u[0] for u in unsupported], ['a'])
+        self.assertEqual(unsupported[0][2], 46)
+
     def test_recovery_needs_a_target_model_service(self):
         # 234 reads the target model's bone count and two random bones. Only the hero's model answers.
         for context, expected in [(None, (1, 0, 0, 1)), ('0,1', (1, 25, 25, 0)), ('1,1', (1, 26, 26, 0))]:
@@ -154,7 +164,7 @@ class Native(unittest.TestCase):
             self.assertIsNone(self.plan(self.cast(skill, cls, weapon, learn=False, frames=6)), skill)
         for skill, cls in [(1500, 2), (77, 1), (2023, 1), (425, 1), (432, 1)]:
             self.assertIsNone(self.plan(self.cast(skill, cls, 'bow', frames=6)), skill)
-        for skill, cls in [(46, 2), (76, 1), (232, 1), (235, 2), (426, 2), (427, 2), (723, 1), (813, 1),
+        for skill, cls in [(76, 1), (232, 1), (426, 2), (723, 1), (813, 1),
                            (1501, 1), (2040, 1), (2043, 1), (441, 2), (801, 1), (1129, 1)]:
             self.assertIsNone(self.plan(self.cast(skill, cls, 'bow' if cls == 2 else 'sword', frames=6)), skill)
 
