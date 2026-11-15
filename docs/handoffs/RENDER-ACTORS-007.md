@@ -21,6 +21,9 @@ Left: run
 compiled controls and affected checks, produce representative renders and
 replay the rebuilt identity sweep. No final test/count claim yet.
 
+Main through `6900914e` is integrated at `f8c9753a`; its EFFECTS-031
+changes are separate from actor identity changes.
+
 Next step: run the final new-row private comparison and twenty compiled
 controls, then the selected validators and portable/private modules. Keep sword sprites, type-226 consumer lifetimes and
 374/378/617/642 refusal boundaries outside admissions without their evidence.

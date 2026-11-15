@@ -122,6 +122,8 @@ def main():
     parser.add_argument('--groups-ready', action='store_true', help='include ACTORS-007 checked NPC/hand-link plans')
     parser.add_argument('--plain-ready', action='store_true', help='include ACTORS-006 checked single-body plans')
     args = parser.parse_args()
+    if args.groups_ready and not args.plain_ready:
+        parser.error('--groups-ready requires --plain-ready')
     records, openers, static = collect()
     lib = recipes.library(recipes.LIBRARY)
     lib.mu_monster_class_find.argtypes = [C.c_uint32]
