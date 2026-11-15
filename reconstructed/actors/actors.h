@@ -253,4 +253,15 @@ typedef struct mu_actor_body_plan {
 } mu_actor_body_plan;
 int mu_actor_plain_plan(int32_t server_class, mu_actor_body_plan *out);
 
+/* RENDER-ACTORS-007: exact files, texture directories and ordinary hand links.
+ * Constructor appearance overrides and extra caller services remain excluded. */
+typedef struct mu_actor_group_body_plan {
+    mu_actor_body_plan body;
+    const char *file, *textures;
+    uint32_t weapon_mask;
+    int32_t blend_mesh, hidden_mesh;
+    uint32_t blend_light_bits, subtype;
+} mu_actor_group_body_plan;
+int mu_actor_group_plan(int32_t server_class, mu_actor_group_body_plan *out);
+
 #endif
