@@ -1,6 +1,7 @@
 /* Kubera Mine, worlds 123..127 (predicate 0x00e1e4b6). Create 0x00e19bb3 (type table 0x00e19dfb/0x00e19e1b),
  * move 0x00e19ed0, visual 0x00e1b5fb. */
 #include "worlds_q_internal.h"
+#include "audio_request.h"
 
 static int kubera_world(int32_t world) { return world >= 0x7b && world <= 0x7f; }
 
@@ -90,6 +91,7 @@ static void stop_sound(mu_obj_log *log, int32_t i, uint32_t id)
     mu_obj_event *e = wb_event(log, MU_Q_STOP_SOUND, i);
     wb_arg(e, id);
     wb_arg(e, 1);
+    mu_audio_kubera_request(log);
 }
 
 /* WorldTime-independent countdown at +0xb4 by the frame time. */
@@ -115,6 +117,7 @@ int mu_kubera_move(uint8_t *o, int32_t index, const mu_q_inputs *in, mu_obj_log 
                 wb_sound(log, index, 0x4f4, 0, 0);
             else if (action == 3 && mu_obj_f32(o, MU_OBJF_FRAME) <= 2.0f)
                 wb_sound(log, index, 0x4f3, 0, 0);
+            if ((action == 1 || action == 3) && mu_obj_f32(o, MU_OBJF_FRAME) <= 2.0f) mu_audio_kubera_request(log);
         }
         step_actions(o, table, count, in);
         break;
@@ -126,6 +129,7 @@ int mu_kubera_move(uint8_t *o, int32_t index, const mu_q_inputs *in, mu_obj_log 
             if (mu_obj_u16(o, MU_OBJF_ACTION) != 2) {
                 stop_sound(log, index, 0x4f2);
                 wb_sound(log, index, 0x4f1, 0, 0);
+                mu_audio_kubera_request(log);
                 q_set_action(in, o, 1);
                 if (q_action_ended(o, record_of(table, count, o)))
                     q_set_action(in, o, 2);
@@ -136,6 +140,7 @@ int mu_kubera_move(uint8_t *o, int32_t index, const mu_q_inputs *in, mu_obj_log 
             if (mu_obj_f32(o, MU_OBJF_FRAME) >= (float)(q_keys(record) / 2)) {
                 stop_sound(log, index, 0x4f1);
                 wb_sound(log, index, 0x4f2, 0, 0);
+                mu_audio_kubera_request(log);
             }
             if (q_action_ended(o, record))
                 q_set_action(in, o, 0);

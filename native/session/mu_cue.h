@@ -34,7 +34,8 @@ typedef enum mu_cue_kind {
     MU_CUE_ANSWER,               /* the server answered an intent kind: accepted or refused with a code */
     MU_CUE_UNHANDLED,            /* development: a frame whose route has no apply function (counted, journaled) */
     MU_CUE_CALL,                 /* a client routine the handler called that no typed cue covers yet (address + args) */
-    MU_CUE_AUDIO_INPUT          /* unresolved input for a sound decision, u.sound.id = missing routine */
+    MU_CUE_AUDIO_INPUT,         /* unresolved input for a sound decision, u.sound.id = missing routine */
+    MU_CUE_SOUND_STOP           /* SND_Stop(id); same sound provenance payload */
 } mu_cue_kind;
 
 typedef enum mu_window_verb { MU_WINDOW_OPEN = 1, MU_WINDOW_SHOW, MU_WINDOW_CLOSE, MU_WINDOW_CLOSE_ALL,
