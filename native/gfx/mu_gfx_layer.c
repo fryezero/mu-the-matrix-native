@@ -408,7 +408,8 @@ static const char *const FILES[MU_GFX_MOVIES] = {"main", "InventoryFrame", "Info
                                                  "MatchingParty", "MatchingGuild", "Guildmatching_2024", "PlayGuide",
                                                  "ExtensionBagFrame", "SkillTree5thItemViewer", "BlockedChat", "AutomaticMacro",
                                                  "ElementalMix", "SocketMix", "GuardianMix", "HarmonyMix",
-                                                 "ExchangeLuckCoin", "MuunExchange", "RuudShopFrame", "MixSel", "MixAttributeScalp"};
+                                                 "ExchangeLuckCoin", "MuunExchange", "RuudShopFrame", "MixSel", "MixAttributeScalp",
+                                                 "PersonalShop", "ArtifactFrame", "DuelWatch"};
 
 static void presentation_shown(mu_gfx_layer *, int, int);
 static void presentation_shown3(mu_gfx_layer *, int, int);
@@ -1477,6 +1478,7 @@ static const char *on_call_(movie *mv, const char *name, const char *args)
             L->cfg.quest_call(L->cfg.tooltip_user, mv->id, name, args);   /* NATIVE-QUEST-001: the handler's OnLoad */
         return NULL;
     }
+    if (presentation_parent5(mv,name)) return NULL;
     if (presentation_parent3(mv,name,args)) return NULL;
     if (presentation_movie(mv->id)) {
         presentation_call(mv, name, args, v, n);
@@ -1774,6 +1776,7 @@ static const int WINDOW_ALIGN[MU_GFX_MOVIES] = {
     [MU_GFX_ELEMENTAL_MIX] = 9, [MU_GFX_SOCKET_MIX] = 9, [MU_GFX_GUARDIAN_MIX] = 9,
     [MU_GFX_HARMONY_MIX] = 9, [MU_GFX_LUCK_COIN] = 9, [MU_GFX_MUUN_EXCHANGE] = 9,
     [MU_GFX_RUUD_SHOP] = 9, [MU_GFX_MIX_SELECTOR] = 9, [MU_GFX_ATTRIBUTE_SELECTOR] = 9,
+    [MU_GFX_PERSONAL_CATALOG] = 9, [MU_GFX_ARTIFACT] = 9, [MU_GFX_DUEL_WATCH] = 9,
     [MU_GFX_OPTION] = 9, [MU_GFX_SYSTEM_MENU] = 9, [MU_GFX_HELP] = 9
 };
 

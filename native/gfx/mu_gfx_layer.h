@@ -72,7 +72,7 @@ enum { MU_GFX_MAIN, MU_GFX_INVENTORY, MU_GFX_TOOLTIP, MU_GFX_CHARACTER, MU_GFX_C
        MU_GFX_BAG, MU_GFX_TREE5_VIEWER, MU_GFX_BLOCKED_CHAT, MU_GFX_AUTOMATIC,
        MU_GFX_ELEMENTAL_MIX, MU_GFX_SOCKET_MIX, MU_GFX_GUARDIAN_MIX, MU_GFX_HARMONY_MIX,
        MU_GFX_LUCK_COIN, MU_GFX_MUUN_EXCHANGE, MU_GFX_RUUD_SHOP, MU_GFX_MIX_SELECTOR,
-       MU_GFX_ATTRIBUTE_SELECTOR, MU_GFX_MOVIES };
+       MU_GFX_ATTRIBUTE_SELECTOR, MU_GFX_PERSONAL_CATALOG, MU_GFX_ARTIFACT, MU_GFX_DUEL_WATCH, MU_GFX_MOVIES };
 /* NATIVE-PROGRESS-001 adds winOption and winSystemMenu (optional KeyWindows): their channel calls, O and the
  * Esc that no other window takes go to cfg.progress_call. */
 /* NATIVE-MAP-001 adds MoveCommand (the Move window, optional); its callbacks and the base movie's other channels

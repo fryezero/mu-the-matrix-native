@@ -480,3 +480,69 @@ movie. Registry presence and original-route admission remain different counts.
 
 The [handoff](../handoffs/UI-WINDOWS-004.md) records compiled mutants,
 native journey provenance, check wall times and the exact steward selection.
+
+## UI-WINDOWS-005: provider groups and intermediate routes
+
+Base main `6900914e`; text/data pins at the top of this document are unchanged.
+The [17-row provider ledger](ui-window-provider-groups.csv) records the exact
+missing piece, reviewed movie methods, refusal and sound boundary for each row.
+Groups on entry are two catalogues, six item/detail views, one mix view, two
+forms, three HUD/notices, one account shop, one guide and one recovery list.
+Labels and lists recovered for admission are authored English empty fixtures.
+No original catalogue, option, item, entitlement or server record is published.
+
+### Second static pass
+
+`scripts/survey_ui_indirect.py` retains manager/window identity across branches
+and local saves, resolves method loads followed by register calls, and follows
+one intermediate UI controller method with its proved receiver. A virtual call
+requires the vtable and `this` to identify the same window. Unknown register
+writes kill facts; calls clobber volatile registers. Path-local states avoid
+joining identities from different branch arms. Search limits are 1,024 bytes,
+240 instructions and 2,048 states per manager root; intermediate exploration is
+cached by method/slot. This is a bounded static search, not complete call-graph
+recovery. Dynamic IDs, untyped callback dispatch, uncaptured function pointers
+and script routes without a captured controller join remain unresolved.
+
+The pass starts at 6,708 direct manager calls. It finds 485 lifecycle sites,
+70 additional to 004. The [address ledger](ui-window-indirect.csv) records
+manager root, terminal site, movie, slot and action. These extra sites prove
+open/toggle routes for 21 entry no-route rows. Movie casing differs in some
+registrations, so the survey join uses the proved manager slot, never a guessed
+filename alias. Registration names alone still do not admit windows.
+The original 30 state-dependent rows retain their classification and refusals.
+
+### Admitted providers and boundaries
+
+| Movie | Original route | Native fixture |
+|---|---|---|
+| PersonalShop | NPC result 0x30; +0x164 toggle; menu 7 -> 0x00c73603 -> 0x00c73688 | Empty shop/item/search lists; authored child headers; two local tabs; search, community, purchases and item actions refuse |
+| ArtifactFrame | Inventory `onClickArtifact`, 0x00b97ebe..0x00b97ee4; getter 0x00981423 -> +0x280 toggle | Empty hex slots and option tree; one page; no artifact records, option bonuses, expand/page or slot operations |
+| DuelWatch | NPC result 0x21 -> +0xe0 method 0x00b54793 -> original open tail 0x00b548ef..0x00b548f7 | Four authored empty match rows, each watch button disabled; no match list or entry request |
+
+The table-driven production adapter preserves toggle versus open and refuses
+missing readiness. Inventory callback consumption happens before foreign item
+handlers and requires the inventory to be visible. Close, Esc and NPC teardown
+are local. PersonalShop's original movie changes its tab before its callback;
+that callback receives only empty lists and cannot request a catalogue.
+
+NPC routes keep the existing close-all, controller, sound 25 then sound 28
+order. Menu 7 retains the original common sound-25 site `0x00c716f6`. The
+artifact callback arm contains no direct sound. New controllers add none;
+unowned nested GFx sounds remain outside the claim.
+
+### Current classifications
+
+The 118 rows classified by 004 change from 9 complete / 17 provider-missing /
+30 state-dependent / 62 no-route to 12 / 35 / 30 / 41. Twenty newly proved
+rows remain provider-missing; DuelWatch is the twenty-first and is admitted.
+The historical survey rises 24 -> 27 bound of 134, unresolved 110 -> 107.
+The separately withdrawn PlayGuide row remains no-route and unbound.
+Registry entries rise 57 -> 60; distinct filenames 56 -> 59.
+
+Help/F1, Home activation, separate fifth-tree inventory and event-inventory
+openers stay refused. No macro timing/configuration, hunting history, matching
+catalogue, storage authority, guide content, transactions, stat formulas or
+power features are implemented. A proved lifecycle method is not proof of its
+upstream request/state, so the new route discoveries retain those missing
+providers instead of acquiring invented keys or native triggers.

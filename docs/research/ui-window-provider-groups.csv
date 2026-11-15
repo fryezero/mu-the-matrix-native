@@ -1,0 +1,18 @@
+movie,group,missing_on_entry,provider_result,disposition,route_sound_or_limit
+ArtifactFrame,item/detail,hex-slot rows; option tree; page labels,InitText; SetSlotData([]); SetOptionListData(empty root); one page,admitted,Inventory onClickArtifact 0x00b97ed1; no direct sound
+Pentagram,item/detail,selected item owner/index; socket grid; option labels,not recovered,refused,item context required before/after open; no guessed empty click
+SlottedWingInfo,item/detail,selected wing owner/index; socket rows and option text,not recovered,refused,item context required before/after open; no power records
+DivideWindow,item/detail,selected source item/container; maximum count; split confirmation owner,SetText contract reviewed; source/count absent,refused,0x00ab8754 setup precedes open; no synthetic split transaction
+MonsterSoulReward,item/detail,selected monster-soul item; reward-type list; selection owner,SetText/SetRewardType reviewed; source absent,refused,0x00abca17 source setup precedes open; reward actions excluded
+PersonalShopCaution,item/detail,product rows; slot count; confirm/cancel owner,SetText/SetProductInfo reviewed; source absent,refused,confirmation belongs to a pending purchase; no transactions
+PersonalShop,catalogue,title/item/search label tables; three list providers,SetText and child labels; all three lists empty; search disabled,admitted,NPC 0x30 close/open/sound25/sound28; menu7 sound25; no extra UI sound
+RebuyList,catalogue,sold-item history/list; price rows; buy-back owner,not recovered,refused,0x0127a4d1 response reads result byte and invokes +0xf4 provider; no history
+MUMix,mix,category tree; page factory; optional slot blocks; selection owner,InitText/category/default-page contract reviewed; selector bridge absent,refused,0x00bd06ae index1 arm opens only after competing mix visibility checks; no guessed selector
+GuildCreateFrame,form,intro/name/mark/check form; emblem rows; create owner,InitText/ClearText contract reviewed; form/trigger absent,refused,0x0122bea4 standalone response opener; no guild create requests
+NpcGateKeeper,form,entry rule/fee labels; fee selection; confirmation owner,InitText/SetEnterFeeZen contract reviewed; context absent,refused,legacy manager id0x18 -> +0x110; fee/entry operations excluded
+BossHpUI,hud/notice,boss owner(s); HP/max/name rows; visibility lifecycle,DeleteAll/SetBossInfo reviewed; boss provider absent,refused,0x00984a2a visibility depends on target owner 0x00983b80; no invented HP
+MapName,hud/notice,map label and occupation/strife strings; arrival trigger,SetMapName/SetOccupyGuild reviewed; arrival feed absent,refused,open sites are response/world-state owners; local world-location is not proof of same lifecycle
+SwitchMode,hud/notice,screen image; refresh timing; macro/level progress; lifecycle,SetText/AttachScreenImage reviewed; screen/timing owner absent,refused,0x012805a0 result-byte opener; screen refresh/configuration excluded
+IngameShop,account,external account catalogue/search/gift loader and transaction owner,not recovered,refused,0x01249ab9 is response-dependent; account catalogue and purchases excluded
+MiniGameHelpWindow,guide,original per-game help/content and page owner,SetTextInfo contract reviewed; content absent,refused,0x00bcc93d callback toggles +0x278; guide content excluded
+DeathPenaltyExpRecovery,recovery,death-recovery history; daily entitlement; priced recovery list,Initialize/RefreshList reviewed; source absent,refused,0x00c5a4cd open needs recovery owner; no XP/power/transactions
