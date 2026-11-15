@@ -153,7 +153,7 @@ recorded in the handoff.
 The verified fixture boundary moves **11 P / 7 L / 11 M to 14 P / 6 L / 9 M**.
 P is bounded primary presentation, L a visible subset, M missing primary
 presentation. It is not a whole-client fidelity score or an eligibility claim.
-Swell Life is a reassessment of the combined 031 consumers and 030/032 callers,
+Swell Life is a reassessment of the combined 031 consumers and 030 caller,
 not a newly authored consumer in this lane.
 
 | Skill | Before -> after | Current boundary |

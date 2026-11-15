@@ -163,3 +163,25 @@ Next step: inspect verify-runs/delta115 and merge115-validators.log. The task
 scripts selected_tests.py, private_tests.py, fixtures.py and identity.py are
 ready in the lane scratch directory. Keep source fixed unless a check finds a
 real issue. Do not repeat completed compiled controls.
+
+## WIP checkpoint 6, 12:00 local
+
+Done: source and verified consumer boundaries remain unchanged. Twenty-six
+of the 93 merge-delta rows have passed, no failures. The active rows at this
+checkpoint are item pre-draw and hidden mesh, both still using CPU; the longer
+carry, quality, derived, owner-effect, helper, pet and raven rows passed.
+The updated table credits Swell Life to the combined 030 caller and 031
+consumers. The initial 82-row coverage and 45 new plus three refreshed compiled
+controls remain valid; no successful control is repeated.
+
+Left: finish merge delta, portable affected, canonical-private reduced native
+modules, actual-asset skill renders and final rebuilt identity, latest-main
+check, final docs/status, PR/ready line and cleanup. No PR or ready line exists.
+Keep the running gate's C inputs fixed. Read its live output at
+verify-runs/delta115 or the lane scratch merge115-validators.log.
+
+Next step: finish the current command, then run selected_tests.py with
+MU_RECOVERY_INTEGRATION=0 and private_tests.py with canonical private-env.
+The latter includes changed incoming actor/Muun modules and their changed-host
+reader, alongside the three owned native test modules. Recheck current main
+before the final renders; no installed app action is authorized.
