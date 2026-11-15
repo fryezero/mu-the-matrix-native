@@ -393,6 +393,10 @@ The 23 main-menu constants and legacy manager calls/constant IDs are listed
 separately, with dynamic arguments explicitly unresolved. No old NewUI movie
 alias or guessed key is promoted into a GFx binding.
 
+The [service candidates](ui-window-services.csv), [menu entries](ui-window-menus.csv)
+and [legacy calls and IDs](ui-window-legacy.csv) preserve the supplemental
+address ledgers. There are 176 legacy calls and 47 recovered immediate IDs.
+
 The machine-readable [survey](ui-window-route-survey.csv) keeps all 134
 historical rows, marks the 118 unresolved on entry and gives each a route /
 provider classification and reason. Its classifications apply to empty,
@@ -436,6 +440,9 @@ adapter. The comparison includes repeated close-all for 8/9, open versus
 toggle and the common sound order. Selector-specific helpers are recorded
 at their boundary; their recipe and transaction internals are not executed.
 The native selector deliberately supplies an inert common first page.
+Static helper tails confirm virtual open at 0x00bd73e9, 0x00bd746b and
+0x00bd7138. The last has an original eligibility gate before that tail; the
+offline fixture supplies eligibility, with no stat computation or authority.
 
 The graphical offline NPC host now opts into close-all, presentation open,
 then existing sound 25 followed by 28. The older headless recording callback
@@ -460,3 +467,16 @@ owner. GuildCreateFrame needs the emblem/form and create owner. These are
 left with precise missing providers rather than invented empty openers.
 Help's indirect opener, Home activation, fifth-tree inventory and event
 inventory remain refused for the reasons recorded by UI-WINDOWS-003.
+
+### Current counts
+
+Of the 118 unresolved rows on entry: 9 route proved + provider complete,
+17 route proved + provider missing, 30 state-dependent and 62 no route
+found. Nine become bound, while the incorrect inherited PlayGuide binding
+is withdrawn. The historical 134-row survey therefore changes from
+16 bound / 118 unresolved to 24 bound / 110 unresolved. The native registry
+has 57 entries / 56 filenames, including the unbound optional PlayGuide
+movie. Registry presence and original-route admission remain different counts.
+
+The [handoff](../handoffs/UI-WINDOWS-004.md) records compiled mutants,
+native journey provenance, check wall times and the exact steward selection.
