@@ -1815,6 +1815,8 @@ void world_gfx_npc_open(world_gfx *g, const mu_npc_open *o, const char *label)
         for (int i = 0; i < g->npc_storage_count && n < MU_NPC_ITEMS; i++)
             item_info(g, g->npc_storage[i].code, g->npc_storage[i].level, &items[n++]);
         mu_gfx_layer_storage(g->layer, "Vault", items, n);
+    } else if (mu_gfx_layer_presentation_slot(g->layer,o->window.slot)) {
+        /* UI-WINDOWS-004: existing offline NPC result, empty presentation only. */
     } else if (o->window.slot == 0xb0) {
         mu_gfx_layer_mix_action(g->layer, "goblin", 0, 0);
     } else if (o->window.slot == 0xa8) {
