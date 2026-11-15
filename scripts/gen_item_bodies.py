@@ -236,7 +236,7 @@ LEVEL_SPLIT += RANDOM_LEVEL_TYPES
 REMAINDER_TYPES = list(CALLER_TYPES) + REMAINDER_PROGRAM_TYPES + FALLOFF_TYPES + RANDOM_LEVEL_TYPES
 RANDOM_LEVEL_CARRY = [0x1712, 0x1713, 0x1714, 0x1715, 0x1716, 0x1717, 0x1722, 0x1723, 0x1724, 0x1725, 0x1726, 0x1727, 0x172c, 0x172d, 0x172e, 0x172f, 0x1730, 0x1731, 0x174c, 0x174d, 0x174e, 0x174f, 0x1750, 0x1751]
 REMAINDER_CARRY = REMAINDER_PROGRAM_TYPES + RANDOM_LEVEL_CARRY
-# RENDER-ITEMS-002AB (part 42): helper level guards without body random. PACKED_GUARD_TYPES take the 002AA signed
+# RENDER-ITEMS-002AB (part 43): helper level guards without body random. PACKED_GUARD_TYPES take the 002AA signed
 # packed-word form (cmp [ebp+0x28], 9). DECODED_GUARD_TYPES take the wing form at 0x016e226a..0x016e6627: the word
 # is not -1 and its decoded level (0x016a78c9: sar 3, and 0xf) is at least eleven. level_guards() reads every
 # instruction of both forms for every listed type before a recipe is fitted.

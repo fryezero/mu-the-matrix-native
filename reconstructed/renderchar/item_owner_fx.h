@@ -31,7 +31,7 @@
  * 45 select r[a] = r[c + r[b] / 4] (r[b] a byte offset below 4d)   46/47 particle  as 14/25 with bitmap r[k], argument 8
  *           r[k+1]   48 bitmap  the next request's bitmap is r[a]   49 owner item transform  r[a..a+2] =
  *           0x012b6ef1(OBJECT bone k matrix (0x0129f12c), local r[c..c+2], translate e)
- * RENDER-ITEMS-002AB (part 42): 51 level  r[a] = (RenderObjDraw level argument >> 3) & 15, the local [ebp-0xac]
+ * RENDER-ITEMS-002AB (part 43): 51 level  r[a] = (RenderObjDraw level argument >> 3) & 15, the local [ebp-0xac]
  */
 typedef struct { uint8_t op; uint16_t a, b, c, d; uint8_t e; uint32_t k; } mu_rc_fx_op;
 static const mu_rc_fx_op mu_rc_fx_ops[] = {
