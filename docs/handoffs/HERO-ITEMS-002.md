@@ -1,7 +1,7 @@
 # HERO-ITEMS-002
 
-Branch/worktree `claude/hero-items-002` from main `c5b9d5ca`; main `c255e4dd` (batch 119) merged as `bf13802a`
-(Claude Fable 5.2, effort high). Offline and static only: no live client, launcher, network, protection or
+Branch/worktree `claude/hero-items-002` from main `c5b9d5ca`; main `c255e4dd` (batch 119), `bb86bbf7` (batch 120)
+and `c49fa188` (batch 121) merged as `bf13802a`, `2c032a80` and `5733b701` (Claude Fable 5.2, effort high). Offline and static only: no live client, launcher, network, protection or
 character-power work, no installed-app work, no hosted workflow. No full gate in the lane (test budget).
 
 Scope: the end of SetCharacterClass `0x01394870` for the hero, which HERO-ITEMS-001 left stubbed.
@@ -43,7 +43,9 @@ when one of these applies.
 Env: `. ~/Documents/MTM/mu-mac-tools/native/private-env.sh` from the repository root, plus `MU_RECOVERY_INTEGRATION=1`
 and `MU_EVIDENCE_DIR=$HOME/Documents/MTM/mu-the-matrix-native/evidence`. Heavy steps ran with `nice -n 10`,
 `make -j4`, `--jobs 2`. Code commits: `513f989f` (last lane code change), `2c032a80` (main `bb86bbf7` merged; the
-merge touched none of the lane's files). Later commits are docs.
+merge touched none of the lane's files) and `5733b701` (main `c49fa188` merged: UI-WINDOWS-006 adds two
+`world_gfx_map_arrival` calls to `world_rt.c`'s travel and one to `parts/combat.c`, outside the hero loader).
+Later commits are docs.
 
 | Check | Result | Wall |
 |---|---|---:|
@@ -52,10 +54,13 @@ merge touched none of the lane's files). Later commits are docs.
 | Head table inside head_rows | 17 listed helms × 256 class bytes: 4,352 rows, 4,352 head draws, 0 row mismatches; 23 control rows × 16: 368 rows, 0 head draws | (in the row above) |
 | `run_validators.py --private --no-mutants --cache --affected origin/main --jobs 2` at `5a8d9baf` / `513f989f` (before the merge) | 35 rows pass, 346,645 cases | 921 s + 89 s |
 | The same on the merged tree at `2c032a80` | 37 rows pass, 361,506 cases (the 35 plus `validate_actor_groups` and `validate_render_effects33` from batch 120) | 896 s |
+| The 17 of those rows whose inputs batch 121 changed, at `5733b701` | 17 rows pass | 326 s |
 | `run_test_suites.py --affected origin/main` (`MU_RECOVERY_INTEGRATION=0`, 2 jobs, at `513f989f`; `native/tests/test_native_app.py` excluded: it builds and signs a bundle) | 7 suites, 183 work items, 1,604 tests, 1,278 passed, 326 skipped, 0 failures | 410.8 s |
 | Private modules, 8d reduced, at `513f989f` and again at `2c032a80`: `test_native_hero_items` (Library, HeroScene, HeroClassScene), `test_app_polish8`, `test_native_world_predraw`, `test_native_character`, `test_inventory_fx`, `test_app_polish7`, `test_native_players` | 72 tests OK both times | 231.7 s / 261.6 s |
 | `test_native_hero_items` + `tests.test_validators_manifest`, portable, at `2c032a80` | 41 tests OK (10 skipped) | 1.1 s |
-| `scripts/audit_repository.py` | 2,372 files, 0 rejected | 28.8 s |
+| `test_native_hero_items` (Library, HeroScene, HeroClassScene), private, at `5733b701` | 23 tests OK | 78.6 s |
+| Docs tests (6c) at the final docs: `tests.test_repository_policy`, `tests/test_world_captures_2.py`, `test_native_item_textures`, `test_native_data_manifest` | 9 + 4 + 23 tests OK (1 skipped) | 11.8 s |
+| `scripts/audit_repository.py` | 2,397 files, 0 rejected (after the merges) | 28.8 s |
 
 8d reduced: the affected selection is 183 work items (a `native/core` header change), above the 40-item cap, so
 only the modules above ran with the private environment. `ClientComparison.test_original_instructions` was not
@@ -71,6 +76,8 @@ views and the 32 DATA-ACQ-002 views.
 |---|---|---|---|---:|
 | Lane `513f989f` against main `c255e4dd` | `b6549bcdb452b518ae7026fdb912fb005a8a7788e90eb889daf16f6f403cb7a3` | `5681560999d3cc0b794a1dc7cf02c7b221a5def99fb62ae56d0de76156bdb1ff` | 92/92 PNG, 92/92 OBJECT/light dumps, 46/46 reports identical | 88.7 s / 113.3 s |
 | Lane `2c032a80` against main `bb86bbf7` | `2ea6844104645bf8faa2a839c2c74a02d520d8e0ba749f5cee891b56343ce8ac` | `3efd6ee71a6dabc658d0d93efc72b0495ec28dfa6bd4c27522efa5187945cd23` | 92/92, 92/92, 46/46 identical | 118.1 s / 120.8 s |
+
+The third merge (`5733b701`) was not swept again: it adds only the arrival-banner calls named above.
 
 No default view changes, and none should: every tour view uses the default hero, class byte `0x01` in class parts.
 That hero wears no helm (head slot −1), its class scale is the creation default 0.9 with part floats 0, and none of
@@ -104,8 +111,11 @@ validate_render_effects17, validate_render_effects18, validate_render_effects19,
 validate_render_effects25, validate_render_effects26, validate_render_effects28, validate_render_effects31,
 validate_render_effects33, validate_session_party, validate_worlds_fog. All 37 ran at `2c032a80` without mutants
 (the `--affected origin/main` selection after `make`; kept by the symbol fallback: meshdraw, model_edge, movement,
-render_effects17, render_effects25). Only `validate_hero_items` needs mutants; they ran once at `513f989f`, and
-its inputs did not change in the merge.
+render_effects17, render_effects25). After the merge of `c49fa188` the selection is the same 37 rows; the 17 whose
+inputs that merge changed (movement, audio_callers, audio_domains, audio_items, app_polish1, app_polish2,
+app_polish4, worlds_fog, render_effects16, 17, 18, 19, 24, 25, 26, 31, 33) ran again at `5733b701`; the other 20
+stand at `2c032a80`. Only `validate_hero_items` needs mutants; they ran once at `513f989f`, and its inputs did
+not change in either merge. The table below is the `2c032a80` run.
 
 | Row | Cases | Seconds | Row | Cases | Seconds |
 |---|---:|---:|---|---:|---:|
