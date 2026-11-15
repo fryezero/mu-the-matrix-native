@@ -83,3 +83,26 @@ consumers/audit, latest-main check, PR/ready publication and cleanup.
 Next step: inspect the identity driver's summary. It resumes only the seven
 unfinished baseline maps. Remaining builds use the brief's -j2 fallback
 following twenty-plus minutes of accumulated resource deferrals.
+
+
+### WIP checkpoint: main batch 115 integrated
+
+Done: all 230 pre-integration default identities pass, 92 PNG / 92 dump /
+46 report comparisons, after 16.05 + 45.52 s. Before SHA-256 is
+1a7b20b52387fb7010574d45db4a7e99415ee3b06c7110da28bdc2877c25e484;
+after is 94924d0f14f2d0ffb35d928fabc1b74ac7c0f9191bbcdd7c778d0e561edd2bf7.
+Main df57ab8b, batch 115, merges cleanly at 340db5b3. No UI controller
+changes. Root/world integration build passes. The merge selector keeps
+94 rows, including eight of this lane's original twelve. Four retain identical
+compiled inputs: validate_gfx3, validate_map_polish, validate_app_polish7,
+validate_app_polish9. The complete 94-row refresh is running without mutants,
+cache enabled, two jobs, at source 340db5b3. Completed rows pass so far;
+verify-runs/merge-validators/summary.json is updated as rows finish.
+
+Left: finish that merge refresh, the merge-affected portable selection,
+reduced private merge consumers, integrated after-only identity against the
+same preserved baseline, final audit/docs/status/PR/ready entry and cleanup.
+
+Next step: wait for the current foreground validator command. Its private
+log is scratch/ui-windows-005/merge-validators.log. Resume only unfinished
+rows if interrupted. Do not rerun the before baseline or unchanged mutants.
