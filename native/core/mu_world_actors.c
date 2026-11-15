@@ -57,6 +57,9 @@ static void place_model(const mu_world_actors *s, mu_world_actor *a)
     p.pose_translate = 0;
     p.transform_translate = 1;
     mu_actor_body_plan body_plan;
+    mu_actor_group_body_plan group_plan;
+    if (mu_actor_group_plan(a->server_class, &group_plan))
+        p.transform_translate = (uint8_t)group_plan.body.translate;
     if (mu_actor_plain_plan(a->server_class, &body_plan))
         p.transform_translate = (uint8_t)body_plan.translate;
     p.vertex_scale = 0.0f;
@@ -214,7 +217,13 @@ static void free_weapons(mu_world_actor *a)
 static int load_weapons(mu_world_actor *a, const char *root, int no_textures, char *error, size_t cap)
 {
     mu_monster_class row;
-    if (!mu_actor_monster_recipe(a->server_class, &row)) return 0;
+    if (!mu_actor_monster_recipe(a->server_class, &row)) {
+        mu_actor_group_body_plan plan;
+        if (!mu_actor_group_plan(a->server_class, &plan) || !plan.weapon_mask) return 0;
+        const mu_monster_class *selected = mu_monster_class_find((uint32_t)a->server_class);
+        if (!selected) return 1;
+        row = *selected;
+    }
     a->weapons = calloc(1, sizeof *a->weapons);
     if (!a->weapons) { snprintf(error, cap, "out of memory"); return 1; }
     if (mu_renderchar_host_init(&a->weapons->host, &a->actor.model)) {
@@ -248,6 +257,13 @@ static int load_weapons(mu_world_actor *a, const char *root, int no_textures, ch
         part->glow = (mu_renderchar_glow){.type = type, .level = row.slots[6+k].level,
             .has_record = 1, .kind_a = item.attributes.kind_a, .kind_b = item.attributes.kind_b,
             .item_kind = item.attributes.type};
+        /* The ordinary monster caller passes this byte without Player's <<3.
+         * Generated group checks compare the exact raw-level stream with the
+         * draw API's decoded level for every admitted type/level pair. */
+        mu_actor_group_body_plan group;
+        if (mu_actor_group_plan(a->server_class, &group))
+            part->glow.level = row.slots[6+k].level >> 3;
+
     }
     mu_data_free(&table);
     return failed;
@@ -306,6 +322,19 @@ static int load_actor(mu_world_actors *s, mu_world_actor *a, const char *root, i
     if (player ? load_player_npc(a, root, &recipe, &params, no_textures, message, sizeof message)
                : mu_actor_load(&a->actor, &spec, &params, no_textures, message, sizeof message))
         goto fail;
+    mu_actor_group_body_plan group_plan;
+    if (!player && !no_textures && mu_actor_group_plan(server_class, &group_plan)) {
+        char directory[4096];
+        snprintf(directory, sizeof directory, "%s/%s", root, group_plan.textures);
+        mu_textures_free(&a->actor.textures);
+        mu_textures_load(&a->actor.textures, &a->actor.bmd, directory);
+    }
+    if (!player && mu_actor_group_plan(server_class, &group_plan)) {
+        memcpy(a->actor.object + 0x60, &group_plan.subtype, 4);
+        memcpy(a->actor.object + 0x68, &group_plan.hidden_mesh, 4);
+        memcpy(a->actor.object + 0x74, &group_plan.blend_mesh, 4);
+        memcpy(a->actor.object + 0xa8, &group_plan.blend_light_bits, 4);
+    }
     if (!player && load_npc_parts(a, root, &params, no_textures, message, sizeof message))
         goto fail;
     if (!player && load_weapons(a, root, no_textures, message, sizeof message)) goto fail;
@@ -522,14 +551,29 @@ int mu_world_actor_plain_options(const mu_world_actor *a, float alpha, mu_draw_o
 {
     mu_actor_body_plan plan;
     uint32_t scale_bits;
-    if (!a || !options || !mu_actor_plain_plan(a->server_class, &plan) ||
-        a->player || a->weapons || a->effect_count || plan.model != a->actor.spec.model_index)
-        return 0;
+    if (!a || !options || a->player || a->effect_count) return 0;
+    uint32_t expected_weapons = 0;
+    mu_actor_group_body_plan group;
+    int plain = mu_actor_plain_plan(a->server_class, &plan);
+    if (!plain) {
+        if (!mu_actor_group_plan(a->server_class, &group)) return 0;
+        plan = group.body;
+        expected_weapons = group.weapon_mask;
+    }
+    uint32_t actual_weapons = 0;
+    for (int k = 0; k < 2; ++k)
+        if (mu_world_actor_weapon(a, k)) actual_weapons |= 1u << k;
+    if (actual_weapons != expected_weapons || plan.model != a->actor.spec.model_index) return 0;
     memcpy(&scale_bits, &a->actor.spec.scale, sizeof scale_bits);
     if (scale_bits != plan.scale_bits) return 0;
+    /* Callers use this as an optional in-place override. Refusal must be a no-op. */
+    if (!plain) {
+        options->select = group.blend_mesh;
+        options->skip_mesh = group.hidden_mesh;
+        memcpy(&options->color_scale, &group.blend_light_bits, 4);
+    } else options->skip_mesh = -1;
     options->flags = plan.flags;
     options->alpha = alpha; /* plain plan */
-    options->skip_mesh = -1;
     options->texture = -1;
     return 1;
 }

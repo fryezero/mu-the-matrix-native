@@ -5,7 +5,7 @@ Branch/worktree `claude/hero-items-002` from main `c5b9d5ca`; main `c255e4dd` (b
 character-power work, no installed-app work, no hosted workflow. No full gate in the lane (test budget).
 
 Scope: the end of SetCharacterClass `0x01394870` for the hero, which HERO-ITEMS-001 left stubbed.
-[Finding](../research/client-render-items.md#part-43-the-heros-head-slot-castle-world-weapons-and-scale-writes-hero-items-002).
+[Finding](../research/client-render-items.md#part-42-the-heros-head-slot-castle-world-weapons-and-scale-writes-hero-items-002).
 
 ## What draws now
 

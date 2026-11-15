@@ -289,6 +289,8 @@ static void load_models(mu_combat *c, const char *root)
         {0x702, "Data/Effect/min_elf_skill_ring03.bmd"}, {0x703, "Data/Effect/min_elf_skill_ring04.bmd"},
         {0x704, "Data/Effect/min_elf_skill_ring05.bmd"}, {0x705, "Data/Effect/min_elf_skill_ring06.bmd"},
         {0x706, "Data/Effect/min_elf_skill_ring07.bmd"}, {0x707, "Data/Effect/min_elf_skill_ring08.bmd"},
+        {0x46c, "Data/Skill/Piercing.bmd"}, /* AccessModel 0x0183461a */
+        {0x584, "Data/Skill/blood_storm_sword.bmd"}, /* AccessModel 0x01836157 */
     };
     int32_t quake_missing = 0, rings_missing = 0;
     for (int i = 0; i < MU_COMBAT_MODELS; ++i) {
@@ -400,6 +402,13 @@ int mu_combat_init(mu_combat *c, const char *root, mu_walk *walk, mu_character *
     if (aura) {
         char *end = NULL; long ticks = strtol(aura, &end, 10);
         if (end != aura && !*end && ticks > 0 && ticks <= 10000) c->aura_duration = (int32_t)ticks;
+    }
+    const char *blood_fixture = getenv("MU_SKILL33_BLOOD_OWNER");
+    c->blood_owner_flag = blood_fixture && !strcmp(blood_fixture,"1");
+    const char *ice_fixture = getenv("MU_SKILL33_TARGET_ICE");
+    if (ice_fixture) {
+        char *end; long ticks = strtol(ice_fixture,&end,10);
+        if (end != ice_fixture && !*end && ticks > 0 && ticks <= 10000) c->target_ice_ticks = (int32_t)ticks;
     }
     init_env(c);
     if (config->weapon < 0 || config->weapon > MU_COMBAT_WEAPON_STAFF) {
@@ -534,11 +543,14 @@ static void refresh_objects(mu_combat *c)
         const mu_combat_monster *m = &c->monsters[i];
         o->live = !m->removed;
         o->visible = !m->removed;
+        memcpy(&o->action,c->actors->list[i].actor.object+0x2a,sizeof o->action);
+        memcpy(&o->type,c->actors->list[i].actor.object+0x5c,sizeof o->type);
         memcpy(o->position, c->actors->list[i].position, sizeof o->position);
     }
     mu_sfx_object *h = &c->objects[MU_COMBAT_HERO_OBJECT];
     h->live = 1;
     h->visible = 1;
+    h->client_hit = c->blood_owner_flag;
     h->weapon = (int16_t)(c->weapon_item[0] < 0 ? -1 : c->weapon_item[0] - 0xae6);   /* TS: o + 0x56 */
     memcpy(h->position, c->walk->hero.position, sizeof h->position);
     memcpy(h->angle, c->walk->hero.angle, sizeof h->angle);   /* RENDER-EFFECTS-004: Rageful Blow aims along it */
@@ -560,11 +572,12 @@ static void effect_object(mu_combat *c, const mu_sfx_effect *e)
         memcpy(o->position,e->position,sizeof o->position);
         return;
     }
-    if (!mu_sfx_is_arrow(e->type) && e->type != 0x70a && e->type != 0x10e6)
+    if (!mu_sfx_is_arrow(e->type) && e->type != 0x70a && e->type != 0x10e6 && e->type != 0x46c && e->type != 0x583)
         return;   /* RENDER-EFFECTS-015: 0x70a owns the arrows of its rain (their CreateEffect reads its +0x158) */
     o->live = e->live;
     o->visible = e->live;
     o->type = e->type;
+    o->heading[0] = e->heading; o->heading[1] = e->heading_yz[0]; o->heading[2] = e->heading_yz[1];
     o->lifetime = e->lifetime;   /* OBJECT +0x6c, joint 0x80e3/5 */
     memcpy(o->impact, e->impact, sizeof o->impact);   /* OBJECT +0x110, joint 0x7f78/b (RENDER-EFFECTS-014) */
     memcpy(o->position, e->position, sizeof o->position);
@@ -776,7 +789,7 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
     case MU_SFX_CALL_JOINT: {
         int32_t target = call->owner;
         if (target == -2 && e && e >= c->effects && e < c->effects + MU_SFX_EFFECTS &&
-            (mu_sfx_is_arrow(e->type) || e->type == 0x10e6)) {
+            (mu_sfx_is_arrow(e->type) || e->type == 0x10e6 || e->type == 0x46c)) {
             effect_object(c, e);   /* "this effect": the arrow (RENDER-EFFECTS-009) */
             c->objects[MU_COMBAT_EFFECT_OBJECT(e - c->effects)].live = 1;   /* created, SetLive at the end */
             target = MU_COMBAT_EFFECT_OBJECT((int32_t)(e - c->effects));
@@ -784,7 +797,8 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
         /* Arrow CreateJoint arguments, not the hero key: Flare02 uses arg7 as lifetime.
          * call_joint_args uses a zero vector for a NULL colour; these supported arrow callers
          * supply nonzero colours whenever argument 12 is present. */
-        const int arrow = e && mu_sfx_is_arrow(e->type);
+        const int arrow = e && (mu_sfx_is_arrow(e->type) || e->type == 0x46c ||
+            (e->type == 0x7f84 && e->subtype == 3));
         if (arrow) {
             memcpy(c->jenv.creation_light, call->light, sizeof call->light);
             c->jenv.has_creation_light = call->light[0] != 0 || call->light[1] != 0 || call->light[2] != 0;
@@ -811,6 +825,12 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
             info.field8 = (uint16_t)call->arg7;   /* wrapper 0x013c0ed8: original argument 11 */
         }
         int32_t owner = call->owner == -2 ? -1 : call->owner;
+        if (e && (call->type == 0x46c || e->type == 0x583) && call->owner == -2) {
+            effect_object(c,e);
+            owner = MU_COMBAT_EFFECT_OBJECT((int32_t)(e - c->effects));
+            info.key = (uint16_t)call->range;
+            info.field8 = (uint16_t)call->arg7;
+        }
         if (e && e->type == MU_SFX_RAGEFUL_BLOW) {
             /* RENDER-EFFECTS-004: the pieces' info key (scale = key / 100). EarthQuake01..03 are owned by
              * the flying weapon itself; they read only its type (not 0x804) for their red light, so the
@@ -819,7 +839,10 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
             if (call->owner == -2)
                 owner = e->owner;
         }
-        if (call->type == 0x38b5) {
+        if (e && (e->type == 0x583 || e->type == 0x584)) {
+            info.key = (uint16_t)call->range; info.field8 = (uint16_t)call->arg7;
+            create_effect_scaled(c,call->type,call->subtype,call->position,call->angle,call->light,owner,&info,call->scale);
+        } else if (call->type == 0x38b5) {
             info.key = (uint16_t)call->range;
             create_effect_scaled(c, call->type, call->subtype, call->position, call->angle, call->light,
                                  owner, &info, call->scale);
@@ -834,12 +857,17 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
         if (e && c->env.model)
             c->env.model(c, e->type, e->action, &keys);
         if (e) {
-            e->frame = e->frame + e->velocity;
+            e->frame = e->frame + call->scale;
             if (keys > 1 && e->frame >= (float)keys)
                 e->frame = e->frame - (float)keys;
         }
         return 1;
     }
+    case MU_SFX_CALL_BLUR:
+        unsupported(c,'b',call->type,call->arg7); return 0;
+    case MU_SFX_CALL_VISUAL_PRESENCE:
+        return call->type == 0x39 && call->owner >= 0 && call->owner < MU_WORLD_ACTORS_MAX &&
+            c->step < c->target_ice_until[call->owner];
     case MU_SFX_CALL_CHECK_ARROW:
         if (!e && call->owner >= MU_COMBAT_EFFECT_OBJECT(0) && call->owner < MU_COMBAT_EFFECT_OBJECT(MU_SFX_EFFECTS)) {
             /* RENDER-EFFECTS-014: Flare/b's skill-1 joint (MoveJoint 0x0157a6cb) writes its arrow's +0x158, then
@@ -878,6 +906,8 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
         return 0;
     case MU_SFX_CALL_SOUND: {
         mu_combat_audio d = mu_combat_effect_sound(call->type);
+        if (e && (e->type == 0x46c || e->type == 0x583))
+            d = (mu_combat_audio){0x013c0f19u,(uint32_t)call->arg8,call->type};
         if (!d.site)   /* RENDER-EFFECTS-015: the reconstructed routines' other PlayBuffer sites */
             d.site = mu_sfx_sound_site(call->type, &d.routine);
         play(c, d, -3);
@@ -1162,6 +1192,33 @@ static int skill30_plan(mu_combat *c, int end)
         }
         c->stats.skill30_refused += c->stats.unsupported - refused;
     }
+    if (end && base == 51 && c->actors && alive(c,c->attack_target) &&
+        c->target_ice_ticks > 0) {
+        /* A separate authored presentation event. The cast supplies no freeze or target state. */
+        const mu_world_actor *a = &c->actors->list[c->attack_target];
+        mu_skill30_input target = {0}; mu_skill30_plan ice;
+        target.owner = c->attack_target;
+        c->target_ice_until[c->attack_target] = c->step + c->target_ice_ticks;
+        memcpy(target.position,a->position,sizeof target.position);
+        memcpy(target.angle,a->angle,sizeof target.angle);
+        target.light[0] = target.light[1] = target.light[2] = 1.0f;
+        mu_skill33_target_ice(&target,1,&ice);
+        for (int i = 0; i < ice.count; ++i) {
+            const mu_sfx_call *call = &ice.calls[i].visual;
+            if (call->routine == 0x0142ec5c) {
+                for (int k = 0; k < MU_SFX_EFFECTS; ++k)
+                    if (c->effects[k].type == call->type && c->effects[k].subtype == call->subtype &&
+                        c->effects[k].owner == call->owner) c->effects[k].live = 0;
+            } else {
+                ++c->stats.skill30_requests;
+                uint32_t refused = c->stats.unsupported;
+                mu_sfx_info info = {0}; info.key = (uint16_t)call->range; info.field8 = (uint16_t)call->arg7;
+                create_effect_scaled(c,call->type,call->subtype,call->position,call->angle,
+                    call->light,call->owner,&info,call->scale);
+                c->stats.skill30_refused += c->stats.unsupported - refused;
+            }
+        }
+    }
     return plan.limit;
 }
 
@@ -1396,8 +1453,8 @@ static void move_pools(mu_combat *c)
     for (int i = 0; i < MU_SFX_EFFECTS; ++i) {
         if (c->effects[i].live && !mu_sfx_effect_move(&c->effects[i], &c->env))
             c->effects[i].live = 0;   /* an unsupported kind ends at once */
-        if (c->effects[i].type == 0x70a)
-            effect_object(c, &c->effects[i]);   /* RENDER-EFFECTS-015: its arrows read it later in this pass */
+        if (c->effects[i].type == 0x70a || mu_sfx_is_arrow(c->effects[i].type))
+            effect_object(c, &c->effects[i]);   /* Later effects read the moved arrow, not the cleared view. */
     }
     for (int i = 0; i < MU_SFX_EFFECTS; ++i)
         effect_object(c, &c->effects[i]);   /* MoveJoints reads the arrows after MoveEffects (RENDER-EFFECTS-009) */
@@ -2319,6 +2376,8 @@ int32_t mu_combat_draw_models(mu_combat *c, mu_combat_model_fn draw, void *conte
         mu_sfx_effect *e = &c->effects[i];
         if (!e->live)
             continue;
+        if (e->type == 0x412 && (e->subtype == 1 || e->subtype == 2) && e->field_68 == -2)
+            continue; /* original RenderBody hidden-mesh sentinel */
         int32_t slot = model_slot(c, e->type);
         float origin[3], angles[3];
         memcpy(origin, e->position, sizeof origin);
