@@ -27,6 +27,7 @@ MUTANTS = {
     'packed-record': ('s->item->quality > 1 && mu_rc_item_glow_level(s->item) >= 9 &&', 's->item->quality > 1 && mu_rc_item_glow_level(s->item) >= 11 &&'),
     'random-phase': ('if (p->phases & (1u << phase))', 'if (p->phases)'),
     'random-source': ('random_program(p, rank5_random(s))', 'random_program(p, 0)'),
+    'model-carry': ('mu_rc_body_types[type].carry)', '0)'),
 }
 
 
@@ -158,7 +159,7 @@ def main():
     args = parser.parse_args()
     if not 1 <= args.cases <= 292:
         parser.error('--cases must be in 1..292')
-    subprocess.run(['make', '-s', '-j4', '-C', str(ROOT/'reconstructed/renderchar')], check=True)
+    subprocess.run(['make', '-s', '-j2', '-C', str(ROOT/'reconstructed/renderchar')], check=True)
     wa = tuple(p.read() for p in (pins.TEXT, pins.DATA, pins.FLAG, pins.FEATURE))
     families, vectors = compare(wa, C.CDLL(str(v.LIBRARY)), args.cases)
     report = {'text_sha256': pins.TEXT.sha256, 'data_sha256': pins.DATA.sha256, 'families': families}

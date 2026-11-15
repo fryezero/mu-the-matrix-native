@@ -34,13 +34,27 @@ signed and overflow-domain words, original gate words, random edges and model ex
 
 The provisional body table is now 1,511 rows / 500,314 bytes, with fifty candidate admissions:
 coverage 1,480 -> 1,530 of 1,674, leaving 144 if the final checks pass. Twenty-four of the 32 new
-random bodies need model carry. Independent preflight for these 32, final extraction and all compiled
-mutants are pending. No ready entry exists.
+random bodies need model carry. The 32-body independent preflight passes 34,624 draw/record/packed/random/clock/model-exit
+comparisons in the 207.29 s run, then its auxiliary guard selector fails because it recognizes only the
+common-epilogue branch form. The selector now checks both the `jl` local-cleanup form and the inverse
+`jge` form; all 96 original caller-word checks pass separately in 0.60 s. No draw comparison, tolerance,
+cap or runtime predicate is weakened. Final full-domain checks and all compiled mutants are pending. No ready entry exists.
 Left: compare and admit complete uniform groups, complete table regeneration, independent/compiled-mutant
 checks, C-to-C admission delta, full classifier, native proofs, affected portable/private validators,
 8d reduced, explicit rebuilt default identity, latest main integration, final docs/PR/ready line and cleanup.
 
-Next: run the packed-level preflight, then freeze the generator and complete full extraction and affected checks.
+Next: wait for the complete pinned body extraction already running at the 11:15 checkpoint
+(the output is `scratch/render-items-002aa/item_bodies-full.h` beneath the shared tools native folder;
+log `full-generation.log`). Do not start a duplicate extraction. Its source is frozen. Compare/install
+that result, finish the four new rows with mutants once, build/select/run affected checks, then proofs,
+latest-main refresh, docs, PR and ready entry.
+
+Main `df57ab8b` (#395, batch 115) is integrated through merge `7f953d87`; registry resolution is fixed
+at `a4539fc7`. All 246 main registry entries are unchanged and four lane rows are appended. An older
+system-Python invocation failed before rewriting the registry, and the shell continued into the merge
+commit; the immediate follow-up removes all conflict markers and verifies both complete TOML sets.
+Resource cooldowns exceed twenty minutes in total; subsequent builds use the brief's `-j2` fallback,
+validators two workers, with memory/disk floors preserved. No full lane gate or app packaging is run.
 Local disposable prototypes/reports live under
 `~/Documents/MTM/mu-mac-tools/native/scratch/render-items-002aa/`.
 No ready entry is written. Do not interpret this checkpoint as ready for steward.

@@ -97,7 +97,7 @@ def main():
     args = parser.parse_args()
     if not 1 <= args.cases <= 292:
         parser.error('--cases must be in 1..292')
-    subprocess.run(['make', '-s', '-j4', '-C', str(ROOT/'reconstructed/renderchar')], check=True)
+    subprocess.run(['make', '-s', '-j2', '-C', str(ROOT/'reconstructed/renderchar')], check=True)
     wa = tuple(p.read() for p in (pins.TEXT, pins.DATA, pins.FLAG, pins.FEATURE))
     families, vectors = compare(wa, C.CDLL(str(v.LIBRARY)), args.cases)
     families['reader_refusals'] = {'cases': reader_controls(wa), 'mismatches': 0}

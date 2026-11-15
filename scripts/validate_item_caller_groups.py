@@ -101,7 +101,7 @@ def main():
     args = parser.parse_args()
     if not 1 <= args.cases <= 292:
         parser.error('--cases must be in 1..292')
-    subprocess.run(['make', '-s', '-j4', '-C', str(ROOT/'reconstructed/renderchar')], check=True)
+    subprocess.run(['make', '-s', '-j2', '-C', str(ROOT/'reconstructed/renderchar')], check=True)
     wa = tuple(p.read() for p in (pins.TEXT, pins.DATA, pins.FLAG, pins.FEATURE))
     rows = callers.read(wa)
     assert (ROOT/'reconstructed/renderchar/item_caller_groups.h').read_text() == callers.render(rows)
