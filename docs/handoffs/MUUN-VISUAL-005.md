@@ -175,3 +175,20 @@ Its wall was 100.47 s. Exclude `native/tests/test_native_app.py` from the portab
   final handoff/status/PR/ready entry/cleanup. Earlier passing evidence is retained for unselected rows.
 - Next: wait for the resource guard after the build, preview affected-since `bee48677` for both runners,
   retain fallback rows and exclude app packaging. Do not repeat any unchanged mutation controls.
+
+### WIP pinned-main refresh checkpoint
+
+- Done: post-INNER validator preview selects 78 rows in 90.14 s, including all 42 symbol-level
+  fallbacks for the new object source. Nineteen rows are new to this lane's evidence; 21 prior rows
+  are unselected and retain their results. The prospective latest-result union is 99 rows.
+- Running: cached no-optional-mutants `inner-validators`, two workers, tested HEAD `6633aaf2`, native
+  source `78a336a5`. Completed rows pass, including INNER-005, terrain, effect31, actor plain/recipes,
+  movement, meshdraw and model-edge. The final summary is still pending. Active exec session is local.
+- Prepared: `run-inner-portable.py` expects `test-inner-selection.txt`; app packaging remains excluded.
+  The inspected proof and first after sweep were retained as `proof-pre-inner` and `after-pre-inner`.
+  `finish.py` builds the final handoff/status/PR prose only once all required successful reports exist.
+- Left: finish validators, group the three new registry entries without changing their parsed values,
+  preview/run affected portable since `bee48677`, private seven Muun modules plus incoming world host
+  and helper module, rebuild world, replay proof/after-only outputs and compare, final audit/docs/PR/queue.
+- Next: inspect the final validator summary, then regroup registry, inspect resource guards and run the
+  portable preview. Keep main pinned at `d3ec9950` for this finish pass; later main is steward work.
