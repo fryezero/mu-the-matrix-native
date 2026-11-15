@@ -55,6 +55,8 @@ static const row35 ROWS[] = {
     {425, GROUP_D, ELF, 0, GUARD_NOT_HERO, POSE_ACTION, 0xd9, 0x125, 0x8021, 1, KEY_DEFAULT, 0x593, 0x334, 0x01258f59, 0},
     {430, GROUP_D, ELF, 0, GUARD_NOT_HERO, POSE_ACTION, 0xd9, 0x125, 0x8021, 3, KEY_DEFAULT, 0x594, 0x334, 0x01259193, 0},
     {2024, GROUP_D, ELF, 0, GUARD_NONE, POSE_ACTION, 0x106, -1, 0x8021, 3, KEY_DEFAULT, 0x594, 0x334, 0x0125c0d1, F_ACTION_FIRST},
+    /* D, larger target part: 0x012552d1 (magic) and 0x0125ddd7 (position, sound 0x350) */
+    {234, GROUP_D, ELF, 0, GUARD_NOT_HERO, POSE_ACTION, 0xd9, 0x125, 0x8021, 0, KEY_DEFAULT, 0, 0x350, 0x0125e243, 0},
     /* E existing end body: the buff start 0x0125594d, then an end body */
     {432, GROUP_E, ELF, 0, GUARD_NOT_HERO, POSE_MAGIC, 0, 0, 0x7f84, 3, KEY_DEFAULT, 0, 0x6f, 0x01255962, 0},
     {2026, GROUP_E, ELF, 0, GUARD_NOT_HERO, POSE_MAGIC, 0, 0, 0x7f84, 3, KEY_DEFAULT, 0, 0x6f, 0x01255962, 0},
@@ -197,6 +199,35 @@ static void group_c(const row35 *r, const mu_skill35_input *s, mu_skill35_plan *
     }
 }
 
+/* Recovery's target part, 0x01255497..0x012558fa and 0x0125ddd7..0x0125e238: nineteen
+ * joints and four ground effects at the actor, then two effects at random bones.
+ * The body returns early when the actor's model is missing. */
+static void recovery_part(const mu_skill35_input *s, mu_skill35_plan *p, const mu_skill35_actor *a)
+{
+    for (int n = 0; n < 19; ++n) {
+        mu_sfx_call *c = request(p, MU_SFX_CALL_JOINT, 0x7f78, 0x2f);
+        memcpy(c->position, a->position, sizeof c->position);
+        memcpy(c->target, a->position, sizeof c->target);
+        memcpy(c->angle, a->angle, sizeof c->angle);
+        c->owner = a->owner; c->scale = 40.0f; c->arg7 = 2; c->arg8 = 0;
+        p->calls[p->count-1].skill = -1;
+    }
+    static const struct { uint16_t type, subtype; } ground[4] = {{0x4bd, 0}, {0x809e, 0}, {0x809e, 1}, {0x809e, 2}};
+    for (int n = 0; n < 4 + 2; ++n) {
+        if (n >= 4) {
+            if (!s->model_present) return;
+            if (s->bone_count <= 0) continue;
+            request(p, MU_SKILL35_RAND, 0, 0);
+            mu_sfx_call *bone = request(p, MU_SFX_CALL_BONE, 0, 0);
+            bone->range = s->random[n-4] % s->bone_count; bone->owner = a->owner;
+        }
+        mu_sfx_call *c = effect_at(p, n < 4 ? ground[n].type : 0x7f78, n < 4 ? ground[n].subtype : 3, a);
+        if (n >= 4) memcpy(c->position, s->bones[n-4], sizeof c->position);
+        c->light[0] = 0.3f; c->light[1] = 0.2f; c->light[2] = 0.1f;
+        c->owner = MU_SKILL35_NO_OWNER;
+    }
+}
+
 static void group_d(const row35 *r, const mu_skill35_input *s, mu_skill35_plan *p)
 {
     if (r->flags & F_ACTION_FIRST) pose(p, r);                 /* 0x0125bf1c */
@@ -210,11 +241,14 @@ static void group_d(const row35 *r, const mu_skill35_input *s, mu_skill35_plan *
         c->light[0] = r->subtype == 1 ? 0.2f : 1.0f;
         c->light[1] = r->subtype == 1 ? 1.0f : 0.92f;
         c->light[2] = 0.4f;
+        if (r->skill == 234) { c->light[0] = 0.7f; c->light[1] = 0.6f; c->light[2] = 0.0f; }
         if (!(r->flags & F_ACTION_FIRST)) {
             pose(p, r);
-            p->attack_time = 1; p->hero_attack_time = 1;       /* 0x01258f3a..0x01258f46 */
+            p->attack_time = 1;
+            if (r->skill != 234) p->hero_attack_time = 1;      /* 0x01258f3a..0x01258f46 */
         }
     }
+    if (r->skill == 234) { recovery_part(s, p, &s->target); return; }
     sound(p, r);
     effect_at(p, r->second, 0, r->flags & F_ACTION_FIRST ? &s->source : &s->target);
 }
@@ -249,7 +283,13 @@ int mu_skill35_plan_cast(const mu_skill35_input *s, int phase, mu_skill35_plan *
     p->attack_time = s->attack_time; p->hero_attack_time = s->hero_attack_time;
     p->target_index = -1;
     const row35 *r = find(s->skill);
-    if (!r || s->base != s->skill || phase < 0 || phase > 1) return 0;
+    if (!r || s->base != s->skill || phase < 0 || phase > 2) return 0;
+    if (phase == 2) {                                          /* 0x0125ddd7 */
+        if (r->skill != 234) return 0;
+        recovery_part(s, p, &s->source);
+        if (s->model_present) sound(p, r);
+        return 1;
+    }
     if (phase == 1) {
         if (r->group != GROUP_E) return 0;
         group_e_end(r, s, p);

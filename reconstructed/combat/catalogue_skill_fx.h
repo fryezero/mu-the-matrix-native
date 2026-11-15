@@ -16,7 +16,8 @@ enum {
     MU_SKILL35_ATTACK_POSE = 0x01392bde,   /* SetPlayerAttack(c) */
     MU_SKILL35_KEY_LIST = 0x009fd745,      /* push_back(type) on the owner OBJECT's +0x1dc list */
     MU_SKILL35_ARROWS = 0x0158d5bd,        /* CreateArrows(c, o, 0, range, subtype, type) */
-    MU_SKILL35_MAX_CALLS = 24
+    MU_SKILL35_RAND = 0x01989721,          /* one CRT rand() draw at this point of the body */
+    MU_SKILL35_MAX_CALLS = 40
 };
 enum { MU_SKILL35_SOURCE = 0, MU_SKILL35_TARGET = 1, MU_SKILL35_NO_OWNER = -1 };
 typedef struct mu_skill35_actor {
@@ -41,6 +42,9 @@ typedef struct mu_skill35_input {
     uint16_t packet_word;        /* position receive frame -0x28 */
     uint16_t target_word;        /* source CHARACTER +0x40 */
     float bone[3];               /* TransformByObjectBone answer */
+    int32_t random[2];           /* the body's CRT draws, in order */
+    int32_t bone_count;          /* model bone count word (+0x22) */
+    float bones[2][3];           /* answers for the random-bone transforms, in order */
 } mu_skill35_input;
 typedef struct mu_skill35_call {
     mu_sfx_call visual;
@@ -68,8 +72,9 @@ int mu_skill35_action(int32_t action, int32_t alternative, int32_t mounted, int3
 /* The attack-step body of an admitted row (the default 0x0139b454). Returns the
  * AttackTime cutoff (15), or 0 for a refused row. */
 int mu_skill35_step(int32_t skill, int32_t model, int32_t action, float frame, uint8_t *attack_time);
-/* Phase 0: receive case body. Phase 1: end body (group E only). Returns 0 for a
- * refused row, phase or service context (mounted bone-frame rows). */
+/* Phase 0: receive case body. Phase 1: end body (group E only). Phase 2: the
+ * position-skill receive case of a row that also has a magic case (234).
+ * Returns 0 for a refused row, phase or service context (mounted bone-frame rows). */
 int mu_skill35_plan_cast(const mu_skill35_input *in, int phase, mu_skill35_plan *out);
 /* End body of the learned buffs 27 / 28 (same bodies as 2027 / 2026). */
 int mu_skill35_buff_end(const mu_skill35_input *in, mu_skill35_plan *out);

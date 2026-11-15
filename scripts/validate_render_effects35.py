@@ -34,6 +34,8 @@ HERO_PTR, HERO_DATA_PTR = 0x0a39d754, 0x01d1df18
 MODEL = 0x23000000
 SKILL_ACTION, SET_MAGIC, SET_ATTACK, BOW_POSE, ARROWS = 0x012b001a, 0x013944d9, 0x01392bde, 0x013946ee, 0x0158d5bd
 MAGIC_EXIT, POSITION_EXIT, AREA_EXIT, TARGET_EXIT = 0x0125c47c, 0x01260e1d, 0x013aea7a, 0x013b1911
+MAGIC_FAIL = 0x0125c47f      # the magic handler's other return (eax = 0), taken when a model is missing
+POSITION_FAIL = 0x01261592   # the same early return of the position handler
 F3 = C.c_float * 3
 
 # skill: (group, family, body, end of body). family: magic / position receive slice, area / target end.
@@ -47,12 +49,14 @@ ROWS = {
     1125: ('C', 'magic', 0x01259964, 0x01259b1b), 1126: ('C', 'magic', 0x01259b1b, 0x01259cd2),
     1127: ('C', 'magic', 0x01259cd2, 0x01259e89),
     425: ('D', 'magic', 0x01258d76, 0x01258fbc), 430: ('D', 'magic', 0x01258fbc, 0x012591f6),
-    2024: ('D', 'magic', 0x0125bf1c, 0x0125c134),
+    2024: ('D', 'magic', 0x0125bf1c, 0x0125c134), 234: ('D', 'magic', 0x012552d1, 0x012558ff),
     432: ('E', 'magic', 0x0125594d, 0x0125599c), 2026: ('E', 'magic', 0x0125594d, 0x0125599c),
     2027: ('E', 'magic', 0x0125594d, 0x0125599c),
 }
 ENDS = {432: ('area', 0x013a9449, 0x013a94a4), 2026: ('target', 0x013b18a2, 0x013b1911),
         2027: ('target', 0x013b16c1, 0x013b18a2)}
+# A row with a case in both receive switches: the position case is phase 2.
+POSITION_CASES = {234: ('position', 0x0125ddd7, 0x0125e24b)}
 # Second group: the learned buffs' end bodies and the general link selector.
 BUFF_ENDS = {27: (0x013afb06, 0x013afcea), 28: (0x013afcea, 0x013afd5c)}
 LINK_SWITCH, LINK_END, LINK_HELPER, LINK_OTHER, LINK_INDEX = 0x0137eefc, 0x0137f5f6, 0x00df230b, 0x00d9013e, 0x013a5658
@@ -71,7 +75,8 @@ class Input(C.Structure):
                 ('joint_9', C.c_uint8), ('flag_7', C.c_uint8), ('attack_time', C.c_uint8),
                 ('hero_attack_time', C.c_uint8),
                 ('hero_key', C.c_uint16), ('source_key', C.c_uint16), ('target_key', C.c_uint16),
-                ('packet_word', C.c_uint16), ('target_word', C.c_uint16), ('bone', F3)]
+                ('packet_word', C.c_uint16), ('target_word', C.c_uint16), ('bone', F3),
+                ('random', C.c_int32 * 2), ('bone_count', C.c_int32), ('bones', F3 * 2)]
 
 
 class Call(C.Structure):
@@ -81,12 +86,12 @@ class Call(C.Structure):
 class Plan(C.Structure):
     _fields_ = [('count', C.c_int32), ('attack_time', C.c_int32), ('hero_attack_time', C.c_int32),
                 ('target_index', C.c_int32), ('hero_byte', C.c_int32), ('frame_reset', C.c_int32),
-                ('calls', Call * 24)]
+                ('calls', Call * 40)]
 
 
 class Machine(r30.Machine):
     """Leaves a case body at its switch join: the join returns through the sentinel."""
-    EXITS = (MAGIC_EXIT, POSITION_EXIT, AREA_EXIT, TARGET_EXIT)
+    EXITS = (MAGIC_EXIT, MAGIC_FAIL, POSITION_EXIT, POSITION_FAIL, AREA_EXIT, TARGET_EXIT)
 
     def stub_entry(self, uc, address, size, ignored):
         if address in self.EXITS and address in self.stubs:
@@ -123,6 +128,8 @@ def normalized(call):
         return ['action', c.type & 0xffffffff, c.subtype & 0xffffffff]
     if c.routine in (SET_MAGIC, SET_ATTACK):
         return ['pose', c.routine]
+    if c.routine == 0x01989721:
+        return ['rand']
     if c.routine == 0x012b678d:
         return ['bone', address_of(c.owner), c.range]
     if c.routine == 0x009fd745:
@@ -169,6 +176,11 @@ def case_input(rng, skill, n):
     s.flag_7 = n % 5 != 4
     for k in range(3):
         s.bone[k] = fx.f32(rng.uniform(-1000, 25000))
+    s.random[:] = [rng.randrange(32768), rng.randrange(32768)]
+    s.bone_count = rng.choice([0, 1, 60, 77, -3]) if n % 4 == 1 else rng.randrange(1, 90)
+    for i in range(2):
+        for k in range(3):
+            s.bones[i][k] = fx.f32(rng.uniform(-1000, 25000))
     s.attack_time = rng.choice([0, 1, 5, 14])
     s.hero_attack_time = s.attack_time if s.source_is_hero else rng.choice([0, 1, 5, 14])
     if n % 13 == 12:      # sign-extension edge of the hero key compare
@@ -198,7 +210,9 @@ def original(m, skill, s, family, entry):
         region.define(HCHAR + 0x3e, struct.pack('<H', s.hero_key))
         region.define(HCHAR + 0x21, bytes([s.hero_attack_time]))
         regions.append(region)
-    regions += [am.defined_region('hero-pointer', HERO_PTR, struct.pack('<I', hero)),
+    model = am.undefined_region('model', MODEL, 0x40)
+    model.define(MODEL + 0x22, struct.pack('<h', s.bone_count))
+    regions += [model, am.defined_region('hero-pointer', HERO_PTR, struct.pack('<I', hero)),
                 am.defined_region('hero-data-pointer', HERO_DATA_PTR, struct.pack('<I', fx.HERO_DATA)),
                 am.defined_region('hero-data', fx.HERO_DATA + 0x2de8, bytes(8))]
     client = []
@@ -235,8 +249,15 @@ def original(m, skill, s, family, entry):
     def bone(mm):
         # TransformByObjectBone(out, object, bone, 0), thiscall on the model: fill the caller's vector.
         client.append(['bone', mm.argument(1), mm.argument(2)])
-        mm.uc.mem_write(mm.argument(0), struct.pack('<3f', *s.bone))
+        answered = sum(entry[0] == 'bone' for entry in client) - 1
+        answer = s.bones[answered % 2] if skill == 234 else s.bone   # 234 asks two random bones
+        mm.uc.mem_write(mm.argument(0), struct.pack('<3f', *answer))
         return (0, 16)
+
+    def rand(mm):
+        used = sum(entry[0] == 'rand' for entry in client)
+        client.append(['rand'])
+        return s.random[used % 2]
 
     def key_list(mm):
         # push_back on the source OBJECT's +0x1dc list: (end pointer, pointer to the pushed word)
@@ -272,7 +293,7 @@ def original(m, skill, s, family, entry):
              0x00966cc4: lambda mm: fx.CONTAINER, 0x00eaa8cf: lambda mm: (MODEL if s.model_present else 0, 4),
              0x012b678d: bone, 0x009c104e: lambda mm: (fx.CONTAINER, 4), 0x0106bdb7: lambda mm: int(s.mounted),
              0x01295ade: presence, 0x01553b41: joint_search, 0x009fd745: key_list,
-             fx.SINE: sine, fx.COSINE: cosine, ARROWS: arrows}
+             fx.SINE: sine, fx.COSINE: cosine, ARROWS: arrows, 0x01989721: rand}
     for address in Machine.EXITS:
         stubs[address] = lambda mm: 0
     if family in ('magic', 'position'):
@@ -307,7 +328,12 @@ def compare(m, lib, cases, only=None, dump=False):
     for skill, (group, family, entry, _end) in ROWS.items():
         if only and skill not in only:
             continue
-        for phase, (fam, start) in enumerate([(family, entry)] + ([ENDS[skill][:2]] if skill in ENDS else [])):
+        bodies = [(0, family, entry)]
+        if skill in ENDS:
+            bodies.append((1,) + ENDS[skill][:2])
+        if skill in POSITION_CASES:
+            bodies.append((2,) + POSITION_CASES[skill][:2])
+        for phase, fam, start in bodies:
             for n in range(cases):
                 s = case_input(rng, skill, n)
                 result, client = original(m, skill, s, fam, start)
@@ -330,7 +356,7 @@ def compare(m, lib, cases, only=None, dump=False):
                         error = ('calls', client[:4], mine[:4], len(client), len(mine))
                     elif state != mine_state:
                         error = ('state', state, mine_state)
-                report.add(f'{group}-{"receive" if phase == 0 else "end"}',
+                report.add(f'{group}-{("receive", "end", "position")[phase]}',
                            bool(supported) and vc.ok(result) and error is None,
                            dict(case=n, skill=skill, error=error, stopped=result['stopped'],
                                 machine_error=result['error']))
@@ -484,8 +510,9 @@ def controls(m, lib, report):
     for skill in sorted(ROWS):
         s = case_input(rng, skill, 0)
         plan = Plan()
-        for phase in (-1, 2):
-            report.add('refusal', not lib.mu_skill35_plan_cast(C.byref(s), phase, C.byref(plan)) and plan.count == 0,
+        for phase in (-1, 2, 3):
+            refused = not lib.mu_skill35_plan_cast(C.byref(s), phase, C.byref(plan))
+            report.add('refusal', refused == (phase != 2 or skill not in POSITION_CASES) and (not refused or plan.count == 0),
                        dict(skill=skill, phase=phase))
         report.add('refusal', bool(lib.mu_skill35_plan_cast(C.byref(s), 1, C.byref(plan))) == (ROWS[skill][0] == 'E'),
                    dict(skill=skill, end=True))

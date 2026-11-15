@@ -1350,6 +1350,20 @@ static int skill35_input(mu_combat *c, mu_skill35_input *in)
         mu_pt_transform_position(h->player_bones + 12 * bone, zero, in->bone, 1, h->params.scale,
                                  c->walk->hero.position);
     }
+    if (c->attack_skill == 234) {
+        /* Recovery asks the target model's bone count and two random bones: only the hero's
+         * model can answer, so the record has to target the source (self context). */
+        const mu_character *h = c->hero_character;
+        if (in->target.owner != MU_COMBAT_HERO_OBJECT || !h || !h->player_loaded || !h->player_bones ||
+            h->player_bone_count <= 0) return 0;
+        const float zero[3] = {0};
+        in->bone_count = h->player_bone_count;
+        for (int k = 0; k < 2; ++k) {
+            in->random[k] = crt_rand(c);   /* the body's two CRT draws, in order */
+            mu_pt_transform_position(h->player_bones + 12 * (in->random[k] % in->bone_count), zero, in->bones[k], 1,
+                                     h->params.scale, c->walk->hero.position);
+        }
+    }
     return 1;
 }
 
@@ -1372,8 +1386,9 @@ static int32_t skill35_emit(mu_combat *c, const mu_skill35_plan *plan, int phase
             action = mu_player_magic_action(h->class_byte, mu_class_check(h->class_byte), rands ? rands[0] : 0);
         } else if (call->routine == MU_SKILL35_ATTACK_POSE) {
             action = hero_attack_pose(c, rands);
-        } else if (call->routine == MU_SFX_CALL_BONE || call->routine == MU_SKILL35_KEY_LIST) {
-            continue;   /* services: the bone was answered in skill35_input; the key list has no native reader */
+        } else if (call->routine == MU_SFX_CALL_BONE || call->routine == MU_SKILL35_KEY_LIST ||
+                   call->routine == MU_SKILL35_RAND) {
+            continue;   /* services: bones and draws were answered in skill35_input; the key list has no native reader */
         } else if (call->routine == MU_SKILL35_ARROWS) {
             /* CreateArrows for this skill word is not a compared arrow caller: keep the request, refuse it. */
             ++c->stats.skill35_requests;

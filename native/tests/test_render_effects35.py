@@ -138,6 +138,17 @@ class Native(unittest.TestCase):
             if expected[3] == 0:
                 self.assertTrue(any(r['hero_action'] == 0x9c for r in frames), skill)
 
+    def test_recovery_needs_a_target_model_service(self):
+        # 234 reads the target model's bone count and two random bones. Only the hero's model answers.
+        for context, expected in [(None, (1, 0, 0, 1)), ('0,1', (1, 25, 25, 0)), ('1,1', (1, 26, 26, 0))]:
+            rows = self.cast(234, 2, 'bow', context=context)
+            frames = self.assert_safe(rows)
+            plan = self.plan(rows)
+            self.assertEqual((plan['casts'], plan['requests'], plan['refused'], plan['context_refused']),
+                             expected, context)
+            if context == '1,1':
+                self.assertTrue(any(r['hero_action'] == 0xd9 for r in frames))
+
     def test_unlearned_wrong_class_and_outside_rows_stay_refused(self):
         for skill, (cls, weapon, *_rest) in ROWS.items():
             self.assertIsNone(self.plan(self.cast(skill, cls, weapon, learn=False, frames=6)), skill)
