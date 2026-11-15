@@ -56,7 +56,7 @@ checks compare ordered GL calls. Native asset appearance is separate proof.
 
 | Consumer | Original boundary | Recovered behavior |
 |---|---|---|
-| Effect 0x7f84/3 | create 0x013c80a3; move 0x0143fbda | Twenty-step ground emitter, three JointEnergy01/3 children per step; exact default key -1 |
+| Effect 0x7f84/3 | create 0x013c80a3; move 0x0143fbda | Ground emitter with initial lifetime 20, three JointEnergy01/3 children per step; exact default key -1 |
 | Joint 0x7fd8/3 | Existing Energy01 dispatch | Same homing/lifetime as subtype 1, orange (L, .6L, .4L) palette |
 | Effect 0x46c/0 | 0x013ca40b..0x013ca7ec; 0x01463c5e..0x0146409b | Owner live/position/angle, saved prior position, heading spin; four Flare02 trails, key 30, skill 0; sound 0x7a |
 | Joint 0x7f79/0..3 | Flare02 dispatch | Caller width/radius, three substeps, owner heading/impact; 50-tail capacity, closing tail, fade and owner death |
@@ -140,7 +140,7 @@ The parent Arrow01/2 constructor is also compared with all fourteen nested
 CreateEffect arguments, including the default info word8 of -1. Native combat
 and world adapters preserve that word along with self ownership and key.
 
-Final grouped proof: 6,410 checks equal, 45 compiled controls detected, no
+Grouped control proof: 6,410 checks equal, 45 compiled controls detected, no
 original stops. Fourteen controls completed before a harness-only target-ice
 argument dispatch error; only the remaining 31 resumed. The native controls
 include self owner, key, heading and same-step owner refresh. No passing
@@ -193,3 +193,13 @@ All other aliases keep their prior refusal/inventory state. Candidate actor
 names match the existing read-only language snapshot; that is not proof of a
 skill spawn selector. Main's ACTORS-006 body plans are used only as read-only
 census evidence, and no ground request is converted into actor creation.
+
+
+The final full sample on integrated main c5b9d5ca passes 32,010 grouped checks
+at 1,000 cases per pair, no mutants, in 71.666 s. The forty-five completed
+controls are retained without repetition. Thirteen explicit DemoKnight /
+DemoArcher asset scenes pass retirement, zero sent requests/hits/kills and
+unchanged target HP. Blood Storm records 1,883 downstream refusals; other new
+skill fixtures record zero. Each summon ground emits 63 ribbons across its
+native life-20 schedule, with a sampled peak of 36 live joints; no actor is
+created. Exact per-skill counts and final identity results are in the handoff.

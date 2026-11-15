@@ -252,3 +252,30 @@ the actual incoming-input delta, then final actual-asset fixtures and explicit
 rebuilt identity. Finish final handoff/status, PR, ready entry and cleanup.
 Next: merge origin/main, ui5_selections.py and ui5_validators.py; portable UI
 delta via ui5_tests.py and private changed UI modules. No PR or ready line.
+
+## WIP checkpoint 11, 14:16 local
+
+Done: UI5 main c5b9d5ca is integrated at 6cd965c2 and pushed. Its twelve
+incoming validators pass in 59.218 s; portable delta passes 1,411 tests,
+1,112 pass / 299 expected skips, zero failures/errors, in 418.074 s including
+selection. Five private changed UI modules pass 36 tests with two deliberately
+skipped unchanged mutant classes, 121.517 s plus 90 s resource wait. All 86
+current Steward rows have passing input-aware coverage. Full 033 sample now
+passes 32,010 checks at 1,000 cases per pair in 71.666 s, without mutations.
+
+Thirteen actual-asset scenes pass all safety/retirement assertions. Initial
+renders omitted --hero-name and used the renderer's hardcoded player label;
+those images are discarded, not counted as final proof. Corrected scenes use
+DemoKnight / DemoArcher and pass in 17.675 s, 442 PNGs. All thirteen are visually
+inspected at active frames. Blood Storm is a visible sword subset with 1,883
+counted downstream refusals. The other twelve scenes record zero refusals.
+
+Left: corrected final after identity, final handoff/status, doc readers,
+staged audit, PR, ready entry and cleanup. The invalid identity captures are
+also discarded. An unchanged 92adab2c archive under this lane's scratch is
+rebuilt solely for the corrected demo-label baseline, without an extra git
+worktree or any branch switch. Its world SHA matches the original baseline
+ff56fde9144b9fbbb68af1a4f23ff352580815daf302766108fc65123e42b4b4;
+fresh explicit world build is 9.616 s. Corrected before sweep passes, 87.552 s.
+No successful valid baseline is repeated. No production source or compiled
+control changed. No PR or ready entry exists.
