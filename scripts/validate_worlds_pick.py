@@ -129,8 +129,9 @@ def box_case(g, mode=None, exact=False):
     for _ in range(g.choice([0, 1, 1, 2])):
         meshes.append([[f32(g.uniform(-300, 300)), f32(g.uniform(-300, 300)), f32(g.uniform(-50, 600))]
                        for _ in range(g.choice([0, 1, 2, 4, 6]))])
-    if mode == 2 and g.random() < 0.08 and meshes and meshes[0]:
-        meshes[0][0][g.randrange(3)] = f32(math.nan)
+    filled = [m for m in meshes if m]
+    if mode == 2 and g.random() < 0.2 and filled:   # a NaN position: first or last (a later vertex would hide it)
+        g.choice([filled[0][0], filled[-1][-1], filled[-1][-1]])[g.randrange(3)] = f32(math.nan)
     origin = list(position) if g.random() < 0.9 else [f32(g.uniform(-3e4, 3e4)) for _ in range(3)]
     return {'object': bytes(obj), 'position': position, 'angle': angle, 'scale': scale, 'mode': mode,
             'meshes': meshes, 'origin': origin, 'translate': 0 if mode == 2 else g.choice([0, 0, 1]),
@@ -176,14 +177,13 @@ def client_box(machine, case):
 
 def native_box(lib, case, stored):
     obj = C.create_string_buffer(case['object'], v.OBJ_SIZE)
-    if case['mode'] == 2:
-        low, high = (C.c_float * 3)(), (C.c_float * 3)()
-        lib.dll.mu_obj_vertex_bounds_begin(low, high)
-        for p in stored:
-            lib.dll.mu_obj_vertex_bounds_add(low, high, vec(p))
-        lib.dll.mu_obj_obb_write(obj, vec(case['origin']), 2, low, high)
-    else:
-        lib.dll.mu_obj_obb_write(obj, vec(case['origin']), case['mode'], None, None)
+    # the running bounds are built in every mode (the write reads them only in mode 2), so a planted mistake in
+    # the mode test shows as a difference
+    low, high = (C.c_float * 3)(), (C.c_float * 3)()
+    lib.dll.mu_obj_vertex_bounds_begin(low, high)
+    for p in stored:
+        lib.dll.mu_obj_vertex_bounds_add(low, high, vec(p))
+    lib.dll.mu_obj_obb_write(obj, vec(case['origin']), case['mode'], low, high)
     return obj.raw[:v.OBJ_SIZE]
 
 
@@ -292,7 +292,8 @@ def written_box(machine, lib, g, tally, label):
         return None
     theirs = bytes(r['regions']['object'])
     obj = C.create_string_buffer(case['object'], v.OBJ_SIZE)
-    lib.dll.mu_obj_obb_write(obj, vec(case['origin']), 0, None, None)
+    unused = (C.c_float * 3)()
+    lib.dll.mu_obj_obb_write(obj, vec(case['origin']), 0, unused, unused)
     return case, theirs, obj
 
 
@@ -384,7 +385,7 @@ def family_pick(machine, registry, lib, g, cases):
 
 P, A = 'objects/object_pick.c', 'objects/action_registry.c'
 MUTATIONS = [
-    ('box origin', P, 'box.start[k] = box.start[k] + body_origin[k];', 'box.start[k] = box.start[k];'),
+    ('box origin', P, 'box.start[k] = box.start[k] + body_origin[k];', 'box.start[k] = box.start[k] + 0.0f * body_origin[k];'),
     ('box origin axis', P, 'box.start[k] = box.start[k] + body_origin[k];',
      'box.start[k] = box.start[k] + body_origin[k == 2 ? 2 : 1 - k];'),
     ('box extent sign', P, 'high[1] - low[1]', 'low[1] - high[1]'),
@@ -394,7 +395,8 @@ MUTATIONS = [
     ('box minimum field', P, 'memcpy(low, o + MU_OBJF_BOX_MIN, sizeof low);', 'memcpy(low, o + MU_OBJF_BOX_MAX, sizeof low);'),
     ('box field', P, 'memcpy(o + MU_OBJF_OBB, &box, sizeof box);', 'memcpy(o + MU_OBJF_OBB + 4, &box, sizeof box);'),
     ('mode test', P, '    if (bounds_mode == 2) {', '    if (bounds_mode != 0) {'),
-    ('mode 2 source', P, '        memcpy(high, vertex_maximum, sizeof high);', '        memcpy(high, o + MU_OBJF_BOX_MAX, sizeof high);'),
+    ('mode 2 source', P, '        memcpy(high, vertex_maximum, sizeof high);',
+     '        memcpy(high, vertex_maximum, sizeof high);\n        memcpy(high, o + MU_OBJF_BOX_MAX, sizeof high);'),
     ('bounds begin', P, '        maximum[k] = -999999.0f;', '        maximum[k] = 999999.0f;'),
     ('bounds minimum', P, '        if (minimum[k] > vertex[k])\n', '        if (vertex[k] > minimum[k])\n'),
     ('bounds maximum', P, '        if (vertex[k] > maximum[k])\n', '        if (vertex[k] > maximum[0])\n'),
@@ -405,7 +407,7 @@ MUTATIONS = [
      'return !(lo_segment >= hi) && !(lo > hi_segment);'),
     ('axis lo boundary', A, 'return !(lo_segment > hi) && !(lo > hi_segment);',
      'return !(lo_segment > hi) && !(lo >= hi_segment);'),
-    ('axis extent sign', A, '        if (e[k] > 0.0f)\n            hi = hi + e[k];', '        if (e[k] >= 1.0f)\n            hi = hi + e[k];'),
+    ('axis negative extent', A, '        else\n            lo = lo + e[k];', '        else\n            lo = lo - e[k];'),
     ('segment box axes', A, 'overlap(b->x, p1, p2, b) && overlap(b->y, p1, p2, b) && overlap(b->z, p1, p2, b);',
      'overlap(b->x, p1, p2, b) && overlap(b->y, p1, p2, b);'),
     ('hover box', A, 'memcpy(&b, o + MU_OBJF_OBB, sizeof b);\n    return segment_box(in->mouse_start',
