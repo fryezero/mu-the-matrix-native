@@ -202,7 +202,7 @@ or installed-app journey is produced. The handoff records validator/audit timing
 and the final publication state.
 
 
-## Final combined-main verification
+## Combined-main checkpoint at a95880c4
 
 Main AUDIO-004 #388, ACTORS-005 #389, INNER-004 #390 and UI-WINDOWS-003 #391
 are integrated through main a95880c4. Pure caller input 8965554f and its
@@ -238,3 +238,26 @@ The final current-main selection is 24 validators; every row has a
 passing result. The handoff preserves all 98 distinct results across the
 original and merged-main delta selections, with case counts, command walls,
 tested commits and the final queue list. No full lane gate runs.
+
+
+## Final UI4 merge verification
+
+Main moves during final publication to 4480bf41 / UI-WINDOWS-004 #392.
+Merge eaf8cdcf preserves both lanes' status entries. Root build passes in
+14.88 s. The UI4 delta selects 22 validators, all passing with
+no failures/errors/skips or repeated mutants, 193.71 s.
+Eight focused private presentation/movie and static-survey tests pass with no
+skips in 21.91 s. The unchanged incoming-message comparison
+and UI mutant class are not repeated. Portable delta since 9ba1e4c1 selects
+178 work items, excluding only the prohibited packaging module, command wall
+417.53 s. run_test_suites: 7 suites, 1593 tests, 1291 passed, 302 skipped, 0 failures, 0 errors; 0 failed suite(s); 359.3s wall, jobs=2.
+
+Final after/repeat refresh passes 82/82 fixture pairs, 58.57 s.
+All 164 PNGs still match the saved pre-merge hashes. The default after-only
+sweep is 71.60 s; all 45 unaffected views and 227/230 total
+artifacts remain identical. All 230 artifacts also match the completed
+a95880c4 after snapshot. The same two Kanturu37 PNGs and one report retain
+the INNER-004 change measured above. Final rebuilt world SHA-256 is
+`794060748b4ef28c72ab90da9cfe4c4c285a92b99b0affd30f96d9938ad230f4`. The baseline is not repeated. The final audit and exact
+Steward selection are in the handoff and PR. Pure caller/mutant inputs remain
+unchanged. No full lane gate or app work runs.

@@ -1,6 +1,6 @@
 # Continue from here
 
-RENDER-EFFECTS-032 verified fixture subset: recovered summon, shield, mount and Crescent Moon Slash callers, plus authored bow-kind/wing actions. Defense and Crescent move M -> L; missing summon, fire and Crescent end consumers remain counted refusals. Original requests, sound/default words, frame gates and constructor RNG interleaving pass 4,433 checks and 31/31 compiled mutants. [Checks and limits](handoffs/RENDER-EFFECTS-032.md).
+RENDER-EFFECTS-032 PR-ready fixture subset: recovered summon, shield, mount and Crescent Moon Slash callers, plus authored bow-kind/wing actions. Defense and Crescent move M -> L; missing summon, fire and Crescent end consumers remain counted refusals. Original requests, sound/default words, frame gates and constructor RNG interleaving pass 4,433 checks and 31/31 compiled mutants. [Checks and limits](handoffs/RENDER-EFFECTS-032.md).
 
 UI-WINDOWS-004 PR-ready: nine more empty NPC movies use ten proved manager slots. The 118 entry-unresolved rows classify 9 provider-complete, 17 provider-missing, 30 state-dependent and 62 no route found. The inherited PlayGuide key/menu route is withdrawn after the registry proves it selects EventMapEntranceUI. Survey 16/134 bound -> 24/134, unresolved 118 -> 110. Thirteen original route decisions, eight compiled mutants, nine captured native layouts, 22 affected validators and 230 default identities pass. [Scope and checks](handoffs/UI-WINDOWS-004.md).
 

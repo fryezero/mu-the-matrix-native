@@ -1,11 +1,12 @@
 # RENDER-EFFECTS-032
 
-WIP: main advanced after the staged audits. UI-WINDOWS-004 integration and its affected checks remain pending. The steward owns the combined gate and merge.
+PR-ready verified fixture subset. The steward owns the combined gate and merge.
 
 Branch `codex/render-effects-032` starts at main `b7dfd2ed`. Main `2b0b2716`,
 AUDIO-004 #388, is integrated through `8187e8e3` / registry resolution `fb561cff`.
 Late main `4babc900`, ACTORS-005 #389 and INNER-004 #390, is integrated as
 `fe83b2b9`. UI-WINDOWS-003 #391 main `a95880c4` is integrated as `28788cfc`.
+UI-WINDOWS-004 #392 main `4480bf41` is integrated as `eaf8cdcf`.
 The combined inputs pass the delta checks below.
 Pure caller inputs are `8965554f`; native exceptional-item admission is `7e298c4d`.
 Later commits contain delivery documentation only.
@@ -116,7 +117,7 @@ pairs, 63.47 s and 9.39 s. A root-path preflight
 fails before producing an image and is not counted. The post-RNG after/repeat
 refresh passes all 82 PNG pairs, 59.08 s, without repeating
 any baseline. The final combined-main refresh passes 82/82 pairs again in
-90.52 s; all 164 after/repeat PNGs also match the saved
+58.57 s; all 164 after/repeat PNGs also match the saved
 pre-merge hashes. Visual inspection confirms Crescent's spark scatter, Defense's
 pose, floating bow actions and the frame-6 Penetration projectile. The new RNG
 ordering changes the active Crescent scatter as intended. The long Penetration
@@ -132,7 +133,7 @@ The final script rebuilds/checks the binary hash immediately before its sweep
 and verifies the hash again afterward.
 
 - Before SHA-256: `e341fc2000d2e7f035f1e1814ca5384231389c8e7409ed20557643b0485108d7`.
-- After SHA-256: `d900e56b324e4b8d8441e97b83ba1e14f746bc7cc3f65291245511e3c56688c9`.
+- After SHA-256: `794060748b4ef28c72ab90da9cfe4c4c285a92b99b0affd30f96d9938ad230f4`.
 
 Default draw, no draw_all/live_time, 640x400, 25 frames sampled at 0/24:
 
@@ -142,7 +143,7 @@ Default draw, no draw_all/live_time, 640x400, 25 frames sampled at 0/24:
 | DATA-ACQ-002, 32 views | 64/64 identical | 64/64 identical | 32/32 identical |
 
 Before the actor/world/UI merges, all 230 artifacts match (after 69.74 s).
-The final combined-main after-only sweep is 89.38 s:
+The final UI4-combined after-only sweep is 71.60 s:
 **227/230 artifacts match**. The two Kanturu37 PNGs and one report change because
 INNER-004 restores the original extra RGBA mesh. All 45 other views, all 92
 OBJECT/light dumps and the remaining reports stay identical. Pixel differences:
@@ -160,7 +161,7 @@ consumer mutant run is requested. Wall times exclude load-guard pauses.
 |---|---|---:|
 | Integrated root build | pass | 24.79 |
 | Post-RNG-correction root build | pass | 12.70 |
-| Final combined explicit world build | pass | 0.42 |
+| Final UI4-combined explicit world build | pass | 0.27 |
 | Final original proof | 4,433 checks, 31/31 mutants, no stops | 71.71 |
 | Initial focused native | 6/6 pass | 7.77 |
 | Reduced private native after correction | 15/15 pass, zero skips | 25.75 |
@@ -178,7 +179,13 @@ consumer mutant run is requested. Wall times exclude load-guard pauses.
 | Final fixture refresh | 82/82 after/repeat pairs | 59.08 |
 | Combined fixtures | 82 pairs repeat, 164 PNGs unchanged from premerge | 90.52 |
 | Combined default after sweep | 227/230 identical; upstream Kanturu37 only | 89.38 |
-| Staged repository audit | pass, see delivery audit ledger | 21.68 |
+| UI4 root build | pass | 14.88 |
+| UI4 affected validator delta | 22/22 pass, no mutants | 193.71 |
+| UI4 reduced private presentation/survey | 8/8 pass, zero skips | 21.91 |
+| UI4 portable delta | see final result below | 417.53 |
+| UI4 final fixture pairs | 82/82 repeat, 164 PNGs unchanged | 58.57 |
+| UI4 default after sweep | 227/230 identical; upstream Kanturu37 only | 71.60 |
+| Final staged repository audit | pass, see delivery audit ledger | 36.43 |
 
 **8d reduced:** the private native selection is 174 work items, above the
 40-item cap. Private run covers the changed test_render_effects32 module,
@@ -188,6 +195,8 @@ with zero skips in 201.69 s and covers those callers
 plus the exceptional-item positive/negative controls, actor recipes, INNER-004,
 item textures and UI-WINDOWS-001/002/003 presentation/original routes.
 The UI mutant class is omitted because its source is unchanged in this lane.
+After UI4, eight presentation/movie and static route-survey tests pass without
+repeating the unchanged incoming-message comparison or mutant class.
 Portable private skips are not private proof.
 
 **Owner packaging exclusion:** the initial affected unit runner uses --affected
@@ -252,10 +261,26 @@ test execution, discovers the later UI merge and is replaced by the combined run
 | `combined-artifact-comparison` | 0.29 | 0 |
 | `delivery-validator-selection` | 70.12 | 0 |
 | `combined-repository-audit` | 21.68 | 0 |
+| `delivery-repository-audit` | 26.60 | 0 |
+| `ui4-root-build` | 14.88 | 0 |
+| `ui4-validator-selection` | 51.53 | 0 |
+| `ui4-private-native` | 21.91 | 0 |
+| `ui4-private-validators` | 193.71 | 0 |
+| `ui4-portable` | 417.53 | 0 |
+| `ui4-world-build` | 0.27 | 0 |
+| `ui4-fixture-renders` | 58.57 | 0 |
+| `ui4-identity-after` | 71.60 | 0 |
+| `ui4-artifact-comparison` | 0.32 | 0 |
+| `ui4-vs-ui3-identity` | 0.02 | 0 |
+| `delivery-validator-selection` | 110.39 | 0 |
+| `ui4-repository-audit` | 36.43 | 0 |
+
+UI4 final portable selection is 178 work items, 417.53 s command wall.
+run_test_suites: 7 suites, 1593 tests, 1291 passed, 302 skipped, 0 failures, 0 errors; 0 failed suite(s); 359.3s wall, jobs=2.
 
 ## Steward validators
 
-Final results at `5c0dec228af414f129ce061f3a400cefdef07624 / 3e1a10d71591a1f692e6c7a2ca828dec6abaa607 / 45b13d855bc695d6076d61ffc8a1d8027c3b8ca1 / 7e298c4d39a1aef29d9be9e85d9cc8bda9750a52`.
+Final results at `5c0dec228af414f129ce061f3a400cefdef07624 / 3e1a10d71591a1f692e6c7a2ca828dec6abaa607 / 45b13d855bc695d6076d61ffc8a1d8027c3b8ca1 / 7e298c4d39a1aef29d9be9e85d9cc8bda9750a52 / eaf8cdcfb55b4e835ad3b276cadd7ae404dd2c85`.
 Canonical private-env supplies evidence, MU_SECTION3, MU_GAME_ROOT,
 MU_NATIVE_DATA_DIR, MU_LANG_DIR and snapshots. Run --private --no-mutants --cache
 --jobs 2. **No further mutants needed.** The final current-main selection has 24 rows and is the queue list.
@@ -265,34 +290,34 @@ and each row's native controls; they are not one original-instruction total.
 
 | Validator | Cases | Wall s | Tested | Status | Role |
 |---|---:|---:|---|---|---|
-| `validate_actor_composites` | 1427 | 13.0 | `7e298c4d` | pass | PR |
-| `validate_actor_monsters` | 1437 | 69.6 | `7e298c4d` | pass | PR |
-| `validate_actor_recipes` | 1669 | 141.9 | `7e298c4d` | pass | PR |
-| `validate_app_polish1` | 752 | 26.4 | `45b13d85` | pass | merge delta |
-| `validate_app_polish2` | 1028 | 5.6 | `45b13d85` | pass | merge delta |
-| `validate_app_polish4` | 10485 | 47.6 | `45b13d85` | pass | PR |
-| `validate_app_polish7` | 5120 | 3.6 | `45b13d85` | pass | merge delta |
-| `validate_app_polish9` | 4668 | 7.8 | `45b13d85` | pass | merge delta |
-| `validate_audio_callers` | 5528 | 8.9 | `7e298c4d` | pass | PR |
+| `validate_actor_composites` | 1427 | 9.8 | `eaf8cdcf` | pass | PR |
+| `validate_actor_monsters` | 1437 | 50.3 | `eaf8cdcf` | pass | PR |
+| `validate_actor_recipes` | 1669 | 120.6 | `eaf8cdcf` | pass | PR |
+| `validate_app_polish1` | 752 | 20.9 | `eaf8cdcf` | pass | merge delta |
+| `validate_app_polish2` | 1028 | 3.2 | `eaf8cdcf` | pass | merge delta |
+| `validate_app_polish4` | 10485 | 37.4 | `eaf8cdcf` | pass | PR |
+| `validate_app_polish7` | 5120 | 1.5 | `eaf8cdcf` | pass | merge delta |
+| `validate_app_polish9` | 4668 | 3.9 | `eaf8cdcf` | pass | merge delta |
+| `validate_audio_callers` | 5528 | 4.9 | `eaf8cdcf` | pass | PR |
 | `validate_audio_combat` | 19548 | 32.3 | `3e1a10d7` | pass | PR |
-| `validate_audio_domains` | 2544 | 35.9 | `7e298c4d` | pass | PR |
-| `validate_audio_items` | 3000 | 8.2 | `7e298c4d` | pass | PR |
-| `validate_audio_objects` | 4000 | 3.8 | `3e1a10d7` | pass | PR |
-| `validate_audio_objects4` | 10093 | 9.3 | `3e1a10d7` | pass | PR |
+| `validate_audio_domains` | 2544 | 21.0 | `eaf8cdcf` | pass | PR |
+| `validate_audio_items` | 3000 | 2.8 | `eaf8cdcf` | pass | PR |
+| `validate_audio_objects` | 4000 | 3.0 | `eaf8cdcf` | pass | PR |
+| `validate_audio_objects4` | 10093 | 6.0 | `eaf8cdcf` | pass | PR |
 | `validate_charsel_items` | 8817 | 9.6 | `3e1a10d7` | pass | PR |
 | `validate_charsel_world` | 1200 | 3.8 | `3e1a10d7` | pass | merge delta |
-| `validate_gfx3` | - | 8.9 | `45b13d85` | pass | merge delta |
+| `validate_gfx3` | - | 5.0 | `eaf8cdcf` | pass | merge delta |
 | `validate_icarus` | 5240 | 39.8 | `3e1a10d7` | pass | merge delta |
 | `validate_icarus_c2` | 8400 | 17.4 | `3e1a10d7` | pass | PR |
 | `validate_inventory_fx` | 8017 | 7.2 | `3e1a10d7` | pass | PR |
 | `validate_item_callers` | 6013 | 1.3 | `3e1a10d7` | pass | PR |
 | `validate_items_ui` | 8517 | 10.7 | `3e1a10d7` | pass | PR |
 | `validate_login_world` | 1200 | 4.0 | `3e1a10d7` | pass | merge delta |
-| `validate_map_polish` | 876 | 0.7 | `45b13d85` | pass | merge delta |
+| `validate_map_polish` | 876 | 0.6 | `eaf8cdcf` | pass | merge delta |
 | `validate_meshdraw` | 14619 | 79.0 | `3e1a10d7` | pass | merge delta |
 | `validate_model_edge` | 954 | 149.2 | `3e1a10d7` | pass | merge delta |
 | `validate_model_light` | 1433 | 7.5 | `3e1a10d7` | pass | merge delta |
-| `validate_movement` | 6614 | 77.3 | `7e298c4d` | pass | PR |
+| `validate_movement` | 6614 | 57.0 | `eaf8cdcf` | pass | PR |
 | `validate_object_render` | 1984 | 4.0 | `3e1a10d7` | pass | merge delta |
 | `validate_path` | 4719 | 31.5 | `3e1a10d7` | pass | merge delta |
 | `validate_render_effects10` | 154 | 0.4 | `3e1a10d7` | pass | merge delta |
@@ -301,17 +326,17 @@ and each row's native controls; they are not one original-instruction total.
 | `validate_render_effects13` | 180 | 0.6 | `3e1a10d7` | pass | merge delta |
 | `validate_render_effects14` | 660 | 1.5 | `3e1a10d7` | pass | merge delta |
 | `validate_render_effects15` | 509 | 1.0 | `3e1a10d7` | pass | merge delta |
-| `validate_render_effects16` | 424 | 5.7 | `7e298c4d` | pass | PR |
-| `validate_render_effects17` | 618 | 11.7 | `7e298c4d` | pass | PR |
+| `validate_render_effects16` | 424 | 2.7 | `eaf8cdcf` | pass | PR |
+| `validate_render_effects17` | 618 | 7.5 | `eaf8cdcf` | pass | PR |
 | `validate_render_effects18` | 540 | 1.4 | `3e1a10d7` | pass | merge delta |
 | `validate_render_effects19` | 400 | 1.0 | `3e1a10d7` | pass | merge delta |
 | `validate_render_effects20` | 148 | 0.3 | `3e1a10d7` | pass | merge delta |
 | `validate_render_effects21` | 267 | 0.4 | `3e1a10d7` | pass | merge delta |
 | `validate_render_effects22` | 202 | 6.0 | `3e1a10d7` | pass | merge delta |
 | `validate_render_effects23` | 1174 | 7.0 | `3e1a10d7` | pass | merge delta |
-| `validate_render_effects24` | 226 | 3.2 | `7e298c4d` | pass | PR |
-| `validate_render_effects25` | 202 | 15.5 | `7e298c4d` | pass | PR |
-| `validate_render_effects26` | 348 | 12.3 | `7e298c4d` | pass | PR |
+| `validate_render_effects24` | 226 | 2.2 | `eaf8cdcf` | pass | PR |
+| `validate_render_effects25` | 202 | 9.5 | `eaf8cdcf` | pass | PR |
+| `validate_render_effects26` | 348 | 10.1 | `eaf8cdcf` | pass | PR |
 | `validate_render_effects27` | 424 | 1.1 | `3e1a10d7` | pass | merge delta |
 | `validate_render_effects28` | 630 | 1.4 | `3e1a10d7` | pass | merge delta |
 | `validate_render_effects32` | 1723 | 0.8 | `5c0dec22` | pass | PR |
@@ -335,7 +360,7 @@ and each row's native controls; they are not one original-instruction total.
 | `validate_worlds_d` | 2400 | 4.9 | `3e1a10d7` | pass | merge delta |
 | `validate_worlds_e` | 4840 | 21.2 | `3e1a10d7` | pass | merge delta |
 | `validate_worlds_f` | 1818 | 0.4 | `3e1a10d7` | pass | merge delta |
-| `validate_worlds_fog` | 4044 | 7.3 | `45b13d85` | pass | PR |
+| `validate_worlds_fog` | 4044 | 5.9 | `eaf8cdcf` | pass | PR |
 | `validate_worlds_g` | 6000 | 7.7 | `3e1a10d7` | pass | merge delta |
 | `validate_worlds_g2` | 2657 | 4.5 | `3e1a10d7` | pass | merge delta |
 | `validate_worlds_g3` | 4000 | 3.3 | `3e1a10d7` | pass | merge delta |
@@ -389,11 +414,3 @@ worktree and local branch; retain the remote PR branch. No new private input
 needs retaining. Local paths before cleanup are the matching
 `~/Documents/MTM/mu-mac-tools/native/scratch/render-effects-032/` and
 `renders/render-effects-032/` directories.
-
-
-## WIP after final fetch
-
-Both staged audits pass, 21.68 s and 26.60 s. Final fetch discovers main
-4480bf41 / UI-WINDOWS-004 #392. Preserve the completed a95880c4 checks above,
-then integrate the new main and run only its affected build/test/validator
-inputs plus an after-only identity refresh. No PR or queue entry exists yet.
