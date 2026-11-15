@@ -36,6 +36,7 @@ from validate_hero_items import HEAD_HELMS, Item, PartDraw, Scale, ScaleIn  # no
 from validate_players import Character  # noqa: E402
 
 WALK = NATIVE/'build/mu-walk'
+DATA = NATIVE/'build/mu-data'
 GAME = os.environ.get('MU_GAME_ROOT')
 PRIVATE = os.environ.get('MU_RECOVERY_INTEGRATION') == '1'
 EMPTY = (-1, 0, 0, 0, 0)
@@ -285,7 +286,24 @@ def walk(*args, frames=60):
     rows = [json.loads(line) for line in result.stdout.splitlines() if line.startswith('{')]
     pre = next((r for r in rows if r.get('item_pre_draw') is True), None)
     particles = next(r for r in rows if r.get('particles') is True)
+    walk.hero_class = next((r for r in rows if r.get('hero_class') is True), None)   # HERO-ITEMS-002
     return pre, particles
+
+
+def hero_class(*args, frames=2):
+    """HERO-ITEMS-002: the summary's hero_class row (None when the end of SetCharacterClass changed nothing)."""
+    walk(*args, frames=frames)
+    return walk.hero_class
+
+
+def item_file(code):
+    """The installed Item.bmd's model file of an item code ('Item/NAME.bmd'), or None without a record."""
+    p = subprocess.run([str(DATA), 'item', str(Path(GAME, 'Data/Local/Item.bmd')), str(code)], capture_output=True,
+                       text=True)
+    if p.returncode:
+        return None
+    record = json.loads(p.stdout.splitlines()[0])
+    return record['folder'].replace('\\', '/').split('/', 1)[1] + record['file']
 
 
 @unittest.skipUnless(PRIVATE and GAME, 'needs MU_RECOVERY_INTEGRATION=1 and MU_GAME_ROOT')
@@ -309,6 +327,65 @@ class HeroScene(unittest.TestCase):
         pre, particles = walk('--hero-item', 'weapon0=Item/Sword04.bmd', '--hero-item', 'wing=Item/Wing02.bmd')
         self.assertIsNone(pre)
         self.assertEqual(particles['sprites_created'], 0)
+        self.assertIsNone(walk.hero_class)   # HERO-ITEMS-002: a Dark Knight in class parts outside the castle worlds
+
+
+@unittest.skipUnless(PRIVATE and GAME, 'needs MU_RECOVERY_INTEGRATION=1 and MU_GAME_ROOT')
+class HeroClassScene(unittest.TestCase):
+    """HERO-ITEMS-002: the head slot, the castle worlds' weapons and the scales on the hero (installed data)."""
+
+    @classmethod
+    def setUpClass(cls):
+        subprocess.run(['make', '-C', str(NATIVE), 'build/mu-walk', 'build/mu-data'], check=True, capture_output=True)
+
+    def test_each_listed_helm_loads_and_draws_the_class_head(self):
+        seen = []
+        for helm in HEAD_HELMS:
+            code = helm - 0xae6
+            file = item_file(code)
+            if file is None:   # the installed Item.bmd has no record of this helm (7:87..89 in the pinned install)
+                continue
+            seen.append(helm)
+            row = hero_class('--hero-item', f'helm={file}@7:{code - 7 * 512}')
+            self.assertEqual((row['head'], row['head_file'], row['refused']), (0x3701, 'HelmClass02.bmd', 0), hex(helm))
+            self.assertGreater(row['head_passes'], 0, hex(helm))
+        self.assertGreaterEqual(len(seen), 10)
+
+    def test_the_head_follows_the_class(self):
+        file = item_file(0x18f0 - 0xae6)   # Vine Helm
+        for class_byte, head in ((0x02, 'HelmClass03.bmd'), (0x12, 'HelmClass203.bmd'), (0x4f, 'HelmClass416.bmd')):
+            row = hero_class('--class', str(class_byte), '--hero-item', f'helm={file}@7:10')
+            skin = (class_byte & 15) + 16 * (class_byte >> 4).bit_length()
+            self.assertEqual((row['head'], row['head_file']), (0x3700 + skin, head))
+
+    def test_another_helm_hides_the_head(self):
+        self.assertIsNone(hero_class('--hero-item', f'helm={item_file(7 * 512 + 1)}@7:1'))
+        self.assertIsNone(hero_class())
+
+    def test_castle_worlds_give_the_class_weapon(self):
+        worn = ('--hero-item', 'weapon0=Item/Sword04.bmd', '--hero-item', 'weapon1=Item/Shield01.bmd',
+                '--hero-item', 'wing=Item/Wing02.bmd')
+        for world in (18, 19, 20, 21, 22, 23, 53, 97):
+            for class_byte, weapons, scale in ((1, [0x0af6, 0x0af6], 0.9), (2, [0x12f9, -1], 0.88),
+                                               (0, [0x14eb, -1], 0.9)):
+                if world not in (18, 97) and class_byte != 1:
+                    continue
+                row = hero_class('--world', str(world), '--tile', '30,90', '--class', str(class_byte), *worn)
+                self.assertEqual((row['castle'], row['weapons'], row['wing'], row['refused'], row['branch']),
+                                 (1, weapons, -1, 0, 1), (world, class_byte))
+                self.assertEqual(row['scale'], scale)
+        self.assertIsNone(hero_class('--world', '0', *worn))        # Lorencia keeps the worn items
+        row = hero_class('--world', '17', '--tile', '30,90', *worn)   # a neighbour of the world list
+        self.assertIsNone(row)
+
+    def test_class_scale_and_part_float(self):
+        for class_byte, scale in ((2, 0.88), (3, 0.95), (4, 0.92), (6, 1.03), (0x0b, 0.99), (0x0e, 0.8), (0x0f, 1.1),
+                                  (0x12, 0.88)):
+            row = hero_class('--class', str(class_byte))
+            self.assertEqual((row['scale'], row['branch'], row['castle']), (scale, 3, 0), class_byte)
+            self.assertEqual(row['part_scale'], [0.0, 0.95 if class_byte & 15 == 0x0b else 0.0, 0.0, 0.0, 0.0, 0.0])
+        for class_byte in (0, 1, 5, 7, 8, 9, 10, 12, 13):          # the creation default 0.9: no row
+            self.assertIsNone(hero_class('--class', str(class_byte)), class_byte)
 
 
 if __name__ == '__main__':

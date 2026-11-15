@@ -1350,10 +1350,11 @@ static void report_hero_class(const mu_world_rt *a)
         return;
     const mu_character_item *head = &a->ch.items[0];
     const char *file = head->loaded && strrchr(head->path, '/') ? strrchr(head->path, '/') + 1 : "";
-    printf("{\"hero_class\": true, \"class\": %d, \"head\": %d, \"head_file\": \"%s\", \"castle\": %d,"
+    printf("{\"hero_class\": true, \"class\": %d, \"head\": %d, \"head_file\": \"%s\", \"head_passes\": %ld,"
+           " \"castle\": %d,"
            " \"weapons\": [%d, %d], \"wing\": %d, \"scale\": %.4f, \"branch\": %d,"
            " \"part_scale\": [%.4f, %.4f, %.4f, %.4f, %.4f, %.4f], \"refused\": %u}\n",
-           a->class_byte, a->hero_head_type, file, castle,
+           a->class_byte, a->hero_head_type, file, a->hero_passes[0], castle,
            castle ? a->hero_castle_type[MU_CHARACTER_WEAPON_ITEM(0)] : -1,
            castle ? a->hero_castle_type[MU_CHARACTER_WEAPON_ITEM(1)] : -1,
            castle ? a->hero_castle_type[MU_CHARACTER_WING_ITEM] : -1, (double)p->scale, a->hero_scale_branch,
