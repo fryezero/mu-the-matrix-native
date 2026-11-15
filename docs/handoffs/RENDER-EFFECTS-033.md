@@ -235,3 +235,20 @@ skills/aliases, explicit rebuilt final default identity and hashes, final
 main check, final handoff/status, PR, ready entry and cleanup. No PR or ready
 entry exists. Next: selected_tests.py with MU_RECOVERY_INTEGRATION=0, then
 private_tests.py under private-env.sh. Gate results are in verify-runs/inner005.
+
+## WIP checkpoint 10, 13:53 local
+
+Done: portable affected executes 1,881 tests, with 1,529 passes, 351 expected
+private skips and one obsolete Penetration-refusal assertion. The legacy 030
+test now expects the supported child for 52/416. Blood Storm retains its
+constructor particle refusal. Canonical private reduced 8d covers twelve
+changed modules and changed-host readers: 59/60 pass initially; the corrected
+six-test 030 module passes in 6.287 s, covering the remaining failure. No
+production code changed. Private execution is 182.102 s plus 30 s resource
+wait; portable command is 534.640 s including selection. No mutant repeated.
+
+Left: main advanced to c5b9d5ca with UI-WINDOWS-005. Merge it, rebuild and run
+the actual incoming-input delta, then final actual-asset fixtures and explicit
+rebuilt identity. Finish final handoff/status, PR, ready entry and cleanup.
+Next: merge origin/main, ui5_selections.py and ui5_validators.py; portable UI
+delta via ui5_tests.py and private changed UI modules. No PR or ready line.

@@ -72,7 +72,7 @@ invented. The constructor-reachable action is 0; other actions and out-of-range
 parent scale indices are refused. Downstream 0x585/0, 0x586/0, 0x4b7/1,
 particle 0x8145/1 and blur 0x814b remain counted refusals, so the body is a
 visible subset. Piercing.bmd and blood_storm_sword.bmd use the exact static
-AccessModel paths (0x0183461a and 0x01836133); action-0 speed is set at
+loader fragments (0x0183461a and 0x01836133); action-0 speed is set at
 0x0183616a. Fire03.jpg uses the original LINEAR/CLAMP loader entry.
 
 `MU_SKILL33_TARGET_ICE` is an authored positive tick count (maximum 10,000),
