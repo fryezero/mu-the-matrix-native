@@ -48,6 +48,7 @@ static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     0x8549, 0x82f2, 0x810b, 0x807e, 0x807f, 0x8080,
     0x81ec, 0x854a,   /* RENDER-EFFECTS-024: mace bone sprites */
     0x8500, 0x8569,   /* RENDER-EFFECTS-026 */
+    0x7f42, 0x802a,   /* RENDER-EFFECTS-031: Flame01 and water */
     MU_PT_BITMAP_FIRE06,
     MU_PT_BITMAP_RAIN_SPLASH,
     MU_PT_BITMAP_RAIN_RING};
@@ -109,6 +110,8 @@ static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     /* RENDER-EFFECTS-024: LoadBitmap 0x01823365 / 0x0182ec0d, both LINEAR/CLAMP. */
     "Data/Effect/lightmarks_red.OZJ", "Data/Effect/light_blue.OZJ",
     "Data/Skill/wing_hetachi2.OZJ", "Data/Effect/Damage_ring_2.OZJ",
+    /* RENDER-EFFECTS-031, LoadBitmap 0x01821539 / 0x01823025, LINEAR/CLAMP. */
+    "Data/Effect/Flame01.OZJ", "Data/Effect/water.OZJ",
     /* RENDER-EFFECTS-016: Fire06 0x7f40, 0x70c's stone particle (LoadBitmap 0x018229e5 in 0x0182049e,
      * LINEAR/CLAMP) */
     "Data/Effect/Fire06.OZJ"};
