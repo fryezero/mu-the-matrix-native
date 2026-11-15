@@ -3869,6 +3869,21 @@ args = ["--cases", "200", "--mutations", "--output", "{report}"]
 all_equal = true
 all_mutants_caught = true
 
+[validate_muun_visibility]
+test = "native/tests/test_muun_visibility.py::Original.test_instruction_comparison"
+pins = ["text", "data"]
+needs = ["clang"]
+families = ["visibility", "seat_phase"]
+cases = 417
+mutants = 10
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/muun"]
+args = ["--mutations", "--output", "{report}"]
+[validate_muun_visibility.expect]
+all_equal = true
+all_mutants_caught = true
+
 [validate_worlds_inner5]
 test = "reconstructed/objects/test_worlds_inner5.py::ClientComparison.test_original"
 pins = ["text", "data"]
@@ -3988,18 +4003,3 @@ note = "RENDER-ITEMS-002Z: fourteen early bodies, independent states and every f
 "families.parts.cases" = 288
 "families.exits.cases" = 896
 "mutants.*" = {truthy = true}
-
-[validate_muun_visibility]
-test = "native/tests/test_muun_visibility.py::Original.test_instruction_comparison"
-pins = ["text", "data"]
-needs = ["clang"]
-families = ["visibility", "seat_phase"]
-cases = 417
-mutants = 10
-cases_at = "families.*.cases"
-mutants_at = "mutants"
-build = ["reconstructed/muun"]
-args = ["--mutations", "--output", "{report}"]
-[validate_muun_visibility.expect]
-all_equal = true
-all_mutants_caught = true

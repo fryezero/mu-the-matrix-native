@@ -424,6 +424,7 @@ Absent keys must remain refused. This is a raw pose fixture, not a new command/a
 
 `MU_MUUN_REMOTE_BUFF_FIXTURE=9,0,1` supplies local byte, remote byte and predicate to the existing mount
 buff fixture. It requires `MU_MUUN_MOUNT_FIXTURE=1` and `MU_MUUN_BUFF18_FIXTURE=1`. The native gate
+accepts local/remote bytes 0..255 and a supplied predicate 0 or 1. It
 intentionally hides a mismatched group without counting it as an unsupported render mode. Matching 9/6
 draws, and predicate zero bypasses the gate. `validate_muun_visibility` compares the complete 400-slot
 caller, including lookup order, local-owner bypass, predicate/buff values, mesh arguments and colour

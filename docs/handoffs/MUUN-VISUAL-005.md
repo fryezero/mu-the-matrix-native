@@ -192,3 +192,19 @@ Its wall was 100.47 s. Exclude `native/tests/test_native_app.py` from the portab
   and helper module, rebuild world, replay proof/after-only outputs and compare, final audit/docs/PR/queue.
 - Next: inspect the final validator summary, then regroup registry, inspect resource guards and run the
   portable preview. Keep main pinned at `d3ec9950` for this finish pass; later main is steward work.
+
+### WIP final test results, resource pause
+
+- Done: all 78 INNER refresh rows pass, 1,196,795 reported cases plus Worlds O without an aggregate
+  case count, zero failures/errors/skips, 1,320.55 s. The latest-result union is 99 passing rows,
+  1,338,652 reported cases plus Worlds O. No unavailable count is invented.
+- Done: grouped the new visibility row beside bones/transition. Parsed values for all 252 entries
+  are exactly equal before/after; registry diff from pinned main is still 45 added / zero deleted lines.
+  Portable preview selects 178 items, 171 native modules, in 76.22 s. All 177 retained items pass after
+  excluding app packaging: 1,764 tests, 1,417 passed / 347 expected skips, zero failures/errors, 443.10 s.
+- Waiting: resource guard remains above load 14. No heavy job is running in this lane.
+- Left: explicit world build/hash, 35 private tests across seven Muun modules plus native world host
+  and reconstructed inner5 helper module, replay proof and both after tours, compare to retained inspected
+  outputs, `finish.py --draft`, documentation check, final audit, `finish.py`, commit/push/PR/ready/cleanup.
+- Next: recheck resources, then build world and run the private 35-test set. Use the filenames expected
+  by `finish.py` and preserve the pre-INNER render directories until comparisons are complete.
