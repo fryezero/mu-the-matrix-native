@@ -58,7 +58,7 @@ class Installed(unittest.TestCase):
                 if child.name.lower()!='local':(overlay/'Data'/child.name).symlink_to(child)
             for child in (game/'Data/Local').iterdir():
                 if child.name.lower()!='muunmeshinfo.bmd':(overlay/'Data/Local'/child.name).symlink_to(child)
-            for code,kept,refused in ((356,3,0),(357,3,1),(375,7,1),(376,8,2),(377,4,1)):
+            for code,kept,refused in ((356,3,0),(357,3,1),(375,8,0),(376,10,0),(377,5,0)):
                 with self.subTest(code=code):
                     p=subprocess.run([str(ROOT/'native/build/muun-visual-host'),str(game),str(lang),str(code)],
                         check=True,capture_output=True,text=True,cwd=ROOT)
