@@ -53,9 +53,14 @@ Remain also changes particle/counter/hash fields, matching incoming
 EFFECTS-031. There is no default actor-related image delta.
 
 The input-delta selector keeps all 31 prior rows, 62.19 s. The current
-PR-wide selector is pending behind the resource guard.
+PR-wide selector keeps the same 31 of 247 registered rows, 446.83 s command
+including 360 s resource waiting. The merged-input positive replay passes all
+31 rows, 213,223 checks, zero failures/errors/skips, in 680.63 s command wall.
+Portable delta selects 185 work items and runs 184 after the app-module
+exclusion; it is running. Private native selection is 171, so 8d reduced
+will replay the two changed actor modules next.
 
-Left: required merged-input validator/portable/private replays, final
+Left: finish merged-input portable/private replays, final
 publication audit and PR. No readiness claim yet.
 
 Main through `6900914e` is integrated at `f8c9753a`; its EFFECTS-031

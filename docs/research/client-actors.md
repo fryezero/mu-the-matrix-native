@@ -784,7 +784,7 @@ No filename or secondary lifetime is inferred from an opener alone.
 The frozen ACTORS-006 remainder has 355 selectors. The new
 [per-row decisions](actor-group-decisions.csv) retain every original refined
 group, prior reason and current result. The generator admits 138 further
-bounded fixture plans, spanning 108 distinct body models. The regenerated
+bounded fixture plans, spanning 108 model indices and 99 exact body files. The regenerated
 census is 727 checked / 217 incomplete / 80 refused out of 1,024 selectors.
 The 39 earlier plans and 550 ACTORS-006 plans remain separate. These counts
 include selector aliases and do not measure unique creatures or whole-client
