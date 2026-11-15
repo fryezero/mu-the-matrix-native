@@ -33,7 +33,11 @@ class AudioCensus(unittest.TestCase):
         self.assertEqual(result['mapped_audio_sites'], 113)
         self.assertEqual(result['added_audio_sites'], 16)
         unknown = [row for row in result['sites'] if row['owner']=='unresolved']
-        self.assertEqual(len(unknown), 755)
+        self.assertEqual(len(unknown), 612)
+        self.assertEqual(result['audio_004_sites'], 33)
+        admitted = [r for r in result['sites'] if r['audio_004_adapter']]
+        self.assertTrue(all(r['native_owner'] == 'complete compared owner' and r['sound_id_status'] == 'compared' for r in admitted))
+        self.assertTrue(all(r['routine_status'] == 'prologue grouping only' for r in unknown))
         self.assertFalse(any(row['audio_adapter'] for row in unknown))
 
 
