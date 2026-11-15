@@ -2,7 +2,7 @@
 
 Branch `codex/audio-005`, stacked on AUDIO-004 `30e4f275`, then integrated
 with main after PR #388. Offline pinned instructions and authored fixtures only.
-This is a bounded audio subset. Final integration checks are still WIP.
+This is a bounded audio subset. Final native delivery, identity and audit checks are still WIP.
 
 ## Census
 
@@ -123,8 +123,11 @@ main integration was `1f5462e6`; integrations preserve AUDIO-005 source and chec
 - Source review found one annotation edge: type 47 could tag a prior log entry
   when its sound branch emitted nothing. The annotation is now tied to the
   exact action/frame sound gate. Root rebuild passes, **22.38 s**. Eight
-  prefilled-log boundary controls and a compiled guard mutant are added; their
-  run and affected refresh are pending. Earlier portable/source checks remain
+  prefilled-log controls and the new compiled mutant pass, **4.60 s**; total
+  Kubera mutants **7/7** across the two target runs. All **55** selected refresh
+  rows pass at `34f228d97889faddd6cfad73ed2dec1e8de8a9d0`,
+  **676.62 s**, zero failures/errors/skips. Selection takes **61.83 s**, retaining
+  all ten fallback rows and pruning 28 unused-symbol consumers. Earlier portable/source checks remain
   recorded at their exact commits. No unchanged optional mutant target is rerun.
 - Repository audit and final self-review remain pending.
 
@@ -267,5 +270,5 @@ Done: complete source, original/mutant proofs, decoded smoke and default identit
 before the UI merge, and all 70 integrated private validators. Left: portable
 refresh, reduced private tests, final identity refresh, audit,
 status lines and PR-ready queue. Next: finish the guarded affected suite refresh,
-then document and publish. Task-local reports are resumable WIP
+then finish native delivery, identity and audit before publication. Task-local reports are resumable WIP
 in `~/Documents/MTM/mu-mac-tools/native/scratch/audio-005/`.
