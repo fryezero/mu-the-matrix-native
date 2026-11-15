@@ -356,3 +356,31 @@ The previous default comparison remains historical until the new run finishes.
 then run the prepared task-local portable/private/identity launchers in
 `verify-runs/audio005-resume/`, serially with the resource guard. No optional
 mutants need repeating. No ready line or PR-ready claim yet.
+
+## Resume checkpoint, 2026-11-15 10:17
+
+**Done:** the latest-main refresh passes **82/82 validators**, zero failures,
+errors or skips, **1,067,729 cases/checks, 891.54 s**. The 108-row steward union
+retains 26 unchanged earlier results with their tested commits. Portable
+selection is 178 items / 167 native modules; app packaging is excluded and
+177 items run: **1,844 tests, 1,507 passed / 337 explicit skips, zero failures
+or errors, 416.42 s** command wall, including 51.824 s selection.
+**8d reduced:** canonical private root run passes **105/105, zero skips,
+106.91 s**. Fourteen duplicate original wrappers are omitted. One unchanged
+NPC `test_validator` wrapper was mistakenly retained and reran its mutants;
+it passed. That extra work is recorded rather than claiming no unchanged
+mutants ran. All 80 type-model attempts, 211 decoded ids, native sound delivery,
+ordered stops, unchanged audio-on/off frames and census controls pass.
+
+Both world targets rebuild, source bytes are restored, and hashes are distinct:
+control main `6900914e` is `1a7b20b52387fb7010574d45db4a7e99415ee3b06c7110da28bdc2877c25e484`;
+production is `712a65ae036d2753293a4b577d60a07736b07ee048c5433c8db4b1973fb2dea8`.
+Main remains `6900914e`; PR #396 is still open, so its actor eligibility recheck
+belongs to AUDIO-006 if it is not merged before finish.
+
+**Left:** default identity renders/comparison, final audit and docs, PR-ready
+metadata and the single ready entry. Image identity remains pending.
+
+**Next step:** finish the guarded identity launcher in
+`verify-runs/audio005-resume/identity.py`, then publish all final evidence before
+the ready line. No runtime source changed during this resume.

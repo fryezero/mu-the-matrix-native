@@ -1,6 +1,6 @@
 # Current status
 
-AUDIO-005 WIP: 245 fixture-bounded monster play sites plus four Kubera play/two stop sites; census 1,434 classified / 546 unresolved through the checked UI integration. All 23 new compiled controls and 74 validator rows are recorded. Latest EFFECTS-031 merge builds, but 82 selected validators, integration refresh and fresh identity remain pending. [Done, left and next step](handoffs/AUDIO-005.md).
+AUDIO-005 WIP: latest-main verification passes 82 validators, 1,844 portable tests and 105 private tests. Scope stays 245 fixture-bounded monster play sites plus four Kubera play/two stop sites; census 1,434 classified / 546 unresolved. Rebuilt binary hashes are distinct; default image identity and final readiness remain pending. [Done, left and next step](handoffs/AUDIO-005.md).
 
 UI-WINDOWS-004 PR-ready: nine more empty NPC movies use ten proved manager slots. The 118 entry-unresolved rows classify 9 provider-complete, 17 provider-missing, 30 state-dependent and 62 no route found. The inherited PlayGuide key/menu route is withdrawn after the registry proves it selects EventMapEntranceUI. Survey 16/134 bound -> 24/134, unresolved 118 -> 110. Thirteen original route decisions, eight compiled mutants, nine captured native layouts, 22 affected validators and 230 default identities pass. [Scope and checks](handoffs/UI-WINDOWS-004.md).
 
