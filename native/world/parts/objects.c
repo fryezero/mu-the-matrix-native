@@ -12,6 +12,7 @@
 #include "../world_rt_internal.h"
 #include "../../core/mu_session_audio.h"
 #include "../../core/mu_object_audio.h"
+#include "../object_audio.h"
 
 static void object_sound(void *context, int32_t id)
 {
@@ -35,6 +36,7 @@ static int objects_open(struct mu_world_rt *a, void *self)
             a->has_objects = 1;
             a->objects.sound = object_sound;
             a->objects.sound_context = a;
+            a->objects.sound_command = world_object_audio_command;
         } else {
             fprintf(stderr, "objects: %s (drawing none)\n", error);
         }
