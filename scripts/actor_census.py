@@ -119,6 +119,7 @@ def main():
     parser.add_argument('--openers', type=Path, required=True)
     parser.add_argument('--composite-ready', action='store_true')
     parser.add_argument('--monster-ready', action='store_true')
+    parser.add_argument('--plain-ready', action='store_true', help='include ACTORS-006 checked single-body plans')
     args = parser.parse_args()
     records, openers, static = collect()
     lib = recipes.library(recipes.LIBRARY)
@@ -126,6 +127,12 @@ def main():
     lib.mu_monster_class_find.restype = C.POINTER(recipes.Row)
     lib.mu_npc_find.argtypes = [C.c_uint32]
     lib.mu_npc_find.restype = C.c_void_p
+    groups = {}
+    if args.plain_ready:
+        path = Path(__file__).resolve().parents[1]/'docs/research/actor-admission-groups.csv'
+        with path.open() as f: groups = {int(r['server_class']):r for r in csv.DictReader(f)}
+        lib.mu_actor_plain_plan.argtypes = [C.c_int32, C.c_void_p]
+    checked_openers = collections.Counter()
     rows = []
     for record in records:
         native = lib.mu_monster_class_find(record['class'])
@@ -144,7 +151,21 @@ def main():
                 admitted = False
         if record['class'] in EFFECT_CLASSES:
             admitted = True  # mu_world_actors resolves these before the core class table.
-        rows.append(classify(record, admitted, args.composite_ready, args.monster_ready))
+        value = classify(record, admitted, args.composite_ready, args.monster_ready)
+        if args.plain_ready:
+            group = groups.get(record['class'], {})
+            checked = bool(lib.mu_actor_plain_plan(record['class'], None))
+            if checked:
+                if not admitted or group.get('decision') != 'checked plain body plan':
+                    raise ValueError('plain plan and admission inventory differ')
+                value['native'] = 'correct bounded body plan'
+                checked_openers[('monster', record['opens'][0][1])] += 1
+            value['admission_group'] = group.get('group', '')
+            value['remaining_reason'] = group.get('reason', '')
+        rows.append(value)
+    if args.plain_ready:
+        for value in openers:
+            value['checked_plain_body_contexts'] = checked_openers[(value['family'],value['selector'])]
     for path, values in ((args.classes, rows), (args.openers, openers)):
         with path.open('w', newline='') as out:
             writer = csv.DictWriter(out, fieldnames=list(values[0]), lineterminator="\n")

@@ -56,6 +56,9 @@ static void place_model(const mu_world_actors *s, mu_world_actor *a)
     p.lighting = 1;
     p.pose_translate = 0;
     p.transform_translate = 1;
+    mu_actor_body_plan body_plan;
+    if (mu_actor_plain_plan(a->server_class, &body_plan))
+        p.transform_translate = (uint8_t)body_plan.translate;
     p.vertex_scale = 0.0f;
     p.light_ambient = 0.4f;
     p.light_scale = 0.8f;
@@ -512,4 +515,21 @@ int mu_world_actor_npc_part_draw(const mu_world_actor *a, int slot, float alpha,
     options.textures = &part->textures;
     options.alpha = alpha;
     return mu_scene_draw_model(&part->model, &options, backend, stats);
+}
+
+
+int mu_world_actor_plain_options(const mu_world_actor *a, float alpha, mu_draw_options *options)
+{
+    mu_actor_body_plan plan;
+    uint32_t scale_bits;
+    if (!a || !options || !mu_actor_plain_plan(a->server_class, &plan) ||
+        a->player || a->weapons || a->effect_count || plan.model != a->actor.spec.model_index)
+        return 0;
+    memcpy(&scale_bits, &a->actor.spec.scale, sizeof scale_bits);
+    if (scale_bits != plan.scale_bits) return 0;
+    options->flags = plan.flags;
+    options->alpha = alpha; /* plain plan */
+    options->skip_mesh = -1;
+    options->texture = -1;
+    return 1;
 }

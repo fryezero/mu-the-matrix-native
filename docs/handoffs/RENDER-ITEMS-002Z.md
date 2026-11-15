@@ -236,4 +236,3 @@ character-power or installed-app work is involved.
 The ready-entry cleanup removes this lane's reports, prototypes, render intermediates, build outputs,
 worktree and local branch. The remote PR branch and shared original-side cache remain. No new
 private input is needed by the next lane.
-

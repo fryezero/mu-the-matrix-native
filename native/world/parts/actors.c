@@ -256,6 +256,7 @@ static void actors_draw_soft(struct mu_world_rt *a, void *self, mu_world_draw *d
         raster->texture_wrap = actor->actor.textures.wrap;
         options.textures = &actor->actor.textures;
         mu_draw_stats ds = {0, 0, 0, 0};
+        mu_world_actor_plain_options(actor, alpha, &options);
         mu_scene_draw_model(&actor->actor.model, &options, &backend, &ds);
         mu_renderchar_env env; mu_renderchar_default_env(&env);
         env.lang = a->lang; env.time = a->map->time;
@@ -385,6 +386,7 @@ static void actors_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *d)
         options.textures = &actor->actor.textures;
         options.alpha = alpha;
         mu_draw_stats ds = {0, 0, 0, 0};
+        mu_world_actor_plain_options(actor, alpha, &options);
         mu_scene_draw_model(&actor->actor.model, &options, &backend, &ds);
         mu_renderchar_env env; mu_renderchar_default_env(&env);
         env.lang = a->lang; env.time = a->map->time;

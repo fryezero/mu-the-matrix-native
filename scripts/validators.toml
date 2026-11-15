@@ -3732,47 +3732,22 @@ args = ["--cases", "200", "--mutations", "--output", "{report}"]
 all_equal = true
 all_mutants_caught = true
 
-[validate_item_cycle]
-test = "reconstructed/renderchar/test_item_cycle.py::ItemCycle.test_original_instructions"
-pins = ["text", "data", "flag", "feature"]
-families = ["bodies", "records", "clocks", "owned", "cycle", "reader_refusals"]
-cases = 6936
-mutants = 7
+[validate_render_effects31]
+test = "native/tests/test_render_effects31.py::ClientComparison.test_original_instructions"
+pins = ["text", "data"]
+families = ["create", "move", "render", "joint_create", "joint_move", "joint_render", "effect_create", "effect_move", "effect_render_dispatch", "native_particles", "native_joints", "native_effects", "bitmaps", "model_loader", "world_skill_census", "frozen_item_census"]
+cases = 66051
+mutants = 69
 cases_at = "families.*.cases"
 mutants_at = "mutants"
-build = ["reconstructed/renderchar", "reconstructed/particles"]
-args = ["--mutations", "--output", "{report}"]
-note = "RENDER-ITEMS-002Z: signed piecewise colour, every tick of its positive period, branch boundaries, forcing records and complete owned requests"
-[validate_item_cycle.expect]
-"families.*.mismatches" = 0
-"families.bodies.cases" = 292
-"families.records.cases" = 512
-"families.clocks.cases" = 64
-"families.owned.cases" = 64
-"families.cycle.cases" = 6000
-"families.reader_refusals.cases" = 4
-"mutants.*" = {truthy = true}
-
-[validate_item_direct_bodies]
-test = "reconstructed/renderchar/test_item_direct_bodies.py::ItemDirectBodies.test_original_instructions"
-pins = ["text", "data", "flag", "feature"]
-families = ["bodies", "records", "lights", "frames", "parts", "exits"]
-cases = 15352
-mutants = 6
-cases_at = "families.*.cases"
-mutants_at = "mutants"
-build = ["reconstructed/renderchar"]
-args = ["--mutations", "--output", "{report}"]
-note = "RENDER-ITEMS-002Z: fourteen early bodies, independent states and every forcing record/level/quality"
-[validate_item_direct_bodies.expect]
-"families.*.mismatches" = 0
-"families.bodies.cases" = 4088
-"families.records.cases" = 7168
-"families.lights.cases" = 2016
-"families.frames.cases" = 896
-"families.parts.cases" = 288
-"families.exits.cases" = 896
-"mutants.*" = {truthy = true}
+build = ["reconstructed/particles", "reconstructed/joints", "reconstructed/combat", "reconstructed/renderchar", "native"]
+build_targets = { native = ["build/libmunative.a", "build/libmusession_world.a"] }
+args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+note = "RENDER-EFFECTS-031: existing world and skill consumer records, ordered calls/RNG, draw streams, native pool/raster and frozen/extended census"
+[validate_render_effects31.expect]
+all_equal = true
+all_mutants_caught = true
+"mutants.*.stopped" = 0
 
 [validate_audio_objects4]
 test = "native/tests/test_audio_objects4.py::Original.test_original_commands"
@@ -3826,3 +3801,106 @@ note = "INNER-004: complete Crywolf/Barracks leaves and bounded Kalima/tower inl
 "families.*.stopped" = 0
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
+
+[validate_render_effects32]
+test = "native/tests/test_render_effects32.py::Original.test_original_remaining_callers"
+pins = ["text", "data"]
+families = ["step", "end", "start", "poses", "admission", "learned", "selector", "interleaving"]
+cases = 1723
+mutants = 31
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/combat"]
+args = ["--cases", "100", "--mutations", "--output", "{report}"]
+note = "RENDER-EFFECTS-032: ten remaining learned caller rows, exact requests/defaults/sounds, shield/mount and wing/kind poses; authored active learned admission; no new consumers"
+[validate_render_effects32.expect]
+all_equal = true
+all_mutants_caught = true
+"mutants.*.stopped" = 0
+
+[validate_actor_plain]
+test = "native/tests/test_actor_plain.py::ClientComparison.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["defaults", "constructor", "openers", "caller", "native", "render", "draw", "plans", "reproducible"]
+cases = 21437
+mutants = 9
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/actors", "reconstructed/renderchar", "native"]
+build_targets = { native = ["build/libmunative.a", "build/libmusession_world.a"] }
+args = ["--cases", "200", "--mutations", "--output", "{report}"]
+note = "RENDER-ACTORS-006: 550 instruction-checked generated single-body plans, 51 actual model/texture sets, per-row constructor/opener/28 caller contexts; sprite emitters execute and nonuniform rows stay incomplete"
+[validate_actor_plain.expect]
+all_equal = true
+all_mutants_caught = true
+"mutants.*.stopped" = 0
+
+[validate_muun_riding]
+test = "native/tests/test_muun_riding.py::Original.test_instruction_comparison"
+pins = ["text", "data"]
+families = ["lift", "placement", "fade", "render", "particles", "transition", "buff_mesh"]
+cases = 890
+mutants = 22
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/muun"]
+args = ["--cases", "200", "--mutations", "--output", "{report}"]
+[validate_muun_riding.expect]
+all_equal = true
+all_mutants_caught = true
+
+[validate_muun_special]
+test = "native/tests/test_muun_special.py::Original.test_instruction_comparison"
+pins = ["text", "data"]
+families = ["mesh", "refusal", "installed", "ordered"]
+cases = 452
+mutants = 17
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/muun"]
+args = ["--cases", "200", "--installed", "--mutations", "--output", "{report}"]
+[validate_muun_special.expect]
+all_equal = true
+all_mutants_caught = true
+
+[validate_item_cycle]
+test = "reconstructed/renderchar/test_item_cycle.py::ItemCycle.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "records", "clocks", "owned", "cycle", "reader_refusals"]
+cases = 6936
+mutants = 7
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar", "reconstructed/particles"]
+args = ["--mutations", "--output", "{report}"]
+note = "RENDER-ITEMS-002Z: signed piecewise colour, every tick of its positive period, branch boundaries, forcing records and complete owned requests"
+[validate_item_cycle.expect]
+"families.*.mismatches" = 0
+"families.bodies.cases" = 292
+"families.records.cases" = 512
+"families.clocks.cases" = 64
+"families.owned.cases" = 64
+"families.cycle.cases" = 6000
+"families.reader_refusals.cases" = 4
+"mutants.*" = {truthy = true}
+
+[validate_item_direct_bodies]
+test = "reconstructed/renderchar/test_item_direct_bodies.py::ItemDirectBodies.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "records", "lights", "frames", "parts", "exits"]
+cases = 15352
+mutants = 6
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar"]
+args = ["--mutations", "--output", "{report}"]
+note = "RENDER-ITEMS-002Z: fourteen early bodies, independent states and every forcing record/level/quality"
+[validate_item_direct_bodies.expect]
+"families.*.mismatches" = 0
+"families.bodies.cases" = 4088
+"families.records.cases" = 7168
+"families.lights.cases" = 2016
+"families.frames.cases" = 896
+"families.parts.cases" = 288
+"families.exits.cases" = 896
+"mutants.*" = {truthy = true}

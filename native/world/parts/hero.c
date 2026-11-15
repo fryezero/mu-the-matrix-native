@@ -11,6 +11,7 @@
 #endif
 #include "../world_rt_internal.h"
 #include "../world_cloak.h"
+#include "../world_muun.h"
 
 static void hero_item_draw(mu_world_rt *a, int index, const mu_draw_options *options,
                            const mu_render_backend *backend)
@@ -76,6 +77,7 @@ static void hero_draw_soft(struct mu_world_rt *a, void *self, mu_world_draw *d)
     mu_draw_default_options(&options);
     raster->linear = 1;
     raster->front_ccw = 1;
+    mu_world_muun_rider_begin(a);
     if (a->has_character)
         for (int n = 0; n < MU_CHARACTER_ITEMS; ++n) {
             if (n == MU_CHARACTER_PART_SLOTS)
@@ -92,6 +94,7 @@ static void hero_draw_soft(struct mu_world_rt *a, void *self, mu_world_draw *d)
             options.textures = &item->textures;   /* bitmap GL names and component counts */
             hero_item_draw(a, mu_world_draw_order[n], &options, &backend);
         }
+    mu_world_muun_rider_end(a);
 }
 
 #ifndef MU_WORLD_NO_GL
@@ -126,6 +129,7 @@ static void hero_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *d)
     mu_draw_options options;
     mu_draw_default_options(&options);
     d->perf = mu_perf_begin(a->perf);
+    mu_world_muun_rider_begin(a);
     if (a->batch)
         mu_gl_batch_session_begin(a->batch);
     if (a->has_character)
@@ -142,6 +146,7 @@ static void hero_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *d)
             options.textures = &item->textures;   /* bitmap GL names and component counts */
             hero_item_draw(a, mu_world_draw_order[n], &options, &backend);
         }
+    mu_world_muun_rider_end(a);
 }
 #endif
 
