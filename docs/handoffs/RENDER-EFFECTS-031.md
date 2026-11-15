@@ -367,3 +367,16 @@ Root/world build and overlap/test selectors pass in 114.207 s. Only eight prior 
 incoming compiled changes: app_polish1/4, audio_callers/domains/items, movement, render_effects16 and
 worlds_fog. They run without mutants, plus 146 portable work items, two focused private UI modules,
 a final render replay and audit. No consumer or control target changes.
+
+### 01:06 checkpoint, final UI verification
+
+Done: all eight UI-overlap validators pass at `48d91b76`, 75.656 s plus 360.044 s resource wait.
+Affected portable checks pass 1,506 tests: 1,211 passed / 295 expected skips, zero failures/errors,
+387.9 s runner wall / 462.925 s complete command. The two private UI modules pass 12 tests with
+one expected mutant skip, 8.986 s plus 240.025 s resource wait. The final replay completes and
+preserves all 120 PNGs and 96 OBJECT/light dumps versus the preceding ACTORS/INNER build.
+
+Left: final audit (currently held by the load guard), consolidate the final evidence/status, staged
+audit, final push, PR, link and ready-prs line, then cleanup. No new consumer or control changes.
+Next: let the current audit finish; `finish-docs.py` in this lane's private scratch generates the
+reviewed final handoff, status lines, validation table and PR body from the completed reports.
