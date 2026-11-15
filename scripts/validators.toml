@@ -3732,7 +3732,6 @@ args = ["--cases", "200", "--mutations", "--output", "{report}"]
 all_equal = true
 all_mutants_caught = true
 
-<<<<<<< HEAD
 [validate_muun_riding]
 test = "native/tests/test_muun_riding.py::Original.test_instruction_comparison"
 pins = ["text", "data"]
@@ -3760,7 +3759,7 @@ args = ["--cases", "200", "--installed", "--mutations", "--output", "{report}"]
 [validate_muun_special.expect]
 all_equal = true
 all_mutants_caught = true
-=======
+
 [validate_audio_objects4]
 test = "native/tests/test_audio_objects4.py::Original.test_original_commands"
 pins = ["text", "data"]
@@ -3779,4 +3778,3 @@ original_sites = 33
 "families.*.stopped" = 0
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
->>>>>>> origin/main
