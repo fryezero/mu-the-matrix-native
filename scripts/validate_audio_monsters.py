@@ -224,7 +224,7 @@ MUTANTS={
 ADAPTER_MUTANTS={
  'dispatch distance':('distance > 500.0f','distance >= 500.0f'),
  'discarded return':('    return fallback;\n}', '    return p.known && p.handled ? -1 : fallback;\n}'),
- 'death completion':('if (p.known) c->monsters[index].voice_3324', 'if (0 && p.known) c->monsters[index].voice_3324'),
+ 'death completion':('if (p.known || mu_monster_audio_extended_known(c->map->world)) c->monsters[index].voice_3324', 'if (0 && p.known) c->monsters[index].voice_3324'),
  'walk preserved frame':('mu_actor_action(&actor->actor) == 2 ? mu_actor_frame(&actor->actor) : 0.0f','0.0f'),
  'caller frame zero':(' || !(mu_actor_frame(&actor->actor) == 0.0f)', ''),
  'missing action':(' || mu_actor_action_count(&actor->actor) <= 2',''),

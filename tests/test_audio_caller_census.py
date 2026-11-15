@@ -34,7 +34,8 @@ class AudioCensus(unittest.TestCase):
         self.assertEqual(result['added_audio_sites'], 16)
         unknown = [row for row in result['sites'] if row['owner']=='unresolved']
         with patch('audio_owner_groups.semantic_owners', return_value=({}, [])), patch.dict(
-                census.NON_OWNER_REFERENCES, {('reconstructed/objects/world_inner5_visual.c',0xe8d888):'not present at entry'}):
+                census.NON_OWNER_REFERENCES, {('reconstructed/objects/world_inner5_visual.c',0xe8d888):'not present at entry',
+                                              ('reconstructed/objects/world_inner5_visual.h',0xe8d888):'not present at entry'}):
             entry = census.inventory(pins.TEXT.read(), pins.DATA.read())
         self.assertEqual(sum(r['owner']=='unresolved' for r in entry['sites']),546)
         self.assertEqual(len(unknown),516)
