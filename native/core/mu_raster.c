@@ -418,10 +418,16 @@ void mu_raster_end_mode(mu_raster *r)
     r->vertex_count = 0;
 }
 
+static void alpha_reference(void *context, float reference)
+{
+    ((mu_raster *)context)->alpha_reference = reference;
+}
+
 void mu_raster_backend(mu_raster *r, mu_render_backend *backend)
 {
     memset(backend, 0, sizeof *backend);
     backend->context = r;
+    backend->alpha_reference = alpha_reference;
     backend->prepare = prepare;
     backend->begin = begin;
     backend->end = end;

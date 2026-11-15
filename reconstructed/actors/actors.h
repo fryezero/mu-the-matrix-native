@@ -237,6 +237,9 @@ const char *mu_actor_player_body_file(int32_t body);
 
 /* RENDER-ACTORS-004: Female/Man/Girl NPCs use OpenNpc's secondary models
  * on their own skeleton, with CreateMonster's selected part slots. */
+/* RENDER-ACTORS-005: bounded ordinary monster body/weapon assemblies. */
+int mu_actor_monster_recipe(int32_t server_class, mu_monster_class *out);
+
 int mu_actor_npc_recipe(int32_t server_class, mu_monster_class *out);
 const char *mu_actor_npc_part_file(int32_t model);
 

@@ -193,6 +193,80 @@ static int load_npc_parts(mu_world_actor *a, const char *root, const mu_model_pa
     return 0;
 }
 
+typedef struct mu_world_actor_weapons {
+    mu_renderchar_host host;
+    mu_renderchar_attachment slots[2];
+    float body_bones[MU_MODEL_SHARED_BONE_BYTES / sizeof(float)];
+} mu_world_actor_weapons;
+
+static void free_weapons(mu_world_actor *a)
+{
+    if (!a->weapons) return;
+    for (int k = 0; k < 2; ++k) mu_renderchar_attach_free(&a->weapons->slots[k]);
+    mu_renderchar_host_free(&a->weapons->host);
+    free(a->weapons);
+    a->weapons = NULL;
+}
+
+static int load_weapons(mu_world_actor *a, const char *root, int no_textures, char *error, size_t cap)
+{
+    mu_monster_class row;
+    if (!mu_actor_monster_recipe(a->server_class, &row)) return 0;
+    a->weapons = calloc(1, sizeof *a->weapons);
+    if (!a->weapons) { snprintf(error, cap, "out of memory"); return 1; }
+    if (mu_renderchar_host_init(&a->weapons->host, &a->actor.model)) {
+        snprintf(error, cap, "monster weapon pose storage"); return 1;
+    }
+    int32_t bones[2];
+    if (!mu_renderchar_link_bones(row.model, &bones[0], &bones[1])) {
+        snprintf(error, cap, "monster %#x has no recovered link bones", row.model); return 1;
+    }
+    mu_data_table table = {0}; char path[4096];
+    snprintf(path, sizeof path, "%s/Data/Local/Item.bmd", root);
+    if (mu_data_load(path, NULL, &table) || table.result.status) {
+        mu_data_free(&table);
+        snprintf(error, cap, "monster weapons need Item.bmd"); return 1;
+    }
+    int failed = 0;
+    for (int k = 0; k < 2; ++k) {
+        int32_t type = row.slots[6+k].type;
+        if (!type || type == 0xffff) continue;
+        mu_item item;
+        if (bones[k] < 0 || bones[k] >= a->actor.bmd.bone_count || mu_item_model(&table, type, &item) != 1) {
+            snprintf(error, cap, "monster weapon %#x or bone %d unavailable", type, bones[k]); failed = 1; break;
+        }
+        snprintf(path, sizeof path, "%s/%s%s", root, item.folder, item.file);
+        for (char *c = path; *c; ++c) if (*c == '\\') *c = '/';
+        mu_renderchar_attachment *part = &a->weapons->slots[k];
+        if (mu_renderchar_attach_load(part, &a->weapons->host, path, bones[k], no_textures, error, cap)) {
+            failed = 1; break;
+        }
+        if (!no_textures) mu_item_textures_reload(&part->textures, &part->bmd, &table, root, type, path);
+        part->glow = (mu_renderchar_glow){.type = type, .level = row.slots[6+k].level,
+            .has_record = 1, .kind_a = item.attributes.kind_a, .kind_b = item.attributes.kind_b,
+            .item_kind = item.attributes.type};
+    }
+    mu_data_free(&table);
+    return failed;
+}
+
+const mu_renderchar_attachment *mu_world_actor_weapon(const mu_world_actor *a, int slot)
+{
+    if (!a->weapons || slot < 0 || slot >= 2 || !a->weapons->slots[slot].loaded) return NULL;
+    return &a->weapons->slots[slot];
+}
+
+int mu_world_actor_weapon_draw(const mu_world_actor *a, int slot, float alpha,
+    const mu_renderchar_env *env, const mu_render_backend *backend, mu_draw_stats *stats)
+{
+    const mu_renderchar_attachment *part = mu_world_actor_weapon(a, slot);
+    if (!part) return 1;
+    mu_draw_options options; mu_draw_default_options(&options);
+    options.textures = &part->textures;
+    return mu_renderchar_draw_item(&part->model, &part->glow, env, a->actor.model.params.color,
+        alpha, &options, backend, stats, NULL);
+}
+
 static int load_actor(mu_world_actors *s, mu_world_actor *a, const char *root, int32_t server_class, int32_t x,
                       int32_t y, int32_t direction, int32_t wander, const char *label, int no_textures, char *error,
                       size_t error_size)
@@ -231,6 +305,7 @@ static int load_actor(mu_world_actors *s, mu_world_actor *a, const char *root, i
         goto fail;
     if (!player && load_npc_parts(a, root, &params, no_textures, message, sizeof message))
         goto fail;
+    if (!player && load_weapons(a, root, no_textures, message, sizeof message)) goto fail;
     a->tile[0] = a->home[0] = x;
     a->tile[1] = a->home[1] = y;
     a->wander = wander;
@@ -258,6 +333,7 @@ static int load_actor(mu_world_actors *s, mu_world_actor *a, const char *root, i
     }
     return 0;
 fail:
+    free_weapons(a);
     if (a->player) {
         mu_character_free(a->player);
         free(a->player);
@@ -295,6 +371,7 @@ void mu_world_actors_free(mu_world_actors *s)
 {
     if (s->list)
         for (int32_t i = 0; i < s->count; ++i) {
+            free_weapons(&s->list[i]);
             mu_actor_free(&s->list[i].actor);
             if (s->list[i].player) {
                 mu_character_free(s->list[i].player);
@@ -389,6 +466,20 @@ void mu_world_actors_frame(mu_world_actors *s, float effect_dt)
         }
         place_model(s, a);
         mu_actor_update(&a->actor);
+        if (a->weapons) {
+            /* Attachment poses overwrite the client's shared bone array.
+             * Restore the saved body pose before EACH hand, including left. */
+            memcpy(a->weapons->body_bones, mu_model_bone_matrices(&a->actor.model),
+                MU_MODEL_SHARED_BONE_BYTES);
+            for (int k = 0; k < 2; ++k) {
+                mu_renderchar_attachment *part = &a->weapons->slots[k];
+                if (!part->loaded) continue;
+                memcpy(a->weapons->host.bones, a->weapons->body_bones, MU_MODEL_SHARED_BONE_BYTES);
+                mu_renderchar_attach_update(part, &a->actor.model, NULL, a->position,
+                    a->actor.spec.scale, a->actor.model.params.color);
+            }
+            memcpy(a->weapons->host.bones, a->weapons->body_bones, MU_MODEL_SHARED_BONE_BYTES);
+        }
         for (int32_t k = 0; k < a->effect_count; ++k) {
             float at[3] = {a->position[0], a->position[1], a->position[2]};
             int32_t bone = a->effect_bone[k];
