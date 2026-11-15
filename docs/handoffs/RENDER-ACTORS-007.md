@@ -29,8 +29,20 @@ strings. These changes do not alter admitted rows or production code.
 All 31 final affected validators pass at `b3edf825`, zero failures/errors/skips,
 602.78 s command wall. The new row passes 8,451 checks in 211.7 s.
 
-Left: permitted portable suites, reduced private actor modules, proof renders,
-rebuilt identity replay, final publication audit and PR. No readiness claim yet.
+The first portable run passes 1,525 / 1,864 tests, 339 expected skips, zero
+failures/errors. It selects 181 work items and runs 180 after excluding
+`test_native_app.py`. Private native selection is 169, so 8d reduced runs the
+two changed actor modules: four tests pass, zero skips, 448.08 s runtime /
+568.19 s command including 120 s wait. The 24 baseline proof scenes render
+in 19.24 s runtime / 139.33 s command including 120 s wait.
+
+Main advances to batch 115 `df57ab8b`; PR #396 is merged. This branch merges
+that main at `1b194a04`, preserving both appended registry sides. Registry
+parsing uses the repository Python. Incoming combat, Muun and item inputs
+require a post-build delta selection and only those replays.
+
+Left: integrated rebuild/delta checks, final proofs and identity replay,
+publication audit and PR. No readiness claim yet.
 
 Main through `6900914e` is integrated at `f8c9753a`; its EFFECTS-031
 changes are separate from actor identity changes.
