@@ -358,3 +358,12 @@ Audit passes, 2,289 staged files / zero rejected, 47.615 s. The final selector i
 The shared origin ref now contains UI-WINDOWS-003 #391 at `a95880c4`. Its changes are confined to
 UI/gfx/input and tests/docs. Merge it after the active selector; run only its selected overlap and
 focused UI checks. No consumer target source changes are involved.
+
+
+### UI-WINDOWS-003 integration checkpoint
+
+Main `a95880c4`, #391, merges as `62e6a250`; four shared status conflicts retain both lanes.
+Root/world build and overlap/test selectors pass in 114.207 s. Only eight prior validators have
+incoming compiled changes: app_polish1/4, audio_callers/domains/items, movement, render_effects16 and
+worlds_fog. They run without mutants, plus 146 portable work items, two focused private UI modules,
+a final render replay and audit. No consumer or control target changes.
