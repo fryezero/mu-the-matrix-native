@@ -504,6 +504,8 @@ cached by method/slot. This is a bounded static search, not complete call-graph
 recovery. Dynamic IDs, untyped callback dispatch, uncaptured function pointers
 and script routes without a captured controller join remain unresolved.
 
+The pass also checks captured absolute function-pointer and adjacent register-immediate manager calls. Dynamic table IDs remain unresolved.
+
 The pass starts at 6,708 direct manager calls. It finds 485 lifecycle sites,
 70 additional to 004. The [address ledger](ui-window-indirect.csv) records
 manager root, terminal site, movie, slot and action. These extra sites prove

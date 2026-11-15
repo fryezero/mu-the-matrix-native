@@ -49,3 +49,39 @@ class Windows5(unittest.TestCase):
             0xaae420:lambda u,c:(c.append('e0:open,') or 0,0)},
             [(0x1000efe4,0x10000100)])
         self.assertEqual(tail,['e0:open,'])
+
+@unittest.skipUnless(os.environ.get('MU_UI_WINDOWS5_MUTANTS')=='1','changed-controller mutants once at finish')
+class MutationSensitivity(unittest.TestCase):
+    def test_compiled_mutants(self):
+        import tempfile
+        source=ROOT/'native/gfx/mu_gfx_windows5.inc';normal=source.read_text()
+        mutants=[
+            ('wrong-slot','{0x164,MU_GFX_PERSONAL_CATALOG,1}','{0x184,MU_GFX_PERSONAL_CATALOG,1}',False),
+            ('wrong-movie','{0x164,MU_GFX_PERSONAL_CATALOG,1}','{0x164,MU_GFX_ARTIFACT,1}',False),
+            ('wrong-open-kind','if(r->toggle) mu_gfx_layer_toggle(L,r->movie);','if(0) mu_gfx_layer_toggle(L,r->movie);',False),
+            ('unready','if(!presentation_available3(L,r->movie)) return 0;','if(0) return 0;',False),
+            ('lost-close','mu_gfx_layer_show(w->L,w->id,0);','mu_gfx_layer_show(w->L,w->id,1);',False),
+            ('forged-action','return !strcmp(name,"TweenTimeSet")','return 1 || !strcmp(name,"TweenTimeSet")',False),
+            ('hidden-parent','if(w->open) (void)presentation_slot5','if(1) (void)presentation_slot5',False),
+            ('invented-sound','        if(r->toggle) mu_gfx_layer_toggle','        if(L->cfg.window_sound) L->cfg.window_sound(L->cfg.tooltip_user,25,0xc716f6);\n        if(r->toggle) mu_gfx_layer_toggle',False),
+            ('enabled-watch','[%d,\\"No match\\",true]','[%d,\\"No match\\",false]',True),
+        ]
+        with tempfile.TemporaryDirectory(prefix='mu-windows5-mutants-') as folder:
+            mirror=Path(folder)/'repo';mirror.mkdir()
+            for item in ROOT.iterdir():
+                if item.name!='native':(mirror/item.name).symlink_to(item,target_is_directory=item.is_dir())
+            (mirror/'native').mkdir();(mirror/'native/gfx').mkdir()
+            for item in (ROOT/'native').iterdir():
+                if item.name not in ('gfx','tests'):(mirror/'native'/item.name).symlink_to(item,target_is_directory=item.is_dir())
+            (mirror/'native/tests').mkdir()
+            (mirror/'native/tests/ui_windows5_host.c').write_text((ROOT/'native/tests/ui_windows5_host.c').read_text())
+            for item in (ROOT/'native/gfx').iterdir():
+                if item.name!=source.name:
+                    target=mirror/'native/gfx'/item.name
+                    if item.is_dir():target.symlink_to(item,target_is_directory=True)
+                    else:target.write_bytes(item.read_bytes())
+            for name,old,new,real in mutants:
+                with self.subTest(mutant=name):
+                    self.assertEqual(normal.count(old),1)
+                    (mirror/'native/gfx'/source.name).write_text(normal.replace(old,new))
+                    Windows5().run_host(real=real,build_root=mirror,failing=True)

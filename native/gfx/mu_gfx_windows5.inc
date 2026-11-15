@@ -8,10 +8,10 @@ static void presentation_fixture5(mu_gfx_layer *L, int m)
 {
     movie *w=&L->mv[m];
     if(m==MU_GFX_PERSONAL_CATALOG) {
-        invokef(L,m,w->path,"SetText","[{\"Title\":\"Personal shops - empty preview\",\"TitleList\":\"Shops\",\"ItemList\":\"Items\",\"AllShopList\":\"Unavailable\"}]");
-        invokef(L,m,w->path,"SetShopListText","[{\"Title\":\"Shop\",\"CharacterName\":\"Demo name\",\"Whisper\":\"Unavailable\",\"Letter\":\"Unavailable\"}]");
-        invokef(L,m,w->path,"SetItemListText","[{\"ItemName\":\"Item\",\"ProductType\":\"Type\",\"ItemCount\":\"Count\",\"Price\":\"Price\",\"Whisper\":\"Unavailable\",\"Letter\":\"Unavailable\"}]");
-        invokef(L,m,w->path,"SetSearchItemText","[{\"SearchItemLabel\":\"Empty offline fixture. No catalogue or requests.\",\"SearchItemButton\":\"Unavailable\"}]");
+        invokef(L,m,w->path,"SetText","[{\"Title\":\"Personal shops - empty preview\",\"TitleList\":\"Shops\",\"ItemList\":\"Items\",\"AllShopList\":\"Locked\"}]");
+        invokef(L,m,w->path,"SetShopListText","[{\"Title\":\"Shop\",\"CharacterName\":\"Demo name\",\"Whisper\":\"Locked\",\"Letter\":\"Locked\"}]");
+        invokef(L,m,w->path,"SetItemListText","[{\"ItemName\":\"Item\",\"ProductType\":\"Type\",\"ItemCount\":\"Count\",\"Price\":\"Price\",\"Whisper\":\"Locked\",\"Letter\":\"Locked\"}]");
+        invokef(L,m,w->path,"SetSearchItemText","[{\"SearchItemLabel\":\"No catalogue\",\"SearchItemButton\":\"Locked\"}]");
         invokef(L,m,w->path,"SetShopList","[[]]");
         invokef(L,m,w->path,"SetItemList","[[]]");
         invokef(L,m,w->path,"SetSearchItemList","[[]]");
@@ -19,9 +19,9 @@ static void presentation_fixture5(mu_gfx_layer *L, int m)
         presentation_set(L,m,"btnAllShopList.disabled","true");
         presentation_set(L,m,"mcSearchItem.tiSearchItem.disabled","true");
     } else if(m==MU_GFX_DUEL_WATCH) {
-        invokef(L,m,w->path,"InitTitle","[\"Duel watch - empty preview\",\"Empty offline fixture. No matches or entry.\"]");
+        invokef(L,m,w->path,"InitTitle","[\"Duel watch\",\"Empty offline fixture. No matches or entry.\"]");
         for(int i=0;i<4;i++) {
-            invokef(L,m,w->path,"InitDuelInfo","[%d,\"\",\"No match\",\"Unavailable\"]",i);
+            invokef(L,m,w->path,"InitDuelInfo","[%d,\"\",\"No match\",\"Locked\"]",i);
             invokef(L,m,w->path,"UpdateDuelWatch","[%d,\"No match\",true]",i);
         }
     } else if(m==MU_GFX_ARTIFACT) {

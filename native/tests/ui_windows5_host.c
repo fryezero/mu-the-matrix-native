@@ -23,7 +23,7 @@ int main(int argc,char **argv)
  for(int i=0;i<10;i++)mu_gfx_layer_advance(L,40);
  int real=getenv("MU_WINDOWS4_REAL") && !strcmp(getenv("MU_WINDOWS4_REAL"),"1");
  if(real){
-  field(MU_GFX_DUEL_WATCH,"tfTitle.text","\"Duel watch - empty preview\"");
+  field(MU_GFX_DUEL_WATCH,"tfTitle.text","\"Duel watch\"");
   for(int i=0;i<4;i++){char f[80];snprintf(f,sizeof f,"m_aDuelWatch.%d.disabled",i);field(MU_GFX_DUEL_WATCH,f,"true");}
   field(MU_GFX_PERSONAL_CATALOG,"mcPersonalShop.taTitle.text","\"Personal shops - empty preview\"");
   field(MU_GFX_PERSONAL_CATALOG,"btnAllShopList.disabled","true");

@@ -5,7 +5,7 @@ from pathlib import Path
 import unittest
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'scripts'))
-from survey_ui_indirect import indirect_routes
+from survey_ui_indirect import indirect_routes, indirect_manager_roots
 
 class IndirectRoutes(unittest.TestCase):
     def scan(self,tail,helper=False):
@@ -34,3 +34,8 @@ class IndirectRoutes(unittest.TestCase):
     def test_intermediate_window_method(self):
         rows=self.scan(bytes.fromhex('55 8b ec 51 89 4d fc 8b 4d fc 8b 01 ff 50 40 c9 c3'),helper=True)
         self.assertEqual([(r['manager_slot'],r['action']) for r in rows],[('0xe0','open')])
+
+    def test_captured_pointer_roots_only(self):
+        table=struct.pack('<II',0xac3bf7,0x111111)
+        text=bytes.fromhex('ff 15 00 c0 a7 01 ff 15 04 c0 a7 01 b8 f7 3b ac 00 ff d0')
+        self.assertEqual(indirect_manager_roots(text,table),[0x401000,0x401011])
