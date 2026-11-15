@@ -5,6 +5,7 @@
 #include "../world_rt_internal.h"
 #include "../../session/mu_session.h"
 #include "../../core/mu_session_audio.h"
+#include "../../core/mu_monster_audio.h"
 #include "../../core/mu_lang.h"
 #include "../../session/mu_session_seed.h"
 #include "../../fixture/mu_fixture.h"
@@ -184,7 +185,9 @@ static void characters_tick(mu_world_rt *a, void *self)
         for(int32_t k=0;a->has_actors && k<a->actors.count;++k)
             if(a->actors.list[k].session_slot==i && a->actors.list[k].session_key==sim.characters[i].key) {
                 mu_world_actor *actor = &a->actors.list[k];
+                mu_monster_audio_motion(p->session, &a->walk, actor, &sim.characters[i]);
                 mu_world_actors_step_one(&a->actors,k,&sim.characters[i]);
+                mu_monster_audio_tick(p->session, &a->walk, actor);
                 if (sim.characters[i].live) {
                     int32_t model = actor->actor.spec.model_index;
                     int32_t random = 0;
