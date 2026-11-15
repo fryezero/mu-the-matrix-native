@@ -408,6 +408,16 @@ int mu_combat_init(mu_combat *c, const char *root, mu_walk *walk, mu_character *
     c->weapon_item[1] = weapons[config->weapon].item[1];
     if (config->weapon == MU_COMBAT_WEAPON_BOW && config->bow_item)
         c->weapon_item[0] = config->bow_item;   /* RENDER-EFFECTS-007: another bow (its arrow model, same draw) */
+    c->skill32_context = (mu_skill32_context){weapons[config->weapon].bow_kind, -1, 0, 0};
+    /* Explicit appearance services: bow kind, wing word, shield present, mount present.
+     * These synthetic answers neither equip items nor grant eligibility. */
+    const char *fixture32 = getenv("MU_SKILL32_CONTEXT");
+    if (fixture32) {
+        mu_skill32_context ctx; char extra;
+        if (sscanf(fixture32, "%d,%d,%d,%d%c", &ctx.bow_kind, &ctx.wing, &ctx.shield, &ctx.mount, &extra) == 4 &&
+            ctx.bow_kind >= 0 && ctx.bow_kind <= 2 && ctx.wing >= -1 && ctx.wing <= 32767 &&
+            (ctx.shield == 0 || ctx.shield == 1) && (ctx.mount == 0 || ctx.mount == 1)) c->skill32_context = ctx;
+    }
     /* SetAttackSpeed 0x0138dc60 over the Player actions; actions it does not
      * store keep the loader's speed (marked < 0 here) */
     for (int32_t i = 0; i < MU_PLAYER_ACTIONS; ++i)
@@ -702,8 +712,20 @@ static int skill30_base(const mu_combat *c, int32_t skill)
     int cls = c->walk->hero.class_byte & 15;
     if ((base == 48 || base == 344) ? cls != 1 : cls != 2) return -1;
     if ((base == 24 || base == 51 || base == 52) &&
-        c->config.weapon != MU_COMBAT_WEAPON_BOW && c->config.weapon != MU_COMBAT_WEAPON_CROSSBOW) return -1;
+        mu_skill32_action(skill, c->walk->hero.class_byte, &c->skill32_context) < 0) return -1;
     return base;
+}
+
+/* New fixture requests require an active learned entry; stale capacity is refused. */
+static int skill32_admitted(const mu_combat *c, int32_t skill)
+{
+    if (!mu_skill32_select(skill, skill) ||
+        mu_skill32_action(skill, c->walk->hero.class_byte, &c->skill32_context) < 0) return 0;
+    /* The default step's exceptional hero item 0x815 has a separate spark
+     * burst. It is outside this fixture request subset (item = 0xae6 + 0x815). */
+    if ((skill == 18 || (skill >= 30 && skill <= 36)) && c->weapon_item[0] == 0x12fb) return 0;
+    const mu_skill_hero *hero = c->session ? mu_skill_book_hero(mu_session_skills(c->session)) : NULL;
+    return hero && mu_skill32_learned(skill, hero->skills, hero->count);
 }
 
 static void hero_archer(const mu_combat *c, mu_sfx_archer *a)
@@ -1141,6 +1163,71 @@ static int skill30_plan(mu_combat *c, int end)
     return plan.limit;
 }
 
+/* Caller requests only. No actor creation, mount state or consumer is invented. */
+static void skill32_emit(mu_combat *c, const mu_skill32_call *request, int phase)
+{
+    const mu_sfx_call *call = &request->call.visual;
+    uint32_t refused = c->stats.unsupported;
+    if (call->routine == MU_SFX_CALL_SOUND) {
+        uint32_t routine = phase == 2 ? (c->attack_skill == 18 ? 0x01222b6du : 0x01253a92u) : 0x013a763eu;
+        play(c, (mu_combat_audio){routine, request->call.site, call->type}, -1);
+    } else {
+        ++c->stats.skill32_requests;
+        if (call->routine == MU_SFX_CALL_JOINT)
+            create_joint(c, call->type, call->position, call->target, call->angle, call->subtype,
+                call->owner, call->scale, (uint16_t)call->arg7, (uint16_t)call->arg8);
+        else if (call->routine == MU_SFX_CALL_PARTICLE) create_particle(c, call, NULL);
+        else {
+            mu_sfx_info info = {0}; info.key = (uint16_t)call->range;
+            info.skill = (uint16_t)request->skill; info.field8 = (uint16_t)call->arg7;
+            create_effect_scaled(c, call->type, call->subtype, call->position, call->angle,
+                call->light, call->owner, &info, call->scale);
+        }
+    }
+    c->stats.skill32_refused += c->stats.unsupported - refused;
+}
+static int skill32_crescent_emit(void *context, const mu_sfx_call *call, mu_sfx_effect *effect)
+{
+    (void)effect;
+    mu_combat *c = context;
+    mu_skill32_call request = {0}; request.call.visual = *call;
+    if (call->routine == MU_SFX_CALL_PARTICLE && c->legacy_particles) {
+        /* This constructor shares the caller CRT stream. Preserve the world
+         * pool's separate native movement stream outside this request. */
+        mu_world_particles *particles = c->legacy_particles;
+        uint32_t saved = particles->rand_state;
+        uint64_t calls = particles->rand_calls;
+        particles->rand_state = c->crt_seed;
+        skill32_emit(c, &request, 0);
+        if (particles->rand_calls != calls) c->crt_seed = particles->rand_state;
+        particles->rand_state = saved;
+    } else skill32_emit(c, &request, 0);
+    return 0;
+}
+static int32_t skill32_rand(void *context) { return crt_rand(context); }
+
+static int skill32_plan(mu_combat *c, int phase)
+{
+    if (!skill32_admitted(c, c->attack_skill)) return 0;
+    mu_skill32_input in = {0}; mu_skill32_plan plan;
+    in.cast.skill = in.cast.base = c->attack_skill; in.cast.owner = MU_COMBAT_HERO_OBJECT;
+    in.cast.model = 0xa91; in.cast.action = c->walk->hero.action;
+    in.cast.attack_time = c->hero_attack_time; in.cast.frame = c->walk->hero.frame;
+    hero_frame(c, in.cast.position, in.cast.angle, in.cast.light);
+    in.object_key = (uint16_t)c->hero_key;
+    /* The original global skill word is an authored visual input here. */
+    in.skill_word = (uint16_t)c->attack_skill;
+    if (phase == 0 && c->attack_skill == 44) {
+        mu_sfx_env env = {0}; env.context = c; env.rand = skill32_rand; env.call = skill32_crescent_emit;
+        mu_skill32_crescent_step(&in, &env, &plan);
+    } else {
+        mu_skill32_plan_cast(&in, phase, &plan);
+        for (int i = 0; i < plan.count; ++i) skill32_emit(c, &plan.calls[i], phase);
+    }
+    c->hero_attack_time = in.cast.attack_time;
+    return plan.limit;
+}
+
 /* Inferno's ring 0x0142da3e(position, 0) (static reading): eight points at
  * 45-degree steps, 220 units out; at each the verified subtype-0 burst
  * and two stones, Stone 0x419 + rand % 2 of subtype 1 and of subtype 0. */
@@ -1179,7 +1266,7 @@ static void end_of_attack(mu_combat *c)
     if (target_ok)   /* the end-of-attack angle: CreateAngle toward the target (0x013af01b) */
         angle[2] = mu_create_angle(pos[0], pos[1], c->actors->list[t].position[0], c->actors->list[t].position[1]);
     play(c, mu_combat_skill_sound(skill, 1, -1, 0), -1);   /* the end-of-attack blocks' sounds (0x42, 0x75, 0x77, 0x73, ...) */
-    if (skill30_plan(c, 1)) return;
+    if (skill30_plan(c, 1) || skill32_plan(c, 1)) return;
     switch (skill) {
     case 0:
         if (h->action >= 0x7e && h->action <= 0x81)   /* 0x013aea7a: bow actions shoot */
@@ -1497,7 +1584,7 @@ void mu_combat_cast(mu_combat *c, int32_t skill, int32_t actor)
         ground_volley(c, skill);
         return;
     }
-    if (!alive(c, actor) || (!mu_skill_visual_find(skill) && skill30_base(c, skill) < 0))
+    if (!alive(c, actor) || (!mu_skill_visual_find(skill) && skill30_base(c, skill) < 0 && !skill32_admitted(c, skill)))
         return;
     c->target = actor;
     c->intent_skill = skill;
@@ -1595,10 +1682,12 @@ static void start_attack(mu_combat *c, int32_t t, int32_t skill)
         action = v && v->action >= 0 ? v->action
                                      : mu_player_magic_action(h->class_byte, mu_class_check(h->class_byte), rands[0]);
         int base30 = skill30_base(c, skill);
-        if (base30 == 24 || base30 == 51)
-            action = c->config.weapon == MU_COMBAT_WEAPON_CROSSBOW ? 0x7f : 0x7e;
-        if (base30 == 52)
-            action = c->config.weapon == MU_COMBAT_WEAPON_CROSSBOW ? 0x94 : 0x93;
+        if (base30 == 24 || base30 == 51 || base30 == 52)
+            action = mu_skill32_action(skill, h->class_byte, &c->skill32_context);
+        if (skill32_admitted(c, skill)) {
+            action = mu_skill32_action(skill, h->class_byte, &c->skill32_context);
+            ++c->stats.skill32_casts;
+        }
         if (base30 == 48) action = 0x9c;
         ++c->stats.skills;
         aura_cast(c, skill);
@@ -1612,6 +1701,7 @@ static void start_attack(mu_combat *c, int32_t t, int32_t skill)
     engage(c, t);                   /* demo: the target stops wandering once attacked */
     c->attack_target = t;
     c->attack_skill = skill;
+    if (skill32_admitted(c, skill)) skill32_plan(c, 2);
     if (c->session && (!skill || !c->intent_skill_checked)) {
         mu_intent in = {0};
         if (!skill) {
@@ -1888,6 +1978,7 @@ void mu_combat_step(mu_combat *c)
     hero_dead_step(c);
     death_stab_step(c);   /* MoveCharacter 0x013a9047, before AttackTime increments */
     int limit30 = c->hero_attack_time ? skill30_plan(c, 0) : 0;
+    if (c->hero_attack_time && !limit30) limit30 = skill32_plan(c, 0);
     if (c->hero_attack_time && mu_attack_time_step(&c->hero_attack_time, limit30 ? limit30 : MU_ATTACK_TIME_LIMIT)) {
         refresh_objects(c);
         end_of_attack(c);
@@ -2691,6 +2782,9 @@ void mu_combat_report_summary(const mu_combat *c, FILE *out, int quiet)
                 s->skill30_requests,s->skill30_arrows,s->skill30_refused,(unsigned)c->skill30_target_index,
                 target ? target->session_slot : -1,target ? target->session_key : -1);
     }
+    if (s->skill32_casts)
+        fprintf(out, "{\"skill32\": true, \"casts\": %u, \"requests\": %u, \"refused\": %u}\n",
+                s->skill32_casts, s->skill32_requests, s->skill32_refused);
     if (s->death_stab_steps)
         fprintf(out, "{\"death_stab\": true, \"steps\": %u, \"requests\": %u, \"refused\": %u,"
                 " \"context_refused\": %u}\n", s->death_stab_steps, s->death_stab_requests,

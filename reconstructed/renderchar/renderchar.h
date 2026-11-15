@@ -187,6 +187,9 @@ int mu_rc_item_draws_owner(const mu_rc_item *item, mu_rc_model *model, mu_rc_dra
 /* The same without the type check (the classification sweep uses it). */
 int mu_rc_item_draws_generic(const mu_rc_item *item, mu_rc_model *model, mu_rc_draw *out, int32_t capacity,
                              int32_t *count);
+/* Single generic draw before the level/tail chain, for early-body recipe probes. */
+int mu_rc_item_draws_direct_generic(const mu_rc_item *item, mu_rc_model *model, mu_rc_draw *out, int32_t capacity,
+                                  int32_t *count);
 /* Generator probe: the generic draws, writing carry[k]'s model fields (entry != 0)
  * back to the model after helper call k. */
 int mu_rc_item_draws_carry(const mu_rc_item *item, mu_rc_model *model, mu_rc_draw *out, int32_t capacity,

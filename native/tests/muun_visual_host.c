@@ -47,10 +47,10 @@ int main(int argc,char **argv)
     mu_muun_visual_frame(v,&o,3,1,0.04f);int resumed=v->visible && v->scene.instance_count==instances;
     o.key++;mu_muun_visual_frame(v,&o,3,1,0.04f);int foreign=!v->live && hidden(v);
     o.key--;mu_muun_visual_step(v,&o,3);int terminal=!v->live;
-    printf("{\"mesh_passes\":%d,\"first_mesh_texture\":%d,\"refused_meshes\":%ld,\"loaded\":true,\"code\":%d,\"model\":%d,\"bones\":%d,\"actions\":%d,\"records\":%d,"
+    printf("{\"mesh_passes\":%d,\"first_mesh_texture\":%d,\"refused_meshes\":%ld,\"loaded\":true,\"code\":%d,\"model\":%d,\"bones\":%d,\"meshes\":%d,\"actions\":%d,\"records\":%d,"
         "\"requested\":%ld,\"invalid\":%ld,\"refused_bones\":%ld,\"updates\":%ld,\"matrices\":%d,\"fields\":%d,"
         "\"moved\":%d,\"invisible\":%d,\"resumed\":%d,\"foreign\":%d,\"terminal\":%d,",
-        mesh_count,first_mesh_texture,refused_meshes,code,v->state.model,v->bmd.bone_count,v->bmd.action_count,v->effects.count,v->effects.requested,
+        mesh_count,first_mesh_texture,refused_meshes,code,v->state.model,v->bmd.bone_count,v->bmd.mesh_count,v->bmd.action_count,v->effects.count,v->effects.requested,
         v->effects.invalid,v->refused_bones,v->effects.updates,matrices,fields,moved,invisible,resumed,foreign,terminal);
     mu_muun_visual_close(v);int dead=0,generation=0;
     if(!mu_muun_visual_open(v,argv[1],argv[2],code,&o,3,error,sizeof error)) {
