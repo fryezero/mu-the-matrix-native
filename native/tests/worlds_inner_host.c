@@ -118,13 +118,13 @@ int main(int argc, char **argv)
         int8_t components[4] = {4, 3, 3, 3}; model.textures.model_count = 4; model.textures.components = components;
         reset(o, world, 0x60); assert(pass(o) == &model);
         n = mu_objects_first_meshes(o, 0, NULL, &model, meshes, 4);
-        assert(n == 1 && o->rt.draw_unsupported == 1);   /* alpha reference refusal retains the base body */
+        assert(n == 2 && o->rt.draw_unsupported == 0 && meshes[1].options.alpha_reference_set && meshes[1].options.alpha_reference == 0);
         mu_obj_set_i32(o->rt.images, MU_OBJF_HIDDEN_MESH, -2);
-        assert(pass(o) == NULL);   /* refusing the extra pass must not bypass RenderObject's hidden skip */
+        assert(pass(o) == &model && mu_objects_first_meshes(o, 0, NULL, &model, meshes, 4) == 1);
         model.bmd.meshes[0].texture_index = 1;
         components[0] = 3; components[1] = 4;
         reset(o, world, 0x60); assert(pass(o) == &model);
-        assert(mu_objects_first_meshes(o, 0, NULL, &model, meshes, 4) == 1 && o->rt.draw_unsupported == 1);
+        assert(mu_objects_first_meshes(o, 0, NULL, &model, meshes, 4) == 2 && o->rt.draw_unsupported == 0);
         components[0] = 4; components[1] = 3;
         reset(o, world, 0x60); assert(pass(o) == &model);
         assert(mu_objects_first_meshes(o, 0, NULL, &model, meshes, 4) == 2 && o->rt.draw_unsupported == 0);
@@ -230,6 +230,57 @@ int main(int argc, char **argv)
     model.bmd.bones[0].name[0] = 'x'; reset(o,9,2); (void)pass(o);
     assert(o->rt.particle_count == 0 && o->rt.draw_unsupported == 1);
     reset(o,9,2); o->models[2] = NULL; assert(pass(o) == NULL && o->rt.seed == 1);
+    /* INNER-004: outer RNG, authored event 0, named/short bones and missing dependencies. */
+    strcpy(model.bmd.bones[2].name,"Bone02");
+    for (int world=24;world<=36;++world) {
+        if (world>29 && world!=36) continue;
+        reset(o,world,12); (void)pass(o);
+        assert(o->rt.sprite_count==1 && o->rt.seed==next(1));
+        assert(o->rt.sprites[0].scale==0.9f && o->rt.sprites[0].light[2]==1);
+        reset(o,world,35); (void)pass(o);
+        assert(o->rt.particle_count==1 && o->rt.particles[0].bitmap==0x7ef7 && o->rt.particles[0].sub==6);
+        assert(mu_obj_i32(o->rt.images,MU_OBJF_HIDDEN_MESH)==-2);
+        reset(o,world,36); (void)pass(o);
+        assert(o->rt.particle_count==1 && mu_obj_f32(o->rt.images,MU_OBJF_SCALE)==0.5f);
+        assert(mu_obj_i32(o->rt.images,MU_OBJF_HIDDEN_MESH)==-2);
+        for(int t=15;t<=32;++t) {
+            if(t!=15 && t!=29 && t!=32) continue;
+            reset(o,world,t); (void)pass(o);
+            assert(o->rt.draw_unsupported==1 && o->rt.seed==next(1));
+        }
+    }
+    model.bmd.bones[2].name[0]='x';reset(o,24,12);(void)pass(o);
+    assert(o->rt.sprite_count==0 && o->rt.draw_unsupported==1);
+    model.bmd.bones[2].name[0]='B';
+    reset(o,24,12);o->models[12]=NULL;assert(pass(o)==NULL && o->rt.seed==1);
+    reset(o,30,0);o->rt.seed=seed_for(2,3,0);(void)pass(o);
+    assert(o->rt.particle_count==1 && o->rt.particles[0].bitmap==0x8016);
+    reset(o,30,0x35);(void)pass(o);assert(o->rt.particle_count==0 && o->rt.seed==next(1));
+    reset(o,39,5);(void)pass(o);assert(o->rt.sprite_count==3 && o->rt.seed==next(1));
+    assert(o->rt.sprites[1].bitmap==0x7f67 && o->rt.sprites[1].scale==(float)(1.0/2.4));
+    model.bmd.bone_count=1;reset(o,39,5);(void)pass(o);
+    assert(o->rt.sprite_count==0 && o->rt.draw_unsupported==3);model.bmd.bone_count=7;
+    reset(o,39,0);(void)pass(o);assert(o->rt.draw_unsupported==1 && o->rt.seed==next(1));
+    reset(o,39,1);(void)pass(o);assert(o->rt.particle_count==10 && mu_obj_i32(o->rt.images,MU_OBJF_HIDDEN_MESH)==-2);
+    o->rt.particle_count=0;(void)pass(o);assert(o->rt.particle_count==0);
+    for(int world=41;world<=42;++world) {
+        reset(o,world,6);(void)pass(o);assert(o->rt.particle_count==4 && mu_obj_i32(o->rt.images,MU_OBJF_HIDDEN_MESH)==-2);
+        o->rt.particle_count=0;(void)pass(o);assert(o->rt.particle_count==0);
+        reset(o,world,3);o->rt.seed=seed_for(2,3,0);(void)pass(o);
+        assert(o->rt.particle_count==1 && o->rt.particles[0].bitmap==0x8016);
+        reset(o,world,0x3c);(void)pass(o);assert(o->rt.particle_count==1 && o->rt.particles[0].sub==3);
+        reset(o,world,6);o->models[6]=NULL;assert(pass(o)==NULL && o->rt.seed==1);
+    }
+    reset(o,39,0x2f);o->rt.seed=seed_for(2,5,0);(void)pass(o);
+    assert(joints==0 && o->rt.draw_unsupported==1); /* 0x7f7d/11 */
+    reset(o,39,0x36);o->rt.seed=seed_for(2,3,0);(void)pass(o);
+    assert(joints==0 && o->rt.draw_unsupported==1); /* 0x7f7c/19 */
+    reset(o,41,0x5a);o->rt.seed=seed_for(2,3,0);(void)pass(o);
+    assert(joints==0 && o->rt.draw_unsupported==1 && o->rt.particle_count==1); /* 0x7fd5/4 */
+    for(int world=46;world<=98;world+=52) {
+        reset(o,world,1);(void)pass(o);assert(o->rt.draw_unsupported==1 && o->rt.seed==next(1));
+        o->models[1]=NULL;o->rt.draw_unsupported=0;(void)pass(o);assert(o->rt.draw_unsupported==0);
+    }
     free(o->rt.images); free(o); mu_model_free(&model.model); mu_bmd_free(&model.bmd);
     puts("classless inline host: Blood Castle gates/bones/counter, Kanturu effects/joints/meshes/refusals OK");
     return 0;
