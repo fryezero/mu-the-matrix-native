@@ -111,6 +111,13 @@ for _anchor in (0x1080169, 0x10848df, 0x1085bc3, 0x108803b,
                 0x1090451, 0x10906ff):
     OWNERS[_anchor] = ('skills', 'docs/research/client-audio.md:AUDIO-005-use-controller')
 
+# Reviewed non-owning references: a callee named only as an explicit refusal
+# does not establish a native body or semantic-owner admission for that callee.
+NON_OWNER_REFERENCES = {
+    ('reconstructed/objects/world_inner4_visual.c', 0xe8d888):
+        'Tower type-0 nested controller is named only as a counted refusal',
+}
+
 DOMAINS = {'ui': 'ui', 'quest': 'ui', 'npc': 'ui', 'items': 'items',
            'environment': 'world', 'objects': 'world', 'combat': 'skills',
            'charsel': 'ui', 'scene': 'ui', 'gfx': 'ui', 'progress': 'events'}
@@ -150,7 +157,10 @@ def inventory(text, data, root=ROOT):
                 continue
             for match in re.finditer(r'0x([0-9a-fA-F]{6,8})\b', path.read_text()):
                 address = int(match[1], 16)
-                references.setdefault(address, []).append((category, str(path.relative_to(root))))
+                relative = path.relative_to(root).as_posix()
+                if (relative, address) in NON_OWNER_REFERENCES:
+                    continue
+                references.setdefault(address, []).append((category, relative))
     delivered = set()
     adapter_paths = ['native/core/mu_session_audio.h', 'native/core/mu_combat_audio.h',
                      'native/core/mu_charsel_audio.h', 'native/core/mu_ui_audio.h',
@@ -192,7 +202,7 @@ def inventory(text, data, root=ROOT):
                 domain, source = category, cited
         command = admitted.get(site)
         selector = selected.get(site)
-        wired005 = site in kubera or bool(selector and any(0x7a5 <= m < 0x9fe for m in selector['models']))
+        wired005 = site in kubera or bool(selector and any(0x7a5 <= m < 0x9fe and m not in (0x90a,0x90b,0x90c) for m in selector['models']))
         if anchor not in instructions:
             # Only decode up to the last candidate in this syntactic group.
             limit = next((a for a in starts[index:] if a > anchor), BASE + len(text))

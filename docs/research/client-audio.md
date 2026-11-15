@@ -850,6 +850,12 @@ classified, 612 -> 546 unresolved, total 1,980. Skill-use buckets rise 272 -> 33
 other owner buckets keep their AUDIO-004 counts. None of these 66 sites acquires
 a delivery admission from a literal id or its proximity to a prologue.
 
+The INNER-004 source names nested `0x00e8d888` only as a counted refusal;
+it does not implement that controller. That non-owning mention is explicitly
+excluded from reference-based classification. Its sites `0x00e8db8b` and
+`0x00e8e002` retain unresolved owner/native status and no delivery admission.
+The pinned census control checks this boundary; the 546 expectation is retained.
+
 ### Complete scalar class owners
 
 The reviewed class registry selects slot `+0x70` by world. It is not a switch on

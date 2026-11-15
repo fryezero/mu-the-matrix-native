@@ -272,3 +272,17 @@ refresh, reduced private tests, final identity refresh, audit,
 status lines and PR-ready queue. Next: finish the guarded affected suite refresh,
 then finish native delivery, identity and audit before publication. Task-local reports are resumable WIP
 in `~/Documents/MTM/mu-mac-tools/native/scratch/audio-005/`.
+
+## Late integration WIP
+
+All 64 native delivery tests pass in the 103.52 s combined invocation. Its only
+failure is the census integration control: INNER-004 names 0x00e8d888 only as a
+counted refusal. The census now rejects that non-owning reference and pins both
+sites as unresolved; the expectation remains 546. The first corrected census
+run passes 2/2, 3.06 s; the final metadata-alignment rerun is pending its guard.
+No native C or validator input changes in this census correction.
+
+Main has advanced to UI-WINDOWS-004 `4480bf41`, including NPC callback ordering.
+Next: integrate it, rebuild and run the selected merge-affected checks plus
+NPC/audio consumers. Final rebuilt identity, audit and PR-ready publication
+remain pending. Shared-host load continues to pause new heavy work.
