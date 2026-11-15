@@ -7,8 +7,11 @@ The merge steward owns the full gate and merge.
 
 ## WIP
 
-The focused admission checks below pass. The lane is not PR-ready: 71 of the final 72 affected private validators and the genuine-main default identity sweep remain. The carry row passes, including canonical regeneration. The latest main is merged and its root build passes in 26.62 s; the refreshed selector has 72/241 rows, adding `validate_actor_monsters`, 69.37 s.
-Affected portable checks and 8d reduced pass on the earlier merged C inputs; their main-integration refresh also remains. No ready entry has been written.
+The focused admission checks below pass. The lane is not PR-ready: the remaining selected private
+validators, the main-integration portable/private refresh and the genuine-main default identity
+sweep remain. No ready entry has been written. Latest main `4babc900` is merged, and its root build
+passes in 26.62 s. The refreshed selector has 72/241 rows, adding `validate_actor_monsters`, 69.37 s.
+Completed rows and pending work are recorded in the latest checkpoint below.
 
 ## Result
 
@@ -122,33 +125,49 @@ this row and the earlier focused proofs. Remaining rows will run on the integrat
 
 ## Validator checkpoint
 
-24/72 selected rows pass, with zero failures/errors/skips. The carry row ran at `3fed7878`;
-the other completed rows ran at `4bb6348b`. Remaining: 48 rows, the main-integration portable/private
+40/72 selected rows pass, with zero failures/errors/skips. The carry row ran at `3fed7878`;
+the other completed rows ran at `4bb6348b`. Remaining: 32 rows, the main-integration portable/private
 refresh and the default identity sweep. Workers pause briefly for this audit/commit/push checkpoint;
 their measured wall times include that pause. Source inputs remain frozen.
 
 | Validator | Cases | Wall (s) | Source |
 |---|---:|---:|---|
+| `validate_app_polish1` | 752 | 17.7 | `4bb6348b` |
+| `validate_app_polish2` | 1028 | 3.2 | `4bb6348b` |
+| `validate_app_polish4` | 10485 | 31.8 | `4bb6348b` |
 | `validate_audio_callers` | 5528 | 4.5 | `4bb6348b` |
 | `validate_audio_domains` | 2544 | 27.6 | `4bb6348b` |
 | `validate_audio_items` | 3000 | 5.1 | `4bb6348b` |
 | `validate_fidelity` | 991 | 70.1 | `4bb6348b` |
 | `validate_icarus_c2` | 8400 | 12.7 | `4bb6348b` |
 | `validate_item_carry` | 114388 | 2230.6 | `3fed7878` |
+| `validate_item_chains` | 35406 | 358.8 | `4bb6348b` |
 | `validate_item_clusters` | 74292 | 530.2 | `4bb6348b` |
 | `validate_item_continuation` | 25772 | 212.1 | `4bb6348b` |
+| `validate_item_coverage` | 31724 | 275.9 | `4bb6348b` |
+| `validate_item_derived` | 36252 | 240.9 | `4bb6348b` |
 | `validate_item_expansion` | 52172 | 450.4 | `4bb6348b` |
 | `validate_item_gear` | 25256 | 218.6 | `4bb6348b` |
 | `validate_item_next` | 14992 | 273.1 | `4bb6348b` |
+| `validate_item_ownerfx` | 14964 | 164.8 | `4bb6348b` |
+| `validate_item_predraw` | 42540 | 466.3 | `4bb6348b` |
+| `validate_item_product` | 2874 | 108.3 | `4bb6348b` |
+| `validate_item_quality` | 28080 | 268.4 | `4bb6348b` |
 | `validate_item_ranked` | 17736 | 158.6 | `4bb6348b` |
 | `validate_item_read_programs` | 5352 | 18.7 | `4bb6348b` |
+| `validate_item_scalars` | 26274 | 250.0 | `4bb6348b` |
 | `validate_item_types` | 135176 | 44.4 | `4bb6348b` |
+| `validate_item_wings_next` | 33622 | 290.2 | `4bb6348b` |
 | `validate_meshdraw` | 14619 | 79.4 | `4bb6348b` |
 | `validate_model_edge` | 954 | 159.6 | `4bb6348b` |
 | `validate_movement` | 6614 | 75.3 | `4bb6348b` |
 | `validate_render_effects10` | 154 | 1.0 | `4bb6348b` |
 | `validate_render_effects11` | 176 | 0.6 | `4bb6348b` |
 | `validate_render_effects12` | 64 | 0.4 | `4bb6348b` |
+| `validate_render_effects13` | 180 | 0.4 | `4bb6348b` |
+| `validate_render_effects14` | 660 | 1.8 | `4bb6348b` |
+| `validate_render_effects15` | 509 | 1.4 | `4bb6348b` |
+| `validate_render_effects16` | 424 | 2.8 | `4bb6348b` |
 | `validate_render_effects5` | 1190 | 12.7 | `4bb6348b` |
 | `validate_render_effects7` | 596 | 2.0 | `4bb6348b` |
 | `validate_render_effects9` | 304 | 1.3 | `4bb6348b` |
