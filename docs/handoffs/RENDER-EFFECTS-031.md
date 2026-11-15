@@ -337,3 +337,10 @@ selectors pass in 300.738 s. The current lane selection grows to 80 rows: the pr
 have incoming compiled changes, so 67 rows run without mutants. Incoming portable tests, fifteen
 focused private modules, final replay and audit follow. Consumer C, bitmaps/models and the successful
 control targets remain unchanged.
+
+
+The latest-main 67 rows pass at `9cb0b2c2`, **904.746 s** execution wall, zero failures/errors/skips,
+no optional mutants. This includes all three new rows and the full 66,051-check consumer row,
+288.6 s. The thirteen earlier rows excluded by the overlap selector have unchanged compiled inputs.
+Incoming portable/private checks, final replay and audit are still active. No consumer source or
+successful compiled-control target changed in this integration.
