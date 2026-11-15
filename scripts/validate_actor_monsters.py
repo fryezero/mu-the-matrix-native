@@ -20,7 +20,6 @@ import time
 import actor_census as census
 import actor_machine as am
 import pins
-import validate_actor_composites as composites
 import validate_actor_recipes as recipes
 import validate_actors as va
 import validate_renderchar as vr
@@ -64,6 +63,7 @@ def check_recipes(lib, rows):
         expected = rows[cl]
         recipes.note(fam, status==1 and actual.model==expected['model'] and actual.kind==1 and
             actual.opened==expected['opens'][0][1] and actual.scale_bits==expected['scale_bits'] and
+            actual.class_byte==expected['class_byte'] and expected['object_kind']==1 and
             [[s.type,s.level] for s in actual.slots]==[list(s) for s in expected['slots']], {'class':cl})
     return fam
 
@@ -204,7 +204,7 @@ def check_native(host, root, rows, bones):
                     t=r['slots'][6+k][0]
                     if not t:ok &= p is None;continue
                     ok &= p is not None and p['type']==t and p['bone']==bones[r['model']][k] and p['missing']==0 and \
-                        p['same_pose']==1 and p['vertices']>0 and p['refused']==0
+                        p['same_pose']==1 and p['body_pose_same']==1 and p['vertices']>0 and p['refused']==0
                 recipes.note(fam,ok,v)
     return fam
 
@@ -277,7 +277,11 @@ def check_clone_prefix(args, machine):
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--cases',type=int,default=240)
     p.add_argument('--mutations',action='store_true');p.add_argument('--output',type=Path,required=True)
+    p.add_argument('--only-mutants',help='rerun failed named controls only')
     opts=p.parse_args();start=time.monotonic()
+    only=set(opts.only_mutants.split(',')) if opts.only_mutants else None
+    if only and (not opts.mutations or only-{'admission','load','body_restore','bone','scale','alpha','hand','draw'}):
+        p.error('--only-mutants requires --mutations and valid control names')
     args=pins.TEXT.read(),pins.DATA.read(),pins.FLAG.read(),pins.FEATURE.read()
     rows,bones,machine=originals(args);lib=library()
     with tempfile.TemporaryDirectory() as tmp:
@@ -289,6 +293,7 @@ def main():
         if opts.mutations:
             src=(ROOT/'reconstructed/actors/actors.c').read_text()
             for name,old,new in [('admission','case 0: case 4: case 6: case 7: case 9: case 17: break;','case 0: break;')]:
+                if only and name not in only: continue
                 assert src.count(old)==1
                 f=d/'actors.c';f.write_text(src.replace(old,new));recipes.build_library(f,d/'changed.dylib')
                 changed=library(d/'changed.dylib');checks=check_recipes(changed,rows)
@@ -296,18 +301,20 @@ def main():
             src=(ROOT/'native/core/mu_world_actors.c').read_text()
             for name,old,new in (
                 ('load','if (!player && load_weapons','if (player && load_weapons'),
-                ('left_pose','memcpy(a->weapons->host.bones, a->weapons->body_bones, MU_MODEL_SHARED_BONE_BYTES);','memset(a->weapons->host.bones, 0, MU_MODEL_SHARED_BONE_BYTES);'),
+                ('body_restore','memcpy(a->weapons->host.bones, a->weapons->body_bones, MU_MODEL_SHARED_BONE_BYTES);','memset(a->weapons->host.bones, 0, MU_MODEL_SHARED_BONE_BYTES);'),
                 ('bone','path, bones[k], no_textures','path, 0, no_textures'),
                 ('scale','a->actor.spec.scale, a->actor.model.params.color);','1.0f, a->actor.model.params.color);'),
                 ('alpha','alpha, &options, backend, stats, NULL);','1.0f, &options, backend, stats, NULL);'),
                 ('hand','row.slots[6+k].type;','row.slots[6].type;'),
                 ('draw','alpha, &options, backend, stats, NULL);','alpha, &options, backend, NULL, NULL);')):
-                expected_count=2 if name=='left_pose' else 1
+                if only and name not in only: continue
+                expected_count=2 if name=='body_restore' else 1
                 assert src.count(old)==expected_count,(name,src.count(old))
                 # Draw omission is a direct zero-return negative control.
                 changed_src=src.replace(old,new)
-                if name=='left_pose':
-                    changed_src=src.replace(old,'if (k == 0) '+old,1)
+                if name=='body_restore':
+                    at=src.rindex(old)
+                    changed_src=src[:at]+src[at:].replace(old,'/* negative control: omit final body pose restore */',1)
                 if name=='draw':
                     changed_src=src.replace('return mu_renderchar_draw_item(&part->model, &part->glow, env, a->actor.model.params.color,\n        alpha, &options, backend, stats, NULL);','return 0;')
                 f=d/'mu_world_actors.c';f.write_text(changed_src)

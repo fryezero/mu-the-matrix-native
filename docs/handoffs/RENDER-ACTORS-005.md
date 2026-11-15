@@ -33,3 +33,15 @@ Next: run the full actor row after the final fixture review. Temporary resumptio
 inputs are the hashes and helpers in
 `~/Documents/MTM/mu-mac-tools/native/scratch/render-actors-005/`, with before
 images under its sibling `renders/render-actors-005/`. No ready entry exists.
+
+Checkpoint update, 21:48 on 2026-11-14: all 1,437 positive checks pass at
+`2c3e4363`. Seven compiled controls are caught in the 256.0 s full run; the
+left-hand restore omission is equivalent on these short weapon skeletons and
+was rejected as an ineffective control. A body-pose preservation assertion and
+replacement `body_restore` control pass, 1,221 iteration checks, 88.3 s, with
+that one compiled control caught. The other seven controls were not rerun.
+The registry's current eight controls are all covered. No production fix was
+needed. All six after proofs are inspected; changed pixels versus before are
+20, 238, 98, 715, 370 and 99 respectively, with an unchanged empty control.
+Main is still `b7dfd2ed`. Affected selection/runs, private reduced tests,
+identity, final audit and PR readiness remain pending.

@@ -37,13 +37,15 @@ int main(int argc, char **argv)
         const mu_renderchar_attachment *p = mu_world_actor_weapon(a, k);
         if (!p) { printf("%snull", k ? "," : ""); continue; }
         /* Independent per-hand replay starts from an isolated body pose. This
-         * catches the second hand reading the first weapon's overwritten bones. */
+         * checks each recovered hand independently of the other attachment. */
         mu_actor body; mu_renderchar_host host = {0}; mu_renderchar_attachment ref = {0};
         if (mu_actor_load(&body, &a->actor.spec, &a->actor.model.params, 1, error, sizeof error) ||
             mu_renderchar_host_init(&host, &body.model)) return 4;
         mu_model_set_state(&body.model, mu_actor_action(&a->actor), mu_actor_frame(&a->actor),
             mu_model_prior_frame(&a->actor.model), mu_model_prior_action(&a->actor.model));
         if (mu_actor_update(&body)) return 5;
+        int body_pose_same = !memcmp(mu_model_bone_matrices(&body.model),
+            mu_model_bone_matrices(&a->actor.model), (size_t)a->actor.bmd.bone_count * 48);
         mu_monster_class row; mu_actor_monster_recipe(cl, &row);
         int32_t right = -1, left = -1; mu_renderchar_link_bones(row.model, &right, &left);
         mu_data_table table = {0}; char path[4096];
@@ -61,8 +63,8 @@ int main(int argc, char **argv)
                 (size_t)p->bmd.meshes[m].vertex_count * 12);
         mu_draw_stats stats = {0}; unsigned before = vertices;
         if (mu_world_actor_weapon_draw(a, k, .375f, &env, &backend, &stats)) return 9;
-        printf("%s{\"type\":%d,\"bone\":%d,\"missing\":%d,\"same_pose\":%d,\"vertices\":%u,\"refused\":%ld,\"file\":\"%s\"}",
-            k ? "," : "", p->glow.type, p->bone, p->textures.missing, same, vertices-before,
+        printf("%s{\"type\":%d,\"bone\":%d,\"missing\":%d,\"same_pose\":%d,\"body_pose_same\":%d,\"vertices\":%u,\"refused\":%ld,\"file\":\"%s\"}",
+            k ? "," : "", p->glow.type, p->bone, p->textures.missing, same, body_pose_same, vertices-before,
             stats.refused, path + strlen(argv[1]) + 1);
         mu_data_free(&table); mu_renderchar_attach_free(&ref); mu_actor_free(&body); mu_renderchar_host_free(&host);
     }
