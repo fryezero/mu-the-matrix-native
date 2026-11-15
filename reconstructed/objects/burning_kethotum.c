@@ -85,6 +85,7 @@ static int cycle(uint8_t *o, int32_t i, const mu_wp_move_inputs *in, mu_obj_log 
         mu_obj_set_f32(o, 0xc8, 0.0f);
         if (mu_obj_f32(o, MU_OBJF_FRAME) > 3.0f && 1200.0f > wp_distance(o, in))
             wp_sound(log, i, 0x559);
+        mu_audio_keth_request(log, in->world, 0xb5, 0);
         break;
     case 1:
         mu_obj_set_f32(o, 0xc8, dt * 0.5f + mu_obj_f32(o, 0xc8));
