@@ -652,8 +652,13 @@ int mu_audio_host_run(mu_audio_host *host, const mu_audio_script *script, mu_aud
 
 int mu_audio_host_cue(mu_audio_host *host, const mu_cue *cue, uint32_t session_tick)
 {
-    if (!host || !cue || (cue->kind != MU_CUE_SOUND && cue->kind != MU_CUE_AUDIO_INPUT)) return 0;
+    if (!host || !cue || (cue->kind != MU_CUE_SOUND && cue->kind != MU_CUE_AUDIO_INPUT && cue->kind != MU_CUE_SOUND_STOP)) return 0;
     host->session_tick = session_tick;
+    if (cue->kind == MU_CUE_SOUND_STOP) {
+        mu_audio_snd_stop(&host->client, cue->u.sound.id);
+        audio_log(host, "stop", cue->u.sound.id, 0, 2, cue);
+        return 1;
+    }
     if (cue->kind == MU_CUE_AUDIO_INPUT) {
         audio_log(host, "unrecovered", cue->u.sound.id, 0, -1, cue);
         return 0;
