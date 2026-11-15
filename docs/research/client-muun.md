@@ -405,3 +405,17 @@ zero at frame 89 is not evidence that the effect never drew. Full read-only game
 `Data/Skill/DarkLordSkill.bmd`; the frozen Native Data copy lacks that asset. No refresh or copying into
 Native Data was performed. These are full-data fixture proofs, not a claim that the frozen installed
 Preview can draw the transition.
+
+### Remaining buff/pose classification before final admission
+
+The final limits audit separates two remaining fixture rows from the excluded authoritative feeds.
+The remote mode-10 visibility gate at `0x017f746f` scans 400 character slots for the OBJECT owner,
+skips the local owner, requires predicate `0x00d8b3e3 == 1` and buff 0x12, then compares raw CHARACTER
+byte +0x16. Four local-byte groups require the remote byte in the same group: 6/9, 7/10, 8/11 and 12/13.
+Other local bytes allow the draw. No meaning for byte +0x16 or the predicate is inferred here. A supplied
+raw-byte/predicate fixture can compare this whole caller without an authoritative feed.
+
+The four existing rider categories emit 38/71/103/315. Their selector does not emit the fifth proved
+seat interval 0x118..0x132. A separate authored action in that interval can test the existing seat and
+secondary-action consumers, provided the frozen player model actually has that action and positive keys.
+Absent keys must remain refused. This is a raw pose fixture, not a new command/action selection feed.

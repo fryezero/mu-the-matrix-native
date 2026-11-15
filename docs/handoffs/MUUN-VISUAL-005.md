@@ -83,3 +83,18 @@ Its wall was 100.47 s. Exclude `native/tests/test_native_app.py` from the portab
   rendering/inspection, after identity, final docs/status/PR/ready entry and cleanup.
 - Next: wait on the current runner, inspect every row and wall time. Run no second heavy job concurrently.
   This checkpoint changes documentation only; compiled inputs remain the audited `abf4654f` source.
+
+### WIP after the first complete check batches
+
+- Done: all 42 affected validators pass, 808,930 reported cases, 942.69 s, source `abf4654f`.
+  All 25 private Muun tests pass with zero skips in 127.51 s. The 172-item portable batch passes
+  1,509 tests, 1,215 passed / 294 expected skips, zero failures/errors, 416.33 s. App packaging excluded.
+- New bounded remainder found during the final limits audit: the remote buff visibility gate has
+  four raw-byte groups under supplied predicate/buff inputs, and the fifth seat interval has no pose
+  in the default four-category cycle. Both are fixture-admissible without authoritative input.
+  Their classification is published in client-muun.md before implementation.
+- Left: add/compare the raw visibility gate and a guarded authored fifth-interval pose, compiled
+  controls and native proofs; refresh only checks affected by those final source additions. Then
+  persistent proof inspection, after identity, final docs/PR/ready entry/cleanup.
+- Next: add a pure visibility helper and full original caller verifier. Keep byte +0x16/predicate
+  meanings opaque; author their values explicitly. Do not alter actor/item files or production selection.
