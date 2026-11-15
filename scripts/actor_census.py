@@ -18,8 +18,20 @@ import pins
 import validate_actor_recipes as recipes
 import validate_actors as va
 
+MONSTER_BODIES = (0, 4, 6, 7, 9, 17)
 COMPOSITE_NPCS = (230, 248, 250, 253, 255)
 MONSTER_EXTRA = (147, 226, 229, 230, 231, 232, 233, 245, 289)
+MONSTER_SECONDARY = {
+    147: ('death debris', '0x00e9bb36..0x00e9bd71; 0x00e9d355..0x00e9d590'),
+    226: ('death replacement effect; counter > 25', '0x01393fd6..0x013942be'),
+    229: ('owned effect clone; base action speed', '0x013f408c..0x013f41af'),
+    230: ('owned effect clone; default speed zero', '0x013f408c..0x013f41af'),
+    231: ('owned effect clone; base action speed', '0x013f408c..0x013f41af'),
+    232: ('owned effect clone; base action speed', '0x013f408c..0x013f41af'),
+    233: ('owned effect clone; base action speed', '0x013f408c..0x013f41af'),
+    245: ('action-6 death replacement effect', '0x00dc2dd6..0x00dc2e66'),
+    289: ('owned attack effects', '0x013ff8d4..0x013ffc8b'),
+}
 NPC_EXTRA = (0x9fe, 0x9ff, 0xa00, 0xa2c, 0xa2d, 0xa5e, 0xa7d)
 _EFFECT_ROWS = (Path(__file__).resolve().parents[1]/'reconstructed/actors/effect_class_table.h').read_text().split(
     'static const mu_effect_class mu_effect_classes')[1]
@@ -51,10 +63,15 @@ def collect():
     monster_openers = {r['selector']:r for r in openers if r['family'] == 'monster'}
     for record in classes:
         record['bitmap_loads'] = sum(monster_openers[s]['bitmap_loads'] for k, s in record.get('opens', []) if k == 'monster')
+    for opener in openers:
+        lead = MONSTER_SECONDARY.get(opener['selector']) if opener['family'] == 'monster' else None
+        opener['secondary_role'] = lead[0] if lead else ''
+        opener['consumer_evidence'] = lead[1] if lead else ''
+        opener['secondary_native'] = 'incomplete lifetime; no composite admission' if lead else ''
     return classes, openers, static
 
 
-def classify(record, row, composite_ready=False):
+def classify(record, row, composite_ready=False, monster_ready=False):
     """Completeness is deliberately bounded to construction and body plans.
 
     Generic bodies have no whole RenderCharacter special-pass proof. Calling
@@ -87,7 +104,7 @@ def classify(record, row, composite_ready=False):
         tags.append('unresolved construction' if 'error' in record else 'plain body construction')
     if not row or cl in (374, 378, 617, 642):
         status = 'refused'
-    elif cl in recipes.FIXED or composite_ready and cl in COMPOSITE_NPCS:
+    elif cl in recipes.FIXED or composite_ready and cl in COMPOSITE_NPCS or monster_ready and cl in MONSTER_BODIES:
         status = 'correct bounded body plan'
     else:
         status = 'incomplete/unverified special passes'
@@ -101,6 +118,7 @@ def main():
     parser.add_argument('--classes', type=Path, required=True)
     parser.add_argument('--openers', type=Path, required=True)
     parser.add_argument('--composite-ready', action='store_true')
+    parser.add_argument('--monster-ready', action='store_true')
     args = parser.parse_args()
     records, openers, static = collect()
     lib = recipes.library(recipes.LIBRARY)
@@ -126,7 +144,7 @@ def main():
                 admitted = False
         if record['class'] in EFFECT_CLASSES:
             admitted = True  # mu_world_actors resolves these before the core class table.
-        rows.append(classify(record, admitted, args.composite_ready))
+        rows.append(classify(record, admitted, args.composite_ready, args.monster_ready))
     for path, values in ((args.classes, rows), (args.openers, openers)):
         with path.open('w', newline='') as out:
             writer = csv.DictWriter(out, fieldnames=list(values[0]), lineterminator="\n")

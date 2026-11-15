@@ -1,14 +1,14 @@
 server_class,constructor,constructor_case,native_override,model,opener,construction,native
-0,generic,0x1382f2d,,0x7a5,monster:0,constructor equipment/parts,incomplete/unverified special passes
+0,generic,0x1382f2d,,0x7a5,monster:0,constructor equipment/parts,correct bounded body plan
 1,generic,0x138326a,,0x7a6,monster:1,constructor equipment/parts,incomplete/unverified special passes
 2,generic,0x13833a7,,0x7a7,monster:2,plain body construction,incomplete/unverified special passes
 3,generic,0x1382e38,,0x7ae,monster:9,plain body construction,incomplete/unverified special passes
-4,generic,0x1382f2d,,0x7a5,monster:0,constructor equipment/parts,incomplete/unverified special passes
+4,generic,0x1382f2d,,0x7a5,monster:0,constructor equipment/parts,correct bounded body plan
 5,generic,0x138326a,,0x7a6,monster:1,constructor equipment/parts,incomplete/unverified special passes
-6,generic,0x13834bc,,0x7a9,monster:4,constructor equipment/parts,incomplete/unverified special passes
-7,generic,0x13835c2,,0x7aa,monster:5,constructor equipment/parts,incomplete/unverified special passes
+6,generic,0x13834bc,,0x7a9,monster:4,constructor equipment/parts,correct bounded body plan
+7,generic,0x13835c2,,0x7aa,monster:5,constructor equipment/parts,correct bounded body plan
 8,generic,,,,unresolved,unresolved construction,refused
-9,generic,0x13834bc,,0x7a9,monster:4,constructor equipment/parts,incomplete/unverified special passes
+9,generic,0x13834bc,,0x7a9,monster:4,constructor equipment/parts,correct bounded body plan
 10,generic,0x138341f,,0x7a8,monster:3,constructor equipment/parts,incomplete/unverified special passes
 11,generic,0x13830d6,,0x7ac,monster:7,plain body construction,incomplete/unverified special passes
 12,generic,0x1383162,,0x7ab,monster:6,plain body construction,incomplete/unverified special passes
@@ -16,7 +16,7 @@ server_class,constructor,constructor_case,native_override,model,opener,construct
 14,generic,0x138366a,,0xa91,no opener,special appearance hook; constructor equipment/parts; no opener/startup model,correct bounded body plan
 15,generic,0x1383791,,0xa91,no opener,special appearance hook; constructor equipment/parts; no opener/startup model,correct bounded body plan
 16,generic,0x138383a,,0xa91,no opener,special appearance hook; constructor equipment/parts; no opener/startup model,correct bounded body plan
-17,generic,0x1382eb0,,0x7af,monster:10,constructor equipment/parts,incomplete/unverified special passes
+17,generic,0x1382eb0,,0x7af,monster:10,constructor equipment/parts,correct bounded body plan
 18,generic,0x1382d88,,0x7b0,monster:11,constructor equipment/parts,incomplete/unverified special passes
 19,generic,0x1382d10,,0x7b1,monster:12,plain body construction,incomplete/unverified special passes
 20,generic,0x1382c98,,0x7b2,monster:13,plain body construction,incomplete/unverified special passes

@@ -8,6 +8,20 @@
 #include "npc_table.h"
 #include "player_action_table.h"
 
+int mu_actor_monster_recipe(int32_t server_class, mu_monster_class *out)
+{
+    /* Generic CreateMonster and RenderCharacter's ordinary RenderLinkItem
+     * branch. Sword/sprite and death-secondary paths are not admitted here. */
+    switch (server_class) {
+    case 0: case 4: case 6: case 7: case 9: case 17: break;
+    default: return 0;
+    }
+    const mu_monster_class *row = mu_monster_class_find((uint32_t)server_class);
+    if (!row || row->kind != MU_CLASS_MONSTER) return 0;
+    if (out) *out = *row;
+    return 1;
+}
+
 int mu_actor_npc_recipe(int32_t server_class, mu_monster_class *out)
 {
     /* OpenNpc 0x01808ab5..0x01808e23; generic CreateMonster constructors.

@@ -3750,3 +3750,20 @@ original_sites = 33
 "families.*.stopped" = 0
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
+
+[validate_actor_monsters]
+test = "native/tests/test_actor_monsters.py::ClientComparison.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["secondary_openers", "clone_prefix", "secondary", "defaults", "recipes", "openers", "render", "draw", "links", "native"]
+cases = 1437
+mutants = 8
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/actors", "reconstructed/renderchar", "native"]
+build_targets = { native = ["build/libmunative.a", "build/libmusession_world.a"] }
+args = ["--cases", "240", "--mutations", "--output", "{report}"]
+note = "RENDER-ACTORS-005: six ordinary monster body/weapon assemblies; original constructor/link bones and full character plans, generic streams, native textures/hand poses/alpha; gnome death caller prefix stays extracted and unadmitted"
+[validate_actor_monsters.expect]
+all_equal = true
+all_mutants_caught = true
+"mutants.*.stopped" = 0
