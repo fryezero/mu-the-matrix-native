@@ -3801,3 +3801,20 @@ note = "INNER-004: complete Crywolf/Barracks leaves and bounded Kalima/tower inl
 "families.*.stopped" = 0
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
+
+[validate_render_effects32]
+test = "native/tests/test_render_effects32.py::Original.test_original_remaining_callers"
+pins = ["text", "data"]
+families = ["step", "end", "start", "poses", "admission", "learned", "selector", "interleaving"]
+cases = 1723
+mutants = 31
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/combat"]
+args = ["--cases", "100", "--mutations", "--output", "{report}"]
+note = "RENDER-EFFECTS-032: ten remaining learned caller rows, exact requests/defaults/sounds, shield/mount and wing/kind poses; authored active learned admission; no new consumers"
+[validate_render_effects32.expect]
+all_equal = true
+all_mutants_caught = true
+"mutants.*.stopped" = 0
+
