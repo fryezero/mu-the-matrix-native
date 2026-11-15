@@ -1,0 +1,906 @@
+server_class,group,decision,reason
+1,constructor equipment/parts,incomplete,constructor equipment/parts
+2,plain monster body,checked plain body plan,
+3,plain monster body,checked plain body plan,
+5,constructor equipment/parts,incomplete,constructor equipment/parts
+10,constructor equipment/parts,incomplete,constructor equipment/parts
+11,plain monster body,checked plain body plan,
+12,plain monster body,checked plain body plan,
+13,constructor equipment/parts,incomplete,constructor equipment/parts
+18,constructor equipment/parts,incomplete,constructor equipment/parts
+19,plain monster body,checked plain body plan,
+20,plain monster body,checked plain body plan,
+21,plain monster body,checked plain body plan,
+22,plain monster body,incomplete,"constructor render-state override: 0x74,0xa8"
+23,constructor equipment/parts,incomplete,constructor equipment/parts
+24,plain monster body,checked plain body plan,
+25,constructor equipment/parts,incomplete,constructor equipment/parts
+26,constructor equipment/parts,incomplete,constructor equipment/parts
+27,plain monster body,checked plain body plan,
+28,constructor equipment/parts,incomplete,constructor equipment/parts
+29,constructor equipment/parts,incomplete,constructor equipment/parts
+30,plain monster body,checked plain body plan,
+31,constructor equipment/parts,incomplete,constructor equipment/parts
+32,plain monster body,checked plain body plan,
+33,constructor equipment/parts,incomplete,constructor equipment/parts
+35,constructor equipment/parts,incomplete,constructor equipment/parts
+36,plain monster body,incomplete,unresolved caller at 0x1377aef
+37,plain monster body,checked plain body plan,
+38,constructor equipment/parts,incomplete,constructor equipment/parts
+39,plain monster body,incomplete,unresolved caller at 0x1377aef
+40,constructor equipment/parts,incomplete,constructor equipment/parts
+41,constructor equipment/parts,incomplete,constructor equipment/parts
+42,plain monster body,incomplete,additional caller services: LINK
+43,plain monster body,incomplete,additional caller services: BODY
+44,plain monster body,checked plain body plan,
+45,plain monster body,incomplete,additional caller services: effect
+46,plain monster body,incomplete,additional caller services: effect
+47,constructor equipment/parts,incomplete,constructor equipment/parts
+48,constructor equipment/parts,incomplete,constructor equipment/parts
+49,plain monster body,incomplete,"constructor render-state override: 0x74,0xa8"
+50,plain monster body,checked plain body plan,
+51,plain monster body,incomplete,additional caller services: effect
+52,constructor equipment/parts,incomplete,constructor equipment/parts
+53,special appearance hook,incomplete,special appearance hook
+54,constructor equipment/parts,incomplete,constructor equipment/parts
+57,special appearance hook; constructor equipment/parts,incomplete,special appearance hook; constructor equipment/parts
+58,special appearance hook; extra bitmap load; constructor equipment/parts,incomplete,special appearance hook; extra bitmap load; constructor equipment/parts
+59,special appearance hook; extra bitmap load; constructor equipment/parts,incomplete,special appearance hook; extra bitmap load; constructor equipment/parts
+60,special appearance hook,incomplete,special appearance hook
+61,special appearance hook,incomplete,special appearance hook
+62,special appearance hook,incomplete,special appearance hook
+63,special appearance hook,incomplete,special appearance hook
+64,constructor equipment/parts,incomplete,constructor equipment/parts
+65,plain monster body,incomplete,constructor render-state override: 0x68
+66,plain monster body,checked plain body plan,
+67,constructor equipment/parts,incomplete,constructor equipment/parts
+68,repeated default body,checked plain body plan,
+69,plain monster body,incomplete,additional caller services: effect
+70,plain monster body,incomplete,additional caller services: effect
+71,extra bitmap load; constructor equipment/parts,incomplete,extra bitmap load; constructor equipment/parts
+72,constructor equipment/parts,incomplete,constructor equipment/parts
+73,plain monster body,incomplete,"additional caller services: BODY,effect"
+74,extra bitmap load; constructor equipment/parts,incomplete,extra bitmap load; constructor equipment/parts
+75,plain monster body,incomplete,"additional caller services: BODY,effect"
+76,repeated default body,checked plain body plan,
+77,plain monster body,incomplete,multiple constructor opener requests
+78,constructor equipment/parts,incomplete,constructor equipment/parts
+79,plain monster body,incomplete,additional caller services: BODY
+80,constructor equipment/parts,incomplete,constructor equipment/parts
+81,plain monster body,incomplete,"additional caller services: BODY,effect"
+82,special appearance hook; extra bitmap load; constructor equipment/parts,incomplete,special appearance hook; extra bitmap load; constructor equipment/parts
+83,special appearance hook; constructor equipment/parts,incomplete,special appearance hook; constructor equipment/parts
+84,plain monster body,checked plain body plan,
+85,constructor equipment/parts,incomplete,constructor equipment/parts
+86,constructor equipment/parts,incomplete,constructor equipment/parts
+87,plain monster body,checked plain body plan,
+88,constructor equipment/parts,incomplete,constructor equipment/parts
+89,constructor equipment/parts,incomplete,constructor equipment/parts
+90,plain monster body,checked plain body plan,
+91,constructor equipment/parts,incomplete,constructor equipment/parts
+92,constructor equipment/parts,incomplete,constructor equipment/parts
+93,plain monster body,checked plain body plan,
+94,constructor equipment/parts,incomplete,constructor equipment/parts
+95,constructor equipment/parts,incomplete,constructor equipment/parts
+96,plain monster body,checked plain body plan,
+97,constructor equipment/parts,incomplete,constructor equipment/parts
+98,constructor equipment/parts,incomplete,constructor equipment/parts
+99,plain monster body,checked plain body plan,
+104,repeated default body,checked plain body plan,
+105,plain NPC body,incomplete,plain NPC body
+107,repeated default body,checked plain body plan,
+108,repeated default body,checked plain body plan,
+109,repeated default body,checked plain body plan,
+110,repeated default body,checked plain body plan,
+111,constructor equipment/parts,incomplete,constructor equipment/parts
+112,constructor equipment/parts,incomplete,constructor equipment/parts
+113,plain monster body,checked plain body plan,
+114,constructor equipment/parts,incomplete,constructor equipment/parts
+115,constructor equipment/parts,incomplete,constructor equipment/parts
+116,plain monster body,checked plain body plan,
+117,constructor equipment/parts,incomplete,constructor equipment/parts
+118,constructor equipment/parts,incomplete,constructor equipment/parts
+119,plain monster body,checked plain body plan,
+120,constructor equipment/parts,incomplete,constructor equipment/parts
+121,constructor equipment/parts,incomplete,constructor equipment/parts
+122,plain monster body,checked plain body plan,
+123,constructor equipment/parts,incomplete,constructor equipment/parts
+124,constructor equipment/parts,incomplete,constructor equipment/parts
+125,plain monster body,checked plain body plan,
+126,constructor equipment/parts,incomplete,constructor equipment/parts
+127,constructor equipment/parts,incomplete,constructor equipment/parts
+128,plain monster body,checked plain body plan,
+129,constructor equipment/parts,incomplete,constructor equipment/parts
+130,constructor equipment/parts,incomplete,constructor equipment/parts
+131,plain monster body,checked plain body plan,
+132,plain monster body,incomplete,additional caller services: LINK
+133,plain monster body,incomplete,additional caller services: LINK
+134,plain monster body,incomplete,additional caller services: LINK
+135,plain monster body,incomplete,additional caller services: BODY
+136,plain monster body,incomplete,body call arguments/count differ
+137,constructor equipment/parts,incomplete,constructor equipment/parts
+138,plain monster body,checked plain body plan,
+139,constructor equipment/parts,incomplete,constructor equipment/parts
+140,constructor equipment/parts,incomplete,constructor equipment/parts
+141,plain monster body,checked plain body plan,
+142,constructor equipment/parts,incomplete,constructor equipment/parts
+143,constructor equipment/parts,incomplete,constructor equipment/parts
+144,plain monster body,incomplete,constructor render-state override: 0x74
+145,constructor equipment/parts,incomplete,constructor equipment/parts
+146,plain monster body,checked plain body plan,
+147,plain monster body,incomplete,constructor render-state override: 0x74
+148,constructor equipment/parts,incomplete,constructor equipment/parts
+149,plain monster body,incomplete,constructor render-state override: 0x74
+150,plain monster body,checked plain body plan,
+151,constructor equipment/parts,incomplete,constructor equipment/parts
+159,repeated default body,checked plain body plan,
+160,constructor equipment/parts,incomplete,constructor equipment/parts
+161,constructor equipment/parts,incomplete,constructor equipment/parts
+162,constructor equipment/parts,incomplete,constructor equipment/parts
+163,constructor equipment/parts,incomplete,constructor equipment/parts
+164,constructor equipment/parts,incomplete,constructor equipment/parts
+165,constructor equipment/parts,incomplete,constructor equipment/parts
+166,constructor equipment/parts,incomplete,constructor equipment/parts
+167,constructor equipment/parts,incomplete,constructor equipment/parts
+168,constructor equipment/parts,incomplete,constructor equipment/parts
+169,constructor equipment/parts,incomplete,constructor equipment/parts
+170,constructor equipment/parts,incomplete,constructor equipment/parts
+171,constructor equipment/parts,incomplete,constructor equipment/parts
+172,constructor equipment/parts,incomplete,constructor equipment/parts
+173,constructor equipment/parts,incomplete,constructor equipment/parts
+174,plain monster body,incomplete,constructor render-state override: 0x74
+175,constructor equipment/parts,incomplete,constructor equipment/parts
+176,plain monster body,checked plain body plan,
+177,plain monster body,incomplete,constructor render-state override: 0x74
+178,constructor equipment/parts,incomplete,constructor equipment/parts
+179,plain monster body,incomplete,constructor render-state override: 0x74
+180,constructor equipment/parts,incomplete,constructor equipment/parts
+181,constructor equipment/parts,incomplete,constructor equipment/parts
+182,plain monster body,incomplete,constructor render-state override: 0x74
+183,constructor equipment/parts,incomplete,constructor equipment/parts
+184,plain monster body,checked plain body plan,
+185,plain monster body,incomplete,constructor render-state override: 0x74
+186,constructor equipment/parts,incomplete,constructor equipment/parts
+187,plain monster body,incomplete,constructor render-state override: 0x74
+188,constructor equipment/parts,incomplete,constructor equipment/parts
+189,constructor equipment/parts,incomplete,constructor equipment/parts
+190,plain monster body,incomplete,constructor render-state override: 0x74
+191,constructor equipment/parts,incomplete,constructor equipment/parts
+192,plain monster body,checked plain body plan,
+193,plain monster body,incomplete,constructor render-state override: 0x74
+194,constructor equipment/parts,incomplete,constructor equipment/parts
+195,plain monster body,incomplete,constructor render-state override: 0x74
+196,constructor equipment/parts,incomplete,constructor equipment/parts
+197,constructor equipment/parts,incomplete,constructor equipment/parts
+198,repeated default body,checked plain body plan,
+199,repeated default body,checked plain body plan,
+201,repeated default body,checked plain body plan,
+202,repeated default body,checked plain body plan,
+203,repeated default body,checked plain body plan,
+205,plain NPC body,incomplete,plain NPC body
+206,plain NPC body,incomplete,plain NPC body
+207,plain NPC body,incomplete,plain NPC body
+208,plain NPC body,incomplete,plain NPC body
+209,plain NPC body,incomplete,plain NPC body
+210,repeated default body,checked plain body plan,
+211,repeated default body,checked plain body plan,
+212,repeated default body,checked plain body plan,
+213,repeated default body,checked plain body plan,
+214,repeated default body,checked plain body plan,
+215,repeated default body,checked plain body plan,
+216,repeated default body,checked plain body plan,
+217,repeated default body,checked plain body plan,
+218,repeated default body,checked plain body plan,
+219,repeated default body,checked plain body plan,
+220,repeated default body,checked plain body plan,
+221,repeated default body,checked plain body plan,
+222,repeated default body,checked plain body plan,
+223,repeated default body,checked plain body plan,
+224,plain NPC body,incomplete,plain NPC body
+225,repeated default body,checked plain body plan,
+226,plain NPC body,incomplete,plain NPC body
+227,repeated default body,checked plain body plan,
+228,repeated default body,checked plain body plan,
+231,plain NPC body,incomplete,plain NPC body
+232,plain NPC body,incomplete,plain NPC body
+233,plain NPC body,incomplete,plain NPC body
+234,constructor equipment/parts,incomplete,constructor equipment/parts
+235,plain NPC body,incomplete,plain NPC body
+237,plain NPC body,incomplete,plain NPC body
+238,plain NPC body,incomplete,plain NPC body
+239,plain NPC body,incomplete,plain NPC body
+240,plain NPC body,incomplete,plain NPC body
+241,plain NPC body,incomplete,plain NPC body
+243,plain NPC body,incomplete,plain NPC body
+244,plain NPC body,incomplete,plain NPC body
+245,plain NPC body,incomplete,plain NPC body
+246,plain NPC body,incomplete,plain NPC body
+251,plain NPC body,incomplete,plain NPC body
+252,repeated default body,checked plain body plan,
+254,plain NPC body,incomplete,plain NPC body
+256,plain NPC body,incomplete,plain NPC body
+259,plain NPC body,incomplete,plain NPC body
+260,plain monster body,incomplete,constructor render-state override: 0x74
+261,constructor equipment/parts,incomplete,constructor equipment/parts
+262,plain monster body,checked plain body plan,
+263,plain monster body,incomplete,constructor render-state override: 0x74
+264,constructor equipment/parts,incomplete,constructor equipment/parts
+265,plain monster body,incomplete,constructor render-state override: 0x74
+266,constructor equipment/parts,incomplete,constructor equipment/parts
+267,constructor equipment/parts,incomplete,constructor equipment/parts
+268,plain monster body,incomplete,constructor render-state override: 0x74
+269,constructor equipment/parts,incomplete,constructor equipment/parts
+270,plain monster body,checked plain body plan,
+271,plain monster body,incomplete,constructor render-state override: 0x74
+272,constructor equipment/parts,incomplete,constructor equipment/parts
+273,plain monster body,incomplete,constructor render-state override: 0x74
+274,constructor equipment/parts,incomplete,constructor equipment/parts
+275,constructor equipment/parts,incomplete,constructor equipment/parts
+276,repeated default body,checked plain body plan,
+277,repeated default body,checked plain body plan,
+278,repeated default body,checked plain body plan,
+279,repeated default body,checked plain body plan,
+280,repeated default body,checked plain body plan,
+281,repeated default body,checked plain body plan,
+282,repeated default body,checked plain body plan,
+283,repeated default body,checked plain body plan,
+284,repeated default body,checked plain body plan,
+285,repeated default body,checked plain body plan,
+286,repeated default body,checked plain body plan,
+287,repeated default body,checked plain body plan,
+288,repeated default body,checked plain body plan,
+289,repeated default body,checked plain body plan,
+296,repeated default body,checked plain body plan,
+298,repeated default body,checked plain body plan,
+299,repeated default body,checked plain body plan,
+300,special appearance hook,incomplete,special appearance hook
+301,extra bitmap load; constructor equipment/parts,incomplete,extra bitmap load; constructor equipment/parts
+304,plain monster body,checked plain body plan,
+305,plain monster body,checked plain body plan,
+306,plain monster body,checked plain body plan,
+307,plain monster body,checked plain body plan,
+308,plain monster body,checked plain body plan,
+309,plain monster body,checked plain body plan,
+310,repeated default body,checked plain body plan,
+311,repeated default body,checked plain body plan,
+312,repeated default body,checked plain body plan,
+313,repeated default body,checked plain body plan,
+314,repeated default body,incomplete,body call arguments/count differ
+315,repeated default body,incomplete,body call arguments/count differ
+316,plain monster body,incomplete,body call arguments/count differ
+317,plain monster body,incomplete,body call arguments/count differ
+318,repeated default body,incomplete,body call arguments/count differ
+319,repeated default body,incomplete,body call arguments/count differ
+320,repeated default body,checked plain body plan,
+321,repeated default body,checked plain body plan,
+322,repeated default body,checked plain body plan,
+323,repeated default body,checked plain body plan,
+324,repeated default body,checked plain body plan,
+325,repeated default body,checked plain body plan,
+326,repeated default body,checked plain body plan,
+327,repeated default body,checked plain body plan,
+328,repeated default body,checked plain body plan,
+329,repeated default body,checked plain body plan,
+330,repeated default body,checked plain body plan,
+331,plain monster body,incomplete,constructor render-state override: 0x74
+332,constructor equipment/parts,incomplete,constructor equipment/parts
+333,plain monster body,checked plain body plan,
+334,plain monster body,incomplete,constructor render-state override: 0x74
+335,plain monster body,incomplete,constructor render-state override: 0x74
+336,constructor equipment/parts,incomplete,constructor equipment/parts
+337,constructor equipment/parts,incomplete,constructor equipment/parts
+338,constructor equipment/parts,incomplete,constructor equipment/parts
+339,repeated default body,checked plain body plan,
+340,repeated default body,checked plain body plan,
+341,plain monster body,checked plain body plan,
+342,repeated default body,checked plain body plan,
+343,repeated default body,checked plain body plan,
+344,plain monster body,checked plain body plan,
+345,repeated default body,checked plain body plan,
+346,repeated default body,checked plain body plan,
+347,repeated default body,checked plain body plan,
+348,repeated default body,checked plain body plan,
+349,repeated default body,checked plain body plan,
+353,plain monster body,checked plain body plan,
+356,plain monster body,incomplete,additional caller services: effect
+361,special appearance hook,incomplete,special appearance hook
+362,repeated default body,checked plain body plan,
+363,repeated default body,checked plain body plan,
+364,repeated default body,checked plain body plan,
+365,plain monster body,checked plain body plan,
+366,repeated default body,checked plain body plan,
+368,plain NPC body,incomplete,plain NPC body
+369,plain NPC body,incomplete,plain NPC body
+370,plain NPC body,incomplete,plain NPC body
+379,plain NPC body,incomplete,plain NPC body
+380,repeated default body,checked plain body plan,
+381,repeated default body,checked plain body plan,
+382,repeated default body,checked plain body plan,
+383,repeated default body,checked plain body plan,
+384,repeated default body,checked plain body plan,
+385,repeated default body,checked plain body plan,
+386,repeated default body,checked plain body plan,
+387,repeated default body,checked plain body plan,
+388,repeated default body,checked plain body plan,
+389,repeated default body,checked plain body plan,
+390,repeated default body,checked plain body plan,
+391,repeated default body,checked plain body plan,
+392,repeated default body,checked plain body plan,
+393,repeated default body,checked plain body plan,
+394,repeated default body,checked plain body plan,
+395,repeated default body,checked plain body plan,
+396,repeated default body,checked plain body plan,
+397,repeated default body,checked plain body plan,
+398,repeated default body,checked plain body plan,
+399,repeated default body,checked plain body plan,
+400,repeated default body,checked plain body plan,
+401,repeated default body,checked plain body plan,
+402,repeated default body,checked plain body plan,
+403,repeated default body,checked plain body plan,
+404,repeated default body,checked plain body plan,
+405,repeated default body,checked plain body plan,
+406,plain NPC body,incomplete,plain NPC body
+407,plain NPC body,incomplete,plain NPC body
+409,repeated default body,checked plain body plan,
+410,repeated default body,checked plain body plan,
+411,repeated default body,checked plain body plan,
+412,repeated default body,checked plain body plan,
+413,repeated default body,checked plain body plan,
+415,plain NPC body,incomplete,plain NPC body
+416,plain NPC body,incomplete,plain NPC body
+417,plain NPC body,incomplete,plain NPC body
+418,plain monster body,checked plain body plan,
+419,plain monster body,checked plain body plan,
+420,plain monster body,checked plain body plan,
+421,plain monster body,checked plain body plan,
+422,plain monster body,incomplete,additional caller services: effect
+423,plain monster body,incomplete,additional caller services: effect
+424,plain monster body,checked plain body plan,
+425,plain monster body,checked plain body plan,
+426,constructor equipment/parts,incomplete,constructor equipment/parts
+427,constructor equipment/parts,incomplete,constructor equipment/parts
+428,plain monster body,checked plain body plan,
+429,constructor equipment/parts,incomplete,constructor equipment/parts
+430,constructor equipment/parts,incomplete,constructor equipment/parts
+431,plain monster body,checked plain body plan,
+432,constructor equipment/parts,incomplete,constructor equipment/parts
+433,constructor equipment/parts,incomplete,constructor equipment/parts
+434,plain monster body,checked plain body plan,
+435,plain monster body,checked plain body plan,
+439,plain monster body,incomplete,additional caller services: effect
+440,plain monster body,incomplete,additional caller services: effect
+441,plain monster body,incomplete,additional caller services: effect
+442,plain monster body,incomplete,additional caller services: effect
+443,plain monster body,incomplete,additional caller services: effect
+444,plain monster body,incomplete,additional caller services: effect
+445,plain monster body,incomplete,additional caller services: effect
+446,plain monster body,incomplete,additional caller services: effect
+447,plain monster body,incomplete,additional caller services: effect
+448,plain monster body,incomplete,additional caller services: effect
+449,plain monster body,incomplete,additional caller services: effect
+451,plain NPC body,incomplete,plain NPC body
+452,plain NPC body,incomplete,plain NPC body
+453,plain NPC body,incomplete,plain NPC body
+454,repeated default body,checked plain body plan,
+455,repeated default body,checked plain body plan,
+456,repeated default body,checked plain body plan,
+457,repeated default body,checked plain body plan,
+458,repeated default body,checked plain body plan,
+459,repeated default body,checked plain body plan,
+460,repeated default body,checked plain body plan,
+461,repeated default body,checked plain body plan,
+462,repeated default body,checked plain body plan,
+463,plain monster body,incomplete,constructor render-state override: 0x68
+465,repeated default body,checked plain body plan,
+466,plain monster body,checked plain body plan,
+467,repeated default body,checked plain body plan,
+476,plain monster body,checked plain body plan,
+477,sub-model/extra-load; action-dependent or auxiliary hook,incomplete,sub-model/extra-load; action-dependent or auxiliary hook
+478,plain NPC body,incomplete,plain NPC body
+479,plain NPC body,incomplete,plain NPC body
+480,repeated default body,checked plain body plan,
+481,repeated default body,checked plain body plan,
+482,repeated default body,checked plain body plan,
+483,repeated default body,checked plain body plan,
+484,repeated default body,checked plain body plan,
+485,repeated default body,checked plain body plan,
+486,repeated default body,checked plain body plan,
+487,repeated default body,checked plain body plan,
+488,repeated default body,checked plain body plan,
+489,repeated default body,checked plain body plan,
+490,repeated default body,checked plain body plan,
+491,repeated default body,checked plain body plan,
+492,plain NPC body,incomplete,plain NPC body
+493,constructor equipment/parts,incomplete,constructor equipment/parts
+494,plain monster body,incomplete,additional caller services: BODY
+496,extra bitmap load; constructor equipment/parts,incomplete,extra bitmap load; constructor equipment/parts
+497,plain monster body,incomplete,additional caller services: BODY
+499,plain monster body,incomplete,additional caller services: BODY
+500,plain monster body,incomplete,"additional caller services: BODY,effect"
+501,plain monster body,incomplete,additional caller services: effect
+502,plain monster body,incomplete,additional caller services: BODY
+504,repeated default body,checked plain body plan,
+505,repeated default body,checked plain body plan,
+506,repeated default body,checked plain body plan,
+507,repeated default body,checked plain body plan,
+508,repeated default body,checked plain body plan,
+509,repeated default body,checked plain body plan,
+510,repeated default body,checked plain body plan,
+511,repeated default body,checked plain body plan,
+512,repeated default body,checked plain body plan,
+513,repeated default body,checked plain body plan,
+514,repeated default body,checked plain body plan,
+515,repeated default body,checked plain body plan,
+516,repeated default body,checked plain body plan,
+517,repeated default body,checked plain body plan,
+518,repeated default body,checked plain body plan,
+519,repeated default body,checked plain body plan,
+520,repeated default body,checked plain body plan,
+521,repeated default body,checked plain body plan,
+522,repeated default body,checked plain body plan,
+523,repeated default body,checked plain body plan,
+524,repeated default body,checked plain body plan,
+525,repeated default body,checked plain body plan,
+526,repeated default body,checked plain body plan,
+527,repeated default body,checked plain body plan,
+528,repeated default body,checked plain body plan,
+529,repeated default body,checked plain body plan,
+530,repeated default body,checked plain body plan,
+531,repeated default body,checked plain body plan,
+532,repeated default body,checked plain body plan,
+533,repeated default body,checked plain body plan,
+534,repeated default body,checked plain body plan,
+535,repeated default body,checked plain body plan,
+536,repeated default body,checked plain body plan,
+537,repeated default body,checked plain body plan,
+538,repeated default body,checked plain body plan,
+539,repeated default body,checked plain body plan,
+540,plain NPC body,incomplete,plain NPC body
+541,plain NPC body,incomplete,plain NPC body
+542,plain NPC body,incomplete,plain NPC body
+543,plain NPC body,incomplete,plain NPC body
+544,plain NPC body,incomplete,plain NPC body
+545,plain NPC body,incomplete,plain NPC body
+546,plain NPC body,incomplete,plain NPC body
+547,plain NPC body,incomplete,plain NPC body
+549,plain monster body,checked plain body plan,
+550,plain monster body,checked plain body plan,
+551,plain monster body,checked plain body plan,
+552,plain monster body,checked plain body plan,
+555,plain monster body,incomplete,additional caller services: effect
+557,plain monster body,incomplete,additional caller services: effect
+558,plain monster body,incomplete,additional caller services: effect
+559,plain monster body,incomplete,additional caller services: effect
+560,plain monster body,incomplete,additional caller services: effect
+561,plain monster body,incomplete,unresolved caller at 0x95d4f1
+562,repeated default body,checked plain body plan,
+563,repeated default body,checked plain body plan,
+564,repeated default body,checked plain body plan,
+565,repeated default body,checked plain body plan,
+566,plain NPC body,incomplete,plain NPC body
+567,plain NPC body,incomplete,plain NPC body
+568,plain NPC body,incomplete,plain NPC body
+569,repeated default body,checked plain body plan,
+570,repeated default body,checked plain body plan,
+571,repeated default body,checked plain body plan,
+572,repeated default body,checked plain body plan,
+573,repeated default body,checked plain body plan,
+574,repeated default body,checked plain body plan,
+575,repeated default body,checked plain body plan,
+576,repeated default body,checked plain body plan,
+577,plain NPC body,incomplete,plain NPC body
+578,plain NPC body,incomplete,plain NPC body
+579,plain NPC body,incomplete,plain NPC body
+580,plain NPC body,incomplete,plain NPC body
+581,plain NPC body,incomplete,plain NPC body
+582,plain NPC body,incomplete,plain NPC body
+583,plain NPC body,incomplete,plain NPC body
+584,plain NPC body,incomplete,plain NPC body
+585,repeated default body,checked plain body plan,
+586,repeated default body,checked plain body plan,
+587,plain monster body,checked plain body plan,
+588,plain monster body,checked plain body plan,
+589,repeated default body,checked plain body plan,
+590,repeated default body,checked plain body plan,
+591,repeated default body,checked plain body plan,
+592,plain monster body,checked plain body plan,
+595,sub-model/extra-load; action-dependent or auxiliary hook,incomplete,sub-model/extra-load; action-dependent or auxiliary hook
+596,extra bitmap load,incomplete,extra bitmap load
+597,plain monster body,checked plain body plan,
+598,repeated default body,checked plain body plan,
+599,repeated default body,checked plain body plan,
+600,repeated default body,checked plain body plan,
+601,repeated default body,checked plain body plan,
+602,repeated default body,checked plain body plan,
+603,repeated default body,checked plain body plan,
+604,plain NPC body,incomplete,plain NPC body
+605,repeated default body,checked plain body plan,
+606,repeated default body,checked plain body plan,
+607,repeated default body,checked plain body plan,
+608,repeated default body,checked plain body plan,
+609,repeated default body,checked plain body plan,
+610,repeated default body,checked plain body plan,
+611,repeated default body,checked plain body plan,
+612,repeated default body,checked plain body plan,
+613,repeated default body,checked plain body plan,
+614,repeated default body,checked plain body plan,
+615,repeated default body,checked plain body plan,
+618,plain monster body,checked plain body plan,
+619,plain monster body,checked plain body plan,
+620,plain monster body,checked plain body plan,
+621,plain monster body,checked plain body plan,
+622,plain monster body,checked plain body plan,
+623,plain monster body,checked plain body plan,
+624,plain monster body,checked plain body plan,
+627,repeated default body,checked plain body plan,
+628,repeated default body,checked plain body plan,
+629,repeated default body,checked plain body plan,
+630,repeated default body,checked plain body plan,
+631,repeated default body,checked plain body plan,
+632,plain monster body,checked plain body plan,
+635,sub-model/extra-load; action-dependent or auxiliary hook,incomplete,sub-model/extra-load; action-dependent or auxiliary hook
+636,extra bitmap load,incomplete,extra bitmap load
+637,repeated default body,checked plain body plan,
+638,repeated default body,checked plain body plan,
+639,repeated default body,checked plain body plan,
+640,repeated default body,checked plain body plan,
+641,repeated default body,checked plain body plan,
+643,plain NPC body,incomplete,plain NPC body
+644,constructor equipment/parts,incomplete,constructor equipment/parts
+645,constructor equipment/parts,incomplete,constructor equipment/parts
+647,plain monster body,incomplete,constructor render-state override: 0x60
+648,plain monster body,incomplete,constructor render-state override: 0x60
+649,plain monster body,incomplete,constructor render-state override: 0x60
+650,plain monster body,incomplete,constructor render-state override: 0x60
+651,plain NPC body,incomplete,plain NPC body
+652,constructor equipment/parts,incomplete,constructor equipment/parts
+653,special appearance hook,incomplete,special appearance hook
+654,special appearance hook; extra bitmap load; constructor equipment/parts,incomplete,special appearance hook; extra bitmap load; constructor equipment/parts
+658,repeated default body,checked plain body plan,
+659,repeated default body,checked plain body plan,
+660,repeated default body,checked plain body plan,
+661,repeated default body,checked plain body plan,
+662,repeated default body,checked plain body plan,
+663,repeated default body,checked plain body plan,
+664,repeated default body,checked plain body plan,
+665,repeated default body,checked plain body plan,
+666,repeated default body,checked plain body plan,
+667,repeated default body,checked plain body plan,
+668,repeated default body,checked plain body plan,
+669,sub-model/extra-load; action-dependent or auxiliary hook,incomplete,sub-model/extra-load; action-dependent or auxiliary hook
+670,repeated default body,checked plain body plan,
+671,repeated default body,checked plain body plan,
+672,repeated default body,checked plain body plan,
+673,repeated default body,checked plain body plan,
+674,repeated default body,checked plain body plan,
+675,plain monster body,checked plain body plan,
+676,plain monster body,incomplete,constructor render-state override: 0x68
+677,constructor equipment/parts,incomplete,constructor equipment/parts
+678,repeated default body,checked plain body plan,
+679,repeated default body,checked plain body plan,
+680,repeated default body,checked plain body plan,
+681,repeated default body,checked plain body plan,
+682,plain NPC body,incomplete,plain NPC body
+683,plain NPC body,incomplete,plain NPC body
+684,plain NPC body,incomplete,plain NPC body
+685,plain NPC body,incomplete,plain NPC body
+686,plain NPC body,incomplete,plain NPC body
+687,plain NPC body,incomplete,plain NPC body
+688,plain NPC body,incomplete,plain NPC body
+689,plain NPC body,incomplete,plain NPC body
+690,repeated default body,checked plain body plan,
+691,plain monster body,incomplete,constructor render-state override: 0x60
+692,plain monster body,incomplete,constructor render-state override: 0x60
+693,plain monster body,incomplete,constructor render-state override: 0x60
+694,plain monster body,incomplete,constructor render-state override: 0x60
+695,plain NPC body,incomplete,plain NPC body
+696,repeated default body,checked plain body plan,
+697,repeated default body,checked plain body plan,
+698,repeated default body,checked plain body plan,
+699,repeated default body,checked plain body plan,
+700,repeated default body,checked plain body plan,
+701,repeated default body,checked plain body plan,
+702,repeated default body,checked plain body plan,
+703,repeated default body,checked plain body plan,
+704,repeated default body,checked plain body plan,
+705,repeated default body,checked plain body plan,
+707,repeated default body,checked plain body plan,
+709,extra bitmap load,incomplete,extra bitmap load
+710,extra bitmap load,incomplete,extra bitmap load
+711,extra bitmap load,incomplete,extra bitmap load
+712,extra bitmap load,incomplete,extra bitmap load
+713,repeated default body,checked plain body plan,
+714,repeated default body,checked plain body plan,
+715,repeated default body,checked plain body plan,
+716,repeated default body,checked plain body plan,
+717,repeated default body,checked plain body plan,
+718,repeated default body,checked plain body plan,
+719,plain NPC body,incomplete,plain NPC body
+720,plain NPC body,incomplete,plain NPC body
+721,plain monster body,checked plain body plan,
+722,plain NPC body,incomplete,plain NPC body
+723,plain NPC body,incomplete,plain NPC body
+724,plain NPC body,incomplete,plain NPC body
+725,plain NPC body,incomplete,plain NPC body
+726,plain monster body,incomplete,constructor render-state override: 0x60
+727,plain monster body,incomplete,constructor render-state override: 0x60
+728,plain monster body,incomplete,constructor render-state override: 0x60
+729,plain monster body,incomplete,constructor render-state override: 0x60
+730,repeated default body,checked plain body plan,
+731,repeated default body,checked plain body plan,
+732,repeated default body,checked plain body plan,
+733,repeated default body,checked plain body plan,
+734,repeated default body,checked plain body plan,
+735,repeated default body,checked plain body plan,
+736,repeated default body,checked plain body plan,
+737,repeated default body,checked plain body plan,
+738,repeated default body,checked plain body plan,
+739,plain monster body,incomplete,constructor render-state override: 0x60
+740,plain monster body,incomplete,constructor render-state override: 0x60
+741,plain monster body,incomplete,constructor render-state override: 0x60
+742,plain monster body,incomplete,constructor render-state override: 0x60
+743,repeated default body,checked plain body plan,
+744,repeated default body,checked plain body plan,
+745,repeated default body,checked plain body plan,
+746,repeated default body,checked plain body plan,
+747,repeated default body,checked plain body plan,
+748,plain NPC body,incomplete,plain NPC body
+749,repeated default body,checked plain body plan,
+750,special appearance hook,incomplete,special appearance hook
+751,special appearance hook,incomplete,special appearance hook
+752,special appearance hook,incomplete,special appearance hook
+753,special appearance hook,incomplete,special appearance hook
+754,repeated default body,checked plain body plan,
+755,repeated default body,checked plain body plan,
+756,repeated default body,checked plain body plan,
+757,repeated default body,checked plain body plan,
+758,special appearance hook,incomplete,special appearance hook
+763,repeated default body,checked plain body plan,
+764,plain NPC body,incomplete,plain NPC body
+765,plain NPC body,incomplete,plain NPC body
+766,plain NPC body,incomplete,plain NPC body
+767,repeated default body,checked plain body plan,
+768,repeated default body,checked plain body plan,
+769,repeated default body,checked plain body plan,
+770,repeated default body,checked plain body plan,
+771,repeated default body,checked plain body plan,
+772,repeated default body,checked plain body plan,
+773,repeated default body,checked plain body plan,
+774,repeated default body,checked plain body plan,
+775,repeated default body,checked plain body plan,
+776,repeated default body,checked plain body plan,
+777,repeated default body,checked plain body plan,
+778,repeated default body,checked plain body plan,
+779,plain monster body,checked plain body plan,
+780,plain monster body,incomplete,constructor render-state override: 0x74
+781,plain monster body,checked plain body plan,
+782,plain monster body,checked plain body plan,
+783,plain monster body,incomplete,additional caller services: effect
+784,plain monster body,incomplete,additional caller services: effect
+785,plain monster body,checked plain body plan,
+786,repeated default body,checked plain body plan,
+787,repeated default body,checked plain body plan,
+788,repeated default body,checked plain body plan,
+789,repeated default body,checked plain body plan,
+790,repeated default body,checked plain body plan,
+791,repeated default body,checked plain body plan,
+792,repeated default body,checked plain body plan,
+793,repeated default body,checked plain body plan,
+794,repeated default body,checked plain body plan,
+795,plain monster body,incomplete,constructor render-state override: 0x60
+796,plain monster body,incomplete,constructor render-state override: 0x60
+797,plain monster body,incomplete,constructor render-state override: 0x60
+798,plain monster body,incomplete,constructor render-state override: 0x60
+799,repeated default body,checked plain body plan,
+800,repeated default body,checked plain body plan,
+801,repeated default body,checked plain body plan,
+802,repeated default body,checked plain body plan,
+803,repeated default body,checked plain body plan,
+804,repeated default body,checked plain body plan,
+805,repeated default body,checked plain body plan,
+808,repeated default body,checked plain body plan,
+809,repeated default body,checked plain body plan,
+810,repeated default body,checked plain body plan,
+811,repeated default body,checked plain body plan,
+812,repeated default body,checked plain body plan,
+813,repeated default body,checked plain body plan,
+814,repeated default body,checked plain body plan,
+815,repeated default body,checked plain body plan,
+816,repeated default body,checked plain body plan,
+817,plain monster body,incomplete,constructor render-state override: 0x60
+818,plain monster body,incomplete,constructor render-state override: 0x60
+819,plain monster body,incomplete,constructor render-state override: 0x60
+820,plain monster body,incomplete,constructor render-state override: 0x60
+823,repeated default body,checked plain body plan,
+824,repeated default body,checked plain body plan,
+825,repeated default body,checked plain body plan,
+826,repeated default body,checked plain body plan,
+827,repeated default body,checked plain body plan,
+828,repeated default body,checked plain body plan,
+829,repeated default body,checked plain body plan,
+830,repeated default body,checked plain body plan,
+831,repeated default body,checked plain body plan,
+832,repeated default body,checked plain body plan,
+833,repeated default body,checked plain body plan,
+834,repeated default body,checked plain body plan,
+835,repeated default body,incomplete,additional caller services: BODY
+836,repeated default body,checked plain body plan,
+837,repeated default body,checked plain body plan,
+839,repeated default body,checked plain body plan,
+840,repeated default body,checked plain body plan,
+841,repeated default body,checked plain body plan,
+842,repeated default body,checked plain body plan,
+843,repeated default body,checked plain body plan,
+844,repeated default body,checked plain body plan,
+845,repeated default body,checked plain body plan,
+846,repeated default body,checked plain body plan,
+847,repeated default body,checked plain body plan,
+848,repeated default body,checked plain body plan,
+849,repeated default body,checked plain body plan,
+850,repeated default body,checked plain body plan,
+854,repeated default body,checked plain body plan,
+855,plain monster body,incomplete,constructor render-state override: 0x60
+856,plain monster body,incomplete,constructor render-state override: 0x60
+857,plain monster body,incomplete,constructor render-state override: 0x60
+858,plain monster body,incomplete,constructor render-state override: 0x60
+859,repeated default body,checked plain body plan,
+860,repeated default body,checked plain body plan,
+861,repeated default body,checked plain body plan,
+862,repeated default body,checked plain body plan,
+863,repeated default body,checked plain body plan,
+864,repeated default body,checked plain body plan,
+865,repeated default body,checked plain body plan,
+866,plain NPC body,incomplete,plain NPC body
+867,repeated default body,checked plain body plan,
+868,repeated default body,checked plain body plan,
+869,repeated default body,checked plain body plan,
+870,repeated default body,checked plain body plan,
+871,repeated default body,checked plain body plan,
+872,repeated default body,checked plain body plan,
+873,special appearance hook,incomplete,special appearance hook
+874,plain NPC body,incomplete,plain NPC body
+875,repeated default body,checked plain body plan,
+876,repeated default body,checked plain body plan,
+877,repeated default body,checked plain body plan,
+878,repeated default body,checked plain body plan,
+879,repeated default body,checked plain body plan,
+880,repeated default body,checked plain body plan,
+881,repeated default body,checked plain body plan,
+882,repeated default body,checked plain body plan,
+883,repeated default body,checked plain body plan,
+884,plain monster body,incomplete,constructor render-state override: 0x60
+885,plain monster body,incomplete,constructor render-state override: 0x60
+886,plain monster body,incomplete,constructor render-state override: 0x60
+887,plain monster body,incomplete,constructor render-state override: 0x60
+888,repeated default body,checked plain body plan,
+889,repeated default body,checked plain body plan,
+891,plain NPC body,incomplete,plain NPC body
+892,repeated default body,checked plain body plan,
+893,repeated default body,checked plain body plan,
+894,repeated default body,checked plain body plan,
+895,repeated default body,checked plain body plan,
+896,repeated default body,checked plain body plan,
+897,repeated default body,checked plain body plan,
+898,repeated default body,checked plain body plan,
+899,repeated default body,checked plain body plan,
+900,repeated default body,checked plain body plan,
+901,plain monster body,incomplete,constructor render-state override: 0x60
+902,plain monster body,incomplete,constructor render-state override: 0x60
+903,plain monster body,incomplete,constructor render-state override: 0x60
+904,plain monster body,incomplete,constructor render-state override: 0x60
+905,repeated default body,checked plain body plan,
+906,repeated default body,checked plain body plan,
+907,repeated default body,checked plain body plan,
+908,repeated default body,checked plain body plan,
+909,repeated default body,checked plain body plan,
+910,repeated default body,checked plain body plan,
+911,repeated default body,checked plain body plan,
+912,repeated default body,checked plain body plan,
+913,repeated default body,checked plain body plan,
+914,repeated default body,checked plain body plan,
+915,repeated default body,checked plain body plan,
+916,repeated default body,checked plain body plan,
+917,repeated default body,checked plain body plan,
+918,plain monster body,incomplete,missing native mesh textures
+919,repeated default body,checked plain body plan,
+920,repeated default body,checked plain body plan,
+921,repeated default body,checked plain body plan,
+922,repeated default body,checked plain body plan,
+923,repeated default body,checked plain body plan,
+924,repeated default body,checked plain body plan,
+926,repeated default body,checked plain body plan,
+927,repeated default body,checked plain body plan,
+928,repeated default body,checked plain body plan,
+929,repeated default body,checked plain body plan,
+930,repeated default body,checked plain body plan,
+931,repeated default body,checked plain body plan,
+932,repeated default body,checked plain body plan,
+933,plain monster body,incomplete,constructor render-state override: 0x60
+934,plain monster body,incomplete,constructor render-state override: 0x60
+935,plain monster body,incomplete,constructor render-state override: 0x60
+936,plain monster body,incomplete,constructor render-state override: 0x60
+937,special appearance hook,incomplete,special appearance hook
+938,repeated default body,checked plain body plan,
+939,special appearance hook,incomplete,special appearance hook
+940,special appearance hook,incomplete,special appearance hook
+941,special appearance hook,incomplete,special appearance hook
+942,repeated default body,checked plain body plan,
+943,repeated default body,checked plain body plan,
+944,repeated default body,checked plain body plan,
+945,repeated default body,checked plain body plan,
+946,repeated default body,checked plain body plan,
+947,repeated default body,checked plain body plan,
+948,repeated default body,checked plain body plan,
+949,repeated default body,checked plain body plan,
+950,repeated default body,checked plain body plan,
+951,plain monster body,incomplete,constructor render-state override: 0x60
+952,plain monster body,incomplete,constructor render-state override: 0x60
+953,plain monster body,incomplete,constructor render-state override: 0x60
+954,plain monster body,incomplete,constructor render-state override: 0x60
+955,repeated default body,checked plain body plan,
+956,repeated default body,checked plain body plan,
+957,repeated default body,checked plain body plan,
+958,repeated default body,checked plain body plan,
+959,repeated default body,checked plain body plan,
+960,repeated default body,checked plain body plan,
+961,repeated default body,checked plain body plan,
+963,repeated default body,checked plain body plan,
+964,repeated default body,checked plain body plan,
+965,repeated default body,checked plain body plan,
+966,repeated default body,checked plain body plan,
+967,repeated default body,checked plain body plan,
+968,repeated default body,checked plain body plan,
+969,repeated default body,checked plain body plan,
+970,repeated default body,checked plain body plan,
+971,repeated default body,checked plain body plan,
+972,repeated default body,checked plain body plan,
+973,repeated default body,checked plain body plan,
+974,repeated default body,checked plain body plan,
+975,repeated default body,checked plain body plan,
+976,repeated default body,checked plain body plan,
+977,repeated default body,checked plain body plan,
+978,repeated default body,checked plain body plan,
+979,repeated default body,checked plain body plan,
+980,repeated default body,checked plain body plan,
+981,repeated default body,checked plain body plan,
+983,repeated default body,checked plain body plan,
+984,repeated default body,checked plain body plan,
+985,repeated default body,checked plain body plan,
+986,repeated default body,checked plain body plan,
+987,repeated default body,checked plain body plan,
+988,repeated default body,checked plain body plan,
+989,repeated default body,checked plain body plan,
+990,repeated default body,checked plain body plan,
+991,repeated default body,checked plain body plan,
+992,repeated default body,checked plain body plan,
+993,repeated default body,checked plain body plan,
+994,repeated default body,checked plain body plan,
+995,repeated default body,checked plain body plan,
+996,repeated default body,checked plain body plan,
+997,repeated default body,checked plain body plan,
+998,repeated default body,checked plain body plan,
+999,repeated default body,checked plain body plan,
+1000,repeated default body,checked plain body plan,
+1001,repeated default body,checked plain body plan,
+1002,repeated default body,checked plain body plan,
+1003,repeated default body,checked plain body plan,
+1004,repeated default body,checked plain body plan,
+1005,repeated default body,checked plain body plan,
+1006,repeated default body,checked plain body plan,
+1007,repeated default body,checked plain body plan,
+1008,repeated default body,checked plain body plan,
+1009,repeated default body,checked plain body plan,
+1010,repeated default body,checked plain body plan,
+1011,repeated default body,checked plain body plan,
+1012,repeated default body,checked plain body plan,
+1013,repeated default body,checked plain body plan,
+1014,repeated default body,checked plain body plan,
+1015,repeated default body,checked plain body plan,
+1016,repeated default body,checked plain body plan,
+1017,repeated default body,checked plain body plan,
+1018,repeated default body,checked plain body plan,
+1019,repeated default body,checked plain body plan,
+1020,repeated default body,checked plain body plan,
+1021,repeated default body,checked plain body plan,
+1022,repeated default body,checked plain body plan,
+1023,repeated default body,checked plain body plan,
