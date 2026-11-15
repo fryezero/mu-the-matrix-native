@@ -65,3 +65,21 @@ again, so those heavy commands are waiting. No passing identity is claimed yet.
 
 Next step: use the lane resource guard, run the private consumers, then the
 identity driver, which resumes only unfinished baseline maps.
+
+
+### WIP checkpoint: private consumer expectation repaired
+
+Done: private consumers ran 55 tests. All route/controller/audio/item tests
+and the resize/pointer test pass; the old layout matrix's exact opened set
+fails only because UI-WINDOWS-003 auto-opens bag movie 44. A host compiled
+from unchanged main reproduces 44, 5.02 s. The test now requires that child
+and measures its bounds rather than filtering it away. The failed matrix
+passes all seventeen size/backing-scale points on the targeted rerun, 45.50 s.
+Combined private coverage is 52 passed / three optional mutant skips.
+
+Left: the one default identity is running, followed by final documentation
+consumers/audit, latest-main check, PR/ready publication and cleanup.
+
+Next step: inspect the identity driver's summary. It resumes only the seven
+unfinished baseline maps. Remaining builds use the brief's -j2 fallback
+following twenty-plus minutes of accumulated resource deferrals.
