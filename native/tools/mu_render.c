@@ -492,7 +492,7 @@ static void scan_file(const char *path, scan_counts counts[16], FILE *log)
         c->posed += model.posed;
         null_sink_state state = {0};
         mu_render_backend backend = {&state, null_prepare, null_begin, null_end,
-                                     {&state, null_tc, null_c3, null_c4, null_v}, NULL};
+                                     {&state, null_tc, null_c3, null_c4, null_v}, NULL, NULL};
         mu_draw_options options;
         mu_draw_default_options(&options);
         mu_draw_stats stats = {0, 0, 0, 0};

@@ -191,7 +191,7 @@ int main(int argc, char **argv)
             wearers++;
         }
         counter c = {0, 0};
-        mu_render_backend backend = {&c, prepare, NULL, NULL, {&c, texcoord, color3, color4, vertex}, NULL};
+        mu_render_backend backend = {&c, prepare, NULL, NULL, {&c, texcoord, color3, color4, vertex}, NULL, NULL};
         mu_draw_options draw;
         mu_draw_default_options(&draw);
         draw.textures = &textures;
