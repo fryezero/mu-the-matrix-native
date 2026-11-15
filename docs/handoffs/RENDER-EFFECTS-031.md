@@ -254,3 +254,62 @@ between `99c213e6` and this merge. The root/world build and overlapping selector
 The selector retains 50 of this lane's 77 rows, with conservative fallbacks retained. Those rows run
 without mutants; incoming portable checks, thirteen focused private modules including AUDIO-004,
 and the after render replay are queued. Successful compiled controls are not repeated.
+
+
+The 50 overlapping rows pass at `7cffa6fab15f38b2cdca199967e860d76df73495`, **840.572 s** command wall,
+zero failures/errors/skips, no optional mutants. The new full 66,051-check row passes again in 229.5 s.
+The other 27 earlier lane rows have unchanged compiled inputs under the overlapping selector.
+Incoming portable/private checks and the after-integrated render replay remain active.
+
+| Integrated validator | Reported checks | Wall s |
+|---|---:|---:|
+| `validate_actor_composites` | 1427 | 7.0 |
+| `validate_actor_recipes` | 1669 | 172.4 |
+| `validate_app_polish1` | 752 | 19.3 |
+| `validate_app_polish4` | 10485 | 32.2 |
+| `validate_audio_callers` | 5528 | 5.4 |
+| `validate_audio_domains` | 2544 | 23.7 |
+| `validate_audio_items` | 3000 | 2.3 |
+| `validate_audio_objects` | 4000 | 3.2 |
+| `validate_charsel_items` | 8817 | 6.3 |
+| `validate_icarus` | 5240 | 49.3 |
+| `validate_icarus_c2` | 8400 | 17.9 |
+| `validate_inventory_fx` | 8017 | 6.1 |
+| `validate_item_callers` | 6013 | 1.0 |
+| `validate_items_ui` | 8517 | 11.1 |
+| `validate_meshdraw` | 14619 | 82.3 |
+| `validate_model_edge` | 954 | 156.8 |
+| `validate_model_light` | 1433 | 7.5 |
+| `validate_movement` | 6614 | 99.1 |
+| `validate_render_effects16` | 424 | 2.4 |
+| `validate_render_effects17` | 618 | 6.0 |
+| `validate_render_effects18` | 540 | 0.9 |
+| `validate_render_effects19` | 400 | 0.6 |
+| `validate_render_effects24` | 226 | 2.3 |
+| `validate_render_effects25` | 202 | 11.9 |
+| `validate_render_effects26` | 348 | 10.1 |
+| `validate_render_effects28` | 630 | 1.3 |
+| `validate_render_effects31` | 66051 | 229.5 |
+| `validate_render_worlds_a` | 9000 | 11.5 |
+| `validate_terrain` | 583500 | 421.8 |
+| `validate_terrain_remaining` | 2147 | 3.7 |
+| `validate_worlds_121` | 4000 | 3.9 |
+| `validate_worlds_after` | 13424 | 19.8 |
+| `validate_worlds_after2` | 32216 | 36.5 |
+| `validate_worlds_after3` | 10212 | 5.1 |
+| `validate_worlds_after4` | 9181 | 15.3 |
+| `validate_worlds_after5` | 6000 | 7.3 |
+| `validate_worlds_after6` | 7300 | 59.1 |
+| `validate_worlds_d` | 2400 | 2.8 |
+| `validate_worlds_e` | 4840 | 18.1 |
+| `validate_worlds_f` | 1818 | 0.4 |
+| `validate_worlds_fog` | 4044 | 4.1 |
+| `validate_worlds_g3` | 4000 | 3.1 |
+| `validate_worlds_inner` | 4000 | 2.1 |
+| `validate_worlds_inner2` | 5000 | 2.6 |
+| `validate_worlds_inner3` | 8000 | 4.6 |
+| `validate_worlds_karutan` | 3000 | 2.1 |
+| `validate_worlds_raklion` | 3000 | 2.4 |
+| `validate_worlds_slots` | 18999 | 17.3 |
+| `validate_worlds_slots2` | 33000 | 35.4 |
+| `validate_worlds_slots3` | 36000 | 33.8 |
