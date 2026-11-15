@@ -3886,3 +3886,25 @@ note = "RENDER-ITEMS-002AA: four checked clock falloffs, every positive period t
 "families.exits.cases" = 256
 "families.reader_refusals.cases" = 5
 "mutants.*" = {truthy = true}
+
+[validate_item_random_levels]
+test = "reconstructed/renderchar/test_item_random_levels.py::ItemRandomLevels.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "records", "packed", "random", "clocks", "exits", "caller_guards"]
+cases = 83360
+mutants = 7
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar"]
+args = ["--mutations", "--output", "{report}"]
+note = "RENDER-ITEMS-002AA: 32 packed-level random bodies, original caller guards, every low option bit, forcing records, random edges and model exits"
+[validate_item_random_levels.expect]
+"families.*.mismatches" = 0
+"families.bodies.cases" = 9344
+"families.records.cases" = 16384
+"families.packed.cases" = 52608
+"families.random.cases" = 2112
+"families.clocks.cases" = 768
+"families.exits.cases" = 2048
+"families.caller_guards.cases" = 96
+"mutants.*" = {truthy = true}

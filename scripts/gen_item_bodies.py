@@ -231,8 +231,11 @@ from gen_item_owner_fx import PRE_FX_TYPES, OBJDRAW as PRE_DRAW_RAND, REMAINDER_
 from item_caller_groups import TYPES as CALLER_TYPES
 PRE_FX_TYPES = PRE_FX_TYPES + REMAINDER_PROGRAM_TYPES
 FALLOFF_TYPES = [0x0b47, 0x0b49, 0x1323, 0x154a]
-REMAINDER_TYPES = list(CALLER_TYPES) + REMAINDER_PROGRAM_TYPES + FALLOFF_TYPES
-REMAINDER_CARRY = REMAINDER_PROGRAM_TYPES
+RANDOM_LEVEL_TYPES = [0x0b37, 0x0b3a, 0x0f10, 0x0f11, 0x1104, 0x131e, 0x1526, 0x1527, 0x1712, 0x1713, 0x1714, 0x1715, 0x1716, 0x1717, 0x1722, 0x1723, 0x1724, 0x1725, 0x1726, 0x1727, 0x172c, 0x172d, 0x172e, 0x172f, 0x1730, 0x1731, 0x174c, 0x174d, 0x174e, 0x174f, 0x1750, 0x1751]
+LEVEL_SPLIT += RANDOM_LEVEL_TYPES
+REMAINDER_TYPES = list(CALLER_TYPES) + REMAINDER_PROGRAM_TYPES + FALLOFF_TYPES + RANDOM_LEVEL_TYPES
+RANDOM_LEVEL_CARRY = [0x1712, 0x1713, 0x1714, 0x1715, 0x1716, 0x1717, 0x1722, 0x1723, 0x1724, 0x1725, 0x1726, 0x1727, 0x172c, 0x172d, 0x172e, 0x172f, 0x1730, 0x1731, 0x174c, 0x174d, 0x174e, 0x174f, 0x1750, 0x1751]
+REMAINDER_CARRY = REMAINDER_PROGRAM_TYPES + RANDOM_LEVEL_CARRY
 # Part 21 (RENDER-ITEMS-002T): owner blocks after the draws with the pre-draw idioms (gen_item_owner_fx.POST_FX_TYPES);
 # their draws fit the default probes with the effect requests set aside.
 from gen_item_owner_fx import POST_FX_TYPES, READ_PROGRAM_TYPES, LATER_READ_PROGRAM_TYPES, CYCLE_PROGRAM_TYPES
@@ -1845,7 +1848,7 @@ def infer(samples):
 ALL_TYPES = (REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES + RANKED_TYPES + EXPANDED_TYPES +
              NEXT_TYPES + CLOCK_TYPES + CLUSTER_TYPES + WING_TYPES + VISIBLE_TYPES + SCALAR_TYPES +
              CHAIN_TYPES + LEVEL_TYPES + COLOUR_TYPES + CARRY_TYPES + QUALITY_TYPES + PRODUCT_TYPES + DERIVED_TYPES +
-             OWNER_FX_TYPES + PRE_FX_TYPES + POST_FX_TYPES + [0x1588] + list(NAMED_TYPES) + NO_GLOW_TYPES + HELPER_TYPES + DIRECT_TYPES + OTHER_TYPES + list(CALLER_TYPES) + FALLOFF_TYPES)
+             OWNER_FX_TYPES + PRE_FX_TYPES + POST_FX_TYPES + [0x1588] + list(NAMED_TYPES) + NO_GLOW_TYPES + HELPER_TYPES + DIRECT_TYPES + OTHER_TYPES + list(CALLER_TYPES) + FALLOFF_TYPES + RANDOM_LEVEL_TYPES)
 
 
 def fit(wa, lib, t, scalars=False, carry=False, extended=False):
@@ -2024,7 +2027,10 @@ def supplement(wa, lib, t, params, sites, carry, ss, phases):
                             return False
                         continue
                     phase = 0 if t in DIRECT_TYPES else 5 if seed % 3 == 2 else 0
-                    if t in NAMED_TYPES and lv >= 9 and quality > 1:
+                    if ((t in NAMED_TYPES and lv >= 9 and quality > 1) or
+                            (t in RANDOM_LEVEL_TYPES and (lv << 3) >= 9 and quality > 1 and
+                             lib.mu_rc_item_glow_level(C.byref(v.CItem(type=t, item_level=lv << 3,
+                                 quality=quality, has_record=1, kind_a=record[0], kind_b=record[1], item_kind=record[2]))) >= 9)):
                         phase = 7 if phase == 5 else 6
                     phases[phase].append(stream[0])
                     for pair in stream[1:]:
@@ -2124,7 +2130,7 @@ def render(types):
     for t, indices, first, count in rows:
         rules = types[t][0]
         lines.append('    {0x%04x, {%s}, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d},' %
-                     (t, ', '.join(map(str, indices)), t in LEVEL_SPLIT, t in ATLAS_TYPES, t in DIM_TYPES, (2 + (t in DIRECT_WHITE_TYPES)) if t in DIRECT_TYPES else t in PLAIN_TYPES or t in NO_GLOW_TYPES, t in PULSE_TYPES,
+                     (t, ', '.join(map(str, indices)), (2 if t in RANDOM_LEVEL_TYPES else t in LEVEL_SPLIT), t in ATLAS_TYPES, t in DIM_TYPES, (2 + (t in DIRECT_WHITE_TYPES)) if t in DIRECT_TYPES else t in PLAIN_TYPES or t in NO_GLOW_TYPES, t in PULSE_TYPES,
                       any(op == 'in' and value == 20 for rule in rules for _, cells in rule for op, value in cells),
                       sum(1 << k for k in range(13) if any(op == 'in' and value == 21+k for rule in rules for _, cells in rule for op,value in cells)),
                       t in CARRY_TYPES or t in DERIVED_CARRY or t in PRE_CARRY or t in DIRECT_TYPES, first, count))

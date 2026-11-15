@@ -498,8 +498,8 @@ static void emit_parameter_body(sink *s, int phase, uint32_t flags, float alpha,
     /* The helper's optional level word is supplied only above the +7 quality cap. */
     if (mu_rc_body_types[type].level_split && (phase == 0 || phase == 5) &&
         s->item->quality > 1 && mu_rc_item_glow_level(s->item) >= 9 &&
-        s->item->item_level != -1 &&
-        ((s->item->item_level >> 3) & 15) >= 9)
+        (mu_rc_body_types[type].level_split == 2 ? s->item->item_level >= 9 :
+         (s->item->item_level != -1 && ((s->item->item_level >> 3) & 15) >= 9)))
         phase = phase == 5 ? 7 : 6;
     for (int k = 0; k < mu_rc_body_types[type].scalar_count; ++k) {
         const mu_rc_body_scalar *p = &mu_rc_body_scalars[mu_rc_body_types[type].scalar_first + k];
