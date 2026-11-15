@@ -23,6 +23,9 @@ int main(int argc,char **argv)
  for(int i=0;i<10;i++)mu_gfx_layer_advance(L,40);
  int real=getenv("MU_WINDOWS4_REAL") && !strcmp(getenv("MU_WINDOWS4_REAL"),"1");
  if(real){
+  field(MU_GFX_MU_MIX,"tfTitle.text","\"MU mix - preview\"");
+  field(MU_GFX_MU_MIX,"slMixPage.dataProvider.root.nodes.length","0.0");
+  field(MU_GFX_MU_MIX,"mcDefaultPage._visible","true");
   field(MU_GFX_DUEL_WATCH,"tfTitle.text","\"Duel watch\"");
   for(int i=0;i<4;i++){char f[80];snprintf(f,sizeof f,"m_aDuelWatch.%d.disabled",i);field(MU_GFX_DUEL_WATCH,f,"true");}
   field(MU_GFX_PERSONAL_CATALOG,"mcPersonalShop.taTitle.text","\"Personal shops - empty preview\"");
@@ -38,9 +41,9 @@ int main(int argc,char **argv)
   field(MU_GFX_ARTIFACT,"HexSlotList.0._visible","false");
  }
  mu_gfx_hero hero=*mu_gfx_layer_hero(L);int held=L->held,potions=L->potions;foreign=sounds=0;
- const char *blocked[]={"OnClickAllShopList","OnClickSearchItem","OnClickItemList","OnClickWhisper","OnClickLetter","OnClickPrevPage","OnClickNextPage","OnClickSlotBoard","OnClickRSlotBoard","OnClickExpand","OnClickContract","OnExpandContractNode","onClickLevelup","requestItemSlotClick","onClickbtnBuy","onDepositBtnClick","onClickbtnDuelWatch0","onClickbtnDuelWatch1","onClickbtnDuelWatch2","onClickbtnDuelWatch3","unknown"};
+ const char *blocked[]={"OnClickAllShopList","OnClickSearchItem","OnClickItemList","OnClickWhisper","OnClickLetter","OnClickPrevPage","OnClickNextPage","OnClickSlotBoard","OnClickRSlotBoard","OnClickExpand","OnClickContract","OnExpandContractNode","onClickLevelup","requestItemSlotClick","onClickbtnBuy","onDepositBtnClick","onClickbtnDuelWatch0","onClickbtnDuelWatch1","onClickbtnDuelWatch2","onClickbtnDuelWatch3","OnSelectCategory","unknown"};
  int refused=0;
- for(int m=MU_GFX_PERSONAL_CATALOG;m<=MU_GFX_DUEL_WATCH;m++){
+ for(int m=MU_GFX_PERSONAL_CATALOG;m<=MU_GFX_MU_MIX;m++){
   assert(presentation_available3(L,m));mu_gfx_layer_show(L,m,1);
   for(size_t i=0;i<sizeof blocked/sizeof *blocked;i++){
    assert(!presentation_call(&L->mv[m],blocked[i],"[0]",(double[]){0},1));on_call(&L->mv[m],blocked[i],"[0]");++refused;
@@ -62,7 +65,14 @@ int main(int argc,char **argv)
  printf("route 280 280:toggle,\n");
  on_call(&L->mv[MU_GFX_INVENTORY],"onClickArtifact","[]");assert(!L->mv[MU_GFX_ARTIFACT].open);
  unsigned ready=L->presentation_ready;L->presentation_ready=0;
- assert(!mu_gfx_layer_presentation_slot(L,0x280));assert(!mu_gfx_layer_presentation_slot(L,0x164));L->presentation_ready=ready;
+ for(size_t i=0;i<sizeof PRESENTATION_ROUTES5/sizeof *PRESENTATION_ROUTES5;i++) assert(!mu_gfx_layer_presentation_slot(L,PRESENTATION_ROUTES5[i].slot));L->presentation_ready=ready;
+ mu_gfx_layer_show(L,MU_GFX_MIX_SELECT,1);
+ on_call(&L->mv[MU_GFX_MIX_SELECT],"onClickGoblinMenu","[1,0]");
+ assert(L->mv[MU_GFX_MU_MIX].open && !L->mv[MU_GFX_MIX_SELECT].open);
+ printf("route 290 290:open,selector:close,\n");
+ mu_gfx_layer_presentation_close(L);mu_gfx_layer_show(L,MU_GFX_MIX_SELECT,1);mu_gfx_layer_show(L,MU_GFX_MIX,1);
+ on_call(&L->mv[MU_GFX_MIX_SELECT],"onClickGoblinMenu","[1,0]");assert(!L->mv[MU_GFX_MU_MIX].open);
+ mu_gfx_layer_show(L,MU_GFX_MIX,0);mu_gfx_layer_show(L,MU_GFX_MIX_SELECT,0);
  mu_walk walk={0};mu_world_actor actor={0};mu_world_actors actors={.list=&actor,.count=1};actor.server_class=251;actor.actor.spec.npc_index=0;
  mu_npc_demo demo={0};demo.count=1;demo.rows[0].server_class=251;demo.rows[0].result=0x30;
  mu_npc npc;mu_npc_init(&npc,&walk,&actors,&demo);npc.open=opened;npc.close_all=close_all;npc.sound=tail;npc.ordered_window_sounds=1;npc.pending_actor=0;answer(&npc);
@@ -74,5 +84,5 @@ int main(int argc,char **argv)
  assert(presentation_menu(L,7) && L->mv[MU_GFX_PERSONAL_CATALOG].open);assert(sounds==1);
  assert(presentation_menu(L,7) && !L->mv[MU_GFX_PERSONAL_CATALOG].open);assert(sounds==2);
  assert(!memcmp(&hero,mu_gfx_layer_hero(L),sizeof hero));assert(L->held==held && L->potions==potions && foreign==0 && sounds==2);
- printf("three fixture windows, %d inert callbacks, original routes ok\n",refused);mu_gfx_layer_close(L);
+ printf("four fixture windows, %d inert callbacks, original routes ok\n",refused);mu_gfx_layer_close(L);
 }

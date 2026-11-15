@@ -520,7 +520,14 @@ The original 30 state-dependent rows retain their classification and refusals.
 |---|---|---|
 | PersonalShop | NPC result 0x30; +0x164 toggle; menu 7 -> 0x00c73603 -> 0x00c73688 | Empty shop/item/search lists; authored child headers; two local tabs; search, community, purchases and item actions refuse |
 | ArtifactFrame | Inventory `onClickArtifact`, 0x00b97ebe..0x00b97ee4; getter 0x00981423 -> +0x280 toggle | Empty hex slots and option tree; one page; no artifact records, option bonuses, expand/page or slot operations |
+| MUMix | Goblin `onClickGoblinMenu` -> 0x00bd0a4b -> 0x00bd06ae; index 1 opens +0x290 at 0x00bd07ff, then closes selector | Empty category tree/default page; no recipes, material slots, chance, currency or results |
 | DuelWatch | NPC result 0x21 -> +0xe0 method 0x00b54793 -> original open tail 0x00b548ef..0x00b548f7 | Four authored empty match rows, each watch button disabled; no match list or entry request |
+
+The Goblin branch also corrects the inherited selector inversion: choice value 0 opens
+the existing older mix view, choice value 1 the new MUMix preview. The existing legacy
+button regression now supplies original index 0; its transaction assertions
+are retained. The old view remains a pre-existing fixture, outside the new
+empty-provider scope. Competing visible mix views refuse the other opener.
 
 The table-driven production adapter preserves toggle versus open and refuses
 missing readiness. Inventory callback consumption happens before foreign item
@@ -536,11 +543,11 @@ unowned nested GFx sounds remain outside the claim.
 ### Current classifications
 
 The 118 rows classified by 004 change from 9 complete / 17 provider-missing /
-30 state-dependent / 62 no-route to 12 / 35 / 30 / 41. Twenty newly proved
+30 state-dependent / 62 no-route to 13 / 34 / 30 / 41. Twenty newly proved
 rows remain provider-missing; DuelWatch is the twenty-first and is admitted.
-The historical survey rises 24 -> 27 bound of 134, unresolved 110 -> 107.
+The historical survey rises 24 -> 28 bound of 134, unresolved 110 -> 106.
 The separately withdrawn PlayGuide row remains no-route and unbound.
-Registry entries rise 57 -> 60; distinct filenames 56 -> 59.
+Registry entries rise 57 -> 61; distinct filenames 56 -> 60.
 
 Help/F1, Home activation, separate fifth-tree inventory and event-inventory
 openers stay refused. No macro timing/configuration, hunting history, matching

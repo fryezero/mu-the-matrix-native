@@ -1,7 +1,7 @@
 /* UI-WINDOWS-005. Empty catalogue and artifact-board presentation only. */
 static const presentation_route4 PRESENTATION_ROUTES5[] = {
     {0x164,MU_GFX_PERSONAL_CATALOG,1}, {0x280,MU_GFX_ARTIFACT,1},
-    {0x0e0,MU_GFX_DUEL_WATCH,0}
+    {0x0e0,MU_GFX_DUEL_WATCH,0}, {0x290,MU_GFX_MU_MIX,0}
 };
 
 static void presentation_fixture5(mu_gfx_layer *L, int m)
@@ -20,6 +20,11 @@ static void presentation_fixture5(mu_gfx_layer *L, int m)
         presentation_set(L,m,"btnItemList.enabled","true");
         presentation_set(L,m,"btnAllShopList.disabled","true");
         presentation_set(L,m,"mcSearchItem.tiSearchItem.disabled","true");
+    } else if(m==MU_GFX_MU_MIX) {
+        invokef(L,m,w->path,"InitText","[{\"Title\":\"MU mix - preview\",\"MixListTitle\":\"No recipes\"}]");
+        invokef(L,m,w->path,"SetMixCategoryTreeData","[{\"label\":\"\",\"nodes\":[]}]");
+        invokef(L,m,w->path,"SetDefaultPage","[\"Empty offline fixture. No recipes, materials or results.\",true]");
+        presentation_set(L,m,"slMixPage.disabled","true");
     } else if(m==MU_GFX_DUEL_WATCH) {
         invokef(L,m,w->path,"InitTitle","[\"Duel watch\",\"Empty offline fixture. No matches or entry.\"]");
         for(int i=0;i<4;i++) {
@@ -53,13 +58,24 @@ static int presentation_slot5(mu_gfx_layer *L, unsigned slot)
     return 0;
 }
 
-static int presentation_parent5(movie *w, const char *name)
+static int presentation_parent5(movie *w, const char *name, const double *v, int n)
 {
     /* Inventory callback 0x00b97ebe..e4: onClickArtifact -> +0x280 toggle.
      * No item or character predicate is read in this callback arm. */
     if(w->id==MU_GFX_INVENTORY && !strcmp(name,"onClickArtifact")) {
         if(w->open) (void)presentation_slot5(w->L,0x280);
         return 1;
+    }
+    if(w->id==MU_GFX_MIX_SELECT && !strcmp(name,"onClickGoblinMenu")) {
+        /* 0x00bd0a4b dispatches argument zero to 0x00bd06ae. Index 1
+         * selects MUMix, provided the older mix window is not visible. */
+        if(w->open && n==2 && v[0]==1 && !w->L->mv[MU_GFX_MIX].open &&
+           presentation_slot5(w->L,0x290)) mu_gfx_layer_show(w->L,w->id,0);
+        if(n==2 && v[0]==1) return 1;
+        if(w->open && n==2 && v[0]==0 && !w->L->mv[MU_GFX_MU_MIX].open) {
+            (void)mu_gfx_layer_mix_action(w->L,"mixopen",0,0);
+            return 1;
+        }
     }
     return 0;
 }

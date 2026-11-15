@@ -28,3 +28,23 @@ The physical tab journey exposed disabled local tabs. The production fixture
 now enables those two controls; normal original-movie tests pass and a new
 disabled-tab compiled mutant is checked separately. No old mutants rerun.
 No installed app, original/live client or protection work. No subagents.
+
+
+### WIP checkpoint: fourth provider
+
+Done: the Goblin callback join 0x00bd0a4b -> 0x00bd06ae proves index 1
+opens MUMix, index 0 the older mix view. The empty category/default-page
+provider is implemented; recipe/material/forecast/result callbacks refuse.
+Original movie and instruction tests pass. The new branch mutant is caught;
+eleven distinct compiled mutants total. Fifteen legacy item-service tests
+pass with original index 0 and their transaction assertions unchanged.
+Final classification is 13 complete / 34 provider-missing / 30 state-dependent /
+41 no-route among 118 entry rows. Survey 28 bound / 106 unresolved of 134.
+
+Left: capture MUMix's actual native selector journey, finish the affected
+portable run, twelve private validators, reduced private consumers and the
+resumed/default identity. The earlier portable command was interrupted
+when this newly proved fourth provider was added; it is not a passing run.
+
+Next step: inspect the Goblin selector capture, click its choice with value 1,
+then validate the complete committed source. No original/live client or app work.

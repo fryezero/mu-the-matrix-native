@@ -10,8 +10,8 @@ ROOT=harness.ROOT
 
 class Windows5(unittest.TestCase):
     HOST='native/tests/ui_windows5_host.c'
-    MOVIES=('PersonalShop','ArtifactFrame','DuelWatch')
-    EXPECTED='63 inert callbacks'
+    MOVIES=('PersonalShop','ArtifactFrame','DuelWatch','MUMix','MixGoblinSel','MixInventoryFrame')
+    EXPECTED='88 inert callbacks'
     run_host=harness.PresentationWindows.run_host
     setUpClass=classmethod(harness.PresentationWindows.setUpClass.__func__)
 
@@ -49,6 +49,12 @@ class Windows5(unittest.TestCase):
             0xaae420:lambda u,c:(c.append('e0:open,') or 0,0)},
             [(0x1000efe4,0x10000100)])
         self.assertEqual(tail,['e0:open,'])
+        mix=oracle.machine(0xbd07e8,0xbd080f,{
+            0xac3bf7:lambda u,c:(0x10000700,0),0xa98c22:lambda u,c:(0x10000100,0),
+            0x10002000:lambda u,c:(c.append('290:open,') or 0,0),
+            0x10002010:lambda u,c:(c.append('selector:close,') or 0,0)},
+            [(0x1000efe4,0x10000100)])
+        self.assertEqual(native[0x290],''.join(mix))
 
 @unittest.skipUnless(os.environ.get('MU_UI_WINDOWS5_MUTANTS')=='1','changed-controller mutants once at finish')
 class MutationSensitivity(unittest.TestCase):
@@ -65,6 +71,7 @@ class MutationSensitivity(unittest.TestCase):
             ('hidden-parent','if(w->open) (void)presentation_slot5','if(1) (void)presentation_slot5',False),
             ('invented-sound','        if(r->toggle) mu_gfx_layer_toggle','        if(L->cfg.window_sound) L->cfg.window_sound(L->cfg.tooltip_user,25,0xc716f6);\n        if(r->toggle) mu_gfx_layer_toggle',False),
             ('disabled-tabs','presentation_set(L,m,"btnItemList.enabled","true");','presentation_set(L,m,"btnItemList.enabled","false");',True),
+            ('mix-branch','v[0]==1 && !w->L->mv[MU_GFX_MIX].open','v[0]==0 && !w->L->mv[MU_GFX_MIX].open',False),
             ('enabled-watch','[%d,\\"No match\\",true]','[%d,\\"No match\\",false]',True),
         ]
         with tempfile.TemporaryDirectory(prefix='mu-windows5-mutants-') as folder:
