@@ -3801,3 +3801,20 @@ note = "RENDER-ACTORS-006: 550 instruction-checked generated single-body plans, 
 all_equal = true
 all_mutants_caught = true
 "mutants.*.stopped" = 0
+
+[validate_actor_groups]
+test = "native/tests/test_actor_groups.py::ClientComparison.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["defaults", "weapons", "links", "weapon_draw", "constructors", "openers", "callers", "native", "body_reader", "draw", "varied", "plans", "reproduce", "hardcase_requests", "secondary_requests"]
+cases = 8451
+mutants = 20
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/actors", "reconstructed/renderchar", "native"]
+build_targets = { native = ["build/libmunative.a", "build/libmusession_world.a"] }
+args = ["--cases", "200", "--mutations", "--output", "{report}"]
+note = "RENDER-ACTORS-007: 138 generated NPC, subtype, blend/hidden and weapon plans; exact per-row original/native asset and reader checks; 217 incomplete and 80 loader refusals retained"
+[validate_actor_groups.expect]
+all_equal = true
+all_mutants_caught = true
+"mutants.*.stopped" = 0

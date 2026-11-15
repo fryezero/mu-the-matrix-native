@@ -778,3 +778,125 @@ repeats and are not a spawn catalogue or a whole-client completion percentage.
 Classes 1/5/10, 595/635 and the four refusal boundaries 374/378/617/642 remain
 outside this admission unless their missing behavior is separately recovered.
 No filename or secondary lifetime is inferred from an opener alone.
+
+## 14. NPC, constructor-state and ordinary-link groups, RENDER-ACTORS-007
+
+The frozen ACTORS-006 remainder has 355 selectors. The new
+[per-row decisions](actor-group-decisions.csv) retain every original refined
+group, prior reason and current result. The generator admits 138 further
+bounded fixture plans, spanning 108 distinct body models. The regenerated
+census is 727 checked / 217 incomplete / 80 refused out of 1,024 selectors.
+The 39 earlier plans and 550 ACTORS-006 plans remain separate. These counts
+include selector aliases and do not measure unique creatures or whole-client
+fidelity. The [handoff](../handoffs/RENDER-ACTORS-007.md) records delivery checks.
+
+| Refined missing plan | Before | Still incomplete | Newly checked |
+|---|---:|---:|---:|
+| NPC whole-body caller/pass/native plan | 84 | 31 | 53 |
+| Right weapon/link | 58 | 54 | 4 |
+| Both weapon/link | 33 | 22 | 11 |
+| Left weapon/link | 13 | 13 | 0 |
+| Constructor subtype appearance | 44 | 0 | 44 |
+| Constructor blend mesh | 22 | 0 | 22 |
+| Constructor hidden mesh | 3 | 0 | 3 |
+| Constructor blend mesh/light | 2 | 1 | 1 |
+| All other refined groups, including three sword callers | 96 | 96 | 0 |
+| Total | 355 | 217 | 138 |
+
+### Evidence recovered once per uniform group
+
+The generator extends ACTORS-006's constructor, opener, caller and actual-asset
+checks through shared verifier functions. Original CreateMonster instructions
+still use the world-0/rand-0 extraction and explicitly declining processors.
+Each row must match the compiled class table's model, scale, class byte and
+slots. Kind 1 and class byte zero remain checked constructor defaults.
+No selected body parts, joints, multiple openers or unexplained state writes
+are admitted by this group. The write audit now retains the actual constructor
+values rather than only the addresses of writes.
+
+For NPCs, OpenNpc `0x01808a40` executes in worlds 0/3/2/51/18/30. Every ordered
+AccessModel and OpenTexture call, complete synthetic action-array byte and
+model byte must match the native registration and supported action-speed writes.
+AccessModel supplies the modeled mesh/action counts and action pointer.
+Repeated identical Npc texture opens are retained. Different directories,
+extra model or bitmap loads, mesh overrides and unsupported model fields fail
+closed. The native group adapter loads the exact recorded Npc texture directory;
+it does not derive a texture directory from a similarly named model folder.
+Each actual mesh texture is independently resolved and decoded again, comparing
+pixels, size, component count, wrap and filter against the native upload.
+
+For constructor-state groups, the missing reader is RenderObject
+`0x016d4fe4`, setup `0x017ec896` and draw `0x017edf43`. Every admitted row executes
+that original reader in eight world/alpha contexts. Its body request must be
+exactly flags 2, requested alpha, OBJECT `+0x74` blend mesh, `+0xa8` blend light,
+zero UV offsets, `+0x68` hidden mesh and bitmap -1. The Transform request must
+retain translate 1 and the 0.4/0.8/0.2 factors. Constructor subtype `+0x60` is
+retained through both the full caller and reader; the accepted kind-1 rows
+require the ordinary body plan in these contexts. Native stores all four
+fields and applies the checked blend/hidden options in both render backends.
+
+Initial blend mesh -1, blend light 1 and zero UV are authored fresh-body
+fixture inputs. Original CreateCharacter's hidden-mesh -1 and subtype-zero
+stores are statically visible at `0x0137dbae` and `0x0137dbe5`.
+No pooled-object reuse or inherited appearance-state parity is claimed.
+Animation, body-light input, buff tint `0x017f9375`, after-visual
+`0x017f919e`, custom/registry handlers and shadow behavior retain named harness
+boundaries. The reader proves the selected body arguments; it does not certify
+those downstream services or original pixels. Constructor light/kind overrides,
+cloth/world-selected appearances and extra caller services remain excluded.
+
+Every accepted full RenderCharacter entry `0x01363260` executes 28 contexts
+across worlds 0/3/2/51 and actions 0..6, carrying its actual constructor writes.
+Both sprite emitters execute. A separate eight-state original RenderObjDraw
+stream is checked per distinct body model. Selected item/level streams and
+RenderLinkItem are also checked independently; any extra link service or
+unavailable native item stream leaves the row incomplete.
+
+### Ordinary links and raw level bytes
+
+The ordinary caller at `0x0136c428` passes a monster slot's level byte directly.
+It does not apply the Player caller's shift by three. The native attachment
+adapter decodes that byte for its existing draw API. For every admitted item
+and raw-byte pair, original RenderObjDraw receives the raw byte and must match
+the native stream produced from the decoded value. Low bits are therefore
+covered by comparison, rather than assumed irrelevant. The first trial used
+the Player expectation and was rejected; it is not the delivery evidence.
+
+Fifteen assemblies pass: right-hand classes 13/26/28/29, and both-hand classes
+23/33/35/86/92/98/115/121/127/140/430. Their exact Item.bmd file registrations,
+original hand bones, actual textures, six native world/action contexts,
+per-hand isolated poses, preserved body bones and alpha are checked. No item
+recipe/table or effect-consumer implementation is changed. The 92 remaining
+equipment-only contexts include thirteen left-hand plans and three sword
+callers. Extra services, unsupported streams, caller state and native assets
+keep them incomplete; a weapon file alone is not an assembly proof.
+
+### Request-only hard cases and remaining limits
+
+Classes 1/5/10 retain their post-link `0x7ef7` sprite request with size 1.4.
+The request audit records its original call site, vector inputs and link-slot
+phase in four fixture worlds. The ordinary link remains a named recorder in
+that caller audit, so these vectors do not certify native weapon-pose/sprite
+placement. All three remain incomplete. Type-226 classes 595/635 retain the
+six original counter/request controls from section 12. Their consumer lifetime
+and specialized idle mesh/sprite passes remain outside admission. Two consumer
+refusals are counted separately from the eighty loader refusals. EFFECTS-033
+owns the consumer work; this lane does not edit its files.
+
+Extra bitmap groups retain their requested loads but lack a complete consumer
+plan. EffectManager, joints, secondary NPC assemblies, cloth/world appearances,
+changed/suppressed body callers and unresolved engine-state callers likewise
+retain per-row reasons. Class 918 still has unavailable mesh textures. Classes
+374/642 require companion lifetime, 378 cloth/aura and 617 an exact startup
+registration. Their four loader refusals remain unchanged. No filename, spawn
+state, statistics, network input or protection behavior is inferred.
+
+Reproduce from the repository root with canonical private-env.sh: build,
+run `scripts/validate_actor_groups.py --generate --output <local-report>`,
+rebuild, then run it without `--generate` for production-table reproduction.
+Compiled controls run once through `--mutations`. Both census files regenerate
+with `scripts/actor_census.py --classes docs/research/actor-construction-census.csv
+--openers docs/research/actor-opener-census.csv --composite-ready --monster-ready
+--plain-ready --groups-ready`. The opener's new `checked_group_body_contexts`
+column counts verified callers, never complete opener/creature registrations.
+All original inputs use the same whole-input Pin.read digests as section 13.

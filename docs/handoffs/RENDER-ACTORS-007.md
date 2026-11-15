@@ -13,14 +13,16 @@ and thirteen weapon assemblies, with 3,040 trial checks. These are provisional
 until the expanded reader, rebuilt production table and final checks pass. The raw monster weapon level byte differs from Player's
 shifted level. The verifier compares both streams before admission.
 
-Left: finish the corrected group generation, check constructor appearance
-readers, preserve all failed decisions, regenerate both census CSVs, run
+The final generator has 138 plans / 108 models and 7,228 checks. Both census
+CSVs reproduce 727 checked / 217 incomplete / 80 refused. Focused portable
+modules pass, two tests and two expected private skips. Root build passes.
+
+Left: run
 compiled controls and affected checks, produce representative renders and
 replay the rebuilt identity sweep. No final test/count claim yet.
 
-Next step: inspect the current generation report; resolve verifier errors,
-then verify RenderObject's hidden/blend/subtype reader before expanding any
-constructor-state group. Keep sword sprites, type-226 consumer lifetimes and
+Next step: run the final new-row private comparison and twenty compiled
+controls, then the selected validators and portable/private modules. Keep sword sprites, type-226 consumer lifetimes and
 374/378/617/642 refusal boundaries outside admissions without their evidence.
 
 Local reports and baseline hashes are in

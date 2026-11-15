@@ -61,6 +61,7 @@ def npc_opener(machine, lib, row):
     for world in (0,3,2,51,18,30):
         case = va.monster_case('npc', 0, actions=16, world=world); case['index'] = index
         run = va.run_client_open(machine, case, va.OPEN_NPC, index)
+        row['opener_calls']=run['calls'];row['opener_loaders']=run['loaders']
         own = ('access', index, native.directory.decode(), native.name.decode(), native.number)
         loads = [c for c in run['calls'] if c[0] == 'access']
         tex = [c for c in run['calls'] if c[0] == 'texture']
@@ -85,6 +86,7 @@ def npc_opener(machine, lib, row):
 def opener(machine, lib, authored, row):
     if row['opens'][0][0] == 'npc': return npc_opener(machine,lib,row)
     run=va.run_client_open(machine,va.monster_case('group',row['opens'][0][1],actions=16))
+    row['opener_calls']=run['calls'];row['opener_loaders']=run['loaders']
     if any(c[0]=='bitmap' for c in run['loaders']):
         return False,'extra bitmap consumer remains unchecked'
     ok, detail = plain.opener(machine,authored,row)
@@ -232,6 +234,49 @@ def weapon_draw_checks(args,rows):
                 dict(type=t,level=level,stream=stream,expected=expected,other=other))
     return fam
 
+def hardcase_requests(args,machine):
+    fam=recipes.family();records=[]
+    for cl in (1,5,10):
+        row=constructor(machine,cl);bones=vr.extract_link_bones(args,[row['model']])[row['model']]
+        for world_id in (0,3,2,51):
+            old=vr.CHAR_SKIPS;old_world=vr.World
+            def world(*world_args):
+                w=old_world(*world_args)
+                def sprite(m):
+                    values=[m.arg(i) for i in range(4)]
+                    w.calls.append(('sprite-request',dict(site=m.r32(m.uc.reg_read(m.x86.UC_X86_REG_ESP))-5,
+                        type=values[0],scale=values[2],position=list(struct.unpack('<3I',m.read(values[1],12))),
+                        light=list(struct.unpack('<3I',m.read(values[3],12))))))
+                    return 0
+                w.m.stub(0x01692eb7,sprite,0)
+                return w
+            try:
+                vr.World=world
+                vr.CHAR_SKIPS={a:n for a,n in old.items() if a not in (0x01362f24,0x01363098)}
+                run,calls,w=monsters.client_plan(args,row,bones,cl,0,world_id,vr.f2u(.375),vr.f2u(.25))
+            finally:vr.CHAR_SKIPS=old;vr.World=old_world
+            sprites=[c[1] for c in w.calls if c[0]=='sprite-request']
+            links=[c for c in calls if c[0]=='LINK']
+            ok=run['ok'] and len(sprites)==1 and sprites[0]['type']==0x7ef7 and sprites[0]['scale']==vr.f2u(1.4) and len(links)==mask(row).bit_count()
+            detail=dict(cl=cl,world=world_id,sprites=sprites,links=links,
+                refusal='link caller records request; weapon pose/sprite placement and slot phase not certified')
+            recipes.note(fam,ok,detail);records.append(detail)
+    return fam,records
+
+def missing_groups(decisions):
+    current={r['server_class']:r for r in decisions};groups=collections.defaultdict(list)
+    for item in plain.initial_rows():
+        cl=int(item['server_class'])
+        if item['decision']=='checked plain body plan':
+            name='checked ordinary monster body' if item['group']=='plain monster body' else 'checked repeated default body'
+            state='checked bounded body plan'
+        else:
+            r=current[cl];name=r['before_group'];state='incomplete'
+            if r['decision']=='checked group body plan':name='checked group: '+name;state='checked bounded body plan'
+        groups[(name,state)].append(cl)
+    return [dict(missing_or_checked_plan=name,state=state,count=len(classes),selectors=';'.join(map(str,classes)))
+            for (name,state),classes in sorted(groups.items())]
+
 def main():
     ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--generate',action='store_true');ap.add_argument('--mutations',action='store_true')
     ap.add_argument('--cases',type=int,default=200);ap.add_argument('--output',type=Path,required=True);opts=ap.parse_args();start=time.monotonic()
@@ -252,6 +297,8 @@ def main():
             [list(s) for s in row['slots']] != [[s.type,s.level] for s in n.slots]:raise RuntimeError(('constructor table differs',cl))
         if any(a not in (0x60,0x68,0x74,0xa8) for a in row['appearance_writes']):
             reasons[cl]='constructor render-state override: '+','.join(hex(a) for a in row['appearance_writes']);continue
+        if cl in (361,937,939,940,941):
+            reasons[cl]='cloth/world-selected appearance remains unchecked';continue
         if row['creates']!=1 or row['object_kind']!=1 or row['class_byte']!=0 or row['joints'] or \
             len(row['opens'])!=1 or any(t not in (0,65535) for t,lv in row['slots'][:6]+row['slots'][8:]) or \
             row['opens'][0][0] not in ('monster','npc'):
@@ -328,10 +375,16 @@ def main():
         if opts.generate:
             with DECISIONS.open('w',newline='') as f:
                 w=csv.DictWriter(f,fieldnames=list(decisions[0]),lineterminator='\n');w.writeheader();w.writerows(decisions)
+            groups=missing_groups(decisions)
+            with (ROOT/'docs/research/actor-missing-plan-groups.csv').open('w',newline='') as f:
+                w=csv.DictWriter(f,fieldnames=list(groups[0]),lineterminator='\n');w.writeheader();w.writerows(groups)
         else:
             with DECISIONS.open() as f:old=list(csv.DictReader(f))
             normalized=[dict(r,server_class=str(r['server_class'])) for r in decisions]
             recipes.note(fams['reproduce'],old==normalized,dict(decisions=len(decisions)))
+            with (ROOT/'docs/research/actor-missing-plan-groups.csv').open() as f:group_rows=list(csv.DictReader(f))
+            expected_groups=[{k:str(v) for k,v in r.items()} for r in missing_groups(decisions)]
+            recipes.note(fams['reproduce'],group_rows==expected_groups,dict(groups=len(expected_groups)))
         for name,factor in [('constructors',1),('openers',6),('callers',28),('native',1),('body_reader',8)]:
             fams[name]=dict(cases=len(rows)*factor,equal=len(rows)*factor,first_failures=[])
         fams['draw']=recipes.family()
@@ -342,6 +395,8 @@ def main():
             r=rows[classes[i%len(classes)]];ok,detail=caller(args,r,bones[r['model']],(0,3,2,51)[i%4],i%7,(i%8+1)/9,i%6+.25)
             recipes.note(varied,ok,detail)
         fams['varied']=varied
+        fams['hardcase_requests'],hardcases=hardcase_requests(args,machine)
+        fams['secondary_requests']=monsters.check_secondary(args,machine)
         mutants={}
         if opts.mutations:
             src=(ROOT/'reconstructed/actors/actors.c').read_text()
@@ -349,18 +404,32 @@ def main():
                 ('overadmission','if (server_class < 0) return 0; /* group plan */','if (server_class == 374) return 1; if (server_class < 0) return 0; /* group plan */'),
                 ('model','*out = mu_actor_group_plans[lo];','*out = mu_actor_group_plans[lo]; out->body.model++;'),
                 ('texture','*out = mu_actor_group_plans[lo];','*out = mu_actor_group_plans[lo]; out->textures="Data/Item";'),
-                ('weapon_mask','*out = mu_actor_group_plans[lo];','*out = mu_actor_group_plans[lo]; out->weapon_mask=0;')]:
+                ('weapon_mask','*out = mu_actor_group_plans[lo];','*out = mu_actor_group_plans[lo]; out->weapon_mask=0;'),
+                ('scale','*out = mu_actor_group_plans[lo];','*out = mu_actor_group_plans[lo]; out->body.scale_bits++;'),
+                ('file','*out = mu_actor_group_plans[lo];','*out = mu_actor_group_plans[lo]; out->file="Data/Item/unknown.bmd";'),
+                ('flags','*out = mu_actor_group_plans[lo];','*out = mu_actor_group_plans[lo]; out->body.flags=0x44;'),
+                ('translate','*out = mu_actor_group_plans[lo];','*out = mu_actor_group_plans[lo]; out->body.translate=0;'),
+                ('blend_mesh','*out = mu_actor_group_plans[lo];','*out = mu_actor_group_plans[lo]; out->blend_mesh=-2;'),
+                ('hidden_mesh','*out = mu_actor_group_plans[lo];','*out = mu_actor_group_plans[lo]; out->hidden_mesh=-2;'),
+                ('blend_light','*out = mu_actor_group_plans[lo];','*out = mu_actor_group_plans[lo]; out->blend_light_bits=0;'),
+                ('subtype','*out = mu_actor_group_plans[lo];','*out = mu_actor_group_plans[lo]; out->subtype++;')]:
                 assert src.count(old)==1;path=Path(tmp)/'actors.c';path.write_text(src.replace(old,new));target=Path(tmp)/(name+'.dylib')
                 recipes.build_library(path,target);f=check_plans(library(target),rows);mutants[name]=dict(caught=f['equal']<f['cases'],stopped=0)
             src=(ROOT/'native/core/mu_world_actors.c').read_text()
-            sample={cl:rows[cl] for cl in [next(c for c,r in rows.items() if mask(r)),next(c for c,r in rows.items() if not mask(r))]}
+            sample_ids=[next(c for c,r in rows.items() if mask(r)),next(c for c,r in rows.items() if r['blend_mesh']!=-1),next(c for c,r in rows.items() if r['hidden_mesh']!=-1)]
+            sample={cl:rows[cl] for cl in sample_ids}
             for name,old,new in [('load_links','if (!player && load_weapons','if (player && load_weapons'),
                 ('translate','p.transform_translate = (uint8_t)group_plan.body.translate;','p.transform_translate = 0;'),
-                ('alpha','options->alpha = alpha; /* plain plan */','options->alpha = 1; /* plain plan */')]:
+                ('alpha','options->alpha = alpha; /* plain plan */','options->alpha = 1; /* plain plan */'),
+                ('native_flags','options->flags = plan.flags;','options->flags = 0;'),
+                ('native_blend','options->select = group.blend_mesh;','options->select = -1;'),
+                ('native_hidden','options->skip_mesh = group.hidden_mesh;','options->skip_mesh = -1;'),
+                ('native_subtype','memcpy(a->actor.object + 0x60, &group_plan.subtype, 4);','memset(a->actor.object + 0x60, 1, 4);')]:
                 assert src.count(old)==1;path=Path(tmp)/'mu_world_actors.c';path.write_text(src.replace(old,new))
                 result=native_checks(build_host(tmp,source=path),sample);stops=sum('native_exit' in d for ok,d in result.values())
                 mutants[name]=dict(caught=not stops and any(not ok for ok,d in result.values()),stopped=stops)
     report=dict(pins={k.lower():getattr(pins,k).sha256 for k in ('TEXT','DATA','FLAG','FEATURE')},families=fams,
+        hardcase_refusals={'sword_sprite':3,'type226_consumer':2},hardcase_requests=hardcases,
         admitted=len(rows),equipped=len(equipped),distinct_models=len({r['model'] for r in rows.values()}),
         rejected=dict(collections.Counter(reasons.values())),decisions=decisions,diagnostics=diagnostics,
         cases=sum(f['cases'] for f in fams.values()),all_equal=all(f['cases']==f['equal'] for f in fams.values()),

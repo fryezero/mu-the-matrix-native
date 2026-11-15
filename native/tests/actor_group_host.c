@@ -26,11 +26,7 @@ int main(int argc, char **argv)
         mu_world_actors_frame(&actors, .1f);
         mu_draw_options options; mu_draw_default_options(&options);
         options.alpha = .375f; options.textures = &a->actor.textures;
-#ifndef PLAIN_BOOTSTRAP
         int admitted = mu_world_actor_plain_options(a, .375f, &options);
-#else
-        int admitted = 1;
-#endif
         mu_render_backend backend = {0}; backend.sink.vertex = vertex; backend.sink.texcoord = texcoord;
         backend.sink.color3 = color3; backend.sink.color4 = color4;
         vertices = 0; low = 2; high = -1; mu_draw_stats stats = {0};
@@ -42,7 +38,10 @@ int main(int argc, char **argv)
         int plan_state_equal = options.select == plan.blend_mesh && options.skip_mesh == plan.hidden_mesh;
         uint32_t blend_bits; memcpy(&blend_bits, &options.color_scale, 4);
         plan_state_equal = plan_state_equal && blend_bits == plan.blend_light_bits &&
-            !memcmp(a->actor.object + 0x60, &plan.subtype, 4);
+            !memcmp(a->actor.object + 0x60, &plan.subtype, 4) &&
+            !memcmp(a->actor.object + 0x68, &plan.hidden_mesh, 4) &&
+            !memcmp(a->actor.object + 0x74, &plan.blend_mesh, 4) &&
+            !memcmp(a->actor.object + 0xa8, &plan.blend_light_bits, 4);
         int textures_equal = a->actor.textures.model_count == a->actor.bmd.mesh_count;
         uint32_t attached = 0;
         for (int k=0;k<2;++k) if (mu_world_actor_weapon(a,k)) attached |= 1u << k;

@@ -20,7 +20,7 @@ class Plans(unittest.TestCase):
         with v.DECISIONS.open() as f:decisions={int(r['server_class']):r for r in csv.DictReader(f)}
         self.assertEqual(set(decisions),{int(r['server_class']) for r in v.population()})
         admitted={cl for cl,r in decisions.items() if r['decision']=='checked group body plan'}
-        self.assertGreater(len(admitted),0)
+        self.assertEqual(len(admitted),138)
         with (ROOT/'docs/research/actor-construction-census.csv').open() as f:census={int(r['server_class']):r for r in csv.DictReader(f)}
         self.assertEqual(collections.Counter(r['native'] for r in census.values()),{
             'correct bounded body plan':589+len(admitted),'incomplete/unverified special passes':355-len(admitted),'refused':80})
@@ -30,7 +30,7 @@ class Plans(unittest.TestCase):
                 self.assertEqual((p.body.server_class,p.body.flags,p.body.translate),(cl,2,1))
                 self.assertTrue(p.file.startswith(b'Data/'));self.assertIn(p.textures,(b'Data/Npc',b'Data/Monster'))
                 self.assertEqual(census[cl]['native'],'correct bounded body plan')
-        for cl in (1,5,10,22,374,378,595,617,635,642,918):self.assertNotIn(cl,admitted)
+        for cl in (1,5,10,374,378,595,617,635,642,918):self.assertNotIn(cl,admitted)
         for cl,r in decisions.items():
             self.assertEqual(census[cl]['remaining_reason'],r['reason'])
             self.assertEqual(bool(r['reason']),cl not in admitted)
