@@ -111,3 +111,11 @@ character-power or installed-app work is involved.
 
 All local reports, prototypes and render intermediates are disposable and will be removed at handoff,
 with the worktree and build outputs. No new private input is needed by the next lane.
+
+
+Checkpoint during the affected-validator run: the first `validate_item_carry` row is still active.
+It compares the earlier carry bodies and then calls the complete canonical generator. The final
+write-back metadata change gives that generator a new original-cache key, so this first run is cold.
+No passing affected-validator row is claimed yet. Its worker is briefly paused for this audit/commit
+checkpoint and then resumed in the same process. Later rows will reuse the resulting canonical cache.
+All inputs remain frozen; no test tolerance, case count, cap or refusal is relaxed.
