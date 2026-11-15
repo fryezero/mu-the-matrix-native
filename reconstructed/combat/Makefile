@@ -9,6 +9,8 @@ SRC += demo_skill_fx.c
 HDR += demo_skill_fx.h
 HDR += aura_fx.h
 HDR += ../joints/world_inner_joints.inc
+SRC += catalogue_skill_fx.c
+HDR += catalogue_skill_fx.h
 
 all: libcombat.$(SUFFIX)
 
