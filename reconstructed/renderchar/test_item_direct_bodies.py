@@ -21,13 +21,22 @@ class ItemDirectBodies(unittest.TestCase):
         status, expected = v.c_stream(lib, case)
         self.assertEqual(status, 0)
         self.assertEqual(len(expected), 1)
-        self.assertEqual(expected[0][3:5], (37, list(case['model_shade'])))
+        self.assertEqual(expected[0][3:5], (37, case['model_shade']))
         for level in range(16):
             for record in (None, (0, 0x26, 0), (6, 0x5b, 0)):
                 self.assertEqual(v.c_stream(lib, dict(case, item_level=level << 3, option1=1,
                                                      ext=0x33, record=record)), (status, expected))
         for t in gen.DIRECT_TYPES:
             self.assertEqual(lib.mu_rc_item_special(t), 0, hex(t))
+
+    def test_exact_white_selects_the_body_entry(self):
+        lib = base.lib()
+        for t in gen.DIRECT_WHITE_TYPES:
+            case = v.classify_case(t, v.CLASSIFY[0])
+            for word, entry in ((0x3f7fffff, 'MESH'), (0x3f800000, 'BODY'), (0x3f800001, 'MESH')):
+                status, draws = v.c_stream(lib, dict(case, light=(word,) * 3))
+                self.assertEqual(status, 0)
+                self.assertEqual(draws[-1][0], entry, (hex(t), hex(word)))
 
     @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'original captures are opt-in')
     def test_original_instructions(self):
@@ -38,6 +47,8 @@ class ItemDirectBodies(unittest.TestCase):
             report = json.loads(output.read_text())
         self.assertEqual(report['families']['bodies']['cases'], 292*len(direct.TYPES))
         self.assertEqual(report['families']['records']['cases'], 512*len(direct.TYPES))
+        self.assertEqual(report['families']['lights']['cases'], 144*len(direct.TYPES))
+        self.assertEqual(report['families']['frames']['cases'], 64*len(direct.TYPES))
         self.assertTrue(all(f['mismatches'] == 0 for f in report['families'].values()))
         self.assertEqual(set(report['mutants']), set(direct.MUTANTS))
         self.assertTrue(all(report['mutants'].values()))

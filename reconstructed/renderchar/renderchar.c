@@ -923,8 +923,10 @@ static int item_draws_impl(const mu_rc_item *it, mu_rc_model *model, mu_rc_draw 
     if (it->type >= 0x26e6 && it->type <= 0x26ec && level > 0)
         level = 7;
     int type_row = body_type(it->type);
-    if (parameters && type_row >= 0 && mu_rc_body_types[type_row].direct) {
-        emit_parameter_body(&s, 0, it->render_type, it->alpha, it->a10, it->a11);
+    if (parameters && type_row >= 0 && mu_rc_body_types[type_row].plain >= 2) {
+        int phase = mu_rc_body_types[type_row].plain == 3 &&
+                    it->light[0] == 1.0f && it->light[1] == 1.0f && it->light[2] == 1.0f ? 5 : 0;
+        emit_parameter_body(&s, phase, it->render_type, it->alpha, it->a10, it->a11);
         goto done;
     }
     if (parameters && type_row >= 0 && mu_rc_body_types[type_row].plain)
