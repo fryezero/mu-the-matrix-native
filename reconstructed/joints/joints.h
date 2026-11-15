@@ -131,6 +131,8 @@ typedef struct mu_jt_object {
     int32_t lifetime;           /* +0x6c, RENDER-EFFECTS-013: owning arrow lifetime */
     float impact[3];            /* +0x110, RENDER-EFFECTS-014: arrow 0x459's ring point (Flare/b's pull) */
     float sword_position[3];    /* +0x104, RENDER-EFFECTS-027: Death Stab's saved weapon point */
+    float heading[3];          /* +0x170, RENDER-EFFECTS-033: Penetration trail orientation */
+    uint8_t client_hit;         /* +0x3b, Blood Storm body owner flag */
 } mu_jt_object;
 
 /* One call into another subsystem, in client order; vectors are the values at

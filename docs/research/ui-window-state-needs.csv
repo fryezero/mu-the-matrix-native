@@ -1,0 +1,31 @@
+movie,manager_slots,trigger_roots,state_needed,disposition
+ArkaBattleNotice,0x140,table,Arca Battle running state: the notice text and timing come from the battle owner 0x00d7b65c,refused
+ArkaBattleProgress,0x13c,table,Arca Battle occupation and score state from the same battle owner 0x00d7b65c,refused
+ArkaBattleRegister,0x138,server-response,server answer to an Arca Battle registration request (guild and member registration state),refused
+BattleCoreDialog,0x1c4;0x1c8;0x1cc,table,Battle Core event phase: which of its three dialogue instances applies and its text,refused
+BattleCoreEnter,0x1c0,table;uncalled,Battle Core schedule and entry eligibility behind the alarm banner and the entry NPC click,refused
+BombHunt,0x180,server-response,server answer that starts a bomb-hunt game and carries its board,refused
+BoxOfBlessEvent,0x26c,server-response,server answer with the Box of Bless event stage and rewards,refused
+CursedTempleEnter,0x2b8,table;uncalled,Illusion Temple entry NPC click with the event schedule and ticket state,refused
+CursedTempleinfo,0x198,server-response,"running Illusion Temple match: scores, time and skill points from server answers",refused
+CursedTempleMatchMenu,0x18c,server-response,server answer of the Illusion Temple match-making request,refused
+EnterEmpireGuardian,0x130,table;uncalled,"Empire Guardian gate NPC click with the day, ticket and party state",refused
+EventInfo,0x188,server-response;table;uncalled,event schedule and remaining-time records sent by the server (ten owners),refused
+EventInventoryFrame,0x184,server-response;table,event inventory contents from a server answer; item records and their owner,refused
+EventMapEntranceUI,0x2ac,table;uncalled,event-map entry catalogue: per-event remaining entries and opening times; its Ctrl+T/menu 22 route is static,refused
+JewelBingo,0x244,server-response,server answer with the Jewel Bingo board and turn state,refused
+KanturuEvent,0x258,server-response,"server answer with the Kanturu event stage, monsters and users",refused
+LabyrinthInfo,0x238,server-response;table;uncalled,Labyrinth mission and zone state; its legacy opener is shared by seven unrelated owners,refused
+LabyrinthMinimap,0x23c,server-response;table,Labyrinth layout and visited zones; the key and menu routes are static but only apply inside it,refused
+LabyrinthZoneName,0x240,server-response,server answers for a Labyrinth zone change,refused
+MonsterCompensation,0x1e0,server-response,server answer with a monster compensation reward,refused
+OrdealSquareBattleCnt,0x1d8,server-response,Ordeal Square battle countdown from a server answer,refused
+OrdealSquareBattleEnter,0x1d4,server-response,"event schedule, entry count and party eligibility; the opener itself is NPC talk result 0x34 (static, in ReceiveTalk)",refused
+OrdealSquareEnterMenu,0x1b0,server-response,server answer of the Ordeal Square entry request,refused
+OrdealSquareResult,0x1b8;0x1dc,server-response,Ordeal Square round result from server answers,refused
+OrdealSquareScore,0x1b4,server-response;uncalled,running Ordeal Square score and timer from server answers and the frame HUD owner,refused
+PlayTimeEvent,0x274,server-response,server answer with play-time event progress and rewards,refused
+SeasonalEvent,0x268,table,seasonal event schedule behind the alarm banner and menu callback,refused
+SeasonPass,0x288,server-response,season pass progress and reward records from four server answers,refused
+SpeedserverPlus,0x2bc,table,"a speed-server alarm entry in AlarmFrame (server alarm state), then onClickAlarm",refused
+StrongestMatchMenu,0x158,server-response,server answer of the strongest-match menu request,refused

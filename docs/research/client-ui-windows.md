@@ -572,3 +572,151 @@ frames byte for byte. The rebuilt final binary retains all 230 default
 artifacts against the single preserved baseline. The [005 handoff](../handoffs/UI-WINDOWS-005.md)
 records source commits, distinct binary hashes, private/portable results,
 compiled mutants and the complete timed steward-validator list.
+
+## UI-WINDOWS-006: missing pieces, parameterised opens and the map banner
+
+Base main `c5b9d5ca`; the text/data pins at the top of this document are unchanged.
+No original or live client, protected module, server or new data acquisition.
+
+### What each of the 33 provider-missing rows lacks
+
+`scripts/survey_ui_triggers.py` walks direct callers upward from every proved
+open site, at most seven functions, and records where a chain ends: the receive
+dispatcher `0x01287ead` (a server answer), a function whose address is stored
+in the image data (a virtual method or callback table entry) or no caller in
+the bound. Function starts are a prologue heuristic and indirect calls are not
+followed, so a root kind names an owner class, never a route or a permission.
+The [trigger ledger](ui-window-triggers.csv) holds 136 sites. Each row was then
+read at its opener; the [missing-piece ledger](ui-window-missing-pieces.csv)
+states the exact piece, whether it is static, and the disposition.
+
+| Group on entry (33 rows) | Rows | Piece kind |
+|---|---:|---|
+| Server-answer trigger with no offline owner | 17 | authoritative state |
+| Server-answer trigger whose handlers already have offline owners | 1 | static: MapName |
+| A clicked, used or hovered item or slot record of one kind | 8 | authoritative item records |
+| World or HUD state (boss target, selected other player, alarm entry) | 3 | authoritative state |
+| Parent window that is not bound | 2 | parent has no static route |
+| Pending transaction step of a bound parent | 1 | transaction |
+| Upstream caller unresolved | 1 | unknown |
+
+The seventeen are ArkaResultInfo, CursedTempleResult, CursedTempleScore, Duel,
+EventMapRoundCount, GoldArcher, GuildCreateFrame, ImageNotice, IngameShop,
+ListofMatches, ProgressFrame, RebuyList, RewardItemExchange,
+StrongestMatchRank, StrongestMatchResult, SwitchMode and TimeCounter. Their
+layouts and label tables are static, but the open is the consequence of an
+answer nothing offline owns. Inventing such an owner is packet work and is
+refused. The eight item rows are ArtifactInfoPopup, PetInfoPopup, DivideWindow,
+MonsterSoulReward, Pentagram, SlottedWingInfo, SkillTree5thLevelUpPopup and
+SkillTree5thSlotClickPopup. Pentagram and SlottedWingInfo, for example, open
+on Alt + left click over an item with attribute `0x2b` / `0x6a`
+(`0x00b92dec`), and the window is then filled from that item. The three state
+rows are BossHpUI, QuickCommand and DeathPenaltyExpRecovery. QuickCommand's
+input handler `0x00efbcc8` needs Alt, the right button and a selected other
+player in range; it becomes a candidate once world picking of demo players
+exists, with every command button disabled. GuildPosition and
+MiniGameHelpWindow hang off GuildInfoFrame and MiniGameRummy.
+PersonalShopCaution is the confirmation step of a store registration which the
+native item service completes without it. NpcGateKeeper is reached by legacy
+open id `0x18`, but none of the 23 direct callers of `0x00f2abcd` pushes that
+id; the caller graph through that shared function says nothing about it.
+
+No sound-only, label-only or layout-only deficit exists in the 33 rows. Only
+one group is static, so the table-driven pass admits one movie.
+
+### MapName, the arrival banner
+
+MapName is `+0x128`, registration `0x00ac8aec` (alignment 9, registrar group
+3, the group of InfoPopup). Its open method `0x00baee4a` is self-contained:
+
+1. nothing when the current world is `0x28`;
+2. `InitText`, then the lifetime timer starts (`0x011865d8` on `+0x78`);
+3. `SetMapName` with the map-name function `0x016baaa6`. The letter loop
+   before it calls `rand()` once per letter and its store was removed, so the
+   name is unchanged;
+4. `SetStrife(GlobalText 0xbac)` only when the strife predicate `0x016bec9f`
+   holds; `SetOccupyGuild` only for a non-empty occupying guild (`+0xac`);
+5. base open `0x00aae420`.
+
+The update method `0x00baf120` closes it once 5000 ms (the double at
+`0x01a90948`) have passed while it is loaded and open, and restarts the timer.
+Three handlers open it: the join answer `0x0124cc64` at `0x0124e15e`
+(unconditional; the preceding conditional was replaced by a jump), the respawn
+answer `0x0127bd9e` at `0x0127c567` (unconditional on its tail) and the
+teleport answer `0x0128136d` at `0x01281ea7`, after the manager and legacy
+close-all, only when the packet's number word `[4]` is not zero.
+
+All three handlers already have offline owners: the hero join, the demo
+respawn and the map session's teleport answer. The native banner therefore
+needs no new owner. `mu_gfx_layer_map_arrival` applies the open contract with
+the name the top menu already uses; the first location feed is the join, the
+respawn part and the travel report the other two. The strife predicate depends
+on a server-mode flag (its entry is outside the readable text) and the guild
+on a server answer, so both stay as `InitText` clears them. A world the
+map-name function names from runtime state gets no banner. Native load order
+differs: the offline join precedes the movie's UIInit, so that one open is
+held until the movie is ready. The banner takes no pointer input, is not
+closed by Esc or by the NPC close-all, and adds no sound. Whether the
+original close-all list contains a group-3 movie is unproved; no claim is made.
+
+Instruction comparisons run the whole open method (ten cases over world,
+strife and guild), the update method (24 cases around 5000 ms) and the three
+owner tails with every service stubbed. The native invoke trace of the
+provider equals the original's for the fixture case. Seventeen compiled
+mutants are caught; the [handoff](../handoffs/UI-WINDOWS-006.md) lists them.
+
+### Third pass: parameterised opens
+
+004 and 005 treated only vtable `+0x40` / `+0x44` as lifecycle slots. A window
+class can have another virtual method that opens its own window through `this`
+after taking arguments. `self_open_slots` in `scripts/survey_ui_indirect.py`
+walks every other vtable method of each registered class (2,048 bytes, 400
+steps, no helper calls) and keeps those that reach the base open, the class's
+own open, the toggle or `call [vtable + 0x40]` with the entry `this`. The
+existing manager-rooted pass then also accepts a virtual call through exactly
+those offsets. The default pass is unchanged: 482 sites, identical ledger.
+
+Two classes have such a method, both at `+0x4c`:
+EventMapHelper `0x00b6b656` and MiniGameRummy `0x00bca125`. Five
+manager-qualified callers follow ([ledger](ui-window-parameterised.csv)).
+EventMapHelper opens from the NpcDialogue callbacks `onClickbtnEnterTime` /
+`onClickbtnEnterLevel` (`0x00be5405`, `0x00be5453`, argument 1 or 2) and from
+an EventMapEntranceUI method (`0x00b04ba3`). MiniGameRummy opens twice in a
+server-answer handler (`0x0126f12c`, `0x0126f203`). As a control, naming
+`+0x4c` for the already-bound NpcQuestProgress (`0x00bedfb4`) rediscovers its
+known owners, among them the quest-progress answer at `0x01222a4c`. The strict
+walk itself does not prove that control method, because an unknown store
+precedes its open; it is named by hand and only used as a control.
+
+Both rows move from no-route to route proved + provider missing.
+EventMapHelper's missing piece is static in kind but not recovered: its row
+table (reached through the Help controller field `+0x11090`) and an NPC
+dialogue page that shows the two buttons. MiniGameRummy needs card-game
+answers. The other 40 no-route rows are unchanged; no further sweep idea was
+tried. Of those, eight have a manager slot but no joined opener
+(EnterBloodCastle, EventMapTutorial, GuildInfoFrame, MBoxShop, ResistPopup,
+SimpleUI, SimpleUISubWin, SkillTree5thInventory) and 32 have no manager slot
+joined to a registration in the world constructor. The separately withdrawn
+PlayGuide row (`+0x1f0`) remains no-route and outside the 118-row denominator.
+
+### State-dependent rows
+
+The 30 rows stay refused. The [state ledger](ui-window-state-needs.csv) gives
+one line per row. Sixteen are opened only by server answers and five more by
+server answers among other owners. The remaining nine are reached from
+controller callbacks, the input handler or the NPC-click path, which are
+static but only meaningful inside an event (for example EventMapEntranceUI by
+Ctrl+T and menu 22, CursedTempleEnter and EnterEmpireGuardian by an NPC
+click). OrdealSquareBattleEnter's opener is NPC
+talk result `0x34`, already reconstructed in `npc_talk.c`; what it lacks is
+the event schedule, entry count and party eligibility its page shows. These
+are owner decisions, not missing evidence.
+
+### Current counts
+
+The 118 rows classified by 004 change from 13 complete / 33 provider-missing /
+30 state-dependent / 42 no-route to 14 / 34 / 30 / 40: MapName is admitted and
+two no-route rows gain a proved route. The historical survey rises 28 -> 29
+bound of 134, unresolved 106 -> 105. Registry entries rise 61 -> 62, distinct
+filenames 60 -> 61. Help/F1, Home activation, the separate fifth-tree
+inventory and the event-inventory openers stay refused.

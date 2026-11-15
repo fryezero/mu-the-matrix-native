@@ -240,7 +240,7 @@ def census_and_bitmaps(text,data,plib,jlib,flib,report):
     rows=[]
     for category,kinds in [('particle',KINDS),('joint',JOINTS),('effect',EFFECTS+[(0x46c,0),(0x583,0),(0x584,0)])]:
         for kind in kinds:
-            expected=kind not in [(0x46c,0),(0x583,0),(0x584,0)]
+            expected=kind not in [(0x46c,0),(0x583,0)] # null owner remains refused; 033 admits the valid owner cases
             if category=='particle': supported=plib.mu_pt_kind_supported(*kind)
             elif category=='joint': supported=jlib.mu_jt_kind_supported(*kind)
             else:
