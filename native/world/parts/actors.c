@@ -257,6 +257,17 @@ static void actors_draw_soft(struct mu_world_rt *a, void *self, mu_world_draw *d
         options.textures = &actor->actor.textures;
         mu_draw_stats ds = {0, 0, 0, 0};
         mu_scene_draw_model(&actor->actor.model, &options, &backend, &ds);
+        mu_renderchar_env env; mu_renderchar_default_env(&env);
+        env.lang = a->lang; env.time = a->map->time;
+        for (int k = 0; k < 2; ++k) {
+            const mu_renderchar_attachment *part = mu_world_actor_weapon(actor, k);
+            if (!part) continue;
+            raster->textures = part->textures.slots;
+            raster->texture_count = part->textures.count;
+            raster->texture_filter = part->textures.filter;
+            raster->texture_wrap = part->textures.wrap;
+            mu_world_actor_weapon_draw(actor, k, alpha, &env, &backend, &ds);
+        }
         world_cloak_actor_draw(a, i, alpha, raster, NULL);
     }
 }
@@ -287,6 +298,7 @@ static void actors_report_summary(const struct mu_world_rt *a, const void *self)
 #ifndef MU_WORLD_NO_GL
 typedef struct actors_part {
     mu_gl_backend actor_gl[MU_WORLD_ACTORS_MAX];
+    mu_gl_backend weapon_gl[MU_WORLD_ACTORS_MAX][2];
     mu_gl_backend actor_part_gl[MU_WORLD_ACTORS_MAX][MU_CHARACTER_ITEMS];
 } actors_part;
 
@@ -298,8 +310,16 @@ static void actors_gl_setup(struct mu_world_rt *a, void *self)
         p->actor_gl[i].batch = a->batch;
     }
     memset(p->actor_part_gl, 0, sizeof p->actor_part_gl);
+    memset(p->weapon_gl, 0, sizeof p->weapon_gl);
     for (int32_t i = 0; a->has_actors && i < a->actors.count; ++i) {
         const mu_world_actor *npc = &a->actors.list[i];
+        for (int k = 0; k < 2; ++k) {
+            const mu_renderchar_attachment *part = mu_world_actor_weapon(npc, k);
+            if (part) {
+                p->weapon_gl[i][k].batch = a->batch;
+                mu_gl_upload(&p->weapon_gl[i][k], &part->textures, 0);
+            }
+        }
         if (npc->player) {
             for (int k = 0; k < MU_CHARACTER_ITEMS; k++)
                 if (npc->player->items[k].loaded)
@@ -315,6 +335,8 @@ static void actors_gl_teardown(struct mu_world_rt *a, void *self)
     actors_part *p = self;
     for (int32_t i = 0; a->has_actors && i < a->actors.count; ++i) {
         mu_gl_release(&p->actor_gl[i]);
+        for (int k = 0; k < 2; ++k)
+            if (p->weapon_gl[i][k].textures) mu_gl_release(&p->weapon_gl[i][k]);
         for (int k = 0; k < MU_CHARACTER_ITEMS; k++)
             if (p->actor_part_gl[i][k].textures)
                 mu_gl_release(&p->actor_part_gl[i][k]);
@@ -364,6 +386,14 @@ static void actors_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *d)
         options.alpha = alpha;
         mu_draw_stats ds = {0, 0, 0, 0};
         mu_scene_draw_model(&actor->actor.model, &options, &backend, &ds);
+        mu_renderchar_env env; mu_renderchar_default_env(&env);
+        env.lang = a->lang; env.time = a->map->time;
+        for (int k = 0; k < 2; ++k) {
+            if (!mu_world_actor_weapon(actor, k)) continue;
+            mu_render_backend weapon_backend;
+            mu_gl_backend_bind(&p->weapon_gl[i][k], &weapon_backend);
+            mu_world_actor_weapon_draw(actor, k, alpha, &env, &weapon_backend, &ds);
+        }
         world_cloak_actor_draw(a, i, alpha, NULL, a->batch);
     }
     if (a->batch)
