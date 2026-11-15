@@ -3750,3 +3750,39 @@ original_sites = 33
 "families.*.stopped" = 0
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
+
+[validate_audio_monsters]
+test = "native/tests/test_audio_monsters.py::Original.test_whole_table"
+pins = ["text", "data"]
+families = ["scalar_owners", "dispatcher"]
+cases = 35579
+mutants = 9
+cases_at = "cases"
+mutants_at = "mutants"
+build = ["reconstructed/audio"]
+args = ["--cases", "1000", "--mutations", "--report", "{report}"]
+note = "AUDIO-005: complete scalar slot +0x70 owners, every row and whole preceding dispatcher; unsupported service owners refused"
+[validate_audio_monsters.expect]
+mismatches = 0
+stops = 0
+sites = 245
+owners = 21
+"mutants.*" = {all_min = 1}
+
+[validate_audio_kubera]
+test = "native/tests/test_audio_kubera.py::Original.test_stop_play_commands"
+pins = ["text", "data"]
+families = ["kubera_move"]
+cases = 1000
+mutants = 6
+cases_at = "cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "1000", "--mutations", "--report", "{report}"]
+note = "AUDIO-005: full Kubera move, four play sites and two ordered stop commands"
+[validate_audio_kubera.expect]
+mismatches = 0
+sites = 6
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*" = {all_min = 1}

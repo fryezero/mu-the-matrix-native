@@ -8,6 +8,7 @@ extern "C" {
 #endif
 void mu_session_sound_emit(mu_session *s, uint32_t routine, uint32_t site,
                            int32_t id, int16_t at_key, int loop);
+void mu_session_sound_stop_emit(mu_session *s, uint32_t routine, uint32_t site, int32_t id);
 void mu_session_sound_missing(mu_session *s, uint32_t routine, uint32_t site, uint32_t input);
 #ifdef __cplusplus
 }

@@ -102,6 +102,15 @@ for _anchor, _domain, _source in [
 ]:
     OWNERS[_anchor] = (_domain, _source)
 
+# AUDIO-005: exact callees of the class-dispatched use controller
+# 0x0107f3ed, reviewed at 0x0107f448..0x0107f622. This is semantic
+# ownership only: request, target, buff and timing gates are not admitted.
+for _anchor in (0x1080169, 0x10848df, 0x1085bc3, 0x108803b,
+                0x1088ae7, 0x108988b, 0x108b39b, 0x108c57a,
+                0x108cf1f, 0x108d932, 0x108df12, 0x108ec09,
+                0x1090451, 0x10906ff):
+    OWNERS[_anchor] = ('skills', 'docs/research/client-audio.md:AUDIO-005-use-controller')
+
 DOMAINS = {'ui': 'ui', 'quest': 'ui', 'npc': 'ui', 'items': 'items',
            'environment': 'world', 'objects': 'world', 'combat': 'skills',
            'charsel': 'ui', 'scene': 'ui', 'gfx': 'ui', 'progress': 'events'}
@@ -152,12 +161,21 @@ def inventory(text, data, root=ROOT):
             r'0x([0-9a-fA-F]{6,8})[uU]?\b', (root/path).read_text()))
     delivered.add(0x125104c)  # existing hero level-up boundary; no new answer route
     added = {int(m[1], 16) for m in re.finditer(r'0x([0-9a-fA-F]{6,8})[uU]?\b',
-             (root/'native/core/mu_object_audio.h').read_text())}
+             (root/'native/core/mu_object_audio.h').read_text().split('/* AUDIO-004:')[0])}
     site_rows = re.findall(r'MU_OBJECT_AUDIO_SITE\((\d+), (0x[0-9a-f]+)u, (0x[0-9a-f]+)u, (0x[0-9a-f]+), (\d+), (\d+)\)',
                            (root/'reconstructed/audio/object_audio_sites.inc').read_text())
     admitted = {int(site,16): {'world_group':int(world), 'routine':routine,
                 'id':int(sound,16), 'object':int(obj), 'loop':int(loop)}
                 for world,routine,site,sound,obj,loop in site_rows}
+    # Separate complete selector recovery from native fixture delivery. The
+    # 0x356 effect-model alias has no native actor; the same three sites also
+    # serve admitted monster model 0x909, so site and model counts differ.
+    monster_rows = re.findall(r'MU_AUDIO_MONSTER_SOUND\((0x[0-9a-f]+)u, (\d+), (\d+), .*?, (0x[0-9a-f]+)u, (\d+), (\d+), (\d+)\)',
+                              (root/'reconstructed/audio/monster_audio_table.inc').read_text())
+    selected = {}
+    for routine,model,action,site,sound,obj,loop in monster_rows:
+        selected.setdefault(int(site,16), dict(routine=routine, id=int(sound), models=set()))['models'].add(int(model))
+    kubera = {0xe1a071:0x4f4, 0xe1a0a4:0x4f3, 0xe1a2ca:0x4f1, 0xe1a38d:0x4f2}
     from capstone import Cs, CS_ARCH_X86, CS_MODE_32
     md = Cs(CS_ARCH_X86, CS_MODE_32)
     instructions = {}
@@ -173,6 +191,8 @@ def inventory(text, data, root=ROOT):
             if lo <= site < hi:
                 domain, source = category, cited
         command = admitted.get(site)
+        selector = selected.get(site)
+        wired005 = site in kubera or bool(selector and any(0x7a5 <= m < 0x9fe for m in selector['models']))
         if anchor not in instructions:
             # Only decode up to the last candidate in this syntactic group.
             limit = next((a for a in starts[index:] if a > anchor), BASE + len(text))
@@ -191,6 +211,10 @@ def inventory(text, data, root=ROOT):
                      'audio_adapter': site in delivered or anchor == 0x1851d39 or anchor == 0xdb3e26,
                      'audio_003_adapter': site in added,
                      'audio_004_adapter': command is not None,
+                     'audio_005_selector': selector is not None,
+                     'audio_005_adapter': wired005,
+                     'audio_005_refused_models': sorted(m for m in selector['models'] if not 0x7a5 <= m < 0x9fe or m in (0x90a,0x90b,0x90c)) if selector else [],
+                     'audio_005_limit': 'fixture-loaded actor; world/server-class construction remains separate' if selector and wired005 else 'effect model 0x356 has no native actor' if selector else 'complete Kubera move; ordered stop/play' if site in kubera else '',
                      'original_routine': command['routine'] if command else f'0x{anchor:08x}',
                      'routine_status': 'reviewed' if domain != 'unresolved' else 'prologue grouping only',
                      'gate': 'instruction-compared owner; see AUDIO-004 gate table' if command else 'not reviewed by AUDIO-004; retain prior disposition',
@@ -203,6 +227,9 @@ def inventory(text, data, root=ROOT):
             'mapped_audio_sites': sum(r['audio_adapter'] for r in rows),
             'added_audio_sites': sum(r['audio_003_adapter'] for r in rows),
             'audio_004_sites': sum(r['audio_004_adapter'] for r in rows),
+            'audio_005_selector_sites': sum(r['audio_005_selector'] for r in rows),
+            'audio_005_sites': sum(r['audio_005_adapter'] for r in rows),
+            'audio_005_stop_sites': 2,
             'summary': [{'owner': owner, 'native_reference': native, 'sites': n}
                         for (owner, native), n in sorted(counts.items())], 'sites': rows}
 

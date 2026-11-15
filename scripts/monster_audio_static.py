@@ -18,6 +18,10 @@ import pins
 from capstone import Cs, CS_ARCH_X86, CS_MODE_32
 ROOT = Path(__file__).resolve().parents[1]
 BASE, DATA, PLAY = 0x401000, 0x1a7c000, 0xa6ac96
+# These predicates read only the world dword. In the admitted registry group
+# their true branch short-circuits the alternate class lookup. The whole
+# dispatcher verifier executes the predicates rather than stubbing them.
+PREDICATES = {0xd6a614: {91,92}, 0xdbd14d: {95,96}, 0xe2602d: {110,111}}
 FIELDS = {0x2a: 'action', 0x5c: 'model', 0xd0: 'frame'}
 class Unsupported(Exception): pass
 
@@ -32,8 +36,9 @@ def owners(data):
 
 
 class Body:
-    def __init__(self, text, data, entry):
+    def __init__(self, text, data, entry, worlds=()):
         self.text, self.data, self.entry = text, data, entry
+        self.worlds=set(worlds)
         self.code = {}
         for ins in Cs(CS_ARCH_X86, CS_MODE_32).disasm(text[entry-BASE:entry-BASE+30000],entry):
             self.code[ins.address] = ins
@@ -47,8 +52,10 @@ class Body:
             m,o=ins.mnemonic,ins.op_str
             if m not in allowed: raise Unsupported(f'{ins.address:#x}: unsupported {m}')
             if m=='call':
-                if o!=hex(PLAY): raise Unsupported(f'{ins.address:#x}: service {o}')
-                self.sites.add(ins.address)
+                if o==hex(PLAY):self.sites.add(ins.address)
+                elif int(o,0) in PREDICATES and self.worlds <= PREDICATES[int(o,0)]:pass
+                elif entry in (0xd733e1,0xdc4773) and int(o,0) in (0x95c652,0xd7b3ce):pass
+                else:raise Unsupported(f'{ins.address:#x}: service {o}')
             # Every non-stack memory operand must be a reviewed input or a
             # constant comparison. Writes to OBJECT or image memory are refused.
             for mem in re.findall(r'\[([^]]+)\]',o):
@@ -132,6 +139,11 @@ class Body:
                 take={'je':eq,'jne':not eq,'jb':lt,'jbe':lt or eq,'ja':not lt and not eq,'jae':not lt}[m]
                 if take:pc=int(o,0)
             elif m=='call':
+                target=int(o,0)
+                if target in PREDICATES and self.worlds <= PREDICATES[target]:
+                    regs['eax']=1
+                    continue
+                if target!=PLAY:raise Unsupported(f'reachable service {target:#x}')
                 loop,obj,sound=stack[-3:]
                 if obj not in (0,0x20000000):raise Unsupported('sound object')
                 sounds.append((ins.address,sound,int(bool(obj)),loop))
@@ -181,7 +193,7 @@ def recover(text,data):
     accepted,refused={},{}
     for entry,group in owners(data).items():
         try:
-            body=Body(text,data,entry);rows,default,returns,models=body.partitions()
+            body=Body(text,data,entry,group['worlds']);rows,default,returns,models=body.partitions()
             reached={s[0] for row in rows for s in row['sounds']}
             if reached!=body.sites:raise Unsupported(f'unreached sites {sorted(body.sites-reached)}')
             accepted[entry]=dict(group,rows=rows,end=body.end,default=default,returns=returns,models=models)

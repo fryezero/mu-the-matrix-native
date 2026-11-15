@@ -11,6 +11,7 @@ static inline mu_monster_sound_plan mu_monster_audio_plan(int32_t world, int32_t
     mu_monster_sound_plan empty = {0};
     /* 0x013a04d6 runs before the class slot. Its six special models are
      * outside this scalar-owner admission, even in a supported world. */
+    if (model < 0x7a5 || model >= 0x9fe || model == 0x90a || model == 0x90b || model == 0x90c) return empty;
     if (model == 0x840 || model == 0xa5e || model == 0xa63 || model == 0xa65 ||
         model == 0xa66 || model == 0xa67) return empty;
     mu_monster_sound_plan p = mu_monster_sound_select(world, model, action, frame);
@@ -54,7 +55,7 @@ static inline void mu_monster_audio_tick(mu_session *session, const mu_walk *wal
     mu_monster_audio_emit(session, &p, actor->session_key);
 }
 /* These three caller seams are already gated by their owning combat services.
- * The dispatch precedes the shared model-slot fallback, even if it has no sound.
+ * The dispatch precedes the shared model-slot voice. These callers discard its return value.
  * The original voice marker is read only. It is never replicated or rewritten. */
 static inline int32_t mu_monster_audio_combat(mu_combat *c, int32_t index, float played, int32_t fallback)
 {
@@ -67,12 +68,23 @@ static inline int32_t mu_monster_audio_combat(mu_combat *c, int32_t index, float
     mu_monster_audio_emit(c->session, &p, actor->session_key);
     if (!c->session && c->play_sound)
         for (int n = 0; n < p.count; ++n) c->play_sound(c->sound_context, p.sound[n].id);
-    return p.known && p.handled ? -1 : fallback;
+    return fallback;
 }
 static inline float mu_monster_audio_attack(mu_combat *c, int32_t index, float played)
 {
-    /* A local voice-input value suppresses only this fallback, not future
-     * triggers or the session record. Negative sentinel means handled. */
-    return mu_monster_audio_combat(c, index, played, 0) < 0 ? 0.001f : played;
+    (void)mu_monster_audio_combat(c, index, played, 0);
+    return played;
+}
+/* SetPlayerDie stores +0x3324 after both class and shared voices. A loaded
+ * native model exists even when it has no row in the legacy voice-slot table. */
+static inline void mu_monster_audio_die_complete(mu_combat *c, int32_t index)
+{
+    if (!c->actors || !c->map || index < 0 || index >= c->actors->count ||
+        !(c->monsters[index].voice_3324 == 0.0f)) return;
+    const mu_world_actor *a = &c->actors->list[index];
+    if (!a->actor.loaded || a->player) return;
+    mu_monster_sound_plan p = mu_monster_sound_select(c->map->world, a->actor.spec.model_index,
+        mu_actor_action(&a->actor), mu_actor_frame(&a->actor));
+    if (p.known) c->monsters[index].voice_3324 = 0.001f;
 }
 #endif

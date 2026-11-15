@@ -1772,6 +1772,7 @@ static void monster_step(mu_combat *c, int32_t i)
             }
             if (m->voice_3324 == 0.0f && v.has_model)
                 m->voice_3324 = 0.001f;
+            mu_monster_audio_die_complete(c, i);
         }
         return;
     }
