@@ -1,114 +1,176 @@
-# AUDIO-005: WIP
+# AUDIO-005: scalar monster owners and ordered Kubera stops
 
-Branch `codex/audio-005`, stacked on AUDIO-004 `30e4f275`, then integrated with
-main `2b0b2716` after PR #388 merged. Offline pinned captures and synthetic
-fixtures only. No app, client, server-state or protection-boundary work.
+Branch `codex/audio-005`, stacked on AUDIO-004 `30e4f275`, then integrated
+with main after PR #388. Offline pinned instructions and authored fixtures only.
+This is a bounded audio subset. Final integration checks are still WIP.
 
-## WIP checkpoint
+## Census
 
-Done: read the complete common/task briefs, AUDIO-003/004 and audio research.
-A strict scalar owner interpreter and table recover 18 complete slot +0x70
-owners, including silent methods. The first independent whole-body instruction
-run passes 12,657 cases, 149 distinct sound sites, zero mismatches/stops.
-The initial rebuilt baseline world binary is saved locally, SHA-256
-`348d832d38a5173906ff0a1e992f7a3b2d0b8ee5f86f6401b5a16b1db6958e46`.
-New sound-only adapters preserve class handled returns before shared combat
-fallbacks. Shared combat/world edits are added sound-call lines and includes.
+Reproduce with `scripts/audio_caller_census.py --report <local>`. The historical
+1,980 denominator is a syntactic E8-target scan, not a whole-program CFG proof.
+A sound id or nearby prologue supplies no delivery admission.
 
-Left: fix/verify the native build after renaming a macro that collided with an
-existing actor constant, finish caller/dispatch and runtime tests, review the
-remaining owners and Kubera stop order, classify the two large unknown groups,
-run final affected checks/mutants/default identity and write the complete census
-and handoff. No PR-ready claim. Load spikes paused heavy work; no full gate ran.
+| Owner bucket | AUDIO-004 | AUDIO-005 |
+|---|---:|---:|
+| UI | 51 | 51 |
+| Hero/shared actions | 43 | 43 |
+| Skills/effect timelines | 272 | 338 |
+| Monsters/NPC voices | 848 | 848 |
+| World objects/ambient | 135 | 135 |
+| Items | 15 | 15 |
+| Events/progression | 4 | 4 |
+| Unresolved owner | 612 | 546 |
+| Total | 1,980 | 1,980 |
 
-Next: build under the resource guard, then run the new native audio module.
-Task-local files are in `~/Documents/MTM/mu-mac-tools/native/scratch/audio-005/`.
-They are resumable inputs while WIP, not published evidence.
+Classified owners rise **1,368 -> 1,434**. Exact class-use controller calls
+identify 22 candidates in `0x01080169`, eight in `0x0108988b` and 36 in their
+reviewed siblings. All 66 stay unwired: target, buff, request and timing contexts
+are not supplied by an existing native owner. The census keeps unknown sound
+ids, gates and native availability separate from semantic ownership.
 
-## Second WIP checkpoint
+Enumerated sound boundaries rise **162 -> 411**, through **245 monster play
+sites and four Kubera play sites**. Kubera's two stop sites are separate because
+the historical denominator counts SND_Play. Shared sites count once even when
+several models or world aliases reach them. This is not a completion percentage;
+monster actor delivery retains the fixture limit below.
 
-The table now recovers 21 complete owners and 245 original sites. The expanded
-small comparison passes 18,779 cases, including 2,820 whole-dispatch cases.
-The class registry is world-selected. The generic dispatcher runs its strict
-500-unit guard first. Three additional fixed-world methods are proved without
-stubbing their original predicates.
+## Wired and refused groups
 
-The deeper caller audit corrected the first adapter draft: shock, attack and
-death discard the dispatch return value and continue to their shared voice.
-The adapter now preserves that order and leaves shared requests enabled. A
-follow-up original caller-tail comparison is being added. No compiled mutants
-have run yet. A complete root build passed in 11.17 s before this correction.
+| Owner | Sites | Disposition |
+|---|---:|---|
+| Complete class slot +0x70 methods | 245 play | 21 whole methods: 15 sounding and six silent. World-selected model/action/frame partitions, original arguments and AL results |
+| Remaining class methods | 279 candidates | 19 owners refused as whole methods at their first unsupported field, service or operation |
+| Kubera `0x00e19ed0` | Four play, two stop | Ordered stop 0x4f2 -> play 0x4f1 near; stop 0x4f1 -> play 0x4f2 far; both original type-47 sounds |
+| Class-use controllers | 66 classified | No delivery admission; required owner context remains absent |
+| Guardian handler-state sounds | Three earlier sites | Existing fixture limit retained; runtime state 0 is unchanged |
+| Unresolved semantic owners | 546 candidates | Still unresolved, not a count of missing native sounds |
 
-Kubera has an explicit stop cue and four play/two stop provenance sites. Its
-complete move comparison passes 200 cases with all six sites. Native stop/mute/
-disabled/detached tests pass after respecting the existing deferred end callback.
-The first combined native run exposed absent model files 0x90a..0x90c; these
-aliases are now refused. Effect model 0x356 is also not an actor. These aliases
-share original sites with supported monster models, so they do not subtract
-whole sites from the selector denominator. A full read-only loader/decode smoke
-is still pending its corrected expected refusals.
+The exact complete-owner table, source entries, registry aliases and refusals are
+in [client-audio](../research/client-audio.md#audio-005-scalar-monster-owners-and-ordered-stops-2026-11-14).
+`monster_audio_static.py` emits authored semantic partitions, not client bytes.
+The verifier executes every original whole method, the complete outer dispatcher
+and bounded shock/attack/death/walk caller tails; original return addresses
+independently identify expected sound sites.
 
-Exact use-controller call sites at 0x0107f48e and 0x0107f53e identify the two
-large groups 0x01080169 and 0x0108988b. Their siblings share the class-dispatched
-use owner. Sixty-six candidates gain a semantic bucket: 1,434 classified and
-546 unresolved, out of the unchanged 1,980 syntactic candidates. These use
-controllers are not admitted for delivery. Their target/buff/timing/request
-contexts remain excluded. Guardian's three state-bound sites stay fixture-only.
+The shared dispatcher runs before the class slot, including its strict distance
+>500 consume and special-model exclusions. Shock, attack and death discard that
+dispatcher's result and continue to the shared voice. Native delivery preserves
+both requests in that order. CHARACTER +0x3324 is OBJECT frame +0xd0, not an
+independent marker. Combat requires actual frame zero plus the existing native
+trigger latch. The separate cosmetic death latch retains once-only delivery
+without changing animation or a replicated record. Walking refuses an actor
+without action 2. Held original frame windows can request repeatedly; the
+existing active-id policy controls playback rather than a new debounce.
 
-The rebuilt-before default sweep completed: 14 October-22 and 32 DATA-ACQ-002
-views, 85.62 s. The after sweep and byte/report comparison remain pending.
+The later models exist through the native BY_MONSTER loader; this lane does not
+add their world-specific server-class construction or a spawn feed. The table
+and direct actor-host delivery are therefore **fixture-bounded**. World hooks
+operate only when a matching actor is already loaded. All 80 referenced type
+models are attempted: 77 load, while missing files 0x90a..0x90c stay refused.
+Effect alias 0x356 is not a native actor. Those aliases share sites with supported
+models, so their refusal does not subtract whole sites from the 245 denominator.
 
-## Third WIP checkpoint
+Kubera's annotations preserve the existing event layout, count, OBJECT/action
+records and complete normalized call order. An appended `MU_CUE_SOUND_STOP`
+retains routine/site/id provenance without renumbering old kinds. Its reader
+calls existing SND_Stop without loading an absent sound. The channel stops
+immediately; the existing end callback remains deferred to System::update.
+The exact world/routine/site/id/operation allowlist rejects foreign commands.
 
-The corrected small proof is green: 21,515 cases, including 2,748 complete
-outer-dispatch and 2,808 shock/attack/death/walk caller-tail cases, 245 sites,
-zero mismatches/stops, 8.624 s. The proof now preserves the actual alias
-CHARACTER +0x3324 = OBJECT +0xd0 instead of treating those bytes as independent
-inputs. Native combat uses the exact frame-zero gate and keeps its existing
-animation separate from the cosmetic death latch.
+Independent cue cursors, muted/disabled draining and detached no-backlog behavior
+are covered. Shared world/object/combat routines contain added sound-call lines
+and includes only. No visual RNG, animation step, object/model field, server
+state, event feed, pickup answer, transformed/buff input or new request route is
+introduced. The virtualised interval 0x01854279..0x018542c2 remains excluded and
+unfollowed.
 
-Canonical private focused run is green: 14 tests, zero skips/failures/errors,
-22.10 s. It attempts all 80 type models, loads the 77 available ones and
-explicitly refuses 0x90a..0x90c. All 211 distinct new sound ids, including the
-Kubera ids, decode and resolve with nonzero PCM. Native delivery covers actual
-Kubera object-runtime callbacks, ordered stops, mute, silent/detached drains,
-independent readers and equal audio-on/off synthetic world pixels. Root build
-passes in 11.16 s. Main remains 2b0b2716.
+## Music
 
-Left: final full-count comparisons with compiled mutants, affected portable and
-private checks, repository audit, rebuilt after identity, documentation/status
-and PR-ready queue. These remain pending; no final mutant run has begun.
-The new validator adds native-adapter mutant controls for the distance edge,
-ignored dispatch result, death completion, walking frame, combat frame-zero
-and refused model aliases. Resource guards continue to pause heavy work during
-shared-host spikes, including load above 30. Next step is the final mutant run
-when the guard permits it.
+No music selector or mixer change. Read-only decoded smoke covers all 211
+distinct new sound ids with nonzero PCM. This establishes file availability and
+native delivery, not FMOD mixer parity.
 
-## Final source checkpoint
+## Verification
 
-Full monster proof: 38,315 cases, 245 sites, zero mismatches/stops, 15/15
-compiled mutants caught, 27.93 s. Full Kubera proof: 1,000 cases, all six sites,
-zero mismatches/stops, 6/6 compiled mutants caught, 7.95 s. A final invalid-action
-review adds a native guard when a loaded actor has no action 2. Its dedicated
-compiled mutant is caught in 2.004 s; the earlier 15 unchanged mutant targets
-are not repeated. The new native unit control requires silence for that case.
-Post-build selection retains 68 validators and 171 portable work items. The
-8d selection exceeds the cap, so the final private run will be reduced.
-Portable/affected checks, audit and rebuilt after identity remain pending.
+Final checks at integrated source `c8440b0afff7865851bf7a950705e0020d3c7e67`
+are pending. Source before main integration was `1f5462e6`; integrations preserve
+all AUDIO-005 source and validator inputs.
 
-## Main integration WIP
+- Monster original comparison: **38,315 cases**, all **245 sites**, zero
+  mismatches/stops. Includes 32,759 complete-owner, 2,748 outer-dispatch and
+  2,808 caller-tail cases. **15/15 compiled mutants caught, 27.93 s**.
+  A later action-count guard has its own **1/1 mutant, 2.004 s**; the unchanged
+  15 targets were not repeated. Total **16/16**.
+- Kubera full move/native command comparison: **1,000 cases**, all six sites,
+  zero mismatches/stops, **6/6 compiled mutants caught, 7.95 s**. Includes a
+  source-order mutation, original OBJECT, AL, action records and RNG.
+- Initial canonical private focused run: **14 tests**, zero skips/failures/errors,
+  **22.10 s**. Final reduced run including the action-count control is pending.
+- Before integration, affected portable: **171 work items**, 163 native modules,
+  nine reported suite groups; **1,785 tests, 1,465 passed / 320 explicit skips,
+  zero failures/errors**. **443.4 s** runner / **507.55 s** command wall.
+  Main added actor, world and UI inputs; their affected refresh is pending.
+- Checked source root build **13.96 s**; actor/world integration root build
+  **23.08 s**. Latest UI integration root build **22.17 s**. Private affected validators,
+  repository audit and final self-review remain pending.
 
-Main advanced to `4babc900` with ACTORS-005 and WORLDS-INNER-004. Integrated at
-`a1d94d8d`; the validator append conflict preserves both audio rows and both
-incoming rows, 241 total. The integrated root build passes, 23.08 s. The
-pre-integration portable run passed 1,785 tests, 1,465 passed / 320 explicit
-skips, zero failures/errors, 507.55 s including selection. Its 171 selected
-items include 163 native modules. The corresponding integrated refresh remains
-pending, along with private affected validators and reduced private native tests.
+### Default identity
 
-The earlier 46-view before sweep is retired because main gained intentional
-renderer changes. To isolate audio, the final identity control will compile
-exact `4babc900` inputs in this same lane worktree and restore the committed
-lane inputs in a finally block, then explicitly rebuild production mu-world.
-No build or edit is performed in the main checkout. Both binary hashes and
-control-input checks will be recorded. Shared-host load has paused these steps.
+The first baseline against AUDIO-004 was retired when main gained intentional
+world rendering changes. Its results are not used for final identity. A control
+binary was built from exact main `4babc900` compiled inputs in this lane's own
+worktree, with those inputs checked against git and the committed lane bytes
+restored in a finally block. Main itself was never edited or built in.
+
+Both control and production explicitly run `make -C native -j4 world`.
+The control build takes **6.37 s**, production **11.64 s**. Distinct SHA-256s:
+
+- Control, main `4babc900`:
+  `88e2708626a818ce09721422b9ea8d52a373b8eaad4d77750d27376eeebe5d35`.
+- Production before the UI merge, `51db4cbd`:
+  `d0702324ea66063aa97db5d63e17c33ea47c7c381976b59c6f4519909a6b64d0`.
+
+Default draw, no draw_all/live_time, 640x400, 25 frames sampled at 0/24,
+demo name Preview. Only output directory prefixes are normalized; every JSON
+row/value is compared, with no removed scene fields. All 46 renders exit 0.
+
+| Dataset | PNGs | OBJECT/light dumps | Reports | Control render wall |
+|---|---:|---:|---:|---:|
+| October 22, 14 views | 28/28 | 28/28 | 14/14 | 15.812 s |
+| DATA-ACQ-002, 32 views | 64/64 | 64/64 | 32/32 | 47.262 s |
+
+Control total **63.11 s**; pre-UI production **90.99 s**; comparison **0.21 s**.
+All **92 PNGs, 92 dumps and 46 reports** are identical. Latest UI integration
+requires a rebuilt production refresh against the preserved control. These are
+repeatability controls, not original-client visual equivalence.
+
+### Steward validators
+
+Post-build selection and final per-row results are pending. Retain every
+fallback and all shared-library consumers selected under 6b/8b. No unchanged
+optional mutants or full lane gate are run. Use canonical
+`~/Documents/MTM/mu-mac-tools/native/private-env.sh` from repository root.
+
+## Next
+
+Recover the 19 refused slot owners (279 candidates) from their first unsupported
+operation. Keep unknown services and fields explicit rather than admitting a
+partial method. Recover remaining semantic owners among the 546 unresolved
+candidates. Class-use delivery needs an existing, verified owner for its required
+contexts. Later monster server-class construction belongs to the actor owner;
+this lane supplies no synthetic production mapping. Guardian's three state-bound
+sites retain their prior fixture limit.
+
+## WIP checkpoints
+
+Pushed checkpoints `9d619c70`, `7f9fa0e9`, `58d578ff`, `1f5462e6` and
+`51db4cbd` preserve implementation and done/left/next notes. The first main
+integration is `a1d94d8d`, the UI integration `c8440b0a`. Resource guards pause
+new heavy work during shared-host load spikes, including values above 30.
+No subagents, full lane gate, live client or installed-app work ran.
+
+Done: complete source, original/mutant proofs, decoded smoke and default identity
+before the UI merge. Left: integrated checks, final identity refresh, audit,
+status lines and PR-ready queue. Next: finish the guarded root build, select/run
+affected checks, then document and publish. Task-local reports are resumable WIP
+in `~/Documents/MTM/mu-mac-tools/native/scratch/audio-005/`.

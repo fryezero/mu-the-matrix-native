@@ -895,6 +895,31 @@ random choices, subtype/marker `+0x60`, prior action `+0x2c`, ordered stops and
 world/handler/delegated service contexts. Shared hit/attack/death services remain
 separate from these class selectors.
 
+The complete refusal list records the first unsupported operation in each owner.
+Later branches are not partially admitted.
+
+| Owner | Registry worlds | First refusal |
+|---|---|---|
+| `0xe9e3d5` | 57, 58 | `0xe9e3df: service 0xea233c` |
+| `0xe42a9e` | 62 | `0xe42aaf: service 0xe42f6d` |
+| `0xe92b75` | 63 | `0xe92b7f: service 0xe94004` |
+| `0xdc6b34` | 64 | `0xdc6b45: service 0xdc6bfa` |
+| `0xe30389` | 82 | `0xe30393: service 0xe3068f` |
+| `0xdd2776` | 69 | `0xdd2780: service 0xdd38c5` |
+| `0xdd852c` | 70 | `0xdd8536: service 0xdd897d` |
+| `0xdde1fb` | 71 | `0xdde205: service 0xdde62f` |
+| `0xde51cf` | 72 | `0xde51d9: service 0xde5519` |
+| `0xe6dc49` | 79 | `0xe6dc53: service 0xe6eccc` |
+| `0xe1829b` | 80, 81 | `0xe182a5: service 0xe18ae9` |
+| `0xd7ec63` | 92, 96, 101, 111 | `0xd7ec6c: memory 0x1cf15fc` |
+| `0xdee2d1` | 112 | `0xdee2ea: object field 0x2c` |
+| `0xe21d13` | 115 | `0xe21ed4: service 0x1989721` |
+| `0xd5b688` | 121 | `0xd5b6a1: object field 0x2c` |
+| `0xd8aba2` | 134 | `0xd8ac27: service 0x1989721` |
+| `0xe0dac7` | 137 | `0xe0db2f: service 0x1989721` |
+| `0xda9350` | 139 | `0xda93d9: service 0x1989721` |
+| `0xe4b1c3` | 144 | `0xe4b260: service 0x1989721` |
+
 ### Dispatch, callers and native limits
 
 `0x013a084d` first calls shared selector `0x013a04d6`. Its distance strictly
