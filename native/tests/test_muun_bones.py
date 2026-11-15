@@ -1,5 +1,6 @@
 """Verified bone rows, frozen-data census and native request/pixel controls."""
 import csv
+import io
 import json
 import os
 from pathlib import Path
@@ -29,6 +30,19 @@ class Original(unittest.TestCase):
         self.assertEqual(r['families']['ordered']['cases'],9)
 @unittest.skipUnless(PRIVATE,'requires canonical private-env.sh and native world assets')
 class World(unittest.TestCase):
+    def test_frozen_census_and_retained_missing_assets(self):
+        subprocess.run(['make','-s','-C',str(ROOT/'native'),'build/muun-census-host'],check=True,capture_output=True,cwd=ROOT)
+        p=subprocess.run([str(ROOT/'native/build/muun-census-host'),os.environ['MU_GAME_ROOT'],
+            str(Path(os.environ['MU_NATIVE_DATA_DIR'])/'lang')],check=True,capture_output=True,text=True,cwd=ROOT)
+        rows=list(csv.DictReader(io.StringIO(p.stdout)))
+        self.assertEqual(len(rows),386);self.assertEqual(sum(r['loaded']=='1' for r in rows),379)
+        self.assertEqual(sum(int(r['extra_refused']) for r in rows),9)
+        self.assertEqual(sum(int(r['extra_draws']) for r in rows),551)
+        self.assertEqual(sum(int(r['attachments']) for r in rows),16)
+        absent={r['appearance'] for r in rows if r['loaded']=='0'}
+        self.assertEqual(absent,{'58','59','60','61','62','63','193'})
+        self.assertEqual(next(r['actions'] for r in rows if r['appearance']=='363'),'3')
+
     def test_bone_rows_account_for_every_consumer_result_on_both_backends(self):
         from PIL import Image,ImageChops
         subprocess.run(['make','-s','-C',str(ROOT/'native'),'world'],check=True,capture_output=True,cwd=ROOT)
@@ -42,7 +56,7 @@ class World(unittest.TestCase):
                         env.update(MU_MUUN_FIXTURE=str(code),MU_SETTINGS_DIR=str(root/'settings'))
                         out=root/f'{code}-{backend}-{particles}'
                         p=subprocess.run([str(binary),'--game-root',os.environ['MU_GAME_ROOT'],'--world','0','--tile','128,124',
-                            '--headless','--frames','8','--every','7','--out-dir',str(out),'--width','640','--height','400',
+                            '--headless','--frames','8','--every','7','--time-series-every','7','--out-dir',str(out),'--width','640','--height','400',
                             '--backend',backend,'--hero-name','DemoKnight','--no-names','--no-audio','--no-players',
                             '--no-env','--no-items','--no-helpers',*(['--no-particles'] if not particles else [])],
                             env=env,check=True,capture_output=True,text=True,cwd=ROOT)

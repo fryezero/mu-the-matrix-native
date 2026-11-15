@@ -37,3 +37,19 @@ No original RNG/process-phase, full-scene, live-motion or performance equivalenc
 Scratch/renders are local under `~/Documents/MTM/mu-mac-tools/native/{scratch,renders}/muun-visual-005`.
 No decoded records, models or images are committed. No future-lane input has been created. Finish docs
 and all pushes before the ready-prs entry, then remove generated outputs/builds/worktree/local branch.
+
+### Verification progress after the first checkpoint
+
+Both full original comparisons pass: 221 bone cases and 400 transition cases. All 21 bone and seven
+transition mutants compile and are caught. The child subtype mutant initially survived because the
+sample's random branch was never entered; the deterministic corpus now covers that branch and only
+that mutant was retried. Walls: 6.18 + 0.88 s bone runs, 9.10 s transition run. No other mutant was repeated.
+New private controls initially passed 4/5 in 15.12 s; the disabled remote control correctly omitted its
+report, so its assertion was corrected and that one test passed in 5.38 s. A stronger report check then
+passed 24/25 overall in 120.20 s but inspected the final-only effect-model report after expiry. It now
+runs a separate 81-frame scene while the effect is alive, plus a 90-frame expired scene; this assertion
+still needs its integrated run. Do not call that prior 24/25 batch a pass.
+
+#397 merged during this work. Next checkpoint must merge `origin/main` `df57ab8b` and preserve its
+consumer additions. The initial portable selector chose 179 items, 168 native modules, above the 8d cap.
+Its wall was 100.47 s. Exclude `native/tests/test_native_app.py` from the portable run as instructed.

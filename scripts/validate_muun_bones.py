@@ -79,7 +79,7 @@ def compare(lib,machine,count,installed):
         if ordinal%11==0:points[1]=points[0] # zero-length normalization boundary
         elif ordinal%11==1:points[0]=F3();points[1]=F3(1e-7,1e-7,1e-7)
         fractions=F12(*[rng.choice([0.0,.25,.5,1.0]) for _ in range(12)])
-        randoms=[ordinal%15,ordinal%6];rr=[];ri=[];calls=[];transforms=[];bone_requests=[]
+        randoms=[(ordinal//3)%15,(ordinal//3)%6];rr=[];ri=[];calls=[];transforms=[];bone_requests=[]
         def mesh(m,which):
             calls.append(('mesh' if which else 'body',[m.argument(k) for k in range(8)],read(m,vp.MODEL+0x54,12)));return 0,32
         def bone(m):
@@ -160,13 +160,14 @@ MUTANTS=[
  ('dark_tint','0,0.8f,1,s','0,0.7f,1,s'),('dark_wave','pass.light*7.0f','pass.light*6.0f'),
  ('dark_chance','random1 % 6','random1 % 5'),('dark_child','1,0x7efa,3','1,0x7efa,4')]
 
-def run(cases,mutations,installed):
+def run(cases,mutations,installed,only_mutants=None):
     start=time.monotonic();text=pins.TEXT.read();data=pins.DATA.read();machine=vc.Combat(text,data)
     source=(ROOT/'reconstructed/muun/bone_fx.c').read_text()
     with tempfile.TemporaryDirectory() as td:
         p=Path(td);(p/'base').mkdir();families=compare(build(p/'base'),machine,cases,installed);mutants={}
         if mutations:
             for name,old,new in MUTANTS:
+                if only_mutants is not None and name not in only_mutants:continue
                 if source.count(old)<1:raise ValueError(name+' missing anchor')
                 (p/name).mkdir();rows=compare(build(p/name,source.replace(old,new)),machine,60,False)
                 mutants[name]={'caught':sum(r['mismatches'] for r in rows.values())}
@@ -175,6 +176,6 @@ def run(cases,mutations,installed):
         'body_sha256':hashlib.sha256(text[0x17f76ec-am.TEXT_BASE:0x17f919e-am.TEXT_BASE]).hexdigest(),'wall_seconds':time.monotonic()-start}
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--cases',type=int,default=200);p.add_argument('--installed',action='store_true')
-    p.add_argument('--mutations',action='store_true');p.add_argument('--output',type=Path);a=p.parse_args();r=run(a.cases,a.mutations,a.installed)
+    p.add_argument('--mutations',action='store_true');p.add_argument('--only-mutants');p.add_argument('--output',type=Path);a=p.parse_args();r=run(a.cases,a.mutations or bool(a.only_mutants),a.installed,set(a.only_mutants.split(',')) if a.only_mutants else None)
     if a.output:a.output.parent.mkdir(parents=True,exist_ok=True);a.output.write_text(json.dumps(r,indent=2)+'\n')
     print(json.dumps(r,indent=2));sys.exit(0 if r['all_equal'] and r['all_mutants_caught'] else 1)

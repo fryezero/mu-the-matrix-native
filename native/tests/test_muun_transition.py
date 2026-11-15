@@ -26,20 +26,28 @@ class World(unittest.TestCase):
             root=Path(td);binary=root/'mu-world';shutil.copy2(ROOT/'native/build/mu-world',binary)
             for backend in ('gl','soft'):
                 images=[]; ends=[]
-                for remote in (False,True):
+                for remote,frames in ((False,90),(True,81),(True,90)):
                     env={k:v for k,v in os.environ.items() if not k.startswith('MU_MUUN_')}
                     env.update(MU_MUUN_FIXTURE='16',MU_MUUN_MOUNT_FIXTURE='1',MU_SETTINGS_DIR=str(root/'settings'))
                     if remote:env['MU_MUUN_REMOTE_FIXTURE']='1'
-                    out=root/f'{backend}-{remote}'
+                    out=root/f'{backend}-{remote}-{frames}'
                     p=subprocess.run([str(binary),'--game-root',os.environ['MU_GAME_ROOT'],'--world','0','--tile','128,124',
-                        '--headless','--frames','90','--every','3','--out-dir',str(out),'--width','640','--height','400',
+                        '--headless','--frames',str(frames),'--every','3','--time-series-every','1','--out-dir',str(out),'--width','640','--height','400',
                         '--backend',backend,'--hero-name','DemoKnight','--no-names','--no-audio','--no-players',
                         '--no-env','--no-items','--no-helpers'],env=env,check=True,capture_output=True,text=True,cwd=ROOT)
                     rows=[json.loads(s) for s in p.stdout.splitlines() if s.startswith('{')]
-                    r=[r for r in rows if 'muun_transition' in r][-1]
+                    r=next((r for r in reversed(rows) if 'muun_transition' in r),{'created':0,'refused':0,'pending':0})
                     self.assertEqual((r['created'],r['refused'],r['pending']),(int(remote),0,0),r)
-                    images.append(Image.open(out/'frame-0078.png').convert('RGB'))
-                    ends.append(Image.open(out/'frame-0089.png').convert('RGB'))
+                    effect_rows=[r for r in rows if 'effect_models' in r]
+                    # The detailed effect report is emitted at shutdown, so inspect one run while
+                    # the transition is live and another after expiry.
+                    if remote and frames==81:
+                        self.assertEqual(effect_rows[-1]['effect_models'],1)
+                        self.assertEqual(effect_rows[-1]['effects_live'],1)
+                    if frames==90:
+                        self.assertEqual(effect_rows[-1]['effects_live'],0)
+                        images.append(Image.open(out/'frame-0078.png').convert('RGB'))
+                        ends.append(Image.open(out/'frame-0089.png').convert('RGB'))
                 self.assertIsNotNone(ImageChops.difference(*images).getbbox())
                 self.assertIsNone(ImageChops.difference(*ends).getbbox())
 if __name__=='__main__':unittest.main()

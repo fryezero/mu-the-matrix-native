@@ -284,8 +284,15 @@ static void bone_effects(mu_muun_visual *v, int32_t mesh, float time)
         if (v->particles) {
             if (op->particle) accepted = mu_world_particles_create(v->particles,op->type,op->position,
                 v->state.angle,op->light,op->subtype,op->scale);
-            else accepted = mu_world_particles_sprite(v->particles,op->type,op->position,op->scale,
-                op->light,-1,op->rotation,0,4);
+            else {
+                int32_t slot = mu_world_particles_bitmap_slot(op->type);
+                if (slot >= 0 && v->particles->bitmap_present[slot]) {
+                    uint64_t before = v->particles->sprites->created;
+                    mu_world_particles_sprite(v->particles,op->type,op->position,op->scale,
+                        op->light,-1,op->rotation,0,4);
+                    accepted = v->particles->sprites->created != before;
+                }
+            }
         }
         if (accepted) ++v->bone_created; else ++v->bone_refused;
     }
