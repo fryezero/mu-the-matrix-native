@@ -1146,3 +1146,14 @@ pass. The separate two stop sites are unchanged. The entry missing-id overlay
 is nine among unknown owners, eight in the recovered class group, four in the
 marker/service group and eleven among class-use candidates. These overlap the
 primary blockers and must not be added to their denominators.
+
+
+Main integration `d3ec9950` adds INNER-005's genuine visual reconstruction of
+`0x00e8d888`. Its two sites `0x00e8db8b` and `0x00e8e002` therefore acquire
+world ownership through that new source, unlike INNER-004's earlier refusal-only
+mention. INNER-005 explicitly omits audio delivery and compares the sounds only
+as visual boundaries. Both sites stay unwired and bounded-reference-only here.
+The integrated census is 1,464 classified / 516 unresolved, world bucket 137.
+Of the 30 classifications beyond the 546-entry remainder, this lane supplies 28
+and incoming INNER-005 supplies two. The 182 new fixture play boundaries are
+separate from both ownership deltas.
