@@ -138,12 +138,12 @@ grid owner is absent; H must never open a remote warehouse.
 | `ArkaResultInfo.swf` | 10 / unknown | 0xac6680 | Open route untraced | Domain fixture/controller contract not recovered; left |
 | `ArtifactFrame.swf` | 10 / unknown | 0xac5ef3 | Open route untraced | Domain-specific records/controller absent; no stat/power work; left |
 | `ArtifactInfoPopup.swf` | 10 / unknown | 0xac52f8 | Open route untraced | Domain-specific records/controller absent; no stat/power work; left |
-| `AutomaticMacro.swf` | 7 / high | 0xac9217 | Home helper branch 0x00efd1a7; exact movie-open call untraced | Helper start/stop and answers excluded; left |
+| `AutomaticMacro.swf` | 9 / medium | 0xac9217 | Top-menu AutomaticMacroStart 0x00c8d2bc -> 0x00c8dc85, +0x25c | Empty preview; Home/execution refused; opens in 003 |
 | `BattleCoreDialog.swf` | 10 / unknown | 0xac7789 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
 | `BattleCoreEnter.swf` | 10 / unknown | 0xac7705 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
 | `BattleField_BigDialog.swf` | 10 / unknown | unlocated | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
 | `BattleFieldNotify.swf` | 10 / unknown | unlocated | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `BlockedChat.swf` | 10 / unknown | 0xac7d38 | Open route untraced | Social/list records and controller absent; left |
+| `BlockedChat.swf` | 9 / low | 0xac7d38 | Chat BlockedUser/F2; 0x00c5fd7d, +0x200 | Empty list; add/delete/input disabled; opens in 003 |
 | `BombHunt.swf` | 10 / unknown | 0xac72ec | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
 | `BossHpUI.swf` | 10 / unknown | unlocated | Open route untraced | Domain fixture/controller contract not recovered; left |
 | `BoxOfBlessEvent.swf` | 10 / unknown | 0xac8371 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
@@ -165,14 +165,14 @@ grid owner is absent; H must never open a remote warehouse.
 | `EnterBloodCastle.swf` | 10 / unknown | 0xac6894 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
 | `EnterEmpireGuardian.swf` | 10 / unknown | 0xac6916 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
 | `EventInfo.swf` | 10 / unknown | 0xac8bde | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
-| `EventInventoryFrame.swf` | 10 / unknown | 0xac623b | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
+| `EventInventoryFrame.swf` | 10 / high | 0xac623b | Getter 0x0095f623, +0x184; 0x00c74f02 is a visibility query | One 8x4 grid; independent open/provider absent; left |
 | `EventMapEntranceUI.swf` | 10 / unknown | 0xac883e | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
 | `EventMapHelper.swf` | 10 / unknown | 0xac680f | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
 | `EventMapProgressInfo.swf` | 10 / unknown | unlocated | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
 | `EventMapRoundCount.swf` | 10 / unknown | 0xac8ef9 | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
 | `EventMapTutorial.swf` | 10 / unknown | 0xac75fe | Open route untraced | Event/round/score fixture and lifecycle absent; live event state excluded; left |
 | `ExchangeLuckCoin.swf` | 10 / unknown | 0xac931e | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
-| `ExtensionBagFrame.swf` | 9 / medium | 0xac5e6e | Inventory child; exact open callback untraced | Item grids and expansion state absent; left |
+| `ExtensionBagFrame.swf` | 9 / medium | 0xac5e6e | Inventory Expanded callback 0x00b977d7; parent 0x00b91950/1d5, +0xa4 | Two empty 8x4 pages; no expansion authority; opens in 003 |
 | `GensRanking.swf` | 4 / low | 0xac63ed | B/menu 11, 0x00efcbb6 -> 0x00aae767, +0xbc | Empty family/rank/contribution view; authority absent; opens here |
 | `GoldArcher.swf` | 10 / unknown | unlocated | Open route untraced | Domain fixture/controller contract not recovered; left |
 | `GremoryCase.swf` | 5 / low | 0xac7ba9 | K/menu 15, 0x00efcc2a -> 0x00c73abc | Four empty tabs; claim/expiry records absent; opens here |
@@ -246,8 +246,8 @@ grid owner is absent; H must never open a remote warehouse.
 | `ServerSelect.swf` | 10 / unknown | 0xac4b7d | Open route untraced | Domain fixture/controller contract not recovered; left |
 | `SimpleUI.swf` | 10 / unknown | 0xac929c | Open route untraced | Domain fixture/controller contract not recovered; left |
 | `SimpleUISubWin.swf` | 10 / unknown | 0xac4e9f | Open route untraced | Domain fixture/controller contract not recovered; left |
-| `SkillTree5thInventory.swf` | 10 / unknown | 0xac862a | Open route untraced | Domain-specific records/controller absent; no stat/power work; left |
-| `SkillTree5thItemViewer.swf` | deferred / medium | 0xac86af | Ctrl+J/I branch 0x00efc104/1ad; child lifecycle untraced | Card/item fixture owner absent; no stat/power work; left |
+| `SkillTree5thInventory.swf` | 10 / high | 0xac862a | Getter 0x00b105ed, +0x29c; viewer 0x00b15541 iterates its item pages | Independent empty opener unproved; card/item owner absent; left |
+| `SkillTree5thItemViewer.swf` | 9 / low | 0xac86af | Ctrl+J pair / Ctrl+I, 0x00efc104/1ad, +0x2a0 | One empty book/list page; no cards/power; opens in 003 |
 | `SkillTree5thLevelUpPopup.swf` | 10 / unknown | 0xac8734 | Open route untraced | Domain-specific records/controller absent; no stat/power work; left |
 | `SkillTree5thSlotClickPopup.swf` | 10 / unknown | 0xac87b9 | Open route untraced | Domain-specific records/controller absent; no stat/power work; left |
 | `SlottedWingInfo.swf` | 10 / unknown | 0xac65fe | Open route untraced | Item/currency/recipe/reward fixture and transaction owner absent; left |
@@ -292,3 +292,191 @@ grid owner is absent; H must never open a remote warehouse.
 | `Popups.swf` | Loaded HUD/data/library child, outside the FILES window denominator |
 | `Tooltip.swf` | Loaded HUD/data/library child, outside the FILES window denominator |
 | `TopMenu.swf` | Loaded HUD/data/library child, outside the FILES window denominator |
+
+## UI-WINDOWS-003: four more presentation routes
+
+Base main `b7dfd2ed`. The restored text/data SHA-256 pins above are unchanged.
+This section supersedes the earlier remaining-row disposition for four movies.
+Registry: 44 entries / 43 filenames -> 48 / 47. Historical baseline-absent
+survey: 12 -> 16 bound of 134; 122 -> 118 left. Help was already registered.
+These are asset/route counts, not a client-completion percentage.
+
+| Movie | Original route and owner | Admitted fixture |
+|---|---|---|
+| ExtensionBagFrame | Inventory comparison `0x00b977d7`, getter `0x00abeab8`, manager `+0xa4`, toggle `0x00b97829`; parent open `0x00b91950` / close `0x00b919d5` | Authored two-page eligibility and 64 empty cells; parent auto-open/teardown, Expanded toggle and close |
+| SkillTree5thItemViewer | Registration `0x00ac86af`, manager `+0x2a0`, getter `0x0095f5ba`; Ctrl+J `0x00efc104` joins tree `+0x298` and viewer; Ctrl+I `0x00efc1ad` is independent | One empty book/list page. Equal paired visibility toggles both, unequal opens both. Both must be ready before changing either |
+| BlockedChat | Registration `0x00ac7d38`, manager `+0x200`, getter `0x00bbfe04`; Chat BlockedUser `0x00c5fd7d` reads requested open state and toggles only if different | Empty list, disabled add/delete/input. Original chat button and movie's F2 listener, Close/Esc. Closing updates the chat button |
+| AutomaticMacro | Registration `0x00ac9217`, manager `+0x25c`, getter `0x00bc07fa`; top-menu MacroMenu / AutomaticMacroStart `0x00c8d2bc` -> `0x00c8dc85` | Empty four-member preview, no hunting maps, all execution/configuration controls disabled. Original top-menu icon and local Close/Esc. Home stays refused |
+
+Bag registration `0x00ac5e4a` initializes two 8x4 pages with alignment 0.
+The movie has four authored pages; the fixture exposes the original registered
+two only. Purchased/period expansion state and item actions are absent.
+
+Viewer callback `0x00b17e3f` -> `0x00b1600c` inverts the reported boolean,
+sets view-button text, sends SetViewTypeToggleButtonSelected, then rebuilds
+the provider at `0x00b17210`. The adapter preserves this inversion with an
+empty provider. It does not enumerate card definitions or formulas.
+
+AutomaticMacro's opener calls virtual open/close before `0x00c8dce0`,
+the inactive HUD/service boundary. Native presentation updates the inactive
+HUD only; no helper service is implemented. Its local Exit calls
+SetVisible(false), then inherited LeaveComplete. Native state synchronizes
+after dispatch, when visibility readback is available. Current visibility
+guards against a delayed notification closing a reopened view.
+
+The exclusive allowlist intercepts the four movies and their parent events
+before item, NPC, social or command owners. Saves, start/stop, matching,
+hunting-map selection, character entry, block-list edits, item actions,
+filters and level-up operations refuse, including forged callbacks.
+Labels and expansion eligibility are authored English fixtures.
+
+### Refusals and further leads
+
+- Help's fresh direct-call scan still finds only `0x00b6b744` calling
+  `0x00b6cba2`. It supplies EventMapHelper auxiliary rows, not an opener.
+  Indirect/other-scene routes remain unproved. No original F1/menu binding
+  was added; Ctrl+H keeps its existing native-policy label.
+- Home `0x00efd1a7` remains helper activation. The separate top-menu
+  configuration opener does not authorize execution, timing, saved options
+  or matching. All such callbacks remain inert.
+- SkillTree5thInventory is separate at `+0x29c`, getter `0x00b105ed`.
+  Viewer construction `0x00b15541` iterates its item pages. An independent
+  empty opener is unproved; its card/item owner remains absent.
+- EventInventoryFrame is `+0x184`, getter `0x0095f623`, registered as one
+  8x4 page at `0x00ac6217`. Caller `0x00c74f02` only tests visibility
+  before another operation; it is not an opener. Event/item owner absent.
+- Survey names SystemMenu and Option remain unlocated. Proven routes name
+  winSystemMenu and winOption. No asset-alias equivalence is assumed.
+- The other remaining rows retain their individual route/provider reasons.
+  No live events, catalogue, transaction, guide content or stat formula was
+  implemented to make an incomplete route appear complete.
+
+Original comparisons execute 26 bounded route/controller decisions: bag
+button and eligible parent lifecycle; fifth-tree paired/independent keys;
+requested blocked-chat visibility; view-type inversion/invoke order; and
+automatic-window toggle before its inactive boundary. These callers add no
+direct sound call. Native hosts assert zero guessed sound deliveries. Exact
+class/world predicates, nested unowned GFx sound queries and whole-client
+sound parity remain unproved.
+
+The production hosts check 132 forged callbacks per synthetic/real host;
+all eight distinct compiled controller mutants are caught. Final proof,
+validator rows, timings and limits are in [UI-WINDOWS-003](../handoffs/UI-WINDOWS-003.md).
+
+## UI-WINDOWS-004: bulk lifecycle census and empty NPC frames
+
+This section supersedes the earlier route claims and remaining-row counts.
+The same verified text/data pins above are used. The base is UI-WINDOWS-003
+c3b29c40 plus main 4babc900, merged at d14d3a67. No live client, protected
+module, server, installed app or new data acquisition is involved.
+
+### Census method and limits
+
+`scripts/survey_ui_routes.py` scans the full pinned text for direct relative
+calls to toggle, close-all and the open/close targets in the registered
+controller vtables. It also lists every register-based virtual call encoding
+at +0x40/+0x44, keeping untyped receivers as candidates. Receiver joins start
+at a manager getter, follow register/local moves and exact field getters,
+and stop at branches or unrelated calls. A matching field offset in an
+unrelated object does not establish a manager/window identity.
+
+The registration constructor has 137 entries, including duplicate instances,
+front-end resources and aliases. The scan finds 103 direct toggle calls and
+1,042 lifecycle sites/candidates, 415 with manager-window receivers and 627
+unresolved. Those are scan counts, not whole-client window counts. Dynamic
+receivers, other virtual slot encodings, indirect calls through registers,
+uncaptured vtables, and paths outside these services remain unresolved.
+A no-route-found row means no opener was joined by this bounded scan, not
+proof that the original has none. Close and visibility queries are not
+openers. No binding is admitted from a registration/name reference alone.
+The 23 main-menu constants and legacy manager calls/constant IDs are listed
+separately, with dynamic arguments explicitly unresolved. No old NewUI movie
+alias or guessed key is promoted into a GFx binding.
+
+The [service candidates](ui-window-services.csv), [menu entries](ui-window-menus.csv)
+and [legacy calls and IDs](ui-window-legacy.csv) preserve the supplemental
+address ledgers. There are 176 legacy calls and 47 recovered immediate IDs.
+
+The machine-readable [survey](ui-window-route-survey.csv) keeps all 134
+historical rows, marks the 118 unresolved on entry and gives each a route /
+provider classification and reason. Its classifications apply to empty,
+authored presentation only, never original service completeness.
+The supplemental lifecycle ledger records addresses and receiver status;
+private reports contain no committed client bytes or movie content.
+
+### Corrected PlayGuide route
+
+The fresh registry join proves PlayGuide is +0x1f0, registration 0x00ac548a.
+Getter 0x00b3b39e returns +0x2ac, registered as EventMapEntranceUI at
+0x00ac883e. Thus Ctrl+T at 0x00efc0da and main-menu 22 at 0x00c71576 do
+not establish a PlayGuide opener. The prior lane checked the caller's toggle
+and sound instructions but failed to join the getter to the actual movie.
+The unsupported native PlayGuide key/menu routing is now refused. It remains
+a registered optional movie with no proved original opener. No event entry
+or external guide provider replaces it. This withdraws one historical binding.
+
+### Nine admitted movies, ten manager slots
+
+The existing offline NPC result callback supplies the proved manager slot.
+One table admits the following movies, with two Harmony registrations sharing
+one empty presentation. No new packet parsing or service path is added.
+
+| Movie | Manager slot | Existing original route | Empty fixture |
+|---|---|---|---|
+| GuardianMix | +0x20c | NPC presentation result 7, virtual open | No tabs, recipes, materials or result |
+| MixAttributeScalp | +0xb4 | Results 8/9, virtual open after flag | Labels, disabled item action, Close |
+| HarmonyMix | +0x264 / +0x260 | Results 0x11 / 0x13, virtual open | Empty recipe list, no options or formulas |
+| SocketMix | +0x208 | Result 0x17, virtual open | Empty list and default frame |
+| MixSel | +0xac | Results 0x18 / 0x26 / 0x27, presentation methods | Empty selector, all recipe buttons disabled |
+| ExchangeLuckCoin | +0x270 | Result 0x20, virtual open | No coins, rate, exchange or result |
+| ElementalMix | +0x204 | Result 0x29, virtual open | Empty list, materials and result |
+| MuunExchange | +0x1ac | Result 0x33, toggle | Empty one-page exchange list |
+| RuudShopFrame | +0x1fc | Result 0x35, virtual open | Empty one-page catalogue, no purchases |
+
+Original route owner is 0x01280659. Its existing instruction harness supplies
+the oracle, with manager/window and GFx services stubbed explicitly. The
+thirteen relevant result paths are compared with the compiled production
+adapter. The comparison includes repeated close-all for 8/9, open versus
+toggle and the common sound order. Selector-specific helpers are recorded
+at their boundary; their recipe and transaction internals are not executed.
+The native selector deliberately supplies an inert common first page.
+Static helper tails confirm virtual open at 0x00bd73e9, 0x00bd746b and
+0x00bd7138. The last has an original eligibility gate before that tail; the
+offline fixture supplies eligibility, with no stat computation or authority.
+
+The graphical offline NPC host now opts into close-all, presentation open,
+then existing sound 25 followed by 28. The older headless recording callback
+contract remains available. Sound counts retain the existing core owner;
+new window controllers add no sound. The UI host previously delivered the
+sound callbacks before opening the movie. No sound sites outside this UI
+ordering correction are changed. Core `not_played` accounting still uses
+its historical OTHER-kind classification, so it is not a visible-window
+census for the new presentation adapters.
+
+Every movie has an exclusive callback allowlist. Item movement, recipes,
+exchange, purchases, paging requests, configuration, stats and unknown
+callbacks refuse before foreign NPC/item/social/command owners. Close and
+layout metadata stay local. NPC teardown and Esc close the views. English
+labels and empty providers are authored fixtures; no authoritative item,
+catalogue, currency, reward, option or eligibility data is reconstructed.
+
+Best remaining small-provider leads were reviewed conservatively.
+MiniGameHelpWindow needs its original page/content owner, and guide content
+is excluded. DivideWindow needs the selected item/count and transaction
+owner. GuildCreateFrame needs the emblem/form and create owner. These are
+left with precise missing providers rather than invented empty openers.
+Help's indirect opener, Home activation, fifth-tree inventory and event
+inventory remain refused for the reasons recorded by UI-WINDOWS-003.
+
+### Current counts
+
+Of the 118 unresolved rows on entry: 9 route proved + provider complete,
+17 route proved + provider missing, 30 state-dependent and 62 no route
+found. Nine become bound, while the incorrect inherited PlayGuide binding
+is withdrawn. The historical 134-row survey therefore changes from
+16 bound / 118 unresolved to 24 bound / 110 unresolved. The native registry
+has 57 entries / 56 filenames, including the unbound optional PlayGuide
+movie. Registry presence and original-route admission remain different counts.
+
+The [handoff](../handoffs/UI-WINDOWS-004.md) records compiled mutants,
+native journey provenance, check wall times and the exact steward selection.

@@ -305,6 +305,7 @@ struct mu_gfx_layer {
     int order[MU_GFX_MOVIES];   /* window z-order, bottom first */
     int norder;
     unsigned presentation_ready;
+    int automatic_leave_pending;
     int macro_tab, macro_sub_type, guild_tab, hunt_mini;
     int pet_page;
     int help_ready;             /* SYS-MISC-001b: installed provider loaded */
@@ -404,9 +405,13 @@ static const char *const FILES[MU_GFX_MOVIES] = {"main", "InventoryFrame", "Info
                                                  "winOption", "winSystemMenu", "HelpWindow",
                                                  "CommandWindow", "MatchingSelect", "GensRanking", "PetInventoryFrame", "GremoryCase",
                                                  "MacroMain", "MacroSub", "HuntRecord", "StorageInven",
-                                                 "MatchingParty", "MatchingGuild", "Guildmatching_2024", "PlayGuide"};
+                                                 "MatchingParty", "MatchingGuild", "Guildmatching_2024", "PlayGuide",
+                                                 "ExtensionBagFrame", "SkillTree5thItemViewer", "BlockedChat", "AutomaticMacro",
+                                                 "ElementalMix", "SocketMix", "GuardianMix", "HarmonyMix",
+                                                 "ExchangeLuckCoin", "MuunExchange", "RuudShopFrame", "MixSel", "MixAttributeScalp"};
 
 static void presentation_shown(mu_gfx_layer *, int, int);
+static void presentation_shown3(mu_gfx_layer *, int, int);
 
 static int service_reserved(const mu_gfx_layer *L,int index);
 static int service_inventory(mu_gfx_layer *L,int cell);
@@ -1155,6 +1160,7 @@ void mu_gfx_layer_show(mu_gfx_layer *L, int m, int open)
     if (open && m == MU_GFX_CHARACTER)
         feed_character(L);
     presentation_shown(L,m,open);
+    presentation_shown3(L,m,open);
     if (m == MU_GFX_HUNT_RECORD)
         invokef(L,m,mv->path,open ? "open" : "close",open ? "[{\"mine\":true,\"curMapIndex\":0}]" : "[]");
     else if (m == MU_GFX_PARTY || m == MU_GFX_QUEST_SUMMARY)
@@ -1471,6 +1477,7 @@ static const char *on_call_(movie *mv, const char *name, const char *args)
             L->cfg.quest_call(L->cfg.tooltip_user, mv->id, name, args);   /* NATIVE-QUEST-001: the handler's OnLoad */
         return NULL;
     }
+    if (presentation_parent3(mv,name,args)) return NULL;
     if (presentation_movie(mv->id)) {
         presentation_call(mv, name, args, v, n);
         return NULL;
@@ -1763,6 +1770,10 @@ static const int WINDOW_ALIGN[MU_GFX_MOVIES] = {
     [MU_GFX_MACRO] = 9, [MU_GFX_MACRO_SUB] = 9, [MU_GFX_HUNT_RECORD] = 9,
     [MU_GFX_STORAGE_EXT] = 9, [MU_GFX_MATCH_PARTY] = 9, [MU_GFX_MATCH_GUILD] = 9,
     [MU_GFX_GUILD_MATCH] = 9, [MU_GFX_PLAY_GUIDE] = 9,
+    [MU_GFX_BAG] = 0, [MU_GFX_TREE5_VIEWER] = 4, [MU_GFX_BLOCKED_CHAT] = 9, [MU_GFX_AUTOMATIC] = 14,
+    [MU_GFX_ELEMENTAL_MIX] = 9, [MU_GFX_SOCKET_MIX] = 9, [MU_GFX_GUARDIAN_MIX] = 9,
+    [MU_GFX_HARMONY_MIX] = 9, [MU_GFX_LUCK_COIN] = 9, [MU_GFX_MUUN_EXCHANGE] = 9,
+    [MU_GFX_RUUD_SHOP] = 9, [MU_GFX_MIX_SELECTOR] = 9, [MU_GFX_ATTRIBUTE_SELECTOR] = 9,
     [MU_GFX_OPTION] = 9, [MU_GFX_SYSTEM_MENU] = 9, [MU_GFX_HELP] = 9
 };
 
@@ -2721,6 +2732,9 @@ int mu_gfx_layer_key(mu_gfx_layer *L, int down, int vk, uint32_t codepoint, int 
             chat_open(L, 1);
         return 1;
     }
+    if (down && presentation_key3(L,vk,mods)) return 1;
+    /* UI-WINDOWS-004: original Ctrl+T owns state-dependent EventMapEntranceUI. */
+    if (vk == 'T' && mods == 2) return 0;
     if (down && vk == 'T' && mods == 2 && presentation_open(L,MU_GFX_PLAY_GUIDE,0)) return 1;
     if (down && vk == 'H' && mods == 2) {
         if (!L->help_ready || !L->mv[MU_GFX_HELP].g || !L->mv[MU_GFX_HELP].path[0]) return 0;
@@ -2885,6 +2899,7 @@ void mu_gfx_layer_advance(mu_gfx_layer *L, double dt)
         if (L->mv[m].g && !L->mv[m].alias && (visible(L, m) || m == MU_GFX_CHAT || m == MU_GFX_TOOLTIP))
             L->api.advance(L->mv[m].g, dt);
     pump(L);
+    presentation_sync3(L);
     fit_windows(L);
     /* The chat view fills itself with test lines once its CLIK components
      * initialise (ChatView.testChatType); clear them, then greet (layer choice). */
@@ -3815,10 +3830,13 @@ void mu_gfx_layer_npc_close(mu_gfx_layer *L)
         mu_gfx_layer_show(L, k, 0);
     mu_gfx_layer_show(L, MU_GFX_MIX_SELECT, 0);
     mu_gfx_layer_show(L, MU_GFX_MIX, 0);
+    mu_gfx_layer_presentation_close(L);
 }
 
 int mu_gfx_layer_npc_window(const mu_gfx_layer *L)
 {
+    for (int m=MU_GFX_ELEMENTAL_MIX; L && m<MU_GFX_MOVIES; m++)
+        if (L->mv[m].g && L->mv[m].open) return m;
     if (L && L->mv[MU_GFX_MIX].open) return MU_GFX_MIX;
     if (L && L->mv[MU_GFX_MIX_SELECT].open) return MU_GFX_MIX_SELECT;
     for (int k = MU_GFX_NPC_DIALOG; L && k <= MU_GFX_STORAGE; k++)
