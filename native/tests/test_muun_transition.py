@@ -46,8 +46,14 @@ class World(unittest.TestCase):
                         self.assertEqual(effect_rows[-1]['effects_live'],1)
                     if frames==90:
                         self.assertEqual(effect_rows[-1]['effects_live'],0)
+                        self.assertEqual(effect_rows[-1]['effect_models'],0)
                         images.append(Image.open(out/'frame-0078.png').convert('RGB'))
                         ends.append(Image.open(out/'frame-0089.png').convert('RGB'))
                 self.assertIsNotNone(ImageChops.difference(*images).getbbox())
+                # RENDER-EFFECTS-034: this Muun's pulse particles 0x8081/1 and 0x8082/1 now draw. Their rotation and
+                # size come from the world's one rand() stream, which the transition's own requests advance, so
+                # after expiry the two runs agree everywhere except inside the Muun's particle box.
+                box=(220,70,430,250)
+                for image in ends:image.paste((0,0,0),box)
                 self.assertIsNone(ImageChops.difference(*ends).getbbox())
 if __name__=='__main__':unittest.main()
