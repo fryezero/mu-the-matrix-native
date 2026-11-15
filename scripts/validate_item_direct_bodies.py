@@ -7,6 +7,7 @@ import itertools
 import random
 from pathlib import Path
 import subprocess
+import tempfile
 
 import gen_item_bodies as gen
 import pins
@@ -31,6 +32,41 @@ MUTANTS = {
     'part-selector': ('it->a12 == 6 ? 6 : 0;', 'it->a12 == 7 ? 6 : 0;'),
     'recipe-last-draw': ('i < recipe->count; ++i', 'i < recipe->count - 1; ++i'),
 }
+
+
+def model_words(model):
+    return (tuple(map(v.f2u, model.body_light)) + (model.level_field & 0xffffffff,) +
+            tuple(map(v.f2u, model.shade)) + (model.flag_ca,))
+
+
+def c_model(lib, case):
+    captured = []
+    class Capture:
+        def __getattr__(self, name):
+            entry = getattr(lib, name)
+            def call(*args):
+                status = entry(*args)
+                captured.append(model_words(C.cast(args[1], C.POINTER(v.CModel)).contents))
+                return status
+            return call
+    status, stream = v.c_stream(Capture(), case)
+    return status, stream, captured[-1]
+
+
+def exit_mutation(vectors):
+    source = (ROOT/'reconstructed/renderchar/renderchar.c').read_text()
+    old = 'mu_rc_body_types[type].carry)'
+    assert source.count(old) == 1
+    with tempfile.TemporaryDirectory(prefix='item-direct-exit-') as directory:
+        path, library = Path(directory)/'mutant.c', Path(directory)/'mutant.dylib'
+        path.write_text(source.replace(old, '0)'))
+        subprocess.run(['clang', '-shared', '-fPIC', '-O2', '-std=c11', '-ffp-contract=off',
+                        '-I', str(ROOT/'reconstructed/renderchar'), str(path),
+                        str(ROOT/'reconstructed/record-math/record_math.c'), '-lm', '-o', str(library)], check=True)
+        lib = C.CDLL(str(library))
+        detected = sum(c_model(lib, case)[2] != expected for case, expected in vectors)
+    assert detected, 'surviving exit-carry mutant'
+    return detected
 
 
 def main():
@@ -95,10 +131,34 @@ def main():
                         raise AssertionError(('parts', hex(t), part, light, flags, expected, detail))
                     vectors.append((case, sequence, expected))
     families['parts'] = {'cases': len(vectors) - before, 'mismatches': 0}
+    exits = []
+    for t in TYPES:
+        states = list(quality.state_cases(t))
+        for index in range(64):
+            case = dict(states[index * 37 % len(states)][1])
+            if index % 3 == 0:
+                case['a12'] = 6
+            if index % 4 == 0:
+                case['light'] = (v.f2u(1.0),) * 3
+            def factory(*args):
+                world = reset(*args)
+                world.sequence, world.drawn = [0] * 64, 0
+                return world
+            result, expected_stream, other, machine = v.client_stream(wa, case, factory)
+            expected = (tuple(machine.r32(v.MODEL + 0x54 + 4*k) for k in range(3)) +
+                        (machine.r32(v.MODEL + 0x40),) +
+                        tuple(machine.r32(v.MODEL + 0x44 + 4*k) for k in range(3)) +
+                        (machine.read(v.MODEL + 0xca, 1)[0],))
+            status, stream, actual = c_model(lib, case)
+            if not result['ok'] or other or status or stream != expected_stream or actual != expected:
+                raise AssertionError(('exits', hex(t), index, result, other, status, expected, actual))
+            exits.append((case, expected))
+    families['exits'] = {'cases': len(exits), 'mismatches': 0}
     report = {'text_sha256': pins.TEXT.sha256, 'data_sha256': pins.DATA.sha256, 'families': families}
     if args.mutations:
         groups.MUTANTS = MUTANTS
         report['mutants'] = groups.mutations(vectors)
+        report['mutants']['exit-carry'] = exit_mutation(exits)
     args.output.write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps(report))
 

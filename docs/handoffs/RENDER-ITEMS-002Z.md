@@ -72,3 +72,16 @@ Phase 6 models that branch; the exact-white whole-body branch still takes preced
 Directed part-selector cases and a compiled mutant are included in the final early-body validator.
 All 132 portable renderchar tests now pass or explicitly skip their private comparisons.
 Resource cooldowns delayed generation; the source checkpoint is saved before starting it.
+
+Full extraction completed: all 1,461 rows fit, 452,742 bytes, 1,385.12 s for extraction/rendering.
+The 24-scalar, twelve-operation, sixteen-draw and 512-KiB audit caps remain unchanged.
+The full fitted rows are retained locally for deterministic table reproduction.
+
+938 independent original exit-state probes show that every early body leaves the last draw's
+model fields. Early-body rows now use the existing carry write-back. Re-rendering the complete
+fitted rows changes exactly those fourteen metadata bits and nothing else. The final body-header
+SHA-256 is `1f6e3a9037bea129c41fde158b98ea1f213c71dff05c7f854aa87ddbedc310f5`.
+A private exit-state family and a separate compiled write-back mutant cover this contract.
+
+Next: root build and affected selection, final changed-row mutants, C-to-C/classifier deltas,
+8d reduced, affected validators and default identity. This checkpoint remains WIP.

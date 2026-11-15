@@ -49,6 +49,14 @@ class ItemDirectBodies(unittest.TestCase):
             self.assertEqual((status, draws[-1][0]), (0, 'BODY'))
             self.assertEqual(draws[-1][2], (v.f2u(1.0),) * 3)
 
+    def test_early_body_writes_back_its_last_model_fields(self):
+        case = v.classify_case(0x27b8, v.CLASSIFY[0])
+        status, stream, model = direct.c_model(base.lib(), case)
+        self.assertEqual(status, 0)
+        last = stream[-1]
+        self.assertEqual(model, last[2] + (last[3] & 0xffffffff,) + last[4] + (last[5],))
+        self.assertNotEqual(model[:3], tuple(case['model_light']))
+
     @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'original captures are opt-in')
     def test_original_instructions(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -61,6 +69,7 @@ class ItemDirectBodies(unittest.TestCase):
         self.assertEqual(report['families']['lights']['cases'], 144*len(direct.TYPES))
         self.assertEqual(report['families']['frames']['cases'], 64*len(direct.TYPES))
         self.assertEqual(report['families']['parts']['cases'], 288)
+        self.assertEqual(report['families']['exits']['cases'], 64*len(direct.TYPES))
         self.assertTrue(all(f['mismatches'] == 0 for f in report['families'].values()))
-        self.assertEqual(set(report['mutants']), set(direct.MUTANTS))
+        self.assertEqual(set(report['mutants']), set(direct.MUTANTS) | {'exit-carry'})
         self.assertTrue(all(report['mutants'].values()))

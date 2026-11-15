@@ -2072,7 +2072,7 @@ def render(types):
                      (t, ', '.join(map(str, indices)), t in LEVEL_SPLIT, t in ATLAS_TYPES, t in DIM_TYPES, (2 + (t in DIRECT_WHITE_TYPES)) if t in DIRECT_TYPES else t in PLAIN_TYPES or t in NO_GLOW_TYPES, t in PULSE_TYPES,
                       any(op == 'in' and value == 20 for rule in rules for _, cells in rule for op, value in cells),
                       sum(1 << k for k in range(13) if any(op == 'in' and value == 21+k for rule in rules for _, cells in rule for op,value in cells)),
-                      t in CARRY_TYPES or t in DERIVED_CARRY or t in PRE_CARRY, first, count))
+                      t in CARRY_TYPES or t in DERIVED_CARRY or t in PRE_CARRY or t in DIRECT_TYPES, first, count))
     return '\n'.join(lines + ['};', 'static const char *const mu_rc_body_names[] = {'] +
                      ['    ' + json.dumps(name) + ',' for name in NAMED_NAMES] + ['};', ''])
 

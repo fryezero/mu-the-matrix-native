@@ -3458,3 +3458,79 @@ Scene results, wall times and remaining fixture limits are recorded in
 records; it does not establish equipment eligibility or cover every counter phase, context or world producer.
 An absent exact authored model path is recorded as unavailable, without name trimming or an asset substitution.
 No live client, protection analysis, network state, character-power feature or client-memory write is used.
+
+## Part 40, piecewise colour and early complete bodies, RENDER-ITEMS-002Z
+
+This lane continues from 1,465 of 1,674 bounded bodies on main `b7dfd2ed`.
+Offline/static inputs retain text SHA-256
+`2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724` and data SHA-256
+`c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f`.
+[Handoff and finish checks](../handoffs/RENDER-ITEMS-002Z.md).
+
+### Signed piecewise colour, `0x0b51`
+
+The reader checks the complete instruction sequence at `0x0175f2e6..0x0175f469`, including the
+signed clock conversion/remainder, both colour branches, branch/join instruction boundaries,
+vector setters and the following wave multiply. It refuses neighbouring instruction forms.
+Reading the pre-program alone still does not establish body support.
+
+Scalar kind 10 retains the period and half-period, two binary32 affine colour branches and an
+optional wave multiply. The clock truncates to signed int32 with the original indefinite result
+outside its range. Signed remainder retains negative ticks. The lower branch uses remainder/3000;
+the upper branch uses `(remainder - 3000)/3000`. Every conversion, divide, multiply and final
+addition or reverse subtraction rounds separately. The wave retains its existing signed-tick
+semantics. This adds no scalar, operation or draw capacity.
+
+The body's two used colour channels retain their different coefficients and subtraction direction.
+The remaining channel is positive zero. The complete pre-program goes through the existing item
+host and consumer refusals. Its nonzero scripted owned stream is compared separately from the
+host-free zero-random body sample.
+
+### Fourteen historical helper-count types
+
+Adding option/ancient probes to the zero-option level diagnostic reproduces the exact forty-type
+historical helper-count cohort, two weapons, seven wings and 31 pet/item types. The diagnostic
+with only levels 0/7/13 had omitted ten tail-only mismatches. It is not a new denominator.
+
+The admitted candidates are `0x23f3`, `0x23fc`, `0x2493`, `0x24f7`, `0x24f8`, `0x271a`, `0x2725`,
+`0x27b8..0x27bb`, `0x289f`, `0x28b0` and `0x28d7`. These are early complete bodies, outside the
+ordinary glow and option/ancient tail chain. For example, `0x0176f367..0x0176f37e` gates the four
+`0x27b8..0x27bb` types, and `0x0176f589` jumps to the epilogue at `0x017e6304` after their draw.
+The recipe reference preserves entry model fields instead of substituting the generic level pass's
+light, shade and level. The draw order is retained when one complete body has several helper calls. Original exit-state
+probes also establish that the last draw holds the final model fields. The existing carry write-back
+now preserves those fields for all fourteen early bodies.
+
+The existing plain-mode field distinguishes this caller form. Modes 0 and 1 retain their old meaning;
+mode 2 runs the early complete body. Mode 3 also selects the two evidenced wing branches below.
+No table-struct field or external struct layout changes.
+
+For `0x23f3/0x23fc/0x2493`, `0x01775e43..0x01775e96` compares all three light channels with one.
+Exact white takes a whole-body final draw at `0x01775f5f`; the other lights take mesh 1 at
+`0x01776085`. Random non-white samples alone miss this difference. Phase 5 stores the white recipe.
+The non-white branch tests argument 12 at `0x01775f6a`: selector 6 sets `(1, 0.1, 0.1)`, otherwise
+white. Phase 6 preserves that selector branch. Exact white takes precedence over the selector.
+Both branches finish with `0x0177608b -> 0x017e6304` and skip the ordinary tails.
+
+Directed light vectors include every zero/one corner, negative zero, the adjacent binary32 values
+below and above one and negative light. Independent counters and part selectors supplement all
+292 randomized body states and all 512 forcing-record states per type. Compiled mutant results,
+full regeneration and final admission counts are recorded in the handoff when complete.
+
+### Refusals and limits
+
+The largest shield group `0x1735/0x1737/0x1738/0x1755` still refuses. The armour group
+`0x2003/0x2007/0x200f/0x2010` retains its independent overlay-light failures. `0x1710` and `0x10fd`
+remain excluded; no earlier independent-state failure is erased by a new probe fit.
+The early-body hypotheses for `0x23f4` and `0x2701` also fail independently and remain excluded.
+The plain no-glow hypothesis admits none of its thirty diagnostic candidates.
+
+The [remaining-body ledger](item-body-refusals-002z.tsv) lists every remaining type, its historical
+helper-count or other group, source helper/draw addresses, stopped fixture addresses and refusal
+reason. The forty-type cohort has 26 remaining candidates; all 168 other bodies remain.
+The proposed count is 1,480/1,674, pending the final checks in the handoff. Skins and links are unchanged.
+
+Comparisons remain finite and context-bounded. Existing record, selected-item, buff, pose/bone,
+invalid-context, absolute random/counter-phase and consumer refusals remain. No original pose/pixel
+or whole-client equivalence is claimed. No original-client process, service, packet, protection,
+character-power or installed-app work is involved.
