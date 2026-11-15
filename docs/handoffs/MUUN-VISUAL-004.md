@@ -1,6 +1,6 @@
 # MUUN-VISUAL-004
 
-Verified candidate on `codex/muun-visual-004`. Main `a95880c4` (AUDIO-004, ACTORS-005, INNER-004 and UI-WINDOWS-003) is integrated;
+PR-ready verified subset on `codex/muun-visual-004`. Main `4480bf41` (AUDIO-004, ACTORS-005, INNER-004 and UI-WINDOWS-003/004) is integrated;
 compiled source/checker checkpoint `76f42724`, registry integration `795ce3cf`, final Muun test edit `6270622e`. The merge steward owns
 integration. Offline/static/authored fixtures only. No installed-app, live-client, protection, packet,
 particle/effect consumer, actor/item, UI or README work was authored in this lane. Incoming actor/world
@@ -51,7 +51,7 @@ workers; resource probes pause new heavy jobs above load 14 or below 25% free me
 
 | Check | Result | Wall |
 |---|---|---:|
-| Root builds | initial source, special-row, audio, actor/world and UI integration pass | 30.06 + 11.70 + 21.20 + 17.64 + 6.26 s |
+| Root builds | initial source, special-row, audio, actor/world and UI integrations pass | 30.06 + 11.70 + 21.20 + 17.64 + 6.26 + 15.88 s |
 | New rider original comparison and one-time mutants | 890 cases, zero mismatches; 22/22 mutants compile under `-Werror` and are caught | 9.61 s |
 | New special original comparison and mutants | 452 cases: 419 full caller comparisons plus 33 explicit branch-entry refusal classifications; zero mismatches; 17/17 distinct compiled mutants caught | 6.77 s initial + 0.97 s focused retry |
 | Focused private modules during integration | secondary 5/5, rider 5/5, special 3/3 pass | 5.87 + 33.75 + 16.03 s |
@@ -73,15 +73,21 @@ workers; resource probes pause new heavy jobs above load 14 or below 25% free me
 | Focused rider row at `6270622e` | 890 cases pass after test-boundary edit; optional mutants unchanged | 0.79 s |
 | UI validator refresh at `8ee7eaa0` | 6/6 pass, zero failures/errors/skips; exact lane selection remains 43 rows | 69.45 s runner; 32.29 s preview selection |
 | UI portable refresh at `8ee7eaa0` | 147 items; 1,511 tests, 1,209 passed, 302 skipped, zero failures/errors | 447.00 s runner; 74.72 s preview selection |
-| Final reduced private Muun run at `c37e14d6` | 19/19 pass, zero skips, including the explicit unavailable-particles refusal control | 71.24 s |
-| Final integrated native proof | 35/35 PNGs and contact sheet byte-identical to prior proof; all eight riders, four action phases, buff/fade and five special appearances | 17.48 s |
-| Final integrated after sweep | 45 unaffected views byte-identical; only imported INNER-004 Kanturu 37 delta (two PNGs and one report) | 24.42 + 81.01 s |
-| Final identity comparison | 90/92 PNGs, 92/92 dumps, 45/46 reports and 46/46 stderr logs identical; exact Kanturu pixel delta verified | 0.26 s |
-| Explicit integrated world build checks | pass; identical current hash before/after private tests and proof, distinct from baseline | 0.40 + 0.42 s |
+| UI-003 reduced private Muun run at `c37e14d6` | 19/19 pass, zero skips, including explicit unavailable-particles refusal control | 71.24 s |
+| UI-003 integrated proof | 35/35 PNGs and contact sheet match prior proof | 17.48 s |
+| UI-003 after identity | 45 unaffected views identical; exact imported Kanturu 37 delta | 24.42 + 81.01 s render; 0.26 s compare |
+| UI-003 staged audit | 2,296 files, zero rejected | 30.34 s |
+| UI-004 validator refresh at `2eb3d97f` | 15/15 pass, zero failures/errors/skips; lane union remains 43 rows | 197.83 s runner; 68.28 s preview selection |
+| UI-004 portable refresh at `2eb3d97f` | 180 items; 1,611 tests, 1,300 passed, 311 skipped, zero failures/errors | 422.28 s runner; 84.20 s preview selection |
+| Final reduced private Muun run at `d7ef09f2` | 19/19 pass, zero skips, including the explicit unavailable-particles refusal control | 68.72 s |
+| Final integrated native proof | 35/35 PNGs and contact sheet byte-identical to prior proof; all eight riders, four action phases, buff/fade and five special appearances | 12.52 s |
+| Final integrated after sweep | 45 unaffected views byte-identical; only imported INNER-004 Kanturu 37 delta (two PNGs and one report) | 17.32 + 45.73 s |
+| Final identity comparison | 90/92 PNGs, 92/92 dumps, 45/46 reports and 46/46 stderr logs identical; exact Kanturu pixel delta verified | 0.19 s |
+| Explicit integrated world build checks | pass; identical current hash before/after private tests and proof, distinct from baseline | 0.21 + 0.22 s |
 | Earlier selector previews | initial/special validator and portable lists | 27.46 + 28.77 + 84.79 + 81.06 s |
 | Full lane validator previews | audio, actor/world and UI integrated selections | 46.36 + 39.58 + 54.25 s |
 | Checkpoint repository audits | 2,271 and 2,275 staged files, zero rejected | 18.69 + 27.04 s |
-| Final repository audit | 2,296 staged files, zero rejected; only these result numbers and PR prose updated afterward | 30.34 s |
+| Final repository audit | 2,306 staged files, zero rejected; only these result numbers and PR prose updated afterward | 18.09 s |
 
 **8d reduced:** the portable selections exceed the forty-native-item cap. This lane's changed/affected
 `test_muun*.py` modules ran privately. These cover 15 appearance records, eight secondary records
@@ -116,10 +122,12 @@ Pre-merge Muun source SHA-256
 `56bc0bd3be8f4a2c7fa18738e9d0aa3b3754b5c90a12bb192d052e011809e7f1`.
 AUDIO-004 integrated binary SHA-256
 `25024c17935ce37245cbf895bf84444e321deec2c361a0b120e38cd3cbe389a4`.
-Final actor/world/UI integrated binary SHA-256
+UI-003 integrated binary SHA-256
 `da0b71f048b670e49f73e9f025bc9d332bd83087ec380483c97691717ea85401`.
+Final UI-004 integrated binary SHA-256
+`459bb5cf69db13136f43223c33aa63e078c06e893024878838a79d1ec48fd50f`.
 The before and final executables differ. Explicit `nice -n 10 make -C native -j4 world` checks precede
-sweeps; the final two checks took 0.40 and 0.42 s. The initial before-build command wall was not logged.
+sweeps; the final two checks took 0.21 and 0.22 s. The initial before-build command wall was not logged.
 
 The final replay preserves all 45 unaffected views: 90/92 PNGs, 92/92 OBJECT/light dumps, 45/46 normalized
 JSONL reports and 46/46 stderr logs. Only `37-kanturu` changes, in two PNGs and its report. Its last frame
@@ -141,26 +149,26 @@ views were not part of the required 46-view comparison. No new live capture was 
 Steward validators: validate_actor_composites, validate_actor_monsters, validate_actor_recipes, validate_audio_callers, validate_audio_charsel, validate_audio_combat, validate_audio_domains, validate_audio_items, validate_audio_objects, validate_audio_objects4, validate_charsel_items, validate_helpers, validate_icarus_c2, validate_inventory_fx, validate_item_callers, validate_items_ui, validate_meshdraw, validate_model_edge, validate_model_light, validate_mount_visuals, validate_movement, validate_muun_passes, validate_muun_riding, validate_muun_secondary, validate_muun_special, validate_muun_visual, validate_path, validate_pets, validate_raven, validate_render_effects16, validate_render_effects17, validate_render_effects18, validate_render_effects19, validate_render_effects24, validate_render_effects25, validate_render_effects26, validate_render_effects28, validate_session_party, validate_terrain, validate_terrain_remaining, validate_viewport_monsters, validate_worlds_f, validate_worlds_fog
 
 All 43 latest row results pass, totaling 746,994 reported cases. The table records the most recent
-passing run of each row: 1 at `6270622e`, 6 at `76f42724`, 26 at `88420149`, 4 at `8e992004`, 6 at `8ee7eaa0`.
+passing run of each row: 15 at `2eb3d97f`, 1 at `6270622e`, 6 at `76f42724`, 17 at `88420149`, 4 at `8e992004`.
 These older rows retain unchanged inputs through the integrated main. Muun C/checker sources have not
 changed since `76f42724`; the remote integration test changed at `6270622e` and passed privately at
-`c37e14d6`. The earlier batch counts above are overlapping snapshots, not a distinct-case sum.
+`d7ef09f2`. The earlier batch counts above are overlapping snapshots, not a distinct-case sum.
 
 No mutants are needed in the steward run. Source the canonical private-env.sh from the repository root
 for MU_GAME_ROOT, MU_SECTION3, MU_EVIDENCE_DIR, MU_NATIVE_DATA_DIR and row-specific inputs.
 
 | Validator | Reported cases | Wall | Tested commit |
 |---|---:|---:|---|
-| `validate_actor_composites` | 1,427 | 12.5 s | `88420149` |
-| `validate_actor_monsters` | 1,437 | 71.2 s | `88420149` |
-| `validate_actor_recipes` | 1,669 | 93.8 s | `88420149` |
-| `validate_audio_callers` | 5,528 | 8.6 s | `8ee7eaa0` |
+| `validate_actor_composites` | 1,427 | 8.4 s | `2eb3d97f` |
+| `validate_actor_monsters` | 1,437 | 48.8 s | `2eb3d97f` |
+| `validate_actor_recipes` | 1,669 | 160.1 s | `2eb3d97f` |
+| `validate_audio_callers` | 5,528 | 4.9 s | `2eb3d97f` |
 | `validate_audio_charsel` | 5,968 | 6.4 s | `76f42724` |
 | `validate_audio_combat` | 19,548 | 46.3 s | `88420149` |
-| `validate_audio_domains` | 2,544 | 28.3 s | `8ee7eaa0` |
-| `validate_audio_items` | 3,000 | 4.6 s | `8ee7eaa0` |
-| `validate_audio_objects` | 4,000 | 4.4 s | `88420149` |
-| `validate_audio_objects4` | 10,093 | 8.6 s | `88420149` |
+| `validate_audio_domains` | 2,544 | 27.3 s | `2eb3d97f` |
+| `validate_audio_items` | 3,000 | 2.9 s | `2eb3d97f` |
+| `validate_audio_objects` | 4,000 | 4.4 s | `2eb3d97f` |
+| `validate_audio_objects4` | 10,093 | 5.5 s | `2eb3d97f` |
 | `validate_charsel_items` | 8,817 | 10.3 s | `88420149` |
 | `validate_helpers` | 8,667 | 203.8 s | `8e992004` |
 | `validate_icarus_c2` | 8,400 | 24.1 s | `88420149` |
@@ -171,7 +179,7 @@ for MU_GAME_ROOT, MU_SECTION3, MU_EVIDENCE_DIR, MU_NATIVE_DATA_DIR and row-speci
 | `validate_model_edge` | 954 | 179.2 s | `88420149` |
 | `validate_model_light` | 1,433 | 6.0 s | `88420149` |
 | `validate_mount_visuals` | 8,400 | 6.1 s | `8e992004` |
-| `validate_movement` | 6,614 | 69.3 s | `8ee7eaa0` |
+| `validate_movement` | 6,614 | 95.9 s | `2eb3d97f` |
 | `validate_muun_passes` | 1,361 | 1.5 s | `76f42724` |
 | `validate_muun_riding` | 890 | 0.7 s | `6270622e` |
 | `validate_muun_secondary` | 873 | 0.7 s | `76f42724` |
@@ -180,20 +188,20 @@ for MU_GAME_ROOT, MU_SECTION3, MU_EVIDENCE_DIR, MU_NATIVE_DATA_DIR and row-speci
 | `validate_path` | 4,719 | 47.4 s | `88420149` |
 | `validate_pets` | 1,062 | 153.7 s | `8e992004` |
 | `validate_raven` | 4,000 | 169.7 s | `8e992004` |
-| `validate_render_effects16` | 424 | 4.1 s | `8ee7eaa0` |
-| `validate_render_effects17` | 618 | 10.0 s | `88420149` |
+| `validate_render_effects16` | 424 | 3.7 s | `2eb3d97f` |
+| `validate_render_effects17` | 618 | 6.5 s | `2eb3d97f` |
 | `validate_render_effects18` | 540 | 2.4 s | `88420149` |
 | `validate_render_effects19` | 400 | 1.3 s | `88420149` |
-| `validate_render_effects24` | 226 | 3.3 s | `88420149` |
-| `validate_render_effects25` | 202 | 11.1 s | `88420149` |
-| `validate_render_effects26` | 348 | 15.5 s | `88420149` |
+| `validate_render_effects24` | 226 | 2.1 s | `2eb3d97f` |
+| `validate_render_effects25` | 202 | 7.9 s | `2eb3d97f` |
+| `validate_render_effects26` | 348 | 9.0 s | `2eb3d97f` |
 | `validate_render_effects28` | 630 | 3.7 s | `88420149` |
 | `validate_session_party` | 200 | 0.9 s | `76f42724` |
 | `validate_terrain` | 583,500 | 460.1 s | `88420149` |
 | `validate_terrain_remaining` | 2,147 | 5.0 s | `88420149` |
 | `validate_viewport_monsters` | 1,963 | 13.9 s | `88420149` |
 | `validate_worlds_f` | 1,818 | 0.6 s | `88420149` |
-| `validate_worlds_fog` | 4,044 | 10.4 s | `8ee7eaa0` |
+| `validate_worlds_fog` | 4,044 | 6.5 s | `2eb3d97f` |
 
 ## Limits and next
 
@@ -211,29 +219,11 @@ No installed-app, full-scene/live equivalence or strict performance claim.
 
 ## Checkpoints and cleanup
 
-Checkpoints `8e992004`, `59822bfc`, `b8a03b96`, `76f42724`, `6e7965eb`, `fed9a7a4`, `0feb53c7`, `88420149`, `6270622e`, `fdd355f4` and `c37e14d6` were pushed with
-progress/remaining-work records. This final handoff supersedes the WIP text. Scratch/renders use
-`~/Documents/MTM/mu-mac-tools/native/{scratch,renders}/muun-visual-004`. No future-lane input was created.
-All documentation and final pushes precede the ready-prs entry; no push follows it. Task scratch/renders,
-ignored builds/reports, the worktree and local branch are removed; the remote branch remains for the steward.
-
-## WIP: latest-main UI refresh
-
-All results above pass through main `a95880c4`. While recording the final audit, main advanced to
-`4480bf41` (UI-WINDOWS-004). No ready queue entry or PR exists.
-Done: all Muun implementation, original comparisons/mutants, private controls, proof and exact incoming
-Kanturu identity comparison; repository audit is green for the preceding integrated candidate.
-Left: integrate the new UI source, refresh only affected checks, update final binary/proof/audit results,
-then push, open PR, append the ready entry and clean up. Next: inspect/merge UI-WINDOWS-004 and build.
-
-## UI-WINDOWS-004 finish-line checkpoint
-
-Finish-line base `4480bf41` is integrated at `2eb3d97f`. Build passes in 15.88 s. Exact lane selection
-remains 43 rows (31.71 s preview). Its 15 changed-input rows pass in 197.83 s after a 68.28 s preview,
-zero failures/errors/skips; all 43 latest rows total 746,994 reported cases. Muun C/checker sources
-are unchanged. The portable preview selects 180 items in 84.20 s; its two-worker runner is active.
-Done: final-base integration/build and exact validator refresh.
-Left: active portable completion, private Muun runtime controls, proof/default replay and final audit.
-Next: complete the active runner, then verify the final executable and publish the PR/ready entry.
-Later main changes belong to the steward's combined-tree validation; this run is finishing the explicit
-merge/build/check/push sequence at the integrated `4480bf41` base. No ready queue line exists yet.
+Checkpoint pushes include `8e992004`, `59822bfc`, `b8a03b96`, `76f42724`, `6e7965eb`, `fed9a7a4`,
+`0feb53c7`, `88420149`, `6270622e`, `fdd355f4`, `c37e14d6`, `d1d97bbf` and `d7ef09f2`.
+They recorded done/left/next through implementation and integration. This final handoff supersedes WIP.
+The finish-line base is `4480bf41`; later main updates belong to the steward's combined-tree validation.
+Scratch/renders use `~/Documents/MTM/mu-mac-tools/native/{scratch,renders}/muun-visual-004`.
+No future-lane input was created. All documentation and final pushes precede the ready-prs entry;
+no push follows it. Task scratch/renders, ignored builds/reports, the worktree and local branch are
+removed; the remote branch remains for the steward.
