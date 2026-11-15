@@ -2,6 +2,8 @@
 
 RENDER-EFFECTS-032 verified fixture subset: recovered summon, shield, mount and Crescent Moon Slash callers, plus authored bow-kind/wing actions. Defense and Crescent move M -> L; missing summon, fire and Crescent end consumers remain counted refusals. Original requests, sound/default words, frame gates and constructor RNG interleaving pass 4,433 checks and 31/31 compiled mutants. [Checks and limits](handoffs/RENDER-EFFECTS-032.md).
 
+UI-WINDOWS-003 PR-ready: expanded inventory, the separate fifth-tree item viewer, BlockedChat and AutomaticMacro open through proved presentation routes. All actions that change game state remain inert; Home activation and the original Help route remain refused. Survey bindings 12 -> 16 of 134, unresolved 122 -> 118. Native journeys, 26 original route/controller decisions, eight compiled mutants and thirteen selected validators are verified. [Checks, timings and limits](handoffs/UI-WINDOWS-003.md).
+
 AUDIO-004 verified subset PR-ready: 33 object sound boundaries now retain original routine/site and arguments through native delivery. Census owner buckets rise 1,225 to 1,368 of 1,980 candidates; 612 remain unresolved. Monster whole-owner gaps and Kubera stop/play sequences remain refused. [Evidence, checks and limits](handoffs/AUDIO-004.md).
 
 RENDER-ACTORS-005 verified subset PR-ready: six ordinary monster body/weapon assemblies (0/4/6/7/9/17), original hand bones and both-hand pose preservation. Census: 39 checked, 905 incomplete/unverified, 80 refused. Secondary effect lifetimes and the four earlier refusal boundaries stay open. 1,437 focused checks, eight compiled controls and 29 affected validators pass; all 230 default hashes match. [Evidence, timings and limits](handoffs/RENDER-ACTORS-005.md).
