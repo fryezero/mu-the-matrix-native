@@ -18,7 +18,7 @@ Both world binaries were explicitly built in this lane's tree before/after sourc
 `1a7b20b52387fb7010574d45db4a7e99415ee3b06c7110da28bdc2877c25e484`; after
 `f55dd0a01cb079c2f25a27e09e17b3575bb5be32cc6f75f5727980a54d47187c`.
 All 55 baseline views rendered successfully. The after renders are held by the resource guard. Main is
-still `6900914e`; latest-main integration is a no-op. No production source changed after `607adef6`.
+still `6900914e`; latest-main integration is a no-op. No lane-owned producer/adapter source changed after `607adef6`.
 
 Left: render the prepared after manifests, run the paired analysis, inspect the affected images, finalize
 status/PR/ready line and clean up. No full lane gate. No claim of completed render validation yet.
@@ -59,7 +59,7 @@ compile began during a load spike before that conditional guard replaced the she
 ## Steward validators
 
 All rows below ran at `607adef64a6634141aa2da64f8ed6da96443d9de`, canonical private env, jobs 2,
-cache on, no mutants. No steward mutants requested. Later commits only change documentation.
+cache on, no mutants. No steward mutants requested. The initial 75-row result predates the integration described below.
 
 | Validator | Reported cases | Wall s |
 |---|---:|---:|
@@ -142,3 +142,43 @@ cache on, no mutants. No steward mutants requested. Later commits only change do
 Steward validators: validate_actor_composites,validate_actor_monsters,validate_actor_recipes,validate_audio_callers,validate_audio_domains,validate_audio_items,validate_audio_objects,validate_audio_objects4,validate_charsel_items,validate_charsel_world,validate_icarus,validate_icarus_c2,validate_inventory_fx,validate_item_callers,validate_items_ui,validate_login_world,validate_meshdraw,validate_model_edge,validate_model_light,validate_movement,validate_object_render,validate_render_effects16,validate_render_effects17,validate_render_effects18,validate_render_effects19,validate_render_effects24,validate_render_effects25,validate_render_effects26,validate_render_effects28,validate_render_effects31,validate_render_worlds_a,validate_terrain,validate_terrain_remaining,validate_world_fidelity,validate_world_light_name,validate_world_tile_folder,validate_worlds_121,validate_worlds_after,validate_worlds_after2,validate_worlds_after3,validate_worlds_after4,validate_worlds_after5,validate_worlds_after6,validate_worlds_b,validate_worlds_d,validate_worlds_e,validate_worlds_f,validate_worlds_g,validate_worlds_g2,validate_worlds_g3,validate_worlds_h,validate_worlds_i,validate_worlds_inner,validate_worlds_inner2,validate_worlds_inner3,validate_worlds_inner4,validate_worlds_inner5,validate_worlds_j,validate_worlds_k,validate_worlds_karutan,validate_worlds_n,validate_worlds_o,validate_worlds_p,validate_worlds_p2,validate_worlds_q,validate_worlds_q2,validate_worlds_r,validate_worlds_r2,validate_worlds_raklion,validate_worlds_s,validate_worlds_s2,validate_worlds_s3,validate_worlds_slots,validate_worlds_slots2,validate_worlds_slots3.
 
 Env: source `~/Documents/MTM/mu-mac-tools/native/private-env.sh` from the repo root. Original inputs and Native Data are read-only.
+
+## Main integration WIP
+
+Pinned integration base `c7a6679db4ab24d2ee4af67ebeda9f903727f8f2` contains batch-115 ACTORS-006 #396,
+EFFECTS-032 #394 and MUUN-004 #397. The world producer, adapter and production host are unchanged.
+The append conflict preserves all five independent validator entries; repository-Python TOML parsing
+passes all 245 rows. An intermediate local merge commit retained markers after system Python lacked
+tomllib and the shell continued; correction `2fe33f74` removes them before this push. No marker remains.
+
+Integration root build passes in 11.96 s. The 81.58 s post-build selection yields 76 final lane rows and
+31 overlaps/new rows to replay, including the new actor-plain row. The replay is running at
+`2fe33f744e5233aa201a90f797879b131189e005`; actor-plain, terrain, EFFECTS-031 and model-edge have passed.
+No completed world-producer mutant repeats. Incoming native/core headers require the affected portable
+and private modules, still pending. The pinned base is the integration cutoff for this lane.
+
+Next: finish `integration-validators`, run prepared `portable_integration.py`, then private incoming
+modules plus the world host, explicit world build and `render.py after` / `analyze_renders.py`. The
+premerge ledger stores hashes/reports, so after outputs can be overwritten without duplicating renders.
+Do not rerender the successful before baseline.
+
+## Pre-integration render results
+
+All 55 after views pass in 104.07 s; analysis takes 1.26 s. Default draws, no draw-all, 640x400,
+25 steps sampled at 0/24: all 46 views, 92 PNGs, 92 OBJECT/light dumps and 46 normalized reports
+are byte-identical. Normalization drops only png/fidelity_dump path keys. Full-resolution Remain
+is 6.190 -> 6.190, share-off 0.0568 -> 0.0568.
+
+Authored proofs, 1280x800, draw-all, 25 steps, hero tile 128,128, zero angles, scale 1, Z=500:
+Kalima 15/29/32 at (12650+column*150,12750,500), folder 25 shared by all seven aliases; tower type 0
+at (12650,12750,500), folder 40. All three Kalima models and the tower model load. Kalima aliases
+all create 25 sprites and draw one last-frame sprite; context refusals 75 -> 0, three create / 72 move
+refusals unchanged. Their frame-0/24 differences are 1,728 / 2,174 pixels, mean RGB 0.024714 / 0.090989.
+The Bone02 glow is visible. Idle/null-water context writes Z=180 after the sprite request.
+
+Tower's fixed inactive context changes hidden mesh to 0. Frame 0 is identical; frame 24 changes
+220,412 pixels, mean RGB 6.547347. Context refusals 25 -> 0, one create / 24 move refusals unchanged.
+This animation sample emits no puff and no new particle, joint or effect pixel gain is claimed.
+The synthetic production host covers frame 6 and counted missing bone 34. All proof light dumps are
+identical; OBJECT dumps differ through the intended position/hidden writes. Kalima frame 0 and tower
+frame 24 were visually inspected. These are authored contexts, not original placements or event fidelity.
