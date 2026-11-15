@@ -1141,8 +1141,8 @@ sound route here. No adjacent prologue or literal-only classification is added.
 
 Census ownership becomes 1,462 classified / 518 unresolved. UI becomes 53 and
 skills/shared timelines 364; all other AUDIO-005 buckets stay unchanged.
-Production fixture boundaries advance 411 to 593 if the final admission checks
-pass. The separate two stop sites are unchanged. The entry missing-id overlay
+Production fixture boundaries advance 411 to 593 after the whole-owner,
+outer-dispatch, caller and delivery checks pass. The separate two stop sites are unchanged. The entry missing-id overlay
 is nine among unknown owners, eight in the recovered class group, four in the
 marker/service group and eleven among class-use candidates. These overlap the
 primary blockers and must not be added to their denominators.
