@@ -329,3 +329,111 @@ Native renders 25/30 rows: ids 356/357/375/376/377 admit 3/3/7/8/4. Besides thos
 357's mesh-3 row is refused because its actual model has only meshes 0..2. Its texture exists; no filename
 normalization or substitute mesh was used. Private original and GL/software pixel controls pass; final
 mutants/refresh counts belong in the handoff. No additional mesh-associated effect consumer was authored.
+
+## Initial complete appearance census, MUUN-VISUAL-005
+
+Before behavior changes, the frozen read-only inputs were joined across all 386 render-info rows.
+The [row table](muun-appearance-census.csv) records each appearance/model, exact asset request, current
+adapter admission and missing behavior. These are adapter/asset classifications, not 386 pixel-equivalence
+claims. Native Data remains APP-REFRESH-006; model BMDs are read from the canonical game root because
+Native Data contains converted tables/objects/GFx, not a second model tree. No refresh is performed.
+
+| Initial group | Rows | What draws / what is missing |
+|---|---:|---|
+| Kind 0 | 378 | Base/pose adapter; row-specific exceptions are in the CSV |
+| Kind 1 | 8 | Existing secondary body, seat, four rider phases, fade and local buff mode; secondary particle and remote effect consumer gaps |
+| Loadable base models | 379 | 547 admitted extra rows, 16 attachment records, zero attachment-bone or texture-load refusals |
+| Missing asset | 6 | `shogunpet.bmd`, `shogunpet_evol.bmd`, `ninjapet.bmd`, `ninjapet_evol.bmd`, `samouraipet.bmd`, `samouraipet_evol.bmd`, all under `Data/Item` |
+| Missing item binding | 1 | Appearance 193; no Item.bmd model-path binding |
+| Loadable models with actions 0..2 | 126 | Command actions 3/4 unavailable, including 363 `Data/Item/dandelionUp.bmd` |
+| Loadable models with actions 0..3 | 8 | Command action 4 unavailable |
+| Loadable models with actions 0..4 | 245 | Command action slots exist; production command selection remains excluded |
+
+The 13 initially refused extra rows comprise four bone-effect rows and nine out-of-range mesh rows.
+The latter affect appearances 276, 292, 305, 306, 357, 368 and 369. This includes the prior lane's exact
+`Data/Item/lalaUp.bmd` mesh 3 request, whose file has only meshes 0..2. The four bone-effect rows have
+available assets: 375 `illusionmuun.bmd` mesh 1, both 376 `ragefightermuun.bmd` mesh 2 rows, and 377
+`dark_muun.bmd` mesh 4. Bones 11/18 on 375 and bone 52 on 377 exist, are non-dummy and have resolved
+parent chains. A missing mesh or action is refused; no replacement asset or action is inferred.
+
+Secondary `0x009bfe13` request callers and remote timer arithmetic already have original comparisons
+and compiled controls in 004. Remaining consumer ids are particles `0x8081/1`, `0x8082/1`, `0x7ef7/19`
+and effect `0x47a/0`. This lane may add only the last consumer. The earlier seated-rider, four-action,
+owner-kind-2 fade and local buff-0x12 rows have no newly demonstrated missing implementation; original
+RNG/process phase, remote class/team visibility and authoritative target/selection inputs remain excluded.
+
+### Verified bone-effect rows and integrated transition proof
+
+`validate_muun_bones` executes the complete `0x017f76ec..0x017f919e` caller for all four previously
+blocked rows and for the complete ordered row lists of models 0x2b8d/e/0x2b90. It compares body/mesh,
+particle and sprite arguments, colours, bone lookup order, translated zero-point transforms and restored
+model colour. Named services supply posed own-bone points, RangedRandom values and CRT sine/cosine/sqrt;
+vector constructors/operators, normalization, atlas and the bone-sprite helper `0x01533712` execute as
+original code. Body SHA-256 is `3504e24095f6d5d0f858f3b96ea13e5f2ba0ec3e4af19efc1685789045688237`.
+The client identity remains `3cf91f3c203d305a771b04d00b271871f7ce1c6779b22e30fbae8c4f35b5527a`.
+
+| Appearance / branch | Admitted behavior | Retained consumer boundary |
+|---|---|---|
+| 375 mesh 1, 0x017f7caa | 13-frame atlas, colour 1/0.2/0.15; three particle requests along own bones 11/18 with normalized random jitter | particle 0x8084/28 |
+| 376 both mesh-2 rows, 0x017f815d | Ordinary mesh arguments and eight bone sprites per row, paired scales 0.15 +/- sin(time * 0.001 * 2) * 0.07 at bones 12/13/22/23 | sprite bitmap 0x810d unavailable in the world bitmap table; 0x80ba draws |
+| 377 mesh 4, 0x017f8872 | No mesh call; own bone 52 supplies three rotating/pulsed sprite requests and a conditional particle | sprite bitmap 0x8003 unavailable; particle 0x7efa/3 unavailable; 0x7ef7 glows draw |
+
+Normalization uses the original reciprocal product and strict epsilon boundary. The fixture supplies
+its own deterministic random fractions/integers, not the original RangedRandom distribution or process
+phase. Native refuses missing/dummy/unresolved bones, missing sprite bitmaps and unsupported particle
+subtypes, and accounts every emitted request. Sprite success uses the pool's created counter because
+sprite index zero is valid. No new consumer for these missing ids was added.
+
+This admits 29 of the five special appearances' 30 record branches. Of those, 28 draw meshes and one
+is effect-only. The sole remaining record refusal is 357 `lalaUp.bmd` mesh 3. Across the whole census,
+551 extra rows are admitted and nine out-of-range mesh rows remain. Their exact unavailable indices are
+276 `king.bmd` 1; 292 `superpandaUp.bmd` 1; 305 `poodle.bmd` 1/2; 306 `poodleUp.bmd` 2/3;
+357 `lalaUp.bmd` 3; 368 `Snowboarder.bmd` 1; 369 `SnowboarderUp.bmd` 2. All are under `Data/Item`.
+The table requests a base-body draw on 335 of 386 rows; the row CSV distinguishes the other 51.
+
+While this lane was based on 004, main had already gained the `0x47a/0,1` consumer and DarkLordSkill model
+binding in RENDER-EFFECTS-031. Main `df57ab8b` was merged, that implementation was retained unchanged,
+and this lane's duplicate subtype-0 consumer/model slot was removed. The new focused consumer checker
+runs full original CreateEffect/MoveEffect instructions for subtype 0, including the consumed random draw
+and common animation/motion/lifetime tails. Creation is `0x013db316`, movement `0x01473b22`, the generic
+RenderEffects body route is `0x015324cf`, and AccessModel is `0x01833c69..0x01833c6e`.
+
+The authored 3-second clock now reaches that existing consumer. Separate 81- and 90-frame native runs
+prove one live drawn model and later expiry on GL and software; enabled/disabled controls differ during
+its life and match after expiry. The detailed effect-model report is emitted at shutdown, so a final
+zero at frame 89 is not evidence that the effect never drew. Full read-only game assets supply
+`Data/Skill/DarkLordSkill.bmd`; the frozen Native Data copy lacks that asset. No refresh or copying into
+Native Data was performed. These are full-data fixture proofs, not a claim that the frozen installed
+Preview can draw the transition.
+
+### Remaining buff/pose classification before final admission
+
+The final limits audit separates two remaining fixture rows from the excluded authoritative feeds.
+The remote mode-10 visibility gate at `0x017f746f` scans 400 character slots for the OBJECT owner,
+skips the local owner, requires predicate `0x00d8b3e3 == 1` and buff 0x12, then compares raw CHARACTER
+byte +0x16. Four local-byte groups require the remote byte in the same group: 6/9, 7/10, 8/11 and 12/13.
+Other local bytes allow the draw. No meaning for byte +0x16 or the predicate is inferred here. A supplied
+raw-byte/predicate fixture can compare this whole caller without an authoritative feed.
+
+The four existing rider categories emit 38/71/103/315. Their selector does not emit the fifth proved
+seat interval 0x118..0x132. A separate authored action in that interval can test the existing seat and
+secondary-action consumers, provided the canonical player model actually has that action and positive keys.
+Absent keys must remain refused. This is a raw pose fixture, not a new command/action selection feed.
+
+### Verified supplied remote gate and fifth rider interval
+
+`MU_MUUN_REMOTE_BUFF_FIXTURE=9,0,1` supplies local byte, remote byte and predicate to the existing mount
+buff fixture. It requires `MU_MUUN_MOUNT_FIXTURE=1` and `MU_MUUN_BUFF18_FIXTURE=1`. The native gate
+accepts local/remote bytes 0..255 and a supplied predicate 0 or 1. It
+intentionally hides a mismatched group without counting it as an unsupported render mode. Matching 9/6
+draws, and predicate zero bypasses the gate. `validate_muun_visibility` compares the complete 400-slot
+caller, including lookup order, local-owner bypass, predicate/buff values, mesh arguments and colour
+restoration: 388 cases and eight compiled mutation controls. Its original body SHA-256 is
+`cba17edf9d1e0a300ad736c2e4208a16f1896e3c72a446283ca0a6111da38d52`.
+
+`MU_MUUN_RIDER_ACTION_FIXTURE=280` requires the existing rider fixture and a value in an admitted
+seat interval. The original gate `0x009c046a` agrees for all 29 actions 279..307, with two additional
+compiled boundary controls. Canonical action 280 has keys; the native fixture draws and restores that
+pose on both backends. The combined checker has 417 cases and ten distinct controls. This does not
+add production action selection, infer equipment, or supply an authoritative owner lookup. The original
+lookup/predicate/buff services remain explicitly supplied in the checker; native uses only authored inputs.

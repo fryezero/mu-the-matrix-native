@@ -17,6 +17,8 @@ typedef struct mu_muun_mount {
     long draws, refused_actions, refused_bones, refused_modes;
     int32_t counter, render_mode;
     int owner_kind, buff18;
+    int buff_hidden;
+    long hidden_modes;
     mu_hp_object fade;
     long particle_requests, particle_created, particle_refused, particle_bones_refused;
 
