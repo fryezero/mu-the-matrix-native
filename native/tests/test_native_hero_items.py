@@ -12,6 +12,12 @@ Private, installed data (MU_RECOVERY_INTEGRATION=1, MU_GAME_ROOT): Lorencia thro
 front end's equipment, as mu-client passes the demo characters'): files with non-standard names now take their
 Item.bmd record's type, so the pre-draw programs of RENDER-ITEMS-002R run on the hero (blade01.bmd 0x0b4b,
 CR_shield01.bmd 0x1748 in the left hand, InnocenceCape.bmd 0x2382); standard-named items keep the report.
+
+HERO-ITEMS-002: the end of SetCharacterClass. Portable: worked examples of the castle worlds' weapon override
+0x009dadf1 (mu_he_castle_override), SetCharacterScale 0x01394f6f's branches (mu_he_character_scale) and the order
+of RenderCharacter's body-part loop (mu_he_part_draws). Private scenes: each listed helm the installed Item.bmd has
+loads the class head into the hero's slot 0 (and another helm does not), a Chaos Castle world replaces the hero's
+weapons and wing with the class weapon, and the class scale and part float reach the character.
 """
 import ctypes
 import json
@@ -26,7 +32,7 @@ HERE = Path(__file__).resolve().parent
 NATIVE = HERE.parent
 ROOT = NATIVE.parent
 sys.path.insert(0, str(ROOT/'scripts'))
-from validate_hero_items import Item  # noqa: E402  (ctypes view only; Unicorn is not needed)
+from validate_hero_items import HEAD_HELMS, Item, PartDraw, Scale, ScaleIn  # noqa: E402  (ctypes views; no Unicorn)
 from validate_players import Character  # noqa: E402
 
 WALK = NATIVE/'build/mu-walk'
@@ -56,6 +62,16 @@ class Library(unittest.TestCase):
         cls.lib.mu_character_part_type.restype = ctypes.c_uint32
         cls.lib.mu_he_item_of_record.argtypes = [ctypes.c_int32, ctypes.c_uint8, ctypes.c_uint8, ctypes.c_uint8]
         cls.lib.mu_he_item_of_record.restype = Item
+        # HERO-ITEMS-002
+        cls.lib.mu_he_castle_override.argtypes = [ctypes.POINTER(Character), ctypes.c_int32]
+        cls.lib.mu_he_character_scale.argtypes = [ctypes.POINTER(Character), ctypes.POINTER(ScaleIn),
+                                                  ctypes.POINTER(Scale)]
+        cls.lib.mu_he_set_character_class_world.argtypes = [ctypes.POINTER(Character), ctypes.POINTER(Item),
+                                                            ctypes.POINTER(ScaleIn), ctypes.POINTER(Scale)]
+        cls.lib.mu_he_part_draws.argtypes = [ctypes.POINTER(Character), ctypes.POINTER(PartDraw)]
+        cls.lib.mu_he_part_draw_type.argtypes = [ctypes.c_uint8, ctypes.c_int32, ctypes.c_int16]
+        cls.lib.mu_he_class_scale.argtypes = [ctypes.c_uint8, ctypes.c_int]
+        cls.lib.mu_he_class_scale.restype = ctypes.c_float
 
     @classmethod
     def tearDownClass(cls):
@@ -126,6 +142,110 @@ class Library(unittest.TestCase):
     def test_equipment_slot_of_each_character_slot(self):
         self.assertEqual([self.lib.mu_he_equipment_of_slot(k) for k in range(11)], [-1, 2, 3, 4, 5, 6, 0, 1, 7, -1, 8])
 
+    # ---- HERO-ITEMS-002 ----
+
+    def run_world(self, equipment, world, class_byte=0x01, scene=6, buffs=(0, 0), byte_0e=0, model=0xa91,
+                  prior=(0x1234, 0x55, 0x66, 0x77)):
+        c = Character()
+        c.model, c.class_byte, c.byte_0e, c.byte_16 = model, class_byte, byte_0e, 3
+        for k in range(11):
+            c.slots[k].type, c.slots[k].level, c.slots[k].option, c.slots[k].ext = prior
+        items = [EMPTY] * 9
+        for s, item in equipment.items():
+            items[s] = item
+        scale = Scale((7.0,) * 6, 7.0, 0xff, 0xff)
+        self.lib.mu_he_set_character_class_world(ctypes.byref(c), (Item * 9)(*[Item(*i) for i in items]),
+                                                 ctypes.byref(ScaleIn(world, scene, *buffs)), ctypes.byref(scale))
+        slots = [(c.slots[k].type, c.slots[k].level, c.slots[k].option, c.slots[k].ext) for k in range(11)]
+        return slots, scale, c
+
+    def test_castle_worlds_replace_the_weapons_wing_and_helper(self):
+        worn = {0: (3, 7 << 3, 5, 0, 1), 1: (6 * 512, 2 << 3, 9, 0, 1), 7: (12 * 512 + 1, 9 << 3, 0, 0, 0),
+                8: (13 * 512 + 2, 1 << 3, 0, 0, 0)}
+        for world in (0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x35, 0x61):
+            slots, _, c = self.run_world(worn, world)
+            # Dark Knight: the sword 0x0af6 in both hands at level 0, the option cleared, the worn ext kept
+            self.assertEqual(slots[6], (0x0af6, 0, 0, 5), world)
+            self.assertEqual(slots[7], (0x0af6, 0, 0, 9), world)
+            self.assertEqual(slots[8], (-1, 0, 0x66, 0x77), world)    # the wing: type and level
+            self.assertEqual(slots[10], (-1, 0, 0x66, 0x77), world)   # the helper too
+            self.assertEqual(c.byte_16, 0)
+            self.assertEqual(slots[2][0], 0x3750 + 1)                 # the parts are not touched
+        for world in (0, 2, 0x11, 0x18, 0x34, 0x36, 0x60, 0x62):
+            slots, _, c = self.run_world(worn, world)
+            self.assertEqual((slots[6], slots[7], slots[8][0], c.byte_16), ((0xae9, 7, 1, 5), (0x16e6, 2, 1, 9), 0x22e7, 3))
+
+    def test_castle_weapon_of_each_class(self):
+        sword, bow, staff = (0x0af6, 0x0af6), (0x12f9, -1), (0x14eb, -1)
+        want = [staff, sword, bow, sword, sword, staff, sword, sword, staff, sword, sword, staff, staff, sword, staff,
+                sword]
+        for nibble in range(16):
+            slots, _, _ = self.run_world({0: (3, 0, 0, 0, 0), 1: (6 * 512, 0, 0, 0, 0)}, 0x12, class_byte=nibble | 0x30)
+            self.assertEqual((slots[6][0], slots[7][0]), want[nibble], nibble)
+
+    def test_castle_override_alone_returns_whether_it_ran(self):
+        c = Character()
+        c.class_byte = 2
+        for k in range(11):
+            c.slots[k].type = 0x1000 + k
+        self.assertEqual(self.lib.mu_he_castle_override(ctypes.byref(c), 0x11), 0)
+        self.assertEqual(c.slots[6].type, 0x1006)
+        self.assertEqual(self.lib.mu_he_castle_override(ctypes.byref(c), 0x61), 1)
+        self.assertEqual([c.slots[k].type for k in (6, 7, 8, 9, 10)], [0x12f9, -1, -1, 0x1009, -1])
+
+    def test_scale_branches(self):
+        table = [0.9, 0.9, 0.88, 0.95, 0.92, 0.9, 1.03, 0.9, 0.9, 0.9, 0.9, 0.99, 0.9, 0.9, 0.8, 1.1]
+        f32 = lambda v: ctypes.c_float(v).value  # noqa: E731
+        for nibble in range(16):
+            _, scale, _ = self.run_world({}, 0, class_byte=nibble | 0x10)
+            self.assertEqual((scale.object, scale.branch, scale.buff_queries), (f32(table[nibble]), 3, 2), nibble)
+            self.assertEqual(list(scale.part), [0.0, f32(0.95) if nibble == 11 else 0.0, 0.0, 0.0, 0.0, 0.0])
+            _, scale, _ = self.run_world({}, 0x35, class_byte=nibble)   # a castle world: no scene or buff test
+            self.assertEqual((scale.object, scale.branch, scale.buff_queries),
+                             (f32(0.88 if nibble == 2 else 0.9), 1, 0), nibble)
+            self.assertEqual(list(scale.part), [0.0] * 6)
+            self.assertEqual(self.lib.mu_he_class_scale(nibble, 0), f32(table[nibble]))
+        _, scale, _ = self.run_world({}, 0, class_byte=6, scene=5)      # the character select
+        self.assertEqual((scale.object, scale.branch, scale.buff_queries), (f32(1.7), 2, 0))
+        _, scale, _ = self.run_world({}, 0, class_byte=6, buffs=(1, 0))
+        self.assertEqual((scale.object, scale.branch, scale.buff_queries), (f32(1.1), 4, 1))
+        _, scale, _ = self.run_world({}, 0, class_byte=6, buffs=(0, 1))
+        self.assertEqual((scale.object, scale.branch, scale.buff_queries), (f32(1.1), 4, 2))
+        slots, scale, _ = self.run_world({2: (0x18e6 - 0xae6, 0, 0, 0, 0)}, 0, byte_0e=1)   # c + 0xe: nothing written
+        self.assertEqual((slots[0][0], scale.object, list(scale.part), scale.branch), (0x1234, 7.0, [7.0] * 6, 0))
+        slots, scale, _ = self.run_world({0: (3, 0, 0, 0, 0)}, 0x12, model=0x7d9)           # not a Player model
+        self.assertEqual((slots, scale.object, scale.branch), ([(0x1234, 0x55, 0x66, 0x77)] * 11, 7.0, 0xff))
+
+    def draws(self, c):
+        out = (PartDraw * 6)()
+        return [(out[i].slot, out[i].type) for i in range(self.lib.mu_he_part_draws(ctypes.byref(c), out))]
+
+    def test_body_part_loop_draws_the_head_last(self):
+        for helm in HEAD_HELMS:
+            slots, _, c = self.run_world({2: (helm - 0xae6, 0, 0, 0, 0)}, 0, class_byte=0x01)
+            self.assertEqual(slots[0][0], 0x3701, hex(helm))
+            self.assertEqual(self.draws(c), [(5, 0x3841), (4, 0x37f1), (3, 0x37a1), (2, 0x3751), (1, helm), (0, 0x3701)])
+        for helm in (0x18e7, 0x18ef, 0x1926, 0x1a36):   # another helm hides the head: slot 0 is -1 and not drawn
+            slots, _, c = self.run_world({2: (helm - 0xae6, 0, 0, 0, 0)}, 0, class_byte=0x01)
+            self.assertEqual(slots[0][0], -1)
+            self.assertEqual(self.draws(c), [(5, 0x3841), (4, 0x37f1), (3, 0x37a1), (2, 0x3751), (1, helm)])
+        _, _, c = self.run_world({}, 0, class_byte=0x01)   # no helm: the class helm part is the head model in slot 1
+        self.assertEqual(self.draws(c), [(5, 0x3841), (4, 0x37f1), (3, 0x37a1), (2, 0x3751), (1, 0x3701)])
+
+    def test_class_part_models(self):
+        t = self.lib.mu_he_part_draw_type
+        self.assertEqual(t(5, 1, 0x18e6 + 10), 0x36ce + 10 + 14)        # class nibble 5: index 10/11 of groups 7..11
+        self.assertEqual(t(5, 5, 0xae6 + 11 * 512 + 11), 0x36ce + 11 + 22)
+        self.assertEqual(t(5, 1, 0x18e6 + 12), 0x18e6 + 12)
+        self.assertEqual(t(6, 2, 0xae6 + 8 * 512 + 5), 0x36d4 + 0 + 32)  # class nibble 6: index 5, 6, 8, 9
+        self.assertEqual(t(6, 5, 0xae6 + 11 * 512 + 9), 0x36d4 + 3 + 40)  # group 11 counts as 10
+        self.assertEqual(t(6, 1, 0x18e6 + 7), 0x18e6 + 7)
+        self.assertEqual(t(4, 1, 0x18e6 + 5), 0x38f6 + 5)               # class nibble 4: the helm slot only
+        self.assertEqual(t(4, 2, 0x18e6 + 5), 0x18e6 + 5)
+        self.assertEqual(t(4, 1, 0x18e6 + 7), 0x18e6 + 7)
+        for nibble in range(16):                                        # a class head is drawn as it is
+            self.assertEqual(t(nibble, 0, 0x3700 + nibble), 0x3700 + nibble)
+
 
 @unittest.skipUnless(PRIVATE, 'original captures are opt-in (MU_RECOVERY_INTEGRATION=1)')
 class ClientComparison(unittest.TestCase):
@@ -140,7 +260,17 @@ class ClientComparison(unittest.TestCase):
         self.assertEqual(report['families']['set_class']['cases'], 3000)
         self.assertEqual(report['families']['defaults']['cases'], 256)
         self.assertEqual(report['families']['record']['cases'], 3000)   # APP-POLISH-008
-        self.assertEqual(len(report['mutants']), 18)
+        # HERO-ITEMS-002: the 17 helms x 256 class bytes, 23 control rows x 16; 320 worlds x 16 + 3,000 direct
+        self.assertEqual(report['families']['head_rows']['cases'], 17 * 256 + 23 * 16)
+        table = report['families']['head_rows']['table']
+        self.assertEqual(sum(1 for row in table.values() if row['listed']), 17)
+        self.assertTrue(all(row['mismatches'] == 0 and row['head_draws'] == (256 if row['listed'] else 0)
+                            for row in table.values()))
+        self.assertEqual(report['families']['castle']['cases'], 320 * 16 + 3000)
+        self.assertEqual(report['families']['scale']['cases'], 256 * 2 * 4 * 4)
+        self.assertEqual(report['families']['part_loop']['cases'], 3000 + 1376)
+        self.assertEqual(report['families']['part_type']['cases'], 0x4400)
+        self.assertEqual(len(report['mutants']), 51)
         self.assertTrue(all(report['mutants'].values()))
 
 
