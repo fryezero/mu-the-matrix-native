@@ -38,7 +38,7 @@ int command(int world,const mu_obj_event *e,decision *out) {
 BODIES = {'ok_move':p.BODIES['ok_move'], 'bk_move':p.BODIES['bk_move'],
           'ignis_move':p2.BODIES['ignis_move'],
           'guardian':(0xdd2fae,0xdd306c), 'karutan':(0xe189af,0xe189e4),
-          'darkness':(0xe5e1a4,0xe5e2d5)}
+          'darkness':(0xe5e1a4,0xe5e2ce)}
 NAMES = ('mu_old_kethotum_move','mu_burning_kethotum_move','mu_ignis_move','mu_class_premove')
 
 
