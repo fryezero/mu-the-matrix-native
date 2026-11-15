@@ -363,6 +363,9 @@ def survey_pre(wa, t):
         here = (blocks[k + 1][1], max(effects))
         if first is None:
             first = here
+        elif gated and first[0] == here[0]:
+            # Further level constants inside the case add requests; the case extends to the last one.
+            first = (first[0], max(first[1], here[1]))
         elif first != here:
             raise Refused('the case bounds differ between states')
     if first is None:

@@ -249,9 +249,10 @@ GUARD_TYPES = PACKED_GUARD_TYPES + DECODED_GUARD_TYPES
 # else (matrix_brackets() checks both helpers and each case). No matrix call lies between them.
 MATRIX_TYPES = [0x0ef4, 0x12fa, 0x12fb, 0x14f2, 0x16f5, 0x16f6, 0x1711, 0x24f1]
 MATRIX_CARRY = [0x16f5, 0x24f1]
-# Ordinary bodies whose only unread word was a helper scalar tail: the ternary minimum (0x10f3, 0x1703) and the
-# upper clamp after the constant operations (0x1101).
-TAIL_TYPES = [0x10f3, 0x1101, 0x1703]
+# Ordinary bodies whose only unread word was a scalar form: the ternary minimum (0x10f3, 0x1703), the upper clamp
+# after the constant operations (0x1101) and the six-column atlas, whose divisor is loaded by push 6; pop ecx
+# (0x0172aead: 0x0f19, 0x1578, 0x157a and the shields 0x1735, 0x1737, 0x1738, 0x1755).
+TAIL_TYPES = [0x0f19, 0x10f3, 0x1101, 0x1578, 0x157a, 0x1703, 0x1735, 0x1737, 0x1738, 0x1755]
 # Level-gated pre-draw producers (gen_item_owner_fx.GATED_PROGRAM_TYPES); their draws fit with the requests set aside.
 GATED_CARRY = [0x0b2b, 0x0b2d, 0x0b2e, 0x0b32]
 AB_TYPES = GUARD_TYPES + MATRIX_TYPES + TAIL_TYPES + GATED_PROGRAM_TYPES   # every 002AB type: the lane's reader forms apply to these only
@@ -1404,8 +1405,8 @@ def slice_block(wa, block, frame=False, fold=False):
                 pushes.append(None)
             elif pushes:
                 pushes.pop()
-        if frame and name == 'push' and dst.type == X.X86_OP_IMM:
-            pushed = ('k', _i32(dst.imm))
+        if (frame or fold) and name == 'push' and dst.type == X.X86_OP_IMM:
+            pushed = ('k', _i32(dst.imm))   # 002AB: push 6; pop ecx; idiv ecx at 0x0172aead
             at = nxt
             continue
         if name == 'pop' and dname in gpr and pushed is not None:
