@@ -4138,3 +4138,19 @@ note = "RENDER-ITEMS-002AA: 32 packed-level random bodies, original caller guard
 "families.exits.cases" = 2048
 "families.caller_guards.cases" = 96
 "mutants.*" = {truthy = true}
+
+[validate_render_effects35]
+test = "native/tests/test_render_effects35.py::Original.test_original_receive_slices"
+pins = ["text", "data"]
+families = ["A-receive", "B-receive", "C-receive", "D-receive", "D-position", "E-receive", "E-end", "F-receive", "F-end", "step", "buff-end", "links", "link-index", "action", "select", "learned", "refusal"]
+cases = 4424
+mutants = 93
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/combat"]
+args = ["--cases", "40", "--mutations", "--output", "{report}"]
+note = "RENDER-EFFECTS-035: receive-slice callers of 28 catalogue skills outside the learned set (groups A-F), default step, learned buffs' end bodies, general link selector for every model type; authored learned admission; no new consumers"
+[validate_render_effects35.expect]
+all_equal = true
+all_mutants_caught = true
+"mutants.*.stopped" = 0

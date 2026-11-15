@@ -44,7 +44,7 @@ ROWS = {
     740: ('A', 'magic', 0x012598ab, 0x01259964), 77: ('A', 'magic', 0x012575bc, 0x01257634),
     652: ('A', 'magic', 0x012591f6, 0x01259262), 651: ('A', 'magic', 0x0125983f, 0x0125984b),
     727: ('A', 'magic', 0x01255ba2, 0x01255c5c), 2023: ('A', 'position', 0x0125f710, 0x0125f78b),
-    2025: ('A', 'position', 0x0125f82c, 0x0125f8a6), 2047: ('A', 'position', 0x0125f798, 0x0125f82c),
+    2025: ('A', 'position', 0x0125f82c, 0x0125f8a6), 2047: ('F', 'position', 0x0125f798, 0x0125f82c),
     1500: ('B', 'magic', 0x01254c46, 0x01254e31), 1502: ('B', 'magic', 0x01254e31, 0x0125501c),
     1503: ('B', 'magic', 0x0125501c, 0x012551f9),
     1125: ('C', 'magic', 0x01259964, 0x01259b1b), 1126: ('C', 'magic', 0x01259b1b, 0x01259cd2),
@@ -187,8 +187,8 @@ def case_input(rng, skill, n):
         for k in range(3):
             s.bones[i][k] = fx.f32(rng.uniform(-1000, 25000))
     s.learned_index = rng.choice([0, 1, 7, 13, 149])
-    if n % 10 == 9:
-        s.source.index = 400 + rng.randrange(100)     # not in the 400-slot table: the search ends without a hit
+    if n % 10 == 9:     # not in the 400-slot table: the search ends without a hit (400 itself is the edge)
+        s.source.index = 400 if n % 20 == 9 else 400 + rng.randrange(1, 100)
     s.attack_time = rng.choice([0, 1, 5, 14])
     s.hero_attack_time = s.attack_time if s.source_is_hero else rng.choice([0, 1, 5, 14])
     if n % 13 == 12:      # sign-extension edge of the hero key compare
@@ -576,7 +576,7 @@ MUTANTS = [
     ('{0.0f, -220.0f, 130.0f}', '{0.0f, -220.0f, 131.0f}'),
     ('offset[k] + s->source.position[k]', 'offset[k] + s->target.position[k]'),
     ('r->subtype == 1 ? 1.0f : 0.92f', 'r->subtype == 1 ? 1.0f : 0.9f'),
-    ('p->attack_time = 1; p->hero_attack_time = 1;', 'p->attack_time = 1;'),
+    ('if (r->skill != 234) p->hero_attack_time = 1;', ''),
     ('r->flags & F_ACTION_FIRST ? &s->source : &s->target', '&s->target'),
     ('s->source.class_word != 0x4d', 's->source.class_word != 0x4c'),
     ('{ pose(p, r); p->frame_reset = 1; }', '{ pose(p, r); }'), ('if (s->presence_18) return;', ''),
@@ -595,6 +595,28 @@ MUTANTS = [
     ('action >= 3 && action <= 4', 'action >= 3 && action <= 5'),
     ('else if (frame >= 5.0f &&', 'else if (frame > 5.0f &&'),
     ('return 15;   /* the cutoff', 'return 14;   /* the cutoff'),
+    ('n < 19; ++n', 'n < 18; ++n'), ('c->scale = 40.0f; c->arg7 = 2;', 'c->scale = 40.0f; c->arg7 = 1;'),
+    ('{0x4bd, 0}, {0x809e, 0}, {0x809e, 1}, {0x809e, 2}', '{0x4bd, 0}, {0x809e, 0}, {0x809e, 1}, {0x809e, 1}'),
+    ('            if (!s->model_present) return;\n', ''), ('if (s->bone_count <= 0) continue;', 'if (s->bone_count < 0) continue;'),
+    ('s->random[n-4] % s->bone_count', 's->random[0] % s->bone_count'),
+    ('if (n >= 4) memcpy(c->position, s->bones[n-4], sizeof c->position);', ''),
+    ('c->light[0] = 0.3f; c->light[1] = 0.2f; c->light[2] = 0.1f;', 'c->light[0] = 0.3f; c->light[1] = 0.2f; c->light[2] = 0.2f;'),
+    ('{ c->light[0] = 0.7f; c->light[1] = 0.6f; c->light[2] = 0.0f; }', '{ c->light[0] = 0.7f; c->light[1] = 0.5f; c->light[2] = 0.0f; }'),
+    ('if (r->skill != 234) p->hero_attack_time = 1;', 'p->hero_attack_time = 1;'),
+    ('if (s->model_present) sound(p, r);', 'sound(p, r);'),
+    ('recovery_part(s, p, &s->source);\n        if', 'recovery_part(s, p, &s->target);\n        if'),
+    ('if (r->second) p->target_link = 1;', ''), ('{{0.0f, 20.0f, 0.0f}, 0x38b6, 2}', '{{0.0f, 20.0f, 0.0f}, 0x38b6, 1}'),
+    ('{{0.0f, 0.0f, 0.0f}, 0x38b4, 3}', '{{0.0f, -20.0f, 0.0f}, 0x38b4, 3}'),
+    ('{{0.0f, -120.0f, 145.0f}, 0, 1}', '{{0.0f, -120.0f, 140.0f}, 0, 1}'),
+    ('s->source.index < 400 ? s->source.index : 0xffff', 's->source.index < 401 ? s->source.index : 0xffff'),
+    ('c->light[0] = 0.8f; c->light[1] = 0.9f; c->light[2] = 1.6f;', 'c->light[0] = 0.8f; c->light[1] = 0.9f; c->light[2] = 1.5f;'),
+    ('            else c->range = index;', ''), ('c->position[2] = 145.0f + s->source.position[2];', 'c->position[2] = 140.0f + s->source.position[2];'),
+    ('c->range = index; c->scale = 1.0f;', 'c->range = index; c->scale = 0.0f;'),
+    ('{427, GROUP_F, ELF, 0, GUARD_NONE, POSE_BOW, 0, 0, 0x4ba, 2,', '{427, GROUP_F, ELF, 0, GUARD_NONE, POSE_BOW, 0, 0, 0x4ba, 1,'),
+    ('0x34f, 0x01261522, 0}', '0x34f, 0x01261523, 0}'), ('POSE_PENETRATION, 0, 0, 0, 0, KEY_DEFAULT, 0, 0x2af', 'POSE_BOW, 0, 0, 0, 0, KEY_DEFAULT, 0, 0x2af'),
+    ('c->range = s->learned_index; c->owner = s->source.owner;', 'c->range = s->skill; c->owner = s->source.owner;'),
+    ('p->calls[p->count-1].skill = s->target.owner;', 'p->calls[p->count-1].skill = s->source.owner;'),
+    ('p->calls[p->count-1].skill = MU_SKILL35_NO_OWNER;      /* no target OBJECT */', ''),
     ('s->skill == 27 ? 2027 : 2026', 's->skill == 27 ? 2026 : 2027'),
     ('(s->skill != 27 && s->skill != 28)', '(s->skill != 27 && s->skill != 26)'),
 ]
@@ -639,6 +661,8 @@ def run(cases, mutants, only=None, dump=0):
             (tmp / 'combat').mkdir()
             dest = [tmp / 'combat' / Path(name).name for name in SOURCES[:2]]
             planted = [(0, old, new) for old, new in MUTANTS] + [(1, old, new) for old, new in LINK_MUTANTS]
+            stale = [old for which, old, new in planted if sources[which].count(old) != 1]
+            assert not stale, stale   # every plant names exactly one place, checked before the first build
             for index, (which, old, new) in enumerate(planted):
                 assert sources[which].count(old) == 1, old
                 for k in (0, 1):
@@ -647,11 +671,14 @@ def run(cases, mutants, only=None, dump=0):
                 subprocess.run(FLAGS + [str(dest[0]), str(dest[1]), str(ROOT / SOURCES[2]), '-lm', '-o', str(path)],
                                check=True, capture_output=True)
                 mutant = load(path)
-                r = compare(m, mutant, min(cases, 40))
-                steps(m, mutant, len(STEP_EDGES), r)
-                buff_ends(m, mutant, min(cases, 40), r)
-                links(m, mutant, r)
-                controls(m, mutant, r)
+                if which == 0:       # a planner plant cannot change the selector's families, and vice versa
+                    r = compare(m, mutant, min(cases, 40))
+                    steps(m, mutant, len(STEP_EDGES), r)
+                    buff_ends(m, mutant, min(cases, 40), r)
+                    controls(m, mutant, r)
+                else:
+                    r = pt.Report()
+                    links(m, mutant, r)
                 failures = [f for f in r.families.values() if f['equal'] != f['cases']]
                 stops = sum(bool(e.get('stopped')) for f in failures for e in f['first_failures'])
                 out['mutants'].append(dict(index=index, detected=sum(f['cases'] - f['equal'] for f in failures),

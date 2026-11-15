@@ -42,7 +42,8 @@ static const row35 ROWS[] = {
     /* A caster-frame: position-skill receive */
     {2023, GROUP_A, ELF, 1, GUARD_NONE, POSE_ACTION, 0x107, -1, 0x70a, 0, KEY_SOURCE, 0, 0, 0, F_SCALE_ONE},
     {2025, GROUP_A, ELF, 1, GUARD_NONE, POSE_MAGIC, 0, 0, 0x708, 0, KEY_PACKET, 0, 0x55f, 0x0125f899, 0},
-    {2047, GROUP_A, ELF, 1, GUARD_NONE, POSE_MAGIC, 0, 0, 0x708, 0, KEY_PACKET, 0x7ff, 0x55f, 0x0125f806, F_SKILL_WORD},
+    /* F arrows, with the caster-frame shape of 2025 plus the volley caller */
+    {2047, GROUP_F, ELF, 1, GUARD_NONE, POSE_MAGIC, 0, 0, 0x708, 0, KEY_PACKET, 0x7ff, 0x55f, 0x0125f806, F_SKILL_WORD},
     /* B bone-frame buff */
     {1500, GROUP_B, DK, 0, GUARD_NONE, POSE_ACTION, 0x9c, 0x11d, 0x69d, 1, KEY_DEFAULT, 0, 0, 0, F_INDEX},
     {1502, GROUP_B, DK, 0, GUARD_NONE, POSE_ACTION, 0x9c, 0x11d, 0x69c, 1, KEY_DEFAULT, 0, 0, 0, F_INDEX | F_BONE_TARGET},
@@ -350,7 +351,10 @@ int mu_skill35_plan_cast(const mu_skill35_input *s, int phase, mu_skill35_plan *
         break;
     case GROUP_C: group_c(r, s, p); break;
     case GROUP_D: group_d(r, s, p); break;
-    case GROUP_F: group_f(r, s, p); break;
+    case GROUP_F:
+        if (r->flags & F_SKILL_WORD) group_a(r, s, p);         /* 2047 */
+        else group_f(r, s, p);
+        break;
     default: group_e_start(r, s, p); break;
     }
     if (s->source_is_hero) p->hero_attack_time = p->attack_time;   /* one CHARACTER */

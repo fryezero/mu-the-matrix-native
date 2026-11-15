@@ -9,7 +9,9 @@ For each of the 37 catalogue rows (DK 14, Elf 23) this resolves, from the pinned
   (0x0125c9c3), i.e. the case body only: the packet prologue is never read as behaviour;
 * the ordered presentation requests of each non-default body (effect, joint, sound, pose, arrows) with
   their constant type, subtype, owner and key words;
-* whether the native consumers admit each requested effect or joint kind (libcombat predicates).
+* whether the native consumers admit each requested effect or joint kind (libcombat predicates);
+* whether a receive body reads the hero CHARACTER pointer (a branch on "the source is the hero");
+* the row's request-side state after this lane (authored: admitted, or refused with the reason).
 
 Nothing executes client code. The compare-tree and jump-table walker interprets only the switch's own
 compare, branch and table instructions; request arguments are read from the pushes in front of each
@@ -233,9 +235,10 @@ class Census:
     def requests(self, family, start):
         seen = self.body(start, EXITS[family])
         order = sorted(seen)
-        out, services, time_writes = [], set(), []
+        out, services, time_writes, hero = [], set(), [], False
         for k, address in enumerate(order):
             i = seen[address]
+            hero = hero or '[0xa39d754]' in i.op_str   # the hero CHARACTER pointer: a hero / not-hero branch
             if i.mnemonic == 'mov' and re.match(r'^byte ptr \[eax \+ 0x21\], (0x[0-9a-f]+|\d+)$', i.op_str):
                 time_writes.append(int(i.op_str.split(', ')[1], 0))
             if i.mnemonic != 'call' or not HEX.match(i.op_str):
@@ -249,7 +252,7 @@ class Census:
             elif target not in QUIET:
                 services.add(f'{target:#010x}')
         return dict(start=start, end=order[-1] + seen[order[-1]].size, instructions=len(order), requests=out,
-                    services=sorted(services), attack_time=sorted(set(time_writes)))
+                    services=sorted(services), attack_time=sorted(set(time_writes)), hero=hero)
 
     @staticmethod
     def word(text):
@@ -345,6 +348,14 @@ GROUPS = {
     'H mount context': 'mount pose helper 0x0106c453 (out of scope with Fire Breath)',
     'I no receive case': 'no case in either receive switch, default step and both default ends',
 }
+# Request-side state after this lane. Admitted rows are compared by scripts/validate_render_effects35.py.
+REFUSED = {
+    232: 'own area-end body 0x013a99b4 not traced', 2043: 'own area-end body 0x013a99b4 and target-position write not traced',
+    2040: 'position body 0x0125d1b5 and own area-end body 0x013a955a not traced',
+    1501: 'position body 0x0125d1b5 not traced', 723: 'own attack-step body 0x01397e0b not traced',
+    76: 'mount pose and mounted end body: out of scope with Fire Breath',
+    813: 'no receive case: nothing to request', 426: 'no receive case: nothing to request',
+}
 ROW_GROUP = {
     740: 'A caster-frame', 77: 'A caster-frame', 652: 'A caster-frame', 651: 'A caster-frame',
     2023: 'A caster-frame', 2025: 'A caster-frame', 727: 'A caster-frame',
@@ -376,6 +387,8 @@ def census(text, data=None, consumers=None):
                     for r in row['bodies'][family].get('requests', [])]
         missing = sorted({m for m in map(consumers.missing, requests) if m})
         row.update(group=ROW_GROUP[skill], missing=missing,
+                   hero_guard=any(row['bodies'][f].get('hero') for f in ('magic', 'position')),
+                   status='refused: ' + REFUSED[skill] if skill in REFUSED else 'admitted',
                    default_step_and_ends=all(row['bodies'][f]['default'] for f in ('step', 'area', 'target')))
         rows.append(row)
     return rows
@@ -386,7 +399,7 @@ def write_csv(rows):
     w = csv.writer(out, lineterminator='\n')
     w.writerow(['class', 'skill', 'name', 'aliases', 'group', 'step_body', 'area_end', 'target_end',
                 'magic_receive', 'position_receive', 'receive_requests', 'step_end_requests', 'services',
-                'missing_consumers'])
+                'missing_consumers', 'hero_branch', 'request_side'])
     for r in rows:
         b = r['bodies']
         cell = lambda f: ('default ' if b[f]['default'] else '') + f"{b[f]['start']:#010x}"
@@ -397,7 +410,8 @@ def write_csv(rows):
         w.writerow([r['cls'], r['skill'], r['name'], ' '.join(map(str, r['aliases'])), r['group'], cell('step'),
                     cell('area'), cell('target'), cell('magic'), cell('position'), listing(('magic', 'position')),
                     listing(('step', 'area', 'target')), ' '.join(services),
-                    ' '.join(f'{k}:{t}/{s}' for k, t, s in r['missing'])])
+                    ' '.join(f'{k}:{t}/{s}' for k, t, s in r['missing']), 'yes' if r['hero_guard'] else 'no',
+                    r['status']])
     return out.getvalue()
 
 
@@ -426,6 +440,9 @@ def summary(rows):
                 default_step_and_ends=sum(r['default_step_and_ends'] for r in rows),
                 groups={g: dict(rows=len(v), members=v, receive_shapes=len(shapes[g])) for g, v in sorted(groups.items())},
                 missing_consumers=len({m for r in rows for m in r['missing']}),
+                admitted=sum(r['status'] == 'admitted' for r in rows),
+                refused=sum(r['status'] != 'admitted' for r in rows),
+                hero_branch=sum(r['hero_guard'] for r in rows),
                 rows_without_missing=sum(not r['missing'] for r in rows))
 
 
