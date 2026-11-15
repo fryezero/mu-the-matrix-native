@@ -368,3 +368,47 @@ scripts/validate_particles.py --cases 3000 --heavy-cases 300 --output /tmp/parti
 native/build/mu-world --game-root "$MU_GAME_ROOT" --world 141 --tile 82,19 --objects-dir LOCAL_PLAIN_DIR
 native/build/mu-render ui login --root "$MU_GAME_ROOT" --scene --objects-dir LOCAL_PLAIN_DIR --steps 100 --out /tmp/l.png
 ```
+
+
+## RENDER-EFFECTS-031: Remain, old spark and Swell Life consumers
+
+`world_inner_joints.inc` adds the already requested pairs below. Common first-tail reuse,
+forward movement, closing tail shift, lifetime/time update and RenderJoints remain shared.
+Full original create/move/draw dispatchers are compared, including complete ordered child
+calls and random consumption. Each pair has a native pool/raster fixture and retirement check.
+
+| Pair | Original create | Original move |
+|---|---|---|
+| Remain `0x7f7d/8` | `0x015462ac` | `0x01570fd4` |
+| Remain `0x7f7d/9` | `0x0154646c` | `0x015714b8` |
+| Remain `0x7f7d/10` | `0x015465ba` | `0x01571923` |
+| old spark `0x7fd5/5` | `0x01543595` | common movement; extra BindTexture at `0x01589fe5` |
+| Swell spirit `0x7fd3/2` | `0x01540958` | `0x01561726` |
+| Swell flare `0x7f78/2` | `0x01549fed` | `0x015787e8`, fade at `0x0157c288` |
+
+Remain uses Thunder's bitmap, lifetime 20 and fifty tails. Its four return segments
+jitter x/y for /8, y/z for /9 and x/z for /10; each ends exactly at its target.
+Swell spirit uses the **skill word** (not key) to choose white for 0/1, emits its flare
+at life 19, a rotating flare01 sprite each move and accelerates by 5. The flare begins
+its vertical rise at life 25; the raster fixture waits for this original motion and uses
+an oblique camera to avoid a zero-area projection. No motion was invented for visibility.
+
+Effects added with these consumers are `0x7f84/4` (life 40, no own draw), charge
+`0x7fd0/0` (create `0x013c8b62`, move `0x01442645`), word4 flame `0x7f42/6`
+(create `0x013c7627`, move `0x01445566`) and transition `0x47a/0,1`
+(create `0x013db316`, move `0x01473b22`). The transition consumes the redundant
+constructor rand, has x angle 45 and y `subtype * -90 + 45`, then grows with acceleration
+.02 and fades below life 7. AccessModel `0x01833c6e` identifies
+`Data/Skill/DarkLordSkill.bmd`; the native model table grows 18→19.
+
+RenderEffects entered at `0x015183c2` proves the default branch: the high bitmap IDs
+have no body draw; `0x47a` calls RenderObject `0x016d4fe4` once with `(o,0,0,0,-1,-1)`.
+The native renderer's existing RenderObject adapter handles model pose and body options.
+This is instruction/command and native raster evidence, not original GPU pixel equivalence.
+
+Blood Storm `0x583/0` and child `0x584/0` stay refused. A static parent constructor
+(lifetime 70, child and sound) is not a validated lifecycle; the child mover reads owner
+byte +0x3b at `0x014a1b47`, outside the declared owner view. Penetration child `0x46c/0`
+still needs its owner action/live/position lifecycle. Optional target ice remains unwired.
+No authoritative combat, receive action, eligibility or target-state behavior is inferred.
+See [scene and check results](../handoffs/RENDER-EFFECTS-031.md).
