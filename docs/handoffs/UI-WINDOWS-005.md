@@ -48,3 +48,20 @@ when this newly proved fourth provider was added; it is not a passing run.
 
 Next step: inspect the Goblin selector capture, click its choice with value 1,
 then validate the complete committed source. No original/live client or app work.
+
+
+### WIP checkpoint: affected checks pass
+
+Done: all four actual native journeys pass, 176 frames / ten inspected
+opaque proof frames. The complete portable selection passes 1,363 tests,
+1,077 passed / 286 optional skips, zero failures/errors, 421.89 s command
+wall / 328.2 s execution. All twelve selected private validators pass,
+zero skips/failures/errors, 123.74 s, at compiled source c4cbe860.
+
+Left: final reduced private UI/audio/layout consumers, the seven unfinished
+October-22 baseline maps plus the one after identity, final audit/docs/status,
+PR and ready-prs publication, then cleanup. Shared load is above fourteen
+again, so those heavy commands are waiting. No passing identity is claimed yet.
+
+Next step: use the lane resource guard, run the private consumers, then the
+identity driver, which resumes only unfinished baseline maps.
