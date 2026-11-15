@@ -134,6 +134,8 @@ compiled inputs change.
 | Initial root build | pass | 14.27 s |
 | Batch-115 root build | pass | 16.39 s |
 | Batch-116 root build at `9d9caf9a` | pass | 22.40 s |
+| INNER-005 root build at `4e02b38e` | pass | 19.28 s command |
+| INNER-005 explicit world rebuild | pass | 5.56 s runtime / 35.56 s command, 30 s wait |
 | Batch-116 explicit world rebuild | pass; final binary SHA recorded below | 8.68 s runtime / 188.68 s command, 180 s wait |
 | Focused portable actor modules | 2 pass / 2 expected private skips | 0.032 s |
 | New-row comparison and controls before key correction | 8,451 positives; controls caught, registry count rejected | 251.2 s row / 251.34 s command |
@@ -145,6 +147,7 @@ compiled inputs change.
 | Initial private 8d reduced | 4/4 pass, zero skips | 448.08 s runtime / 568.19 s command, 120 s wait |
 | Batch-115 permitted portable delta | 1,541 pass / 347 expected skips, zero failures/errors | 371.3 s runner / 612.48 s command, 120 s wait |
 | Post-audio default delta | 230/230 prior after-side hashes identical | 71.26 s runtime / 161.34 s command, 90 s wait |
+| Post-INNER-005 default delta | 230/230 prior after-side hashes identical | 77.08 s runtime / 287.20 s command, 210 s wait |
 | Batch-116 permitted portable delta | 1,474 pass / 345 expected skips, zero failures/errors | 449.9 s runner / 784.21 s command, 270 s wait |
 | Batch-116 private 8d reduced | 4/4 pass, zero skips | 427.80 s runtime / 637.94 s command, 210 s wait |
 | Final canonical census reproduction | 727 / 217 / 80; both CSVs byte-identical | 8.94 s command, zero wait |
@@ -239,6 +242,12 @@ After its explicit rebuild, the same default after side is refreshed once:
 230/230 hashes match the batch-115 after side exactly, 71.26 s runtime /
 161.34 s command including 90 s wait. The saved before baseline is not rerun.
 
+INNER-005 advances the rebuilt world SHA-256 to
+`ba79bf503665e710dc1d96ffe233bdde18fa066aa6ee0680cb90b70a5ddbe327`.
+Its compiled-input after-side refresh also matches all 230 preceding hashes,
+77.08 s runtime / 287.20 s command including 210 s wait. The actor sources
+remain unchanged; the single saved before baseline is reused.
+
 The proof after side uses the batch-115 binary `1e855e52`; its actor sources
 are unchanged by AUDIO-005. Twenty-four before and twenty-four after GL
 proof scenes use world 0,
@@ -287,16 +296,23 @@ Do not infer filenames, network/spawn state, statistics or opaque protection.
 
 ## WIP checkpoints and delivery
 
-Current WIP: all actor implementation, 33 selected validators, portable work,
-reduced private actor modules, census reproduction and visual comparisons
-pass. The post-test world binary retains the identity SHA-256. Main advances
-to INNER-005 batch 117 `d3ec9950` during publication. Left: merge that main,
-build and select only incoming compiled-input deltas, then final publication.
-Next: merge and run the post-build selector. No ready entry exists.
+Current WIP: actor implementation, batch-116 checks, reduced private actor
+modules, census reproduction and visual comparisons pass. INNER-005 batch
+117 `d3ec9950` is merged at `4e02b38e`. Root build passes in 19.28 s; explicit
+world rebuild passes in 35.56 s including 30 s wait. The input-delta selector
+keeps 27 prior rows, 128.03 s including 30 s wait. Six retain unchanged-input
+results: app-polish1/2/4, audio-combat, viewport-monsters and worlds-fog.
+Current PR selection remains 33 of 250 rows, 158.69 s including 60 s wait.
+Fixture party-host IR analysis has a missing MU_SESSION_SEED fallback, so
+its conservative selections are retained. Left: incoming compiled-input
+replays and final publication. The after-side refresh matches all 230 hashes, 287.20 s including 210 s
+wait. The 27-validator replay is running after 390 s resource waiting.
+Next: finish it, run the portable/private delta and publication checks.
+No ready entry exists.
 
 Pushed checkpoints include `99409933`, `5425914e`, `d53c7df3`, `b3edf825`,
 `967d83e4`, `73ccdc0d`, `e51eba07`, `4863ad70`, `9f096a80`,
-`9d9caf9a`, `ebcbb2da` and `74f5c2e6`. Early provisional row
+`9d9caf9a`, `ebcbb2da`, `74f5c2e6`, `9d088724` and `4e02b38e`. Early provisional row
 counts are superseded by the final 138-row result. PR #396 was the initial
 stack; its merged main ancestry is retained. The final delivery changes
 only documentation after the tested source. Final push and PR precede the
