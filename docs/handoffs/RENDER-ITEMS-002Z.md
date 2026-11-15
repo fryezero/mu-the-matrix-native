@@ -7,8 +7,8 @@ The merge steward owns the full gate and merge.
 
 ## WIP
 
-The focused admission checks below pass. The lane is not PR-ready: 70 of the initial 71 affected private validators and the genuine-main default identity sweep remain. The carry row passes, including canonical regeneration. The latest main is merged and its root build passes in 26.62 s; the selector is being refreshed.
-Affected portable checks and 8d reduced pass. No ready entry has been written.
+The focused admission checks below pass. The lane is not PR-ready: 71 of the final 72 affected private validators and the genuine-main default identity sweep remain. The carry row passes, including canonical regeneration. The latest main is merged and its root build passes in 26.62 s; the refreshed selector has 72/241 rows, adding `validate_actor_monsters`, 69.37 s.
+Affected portable checks and 8d reduced pass on the earlier merged C inputs; their main-integration refresh also remains. No ready entry has been written.
 
 ## Result
 
@@ -50,7 +50,7 @@ The native private selection is 160 work items, above the forty-item cap. This l
 | Complete pinned body extraction/table render | 1,461 rows, existing caps | 1,385.12 s |
 | Complete owner-table regeneration | Pass | 10.10 s |
 | Corrected portable renderchar suite | 133 tests, 104 passed / 29 private skips | 0.65 s |
-| Integrated root build | Pass, current merged C inputs | 26.29 s |
+| Integrated root build | Pass at `a9cc72d9`, latest merged C inputs | 26.62 s |
 | Early-body final instruction/compiled-mutant row at `bd417573` | 15,352 checks, zero mismatches; six mutants caught | 13.6 s |
 | Cycle original comparisons and replacement threshold control | 6,936 checks, zero mismatches; threshold shift caught in five cases | 50.56 s |
 | C-to-C admission delta versus genuine main `2b0b2716` | 216,448 states: 214,528 identical, 1,920 admissions on exactly fifteen types | 15.19 s |
@@ -70,9 +70,9 @@ default draw and fixed time on the 46 existing captures. No original-client pixe
 
 ## Steward validators
 
-The exact selector list, including its retained `validate_movement` fallback, is:
+The final 72-row selector list, including its retained `validate_movement` fallback, is:
 
-Steward validators: validate_item_ranked,validate_item_continuation,validate_item_expansion,validate_item_clusters,validate_item_types,validate_fidelity,validate_meshdraw,validate_model_edge,validate_movement,validate_renderchar,validate_item_read_programs,validate_icarus_c2,validate_audio_callers,validate_item_gear,validate_item_next,validate_render_effects5,validate_render_effects7,validate_render_effects9,validate_render_effects10,validate_render_effects11,validate_render_effects12,validate_audio_domains,validate_audio_items,validate_item_coverage,validate_item_wings_next,validate_item_scalars,validate_item_chains,validate_item_carry,validate_item_quality,validate_item_product,validate_item_derived,validate_item_ownerfx,validate_item_predraw,validate_item_hiddenmesh,validate_app_polish1,validate_app_polish2,validate_app_polish4,validate_render_effects13,validate_render_effects14,validate_render_effects15,validate_render_effects16,validate_worlds_fog,validate_render_effects17,validate_item_callers,validate_inventory_fx,validate_render_effects18,validate_render_effects19,validate_render_effects20,validate_render_effects21,validate_item_cloak,validate_armour_cloak,validate_render_effects22,validate_item_named,validate_npc_cloak,validate_render_effects23,validate_render_effects24,validate_render_effects27,validate_item_groups,validate_render_effects25,validate_actor_recipes,validate_item_helper_groups,validate_item_other_bodies,validate_charsel_items,validate_render_effects26,validate_actor_composites,validate_audio_objects,validate_render_effects28,validate_items_ui,validate_item_cycle,validate_item_direct_bodies,validate_audio_objects4
+Steward validators: validate_item_ranked,validate_item_continuation,validate_item_expansion,validate_item_clusters,validate_item_types,validate_fidelity,validate_meshdraw,validate_model_edge,validate_movement,validate_renderchar,validate_item_read_programs,validate_icarus_c2,validate_audio_callers,validate_item_gear,validate_item_next,validate_render_effects5,validate_render_effects7,validate_render_effects9,validate_render_effects10,validate_render_effects11,validate_render_effects12,validate_audio_domains,validate_audio_items,validate_item_coverage,validate_item_wings_next,validate_item_scalars,validate_item_chains,validate_item_carry,validate_item_quality,validate_item_product,validate_item_derived,validate_item_ownerfx,validate_item_predraw,validate_item_hiddenmesh,validate_app_polish1,validate_app_polish2,validate_app_polish4,validate_render_effects13,validate_render_effects14,validate_render_effects15,validate_render_effects16,validate_worlds_fog,validate_render_effects17,validate_item_callers,validate_inventory_fx,validate_render_effects18,validate_render_effects19,validate_render_effects20,validate_render_effects21,validate_item_cloak,validate_armour_cloak,validate_render_effects22,validate_item_named,validate_npc_cloak,validate_render_effects23,validate_render_effects24,validate_render_effects27,validate_item_groups,validate_render_effects25,validate_actor_recipes,validate_item_helper_groups,validate_item_other_bodies,validate_charsel_items,validate_render_effects26,validate_actor_composites,validate_audio_objects,validate_render_effects28,validate_items_ui,validate_item_cycle,validate_item_direct_bodies,validate_audio_objects4,validate_actor_monsters
 
 Use canonical private environment and `--private --no-mutants --cache --jobs 2`.
 No steward mutants are requested. Per-row source commits, cases and wall times follow when the run completes.
@@ -119,3 +119,37 @@ the final write-back metadata change. The wall includes a brief worker pause for
 audit/commit checkpoint. Later rows reuse that canonical cache. No checks or budgets were reduced.
 Main through `4babc900` changes no renderchar, record-math, item generator or pins input, preserving
 this row and the earlier focused proofs. Remaining rows will run on the integrated branch.
+
+## Validator checkpoint
+
+24/72 selected rows pass, with zero failures/errors/skips. The carry row ran at `3fed7878`;
+the other completed rows ran at `4bb6348b`. Remaining: 48 rows, the main-integration portable/private
+refresh and the default identity sweep. Workers pause briefly for this audit/commit/push checkpoint;
+their measured wall times include that pause. Source inputs remain frozen.
+
+| Validator | Cases | Wall (s) | Source |
+|---|---:|---:|---|
+| `validate_audio_callers` | 5528 | 4.5 | `4bb6348b` |
+| `validate_audio_domains` | 2544 | 27.6 | `4bb6348b` |
+| `validate_audio_items` | 3000 | 5.1 | `4bb6348b` |
+| `validate_fidelity` | 991 | 70.1 | `4bb6348b` |
+| `validate_icarus_c2` | 8400 | 12.7 | `4bb6348b` |
+| `validate_item_carry` | 114388 | 2230.6 | `3fed7878` |
+| `validate_item_clusters` | 74292 | 530.2 | `4bb6348b` |
+| `validate_item_continuation` | 25772 | 212.1 | `4bb6348b` |
+| `validate_item_expansion` | 52172 | 450.4 | `4bb6348b` |
+| `validate_item_gear` | 25256 | 218.6 | `4bb6348b` |
+| `validate_item_next` | 14992 | 273.1 | `4bb6348b` |
+| `validate_item_ranked` | 17736 | 158.6 | `4bb6348b` |
+| `validate_item_read_programs` | 5352 | 18.7 | `4bb6348b` |
+| `validate_item_types` | 135176 | 44.4 | `4bb6348b` |
+| `validate_meshdraw` | 14619 | 79.4 | `4bb6348b` |
+| `validate_model_edge` | 954 | 159.6 | `4bb6348b` |
+| `validate_movement` | 6614 | 75.3 | `4bb6348b` |
+| `validate_render_effects10` | 154 | 1.0 | `4bb6348b` |
+| `validate_render_effects11` | 176 | 0.6 | `4bb6348b` |
+| `validate_render_effects12` | 64 | 0.4 | `4bb6348b` |
+| `validate_render_effects5` | 1190 | 12.7 | `4bb6348b` |
+| `validate_render_effects7` | 596 | 2.0 | `4bb6348b` |
+| `validate_render_effects9` | 304 | 1.3 | `4bb6348b` |
+| `validate_renderchar` | 1706 | 38.7 | `4bb6348b` |

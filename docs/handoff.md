@@ -1,5 +1,7 @@
 # Continue from here
 
+RENDER-ITEMS-002Z implementation checkpoint: fifteen bounded bodies added, 1,465 -> 1,480 of 1,674; one signed piecewise colour body and fourteen early complete bodies. Remaining: 26 historical helper-count bodies and 168 others. Focused instruction and compiled-control checks pass; final affected checks and default identity are in progress. [Evidence, timings and limits](handoffs/RENDER-ITEMS-002Z.md).
+
 AUDIO-004 verified subset PR-ready: 33 object sound boundaries now retain original routine/site and arguments through native delivery. Census owner buckets rise 1,225 to 1,368 of 1,980 candidates; 612 remain unresolved. Monster whole-owner gaps and Kubera stop/play sequences remain refused. [Evidence, checks and limits](handoffs/AUDIO-004.md).
 
 RENDER-ACTORS-005 verified subset PR-ready: six ordinary monster body/weapon assemblies (0/4/6/7/9/17), original hand bones and both-hand pose preservation. Census: 39 checked, 905 incomplete/unverified, 80 refused. Secondary effect lifetimes and the four earlier refusal boundaries stay open. 1,437 focused checks, eight compiled controls and 29 affected validators pass; all 230 default hashes match. [Evidence, timings and limits](handoffs/RENDER-ACTORS-005.md).
