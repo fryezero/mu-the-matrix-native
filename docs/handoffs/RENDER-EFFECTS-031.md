@@ -1,6 +1,7 @@
 # RENDER-EFFECTS-031
 
-Final selected verification is in progress. The steward owns the combined gate and merge.
+PR-ready: implementation, selected verification, private checks, render proofs and audit pass.
+The steward owns the combined gate and merge.
 Branch `codex/render-effects-031` began at main `b7dfd2ed`, #387. No subagents or full lane gate.
 
 ## Implemented boundary
@@ -38,7 +39,9 @@ The full control run takes **284.976 s**. It catches 68 of 69 compiled controls;
 has no live, in-range record at exactly life 10 in that sample. A deterministic boundary record fixes
 that coverage gap. The **1,371-check / one-control follow-up** takes **6.348 s**, catches that remaining
 control in 16 cases and has zero original stops. Production C is unchanged. Successful controls are
-not rerun. The final new-row baseline is rerun without mutants after the sample correction.
+not rerun. The corrected full baseline passes without mutants at `26abb75d`, 255.993 s. It contains
+62,185 original-machine executions, 3,815 C head-removal checks and the same 51 native/census/loader checks.
+The full row passes again after the main integrations; see the final table.
 
 Native fixtures exercise each new particle and joint through actual pool admission, bitmap routing,
 raster output and retirement. Three effect pairs correctly have no own body draw; their child/no-op
@@ -102,7 +105,7 @@ retained earlier output. It is not presented as a clean one-pass baseline timing
 
 Full-resolution Remain reference, 1722x1048, unchanged masks and 25 steps:
 
-| Clock | Mean RGB error /255, before to after | Off >24, before to after |
+| Clock | Mean RGB error, 0..255, before to after | Off >24, before to after |
 |---|---|---|
 | Default | 6.064 to 6.065 | .0563 to .0563 |
 | Captured | 6.067 to 6.067 | .0564 to .0564 |
@@ -121,262 +124,174 @@ Optional target ice remains unwired and is not counted as a newly admitted consu
 
 The frozen Native Data copy lacks `DarkLordSkill.bmd`, `Flame01.OZJ` and `water.OZJ`. Full read-only game
 data supplies them for these proofs. A later data-refresh lane must include those assets; no installed
-bundle or data copy was changed. No live client, protection, network, account, character power, audio,
-UI, Muun producer, item tables, world producer or README work was done.
+bundle or data copy was changed. No lane-authored live-client, protection, network, account, character-power, audio, UI, Muun-producer,
+item-table, world-producer or README changes were made. Incoming main changes are recorded below.
+
+## Main integration and final replay
+
+AUDIO-004 main `2b0b2716` merges as `ae0374dd`. Shared conflicts retain both lane status lines
+and both complete validator rows. Its 50-row overlap passes at `7cffa6fa`, 840.572 s execution;
+incoming portable checks pass 1,764 tests, 1,448 passed / 316 expected skips, zero failures/errors,
+448.606 s execution / 392.3 s test wall. Thirteen private modules pass 67 tests in 169.483 s.
+Its 89.141 s replay preserves all 120 prior after PNGs and 96 OBJECT/light dumps. The binary is
+`bd558fc4b3028a42a7f534f775d3854192beda69c6b8741a977aa8726ac34e94`.
+
+ACTORS-005 #389 and INNER-004 #390 main `4babc900` merge cleanly as `bfb2a6bb`. The current selection
+is 80 rows: the prior 77 plus `validate_actor_monsters`, `validate_audio_objects4`, `validate_worlds_inner4`.
+The 64-row compiled overlap plus those three rows passes at `9cb0b2c2`, 904.746 s. Thirteen prior
+rows have unchanged compiled inputs. Build and current/overlap selectors take 300.738 s. No authored
+consumer C, bitmap/model registration or successful control target changes in either integration.
+
+Latest incoming portable: 537.788 s execution, 120.008 s resource wait.
+
+Latest reduced private: 240.257 s execution, 0.002 s resource wait.
+
+Latest replay: 88.754 s execution, 120.008 s resource wait.
+
+Latest audit: 47.615 s execution, 0.003 s resource wait.
+
+The latest core portable result is **1,789 tests: 1,467 passed / 322 expected skips**, zero failures/errors,
+413.1 s runner wall (537.788 s complete command). The fifteen-module private run passes **70 tests**.
+The ACTORS/INNER replay preserves **118/120 PNGs and 96/96 OBJECT/light dumps**. Only the two Kanturu-37
+PNGs change, from incoming INNER-004's alpha seam; all Remain, close-up and skill outputs are identical.
+Its rebuilt world binary is `147fecd58d9fe512d28d8a846f1afe27dedcf758b9dd64acdc3cda7ec9fc9a41`.
+Relative to the original b7dfd2ed baseline, the final default tour retains 89/92 PNGs and all 92 dumps:
+one Remain frame is this lane's new mist, two Kanturu frames are the incoming alpha change.
+
+UI-WINDOWS-003 #391 main `a95880c4` merges as `62e6a250`. It changes UI, input, tests and docs, with no
+consumer/core changes. The rebuilt eight-row overlap and focused UI tests pass; successful consumer
+controls are not repeated. Build and overlap selectors take 114.207 s. Final UI replay preserves all
+**120/120 PNGs and 96/96 OBJECT/light dumps** versus the preceding ACTORS/INNER build. Final binary:
+`57ec477123776f34161091a0f8fca96df9b351253a084fdf89d21b33d8db4fb6`.
+
+UI overlap, eight rows: 75.656 s execution, 360.044 s resource wait.
+
+UI affected portable: 462.925 s execution, 0.003 s resource wait.
+
+UI reduced private: 8.986 s execution, 240.025 s resource wait.
+
+UI replay: 124.741 s execution, 0.002 s resource wait.
+
+UI portable: 6 suites, 1506 tests, 1211 passed, 295 skipped, 0 failures, 0 errors; 0 failed suite(s), 387.9 s runner wall. UI private: 13 tests, 12 passed / 1 expected skips, 8.948 s unittest wall.
+
+The final staged audit result and wall time are recorded in the PR validation.
+
+Execution wall times exclude the separately recorded resource-guard waits. Every heavy command is
+nice 10; builds use at most four jobs and validator/test runners at most two. No full lane gate runs.
 
 ## Selected validation
 
-Results, exact tested commits and Steward validators are appended after the selected runs finish.
-The private native selection is 160 work items, so **8d reduced** runs nine focused modules, including
-all five hosts that reference `MU_WORLD_PT_BITMAPS`, the changed skill modules and native particles/renderer.
-All three conservative validator fallbacks are retained. Only the new validator's controls are compiled.
+The first 76 selected private rows pass at `1d997ade`, 742.521 s. The corrected new row and later
+main-overlap passes bring the final selection to 80 green rows. The table gives each row's latest
+actual tested commit, reported check count and execution wall. Optional mutants are disabled in
+these row runs; the 69 new controls are accounted for separately above. Conservative movement,
+actor-recipe and actor-composite fallbacks remain in the selection.
 
+The first portable run reports 1,822 tests: 1,498 passed / 319 expected skips, four failures and one error,
+406.540 s complete command / 353.2 s runner wall. Its five stale admission expectations are: Spark03/2, spark joint/5, the Remain
+callback whitelist, clouds/26 and Imperial Guardian's spark count. All five affected suites pass the
+focused repair run, 43 tests / 39 passed / four expected skips, 3.836 s. New positive pairs and adjacent
+unsupported subtypes are asserted. Original callback arguments and missing-hook refusals remain checked.
+The initial private run takes 165.330 s and reports 35 passes, one failure and one import error in 37 entries.
+It finds an old 97-slot vector and a mistaken renderer module path; the corrected
+99-slot vector retains Map_Smoke1's world-specific zero. The corrected fires assertion and actual
+renderchar module pass 25 tests in 13.052 s. Twelve real modules then have 60 unique green tests.
+Later integration runs execute the corrected modules together.
 
-The other 76 selected rows pass at `1d997aded66c58ce87d89e66948c2cfd1a981240`, **742.521 s** command wall, jobs 2, private cache enabled, no optional mutants.
+**8d reduced:** the native private selections exceed 40 work items, so focused modules cover the changed
+skill/particle tests, all five hosts using `MU_WORLD_PT_BITMAPS`, renderchar, the changed world hosts and
+incoming audio/actor/alpha hosts. The latest run has fifteen modules. Canonical environment is sourced
+from `~/Documents/MTM/mu-mac-tools/native/private-env.sh`, from the repository root.
 
-| Validator | Reported checks | Wall s |
-|---|---:|---:|
-| `validate_actor_composites` | 1427 | 6.5 |
-| `validate_actor_recipes` | 1669 | 86.6 |
-| `validate_app_polish1` | 752 | 25.3 |
-| `validate_app_polish4` | 10485 | 28.4 |
-| `validate_audio_callers` | 5528 | 7.1 |
-| `validate_audio_combat` | 19548 | 51.9 |
-| `validate_audio_domains` | 2544 | 37.8 |
-| `validate_audio_items` | 3000 | 5.2 |
-| `validate_audio_objects` | 4000 | 2.8 |
-| `validate_charsel_items` | 8817 | 6.9 |
-| `validate_icarus` | 5240 | 50.9 |
-| `validate_icarus_c2` | 8400 | 33.4 |
-| `validate_inventory_fx` | 8017 | 6.1 |
-| `validate_item_callers` | 6013 | 1.1 |
-| `validate_item_effects` | 1500 | 1.5 |
-| `validate_items_ui` | 8517 | 9.8 |
-| `validate_joints` | 180 | 2.2 |
-| `validate_meshdraw` | 14619 | 72.1 |
-| `validate_model_edge` | 954 | 145.2 |
-| `validate_model_light` | 1433 | 7.7 |
-| `validate_movement` | 6614 | 69.2 |
-| `validate_particles` | 407 | 1.5 |
-| `validate_render_effects` | 660 | 1.2 |
-| `validate_render_effects10` | 154 | 0.6 |
-| `validate_render_effects11` | 176 | 0.3 |
-| `validate_render_effects12` | 64 | 0.4 |
-| `validate_render_effects13` | 180 | 0.4 |
-| `validate_render_effects14` | 660 | 1.1 |
-| `validate_render_effects15` | 509 | 0.6 |
-| `validate_render_effects16` | 424 | 2.8 |
-| `validate_render_effects17` | 618 | 6.2 |
-| `validate_render_effects18` | 540 | 0.9 |
-| `validate_render_effects19` | 400 | 0.7 |
-| `validate_render_effects20` | 148 | 0.2 |
-| `validate_render_effects21` | 267 | 0.3 |
-| `validate_render_effects22` | 202 | 5.4 |
-| `validate_render_effects23` | 1174 | 7.0 |
-| `validate_render_effects24` | 226 | 2.6 |
-| `validate_render_effects25` | 202 | 8.3 |
-| `validate_render_effects26` | 348 | 7.5 |
-| `validate_render_effects27` | 424 | 1.0 |
-| `validate_render_effects28` | 630 | 1.3 |
-| `validate_render_effects3` | 720 | 2.1 |
-| `validate_render_effects30` | 452 | 0.3 |
-| `validate_render_effects4` | 1920 | 12.7 |
-| `validate_render_effects5` | 1190 | 6.3 |
-| `validate_render_effects6` | 1000 | 3.4 |
-| `validate_render_effects7` | 596 | 3.4 |
-| `validate_render_effects9` | 304 | 2.1 |
-| `validate_render_worlds_a` | 9000 | 24.2 |
-| `validate_skill_fx` | 660 | 2.4 |
-| `validate_terrain` | 583500 | 456.7 |
-| `validate_terrain_remaining` | 2147 | 8.8 |
-| `validate_world_particle_consumers` | 900 | 1.3 |
-| `validate_worlds_121` | 4000 | 3.4 |
-| `validate_worlds_after` | 13424 | 10.2 |
-| `validate_worlds_after2` | 32216 | 18.6 |
-| `validate_worlds_after3` | 10212 | 5.2 |
-| `validate_worlds_after4` | 9181 | 9.4 |
-| `validate_worlds_after5` | 6000 | 6.7 |
-| `validate_worlds_after6` | 7300 | 47.6 |
-| `validate_worlds_d` | 2400 | 5.5 |
-| `validate_worlds_e` | 4840 | 21.6 |
-| `validate_worlds_f` | 1818 | 0.6 |
-| `validate_worlds_fog` | 4044 | 6.1 |
-| `validate_worlds_g3` | 4000 | 3.5 |
-| `validate_worlds_inner` | 4000 | 2.2 |
-| `validate_worlds_inner2` | 5000 | 2.6 |
-| `validate_worlds_inner3` | 8000 | 4.8 |
-| `validate_worlds_karutan` | 3000 | 2.5 |
-| `validate_worlds_l` | 1260 | 1.9 |
-| `validate_worlds_m` | 1080 | 1.3 |
-| `validate_worlds_raklion` | 3000 | 2.5 |
-| `validate_worlds_slots` | 18999 | 20.3 |
-| `validate_worlds_slots2` | 33000 | 19.8 |
-| `validate_worlds_slots3` | 36000 | 20.4 |
+| Validator | Reported checks | Wall s | Tested commit |
+|---|---:|---:|---|
+| `validate_actor_composites` | 1427 | 10.3 | `9cb0b2c2` |
+| `validate_actor_monsters` | 1437 | 53.5 | `9cb0b2c2` |
+| `validate_actor_recipes` | 1669 | 94.7 | `9cb0b2c2` |
+| `validate_app_polish1` | 752 | 21.4 | `48d91b76` |
+| `validate_app_polish4` | 10485 | 28.7 | `48d91b76` |
+| `validate_audio_callers` | 5528 | 5.8 | `48d91b76` |
+| `validate_audio_combat` | 19548 | 40.5 | `9cb0b2c2` |
+| `validate_audio_domains` | 2544 | 25.4 | `48d91b76` |
+| `validate_audio_items` | 3000 | 3.9 | `48d91b76` |
+| `validate_audio_objects` | 4000 | 4.8 | `9cb0b2c2` |
+| `validate_audio_objects4` | 10093 | 12.5 | `9cb0b2c2` |
+| `validate_charsel_items` | 8817 | 8.5 | `9cb0b2c2` |
+| `validate_icarus` | 5240 | 31.2 | `9cb0b2c2` |
+| `validate_icarus_c2` | 8400 | 22.5 | `9cb0b2c2` |
+| `validate_inventory_fx` | 8017 | 9.5 | `9cb0b2c2` |
+| `validate_item_callers` | 6013 | 2.2 | `9cb0b2c2` |
+| `validate_item_effects` | 1500 | 1.5 | `1d997ade` |
+| `validate_items_ui` | 8517 | 11.2 | `9cb0b2c2` |
+| `validate_joints` | 180 | 2.2 | `1d997ade` |
+| `validate_meshdraw` | 14619 | 70.5 | `9cb0b2c2` |
+| `validate_model_edge` | 954 | 156.7 | `9cb0b2c2` |
+| `validate_model_light` | 1433 | 5.6 | `9cb0b2c2` |
+| `validate_movement` | 6614 | 52.4 | `48d91b76` |
+| `validate_particles` | 407 | 1.5 | `1d997ade` |
+| `validate_render_effects` | 660 | 1.2 | `1d997ade` |
+| `validate_render_effects10` | 154 | 0.5 | `9cb0b2c2` |
+| `validate_render_effects11` | 176 | 0.4 | `9cb0b2c2` |
+| `validate_render_effects12` | 64 | 0.4 | `9cb0b2c2` |
+| `validate_render_effects13` | 180 | 0.6 | `9cb0b2c2` |
+| `validate_render_effects14` | 660 | 2.4 | `9cb0b2c2` |
+| `validate_render_effects15` | 509 | 1.0 | `9cb0b2c2` |
+| `validate_render_effects16` | 424 | 3.5 | `48d91b76` |
+| `validate_render_effects17` | 618 | 8.0 | `9cb0b2c2` |
+| `validate_render_effects18` | 540 | 1.6 | `9cb0b2c2` |
+| `validate_render_effects19` | 400 | 1.0 | `9cb0b2c2` |
+| `validate_render_effects20` | 148 | 0.3 | `9cb0b2c2` |
+| `validate_render_effects21` | 267 | 0.4 | `9cb0b2c2` |
+| `validate_render_effects22` | 202 | 6.8 | `9cb0b2c2` |
+| `validate_render_effects23` | 1174 | 8.1 | `9cb0b2c2` |
+| `validate_render_effects24` | 226 | 3.2 | `9cb0b2c2` |
+| `validate_render_effects25` | 202 | 13.3 | `9cb0b2c2` |
+| `validate_render_effects26` | 348 | 10.0 | `9cb0b2c2` |
+| `validate_render_effects27` | 424 | 2.5 | `9cb0b2c2` |
+| `validate_render_effects28` | 630 | 2.5 | `9cb0b2c2` |
+| `validate_render_effects3` | 720 | 2.1 | `1d997ade` |
+| `validate_render_effects30` | 452 | 0.3 | `1d997ade` |
+| `validate_render_effects31` | 66051 | 288.6 | `9cb0b2c2` |
+| `validate_render_effects4` | 1920 | 12.7 | `1d997ade` |
+| `validate_render_effects5` | 1190 | 6.3 | `1d997ade` |
+| `validate_render_effects6` | 1000 | 3.4 | `1d997ade` |
+| `validate_render_effects7` | 596 | 2.4 | `9cb0b2c2` |
+| `validate_render_effects9` | 304 | 0.8 | `9cb0b2c2` |
+| `validate_render_worlds_a` | 9000 | 13.7 | `9cb0b2c2` |
+| `validate_skill_fx` | 660 | 2.4 | `1d997ade` |
+| `validate_terrain` | 583500 | 418.9 | `9cb0b2c2` |
+| `validate_terrain_remaining` | 2147 | 6.3 | `9cb0b2c2` |
+| `validate_world_particle_consumers` | 900 | 1.3 | `1d997ade` |
+| `validate_worlds_121` | 4000 | 5.0 | `9cb0b2c2` |
+| `validate_worlds_after` | 13424 | 14.3 | `9cb0b2c2` |
+| `validate_worlds_after2` | 32216 | 23.9 | `9cb0b2c2` |
+| `validate_worlds_after3` | 10212 | 8.1 | `9cb0b2c2` |
+| `validate_worlds_after4` | 9181 | 25.5 | `9cb0b2c2` |
+| `validate_worlds_after5` | 6000 | 12.9 | `9cb0b2c2` |
+| `validate_worlds_after6` | 7300 | 78.8 | `9cb0b2c2` |
+| `validate_worlds_d` | 2400 | 4.5 | `9cb0b2c2` |
+| `validate_worlds_e` | 4840 | 16.8 | `9cb0b2c2` |
+| `validate_worlds_f` | 1818 | 0.5 | `9cb0b2c2` |
+| `validate_worlds_fog` | 4044 | 8.0 | `48d91b76` |
+| `validate_worlds_g3` | 4000 | 5.9 | `9cb0b2c2` |
+| `validate_worlds_inner` | 4000 | 4.2 | `9cb0b2c2` |
+| `validate_worlds_inner2` | 5000 | 4.0 | `9cb0b2c2` |
+| `validate_worlds_inner3` | 8000 | 6.9 | `9cb0b2c2` |
+| `validate_worlds_inner4` | 8000 | 9.6 | `9cb0b2c2` |
+| `validate_worlds_karutan` | 3000 | 3.9 | `9cb0b2c2` |
+| `validate_worlds_l` | 1260 | 1.9 | `1d997ade` |
+| `validate_worlds_m` | 1080 | 1.3 | `1d997ade` |
+| `validate_worlds_raklion` | 3000 | 3.3 | `9cb0b2c2` |
+| `validate_worlds_slots` | 18999 | 28.3 | `9cb0b2c2` |
+| `validate_worlds_slots2` | 33000 | 27.5 | `9cb0b2c2` |
+| `validate_worlds_slots3` | 36000 | 30.9 | `9cb0b2c2` |
 
-The new full baseline and boundary follow-up are recorded above; its final no-mutant registry baseline is still pending.
+Steward validators: validate_actor_composites,validate_actor_monsters,validate_actor_recipes,validate_app_polish1,validate_app_polish4,validate_audio_callers,validate_audio_combat,validate_audio_domains,validate_audio_items,validate_audio_objects,validate_audio_objects4,validate_charsel_items,validate_icarus,validate_icarus_c2,validate_inventory_fx,validate_item_callers,validate_item_effects,validate_items_ui,validate_joints,validate_meshdraw,validate_model_edge,validate_model_light,validate_movement,validate_particles,validate_render_effects,validate_render_effects10,validate_render_effects11,validate_render_effects12,validate_render_effects13,validate_render_effects14,validate_render_effects15,validate_render_effects16,validate_render_effects17,validate_render_effects18,validate_render_effects19,validate_render_effects20,validate_render_effects21,validate_render_effects22,validate_render_effects23,validate_render_effects24,validate_render_effects25,validate_render_effects26,validate_render_effects27,validate_render_effects28,validate_render_effects3,validate_render_effects30,validate_render_effects31,validate_render_effects4,validate_render_effects5,validate_render_effects6,validate_render_effects7,validate_render_effects9,validate_render_worlds_a,validate_skill_fx,validate_terrain,validate_terrain_remaining,validate_world_particle_consumers,validate_worlds_121,validate_worlds_after,validate_worlds_after2,validate_worlds_after3,validate_worlds_after4,validate_worlds_after5,validate_worlds_after6,validate_worlds_d,validate_worlds_e,validate_worlds_f,validate_worlds_fog,validate_worlds_g3,validate_worlds_inner,validate_worlds_inner2,validate_worlds_inner3,validate_worlds_inner4,validate_worlds_karutan,validate_worlds_l,validate_worlds_m,validate_worlds_raklion,validate_worlds_slots,validate_worlds_slots2,validate_worlds_slots3.
 
-Steward validators: validate_item_effects,validate_joints,validate_meshdraw,validate_model_edge,validate_model_light,validate_movement,validate_particles,validate_skill_fx,validate_terrain,validate_terrain_remaining,validate_render_worlds_a,validate_icarus,validate_icarus_c2,validate_worlds_d,validate_worlds_e,validate_worlds_f,validate_audio_callers,validate_audio_combat,validate_render_effects,validate_render_effects3,validate_render_effects4,validate_render_effects5,validate_render_effects6,validate_render_effects7,validate_render_effects9,validate_render_effects10,validate_render_effects11,validate_render_effects12,validate_world_particle_consumers,validate_audio_domains,validate_audio_items,validate_worlds_l,validate_worlds_m,validate_worlds_after,validate_worlds_g3,validate_worlds_after2,validate_worlds_after3,validate_worlds_after4,validate_worlds_after5,validate_worlds_after6,validate_app_polish1,validate_app_polish4,validate_render_effects13,validate_render_effects14,validate_worlds_slots,validate_worlds_slots2,validate_worlds_slots3,validate_worlds_121,validate_worlds_raklion,validate_worlds_karutan,validate_render_effects15,validate_render_effects16,validate_worlds_fog,validate_render_effects17,validate_item_callers,validate_inventory_fx,validate_render_effects18,validate_render_effects19,validate_render_effects20,validate_render_effects21,validate_render_effects22,validate_render_effects23,validate_render_effects24,validate_worlds_inner,validate_render_effects27,validate_render_effects25,validate_actor_recipes,validate_charsel_items,validate_render_effects26,validate_actor_composites,validate_worlds_inner2,validate_audio_objects,validate_render_effects28,validate_render_effects30,validate_worlds_inner3,validate_items_ui,validate_render_effects31.
+The eight UI-overlap rows use `48d91b76`; all other rows retain the tested commit shown above.
+No changed-row mutants remain to run. A later steward integration needs only the rows whose compiled
+inputs changed since the table's tested commit. Successful controls are not repeated.
 
-## WIP
-
-Done: implementation, original/native fixtures, scene/fidelity measurements, 69 controls across the full run and focused recheck, and 76 affected private validators.
-
-Left: focused portable repair rerun, 8d reduced, audit, final new-row baseline, latest-main integration, final documentation, PR, ready line and cleanup.
-
-The first portable run completes 1,822 tests: 1,498 passed, 319 skipped, four failures and one error,
-406.540 s command / 353.2 s test wall. All five are old admission expectations: particle Spark03/2,
-joint spark/5, the Remain callback whitelist, worlds-M clouds/26 and Imperial Guardian's spark count.
-Update the two admission tests with all new positive pairs and adjacent unsupported subtypes.
-The Remain host checks original owner/scale/position arguments and keeps its missing-hook refusal;
-the Guardian host requires positive groups of four spark joints with the original callback arguments.
-Production code and validator targets are unchanged. The five affected suites pass on focused rerun: 43 tests, 39 passed/four expected skips, 3.836 s.
-The reduced private run grows to twelve real modules to include these three changed world hosts.
-The first private attempt reports 37 entries in 165.330 s: 35 passed, one stale 97-slot bitmap assertion,
-and a mistaken `test_native_renderer` module path. Update the exact vector to 99 slots while retaining
-Map_Smoke1's world-specific zero; run the corrected fires assertion and actual `test_native_renderchar`.
-Those 25 tests pass in 13.052 s. Across the twelve real modules, all 60 unique tests pass.
-The corrected full new-validator baseline passes 66,051 checks at `26abb75d`, 255.993 s without mutants.
-Its revised sample contains 62,185 original executions and 3,815 C head-removal checks, plus the same
-51 native/census/loader checks.
-
-Main has advanced to AUDIO-004 `2b0b2716`, #388. Merge and rerun only the incoming compiled-input overlap;
-all production consumer code, bitmap/model registrations and previously successful control targets remain unchanged.
-
-Next: wait for the existing foreground check queue, then run the corrected new-row baseline without mutants.
-
-
-### AUDIO-004 integration checkpoint
-
-Main `2b0b2716`, #388, merges as `ae0374dd`. Shared status conflicts retain both lane paragraphs;
-the TOML conflict retains both complete validator rows and their stopped controls. Registry shape
-checks pass, 238 rows. No authored particle/joint/effect or native consumer/adapter source changes
-between `99c213e6` and this merge. The root/world build and overlapping selector pass in 130.085 s.
-The selector retains 50 of this lane's 77 rows, with conservative fallbacks retained. Those rows run
-without mutants; incoming portable checks, thirteen focused private modules including AUDIO-004,
-and the after render replay are queued. Successful compiled controls are not repeated.
-
-
-The 50 overlapping rows pass at `7cffa6fab15f38b2cdca199967e860d76df73495`, **840.572 s** command wall,
-zero failures/errors/skips, no optional mutants. The new full 66,051-check row passes again in 229.5 s.
-The other 27 earlier lane rows have unchanged compiled inputs under the overlapping selector.
-Incoming portable/private checks and the after-integrated render replay remain active.
-
-| Integrated validator | Reported checks | Wall s |
-|---|---:|---:|
-| `validate_actor_composites` | 1427 | 7.0 |
-| `validate_actor_recipes` | 1669 | 172.4 |
-| `validate_app_polish1` | 752 | 19.3 |
-| `validate_app_polish4` | 10485 | 32.2 |
-| `validate_audio_callers` | 5528 | 5.4 |
-| `validate_audio_domains` | 2544 | 23.7 |
-| `validate_audio_items` | 3000 | 2.3 |
-| `validate_audio_objects` | 4000 | 3.2 |
-| `validate_charsel_items` | 8817 | 6.3 |
-| `validate_icarus` | 5240 | 49.3 |
-| `validate_icarus_c2` | 8400 | 17.9 |
-| `validate_inventory_fx` | 8017 | 6.1 |
-| `validate_item_callers` | 6013 | 1.0 |
-| `validate_items_ui` | 8517 | 11.1 |
-| `validate_meshdraw` | 14619 | 82.3 |
-| `validate_model_edge` | 954 | 156.8 |
-| `validate_model_light` | 1433 | 7.5 |
-| `validate_movement` | 6614 | 99.1 |
-| `validate_render_effects16` | 424 | 2.4 |
-| `validate_render_effects17` | 618 | 6.0 |
-| `validate_render_effects18` | 540 | 0.9 |
-| `validate_render_effects19` | 400 | 0.6 |
-| `validate_render_effects24` | 226 | 2.3 |
-| `validate_render_effects25` | 202 | 11.9 |
-| `validate_render_effects26` | 348 | 10.1 |
-| `validate_render_effects28` | 630 | 1.3 |
-| `validate_render_effects31` | 66051 | 229.5 |
-| `validate_render_worlds_a` | 9000 | 11.5 |
-| `validate_terrain` | 583500 | 421.8 |
-| `validate_terrain_remaining` | 2147 | 3.7 |
-| `validate_worlds_121` | 4000 | 3.9 |
-| `validate_worlds_after` | 13424 | 19.8 |
-| `validate_worlds_after2` | 32216 | 36.5 |
-| `validate_worlds_after3` | 10212 | 5.1 |
-| `validate_worlds_after4` | 9181 | 15.3 |
-| `validate_worlds_after5` | 6000 | 7.3 |
-| `validate_worlds_after6` | 7300 | 59.1 |
-| `validate_worlds_d` | 2400 | 2.8 |
-| `validate_worlds_e` | 4840 | 18.1 |
-| `validate_worlds_f` | 1818 | 0.4 |
-| `validate_worlds_fog` | 4044 | 4.1 |
-| `validate_worlds_g3` | 4000 | 3.1 |
-| `validate_worlds_inner` | 4000 | 2.1 |
-| `validate_worlds_inner2` | 5000 | 2.6 |
-| `validate_worlds_inner3` | 8000 | 4.6 |
-| `validate_worlds_karutan` | 3000 | 2.1 |
-| `validate_worlds_raklion` | 3000 | 2.4 |
-| `validate_worlds_slots` | 18999 | 17.3 |
-| `validate_worlds_slots2` | 33000 | 35.4 |
-| `validate_worlds_slots3` | 36000 | 33.8 |
-
-
-AUDIO-004 integrated checks complete: incoming portable selection 168 work items / 1,764 tests,
-1,448 passed and 316 expected skips, zero failures/errors; 448.606 s execution plus 120.014 s resource
-wait, 392.3 s test wall. Thirteen private modules pass all 67 tests, 169.483 s execution plus 120.016 s
-resource wait. Replay takes 89.141 s and preserves all 120 prior after PNGs and 96 OBJECT/light dumps.
-Thus every prior refusal count and reference score remains valid at this integration.
-The final AUDIO-004 binary is `bd558fc4b3028a42a7f534f775d3854192beda69c6b8741a977aa8726ac34e94`.
-Audit passes, 2,278 staged files / zero rejected, 19.578 s. Refreshed lane selector still has 77 rows,
-97.474 s. The three fallbacks remain.
-
-The next fetch finds ACTORS-005 #389 and INNER-004 #390 at main `4babc900`. Merge those and repeat only
-the incoming compiled overlap before PR-ready. No successful control target has changed.
-
-
-### ACTORS-005 / INNER-004 integration checkpoint
-
-Main `4babc900` merges cleanly as `bfb2a6bb`; the shared world host retains the new consumer checks
-and incoming producer checks. Registry shape passes, 240 rows. Root/world build plus current/overlap
-selectors pass in 300.738 s. The current lane selection grows to 80 rows: the prior 77 plus
-`validate_actor_monsters`, `validate_audio_objects4`, `validate_worlds_inner4`. Sixty-four prior rows
-have incoming compiled changes, so 67 rows run without mutants. Incoming portable tests, fifteen
-focused private modules, final replay and audit follow. Consumer C, bitmaps/models and the successful
-control targets remain unchanged.
-
-
-The latest-main 67 rows pass at `9cb0b2c2`, **904.746 s** execution wall, zero failures/errors/skips,
-no optional mutants. This includes all three new rows and the full 66,051-check consumer row,
-288.6 s. The thirteen earlier rows excluded by the overlap selector have unchanged compiled inputs.
-Incoming portable/private checks, final replay and audit are still active. No consumer source or
-successful compiled-control target changed in this integration.
-
-
-Latest-core integration results: portable selection 174 work items / 1,789 tests, 1,467 passed and
-322 expected skips, zero failures/errors; 537.788 s execution plus 120.008 s resource wait,
-413.1 s test wall. Fifteen focused private modules pass all 70 tests, 240.257 s. Replay takes
-88.754 s execution plus 120.008 s resource wait. All 96 prior after dumps and all 24 skill PNGs
-match. Only the two Kanturu-37 default PNGs change, matching incoming INNER-004's alpha seam;
-its handoff records that isolated delta. The consumer scenes and Remain reference scores stay valid.
-Current binary: `147fecd58d9fe512d28d8a846f1afe27dedcf758b9dd64acdc3cda7ec9fc9a41`.
-Audit passes, 2,289 staged files / zero rejected, 47.615 s. The final selector is still active.
-
-The shared origin ref now contains UI-WINDOWS-003 #391 at `a95880c4`. Its changes are confined to
-UI/gfx/input and tests/docs. Merge it after the active selector; run only its selected overlap and
-focused UI checks. No consumer target source changes are involved.
-
-
-### UI-WINDOWS-003 integration checkpoint
-
-Main `a95880c4`, #391, merges as `62e6a250`; four shared status conflicts retain both lanes.
-Root/world build and overlap/test selectors pass in 114.207 s. Only eight prior validators have
-incoming compiled changes: app_polish1/4, audio_callers/domains/items, movement, render_effects16 and
-worlds_fog. They run without mutants, plus 146 portable work items, two focused private UI modules,
-a final render replay and audit. No consumer or control target changes.
-
-### 01:06 checkpoint, final UI verification
-
-Done: all eight UI-overlap validators pass at `48d91b76`, 75.656 s plus 360.044 s resource wait.
-Affected portable checks pass 1,506 tests: 1,211 passed / 295 expected skips, zero failures/errors,
-387.9 s runner wall / 462.925 s complete command. The two private UI modules pass 12 tests with
-one expected mutant skip, 8.986 s plus 240.025 s resource wait. The final replay completes and
-preserves all 120 PNGs and 96 OBJECT/light dumps versus the preceding ACTORS/INNER build.
-
-Left: final audit (currently held by the load guard), consolidate the final evidence/status, staged
-audit, final push, PR, link and ready-prs line, then cleanup. No new consumer or control changes.
-Next: let the current audit finish; `finish-docs.py` in this lane's private scratch generates the
-reviewed final handoff, status lines, validation table and PR body from the completed reports.
+Private inputs remain in their existing shared locations. Task-local scratch, renders and ignored build
+reports are disposable; cleanup follows the final push and single ready-prs line. The remote branch
+stays for the steward. No new private input is needed to reproduce these tests.

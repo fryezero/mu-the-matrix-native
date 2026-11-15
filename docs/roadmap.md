@@ -1,6 +1,6 @@
 # Roadmap and work queue
 
-RENDER-EFFECTS-031 WIP: eleven particle, six joint and five effect pairs implemented. Remain close-up refusals 64 to zero, Swell Life 38 to zero, Penetration/416 two to one; Blood Storm remains refused. Focused instruction and native raster checks pass; selected final checks and mutants pending. [Evidence and remaining work](handoffs/RENDER-EFFECTS-031.md).
+RENDER-EFFECTS-031 verified subset PR-ready: eleven particle, six joint and five effect pairs now consume existing world/skill requests. Remain close-up refusals 64 to zero, Swell Life 38 to zero, Penetration/416 two to one. The frozen item census stays 110 programs / 37 pairs; the separate extension admits 22 of 25 pairs. 66,051 focused checks, all 69 compiled controls and 80 selected validators pass. Blood Storm and the later Penetration child remain refused. [Counts, timings, identity and limits](handoffs/RENDER-EFFECTS-031.md).
 
 UI-WINDOWS-003 PR-ready: expanded inventory, the separate fifth-tree item viewer, BlockedChat and AutomaticMacro open through proved presentation routes. All actions that change game state remain inert; Home activation and the original Help route remain refused. Survey bindings 12 -> 16 of 134, unresolved 122 -> 118. Native journeys, 26 original route/controller decisions, eight compiled mutants and thirteen selected validators are verified. [Checks, timings and limits](handoffs/UI-WINDOWS-003.md).
 
