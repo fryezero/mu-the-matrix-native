@@ -228,7 +228,7 @@ def main():
            if (r['site'],r['manager_slot'],r['action']) not in known]
     movies={r['slot']:r['movie'] for r in registry}
     with (args.out/'parameterised.csv').open('w') as f:
-        w=csv.writer(f);w.writerow(['kind','manager_slot','movie','action','site','vtable_offset_or_manager_site','method'])
+        w=csv.writer(f,lineterminator='\n');w.writerow(['kind','manager_slot','movie','action','site','vtable_offset_or_manager_site','method'])
         for slot in sorted(selfopen):
             for offset,(method,site,action) in sorted(selfopen[slot].items()):
                 w.writerow(['self-open method',f'0x{slot:x}',movies[slot],action,f'0x{site:08x}',f'+0x{offset:x}',f'0x{method:08x}'])
