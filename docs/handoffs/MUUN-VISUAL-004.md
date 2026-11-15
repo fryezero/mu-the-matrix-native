@@ -98,3 +98,19 @@ reported cases; fourteen rows retain their unchanged earlier inputs and passing 
 Done: merged root build and complete merged affected validator refresh.
 Left: merged portable/private Muun checks, after-only native proof/identity and final audit/delivery.
 Next: wait for resource load to fall, inspect and run the affected portable selection, then finish.
+
+## Second main integration checkpoint
+
+The AUDIO-004 merged portable run passes 1,769 tests (1,446 passed, 323 skips), zero failures/errors,
+443.64 s; its preview selection costs 56.97 s. Reduced private Muun tests pass 19/19, zero skips, in
+76.02 s. The 35 refreshed proof PNGs and contact sheet are byte-identical to the inspected first set
+(17.36 s rendering). Explicit world rebuild check passes in 0.34 s. Binary SHA-256
+`25024c17935ce37245cbf895bf84444e321deec2c361a0b120e38cd3cbe389a4` differs from the baseline.
+After tours (20.30 + 55.93 s) and 0.22 s comparison pass 92 PNGs, 92 dumps, 46 normalized reports
+and 46 stderr logs, all unchanged.
+
+A final fetch found new main `4babc900`, including RENDER-ACTORS-005 and RENDER-WORLDS-INNER-004.
+Both are now merged without conflict. No Muun source changes were authored for this integration.
+Done: every AUDIO-004 merged source check and identity/proof control passed.
+Left: build/select and refresh only checks whose compiled inputs the new main changes; final proof/identity,
+audit and delivery. Next: build the integrated tree, inspect the exact affected selections, run the refresh.
