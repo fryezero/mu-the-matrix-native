@@ -20,7 +20,7 @@ class ItemServices(unittest.TestCase):
         return [*act('store'),*act('storereg'),*act('storeput',0),*act('storeprice',0,1000),*act('storeconfirm')]
 
     def test_mix_movie_buttons_reach_game_handler_after_social_integration(self):
-        s=self.run_host('mixact','goblin',0,0,'invoke',23,'-','testCall','["onClickGoblinMenu",1,0]',
+        s=self.run_host('mixact','goblin',0,0,'invoke',23,'-','testCall','["onClickGoblinMenu",0,0]',
                         'mixact','mixput',0,0,'invoke',24,'-','testCall','["onClickbtnMix",0]',
                         'mixstate','advance',160,'mixstate')
         self.assertEqual((s[0]['mix_open'],s[0]['pending'],s[1]['pending']),(1,1,0))
