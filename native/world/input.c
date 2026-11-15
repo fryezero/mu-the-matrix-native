@@ -97,6 +97,8 @@ static int panel(mu_world_rt *a, int vk, int mods)
         else return mu_gfx_layer_service_action(l, "store", 0, 0) ? 1 : -1;
         return 1;
     }
+    if (l && mods == 2 && (vk == 'J' || vk == 'I'))
+        return mu_gfx_layer_key(l,1,vk,(uint32_t)vk,mods) ? 1 : -1;
     if (l && mods == 2 && (vk == 'A' || vk == 'J')) {
         int movie = vk == 'A' ? MU_GFX_TREE4 : MU_GFX_TREE5;
         if (*mu_gfx_layer_path(l, movie)) {
@@ -104,6 +106,8 @@ static int panel(mu_world_rt *a, int vk, int mods)
             return 1;
         }
     }
+    if (l && !mods && vk==113) /* Original ChatMenu F2 listener. */
+        return mu_gfx_layer_key(l,1,vk,(uint32_t)vk,mods) ? 1 : -1;
     /* Existing adapters own toggle/close behavior and their context guards. */
     int native_key = vk == 'Z' || vk == 'G' || vk == 'H' || vk == 0x23 || vk == 'D' || vk == 'N' || vk == 'B' || vk == 'Y' || vk == 'K' || vk == 'I' || vk == 'V' || vk == 'C' || vk == 'T' || vk == 'M' ||
                      vk == 'O' || vk == 'F' || vk == 'U' || vk == 'A' || vk == 27 || vk == 13 ||
