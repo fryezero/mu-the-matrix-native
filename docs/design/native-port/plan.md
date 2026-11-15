@@ -1,5 +1,7 @@
 # Plan: the rest of the native macOS port
 
+UI-WINDOWS-005 PR-ready: PersonalShop, ArtifactFrame, MUMix and DuelWatch have empty authored providers through proved original routes. Entry classifications change 9/17/30/62 -> 13/33/30/42 (complete/provider-missing/state-dependent/no-route); survey 24 -> 28 bound of 134. Twenty entry no-route rows gain proof; one tentative alias-unsafe route stays refused. Twelve compiled mutants, native journeys and rebuilt default identity are recorded with the final checks. [Evidence, timings and limits](../../handoffs/UI-WINDOWS-005.md).
+
 AUDIO-005 verified subset PR-ready: 245 fixture-bounded monster play sites plus four Kubera play/two stop sites; census 1,368 to 1,434 classified / 612 to 546 unresolved. All 23 new compiled controls, 82 latest-main validators, 1,844 portable tests and 105 reduced private tests pass; 92 PNGs, 92 dumps and 46 reports remain identical. [Counts, timings and limits](../../handoffs/AUDIO-005.md).
 
 UI-WINDOWS-004 PR-ready: nine more empty NPC movies use ten proved manager slots. The 118 entry-unresolved rows classify 9 provider-complete, 17 provider-missing, 30 state-dependent and 62 no route found. The inherited PlayGuide key/menu route is withdrawn after the registry proves it selects EventMapEntranceUI. Survey 16/134 bound -> 24/134, unresolved 118 -> 110. Thirteen original route decisions, eight compiled mutants, nine captured native layouts, 22 affected validators and 230 default identities pass. [Scope and checks](../../handoffs/UI-WINDOWS-004.md).
