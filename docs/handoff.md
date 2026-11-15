@@ -1,6 +1,6 @@
 # Continue from here
 
-RENDER-ACTORS-007 verified subset PR-ready: 138 more bounded fixture plans (53 NPCs, fifteen weapon assemblies, seventy constructor-state selectors), spanning 108 model indices / 99 files. Census: 727 checked / 217 incomplete / 80 refused. Group sizes and every remaining reason are published; sword sprites, type-226 lifetimes and prior loader refusal boundaries stay excluded. 8,451 focused checks, twenty compiled controls and 31 affected validators pass. [Evidence, timings, identity and limits](handoffs/RENDER-ACTORS-007.md).
+RENDER-ACTORS-007 verified subset PR-ready: 138 more bounded fixture plans (53 NPCs, fifteen weapon assemblies, seventy constructor-state selectors), spanning 108 model indices / 99 files. Census: 727 checked / 217 incomplete / 80 refused. Group sizes and every remaining reason are published; sword sprites, type-226 lifetimes and prior loader refusal boundaries stay excluded. 8,451 focused checks, twenty compiled controls and 33 affected validators pass. [Evidence, timings, identity and limits](handoffs/RENDER-ACTORS-007.md).
 
 AUDIO-005 verified subset PR-ready: 245 fixture-bounded monster play sites plus four Kubera play/two stop sites; census 1,368 to 1,434 classified / 612 to 546 unresolved. All 23 new compiled controls, 82 latest-main validators, 1,844 portable tests and 105 reduced private tests pass; 92 PNGs, 92 dumps and 46 reports remain identical. [Counts, timings and limits](handoffs/AUDIO-005.md).
 

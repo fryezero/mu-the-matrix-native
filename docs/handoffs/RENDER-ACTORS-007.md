@@ -112,93 +112,44 @@ file strings and publishes only after cleanup.
 
 ## Verification
 
-All 31 affected validators pass at `e51eba07`, **213,223 checks**, zero
-failures/errors/skips, 680.63 s command wall after batch-115 integration.
-The initial same selection passed at `b3edf825` in 602.78 s. After rebuilding,
-the merge-input selector retained all 31 (62.19 s); the PR-wide selector
-retained 31 of 247 registry rows (446.83 s command including 360 s wait).
-Three conservative fallback rows, movement/audio-combat/render-effects17,
-remain selected. Twelve unrelated rows were pruned.
+All 33 final affected validators pass, **252,538 checks**, zero failures,
+errors or skips. After AUDIO-005 batch 116, 32 rows replay at `ebcbb2da`:
+251,786 checks, 740.31 s command wall. App-polish1 retains its unchanged-input
+752-check pass at `e51eba07`. The final PR selector keeps 33 of 249 registry
+rows, 223.28 s command including 90 s wait. The input-delta selector keeps
+thirty prior rows, 82.63 s command including 30 s wait; the two newly selected
+audio rows also replay. Conservative movement/audio-combat/render-effects17
+fallbacks remain selected.
+
+Before AUDIO-005, all 31 batch-115 rows pass at `e51eba07`, 213,223 checks,
+680.63 s command wall. The initial same selection passes at `b3edf825` in
+602.78 s. Batch-115 input selection takes 62.19 s and its PR-wide selection
+446.83 s command including 360 s wait. No prior result is retained where its
+compiled inputs change.
 
 | Check | Result | Measured wall |
 |---|---|---:|
 | Final 138-plan generation | 7,228 trial checks, 108 model indices / 99 files | 269.39 s runtime |
-| Canonical census regeneration | 727 / 217 / 80 | 8.21 s runtime / 128.21 s command, 120 s wait |
+| Initial canonical census regeneration | 727 / 217 / 80 | 8.21 s runtime / 128.21 s command, 120 s wait |
 | Initial root build | pass | 14.27 s |
 | Batch-115 root build | pass | 16.39 s |
 | Batch-116 root build at `9d9caf9a` | pass | 22.40 s |
-| Batch-116 explicit world rebuild | pass; new binary SHA recorded below | 8.68 s runtime / 188.68 s command, 180 s wait |
+| Batch-116 explicit world rebuild | pass; final binary SHA recorded below | 8.68 s runtime / 188.68 s command, 180 s wait |
 | Focused portable actor modules | 2 pass / 2 expected private skips | 0.032 s |
 | New-row comparison and controls before key correction | 8,451 positives; controls caught, registry count rejected | 251.2 s row / 251.34 s command |
 | Corrected two-control replay | 2/2 caught, twenty distinct results; registry recheck passes | 3.05 s runtime / 243.20 s command, 240 s wait |
 | Initial affected private validators | 31/31 pass, 213,223 checks | 602.78 s command |
-| Merged-input affected private validators | 31/31 pass, 213,223 checks | 680.63 s command |
+| Batch-115 affected private validators | 31/31 pass, 213,223 checks | 680.63 s command |
+| Final batch-116 affected private replay | 32/32 pass, 251,786 checks; one unchanged pass retained | 740.31 s command |
 | Initial permitted portable selection | 1,525 pass / 339 expected skips, zero failures/errors | 390.1 s runner / 568.26 s command |
 | Initial private 8d reduced | 4/4 pass, zero skips | 448.08 s runtime / 568.19 s command, 120 s wait |
-| Merged-input permitted portable selection | PENDING_POR| `validate_actor_composites` | 1,427 | 13.9 s | `e51eba07` |
-| `validate_actor_groups` | 8,451 | 220.4 s | `e51eba07` |
-| `validate_actor_monsters` | 1,437 | 46.9 s | `e51eba07` |
-| `validate_actor_plain` | 21,437 | 224.3 s | `e51eba07` |
-| `validate_actor_recipes` | 1,669 | 125.5 s | `e51eba07` |
-| `validate_app_polish1` | 752 | 30.1 s | `e51eba07` |
-| `validate_app_polish2` | 1,028 | 4.0 s | `e51eba07` |
-| `validate_app_polish4` | 10,485 | 45.2 s | `e51eba07` |
-| `validate_audio_callers` | 5,528 | 9.5 s | `e51eba07` |
-| `validate_audio_combat` | 19,548 | 44.3 s | `e51eba07` |
-| `validate_audio_domains` | 2,544 | 37.8 s | `e51eba07` |
-| `validate_audio_items` | 3,000 | 4.3 s | `e51eba07` |
-| `validate_audio_objects` | 4,000 | 5.1 s | `e51eba07` |
-| `validate_audio_objects4` | 10,093 | 8.7 s | `e51eba07` |
-| `validate_charsel_items` | 8,817 | 9.7 s | `e51eba07` |
-| `validate_icarus_c2` | 8,400 | 31.2 s | `e51eba07` |
-| `validate_inventory_fx` | 8,017 | 13.1 s | `e51eba07` |
-| `validate_item_callers` | 6,013 | 1.4 s | `e51eba07` |
-| `validate_items_ui` | 8,517 | 21.1 s | `e51eba07` |
-| `validate_movement` | 6,614 | 72.7 s | `e51eba07` |
-| `validate_render_effects16` | 424 | 3.5 s | `e51eba07` |
-| `validate_render_effects17` | 618 | 10.6 s | `e51eba07` |
-| `validate_render_effects18` | 540 | 1.5 s | `e51eba07` |
-| `validate_render_effects19` | 400 | 1.2 s | `e51eba07` |
-| `validate_render_effects24` | 226 | 2.8 s | `e51eba07` |
-| `validate_render_effects25` | 202 | 11.0 s | `e51eba07` |
-| `validate_render_effects26` | 348 | 15.5 s | `e51eba07` |
-| `validate_render_effects28` | 630 | 2.4 s | `e51eba07` |
-| `validate_render_effects31` | 66,051 | 312.9 s | `e51eba07` |
-| `validate_viewport_monsters` | 1,963 | 20.0 s | `e51eba07` |
-| `validate_worlds_fog` | 4,044 | 9.3 s | `e51eba07` | | PENDING_POR| `validate_actor_composites` | 1,427 | 13.9 s | `e51eba07` |
-| `validate_actor_groups` | 8,451 | 220.4 s | `e51eba07` |
-| `validate_actor_monsters` | 1,437 | 46.9 s | `e51eba07` |
-| `validate_actor_plain` | 21,437 | 224.3 s | `e51eba07` |
-| `validate_actor_recipes` | 1,669 | 125.5 s | `e51eba07` |
-| `validate_app_polish1` | 752 | 30.1 s | `e51eba07` |
-| `validate_app_polish2` | 1,028 | 4.0 s | `e51eba07` |
-| `validate_app_polish4` | 10,485 | 45.2 s | `e51eba07` |
-| `validate_audio_callers` | 5,528 | 9.5 s | `e51eba07` |
-| `validate_audio_combat` | 19,548 | 44.3 s | `e51eba07` |
-| `validate_audio_domains` | 2,544 | 37.8 s | `e51eba07` |
-| `validate_audio_items` | 3,000 | 4.3 s | `e51eba07` |
-| `validate_audio_objects` | 4,000 | 5.1 s | `e51eba07` |
-| `validate_audio_objects4` | 10,093 | 8.7 s | `e51eba07` |
-| `validate_charsel_items` | 8,817 | 9.7 s | `e51eba07` |
-| `validate_icarus_c2` | 8,400 | 31.2 s | `e51eba07` |
-| `validate_inventory_fx` | 8,017 | 13.1 s | `e51eba07` |
-| `validate_item_callers` | 6,013 | 1.4 s | `e51eba07` |
-| `validate_items_ui` | 8,517 | 21.1 s | `e51eba07` |
-| `validate_movement` | 6,614 | 72.7 s | `e51eba07` |
-| `validate_render_effects16` | 424 | 3.5 s | `e51eba07` |
-| `validate_render_effects17` | 618 | 10.6 s | `e51eba07` |
-| `validate_render_effects18` | 540 | 1.5 s | `e51eba07` |
-| `validate_render_effects19` | 400 | 1.2 s | `e51eba07` |
-| `validate_render_effects24` | 226 | 2.8 s | `e51eba07` |
-| `validate_render_effects25` | 202 | 11.0 s | `e51eba07` |
-| `validate_render_effects26` | 348 | 15.5 s | `e51eba07` |
-| `validate_render_effects28` | 630 | 2.4 s | `e51eba07` |
-| `validate_render_effects31` | 66,051 | 312.9 s | `e51eba07` |
-| `validate_viewport_monsters` | 1,963 | 20.0 s | `e51eba07` |
-| `validate_worlds_fog` | 4,044 | 9.3 s | `e51eba07` |_WALL |
-| Batch-116 private 8d reduced | PENDING_PRIVATE | PENDING_PRIVATE_WALL |
-| Final publication audit | PENDING_AUDIT | PENDING_AUDIT_WALL |
-| Final documentation consumers | PENDING_DOCS | PENDING_DOCS_WALL |
+| Batch-115 permitted portable delta | 1,541 pass / 347 expected skips, zero failures/errors | 371.3 s runner / 612.48 s command, 120 s wait |
+| Post-audio default delta | 230/230 prior after-side hashes identical | 71.26 s runtime / 161.34 s command, 90 s wait |
+| Batch-116 permitted portable delta | PENDING_RESULT | PENDING_WALL |
+| Batch-116 private 8d reduced | PENDING_RESULT | PENDING_WALL |
+| Final canonical census reproduction | PENDING_RESULT | PENDING_WALL |
+| Final publication audit | PENDING_RESULT | PENDING_WALL |
+| Final documentation consumers | PENDING_RESULT | PENDING_WALL |
 
 Command walls include resource waiting and selection where stated. Heavy
 commands use nice 10, build jobs <=4 and validator/portable jobs 2. No full
@@ -214,43 +165,47 @@ runs explicitly exclude `native/tests/test_native_app.py`, leaving 180 and
 
 | Steward validator | Checks | Wall | Tested commit |
 |---|---:|---:|---|
-| `validate_actor_composites` | 1,427 | 13.9 s | `e51eba07` |
-| `validate_actor_groups` | 8,451 | 220.4 s | `e51eba07` |
-| `validate_actor_monsters` | 1,437 | 46.9 s | `e51eba07` |
-| `validate_actor_plain` | 21,437 | 224.3 s | `e51eba07` |
-| `validate_actor_recipes` | 1,669 | 125.5 s | `e51eba07` |
+| `validate_actor_composites` | 1,427 | 13.2 s | `ebcbb2da` |
+| `validate_actor_groups` | 8,451 | 274.2 s | `ebcbb2da` |
+| `validate_actor_monsters` | 1,437 | 43.0 s | `ebcbb2da` |
+| `validate_actor_plain` | 21,437 | 232.9 s | `ebcbb2da` |
+| `validate_actor_recipes` | 1,669 | 168.8 s | `ebcbb2da` |
 | `validate_app_polish1` | 752 | 30.1 s | `e51eba07` |
-| `validate_app_polish2` | 1,028 | 4.0 s | `e51eba07` |
-| `validate_app_polish4` | 10,485 | 45.2 s | `e51eba07` |
-| `validate_audio_callers` | 5,528 | 9.5 s | `e51eba07` |
-| `validate_audio_combat` | 19,548 | 44.3 s | `e51eba07` |
-| `validate_audio_domains` | 2,544 | 37.8 s | `e51eba07` |
-| `validate_audio_items` | 3,000 | 4.3 s | `e51eba07` |
-| `validate_audio_objects` | 4,000 | 5.1 s | `e51eba07` |
-| `validate_audio_objects4` | 10,093 | 8.7 s | `e51eba07` |
-| `validate_charsel_items` | 8,817 | 9.7 s | `e51eba07` |
-| `validate_icarus_c2` | 8,400 | 31.2 s | `e51eba07` |
-| `validate_inventory_fx` | 8,017 | 13.1 s | `e51eba07` |
-| `validate_item_callers` | 6,013 | 1.4 s | `e51eba07` |
-| `validate_items_ui` | 8,517 | 21.1 s | `e51eba07` |
-| `validate_movement` | 6,614 | 72.7 s | `e51eba07` |
-| `validate_render_effects16` | 424 | 3.5 s | `e51eba07` |
-| `validate_render_effects17` | 618 | 10.6 s | `e51eba07` |
-| `validate_render_effects18` | 540 | 1.5 s | `e51eba07` |
-| `validate_render_effects19` | 400 | 1.2 s | `e51eba07` |
-| `validate_render_effects24` | 226 | 2.8 s | `e51eba07` |
-| `validate_render_effects25` | 202 | 11.0 s | `e51eba07` |
-| `validate_render_effects26` | 348 | 15.5 s | `e51eba07` |
-| `validate_render_effects28` | 630 | 2.4 s | `e51eba07` |
-| `validate_render_effects31` | 66,051 | 312.9 s | `e51eba07` |
-| `validate_viewport_monsters` | 1,963 | 20.0 s | `e51eba07` |
-| `validate_worlds_fog` | 4,044 | 9.3 s | `e51eba07` |
+| `validate_app_polish2` | 1,028 | 6.4 s | `ebcbb2da` |
+| `validate_app_polish4` | 10,485 | 39.6 s | `ebcbb2da` |
+| `validate_audio_callers` | 5,528 | 6.8 s | `ebcbb2da` |
+| `validate_audio_combat` | 19,548 | 38.8 s | `ebcbb2da` |
+| `validate_audio_domains` | 2,544 | 37.4 s | `ebcbb2da` |
+| `validate_audio_items` | 3,000 | 6.4 s | `ebcbb2da` |
+| `validate_audio_kubera` | 1,000 | 1.8 s | `ebcbb2da` |
+| `validate_audio_monsters` | 38,315 | 25.3 s | `ebcbb2da` |
+| `validate_audio_objects` | 4,000 | 8.9 s | `ebcbb2da` |
+| `validate_audio_objects4` | 10,093 | 13.4 s | `ebcbb2da` |
+| `validate_charsel_items` | 8,817 | 10.1 s | `ebcbb2da` |
+| `validate_icarus_c2` | 8,400 | 32.0 s | `ebcbb2da` |
+| `validate_inventory_fx` | 8,017 | 11.3 s | `ebcbb2da` |
+| `validate_item_callers` | 6,013 | 1.9 s | `ebcbb2da` |
+| `validate_items_ui` | 8,517 | 17.7 s | `ebcbb2da` |
+| `validate_movement` | 6,614 | 68.7 s | `ebcbb2da` |
+| `validate_render_effects16` | 424 | 8.4 s | `ebcbb2da` |
+| `validate_render_effects17` | 618 | 11.2 s | `ebcbb2da` |
+| `validate_render_effects18` | 540 | 2.1 s | `ebcbb2da` |
+| `validate_render_effects19` | 400 | 1.5 s | `ebcbb2da` |
+| `validate_render_effects24` | 226 | 5.3 s | `ebcbb2da` |
+| `validate_render_effects25` | 202 | 13.6 s | `ebcbb2da` |
+| `validate_render_effects26` | 348 | 15.9 s | `ebcbb2da` |
+| `validate_render_effects28` | 630 | 3.7 s | `ebcbb2da` |
+| `validate_render_effects31` | 66,051 | 331.8 s | `ebcbb2da` |
+| `validate_viewport_monsters` | 1,963 | 16.7 s | `ebcbb2da` |
+| `validate_worlds_fog` | 4,044 | 10.8 s | `ebcbb2da` |
 
-Steward validators: validate_actor_composites, validate_actor_groups, validate_actor_monsters, validate_actor_plain, validate_actor_recipes, validate_app_polish1, validate_app_polish2, validate_app_polish4, validate_audio_callers, validate_audio_combat, validate_audio_domains, validate_audio_items, validate_audio_objects, validate_audio_objects4, validate_charsel_items, validate_icarus_c2, validate_inventory_fx, validate_item_callers, validate_items_ui, validate_movement, validate_render_effects16, validate_render_effects17, validate_render_effects18, validate_render_effects19, validate_render_effects24, validate_render_effects25, validate_render_effects26, validate_render_effects28, validate_render_effects31, validate_viewport_monsters, validate_worlds_fog
+Steward validators: validate_actor_composites, validate_actor_groups, validate_actor_monsters, validate_actor_plain, validate_actor_recipes, validate_app_polish1, validate_app_polish2, validate_app_polish4, validate_audio_callers, validate_audio_combat, validate_audio_domains, validate_audio_items, validate_audio_kubera, validate_audio_monsters, validate_audio_objects, validate_audio_objects4, validate_charsel_items, validate_icarus_c2, validate_inventory_fx, validate_item_callers, validate_items_ui, validate_movement, validate_render_effects16, validate_render_effects17, validate_render_effects18, validate_render_effects19, validate_render_effects24, validate_render_effects25, validate_render_effects26, validate_render_effects28, validate_render_effects31, validate_viewport_monsters, validate_worlds_fog
 
 Mutants needed by steward: none. Use the canonical private environment from
 repo root. Every validator above runs privately with zero skips. Main through
-batch 115 `df57ab8b` is integrated at `1b194a04`.
+batch 115 `df57ab8b` is integrated at `1b194a04`; AUDIO-005 batch 116
+`8844d3e9` is integrated at `9d9caf9a`. The `ebcbb2da` checkpoint changes
+documentation only after that merged source.
 
 ## Identity and proof renders
 
@@ -274,6 +229,12 @@ fields. The comparison asserts that exact change set and bitmap prefix.
 These differences agree with incoming EFFECTS-031; there is no default
 actor-related image delta. Report hashes are not claimed identical, and no
 original-pixel fidelity score is inferred.
+
+AUDIO-005 advances the final world binary to SHA-256
+`e4f3d72c8d9c439fc7a14e2c0166fac20baa43891013aa2e158755bc06151d8c`.
+After its explicit rebuild, the same default after side is refreshed once:
+230/230 hashes match the batch-115 after side exactly, 71.26 s runtime /
+161.34 s command including 90 s wait. The saved before baseline is not rerun.
 
 Twenty-four before and twenty-four after GL proof scenes use world 0,
 DemoKnight at 128,124, DemoActor at 129,125, direction 5, 640x480, two frames,
@@ -328,15 +289,17 @@ Root build passes in 22.40 s; explicit world rebuild passes in 8.68 s runtime /
 188.68 s command, 180 s wait. Its SHA-256 is
 `e4f3d72c8d9c439fc7a14e2c0166fac20baa43891013aa2e158755bc06151d8c`.
 The input-delta selector keeps 30 prior rows (82.63 s command, 30 s wait);
-app-polish1 retains its unchanged-input pass. Current PR-wide selection is
-running. The overlapping private run passes four tests in 401.24 s runtime /
+app-polish1 retains its unchanged-input pass. The current PR-wide selection keeps 33 of 249 registry rows, adding the two
+AUDIO-005 validators (223.28 s command, 90 s wait). The final replay selects
+32 rows and retains app-polish1 at its earlier unchanged-input commit. The overlapping private run passes four tests in 401.24 s runtime /
 521.36 s command but is excluded from final evidence.
-Left: selected compiled-input replay, portable/private delta, final audit and
-publication. Next: refresh the after side of the default identity comparison
-against the saved baseline, then run the selected checks. No ready entry exists.
+Left: portable/private delta, final audit and publication. The default after-side refresh is identical in all 230 hashes. All 32 selected rows pass (251,786 checks, 740.31 s), with one unchanged
+app-polish1 pass retained. The portable delta is waiting on the resource guard.
+Next: finish portable/private and publication checks. No ready entry exists.
 
 Pushed checkpoints include `99409933`, `5425914e`, `d53c7df3`, `b3edf825`,
-`967d83e4`, `73ccdc0d`, `e51eba07` and `4863ad70`. Early provisional row
+`967d83e4`, `73ccdc0d`, `e51eba07`, `4863ad70`, `9f096a80`,
+`9d9caf9a` and `ebcbb2da`. Early provisional row
 counts are superseded by the final 138-row result. PR #396 was the initial
 stack; its merged main ancestry is retained. The final delivery changes
 only documentation after the tested source. Final push and PR precede the
