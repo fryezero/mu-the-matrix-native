@@ -654,6 +654,7 @@ void mu_objects_step(mu_objects *o, const mu_objects_step_inputs *in)
                     if (o->sound_command && o->sound_command(o->sound_context, m)) continue;
                     if (o->sound) o->sound(o->sound_context, (int32_t)m->args[0]);
                 } else if (m->call == MU_Q_STOP_SOUND) {
+                    if (o->sound_command && o->sound_command(o->sound_context, m)) continue;
                     ++rt->move_unsupported;   /* StopBuffer has no native consumer; refused and counted */
                 }
             }

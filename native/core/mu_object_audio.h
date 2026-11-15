@@ -59,6 +59,23 @@ static inline int mu_object_audio_cue(int32_t world, int32_t id, mu_cue *cue)
 #include "../../reconstructed/objects/audio_request.h"
 static inline int mu_object_audio_command_cue(int32_t world, const mu_obj_event *event, mu_cue *cue)
 {
+    if (event && world >= 123 && world <= 127 && event->args[15] == MU_AUDIO_OBJECT_TAG &&
+        event->args[13] == 0x00e19ed0u) {
+        const uint32_t site = event->args[14], id = event->args[0];
+        const int stop = event->call == 0x00a6ad76u && event->count == 2 && event->args[1] == 1 &&
+            ((site == 0x00e1a2bau && id == 0x4f2) || (site == 0x00e1a37du && id == 0x4f1));
+        const int play = event->call == MU_OBJ_CALL_SOUND && event->count == 3 && !event->args[1] && !event->args[2] &&
+            ((site == 0x00e1a071u && id == 0x4f4) || (site == 0x00e1a0a4u && id == 0x4f3) ||
+             (site == 0x00e1a2cau && id == 0x4f1) || (site == 0x00e1a38du && id == 0x4f2));
+        if (!stop && !play) return 0;
+        memset(cue, 0, sizeof *cue);
+        cue->kind = stop ? MU_CUE_SOUND_STOP : MU_CUE_SOUND;
+        cue->handler = 0x00e19ed0u;
+        cue->u.sound.site = site;
+        cue->u.sound.id = (int32_t)id;
+        cue->u.sound.at_key = -2;
+        return 1;
+    }
     if (!event || event->call != MU_OBJ_CALL_SOUND || event->count != 3 ||
         event->args[15] != MU_AUDIO_OBJECT_TAG) return 0;
     const uint32_t routine = event->args[13], site = event->args[14];
@@ -84,7 +101,9 @@ static inline int mu_object_audio_command_deliver(mu_session *session, mu_audio_
 {
     mu_cue cue;
     if (!mu_object_audio_command_cue(world, event, &cue)) return 0;
-    if (session)
+    if (session && cue.kind == MU_CUE_SOUND_STOP)
+        mu_session_sound_stop_emit(session, cue.handler, cue.u.sound.site, cue.u.sound.id);
+    else if (session)
         mu_session_sound_emit(session, cue.handler, cue.u.sound.site, cue.u.sound.id, cue.u.sound.at_key, cue.u.sound.loop);
     else if (host)
         mu_audio_host_cue(host, &cue, 0);
@@ -97,7 +116,9 @@ static inline int mu_object_audio_deliver(mu_session *session, mu_audio_host *ho
 {
     mu_cue cue;
     if (!mu_object_audio_cue(world, id, &cue)) return 0;
-    if (session)
+    if (session && cue.kind == MU_CUE_SOUND_STOP)
+        mu_session_sound_stop_emit(session, cue.handler, cue.u.sound.site, cue.u.sound.id);
+    else if (session)
         mu_session_sound_emit(session, cue.handler, cue.u.sound.site, cue.u.sound.id, cue.u.sound.at_key, cue.u.sound.loop);
     else if (host)
         mu_audio_host_cue(host, &cue, 0);

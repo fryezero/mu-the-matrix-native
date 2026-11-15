@@ -71,4 +71,28 @@ static inline void mu_audio_keth_request(mu_obj_log *log, int32_t world, int32_t
     }
     mu_audio_object_tag(log, old ? 0x00e3a719u : 0x00d93b31u, site);
 }
+/* Kubera's stop and play are distinct operations in the existing event stream.
+ * Never annotate an overflowed/foreign event or replace previous provenance. */
+static inline void mu_audio_kubera_request(mu_obj_log *log)
+{
+    if (!log || !log->count || log->overflow) return;
+    mu_obj_event *e = &log->events[log->count - 1];
+    if (e->args[15]) return;
+    uint32_t site = 0;
+    if (e->call == 0x00a6ad76u && e->count == 2 && e->args[1] == 1) {
+        if (e->args[0] == 0x4f2) site = 0x00e1a2bau;
+        else if (e->args[0] == 0x4f1) site = 0x00e1a37du;
+    } else if (e->call == MU_OBJ_CALL_SOUND && e->count == 3 && !e->args[1] && !e->args[2]) {
+        switch (e->args[0]) {
+        case 0x4f4: site = 0x00e1a071u; break;
+        case 0x4f3: site = 0x00e1a0a4u; break;
+        case 0x4f1: site = 0x00e1a2cau; break;
+        case 0x4f2: site = 0x00e1a38du; break;
+        }
+    }
+    if (!site) return;
+    e->args[13] = 0x00e19ed0u;
+    e->args[14] = site;
+    e->args[15] = MU_AUDIO_OBJECT_TAG;
+}
 #endif
