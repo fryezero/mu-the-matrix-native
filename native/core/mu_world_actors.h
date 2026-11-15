@@ -73,4 +73,9 @@ const mu_renderchar_attachment *mu_world_actor_weapon(const mu_world_actor *acto
 int mu_world_actor_weapon_draw(const mu_world_actor *actor, int slot, float alpha,
     const mu_renderchar_env *env, const mu_render_backend *backend, mu_draw_stats *stats);
 
+/* Apply the generated single-body draw plan when this exact fixture matches.
+ * Returns 1 for a checked plan, 0 for other actors. Other draw options remain
+ * owned by the caller. World/buff/temporal equivalence is outside this API. */
+int mu_world_actor_plain_options(const mu_world_actor *actor, float alpha, mu_draw_options *options);
+
 #endif

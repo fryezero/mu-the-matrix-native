@@ -77,6 +77,7 @@ struct mu_world_rt {
     int has_auto;                  /* the tool's --auto-move: the summary's run row */
     mu_world *map;
     mu_camera_info info;
+    struct mu_world_muun *muun_fixture; /* Opt-in authored Muun render pose only. */
     mu_character ch;
     int has_character;
     /* HERO-ITEMS-001: the hero's part slots from its equipment records (SetCharacterClass 0x01394870,

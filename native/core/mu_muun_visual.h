@@ -5,6 +5,7 @@
 #include "mu_scene.h"
 #include "../../reconstructed/muun/passes.h"
 #include "mu_textures.h"
+#include "../../reconstructed/muun/special.h"
 #include "mu_muun_effects.h"
 #include "mu_effect_scene.h"
 
@@ -18,6 +19,7 @@ typedef struct mu_muun_visual {
     int32_t mesh_count;
     int base_body;
     float shadow_alpha;
+    float mesh_c8; /* Persistent per-object special mesh light, OBJECT +0xc8. */
     long mesh_draws, refused_meshes, command_draws, refused_commands;
     mu_bmd bmd;
     mu_model model;

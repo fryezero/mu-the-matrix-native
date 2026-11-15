@@ -72,6 +72,7 @@ static int helpers_open(struct mu_world_rt *a, void *self)
 
 static void helpers_close(struct mu_world_rt *a, void *self)
 {
+    a->muun_fixture = NULL;
     mu_world_muun_close(((helpers_part *)self)->muun);
     (void)self;
     if (a->helpers) {   /* NATIVE-HELPERS-001 */

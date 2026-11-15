@@ -9,6 +9,9 @@ int mu_world_muun_open(struct mu_world_rt *rt, mu_world_muun **out);
 void mu_world_muun_close(mu_world_muun *m);
 void mu_world_muun_tick(struct mu_world_rt *rt, mu_world_muun *m);
 void mu_world_muun_soft(struct mu_world_rt *rt, mu_world_muun *m, struct mu_world_draw *draw);
+/* Temporarily borrow the demo character's renderer; restore it after the hero draw. */
+void mu_world_muun_rider_begin(struct mu_world_rt *rt);
+void mu_world_muun_rider_end(struct mu_world_rt *rt);
 void mu_world_muun_report(const mu_world_muun *m, FILE *out);
 #ifndef MU_WORLD_NO_GL
 void mu_world_muun_gl(struct mu_world_rt *rt, mu_world_muun *m, struct mu_world_draw *draw);
