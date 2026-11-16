@@ -1022,6 +1022,25 @@ plan, so all sixteen stay incomplete with this reason; eight of them also carry
 item `0x12f9`, whose ten link sprites equal the link generator. Classes
 595/635 open the type-226 death model and keep their lifetime refusal.
 
+### The eighteen NPC opener rows (classification only)
+
+The rows ACTORS-007 left as "NPC opener file/texture/action/model state
+differs" have no action-speed or model-field difference. Executed in worlds
+0, 3 and 18 their OpenNpc calls differ from the single `Npc\` registration in
+exactly one of three ways:
+
+| Difference (recorded call order) | Rows |
+|---|---|
+| Own model, OpenTexture in an own directory, then the common `Npc\` call | 205..209 (`Object35\`), 407 (`Monster\`), 451 (`Npc\cherryblossom\`), 579 (`Npc\LuckyItem\`), 580, 581, 583, 584, 604 (`Npc\Akeron\`) |
+| Two extra bitmap loads `0x8257`/`0x8258` (`NPC\scentsword_R.jpg`, `NPC\scentSwordA_render.jpg`) | 764, 765, 766 |
+| Secondary models | 477 (two `Item\xmas\` snowman parts), 669 (`Npc\marce`) |
+
+This is a verified observation of the opener's requests. Which bitmap each
+mesh ends with after two OpenTexture calls depends on OpenTexture
+`0x0181fbe9`'s own lookup and retry, which this lane does not execute, so no
+row is admitted from it. The thirteen two-directory rows are the uniform
+group for the next lane's reader.
+
 ### Admission and native consumers
 
 `validate_actor_groups.py --generate` writes
