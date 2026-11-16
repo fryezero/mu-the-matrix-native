@@ -27,7 +27,7 @@ type	group_002aa	group_002ab	decision	detail
 0x0f19	unread scalar/colour program	scalar form	admitted	six-column atlas: push 6; pop ecx; idiv ecx
 0x0f26	producer/service program missing	producer: unread instruction	refused	gated pre reader refuses call 0xcff0d3
 0x0f27	producer/service program missing	producer: unread instruction	refused	gated pre reader refuses cvtss2sd xmm0, [ebp+0x14] at 0x17d87e1
-0x10ef	unproved helper caller	helper caller: own RenderObjDraw draws	refused	draws issued by RenderObjDraw outside the low-level chain (level- and option-dependent counts); no admitted caller form
+0x10ef	unproved helper caller	helper caller: early whole-body draw	refused	an early case (0x0176dced) draws the body once with model light (0.5, 0.5, 1.5); with that draw read, the colour pass light still differs in 57 of 292 states at high levels
 0x10f3	unread scalar/colour program	scalar form	admitted	ternary minimum with the wave evaluated twice
 0x10fd	retained independent failure	retained independent failure	refused	mesh lights of a later phase stay unexplained; failure of state 17 retained
 0x1101	unread scalar/colour program	scalar form	admitted	upper clamp after the constant operations
@@ -96,7 +96,7 @@ type	group_002aa	group_002ab	decision	detail
 0x23aa	producer/service program missing	producer: random table selects	refused	rand() % 16 selects a bone from a frame table, then nested selects (shl eax, 2 at 0x17ceb2d; bone array element at 0x1773001)
 0x23ab	producer/service program missing	producer: random table selects	refused	rand() % 16 selects a bone from a frame table, then nested selects (shl eax, 2 at 0x17ceb2d; bone array element at 0x1773001)
 0x23f1	original fixture stop	fixture stop: producer list	refused	producer stops at 0x95d4f1 inside a container helper after its effect services
-0x23f4	unproved helper caller	helper caller: own RenderObjDraw draws	refused	draws issued by RenderObjDraw outside the low-level chain (level- and option-dependent counts); no admitted caller form
+0x23f4	unproved helper caller	helper caller: own RenderObjDraw draws	refused	shared early case at 0x017760ab with level- and option-dependent draws; the early-body fit fails independent states
 0x2401	original fixture stop	fixture stop: producer list	refused	producer stops at 0x95d4f1 inside a container helper after its effect services
 0x2406	unproved helper caller	low-level light, helper and two-mesh caller	admitted	light copy, body helper (flag argument 3), meshes 0 and 1 below glow level three
 0x2477	unproved helper caller	low-level light, helper and two-mesh caller	admitted	light copy, body helper (flag argument 3), meshes 0 and 1 below glow level three
@@ -108,7 +108,7 @@ type	group_002aa	group_002ab	decision	detail
 0x2489	producer/service program missing	producer: unread instruction	refused	gated pre survey finds no effect before the draws to bound the case (max() of an empty site list)
 0x248a	producer/service program missing	producer: model light write	refused	pre-draw case copies the light argument into model +0x54 (add ecx, 0x54 on the model; 0xcfc922); needs a model-field write op
 0x248b	producer/service program missing	producer: services before and after draws	refused	effect services both before and after the body draws; one pre-draw program cannot hold them
-0x249b	unproved helper caller	helper caller: own RenderObjDraw draws	refused	draws issued by RenderObjDraw outside the low-level chain (level- and option-dependent counts); no admitted caller form
+0x249b	unproved helper caller	helper caller: own RenderObjDraw draws	refused	shared early case at 0x017760ab with level- and option-dependent draws; the early-body fit fails independent states
 0x249c	producer/service program missing	producer: unread instruction	refused	gated pre reader refuses wave operands (2.0, 90.0): a wave with a constant phase
 0x249d	producer/service program missing	producer: unread instruction	refused	gated pre reader refuses call 0x8e80e0
 0x249e	producer/service program missing	producer: unread instruction	refused	gated pre reader refuses call 0x8e6d00
@@ -127,11 +127,11 @@ type	group_002aa	group_002ab	decision	detail
 0x24d0	producer/service program missing	producer: unread instruction	refused	gated pre reader refuses inc edx at 0x17adfe6
 0x24d7	producer/service program missing	producer: unread instruction	refused	gated pre reader refuses inc edx at 0x17adfe6
 0x24e3	unread scalar/colour program	flag program	admitted	helper flag argument masked and combined in the case (kind 11)
-0x24ed	matrix-stack program missing	matrix bracket: skipped base	refused	bracket reads, but the base helper draws nothing in the probe states while the generic stream has a base draw
+0x24ed	matrix-stack program missing	matrix bracket: hidden-word switch	refused	bracket reads, but the base draw is chosen by OBJECT +0x68 (1 or 0, none otherwise; 0x016f5528)
 0x24f1	matrix-stack program missing	bare matrix bracket	admitted	0x012b7e53/0x012b7e65 are glPushMatrix/glPopMatrix only; no enclosed matrix call
 0x24f5	unproved helper caller	helper caller: own RenderObjDraw draws	refused	draws issued by RenderObjDraw outside the low-level chain (level- and option-dependent counts); no admitted caller form
-0x2505	unproved helper caller	helper caller: own RenderObjDraw draws	refused	draws issued by RenderObjDraw outside the low-level chain (level- and option-dependent counts); no admitted caller form
-0x26ed	matrix-stack program missing	matrix bracket: skipped base	refused	bracket reads, but the base helper draws nothing in the probe states while the generic stream has a base draw
+0x2505	unproved helper caller	helper caller: own RenderObjDraw draws	refused	early body at 0x0176f0f5, then a switch on the glow level local (0, 1, other) with different trailing draws
+0x26ed	matrix-stack program missing	matrix bracket: hidden-word switch	refused	bracket reads, but the base draw is chosen by OBJECT +0x68 (1 or 0, none otherwise; 0x016f5528)
 0x2701	unproved helper caller	helper caller: own RenderObjDraw draws	refused	draws issued by RenderObjDraw outside the low-level chain (level- and option-dependent counts); no admitted caller form
 0x2726	original fixture stop	fixture stop: action play speed	refused	reads model +0x30 action record [OBJECT +0xa8 word] +4 at 0x16eef60; needs an authored action table and a C input
 0x27c5	original fixture stop	fixture stop: action play speed	refused	reads model +0x30 action record [OBJECT +0xa8 word] +4 at 0x16eef60; needs an authored action table and a C input
