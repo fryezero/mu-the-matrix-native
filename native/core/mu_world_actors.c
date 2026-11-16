@@ -13,6 +13,7 @@
 #include "mu_data.h"
 #include "../../reconstructed/cloth/cloth.h"
 #include "mu_item_textures.h"
+#include "mu_particles.h"
 #include "mu_texture_names.h"
 
 #define MONSTER_IDLE 0     /* docs/research/client-actors.md section 2 (inference) */
@@ -203,6 +204,8 @@ typedef struct mu_world_actor_weapons {
     mu_renderchar_host host;
     mu_renderchar_attachment slots[2];
     float body_bones[MU_MODEL_SHARED_BONE_BYTES / sizeof(float)];
+    /* Each hand's own posed bones, kept for its RenderLinkItem sprite requests. */
+    float link_bones[2][MU_MODEL_SHARED_BONE_BYTES / sizeof(float)];
 } mu_world_actor_weapons;
 
 static void free_weapons(mu_world_actor *a)
@@ -257,12 +260,11 @@ static int load_weapons(mu_world_actor *a, const char *root, int no_textures, ch
         part->glow = (mu_renderchar_glow){.type = type, .level = row.slots[6+k].level,
             .has_record = 1, .kind_a = item.attributes.kind_a, .kind_b = item.attributes.kind_b,
             .item_kind = item.attributes.type};
-        /* The ordinary monster caller passes this byte without Player's <<3.
-         * Generated group checks compare the exact raw-level stream with the
-         * draw API's decoded level for every admitted type/level pair. */
-        mu_actor_group_body_plan group;
-        if (mu_actor_group_plan(a->server_class, &group))
-            part->glow.level = row.slots[6+k].level >> 3;
+        /* The monster caller passes the slot byte as RenderLinkItem's level
+         * argument; RenderLinkItem 0x012bd910 shifts it left by three for
+         * RenderObjDraw, which decodes the same level again (ACTORS-008
+         * records the shifted argument per admitted row). The decoded draw
+         * level is therefore the slot byte itself. */
 
     }
     mu_data_free(&table);
@@ -509,6 +511,7 @@ void mu_world_actors_frame(mu_world_actors *s, float effect_dt)
                 memcpy(a->weapons->host.bones, a->weapons->body_bones, MU_MODEL_SHARED_BONE_BYTES);
                 mu_renderchar_attach_update(part, &a->actor.model, NULL, a->position,
                     a->actor.spec.scale, a->actor.model.params.color);
+                memcpy(a->weapons->link_bones[k], a->weapons->host.bones, MU_MODEL_SHARED_BONE_BYTES);
             }
             memcpy(a->weapons->host.bones, a->weapons->body_bones, MU_MODEL_SHARED_BONE_BYTES);
         }
@@ -576,4 +579,43 @@ int mu_world_actor_plain_options(const mu_world_actor *a, float alpha, mu_draw_o
     options->alpha = alpha; /* plain plan */
     options->texture = -1;
     return 1;
+}
+
+long mu_world_actor_weapon_effects(const mu_world_actor *a, int slot, mu_world_particles *particles)
+{
+    mu_actor_group_body_plan plan;
+    const mu_renderchar_attachment *part = mu_world_actor_weapon(a, slot);
+    if (!part || !particles || !mu_actor_group_plan(a->server_class, &plan) ||
+        !(plan.link_effect_mask >> slot & 1u)) return 0; /* link effects */
+    return mu_renderchar_link_effects(&part->model, a->weapons->link_bones[slot], part->glow.type, particles);
+}
+
+int32_t mu_world_actor_caller_fx(const mu_world_actor *a, float clock, int32_t random_value,
+                                 mu_world_actor_fx_fn emit, void *context)
+{
+    const mu_actor_caller_fx *fx = NULL;
+    mu_draw_options probe;
+    if (!a || !emit) return 0;
+    const int32_t count = mu_actor_caller_fx_plan(a->server_class, &fx);
+    if (!count) return 0;
+    /* The same model/scale/weapon guard as the body plan the requests belong to. */
+    mu_draw_default_options(&probe);
+    if (!mu_world_actor_plain_options(a, 1.0f, &probe)) return 0;
+    for (int32_t i = 0; i < count; ++i)
+        if (fx[i].bone < 0 || fx[i].bone >= a->actor.bmd.bone_count) return 0; /* fx bones */
+    for (int32_t i = 0; i < count; ++i) {
+        mu_world_actor_fx request;
+        float offset[3];
+        memcpy(offset, fx[i].offset_bits, sizeof offset);
+        request.bitmap = fx[i].bitmap;
+        mu_world_particles_bone_position(&a->actor.model, fx[i].bone, offset, request.position);
+        memcpy(&request.scale, &fx[i].scale_bits, 4);
+        mu_actor_caller_fx_light(&fx[i], clock, random_value, request.light);
+        request.owner = fx[i].owner;
+        memcpy(&request.rotation, &fx[i].rotation_bits, 4);
+        request.blend = fx[i].blend;
+        request.axes = fx[i].axes;
+        emit(context, &request);
+    }
+    return count;
 }

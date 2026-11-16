@@ -78,4 +78,28 @@ int mu_world_actor_weapon_draw(const mu_world_actor *actor, int slot, float alph
  * owned by the caller. World/buff/temporal equivalence is outside this API. */
 int mu_world_actor_plain_options(const mu_world_actor *actor, float alpha, mu_draw_options *options);
 
+/* RENDER-ACTORS-008: RenderLinkItem's own sprite requests of a checked monster
+ * weapon (the plan's link_effect_mask), through the item link consumer the
+ * hero's weapons use, on the hand's posed bones. Returns the requests kept. */
+struct mu_world_particles;
+long mu_world_actor_weapon_effects(const mu_world_actor *actor, int slot, struct mu_world_particles *particles);
+
+/* RENDER-ACTORS-008: the checked plan's RenderCharacter sprite requests for
+ * one rendered frame, in original order. Positions are TransformPosition
+ * 0x012b6ef1 of the actor's posed body bone. clock: world time in ms;
+ * random_value: the caller's one rand() (used only by flicker rows, see
+ * mu_actor_caller_fx_random). Returns the number of requests sent, 0 for an
+ * actor without a checked request plan or whose model, scale, weapons or
+ * bones differ from it; then nothing is sent. */
+typedef struct mu_world_actor_fx {
+    int32_t bitmap;
+    float position[3], scale, light[3];
+    int32_t owner;                 /* 1: the actor's OBJECT, 0: none */
+    float rotation;
+    int32_t blend, axes;
+} mu_world_actor_fx;
+typedef void (*mu_world_actor_fx_fn)(void *context, const mu_world_actor_fx *request);
+int32_t mu_world_actor_caller_fx(const mu_world_actor *actor, float clock, int32_t random_value,
+                                 mu_world_actor_fx_fn emit, void *context);
+
 #endif
