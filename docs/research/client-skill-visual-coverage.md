@@ -240,6 +240,17 @@ weapon-link sprites, with independent expiry and owner-death removal controls.
 The strict inventory remains 20 P / 3 L / 0 M. This fixture does not supply an
 authoritative buff feed, general link selection or subtype-9 equipment context.
 
+## Link selector, RENDER-EFFECTS-035
+
+The [general link selector](client-render-effects-035.md) is recovered: the link
+bone of a weapon slot is chosen by the OBJECT model type alone (55 type cases,
+Player default 33 / 42) and the slot by the action. Death Stab reads its bone
+through it, so its row in the strict inventory moves L to P: **21 P / 2 L / 0 M**.
+Both auras now take their two link bones from the same selector and request
+their cast end bodies; they stay L for the authoritative buff feed, the
+subtype-9 equipment context and, for Greater Defense, the missing `0x7f84/2`
+consumer. The table above is kept as the historical record.
+
 ## Wider demo inventory, RENDER-EFFECTS-030
 
 The [selectable DK/Elf audit](client-render-effects-030.md) enumerates all 28
