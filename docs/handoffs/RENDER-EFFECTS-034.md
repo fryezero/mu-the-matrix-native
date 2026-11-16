@@ -1,6 +1,47 @@
 # RENDER-EFFECTS-034
 
-PR-ready verified fixture subset. The steward owns the combined gate and merge.
+**WIP, draft PR, no ready-prs line.** The owner ordered all lanes to finish at 18:07 on 2026-11-15; the
+last verification steps after the final main merge were stopped. The consumers themselves are complete
+and verified; see the WIP section for what is left.
+
+## WIP (stopped 2026-11-15 18:10 by owner order)
+
+**Done and verified**
+- 27 consumer pairs (23 particles, 4 joints) and four bitmap bindings, the per-pair world refusal ledger,
+  the grouped verifier, the native fixture host and tests. Everything is committed and pushed.
+- Grouped verifier through the registry with all mutants, at `0a4e4ded` (same consumer sources as the
+  head): 16,259 checks, 0 mismatches, 116 of 116 mutants detected, 178.6 s.
+- Affected private validators, no mutants, cached: 89 of 89 rows at `5b6565ad` (1,366 s), then the delta
+  after the batch-120 merge and the second particle group: 118 of 118 rows at `4b5598ee` (3,894 s).
+- Portable affected suites (packaging module excluded): 1,888 tests with one stale joint admission
+  expectation (fixed); 1,674 tests, 0 failures after the batch-119/120 merges; 1,816 tests with one stale
+  particle admission expectation (fixed, suite rerun: 23 tests OK) after the second group.
+- Scene refusal counts before/after and the default identity sweep (below) on the tree **before** the
+  batch-120 merge and the second group.
+
+**Not verified at the head** (merge `57d22d16` plus this documentation commit) (it adds the merge of main `708798ae`, batches 121/122: UI-WINDOWS-006
+and HERO-ITEMS-002, a clean merge that touches no consumer file)
+- The validator delta since `4b5598ee` selected 66 rows; 8 had passed and none had failed when it was
+  stopped.
+- The portable delta for that merge, the reduced private native modules (8d) and the repository audit
+  were not run.
+- The identity sweep was not repeated on the final tree; its numbers below are from binaries built before
+  the batch-120 merge (before `d9783e95…`, after `3f15f0c0…`). The second group only adds pairs that no
+  producer on main requests.
+
+**Next step for the agent that resumes** (worktree kept at `~/Documents/MTM/worktrees/render-effects-034`;
+scratch and builds were deleted)
+1. `nice -n 10 make -j4`, then `run_validators.py --private --no-mutants --cache --affected-since 4b5598ee
+   --jobs 2` (66 rows), `run_test_suites.py --affected-since 2ff9660d` without `test_native_app.py`, the
+   private modules `test_render_effects34`, `test_native_worlds_inner`, `test_muun_transition`,
+   `test_native_particles`, `test_render_effects16/20/22/23/24/26/31/33`, and `scripts/audit_repository.py`.
+2. One default identity sweep: before-tree = head with `native/core/mu_particles.c/.h`,
+   `native/world/parts/particles.c`, `reconstructed/particles/particles.c/.h` and
+   `reconstructed/joints/joints.c` taken from `35ae89fe` and the two `consumer34_*.inc` files removed;
+   `make -C native -j4 world` in both trees; record both SHA-256s. Expected: only Swamp of Calmness frame
+   24 changes.
+3. Fill the three marked sections below, merge main again if it moved, publish the PR and write the
+   ready line.
 
 Branch `claude/render-effects-034` starts from RENDER-EFFECTS-033 `35ae89fe` (PR #403, merged during the
 run in batch 120) and merges main twice: `c255e4dd` (batch 119: MUUN-VISUAL-005, AUDIO-006) at `7ae65313`
@@ -126,13 +167,21 @@ issues.
 Both trees ran `make -C native -j4 world` right before their sweep; hashes were read again after
 rendering.
 
-- Before (consumer files at `35ae89fe`): `@@BEFORE_SHA@@`.
-- After: `@@AFTER_SHA@@`.
+- Before (consumer files at `35ae89fe`): `d9783e95d396df78393d23ad1d00f62be39d321fbaf9d0cfd054b71820862274`.
+- After: `3f15f0c09928576a3a742f3b854f5b5880b1f914bab152024205734c09dbd7cf`.
+
+These binaries are from the tree at `5b6565ad` (after the batch-119 merge, before batch 120 and the second
+particle group). **To be repeated at the head** (WIP step 2); before 72.1 s, after 63.9 s.
 
 Default world draw, DemoKnight, no draw-all, default clock, 640x400, 25 steps sampled at 0 and 24; the
 14-view October tour and the 32-view DATA-ACQ-002 tour.
 
-@@IDENTITY@@
+| | Identical |
+|---|---:|
+| PNGs | 91 of 92 |
+| OBJECT/light dumps | 92 of 92 |
+| Logs | 46 of 46 |
+| Reports | 0 of 46 raw; 44 differ only by the ledger line and the four bitmap slots |
 
 **Views that change, and why.** Swamp of Calmness frame 24: the brazier's `0x8016/5` particle was refused
 and now draws (2,667 pixels inside x 24..95, y 0..48; mean RGB difference 0.183 of 255). Its report gains
@@ -160,9 +209,26 @@ No world object routine, Muun module, item table, actor, UI, audio or combat sou
 
 Commands ran from the repository root with the canonical `private-env.sh`. No full gate.
 
-@@CHECKS@@
+| Check | Result | Wall s |
+|---|---|---:|
+| Root build after each merge | pass | 19 to 36 |
+| Grouped verifier via registry, 200 cases, all mutants (`0a4e4ded`) | 16,259 equal; 116/116 mutants; zero original stops | 178.6 |
+| Affected private validators, no mutants (`5b6565ad`) | 89/89 pass | 1,366.1 |
+| Private validator delta after batch 120 and the second group (`4b5598ee`) | 118/118 pass | 3,894.4 |
+| Private validator delta after batches 121/122 (head) | **stopped**: 8 of 66 passed, none failed | - |
+| Portable affected, first run | 1,888 tests; 1 stale joint expectation, fixed | 480.6 |
+| Portable delta after batches 119/120 | 1,674 tests, 1,343 passed / 331 skipped, 0 failures | 457.8 |
+| Portable delta after the second group | 1,816 tests; 1 stale particle expectation, fixed and rerun | 413.6 |
+| Portable delta after batches 121/122 | **not run** | - |
+| `test_render_effects34` with private env | 3 tests pass | 10.3 |
+| Muun modules with private env (after batch 119) | 29 tests; 1 end-frame expectation, fixed and rerun | 123.0 + 16.7 |
+| Refusal census: 31 skill scenes / 92 world runs before; 123 scenes after | counts in the scene table | 47.5 / 221.4 / 351.3 |
+| Item scenes (5 types, both binaries) and Muun scenes (4, both binaries) | counts in the scene table | 20.7 / about 60 |
+| Identity sweep before / after (pre-batch-120 tree) | 46 views each | 72.1 / 63.9 |
+| Repository audit | **not run** | - |
 
-**8d reduced:** @@EIGHTD@@
+**8d reduced:** not run at the head. Run so far with the private environment: `test_render_effects34`,
+`test_native_worlds_inner` and the seven Muun modules (after batch 119).
 
 **Packaging exclusion:** only `native/tests/test_native_app.py` was removed from the portable affected
 work list, by a task-local wrapper (not committed). No package, signing, install, installed-app journey,
@@ -175,7 +241,11 @@ MU_NATIVE_DATA_DIR, MU_LANG_DIR and the row-specific paths. Run
 `scripts/run_validators.py --private --no-mutants --cache --affected origin/main --jobs 2`.
 **Mutants: only `validate_render_effects34`, already run once here; none needed from the steward.**
 
-@@VALIDATORS@@
+Rows that passed here (no mutants), at `4b5598ee` or, for rows only in the first selection, `5b6565ad`:
+
+validate_actor_composites, validate_actor_groups, validate_actor_monsters, validate_actor_plain, validate_actor_recipes, validate_app_polish1, validate_app_polish2, validate_app_polish4, validate_armour_cloak, validate_audio_callers, validate_audio_combat, validate_audio_domains, validate_audio_items, validate_audio_kubera, validate_audio_monsters, validate_audio_monsters6, validate_audio_objects, validate_audio_objects4, validate_charsel_items, validate_fidelity, validate_icarus, validate_icarus_c2, validate_inventory_fx, validate_item_caller_groups, validate_item_callers, validate_item_carry, validate_item_chains, validate_item_cloak, validate_item_clusters, validate_item_continuation, validate_item_coverage, validate_item_cycle, validate_item_derived, validate_item_direct_bodies, validate_item_effects, validate_item_expansion, validate_item_falloff, validate_item_gear, validate_item_groups, validate_item_helper_groups, validate_item_hiddenmesh, validate_item_named, validate_item_next, validate_item_other_bodies, validate_item_ownerfx, validate_item_predraw, validate_item_product, validate_item_quality, validate_item_random_levels, validate_item_ranked, validate_item_read_programs, validate_item_remainder_programs, validate_item_scalars, validate_item_types, validate_item_wings_next, validate_items_ui, validate_joints, validate_meshdraw, validate_model_edge, validate_model_light, validate_movement, validate_muun_transition, validate_npc_cloak, validate_particles, validate_render_effects, validate_render_effects10, validate_render_effects11, validate_render_effects12, validate_render_effects13, validate_render_effects14, validate_render_effects15, validate_render_effects16, validate_render_effects17, validate_render_effects18, validate_render_effects19, validate_render_effects20, validate_render_effects21, validate_render_effects22, validate_render_effects23, validate_render_effects24, validate_render_effects25, validate_render_effects26, validate_render_effects27, validate_render_effects28, validate_render_effects3, validate_render_effects30, validate_render_effects31, validate_render_effects32, validate_render_effects33, validate_render_effects34, validate_render_effects4, validate_render_effects5, validate_render_effects6, validate_render_effects7, validate_render_effects9, validate_render_worlds_a, validate_renderchar, validate_skill_fx, validate_terrain, validate_terrain_remaining, validate_viewport_monsters, validate_world_particle_consumers, validate_worlds_121, validate_worlds_after, validate_worlds_after2, validate_worlds_after3, validate_worlds_after4, validate_worlds_after5, validate_worlds_after6, validate_worlds_d, validate_worlds_e, validate_worlds_f, validate_worlds_fog, validate_worlds_g3, validate_worlds_inner, validate_worlds_inner2, validate_worlds_inner3, validate_worlds_inner4, validate_worlds_inner5, validate_worlds_karutan, validate_worlds_l, validate_worlds_m, validate_worlds_raklion, validate_worlds_slots, validate_worlds_slots2, validate_worlds_slots3.
+
+The 66-row selection after batches 121/122 still has to run (WIP step 1).
 
 ## Limits and next lane
 
@@ -204,8 +274,8 @@ MU_NATIVE_DATA_DIR, MU_LANG_DIR and the row-specific paths. Run
 
 ## Delivery
 
-Ready for steward after PR publication and the single ready-prs entry; nothing is pushed after that
-line. Cleanup removes this lane's scratch (census, traces, proof renders, the exported before-tree and its
-build), ignored builds, the worktree and the local branch; the remote branch stays. No new private input
-needs retaining. Paths: `~/Documents/MTM/mu-mac-tools/native/scratch/render-effects-034` and
+Draft PR, no ready-prs entry. The lane's scratch (census, traces, proof renders, the exported before-tree)
+and build outputs were deleted by owner order; the worktree and branch are kept for the resume. The
+original-instruction tracer used to read the cases lived in scratch; the research note records the
+method and every case address. No new private input needs retaining. Paths: `~/Documents/MTM/mu-mac-tools/native/scratch/render-effects-034` and
 `~/Documents/MTM/worktrees/render-effects-034`.
