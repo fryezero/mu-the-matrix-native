@@ -392,7 +392,7 @@ NEXT-GAPS-001 ranked ten lanes on main `ff8e0543`. Their state on `c5b9d5ca`:
 | 3 MUUN-VISUAL-001 | Merged (#371); continued through 004 (#397) and 005 (PR #401) |
 | 4 RENDER-EFFECTS-027 | Merged (#370) |
 | 5 RENDER-WORLDS-INNER-001 | Merged (#365); continued through INNER-005 (#399) |
-| 6 RENDER-WORLDS-PICK-001 | Running (branch) |
+| 6 RENDER-WORLDS-PICK-001 | PR-ready: box and mouse input done; census published ([CSV](world-inner-census.csv), [finding](client-worlds-pick.md)): 941 pairs, 420 drawn / 213 partial / 308 refused. The 46/98 handler is chain hook 11 and is ported there, so those rows are no longer refused; the producer-less rows are chain hooks 1 (`0x009db8b1`) and 6 (`0x00dac0a2`) |
 | 7 AUDIO-002G | Merged (#366); continued through AUDIO-005 (#398) and 006 (PR #402) |
 | 8 CHARSEL-ITEMS-001 | Merged (#367) |
 | 9 NATIVE-PERF-005 | Not started; still quiet-machine only (lane 14) |

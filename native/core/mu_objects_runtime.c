@@ -3,7 +3,9 @@
 #include "../../reconstructed/objects/world_inner3_visual.h"
 #include "../../reconstructed/objects/world_inner4_visual.h"
 #include "../../reconstructed/objects/world_inner5_visual.h"
+#include "../../reconstructed/objects/world_inner6_visual.h"
 #include "../../reconstructed/objects/world_visual_slots2.h"
+#include "../../reconstructed/objects/object_pick.h"
 #include "mu_frame_time.h"
 /* The client's world-object lifecycle in the native session (NATIVE-OBJECTS-002,
  * docs/research/client-objects-render.md): CreateObject, MoveObjects/MoveObject per logic step,
@@ -443,6 +445,21 @@ static void particles_step(mu_objects_runtime *rt)
 }
 
 static int pose_object(mu_objects *, uint8_t *, mu_object_model *, const mu_obj_log *);
+/* RENDER-WORLDS-PICK-001: the box +0x31c that RenderObject's setup has BMD::Transform write (0x017edc95 /
+ * 0x017edd08 -> 0x012b5bde's tail): the object's box +0x128 / +0x134 placed at the body origin the setup copied
+ * from the position. It needs no pose: the client's bounds mode 0x0b437bfc is never written, so the vertex
+ * bounds branch (mode 2) does not run; a caller that asks for it is refused and counted. */
+static void write_obb(mu_objects_runtime *rt, uint8_t *img, const uint8_t *model_fields, int32_t bounds_mode)
+{
+    if (bounds_mode == 2) {
+        ++rt->draw_unsupported;
+        return;
+    }
+    float origin[3];
+    memcpy(origin, model_fields + MU_MDL_ORIGIN, sizeof origin);
+    mu_obj_obb_write(img, origin, bounds_mode, NULL, NULL);
+    ++rt->obb_writes;
+}
 /* Resolve the deferred market light from this object's current pose. No stale
  * shared model matrices or object-origin approximation when a bone is absent. */
 static void market_bone_light(mu_objects *o, int32_t i, const mu_obj_event *e)
@@ -1421,7 +1438,8 @@ static int world_inner(mu_objects *o, int32_t i, uint8_t *img, const mu_object_m
     if (!m || !m->loaded || (!kanturu && !blood && o->world != 51 && o->world != 56 && o->world != 33 &&
                              o->world != 54 && o->world != 38 && o->world != 31 && o->world != 9 &&
                              o->world != 30 && o->world != 41 && o->world != 42 && o->world != 39 &&
-                             !((o->world >= 24 && o->world <= 29) || o->world == 36))) return 0;
+                             !((o->world >= 24 && o->world <= 29) || o->world == 36) &&
+                             !mu_chain11_world(o->world))) return 0;
     visual_context c = {o, m};
     mu_obj_event events[64];
     mu_obj_log log = {0, 64, 0, events};
@@ -1449,6 +1467,11 @@ static int world_inner(mu_objects *o, int32_t i, uint8_t *img, const mu_object_m
                            posed ? test_area_bone : inner_missing_bone, &c, &log))
         mu_tower_inner(img, i, o->world, time, 0, visual_rand,
                         posed ? test_area_bone : inner_missing_bone, &c, &log);
+    } else if (mu_chain11_world(o->world)) {
+        /* RENDER-WORLDS-PICK-001: chain hook 11 (worlds 45..50, 98, 99). The clock is the authored WorldTime
+         * tick, as for Kanturu. The hook reads no event state. */
+        const uint32_t clock = isfinite(time) && time >= 0.0f && (double)time < 4294967296.0 ? (uint32_t)time : 0;
+        mu_chain11_inner(img, i, o->world, 1, clock, visual_rand, &c, &log);
     } else if (o->world == 30) {
         /* Fixed authored event byte 0, matching the offline fixture. No event authority. */
         mu_crywolf_inner(img, i, o->world, 1, time, 0, visual_rand, &c, &log);
@@ -1597,6 +1620,9 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
     mu_obj_log log = {0, 16, 0, local};
     memset(rt->model_fields, 0, sizeof rt->model_fields);
     const int status = mu_obj_render(img, i, rt->model_fields, 0, &in, &log);
+    for (int32_t k = 0; k < log.count; ++k)   /* RENDER-WORLDS-PICK-001: the setup reached its Transform call */
+        if (log.events[k].call == MU_OBJ_CALL_TRANSFORM)
+            write_obb(rt, img, rt->model_fields, in.bounds_mode);
     const int deferred =
         !login && !charsel && in.has_model && status != MU_OBJ_SKIPPED && mu_world_defer(img, o->world);
     int posed = 0;
@@ -1632,16 +1658,16 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
                             o->world == 52 || o->world == 51 || o->world == 56 || o->world == 33 ||
                             o->world == 54 || o->world == 38 || o->world == 31 || o->world == 9 ||
                             o->world == 30 || o->world == 41 || o->world == 42 || o->world == 39 ||
-                            (o->world >= 24 && o->world <= 29) || o->world == 36;
+                            (o->world >= 24 && o->world <= 29) || o->world == 36 ||
+                            mu_chain11_world(o->world);   /* RENDER-WORLDS-PICK-001 */
     if (!login && !charsel &&
         inner_world) {
         if (m && m->loaded && !posed)
             posed = pose_object(o, img, m, &log);
         inner_draws = world_inner(o, i, img, m, in.light.time, posed, &log, &sc.log);
     }
-    /* INNER-004: no registered handler for these IDs in factory 0x00ea488e. Dynamic context is unverified. */
-    if ((o->world == 46 || o->world == 98) && m && m->loaded)
-        ++rt->draw_unsupported;
+    /* RENDER-WORLDS-PICK-001: worlds 46 and 98 have no factory class (INNER-004), but their visual is chain hook
+     * 11's singleton slot, served by world_inner above. No refusal is counted here any more. */
     const int hook = rt->visual && !login && !charsel && !inner_world && !primary_visual, has_model = m && m->loaded;
     const int effects = !login && !charsel && !primary_visual;   /* RENDER-EFFECTS-008 */
     if (deferred) {
@@ -1903,6 +1929,8 @@ mu_object_model *mu_objects_prepare_after(mu_objects *o, int32_t k, mu_world *ma
     light.time = map ? map->time : 0.0f;
     memset(rt->model_fields, 0, sizeof rt->model_fields);
     mu_obj_body_light(img, rt->model_fields, &light);
+    memcpy(rt->model_fields + MU_MDL_ORIGIN, img + MU_OBJF_POSITION, 12);   /* the setup's origin copy */
+    write_obb(rt, img, rt->model_fields, 0);   /* RENDER-WORLDS-PICK-001: the setup's Transform call */
     if (mu_obj_i32(img, MU_OBJF_HIDDEN_MESH) == -2 || !pose_object(o, img, m, NULL))
         return NULL;
     mu_obj_event events[40];

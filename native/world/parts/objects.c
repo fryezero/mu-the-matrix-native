@@ -64,6 +64,10 @@ static void objects_tick(struct mu_world_rt *a, void *self)
         a->objects.rt.hero_action = h->action;
         a->objects.rt.environment = a->has_env ? &a->env.env : NULL;
         a->objects.rt.hero_safe = (uint8_t)(a->map->attributes[index] & 1u);
+        /* RENDER-WORLDS-PICK-001: the walk frame's mouse segment (MousePosition -> MouseTarget) for the registry's
+         * mouse-over tick handlers 4 and 6 */
+        a->objects.rt.mouse_start = a->walk.frame.view.mouse_position;
+        a->objects.rt.mouse_end = a->walk.frame.view.mouse_target;
         if (a->world == 57 || a->world == 58) mu_objects_set_clock(&a->objects, a->walk.frame.now);
         memcpy(a->objects.rt.raklion_hero_angle, h->angle, sizeof h->angle);
         mu_objects_step(&a->objects, &in);
