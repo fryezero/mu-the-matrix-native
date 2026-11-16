@@ -283,6 +283,7 @@ int mu_character_update(mu_character *c)
         if (!item->loaded)
             continue;
         mu_model_params p = slot_params(c, &item->model, c->params.scale, c->params.position);
+        p.vertex_scale = c->params.part_scale[slot];   /* the slot record's +0xc4 (0x017e6442) */
         mu_model_apply_params(&item->model, &p);
         if (mu_model_transform_all(&item->model) != MU_MODEL_OK)
             return MU_MODEL_ERROR;

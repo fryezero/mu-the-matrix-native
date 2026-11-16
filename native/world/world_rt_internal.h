@@ -89,6 +89,17 @@ struct mu_world_rt {
      * 0x00cd0995(item, 1), +0x3b}, code -1 empty), for the inventory window's equipment slots */
     int32_t hero_items[9][4];
     int hero_items_set;
+    /* HERO-ITEMS-002: what the end of SetCharacterClass (0x009dadf1, 0x01394f6f) did to the hero:
+     * - hero_head_type: the head slot 0 (the class head 0x3700 + skin under a listed helm), -1 none; its model is
+     *   item 0;
+     * - hero_castle[i]: item i holds the model of the castle worlds' weapon override (slot type
+     *   hero_castle_type[i], -1 emptied), not the worn item, whose ITEM stays in hero_items;
+     * - hero_scale_branch: the branch that wrote the body scale (MU_HE_SCALE_*). */
+    int32_t hero_head_type;
+    uint8_t hero_castle[MU_CHARACTER_ITEMS];
+    int32_t hero_castle_type[MU_CHARACTER_ITEMS];
+    uint8_t hero_scale_branch;
+    uint32_t hero_class_refused;   /* slot models the data does not have (head file, castle weapon record) */
     mu_walk walk;
     /* stats */
     double walked;

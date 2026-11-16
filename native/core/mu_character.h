@@ -64,6 +64,9 @@ typedef struct mu_character_params {
     float head[2];           /* object +0x170 */
     float scale;             /* object +0xa0 (creation default 0.9, 0x0137d9dd) */
     float wing_scale;        /* character +0x32f4 */
+    /* HERO-ITEMS-002: character +0x288 + k * 0x3fc (slot record +0xc4), RenderPartObject 0x017e63f4's vertex scale
+     * of body part k; 0 (the default) leaves the vertices as they are. SetCharacterScale 0x01394f6f writes them. */
+    float part_scale[MU_CHARACTER_PART_SLOTS];
     float light[3];          /* object +0xec light times object +0xdc */
     uint8_t lighting;        /* object +5 */
     /* NATIVE-RENDERCHAR-001: 1 = world render path (0x01363260): RenderLinkItem
