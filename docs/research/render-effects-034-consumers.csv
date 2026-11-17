@@ -1,0 +1,64 @@
+kind,type,subtype,group,original_create,original_move,original_draw,requesting_producers,source,producer_count,refused_before,refused_after,status,note
+particle,0x8016,5,plain,0x015f16b2,0x01667872,0x015ae2bf,Swamp of Calmness 56 types 0x39/0x47 (default view),native ledger; RENDER-WORLDS-INNER-002,2,default 1; draw-all 64,0,admitted,"life 20, then subtype 0 body"
+particle,0x7ef7,11,plain,0x015ef0ac,0x0166412b,0x0159d474,Elbeland 51 type 0x6e (default view),native ledger; RENDER-WORLDS-INNER-002,1,default 2; draw-all 32,0,admitted,"rising flare, life 130..139"
+particle,0x7f5a,43,plain,0x015c7859,0x01637b46,0x01596eaa,tower 39 type 0 bone-34 puff,RENDER-WORLDS-INNER-005,1,"event-gated, 0 in sampled scenes",0,admitted,draws Clud64 0x7ffd
+particle,0x7f5a,47,plain,0x015c7d85,0x016380a2,0x01596eaa,tower 39 nested sequence 0x00e8d888,RENDER-WORLDS-INNER-005,1,"event-gated, 0 in sampled scenes",0,admitted,draws 0x7f84; ends when light <= 0.05
+particle,0x7f54,1,plain,0x015e42eb,0x01622ea1,0x015925e6,tower 39 nested sequence 0x00e8d888,RENDER-WORLDS-INNER-005,1,"event-gated, 0 in sampled scenes",0,admitted,subtype 0 without the terrain light
+particle,0x7efa,3,no sprite,0x015c36fb,0x01632a95,0x015954cc,Muun appearance 377 (dark_muun bone 52),MUUN-VISUAL-005,1,Muun 377: 12,0,admitted,"subtype table sends 3 to the exit: blend state, no sprite"
+particle,0x8616,0,item,0x0161472d,0x0168c63c,0x015acc4d,item producer 0x0f23,RENDER-ITEMS-002AA,1,item 0xf23: 60,0,admitted,"FireSphere1, life 4"
+particle,0x7fe0,10,item,0x015e59d3,0x0162ee1b,0x015a708a,item producer 0x0f22,RENDER-ITEMS-002AA,1,item 0xf22: 80 with 0x855d/2,0,admitted,"flareRed, life 16"
+particle,0x84d1,2,item,0x0160ca17,0x016856a7,0x015a743f,item producer 0x0f25,RENDER-ITEMS-002AA,1,item 0xf25: 36 with 0x850b/5,0,admitted,grows to 1.2x over 30 steps
+particle,0x850b,5,item,0x015d2a0d,0x01644ac1,0x015a42bd,item producer 0x0f25,RENDER-ITEMS-002AA,1,(counted with 0x84d1/2),0,admitted,grows to 2x over 20 steps
+particle,0x807e,14,item,0x015cee63,0x01642509,0x0159a6f5,item producers 0x24be/0x24bf,RENDER-ITEMS-002AA,2,"items 0x24be, 0x24bf: 120 each with 0x807f/14, 0x8080/14",0,admitted,smokelines01
+particle,0x807f,14,item,0x015cee63,0x01642509,0x0159a6f5,item producers 0x24be/0x24bf,RENDER-ITEMS-002AA,2,(counted with 0x807e/14),0,admitted,smokelines02
+particle,0x8080,14,item,0x015cee63,0x01642509,0x0159a6f5,item producers 0x24be/0x24bf,RENDER-ITEMS-002AA,2,(counted with 0x807e/14),0,admitted,smokelines03
+particle,0x855d,2,follow,0x0161113b,0x01689b2d,0x015aa801,item producer 0x0f22,RENDER-ITEMS-002AA,1,(counted with 0x7fe0/10),0,admitted,follows OBJECT +0x1f4 + 12*arg8 at draw
+particle,0x8081,1,pulse,0x015d2f7e,0x01644f6a,0x015a006f,Muun mount style (secondary particles),MUUN-VISUAL-005,1,Muun 16 + mount: 180 with 0x8082/1,0,admitted,life 5
+particle,0x8082,1,pulse,0x015d2f7e,0x01644f6a,0x015a006f,Muun mount style (secondary particles),MUUN-VISUAL-005,1,(counted with 0x8081/1),0,admitted,life 5
+particle,0x7ef7,19,pulse,0x015ef979,0x01664f41,0x0159d474,Muun secondary particles,MUUN-VISUAL-005,1,not requested in the sampled mode,0,admitted,life 7
+particle,0x7f26,3,plain,0x015dd87b,0x01650ff2,0x015a534f,actor caller services (7 rows),RENDER-ACTORS-008 request table (WIP branch),7,producer not on main,n/a,admitted,"life 5, scale * 0.8"
+particle,0x7f5a,50,plain,0x015c7fe1,0x0163881c,0x01596eda,actor caller services (6 rows),RENDER-ACTORS-008 request table (WIP branch),6,producer not on main,n/a,admitted,"saved colour, alpha rises to 0.5 and falls below life 10"
+particle,0x807e,0,plain,0x015cde02,0x0164079e,0x0159acf3,actor caller services (6 rows),RENDER-ACTORS-008 request table (WIP branch),6,producer not on main,n/a,admitted,"life 35 (25 in world 0x3f), alpha ceiling 0.7"
+particle,0x806e,0,plain,0x015b85bf,0x016251cd,0x01597757,actor caller services (2 rows),RENDER-ACTORS-008 request table (WIP branch),2,producer not on main,n/a,admitted,"shrinks by a random step, rises 10 * gravity"
+particle,0x7ef7,12,plain,0x015ef168,0x016641bb,0x0159d4a4,actor caller services (1 row),RENDER-ACTORS-008 request table (WIP branch),1,producer not on main,n/a,admitted,"grows above life 80, then shrinks"
+particle,0x7ef7,13,plain,0x015ef221,0x0166423f,0x0159d4a4,actor caller services (1 row),RENDER-ACTORS-008 request table (WIP branch),1,producer not on main,n/a,admitted,drifts -y and +z by its gravity
+joint,0x7f7c,8,joint,0x0154473a,0x0156d3a9 (no case),RenderJoints 0x01589b56,Kanturu 37/40 type 0x69,RENDER-WORLDS-INNER-001,1,INNER host: 1,0,admitted,"width 5, two tails"
+joint,0x7f7c,19,joint,0x0154574f,0x0156d601 loop 0x0156d9ef,RenderJoints 0x01589b56,tower 39 type 0x36,RENDER-WORLDS-INNER-004,1,INNER host: 1,0,admitted,"/18 arc, turn 25 + width, no terrain light"
+joint,0x7fd5,4,joint,0x015434ea,0x015698f0,RenderJoints 0x01589b56,Barracks 41 / Refuge 42 type 0x5a,RENDER-WORLDS-INNER-004,1,INNER host: 1,0,admitted,"red spark, four tails"
+joint,0x7f7d,11,joint,0x01546708,0x01571d90,RenderJoints 0x01589b56,tower 39 types 0x2f/0x4a,RENDER-WORLDS-INNER-004,1,INNER host: 1,0,admitted,straight bolt with +-(int)(width/8) jitter
+sprite bitmap,0x810d,,binding,LoadBitmap 0x0182e29f,,RenderSprites 0x0169270e,Muun appearance 376 (bones 12/13/22/23),MUUN-VISUAL-005,1,Muun 376: 720,0,bound,"Effect/pin_star02_yellow, LINEAR/CLAMP"
+sprite bitmap,0x8003,,binding,LoadBitmap 0x01822a25,,RenderSprites 0x0169270e,Muun appearance 377 (bone 52),MUUN-VISUAL-005,1,Muun 377: 90,0,bound,"Effect/Hole, LINEAR/CLAMP"
+particle,0x8084,28,owner bones,0x015d68df,0x01649d2c,0x015a43ca,Muun appearance 375 (bones 11/18),MUUN-VISUAL-005,1,Muun 375: 270,270,refused,"move reads the owner OBJECT bones 11 and 18 (0x0129f12c, TransformPosition 0x012b6ef1); the request carries no owner and the particle host has no owner-bone service"
+particle,0x8145,1,effect side,0x015f81a3,0x0166f9bf,0x015a3427,Blood Storm body 0x584/0,RENDER-EFFECTS-033,1,skill 344: 1,1,refused,"form recovered (life 14, scale +0.2, alpha -0.0714, saved colour); the combat pool has no 0x8145 bitmap row (RENDER-EFFECTS-035 owns mu_combat.c)"
+effect,0x585,0,effect side,,,,Blood Storm 0x583/0,RENDER-EFFECTS-033,1,skill 344: 10,10,refused,RENDER-EFFECTS-036
+effect,0x586,0,effect side,,,,Blood Storm 0x583/0,RENDER-EFFECTS-033,1,skill 344: 1,1,refused,RENDER-EFFECTS-036
+effect,0x4b7,1,effect side,,,,Blood Storm body 0x584/0,RENDER-EFFECTS-033,1,skill 344: 1,1,refused,RENDER-EFFECTS-036
+blur,0x814b,0..10,effect side,,,,"Blood Storm body 0x584/0, eleven bones",RENDER-EFFECTS-033,1,skill 344: 1870,1870,refused,RENDER-EFFECTS-036
+effect,0x49e,0,effect side,,,,Crescent Moon Slash end,RENDER-EFFECTS-032,1,skill 44: 1,1,refused,RENDER-EFFECTS-036
+effect,0x8001,0,effect side,,,,Fire Breath,RENDER-EFFECTS-032,1,skill 49: 1,1,refused,RENDER-EFFECTS-036
+effect,0x454,"-1,1,2,3,4",effect side,,,,Twisting Slash with the installed sword model,native ledger (new),1,skill 41: 5,5,refused,found by the census with real assets; subtype 0 is supported; RENDER-EFFECTS-036
+effect,0x4be,0,effect side,,,,tower 39 nested sequence phase 0,RENDER-WORLDS-INNER-005,1,event-gated,n/a,refused,RENDER-EFFECTS-036
+effect,0x4bf,0,effect side,,,,tower 39 sequences 1/3,RENDER-WORLDS-INNER-005,1,event-gated,n/a,refused,RENDER-EFFECTS-036
+effect,0x419,2,effect side,,,,tower 39 nested sequence phase 0,RENDER-WORLDS-INNER-005,1,event-gated,n/a,refused,RENDER-EFFECTS-036
+effect,0x41a,2,effect side,,,,tower 39 nested sequence phase 0,RENDER-WORLDS-INNER-005,1,event-gated,n/a,refused,RENDER-EFFECTS-036
+effect,0x4c0,0,effect side,,,,tower 39 nested sequence,RENDER-WORLDS-INNER-005,1,event-gated,n/a,refused,RENDER-EFFECTS-036
+effect,0x4c1,0,effect side,,,,tower 39 nested sequence,RENDER-WORLDS-INNER-005,1,event-gated,n/a,refused,RENDER-EFFECTS-036
+effect,0x4c2,0,effect side,,,,tower 39 nested sequence,RENDER-WORLDS-INNER-005,1,event-gated,n/a,refused,RENDER-EFFECTS-036
+effect,0x4c5,0x4c0,effect side,,,,tower 39 nested sequence,RENDER-WORLDS-INNER-005,1,event-gated,n/a,refused,RENDER-EFFECTS-036
+effect,0x4c5,0x4c1,effect side,,,,tower 39 nested sequence,RENDER-WORLDS-INNER-005,1,event-gated,n/a,refused,RENDER-EFFECTS-036
+effect,0x4c5,0x4c2,effect side,,,,tower 39 nested sequence,RENDER-WORLDS-INNER-005,1,event-gated,n/a,refused,RENDER-EFFECTS-036
+effect,type 226,,effect side,,,,actor classes 595/635 death effect,RENDER-ACTORS-006,2,no fixture scene,n/a,refused,needs move/draw/retirement path; actor lane or RENDER-EFFECTS-036
+particle,0x807e,1,owner position,0x015ce0d7,0x01640ddf,0x0159acf3,actor caller services,RENDER-ACTORS-008 request table (WIP branch),1,producer not on main,n/a,refused,"create and move read the owner OBJECT position +0x158 (follows the owner); not taken: left with 0x807f/1, 0x8080/1 and 0x7ffd/6 as one owner-position form"
+particle,0x807f,1,owner position,0x015ce0d7,0x01640ddf,0x0159acf3,actor caller services,RENDER-ACTORS-008 request table (WIP branch),1,producer not on main,n/a,refused,same form as 0x807e/1
+particle,0x8080,1,owner position,0x015ce0d7,0x01640ddf,0x0159acf3,actor caller services,RENDER-ACTORS-008 request table (WIP branch),1,producer not on main,n/a,refused,same form as 0x807e/1
+particle,0x7ffd,6,owner position,0x015c0fcd,0x0162f448,0x01595161,actor caller services,RENDER-ACTORS-008 request table (WIP branch),1,producer not on main,n/a,refused,"same owner-position form, life 25"
+joint,0x7f7c,10,joint,,,,actor caller services (72 rows),RENDER-ACTORS-008 request table (WIP branch),72,producer not on main,n/a,refused,not traced here; the largest actor-side joint group
+joint,0x7f79,4,joint,,,,actor caller services (12 rows),RENDER-ACTORS-008 request table (WIP branch),12,producer not on main,n/a,refused,not traced here
+joint,0x7f7c,7,joint,,,,actor caller services (4 rows),RENDER-ACTORS-008 request table (WIP branch),4,producer not on main,n/a,refused,not traced here
+joint,0x7fd6,"6,55,56,57",joint,,,,actor caller services (6 rows),RENDER-ACTORS-008 request table (WIP branch),6,producer not on main,n/a,refused,not traced here
+effect,0x801d,0,effect side,,,,actor caller services,RENDER-ACTORS-008 request table (WIP branch),1,producer not on main,n/a,refused,RENDER-EFFECTS-036
+effect,0x413,10,effect side,,,,actor caller services,RENDER-ACTORS-008 request table (WIP branch),1,producer not on main,n/a,refused,RENDER-EFFECTS-036
+joint,0x472,0x12; 4,joint,,,,"catalogue skills DK 723, Elf 2027",RENDER-EFFECTS-035 CSV (WIP branch),2,producer not on main,n/a,refused,skill-side joints; not traced here
+joint,0x7f78,0x2f,joint,,,,catalogue skill Elf 234,RENDER-EFFECTS-035 CSV (WIP branch),1,producer not on main,n/a,refused,not traced here
+joint,0x4ae; 0x7fde,variable,joint,,,,"catalogue skill 76 (DK, Elf)",RENDER-EFFECTS-035 CSV (WIP branch),2,producer not on main,n/a,refused,subtype is variable in the request: not statically complete
+effect,34 pairs,,effect side,,,,catalogue skills outside the learned set,RENDER-EFFECTS-035 CSV (WIP branch),34,producer not on main,n/a,refused,listed in docs/research/skill-catalogue-missing-consumers.csv of that lane; RENDER-EFFECTS-036

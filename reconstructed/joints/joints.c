@@ -119,9 +119,13 @@ static int wing_joint_kind(int32_t type, int32_t subtype);
 static void create_wing_streak(mu_jt_joint *j, float scale, const float target_position[3]);
 
 static int world_inner_joint_kind(int32_t, int32_t);
+/* RENDER-EFFECTS-034 (consumer34_joints.inc) */
+static int consumer34_joint_kind(int32_t, int32_t);
+static void create_consumer34_joint(mu_jt_joint *j, float scale, const float target_position[3], const mu_jt_env *env);
 
 int mu_jt_kind_supported(int32_t type, int32_t subtype)
 {
+    if (consumer34_joint_kind(type, subtype)) return 1;
     if (world_inner_joint_kind(type, subtype)) return 1;
     /* RENDER-EFFECTS-027: the two Death Stab requests, with existing admissions intact. */
     if ((type == 0x472 && subtype == 2) || (type == MU_JT_BITMAP_FLARE && subtype == 12))
@@ -291,6 +295,10 @@ int mu_jt_create(mu_jt_joint *j, int32_t type, const float position[3], const fl
         joint_cross(j, m, 0);
     }
     int supported = mu_jt_kind_supported(type, subtype);
+    if (consumer34_joint_kind(type, subtype)) {
+        create_consumer34_joint(j, scale, target_position, env);
+        return 1;
+    }
     if (world_inner_joint_kind(type, subtype)) {
         create_world_inner_joint(j, scale, target_position, env);
         return 1;
@@ -742,6 +750,7 @@ static void move_ring(mu_jt_joint *j, const mu_jt_env *env)
 #include "kanturu_joints.inc"
 #include "wing_joints.inc"
 #include "death_stab_joints.inc"
+#include "consumer34_joints.inc"
 
 int mu_jt_move(mu_jt_joint *j, const mu_jt_env *env, const mu_jt_move_inputs *in)
 {
@@ -765,6 +774,10 @@ int mu_jt_move(mu_jt_joint *j, const mu_jt_env *env, const mu_jt_move_inputs *in
         const int r = move_bow_joint(j, env, in->index);
         if (r == 1) return 1;
         if (r == 2) goto tail;
+    }
+    if (consumer34_joint_kind(j->type, j->subtype)) {
+        move_consumer34_joint(j, env);
+        goto tail;
     }
     if (world_inner_joint_kind(j->type, j->subtype)) {
         move_world_inner_joint(j, env);

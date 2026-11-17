@@ -117,6 +117,9 @@ typedef struct mu_pt_particle {
 /* RENDER-EFFECTS-022: RenderParticles 0x0159f880, OBJECT +0x1f4 + 12*arg8. NULL clears live.
  * Call before mu_pt_render_record for 0x810a/0x25, with the current owner point. */
 int mu_pt_item_counter_follow(mu_pt_particle *p, const float point[3]);
+/* RENDER-EFFECTS-034: RenderParticles 0x015aa801, 0x855d/2: OBJECT +0x1f4 + 12*arg8 plus the record's start.
+ * NULL clears live. Call before mu_pt_render_record; other pairs are left alone. */
+int mu_pt_consumer34_follow(mu_pt_particle *p, const float point[3]);
 /* RENDER-EFFECTS-023: 0x7ffb/0 and 0x85fc/1,/2 replace position with the current OBJECT point. */
 void mu_pt_item_mace_follow(mu_pt_particle *p, const float point[3]);
 

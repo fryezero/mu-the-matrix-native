@@ -49,6 +49,9 @@ static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     0x81ec, 0x854a,   /* RENDER-EFFECTS-024: mace bone sprites */
     0x8500, 0x8569,   /* RENDER-EFFECTS-026 */
     0x7f42, 0x802a,   /* RENDER-EFFECTS-031: Flame01 and water */
+    /* RENDER-EFFECTS-034: FireSphere1, smoke_line03_1 (item particles) and the Muun sprites' pin_star02_yellow
+     * and Hole (before Fire03: keeps the later anchors) */
+    0x8616, 0x850b, 0x810d, 0x8003,
     0x7f3e, /* RENDER-EFFECTS-033, Fire03 */
     MU_PT_BITMAP_FIRE06,
     MU_PT_BITMAP_RAIN_SPLASH,
@@ -115,6 +118,9 @@ static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     "Data/Effect/Flame01.OZJ", "Data/Effect/water.OZJ",
     /* RENDER-EFFECTS-016: Fire06 0x7f40, 0x70c's stone particle (LoadBitmap 0x018229e5 in 0x0182049e,
      * LINEAR/CLAMP) */
+    /* RENDER-EFFECTS-034: startup LoadBitmap 0x01826fc9, 0x01827bc3, 0x0182e29f, 0x01822a25; all LINEAR/CLAMP. */
+    "Data/Effect/FireSphere1.OZJ", "Data/Item/texture/smoke_line03_1.OZJ",
+    "Data/Effect/pin_star02_yellow.OZJ", "Data/Effect/Hole.OZJ",
     "Data/Effect/Fire03.OZJ",
     "Data/Effect/Fire06.OZJ"};
 
@@ -401,6 +407,26 @@ int mu_world_particles_create_owned(mu_world_particles *p, int32_t type, const f
     return mu_world_particles_create_args(p, type, position, angle, light, subtype, scale, owner, 0);
 }
 
+/* RENDER-EFFECTS-034: one refused request of a pair (the totals stay in stats) */
+static void refused_kind(mu_world_particles *p, char routine, int32_t type, int32_t subtype)
+{
+    for (int32_t i = 0; i < p->refused_kind_count; ++i)
+        if (p->refused_kinds[i].routine == routine && p->refused_kinds[i].type == type &&
+            p->refused_kinds[i].subtype == subtype) {
+            ++p->refused_kinds[i].count;
+            return;
+        }
+    if (p->refused_kind_count >= MU_WORLD_FX_REFUSED_KINDS) {
+        ++p->refused_kinds_lost;
+        return;
+    }
+    const int32_t i = p->refused_kind_count++;
+    p->refused_kinds[i].routine = routine;
+    p->refused_kinds[i].type = type;
+    p->refused_kinds[i].subtype = subtype;
+    p->refused_kinds[i].count = 1;
+}
+
 int mu_world_particles_create_args(mu_world_particles *p, int32_t type, const float position[3],
                                    const float angle[3], const float light[3], int32_t subtype, float scale,
                                    int32_t owner, int32_t arg8)
@@ -409,7 +435,10 @@ int mu_world_particles_create_args(mu_world_particles *p, int32_t type, const fl
     host(p, &h);
     if (owner >= 0 && !fx_object(p, owner))
         owner = MU_PT_NO_OWNER;
+    const uint64_t refused = p->list.unsupported;
     const int kept = mu_pt_create(&p->list, &h, type, position, angle, light, subtype, scale, owner, arg8);
+    if (p->list.unsupported != refused)
+        refused_kind(p, 'p', type, subtype);
     p->stats.created = p->list.created;
     p->stats.dropped = p->list.dropped;
     p->stats.unsupported = p->list.unsupported;
@@ -775,8 +804,10 @@ static int32_t world_joint(mu_world_particles *p, int32_t type, const float posi
                                        target, scale, key, skill, byte10, word13, arg14, &env);
     if (i >= 0)
         p->stats.joints_created++;
-    else if (i == -2)
+    else if (i == -2) {
         p->stats.joints_unsupported++;
+        refused_kind(p, 'j', type, subtype);
+    }
     else
         p->stats.joints_full++;
     p->stats.joints++;
@@ -812,6 +843,7 @@ int mu_world_particles_effect(mu_world_particles *p, int32_t type, int32_t subty
             return 1;
         }
         p->stats.effects_unsupported++;
+        refused_kind(p, 'e', type, subtype);
         return 0;
     }
     p->stats.effects_full++;
@@ -1268,12 +1300,14 @@ long mu_world_particles_draw(mu_world_particles *p, const float modelview[16], c
         const int direct = (record->type == 0x7ffb && record->subtype == 0) ||
                            (record->type == 0x85fc && (record->subtype == 1 || record->subtype == 2));
         const int later = record->type == 0x8569 && record->subtype == 0;
-        if (!record->live || (!spark && !direct && !later))
+        const int follow34 = record->type == 0x855d && record->subtype == 2;   /* RENDER-EFFECTS-034 */
+        if (!record->live || (!spark && !direct && !later && !follow34))
             continue;
         mu_world_item_owner *it = item_owner_slot(p, record->owner);
         const int32_t point_count = later ? 4 : 3;
         const float *point = it && record->arg8 >= 0 && record->arg8 < point_count ? it->points[record->arg8] : NULL;
         if (spark) mu_pt_item_counter_follow(record, point);
+        else if (follow34) mu_pt_consumer34_follow(record, point);
         else if (record->owner != MU_PT_NO_OWNER && !point) record->live = 0; /* stale/unknown native owner */
         else if (later) mu_pt_item_later_follow(record, point);
         else mu_pt_item_mace_follow(record, point);

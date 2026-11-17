@@ -56,7 +56,7 @@
  * MoveParticles in that order each step; the effect models before the joints, the joints before the sprite
  * section. Viewer choices: these pools are the module's own (the skills keep theirs in mu_combat), the effect
  * models play their first action (frame += speed, looping) and the tornado's PlayBuffer is counted, not played. */
-enum { MU_WORLD_PT_BITMAPS = 100, MU_WORLD_PT_CAPACITY = 4096, MU_WORLD_PT_SHADOW_MESHES = 64,
+enum { MU_WORLD_PT_BITMAPS = 104, MU_WORLD_PT_CAPACITY = 4096, MU_WORLD_PT_SHADOW_MESHES = 64,
        MU_WORLD_FX_EFFECTS = MU_SFX_EFFECTS, MU_WORLD_FX_MODELS = 19, MU_WORLD_EIN_LINKS = 4096, MU_WORLD_FX_QUADS = 8192,
        MU_WORLD_FX_LIGHTS = MU_JT_JOINTS + MU_SFX_EFFECTS,
        /* RENDER-EFFECTS-020: item owner slots, and the logic steps an unrefreshed slot is kept before reuse (longer
@@ -86,6 +86,8 @@ typedef struct mu_world_fx_model {
     mu_model model;
     mu_textures textures;
 } mu_world_fx_model;
+
+enum { MU_WORLD_FX_REFUSED_KINDS = 96 };   /* RENDER-EFFECTS-034 */
 
 typedef struct mu_world_particles_stats {
     uint64_t created, dropped, unsupported, overflow;
@@ -152,6 +154,12 @@ typedef struct mu_world_particles {
     void *combat_context;
     mu_world_item_owner item_owners[MU_WORLD_ITEM_OWNERS];   /* RENDER-EFFECTS-020 */
     uint64_t item_owners_full;
+    /* RENDER-EFFECTS-034: the refused consumer requests by pair (routine 'p' particle, 'j' joint, 'e' effect),
+     * reported as one {"world_unsupported": ...} line; the totals stay in stats. Pairs past the table's size are
+     * counted in refused_kinds_lost. */
+    struct { char routine; int32_t type, subtype; uint64_t count; } refused_kinds[MU_WORLD_FX_REFUSED_KINDS];
+    int32_t refused_kind_count;
+    uint64_t refused_kinds_lost;
 } mu_world_particles;
 
 enum { MU_WORLD_ACTOR_FX_BASE = 0x08000000, MU_WORLD_FX_COMBAT_BASE = 0x20000000 };

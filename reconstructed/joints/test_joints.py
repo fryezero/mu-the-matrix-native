@@ -94,7 +94,9 @@ class JointTests(unittest.TestCase):
             self.assertEqual(self.lib.mu_jt_kind_supported(*kind), 1)
         for kind in ((0x7f7d,8),(0x7f7d,9),(0x7f7d,10),(0x7fd5,5),(0x7fd3,2),(0x7f78,2)):
             self.assertEqual(self.lib.mu_jt_kind_supported(*kind), 1, kind)
-        for kind in ((0x7f7d, 1), (0x7f7d, 0xb), (0x7f7d, 0x1b), (0x7f7c, 0x13), (0x7fd5, 6), (0x7fd6, 4),
+        for kind in ((0x7f7c, 8), (0x7f7c, 0x13), (0x7fd5, 4), (0x7f7d, 0xb)):   # RENDER-EFFECTS-034
+            self.assertEqual(self.lib.mu_jt_kind_supported(*kind), 1, kind)
+        for kind in ((0x7f7d, 1), (0x7f7d, 0x1b), (0x7f7c, 9), (0x7f7c, 0x14), (0x7fd5, 6), (0x7fd6, 4),
                      (0x7f79, 8)):
             self.assertEqual(self.lib.mu_jt_kind_supported(*kind), 0)
 
