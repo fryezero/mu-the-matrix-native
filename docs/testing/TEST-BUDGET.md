@@ -84,8 +84,16 @@ explicit integration lane, not an ordinary finish.
 | `run_validators.py` | `--affected REF` / `--list-affected REF` | Rows whose derived inputs a diff from `merge-base(REF, HEAD)` to the working tree (commits, staged, unstaged, untracked) touches, with the reason for each, then the rows on the conservative fallback. |
 | `run_validators.py` | `--affected-since REF` / `--list-affected-since REF` | The same from REF itself (the steward: a lane-tested commit) to the working tree. Combine with `--only` to ask about one PR's rows. |
 | `run_validators.py` | `--cache [DIR]` / `--no-cache` | Reuse original-instruction results (below). Default DIR `~/Documents/MTM/mu-mac-tools/native/cache/validators`. |
+| `run_validators.py` | `--resume --report DIR` | Keep finished rows from an interrupted run. Resume requires the same Git commit, unchanged tracked files, manifest and mutation mode. |
 | `run_validators.py` | (always) | Wall times in `verify-runs/validator-times.json` (ignored); `--jobs N` starts the longest rows first, unknown rows first of all. |
 | `run_test_suites.py` | `--affected REF` / `--list-affected REF`, `--affected-since REF` | Work items (suites; `native/tests` per module) a diff can affect, with the reason for each. Lanes only: the steward keeps the full gate. |
+
+To resume, repeat the original command with `--resume`, using the same external inputs, untracked sources,
+and tools. The runner checks the saved checkout, manifest, mutation mode and recorded environment before it
+reuses rows. If the check fails, or the summary came from an older runner or was edited by `--recheck`, start a
+fresh run in a different report directory so the earlier reports stay available. The runner saves a new summary
+before the first row and replaces it after each finished row. An interruption during a summary write leaves the
+last complete summary in place.
 
 ### How `--affected` maps a diff (scripts/affected.py)
 
