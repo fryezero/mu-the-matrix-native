@@ -1,5 +1,8 @@
 # Current status
 
+Validator rechecks now exit with failure when a saved row fails or errors. Fresh runs and rechecks also fail
+if a report omits a count the manifest requires. [Usage](testing/TEST-BUDGET.md#flags).
+
 The validator runner now checks the saved Git commit, tracked-file state, manifest, mutation mode and recorded
 environment before reusing rows after an interruption. It writes a complete summary at the start and after each
 row so a stopped run can resume without picking up an earlier invocation's results. [Usage](testing/TEST-BUDGET.md#flags).

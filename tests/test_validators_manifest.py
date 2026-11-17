@@ -273,6 +273,36 @@ class ResumeTests(unittest.TestCase):
         self.assertEqual(summary['rows'], {})
 
 
+class RecheckTests(unittest.TestCase):
+    def test_command_exit_reflects_saved_report_verdicts(self):
+        cases = [
+            ('complete report', {'cases': 10, 'mutants': 2}, 0, 'pass', 0, None),
+            ('fewer cases than expected', {'cases': 9, 'mutants': 2}, 0, 'fail', 1, '#cases'),
+            ('missing case count', {'mutants': 2}, 0, 'fail', 1, '#cases'),
+            ('missing mutant count', {'cases': 10}, 0, 'fail', 1, '#mutants'),
+            ('timed out', {'cases': 10, 'mutants': 2}, None, 'error', 1, None),
+        ]
+        with tempfile.TemporaryDirectory() as folder:
+            report = Path(folder)
+            manifest = report / 'validators.toml'
+            manifest.write_text('[validate_sample]\ntest = "synthetic"\nreport = "file"\n'
+                                'cases = 10\ncases_at = "cases"\nmutants = 2\nmutants_at = "mutants"\n')
+            summary = report / 'summary.json'
+            command = [sys.executable, str(SCRIPTS / 'run_validators.py'), '--manifest', str(manifest),
+                       '--recheck', str(report)]
+            for name, data, validator_exit, verdict, expected_exit, failed_check in cases:
+                with self.subTest(name=name):
+                    summary.write_text(json.dumps({'rows': {'validate_sample': {'status': 'pass',
+                                                                                 'exit': validator_exit}}}))
+                    (report / 'validate_sample.json').write_text(json.dumps(data))
+                    result = subprocess.run(command, capture_output=True, text=True, timeout=10)
+                    row = json.loads(summary.read_text())['rows']['validate_sample']
+                    self.assertEqual((row['status'], result.returncode), (verdict, expected_exit),
+                                     result.stdout + result.stderr)
+                    if failed_check:
+                        self.assertFalse(row['expect'][failed_check]['ok'])
+
+
 class IndexTests(unittest.TestCase):
     def test_index_keeps_findings_and_replaces_only_the_validators(self):
         index = {'updated': '2026-10-17', 'findings': {'loader': {'chunks': 4}},

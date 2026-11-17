@@ -85,6 +85,7 @@ explicit integration lane, not an ordinary finish.
 | `run_validators.py` | `--affected-since REF` / `--list-affected-since REF` | The same from REF itself (the steward: a lane-tested commit) to the working tree. Combine with `--only` to ask about one PR's rows. |
 | `run_validators.py` | `--cache [DIR]` / `--no-cache` | Reuse original-instruction results (below). Default DIR `~/Documents/MTM/mu-mac-tools/native/cache/validators`. |
 | `run_validators.py` | `--resume --report DIR` | Keep finished rows from an interrupted run. Resume requires the same Git commit, unchanged tracked files, manifest and mutation mode. |
+| `run_validators.py` | `--recheck DIR` | Rejudge saved reports against the manifest and update the summary. Exit 1 if any row fails or errors. |
 | `run_validators.py` | (always) | Wall times in `verify-runs/validator-times.json` (ignored); `--jobs N` starts the longest rows first, unknown rows first of all. |
 | `run_test_suites.py` | `--affected REF` / `--list-affected REF`, `--affected-since REF` | Work items (suites; `native/tests` per module) a diff can affect, with the reason for each. Lanes only: the steward keeps the full gate. |
 
@@ -94,6 +95,9 @@ reuses rows. If the check fails, or the summary came from an older runner or was
 fresh run in a different report directory so the earlier reports stay available. The runner saves a new summary
 before the first row and replaces it after each finished row. An interruption during a summary write leaves the
 last complete summary in place.
+
+When the manifest specifies an expected case or mutant count and a report path for it, a missing or
+unreadable count fails the row. This applies to both fresh runs and saved reports.
 
 ### How `--affected` maps a diff (scripts/affected.py)
 
