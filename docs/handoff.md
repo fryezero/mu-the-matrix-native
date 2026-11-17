@@ -1,5 +1,12 @@
 # Continue from here
 
+When reviewing saved validator reports, `--recheck` returns exit 1 for failures and errors. Both the live
+runner and the recheck require counts at the manifest's specified JSON paths. [Usage](testing/TEST-BUDGET.md#flags).
+All 29 focused tests passed, including the recheck command's five saved-report cases and the
+existing checks that run with negative controls disabled.
+The macOS gate passed 2,051 tests with 437 skips, the fixtures, viewer, readers, and publication audit.
+The app packaging module was excluded.
+
 Validator resume checks: repeat the original command with `--resume` to reuse finished rows from the same
 clean tracked checkout and settings. Use a new report directory if the commit changed or the report predates
 the resume checks. [Usage and limits](testing/TEST-BUDGET.md#flags).

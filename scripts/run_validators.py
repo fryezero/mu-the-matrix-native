@@ -593,11 +593,14 @@ def finish(entry, row, report: Path, exit_code, stdout, stderr, keep_name=True) 
         return entry
     ok, expectations = evaluate(row, report_data, exit_code, stdout)
     observed = counts(row, report_data)
-    for key, value in observed.items():   # the expected case and mutant counts are expectations too
-        if row.get(key) is not None:
-            good = value == row[key]
-            expectations[f'#{key}'] = {'expected': row[key], 'observed': value, 'ok': good}
-            ok = ok and good
+    for key in ('cases', 'mutants'):
+        expected = row.get(key)
+        if expected is None or not row.get(f'{key}_at'):
+            continue
+        value = observed.get(key)
+        good = value == expected
+        expectations[f'#{key}'] = {'expected': expected, 'observed': value, 'ok': good}
+        ok = ok and good
     entry['expect'] = expectations
     entry.update(observed)
     if row['report'] == 'file' and report_data is None and exit_code == 0:
@@ -844,7 +847,8 @@ def main(argv=None) -> int:
     if args.recheck:
         summary = recheck(rows, args.recheck)
         print_totals(summary)
-        return 0
+        totals = summary['totals']
+        return 0 if totals['fail'] == 0 and totals['error'] == 0 else 1
     if args.index:
         if not args.source:
             raise SystemExit('--index needs --from DIR (a previous --report directory)')
