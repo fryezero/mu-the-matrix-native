@@ -627,6 +627,8 @@ def recheck(rows: dict, directory: Path) -> dict:
             head, _, rest = text.partition('\n--- stdout\n')
             stdout, _, stderr = rest.partition('\n--- stderr\n')
         finish(entry, rows[name], directory / f'{name}.json', entry['exit'], stdout, stderr)
+    # Rechecking can change verdicts without re-running the original manifest.
+    summary.pop('resume_context', None)
     write_summary(directory, summary)
     return summary
 
@@ -659,6 +661,35 @@ def environment() -> dict:
             'platform': sys.platform, 'evidence_dir': 'MU_EVIDENCE_DIR' if os.environ.get('MU_EVIDENCE_DIR')
             else 'repository evidence/', 'game_root_set': bool(os.environ.get('MU_GAME_ROOT')),
             'snapshot_dir_set': bool(os.environ.get('MU_SNAPSHOT_DIR'))}
+
+
+def resume_context(manifest: Path) -> dict:
+    # Reports can themselves be untracked files inside the checkout.
+    status = subprocess.run(['git', '-C', str(REPO), 'status', '--porcelain', '--untracked-files=no'],
+                            capture_output=True, check=False)
+    return {'clean_checkout': status.returncode == 0 and not status.stdout,
+            'manifest_sha256': pins.sha256_file(manifest)}
+
+
+def resume_rows(directory: Path, summary: dict) -> dict:
+    previous = json.loads((directory / 'summary.json').read_text())
+    saved = previous.get('resume_context')
+    current = summary['resume_context']
+    if not saved:
+        reason = 'the saved summary has no resume context'
+    elif not saved['clean_checkout'] or not current['clean_checkout']:
+        reason = 'either checkout had uncommitted changes or its state could not be verified'
+    elif not summary['environment']['commit'] or previous['environment']['commit'] != summary['environment']['commit']:
+        reason = 'the checkout commit changed or could not be verified'
+    elif previous.get('no_mutants', False) != summary.get('no_mutants', False):
+        reason = 'the mutation mode changed'
+    elif saved['manifest_sha256'] != current['manifest_sha256']:
+        reason = 'the validator manifest changed'
+    elif previous['environment'] != summary['environment']:
+        reason = 'the recorded validation environment changed'
+    else:
+        return previous['rows']
+    raise SystemExit(f'--resume refused: {reason}. Start a new run in a different --report directory.')
 
 
 def select(rows: dict, only: str | None) -> list[str]:
@@ -790,7 +821,7 @@ def main(argv=None) -> int:
     parser.add_argument('--note', help='with --index: a sentence recorded with the regenerated rows')
     parser.add_argument('--recheck', type=Path, help='re-judge a --report directory against the manifest')
     parser.add_argument('--resume', action='store_true',
-                        help='with --report: keep its finished rows, run the missing and killed ones')
+                        help='with --report: keep its finished rows from the same clean commit and run settings')
     parser.add_argument('--no-mutants', action='store_true',
                         help='run without the planted mistakes and their expectations (TEST-SPEED-001)')
     parser.add_argument('--affected', metavar='REF',
@@ -852,6 +883,8 @@ def main(argv=None) -> int:
     if args.report:
         args.report.mkdir(parents=True, exist_ok=True)
     summary = {'date': datetime.date.today().isoformat(), 'environment': environment(), 'rows': {}}
+    if args.report:
+        summary['resume_context'] = resume_context(args.manifest)
     if args.no_mutants:
         summary['no_mutants'] = True
     if os.environ.get(original_cache.ENV):
@@ -859,13 +892,15 @@ def main(argv=None) -> int:
     if args.resume:
         if not args.report or not (args.report / 'summary.json').exists():
             raise SystemExit('--resume needs --report DIR with a summary.json from an earlier run')
-        summary['rows'] = json.loads((args.report / 'summary.json').read_text())['rows']
+        summary['rows'] = resume_rows(args.report, summary)
         # keep finished rows; rerun the missing ones and those the system killed (negative exit) or timed out
         done = {n for n, e in summary['rows'].items()
                 if e.get('status') in ('pass', 'fail', 'skip') and (e.get('exit') is None or e['exit'] >= 0)}
         names = [n for n in names if n not in done]
         for name in names:
             summary['rows'].pop(name, None)
+    if args.report:
+        write_summary(args.report, summary)
     lock = threading.Lock()
 
     def one(name):
@@ -910,7 +945,15 @@ def print_totals(summary: dict) -> None:
 
 def write_summary(directory: Path, summary: dict) -> None:
     summarize(summary)
-    (directory / 'summary.json').write_text(json.dumps(summary, indent=1) + '\n')
+    with tempfile.NamedTemporaryFile(mode='w', dir=directory, prefix='.summary-', delete=False) as output:
+        temporary = Path(output.name)
+        try:
+            json.dump(summary, output, indent=1)
+            output.write('\n')
+            output.close()
+            temporary.replace(directory / 'summary.json')
+        finally:
+            temporary.unlink(missing_ok=True)
 
 
 if __name__ == '__main__':

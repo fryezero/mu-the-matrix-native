@@ -7,10 +7,12 @@
   wrong one a failure) and the evidence-index regeneration, on synthetic data only. Nothing here runs
   client code.
 """
+from contextlib import ExitStack
 import json
 import os
 from pathlib import Path
 import re
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -185,6 +187,90 @@ class RunnerInputTests(unittest.TestCase):
     def test_dry_run_lists_without_running(self):
         self.assertEqual(rv.main(['--only', 'validate_hud']), 0)
         self.assertEqual(rv.main(['--list', '--only', 'validate_social2*']), 0)
+
+
+class ResumeTests(unittest.TestCase):
+    def setUp(self):
+        contexts = ExitStack()
+        self.addCleanup(contexts.close)
+        folder = contexts.enter_context(tempfile.TemporaryDirectory())
+        self.checkout = Path(folder) / 'checkout'
+        self.checkout.mkdir()
+        self.report = Path(folder) / 'report'
+        self.manifest = self.checkout / 'validators.toml'
+        scripts = self.checkout / 'scripts'
+        scripts.mkdir()
+        self.manifest.write_text(
+            '[validate_a]\ntest = "a"\nargs = ["--mutants"]\n'
+            '[validate_b]\ntest = "b"\nargs = ["--mutants"]\n')
+        for row in ('a', 'b'):
+            (scripts / f'validate_{row}.py').write_text('print("synthetic check passed")\n')
+        self.git('init', '-q')
+        self.git('add', '.')
+        self.commit()
+        contexts.enter_context(mock.patch.object(rv, 'REPO', self.checkout))
+        contexts.enter_context(mock.patch.object(rv, 'record_times'))
+        contexts.enter_context(mock.patch.dict(os.environ, {'MU_RECOVERY_INTEGRATION': '1'}))
+
+    def git(self, *args):
+        subprocess.run(['git', '-C', str(self.checkout), *args], capture_output=True, check=True)
+
+    def commit(self, *args):
+        self.git('-c', 'user.name=Validator test', '-c', 'user.email=test@example.invalid',
+                 'commit', '-qm', 'Synthetic revision', *args)
+
+    def run_validator(self, *args):
+        return rv.main(['--manifest', str(self.manifest), '--private', '--report', str(self.report), *args])
+
+    def assert_resume_rejected(self, reason, *args):
+        saved = (self.report / 'summary.json').read_bytes()
+        with self.assertRaisesRegex(SystemExit, reason):
+            self.run_validator('--resume', *args)
+        self.assertEqual((self.report / 'summary.json').read_bytes(), saved)
+
+    def test_resume_rejects_another_commit(self):
+        self.assertEqual(self.run_validator('--only', 'a'), 0)
+        self.commit('--allow-empty')
+        self.assert_resume_rejected('commit changed')
+
+    def test_resume_rejects_a_change_in_mutation_mode(self):
+        self.assertEqual(self.run_validator('--only', 'a', '--no-mutants'), 0)
+        self.assert_resume_rejected('mutation mode changed')
+
+    def test_resume_rejects_uncommitted_changes(self):
+        self.assertEqual(self.run_validator('--only', 'a'), 0)
+        (self.checkout / 'scripts' / 'validate_a.py').write_text('raise SystemExit(1)\n')
+        self.assert_resume_rejected('uncommitted changes')
+
+    def test_resume_rejects_a_changed_external_manifest(self):
+        external = self.report.parent / 'external.toml'
+        external.write_bytes(self.manifest.read_bytes())
+        self.manifest = external
+        self.assertEqual(self.run_validator('--only', 'a'), 0)
+        external.write_text(external.read_text().replace('test = "a"', 'test = "changed"'))
+        self.assert_resume_rejected('manifest changed')
+
+    def test_resume_reuses_a_pass_and_runs_a_missing_row(self):
+        self.report = self.checkout / 'untracked-report'
+        self.assertEqual(self.run_validator('--only', 'a'), 0)
+        with mock.patch.object(rv, 'run_row', wraps=rv.run_row) as run_row:
+            self.assertEqual(self.run_validator('--resume'), 0)
+        self.assertEqual([call.args[0] for call in run_row.call_args_list], ['validate_b'])
+        summary = json.loads((self.report / 'summary.json').read_text())
+        self.assertEqual(summary['totals'], {'pass': 2, 'fail': 0, 'error': 0, 'skip': 0})
+
+    def test_rechecked_verdicts_cannot_be_resumed(self):
+        self.assertEqual(self.run_validator('--only', 'a'), 0)
+        rv.recheck(rv.load_manifest(self.manifest), self.report)
+        self.assert_resume_rejected('no resume context')
+
+    def test_new_run_replaces_stale_summary_before_first_row(self):
+        self.assertEqual(self.run_validator('--only', 'a'), 0)
+        with mock.patch.object(rv, 'run_row', side_effect=KeyboardInterrupt):
+            with self.assertRaises(KeyboardInterrupt):
+                self.run_validator()
+        summary = json.loads((self.report / 'summary.json').read_text())
+        self.assertEqual(summary['rows'], {})
 
 
 class IndexTests(unittest.TestCase):
