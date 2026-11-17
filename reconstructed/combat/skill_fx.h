@@ -275,6 +275,9 @@ typedef struct mu_sfx_decal {
 } mu_sfx_decal;
 int mu_sfx_effect_decal(const mu_sfx_effect *effect, int32_t world, mu_sfx_decal *out);
 
+/* RENDER-EFFECTS-035: 1 when mu_sfx_effect_create admits this kind. Read-only. */
+int mu_sfx_effect_kind_supported(int32_t type, int32_t subtype);
+
 /* Warp types 0x1a8/9/b/c clear the writable caller light after copying it. */
 int mu_sfx_effect_create(mu_sfx_effect *e, int32_t type, int32_t subtype, const float position[3],
                          const float angle[3], float light[3], int32_t owner, float scale,

@@ -46,6 +46,7 @@
 #include "../../reconstructed/combat/combat.h"
 #include "../../reconstructed/combat/skill_fx.h"
 #include "../../reconstructed/combat/demo_skill_fx.h"
+#include "../../reconstructed/combat/catalogue_skill_fx.h"
 #include "mu_bmd.h"
 #include "mu_character.h"
 #include "mu_image.h"
@@ -184,6 +185,9 @@ typedef struct mu_combat_stats {
     uint32_t death_stab_steps, death_stab_requests, death_stab_refused, death_stab_context_refused;
     uint32_t skill30_requests, skill30_arrows, skill30_refused;
     uint32_t skill32_casts, skill32_requests, skill32_refused;
+    /* RENDER-EFFECTS-035: catalogue rows outside the learned demo set (authored fixtures only) */
+    uint32_t skill35_casts, skill35_requests, skill35_refused, skill35_context_refused;
+    uint32_t buff_end_requests, buff_end_refused;   /* RENDER-EFFECTS-035: learned buffs 27 / 28, cast end bodies */
 } mu_combat_stats;
 
 struct mu_world_particles;
@@ -224,6 +228,7 @@ typedef struct mu_combat {
     int32_t attack_target;     /* target of the running attack */
     uint16_t skill30_target_index;
     mu_skill32_context skill32_context;
+    uint8_t skill35_remote, skill35_self;   /* MU_SKILL35_CONTEXT: authored receive-record context */
     int32_t target_ice_ticks, target_ice_until[MU_WORLD_ACTORS_MAX];
     uint8_t blood_owner_flag; /* separate authored OBJECT +0x3b fixture input */
     int32_t attack_skill;      /* skill of the running attack */

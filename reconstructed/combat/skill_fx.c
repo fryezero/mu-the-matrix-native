@@ -342,6 +342,12 @@ static int effect_supported(int32_t type, int32_t sub)
     }
 }
 
+/* RENDER-EFFECTS-035: the constructor's admission predicate, for request censuses. */
+int mu_sfx_effect_kind_supported(int32_t type, int32_t subtype)
+{
+    return effect_supported(type, subtype);
+}
+
 static int is_hero_owner(const mu_sfx_effect *e, const mu_sfx_env *env)
 {
     return env && env->hero_object >= 0 && e->owner == env->hero_object;

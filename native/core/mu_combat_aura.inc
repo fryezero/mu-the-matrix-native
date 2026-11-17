@@ -49,8 +49,10 @@ static void aura_draw_plan(mu_combat *c)
     const uint32_t buffs=aura_presence(c);
     if(!buffs) return;
     mu_aura_input in={0}; in.buffs=buffs; in.owner=MU_COMBAT_HERO_OBJECT; in.key=-1;
-    /* Explicit fixture link bones, the Player right/left default links. No equipment selector. */
-    in.link[0]=33; in.link[1]=42;
+    /* RENDER-EFFECTS-035: the general link selector for the Player model type (0x0137eefc);
+     * both slots are written for it. */
+    uint8_t links[2]={0,0}; (void)mu_link_bones(0xa91,links);
+    in.link[0]=links[0]; in.link[1]=links[1];
     memcpy(in.position,c->walk->hero.position,sizeof in.position);
     memcpy(in.angle,c->walk->hero.angle,sizeof in.angle);
     for(int i=0;i<5;++i) in.existing4|=c->aura_joints[i].live;

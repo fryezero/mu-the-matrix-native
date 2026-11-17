@@ -319,7 +319,8 @@ class InstalledTests(unittest.TestCase):
         # skill models + the weapon, + Ice01/Ice02/Magic02 (RENDER-EFFECTS-002, #221) + Rageful Blow's 9 (RENDER-EFFECTS-004,
         # #247); all 20 Data/Skill files exist in the installed client (INTEGRATION-GREEN-002); + the ground skills'
         # min_elf_skill_ring01..08 (Data/Effect, RENDER-EFFECTS-015): 29
-        self.assertEqual((summary['bitmaps_loaded'], summary['models_loaded']), (39, 29))
+        # 31 since RENDER-EFFECTS-033 added Piercing.bmd and blood_storm_sword.bmd to the effect models
+        self.assertEqual((summary['bitmaps_loaded'], summary['models_loaded']), (39, 31))
         self.assertEqual(summary['pick_hits'], 1)
         self.assertGreaterEqual(summary['kills'], 1)
 

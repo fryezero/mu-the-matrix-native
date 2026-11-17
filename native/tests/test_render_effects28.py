@@ -40,7 +40,9 @@ class Native(unittest.TestCase):
     def test_both_buffs_draw_expire_and_repeat_without_power_changes(self):
         for skill in [27,28]:
             with self.subTest(skill=skill):
-                before,off=self.cast(skill,'0');rows,on=self.cast(skill)
+                # RENDER-EFFECTS-035: 28's cast end body now draws its ground effect; run until it retires.
+                length=140 if skill==28 else 32
+                before,off=self.cast(skill,'0',length);rows,on=self.cast(skill,frames=length)
                 aura=next(r for r in rows if r.get('aura_fixture'))
                 self.assertGreater(aura['requests'],0);self.assertGreater(aura['created'],0)
                 self.assertEqual((aura['refused'],aura['live']),(0,0))
@@ -53,7 +55,7 @@ class Native(unittest.TestCase):
                 frames=[r for r in rows if 'combat_frame' in r]
                 self.assertTrue(all(r['monsters'][0]['hp']==frames[0]['monsters'][0]['hp'] for r in frames))
                 self.assertNotEqual(on,off);self.assertEqual(on[0],off[0]);self.assertEqual(on[-1],off[-1])
-                _,repeat=self.cast(skill);self.assertEqual(on,repeat)
+                _,repeat=self.cast(skill,frames=length);self.assertEqual(on,repeat)
     def test_absent_or_invalid_fixture_stays_disabled(self):
         for duration in ['0','-1','10001','bad','3oops']:
             rows,_=self.cast(27,duration,4)

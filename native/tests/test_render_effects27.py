@@ -77,8 +77,18 @@ class Native(unittest.TestCase):
             for p in paths: p.with_suffix('.off').rename(p)
         self.assertNotEqual(images, absent)
 
+    def test_promoted_knight_byte_uses_the_same_link(self):
+        # RENDER-EFFECTS-035: the link byte depends on the model type alone (0x0137eefc), so a
+        # promoted DK class byte selects the same slot-0 bone as the base byte.
+        base, _ = self.cast()
+        rows, _ = self.cast(cls=0x11)
+        stab = next(r for r in rows if r.get('death_stab') is True)
+        expected = next(r for r in base if r.get('death_stab') is True)
+        self.assertEqual((stab['steps'], stab['requests'], stab['refused'], stab['context_refused']),
+                         (expected['steps'], expected['requests'], 0, 0))
+
     def test_other_class_and_missing_weapon_context_are_refused(self):
-        for cls, weapon in [(0, 'sword'), (0x11, 'sword'), (1, 'none')]:
+        for cls, weapon in [(0, 'sword'), (2, 'sword'), (1, 'none')]:
             with self.subTest(cls=cls, weapon=weapon):
                 rows, _ = self.cast(cls=cls, weapon=weapon)
                 stab = next(r for r in rows if r.get('death_stab') is True)
